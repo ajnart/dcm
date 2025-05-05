@@ -316,6 +316,25 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "tinyfeed",
+    name: "TinyFeed",
+    description:
+      "Generate a static HTML page in the style of Hacker News from a collection of feeds",
+    category: "Productivity",
+    tags: ["RSS", "News", "Reading"],
+    githubUrl: "https://github.com/TheBigRoomXXL/tinyfeed",
+    icon: "https://github.com/TheBigRoomXXL/tinyfeed/blob/main/.images/icon.png?raw=true",
+    composeContent: `services:
+  tinyfeed:
+    image: thebigroomxxl/tinyfeed:latest
+    container_name: \${CONTAINER_PREFIX}tinyfeed
+    command: --daemon -i /app/config/feeds.txt -o /app/data/index.html
+    volumes:
+      - \${CONFIG_PATH}/tinyfeed/:/app/config/ # Add your feeds.txt here
+      - \${DATA_PATH}/tinyfeed/:/app/data/     # Point your webserver to this folder
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "wallabag",
     name: "Wallabag",
     description:
