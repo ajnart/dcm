@@ -1,5 +1,6 @@
 import type { DockerSettings } from "@/components/settings-panel"
 import type { DockerTool } from "@/lib/docker-tools"
+import { copyTextToClipboard } from "@/lib/clipboard-utils"
 import posthog from "posthog-js"
 import { toast } from "sonner"
 
@@ -10,7 +11,11 @@ export async function copyToClipboard(
   settings: DockerSettings,
 ): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(content)
+    const successful = await copyTextToClipboard(content)
+    
+    if (!successful) {
+      throw new Error("Failed to copy content to clipboard")
+    }
 
     toast.success(
       `${fileType === "compose" ? "Docker Compose" : ".env"} file copied to clipboard`,

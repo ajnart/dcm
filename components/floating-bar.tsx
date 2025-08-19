@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
 import { generateShareUrl } from "@/lib/url-utils"
+import { copyTextToClipboard } from "@/lib/clipboard-utils"
 import { cn } from "@/lib/utils"
 import { RefreshCw, Search, Share2 } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -97,18 +98,22 @@ export default function FloatingBar({
     // Show animation state
     setIsSharing(true)
 
-    // Use clipboard API
+    // Use clipboard API with fallback
     try {
-      await navigator.clipboard.writeText(shareUrl)
+      const successful = await copyTextToClipboard(shareUrl)
+      
+      if (successful) {
+        toast.success("Share URL copied to clipboard!", {
+          description: "Share this link to show your selected services",
+        })
 
-      toast.success("Share URL copied to clipboard!", {
-        description: "Share this link to show your selected services",
-      })
-
-      posthog.capture("share_selection_clipboard", {
-        selected_tools: selectedTools,
-        url: shareUrl,
-      })
+        posthog.capture("share_selection_clipboard", {
+          selected_tools: selectedTools,
+          url: shareUrl,
+        })
+      } else {
+        throw new Error("Failed to copy URL")
+      }
     } catch (err) {
       toast.error("Failed to copy URL", {
         description: "Please try again or copy manually",
