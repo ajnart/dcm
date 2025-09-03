@@ -3,10 +3,10 @@
 import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
 import { Button } from "@/components/ui/button"
+import { useClipboard } from "@/hooks/use-clipboard"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
 import { generateShareUrl } from "@/lib/url-utils"
-import { copyTextToClipboard } from "@/lib/clipboard-utils"
 import { cn } from "@/lib/utils"
 import { RefreshCw, Search, Share2 } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -51,6 +51,7 @@ export default function FloatingBar({
   const [isSharing, setIsSharing] = useState(false)
   const [isResetActive, setIsResetActive] = useState(false)
   const { settings, resetSettings } = useSettings()
+  const { copyToClipboard } = useClipboard()
 
   useEffect(() => {
     setIsMounted(true)
@@ -98,25 +99,21 @@ export default function FloatingBar({
     // Show animation state
     setIsSharing(true)
 
-    // Use clipboard API with fallback
-    try {
-      const successful = await copyTextToClipboard(shareUrl)
-      
-      if (successful) {
-        toast.success("Share URL copied to clipboard!", {
-          description: "Share this link to show your selected services",
-        })
+    // Use React hook for clipboard operations
+    const success = await copyToClipboard(shareUrl)
+    
+    if (success) {
+      toast.success("Share URL copied to clipboard!", {
+        description: "Share this link to show your selected services",
+      })
 
-        posthog.capture("share_selection_clipboard", {
-          selected_tools: selectedTools,
-          url: shareUrl,
-        })
-      } else {
-        throw new Error("Failed to copy URL")
-      }
-    } catch (err) {
+      posthog.capture("share_selection_clipboard", {
+        selected_tools: selectedTools,
+        url: shareUrl,
+      })
+    } else {
       toast.error("Failed to copy URL", {
-        description: "Please try again or copy manually",
+        description: "Please ensure you're using HTTPS or try again",
       })
     }
 

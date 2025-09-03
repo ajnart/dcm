@@ -1,6 +1,5 @@
 import type { DockerSettings } from "@/components/settings-panel"
 import type { DockerTool } from "@/lib/docker-tools"
-import { copyTextToClipboard } from "@/lib/clipboard-utils"
 import posthog from "posthog-js"
 import { toast } from "sonner"
 
@@ -11,11 +10,12 @@ export async function copyToClipboard(
   settings: DockerSettings,
 ): Promise<boolean> {
   try {
-    const successful = await copyTextToClipboard(content)
-    
-    if (!successful) {
-      throw new Error("Failed to copy content to clipboard")
+    // Check if we're in a secure context and clipboard API is available
+    if (!navigator.clipboard) {
+      throw new Error("Clipboard API not available. This feature requires HTTPS or localhost.")
     }
+
+    await navigator.clipboard.writeText(content)
 
     toast.success(
       `${fileType === "compose" ? "Docker Compose" : ".env"} file copied to clipboard`,
@@ -35,9 +35,11 @@ export async function copyToClipboard(
   } catch (err) {
     console.error("Failed to copy: ", err)
 
+    const errorMessage = err instanceof Error ? err.message : "An error occurred while copying"
     toast.error("Failed to copy to clipboard", {
-      description:
-        err instanceof Error ? err.message : "An error occurred while copying",
+      description: errorMessage.includes("not available") 
+        ? "Please ensure you're using HTTPS or localhost"
+        : errorMessage,
       duration: 5000,
     })
 
