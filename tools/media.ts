@@ -271,7 +271,7 @@ export const media: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/sabnzbd:/config
-      - \${DATA_PATH}/downloads:/data/downloads
+      - \${DATA_PATH}:/data
     ports:
       - 8080:8080
     restart: \${RESTART_POLICY}`,
@@ -298,8 +298,7 @@ export const media: DockerTool[] = [
       - PASS=password
     volumes:
       - \${CONFIG_PATH}/transmission:/config
-      - \${DATA_PATH}/downloads:/data/downloads
-      - \${DATA_PATH}/watch:/watch
+      - \${DATA_PATH}:/data
     ports:
       - 9091:9091
       - 51413:51413
@@ -324,7 +323,7 @@ export const media: DockerTool[] = [
       - PUID=\${PUID}
       - PGID=\${PGID}
     volumes:
-      - \${DATA_PATH}/downloads:/downloads
+      - \${DATA_PATH}:/data
     ports:
       - 8081:8081
     restart: \${RESTART_POLICY}`,
@@ -547,7 +546,7 @@ export const media: DockerTool[] = [
       - "8945:8945"
     volumes:
       - \${CONFIG_PATH}/pinchflat:/config
-      - \${DATA_PATH}/downloads:/downloads
+      - \${DATA_PATH}:/data
     restart: \${RESTART_POLICY}`,
   },
   {
