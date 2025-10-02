@@ -51,7 +51,8 @@ export const composeContentSchema = z
       // (2 spaces for services, 4 for properties)
       return content.split("\n").every((line) => {
         if (line.trim() === "") return true
-        if (line.startsWith("services:")) return true
+        // Allow top-level sections (services, networks, volumes, etc.)
+        if (line.match(/^[a-zA-Z0-9_-]+:/)) return true
         // Check service level (2 spaces)
         if (line.match(/^\s{2}[a-zA-Z0-9_-]+:/)) return true
         // Check property level (4 spaces)
