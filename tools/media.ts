@@ -479,6 +479,67 @@ export const media: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "librephotos",
+    name: "LibrePhotos",
+    isUnsupported: true,
+    description:
+      "Self-hosted photo management application, designed as a privacy-respecting alternative to Google Photos. Features face recognition, object detection, and semantic image search.",
+    category: "Media",
+    tags: ["Photos", "AI", "Privacy"],
+    githubUrl: "https://github.com/LibrePhotos/librephotos",
+    composeContent: `services:
+  librephotos-db:
+    image: pgautoupgrade/pgautoupgrade:latest
+    container_name: \${CONTAINER_PREFIX}librephotos-db
+    environment:
+      - POSTGRES_USER=librephotos
+      - POSTGRES_PASSWORD=librephotos
+      - POSTGRES_DB=librephotos
+    volumes:
+      - \${CONFIG_PATH}/librephotos/db:/var/lib/postgresql/data
+    restart: \${RESTART_POLICY}
+  librephotos-frontend:
+    image: reallibrephotos/librephotos-frontend:latest
+    container_name: \${CONTAINER_PREFIX}librephotos-frontend
+    restart: \${RESTART_POLICY}
+  librephotos-backend:
+    image: reallibrephotos/librephotos:latest
+    container_name: \${CONTAINER_PREFIX}librephotos-backend
+    environment:
+      - SECRET_KEY=changeme
+      - BACKEND_HOST=librephotos-backend
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+      - DB_BACKEND=postgresql
+      - DB_NAME=librephotos
+      - DB_USER=librephotos
+      - DB_PASS=librephotos
+      - DB_HOST=librephotos-db
+      - DB_PORT=5432
+      - DEBUG=0
+    volumes:
+      - \${DATA_PATH}/photos:/data
+      - \${CONFIG_PATH}/librephotos/protected_media:/protected_media
+      - \${CONFIG_PATH}/librephotos/logs:/logs
+      - \${CONFIG_PATH}/librephotos/cache:/root/.cache
+    restart: \${RESTART_POLICY}
+    depends_on:
+      - librephotos-db
+  librephotos-proxy:
+    image: reallibrephotos/librephotos-proxy:latest
+    container_name: \${CONTAINER_PREFIX}librephotos-proxy
+    volumes:
+      - \${DATA_PATH}/photos:/data
+      - \${CONFIG_PATH}/librephotos/protected_media:/protected_media
+    ports:
+      - 3000:80
+    restart: \${RESTART_POLICY}
+    depends_on:
+      - librephotos-backend
+      - librephotos-frontend`,
+  },
+  {
     id: "kavita",
     name: "Kavita",
     description:
