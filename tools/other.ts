@@ -593,8 +593,7 @@ export const other: DockerTool[] = [
   {
     id: "betterbahn",
     name: "Better Bahn",
-    description:
-      "Better Bahn - A tool for monitoring and tracking TV shows.",
+    description: "Better Bahn - A tool for monitoring and tracking TV shows.",
     category: "Media",
     tags: ["TV", "PVR", "Monitoring"],
     githubUrl: "https://github.com/l2xu/betterbahn",
