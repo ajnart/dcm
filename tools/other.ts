@@ -69,6 +69,37 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "gluetun",
+    name: "Gluetun VPN client",
+    description:
+      "Lightweight swiss-army-knife-like VPN client to multiple VPN service providers",
+    category: "Security",
+    tags: ["Privacy", "Security", "VPN"],
+    githubUrl: "https://github.com/qdm12/gluetun",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gluetun.svg",
+    composeContent: `services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: \${CONTAINER_PREFIX}gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+    volumes:
+      - \${CONFIG_PATH}/gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=ivpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=
+      - OPENVPN_PASSWORD=
+      - TZ=\${TZ}
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "gitea",
     name: "Gitea",
     description: "A painless self-hosted Git service.",
