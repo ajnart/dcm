@@ -51,7 +51,7 @@ export default function FloatingBar({
   const [isSharing, setIsSharing] = useState(false)
   const [isResetActive, setIsResetActive] = useState(false)
   const { settings, resetSettings } = useSettings()
-  const { copyToClipboard } = useClipboard()
+  const { copy } = useClipboard()
 
   useEffect(() => {
     setIsMounted(true)
@@ -100,8 +100,8 @@ export default function FloatingBar({
     setIsSharing(true)
 
     // Use React hook for clipboard operations
-    const success = await copyToClipboard(shareUrl)
-    
+    const success = await copy(shareUrl)
+
     if (success) {
       toast.success("Share URL copied to clipboard!", {
         description: "Share this link to show your selected services",
