@@ -69,6 +69,28 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "authentik-proxy",
+    name: "Authentik-Proxy",
+    description: "authentik is an open-source Identity Provider focused on flexibility and versatility. You can use authentik in an existing environment to add support for new protocols, implement sign-up/recovery/etc. in your application so you don't have to deal with it, and many other things.",
+    category: "Security",
+    tags: ["Security", "Proxy", "Reverse Proxy"],
+    githubUrl: "https://github.com/goauthentik/authentik",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/authentik.svg",
+    composeContent: `services:
+  proxy:
+    container_name: \${CONTAINER_PREFIX}authentik-proxy
+    environment:
+      - TZ=\${TZ}
+      - AUTHENTIK_HOST=\${AUTHENTIK_HOST}
+      - AUTHENTIK_INSECURE=false
+      - AUTHENTIK_TOKEN=\${AUTHENTIK_TOKEN}
+    ports:
+      - \${AUTHENTIK_HTTP_PORT}:9000/tcp
+      - \${AUTHENTIK_HTTPS_PORT}:9443/tcp
+    image: ghcr.io/goauthentik/proxy
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "gitea",
     name: "Gitea",
     description: "A painless self-hosted Git service.",
