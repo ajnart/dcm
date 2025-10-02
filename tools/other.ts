@@ -590,4 +590,29 @@ export const other: DockerTool[] = [
       - 9925:9000
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "betterbahn",
+    name: "Better Bahn",
+    description:
+      "Better Bahn - A tool for monitoring and tracking TV shows.",
+    category: "Media",
+    tags: ["TV", "PVR", "Monitoring"],
+    githubUrl: "https://github.com/l2xu/betterbahn",
+    composeContent: `services:
+  betterbahn:
+    image: ghcr.io/l2xu/betterbahn:latest
+    container_name: \${CONTAINER_PREFIX}betterbahn
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - TZ=\${TZ}
+      - UMASK=\${UMASK}
+    volumes:
+      - \${CONFIG_PATH}/betterbahn:/config
+      - \${DATA_PATH}/tv:/data/tv
+      - \${DATA_PATH}/downloads:/data/downloads
+    ports:
+      - 8989:8989
+    restart: \${RESTART_POLICY}`,
+  },
 ]
