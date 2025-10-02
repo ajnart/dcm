@@ -47,6 +47,25 @@ export const other: DockerTool[] = [
   },
 
   {
+    id: "erugo",
+    name: "Erugo",
+    description:
+      "A powerful, self-hosted file-sharing platform built with PHP and Laravel with a Vue.js frontend. It offers secure, customizable file-transfer capabilities through an elegant user interface.",
+    category: "Storage",
+    tags: ["File Sharing"],
+    githubUrl: "https://github.com/ErugoOSS/Erugo",
+    composeContent: `services:
+  erugo:
+    image: wardy784/erugo:latest
+    container_name: \${CONTAINER_PREFIX}erugo
+    volumes:
+      - \${DATA_PATH}/erugo:/var/www/html/storage
+    ports:
+      - 9998:80
+    restart: \${RESTART_POLICY}`,
+  },
+
+  {
     id: "vaultwarden",
     name: "Vaultwarden",
     description: "Unofficial Bitwarden compatible server written in Rust.",
