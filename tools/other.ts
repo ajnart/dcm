@@ -116,6 +116,101 @@ export const other: DockerTool[] = [
     command: code-server --bind-addr 0.0.0.0:8080 --auth password --disable-telemetry
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "maxun",
+    name: "Maxun",
+    description:
+      "Open-Source No-Code Web Data Extraction Platform. Train a robot in 2 minutes and scrape the web on auto-pilot.",
+    category: "Development",
+    tags: ["AI", "Automation", "Bot"],
+    githubUrl: "https://github.com/getmaxun/maxun",
+    composeContent: `services:
+  maxun-postgres:
+    image: postgres:13
+    container_name: \${CONTAINER_PREFIX}maxun-postgres
+    environment:
+      - POSTGRES_USER=maxun
+      - POSTGRES_PASSWORD=maxun_password
+      - POSTGRES_DB=maxun
+      - TZ=\${TZ}
+    ports:
+      - "5432:5432"
+    volumes:
+      - \${DATA_PATH}/maxun/postgres:/var/lib/postgresql/data
+    restart: \${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  maxun-minio:
+    image: minio/minio
+    container_name: \${CONTAINER_PREFIX}maxun-minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - TZ=\${TZ}
+    command: server /data --console-address :9001
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - \${DATA_PATH}/maxun/minio:/data
+    restart: \${RESTART_POLICY}
+
+  maxun-backend:
+    image: getmaxun/maxun-backend:latest
+    container_name: \${CONTAINER_PREFIX}maxun-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - BACKEND_URL=http://localhost:8080
+      - BACKEND_PORT=8080
+      - DB_NAME=maxun
+      - DB_USER=maxun
+      - DB_PASSWORD=maxun_password
+      - DB_HOST=maxun-postgres
+      - DB_PORT=5432
+      - JWT_SECRET=change_this_secret_key
+      - ENCRYPTION_KEY=change_this_encryption_key
+      - MINIO_ENDPOINT=maxun-minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      - PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+      - CI=true
+      - CONTAINER=true
+      - CHROMIUM_FLAGS=--disable-gpu --no-sandbox --headless=new
+      - TZ=\${TZ}
+    security_opt:
+      - seccomp=unconfined
+    shm_size: 2gb
+    mem_limit: 2g
+    depends_on:
+      - maxun-postgres
+      - maxun-minio
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+    restart: \${RESTART_POLICY}
+
+  maxun-frontend:
+    image: getmaxun/maxun-frontend:latest
+    container_name: \${CONTAINER_PREFIX}maxun-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - PUBLIC_URL=http://localhost:5173
+      - BACKEND_URL=http://localhost:8080
+      - FRONTEND_PORT=5173
+      - VITE_BACKEND_URL=http://localhost:8080
+      - VITE_PUBLIC_URL=http://localhost:5173
+      - TZ=\${TZ}
+    depends_on:
+      - maxun-backend
+    restart: \${RESTART_POLICY}`,
+  },
 
   {
     id: "elasticsearch",
