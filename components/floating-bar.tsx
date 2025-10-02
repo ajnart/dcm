@@ -3,6 +3,7 @@
 import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
 import { Button } from "@/components/ui/button"
+import { useClipboard } from "@/hooks/use-clipboard"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
 import { generateShareUrl } from "@/lib/url-utils"
@@ -50,6 +51,7 @@ export default function FloatingBar({
   const [isSharing, setIsSharing] = useState(false)
   const [isResetActive, setIsResetActive] = useState(false)
   const { settings, resetSettings } = useSettings()
+  const { copy } = useClipboard()
 
   useEffect(() => {
     setIsMounted(true)
@@ -97,10 +99,10 @@ export default function FloatingBar({
     // Show animation state
     setIsSharing(true)
 
-    // Use clipboard API
-    try {
-      await navigator.clipboard.writeText(shareUrl)
+    // Use React hook for clipboard operations
+    const success = await copy(shareUrl)
 
+    if (success) {
       toast.success("Share URL copied to clipboard!", {
         description: "Share this link to show your selected services",
       })
@@ -109,9 +111,9 @@ export default function FloatingBar({
         selected_tools: selectedTools,
         url: shareUrl,
       })
-    } catch (err) {
+    } else {
       toast.error("Failed to copy URL", {
-        description: "Please try again or copy manually",
+        description: "Please ensure you're using HTTPS or try again",
       })
     }
 
