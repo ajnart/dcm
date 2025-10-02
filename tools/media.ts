@@ -571,4 +571,25 @@ export const media: DockerTool[] = [
       - /tmp/api:/app/api
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "mediacms",
+    name: "MediaCMS",
+    description:
+      "A modern, fully featured open source video and media CMS. Self-hosted alternative to YouTube for video streaming and sharing.",
+    category: "Media",
+    tags: ["Streaming", "Video", "Self-host"],
+    githubUrl: "https://github.com/mediacms-io/mediacms",
+    composeContent: `services:
+  mediacms:
+    image: mediacms/mediacms:latest
+    container_name: \${CONTAINER_PREFIX}mediacms
+    environment:
+      - TZ=\${TZ}
+    volumes:
+      - \${CONFIG_PATH}/mediacms:/home/mediacms.io/mediacms
+      - \${DATA_PATH}/media:/home/mediacms.io/media_files
+    ports:
+      - 8800:80
+    restart: \${RESTART_POLICY}`,
+  },
 ]
