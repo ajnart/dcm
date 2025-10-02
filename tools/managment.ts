@@ -156,4 +156,32 @@ export const management: DockerTool[] = [
       - UMASK=\${UMASK}
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "arcane",
+    name: "Arcane",
+    description:
+      "A Simple and Elegant Docker Management UI written in Typescript and SvelteKit. It aims to provide an intuitive interface for managing your Docker containers, images, volumes, and networks.",
+    category: "Management",
+    tags: ["UI", "Management", "Manager", "Network", "Statistics", "Dashboard"],
+    githubUrl: "https://github.com/ofkm/arcane",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/arcane.svg",
+    composeContent: `services:
+  arcane:
+    container_name: \${CONTAINER_PREFIX}arcane
+    image: ghcr.io/ofkm/arcane:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - UMASK=\${UMASK}
+      - TZ=\${TZ}
+      - APP_ENV=production
+      - PUBLIC_SESSION_SECRET= # Generate with: openssl rand -base64 32
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - \${DATA_PATH}/arcane:/app/data
+      - \${CONFIG_PATH}/docker-stacks:/opt/my-docker-stacks:ro
+    restart: \${RESTART_POLICY}`,
+  },
 ]
