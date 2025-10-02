@@ -571,4 +571,24 @@ export const media: DockerTool[] = [
       - /tmp/api:/app/api
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "octoeverywhere-elegoo-connect",
+    name: "OctoEverywhere Elegoo Connect",
+    description:
+      "Free cloud tools for your 3D printers. Provides remote access, AI print failure detection, real-time print notifications, and live streaming for Elegoo, OctoPrint, Klipper, Creality, and Bambu Lab 3D printers.",
+    category: "Media",
+    tags: ["3D Printing", "Monitoring", "Remote Access"],
+    githubUrl: "https://github.com/QuinnDamerell/OctoEverywhere",
+    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/octoeverywhere.png",
+    composeContent: `services:
+  octoeverywhere-elegoo-connect:
+    image: octoeverywhere/octoeverywhere:latest
+    container_name: \${CONTAINER_PREFIX}octoeverywhere-elegoo-connect
+    environment:
+      - COMPANION_MODE=elegoo
+      - PRINTER_IP=192.168.1.198
+    volumes:
+      - \${CONFIG_PATH}/octoeverywhere:/data
+    restart: \${RESTART_POLICY}`,
+  },
 ]
