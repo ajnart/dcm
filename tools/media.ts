@@ -21,7 +21,7 @@ export const media: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/jellyfin:/config
-      - \${DATA_PATH}/media:/data
+      - \${DATA_PATH}/media:/data/media
     ports:
       - 8096:8096
     restart: \${RESTART_POLICY}`,
@@ -50,7 +50,7 @@ export const media: DockerTool[] = [
     volumes:
       - \${CONFIG_PATH}/plex:/config
       - \${DATA_PATH}/transcode:/transcode
-      - \${DATA_PATH}/media:/data
+      - \${DATA_PATH}/media:/data/media
     ports:
       - 32400:32400
     restart: \${RESTART_POLICY}`,
@@ -74,8 +74,7 @@ export const media: DockerTool[] = [
       - TZ=\${TZ}
     volumes:
       - \${CONFIG_PATH}/emby:/config
-      - \${DATA_PATH}/tv:/data/tvshows
-      - \${DATA_PATH}/movies:/data/movies
+      - \${DATA_PATH}/media:/data/media
     ports:
       - 8096:8096
       - 8920:8920 #optional
@@ -271,7 +270,7 @@ export const media: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/sabnzbd:/config
-      - \${DATA_PATH}/downloads:/data/downloads
+      - \${DATA_PATH}/usenet:/data/usenet
     ports:
       - 8080:8080
     restart: \${RESTART_POLICY}`,
@@ -298,8 +297,7 @@ export const media: DockerTool[] = [
       - PASS=password
     volumes:
       - \${CONFIG_PATH}/transmission:/config
-      - \${DATA_PATH}/downloads:/data/downloads
-      - \${DATA_PATH}/watch:/watch
+      - \${DATA_PATH}/torrents:/data/torrents
     ports:
       - 9091:9091
       - 51413:51413
@@ -324,7 +322,7 @@ export const media: DockerTool[] = [
       - PUID=\${PUID}
       - PGID=\${PGID}
     volumes:
-      - \${DATA_PATH}/downloads:/downloads
+      - \${DATA_PATH}/media:/data/media
     ports:
       - 8081:8081
     restart: \${RESTART_POLICY}`,
@@ -547,7 +545,7 @@ export const media: DockerTool[] = [
       - "8945:8945"
     volumes:
       - \${CONFIG_PATH}/pinchflat:/config
-      - \${DATA_PATH}/downloads:/downloads
+      - \${DATA_PATH}/media:/data/media
     restart: \${RESTART_POLICY}`,
   },
   {
