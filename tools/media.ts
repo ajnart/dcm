@@ -571,4 +571,49 @@ export const media: DockerTool[] = [
       - /tmp/api:/app/api
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "romm",
+    name: "RomM",
+    description:
+      "Rom Manager for managing and organizing your ROM collection for emulators. Features a modern web interface for browsing, searching, and managing your game library.",
+    category: "Media",
+    tags: ["Rom", "Emulator", "Management Software"],
+    githubUrl: "https://github.com/rommapp/romm",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/romm.svg",
+    composeContent: `services:
+  romm:
+    image: rommapp/romm:latest
+    container_name: \${CONTAINER_PREFIX}romm
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - TZ=\${TZ}
+      - DB_HOST=romm-db
+      - DB_NAME=romm
+      - DB_USER=romm-user
+      - DB_PASSWD=romm-password
+      - ROMM_AUTH_SECRET_KEY=changeme
+    volumes:
+      - \${CONFIG_PATH}/romm/resources:/romm/resources
+      - \${CONFIG_PATH}/romm/config:/romm/config
+      - \${DATA_PATH}/roms:/romm/library
+      - \${CONFIG_PATH}/romm/assets:/romm/assets
+    ports:
+      - 8080:8080
+    restart: \${RESTART_POLICY}
+    depends_on:
+      - romm-db
+
+  romm-db:
+    image: mariadb:11
+    container_name: \${CONTAINER_PREFIX}romm-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=root-password
+      - MYSQL_DATABASE=romm
+      - MYSQL_USER=romm-user
+      - MYSQL_PASSWORD=romm-password
+    volumes:
+      - \${CONFIG_PATH}/romm/database:/var/lib/mysql
+    restart: \${RESTART_POLICY}`,
+  },
 ]
