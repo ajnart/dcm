@@ -320,6 +320,34 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "borgmatic",
+    name: "borgmatic",
+    description:
+      "Containerized stack to easily manage backups with BorgBackup",
+    category: "Backup",
+    tags: ["Monitoring", "Backup", "UI", "Integration", "Automation"],
+    githubUrl: "https://github.com/borgmatic-collective/docker-borgmatic",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/borgmatic.png",
+    composeContent: `services:
+  borgmatic:
+    image: ghcr.io/borgmatic-collective/borgmatic
+    container_name: \${CONTAINER_PREFIX}borgmatic
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - UMASK=\${UMASK}
+      - TZ=\${TZ}
+    volumes:
+      - /home:/mnt/source:ro
+      - \${DATA_PATH}/borgmatic/repository:/mnt/borg-repository
+      - \${CONFIG_PATH}/borgmatic/borgmatic.d:/etc/borgmatic.d/
+      - \${CONFIG_PATH}/borgmatic/.config/borg:/root/.config/borg
+      - \${CONFIG_PATH}/borgmatic/.ssh:/root/.ssh
+      - \${DATA_PATH}/borgmatic/.cache/borg:/root/.cache/borg
+      - \${DATA_PATH}/borgmatic/.state/borgmatic:/root/.local/state/borgmatic
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "mergerfs",
     name: "MergerFS",
     description: "A featureful FUSE-based union filesystem.",
