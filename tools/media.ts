@@ -328,6 +328,28 @@ export const media: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "isponsorblocktv",
+    name: "iSponsorBlockTV",
+    description:
+      "SponsorBlock client for YouTube TV, allows skipping sponsors, muting and skipping ads.",
+    category: "Media",
+    tags: ["TV", "Automation", "YouTube"],
+    githubUrl: "https://github.com/dmunozv04/iSponsorBlockTV",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/youtube.svg",
+    composeContent: `services:
+  isponsorblocktv:
+    image: ghcr.io/dmunozv04/isponsorblocktv:latest
+    container_name: \${CONTAINER_PREFIX}isponsorblocktv
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - UMASK=\${UMASK}
+      - TZ=\${TZ}
+    volumes:
+      - \${DATA_PATH}/isponsorblocktv:/app/data
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "navidrome",
     name: "Navidrome",
     description:
