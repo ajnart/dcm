@@ -170,7 +170,7 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/nzbget:/config
-      - \${DATA_PATH}:/data
+      - \${DATA_PATH}/usenet:/data/usenet
     ports:
       - 6789:6789
     restart: \${RESTART_POLICY}`,
@@ -195,7 +195,7 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/bazarr:/config
-      - \${DATA_PATH}:/data
+      - \${DATA_PATH}/media:/data/media
     ports:
       - 6767:6767
     restart: \${RESTART_POLICY}`,
@@ -220,7 +220,6 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/jackett:/config
-      - \${DATA_PATH}:/data
     ports:
       - 9117:9117
     restart: \${RESTART_POLICY}`,
@@ -246,7 +245,7 @@ export const automation: DockerTool[] = [
       - WEBUI_PORT=8080
     volumes:
       - \${CONFIG_PATH}/qbittorrent:/config
-      - \${DATA_PATH}:/data
+      - \${DATA_PATH}/torrents:/data/torrents
     ports:
       - 8080:8080
       - 6881:6881
@@ -273,7 +272,6 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/nzbhydra2:/config
-      - \${DATA_PATH}:/data
     ports:
       - 5076:5076
     restart: \${RESTART_POLICY}`,
@@ -297,7 +295,7 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/qbitmanage:/config
-      - \${DATA_PATH}:/data
+      - \${DATA_PATH}/torrents:/data/torrents
     restart: \${RESTART_POLICY}`,
   },
   {
@@ -320,7 +318,7 @@ export const automation: DockerTool[] = [
       - UMASK=\${UMASK}
     volumes:
       - \${CONFIG_PATH}/rflood:/config
-      - \${DATA_PATH}:/data
+      - \${DATA_PATH}/torrents:/data/torrents
     ports:
       - 3000:3000
       - 50000:50000
