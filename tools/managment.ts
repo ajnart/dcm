@@ -156,4 +156,32 @@ export const management: DockerTool[] = [
       - UMASK=\${UMASK}
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "dockge",
+    name: "Dockge",
+    description:
+      "A fancy, easy-to-use and reactive self-hosted docker compose.yaml stack-oriented manager",
+    category: "Management",
+    tags: ["Management", "UI", "Monitoring"],
+    githubUrl: "https://github.com/louislam/dockge",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/dockge.svg",
+    composeContent: `services:
+  dockge:
+    container_name: \${CONTAINER_PREFIX}dockge
+    image: louislam/dockge:1
+    restart: \${RESTART_POLICY}
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - \${DATA_PATH}/data:/app/data
+      - \${DATA_PATH}/stacks:/opt/stacks
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - UMASK=\${UMASK}
+      - TZ=\${TZ}
+      - DOCKGE_STACKS_DIR=/opt/stacks
+      - DOCKGE_ENABLE_CONSOLE=true`,
+  },
 ]
