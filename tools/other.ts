@@ -540,6 +540,31 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "calibrewebautomated",
+    name: "Calibre-Web Automated",
+    description:
+      "Calibre-Web but automated and with Calibre features! Fully automate and simplify your eBook set up!",
+    category: "Media",
+    tags: ["eBooks", "Reading", "Library", "Automation"],
+    githubUrl: "https://github.com/crocodilestick/Calibre-Web-Automated",
+    icon: "https://raw.githubusercontent.com/crocodilestick/Calibre-Web-Automated/refs/heads/main/README_images/cwa-logo-round-dark.png",
+    composeContent: `services:
+  calibrewebautomated:
+    image: crocodilestick/calibre-web-automated:latest
+    container_name: \${CONTAINER_PREFIX}calibrewebautomated
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - TZ=\${TZ}
+    volumes:
+      - \${CONFIG_PATH}/calibrewebautomated/config:/config
+      - \${CONFIG_PATH}/calibrewebautomated/ingest:/cwa-book-ingest
+      - \${DATA_PATH}/calibre/library:/calibre-library
+    ports:
+      - 8084:8083
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "unifi",
     name: "Unifi Controller",
     description:
