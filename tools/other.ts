@@ -602,16 +602,18 @@ export const other: DockerTool[] = [
     image: ghcr.io/l2xu/betterbahn:latest
     container_name: \${CONTAINER_PREFIX}betterbahn
     environment:
-      - PUID=\${PUID}
-      - PGID=\${PGID}
       - TZ=\${TZ}
-      - UMASK=\${UMASK}
-    volumes:
-      - \${CONFIG_PATH}/betterbahn:/config
-      - \${DATA_PATH}/tv:/data/tv
-      - \${DATA_PATH}/downloads:/data/downloads
     ports:
-      - 8989:8989
-    restart: \${RESTART_POLICY}`,
+      - 3000:3000
+    restart: \${RESTART_POLICY}
+    read_only: true
+    user: "\${PUID}:\${PGID}"
+    tmpfs:
+      - /tmp
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges=true`,
   },
 ]
