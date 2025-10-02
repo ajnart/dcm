@@ -128,4 +128,28 @@ export const databases: DockerTool[] = [
       - TZ=\${TZ}
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "phpmyadmin",
+    name: "phpMyAdmin",
+    description:
+      "A free and open source administration tool for MySQL and MariaDB. Provides a web interface for database management.",
+    category: "Database",
+    tags: ["Database", "MySQL", "MariaDB", "Database Viewer", "Admin"],
+    githubUrl: "https://github.com/phpmyadmin/phpmyadmin",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/phpmyadmin.svg",
+    composeContent: `services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: \${CONTAINER_PREFIX}phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=your_db_host
+      - PMA_PORT=3306
+      - PMA_USER=your_db_user
+      - PMA_PASSWORD=your_db_password
+      # - PMA_ARBITRARY=1
+      - TZ=\${TZ}
+    restart: \${RESTART_POLICY}`,
+  },
 ]
