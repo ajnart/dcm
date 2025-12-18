@@ -296,4 +296,28 @@ export const monitoring: DockerTool[] = [
       - 8000:8000
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "dockpeek",
+    name: "Dockpeek",
+    description:
+      "A lightweight Docker dashboard for monitoring and managing your containers with a clean, intuitive interface.",
+    category: "Monitoring",
+    tags: ["Monitoring", "Dashboard", "Updates"],
+    githubUrl: "https://github.com/dockpeek/dockpeek",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/dockpeek.svg",
+    composeContent: `services:
+  dockpeek:
+    container_name: \${CONTAINER_PREFIX}dockpeek
+    image: ghcr.io/dockpeek/dockpeek:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DOCKER_HOST=\${DOCKER_HOST}
+      - PASSWORD=\${PASSWORD}
+      - SECRET_KEY=\${SECRET_KEY}
+      - USERNAME=\${USERNAME}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: \${RESTART_POLICY}`,
+  },
 ]
