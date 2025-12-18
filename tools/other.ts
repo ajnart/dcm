@@ -89,11 +89,10 @@ export const other: DockerTool[] = [
   },
   {
     id: "gluetun",
-    name: "Gluetun VPN client",
-    description:
-      "Lightweight swiss-army-knife-like VPN client to multiple VPN service providers",
-    category: "Security",
-    tags: ["Privacy", "Security", "VPN"],
+    name: "Gluetun",
+    description: "VPN provider",
+    category: "Networking",
+    tags: ["Security", "Network", "VPN"],
     githubUrl: "https://github.com/qdm12/gluetun",
     icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gluetun.svg",
     composeContent: `services:
@@ -116,7 +115,14 @@ export const other: DockerTool[] = [
       - OPENVPN_USER=
       - OPENVPN_PASSWORD=
       - TZ=\${TZ}
-    restart: \${RESTART_POLICY}`,
+      - UPDATER_PERIOD=
+    restart: \${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/v1/publicip/ip"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s`,
   },
   {
     id: "gitea",
