@@ -152,4 +152,29 @@ export const databases: DockerTool[] = [
       - TZ=\${TZ}
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "tigergraph",
+    name: "TigerGraph",
+    description:
+      "A native parallel graph database designed for real-time analytics and deep link analytics on connected data. Free Trial version with 50GB limit, valid for 30 days. License key required from dl.tigergraph.com.",
+    category: "Database",
+    tags: ["AI", "Database", "Graph Database", "Analytics"],
+    githubUrl: "https://github.com/tigergraph/ecosys",
+    composeContent: `services:
+  tigergraph:
+    image: tigergraph/tigergraph:latest
+    container_name: \${CONTAINER_PREFIX}tigergraph
+    ports:
+      - "14022:22"
+      - "9000:9000"
+      - "14240:14240"
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    volumes:
+      - \${CONFIG_PATH}/tigergraph:/home/tigergraph
+      - \${DATA_PATH}/tigergraph:/home/tigergraph/mydata
+    restart: \${RESTART_POLICY}`,
+  },
 ]
