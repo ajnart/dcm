@@ -116,7 +116,13 @@ export const other: DockerTool[] = [
       - OPENVPN_PASSWORD=
       - TZ=\${TZ}
       - UPDATER_PERIOD=
-    restart: \${RESTART_POLICY}`,
+    restart: \${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/v1/publicip/ip"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s`,
   },
   {
     id: "gitea",
