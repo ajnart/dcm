@@ -15,7 +15,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Docker Compose Generator",
   description: "Select tools to generate your docker-compose.yaml file",
-  generator: "v0.dev",
 }
 
 export default function RootLayout({
