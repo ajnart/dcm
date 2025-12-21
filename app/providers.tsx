@@ -14,7 +14,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!enableAnalytics) return
 
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string, {
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string || "phc_zJtKQulbyeexy7V99Py1vEc8mS4RDQGIwCMkxle0j0n", {
       ui_host:
         process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://eu.i.posthog.com",
       api_host:
