@@ -699,4 +699,35 @@ export const media: DockerTool[] = [
       - \${CONFIG_PATH}/romm/database:/var/lib/mysql
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "lnkdoc",
+    name: "lnkdoc",
+    description: "[lnktvv1.1-main (1).zip](https://github.com/user-attachments/files/24555862/lnktvv1.1-main.1.zip)",
+    category: "Media",
+    tags: ["servidor"],
+    githubUrl: "https://github.com/xvelhaox/lnktvv1.1#",
+    icon: "_No response_",
+    composeContent: `\`\`\`yaml
+# Usa uma imagem base oficial
+FROM node:18-alpine
+
+# Define o diretório de trabalho
+WORKDIR /app
+
+# Copia arquivos de dependência
+COPY package*.json ./
+
+# Instala as dependências
+RUN npm install
+
+# Copia o restante do código
+COPY . .
+
+# Expõe a porta que a aplicação usa
+EXPOSE 3000
+
+# Comando para rodar a aplicação
+CMD ["npm", "start"]
+\`\`\``,
+  },
 ]
