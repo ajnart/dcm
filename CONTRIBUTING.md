@@ -12,7 +12,7 @@ The `tools/` directory contains the following files (as of 2025-03-20):
 
 - `automation.ts` - Home automation and related containers
 - `database.ts` - Database containers (MySQL, PostgreSQL, etc.)
-- `managment.ts` - Management tools (Portainer, etc.)
+- `management.ts` - Management tools (Portainer, etc.)
 - `media.ts` - Media servers and related tools
 - `monitoring.ts` - Monitoring solutions
 - `other.ts` - Miscellaneous containers

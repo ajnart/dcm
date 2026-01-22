@@ -1,0 +1,193 @@
+name: Auto-add Container from Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  add-container:
+    # Only run when the "accepted" label is added to a container submission issue
+    if: |
+      github.event.label.name == 'accepted' &&
+      contains(github.event.issue.labels.*.name, 'container')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Parse issue body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body;
+            
+            // Function to extract value from issue form
+            function extractField(body, fieldId) {
+              const regex = new RegExp(`### ${fieldId}\\s*([\\s\\S]*?)(?=###|$)`, 'i');
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            }
+            
+            // Parse the issue body to extract container data
+            const containerId = extractField(body, 'Container ID');
+            const name = extractField(body, 'Display Name');
+            const description = extractField(body, 'Description');
+            const category = extractField(body, 'Category');
+            const tags = extractField(body, 'Tags');
+            const githubUrl = extractField(body, 'GitHub URL');
+            const icon = extractField(body, 'Icon URL');
+            const containerData = extractField(body, 'Docker Compose Service Definition');
+            
+            // Validate required fields
+            if (!containerId || !name || !description || !category || !tags || !containerData) {
+              throw new Error('Missing required fields in issue');
+            }
+            
+            // Parse tags from comma-separated string
+            const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            
+            // Determine which file to update based on category
+            let categoryFile = '';
+            switch(category.toLowerCase()) {
+              case 'media':
+                categoryFile = 'media.ts';
+                break;
+              case 'management':
+                categoryFile = 'management.ts';
+                break;
+              case 'database':
+                categoryFile = 'database.ts';
+                break;
+              case 'monitoring':
+                categoryFile = 'monitoring.ts';
+                break;
+              case 'home automation':
+                categoryFile = 'automation.ts';
+                break;
+              default:
+                categoryFile = 'other.ts';
+            }
+            
+            // Store parsed data for next steps
+            core.setOutput('container_id', containerId);
+            core.setOutput('name', name);
+            core.setOutput('description', description);
+            core.setOutput('category', category);
+            core.setOutput('tags', JSON.stringify(tagArray));
+            core.setOutput('github_url', githubUrl);
+            core.setOutput('icon', icon);
+            core.setOutput('container_data', containerData);
+            core.setOutput('category_file', categoryFile);
+            core.setOutput('issue_number', issue.number);
+
+      - name: Create container definition file
+        id: create-file
+        run: |
+          CONTAINER_ID="${{ steps.parse.outputs.container_id }}"
+          CATEGORY_FILE="${{ steps.parse.outputs.category_file }}"
+          
+          # Create a temporary TypeScript snippet for the new container
+          cat > /tmp/new_container.txt << 'EOF'
+          {
+            id: "${{ steps.parse.outputs.container_id }}",
+            name: "${{ steps.parse.outputs.name }}",
+            description: "${{ steps.parse.outputs.description }}",
+            category: "${{ steps.parse.outputs.category }}",
+            tags: ${{ steps.parse.outputs.tags }},
+          ${{ steps.parse.outputs.github_url != '' && format('  githubUrl: "{0}",', steps.parse.outputs.github_url) || '' }}
+          ${{ steps.parse.outputs.icon != '' && format('  icon: "{0}",', steps.parse.outputs.icon) || '' }}
+            composeContent: `${{ steps.parse.outputs.container_data }}`,
+          },
+          EOF
+          
+          echo "Container definition created"
+
+      - name: Add container to appropriate file
+        run: |
+          CATEGORY_FILE="${{ steps.parse.outputs.category_file }}"
+          
+          # Read the new container definition
+          NEW_CONTAINER=$(cat /tmp/new_container.txt)
+          
+          # Find the file and add the container before the closing bracket
+          FILE_PATH="tools/${CATEGORY_FILE}"
+          
+          if [ ! -f "$FILE_PATH" ]; then
+            echo "Error: Category file ${FILE_PATH} not found"
+            exit 1
+          fi
+          
+          # Use sed to insert the new container before the last closing bracket
+          # This assumes the file ends with "]" or similar
+          sed -i '/^]$/i\  '"$NEW_CONTAINER" "$FILE_PATH"
+          
+          echo "Container added to ${FILE_PATH}"
+
+      - name: Install dependencies and test
+        run: |
+          bun install
+          bun test:containers || echo "Container validation failed, but continuing"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add ${{ steps.parse.outputs.name }} container (from issue #${{ steps.parse.outputs.issue_number }})"
+          branch: "add-container-${{ steps.parse.outputs.container_id }}"
+          delete-branch: true
+          title: "Add ${{ steps.parse.outputs.name }} container"
+          body: |
+            ## Auto-generated PR from Issue #${{ steps.parse.outputs.issue_number }}
+            
+            This PR adds the **${{ steps.parse.outputs.name }}** container to the collection.
+            
+            **Container Details:**
+            - **ID:** `${{ steps.parse.outputs.container_id }}`
+            - **Category:** ${{ steps.parse.outputs.category }}
+            - **Tags:** ${{ steps.parse.outputs.tags }}
+            ${{ steps.parse.outputs.github_url != '' && format('- **GitHub:** {0}', steps.parse.outputs.github_url) || '' }}
+            
+            **Description:**
+            ${{ steps.parse.outputs.description }}
+            
+            ---
+            
+            Automatically created from issue #${{ steps.parse.outputs.issue_number }}
+          labels: |
+            container
+            automated
+
+      - name: Comment on issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ steps.parse.outputs.issue_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ A pull request has been automatically created to add this container! Please review it and make any necessary adjustments.'
+            });
+
+      - name: Handle errors
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ There was an error automatically creating a pull request for this container. Please check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details, or consider contributing directly by following the [CONTRIBUTING.md](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md) guide.'
+            });

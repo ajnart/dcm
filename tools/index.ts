@@ -1,7 +1,7 @@
 import type { DockerTool } from "@/lib/docker-tools"
 import { automation } from "./automation"
 import { databases } from "./database"
-import { management } from "./managment"
+import { management } from "./management"
 import { media } from "./media"
 import { monitoring } from "./monitoring"
 import { other } from "./other"
