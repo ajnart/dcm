@@ -4,6 +4,17 @@ Thank you for your interest in contributing to DCM (Docker Compose Maker)! This 
 
 ## Adding New Containers
 
+The easiest way to contribute is by adding new container definitions! We now have an **automated system** that creates pull requests from GitHub issues.
+
+### Option 1: Use the GitHub Issue Template (Recommended)
+
+1. [Open a new Container Submission issue](https://github.com/ajnart/dcm/issues/new?template=container-submission.yml)
+2. Fill out all required fields following the examples provided
+3. Submit the issue
+4. When a maintainer tags the issue as "accepted", a GitHub Action will automatically create a pull request with your container definition!
+
+### Option 2: Contribute Directly
+
 The project organizes container definitions in the `tools/` directory. Each file represents a category of tools, and all tools are exported from the `tools/index.ts` file.
 
 ### File Structure
@@ -50,26 +61,58 @@ interface DockerTool {
 
 ```typescript
 {
-  id: "my-media-tool",
-  name: "My Media Tool",
-  description: "A description of what this container does.",
+  id: "jellyfin",
+  name: "Jellyfin",
+  description: "A free software media system that puts you in control of managing and streaming your media. It is an alternative to the proprietary Emby and Plex, with no premium features behind a paywall.",
   category: "Media",
-  tags: ["Streaming", "Media Server"],
-  githubUrl: "https://github.com/user/my-media-tool",
-  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/my-media-tool.svg",
+  tags: ["Streaming", "Media Server", "Transcoding"],
+  githubUrl: "https://github.com/jellyfin/jellyfin",
+  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg",
   composeContent: `services:
-  my-media-tool:
-    image: user/my-media-tool:latest
-    container_name: \${CONTAINER_PREFIX}my-media-tool
+  jellyfin:
+    image: ghcr.io/hotio/jellyfin:latest
+    container_name: \${CONTAINER_PREFIX}jellyfin
     environment:
       - PUID=\${PUID}
       - PGID=\${PGID}
       - TZ=\${TZ}
+      - UMASK=\${UMASK}
     volumes:
-      - \${CONFIG_PATH}/my-media-tool:/config
-      - \${DATA_PATH}/media:/data
+      - \${CONFIG_PATH}/jellyfin:/config
+      - \${DATA_PATH}/media:/data/media
     ports:
-      - 8123:8123
+      - 8096:8096
+    restart: \${RESTART_POLICY}`
+}
+```
+
+#### Example: Adding a Database Container
+
+1. Open `tools/database.ts`
+2. Add your definition to the `databases` array:
+
+```typescript
+{
+  id: "postgres",
+  name: "PostgreSQL",
+  description: "PostgreSQL is a powerful, open source object-relational database system with over 35 years of active development that has earned it a strong reputation for reliability, feature robustness, and performance.",
+  category: "Database",
+  tags: ["Database", "SQL", "Relational"],
+  githubUrl: "https://github.com/postgres/postgres",
+  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgres.svg",
+  composeContent: `services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: \${CONTAINER_PREFIX}postgres
+    environment:
+      - POSTGRES_USER=\${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=\${POSTGRES_PASSWORD}
+      - POSTGRES_DB=\${POSTGRES_DB:-postgres}
+      - TZ=\${TZ}
+    volumes:
+      - \${DATA_PATH}/postgres:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
     restart: \${RESTART_POLICY}`
 }
 ```
