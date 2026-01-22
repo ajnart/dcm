@@ -154,18 +154,45 @@ jobs:
           
           // Read the target file
           const filePath = `tools/${categoryFile}`;
-          let fileContent = fs.readFileSync(filePath, 'utf8');
           
-          // Find the last closing bracket and insert before it
-          const lastBracketIndex = fileContent.lastIndexOf(']');
-          if (lastBracketIndex === -1) {
-            throw new Error('Could not find closing bracket in file');
+          // Validate file path to prevent directory traversal
+          if (categoryFile.includes('..') || categoryFile.includes('/') || !categoryFile.endsWith('.ts')) {
+            console.error('Invalid category file:', categoryFile);
+            process.exit(1);
           }
           
+          let fileContent;
+          try {
+            fileContent = fs.readFileSync(filePath, 'utf8');
+          } catch (e) {
+            console.error('Failed to read file:', filePath, e);
+            process.exit(1);
+          }
+          
+          // Find the position to insert - look for the export statement closing
+          // This is more robust than just finding the last ]
+          const exportMatch = fileContent.match(/export const \w+: DockerTool\[\] = \[/);
+          if (!exportMatch) {
+            console.error('Could not find export statement in file');
+            process.exit(1);
+          }
+          
+          // Find the closing bracket after the export statement
+          const exportStart = exportMatch.index + exportMatch[0].length;
+          const remainingContent = fileContent.slice(exportStart);
+          const closingBracketIndex = remainingContent.lastIndexOf(']');
+          
+          if (closingBracketIndex === -1) {
+            console.error('Could not find closing bracket in file');
+            process.exit(1);
+          }
+          
+          const insertPosition = exportStart + closingBracketIndex;
+          
           // Insert the new container before the closing bracket
-          const updatedContent = fileContent.slice(0, lastBracketIndex) + 
+          const updatedContent = fileContent.slice(0, insertPosition) + 
                                 containerDef + 
-                                fileContent.slice(lastBracketIndex);
+                                fileContent.slice(insertPosition);
           
           // Write back to file
           fs.writeFileSync(filePath, updatedContent, 'utf8');
@@ -190,7 +217,15 @@ jobs:
       - name: Install dependencies and test
         run: |
           bun install
-          bun test:containers || echo "Container validation failed, but continuing"
+          
+          # Run validation tests and capture result
+          if ! bun test:containers; then
+            echo "VALIDATION_FAILED=true" >> $GITHUB_ENV
+            echo "⚠️ Container validation failed. Please review the generated container definition." >> /tmp/validation_message.txt
+          else
+            echo "VALIDATION_FAILED=false" >> $GITHUB_ENV
+            echo "✅ Container validation passed." >> /tmp/validation_message.txt
+          fi
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
@@ -216,10 +251,15 @@ jobs:
             
             ---
             
+            $(cat /tmp/validation_message.txt)
+            
+            ${{ env.VALIDATION_FAILED == 'true' && '⚠️ **Note:** Container validation tests failed. Please review the container definition and make necessary adjustments before merging.' || '' }}
+            
             Automatically created from issue #${{ steps.parse.outputs.issue_number }}
           labels: |
             container
             automated
+            ${{ env.VALIDATION_FAILED == 'true' && 'needs-review' || '' }}
 
       - name: Comment on issue
         uses: actions/github-script@v7
