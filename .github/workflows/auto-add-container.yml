@@ -92,48 +92,94 @@ jobs:
             core.setOutput('category_file', categoryFile);
             core.setOutput('issue_number', issue.number);
 
-      - name: Create container definition file
-        id: create-file
+      - name: Create container definition script
         run: |
-          CONTAINER_ID="${{ steps.parse.outputs.container_id }}"
-          CATEGORY_FILE="${{ steps.parse.outputs.category_file }}"
+          cat > /tmp/add_container.js << 'SCRIPT_EOF'
+          const fs = require('fs');
           
-          # Create a temporary TypeScript snippet for the new container
-          cat > /tmp/new_container.txt << 'EOF'
-          {
-            id: "${{ steps.parse.outputs.container_id }}",
-            name: "${{ steps.parse.outputs.name }}",
-            description: "${{ steps.parse.outputs.description }}",
-            category: "${{ steps.parse.outputs.category }}",
-            tags: ${{ steps.parse.outputs.tags }},
-          ${{ steps.parse.outputs.github_url != '' && format('  githubUrl: "{0}",', steps.parse.outputs.github_url) || '' }}
-          ${{ steps.parse.outputs.icon != '' && format('  icon: "{0}",', steps.parse.outputs.icon) || '' }}
-            composeContent: `${{ steps.parse.outputs.container_data }}`,
-          },
-          EOF
+          // Read outputs from environment variables
+          const containerId = process.env.CONTAINER_ID;
+          const name = process.env.CONTAINER_NAME;
+          const description = process.env.DESCRIPTION;
+          const category = process.env.CATEGORY;
+          const tagsJson = process.env.TAGS;
+          const githubUrl = process.env.GITHUB_URL;
+          const icon = process.env.ICON;
+          const containerData = process.env.CONTAINER_DATA;
+          const categoryFile = process.env.CATEGORY_FILE;
           
-          echo "Container definition created"
+          // Parse tags
+          const tags = JSON.parse(tagsJson);
+          
+          // Escape special characters for TypeScript string literals
+          function escapeString(str) {
+            return str.replace(/\\/g, '\\\\')
+                      .replace(/"/g, '\\"')
+                      .replace(/\n/g, '\\n')
+                      .replace(/\r/g, '\\r')
+                      .replace(/\t/g, '\\t');
+          }
+          
+          // Escape template literal content
+          function escapeTemplateLiteral(str) {
+            return str.replace(/\\/g, '\\\\')
+                      .replace(/`/g, '\\`')
+                      .replace(/\$/g, '\\$');
+          }
+          
+          // Build the container definition
+          let containerDef = '  {\n';
+          containerDef += `    id: "${escapeString(containerId)}",\n`;
+          containerDef += `    name: "${escapeString(name)}",\n`;
+          containerDef += `    description: "${escapeString(description)}",\n`;
+          containerDef += `    category: "${escapeString(category)}",\n`;
+          containerDef += `    tags: [${tags.map(t => `"${escapeString(t)}"`).join(', ')}],\n`;
+          
+          if (githubUrl) {
+            containerDef += `    githubUrl: "${escapeString(githubUrl)}",\n`;
+          }
+          
+          if (icon) {
+            containerDef += `    icon: "${escapeString(icon)}",\n`;
+          }
+          
+          containerDef += `    composeContent: \`${escapeTemplateLiteral(containerData)}\`,\n`;
+          containerDef += '  },\n';
+          
+          // Read the target file
+          const filePath = `tools/${categoryFile}`;
+          let fileContent = fs.readFileSync(filePath, 'utf8');
+          
+          // Find the last closing bracket and insert before it
+          const lastBracketIndex = fileContent.lastIndexOf(']');
+          if (lastBracketIndex === -1) {
+            throw new Error('Could not find closing bracket in file');
+          }
+          
+          // Insert the new container before the closing bracket
+          const updatedContent = fileContent.slice(0, lastBracketIndex) + 
+                                containerDef + 
+                                fileContent.slice(lastBracketIndex);
+          
+          // Write back to file
+          fs.writeFileSync(filePath, updatedContent, 'utf8');
+          
+          console.log('Container added successfully to', filePath);
+          SCRIPT_EOF
 
       - name: Add container to appropriate file
+        env:
+          CONTAINER_ID: ${{ steps.parse.outputs.container_id }}
+          CONTAINER_NAME: ${{ steps.parse.outputs.name }}
+          DESCRIPTION: ${{ steps.parse.outputs.description }}
+          CATEGORY: ${{ steps.parse.outputs.category }}
+          TAGS: ${{ steps.parse.outputs.tags }}
+          GITHUB_URL: ${{ steps.parse.outputs.github_url }}
+          ICON: ${{ steps.parse.outputs.icon }}
+          CONTAINER_DATA: ${{ steps.parse.outputs.container_data }}
+          CATEGORY_FILE: ${{ steps.parse.outputs.category_file }}
         run: |
-          CATEGORY_FILE="${{ steps.parse.outputs.category_file }}"
-          
-          # Read the new container definition
-          NEW_CONTAINER=$(cat /tmp/new_container.txt)
-          
-          # Find the file and add the container before the closing bracket
-          FILE_PATH="tools/${CATEGORY_FILE}"
-          
-          if [ ! -f "$FILE_PATH" ]; then
-            echo "Error: Category file ${FILE_PATH} not found"
-            exit 1
-          fi
-          
-          # Use sed to insert the new container before the last closing bracket
-          # This assumes the file ends with "]" or similar
-          sed -i '/^]$/i\  '"$NEW_CONTAINER" "$FILE_PATH"
-          
-          echo "Container added to ${FILE_PATH}"
+          node /tmp/add_container.js
 
       - name: Install dependencies and test
         run: |
