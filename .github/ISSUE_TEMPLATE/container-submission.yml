@@ -8,6 +8,8 @@ body:
       value: |
         Thanks for taking the time to suggest a new container!
         
+        > **💡 Automated Process:** When your submission is tagged as "accepted" by a maintainer, a GitHub Action will automatically create a pull request to add your container to the collection!
+        
         > You can also contribute directly by adding the container definition to the codebase. See [CONTRIBUTING.md](https://github.com/ajnart/dcm/blob/main/CONTRIBUTING.md) for instructions.
   
   - type: checkboxes
@@ -27,8 +29,10 @@ body:
     id: id
     attributes:
       label: Container ID
-      description: A unique ID for the container (lowercase, no spaces)
-      placeholder: "e.g., sonarr, postgres"
+      description: |
+        A unique ID for the container (lowercase, no spaces, use hyphens for multi-word names).
+        **Examples:** `sonarr`, `postgres`, `home-assistant`
+      placeholder: "e.g., sonarr, postgres, home-assistant"
     validations:
       required: true
   
@@ -36,8 +40,10 @@ body:
     id: name
     attributes:
       label: Display Name
-      description: The display name of the container
-      placeholder: "e.g., Sonarr, PostgreSQL"
+      description: |
+        The display name of the container as it will appear in the UI.
+        **Examples:** `Sonarr`, `PostgreSQL`, `Home Assistant`
+      placeholder: "e.g., Sonarr, PostgreSQL, Home Assistant"
     validations:
       required: true
   
@@ -45,8 +51,10 @@ body:
     id: description
     attributes:
       label: Description
-      description: A brief description of the container's purpose
-      placeholder: "Describe what this container does, what problem it solves, etc."
+      description: |
+        A clear and concise description of what this container does and its key features.
+        **Example:** "A powerful torrent client with a web interface for remote management. Features include RSS support, automatic torrent management, and a built-in search engine."
+      placeholder: "A powerful torrent client with a web interface for remote management. Features include RSS support, automatic torrent management, and a built-in search engine."
     validations:
       required: true
   
@@ -73,8 +81,10 @@ body:
     id: tags
     attributes:
       label: Tags
-      description: Comma-separated list of tags relevant to this container
-      placeholder: "e.g., Streaming, Media Server, Transcoding"
+      description: |
+        Comma-separated list of relevant tags to help users find this container.
+        **Examples:** `Streaming, Media Server, Transcoding` or `Database, SQL, Analytics`
+      placeholder: "Streaming, Media Server, Transcoding"
     validations:
       required: true
   
@@ -82,35 +92,48 @@ body:
     id: githubUrl
     attributes:
       label: GitHub URL
-      description: Link to the GitHub repository for this container
+      description: |
+        Link to the official GitHub repository (used to fetch star count).
+        **Example:** `https://github.com/linuxserver/docker-sonarr`
       placeholder: "https://github.com/username/repository"
   
   - type: input
     id: icon
     attributes:
       label: Icon URL
-      description: URL to the icon for this container, preferably from dashboard-icons
+      description: |
+        URL to an SVG icon for this container. We recommend using dashboard-icons for consistency.
+        **Example:** `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sonarr.svg`
+        Search available icons at: https://github.com/homarr-labs/dashboard-icons
       placeholder: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/example.svg"
   
   - type: textarea
     id: containerData
     attributes:
       label: Docker Compose Service Definition
-      description: The Docker Compose YAML definition for this container
+      description: |
+        The Docker Compose YAML definition for this container. 
+        **Important:** 
+        - Use `${VARIABLE}` syntax for environment variables like `${PUID}`, `${PGID}`, `${TZ}`, `${CONFIG_PATH}`, `${DATA_PATH}`, `${CONTAINER_PREFIX}`, `${RESTART_POLICY}`, `${UMASK}`
+        - Use 2 spaces for indentation at the service level, 4 spaces for properties
+        - Include the `services:` declaration at the top
+        - Use `${CONTAINER_PREFIX}` before container names (e.g., `${CONTAINER_PREFIX}sonarr`)
       placeholder: |
         services:
-          container-name:
-            container_name: container-name
-            image: image/name:tag
-            ports:
-              - "port:port"
+          my-container:
+            image: linuxserver/my-container:latest
+            container_name: ${CONTAINER_PREFIX}my-container
             environment:
               - PUID=${PUID}
               - PGID=${PGID}
               - TZ=${TZ}
+              - UMASK=${UMASK}
             volumes:
-              - ${CONFIG_PATH}/container-name:/config
-              - ${DATA_PATH}/data:/data
+              - ${CONFIG_PATH}/my-container:/config
+              - ${DATA_PATH}/downloads:/downloads
+            ports:
+              - 8080:8080
+            restart: ${RESTART_POLICY}
       render: yaml
     validations:
       required: true
