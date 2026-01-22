@@ -820,4 +820,30 @@ export const other: DockerTool[] = [
     security_opt:
       - no-new-privileges=true`,
   },
+  {
+    id: "autoxpose",
+    name: "autoxpose",
+    description: "Automatic DNS and reverse proxy configuration for Docker containers.\nAdd a label to your container, and autoxpose creates the DNS record and configures your reverse proxy with SSL - no manual setup required.",
+    category: "Networking",
+    tags: ["Network", "DNS", "Reverse Proxy"],
+    githubUrl: "https://github.com/mostafa-wahied/autoxpose",
+    icon: "https://github.com/mostafa-wahied/autoxpose/raw/main/packages/frontend/public/autoxpose-logo.svg",
+    composeContent: `\`\`\`yaml
+services:
+  autoxpose:
+    image: mostafawahied/autoxpose:latest
+    ports:
+      - '4949:3000'
+    environment:
+      - SERVER_IP=your-public-ip
+      - LAN_IP=your-lan-ip
+    volumes:
+      - autoxpose-data:/app/packages/backend/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  autoxpose-data:
+\`\`\``,
+  },
 ]
