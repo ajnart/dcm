@@ -699,4 +699,26 @@ export const media: DockerTool[] = [
       - \${CONFIG_PATH}/romm/database:/var/lib/mysql
     restart: \${RESTART_POLICY}`,
   },
+  {
+    id: "profilarr",
+    name: "Profilarr",
+    description: "Configuration management tool for Radarr/Sonarr that automates importing and version control of custom formats and quality profiles.",
+    category: "Media",
+    tags: ["Management", "Management Software"],
+    githubUrl: "https://hub.docker.com/r/santiagosayshey/profilarr or https://github.com/Dictionarry-Hub/profilarr",
+    icon: "_No response_",
+    composeContent: `\`\`\`yaml
+services:
+    profilarr:
+        image: santiagosayshey/profilarr:latest # Use :beta for early access to new features
+        container_name: profilarr
+        ports:
+            - 6868:6868
+        volumes:
+            - /path/to/your/data:/config # Replace with your actual path
+        environment:
+            - TZ=UTC # Set your timezone
+        restart: unless-stopped
+\`\`\``,
+  },
 ]
