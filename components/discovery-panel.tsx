@@ -18,7 +18,7 @@ interface DiscoveryPanelProps {
 const AWESOME_CATEGORIES = [
   { name: "Media Streaming", anchor: "#media-streaming" },
   { name: "Backup", anchor: "#backup" },
-  { name: "Photo Galleries", anchor: "#photo-and-video-galleries" },
+  { name: "Photo Galleries", anchor: "#photo-galleries" },
   { name: "Analytics", anchor: "#analytics" },
   { name: "Automation", anchor: "#automation" },
   { name: "File Transfer & Sync", anchor: "#file-transfer--synchronization" },
