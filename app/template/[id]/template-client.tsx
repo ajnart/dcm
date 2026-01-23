@@ -23,6 +23,7 @@ import {
   generateComposeContent,
   generateEnvFile,
 } from "@/lib/docker-compose/generators"
+import type { PortConflictsResult } from "@/lib/docker-compose/port-conflicts"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
 import type { Template } from "@/lib/templates"
@@ -63,10 +64,9 @@ export function TemplateClient({
   const [activeTab, setActiveTab] = useState("services")
   const [interpolateEnv, setInterpolateEnv] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [portConflicts, setPortConflicts] = useState<{
-    fixed: number
-    conflicts: string[]
-  } | null>(null)
+  const [portConflicts, setPortConflicts] = useState<PortConflictsResult | null>(
+    null,
+  )
 
   const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)

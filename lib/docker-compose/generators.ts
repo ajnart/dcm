@@ -1,6 +1,9 @@
 import type { DockerSettings } from "@/components/settings-panel"
 import type { DockerTool } from "@/lib/docker-tools"
-import { detectAndFixPortConflicts } from "./port-conflicts"
+import {
+  detectAndFixPortConflicts,
+  type PortConflictsResult,
+} from "./port-conflicts"
 
 export function generateEnvFileContent(settings: DockerSettings): string {
   return `# Docker Compose Environment Variables
@@ -83,7 +86,7 @@ export function generateComposeContent(
   showInterpolated: boolean,
 ): {
   content: string
-  portConflicts: { fixed: number; conflicts: string[] } | null
+  portConflicts: PortConflictsResult | null
 } {
   const composeHeader = `#  ____   ____ __  __ 
 # |  _ \\ / ___|  \\/  |
