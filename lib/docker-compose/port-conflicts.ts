@@ -74,8 +74,15 @@ export function detectAndFixPortConflicts(content: string): {
       for (let i = 1; i < services.length; i++) {
         const serviceToFix = services[i]
 
-        // Match the service, but stop at the next service definition (which starts with \n  \w)
-        // We use a negative lookahead to prevent matching across service boundaries
+        // Match the service's port definition within its own service block only
+        // Pattern explanation:
+        // 1. \s{2}${serviceToFix}: - Match the service name at 2-space indentation
+        // 2. \s*(?:[^\n]*\n(?!\s{2}[a-zA-Z0-9_-]+:))*? - Match lines within this service
+        //    - (?!\s{2}[a-zA-Z0-9_-]+:) negative lookahead prevents crossing into next service
+        // 3. [^\n]*ports:[\s\S]*? - Find the ports: section within this service
+        // 4. - ["']? - Match the port line prefix
+        // 5. (${port}) - Capture the external port number
+        // 6. (:(?:\d+)["']?) - Capture the internal port mapping
         const servicePortRegex = new RegExp(
           `(\\s{2}${serviceToFix}:\\s*(?:[^\\n]*\\n(?!\\s{2}[a-zA-Z0-9_-]+:))*?[^\\n]*ports:[\\s\\S]*?- ["']?)(${port})(:(?:\\d+)["']?)`,
           "m",
@@ -102,6 +109,8 @@ export function detectAndFixPortConflicts(content: string): {
             newPort: String(newPort),
           })
 
+          // Update the result with the fixed port
+          // Note: We only match once per service, so modifying result here is safe
           result =
             result.substring(0, match.index) +
             replacement +
