@@ -203,4 +203,40 @@ describe("Port Conflict Detection and Resolution", () => {
     expect(conflicts?.conflicts[0]).toContain("Port 80 was used by: web, database")
     expect(fixedContent).toContain("81:5432")
   })
+
+  test("should track correct service names in detailed conflicts", () => {
+    const content = `services:
+  jellyfin:
+    ports:
+      - "8096:8096"
+  plex:
+    ports:
+      - "8096:3005"
+  emby:
+    ports:
+      - "8096:8096"`
+
+    const { fixedContent, conflicts } = detectAndFixPortConflicts(content)
+
+    expect(conflicts).not.toBeNull()
+    expect(conflicts?.detailedConflicts.length).toBe(1)
+
+    const conflict = conflicts!.detailedConflicts[0]
+    expect(conflict.port).toBe("8096")
+    expect(conflict.affectedServices).toEqual(["jellyfin", "plex", "emby"])
+    expect(conflict.keptService).toBe("jellyfin")
+    expect(conflict.changes.length).toBe(2)
+
+    // Check that each change has the correct service name
+    const changeServices = conflict.changes.map((c) => c.service)
+    expect(changeServices).toContain("plex")
+    expect(changeServices).toContain("emby")
+
+    // plex should be changed to 8097, emby to 8098
+    const plexChange = conflict.changes.find((c) => c.service === "plex")
+    const embyChange = conflict.changes.find((c) => c.service === "emby")
+
+    expect(plexChange?.newPort).toBe("8097")
+    expect(embyChange?.newPort).toBe("8098")
+  })
 })

@@ -74,13 +74,15 @@ export function detectAndFixPortConflicts(content: string): {
       for (let i = 1; i < services.length; i++) {
         const serviceToFix = services[i]
 
+        // Match the service, but stop at the next service definition (which starts with \n  \w)
+        // We use a negative lookahead to prevent matching across service boundaries
         const servicePortRegex = new RegExp(
-          `(\\s{2}${serviceToFix}:[\\s\\S]*?ports:[\\s\\S]*?- ["']?)(${port})(:(?:\\d+)["']?)`,
-          "gm",
+          `(\\s{2}${serviceToFix}:\\s*(?:[^\\n]*\\n(?!\\s{2}[a-zA-Z0-9_-]+:))*?[^\\n]*ports:[\\s\\S]*?- ["']?)(${port})(:(?:\\d+)["']?)`,
+          "m",
         )
 
-        let match: RegExpExecArray | null
-        while ((match = servicePortRegex.exec(result)) !== null) {
+        const match = servicePortRegex.exec(result)
+        if (match) {
           let newPort = Number(port) + 1
           while (allocatedPorts.has(String(newPort))) {
             newPort++
@@ -106,8 +108,6 @@ export function detectAndFixPortConflicts(content: string): {
             result.substring(match.index + match[0].length)
 
           fixedCount++
-
-          servicePortRegex.lastIndex = 0
         }
       }
 
