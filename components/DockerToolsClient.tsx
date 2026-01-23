@@ -1,6 +1,7 @@
 "use client"
 
 import ToolGrid from "@/components/ToolGrid"
+import DiscoveryPanel from "@/components/discovery-panel"
 import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
 import { Button } from "@/components/ui/button"
@@ -86,6 +87,10 @@ export default function DockerToolsClient({
 
       <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
         <SettingsPanel />
+      </div>
+
+      <div className="[animation-delay:450ms] motion-safe:animate-slide-down">
+        <DiscoveryPanel />
       </div>
 
       <FloatingBar
