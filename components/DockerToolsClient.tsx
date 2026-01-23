@@ -77,7 +77,7 @@ export default function DockerToolsClient({
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-bold text-3xl">Docker Compose Maker</h1>
         <Button asChild className="flex items-center gap-2">
-          <Link prefetch href="/templates">
+          <Link prefetch={false} href="/templates">
             <Palette size={16} />
             Template Gallery
           </Link>

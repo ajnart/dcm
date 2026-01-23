@@ -71,7 +71,7 @@ export default function TemplateGalleryClient({
     <SettingsProvider>
       <div className="mb-6 flex items-center justify-between">
         <Button asChild variant="ghost" className="flex items-center gap-2">
-          <Link prefetch href="/">
+          <Link prefetch={false} href="/">
             <ArrowLeft size={16} />
             Back to Container Selection
           </Link>
