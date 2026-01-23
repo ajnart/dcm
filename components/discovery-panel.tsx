@@ -33,6 +33,7 @@ const AWESOME_CATEGORIES = [
   { name: "Note-taking & Editors", anchor: "#note-taking--editors" },
 ]
 
+// Using 'master' branch as that's the default branch for awesome-selfhosted repository
 const AWESOME_SELFHOSTED_BASE =
   "https://github.com/awesome-selfhosted/awesome-selfhosted/blob/master/README.md"
 
@@ -59,7 +60,6 @@ export default function DiscoveryPanel({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsOpen(!isOpen)}
               type="button"
               className="motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:scale-105"
             >
