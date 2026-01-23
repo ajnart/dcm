@@ -70,12 +70,12 @@ export default function TemplateGalleryClient({
   return (
     <SettingsProvider>
       <div className="mb-6 flex items-center justify-between">
-        <Link prefetch href="/">
-          <Button variant="ghost" className="flex items-center gap-2">
+        <Button asChild variant="ghost" className="flex items-center gap-2">
+          <Link prefetch href="/">
             <ArrowLeft size={16} />
             Back to Container Selection
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
