@@ -9,6 +9,7 @@ import { siDocker } from "simple-icons"
 import SettingsForm from "@/components/settings/SettingsForm"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
+import type { PortConflictsResult } from "@/lib/docker-compose/port-conflicts"
 
 import {
   AlertDialog,
@@ -58,10 +59,9 @@ export function CopyComposeModal({
   const [activeTab, setActiveTab] = useState<string>("compose")
   const [copied, setCopied] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [portConflicts, setPortConflicts] = useState<{
-    fixed: number
-    conflicts: string[]
-  } | null>(null)
+  const [portConflicts, setPortConflicts] = useState<PortConflictsResult | null>(
+    null,
+  )
 
   const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)

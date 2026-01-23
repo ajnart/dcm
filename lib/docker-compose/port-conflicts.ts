@@ -1,11 +1,31 @@
+export interface PortChange {
+  service: string
+  oldPort: string
+  newPort: string
+}
+
+export interface PortConflict {
+  port: string
+  affectedServices: string[]
+  keptService: string
+  changes: PortChange[]
+}
+
+export interface PortConflictsResult {
+  fixed: number
+  conflicts: string[]
+  detailedConflicts: PortConflict[]
+}
+
 export function detectAndFixPortConflicts(content: string): {
   fixedContent: string
-  conflicts: { fixed: number; conflicts: string[] } | null
+  conflicts: PortConflictsResult | null
 } {
   const portMappingRegex = /- ["']?(\d+):(\d+)["']?/g
 
   const externalPorts: Record<string, Set<string>> = {}
   const conflicts: string[] = []
+  const detailedConflicts: PortConflict[] = []
   let fixedCount = 0
 
   let result = content.slice()
@@ -47,6 +67,7 @@ export function detectAndFixPortConflicts(content: string): {
     const services = Array.from(servicesSet)
     if (services.length > 1) {
       const keptService = services[0]
+      const changes: PortChange[] = []
 
       conflicts.push(`Port ${port} was used by: ${services.join(", ")}`)
 
@@ -72,6 +93,13 @@ export function detectAndFixPortConflicts(content: string): {
           conflicts[conflicts.length - 1] +=
             `\n  → Changed ${serviceToFix}: ${port} → ${newPort}`
 
+          // Add to changes array for detailed conflicts
+          changes.push({
+            service: serviceToFix,
+            oldPort: port,
+            newPort: String(newPort),
+          })
+
           result =
             result.substring(0, match.index) +
             replacement +
@@ -82,11 +110,22 @@ export function detectAndFixPortConflicts(content: string): {
           servicePortRegex.lastIndex = 0
         }
       }
+
+      // Add detailed conflict info
+      detailedConflicts.push({
+        port,
+        affectedServices: services,
+        keptService,
+        changes,
+      })
     }
   })
 
   return {
     fixedContent: result,
-    conflicts: conflicts.length > 0 ? { fixed: fixedCount, conflicts } : null,
+    conflicts:
+      conflicts.length > 0
+        ? { fixed: fixedCount, conflicts, detailedConflicts }
+        : null,
   }
 }
