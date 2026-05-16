@@ -1,0 +1,20 @@
+tools/monitoring.ts
+  s_18984404331c67::t_544cf2d1188b02 26
+  s_18984404331c67::t_c65a0ed2db64dc 59,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "3930a9421fa35d3a234b62fa281b1e25243db744",
+  "prompts": {},
+  "sessions": {
+    "s_18984404331c67": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1cfb3e668ffeTiqiz9DTCJKmHs",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
