@@ -1,3 +1,20 @@
 /data/
 /config/
 /.sessions/
+/.selfhost/
+
+# Disposable client and installer state
+/.claude/
+/.codex/
+/.cursor/
+/.gemini/
+/.opencode/
+/.client-install/
+/.install-tmp/
+/.tmp/
+
+# Local validation and acceptance output
+/artifacts/
+/evidence/
+/screenshots/
+/coverage/

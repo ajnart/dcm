@@ -1,0 +1,31 @@
+name: Validate repository
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up supported Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Report Node version
+        run: node --version
+
+      - name: Run repository and skill quick validation
+        run: node scripts/validate-repo.mjs
