@@ -1,0 +1,4 @@
+interface:
+  display_name: "Self-hosted Media Stack"
+  short_description: "Plan and initialize a private media stack"
+  default_prompt: "Use $selfhost-media to plan and initialize a private owned-content media stack."
