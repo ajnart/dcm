@@ -6,7 +6,7 @@ Treat every row as unproven until its listed evidence exists.
 | --- | --- |
 | Isolated run | unique project, state root, ports, network, browser session |
 | Seven services | project-scoped status plus expected HTTP/health response |
-| qBittorrent auth | new standard login and authenticated version API |
+| qBittorrent auth | new per-run login and authenticated version API |
 | Sonarr/Radarr -> qBittorrent | enabled client records and passing tests |
 | Prowlarr -> Sonarr/Radarr | two passing full-sync apps; indexer downstream |
 | Jellyfin | admin login and two media libraries |

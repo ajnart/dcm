@@ -11,8 +11,10 @@
 ## Minimum fresh-run path
 
 1. Initialize Seerr using Jellyfin. Its split form expects host `jellyfin`, port
-   `8096`, disposable email `admin@example.test`, and the Jellyfin admin login.
-   Focus the action and press Enter if a mouse click is inert.
+   `8096`, disposable email `admin@example.test`, and username `admin`. Fill the
+   fresh password ref through
+   `scripts/session.sh browser-password "$RUN_ID" @eN`. Focus the action and
+   press Enter if a mouse click is inert.
 2. Sync, select Movies and Shows, set the host URL as External URL, save, and
    start the first manual scan.
 3. Add Radarr: hostname `radarr`, port `7878`, no SSL, per-run Radarr API key,

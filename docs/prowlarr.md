@@ -16,7 +16,9 @@
 3. It triggers the supported `ApplicationIndexerSync` task through the command
    API and waits until both downstream apps contain the indexer.
 4. Confirm the indexer and both apps in agent-browser, then run
-   `scripts/session.sh verify RUN_ID`.
+   `scripts/session.sh verify RUN_ID`. If login is required, use username
+   `admin` and fill its fresh password ref through
+   `scripts/session.sh browser-password "$RUN_ID" @eN`.
 
 ## Proof
 

@@ -9,8 +9,11 @@ waits for the chosen indexer downstream.
 
 Run `scripts/session.sh verify "$RUN_ID"`. In agent-browser, spot-check the
 Prowlarr indexer/application lists and Sonarr/Radarr download-client/indexer
-lists. Record the chosen public indexer; availability is environmental, so do
-not hard-code a provider that failed its live test.
+lists. If a Forms login appears, use username `admin` and fill its fresh
+password ref only through
+`scripts/session.sh browser-password "$RUN_ID" @eN`. Record the chosen public
+indexer; availability is environmental, so do not hard-code a provider that
+failed its live test.
 
 ## Stop gate
 

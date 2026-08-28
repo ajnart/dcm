@@ -8,7 +8,7 @@
 | Image       | ghcr.io/hotio/sonarr:latest          |
 | Auth Method | Forms (Login Page)                   |
 | Username    | admin                                |
-| Password    | Password1!                           |
+| Password    | [REDACTED LEGACY TEST PASSWORD]                           |
 | API Key     | <REDACTED_API_KEY>     |
 | Port        | 8989                                 |
 
@@ -53,8 +53,8 @@ agent-browser --args "--no-sandbox" click @e10
 
 # Fill in credentials
 agent-browser --args "--no-sandbox" fill @e28 "admin"
-agent-browser --args "--no-sandbox" fill @e29 "Password1!"
-agent-browser --args "--no-sandbox" fill @e30 "Password1!"
+agent-browser --args "--no-sandbox" fill @e29 "[REDACTED LEGACY TEST PASSWORD]"
+agent-browser --args "--no-sandbox" fill @e30 "[REDACTED LEGACY TEST PASSWORD]"
 
 # Click Save
 agent-browser --args "--no-sandbox" click @e24
@@ -152,7 +152,7 @@ export AGENT_BROWSER_SESSION="$(agent-browser session id --scope worktree --pref
 agent-browser --args "--no-sandbox" open http://localhost:8989
 agent-browser --args "--no-sandbox" wait --load networkidle
 agent-browser --args "--no-sandbox" fill @e4 "admin"
-agent-browser --args "--no-sandbox" fill @e5 "Password1!"
+agent-browser --args "--no-sandbox" fill @e5 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser --args "--no-sandbox" click @e3
 agent-browser --args "--no-sandbox" wait --load networkidle
 
@@ -183,7 +183,7 @@ agent-browser --args "--no-sandbox" press Control+a
 agent-browser --args "--no-sandbox" press Delete
 agent-browser --args "--no-sandbox" fill @e41 "8088"
 agent-browser --args "--no-sandbox" fill @e43 "admin"                     # Username
-agent-browser --args "--no-sandbox" fill @e44 "Password1!"               # Password
+agent-browser --args "--no-sandbox" fill @e44 "[REDACTED LEGACY TEST PASSWORD]"               # Password
 # Category @e45 is pre-filled with "tv-sonarr" — verify or set:
 agent-browser --args "--no-sandbox" fill @e45 "tv-sonarr"
 

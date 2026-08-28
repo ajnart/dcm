@@ -54,8 +54,8 @@ button "Next" [ref=e7]
 
 ```bash
 agent-browser --session "$AGENT_BROWSER_SESSION" fill @e3 "admin"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "Password1!"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "Password1!"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "[REDACTED LEGACY TEST PASSWORD]"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser --session "$AGENT_BROWSER_SESSION" click @e7
 ```
 
@@ -130,7 +130,7 @@ button "Sign In" [ref=e7]
 
 ```bash
 agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "admin"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "Password1!"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser --session "$AGENT_BROWSER_SESSION" click @e7
 ```
 
@@ -159,8 +159,8 @@ agent-browser --session "$AGENT_BROWSER_SESSION" click @e5
 
 # Step 2: Admin account
 agent-browser --session "$AGENT_BROWSER_SESSION" fill @e3 "admin"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "Password1!"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "Password1!"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "[REDACTED LEGACY TEST PASSWORD]"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser --session "$AGENT_BROWSER_SESSION" click @e7
 
 # Step 3: Skip media libraries
@@ -177,7 +177,7 @@ agent-browser --session "$AGENT_BROWSER_SESSION" click @e4
 
 # Sign in
 agent-browser --session "$AGENT_BROWSER_SESSION" fill @e4 "admin"
-agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "Password1!"
+agent-browser --session "$AGENT_BROWSER_SESSION" fill @e5 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser --session "$AGENT_BROWSER_SESSION" click @e7
 
 # Verify

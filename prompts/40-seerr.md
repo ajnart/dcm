@@ -3,7 +3,9 @@
 Read `docs/seerr.md`. Initialize Seerr through agent-browser:
 
 1. Choose Jellyfin. The form prepends the scheme: enter host `jellyfin`, port
-   `8096`, disposable email `admin@example.test`, and the Jellyfin admin login.
+   `8096`, disposable email `admin@example.test`, and username `admin`. Fill the
+   password only through `scripts/session.sh browser-password "$RUN_ID" @eN`
+   using its fresh input ref.
 2. Hydrated buttons can acknowledge a mouse click without firing. If the page
    does not advance, focus the button and press Enter; never keep stale refs.
 3. Sync libraries, select both Movies and Shows, set the Jellyfin host URL as

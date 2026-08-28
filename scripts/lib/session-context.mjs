@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -21,9 +21,12 @@ const SCRIPT_LIB_DIR = dirname(fileURLToPath(import.meta.url));
 
 export const REPO_ROOT = realpathSync(resolve(SCRIPT_LIB_DIR, "../.."));
 export const STANDARD_USERNAME = "admin";
-export const STANDARD_PASSWORD = "Password1!";
+export const SESSION_PASSWORD_SCHEME = "hmac-v1";
 
-const MANIFEST_KEYS = new Set([
+const SESSION_PASSWORD_DERIVATION_DOMAIN =
+  "auto-stack/media-harness/session-password/v1";
+
+const REQUIRED_MANIFEST_KEYS = new Set([
   "RUN_ID",
   "COMPOSE_PROJECT_NAME",
   "SESSION_ROOT",
@@ -38,6 +41,10 @@ const MANIFEST_KEYS = new Set([
   "JELLYFIN_PORT",
   "SEERR_PORT",
   "HOMARR_PORT",
+]);
+const MANIFEST_KEYS = new Set([
+  ...REQUIRED_MANIFEST_KEYS,
+  "SESSION_PASSWORD_SCHEME",
 ]);
 
 const SECRET_KEYS = new Set([
@@ -90,6 +97,49 @@ export function validateRunId(runId) {
   if (!/^[a-z0-9][a-z0-9_-]{0,39}$/.test(runId)) {
     fail("invalid RUN_ID");
   }
+}
+
+export function classifySessionPasswordScheme(manifest) {
+  if (!manifest || typeof manifest !== "object") {
+    fail("manifest password scheme is invalid");
+  }
+  const scheme = manifest.SESSION_PASSWORD_SCHEME;
+  if (scheme === undefined) {
+    return "legacy";
+  }
+  if (scheme !== SESSION_PASSWORD_SCHEME) {
+    fail("manifest password scheme is invalid");
+  }
+  return scheme;
+}
+
+export function requireSessionPasswordScheme(session) {
+  if (
+    !session
+    || typeof session !== "object"
+    || classifySessionPasswordScheme(session.manifest) !== SESSION_PASSWORD_SCHEME
+  ) {
+    fail("session password scheme requires recreation");
+  }
+}
+
+export function deriveSessionPassword(session) {
+  if (!session || typeof session !== "object" || !session.secrets) {
+    fail("session password source is invalid");
+  }
+  requireSessionPasswordScheme(session);
+  validateRunId(session.runId);
+  const encryptionKey = session.secrets.HOMARR_ENCRYPTION_KEY;
+  if (typeof encryptionKey !== "string" || !/^[0-9a-f]{64}$/.test(encryptionKey)) {
+    fail("session password source is invalid");
+  }
+  const digest = createHmac("sha256", Buffer.from(encryptionKey, "hex"))
+    .update(SESSION_PASSWORD_DERIVATION_DOMAIN, "utf8")
+    .update("\0", "utf8")
+    .update(session.runId, "utf8")
+    .digest("hex")
+    .slice(0, 24);
+  return `Autostack-${digest}!`;
 }
 
 function assertPrivateControlFile(filePath, expectedParent, label) {
@@ -151,6 +201,7 @@ function parseRestrictedEnv(
   allowedKeys,
   valuePattern,
   label,
+  requiredKeys = allowedKeys,
 ) {
   assertPrivateControlFile(filePath, expectedParent, label);
   const contents = readFileSync(filePath, "utf8");
@@ -179,8 +230,10 @@ function parseRestrictedEnv(
     values[key] = value;
   }
 
-  if (Object.keys(values).length !== allowedKeys.size) {
-    fail(`${label} is incomplete`);
+  for (const key of requiredKeys) {
+    if (!Object.hasOwn(values, key)) {
+      fail(`${label} is incomplete`);
+    }
   }
 
   return values;
@@ -211,6 +264,7 @@ export function loadSession(runId) {
     MANIFEST_KEYS,
     /^[a-zA-Z0-9_./:-]+$/,
     "manifest",
+    REQUIRED_MANIFEST_KEYS,
   );
   const secrets = parseRestrictedEnv(
     secretsFile,
@@ -232,6 +286,7 @@ export function loadSession(runId) {
   if (manifest.AGENT_BROWSER_SESSION !== `auto-stack-${runId}`) {
     fail("manifest browser session mismatch");
   }
+  classifySessionPasswordScheme(manifest);
   if (!/^\d+$/.test(manifest.PUID) || !/^\d+$/.test(manifest.PGID)) {
     fail("manifest user identifiers are invalid");
   }
@@ -370,6 +425,7 @@ export function storeHomarrApiKey(session, apiKey) {
 
 export function refreshArrKeys(runId) {
   const session = loadSession(runId);
+  requireSessionPasswordScheme(session);
   const arrKeys = Object.create(null);
   for (const [service, secretName] of [
     ["sonarr", "SONARR_API_KEY"],

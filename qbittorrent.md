@@ -9,7 +9,7 @@ This guide documents the exact browser automation path used to set up qBittorren
 - **Web UI port (host)**: 8088
 - **Default username**: `admin`
 - **Temporary password**: `<generated-temporary-password>`
-- **Final credentials**: `admin` / `Password1!`
+- **Final credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 > **Note on port 8088**: A host-side `traefik` process (PID 1310767) is bound to `0.0.0.0:8080`, so
 > the qBittorrent `8080:8080` port mapping fails to bind. The compose file was updated to map
@@ -127,7 +127,7 @@ WebUI settings form fields seen in the snapshot:
 Set the new password and save:
 
 ```bash
-agent-browser fill @e124 "Password1!"
+agent-browser fill @e124 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser click @e74       # Save
 agent-browser wait --load networkidle
 ```
@@ -159,7 +159,7 @@ The menu-driven logout can be flaky. A reliable logout + verification is done wi
 curl -s -c /tmp/qbit-cookies.txt \
   -o /dev/null -w "%{http_code}\n" \
   http://localhost:8088/api/v2/auth/login -X POST \
-  -d "username=admin&password=Password1!"
+  -d "username=admin&password=[REDACTED LEGACY TEST PASSWORD]"
 
 # Use the session
 curl -s -b /tmp/qbit-cookies.txt http://localhost:8088/api/v2/app/version
@@ -181,7 +181,7 @@ Only one setting changed in the Web UI:
 
 | Setting              | Before | After        |
 |----------------------|--------|--------------|
-| Web UI Password      | (temp) | `Password1!` |
+| Web UI Password      | (temp) | `[REDACTED LEGACY TEST PASSWORD]` |
 
 Username stayed `admin`. All other WebUI defaults were left untouched (`Bypass authentication for
 clients on localhost` unchecked, `Enable Host header validation` checked with `Server domains: *`).

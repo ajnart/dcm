@@ -2,6 +2,7 @@
 
 import {
   loadSession,
+  requireSessionPasswordScheme,
   storeHomarrApiKey,
   validateHomarrApiKey,
 } from "./lib/session-context.mjs";
@@ -37,6 +38,7 @@ async function main() {
     throw new Error("RUN_ID is required");
   }
   const session = loadSession(process.argv[2]);
+  requireSessionPasswordScheme(session);
   const apiKey = await readKeyFromStdin();
   storeHomarrApiKey(session, apiKey);
   process.stdout.write("PASS Homarr API key stored\n");

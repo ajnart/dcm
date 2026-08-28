@@ -14,8 +14,7 @@ npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent c
 ```
 
 `--all` is deliberately broader: it selects every skill for every agent target
-supported by the CLI. Use it only when that fan-out is intentional; the audited
-remote smoke expanded it to 77 agent targets.
+supported by the CLI. Use it only when that fan-out is intentional.
 
 Before running it, install Git and Node.js 22.20.0 or newer, including npm/npx;
 Node.js 24 is the recommended installer runtime. The current `skills` CLI does
@@ -317,11 +316,17 @@ Give an agent one of these compact prompts when a prerequisite is absent:
 > Docker context. Do not start containers, change firewall exposure, or mount
 > the Docker socket until the selfhost plan is approved.
 
-> Install and verify `agent-browser` using its current official skill
-> instructions. Load its core workflow, create an isolated named session, and
-> run a public allowlisted preflight without authentication or restored state.
-> If Chromium requires `--no-sandbox`, stop and ask for explicit acceptance;
-> never disable the sandbox automatically.
+> Activate Node.js 22.20.0 or newer, preferably Node.js 24, then install and
+> verify `agent-browser` using its current official skill instructions. Load
+> its core workflow, create an isolated named session, and run a public
+> allowlisted preflight without authentication or restored state. If Chromium
+> requires `--no-sandbox`, stop and ask for explicit acceptance; never disable
+> the sandbox automatically.
+
+The media password helper never installs or downloads agent-browser. It first
+uses the active direct executable. Only a direct `ENOENT` retries the fixed
+`mise exec node@24 -- agent-browser` path; it never retries a launched nonzero
+browser action.
 
 ## Validation
 

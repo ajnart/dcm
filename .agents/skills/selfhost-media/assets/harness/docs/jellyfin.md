@@ -8,12 +8,14 @@
 ## Minimum fresh-run path
 
 1. Complete the first-run wizard with agent-browser and create the standard
-   local admin account.
+   local admin username `admin`. Fill the password and confirmation refs with
+   `scripts/session.sh browser-password "$RUN_ID" @eN @eN`.
    If Next is inert after credentials, focus password confirmation and press
    Enter; this was reproducible on 10.11.11.
 2. Add TV library `/data/media/tv` and movie library `/data/media/movies` so
    Seerr has real libraries to discover; accept normal metadata/remote defaults.
-3. Sign in once and confirm the dashboard loads.
+3. Sign in once and confirm the dashboard loads. Use the helper with the fresh
+   password ref; never pass the password to agent-browser as an argument.
 4. In Seerr, select Jellyfin and use `http://jellyfin:8096` as the internal URL,
    the host URL as the external URL, and the Jellyfin admin account for setup.
 

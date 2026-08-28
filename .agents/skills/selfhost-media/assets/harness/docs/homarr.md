@@ -11,7 +11,8 @@
 ## Minimum fresh-run path
 
 1. Open `/init` with agent-browser, start from scratch, and create the standard
-   local admin account.
+   local admin username `admin`. Fill its fresh password and confirmation refs
+   through `scripts/session.sh browser-password "$RUN_ID" @eN @eN`.
 2. Continue past Discover when it reports the intentionally absent Docker
    socket; manual setup is the isolation-safe path.
 3. Do not skip onboarding's Connect step. Add and test **all six** services
@@ -20,7 +21,8 @@
    `http://prowlarr:9696`, `http://qbittorrent:$QBITTORRENT_PORT`,
    `http://jellyfin:8096`, and `http://seerr:5055`.
 5. Use per-run API keys for the three Arr apps and Seerr; select the
-   username/password mode for qBittorrent and Jellyfin.
+   username/password mode for qBittorrent and Jellyfin. Fill each password ref
+   only through `scripts/session.sh browser-password "$RUN_ID" @eN`.
 6. Review must state 6 integrations and 6 app tiles. Build and let `v2` generate
    the dashboard. Do not manually add apps/widgets: generation itself is under
    test.
@@ -87,6 +89,8 @@ unapproved tool before upstream dispatch.
 
 - Integration URLs are base URLs only; never append settings/API paths.
 - Re-snapshot after dialogs and menus; stale refs and overlays are common.
+- Never pass the derived password in an agent-browser or shell argument; use
+  only the bounded browser-password helper with fresh refs.
 - A green integration list without visible generated apps/widgets is incomplete.
 - Never fall back to post-onboarding manual placement to claim auto-generation.
 - Never screenshot the one-time API key or put it in a client fragment.

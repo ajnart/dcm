@@ -8,7 +8,7 @@
 | Image       | ghcr.io/hotio/prowlarr:latest        |
 | Auth Method | Forms (Login Page)                   |
 | Username    | admin                                |
-| Password    | Password1!                           |
+| Password    | [REDACTED LEGACY TEST PASSWORD]                           |
 | API Key     | <REDACTED_API_KEY>     |
 | Port        | 9696                                 |
 
@@ -53,8 +53,8 @@ agent-browser --args "--no-sandbox" click @e9
 
 # Fill in credentials
 agent-browser --args "--no-sandbox" fill @e24 "admin"
-agent-browser --args "--no-sandbox" fill @e25 "Password1!"
-agent-browser --args "--no-sandbox" fill @e26 "Password1!"
+agent-browser --args "--no-sandbox" fill @e25 "[REDACTED LEGACY TEST PASSWORD]"
+agent-browser --args "--no-sandbox" fill @e26 "[REDACTED LEGACY TEST PASSWORD]"
 
 # Click Save
 agent-browser --args "--no-sandbox" click @e21

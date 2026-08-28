@@ -37,4 +37,8 @@ Homarr --> Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, Seerr
 | Seerr | `ghcr.io/seerr-team/seerr:latest` |
 | Homarr | `ghcr.io/homarr-labs/homarr-test:v2` |
 
-The bundle verifier treats this exact seven-image set as an invariant.
+The bundle verifier treats this exact seven-image set as an invariant. The six
+non-Homarr `:latest` references are allowed only in this isolated,
+loopback-bound, disposable evaluation harness. Production composition must go
+through `selfhost-compose`, which rejects floating images. Do not replace them
+with unverified pins; first verify the remote multi-architecture index digests.

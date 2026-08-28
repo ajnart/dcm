@@ -17,7 +17,12 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { loadHomarrApiKey, loadSession, REPO_ROOT } from "./lib/session-context.mjs";
+import {
+  loadHomarrApiKey,
+  loadSession,
+  REPO_ROOT,
+  requireSessionPasswordScheme,
+} from "./lib/session-context.mjs";
 
 function assertOwnedMode(stat, mode, label) {
   if (typeof process.getuid !== "function" || typeof process.getgid !== "function") {
@@ -146,6 +151,7 @@ function main() {
     throw new Error("RUN_ID is required");
   }
   const session = loadSession(process.argv[2]);
+  requireSessionPasswordScheme(session);
   const { apiKey } = loadHomarrApiKey(session);
   writeConfig(session, validateBridgePath(), apiKey);
   process.stdout.write("PASS secret-free Homarr MCP client artifact written\n");

@@ -1,6 +1,7 @@
 import {
   arrHeaders,
   composeLogs,
+  deriveSessionPassword,
   fieldValue,
   loadSession,
   normalizeName,
@@ -9,7 +10,6 @@ import {
   requestJson,
   setField,
   sleep,
-  STANDARD_PASSWORD,
   STANDARD_USERNAME,
   tryRequest,
   validateRunId,
@@ -129,9 +129,9 @@ async function qbitPost(baseUrl, cookie, endpoint, values, label) {
   );
 }
 
-async function configureQbit(session) {
+async function configureQbit(session, sessionPassword) {
   const baseUrl = loopback(session.manifest.QBITTORRENT_PORT);
-  let cookie = await qbitLogin(baseUrl, STANDARD_PASSWORD);
+  let cookie = await qbitLogin(baseUrl, sessionPassword);
 
   if (cookie === "") {
     let temporaryPassword = "";
@@ -165,13 +165,13 @@ async function configureQbit(session) {
         save_path: "/data/torrents",
         temp_path: "/data/torrents/incomplete",
         temp_path_enabled: true,
-        web_ui_password: STANDARD_PASSWORD,
+        web_ui_password: sessionPassword,
       }),
     },
     "qBittorrent preference update",
   );
 
-  cookie = await qbitLogin(baseUrl, STANDARD_PASSWORD);
+  cookie = await qbitLogin(baseUrl, sessionPassword);
   if (cookie === "") {
     throw new Error("qBittorrent standard login verification failed");
   }
@@ -217,12 +217,13 @@ function downloadClientPayload(
   categoryField,
   category,
   qbitPort,
+  sessionPassword,
 ) {
   const fields = writableFields(source);
   setField(fields, "host", "qbittorrent");
   setField(fields, "port", Number(qbitPort));
   setField(fields, "username", STANDARD_USERNAME);
-  setField(fields, "password", STANDARD_PASSWORD);
+  setField(fields, "password", sessionPassword);
   setField(fields, categoryField, category);
 
   const optionalValues = new Map([
@@ -254,7 +255,7 @@ function downloadClientPayload(
   return payload;
 }
 
-async function configureArr(session, definition) {
+async function configureArr(session, definition, sessionPassword) {
   const baseUrl = loopback(session.manifest[definition.portKey]);
   const headers = arrHeaders(session.secrets[definition.apiKey]);
   const apiRoot = `${baseUrl}/api/v3`;
@@ -269,8 +270,8 @@ async function configureArr(session, definition) {
     authenticationMethod: "forms",
     authenticationRequired: "enabled",
     username: STANDARD_USERNAME,
-    password: STANDARD_PASSWORD,
-    passwordConfirmation: STANDARD_PASSWORD,
+    password: sessionPassword,
+    passwordConfirmation: sessionPassword,
   };
   await request(
     `${apiRoot}/config/host`,
@@ -342,6 +343,7 @@ async function configureArr(session, definition) {
     definition.categoryField,
     definition.category,
     session.manifest.QBITTORRENT_PORT,
+    sessionPassword,
   );
 
   await request(
@@ -729,12 +731,13 @@ async function syncAndWait(session, arrDefinitions) {
 async function main() {
   validateRunId(runId);
   let session = loadSession(runId);
+  const sessionPassword = deriveSessionPassword(session);
   await waitForCoreServices(session);
   refreshArrKeys(runId);
   session = loadSession(runId);
   console.log("PASS Arr API keys refreshed");
 
-  await configureQbit(session);
+  await configureQbit(session, sessionPassword);
   console.log("PASS qBittorrent login and categories configured");
 
   const arrDefinitions = [
@@ -759,7 +762,7 @@ async function main() {
   ];
 
   for (const definition of arrDefinitions) {
-    await configureArr(session, definition);
+    await configureArr(session, definition, sessionPassword);
     console.log(`PASS ${definition.name} auth, root folder, and qBittorrent link configured`);
   }
 

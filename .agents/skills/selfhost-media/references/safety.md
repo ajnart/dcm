@@ -36,3 +36,8 @@ Treat a bundle, source-drift, or installed-runtime verification failure as a
 stop condition. Do not work around path, owner, mode, hash, symlink, unexpected
 content, or manifest failures. The installer leaves every existing `.sessions`
 tree untouched.
+
+The six non-Homarr `:latest` images are an intentional exception only for this
+isolated, loopback-bound, disposable evaluation harness. Production composition
+must go through `selfhost-compose`, which rejects floating images. Do not invent
+pins: a replacement requires verified remote multi-architecture index digests.

@@ -40,6 +40,19 @@ prompt module list, and seven-image Compose contract. The optional source check
 compares only `docker-compose.yml`, `PROMPT.md`, `prompts/**`, `docs/**`, and
 `scripts/**`; excluded private/runtime paths are skipped.
 
+The six non-Homarr `:latest` images are intentional only in this isolated,
+loopback-bound, disposable evaluation harness. Production composition must use
+`selfhost-compose`, whose contract rejects floating images. Do not pin these
+evaluation references without verified remote multi-architecture index digests.
+
+## Browser runtime prerequisite
+
+Install agent-browser while Node.js 22.20.0 or newer is active; Node.js 24 is
+recommended. The harness does not install or download it. `browser-password`
+first invokes agent-browser directly. Only a direct `ENOENT` retries the fixed
+`mise exec node@24 -- agent-browser` path; a launched nonzero action is never
+retried.
+
 ## Session lifecycle
 
 After installation, use one identifier matching
@@ -56,3 +69,12 @@ node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session verify RUN_ID
 
 Run state belongs only to `.sessions/RUN_ID`. Use project-scoped status and logs;
 never infer ports, container names, or another run's state.
+
+New manifests carry `SESSION_PASSWORD_SCHEME=hmac-v1`. A missing marker denotes
+a legacy run and is accepted only for inspection and bounded cleanup. Legacy
+runs allow `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, and
+`destroy`. The exact current marker is required for `up`, `keys`, `bootstrap`,
+`verify`, `browser-password`, `homarr-key`, `homarr-finalize`, and `mcp-config`;
+recreate under a new run identifier instead of migrating credentials in place.
+The internal read-only Compose-log helper remains marker-optional; there is no
+standalone `session.sh logs` command.

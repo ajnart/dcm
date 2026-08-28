@@ -14,11 +14,11 @@ Homarr (dashboard) --> all services via integrations
 
 | Service     | Port | Auth Required | Default Credentials          |
 |-------------|------|---------------|------------------------------|
-| Prowlarr    | 9696 | Yes (Forms)   | admin / Password1!           |
-| Radarr      | 7878 | Yes (Forms)   | admin / Password1!           |
-| Sonarr      | 8989 | Yes (Forms)   | admin / Password1!           |
-| qBittorrent | 8088 | Yes           | admin / Password1!           |
-| Jellyfin    | 8096 | Yes           | admin / Password1!           |
+| Prowlarr    | 9696 | Yes (Forms)   | admin / [REDACTED LEGACY TEST PASSWORD]           |
+| Radarr      | 7878 | Yes (Forms)   | admin / [REDACTED LEGACY TEST PASSWORD]           |
+| Sonarr      | 8989 | Yes (Forms)   | admin / [REDACTED LEGACY TEST PASSWORD]           |
+| qBittorrent | 8088 | Yes           | admin / [REDACTED LEGACY TEST PASSWORD]           |
+| Jellyfin    | 8096 | Yes           | admin / [REDACTED LEGACY TEST PASSWORD]           |
 | Homarr      | 7578 | Yes           | First-time admin creation    |
 
 ## Key Findings
@@ -31,7 +31,7 @@ Homarr (dashboard) --> all services via integrations
 
 ### Homarr (port 7578)
 
-- **Admin user**: `admin` / `Password1!` (created via first-time wizard at `/init`).
+- **Admin user**: `admin` / `[REDACTED LEGACY TEST PASSWORD]` (created via first-time wizard at `/init`).
 - **Board**: name `Auto-Stack-Dashboard`, display title "Auto-Stack Dashboard". URL: `http://localhost:7578/boards/Auto-Stack-Dashboard` (also the home lander at `/`).
 - **Setup flow**: open `http://localhost:7578` -> redirected to `/init` -> "Start from scratch" -> fill Username/Password/Confirm password -> "Create user" -> "Continue" (Settings) -> **Integrations step** (NOT skipped) -> click Sonarr card -> "Continue" -> fill Sonarr URL/API Key -> "Test connection and create" -> "Go to dashboard board" (Finish) -> skip the onboarding tour -> add remaining 4 integrations via Management -> Integrations (Radarr, Prowlarr, qBittorrent, Jellyfin).
 - **Board rename**: via Management -> Boards -> Settings -> "Change name". **Homarr's board name schema rejects spaces** (`regex /^[A-Za-z0-9-_]*$/`, found in the bundle as `boardNameSchema`), so "Auto-Stack Dashboard" would fail validation. Used `Auto-Stack-Dashboard` for the name and set `pageTitle` = "Auto-Stack Dashboard" (spaces allowed) in the board's General settings, then "Save changes".
@@ -48,7 +48,7 @@ Homarr (dashboard) --> all services via integrations
 
 **URL**: http://localhost:8096
 
-**Credentials**: `admin` / `Password1!`
+**Credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 **Wizard flow** (6 steps):
 1. **Welcome** — language (English default), server name (auto-filled hostname), click Next
@@ -68,7 +68,7 @@ Homarr (dashboard) --> all services via integrations
 
 **URL**: http://localhost:8989
 
-**Credentials**: `admin` / `Password1!`
+**Credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 **Auth method**: Forms (Login Page)
 
@@ -78,7 +78,7 @@ Homarr (dashboard) --> all services via integrations
 1. Navigate to http://localhost:8989 — forced auth setup modal appears
 2. Click the "None" dropdown toggle to open authentication method options
 3. Select "Forms (Login Page)" from the dropdown
-4. Fill in Username: `admin`, Password: `Password1!`, Confirm Password: `Password1!`
+4. Fill in Username: `admin`, Password: `[REDACTED LEGACY TEST PASSWORD]`, Confirm Password: `[REDACTED LEGACY TEST PASSWORD]`
 5. Click Save — modal closes, dashboard loads
 6. Navigate to Settings → General to view auth settings and API key
 7. API key is visible in a textbox on the General settings page
@@ -96,7 +96,7 @@ Available env vars: `SONARR__AUTH_METHOD`, `SONARR__AUTH_REQUIRED`, `SONARR__API
 
 **URL**: http://localhost:7878
 
-**Credentials**: `admin` / `Password1!`
+**Credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 **Auth method**: Forms (Login Page)
 
@@ -106,7 +106,7 @@ Available env vars: `SONARR__AUTH_METHOD`, `SONARR__AUTH_REQUIRED`, `SONARR__API
 1. Navigate to http://localhost:7878 — forced auth setup modal appears
 2. Click the "None" dropdown toggle to open authentication method options
 3. Select "Forms (Login Page)" from the dropdown
-4. Fill in Username: `admin`, Password: `Password1!`, Confirm Password: `Password1!`
+4. Fill in Username: `admin`, Password: `[REDACTED LEGACY TEST PASSWORD]`, Confirm Password: `[REDACTED LEGACY TEST PASSWORD]`
 5. Click Save — modal closes, dashboard loads
 6. Navigate to Settings → General to view auth settings and API key
 7. API key is visible in a textbox on the General settings page
@@ -124,7 +124,7 @@ Available env vars: `RADARR__AUTH_METHOD`, `RADARR__AUTH_REQUIRED`, `RADARR__API
 
 **URL**: http://localhost:9696
 
-**Credentials**: `admin` / `Password1!`
+**Credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 **Auth method**: Forms (Login Page)
 
@@ -134,7 +134,7 @@ Available env vars: `RADARR__AUTH_METHOD`, `RADARR__AUTH_REQUIRED`, `RADARR__API
 1. Navigate to http://localhost:9696 — forced auth setup modal appears
 2. Click the "None" dropdown toggle to open authentication method options
 3. Select "Forms (Login Page)" from the dropdown
-4. Fill in Username: `admin`, Password: `Password1!`, Confirm Password: `Password1!`
+4. Fill in Username: `admin`, Password: `[REDACTED LEGACY TEST PASSWORD]`, Confirm Password: `[REDACTED LEGACY TEST PASSWORD]`
 5. Click Save — modal closes, dashboard loads
 6. Navigate to Settings → General to view auth settings and API key
 7. API key is visible in a textbox on the General settings page
@@ -157,8 +157,8 @@ Homarr was configured with 5 service integrations via the Integrations managemen
 | Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `<REDACTED_API_KEY>`                 |
 | Radarr      | Radarr           | http://radarr:7878    | API Key                | `<REDACTED_API_KEY>`                 |
 | Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `<REDACTED_API_KEY>`                 |
-| qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `Password1!`                            |
-| Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `Password1!`                            |
+| qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `[REDACTED LEGACY TEST PASSWORD]`                            |
+| Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `[REDACTED LEGACY TEST PASSWORD]`                            |
 
 **Integration creation flow**:
 1. Navigate to Management -> Integrations -> "New integration"
@@ -187,7 +187,7 @@ The corresponding apps were created and placed on the Auto-Stack-Dashboard board
 
 **URL**: http://localhost:8088 (host port; container listens on 8088)
 
-**Credentials**: `admin` / `Password1!`
+**Credentials**: `admin` / `[REDACTED LEGACY TEST PASSWORD]`
 
 **Auth method**: Web UI login form (qBittorrent built-in WebUI)
 
@@ -200,7 +200,7 @@ The corresponding apps were created and placed on the Auto-Stack-Dashboard board
 **Password change flow**:
 1. Tools menu → **Options...** → click **WebUI** tab in the options sidebar
 2. WebUI form shows `Username: admin` and an empty `Password:` field
-3. Fill `Password: Password1!`, click **Save** — dialog closes, config persisted
+3. Fill `Password: [REDACTED LEGACY TEST PASSWORD]`, click **Save** — dialog closes, config persisted
 4. Old temp password now returns 401; new password returns 204 and works via API
 
 **Container env**: ghcr.io/hotio/qbittorrent:latest (hotio). First start prints a random temp
@@ -256,14 +256,14 @@ Sonarr was configured with qBittorrent as its download client via agent-browser 
 | Host       | qbittorrent (Docker hostname)    |
 | Port       | 8088                             |
 | Username   | admin                            |
-| Password   | Password1!                       |
+| Password   | [REDACTED LEGACY TEST PASSWORD]                       |
 | Category   | tv-sonarr                        |
 
 **Configuration flow**:
 1. Navigate to Settings → Download Clients in Sonarr
 2. Click the Add button, select qBittorrent
 3. Override Host (`localhost` → `qbittorrent`), Port (`8080` → `8088`)
-4. Fill Username (`admin`) and Password (`Password1!`)
+4. Fill Username (`admin`) and Password (`[REDACTED LEGACY TEST PASSWORD]`)
 5. Verify Category is `tv-sonarr` (pre-filled)
 6. Test connection — `qBittorrent authentication succeeded` logged
 7. Save — qBittorrent appears in the download clients list
@@ -279,14 +279,14 @@ Radarr was configured with qBittorrent as its download client via agent-browser 
 | Host       | qbittorrent (Docker hostname)    |
 | Port       | 8088                             |
 | Username   | admin                            |
-| Password   | Password1!                       |
+| Password   | [REDACTED LEGACY TEST PASSWORD]                       |
 | Category   | movies-radarr                    |
 
 **Configuration flow**:
 1. Navigate to Settings → Download Clients in Radarr
 2. Click the Add button, select qBittorrent
 3. Override Host (`localhost` → `qbittorrent`), Port (`8080` → `8088`)
-4. Fill Username (`admin`) and Password (`Password1!`)
+4. Fill Username (`admin`) and Password (`[REDACTED LEGACY TEST PASSWORD]`)
 5. Override Category (`radarr` → `movies-radarr`)
 6. Test connection — `qBittorrent authentication succeeded` logged
 7. Save — qBittorrent appears in the download clients list

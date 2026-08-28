@@ -1,12 +1,12 @@
 import {
   arrHeaders,
+  deriveSessionPassword,
   fieldValue,
   loadSession,
   normalizeName,
   requestJson,
   setField,
   sleep,
-  STANDARD_PASSWORD,
   STANDARD_USERNAME,
   tryRequest,
   validateRunId,
@@ -47,7 +47,7 @@ function qbitHeaders(baseUrl, cookie = "") {
   return headers;
 }
 
-async function qbitLogin(baseUrl) {
+async function qbitLogin(baseUrl, sessionPassword) {
   const result = await tryRequest(
     `${baseUrl}/api/v2/auth/login`,
     {
@@ -55,7 +55,7 @@ async function qbitLogin(baseUrl) {
       headers: qbitHeaders(baseUrl),
       body: new URLSearchParams({
         username: STANDARD_USERNAME,
-        password: STANDARD_PASSWORD,
+        password: sessionPassword,
       }),
     },
     [200, 204],
@@ -70,9 +70,9 @@ async function qbitLogin(baseUrl) {
   return `${match[1]}=${match[2]}`;
 }
 
-async function verifyQbit(session) {
+async function verifyQbit(session, sessionPassword) {
   const baseUrl = loopback(session.manifest.QBITTORRENT_PORT);
-  const cookie = await qbitLogin(baseUrl);
+  const cookie = await qbitLogin(baseUrl, sessionPassword);
   const versionResult = await tryRequest(
     `${baseUrl}/api/v2/app/version`,
     { headers: qbitHeaders(baseUrl, cookie) },
@@ -95,7 +95,7 @@ async function verifyQbit(session) {
   );
 }
 
-async function arrResources(session, definition) {
+async function arrResources(session, definition, sessionPassword) {
   const baseUrl = loopback(session.manifest[definition.portKey]);
   const headers = arrHeaders(session.secrets[definition.apiKey]);
   const apiRoot = `${baseUrl}/api/v3`;
@@ -174,7 +174,7 @@ async function arrResources(session, definition) {
     ...client,
     fields: writableFields(client),
   };
-  setField(testClient.fields, "password", STANDARD_PASSWORD);
+  setField(testClient.fields, "password", sessionPassword);
   const clientTest = await tryRequest(
     `${apiRoot}/downloadclient/test`,
     {
@@ -372,6 +372,7 @@ async function verifyProwlarr(session, arrDefinitions) {
 async function main() {
   validateRunId(runId);
   const session = loadSession(runId);
+  const sessionPassword = deriveSessionPassword(session);
   const arrDefinitions = [
     {
       name: "Sonarr",
@@ -393,11 +394,11 @@ async function main() {
     },
   ];
 
-  await verifyQbit(session);
+  await verifyQbit(session, sessionPassword);
   console.log("PASS qBittorrent login and categories");
 
   for (const definition of arrDefinitions) {
-    await arrResources(session, definition);
+    await arrResources(session, definition, sessionPassword);
     console.log(`PASS ${definition.name} auth, root, qBittorrent, and Prowlarr links`);
   }
 

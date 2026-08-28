@@ -73,6 +73,19 @@ const DOCUMENTATION_CONTRACTS = [
     ],
   },
   {
+    path: ".agents/install.md",
+    required: [
+      [
+        "targeted agent install command",
+        "npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+      ],
+      [
+        "all-agents fan-out warning",
+        "The CLI's `--all` flag is intentionally broader",
+      ],
+    ],
+  },
+  {
     path: "CONTRIBUTING.md",
     required: [
       [
@@ -154,6 +167,14 @@ const TEXT_EXTENSIONS = new Set([
   ".yaml",
   ".yml",
 ]);
+const FORBIDDEN_REUSABLE_CREDENTIAL = ["Pass", "word", "1!"].join("");
+const FORBIDDEN_CREDENTIAL_IDENTIFIERS = [
+  ["STANDARD", "PASSWORD"].join("_"),
+  ["SHARED", "PASSWORD"].join("_"),
+  ["DEFAULT", "PASSWORD"].join("_"),
+];
+const LITERAL_CREDENTIAL_ASSIGNMENT =
+  /["']?(?:password|passwordConfirmation|web_ui_password)["']?\s*[:=]\s*["'][^"'\r\n]+["']/i;
 const LOCAL_LINK_EXTENSIONS = new Set([
   ".cjs",
   ".gif",
@@ -584,6 +605,28 @@ async function collectSourceFiles() {
 
   await visit(REPOSITORY_ROOT, "");
   return files;
+}
+
+async function validateCredentialHygiene() {
+  const sourceFiles = await collectSourceFiles();
+  let scannedFiles = 0;
+  for (const filePath of sourceFiles) {
+    if (!TEXT_EXTENSIONS.has(extname(filePath).toLowerCase())) {
+      continue;
+    }
+    scannedFiles += 1;
+    const content = await readFile(filePath, "utf8");
+    if (content.includes(FORBIDDEN_REUSABLE_CREDENTIAL)) {
+      fail("credential hygiene: forbidden reusable credential detected");
+    }
+    if (FORBIDDEN_CREDENTIAL_IDENTIFIERS.some((name) => content.includes(name))) {
+      fail("credential hygiene: fixed credential assignment detected");
+    }
+    if (LITERAL_CREDENTIAL_ASSIGNMENT.test(content)) {
+      fail("credential hygiene: literal credential assignment detected");
+    }
+  }
+  return `${scannedFiles} repository text files contain no fixed credentials`;
 }
 
 function isInside(boundary, target) {
@@ -1261,6 +1304,7 @@ async function main() {
   const checks = [
     ["skill metadata", validateSkillMetadata],
     ["skill trees", validateSkillTrees],
+    ["credential hygiene", validateCredentialHygiene],
     ["local references", validateMarkdownReferences],
     ["documentation", validateDocumentationContracts],
     ["JSON", validateJsonFiles],

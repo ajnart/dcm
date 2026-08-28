@@ -15,7 +15,9 @@
    internal port with category `tv-sonarr`.
 2. It creates/tests the Prowlarr Full Sync application at
    `http://sonarr:8989` and waits for its indexer.
-3. Confirm the list state in agent-browser and run the verifier.
+3. Confirm the list state in agent-browser and run the verifier. If login is
+   required, use username `admin` and fill its fresh password ref through
+   `scripts/session.sh browser-password "$RUN_ID" @eN`.
 4. Seerr must add Sonarr as its default non-4K TV server, select a quality
    profile and `/data/media/tv`, and enable scanning.
 

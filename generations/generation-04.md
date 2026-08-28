@@ -10,7 +10,10 @@ install should preserve every nested harness asset, while the broader router
 can compose host, Compose, ingress, VPN, backup, observation, operations,
 research, Homarr, and verification capabilities around it.
 
-## Package result
+## Original Generation 4 checkpoint
+
+These values preserve the supervisor-validated 2026-08-28 checkpoint rather
+than silently rewriting its historical evidence:
 
 | Gate | Result |
 | --- | --- |
@@ -22,6 +25,20 @@ research, Homarr, and verification capabilities around it.
 | Local installer smoke | PASS — symlink and copy layouts |
 | Private remote installer | PASS — 12 Codex skills and 12 Claude Code links |
 | Media bundle drift check | PASS — 31 packaged files |
+
+## Post-audit source checkpoint
+
+Focused repository-only validation on 2026-08-29 records the current source
+state separately:
+
+| Gate | Result |
+| --- | --- |
+| Static repository validator | PASS — 12/12 groups |
+| Media bundle integrity | PASS — 34 packaged files |
+
+This post-audit checkpoint did not rerun the installer, Docker, a browser, or
+the surviving Generation 2 sessions. The original live-install and UI evidence
+above remains historical rather than newly reverified.
 
 The audited private install command was:
 

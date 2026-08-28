@@ -53,8 +53,8 @@ Snapshot:
 
 ```bash
 agent-browser fill @e7 "admin"
-agent-browser fill @e10 "Password1!"
-agent-browser fill @e8 "Password1!"
+agent-browser fill @e10 "[REDACTED LEGACY TEST PASSWORD]"
+agent-browser fill @e8 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser click @e6
 ```
 
@@ -235,7 +235,7 @@ Form now shows:
 ```bash
 agent-browser fill @e24 "http://qbittorrent:8088"
 agent-browser fill @e26 "admin"
-agent-browser fill @e31 "Password1!"
+agent-browser fill @e31 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser click @e10
 ```
 
@@ -246,7 +246,7 @@ agent-browser click @e6   # "New integration"
 agent-browser find text "Jellyfin" click
 agent-browser fill @e24 "http://jellyfin:8096"
 agent-browser fill @e26 "admin"
-agent-browser fill @e31 "Password1!"
+agent-browser fill @e31 "[REDACTED LEGACY TEST PASSWORD]"
 agent-browser click @e10
 ```
 
@@ -276,7 +276,7 @@ agent-browser screenshot /home/habs/work/auto-stack/homarr-dashboard.png
 | Item                     | Value                       |
 |--------------------------|-----------------------------|
 | Admin username           | `admin`                     |
-| Admin password           | `Password1!`                |
+| Admin password           | `[REDACTED LEGACY TEST PASSWORD]`                |
 | Board slug / name        | `Auto-Stack-Dashboard`      |
 | Display title (pageTitle)| `Auto-Stack Dashboard`      |
 | Board URL                | `http://localhost:7578/boards/Auto-Stack-Dashboard` |
@@ -289,8 +289,8 @@ agent-browser screenshot /home/habs/work/auto-stack/homarr-dashboard.png
 | Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `<REDACTED_API_KEY>`                 |
 | Radarr      | Radarr           | http://radarr:7878    | API Key                | `<REDACTED_API_KEY>`                 |
 | Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `<REDACTED_API_KEY>`                 |
-| qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `Password1!`                            |
-| Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `Password1!`                            |
+| qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `[REDACTED LEGACY TEST PASSWORD]`                            |
+| Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `[REDACTED LEGACY TEST PASSWORD]`                            |
 
 ## Issues encountered
 

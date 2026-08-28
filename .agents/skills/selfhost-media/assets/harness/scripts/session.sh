@@ -9,6 +9,7 @@ SESSIONS_DIR="$REPO_ROOT/.sessions"
 COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
 PORT_MIN=20000
 PORT_MAX=44999
+CURRENT_SESSION_PASSWORD_SCHEME="hmac-v1"
 SESSIONS_LOCK="$SESSIONS_DIR/.ports.lock"
 CREATE_STAGING_DIR=""
 CREATE_RUN_ID=""
@@ -26,6 +27,7 @@ Usage:
   scripts/session.sh keys RUN_ID
   scripts/session.sh bootstrap RUN_ID
   scripts/session.sh verify RUN_ID
+  scripts/session.sh browser-password RUN_ID @eN [@eN ...]
   scripts/session.sh homarr-key RUN_ID < ONE_TIME_KEY
   scripts/session.sh homarr-finalize RUN_ID
   scripts/session.sh mcp-config RUN_ID
@@ -266,6 +268,10 @@ validate_manifest_syntax() {
         ;;
       JELLYFIN_PORT|SEERR_PORT|HOMARR_PORT)
         ;;
+      SESSION_PASSWORD_SCHEME)
+        [[ "${line#*=}" == "$CURRENT_SESSION_PASSWORD_SCHEME" ]] \
+          || fail "invalid session password scheme"
+        ;;
       *)
         fail "unexpected manifest key: $key"
         ;;
@@ -320,6 +326,7 @@ load_session() {
   unset RUN_ID COMPOSE_PROJECT_NAME SESSION_ROOT AGENT_BROWSER_SESSION
   unset PUID PGID TZ PROWLARR_PORT RADARR_PORT SONARR_PORT
   unset QBITTORRENT_PORT JELLYFIN_PORT SEERR_PORT HOMARR_PORT
+  unset SESSION_PASSWORD_SCHEME
   unset HOMARR_ENCRYPTION_KEY SONARR_API_KEY RADARR_API_KEY
   unset PROWLARR_API_KEY SEERR_API_KEY
   unset HOMARR_API_KEY
@@ -331,6 +338,10 @@ load_session() {
   [[ "$SESSION_ROOT" == "$resolved_session_dir" ]] || fail "manifest SESSION_ROOT mismatch"
   [[ "$COMPOSE_PROJECT_NAME" == "autostack-$RUN_ID" ]] || fail "manifest project mismatch"
   [[ "$AGENT_BROWSER_SESSION" == "auto-stack-$RUN_ID" ]] || fail "manifest browser session mismatch"
+  if [[ -n "${SESSION_PASSWORD_SCHEME+x}" \
+    && "$SESSION_PASSWORD_SCHEME" != "$CURRENT_SESSION_PASSWORD_SCHEME" ]]; then
+    fail "invalid session password scheme"
+  fi
   [[ "$PUID" =~ ^[0-9]+$ ]] || fail "invalid PUID"
   [[ "$PGID" =~ ^[0-9]+$ ]] || fail "invalid PGID"
 
@@ -372,6 +383,11 @@ load_session() {
   SECRETS_FILE="$secrets"
 }
 
+require_session_password_scheme() {
+  [[ "${SESSION_PASSWORD_SCHEME:-}" == "$CURRENT_SESSION_PASSWORD_SCHEME" ]] \
+    || fail "session password scheme requires recreation"
+}
+
 compose() {
   docker compose \
     --project-name "$COMPOSE_PROJECT_NAME" \
@@ -400,13 +416,11 @@ extract_arr_api_key() {
 }
 
 sync_arr_api_keys() {
-  local run_id="$1"
   local sonarr_api_key
   local radarr_api_key
   local prowlarr_api_key
   local replacement
 
-  load_session "$run_id"
   extract_arr_api_key sonarr sonarr_api_key
   extract_arr_api_key radarr radarr_api_key
   extract_arr_api_key prowlarr prowlarr_api_key
@@ -501,7 +515,9 @@ collect_used_ports_locked() {
           ;;
       esac
     done < "$manifest"
-    [[ "${#manifest_keys[@]}" == "14" ]] || fail "existing session manifest is incomplete"
+    if [[ "${#manifest_keys[@]}" != "14" && "${#manifest_keys[@]}" != "15" ]]; then
+      fail "existing session manifest is incomplete"
+    fi
     [[ "$port_count" == "7" ]] || fail "existing session manifest has an invalid port set"
     [[ "$manifest_run_id" == "$directory_run_id" ]] || fail "existing session manifest RUN_ID mismatch"
     [[ "$manifest_session_root" == "$resolved_session_dir" ]] || fail "existing session manifest root mismatch"
@@ -685,6 +701,7 @@ create_session() {
     printf 'COMPOSE_PROJECT_NAME=%s\n' "$project_name"
     printf 'SESSION_ROOT=%s\n' "$session_dir"
     printf 'AGENT_BROWSER_SESSION=%s\n' "$browser_session"
+    printf 'SESSION_PASSWORD_SCHEME=%s\n' "$CURRENT_SESSION_PASSWORD_SCHEME"
     printf 'PUID=%s\n' "$(id -u)"
     printf 'PGID=%s\n' "$(id -g)"
     printf 'TZ=%s\n' "$timezone"
@@ -1347,32 +1364,49 @@ main() {
       [[ "$#" -eq 2 ]] || fail "up requires one RUN_ID"
       open_run_lock "$run_id"
       load_session "$run_id"
+      require_session_password_scheme
       compose up -d
       close_run_lock
       ;;
     keys)
       [[ "$#" -eq 2 ]] || fail "keys requires one RUN_ID"
       open_run_lock "$run_id"
-      sync_arr_api_keys "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      sync_arr_api_keys
       close_run_lock
       ;;
     bootstrap)
       [[ "$#" -eq 2 ]] || fail "bootstrap requires one RUN_ID"
       require_command node
       open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
       exec node "$SCRIPT_DIR/bootstrap-core.mjs" "$run_id"
       ;;
     verify)
       [[ "$#" -eq 2 ]] || fail "verify requires one RUN_ID"
       require_command node
       open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
       exec node "$SCRIPT_DIR/verify-core.mjs" "$run_id"
+      ;;
+    browser-password)
+      [[ "$#" -ge 3 && "$#" -le 6 ]] \
+        || fail "browser-password requires one RUN_ID and one to four @eN refs"
+      require_command node
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      exec node "$SCRIPT_DIR/fill-browser-password.mjs" "$run_id" "${@:3}"
       ;;
     homarr-key)
       [[ "$#" -eq 2 ]] || fail "homarr-key requires one RUN_ID"
       require_command node
       open_run_lock "$run_id"
       load_session "$run_id"
+      require_session_password_scheme
       cleanup_validated_homarr_key_transients "$SESSION_DIR"
       exec node "$SCRIPT_DIR/store-homarr-key.mjs" "$run_id"
       ;;
@@ -1380,12 +1414,16 @@ main() {
       [[ "$#" -eq 2 ]] || fail "homarr-finalize requires one RUN_ID"
       require_command node
       open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
       exec node "$SCRIPT_DIR/homarr-finalize.mjs" "$run_id"
       ;;
     mcp-config)
       [[ "$#" -eq 2 ]] || fail "mcp-config requires one RUN_ID"
       require_command node
       open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
       exec node "$SCRIPT_DIR/write-mcp-config.mjs" "$run_id"
       ;;
     mcp-verify)

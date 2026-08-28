@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-import { loadHomarrApiKey, loadSession, normalizeName } from "./lib/session-context.mjs";
+import {
+  loadHomarrApiKey,
+  loadSession,
+  normalizeName,
+  requireSessionPasswordScheme,
+} from "./lib/session-context.mjs";
 import {
   isRecord,
   NativeHomarrMcpClient,
@@ -88,6 +93,7 @@ async function main() {
     throw new Error("RUN_ID is required");
   }
   const session = loadSession(process.argv[2]);
+  requireSessionPasswordScheme(session);
   const { apiKey } = loadHomarrApiKey(session);
   const client = new NativeHomarrMcpClient(session, apiKey);
 

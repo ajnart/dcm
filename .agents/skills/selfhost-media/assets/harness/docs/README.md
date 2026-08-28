@@ -7,10 +7,40 @@ are evidence from an older, non-isolated run and may have stale ports or UI refs
 Before any browser command:
 
 1. Read the available `agent-browser` skill's `SKILL.md`.
-2. Run `npx agent-browser skills get core`.
+2. With Node.js 22.20.0 or newer active, run the already installed
+   `agent-browser skills get core`; Node.js 24 is recommended.
 3. Load the run's non-secret environment with `scripts/session.sh env RUN_ID`.
 4. Use the run's `AGENT_BROWSER_SESSION`; re-snapshot after every page change.
 5. Resolve host URLs with `scripts/session.sh urls RUN_ID`. Never assume a port.
+
+The harness never installs or downloads agent-browser. On a mise-managed host
+where the direct executable is absent, load the core workflow with
+`mise exec node@24 -- agent-browser skills get core`. The password helper first
+tries the direct executable and retries that fixed mise Node.js 24 command only
+when direct launch fails with `ENOENT`; it never retries a launched nonzero
+browser action.
+
+The local username is `admin`. The harness derives a bounded password from each
+run's encryption key without reusing the key itself. Fill one to four fresh
+password-input refs with
+`scripts/session.sh browser-password "$RUN_ID" @eN [@eN ...]`. This helper
+accepts only snapshot refs, sends the password to the run-scoped agent-browser
+batch over stdin, suppresses child output, and returns only fixed PASS/FAIL
+text. The password must never appear in command arguments, screenshots, or
+reports.
+
+Runs without `SESSION_PASSWORD_SCHEME=hmac-v1` are legacy and are never
+migrated in place. Their command boundary is explicit:
+
+| Legacy run behavior | Commands |
+| --- | --- |
+| Inspection and bounded cleanup allowed | `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, `destroy` |
+| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config` |
+
+Recreate a legacy run under a new `RUN_ID` before starting services,
+configuring credentials, writing client artifacts, or continuing acceptance
+work. The read-only internal Compose-log helper remains marker-optional; there
+is no standalone `session.sh logs` command.
 
 After `scripts/session.sh up RUN_ID`, run `scripts/session.sh bootstrap RUN_ID`.
 It replaces the repetitive qBittorrent/Arr/Prowlarr forms with idempotent,
@@ -32,8 +62,10 @@ schemas only for exact RPC `-32603` message
 `Date cannot be represented in JSON Schema`.
 
 `.sessions/RUN_ID/secrets.env` is the harness source of truth for service API
-keys and the Homarr encryption key. `homarr-key` stores the Homarr API/MCP key
-separately in the private run and later harness commands consume it directly.
+keys and the Homarr encryption key. The five-entry schema is unchanged; the
+password is derived in memory and is not another stored secret. `homarr-key`
+stores the Homarr API/MCP key separately in the private run and later harness
+commands consume it directly.
 Applications also persist credentials inside their own untracked per-run config
 databases/files. Source `secrets.env` when an API/UI command needs a service
 key, but never print or copy its values into reports, screenshots, or tracked
