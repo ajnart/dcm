@@ -10,9 +10,12 @@ const catalog = await loadCatalog();
 const validation = validateCatalog(catalog);
 assert.equal(validation.valid, true);
 assert.deepEqual(
-  [validation.counts.apps, validation.counts.stacks, validation.counts.homarrStandardCovered, validation.counts.homarrSpecialCovered],
-  [107, 13, 54, 2]
+  [validation.counts.apps, validation.counts.stacks, validation.counts.skills, validation.counts.adapters, validation.counts.homarrStandardCovered, validation.counts.homarrSpecialCovered],
+  [107, 13, 12, 2, 54, 2]
 );
+const registeredSkillIds = catalog.skills.skills.map((record) => record.id);
+assert.deepEqual(registeredSkillIds, [...registeredSkillIds].sort());
+assert.deepEqual(catalog.skills.skills.filter((record) => record.adapter).map((record) => record.id), ["selfhost-homarr", "selfhost-media"]);
 
 const skillDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 assert.throws(() => resolvePreferencesPath(), /explicit absolute path/);
@@ -37,9 +40,26 @@ for (const [query, expected] of compositeCases) {
 assert.equal(resolveStack(catalog, "profiles").kind, "none");
 assert.equal(resolveStack(catalog, "profiles and backups").stack.id, "backups");
 
+const ambiguousCompositeCases = new Map([
+  ["photos and VPN", ["photos"]],
+  ["VPN and backups", ["backups"]]
+]);
+for (const [query, expectedComponents] of ambiguousCompositeCases) {
+  const result = resolveStack(catalog, query);
+  assert.equal(result.kind, "composite");
+  assert.equal(result.needsComposition, true);
+  assert.equal(result.needsClarification, true);
+  assert.equal(result.requiredAction, "choose-unresolved-intents-before-planning");
+  assert.deepEqual(result.components.map((component) => component.id), expectedComponents);
+  assert.deepEqual(result.unresolvedIntents.map((intent) => intent.intent), ["vpn"]);
+  assert.deepEqual(result.unresolvedIntents[0].candidates.map((candidate) => candidate.id), ["download-privacy", "remote-access"]);
+}
+
 const vpn = resolveStack(catalog, "vpn");
 assert.equal(vpn.kind, "ambiguous");
+assert.equal(vpn.needsComposition, false);
 assert.deepEqual(vpn.candidates.slice(0, 2).map((candidate) => candidate.id), ["download-privacy", "remote-access"]);
+assert.equal(resolveStack(catalog, "route qBittorrent through VPN").stack.id, "download-privacy");
 
 const personalMedia = catalog.stacks.find((stack) => stack.id === "personal-media");
 const managedPlan = buildPlan(catalog, personalMedia);
@@ -76,6 +96,18 @@ assert.equal(validateCatalog(unknownAdapter).errors.some((error) => error.includ
 const unknownRequiredSkill = structuredClone(catalog);
 unknownRequiredSkill.stacks[0].requiredSkills.push("selfhost-missing");
 assert.equal(validateCatalog(unknownRequiredSkill).errors.some((error) => error.includes("required skill selfhost-missing is not available")), true);
+
+const malformedSkillRegistry = structuredClone(catalog);
+malformedSkillRegistry.skills.extra = true;
+assert.equal(validateCatalog(malformedSkillRegistry).errors.some((error) => error.includes("skills: registry contains missing or unsupported fields")), true);
+
+const duplicateSkillRegistry = structuredClone(catalog);
+duplicateSkillRegistry.skills.skills.push(structuredClone(duplicateSkillRegistry.skills.skills[0]));
+assert.equal(validateCatalog(duplicateSkillRegistry).errors.some((error) => error.includes("skills: duplicate id selfhost")), true);
+
+const unsortedSkillRegistry = structuredClone(catalog);
+unsortedSkillRegistry.skills.skills.reverse();
+assert.equal(validateCatalog(unsortedSkillRegistry).errors.some((error) => error.includes("skills: records must be sorted by id")), true);
 
 const retiredChoice = structuredClone(catalog);
 retiredChoice.stacks.find((stack) => stack.id === "photos").roles[0].choices.push("readarr");

@@ -17,21 +17,6 @@ const IMAGE_STATUSES = new Set(["known", "verify", "unknown", "not-applicable"])
 const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"]);
 const HOMARR_EXCLUDED_VALUES = new Set(["mock", "searchch", "releaseprovider"]);
 const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
-const PACK_SKILLS = new Set([
-  "selfhost",
-  "selfhost-backup",
-  "selfhost-compose",
-  "selfhost-homarr",
-  "selfhost-host",
-  "selfhost-ingress",
-  "selfhost-media",
-  "selfhost-observe",
-  "selfhost-operations",
-  "selfhost-research",
-  "selfhost-verify",
-  "selfhost-vpn"
-]);
-const PACK_ADAPTER_SKILLS = new Set(["selfhost-homarr", "selfhost-media"]);
 const AUTOMATION_RANK = new Map([
   ["managed", 0],
   ["guided", 1],
@@ -51,6 +36,8 @@ const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates"
 const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "reason", "required"];
 const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
 const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
+const SKILL_REGISTRY_KEYS = ["schemaVersion", "skills"];
+const SKILL_RECORD_KEYS = ["adapter", "id"];
 
 function normalize(value) {
   return String(value)
@@ -148,9 +135,10 @@ export async function loadCatalog() {
   const taxonomy = await readJson(join(CATALOG_DIRECTORY, "taxonomy.json"));
   const affiliates = await readJson(join(CATALOG_DIRECTORY, "affiliates.json"));
   const homarrIntegrations = await readJson(join(CATALOG_DIRECTORY, "homarr-integrations.json"));
+  const skills = await readJson(join(CATALOG_DIRECTORY, "skills.json"));
   const apps = await loadRecordDirectory(join(CATALOG_DIRECTORY, "apps"));
   const stacks = await loadRecordDirectory(join(CATALOG_DIRECTORY, "stacks"));
-  return { taxonomy, affiliates, homarrIntegrations, apps, stacks };
+  return { taxonomy, affiliates, homarrIntegrations, skills, apps, stacks };
 }
 
 function addError(errors, condition, message) {
@@ -204,7 +192,48 @@ function duplicateValues(values) {
   return [...duplicates].sort();
 }
 
-function validateAppShape(app, categories, errors) {
+function validateSkillRegistry(registry, errors) {
+  const ids = new Set();
+  const adapters = new Set();
+  addError(errors, isPlainObject(registry), "skills: registry must be an object");
+  if (!isPlainObject(registry)) {
+    return { ids, adapters };
+  }
+  addError(errors, hasExactKeys(registry, SKILL_REGISTRY_KEYS), "skills: registry contains missing or unsupported fields");
+  addError(errors, registry.schemaVersion === 1, "skills: schemaVersion must be 1");
+  addError(errors, Array.isArray(registry.skills) && registry.skills.length > 0, "skills: records must be a non-empty array");
+  if (!Array.isArray(registry.skills)) {
+    return { ids, adapters };
+  }
+  const orderedIds = [];
+  for (const record of registry.skills) {
+    const label = isPlainObject(record) && isNonEmptyString(record.id) ? record.id : "<unknown>";
+    addError(errors, isPlainObject(record), `skill ${label}: record must be an object`);
+    if (!isPlainObject(record)) {
+      continue;
+    }
+    addError(errors, hasExactKeys(record, SKILL_RECORD_KEYS), `skill ${label}: contains missing or unsupported fields`);
+    addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(record.id || ""), `skill ${label}: invalid id`);
+    addError(errors, typeof record.adapter === "boolean", `skill ${label}: adapter must be boolean`);
+    if (isNonEmptyString(record.id)) {
+      ids.add(record.id);
+      orderedIds.push(record.id);
+      if (record.adapter === true) {
+        adapters.add(record.id);
+      }
+    }
+  }
+  for (const duplicate of duplicateValues(orderedIds)) {
+    errors.push(`skills: duplicate id ${duplicate}`);
+  }
+  const sortedIds = [...orderedIds].sort((left, right) => left.localeCompare(right));
+  addError(errors, JSON.stringify(orderedIds) === JSON.stringify(sortedIds), "skills: records must be sorted by id");
+  addError(errors, ids.has("selfhost"), "skills: selfhost router record is required");
+  addError(errors, adapters.size > 0, "skills: at least one adapter is required");
+  return { ids, adapters };
+}
+
+function validateAppShape(app, categories, skillContract, errors) {
   const prefix = `app ${app && app.id ? app.id : "<unknown>"}`;
   addError(errors, isPlainObject(app), `${prefix}: record must be an object`);
   if (!isPlainObject(app)) {
@@ -262,7 +291,7 @@ function validateAppShape(app, categories, errors) {
       addError(errors, /^selfhost-[a-z0-9-]+$/.test(app.support.adapterSkill || ""), `${prefix}: managed adapterSkill must be a selfhost skill id`);
     }
     if (app.support.adapterSkill !== null) {
-      addError(errors, PACK_ADAPTER_SKILLS.has(app.support.adapterSkill), `${prefix}: adapterSkill ${app.support.adapterSkill} is not available as an adapter in this skill pack`);
+      addError(errors, skillContract.adapters.has(app.support.adapterSkill), `${prefix}: adapterSkill ${app.support.adapterSkill} is not available as an adapter in this skill pack`);
     }
     if (app.support.automation !== "managed") {
       addError(errors, app.support.adapterSkill === null, `${prefix}: only managed support may name adapterSkill`);
@@ -309,7 +338,7 @@ function validateAppShape(app, categories, errors) {
   }
 }
 
-function validateStackShape(stack, categories, appIds, errors) {
+function validateStackShape(stack, categories, appIds, skillContract, errors) {
   const prefix = `stack ${stack && stack.id ? stack.id : "<unknown>"}`;
   addError(errors, isPlainObject(stack), `${prefix}: record must be an object`);
   if (!isPlainObject(stack)) {
@@ -364,7 +393,7 @@ function validateStackShape(stack, categories, appIds, errors) {
   if (Array.isArray(stack.requiredSkills)) {
     for (const skill of stack.requiredSkills) {
       addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(skill), `${prefix}: invalid required skill ${skill}`);
-      addError(errors, PACK_SKILLS.has(skill), `${prefix}: required skill ${skill} is not available in this skill pack`);
+      addError(errors, skillContract.ids.has(skill), `${prefix}: required skill ${skill} is not available in this skill pack`);
     }
     for (const duplicate of duplicateValues(stack.requiredSkills)) {
       errors.push(`${prefix}: duplicate required skill ${duplicate}`);
@@ -502,12 +531,12 @@ function validateCatalogDocument(catalog) {
   if (!isPlainObject(catalog)) {
     return {
       valid: false,
-      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
+      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, skills: 0, adapters: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
       errors: ["catalog: root must be an object"],
       warnings
     };
   }
-  addError(errors, hasExactKeys(catalog, ["affiliates", "apps", "homarrIntegrations", "stacks", "taxonomy"]), "catalog: contains missing or unsupported root fields");
+  addError(errors, hasExactKeys(catalog, ["affiliates", "apps", "homarrIntegrations", "skills", "stacks", "taxonomy"]), "catalog: contains missing or unsupported root fields");
   addError(errors, isPlainObject(catalog.taxonomy), "taxonomy: must be an object");
   const categories = new Set();
   if (isPlainObject(catalog.taxonomy)) {
@@ -530,12 +559,13 @@ function validateCatalogDocument(catalog) {
     }
   }
 
+  const skillContract = validateSkillRegistry(catalog.skills, errors);
   addError(errors, Array.isArray(catalog.apps), "apps: must be an array");
   const appRecords = Array.isArray(catalog.apps) ? catalog.apps : [];
   const appIds = new Set();
   if (Array.isArray(catalog.apps)) {
     for (const app of appRecords) {
-      validateAppShape(app, categories, errors);
+      validateAppShape(app, categories, skillContract, errors);
       if (isPlainObject(app) && isNonEmptyString(app.id)) {
         appIds.add(app.id);
       }
@@ -564,7 +594,7 @@ function validateCatalogDocument(catalog) {
   const stackRecords = Array.isArray(catalog.stacks) ? catalog.stacks : [];
   if (Array.isArray(catalog.stacks)) {
     for (const stack of stackRecords) {
-      validateStackShape(stack, categories, appIds, errors);
+      validateStackShape(stack, categories, appIds, skillContract, errors);
     }
     for (const duplicate of duplicateValues(stackRecords.filter(isPlainObject).map((stack) => stack.id))) {
       errors.push(`stacks: duplicate id ${duplicate}`);
@@ -623,6 +653,7 @@ function validateCatalogDocument(catalog) {
   scanForSecretLikeData(catalog.taxonomy, "taxonomy", errors);
   scanForSecretLikeData(catalog.apps, "apps", errors);
   scanForSecretLikeData(catalog.stacks, "stacks", errors);
+  scanForSecretLikeData(catalog.skills, "skills", errors);
   scanForSecretLikeData(catalog.affiliates, "affiliates", errors);
   scanForSecretLikeData(catalog.homarrIntegrations, "homarrIntegrations", errors);
 
@@ -649,6 +680,8 @@ function validateCatalogDocument(catalog) {
       stacks: stackRecords.length,
       categories: categories.size,
       affiliates: isPlainObject(catalog.affiliates) && Array.isArray(catalog.affiliates.entries) ? catalog.affiliates.entries.length : 0,
+      skills: skillContract.ids.size,
+      adapters: skillContract.adapters.size,
       homarrStandard: homarrCoverageCounts.standard,
       homarrSpecial: homarrCoverageCounts.special,
       homarrStandardCovered: homarrCoverageCounts.standardCovered,
@@ -666,7 +699,7 @@ export function validateCatalog(catalog) {
   } catch {
     return {
       valid: false,
-      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
+      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, skills: 0, adapters: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
       errors: ["catalog: malformed input could not be validated safely"],
       warnings: []
     };
@@ -912,8 +945,55 @@ function directStackIntents(catalog, query) {
   return matches;
 }
 
+function unresolvedAmbiguousIntents(catalog, query, directIntents) {
+  const normalizedQuery = normalize(query);
+  const unresolved = [];
+  for (const rawAlias of catalog.taxonomy.ambiguousAliases) {
+    const alias = normalize(rawAlias);
+    const index = phraseIndex(normalizedQuery, alias);
+    if (index < 0) {
+      continue;
+    }
+    const owners = catalog.stacks
+      .filter((stack) => stack.aliases.some((candidate) => normalize(candidate) === alias))
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const explicitlyResolved = directIntents.some((intent) => owners.some((owner) => owner.id === intent.stack.id));
+    if (explicitlyResolved) {
+      continue;
+    }
+    unresolved.push({
+      intent: alias,
+      matched: alias,
+      requiredAction: "choose-one-before-planning",
+      candidates: owners.map((stack) => ({ id: stack.id, name: stack.name }))
+    });
+  }
+  return unresolved;
+}
+
 export function resolveStack(catalog, query) {
   const directIntents = directStackIntents(catalog, query);
+  const unresolvedIntents = unresolvedAmbiguousIntents(catalog, query, directIntents);
+  if (directIntents.length > 0 && unresolvedIntents.length > 0) {
+    const components = directIntents.map((candidate) => ({
+      id: candidate.stack.id,
+      name: candidate.stack.name,
+      matched: candidate.matched
+    }));
+    return {
+      kind: "composite",
+      resolved: false,
+      ambiguous: true,
+      needsComposition: true,
+      needsClarification: true,
+      requiredAction: "choose-unresolved-intents-before-planning",
+      stack: null,
+      matched: null,
+      components,
+      unresolvedIntents,
+      candidates: components
+    };
+  }
   if (directIntents.length > 1) {
     const components = directIntents.map((candidate) => ({
       id: candidate.stack.id,
@@ -925,9 +1005,12 @@ export function resolveStack(catalog, query) {
       resolved: false,
       ambiguous: false,
       needsComposition: true,
+      needsClarification: false,
+      requiredAction: "confirm-composition-before-planning",
       stack: null,
       matched: null,
       components,
+      unresolvedIntents: [],
       candidates: components
     };
   }
@@ -945,7 +1028,7 @@ export function resolveStack(catalog, query) {
     return left.stack.id.localeCompare(right.stack.id);
   });
   if (candidates.length === 0) {
-    return { kind: "none", resolved: false, ambiguous: false, needsComposition: false, stack: null, matched: null, components: [], candidates: [] };
+    return { kind: "none", resolved: false, ambiguous: false, needsComposition: false, needsClarification: false, requiredAction: null, stack: null, matched: null, components: [], unresolvedIntents: [], candidates: [] };
   }
   let ambiguous = false;
   if (candidates.length > 1 && candidates[0].score === candidates[1].score) {
@@ -955,14 +1038,21 @@ export function resolveStack(catalog, query) {
   if (ambiguous) {
     kind = "ambiguous";
   }
+  let requiredAction = null;
+  if (ambiguous) {
+    requiredAction = "choose-one-before-planning";
+  }
   return {
     kind,
     resolved: !ambiguous,
     ambiguous,
     needsComposition: false,
+    needsClarification: ambiguous,
+    requiredAction,
     stack: ambiguous ? null : candidates[0].stack,
     matched: ambiguous ? null : candidates[0].matched,
     components: [],
+    unresolvedIntents: [],
     candidates: candidates.slice(0, 5).map((candidate) => ({ id: candidate.stack.id, name: candidate.stack.name, score: candidate.score, matched: candidate.matched }))
   };
 }

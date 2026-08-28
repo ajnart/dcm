@@ -11,7 +11,7 @@ Turn a goal into a bounded plan. Treat planning and mutation as separate authori
 
 1. If no goal is present, run `node scripts/selfhost.mjs catalog menu` and show the short menu.
 2. Resolve a stated goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
-3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component, confirm the shared scope, and plan the components against one host inspection. Never silently choose one goal from a composite request.
+3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component and resolve every `unresolvedIntent` before planning against one shared host inspection. Never silently choose or drop one branch of a composite request.
 4. Search or inspect individual applications with `catalog search` and `catalog show`; avoid loading the whole JSON catalog into context.
 5. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing file under that project is an empty preference set, not an error.
 6. Run `stack plan "<request>"`. Present its role choices, alternatives, required skills, safety gates, and unresolved decisions.
@@ -42,7 +42,7 @@ node scripts/selfhost.mjs preferences validate (--project-root ABSOLUTE | --path
 
 `--project-root` must name an existing absolute real directory and derives `<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file alternative. Omitting both uses no stored preferences for planning and is rejected for preference writes. Paths inside the installed skill are rejected. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
 
-Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Phrases such as `route qBittorrent through VPN` resolve to the downloader privacy stack; `access from phone` resolves to remote access. Clear combinations such as `photos and backups` and `make Immich private on my phone` return a composition instead of dropping one intent.
+Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Preserve that choice inside composites such as `photos and VPN`; clarification is mandatory before planning. Phrases such as `route qBittorrent through VPN` resolve to downloader privacy, while `access from phone` resolves to remote access. Clear combinations such as `photos and backups` and `make Immich private on my phone` return a composition instead of dropping one intent.
 
 ## Interpret support correctly
 

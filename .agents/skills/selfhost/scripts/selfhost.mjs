@@ -190,6 +190,14 @@ function printResolution(result) {
       for (const component of result.components) {
         process.stdout.write(`  ${component.id} — ${component.name} (matched "${component.matched}")\n`);
       }
+      if (result.needsClarification) {
+        process.stdout.write("Clarification is required before planning:\n");
+        for (const intent of result.unresolvedIntents) {
+          process.stdout.write(`  ${intent.intent}: choose one of ${intent.candidates.map((candidate) => candidate.id).join(", ")}\n`);
+        }
+        process.stdout.write("Choose every unresolved intent before composing or planning the goals.\n");
+        return;
+      }
       process.stdout.write("Confirm the combined scope, then plan each component with shared host facts.\n");
       return;
     }
@@ -256,7 +264,7 @@ async function handleCatalog(action, args) {
       return;
     }
     const counts = loaded.validation.counts;
-    process.stdout.write(`Catalog valid: ${counts.apps} apps, ${counts.stacks} stacks, ${counts.categories} categories, ${counts.affiliates} affiliates.\n`);
+    process.stdout.write(`Catalog valid: ${counts.apps} apps, ${counts.stacks} stacks, ${counts.categories} categories, ${counts.skills} skills (${counts.adapters} adapters), ${counts.affiliates} affiliates.\n`);
     process.stdout.write(`Homarr coverage: ${counts.homarrStandardCovered}/${counts.homarrStandard} standard, ${counts.homarrSpecialCovered}/${counts.homarrSpecial} special, ${counts.homarrGaps} gaps.\n`);
     for (const warning of loaded.validation.warnings) {
       process.stdout.write(`Warning: ${warning}\n`);
@@ -351,9 +359,9 @@ async function handleStack(action, args) {
   if (action === "resolve") {
     if (parsed.flags.json) {
       printJson(resolution);
-      return;
+    } else {
+      printResolution(resolution);
     }
-    printResolution(resolution);
     if (!resolution.resolved) {
       process.exitCode = 2;
     }

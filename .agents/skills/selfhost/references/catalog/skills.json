@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {"id": "selfhost", "adapter": false},
+    {"id": "selfhost-backup", "adapter": false},
+    {"id": "selfhost-compose", "adapter": false},
+    {"id": "selfhost-homarr", "adapter": true},
+    {"id": "selfhost-host", "adapter": false},
+    {"id": "selfhost-ingress", "adapter": false},
+    {"id": "selfhost-media", "adapter": true},
+    {"id": "selfhost-observe", "adapter": false},
+    {"id": "selfhost-operations", "adapter": false},
+    {"id": "selfhost-research", "adapter": false},
+    {"id": "selfhost-verify", "adapter": false},
+    {"id": "selfhost-vpn", "adapter": false}
+  ]
+}
