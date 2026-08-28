@@ -1,0 +1,6 @@
+interface:
+  display_name: "Self-host Compose"
+  short_description: "Plan and apply owned Compose projects safely"
+  default_prompt: "Use $selfhost-compose to validate and plan this explicitly owned Compose project."
+policy:
+  allow_implicit_invocation: true
