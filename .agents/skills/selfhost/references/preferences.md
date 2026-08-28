@@ -1,6 +1,6 @@
 # Preference contract
 
-Preferences record user choices, not discovered host truth and not secrets. The default location is `.selfhost/preferences.json` in the current project. Each choice is stored as `{value, source, updatedAt}`; `source` is `chosen` or `imported`.
+Preferences record user choices, not discovered host truth and not secrets. An explicit absolute `--project-root` derives `<project>/.selfhost/preferences.json`; an explicit absolute `--path` selects another file. Planning without either source uses an empty preference set, while preference commands require one. Installed skill paths and filesystem roots are rejected. Each choice is stored as `{value, source, updatedAt}`; `source` is `chosen` or `imported`.
 
 Allowed fields cover platform, locale/timezone, project naming, logical config/data/media/download/backup paths, UID/GID, Docker network, host alias, ingress mode/owner/domain, VPN mode/scope, backup cadence, hardware acceleration, and UI theme. The schema is `catalog/schemas/preferences.schema.json`.
 

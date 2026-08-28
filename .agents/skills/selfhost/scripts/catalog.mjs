@@ -17,6 +17,26 @@ const IMAGE_STATUSES = new Set(["known", "verify", "unknown", "not-applicable"])
 const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"]);
 const HOMARR_EXCLUDED_VALUES = new Set(["mock", "searchch", "releaseprovider"]);
 const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
+const PACK_SKILLS = new Set([
+  "selfhost",
+  "selfhost-backup",
+  "selfhost-compose",
+  "selfhost-homarr",
+  "selfhost-host",
+  "selfhost-ingress",
+  "selfhost-media",
+  "selfhost-observe",
+  "selfhost-operations",
+  "selfhost-research",
+  "selfhost-verify",
+  "selfhost-vpn"
+]);
+const PACK_ADAPTER_SKILLS = new Set(["selfhost-homarr", "selfhost-media"]);
+const AUTOMATION_RANK = new Map([
+  ["managed", 0],
+  ["guided", 1],
+  ["discovery", 2]
+]);
 const SECRET_FIELD_PATTERN = /(^|[._-])(password|passwd|secret|token|credential|credentials|api[-_]?key|auth[-_]?key|private[-_]?key|cookie|session|encryption[-_]?key)($|[._-])/i;
 const SECRET_VALUE_PATTERNS = [
   /-----BEGIN [A-Z ]*(PRIVATE KEY|SECRET)[A-Z ]*-----/i,
@@ -43,6 +63,16 @@ function normalize(value) {
 
 function compact(value) {
   return normalize(value).replaceAll(" ", "");
+}
+
+function phraseIndex(value, phrase) {
+  const paddedValue = ` ${value} `;
+  const paddedPhrase = ` ${phrase} `;
+  const index = paddedValue.indexOf(paddedPhrase);
+  if (index < 0) {
+    return -1;
+  }
+  return Math.max(0, index - 1);
 }
 
 function isPlainObject(value) {
@@ -231,6 +261,9 @@ function validateAppShape(app, categories, errors) {
       addError(errors, isNonEmptyString(app.support.adapterSkill), `${prefix}: managed support requires adapterSkill`);
       addError(errors, /^selfhost-[a-z0-9-]+$/.test(app.support.adapterSkill || ""), `${prefix}: managed adapterSkill must be a selfhost skill id`);
     }
+    if (app.support.adapterSkill !== null) {
+      addError(errors, PACK_ADAPTER_SKILLS.has(app.support.adapterSkill), `${prefix}: adapterSkill ${app.support.adapterSkill} is not available as an adapter in this skill pack`);
+    }
     if (app.support.automation !== "managed") {
       addError(errors, app.support.adapterSkill === null, `${prefix}: only managed support may name adapterSkill`);
     }
@@ -331,6 +364,10 @@ function validateStackShape(stack, categories, appIds, errors) {
   if (Array.isArray(stack.requiredSkills)) {
     for (const skill of stack.requiredSkills) {
       addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(skill), `${prefix}: invalid required skill ${skill}`);
+      addError(errors, PACK_SKILLS.has(skill), `${prefix}: required skill ${skill} is not available in this skill pack`);
+    }
+    for (const duplicate of duplicateValues(stack.requiredSkills)) {
+      errors.push(`${prefix}: duplicate required skill ${duplicate}`);
     }
   }
   addError(errors, isStringArray(stack.gates, 1), `${prefix}: gates are required`);
@@ -459,7 +496,7 @@ function validateHomarrRegistry(registry, appRecords, errors) {
   };
 }
 
-export function validateCatalog(catalog) {
+function validateCatalogDocument(catalog) {
   const errors = [];
   const warnings = [];
   if (!isPlainObject(catalog)) {
@@ -503,12 +540,12 @@ export function validateCatalog(catalog) {
         appIds.add(app.id);
       }
     }
-    for (const duplicate of duplicateValues(appRecords.map((app) => app.id))) {
+    for (const duplicate of duplicateValues(appRecords.filter(isPlainObject).map((app) => app.id))) {
       errors.push(`apps: duplicate id ${duplicate}`);
     }
   }
 
-  for (const app of appRecords) {
+  for (const app of appRecords.filter(isPlainObject)) {
     const alternatives = Array.isArray(app.alternatives) ? app.alternatives : [];
     for (const alternative of alternatives) {
       addError(errors, appIds.has(alternative), `app ${app.id}: unknown alternative ${alternative}`);
@@ -529,7 +566,7 @@ export function validateCatalog(catalog) {
     for (const stack of stackRecords) {
       validateStackShape(stack, categories, appIds, errors);
     }
-    for (const duplicate of duplicateValues(stackRecords.map((stack) => stack.id))) {
+    for (const duplicate of duplicateValues(stackRecords.filter(isPlainObject).map((stack) => stack.id))) {
       errors.push(`stacks: duplicate id ${duplicate}`);
     }
     const aliases = [];
@@ -539,7 +576,11 @@ export function validateCatalog(catalog) {
         aliases.push(normalize(alias));
       }
     }
-    const ambiguousAliases = new Set((catalog.taxonomy.ambiguousAliases || []).map(normalize));
+    let ambiguousAliasValues = [];
+    if (isPlainObject(catalog.taxonomy) && Array.isArray(catalog.taxonomy.ambiguousAliases)) {
+      ambiguousAliasValues = catalog.taxonomy.ambiguousAliases;
+    }
+    const ambiguousAliases = new Set(ambiguousAliasValues.map(normalize));
     for (const duplicate of duplicateValues(aliases)) {
       if (ambiguousAliases.has(duplicate)) {
         warnings.push(`stacks: intentional ambiguous alias ${duplicate}`);
@@ -555,12 +596,23 @@ export function validateCatalog(catalog) {
     for (const stack of stackRecords) {
       const stackRoles = Array.isArray(stack.roles) ? stack.roles : [];
       for (const role of stackRoles) {
+        if (!isPlainObject(role)) {
+          continue;
+        }
         const defaultApp = appById.get(role.default);
         if (defaultApp) {
           addError(errors, defaultApp.support.automation !== "retired", `stack ${stack.id}: default ${role.default} is retired`);
           if (stack.automation === "managed") {
             addError(errors, defaultApp.support.automation === "managed", `stack ${stack.id}: managed default ${role.default} lacks managed support`);
           }
+        }
+        const choices = Array.isArray(role.choices) ? role.choices : [];
+        for (const choice of choices) {
+          const choiceApp = appById.get(choice);
+          if (!choiceApp) {
+            continue;
+          }
+          addError(errors, choiceApp.support.automation !== "retired" && choiceApp.lifecycle.status !== "retired", `stack ${stack.id}: choice ${choice} is retired`);
         }
       }
     }
@@ -576,8 +628,10 @@ export function validateCatalog(catalog) {
 
   const homarr = appRecords.find((app) => app.id === "homarr");
   addError(errors, Boolean(homarr), "apps: Homarr record is required");
-  if (homarr) {
+  if (homarr && isPlainObject(homarr.image)) {
     addError(errors, homarr.image.reference === "ghcr.io/homarr-labs/homarr-test:v2", "app homarr: required test image is not configured");
+  } else if (homarr) {
+    errors.push("app homarr: required test image is not configured");
   }
 
   for (const category of categories) {
@@ -604,6 +658,19 @@ export function validateCatalog(catalog) {
     errors,
     warnings
   };
+}
+
+export function validateCatalog(catalog) {
+  try {
+    return validateCatalogDocument(catalog);
+  } catch {
+    return {
+      valid: false,
+      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
+      errors: ["catalog: malformed input could not be validated safely"],
+      warnings: []
+    };
+  }
 }
 
 export function listApps(catalog, filters = {}) {
@@ -792,7 +859,7 @@ function stackScore(stack, query) {
       }
       continue;
     }
-    if (normalizedQuery.includes(phrase)) {
+    if (phraseIndex(normalizedQuery, phrase) >= 0) {
       const score = 6000 + phrase.split(" ").length * 100 + phrase.length;
       if (score > best) {
         best = score;
@@ -813,7 +880,57 @@ function stackScore(stack, query) {
   return { score: best, matched };
 }
 
+function directStackIntents(catalog, query) {
+  const normalizedQuery = normalize(query);
+  const ambiguousAliases = new Set(catalog.taxonomy.ambiguousAliases.map(normalize));
+  const matches = [];
+  for (const stack of catalog.stacks) {
+    const phrases = [stack.id, stack.name, ...stack.aliases]
+      .map(normalize)
+      .filter((phrase) => phrase && !ambiguousAliases.has(phrase));
+    let best = null;
+    for (const phrase of phrases) {
+      const index = phraseIndex(normalizedQuery, phrase);
+      if (index < 0) {
+        continue;
+      }
+      const score = phrase.split(" ").length * 1000 + phrase.length;
+      if (best === null || score > best.score) {
+        best = { matched: phrase, index, score };
+      }
+    }
+    if (best !== null) {
+      matches.push({ stack, ...best });
+    }
+  }
+  matches.sort((left, right) => {
+    if (left.index !== right.index) {
+      return left.index - right.index;
+    }
+    return left.stack.id.localeCompare(right.stack.id);
+  });
+  return matches;
+}
+
 export function resolveStack(catalog, query) {
+  const directIntents = directStackIntents(catalog, query);
+  if (directIntents.length > 1) {
+    const components = directIntents.map((candidate) => ({
+      id: candidate.stack.id,
+      name: candidate.stack.name,
+      matched: candidate.matched
+    }));
+    return {
+      kind: "composite",
+      resolved: false,
+      ambiguous: false,
+      needsComposition: true,
+      stack: null,
+      matched: null,
+      components,
+      candidates: components
+    };
+  }
   const candidates = [];
   for (const stack of catalog.stacks) {
     const match = stackScore(stack, query);
@@ -828,17 +945,24 @@ export function resolveStack(catalog, query) {
     return left.stack.id.localeCompare(right.stack.id);
   });
   if (candidates.length === 0) {
-    return { resolved: false, ambiguous: false, stack: null, matched: null, candidates: [] };
+    return { kind: "none", resolved: false, ambiguous: false, needsComposition: false, stack: null, matched: null, components: [], candidates: [] };
   }
   let ambiguous = false;
   if (candidates.length > 1 && candidates[0].score === candidates[1].score) {
     ambiguous = true;
   }
+  let kind = "single";
+  if (ambiguous) {
+    kind = "ambiguous";
+  }
   return {
+    kind,
     resolved: !ambiguous,
     ambiguous,
+    needsComposition: false,
     stack: ambiguous ? null : candidates[0].stack,
     matched: ambiguous ? null : candidates[0].matched,
+    components: [],
     candidates: candidates.slice(0, 5).map((candidate) => ({ id: candidate.stack.id, name: candidate.stack.name, score: candidate.score, matched: candidate.matched }))
   };
 }
@@ -872,6 +996,12 @@ function expandDependencies(catalog, selectedIds) {
 
 export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   const appById = new Map(catalog.apps.map((app) => [app.id, app]));
+  const roleIds = new Set(stack.roles.map((role) => role.id));
+  for (const roleId of Object.keys(selections).sort()) {
+    if (!roleIds.has(roleId)) {
+      throw new Error(`Unknown selection role ${roleId}. Choose one of: ${[...roleIds].sort().join(", ")}`);
+    }
+  }
   const roles = [];
   const selectedIds = [];
   for (const role of stack.roles) {
@@ -881,6 +1011,10 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     }
     if (selected === "none" || selected === "off") {
       selected = null;
+    }
+    const selectedApp = appById.get(selected);
+    if (selectedApp && (selectedApp.support.automation === "retired" || selectedApp.lifecycle.status === "retired")) {
+      throw new Error(`Application ${selected} is retired and cannot be selected for a new deployment.`);
     }
     if (selected !== null && !role.choices.includes(selected)) {
       throw new Error(`Invalid selection for role ${role.id}. Choose one of: ${role.choices.join(", ")}`);
@@ -905,6 +1039,11 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   const dependencies = expandDependencies(catalog, selectedIds);
   const allAppIds = [...selectedIds, ...dependencies.implied.map((entry) => entry.app)];
   const appDetails = allAppIds.map((id) => appById.get(id)).filter(Boolean);
+  for (const app of appDetails) {
+    if (app.support.automation === "retired" || app.lifecycle.status === "retired") {
+      throw new Error(`Application ${app.id} is retired and cannot be selected for a new deployment.`);
+    }
+  }
   const gates = new Set(stack.gates);
   for (const role of roles) {
     if (role.selected === null) {
@@ -916,6 +1055,11 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   }
 
   const requiredSkills = new Set(stack.requiredSkills);
+  for (const app of appDetails) {
+    if (app.support.adapterSkill !== null) {
+      requiredSkills.add(app.support.adapterSkill);
+    }
+  }
   if (selectedIds.includes("gluetun")) {
     requiredSkills.add("selfhost-vpn");
   }
@@ -962,12 +1106,30 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     acceptance.add("Control-plane and management traffic remain outside the downloader VPN namespace.");
   }
 
+  let effectiveAutomation = stack.automation;
+  for (const app of appDetails) {
+    if (AUTOMATION_RANK.get(app.support.automation) > AUTOMATION_RANK.get(effectiveAutomation)) {
+      effectiveAutomation = app.support.automation;
+    }
+  }
+  const automationLimiters = [];
+  if (stack.automation === effectiveAutomation) {
+    automationLimiters.push({ type: "stack", id: stack.id, automation: stack.automation });
+  }
+  for (const app of appDetails) {
+    if (app.support.automation === effectiveAutomation) {
+      automationLimiters.push({ type: "app", id: app.id, automation: app.support.automation });
+    }
+  }
+
   return {
     mode: "read-only",
     status: "planned",
     planId,
     catalogCheckedAt: catalog.taxonomy.checkedAt,
     goal: { id: stack.id, name: stack.name, summary: stack.summary, automation: stack.automation },
+    effectiveAutomation,
+    automationLimiters,
     roles,
     impliedApps: dependencies.implied,
     requiredCapabilities: dependencies.capabilities,

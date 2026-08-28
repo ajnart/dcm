@@ -12,11 +12,12 @@ import {
   validateCatalog
 } from "./catalog.mjs";
 import {
-  DEFAULT_PREFERENCES_PATH,
   PreferenceError,
   initPreferences,
   loadPreferences,
+  preferencesPathForProjectRoot,
   publicPreferences,
+  resolvePreferencesPath,
   setPreference,
   validatePreferencesDocument
 } from "./preferences.mjs";
@@ -41,13 +42,13 @@ Catalog:
 
 Stacks:
   stack resolve <goal...> [--json]
-  stack plan <goal...> [--select role=app] [--preferences PATH] [--json]
+  stack plan <goal...> [--select role=app] [--project-root ABSOLUTE | --preferences ABSOLUTE] [--json]
 
 Non-secret preferences:
-  preferences init [--path PATH] [--json]
-  preferences show [--path PATH] [--json]
-  preferences set <field> <value> [--path PATH] [--json]
-  preferences validate [--path PATH] [--json]`;
+  preferences init (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+  preferences show (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+  preferences set <field> <value> (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+  preferences validate (--project-root ABSOLUTE | --path ABSOLUTE) [--json]`;
 }
 
 function parseArguments(input) {
@@ -63,7 +64,7 @@ function parseArguments(input) {
       flags.json = true;
       continue;
     }
-    const supported = new Set(["--path", "--preferences", "--category", "--support", "--status", "--tier", "--select"]);
+    const supported = new Set(["--path", "--preferences", "--project-root", "--category", "--support", "--status", "--tier", "--select"]);
     if (!supported.has(value)) {
       throw new Error("Unknown option. Run --help for supported flags.");
     }
@@ -96,6 +97,21 @@ function parseSelections(values) {
     selections[role] = app;
   }
   return selections;
+}
+
+async function preferencePathFromFlags(flags, explicitFlag) {
+  const explicitPath = flags[explicitFlag];
+  const projectRoot = flags["project-root"];
+  if (projectRoot && explicitPath) {
+    throw new Error(`Use either --project-root or --${explicitFlag}, not both.`);
+  }
+  if (projectRoot) {
+    return preferencesPathForProjectRoot(projectRoot);
+  }
+  if (explicitPath) {
+    return resolvePreferencesPath(explicitPath);
+  }
+  return null;
 }
 
 function printJson(value) {
@@ -169,6 +185,14 @@ function printHomarrCoverage(coverage) {
 
 function printResolution(result) {
   if (!result.resolved) {
+    if (result.needsComposition) {
+      process.stdout.write("This request needs composition across these goals:\n");
+      for (const component of result.components) {
+        process.stdout.write(`  ${component.id} — ${component.name} (matched "${component.matched}")\n`);
+      }
+      process.stdout.write("Confirm the combined scope, then plan each component with shared host facts.\n");
+      return;
+    }
     if (result.ambiguous) {
       process.stdout.write("Goal is ambiguous. Choose one:\n");
       for (const candidate of result.candidates) {
@@ -185,7 +209,8 @@ function printResolution(result) {
 
 function printPlan(plan) {
   process.stdout.write(`Read-only plan ${plan.planId}: ${plan.goal.name}\n`);
-  process.stdout.write(`${plan.goal.summary}\n\nRoles\n`);
+  process.stdout.write(`${plan.goal.summary}\n`);
+  process.stdout.write(`Stack capability: ${plan.goal.automation}; effective automation: ${plan.effectiveAutomation}.\n\nRoles\n`);
   for (const role of plan.roles) {
     const selected = role.selected || "off";
     process.stdout.write(`  ${role.name}: ${selected}\n`);
@@ -347,9 +372,13 @@ async function handleStack(action, args) {
     return;
   }
   const selections = parseSelections(parsed.flags.selections);
-  const preferencePath = parsed.flags.preferences || DEFAULT_PREFERENCES_PATH;
-  const preferences = await loadPreferences(preferencePath, { allowMissing: true });
-  const plan = buildPlan(loaded.catalog, resolution.stack, selections, preferences.document);
+  const preferencePath = await preferencePathFromFlags(parsed.flags, "preferences");
+  let preferences = null;
+  if (preferencePath !== null) {
+    const loadedPreferences = await loadPreferences(preferencePath, { allowMissing: true });
+    preferences = loadedPreferences.document;
+  }
+  const plan = buildPlan(loaded.catalog, resolution.stack, selections, preferences);
   if (parsed.flags.json) {
     printJson(plan);
     return;
@@ -359,7 +388,10 @@ async function handleStack(action, args) {
 
 async function handlePreferences(action, args) {
   const parsed = parseArguments(args);
-  const path = parsed.flags.path || DEFAULT_PREFERENCES_PATH;
+  const path = await preferencePathFromFlags(parsed.flags, "path");
+  if (path === null) {
+    throw new Error("Preferences commands require --project-root ABSOLUTE or --path ABSOLUTE.");
+  }
   if (action === "init") {
     const result = await initPreferences(path);
     const output = { path: result.path, created: result.created, mode: "0600", directoryMode: "0700" };

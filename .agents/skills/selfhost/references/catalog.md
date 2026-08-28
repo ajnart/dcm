@@ -24,7 +24,11 @@ Model a user goal rather than a product bundle. Each required role needs choices
 
 Aliases must describe genuine intent. Keep them distinct enough for deterministic longest-phrase resolution. If two stacks share an alias, catalog validation fails.
 
+When one request directly names multiple distinct goal aliases, resolution returns `needsComposition` with ordered components. Keep app-specific and access phrases explicit enough that composition can retain both intents; never use scoring to discard a clear second goal.
+
 The taxonomy may declare an alias in `ambiguousAliases` only when at least two stacks intentionally own it. Resolution then returns every top-scoring meaning instead of choosing. `vpn` is deliberately shared by private remote access and downloader-only privacy.
+
+Every adapter and required skill must exist in the router's local skill-pack contract. Managed defaults must remain managed, lower-automation alternatives are allowed and lower the generated plan's `effectiveAutomation`, and retired applications cannot be stack choices.
 
 ## Support promotion
 

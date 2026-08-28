@@ -16,7 +16,7 @@
     "acceptance": ["Every selected application is API-ready on service-name DNS.", "Seerr reaches playback plus the selected Arr services.", "Homarr integrations and relevant widgets return data.", "Shared paths support the selected import and hardlink policy."]
   },
   {
-    "id": "photos", "name": "Photos and mobile backup", "aliases": ["photos", "replace google photos", "google photos replacement", "phone photo backup"], "summary": "Keep original photos private while providing mobile backup, search, and recovery.", "categories": ["photos"], "automation": "guided",
+    "id": "photos", "name": "Photos and mobile backup", "aliases": ["photos", "replace google photos", "google photos replacement", "phone photo backup", "immich"], "summary": "Keep original photos private while providing mobile backup, search, and recovery.", "categories": ["photos"], "automation": "guided",
     "roles": [
       {"id": "photo-library", "name": "Photo library", "required": true, "default": "immich", "choices": ["immich", "photoprism"], "reason": "Own the photo index, original files, and client experience.", "gates": ["storage", "migration", "hardware"]},
       {"id": "dashboard", "name": "Dashboard", "required": false, "default": null, "choices": ["homarr"], "reason": "Link the photo service without treating the dashboard as its backup owner.", "gates": ["exposure"]}
@@ -34,7 +34,7 @@
     "acceptance": ["A test document is ingested, OCR text is searchable, and the original exports.", "Database, media, and export paths have an app-consistent restore procedure."]
   },
   {
-    "id": "files", "name": "Files and synchronization", "aliases": ["files", "replace dropbox", "dropbox replacement", "replace google drive"], "summary": "Choose between cloud collaboration and peer synchronization with explicit recovery.", "categories": ["files"], "automation": "guided",
+    "id": "files", "name": "Files and synchronization", "aliases": ["files", "replace dropbox", "dropbox replacement", "replace google drive", "dropbox"], "summary": "Choose between cloud collaboration and peer synchronization with explicit recovery.", "categories": ["files"], "automation": "guided",
     "roles": [
       {"id": "file-service", "name": "File service", "required": true, "default": "nextcloud", "choices": ["nextcloud", "syncthing", "seafile"], "reason": "Match collaborative cloud storage or device synchronization to the real goal.", "gates": ["storage", "backup", "exposure"]}
     ],
@@ -60,7 +60,7 @@
     "acceptance": ["Required LAN devices remain discoverable after restart.", "A test automation executes without granting unrelated host control.", "Configuration and device recovery steps are verified."]
   },
   {
-    "id": "remote-access", "name": "Remote access", "aliases": ["remote access", "access online", "access from phone", "make accessible remotely", "vpn"], "summary": "Expose selected services through a private overlay or separately approved public edge.", "categories": ["remote-access", "ingress", "identity"], "automation": "guided",
+    "id": "remote-access", "name": "Remote access", "aliases": ["remote access", "access online", "access from phone", "make accessible remotely", "private on my phone", "vpn"], "summary": "Expose selected services through a private overlay or separately approved public edge.", "categories": ["remote-access", "ingress", "identity"], "automation": "guided",
     "roles": [
       {"id": "private-overlay", "name": "Private overlay", "required": true, "default": "tailscale", "choices": ["tailscale", "headscale", "netbird", "wireguard"], "reason": "Prefer identity-aware private access for trusted devices.", "gates": ["network", "secrets"]},
       {"id": "public-tunnel", "name": "Public tunnel", "required": false, "default": null, "choices": ["cloudflare-tunnel", "pangolin"], "reason": "Add public reachability only when the user needs it and accepts the provider or VPS boundary.", "gates": ["public-exposure", "identity", "secrets"]},

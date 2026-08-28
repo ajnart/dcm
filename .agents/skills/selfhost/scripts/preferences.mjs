@@ -1,8 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { access, chmod, lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const DEFAULT_PREFERENCES_PATH = join(".selfhost", "preferences.json");
+export const DEFAULT_PREFERENCES_RELATIVE_PATH = join(".selfhost", "preferences.json");
+
+const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
+const INSTALLED_SKILL_DIRECTORY = dirname(SCRIPT_DIRECTORY);
 
 const ALLOWED_FIELDS = new Set([
   "platform", "timezone", "locale", "project.name", "paths.stateRoot", "paths.configRoot",
@@ -71,6 +75,17 @@ function isSafePath(value) {
   }
   const segments = value.split(/[\\/]+/);
   return !segments.includes("..");
+}
+
+function isWithin(parent, candidate) {
+  const pathFromParent = relative(parent, candidate);
+  if (pathFromParent === "") {
+    return true;
+  }
+  if (pathFromParent === ".." || pathFromParent.startsWith(`..${sep}`) || isAbsolute(pathFromParent)) {
+    return false;
+  }
+  return true;
 }
 
 function validateFieldValue(field, value) {
@@ -226,8 +241,38 @@ export function validatePreferencesDocument(document) {
   return { valid: errors.length === 0, errors };
 }
 
-export function resolvePreferencesPath(path = DEFAULT_PREFERENCES_PATH) {
-  return resolve(process.cwd(), path);
+export function resolvePreferencesPath(path) {
+  if (!isSafePath(path)) {
+    throw new PreferenceError("Preferences path must be an explicit absolute path without parent traversal segments.");
+  }
+  const absolutePath = resolve(path);
+  if (isWithin(INSTALLED_SKILL_DIRECTORY, absolutePath)) {
+    throw new PreferenceError("Preferences cannot be stored inside the installed skill directory.");
+  }
+  return absolutePath;
+}
+
+export async function preferencesPathForProjectRoot(projectRoot) {
+  if (!isSafePath(projectRoot)) {
+    throw new PreferenceError("Project root must be an explicit absolute path without parent traversal segments.");
+  }
+  const absoluteRoot = resolve(projectRoot);
+  if (dirname(absoluteRoot) === absoluteRoot) {
+    throw new PreferenceError("Project root cannot be a filesystem root.");
+  }
+  if (isWithin(INSTALLED_SKILL_DIRECTORY, absoluteRoot)) {
+    throw new PreferenceError("Project root cannot be the installed skill directory or one of its descendants.");
+  }
+  let rootInfo;
+  try {
+    rootInfo = await lstat(absoluteRoot);
+  } catch {
+    throw new PreferenceError("Project root must already exist as a real directory.");
+  }
+  if (rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) {
+    throw new PreferenceError("Project root must be a real directory, not a link or special file.");
+  }
+  return resolvePreferencesPath(join(absoluteRoot, DEFAULT_PREFERENCES_RELATIVE_PATH));
 }
 
 async function exists(path) {
@@ -239,7 +284,7 @@ async function exists(path) {
   }
 }
 
-export async function loadPreferences(path = DEFAULT_PREFERENCES_PATH, options = {}) {
+export async function loadPreferences(path, options = {}) {
   const absolutePath = resolvePreferencesPath(path);
   if (!(await exists(absolutePath))) {
     if (options.allowMissing) {
@@ -285,7 +330,7 @@ async function ensurePrivateDirectory(path) {
     if (error.code !== "ENOENT") {
       throw new PreferenceError(`Unable to inspect preferences directory: ${error.code || "inspection error"}`);
     }
-    await mkdir(directory, { recursive: true, mode: 0o700 });
+    await mkdir(directory, { mode: 0o700 });
     created = true;
   }
   if (directoryInfo && (directoryInfo.isSymbolicLink() || !directoryInfo.isDirectory())) {
@@ -323,7 +368,7 @@ async function atomicPrivateWrite(path, document) {
   }
 }
 
-export async function initPreferences(path = DEFAULT_PREFERENCES_PATH) {
+export async function initPreferences(path) {
   const absolutePath = resolvePreferencesPath(path);
   if (await exists(absolutePath)) {
     const loaded = await loadPreferences(path);
@@ -334,7 +379,7 @@ export async function initPreferences(path = DEFAULT_PREFERENCES_PATH) {
   return { path: absolutePath, created: true, document };
 }
 
-export async function setPreference(field, rawValue, path = DEFAULT_PREFERENCES_PATH) {
+export async function setPreference(field, rawValue, path) {
   const value = parsePreferenceValue(rawValue);
   ensureSafeFieldAndValue(field, value);
   validateFieldValue(field, value);

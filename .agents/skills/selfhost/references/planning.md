@@ -2,7 +2,7 @@
 
 ## Plan shape
 
-A plan contains the resolved goal, selected roles, non-selected alternatives, required sibling skills, approval gates, acceptance evidence, unresolved decisions, and the catalog check date. It may summarize non-secret preferences. It has no apply command or mutation authority.
+A plan contains the resolved goal, selected roles, non-selected alternatives, required sibling skills, approval gates, acceptance evidence, unresolved decisions, and the catalog check date. It preserves the stack capability and reports an effective automation level limited by every selected and implied application. It may summarize non-secret preferences. It has no apply command or mutation authority.
 
 ## Composition order
 

@@ -11,9 +11,9 @@ Turn a goal into a bounded plan. Treat planning and mutation as separate authori
 
 1. If no goal is present, run `node scripts/selfhost.mjs catalog menu` and show the short menu.
 2. Resolve a stated goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
-3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. Never silently combine unrelated goals.
+3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component, confirm the shared scope, and plan the components against one host inspection. Never silently choose one goal from a composite request.
 4. Search or inspect individual applications with `catalog search` and `catalog show`; avoid loading the whole JSON catalog into context.
-5. Read non-secret project preferences with `preferences show`. A missing file is an empty preference set, not an error.
+5. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing file under that project is an empty preference set, not an error.
 6. Run `stack plan "<request>"`. Present its role choices, alternatives, required skills, safety gates, and unresolved decisions.
 7. Confirm each named sibling skill is installed. If one is absent, keep the plan usable but mark apply as blocked and name the missing skill.
 8. Invoke `selfhost-host` for observed host facts before proposing any host-specific deployment. Invoke only the capability skills named by the plan.
@@ -32,17 +32,17 @@ node scripts/selfhost.mjs catalog homarr [--status supported|gap] [--json]
 node scripts/selfhost.mjs catalog validate [--json]
 
 node scripts/selfhost.mjs stack resolve <goal...> [--json]
-node scripts/selfhost.mjs stack plan <goal...> [--select role=app] [--preferences PATH] [--json]
+node scripts/selfhost.mjs stack plan <goal...> [--select role=app] [--project-root ABSOLUTE | --preferences ABSOLUTE] [--json]
 
-node scripts/selfhost.mjs preferences init [--path PATH] [--json]
-node scripts/selfhost.mjs preferences show [--path PATH] [--json]
-node scripts/selfhost.mjs preferences set <field> <value> [--path PATH] [--json]
-node scripts/selfhost.mjs preferences validate [--path PATH] [--json]
+node scripts/selfhost.mjs preferences init (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+node scripts/selfhost.mjs preferences show (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+node scripts/selfhost.mjs preferences set <field> <value> (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
+node scripts/selfhost.mjs preferences validate (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
 ```
 
-The default preference path is `.selfhost/preferences.json` beneath the current project. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
+`--project-root` must name an existing absolute real directory and derives `<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file alternative. Omitting both uses no stored preferences for planning and is rejected for preference writes. Paths inside the installed skill are rejected. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
 
-Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Phrases such as `route qBittorrent through VPN` resolve to the downloader privacy stack; `access from phone` resolves to remote access.
+Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Phrases such as `route qBittorrent through VPN` resolve to the downloader privacy stack; `access from phone` resolves to remote access. Clear combinations such as `photos and backups` and `make Immich private on my phone` return a composition instead of dropping one intent.
 
 ## Interpret support correctly
 
@@ -50,6 +50,8 @@ Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private 
 - `guided`: current primary guidance and gates exist; generation remains host-specific.
 - `discovery`: selection context only; verify current deployment facts before proposing an install.
 - `retired`: migration routing only. Never select for a new deployment.
+
+The stack's automation field describes its best supported capability. A generated plan also reports `effectiveAutomation`, reduced to the least automated selected or implied application. Every selected adapter skill appears in `requiredSkills`; a guided or discovery alternative never inherits a managed claim.
 
 T0/T1/T2 are curation priorities, independent of automation support. An upstream project and a container image are separate facts; `null` image data means it must be researched at apply time.
 
