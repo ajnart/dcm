@@ -6,11 +6,16 @@ change.
 
 ## Install
 
-The recommended private-repository install is one command:
+The recommended private-repository install puts all 12 packaged skills into
+Codex and Claude Code only:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --all
+npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
+
+`--all` is deliberately broader: it selects every skill for every agent target
+supported by the CLI. Use it only when that fan-out is intentional; the audited
+remote smoke expanded it to 77 agent targets.
 
 Before running it, install Git and Node.js 22.20.0 or newer, including npm/npx;
 Node.js 24 is the recommended installer runtime. The current `skills` CLI does
@@ -290,11 +295,12 @@ List discoverable skills without installing:
 npx skills@latest add ajnart/selfhost-skills --list
 ```
 
-Run the installer without `--all` to select skills interactively, or use the
-current CLI's documented `--skill` and `--agent` flags for a non-interactive
-selection. Include every sibling listed under the selected stack's
-`requiredSkills`. A missing sibling leaves the plan readable but blocks apply;
-it is never silently substituted.
+For a smaller non-interactive install, replace `--skill '*'` in the recommended
+command with a named `--skill <name>` selection, repeat that flag as needed,
+and retain only the intended `--agent` targets. You can also omit the selection
+flags to use the CLI's interactive picker. Include every sibling listed under
+the selected stack's `requiredSkills`. A missing sibling leaves the plan
+readable but blocks apply; it is never silently substituted.
 
 Use copy mode where symlinks are unavailable. The complete skill directory,
 including `scripts/`, `references/`, and `assets/`, is the installable unit.

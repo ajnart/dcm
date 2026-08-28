@@ -35,7 +35,14 @@ const DOCUMENTATION_CONTRACTS = [
   {
     path: "README.md",
     required: [
-      ["private install command", "npx skills@latest add ajnart/selfhost-skills --all"],
+      [
+        "private install command",
+        "npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+      ],
+      [
+        "broad all-agents warning",
+        "`--all` is deliberately broader: it selects every skill for every agent target",
+      ],
       ["private list command", "npx skills@latest add ajnart/selfhost-skills --list"],
       [
         "install prerequisite",
