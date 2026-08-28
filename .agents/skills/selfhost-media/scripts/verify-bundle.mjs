@@ -71,8 +71,31 @@ function isMissing(error) {
   return error && error.code === "ENOENT";
 }
 
-function modeString(stat) {
-  return (stat.mode & 0o777).toString(8).padStart(4, "0");
+function assertSafeBundleFile(stat, label) {
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    fail(`${label} must be a regular single-link file`);
+  }
+  if (
+    typeof process.getuid !== "function"
+    || typeof process.getgid !== "function"
+  ) {
+    fail(`${label} ownership cannot be verified`);
+  }
+  if (stat.uid !== process.getuid() || stat.gid !== process.getgid()) {
+    fail(`${label} must be owned by the current user and group`);
+  }
+}
+
+function assertCompatibleBundleMode(stat, expectedMode, label) {
+  const actualMode = stat.mode & 0o7777;
+  const canonicalMode = Number.parseInt(expectedMode, 8);
+  if (actualMode === canonicalMode) {
+    return;
+  }
+  if (actualMode === (canonicalMode | 0o020)) {
+    return;
+  }
+  fail(`${label} mode is unsafe`);
 }
 
 function canonicalSourceMode(stat) {
@@ -255,12 +278,8 @@ function parseManifest(raw) {
 async function readManifest(bundleRoot) {
   const manifestPath = join(bundleRoot, BUNDLE_MANIFEST_NAME);
   const stat = await lstat(manifestPath);
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    fail("bundle manifest must be a regular file");
-  }
-  if (stat.nlink !== 1 || modeString(stat) !== "0644") {
-    fail("bundle manifest link count or mode is unsafe");
-  }
+  assertSafeBundleFile(stat, "bundle manifest");
+  assertCompatibleBundleMode(stat, "0644", "bundle manifest");
   if (stat.size > MAX_MANIFEST_BYTES) {
     fail("bundle manifest is too large");
   }
@@ -311,13 +330,9 @@ async function verifyBundleTree(bundleRoot, manifest) {
         await walk(relativePath);
         continue;
       }
-      if (!stat.isFile() || stat.nlink !== 1) {
-        fail("bundle contains an unsafe filesystem entry");
-      }
+      assertSafeBundleFile(stat, `bundle file ${relativePath}`);
       if (relativePath === BUNDLE_MANIFEST_NAME) {
-        if (modeString(stat) !== "0644") {
-          fail("bundle manifest mode does not match 0644");
-        }
+        assertCompatibleBundleMode(stat, "0644", "bundle manifest");
         continue;
       }
 
@@ -325,9 +340,7 @@ async function verifyBundleTree(bundleRoot, manifest) {
       if (!expected) {
         fail("bundle contains an unexpected file");
       }
-      if (modeString(stat) !== expected.mode) {
-        fail(`bundle mode mismatch for ${relativePath}`);
-      }
+      assertCompatibleBundleMode(stat, expected.mode, `bundle file ${relativePath}`);
       if ((await sha256File(fullPath)) !== expected.sha256) {
         fail(`bundle hash mismatch for ${relativePath}`);
       }

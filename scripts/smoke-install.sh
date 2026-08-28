@@ -243,6 +243,20 @@ verify_copy_project() {
   done
 }
 
+verify_installed_media_bundle() {
+  local skill_root="$1"
+  local label="$2"
+  local output
+  local verifier="$skill_root/scripts/verify-bundle.mjs"
+
+  [[ -f "$verifier" && ! -L "$verifier" ]] \
+    || fail "$label selfhost-media bundle verifier is missing or unsafe"
+  output="$(node "$verifier")" \
+    || fail "$label selfhost-media bundle verification failed"
+  [[ "$output" == "PASS bundle: 34 files verified" ]] \
+    || fail "$label selfhost-media bundle verifier returned unexpected output"
+}
+
 trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
@@ -361,6 +375,12 @@ done
 
 verify_symlink_project "$SYMLINK_PROJECT"
 verify_copy_project "$COPY_PROJECT"
+verify_installed_media_bundle \
+  "$SYMLINK_PROJECT/.agents/skills/selfhost-media" \
+  "default canonical install"
+verify_installed_media_bundle \
+  "$COPY_PROJECT/.agents/skills/selfhost-media" \
+  "copy canonical install"
 
 for payload_kind in scripts references assets; do
   [[ -d "$SYMLINK_PROJECT/.agents/skills/selfhost-media/$payload_kind" ]] \

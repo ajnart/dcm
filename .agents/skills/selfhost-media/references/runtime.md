@@ -40,6 +40,13 @@ prompt module list, and seven-image Compose contract. The optional source check
 compares only `docker-compose.yml`, `PROMPT.md`, `prompts/**`, `docs/**`, and
 `scripts/**`; excluded private/runtime paths are skipped.
 
+The `skills` installer may normalize packaged regular files from `0644`/`0755`
+to `0664`/`0775`. Bundle verification accepts either the exact manifest mode or
+that mode with only group write added, and only when every file is a regular
+single-link file owned by the current user and group. World write, special mode
+bits, symlinks, hard links, other mode changes, and wrong ownership still fail.
+Do not use `chmod` to work around a verifier failure.
+
 The six non-Homarr `:latest` images are intentional only in this isolated,
 loopback-bound, disposable evaluation harness. Production composition must use
 `selfhost-compose`, whose contract rejects floating images. Do not pin these
