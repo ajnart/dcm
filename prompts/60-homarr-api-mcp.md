@@ -43,19 +43,21 @@ embeds the `ApiKey` value.
 
 Direct native MCP remains authoritative. The generated local stdio bridge is a
 credential adapter: it reads the private per-run key and proxies Homarr without
-putting that key in client configuration. Its curated tool catalog is a
-temporary fallback only for the current upstream `tools/list` Date JSON-Schema
-failure; when native listing works, the bridge passes through the full native
-catalog. Neither mode masks authentication, routing, or connectivity failures.
+putting that key in client configuration. It exposes only `integration_all`,
+`integration_byId`, and `integration_searchMediaRequests`. When native listing
+works, the bridge projects only those three entries. Its curated schemas are a
+temporary fallback only for exact RPC `-32603` message
+`Date cannot be represented in JSON Schema`. Neither mode masks authentication,
+routing, or connectivity failures.
 
 ## Media safety
 
-The native media workflow, after a user explicitly authorizes a real request,
-is `integration_searchMediaRequests` -> `integration_requestMedia`. For TV,
-call `integration_getMediaRequestOptions` between them when options are
-required. During this experiment, search for **Spider-Man: No Way Home** and
-record the read-only match only. Never invoke `integration_requestMedia` or any
-request/download mutation: it can start downstream downloads.
+Use `integration_all` and `integration_byId` to verify exactly one linked Seerr
+integration, then call `integration_searchMediaRequests` for **Spider-Man: No
+Way Home** and record the exact structured match only. The client-facing bridge
+rejects `app_update`, `integration_requestMedia`,
+`mediaRequests_answerRequest`, and every other unapproved tool before upstream
+dispatch. Only the preceding harness-owned finalizer may update app links.
 
 ## Stop gate
 

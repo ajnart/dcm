@@ -14,6 +14,7 @@ import {
 import {
   CURATED_HOMARR_TOOLS,
   isRecord,
+  MUTATING_HOMARR_TOOL_NAMES,
   NativeHomarrMcpClient,
   toolResultArray,
   toolResultValue,
@@ -40,7 +41,7 @@ function bridgeRequest(id, method, params = {}) {
   return `${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`;
 }
 
-function probeBridge(runId) {
+function probeBridge(runId, seerrId) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [bridgePath(), runId], {
       cwd: REPO_ROOT,
@@ -121,25 +122,34 @@ function probeBridge(runId) {
     }));
     child.stdin.write(bridgeRequest(4, "tools/call", {
       name: "integration_searchMediaRequests",
-      arguments: { query: TARGET_TITLE },
+      arguments: {
+        query: TARGET_TITLE,
+        integrationIds: [seerrId],
+      },
     }));
   });
 }
 
-function validateBridgeResponses(responses) {
+function validateBridgeResponses(responses, seerrId) {
   const initialize = responses.get(1);
   const toolsList = responses.get(2);
   if (
     !isRecord(initialize?.result)
     || initialize.result.protocolVersion !== "2025-03-26"
     || typeof initialize.result.instructions !== "string"
+    || !initialize.result.instructions.includes("strictly read-only")
     || !initialize.result.instructions.includes("integration_searchMediaRequests")
-    || !initialize.result.instructions.includes("integration_getMediaRequestOptions")
-    || !initialize.result.instructions.includes("integration_requestMedia")
+    || !initialize.result.instructions.includes("No mutation path is installed")
   ) {
     throw new Error("Homarr MCP bridge initialize failed");
   }
-  if (!isRecord(toolsList?.result) || !Array.isArray(toolsList.result.tools)) {
+  if (
+    !isRecord(toolsList?.result)
+    || !Array.isArray(toolsList.result.tools)
+    || !isRecord(toolsList.result._meta)
+    || toolsList.result._meta["selfhost-homarr/bridgeMode"] !== "read-only"
+    || toolsList.result._meta["selfhost-homarr/endpointMode"] !== "canonical"
+  ) {
     throw new Error("Homarr MCP bridge tools/list failed");
   }
   const names = new Set(
@@ -150,6 +160,14 @@ function validateBridgeResponses(responses) {
   for (const tool of CURATED_HOMARR_TOOLS) {
     if (!names.has(tool.name)) {
       throw new Error("Homarr MCP bridge catalog is incomplete");
+    }
+  }
+  if (names.size !== CURATED_HOMARR_TOOLS.length) {
+    throw new Error("Homarr MCP bridge catalog is not bounded");
+  }
+  for (const name of MUTATING_HOMARR_TOOL_NAMES) {
+    if (names.has(name)) {
+      throw new Error("Homarr MCP bridge exposed a mutating tool");
     }
   }
 
@@ -167,7 +185,8 @@ function validateBridgeResponses(responses) {
   }
   const seerr = seerrIntegrations[0];
   if (
-    seerr.url !== "http://seerr:5055"
+    seerr.id !== seerrId
+    || seerr.url !== "http://seerr:5055"
     || !isRecord(seerr.permissions)
     || seerr.permissions.hasUseAccess !== true
     || seerr.permissions.hasInteractAccess !== true
@@ -213,9 +232,6 @@ async function main() {
     process.stdout.write("PASS Homarr MCP native catalog\n");
   }
 
-  validateBridgeResponses(await probeBridge(session.runId));
-  process.stdout.write("PASS Homarr stdio bridge initialize, tools/list, and tools/call\n");
-
   const integrations = toolResultArray(await client.callTool("integration_all"));
   const seerrIntegrations = integrations.filter(
     (integration) => isRecord(integration) && normalizeName(integration.kind) === "seerr",
@@ -241,6 +257,9 @@ async function main() {
     throw new Error("Homarr Seerr integration is not linked to an app");
   }
   process.stdout.write("PASS Homarr linked Seerr full, use, and interact permissions\n");
+
+  validateBridgeResponses(await probeBridge(session.runId, seerr.id), seerr.id);
+  process.stdout.write("PASS Homarr stdio bridge read-only initialize, tools/list, and tools/call\n");
 
   const searchResult = toolResultValue(
     await client.callTool("integration_searchMediaRequests", {

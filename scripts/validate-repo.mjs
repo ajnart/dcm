@@ -63,10 +63,13 @@ const DOCUMENTATION_CONTRACTS = [
       ["Homarr image", HOMARR_IMAGE],
       ["default read-only Homarr fragment", "default client fragment remains strictly read-only"],
       [
-        "conditional Homarr media-request fragment",
-        "The pack reserves a separate opt-in media-request fragment contract.",
+        "no mutation-capable Homarr bridge",
+        "The pack does not provide a mutation-capable Homarr client fragment or bridge.",
       ],
-      ["bounded Homarr request tool", "Only `integration_requestMedia` may be exposed"],
+      [
+        "blocked Homarr mutation tools",
+        "`integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`",
+      ],
     ],
   },
   {

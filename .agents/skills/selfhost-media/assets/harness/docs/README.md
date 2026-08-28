@@ -25,9 +25,11 @@ to `SESSION_ROOT/artifacts/mcp-client.json`. Candidates do not install it; only
 the promoted winner may change a local client configuration.
 Native `/api/mcp` with the `ApiKey` header remains authoritative;
 `/api/mcp/mcp` is compatibility-only when the canonical route is unavailable.
-The local stdio bridge keeps the key out of client configuration. It normally
-passes through Homarr's native catalog; only its curated catalog exists for the
-current upstream `tools/list` Date JSON-Schema failure.
+The local stdio bridge keeps the key out of client configuration and exposes
+only the three read-only tools used to verify integrations and search Seerr. It
+projects those tools from a successful native catalog and uses the same curated
+schemas only for exact RPC `-32603` message
+`Date cannot be represented in JSON Schema`.
 
 `.sessions/RUN_ID/secrets.env` is the harness source of truth for service API
 keys and the Homarr encryption key. `homarr-key` stores the Homarr API/MCP key

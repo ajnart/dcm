@@ -44,20 +44,23 @@
 - Authentication: the private per-run key in the `ApiKey` header. The harness,
   not candidate-authored commands or config, owns key injection.
 - Direct native MCP is the target. The generated local stdio bridge injects the
-  private per-run key without persisting it in client configuration and proxies
-  the full native catalog when listing succeeds. Only its curated catalog is a
-  temporary fallback for the current upstream `tools/list` Date JSON-Schema
-  failure. Neither mode masks auth, route, or network failures.
+  private per-run key without persisting it in client configuration. It projects
+  only `integration_all`, `integration_byId`, and
+  `integration_searchMediaRequests` from a successful native catalog. The same
+  three curated schemas are available only for exact RPC `-32603` message
+  `Date cannot be represented in JSON Schema`. Neither mode masks auth, route,
+  or network failures.
 - `mcp-config` writes the credential-free candidate fragment to
   `SESSION_ROOT/artifacts/mcp-client.json`. Concurrent candidates leave it
   uninstalled so they cannot overwrite or reload the same client configuration.
   The fragment identifies the local bridge and `RUN_ID`, never the key value.
 
-The native media path is `integration_searchMediaRequests` followed by
-`integration_requestMedia`; TV requests may first need
-`integration_getMediaRequestOptions`. Acceptance is intentionally read-only:
-search for **Spider-Man: No Way Home**, then stop. The request tool is mutating
-and may start downloads.
+The bridge uses `integration_all` and `integration_byId` to verify the one Seerr
+integration, then calls `integration_searchMediaRequests`. Acceptance is
+intentionally read-only: search for **Spider-Man: No Way Home**, record the
+exact structured match, then stop. The bridge rejects `app_update`,
+`integration_requestMedia`, `mediaRequests_answerRequest`, and every other
+unapproved tool before upstream dispatch.
 
 ## Proof
 

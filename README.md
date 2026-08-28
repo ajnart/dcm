@@ -223,22 +223,18 @@ non-secret profile path. The key, Homarr URL, credential-file path, and
 credential environment-variable name never enter client configuration. The
 default client fragment remains strictly read-only and its real merge requires
 `INSTALL-MCP:<profile>`. The bridge prefers Homarr's native catalog; its
-bounded curated catalog exists only for the known upstream Date JSON-Schema
-failure in `tools/list`.
+three-tool read-only projection is enforced when native listing works, and the
+same curated schemas are used only for the exact known Date JSON-Schema failure
+in `tools/list`.
 
 If the user says “add Spider-Man,” the default bridge may search, present an
 exact structured match, and ask for confirmation, but it still stops without
 submitting a request. Search evidence and confirmation do not expand a
 read-only fragment's authority.
 
-The pack reserves a separate opt-in media-request fragment contract. Treat it
-as unavailable unless the installed `selfhost-homarr` package contains and
-validates its dedicated generator and bridge path. When present, generation
-and client merge each require their own explicit approval; authorization is
-limited to the exact integration, media ID, media type, and title selected by
-the immediately preceding structured search, expires quickly, and is consumed
-after one request attempt. Only `integration_requestMedia` may be exposed;
-app updates, request decisions, and every other mutation remain blocked.
+The pack does not provide a mutation-capable Homarr client fragment or bridge.
+`integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`, and
+every other unapproved tool remain unavailable even after confirmation.
 
 ## Managed seven-service media graph
 

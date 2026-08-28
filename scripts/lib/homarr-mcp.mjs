@@ -1,5 +1,23 @@
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+const CANONICAL_PATH = "/api/mcp";
+const COMPATIBILITY_PATH = "/api/mcp/mcp";
+const DATE_SCHEMA_FAILURE_MESSAGE = "Date cannot be represented in JSON Schema";
+
+export const MUTATING_HOMARR_TOOL_NAMES = Object.freeze([
+  "app_update",
+  "integration_requestMedia",
+  "mediaRequests_answerRequest",
+]);
+
+export const READ_ONLY_HOMARR_TOOL_NAMES = Object.freeze([
+  "integration_all",
+  "integration_byId",
+  "integration_searchMediaRequests",
+]);
+
+const readOnlyToolNames = new Set(READ_ONLY_HOMARR_TOOL_NAMES);
+const mutatingToolNames = new Set(MUTATING_HOMARR_TOOL_NAMES);
 
 const emptyObjectSchema = Object.freeze({
   type: "object",
@@ -20,150 +38,33 @@ function stringSchema(options = {}) {
   return { type: "string", ...options };
 }
 
-function numberSchema(options = {}) {
-  return { type: "number", ...options };
-}
-
 function arraySchema(items, options = {}) {
   return { type: "array", items, ...options };
 }
 
 const integrationId = stringSchema({ minLength: 1 });
-const mediaType = { type: "string", enum: ["tv", "movie"] };
 
 export const CURATED_HOMARR_TOOLS = Object.freeze([
   {
-    name: "app_all",
-    description: "List all apps.",
-    inputSchema: emptyObjectSchema,
-  },
-  {
-    name: "app_search",
-    description: "Search apps by name.",
-    inputSchema: objectSchema(
-      {
-        query: stringSchema(),
-        limit: { type: "integer", minimum: 1, maximum: 100, default: 10 },
-      },
-      ["query"],
-    ),
-  },
-  {
-    name: "app_update",
-    description: "Update an existing app.",
-    inputSchema: objectSchema(
-      {
-        id: stringSchema({ minLength: 1 }),
-        name: stringSchema({ minLength: 1, maxLength: 64 }),
-        description: { type: ["string", "null"], maxLength: 512 },
-        iconUrl: stringSchema({ minLength: 1 }),
-        href: { type: ["string", "null"] },
-        pingUrl: { type: ["string", "null"] },
-      },
-      ["id", "name", "iconUrl", "href"],
-    ),
-  },
-  {
     name: "integration_all",
-    description: "List all configured integrations and their permissions.",
+    description: "List configured integrations and their permissions.",
     inputSchema: emptyObjectSchema,
   },
   {
     name: "integration_byId",
-    description: "Get integration details and its linked app.",
+    description: "Get integration details and its linked app tile.",
     inputSchema: objectSchema({ id: integrationId }, ["id"]),
-  },
-  {
-    name: "integration_search",
-    description: "Search integrations by name.",
-    inputSchema: objectSchema(
-      {
-        query: stringSchema(),
-        limit: { type: "integer", minimum: 1, maximum: 100, default: 10 },
-      },
-      ["query"],
-    ),
-  },
-  {
-    name: "integration_mediaRequestSearchTargets",
-    description: "List integrations that support media-request search.",
-    inputSchema: emptyObjectSchema,
   },
   {
     name: "integration_searchMediaRequests",
     description:
-      "Search Seerr for movies or TV shows after explicit add/request intent. Disambiguate the returned matches before requesting.",
+      "Read-only: search one selected Seerr integration and present exact matches; this bridge cannot request media.",
     inputSchema: objectSchema(
       {
         query: stringSchema(),
-        integrationIds: arraySchema(integrationId),
+        integrationIds: arraySchema(integrationId, { minItems: 1, maxItems: 1 }),
       },
-      ["query"],
-    ),
-  },
-  {
-    name: "integration_getMediaRequestOptions",
-    description:
-      "Get available seasons before requesting a TV match selected from integration_searchMediaRequests.",
-    inputSchema: objectSchema(
-      {
-        integrationId,
-        mediaId: numberSchema(),
-        mediaType,
-      },
-      ["integrationId", "mediaId", "mediaType"],
-    ),
-  },
-  {
-    name: "integration_requestMedia",
-    description:
-      "Submit a selected media match only when the user explicitly asked to add or request it.",
-    inputSchema: objectSchema(
-      {
-        integrationId,
-        mediaId: numberSchema(),
-        mediaType,
-        seasons: arraySchema(numberSchema({ minimum: 0 })),
-      },
-      ["integrationId", "mediaId", "mediaType"],
-    ),
-  },
-  {
-    name: "mediaRequests_getLatestRequests",
-    description: "Get recent media requests.",
-    inputSchema: objectSchema(
-      {
-        integrationIds: arraySchema(integrationId, { minItems: 1 }),
-        statuses: arraySchema(
-          {
-            type: "string",
-            enum: ["pending", "approved", "declined", "failed", "completed"],
-          },
-          { minItems: 1 },
-        ),
-        recentDays: numberSchema({ minimum: 0, maximum: 365 }),
-      },
-      ["integrationIds", "statuses", "recentDays"],
-    ),
-  },
-  {
-    name: "mediaRequests_getStats",
-    description: "Get media-request statistics.",
-    inputSchema: objectSchema(
-      { integrationIds: arraySchema(integrationId, { minItems: 1 }) },
-      ["integrationIds"],
-    ),
-  },
-  {
-    name: "mediaRequests_answerRequest",
-    description: "Approve or decline a pending media request.",
-    inputSchema: objectSchema(
-      {
-        integrationId,
-        requestId: numberSchema(),
-        answer: { type: "string", enum: ["approve", "decline"] },
-      },
-      ["integrationId", "requestId", "answer"],
+      ["query", "integrationIds"],
     ),
   },
 ]);
@@ -203,7 +104,7 @@ function parseProtocolBody(contentType, body) {
 }
 
 function isCatalogSchemaFailure(value) {
-  return String(value ?? "").includes("Date cannot be represented in JSON Schema");
+  return value === DATE_SCHEMA_FAILURE_MESSAGE;
 }
 
 class NativeMcpError extends Error {
@@ -213,12 +114,30 @@ class NativeMcpError extends Error {
     this.status = options.status ?? 0;
     this.code = options.code;
     this.catalogSchemaFailure = options.catalogSchemaFailure === true;
+    this.protocolResponse = options.protocolResponse === true;
   }
+}
+
+function isAuthenticationFailure(error) {
+  return error instanceof NativeMcpError && (error.status === 401 || error.status === 403);
+}
+
+function isDefinitiveRouteMissing(error) {
+  return error instanceof NativeMcpError
+    && (error.status === 404 || error.status === 405)
+    && !error.protocolResponse;
+}
+
+function isModernMethodUnsupported(error) {
+  return error instanceof NativeMcpError
+    && error.protocolResponse
+    && error.status >= 200
+    && error.status < 300
+    && error.code === -32601;
 }
 
 async function postJsonRpc(url, apiKey, method, params, options = {}) {
   const requestId = options.requestId ?? 1;
-  const modern = options.modern === true;
   const bodyParams = { ...params };
   const headers = {
     Accept: "application/json, text/event-stream",
@@ -226,7 +145,7 @@ async function postJsonRpc(url, apiKey, method, params, options = {}) {
     "Content-Type": "application/json",
   };
 
-  if (modern) {
+  if (options.modern === true) {
     bodyParams._meta = {
       "io.modelcontextprotocol/protocolVersion": MODERN_PROTOCOL_VERSION,
       "io.modelcontextprotocol/clientInfo": {
@@ -249,7 +168,14 @@ async function postJsonRpc(url, apiKey, method, params, options = {}) {
   let response;
   let responseBody;
   try {
-    response = await fetch(url, {
+    let fetchImplementation = globalThis.fetch;
+    if (typeof options.fetchImplementation === "function") {
+      fetchImplementation = options.fetchImplementation;
+    }
+    if (typeof fetchImplementation !== "function") {
+      throw new Error("fetch is unavailable");
+    }
+    response = await fetchImplementation(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -286,6 +212,7 @@ async function postJsonRpc(url, apiKey, method, params, options = {}) {
   if (payload.id !== requestId) {
     throw new NativeMcpError("Homarr MCP returned a mismatched response", {
       status: response.status,
+      protocolResponse: true,
     });
   }
 
@@ -293,8 +220,10 @@ async function postJsonRpc(url, apiKey, method, params, options = {}) {
     throw new NativeMcpError("Homarr MCP returned an RPC error", {
       status: response.status,
       code: payload.error.code,
+      protocolResponse: true,
       catalogSchemaFailure:
-        method === "tools/list"
+        response.ok
+        && method === "tools/list"
         && payload.error.code === -32603
         && isCatalogSchemaFailure(payload.error.message),
     });
@@ -302,23 +231,28 @@ async function postJsonRpc(url, apiKey, method, params, options = {}) {
   if (!response.ok || !("result" in payload)) {
     throw new NativeMcpError("Homarr MCP request failed", {
       status: response.status,
+      protocolResponse: true,
     });
   }
   return payload.result;
 }
 
-async function probeEndpoint(url, apiKey) {
+async function probeEndpoint(url, apiKey, fetchImplementation) {
   try {
     const discovery = await postJsonRpc(url, apiKey, "server/discover", {}, {
       modern: true,
       requestId: "discover",
+      fetchImplementation,
     });
-    return { modern: true, discovery };
+    return { available: true, modern: true, discovery };
   } catch (error) {
-    if (!(error instanceof NativeMcpError)) {
+    if (isAuthenticationFailure(error)) {
       throw error;
     }
-    if (error.status === 401 || error.status === 403) {
+    if (isDefinitiveRouteMissing(error)) {
+      return { available: false };
+    }
+    if (!isModernMethodUnsupported(error)) {
       throw error;
     }
   }
@@ -327,25 +261,50 @@ async function probeEndpoint(url, apiKey) {
     await postJsonRpc(url, apiKey, "tools/list", {}, {
       modern: false,
       requestId: "probe",
+      fetchImplementation,
     });
-    return { modern: false, discovery: null };
+    return { available: true, modern: false, discovery: null };
   } catch (error) {
-    if (!(error instanceof NativeMcpError)) {
+    if (isAuthenticationFailure(error)) {
       throw error;
     }
-    if (error.status === 401 || error.status === 403) {
-      throw error;
+    if (error instanceof NativeMcpError && error.catalogSchemaFailure) {
+      return {
+        available: true,
+        modern: false,
+        discovery: null,
+        catalogSchemaFailure: true,
+      };
     }
-    return null;
+    throw error;
   }
 }
 
+function validateCatalog(result) {
+  if (!isPlainObject(result) || !Array.isArray(result.tools)) {
+    throw new Error("Homarr MCP returned an invalid tool catalog");
+  }
+  const validTools = result.tools.every(
+    (tool) => isPlainObject(tool)
+      && typeof tool.name === "string"
+      && isPlainObject(tool.inputSchema),
+  );
+  if (!validTools) {
+    throw new Error("Homarr MCP returned an invalid tool catalog");
+  }
+  return result.tools;
+}
+
 export class NativeHomarrMcpClient {
-  constructor(session, apiKey) {
+  constructor(session, apiKey, options = {}) {
     this.baseUrl = `http://127.0.0.1:${session.manifest.HOMARR_PORT}`;
     this.apiKey = apiKey;
+    this.allowCompatibility = options.allowCompatibility !== false;
+    this.fetchImplementation = options.fetchImplementation;
     this.endpoint = null;
+    this.endpointMode = null;
     this.modern = true;
+    this.catalogSchemaFailure = false;
     this.requestId = 10;
   }
 
@@ -354,17 +313,35 @@ export class NativeHomarrMcpClient {
       return;
     }
 
-    for (const path of ["/api/mcp", "/api/mcp/mcp"]) {
-      const url = `${this.baseUrl}${path}`;
-      const probe = await probeEndpoint(url, this.apiKey);
-      if (!probe) {
-        continue;
-      }
-      this.endpoint = url;
-      this.modern = probe.modern;
+    const canonicalUrl = `${this.baseUrl}${CANONICAL_PATH}`;
+    const canonical = await probeEndpoint(
+      canonicalUrl,
+      this.apiKey,
+      this.fetchImplementation,
+    );
+    if (canonical.available) {
+      this.endpoint = canonicalUrl;
+      this.endpointMode = "canonical";
+      this.modern = canonical.modern;
+      this.catalogSchemaFailure = canonical.catalogSchemaFailure === true;
       return;
     }
-    throw new Error("Homarr MCP endpoint is unavailable");
+    if (!this.allowCompatibility) {
+      throw new Error("Homarr canonical MCP endpoint is unavailable");
+    }
+    const compatibilityUrl = `${this.baseUrl}${COMPATIBILITY_PATH}`;
+    const compatibility = await probeEndpoint(
+      compatibilityUrl,
+      this.apiKey,
+      this.fetchImplementation,
+    );
+    if (!compatibility.available) {
+      throw new Error("Homarr MCP endpoint is unavailable");
+    }
+    this.endpoint = compatibilityUrl;
+    this.endpointMode = "compatibility";
+    this.modern = compatibility.modern;
+    this.catalogSchemaFailure = compatibility.catalogSchemaFailure === true;
   }
 
   async request(method, params = {}) {
@@ -373,24 +350,17 @@ export class NativeHomarrMcpClient {
     return await postJsonRpc(this.endpoint, this.apiKey, method, params, {
       modern: this.modern,
       requestId: this.requestId,
+      fetchImplementation: this.fetchImplementation,
     });
   }
 
   async listTools() {
+    if (this.catalogSchemaFailure) {
+      return { tools: CURATED_HOMARR_TOOLS, fallback: true };
+    }
     try {
       const result = await this.request("tools/list", {});
-      if (!isPlainObject(result) || !Array.isArray(result.tools)) {
-        throw new Error("Homarr MCP returned an invalid tool catalog");
-      }
-      const validTools = result.tools.every(
-        (tool) => isPlainObject(tool)
-          && typeof tool.name === "string"
-          && isPlainObject(tool.inputSchema),
-      );
-      if (!validTools) {
-        throw new Error("Homarr MCP returned an invalid tool catalog");
-      }
-      return { tools: result.tools, fallback: false };
+      return { tools: validateCatalog(result), fallback: false };
     } catch (error) {
       if (
         error instanceof NativeMcpError
@@ -476,4 +446,12 @@ export function toolResultArray(result) {
 
 export function isRecord(value) {
   return isPlainObject(value);
+}
+
+export function isMutatingHomarrTool(name) {
+  return mutatingToolNames.has(name);
+}
+
+export function isReadOnlyHomarrTool(name) {
+  return readOnlyToolNames.has(name);
 }
