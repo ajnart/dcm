@@ -9,7 +9,7 @@
 | Auth Method | Forms (Login Page)                   |
 | Username    | admin                                |
 | Password    | Password1!                           |
-| API Key     | 994dad0b2e89403ca708279a03a05159     |
+| API Key     | <REDACTED_API_KEY>     |
 | Port        | 7878                                 |
 
 ## Env Variables (docker-compose)
@@ -80,7 +80,7 @@ The General settings page shows:
 - **Authentication Requirement**: button showing `Enabled`
 - **Username**: text `admin`
 - **Password**: masked field
-- **API Key**: visible textbox (e.g., `994dad0b2e89403ca708279a03a05159`)
+- **API Key**: visible textbox (e.g., `<REDACTED_API_KEY>`)
 
 To see advanced settings, click "Show Advanced":
 

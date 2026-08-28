@@ -8,7 +8,7 @@ This guide documents the exact browser automation path used to set up qBittorren
 - **Web UI port (container)**: 8080
 - **Web UI port (host)**: 8088
 - **Default username**: `admin`
-- **Temporary password** (from container logs, per-session): e.g. `whqLR4eyn`
+- **Temporary password**: `<generated-temporary-password>`
 - **Final credentials**: `admin` / `Password1!`
 
 > **Note on port 8088**: A host-side `traefik` process (PID 1310767) is bound to `0.0.0.0:8080`, so
@@ -67,7 +67,7 @@ Snapshot (interactive elements):
 
 ```bash
 agent-browser fill @e2 "admin"
-agent-browser fill @e3 "whqLR4eyn"      # use the temp password from the container logs
+agent-browser fill @e3 "<generated-temporary-password>"
 agent-browser click @e4
 agent-browser wait --load networkidle
 ```
@@ -75,8 +75,8 @@ agent-browser wait --load networkidle
 After login the main Transfers dashboard loads at `http://localhost:8088/`, with the toolbar
 (`File`, `Edit`, `View`, `Tools`, `Help`) and sidebar (`Transfers`, `Search`, `RSS`) visible.
 
-> Use the *current* temp password from `docker logs`. In this session it was `whqLR4eyn`
-> (first start) but changed to e.g. `QGDueSSGp` after the container was recreated.
+> The generated temporary password is intentionally omitted. Retrieve it from the current container
+> logs and never persist it in tracked files.
 
 ### 4. Open Options → Web UI
 

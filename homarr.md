@@ -103,7 +103,7 @@ agent-browser click @e60
 
 ```bash
 agent-browser fill @e10 "http://sonarr:8989"
-agent-browser fill @e11 "be664b980ad8498cae386c62bee0aacb"
+agent-browser fill @e11 "<REDACTED_API_KEY>"
 agent-browser click @e8
 ```
 
@@ -199,7 +199,7 @@ Configuration form:
 
 ```bash
 agent-browser fill @e24 "http://radarr:7878"
-agent-browser fill @e26 "994dad0b2e89403ca708279a03a05159"
+agent-browser fill @e26 "<REDACTED_API_KEY>"
 agent-browser click @e10
 ```
 
@@ -209,7 +209,7 @@ agent-browser click @e10
 agent-browser click @e6   # "New integration"
 agent-browser find text "Prowlarr" click
 agent-browser fill @e24 "http://prowlarr:9696"
-agent-browser fill @e26 "60f32bf2cb1f429992c27e4520712524"
+agent-browser fill @e26 "<REDACTED_API_KEY>"
 agent-browser click @e10
 ```
 
@@ -286,9 +286,9 @@ agent-browser screenshot /home/habs/work/auto-stack/homarr-dashboard.png
 
 | Service     | Integration Type | URL (Docker)          | Auth Method            | Credentials / API Key                              |
 |-------------|------------------|-----------------------|------------------------|----------------------------------------------------|
-| Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `be664b980ad8498cae386c62bee0aacb`                 |
-| Radarr      | Radarr           | http://radarr:7878    | API Key                | `994dad0b2e89403ca708279a03a05159`                 |
-| Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `60f32bf2cb1f429992c27e4520712524`                 |
+| Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `<REDACTED_API_KEY>`                 |
+| Radarr      | Radarr           | http://radarr:7878    | API Key                | `<REDACTED_API_KEY>`                 |
+| Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `<REDACTED_API_KEY>`                 |
 | qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `Password1!`                            |
 | Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `Password1!`                            |
 

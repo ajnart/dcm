@@ -9,7 +9,7 @@
 | Auth Method | Forms (Login Page)                   |
 | Username    | admin                                |
 | Password    | Password1!                           |
-| API Key     | 60f32bf2cb1f429992c27e4520712524     |
+| API Key     | <REDACTED_API_KEY>     |
 | Port        | 9696                                 |
 
 ## Env Variables (docker-compose)
@@ -80,7 +80,7 @@ The General settings page shows:
 - **Authentication Requirement**: button showing `Enabled`
 - **Username**: text `admin`
 - **Password**: masked field
-- **API Key**: visible textbox (e.g., `60f32bf2cb1f429992c27e4520712524`)
+- **API Key**: visible textbox (e.g., `<REDACTED_API_KEY>`)
 
 To see advanced settings, click "Show Advanced":
 
@@ -148,7 +148,7 @@ The "Add Indexer" UI is a searchable modal. agent-browser had difficulty clickin
 ```bash
 # List available indexer schemas
 curl -s http://localhost:9696/api/v1/indexer/schema \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" | python3 -c "
+  -H "X-Api-Key: <REDACTED_API_KEY>" | python3 -c "
 import json,sys
 for item in json.load(sys.stdin):
     print(item['implementationName'], '|', item['definitionName'], '|', item['protocol'], '|', item['privacy'])
@@ -156,7 +156,7 @@ for item in json.load(sys.stdin):
 
 # Create a public Cardigann indexer (e.g., 1337x)
 curl -s -X POST http://localhost:9696/api/v1/indexer \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" \
+  -H "X-Api-Key: <REDACTED_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "1337x",
@@ -175,7 +175,7 @@ curl -s -X POST http://localhost:9696/api/v1/indexer \
 
 # Verify indexer was created
 curl -s http://localhost:9696/api/v1/indexer \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" | python3 -m json.tool
+  -H "X-Api-Key: <REDACTED_API_KEY>" | python3 -m json.tool
 ```
 
 ### Via Browser (agent-browser)
@@ -213,7 +213,7 @@ agent-browser --session "$SESSION" --args "--no-sandbox" click @e13
 ```bash
 # Add Sonarr
 curl -s -X POST http://localhost:9696/api/v1/applications \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" \
+  -H "X-Api-Key: <REDACTED_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Sonarr",
@@ -224,13 +224,13 @@ curl -s -X POST http://localhost:9696/api/v1/applications \
     "fields": [
       {"name": "prowlarrUrl", "value": "http://prowlarr:9696"},
       {"name": "baseUrl", "value": "http://sonarr:8989"},
-      {"name": "apiKey", "value": "be664b980ad8498cae386c62bee0aacb"}
+      {"name": "apiKey", "value": "<REDACTED_API_KEY>"}
     ]
   }'
 
 # Add Radarr
 curl -s -X POST http://localhost:9696/api/v1/applications \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" \
+  -H "X-Api-Key: <REDACTED_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Radarr",
@@ -241,23 +241,23 @@ curl -s -X POST http://localhost:9696/api/v1/applications \
     "fields": [
       {"name": "prowlarrUrl", "value": "http://prowlarr:9696"},
       {"name": "baseUrl", "value": "http://radarr:7878"},
-      {"name": "apiKey", "value": "994dad0b2e89403ca708279a03a05159"}
+      {"name": "apiKey", "value": "<REDACTED_API_KEY>"}
     ]
   }'
 
 # Test each app
 curl -s -X POST http://localhost:9696/api/v1/applications/test/1 \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524"
+  -H "X-Api-Key: <REDACTED_API_KEY>"
 curl -s -X POST http://localhost:9696/api/v1/applications/test/2 \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524"
+  -H "X-Api-Key: <REDACTED_API_KEY>"
 
 # Trigger sync of all apps
 curl -s -X POST http://localhost:9696/api/v1/applications/sync/all \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524"
+  -H "X-Api-Key: <REDACTED_API_KEY>"
 
 # Verify configured apps
 curl -s http://localhost:9696/api/v1/applications \
-  -H "X-Api-Key: 60f32bf2cb1f429992c27e4520712524" | python3 -m json.tool
+  -H "X-Api-Key: <REDACTED_API_KEY>" | python3 -m json.tool
 ```
 
 ### Via Browser (agent-browser)
@@ -281,7 +281,7 @@ agent-browser --session "$SESSION" --args "--no-sandbox" snapshot -i
 # Fill in: Name, Server (http://sonarr:8989), API Key, Sync Level
 agent-browser --session "$SESSION" --args "--no-sandbox" fill @e... "Sonarr"
 agent-browser --session "$SESSION" --args "--no-sandbox" fill @e... "http://sonarr:8989"
-agent-browser --session "$SESSION" --args "--no-sandbox" fill @e... "be664b980ad8498cae386c62bee0aacb"
+agent-browser --session "$SESSION" --args "--no-sandbox" fill @e... "<REDACTED_API_KEY>"
 
 # Test and Save
 agent-browser --session "$SESSION" --args "--no-sandbox" click @e...   # Test

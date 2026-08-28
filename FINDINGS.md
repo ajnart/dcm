@@ -72,7 +72,7 @@ Homarr (dashboard) --> all services via integrations
 
 **Auth method**: Forms (Login Page)
 
-**API Key**: `be664b980ad8498cae386c62bee0aacb`
+**API Key**: `<REDACTED_API_KEY>`
 
 **Forced auth flow**:
 1. Navigate to http://localhost:8989 — forced auth setup modal appears
@@ -100,7 +100,7 @@ Available env vars: `SONARR__AUTH_METHOD`, `SONARR__AUTH_REQUIRED`, `SONARR__API
 
 **Auth method**: Forms (Login Page)
 
-**API Key**: `994dad0b2e89403ca708279a03a05159`
+**API Key**: `<REDACTED_API_KEY>`
 
 **Forced auth flow**:
 1. Navigate to http://localhost:7878 — forced auth setup modal appears
@@ -128,7 +128,7 @@ Available env vars: `RADARR__AUTH_METHOD`, `RADARR__AUTH_REQUIRED`, `RADARR__API
 
 **Auth method**: Forms (Login Page)
 
-**API Key**: `60f32bf2cb1f429992c27e4520712524`
+**API Key**: `<REDACTED_API_KEY>`
 
 **Forced auth flow**:
 1. Navigate to http://localhost:9696 — forced auth setup modal appears
@@ -154,9 +154,9 @@ Homarr was configured with 5 service integrations via the Integrations managemen
 
 | Service     | Integration Type | URL (Docker)          | Auth Method            | Credentials / API Key                              |
 |-------------|------------------|-----------------------|------------------------|----------------------------------------------------|
-| Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `be664b980ad8498cae386c62bee0aacb`                 |
-| Radarr      | Radarr           | http://radarr:7878    | API Key                | `994dad0b2e89403ca708279a03a05159`                 |
-| Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `60f32bf2cb1f429992c27e4520712524`                 |
+| Sonarr      | Sonarr           | http://sonarr:8989    | API Key                | `<REDACTED_API_KEY>`                 |
+| Radarr      | Radarr           | http://radarr:7878    | API Key                | `<REDACTED_API_KEY>`                 |
+| Prowlarr    | Prowlarr         | http://prowlarr:9696  | API Key                | `<REDACTED_API_KEY>`                 |
 | qBittorrent | qBittorrent      | http://qbittorrent:8088| Username & Password    | `admin` / `Password1!`                            |
 | Jellyfin    | Jellyfin         | http://jellyfin:8096  | Username & Password    | `admin` / `Password1!`                            |
 
@@ -236,8 +236,8 @@ Prowlarr was configured with indexer management and app sync via its API (browse
 
 | App    | Docker URL              | API Key                                 | Sync Level |
 |--------|------------------------|-----------------------------------------|------------|
-| Sonarr | http://sonarr:8989      | be664b980ad8498cae386c62bee0aacb        | Full Sync  |
-| Radarr | http://radarr:7878      | 994dad0b2e89403ca708279a03a05159        | Full Sync  |
+| Sonarr | http://sonarr:8989      | <REDACTED_API_KEY>        | Full Sync  |
+| Radarr | http://radarr:7878      | <REDACTED_API_KEY>        | Full Sync  |
 
 - Both apps were created via `POST /api/v1/applications` with `syncLevel: fullSync`
 - Prowlarr communicates over the Docker internal network using container names
