@@ -18,3 +18,11 @@ Fitness is ordered by:
 Generation reports record both failures and the promoted path. Prompt modules
 are independently replaceable so one service can evolve without rewriting the
 controller.
+
+The current sequence is:
+
+1. Generation 1 established the manual baseline and failure vocabulary.
+2. Generation 2 promoted deterministic core configuration.
+3. Generation 3 added read-only Homarr API and MCP verification.
+4. Generation 4 packaged the survivor as composable skills and verified the
+   private installer plus the live dashboard UI.
