@@ -152,13 +152,13 @@
   {
     "id": "readarr", "name": "Readarr", "aliases": ["book automation"], "categories": ["requests", "media"], "roles": ["book-automation"],
     "upstream": {"url": "https://github.com/Readarr/Readarr", "repository": "https://github.com/Readarr/Readarr", "docs": null}, "image": {"reference": null, "source": "unknown", "status": "unknown"},
-    "lifecycle": {"status": "retired", "checkedAt": "2026-08-28", "note": "The upstream repository is archived; keep only for migration routing."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Readarr (legacy)"},
+    "lifecycle": {"status": "retired", "checkedAt": "2026-08-28", "note": "The upstream repository is archived; keep only for migration routing."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Readarr"},
     "dependencies": [], "alternatives": ["bookstack", "jellyfin"], "security": ["Preserve existing data before migrating away from an archived service."], "pitfalls": ["Do not propose Readarr for a new installation."], "sources": ["https://github.com/Readarr/Readarr"]
   },
   {
-    "id": "jellyseerr", "name": "Jellyseerr", "aliases": ["legacy jellyfin requests", "overseerr"], "categories": ["requests", "media"], "roles": ["legacy-media-request"],
+    "id": "jellyseerr", "name": "Jellyseerr", "aliases": ["legacy jellyfin requests", "jellyseerr migration"], "categories": ["requests", "media"], "roles": ["legacy-media-request"],
     "upstream": {"url": "https://github.com/Fallenbagel/jellyseerr", "repository": "https://github.com/Fallenbagel/jellyseerr", "docs": "https://docs.seerr.dev/migration-guide/"}, "image": {"reference": null, "source": "unknown", "status": "unknown"},
-    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "The Jellyseerr and Overseerr projects merged into Seerr."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Jellyseerr (legacy)"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "The Jellyseerr and Overseerr projects merged into Seerr."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Jellyseerr"},
     "dependencies": [], "alternatives": ["seerr"], "security": ["Back up configuration before following the current Seerr migration path."], "pitfalls": ["Use Seerr for new installations; retain this record only for migration."], "sources": ["https://docs.seerr.dev/blog/seerr-release/", "https://docs.seerr.dev/migration-guide/"]
   }
 ]

@@ -15,6 +15,7 @@ const LIFECYCLES = new Set(["active", "transitioning", "verify", "retired"]);
 const IMAGE_SOURCES = new Set(["upstream", "vendor", "community", "unknown", "not-applicable"]);
 const IMAGE_STATUSES = new Set(["known", "verify", "unknown", "not-applicable"]);
 const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"]);
+const HOMARR_EXCLUDED_VALUES = new Set(["mock", "searchch", "releaseprovider"]);
 const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
 const SECRET_FIELD_PATTERN = /(^|[._-])(password|passwd|secret|token|credential|credentials|api[-_]?key|auth[-_]?key|private[-_]?key|cookie|session|encryption[-_]?key)($|[._-])/i;
 const SECRET_VALUE_PATTERNS = [
@@ -28,6 +29,8 @@ const SECRET_VALUE_PATTERNS = [
 const APP_KEYS = ["aliases", "alternatives", "categories", "dependencies", "homarr", "id", "image", "lifecycle", "name", "pitfalls", "roles", "security", "sources", "support", "upstream"];
 const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates", "id", "name", "requiredSkills", "roles", "summary"];
 const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "reason", "required"];
+const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
+const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
 
 function normalize(value) {
   return String(value)
@@ -36,6 +39,10 @@ function normalize(value) {
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+}
+
+function compact(value) {
+  return normalize(value).replaceAll(" ", "");
 }
 
 function isPlainObject(value) {
@@ -110,9 +117,10 @@ async function loadRecordDirectory(path) {
 export async function loadCatalog() {
   const taxonomy = await readJson(join(CATALOG_DIRECTORY, "taxonomy.json"));
   const affiliates = await readJson(join(CATALOG_DIRECTORY, "affiliates.json"));
+  const homarrIntegrations = await readJson(join(CATALOG_DIRECTORY, "homarr-integrations.json"));
   const apps = await loadRecordDirectory(join(CATALOG_DIRECTORY, "apps"));
   const stacks = await loadRecordDirectory(join(CATALOG_DIRECTORY, "stacks"));
-  return { taxonomy, affiliates, apps, stacks };
+  return { taxonomy, affiliates, homarrIntegrations, apps, stacks };
 }
 
 function addError(errors, condition, message) {
@@ -358,18 +366,111 @@ function validateAffiliates(affiliates, errors) {
   }
 }
 
+function validateHomarrSurfaceList(surfaces, kind, expectedCount, errors) {
+  const prefix = `Homarr ${kind}`;
+  addError(errors, Array.isArray(surfaces), `${prefix}: surfaces must be an array`);
+  if (!Array.isArray(surfaces)) {
+    return [];
+  }
+  addError(errors, surfaces.length === expectedCount, `${prefix}: expected ${expectedCount} surfaces, found ${surfaces.length}`);
+  for (const surface of surfaces) {
+    const label = isPlainObject(surface) && isNonEmptyString(surface.identifier) ? surface.identifier : "<unknown>";
+    addError(errors, isPlainObject(surface), `${prefix} ${label}: surface must be an object`);
+    if (!isPlainObject(surface)) {
+      continue;
+    }
+    addError(errors, hasExactKeys(surface, HOMARR_SURFACE_KEYS), `${prefix} ${label}: contains missing or unsupported fields`);
+    addError(errors, /^[A-Za-z][A-Za-z0-9]*$/.test(surface.identifier || ""), `${prefix} ${label}: invalid identifier`);
+    addError(errors, isNonEmptyString(surface.displayName), `${prefix} ${label}: displayName is required`);
+    const excludedIdentifier = HOMARR_EXCLUDED_VALUES.has(compact(surface.identifier || ""));
+    const excludedDisplay = HOMARR_EXCLUDED_VALUES.has(compact(surface.displayName || ""));
+    addError(errors, !excludedIdentifier && !excludedDisplay, `${prefix} ${label}: excluded integration values are not permitted`);
+  }
+  return surfaces;
+}
+
+function validateHomarrRegistry(registry, appRecords, errors) {
+  addError(errors, isPlainObject(registry), "Homarr registry: must be an object");
+  if (!isPlainObject(registry)) {
+    return { standard: 0, special: 0, standardCovered: 0, specialCovered: 0, gaps: 0 };
+  }
+  addError(errors, hasExactKeys(registry, HOMARR_REGISTRY_KEYS), "Homarr registry: contains missing or unsupported fields");
+  addError(errors, registry.schemaVersion === 1, "Homarr registry: schemaVersion must be 1");
+  addError(errors, DATE_PATTERN.test(registry.checkedAt || ""), "Homarr registry: checkedAt must be a date");
+  addError(errors, isStringArray(registry.officialSources, 2), "Homarr registry: at least two official sources are required");
+  if (Array.isArray(registry.officialSources)) {
+    for (const source of registry.officialSources) {
+      addError(errors, isHttpsUrl(source), "Homarr registry: official sources must use HTTPS");
+    }
+    for (const duplicate of duplicateValues(registry.officialSources)) {
+      errors.push(`Homarr registry: duplicate official source ${duplicate}`);
+    }
+  }
+
+  const standard = validateHomarrSurfaceList(registry.standard, "standard", 54, errors);
+  const special = validateHomarrSurfaceList(registry.special, "special", 2, errors);
+  const surfaces = [...standard, ...special].filter(isPlainObject);
+  for (const duplicate of duplicateValues(surfaces.map((surface) => surface.identifier))) {
+    errors.push(`Homarr registry: duplicate identifier ${duplicate}`);
+  }
+  for (const duplicate of duplicateValues(surfaces.map((surface) => surface.displayName))) {
+    errors.push(`Homarr registry: duplicate display name ${duplicate}`);
+  }
+
+  const expectedSpecial = new Map([
+    ["docker", "Docker"],
+    ["kubernetes", "Kubernetes"]
+  ]);
+  for (const [identifier, displayName] of expectedSpecial) {
+    const matches = special.filter((surface) => surface.identifier === identifier && surface.displayName === displayName);
+    addError(errors, matches.length === 1, `Homarr special: required surface ${identifier} -> ${displayName} is missing or duplicated`);
+  }
+  for (const surface of special) {
+    const expectedDisplay = expectedSpecial.get(surface.identifier);
+    addError(errors, expectedDisplay === surface.displayName, `Homarr special ${surface.identifier || "<unknown>"}: unsupported special surface`);
+  }
+
+  for (const app of appRecords) {
+    const values = [app.id, app.name, app.homarr && app.homarr.integration];
+    const hasExcludedValue = values.some((value) => isNonEmptyString(value) && HOMARR_EXCLUDED_VALUES.has(compact(value)));
+    addError(errors, !hasExcludedValue, `app ${app.id || "<unknown>"}: excluded Homarr values are not permitted`);
+  }
+
+  const supportedApps = appRecords.filter((app) => isPlainObject(app.homarr) && app.homarr.support === "supported");
+  for (const duplicate of duplicateValues(supportedApps.map((app) => app.homarr.integration))) {
+    errors.push(`Homarr catalog: duplicate supported integration ${duplicate}`);
+  }
+  for (const app of supportedApps) {
+    const matches = surfaces.filter((surface) => surface.displayName === app.homarr.integration);
+    addError(errors, matches.length === 1, `app ${app.id}: supported Homarr integration must map to exactly one registry surface`);
+  }
+  for (const surface of surfaces) {
+    const matches = supportedApps.filter((app) => app.homarr.integration === surface.displayName);
+    addError(errors, matches.length === 1, `Homarr ${surface.identifier}: registry surface must map to exactly one supported app`);
+  }
+
+  const covered = (surfaceList) => surfaceList.filter((surface) => supportedApps.filter((app) => app.homarr.integration === surface.displayName).length === 1).length;
+  return {
+    standard: standard.length,
+    special: special.length,
+    standardCovered: covered(standard),
+    specialCovered: covered(special),
+    gaps: appRecords.filter((app) => isPlainObject(app.homarr) && app.homarr.support === "gap").length
+  };
+}
+
 export function validateCatalog(catalog) {
   const errors = [];
   const warnings = [];
   if (!isPlainObject(catalog)) {
     return {
       valid: false,
-      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0 },
+      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0, homarrStandard: 0, homarrSpecial: 0, homarrStandardCovered: 0, homarrSpecialCovered: 0, homarrGaps: 0 },
       errors: ["catalog: root must be an object"],
       warnings
     };
   }
-  addError(errors, hasExactKeys(catalog, ["affiliates", "apps", "stacks", "taxonomy"]), "catalog: contains missing or unsupported root fields");
+  addError(errors, hasExactKeys(catalog, ["affiliates", "apps", "homarrIntegrations", "stacks", "taxonomy"]), "catalog: contains missing or unsupported root fields");
   addError(errors, isPlainObject(catalog.taxonomy), "taxonomy: must be an object");
   const categories = new Set();
   if (isPlainObject(catalog.taxonomy)) {
@@ -466,10 +567,12 @@ export function validateCatalog(catalog) {
   }
 
   validateAffiliates(catalog.affiliates, errors);
+  const homarrCoverageCounts = validateHomarrRegistry(catalog.homarrIntegrations, appRecords, errors);
   scanForSecretLikeData(catalog.taxonomy, "taxonomy", errors);
   scanForSecretLikeData(catalog.apps, "apps", errors);
   scanForSecretLikeData(catalog.stacks, "stacks", errors);
   scanForSecretLikeData(catalog.affiliates, "affiliates", errors);
+  scanForSecretLikeData(catalog.homarrIntegrations, "homarrIntegrations", errors);
 
   const homarr = appRecords.find((app) => app.id === "homarr");
   addError(errors, Boolean(homarr), "apps: Homarr record is required");
@@ -491,7 +594,12 @@ export function validateCatalog(catalog) {
       apps: appRecords.length,
       stacks: stackRecords.length,
       categories: categories.size,
-      affiliates: isPlainObject(catalog.affiliates) && Array.isArray(catalog.affiliates.entries) ? catalog.affiliates.entries.length : 0
+      affiliates: isPlainObject(catalog.affiliates) && Array.isArray(catalog.affiliates.entries) ? catalog.affiliates.entries.length : 0,
+      homarrStandard: homarrCoverageCounts.standard,
+      homarrSpecial: homarrCoverageCounts.special,
+      homarrStandardCovered: homarrCoverageCounts.standardCovered,
+      homarrSpecialCovered: homarrCoverageCounts.specialCovered,
+      homarrGaps: homarrCoverageCounts.gaps
     },
     errors,
     warnings
@@ -511,6 +619,84 @@ export function listApps(catalog, filters = {}) {
   }
   apps.sort((left, right) => left.id.localeCompare(right.id));
   return apps;
+}
+
+export function homarrCoverage(catalog, status = null) {
+  const registry = catalog.homarrIntegrations;
+  const supportedApps = new Map();
+  for (const app of catalog.apps) {
+    if (app.homarr.support === "supported") {
+      supportedApps.set(app.homarr.integration, app);
+    }
+  }
+
+  const supported = [];
+  for (const surface of registry.standard) {
+    const app = supportedApps.get(surface.displayName);
+    supported.push({
+      status: "supported",
+      surface: "standard",
+      identifier: surface.identifier,
+      displayName: surface.displayName,
+      appId: app.id,
+      appName: app.name,
+      lifecycle: app.lifecycle.status,
+      automation: app.support.automation
+    });
+  }
+  for (const surface of registry.special) {
+    const app = supportedApps.get(surface.displayName);
+    supported.push({
+      status: "supported",
+      surface: "special",
+      identifier: surface.identifier,
+      displayName: surface.displayName,
+      appId: app.id,
+      appName: app.name,
+      lifecycle: app.lifecycle.status,
+      automation: app.support.automation
+    });
+  }
+  supported.sort((left, right) => {
+    if (left.surface !== right.surface) {
+      return left.surface === "standard" ? -1 : 1;
+    }
+    return left.identifier.localeCompare(right.identifier);
+  });
+
+  const gaps = catalog.apps
+    .filter((app) => app.homarr.support === "gap")
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((app) => ({
+      status: "gap",
+      surface: null,
+      identifier: null,
+      displayName: null,
+      appId: app.id,
+      appName: app.name,
+      lifecycle: app.lifecycle.status,
+      automation: app.support.automation
+    }));
+
+  let entries = [...supported, ...gaps];
+  if (status === "supported") {
+    entries = supported;
+  }
+  if (status === "gap") {
+    entries = gaps;
+  }
+  const standardCovered = registry.standard.filter((surface) => supportedApps.has(surface.displayName)).length;
+  const specialCovered = registry.special.filter((surface) => supportedApps.has(surface.displayName)).length;
+  return {
+    checkedAt: registry.checkedAt,
+    officialSources: [...registry.officialSources],
+    counts: {
+      standard: { covered: standardCovered, total: registry.standard.length },
+      special: { covered: specialCovered, total: registry.special.length },
+      gaps: gaps.length
+    },
+    entries
+  };
 }
 
 function appSearchScore(app, query) {

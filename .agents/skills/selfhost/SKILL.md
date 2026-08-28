@@ -28,6 +28,7 @@ node scripts/selfhost.mjs catalog menu [--json]
 node scripts/selfhost.mjs catalog list [--category NAME] [--support LEVEL] [--tier T0] [--json]
 node scripts/selfhost.mjs catalog search <words...> [--json]
 node scripts/selfhost.mjs catalog show <app-id> [--json]
+node scripts/selfhost.mjs catalog homarr [--status supported|gap] [--json]
 node scripts/selfhost.mjs catalog validate [--json]
 
 node scripts/selfhost.mjs stack resolve <goal...> [--json]
@@ -51,6 +52,8 @@ Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private 
 - `retired`: migration routing only. Never select for a new deployment.
 
 T0/T1/T2 are curation priorities, independent of automation support. An upstream project and a container image are separate facts; `null` image data means it must be researched at apply time.
+
+Use `catalog homarr` to inspect the exact current Homarr identifier/display mapping and catalog coverage. `supported` includes the standard registry and Docker/Kubernetes special surfaces; `gap` lists catalog applications without a dedicated integration. Homarr support does not override upstream lifecycle or make a retired project selectable for a new deployment.
 
 ## Enforce the plan boundary
 

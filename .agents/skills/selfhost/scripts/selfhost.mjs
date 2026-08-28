@@ -4,6 +4,7 @@ import {
   buildPlan,
   catalogMenu,
   findApp,
+  homarrCoverage,
   listApps,
   loadCatalog,
   resolveStack,
@@ -35,6 +36,7 @@ Catalog:
   catalog list [--category NAME] [--support LEVEL] [--tier T0|T1|T2] [--json]
   catalog search <words...> [--json]
   catalog show <app-id> [--json]
+  catalog homarr [--status supported|gap] [--json]
   catalog validate [--json]
 
 Stacks:
@@ -61,7 +63,7 @@ function parseArguments(input) {
       flags.json = true;
       continue;
     }
-    const supported = new Set(["--path", "--preferences", "--category", "--support", "--tier", "--select"]);
+    const supported = new Set(["--path", "--preferences", "--category", "--support", "--status", "--tier", "--select"]);
     if (!supported.has(value)) {
       throw new Error("Unknown option. Run --help for supported flags.");
     }
@@ -152,6 +154,19 @@ function printApp(app) {
   }
 }
 
+function printHomarrCoverage(coverage) {
+  const standard = coverage.counts.standard;
+  const special = coverage.counts.special;
+  process.stdout.write(`Homarr coverage (checked ${coverage.checkedAt}): ${standard.covered}/${standard.total} standard, ${special.covered}/${special.total} special, ${coverage.counts.gaps} gaps.\n`);
+  for (const entry of coverage.entries) {
+    if (entry.status === "supported") {
+      process.stdout.write(`  supported ${entry.surface.padEnd(8)} ${entry.identifier.padEnd(20)} ${entry.displayName} [${entry.appId}; ${entry.lifecycle}/${entry.automation}]\n`);
+      continue;
+    }
+    process.stdout.write(`  gap       ${entry.appId.padEnd(23)} ${entry.appName} [${entry.lifecycle}/${entry.automation}]\n`);
+  }
+}
+
 function printResolution(result) {
   if (!result.resolved) {
     if (result.ambiguous) {
@@ -217,6 +232,7 @@ async function handleCatalog(action, args) {
     }
     const counts = loaded.validation.counts;
     process.stdout.write(`Catalog valid: ${counts.apps} apps, ${counts.stacks} stacks, ${counts.categories} categories, ${counts.affiliates} affiliates.\n`);
+    process.stdout.write(`Homarr coverage: ${counts.homarrStandardCovered}/${counts.homarrStandard} standard, ${counts.homarrSpecialCovered}/${counts.homarrSpecial} special, ${counts.homarrGaps} gaps.\n`);
     for (const warning of loaded.validation.warnings) {
       process.stdout.write(`Warning: ${warning}\n`);
     }
@@ -279,6 +295,21 @@ async function handleCatalog(action, args) {
       return;
     }
     printApp(app);
+    return;
+  }
+  if (action === "homarr") {
+    if (parsed.positional.length > 0) {
+      throw new Error("catalog homarr does not accept positional arguments.");
+    }
+    if (parsed.flags.status && !["supported", "gap"].includes(parsed.flags.status)) {
+      throw new Error("Homarr status must be supported or gap.");
+    }
+    const coverage = homarrCoverage(loaded.catalog, parsed.flags.status || null);
+    if (parsed.flags.json) {
+      printJson(coverage);
+      return;
+    }
+    printHomarrCoverage(coverage);
     return;
   }
   throw new Error("Unknown catalog action.");
