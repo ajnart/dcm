@@ -1,0 +1,6 @@
+interface:
+  display_name: "Self-host VPN"
+  short_description: "Plan downloader-only VPN isolation safely"
+  default_prompt: "Use $selfhost-vpn to plan downloader-only VPN isolation and its kill-switch evidence."
+policy:
+  allow_implicit_invocation: true
