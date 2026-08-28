@@ -1,0 +1,122 @@
+[
+  {
+    "id": "pihole", "name": "Pi-hole", "aliases": ["pi hole", "network ad blocker"], "categories": ["dns"], "roles": ["dns-filter"],
+    "upstream": {"url": "https://pi-hole.net/", "repository": "https://github.com/pi-hole/pi-hole", "docs": "https://docs.pi-hole.net/docker/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Pi-hole v6 changed configuration behavior; legacy v5 snippets need migration."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Pi-hole"},
+    "dependencies": ["capability:lan-dns"], "alternatives": ["adguard-home", "technitium-dns"], "security": ["Keep administration private and confirm DNS/DHCP ownership."], "pitfalls": ["Port 53 and system resolver conflicts can disrupt the entire LAN."], "sources": ["https://docs.pi-hole.net/docker/", "https://docs.pi-hole.net/docker/upgrading/v5-v6/"]
+  },
+  {
+    "id": "adguard-home", "name": "AdGuard Home", "aliases": ["adguard dns", "dns ad blocker"], "categories": ["dns"], "roles": ["dns-filter"],
+    "upstream": {"url": "https://adguard.com/adguard-home/overview.html", "repository": "https://github.com/AdguardTeam/AdGuardHome", "docs": "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active DNS filtering service with optional DHCP ownership."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "AdGuard Home"},
+    "dependencies": ["capability:lan-dns"], "alternatives": ["pihole", "technitium-dns"], "security": ["Limit administration to trusted networks and define fallback DNS."], "pitfalls": ["DNS, DHCP, and bootstrap ports can conflict with host services."], "sources": ["https://github.com/AdguardTeam/AdGuardHome/wiki/Docker"]
+  },
+  {
+    "id": "technitium-dns", "name": "Technitium DNS Server", "aliases": ["technitium", "authoritative dns"], "categories": ["dns"], "roles": ["dns-server", "dns-filter"],
+    "upstream": {"url": "https://technitium.com/dns/", "repository": "https://github.com/TechnitiumSoftware/DnsServer", "docs": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Broader authoritative and recursive DNS feature set than a simple filter."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Technitium DNS"},
+    "dependencies": ["capability:lan-dns"], "alternatives": ["pihole", "adguard-home"], "security": ["Separate public authoritative service from private recursion and administration."], "pitfalls": ["A broad DNS feature set increases configuration and recovery scope."], "sources": ["https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml"]
+  },
+  {
+    "id": "unbound", "name": "Unbound", "aliases": ["recursive dns resolver"], "categories": ["dns"], "roles": ["recursive-resolver"],
+    "upstream": {"url": "https://nlnetlabs.nl/projects/unbound/about/", "repository": "https://github.com/NLnetLabs/unbound", "docs": "https://unbound.docs.nlnetlabs.nl/"}, "image": {"reference": null, "source": "unknown", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Headless DNS component; packaging must be selected for the target host."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:lan-dns"], "alternatives": ["technitium-dns", "pihole"], "security": ["Restrict recursion to intended clients and keep controls private."], "pitfalls": ["An open recursive resolver creates abuse and availability risk."], "sources": ["https://unbound.docs.nlnetlabs.nl/"]
+  },
+  {
+    "id": "opnsense", "name": "OPNsense", "aliases": ["router firewall", "network firewall"], "categories": ["firewall", "dns"], "roles": ["network-appliance", "firewall"],
+    "upstream": {"url": "https://opnsense.org/", "repository": "https://github.com/opnsense/core", "docs": "https://docs.opnsense.org/"}, "image": {"reference": null, "source": "not-applicable", "status": "not-applicable"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Treat as an appliance or host boundary, not an ordinary Compose app."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "OPNsense"},
+    "dependencies": ["capability:network-appliance"], "alternatives": ["pihole", "adguard-home"], "security": ["Changes affect routing and perimeter security; require console recovery."], "pitfalls": ["Deploying a firewall inside the workload host can create circular failure paths."], "sources": ["https://docs.opnsense.org/"]
+  },
+  {
+    "id": "caddy", "name": "Caddy", "aliases": ["automatic https", "reverse proxy"], "categories": ["ingress"], "roles": ["reverse-proxy", "tls-owner"],
+    "upstream": {"url": "https://caddyserver.com/", "repository": "https://github.com/caddyserver/caddy", "docs": "https://caddyserver.com/docs/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Automatic HTTPS requires deliberate DNS, port, and certificate-state ownership."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:dns", "capability:certificate-storage"], "alternatives": ["traefik", "nginx-proxy-manager"], "security": ["Make Caddy the sole approved owner of selected ingress ports."], "pitfalls": ["ACME challenge modes have different port and DNS-secret requirements."], "sources": ["https://caddyserver.com/docs/automatic-https", "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy"]
+  },
+  {
+    "id": "traefik", "name": "Traefik", "aliases": ["docker reverse proxy", "label proxy"], "categories": ["ingress"], "roles": ["reverse-proxy", "tls-owner"],
+    "upstream": {"url": "https://traefik.io/", "repository": "https://github.com/traefik/traefik", "docs": "https://doc.traefik.io/traefik/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Docker-provider discovery is useful but expands control-plane risk."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Traefik"},
+    "dependencies": ["capability:dns", "capability:docker-api-boundary"], "alternatives": ["caddy", "nginx-proxy-manager"], "security": ["Protect the Docker API and authenticate the dashboard."], "pitfalls": ["The insecure dashboard mode is only suitable for an isolated lab."], "sources": ["https://doc.traefik.io/traefik/getting-started/quick-start/", "https://doc.traefik.io/traefik/providers/docker/"]
+  },
+  {
+    "id": "nginx-proxy-manager", "name": "Nginx Proxy Manager", "aliases": ["npm proxy", "gui reverse proxy"], "categories": ["ingress"], "roles": ["reverse-proxy", "tls-owner"],
+    "upstream": {"url": "https://nginxproxymanager.com/", "repository": "https://github.com/NginxProxyManager/nginx-proxy-manager", "docs": "https://nginxproxymanager.com/guide/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "GUI-owned proxy whose database and certificate state require backup."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:dns", "capability:certificate-storage"], "alternatives": ["caddy", "traefik"], "security": ["Keep the admin interface private and protect certificate data."], "pitfalls": ["GUI state can diverge from generated project configuration."], "sources": ["https://github.com/NginxProxyManager/nginx-proxy-manager"]
+  },
+  {
+    "id": "tailscale", "name": "Tailscale", "aliases": ["tailnet", "private phone access", "mesh vpn"], "categories": ["remote-access"], "roles": ["private-overlay", "private-ingress"],
+    "upstream": {"url": "https://tailscale.com/", "repository": "https://github.com/tailscale/tailscale", "docs": "https://tailscale.com/docs/"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Open-source clients use a hosted commercial control plane by default."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:identity", "capability:persistent-node-state"], "alternatives": ["headscale", "netbird", "wireguard"], "security": ["Use secret references for enrollment keys and review ACLs before routing services."], "pitfalls": ["Serve is private while Funnel is public; they are different approval classes."], "sources": ["https://tailscale.com/docs/features/containers/docker/how-to/connect-docker-container", "https://tailscale.com/docs/reference/tailscale-cli/serve"]
+  },
+  {
+    "id": "headscale", "name": "Headscale", "aliases": ["self hosted tailscale control", "tailnet control server"], "categories": ["remote-access"], "roles": ["mesh-control-plane"],
+    "upstream": {"url": "https://headscale.net/", "repository": "https://github.com/juanfont/headscale", "docs": "https://headscale.net/stable/setup/install/container/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Self-hosted control plane requires its own durable and reachable ingress."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:tls-ingress", "capability:control-plane-backup"], "alternatives": ["tailscale", "netbird"], "security": ["Protect registration keys, administration, and control-plane state."], "pitfalls": ["Control-plane failure can block enrollment and make recovery circular."], "sources": ["https://headscale.net/stable/setup/install/container/", "https://headscale.net/latest/ref/routes/"]
+  },
+  {
+    "id": "cloudflare-tunnel", "name": "Cloudflare Tunnel", "aliases": ["cf tunnel", "cloudflare remote access", "no port forwarding"], "categories": ["remote-access", "ingress"], "roles": ["outbound-public-tunnel"],
+    "upstream": {"url": "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/", "repository": "https://github.com/cloudflare/cloudflared", "docs": "https://developers.cloudflare.com/tunnel/"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Hosted edge and outbound connector; provider terms and access policy apply."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:cloudflare-account", "capability:application-auth"], "alternatives": ["pangolin", "tailscale"], "security": ["Keep tunnel tokens secret and add identity-aware access for public hostnames."], "pitfalls": ["A tunnel does not itself authenticate the application or suit every media workload."], "sources": ["https://developers.cloudflare.com/tunnel/", "https://developers.cloudflare.com/tunnel/configuration/"]
+  },
+  {
+    "id": "pangolin", "name": "Pangolin", "aliases": ["self hosted tunnel", "newt tunnel"], "categories": ["remote-access", "ingress"], "roles": ["identity-aware-ingress", "outbound-tunnel"],
+    "upstream": {"url": "https://pangolin.net/", "repository": "https://github.com/fosrl/pangolin", "docs": "https://docs.pangolin.net/"}, "image": {"reference": null, "source": "upstream", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Self-host path has public-host prerequisites; Newt connects private resources outbound."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:public-vps", "capability:dns"], "alternatives": ["cloudflare-tunnel", "tailscale"], "security": ["Confirm public port ownership, identity policy, and connector secrets."], "pitfalls": ["The full server is not a drop-in answer for a CGNAT-only home host."], "sources": ["https://docs.pangolin.net/self-host/quick-install", "https://docs.pangolin.net/about/how-pangolin-works"]
+  },
+  {
+    "id": "wireguard", "name": "WireGuard", "aliases": ["site vpn", "private vpn"], "categories": ["remote-access"], "roles": ["vpn-tunnel"],
+    "upstream": {"url": "https://www.wireguard.com/", "repository": "https://git.zx2c4.com/wireguard-linux", "docs": "https://www.wireguard.com/quickstart/"}, "image": {"reference": null, "source": "not-applicable", "status": "not-applicable"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Protocol/tooling; packaging and control plane depend on the host."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:key-management", "capability:routing"], "alternatives": ["tailscale", "netbird"], "security": ["Keep private keys out of files and reports; approve routes explicitly."], "pitfalls": ["AllowedIPs changes routing behavior and can unintentionally capture traffic."], "sources": ["https://www.wireguard.com/quickstart/"]
+  },
+  {
+    "id": "netbird", "name": "NetBird", "aliases": ["self hosted mesh vpn"], "categories": ["remote-access"], "roles": ["private-overlay", "mesh-control-plane"],
+    "upstream": {"url": "https://netbird.io/", "repository": "https://github.com/netbirdio/netbird", "docs": "https://docs.netbird.io/selfhosted/selfhosted-guide"}, "image": {"reference": null, "source": "upstream", "status": "unknown"},
+    "lifecycle": {"status": "verify", "checkedAt": "2026-08-28", "note": "Candidate needs current component and identity-provider review."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:identity", "capability:tls-ingress"], "alternatives": ["tailscale", "headscale"], "security": ["Protect management, enrollment, and identity-provider credentials."], "pitfalls": ["Self-hosting the control plane adds several availability dependencies."], "sources": ["https://docs.netbird.io/selfhosted/selfhosted-guide"]
+  },
+  {
+    "id": "authentik", "name": "Authentik", "aliases": ["single sign on", "identity provider"], "categories": ["identity"], "roles": ["identity-provider", "sso"],
+    "upstream": {"url": "https://goauthentik.io/", "repository": "https://github.com/goauthentik/authentik", "docs": "https://docs.goauthentik.io/install-config/install/docker-compose/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "MIT core with separately licensed enterprise features."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["postgresql", "valkey", "capability:tls-ingress"], "alternatives": ["authelia", "keycloak"], "security": ["Keep a tested break-glass administrator and protect signing material."], "pitfalls": ["A failed IdP change can lock users out of every protected service."], "sources": ["https://docs.goauthentik.io/install-config/install/docker-compose/", "https://docs.goauthentik.io/core/architecture"]
+  },
+  {
+    "id": "authelia", "name": "Authelia", "aliases": ["forward auth", "authentication gateway"], "categories": ["identity", "ingress"], "roles": ["authentication-gateway"],
+    "upstream": {"url": "https://www.authelia.com/", "repository": "https://github.com/authelia/authelia", "docs": "https://www.authelia.com/integration/deployment/docker/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Ingress-integrated authentication layer, not a universal app compatibility guarantee."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:reverse-proxy", "capability:identity-store"], "alternatives": ["authentik", "keycloak"], "security": ["Protect session, storage, and identity secrets and preserve a recovery route."], "pitfalls": ["Forward-auth headers and application trust boundaries need per-app testing."], "sources": ["https://www.authelia.com/integration/deployment/docker/"]
+  },
+  {
+    "id": "keycloak", "name": "Keycloak", "aliases": ["enterprise identity provider", "openid provider"], "categories": ["identity"], "roles": ["identity-provider", "sso"],
+    "upstream": {"url": "https://www.keycloak.org/", "repository": "https://github.com/keycloak/keycloak", "docs": "https://www.keycloak.org/getting-started/getting-started-docker"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Feature-rich identity server with production-specific configuration."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["postgresql", "capability:tls-ingress"], "alternatives": ["authentik", "authelia"], "security": ["Use production mode, TLS, protected admin access, and realm export/recovery."], "pitfalls": ["Development-mode quick starts are not production templates."], "sources": ["https://www.keycloak.org/getting-started/getting-started-docker"]
+  },
+  {
+    "id": "lldap", "name": "LLDAP", "aliases": ["lightweight ldap"], "categories": ["identity"], "roles": ["directory"],
+    "upstream": {"url": "https://github.com/lldap/lldap", "repository": "https://github.com/lldap/lldap", "docs": "https://github.com/lldap/lldap#with-docker"}, "image": {"reference": null, "source": "upstream", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Lightweight directory candidate; verify current app compatibility."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:directory-backup"], "alternatives": ["authentik", "keycloak"], "security": ["Protect directory credentials, administration, and backup exports."], "pitfalls": ["LDAP support does not imply OIDC or forward-auth support."], "sources": ["https://github.com/lldap/lldap"]
+  },
+  {
+    "id": "haproxy", "name": "HAProxy", "aliases": ["load balancer", "tcp proxy"], "categories": ["ingress"], "roles": ["reverse-proxy", "load-balancer"],
+    "upstream": {"url": "https://www.haproxy.org/", "repository": "https://github.com/haproxy/haproxy", "docs": "https://docs.haproxy.org/"}, "image": {"reference": null, "source": "upstream", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Powerful proxy; deployment facts remain host-specific."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:dns", "capability:certificate-storage"], "alternatives": ["caddy", "traefik"], "security": ["Protect statistics/admin endpoints and certificate material."], "pitfalls": ["Configuration reload and certificate lifecycle need explicit ownership."], "sources": ["https://docs.haproxy.org/"]
+  },
+  {
+    "id": "zerotier", "name": "ZeroTier", "aliases": ["virtual lan", "mesh network"], "categories": ["remote-access"], "roles": ["private-overlay"],
+    "upstream": {"url": "https://www.zerotier.com/", "repository": "https://github.com/zerotier/ZeroTierOne", "docs": "https://docs.zerotier.com/"}, "image": {"reference": null, "source": "vendor", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Hosted and self-managed controller options require current feature review."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:identity", "capability:routing"], "alternatives": ["tailscale", "netbird"], "security": ["Review network membership, routes, and controller ownership."], "pitfalls": ["Virtual LAN reachability can expose services beyond their host bind assumptions."], "sources": ["https://docs.zerotier.com/"]
+  }
+]

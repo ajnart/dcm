@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ajnart.dev/selfhost-skills/preferences.schema.json",
+  "title": "Selfhost non-secret preferences",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "updatedAt", "choices"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "choices": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "platform", "timezone", "locale", "project.name", "paths.stateRoot",
+          "paths.configRoot", "paths.dataRoot", "paths.mediaRoot", "paths.downloadsRoot",
+          "paths.backupRoot", "identity.uid", "identity.gid", "docker.network",
+          "host.alias", "ingress.mode", "ingress.owner", "ingress.domain",
+          "vpn.mode", "vpn.scope", "backup.cadence", "hardware.acceleration", "ui.theme"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "source", "updatedAt"],
+        "properties": {
+          "value": {"type": ["string", "number", "boolean", "array", "null"]},
+          "source": {"enum": ["chosen", "imported"]},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  }
+}

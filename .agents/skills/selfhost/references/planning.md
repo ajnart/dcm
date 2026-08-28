@@ -1,0 +1,26 @@
+# Planning contract
+
+## Plan shape
+
+A plan contains the resolved goal, selected roles, non-selected alternatives, required sibling skills, approval gates, acceptance evidence, unresolved decisions, and the catalog check date. It may summarize non-secret preferences. It has no apply command or mutation authority.
+
+## Composition order
+
+1. Resolve one goal.
+2. Inspect the host with `selfhost-host`.
+3. Classify existing resources as `reuse`, `coexist`, or `conflict` after ownership and lifecycle are known.
+4. Select only necessary capabilities and applications.
+5. Present a redacted diff and collect the relevant approval.
+6. Apply through the owning capability or adapter.
+7. Verify application readiness plus selected edge, VPN, backup, or UI evidence.
+
+## Mandatory gates
+
+- `storage`: paths, filesystem constraints, free space, permissions, and backup class.
+- `exposure`: LAN, tailnet, tunnel, or public; one DNS/TLS/port owner and an authentication policy.
+- `privilege`: Docker socket, host networking, devices, capabilities, or root-equivalent access.
+- `vpn`: downloader-only scope and a failure-mode kill-switch test.
+- `migration`: restorable backup and rollback semantics before a schema-changing upgrade.
+- `destructive`: exact bounded target and recoverability before deletion or replacement.
+
+Return `blocked` or `conflict` when evidence is absent. Process liveness and HTTP 200 alone are not acceptance.

@@ -1,0 +1,825 @@
+import { createHash } from "node:crypto";
+import { readdir, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
+export const SKILL_DIRECTORY = dirname(SCRIPT_DIRECTORY);
+export const CATALOG_DIRECTORY = join(SKILL_DIRECTORY, "references", "catalog");
+
+const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const SUPPORT_LEVELS = new Set(["managed", "guided", "discovery", "retired"]);
+const TIERS = new Set(["T0", "T1", "T2"]);
+const LIFECYCLES = new Set(["active", "transitioning", "verify", "retired"]);
+const IMAGE_SOURCES = new Set(["upstream", "vendor", "community", "unknown", "not-applicable"]);
+const IMAGE_STATUSES = new Set(["known", "verify", "unknown", "not-applicable"]);
+const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"]);
+const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
+const SECRET_FIELD_PATTERN = /(^|[._-])(password|passwd|secret|token|credential|credentials|api[-_]?key|auth[-_]?key|private[-_]?key|cookie|session|encryption[-_]?key)($|[._-])/i;
+const SECRET_VALUE_PATTERNS = [
+  /-----BEGIN [A-Z ]*(PRIVATE KEY|SECRET)[A-Z ]*-----/i,
+  /(?:^|[?&\s])(password|passwd|secret|token|api[_-]?key|private[_-]?key)=\S+/i,
+  /^(gh[pousr]_|github_pat_|sk-[A-Za-z0-9]|tskey-|xox[baprs]-|AKIA[0-9A-Z]{12,}|eyJ[A-Za-z0-9_-]{20,}\.)/,
+  /^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/,
+  /^(?=.{40,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z0-9_+/=-]+$/
+];
+
+const APP_KEYS = ["aliases", "alternatives", "categories", "dependencies", "homarr", "id", "image", "lifecycle", "name", "pitfalls", "roles", "security", "sources", "support", "upstream"];
+const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates", "id", "name", "requiredSkills", "roles", "summary"];
+const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "reason", "required"];
+
+function normalize(value) {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isPlainObject(value) {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  return !Array.isArray(value);
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isStringArray(value, minimum = 0) {
+  if (!Array.isArray(value) || value.length < minimum) {
+    return false;
+  }
+  return value.every((entry) => isNonEmptyString(entry));
+}
+
+function isHttpUrl(value) {
+  if (!isNonEmptyString(value)) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function isHttpsUrl(value) {
+  if (!isNonEmptyString(value)) {
+    return false;
+  }
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+async function readJson(path) {
+  let raw;
+  try {
+    raw = await readFile(path, "utf8");
+  } catch (error) {
+    throw new Error(`Unable to read catalog file ${path}: ${error.code || "read error"}`);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`Catalog file is not valid JSON: ${path}`);
+  }
+}
+
+async function loadRecordDirectory(path) {
+  const names = await readdir(path);
+  const records = [];
+  const jsonNames = names.filter((name) => name.endsWith(".json")).sort();
+  for (const name of jsonNames) {
+    const value = await readJson(join(path, name));
+    if (!Array.isArray(value)) {
+      throw new Error(`Catalog record file must contain an array: ${name}`);
+    }
+    records.push(...value);
+  }
+  return records;
+}
+
+export async function loadCatalog() {
+  const taxonomy = await readJson(join(CATALOG_DIRECTORY, "taxonomy.json"));
+  const affiliates = await readJson(join(CATALOG_DIRECTORY, "affiliates.json"));
+  const apps = await loadRecordDirectory(join(CATALOG_DIRECTORY, "apps"));
+  const stacks = await loadRecordDirectory(join(CATALOG_DIRECTORY, "stacks"));
+  return { taxonomy, affiliates, apps, stacks };
+}
+
+function addError(errors, condition, message) {
+  if (!condition) {
+    errors.push(message);
+  }
+}
+
+function hasExactKeys(value, allowedKeys) {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...allowedKeys].sort();
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+function scanForSecretLikeData(value, path, errors) {
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      scanForSecretLikeData(value[index], `${path}[${index}]`, errors);
+    }
+    return;
+  }
+  if (isPlainObject(value)) {
+    for (const [key, child] of Object.entries(value)) {
+      if (SECRET_FIELD_PATTERN.test(key)) {
+        errors.push(`${path}: secret-like field names are not permitted`);
+      }
+      scanForSecretLikeData(child, `${path}.${key}`, errors);
+    }
+    return;
+  }
+  if (typeof value !== "string") {
+    return;
+  }
+  if (SECRET_VALUE_PATTERNS.some((pattern) => pattern.test(value.trim()))) {
+    errors.push(`${path}: secret-like values are not permitted`);
+  }
+}
+
+function duplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+    }
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
+
+function validateAppShape(app, categories, errors) {
+  const prefix = `app ${app && app.id ? app.id : "<unknown>"}`;
+  addError(errors, isPlainObject(app), `${prefix}: record must be an object`);
+  if (!isPlainObject(app)) {
+    return;
+  }
+  addError(errors, hasExactKeys(app, APP_KEYS), `${prefix}: contains missing or unsupported fields`);
+  addError(errors, ID_PATTERN.test(app.id || ""), `${prefix}: invalid id`);
+  addError(errors, isNonEmptyString(app.name), `${prefix}: name is required`);
+  addError(errors, isStringArray(app.aliases), `${prefix}: aliases must be strings`);
+  addError(errors, isStringArray(app.categories, 1), `${prefix}: categories are required`);
+  if (Array.isArray(app.categories)) {
+    for (const category of app.categories) {
+      addError(errors, categories.has(category), `${prefix}: unknown category ${category}`);
+    }
+  }
+  addError(errors, isStringArray(app.roles, 1), `${prefix}: roles are required`);
+
+  addError(errors, isPlainObject(app.upstream), `${prefix}: upstream object is required`);
+  if (isPlainObject(app.upstream)) {
+    addError(errors, hasExactKeys(app.upstream, ["docs", "repository", "url"]), `${prefix}: upstream contains missing or unsupported fields`);
+    addError(errors, isHttpUrl(app.upstream.url), `${prefix}: upstream.url must be HTTP(S)`);
+    if (app.upstream.repository !== null) {
+      addError(errors, isHttpUrl(app.upstream.repository), `${prefix}: upstream.repository must be HTTP(S) or null`);
+    }
+    if (app.upstream.docs !== null) {
+      addError(errors, isHttpUrl(app.upstream.docs), `${prefix}: upstream.docs must be HTTP(S) or null`);
+    }
+  }
+
+  addError(errors, isPlainObject(app.image), `${prefix}: image object is required`);
+  if (isPlainObject(app.image)) {
+    addError(errors, hasExactKeys(app.image, ["reference", "source", "status"]), `${prefix}: image contains missing or unsupported fields`);
+    if (app.image.reference !== null) {
+      addError(errors, isNonEmptyString(app.image.reference), `${prefix}: image.reference must be a string or null`);
+    }
+    addError(errors, IMAGE_SOURCES.has(app.image.source), `${prefix}: invalid image source`);
+    addError(errors, IMAGE_STATUSES.has(app.image.status), `${prefix}: invalid image status`);
+  }
+
+  addError(errors, isPlainObject(app.lifecycle), `${prefix}: lifecycle object is required`);
+  if (isPlainObject(app.lifecycle)) {
+    addError(errors, hasExactKeys(app.lifecycle, ["checkedAt", "note", "status"]), `${prefix}: lifecycle contains missing or unsupported fields`);
+    addError(errors, LIFECYCLES.has(app.lifecycle.status), `${prefix}: invalid lifecycle status`);
+    addError(errors, DATE_PATTERN.test(app.lifecycle.checkedAt || ""), `${prefix}: invalid checkedAt`);
+    addError(errors, isNonEmptyString(app.lifecycle.note), `${prefix}: lifecycle note is required`);
+  }
+
+  addError(errors, isPlainObject(app.support), `${prefix}: support object is required`);
+  if (isPlainObject(app.support)) {
+    addError(errors, hasExactKeys(app.support, ["adapterSkill", "automation", "tier"]), `${prefix}: support contains missing or unsupported fields`);
+    addError(errors, SUPPORT_LEVELS.has(app.support.automation), `${prefix}: invalid automation support`);
+    addError(errors, TIERS.has(app.support.tier), `${prefix}: invalid tier`);
+    if (app.support.automation === "managed") {
+      addError(errors, isNonEmptyString(app.support.adapterSkill), `${prefix}: managed support requires adapterSkill`);
+      addError(errors, /^selfhost-[a-z0-9-]+$/.test(app.support.adapterSkill || ""), `${prefix}: managed adapterSkill must be a selfhost skill id`);
+    }
+    if (app.support.automation !== "managed") {
+      addError(errors, app.support.adapterSkill === null, `${prefix}: only managed support may name adapterSkill`);
+    }
+  }
+
+  addError(errors, isPlainObject(app.homarr), `${prefix}: homarr object is required`);
+  if (isPlainObject(app.homarr)) {
+    addError(errors, hasExactKeys(app.homarr, ["integration", "support"]), `${prefix}: Homarr contains missing or unsupported fields`);
+    addError(errors, HOMARR_LEVELS.has(app.homarr.support), `${prefix}: invalid Homarr support`);
+    if (app.homarr.integration !== null) {
+      addError(errors, isNonEmptyString(app.homarr.integration), `${prefix}: Homarr integration must be a string or null`);
+    }
+    if (app.homarr.support === "supported") {
+      addError(errors, isNonEmptyString(app.homarr.integration), `${prefix}: supported Homarr record requires an integration name`);
+    }
+    if (app.homarr.support === "gap" || app.homarr.support === "partial") {
+      addError(errors, app.homarr.integration === null, `${prefix}: Homarr gap or partial record must not claim an integration`);
+    }
+  }
+
+  addError(errors, isStringArray(app.dependencies), `${prefix}: dependencies must be strings`);
+  addError(errors, isStringArray(app.alternatives, 1), `${prefix}: alternatives are required`);
+  addError(errors, isStringArray(app.security, 1), `${prefix}: security requirements are required`);
+  addError(errors, isStringArray(app.pitfalls, 1), `${prefix}: pitfalls are required`);
+  addError(errors, isStringArray(app.sources, 1), `${prefix}: primary sources are required`);
+  if (Array.isArray(app.sources)) {
+    for (const source of app.sources) {
+      addError(errors, isHttpUrl(source), `${prefix}: source must be HTTP(S)`);
+    }
+  }
+  if (isPlainObject(app.lifecycle) && isPlainObject(app.support)) {
+    if (app.lifecycle.status === "retired") {
+      addError(errors, app.support.automation === "retired", `${prefix}: retired lifecycle requires retired automation support`);
+    }
+    if (app.support.automation === "retired") {
+      addError(errors, ["retired", "transitioning"].includes(app.lifecycle.status), `${prefix}: retired automation requires retired or transitioning lifecycle`);
+    }
+  }
+  if (isPlainObject(app.image)) {
+    if (app.image.status === "not-applicable" || app.image.source === "not-applicable") {
+      addError(errors, app.image.status === "not-applicable" && app.image.source === "not-applicable" && app.image.reference === null, `${prefix}: non-container image facts must be consistently not-applicable`);
+    }
+  }
+}
+
+function validateStackShape(stack, categories, appIds, errors) {
+  const prefix = `stack ${stack && stack.id ? stack.id : "<unknown>"}`;
+  addError(errors, isPlainObject(stack), `${prefix}: record must be an object`);
+  if (!isPlainObject(stack)) {
+    return;
+  }
+  addError(errors, hasExactKeys(stack, STACK_KEYS), `${prefix}: contains missing or unsupported fields`);
+  addError(errors, ID_PATTERN.test(stack.id || ""), `${prefix}: invalid id`);
+  addError(errors, isNonEmptyString(stack.name), `${prefix}: name is required`);
+  addError(errors, isStringArray(stack.aliases, 1), `${prefix}: aliases are required`);
+  addError(errors, isNonEmptyString(stack.summary), `${prefix}: summary is required`);
+  addError(errors, isStringArray(stack.categories, 1), `${prefix}: categories are required`);
+  if (Array.isArray(stack.categories)) {
+    for (const category of stack.categories) {
+      addError(errors, categories.has(category), `${prefix}: unknown category ${category}`);
+    }
+  }
+  addError(errors, STACK_SUPPORT.has(stack.automation), `${prefix}: invalid automation support`);
+  addError(errors, Array.isArray(stack.roles) && stack.roles.length > 0, `${prefix}: roles are required`);
+  const roleIds = [];
+  if (Array.isArray(stack.roles)) {
+    for (const role of stack.roles) {
+      const rolePrefix = `${prefix} role ${role && role.id ? role.id : "<unknown>"}`;
+      addError(errors, isPlainObject(role), `${rolePrefix}: must be an object`);
+      if (!isPlainObject(role)) {
+        continue;
+      }
+      addError(errors, hasExactKeys(role, ROLE_KEYS), `${rolePrefix}: contains missing or unsupported fields`);
+      roleIds.push(role.id);
+      addError(errors, ID_PATTERN.test(role.id || ""), `${rolePrefix}: invalid id`);
+      addError(errors, isNonEmptyString(role.name), `${rolePrefix}: name is required`);
+      addError(errors, typeof role.required === "boolean", `${rolePrefix}: required must be boolean`);
+      addError(errors, isStringArray(role.choices, 1), `${rolePrefix}: choices are required`);
+      addError(errors, isNonEmptyString(role.reason), `${rolePrefix}: reason is required`);
+      addError(errors, isStringArray(role.gates), `${rolePrefix}: gates must be strings`);
+      if (Array.isArray(role.choices)) {
+        for (const choice of role.choices) {
+          addError(errors, appIds.has(choice), `${rolePrefix}: unknown app choice ${choice}`);
+        }
+        if (role.default !== null) {
+          addError(errors, role.choices.includes(role.default), `${rolePrefix}: default must be a listed choice`);
+        }
+      }
+      if (role.required) {
+        addError(errors, role.default !== null, `${rolePrefix}: required role needs a default`);
+      }
+    }
+  }
+  for (const duplicate of duplicateValues(roleIds)) {
+    errors.push(`${prefix}: duplicate role ${duplicate}`);
+  }
+  addError(errors, isStringArray(stack.requiredSkills, 1), `${prefix}: requiredSkills are required`);
+  if (Array.isArray(stack.requiredSkills)) {
+    for (const skill of stack.requiredSkills) {
+      addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(skill), `${prefix}: invalid required skill ${skill}`);
+    }
+  }
+  addError(errors, isStringArray(stack.gates, 1), `${prefix}: gates are required`);
+  addError(errors, isStringArray(stack.acceptance, 1), `${prefix}: acceptance checks are required`);
+}
+
+function validateAffiliates(affiliates, errors) {
+  addError(errors, isPlainObject(affiliates), "affiliates: registry must be an object");
+  if (!isPlainObject(affiliates)) {
+    return;
+  }
+  const rootKeys = Object.keys(affiliates).sort();
+  addError(errors, JSON.stringify(rootKeys) === JSON.stringify(["entries", "schemaVersion"]), "affiliates: only schemaVersion and entries are allowed");
+  addError(errors, affiliates.schemaVersion === 1, "affiliates: schemaVersion must be 1");
+  addError(errors, Array.isArray(affiliates.entries), "affiliates: entries must be an array");
+  if (!Array.isArray(affiliates.entries)) {
+    return;
+  }
+  const allowedKeys = ["checkedAt", "disclosure", "enabled", "id", "regions", "url"];
+  for (const entry of affiliates.entries) {
+    const prefix = `affiliate ${entry && entry.id ? entry.id : "<unknown>"}`;
+    addError(errors, isPlainObject(entry), `${prefix}: entry must be an object`);
+    if (!isPlainObject(entry)) {
+      continue;
+    }
+    addError(errors, JSON.stringify(Object.keys(entry).sort()) === JSON.stringify(allowedKeys), `${prefix}: contains unsupported fields`);
+    addError(errors, ID_PATTERN.test(entry.id || ""), `${prefix}: invalid id`);
+    addError(errors, isHttpsUrl(entry.url), `${prefix}: URL must use HTTPS`);
+    addError(errors, isNonEmptyString(entry.disclosure), `${prefix}: disclosure is required`);
+    addError(errors, isStringArray(entry.regions), `${prefix}: regions must be strings`);
+    addError(errors, DATE_PATTERN.test(entry.checkedAt || ""), `${prefix}: invalid checkedAt`);
+    addError(errors, typeof entry.enabled === "boolean", `${prefix}: enabled must be boolean`);
+  }
+}
+
+export function validateCatalog(catalog) {
+  const errors = [];
+  const warnings = [];
+  if (!isPlainObject(catalog)) {
+    return {
+      valid: false,
+      counts: { apps: 0, stacks: 0, categories: 0, affiliates: 0 },
+      errors: ["catalog: root must be an object"],
+      warnings
+    };
+  }
+  addError(errors, hasExactKeys(catalog, ["affiliates", "apps", "stacks", "taxonomy"]), "catalog: contains missing or unsupported root fields");
+  addError(errors, isPlainObject(catalog.taxonomy), "taxonomy: must be an object");
+  const categories = new Set();
+  if (isPlainObject(catalog.taxonomy)) {
+    addError(errors, hasExactKeys(catalog.taxonomy, ["ambiguousAliases", "categories", "checkedAt", "schemaVersion"]), "taxonomy: contains missing or unsupported fields");
+    addError(errors, catalog.taxonomy.schemaVersion === 1, "taxonomy: schemaVersion must be 1");
+    addError(errors, DATE_PATTERN.test(catalog.taxonomy.checkedAt || ""), "taxonomy: checkedAt must be a date");
+    addError(errors, isStringArray(catalog.taxonomy.ambiguousAliases), "taxonomy: ambiguousAliases must be strings");
+    addError(errors, Array.isArray(catalog.taxonomy.categories), "taxonomy: categories must be an array");
+    if (Array.isArray(catalog.taxonomy.categories)) {
+      for (const category of catalog.taxonomy.categories) {
+        const valid = isPlainObject(category) && ID_PATTERN.test(category.id || "") && isNonEmptyString(category.name) && isNonEmptyString(category.description);
+        addError(errors, valid, "taxonomy: every category needs id, name, and description");
+        if (isPlainObject(category)) {
+          addError(errors, hasExactKeys(category, ["description", "id", "name"]), `taxonomy category ${category.id || "<unknown>"}: contains missing or unsupported fields`);
+        }
+        if (isPlainObject(category) && isNonEmptyString(category.id)) {
+          categories.add(category.id);
+        }
+      }
+    }
+  }
+
+  addError(errors, Array.isArray(catalog.apps), "apps: must be an array");
+  const appRecords = Array.isArray(catalog.apps) ? catalog.apps : [];
+  const appIds = new Set();
+  if (Array.isArray(catalog.apps)) {
+    for (const app of appRecords) {
+      validateAppShape(app, categories, errors);
+      if (isPlainObject(app) && isNonEmptyString(app.id)) {
+        appIds.add(app.id);
+      }
+    }
+    for (const duplicate of duplicateValues(appRecords.map((app) => app.id))) {
+      errors.push(`apps: duplicate id ${duplicate}`);
+    }
+  }
+
+  for (const app of appRecords) {
+    const alternatives = Array.isArray(app.alternatives) ? app.alternatives : [];
+    for (const alternative of alternatives) {
+      addError(errors, appIds.has(alternative), `app ${app.id}: unknown alternative ${alternative}`);
+      addError(errors, alternative !== app.id, `app ${app.id}: cannot be its own alternative`);
+    }
+    const dependencies = Array.isArray(app.dependencies) ? app.dependencies : [];
+    for (const dependency of dependencies) {
+      if (dependency.startsWith("capability:")) {
+        continue;
+      }
+      addError(errors, appIds.has(dependency), `app ${app.id}: unknown dependency ${dependency}`);
+    }
+  }
+
+  addError(errors, Array.isArray(catalog.stacks), "stacks: must be an array");
+  const stackRecords = Array.isArray(catalog.stacks) ? catalog.stacks : [];
+  if (Array.isArray(catalog.stacks)) {
+    for (const stack of stackRecords) {
+      validateStackShape(stack, categories, appIds, errors);
+    }
+    for (const duplicate of duplicateValues(stackRecords.map((stack) => stack.id))) {
+      errors.push(`stacks: duplicate id ${duplicate}`);
+    }
+    const aliases = [];
+    for (const stack of stackRecords) {
+      const stackAliases = Array.isArray(stack.aliases) ? stack.aliases : [];
+      for (const alias of stackAliases) {
+        aliases.push(normalize(alias));
+      }
+    }
+    const ambiguousAliases = new Set((catalog.taxonomy.ambiguousAliases || []).map(normalize));
+    for (const duplicate of duplicateValues(aliases)) {
+      if (ambiguousAliases.has(duplicate)) {
+        warnings.push(`stacks: intentional ambiguous alias ${duplicate}`);
+        continue;
+      }
+      errors.push(`stacks: duplicate normalized alias ${duplicate}`);
+    }
+    for (const alias of ambiguousAliases) {
+      const occurrences = aliases.filter((candidate) => candidate === alias).length;
+      addError(errors, occurrences > 1, `taxonomy: ambiguous alias ${alias} must occur in at least two stacks`);
+    }
+    const appById = new Map(appRecords.map((app) => [app.id, app]));
+    for (const stack of stackRecords) {
+      const stackRoles = Array.isArray(stack.roles) ? stack.roles : [];
+      for (const role of stackRoles) {
+        const defaultApp = appById.get(role.default);
+        if (defaultApp) {
+          addError(errors, defaultApp.support.automation !== "retired", `stack ${stack.id}: default ${role.default} is retired`);
+          if (stack.automation === "managed") {
+            addError(errors, defaultApp.support.automation === "managed", `stack ${stack.id}: managed default ${role.default} lacks managed support`);
+          }
+        }
+      }
+    }
+  }
+
+  validateAffiliates(catalog.affiliates, errors);
+  scanForSecretLikeData(catalog.taxonomy, "taxonomy", errors);
+  scanForSecretLikeData(catalog.apps, "apps", errors);
+  scanForSecretLikeData(catalog.stacks, "stacks", errors);
+  scanForSecretLikeData(catalog.affiliates, "affiliates", errors);
+
+  const homarr = appRecords.find((app) => app.id === "homarr");
+  addError(errors, Boolean(homarr), "apps: Homarr record is required");
+  if (homarr) {
+    addError(errors, homarr.image.reference === "ghcr.io/homarr-labs/homarr-test:v2", "app homarr: required test image is not configured");
+  }
+
+  for (const category of categories) {
+    const usedByApp = appRecords.some((app) => Array.isArray(app.categories) && app.categories.includes(category));
+    const usedByStack = stackRecords.some((stack) => Array.isArray(stack.categories) && stack.categories.includes(category));
+    if (!usedByApp && !usedByStack) {
+      warnings.push(`taxonomy: unused category ${category}`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    counts: {
+      apps: appRecords.length,
+      stacks: stackRecords.length,
+      categories: categories.size,
+      affiliates: isPlainObject(catalog.affiliates) && Array.isArray(catalog.affiliates.entries) ? catalog.affiliates.entries.length : 0
+    },
+    errors,
+    warnings
+  };
+}
+
+export function listApps(catalog, filters = {}) {
+  let apps = [...catalog.apps];
+  if (filters.category) {
+    apps = apps.filter((app) => app.categories.includes(filters.category));
+  }
+  if (filters.support) {
+    apps = apps.filter((app) => app.support.automation === filters.support);
+  }
+  if (filters.tier) {
+    apps = apps.filter((app) => app.support.tier === filters.tier);
+  }
+  apps.sort((left, right) => left.id.localeCompare(right.id));
+  return apps;
+}
+
+function appSearchScore(app, query) {
+  const normalizedQuery = normalize(query);
+  if (!normalizedQuery) {
+    return { score: 1, matched: "all" };
+  }
+  const phrases = [app.id, app.name, ...app.aliases].map(normalize);
+  let best = 0;
+  let matched = null;
+  for (const phrase of phrases) {
+    if (normalizedQuery === phrase) {
+      const score = 10000 + phrase.length;
+      if (score > best) {
+        best = score;
+        matched = phrase;
+      }
+      continue;
+    }
+    if (phrase.includes(normalizedQuery) || normalizedQuery.includes(phrase)) {
+      const score = 5000 + phrase.length;
+      if (score > best) {
+        best = score;
+        matched = phrase;
+      }
+    }
+  }
+  const tokens = normalizedQuery.split(" ");
+  const homarrSearch = `homarr ${app.homarr.support} ${app.homarr.integration || ""}`;
+  const haystack = normalize([app.id, app.name, ...app.aliases, ...app.categories, ...app.roles, app.lifecycle.status, app.support.automation, app.support.tier, homarrSearch].join(" "));
+  const matchingTokens = tokens.filter((token) => haystack.includes(token));
+  if (matchingTokens.length === tokens.length) {
+    const score = 2000 + matchingTokens.length * 10;
+    if (score > best) {
+      best = score;
+      matched = matchingTokens.join(" ");
+    }
+  }
+  return { score: best, matched };
+}
+
+export function searchApps(catalog, query) {
+  const results = [];
+  let apps = catalog.apps;
+  const queryTokens = new Set(normalize(query).split(" "));
+  if (queryTokens.has("homarr")) {
+    for (const level of ["supported", "partial", "gap"]) {
+      if (queryTokens.has(level)) {
+        apps = apps.filter((app) => app.homarr.support === level);
+      }
+    }
+  }
+  for (const app of apps) {
+    const match = appSearchScore(app, query);
+    if (match.score > 0) {
+      results.push({ app, score: match.score, matched: match.matched });
+    }
+  }
+  results.sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+    return left.app.id.localeCompare(right.app.id);
+  });
+  return results;
+}
+
+export function findApp(catalog, query) {
+  const normalizedQuery = normalize(query);
+  return catalog.apps.find((app) => {
+    if (normalize(app.id) === normalizedQuery || normalize(app.name) === normalizedQuery) {
+      return true;
+    }
+    return app.aliases.some((alias) => normalize(alias) === normalizedQuery);
+  }) || null;
+}
+
+function stackScore(stack, query) {
+  const normalizedQuery = normalize(query);
+  if (!normalizedQuery) {
+    return { score: 0, matched: null };
+  }
+  const queryTokens = new Set(normalizedQuery.split(" "));
+  const phrases = [stack.id, stack.name, ...stack.aliases].map(normalize);
+  let best = 0;
+  let matched = null;
+  for (const phrase of phrases) {
+    if (normalizedQuery === phrase) {
+      const score = 10000 + phrase.length;
+      if (score > best) {
+        best = score;
+        matched = phrase;
+      }
+      continue;
+    }
+    if (normalizedQuery.includes(phrase)) {
+      const score = 6000 + phrase.split(" ").length * 100 + phrase.length;
+      if (score > best) {
+        best = score;
+        matched = phrase;
+      }
+      continue;
+    }
+    const phraseTokens = phrase.split(" ");
+    const allPresent = phraseTokens.every((token) => queryTokens.has(token));
+    if (allPresent) {
+      const score = 5000 + phraseTokens.length * 1000 + phrase.length;
+      if (score > best) {
+        best = score;
+        matched = phrase;
+      }
+    }
+  }
+  return { score: best, matched };
+}
+
+export function resolveStack(catalog, query) {
+  const candidates = [];
+  for (const stack of catalog.stacks) {
+    const match = stackScore(stack, query);
+    if (match.score > 0) {
+      candidates.push({ stack, score: match.score, matched: match.matched });
+    }
+  }
+  candidates.sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+    return left.stack.id.localeCompare(right.stack.id);
+  });
+  if (candidates.length === 0) {
+    return { resolved: false, ambiguous: false, stack: null, matched: null, candidates: [] };
+  }
+  let ambiguous = false;
+  if (candidates.length > 1 && candidates[0].score === candidates[1].score) {
+    ambiguous = true;
+  }
+  return {
+    resolved: !ambiguous,
+    ambiguous,
+    stack: ambiguous ? null : candidates[0].stack,
+    matched: ambiguous ? null : candidates[0].matched,
+    candidates: candidates.slice(0, 5).map((candidate) => ({ id: candidate.stack.id, name: candidate.stack.name, score: candidate.score, matched: candidate.matched }))
+  };
+}
+
+function expandDependencies(catalog, selectedIds) {
+  const appById = new Map(catalog.apps.map((app) => [app.id, app]));
+  const selected = new Set(selectedIds);
+  const implied = new Map();
+  const capabilities = new Set();
+  const queue = [...selectedIds];
+  while (queue.length > 0) {
+    const appId = queue.shift();
+    const app = appById.get(appId);
+    if (!app) {
+      continue;
+    }
+    for (const dependency of app.dependencies) {
+      if (dependency.startsWith("capability:")) {
+        capabilities.add(dependency.slice("capability:".length));
+        continue;
+      }
+      if (selected.has(dependency) || implied.has(dependency)) {
+        continue;
+      }
+      implied.set(dependency, { app: dependency, requiredBy: appId });
+      queue.push(dependency);
+    }
+  }
+  return { implied: [...implied.values()], capabilities: [...capabilities].sort() };
+}
+
+export function buildPlan(catalog, stack, selections = {}, preferences = null) {
+  const appById = new Map(catalog.apps.map((app) => [app.id, app]));
+  const roles = [];
+  const selectedIds = [];
+  for (const role of stack.roles) {
+    let selected = role.default;
+    if (Object.hasOwn(selections, role.id)) {
+      selected = selections[role.id];
+    }
+    if (selected === "none" || selected === "off") {
+      selected = null;
+    }
+    if (selected !== null && !role.choices.includes(selected)) {
+      throw new Error(`Invalid selection for role ${role.id}. Choose one of: ${role.choices.join(", ")}`);
+    }
+    if (role.required && selected === null) {
+      throw new Error(`Role ${role.id} is required and cannot be disabled.`);
+    }
+    if (selected !== null) {
+      selectedIds.push(selected);
+    }
+    roles.push({
+      id: role.id,
+      name: role.name,
+      required: role.required,
+      selected,
+      reason: role.reason,
+      alternatives: role.choices.filter((choice) => choice !== selected),
+      gates: role.gates
+    });
+  }
+
+  const dependencies = expandDependencies(catalog, selectedIds);
+  const allAppIds = [...selectedIds, ...dependencies.implied.map((entry) => entry.app)];
+  const appDetails = allAppIds.map((id) => appById.get(id)).filter(Boolean);
+  const gates = new Set(stack.gates);
+  for (const role of roles) {
+    if (role.selected === null) {
+      continue;
+    }
+    for (const gate of role.gates) {
+      gates.add(gate);
+    }
+  }
+
+  const requiredSkills = new Set(stack.requiredSkills);
+  if (selectedIds.includes("gluetun")) {
+    requiredSkills.add("selfhost-vpn");
+  }
+  const ingressApps = new Set(["caddy", "traefik", "nginx-proxy-manager", "cloudflare-tunnel", "pangolin"]);
+  if (selectedIds.some((id) => ingressApps.has(id))) {
+    requiredSkills.add("selfhost-ingress");
+  }
+
+  const unresolved = ["Inspect the selected host and classify existing resources as reuse, coexist, or conflict."];
+  if (gates.has("storage")) {
+    unresolved.push("Confirm logical config, data, media, download, and backup paths plus filesystem constraints.");
+  }
+  if (gates.has("exposure") || gates.has("public-exposure")) {
+    unresolved.push("Confirm exposure class, one ingress owner, DNS/TLS policy, and authentication boundary.");
+  }
+  if (gates.has("secrets")) {
+    unresolved.push("Name secret references for apply without placing secret values in this plan.");
+  }
+  if (gates.has("vpn")) {
+    unresolved.push("Confirm VPN provider, protocol, downloader-only scope, and authority to run the failure test.");
+  }
+  for (const app of appDetails) {
+    if (app.image.reference === null || app.image.status === "unknown" || app.image.status === "verify") {
+      unresolved.push(`Verify the current image, tag or host package for ${app.name}.`);
+    }
+    if (app.support.automation === "discovery") {
+      unresolved.push(`Research current deployment facts before applying ${app.name}.`);
+    }
+  }
+
+  const preferenceChoices = {};
+  if (preferences && preferences.choices) {
+    for (const [key, record] of Object.entries(preferences.choices)) {
+      preferenceChoices[key] = { value: record.value, source: record.source };
+    }
+  }
+
+  const appFingerprints = appDetails.map((app) => ({ id: app.id, image: app.image, lifecycle: app.lifecycle, support: app.support }));
+  const hashInput = JSON.stringify({ catalogCheckedAt: catalog.taxonomy.checkedAt, stack, roles: roles.map((role) => [role.id, role.selected]), apps: appFingerprints, preferences: preferenceChoices });
+  const planId = createHash("sha256").update(hashInput).digest("hex").slice(0, 16);
+  const acceptance = new Set(stack.acceptance);
+  if (selectedIds.includes("gluetun")) {
+    acceptance.add("Breaking the VPN tunnel makes downloader egress fail; restoring it returns only the expected VPN egress.");
+    acceptance.add("Control-plane and management traffic remain outside the downloader VPN namespace.");
+  }
+
+  return {
+    mode: "read-only",
+    status: "planned",
+    planId,
+    catalogCheckedAt: catalog.taxonomy.checkedAt,
+    goal: { id: stack.id, name: stack.name, summary: stack.summary, automation: stack.automation },
+    roles,
+    impliedApps: dependencies.implied,
+    requiredCapabilities: dependencies.capabilities,
+    requiredSkills: [...requiredSkills].sort(),
+    gates: [...gates].sort(),
+    acceptance: [...acceptance],
+    unresolved,
+    preferences: preferenceChoices,
+    selectedApps: appDetails.map((app) => ({
+      id: app.id,
+      name: app.name,
+      automation: app.support.automation,
+      tier: app.support.tier,
+      upstream: app.upstream.url,
+      image: app.image,
+      security: app.security,
+      pitfalls: app.pitfalls
+    }))
+  };
+}
+
+export function catalogMenu(catalog) {
+  const appCounts = new Map();
+  for (const category of catalog.taxonomy.categories) {
+    appCounts.set(category.id, 0);
+  }
+  for (const app of catalog.apps) {
+    for (const category of app.categories) {
+      appCounts.set(category, (appCounts.get(category) || 0) + 1);
+    }
+  }
+  return {
+    checkedAt: catalog.taxonomy.checkedAt,
+    goals: [...catalog.stacks]
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map((stack) => ({ id: stack.id, name: stack.name, summary: stack.summary, examples: stack.aliases.slice(0, 2) })),
+    categories: catalog.taxonomy.categories.map((category) => ({ id: category.id, name: category.name, apps: appCounts.get(category.id) || 0 }))
+  };
+}
+
+export { normalize };
