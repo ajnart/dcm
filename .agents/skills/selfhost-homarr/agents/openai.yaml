@@ -1,0 +1,4 @@
+interface:
+  display_name: "Self-host Homarr"
+  short_description: "Plan and verify read-only Homarr access"
+  default_prompt: "Use $selfhost-homarr to plan and verify my read-only Homarr integration without exposing credentials."
