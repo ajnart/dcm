@@ -5,7 +5,7 @@
 - A unique `RUN_ID` matching `[a-z0-9][a-z0-9_-]{0,39}`.
 - Working directory: the installed harness root.
 - Local test username `admin`. The harness derives a different bounded password
-  for each run without exposing the encryption key or password.
+  for each run and stores the login in its private credentials access sheet.
 - Disposable contact email `admin@example.test` where Seerr requires one.
 
 ## Rules
@@ -17,9 +17,10 @@
   in place.
 - Do not edit tracked files. Store screenshots and notes only below this run's
   `SESSION_ROOT/artifacts`.
-- Do not reveal API keys, generated passwords, cookies, or encryption keys.
-  Source `.sessions/RUN_ID/secrets.env` when needed and reference shell variable
-  names in commands.
+- Do not echo API keys, generated passwords, cookies, or encryption keys into
+  agent output. The harness may write its mode-`0600` `credentials.env`; report
+  only its path and local reveal command. Source `.sessions/RUN_ID/secrets.env`
+  when automation needs a key and reference shell variable names in commands.
 - Enter the run password only through
   `scripts/session.sh browser-password "$RUN_ID" @eN [@eN ...]`, using fresh
   password-input refs. Never put it in a shell argument or browser command.

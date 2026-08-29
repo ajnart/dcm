@@ -16,7 +16,9 @@ Treat every row as unproven until its listed evidence exists.
 | Homarr API/MCP | private key capture plus `homarr-finalize`, `mcp-config`, and `mcp-verify` PASS; secret-free `mcp-client.json`; canonical `/api/mcp` and bridge read-only searches find Spider-Man: No Way Home; no request/download or client install |
 
 Run `scripts/session.sh doctor "$RUN_ID"` again. Inspect only redacted API output
-and run `scripts/session.sh verify "$RUN_ID"` again. Inspect this run's UI and
+and run `scripts/session.sh verify "$RUN_ID"` again. After every acceptance row
+passes, run `scripts/session.sh credentials "$RUN_ID"` as the final command and
+return its path/reveal summary to the user. Inspect this run's UI and
 redacted response structure. On Homarr, require all onboarding test calls and a
 fixed proof row for each expected generated-widget procedure:
 `widget.indexerManager.getIndexersStatus`,

@@ -89,6 +89,10 @@ or read-only runs. State:
 - unresolved decisions and blockers; and
 - the next safe action.
 
+When a capability creates a private credential handoff for the user, report its
+exact path and a local reveal command without copying secret values into the
+agent transcript.
+
 Do not hide uncertainty behind internal status names. Translate them for the
 user while retaining exact structured values in machine-readable output. Say
 explicitly when a plan changed nothing, when host state was not observable, or

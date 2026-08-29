@@ -16,12 +16,15 @@
 ## Secrets
 
 - Let the session harness create and consume per-run keys and credentials.
+- Keep the generated `credentials.env` mode `0600`. It is the human access
+  sheet, not a harness input or evidence artifact. Report its path and local
+  reveal command without echoing its contents into agent output.
 - Pass one-time Homarr material directly over stdin to `homarr-key`.
 - Refer to environment variable names in commands and reports. Record only
   fixed PASS/FAIL summaries and redacted structures.
 - Keep authentication pages, raw authenticated payloads, cookies, passwords,
   API keys, and encryption keys out of output, screenshots, arguments, tracked
-  files, and client configuration.
+  files, client configuration, and reports.
 - Treat authenticated agent-browser `console`, raw `network requests`, HAR
   output, and every other raw trace as secret-bearing. Candidates must never
   invoke, print, or persist them inside or outside their run; use only

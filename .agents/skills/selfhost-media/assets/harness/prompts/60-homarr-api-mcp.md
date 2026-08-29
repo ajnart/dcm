@@ -25,6 +25,7 @@ Run in order:
 ./scripts/session.sh homarr-finalize "$RUN_ID"
 ./scripts/session.sh mcp-config "$RUN_ID"
 ./scripts/session.sh mcp-verify "$RUN_ID"
+./scripts/session.sh credentials "$RUN_ID"
 ```
 
 `homarr-finalize` must update only the six onboarding-generated service apps:
@@ -61,7 +62,9 @@ dispatch. Only the preceding harness-owned finalizer may update app links.
 
 ## Stop gate
 
-- `homarr-key` and all three follow-up commands emit secret-safe PASS summaries.
+- `homarr-key` and all four follow-up commands emit secret-safe summaries.
+- The final credentials summary explains every service and gives the exact
+  private access-sheet path plus a local reveal command without echoing values.
 - The six generated apps have host links plus internal Docker ping URLs.
 - The canonical native endpoint authenticates, and both native MCP and the
   stdio adapter return the read-only title match; record whether its temporary

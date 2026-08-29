@@ -2,9 +2,11 @@
 
 import {
   loadSession,
+  printSessionCredentialsSummary,
   requireSessionPasswordScheme,
   storeHomarrApiKey,
   validateHomarrApiKey,
+  writeSessionCredentials,
 } from "./lib/session-context.mjs";
 
 const MAX_STDIN_BYTES = 2_048;
@@ -42,6 +44,7 @@ async function main() {
   const apiKey = await readKeyFromStdin();
   storeHomarrApiKey(session, apiKey);
   process.stdout.write("PASS Homarr API key stored\n");
+  printSessionCredentialsSummary(writeSessionCredentials(session.runId));
 }
 
 main().catch(() => {

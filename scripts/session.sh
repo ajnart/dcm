@@ -32,6 +32,7 @@ Usage:
   scripts/session.sh homarr-finalize RUN_ID
   scripts/session.sh mcp-config RUN_ID
   scripts/session.sh mcp-verify RUN_ID
+  scripts/session.sh credentials RUN_ID
   scripts/session.sh down RUN_ID
   scripts/session.sh status RUN_ID
   scripts/session.sh urls RUN_ID
@@ -192,6 +193,15 @@ validate_homarr_api_key_file() {
     || fail "$label is invalid"
 }
 
+validate_credentials_control_file() {
+  local file_path="$1"
+  local expected_parent="$2"
+  local label="$3"
+
+  validate_private_control_file "$file_path" "$expected_parent" "$label"
+  (( $(stat -c '%s' -- "$file_path") <= 8192 )) || fail "$label is too large"
+}
+
 cleanup_validated_homarr_key_transients() {
   local parent_dir="$1"
   local transient
@@ -208,6 +218,26 @@ cleanup_validated_homarr_key_transients() {
     validate_private_control_file "$transient" "$parent_dir" "replacement Homarr API key file"
     (( $(stat -c '%s' -- "$transient") <= 512 )) \
       || fail "replacement Homarr API key file is too large"
+    find "$transient" -maxdepth 0 -type f -delete
+  done
+}
+
+cleanup_validated_credentials_transients() {
+  local parent_dir="$1"
+  local transient
+  local transient_name
+  local -a transients=()
+
+  shopt -s nullglob
+  transients=("$parent_dir"/.credentials.env.*)
+  shopt -u nullglob
+  for transient in "${transients[@]}"; do
+    transient_name="$(basename -- "$transient")"
+    [[ "$transient_name" =~ ^\.credentials\.env\.[0-9a-f]{24}$ ]] \
+      || fail "session contains an invalid credentials transient"
+    validate_private_control_file "$transient" "$parent_dir" "replacement credentials file"
+    (( $(stat -c '%s' -- "$transient") <= 8192 )) \
+      || fail "replacement credentials file is too large"
     find "$transient" -maxdepth 0 -type f -delete
   done
 }
@@ -376,6 +406,13 @@ load_session() {
       "$resolved_session_dir/homarr-api-key.env" \
       "$resolved_session_dir" \
       "Homarr API key file"
+  fi
+  if [[ -e "$resolved_session_dir/credentials.env" \
+    || -L "$resolved_session_dir/credentials.env" ]]; then
+    validate_credentials_control_file \
+      "$resolved_session_dir/credentials.env" \
+      "$resolved_session_dir" \
+      "credentials file"
   fi
 
   SESSION_DIR="$resolved_session_dir"
@@ -1038,10 +1075,14 @@ remove_marked_empty_content_roots() {
   validate_tombstone_marker "$marker_file" "$SESSION_DIR" "$run_id"
   cleanup_validated_secret_transients "$SESSION_DIR"
   cleanup_validated_homarr_key_transients "$SESSION_DIR"
+  cleanup_validated_credentials_transients "$SESSION_DIR"
   cleanup_validated_tombstone_transients "$SESSION_DIR"
 
   if [[ -e "$SESSION_DIR/homarr-api-key.env" || -L "$SESSION_DIR/homarr-api-key.env" ]]; then
     validate_homarr_api_key_file "$SESSION_DIR/homarr-api-key.env" "$SESSION_DIR" "Homarr API key file"
+  fi
+  if [[ -e "$SESSION_DIR/credentials.env" || -L "$SESSION_DIR/credentials.env" ]]; then
+    validate_credentials_control_file "$SESSION_DIR/credentials.env" "$SESSION_DIR" "credentials file"
   fi
 
   unexpected_entry="$(
@@ -1049,6 +1090,7 @@ remove_marked_empty_content_roots() {
       ! -path "$MANIFEST_FILE" \
       ! -path "$SECRETS_FILE" \
       ! -path "$SESSION_DIR/homarr-api-key.env" \
+      ! -path "$SESSION_DIR/credentials.env" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$marker_file" \
       ! -path "$config_root" \
@@ -1102,6 +1144,7 @@ finalize_marked_normal_session() {
   load_session "$run_id"
   cleanup_validated_secret_transients "$SESSION_DIR"
   cleanup_validated_homarr_key_transients "$SESSION_DIR"
+  cleanup_validated_credentials_transients "$SESSION_DIR"
   cleanup_validated_tombstone_transients "$SESSION_DIR"
   DESTROY_IMAGE_MANIFEST="$SESSION_DIR/destroy-images.env"
   load_destroy_image_manifest
@@ -1125,6 +1168,7 @@ finish_destroy_tombstone() {
   validate_tombstone_dir "$tombstone_dir"
   cleanup_validated_secret_transients "$tombstone_dir"
   cleanup_validated_homarr_key_transients "$tombstone_dir"
+  cleanup_validated_credentials_transients "$tombstone_dir"
   cleanup_validated_tombstone_transients "$tombstone_dir"
 
   if [[ -e "$tombstone_dir/homarr-api-key.env" || -L "$tombstone_dir/homarr-api-key.env" ]]; then
@@ -1133,12 +1177,19 @@ finish_destroy_tombstone() {
       "$tombstone_dir" \
       "destroy tombstone Homarr API key file"
   fi
+  if [[ -e "$tombstone_dir/credentials.env" || -L "$tombstone_dir/credentials.env" ]]; then
+    validate_credentials_control_file \
+      "$tombstone_dir/credentials.env" \
+      "$tombstone_dir" \
+      "destroy tombstone credentials file"
+  fi
 
   unexpected_entry="$(
     find "$tombstone_dir" -xdev -mindepth 1 -maxdepth 1 \
       ! -path "$tombstone_dir/manifest.env" \
       ! -path "$tombstone_dir/secrets.env" \
       ! -path "$tombstone_dir/homarr-api-key.env" \
+      ! -path "$tombstone_dir/credentials.env" \
       ! -path "$tombstone_dir/destroy-images.env" \
       ! -path "$marker_file" \
       -print -quit
@@ -1157,6 +1208,7 @@ finish_destroy_tombstone() {
     "$tombstone_dir/manifest.env" \
     "$tombstone_dir/secrets.env" \
     "$tombstone_dir/homarr-api-key.env" \
+    "$tombstone_dir/credentials.env" \
     "$tombstone_dir/destroy-images.env"; do
     if [[ -e "$control_file" || -L "$control_file" ]]; then
       validate_private_control_file "$control_file" "$tombstone_dir" "destroy tombstone control file"
@@ -1179,6 +1231,7 @@ publish_destroy_tombstone() {
   load_session "$run_id"
   cleanup_validated_secret_transients "$SESSION_DIR"
   cleanup_validated_homarr_key_transients "$SESSION_DIR"
+  cleanup_validated_credentials_transients "$SESSION_DIR"
   cleanup_validated_tombstone_transients "$SESSION_DIR"
   DESTROY_IMAGE_MANIFEST="$SESSION_DIR/destroy-images.env"
   load_destroy_image_manifest
@@ -1194,6 +1247,7 @@ publish_destroy_tombstone() {
       ! -path "$MANIFEST_FILE" \
       ! -path "$SECRETS_FILE" \
       ! -path "$SESSION_DIR/homarr-api-key.env" \
+      ! -path "$SESSION_DIR/credentials.env" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$marker_file" \
       -print -quit
@@ -1260,6 +1314,7 @@ destroy_session() {
   load_session "$run_id"
   cleanup_validated_secret_transients "$SESSION_DIR"
   cleanup_validated_homarr_key_transients "$SESSION_DIR"
+  cleanup_validated_credentials_transients "$SESSION_DIR"
   cleanup_validated_tombstone_transients "$SESSION_DIR"
   tombstone_transient_retry="$TOMBSTONE_TRANSIENTS_REMOVED"
   if (( tombstone_transient_retry > 0 )); then
@@ -1270,6 +1325,7 @@ destroy_session() {
       load_session "$run_id"
       cleanup_validated_secret_transients "$SESSION_DIR"
       cleanup_validated_homarr_key_transients "$SESSION_DIR"
+      cleanup_validated_credentials_transients "$SESSION_DIR"
       cleanup_validated_tombstone_transients "$SESSION_DIR"
       DESTROY_IMAGE_MANIFEST="$SESSION_DIR/destroy-images.env"
       load_destroy_image_manifest
@@ -1278,6 +1334,7 @@ destroy_session() {
           ! -path "$MANIFEST_FILE" \
           ! -path "$SECRETS_FILE" \
           ! -path "$SESSION_DIR/homarr-api-key.env" \
+          ! -path "$SESSION_DIR/credentials.env" \
           ! -path "$DESTROY_IMAGE_MANIFEST" \
           -print -quit
       )"
@@ -1326,6 +1383,7 @@ destroy_session() {
       ! -path "$MANIFEST_FILE" \
       ! -path "$SECRETS_FILE" \
       ! -path "$SESSION_DIR/homarr-api-key.env" \
+      ! -path "$SESSION_DIR/credentials.env" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$SESSION_DIR/config" \
       ! -path "$SESSION_DIR/data" \
@@ -1370,11 +1428,13 @@ main() {
       ;;
     keys)
       [[ "$#" -eq 2 ]] || fail "keys requires one RUN_ID"
+      require_command node
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
+      cleanup_validated_credentials_transients "$SESSION_DIR"
       sync_arr_api_keys
-      close_run_lock
+      exec node "$SCRIPT_DIR/lib/session-context.mjs" credentials "$run_id"
       ;;
     bootstrap)
       [[ "$#" -eq 2 ]] || fail "bootstrap requires one RUN_ID"
@@ -1382,6 +1442,7 @@ main() {
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
+      cleanup_validated_credentials_transients "$SESSION_DIR"
       exec node "$SCRIPT_DIR/bootstrap-core.mjs" "$run_id"
       ;;
     verify)
@@ -1408,6 +1469,7 @@ main() {
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_homarr_key_transients "$SESSION_DIR"
+      cleanup_validated_credentials_transients "$SESSION_DIR"
       exec node "$SCRIPT_DIR/store-homarr-key.mjs" "$run_id"
       ;;
     homarr-finalize)
@@ -1431,6 +1493,15 @@ main() {
       require_command node
       open_run_lock "$run_id"
       exec node "$SCRIPT_DIR/verify-homarr-mcp.mjs" "$run_id"
+      ;;
+    credentials)
+      [[ "$#" -eq 2 ]] || fail "credentials requires one RUN_ID"
+      require_command node
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      cleanup_validated_credentials_transients "$SESSION_DIR"
+      exec node "$SCRIPT_DIR/lib/session-context.mjs" credentials "$run_id"
       ;;
     down)
       [[ "$#" -eq 2 ]] || fail "down requires one RUN_ID"

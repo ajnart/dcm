@@ -36,7 +36,9 @@ when direct launch fails with `ENOENT`; it never retries a launched nonzero
 browser action.
 
 The local username is `admin`. The harness derives a bounded password from each
-run's encryption key without reusing the key itself. Fill one to four fresh
+run's encryption key without reusing the key itself. After bootstrap it stores
+that login, the resolved URLs, and available API keys in the private
+`.sessions/RUN_ID/credentials.env` access sheet. Fill one to four fresh
 password-input refs with
 `scripts/session.sh browser-password "$RUN_ID" @eN [@eN ...]`. This helper
 accepts only snapshot refs, sends the password to the run-scoped agent-browser
@@ -50,7 +52,7 @@ migrated in place. Their command boundary is explicit:
 | Legacy run behavior | Commands |
 | --- | --- |
 | Inspection and bounded cleanup allowed | `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, `destroy` |
-| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config` |
+| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config`, `credentials` |
 
 Recreate a legacy run under a new `RUN_ID` before starting services,
 configuring credentials, writing client artifacts, or continuing acceptance
@@ -78,13 +80,24 @@ schemas only for exact RPC `-32603` message
 
 `.sessions/RUN_ID/secrets.env` is the harness source of truth for service API
 keys and the Homarr encryption key. The five-entry schema is unchanged; the
-password is derived in memory and is not another stored secret. `homarr-key`
-stores the Homarr API/MCP key separately in the private run and later harness
-commands consume it directly.
+password is derived from that source. `homarr-key` stores the Homarr API/MCP key
+separately in the private run. `bootstrap`, `keys`, `homarr-key`, and the
+explicit command below atomically refresh the user-facing access sheet:
+
+```bash
+scripts/session.sh credentials RUN_ID
+```
+
+The command prints a plain-language service summary, the exact file path, and a
+local `cat` command. It does not copy any secret value into an agent transcript.
+The access sheet is mode `0600`, is not an acceptance artifact or harness input,
+and lists `HOMARR_API_KEY=` until the one-time key is captured. Seerr's admin
+login is the linked Jellyfin account; qBittorrent and Jellyfin have no harness-
+managed API key. Run `credentials` again whenever keys change.
 Applications also persist credentials inside their own untracked per-run config
-databases/files. Source `secrets.env` when an API/UI command needs a service
-key, but never print or copy its values into reports, screenshots, or tracked
-files.
+databases/files. Harness automation consumes `secrets.env`; humans use the
+private access sheet. Never copy its values into reports, screenshots, tracked
+files, or agent/browser commands.
 
 The session parent remains mode 0700. Its nested Seerr config and shared data
 mounts are writable because rootless Docker remaps application UIDs; do not

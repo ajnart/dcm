@@ -41,11 +41,14 @@ fixed harness summaries.
    and its response-envelope error classification. Include the seven-row total,
    HTTP-200 count, error count, `mediaRelease.releases.length`, and
    `mediaRelease.failedIntegrations.length`.
+9. the private credentials access-sheet path and local reveal command, never
+   its contents.
 
 Never capture the Authentication page while the one-time key is visible.
 Evidence may include only secret-free command summaries and structural results;
 the API key and raw authenticated payloads must never be printed or stored as
-evidence.
+evidence. `credentials.env` is a private user handoff, not an artifact; do not
+copy it into `SESSION_ROOT/artifacts` or `candidate-report.md`.
 
 Do not destroy the session. The supervisor selects the fittest candidate only
 after independently checking its evidence and live Homarr board.

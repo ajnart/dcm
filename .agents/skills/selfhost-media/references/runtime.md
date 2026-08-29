@@ -74,6 +74,7 @@ node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session urls RUN_ID
 node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session up RUN_ID
 node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session bootstrap RUN_ID
 node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session verify RUN_ID
+node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session credentials RUN_ID
 ```
 
 Run state belongs only to `.sessions/RUN_ID`. Use project-scoped status and logs;
@@ -83,7 +84,14 @@ New manifests carry `SESSION_PASSWORD_SCHEME=hmac-v1`. A missing marker denotes
 a legacy run and is accepted only for inspection and bounded cleanup. Legacy
 runs allow `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, and
 `destroy`. The exact current marker is required for `up`, `keys`, `bootstrap`,
-`verify`, `browser-password`, `homarr-key`, `homarr-finalize`, and `mcp-config`;
+`verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config`, and
+`credentials`;
 recreate under a new run identifier instead of migrating credentials in place.
 The internal read-only Compose-log helper remains marker-optional; there is no
 standalone `session.sh logs` command.
+
+Bootstrap creates a mode-`0600` `SESSION_ROOT/credentials.env` access sheet.
+`keys`, `homarr-key`, and `credentials` refresh it atomically. Its URLs use
+`localhost` and the assigned collision-free ports; use the host's private LAN
+name or address from another device. The summary prints only its path, a local
+reveal command, service purposes, and whether the Homarr key is included.

@@ -105,6 +105,11 @@ The final summary tells you:
 - what is blocked or still needs your decision; and
 - the safest next step.
 
+For the seven-service media harness, it also points to one private mode-`0600`
+`credentials.env` with every local URL, the generated `admin` login, and each
+available API key. The values stay out of agent logs; the summary gives you the
+exact local command to reveal them.
+
 A planning run says clearly that it changed nothing. A running container or an
 HTTP 200 response is reported as a narrow observation, not proof that the whole
 service works.

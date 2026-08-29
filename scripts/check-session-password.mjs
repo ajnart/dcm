@@ -41,6 +41,7 @@ const CURRENT_SCHEME_SESSION_COMMANDS = [
   "homarr-key",
   "homarr-finalize",
   "mcp-config",
+  "credentials",
 ];
 
 function sessionFor(runId, keyByte) {

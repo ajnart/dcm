@@ -470,6 +470,24 @@ async function verifyProwlarr(session, arrDefinitions) {
   );
   check(Boolean(status.version), "Prowlarr status is incomplete");
 
+  const hostConfig = await requestJson(
+    `${apiRoot}/config/host`,
+    { headers },
+    { label: "Prowlarr host configuration" },
+  );
+  check(
+    normalizeName(hostConfig.authenticationMethod) === "forms",
+    "Prowlarr authentication method is not Forms",
+  );
+  check(
+    normalizeName(hostConfig.authenticationRequired) === "enabled",
+    "Prowlarr authentication is not required",
+  );
+  check(
+    hostConfig.username === STANDARD_USERNAME,
+    "Prowlarr standard username is not configured",
+  );
+
   const applications = requireArray(
     await requestJson(
       `${apiRoot}/applications`,
@@ -634,7 +652,7 @@ async function main() {
   }
 
   await verifyProwlarr(session, arrDefinitions);
-  console.log("PASS Prowlarr applications and public indexer state");
+  console.log("PASS Prowlarr auth, applications, and public indexer state");
 
   await verifySeerr(session);
   console.log("PASS Seerr links and persisted credentials");

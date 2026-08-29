@@ -5,6 +5,7 @@ import {
   fieldValue,
   loadSession,
   normalizeName,
+  printSessionCredentialsSummary,
   refreshArrKeys,
   request,
   requestJson,
@@ -14,6 +15,7 @@ import {
   tryRequest,
   validateRunId,
   writableFields,
+  writeSessionCredentials,
 } from "./lib/session-context.mjs";
 
 const runId = process.argv[2] ?? "";
@@ -399,6 +401,35 @@ function applicationPayload(source, schema, definition, session) {
   return payload;
 }
 
+async function configureProwlarrAuth(session, sessionPassword) {
+  const apiRoot = `${loopback(session.manifest.PROWLARR_PORT)}/api/v1`;
+  const headers = arrHeaders(session.secrets.PROWLARR_API_KEY);
+  const hostConfig = await requestJson(
+    `${apiRoot}/config/host`,
+    { headers },
+    { label: "Prowlarr host configuration" },
+  );
+  await request(
+    `${apiRoot}/config/host`,
+    {
+      method: "PUT",
+      headers,
+      body: jsonBody({
+        ...hostConfig,
+        authenticationMethod: "forms",
+        authenticationRequired: "enabled",
+        username: STANDARD_USERNAME,
+        password: sessionPassword,
+        passwordConfirmation: sessionPassword,
+      }),
+    },
+    {
+      expectedStatuses: [200, 202],
+      label: "Prowlarr forms authentication update",
+    },
+  );
+}
+
 async function configureProwlarrApplications(session, arrDefinitions) {
   const baseUrl = loopback(session.manifest.PROWLARR_PORT);
   const apiRoot = `${baseUrl}/api/v1`;
@@ -766,6 +797,9 @@ async function main() {
     console.log(`PASS ${definition.name} auth, root folder, and qBittorrent link configured`);
   }
 
+  await configureProwlarrAuth(session, sessionPassword);
+  console.log("PASS Prowlarr forms authentication configured");
+
   await configureProwlarrApplications(session, arrDefinitions);
   console.log("PASS Prowlarr Sonarr and Radarr application tests");
 
@@ -774,6 +808,8 @@ async function main() {
 
   await syncAndWait(session, arrDefinitions);
   console.log("PASS Prowlarr indexer synced to Sonarr and Radarr");
+
+  printSessionCredentialsSummary(writeSessionCredentials(runId));
 }
 
 main().catch((error) => {

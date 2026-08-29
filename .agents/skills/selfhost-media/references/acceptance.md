@@ -14,6 +14,7 @@ Treat every row as unproven until its direct evidence exists.
 | Homarr integrations | Six passing records with host app links and internal ping URLs |
 | Homarr auto-generation | Six onboarding-generated app tiles and live widgets after reload |
 | Homarr API/MCP | Private key capture; finalizer/config/verifier PASS; canonical endpoint and bridge return the read-only match; no mutation or client install |
+| User access handoff | Private credentials sheet refreshed after acceptance; exact path and local reveal command reported without secret values |
 
 Run `doctor` and the core verifier again at the end. Inspect the real UI and
 redacted response structure. HTTP 200 alone is insufficient. Empty media data
