@@ -22,6 +22,18 @@ const AUTOMATION_RANK = new Map([
   ["guided", 1],
   ["discovery", 2]
 ]);
+const DEPENDENCY_PURPOSES = new Map([
+  ["postgresql", "Stores app records such as accounts, settings, and library details."],
+  ["valkey", "Handles quick caching and background jobs for the main app."],
+  ["prometheus", "Collects and stores numeric health and performance measurements."],
+  ["grafana", "Turns monitoring data into dashboards."],
+  ["loki", "Stores service logs for searching and troubleshooting."],
+  ["vector", "Collects and sends service logs to the selected log store."],
+  ["docker", "Runs the selected services as isolated containers."],
+  ["ollama", "Runs the selected AI models on the host."],
+  ["forgejo", "Stores the source repositories used by the selected automation."],
+  ["proxmox", "Runs the virtual machines or containers covered by the backup service."]
+]);
 const SECRET_FIELD_PATTERN = /(^|[._-])(password|passwd|secret|token|credential|credentials|api[-_]?key|auth[-_]?key|private[-_]?key|cookie|session|encryption[-_]?key)($|[._-])/i;
 const SECRET_VALUE_PATTERNS = [
   /-----BEGIN [A-Z ]*(PRIVATE KEY|SECRET)[A-Z ]*-----/i,
@@ -33,7 +45,7 @@ const SECRET_VALUE_PATTERNS = [
 
 const APP_KEYS = ["aliases", "alternatives", "categories", "dependencies", "homarr", "id", "image", "lifecycle", "name", "pitfalls", "roles", "security", "sources", "support", "upstream"];
 const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates", "id", "name", "requiredSkills", "roles", "summary"];
-const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "reason", "required"];
+const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "purpose", "reason", "required"];
 const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
 const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
 const SKILL_REGISTRY_KEYS = ["schemaVersion", "skills"];
@@ -372,6 +384,7 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
       addError(errors, typeof role.required === "boolean", `${rolePrefix}: required must be boolean`);
       addError(errors, isStringArray(role.choices, 1), `${rolePrefix}: choices are required`);
       addError(errors, isNonEmptyString(role.reason), `${rolePrefix}: reason is required`);
+      addError(errors, isNonEmptyString(role.purpose), `${rolePrefix}: purpose is required`);
       addError(errors, isStringArray(role.gates), `${rolePrefix}: gates must be strings`);
       if (Array.isArray(role.choices)) {
         for (const choice of role.choices) {
@@ -1121,6 +1134,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       required: role.required,
       selected,
       reason: role.reason,
+      purpose: role.purpose,
       alternatives: role.choices.filter((choice) => choice !== selected),
       gates: role.gates
     });
@@ -1187,8 +1201,72 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     }
   }
 
-  const appFingerprints = appDetails.map((app) => ({ id: app.id, image: app.image, lifecycle: app.lifecycle, support: app.support }));
-  const hashInput = JSON.stringify({ catalogCheckedAt: catalog.taxonomy.checkedAt, stack, roles: roles.map((role) => [role.id, role.selected]), apps: appFingerprints, preferences: preferenceChoices });
+  const serviceSummaries = [];
+  const summarizedApps = new Set();
+  for (const role of roles) {
+    if (role.selected === null || summarizedApps.has(role.selected)) {
+      continue;
+    }
+    const app = appById.get(role.selected);
+    if (!app) {
+      continue;
+    }
+    serviceSummaries.push({
+      id: app.id,
+      name: app.name,
+      role: role.name,
+      purpose: role.purpose,
+      selection: "chosen"
+    });
+    summarizedApps.add(app.id);
+  }
+  for (const dependency of dependencies.implied) {
+    if (summarizedApps.has(dependency.app)) {
+      continue;
+    }
+    const app = appById.get(dependency.app);
+    const parent = appById.get(dependency.requiredBy);
+    if (!app) {
+      continue;
+    }
+    let parentName = dependency.requiredBy;
+    if (parent) {
+      parentName = parent.name;
+    }
+    let purpose = DEPENDENCY_PURPOSES.get(app.id);
+    if (!purpose) {
+      purpose = `${app.name} provides supporting ${app.roles.join(" and ")} work needed by ${parentName}.`;
+    }
+    serviceSummaries.push({
+      id: app.id,
+      name: app.name,
+      role: "Required service",
+      purpose,
+      selection: "dependency"
+    });
+    summarizedApps.add(app.id);
+  }
+
+  const appFingerprints = appDetails.map((app) => ({
+    id: app.id,
+    dependencies: app.dependencies,
+    image: app.image,
+    lifecycle: app.lifecycle,
+    name: app.name,
+    pitfalls: app.pitfalls,
+    roles: app.roles,
+    security: app.security,
+    support: app.support,
+    upstream: app.upstream
+  }));
+  const hashInput = JSON.stringify({
+    catalogCheckedAt: catalog.taxonomy.checkedAt,
+    stack,
+    roles: roles.map((role) => [role.id, role.selected]),
+    apps: appFingerprints,
+    requiredCapabilities: dependencies.capabilities,
+    preferences: preferenceChoices
+  });
   const planId = createHash("sha256").update(hashInput).digest("hex").slice(0, 16);
   const acceptance = new Set(stack.acceptance);
   if (selectedIds.includes("gluetun")) {
@@ -1228,6 +1306,18 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     acceptance: [...acceptance],
     unresolved,
     preferences: preferenceChoices,
+    summary: {
+      goal: { id: stack.id, name: stack.name },
+      outcome: `Created a read-only plan for ${stack.name}.`,
+      services: serviceSummaries,
+      rememberedChoices: Object.keys(preferenceChoices).length,
+      currentHost: "not-inspected-by-router",
+      changed: [],
+      unchanged: ["No host services or files were changed."],
+      blockers: unresolved,
+      verification: "not-run-by-router",
+      next: "Inspect the current host and prove ownership before reusing or changing anything."
+    },
     selectedApps: appDetails.map((app) => ({
       id: app.id,
       name: app.name,

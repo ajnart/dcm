@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ajnart.dev/selfhost-skills/project-state.schema.json",
+  "title": "Selfhost secret-free project state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "revision", "createdAt", "updatedAt", "goalId", "selections", "plan", "checkpoint"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "createdAt": {"type": "string", "format": "date-time"},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "goalId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,62}$"},
+    "selections": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z0-9][a-z0-9._-]{0,62}$"},
+      "additionalProperties": {
+        "anyOf": [
+          {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,62}$"},
+          {"type": "null"}
+        ]
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "catalogCheckedAt"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+        "catalogCheckedAt": {
+          "anyOf": [
+            {"type": "string", "format": "date"},
+            {"type": "string", "format": "date-time"}
+          ]
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "recordedAt", "evidenceIds"],
+      "properties": {
+        "stage": {"enum": ["intent-recorded", "inspected", "planned", "applied", "verified"]},
+        "recordedAt": {"type": "string", "format": "date-time"},
+        "evidenceIds": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(inspection|apply|verify|manifest):[a-z0-9][a-z0-9._-]{0,31}$",
+            "allOf": [
+              {"not": {"pattern": "(password|passwd|secret|token|credential|api[-_]?key|private[-_]?key|cookie|session|gh[pousr]_|github_pat_|sk-|tskey-|xox[baprs]-)"}},
+              {"not": {"pattern": ":[a-z0-9]{24,}$"}}
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"stage": {"enum": ["inspected", "planned", "applied", "verified"]}}},
+          "then": {"properties": {"evidenceIds": {"contains": {"pattern": "^inspection:"}}}}
+        },
+        {
+          "if": {"properties": {"stage": {"enum": ["applied", "verified"]}}},
+          "then": {"properties": {"evidenceIds": {"contains": {"pattern": "^(apply|manifest):"}}}}
+        },
+        {
+          "if": {"properties": {"stage": {"const": "verified"}}},
+          "then": {"properties": {"evidenceIds": {"contains": {"pattern": "^verify:"}}}}
+        }
+      ]
+    }
+  }
+}

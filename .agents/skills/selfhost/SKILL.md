@@ -9,15 +9,19 @@ Turn a goal into a bounded plan. Treat planning and mutation as separate authori
 
 ## Route the request
 
-1. If no goal is present, run `node scripts/selfhost.mjs catalog menu` and show the short menu.
+1. If no goal is present, check only the exact current project root for `.selfhost/project.json`. When it exists, run `project status` and `project resume` for that root. Otherwise run `node scripts/selfhost.mjs catalog menu` and show the short menu. Never search unrelated directories for resumable state.
 2. Resolve a stated goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
 3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component and resolve every `unresolvedIntent` before planning against one shared host inspection. Never silently choose or drop one branch of a composite request.
 4. Search or inspect individual applications with `catalog search` and `catalog show`; avoid loading the whole JSON catalog into context.
-5. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing file under that project is an empty preference set, not an error.
-6. Run `stack plan "<request>"`. Present its role choices, alternatives, required skills, safety gates, and unresolved decisions.
-7. Confirm each named sibling skill is installed. If one is absent, keep the plan usable but mark apply as blocked and name the missing skill.
-8. Invoke `selfhost-host` for observed host facts before proposing any host-specific deployment. Invoke only the capability skills named by the plan.
-9. Stop at the redacted plan until the user separately approves an apply step owned by a capability or adapter skill.
+5. Confirm one exact project root. Read [references/project-state.md](references/project-state.md), then run `project status` when that root already has `.selfhost/project.json`. Use `project resume` instead of reconstructing its goal and service choices.
+6. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing preferences file is an empty choice set, not an error.
+7. Invoke `selfhost-host` for fresh observed facts on every new or returning run. Saved checkpoints explain prior intent but are stale until rechecked. Prove ownership before calling a resource reusable.
+8. For a new goal, run `stack plan "<request>"`. For a no-goal resume, use the plan rebuilt by `project resume`; do not require or invent a new request. Present its role choices, alternatives, required skills, safety gates, unresolved decisions, and plain-language service summary.
+9. Confirm each named sibling skill is installed. If one is absent, keep the plan usable but mark apply as blocked and name the missing skill. Invoke only the capabilities named by the plan.
+10. On a first run, after the user confirms the goal, service choices, and project root, disclose that only secret-free local resume state will be written and run `project init`. Do not let the planning command itself write state. If a record already exists, use `project revise` only for an explicitly changed choice.
+11. Record progress only from work that actually happened. After `project init`, record `inspected` only when `selfhost-host` supplied a fresh typed inspection evidence ID. Then record `planned` after the rebuilt plan and ownership decisions have been reviewed. Never invent an evidence ID; when evidence is unavailable, leave the checkpoint at its earlier stage. On later runs, advance only through the legal next stage and keep saved evidence stale until its owner rechecks it.
+12. Stop at the redacted plan until the user separately approves an apply step owned by a capability or adapter skill.
+13. End every run, including blocked and read-only runs, with what happened, what each selected service does, what current evidence says was reused or changed, what was not changed, blockers, and the next safe action.
 
 ## Commands
 
@@ -34,6 +38,12 @@ node scripts/selfhost.mjs catalog validate [--json]
 node scripts/selfhost.mjs stack resolve <goal...> [--json]
 node scripts/selfhost.mjs stack plan <goal...> [--select role=app] [--project-root ABSOLUTE | --preferences ABSOLUTE] [--json]
 
+node scripts/selfhost.mjs project init <goal...> --project-root ABSOLUTE [--select role=app] [--json]
+node scripts/selfhost.mjs project revise <same-goal...> --project-root ABSOLUTE [--select role=app] [--json]
+node scripts/selfhost.mjs project status --project-root ABSOLUTE [--json]
+node scripts/selfhost.mjs project resume --project-root ABSOLUTE [--json]
+node scripts/selfhost.mjs project checkpoint <inspected|planned|applied|verified> --project-root ABSOLUTE [--evidence TYPE:ID] [--json]
+
 node scripts/selfhost.mjs preferences init (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
 node scripts/selfhost.mjs preferences show (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
 node scripts/selfhost.mjs preferences set <field> <value> (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
@@ -41,6 +51,13 @@ node scripts/selfhost.mjs preferences validate (--project-root ABSOLUTE | --path
 ```
 
 `--project-root` must name an existing absolute real directory and derives `<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file alternative. Omitting both uses no stored preferences for planning and is rejected for preference writes. Paths inside the installed skill are rejected. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
+
+The same root derives `<project>/.selfhost/project.json`. `project init` creates
+it without replacing an existing record. `project revise` may change service
+choices only for the same goal and clears old progress. `project status` and
+`project resume` never inspect or change the host. A resumed plan always marks
+saved inspection and evidence as stale until `selfhost-host` and the owning
+capabilities provide fresh proof.
 
 Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Preserve that choice inside composites such as `photos and VPN`; clarification is mandatory before planning. Phrases such as `route qBittorrent through VPN` resolve to downloader privacy, while `access from phone` resolves to remote access. Clear combinations such as `photos and backups` and `make Immich private on my phone` return a composition instead of dropping one intent.
 
@@ -68,5 +85,6 @@ Never put credentials, tokens, keys, cookies, secret values, or raw rendered Com
 - Read [references/catalog.md](references/catalog.md) when adding or reviewing taxonomy, app, or goal records.
 - Read [references/planning.md](references/planning.md) when composing capability skills, approval gates, or acceptance evidence.
 - Read [references/preferences.md](references/preferences.md) when changing preference fields, persistence, or redaction behavior.
+- Read [references/project-state.md](references/project-state.md) when resuming prior work, recording progress, or changing the final summary.
 
-Completion means the goal resolves deterministically, every selected role has a reason and alternative, required sibling skills are named, unresolved host decisions and gates are visible, and no host mutation occurred.
+Completion means the goal resolves deterministically, every selected service has a plain-language purpose, required sibling skills are named, prior project context is separated from current host evidence, unresolved decisions and gates are visible, the final summary says exactly what did and did not happen, and no unapproved host mutation occurred.

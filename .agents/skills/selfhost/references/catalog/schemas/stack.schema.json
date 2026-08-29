@@ -18,7 +18,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "required", "default", "choices", "reason", "gates"],
+        "required": ["id", "name", "required", "default", "choices", "reason", "purpose", "gates"],
         "properties": {
           "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
           "name": {"type": "string"},
@@ -26,6 +26,7 @@
           "default": {"type": ["string", "null"]},
           "choices": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
           "reason": {"type": "string", "minLength": 8},
+          "purpose": {"type": "string", "minLength": 8},
           "gates": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
         }
       }

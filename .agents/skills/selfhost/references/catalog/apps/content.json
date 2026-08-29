@@ -21,7 +21,7 @@
     "id": "seerr", "name": "Seerr", "aliases": ["media requests", "request movies", "request tv"], "categories": ["requests", "media"], "roles": ["media-request"],
     "upstream": {"url": "https://seerr.dev/", "repository": "https://github.com/seerr-team/seerr", "docs": "https://docs.seerr.dev/getting-started/docker/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
     "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Seerr supersedes Jellyseerr and Overseerr for new installs."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Seerr"},
-    "dependencies": ["jellyfin", "sonarr", "radarr"], "alternatives": ["jellyseerr"], "security": ["Keep API credentials in secret storage and scope public access."], "pitfalls": ["A container cannot reach a sibling through localhost; use service DNS."], "sources": ["https://docs.seerr.dev/getting-started/docker/", "https://docs.seerr.dev/blog/seerr-release/"]
+    "dependencies": ["capability:media-server", "sonarr", "radarr"], "alternatives": ["jellyseerr"], "security": ["Keep API credentials in secret storage and scope public access."], "pitfalls": ["A container cannot reach a sibling through localhost; use service DNS."], "sources": ["https://docs.seerr.dev/getting-started/docker/", "https://docs.seerr.dev/blog/seerr-release/"]
   },
   {
     "id": "sonarr", "name": "Sonarr", "aliases": ["tv automation", "tv manager"], "categories": ["requests", "media"], "roles": ["tv-automation"],

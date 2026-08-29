@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { access, chmod, lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
+import { access, chmod, lstat, mkdir, open, readFile, realpath, rename, unlink } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -272,6 +272,15 @@ export async function preferencesPathForProjectRoot(projectRoot) {
   if (rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) {
     throw new PreferenceError("Project root must be a real directory, not a link or special file.");
   }
+  let canonicalRoot;
+  try {
+    canonicalRoot = await realpath(absoluteRoot);
+  } catch {
+    throw new PreferenceError("Project root cannot be resolved safely.");
+  }
+  if (canonicalRoot !== absoluteRoot) {
+    throw new PreferenceError("Project root must not traverse symbolic links.");
+  }
   return resolvePreferencesPath(join(absoluteRoot, DEFAULT_PREFERENCES_RELATIVE_PATH));
 }
 
@@ -297,15 +306,28 @@ export async function loadPreferences(path, options = {}) {
   if (parentInfo.isSymbolicLink() || !parentInfo.isDirectory()) {
     throw new PreferenceError("Preferences directory must be a real directory, not a link or special file.");
   }
-  if (process.platform !== "win32" && basename(parentPath) === ".selfhost" && (parentInfo.mode & 0o077) !== 0) {
-    throw new PreferenceError("Preferences directory permissions are too broad; require mode 0700 or stricter.");
+  if (await realpath(parentPath) !== parentPath) {
+    throw new PreferenceError("Preferences path must not traverse symbolic links.");
+  }
+  if (process.platform !== "win32" && basename(parentPath) === ".selfhost") {
+    if ((parentInfo.mode & 0o7077) !== 0) {
+      throw new PreferenceError("Preferences directory permissions are too broad; require mode 0700 or stricter.");
+    }
+    if (parentInfo.uid !== process.getuid() || parentInfo.gid !== process.getgid()) {
+      throw new PreferenceError("Preferences directory must be owned by the current user and group.");
+    }
   }
   const fileInfo = await lstat(absolutePath);
-  if (fileInfo.isSymbolicLink() || !fileInfo.isFile()) {
-    throw new PreferenceError("Preferences path must be a regular file, not a link or special file.");
+  if (fileInfo.isSymbolicLink() || !fileInfo.isFile() || fileInfo.nlink !== 1) {
+    throw new PreferenceError("Preferences path must be one regular file, not a link or special file.");
   }
-  if (process.platform !== "win32" && (fileInfo.mode & 0o077) !== 0) {
-    throw new PreferenceError("Preferences file permissions are too broad; require mode 0600 or stricter.");
+  if (process.platform !== "win32") {
+    if ((fileInfo.mode & 0o7177) !== 0) {
+      throw new PreferenceError("Preferences file permissions are too broad; require mode 0600 or stricter.");
+    }
+    if (fileInfo.uid !== process.getuid() || fileInfo.gid !== process.getgid()) {
+      throw new PreferenceError("Preferences file must be owned by the current user and group.");
+    }
   }
   let document;
   try {
@@ -330,19 +352,180 @@ async function ensurePrivateDirectory(path) {
     if (error.code !== "ENOENT") {
       throw new PreferenceError(`Unable to inspect preferences directory: ${error.code || "inspection error"}`);
     }
+    let canonicalParent;
+    try {
+      canonicalParent = await realpath(dirname(directory));
+    } catch {
+      throw new PreferenceError("Preferences directory parent cannot be resolved safely.");
+    }
+    if (canonicalParent !== dirname(directory)) {
+      throw new PreferenceError("Preferences path must not traverse symbolic links.");
+    }
     await mkdir(directory, { mode: 0o700 });
     created = true;
+    directoryInfo = await lstat(directory);
   }
   if (directoryInfo && (directoryInfo.isSymbolicLink() || !directoryInfo.isDirectory())) {
     throw new PreferenceError("Preferences directory must be a real directory, not a link or special file.");
   }
+  let canonicalDirectory;
+  try {
+    canonicalDirectory = await realpath(directory);
+  } catch {
+    throw new PreferenceError("Preferences directory cannot be resolved safely.");
+  }
+  if (canonicalDirectory !== directory) {
+    throw new PreferenceError("Preferences path must not traverse symbolic links.");
+  }
+  if (process.platform !== "win32" && basename(directory) === ".selfhost") {
+    if (directoryInfo.uid !== process.getuid() || directoryInfo.gid !== process.getgid()) {
+      throw new PreferenceError("Preferences directory must be owned by the current user and group.");
+    }
+  }
   if (created || basename(directory) === ".selfhost") {
     await chmod(directory, 0o700);
   }
+  let ignoreCreated = false;
+  if (basename(directory) === ".selfhost") {
+    const ignoreResult = await ensureLocalStateIgnore(directory);
+    ignoreCreated = ignoreResult.created;
+  }
+  return { directory, ignoreCreated };
+}
+
+async function syncDirectory(directory) {
+  let handle;
+  try {
+    handle = await open(directory, "r");
+    await handle.sync();
+  } catch {
+    // Directory fsync is not supported on every platform.
+  } finally {
+    if (handle) {
+      await handle.close();
+    }
+  }
+}
+
+export async function withLocalStateLock(directory, operation) {
+  const lockPath = join(directory, ".project.lock");
+  let handle;
+  let lockInfo;
+  try {
+    handle = await open(lockPath, "wx", 0o600);
+    await handle.writeFile("locked\n", "utf8");
+    await handle.sync();
+    lockInfo = await handle.stat();
+  } catch (error) {
+    if (handle) {
+      await handle.close();
+      try {
+        await unlink(lockPath);
+      } catch {
+        // The failed lock may already be absent.
+      }
+    }
+    if (error.code === "EEXIST") {
+      throw new PreferenceError("Another local-state update is active. Retry after it finishes.");
+    }
+    throw new PreferenceError("Unable to acquire the private local-state lock.");
+  }
+
+  let result;
+  let operationError = null;
+  try {
+    result = await operation();
+  } catch (error) {
+    operationError = error;
+  }
+
+  let releaseError = null;
+  try {
+    await handle.close();
+    const currentInfo = await lstat(lockPath);
+    const unchanged = currentInfo.isFile()
+      && !currentInfo.isSymbolicLink()
+      && currentInfo.nlink === 1
+      && currentInfo.dev === lockInfo.dev
+      && currentInfo.ino === lockInfo.ino;
+    if (!unchanged) {
+      throw new PreferenceError("Local-state lock changed unexpectedly before release.");
+    }
+    await unlink(lockPath);
+    await syncDirectory(directory);
+  } catch (error) {
+    releaseError = error;
+  }
+  if (operationError) {
+    throw operationError;
+  }
+  if (releaseError) {
+    throw releaseError;
+  }
+  return result;
+}
+
+export async function ensureLocalStateIgnore(directory) {
+  const ignorePath = join(directory, ".gitignore");
+  let info;
+  try {
+    info = await lstat(ignorePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      throw new PreferenceError("Unable to inspect the local-state ignore file.");
+    }
+    let handle;
+    let created = false;
+    try {
+      handle = await open(ignorePath, "wx", 0o600);
+      created = true;
+      await handle.writeFile("*\n", "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = null;
+      await chmod(ignorePath, 0o600);
+      return { created: true };
+    } catch (writeError) {
+      if (handle) {
+        await handle.close();
+      }
+      if (created) {
+        try {
+          await unlink(ignorePath);
+        } catch {
+          // The incomplete ignore file may already be absent.
+        }
+      }
+      if (writeError.code !== "EEXIST") {
+        throw new PreferenceError("Unable to create the local-state ignore file safely.");
+      }
+      info = await lstat(ignorePath);
+    }
+  }
+  if (info.isSymbolicLink() || !info.isFile() || info.nlink !== 1) {
+    throw new PreferenceError("The local-state ignore path must be one regular file.");
+  }
+  if (process.platform !== "win32") {
+    if ((info.mode & 0o7177) !== 0) {
+      throw new PreferenceError("The local-state ignore file has unsafe permissions.");
+    }
+    if (info.uid !== process.getuid() || info.gid !== process.getgid()) {
+      throw new PreferenceError("The local-state ignore file must be owned by the current user and group.");
+    }
+  }
+  let content;
+  try {
+    content = await readFile(ignorePath, "utf8");
+  } catch {
+    throw new PreferenceError("The local-state ignore file cannot be read safely.");
+  }
+  if (content !== "*\n") {
+    throw new PreferenceError("The local-state ignore file must contain only the documented wildcard rule.");
+  }
+  return { created: false };
 }
 
 async function atomicPrivateWrite(path, document) {
-  await ensurePrivateDirectory(path);
   const suffix = randomBytes(8).toString("hex");
   const temporaryPath = join(dirname(path), `.preferences.${process.pid}.${suffix}.tmp`);
   let handle;
@@ -355,6 +538,7 @@ async function atomicPrivateWrite(path, document) {
     await chmod(temporaryPath, 0o600);
     await rename(temporaryPath, path);
     await chmod(path, 0o600);
+    await syncDirectory(dirname(path));
   } catch (error) {
     if (handle) {
       await handle.close();
@@ -370,29 +554,36 @@ async function atomicPrivateWrite(path, document) {
 
 export async function initPreferences(path) {
   const absolutePath = resolvePreferencesPath(path);
-  if (await exists(absolutePath)) {
-    const loaded = await loadPreferences(path);
-    return { path: loaded.path, created: false, document: loaded.document };
-  }
-  const document = emptyPreferences();
-  await atomicPrivateWrite(absolutePath, document);
-  return { path: absolutePath, created: true, document };
+  const directoryState = await ensurePrivateDirectory(absolutePath);
+  return withLocalStateLock(dirname(absolutePath), async () => {
+    if (await exists(absolutePath)) {
+      const loaded = await loadPreferences(path);
+      return { path: loaded.path, created: false, ignoreCreated: directoryState.ignoreCreated, document: loaded.document };
+    }
+    const document = emptyPreferences();
+    await atomicPrivateWrite(absolutePath, document);
+    return { path: absolutePath, created: true, ignoreCreated: directoryState.ignoreCreated, document };
+  });
 }
 
 export async function setPreference(field, rawValue, path) {
   const value = parsePreferenceValue(rawValue);
   ensureSafeFieldAndValue(field, value);
   validateFieldValue(field, value);
-  const loaded = await loadPreferences(path, { allowMissing: true });
-  const timestamp = now();
-  loaded.document.choices[field] = { value, source: "chosen", updatedAt: timestamp };
-  loaded.document.updatedAt = timestamp;
-  const validation = validatePreferencesDocument(loaded.document);
-  if (!validation.valid) {
-    throw new PreferenceError(`Preferences validation failed: ${validation.errors.join(" ")}`);
-  }
-  await atomicPrivateWrite(loaded.path, loaded.document);
-  return { path: loaded.path, field, updated: true };
+  const absolutePath = resolvePreferencesPath(path);
+  const directoryState = await ensurePrivateDirectory(absolutePath);
+  return withLocalStateLock(dirname(absolutePath), async () => {
+    const loaded = await loadPreferences(absolutePath, { allowMissing: true });
+    const timestamp = now();
+    loaded.document.choices[field] = { value, source: "chosen", updatedAt: timestamp };
+    loaded.document.updatedAt = timestamp;
+    const validation = validatePreferencesDocument(loaded.document);
+    if (!validation.valid) {
+      throw new PreferenceError(`Preferences validation failed: ${validation.errors.join(" ")}`);
+    }
+    await atomicPrivateWrite(loaded.path, loaded.document);
+    return { path: loaded.path, field, updated: true, ignoreCreated: directoryState.ignoreCreated };
+  });
 }
 
 export function publicPreferences(document) {

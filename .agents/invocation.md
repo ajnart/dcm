@@ -12,8 +12,18 @@ the goal, inspects what is safe to inspect, loads non-secret preferences,
 selects a stack, and presents a redacted plan. It asks only for decisions that
 materially change storage, exposure, secrets, destructive work, or rollback.
 
-When no goal is supplied, it presents categories and a small set of common
-goals. It does not dump every catalog record into the context window.
+For a returning project, load `.selfhost/project.json` plus confirmed non-secret
+preferences from its exact project root. The project record keeps the goal,
+service choices, plan fingerprint, checkpoint, and bounded evidence IDs; it
+does not keep raw host truth. Then inspect the real host again. Saved context
+explains intent; it does not prove that a container, network, port, path, proxy,
+or backup is still present or healthy. Resume at the first incomplete stage and
+never adopt a same-name resource without ownership evidence.
+
+When no goal is supplied, first check only the exact current project root. If
+it contains `.selfhost/project.json`, resume its recorded goal and service
+choices. Only a root without saved state gets the categories and small set of
+common goals. Never dump every catalog record into the context window.
 
 ## Capability skills
 
@@ -46,6 +56,23 @@ when it has reusable special behavior beyond declarative facts.
 7. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
    plan selected those capabilities.
 8. Persist only confirmed non-secret preferences and evidence paths.
+
+## Required end summary
+
+Every invocation ends with a short plain-language summary, including blocked
+or read-only runs. State:
+
+- the user's goal;
+- what was inspected, planned, changed, and verified;
+- what each selected service does;
+- which owned resources were reused, created, left unchanged, or conflicted;
+- unresolved decisions and blockers; and
+- the next safe action.
+
+Do not hide uncertainty behind internal status names. Translate them for the
+user while retaining exact structured values in machine-readable output. Say
+explicitly when a plan changed nothing, when host state was not observable, or
+when evidence was too weak or stale to verify a claim.
 
 Capability output uses `pass`, `warn`, `blocked`, or `conflict`. A capability
 must not silently repair a failed verification unless the user asked it to

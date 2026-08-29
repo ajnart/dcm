@@ -1,352 +1,222 @@
-# selfhost-skills
+# Replace subscriptions with private services you own
 
-A private, composable Agent Skills pack for planning, deploying, and operating
-self-hosted software without turning a broad request into an unreviewed host
-change.
+Run popular services on your hardware, keep control of your data, and reuse the
+server you already have. `selfhost-skills` helps an agent plan and operate a
+private setup without treating a broad request as permission to change your
+host.
 
-## Install
+Not every subscription has a practical self-hosted replacement. The catalog
+shows the tradeoffs and keeps the final choice yours.
 
-The recommended private-repository install puts all 12 packaged skills into
-Codex and Claude Code only:
+## Install once
+
+The recommended private-repository install adds all 12 packaged skills to Codex
+and Claude Code:
 
 ```bash
 npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
 
+Before running it, install Git and Node.js 22.20.0 or newer, including npm/npx.
+Node.js 24 is recommended. Give Git access to the private repository with your
+existing credential helper, `gh auth login`, or SSH. Never place a repository
+token in the command, a clone URL, a prompt, shell history, or a checked-in
+file.
+
 `--all` is deliberately broader: it selects every skill for every agent target
 supported by the CLI. Use it only when that fan-out is intentional.
 
-Before running it, install Git and Node.js 22.20.0 or newer, including npm/npx;
-Node.js 24 is the recommended installer runtime. The current `skills` CLI does
-not start on Node.js 18. Give Git access to the private GitHub repository
-through an existing credential helper, `gh auth login` plus Git integration,
-or a configured SSH key. Verify that access independently first.
+## Ask for what you want
 
-Private repository tokens never belong in an install command, clone URL,
-prompt, shell history, or checked-in file. The installer uses the Git
-authentication already configured on the machine.
-
-## Invoke it
-
-| Client or style | Example |
+| Client | Example |
 | --- | --- |
 | Claude Code | `/selfhost netflix` |
 | Codex | `$selfhost netflix` |
-| Interactive menu | `/selfhost` |
+| Either | `/selfhost` to browse common goals |
 | Natural language | “Help me replace Google Photos on my existing server.” |
 
-The same router understands goals such as `netflix`, `photos`, `pdf`,
-`backups`, `remote access`, and “route qBittorrent through a VPN.” A bare
-`vpn` is intentionally ambiguous: private remote access and downloader-only
-egress are different designs.
+More examples:
 
-Installing or invoking a skill grants no host authority. The workflow is:
+```text
+/selfhost photos
+/selfhost documents and OCR
+/selfhost backups
+/selfhost remote access
+/selfhost route qBittorrent through a VPN
+```
+
+A bare `vpn` stays ambiguous because private remote access and downloader-only
+VPN routing solve different problems.
+
+## What can it replace?
+
+| Goal | Common self-hosted choices | What they do |
+| --- | --- | --- |
+| Streaming library | Jellyfin, Seerr, Sonarr, Radarr | Play owned media and organize requests |
+| Google Photos | Immich | Back up, browse, and share photos |
+| Dropbox or Drive | Nextcloud, Syncthing | Store or synchronize files |
+| Document subscriptions | Paperless-ngx, Stirling PDF | Search scanned documents and work with PDFs |
+| Password manager | Vaultwarden | Keep an encrypted password vault |
+| Home monitoring | Home Assistant, Frigate | Automate a home and manage camera events |
+| Remote access | Tailscale, Headscale, Caddy, Pangolin | Reach selected services safely |
+| Cloud AI tools | Ollama, Open WebUI | Run supported models on your own hardware |
+
+The validated catalog contains 107 applications across media, photos,
+documents, files, passwords, home automation, networking, monitoring, backups,
+containers, developer tools, productivity, databases, storage, and local AI.
+
+## Every run ends in plain language
+
+The final summary tells you:
+
+- what the agent inspected, planned, changed, and verified;
+- what every selected service does;
+- what existing containers, networks, paths, or proxies it reused—or that the
+  current host could not be inspected;
+- what it left unchanged;
+- what is blocked or still needs your decision; and
+- the safest next step.
+
+A planning run says clearly that it changed nothing. A running container or an
+HTTP 200 response is reported as a narrow observation, not proof that the whole
+service works.
+
+## Returning to an existing setup
+
+Use the same project root when you return. The workflow loads confirmed,
+secret-free choices and prior progress from:
+
+```text
+.selfhost/preferences.json
+.selfhost/project.json
+```
+
+`preferences.json` remembers choices such as paths and exposure.
+`project.json` remembers the goal, selected services, plan fingerprint,
+workflow checkpoint, and short opaque evidence IDs—not credentials or raw host
+data. Invoke `/selfhost` or `$selfhost` again from the same project folder to
+rebuild the current plan. With no new goal, the skill checks only that folder
+for saved state before it shows the catalog menu.
+The first local-state write also creates `.selfhost/.gitignore`, so these files
+do not rely on the target repository already having an ignore rule.
+
+The workflow still re-inspects the real host because containers, ports, disks,
+networks, and proxies may have changed since the previous run. Saved progress
+is stale until that check succeeds. Existing resources are marked `reuse`,
+`coexist`, or `conflict` only after ownership is known. A familiar name is
+never enough to auto-adopt a container or network.
+
+Preferences may remember paths, locale, exposure, and backup choices with their
+source. Credentials, tokens, keys, cookies, and other secrets are rejected.
+
+## Safe by default
+
+Every workflow follows:
 
 ```text
 inspect -> plan -> approval -> apply -> verify
 ```
 
-Inspection and planning are read-only. A mutation happens only after the user
-approves the bounded owner, project, paths, exposure, and operation. Public
-reachability, destructive work, downloader VPN routing, expanded privilege,
-and forward-only migrations have separate gates.
+Inspection and planning are read-only. Applying changes requires approval for
+the exact project, paths, network exposure, and operation. Public access,
+destructive work, downloader VPN routing, extra privileges, and migrations have
+separate gates.
 
-## How the pack is composed
+The default is local, LAN, or private-tailnet access. A public route needs one
+clear owner for DNS, TLS, ports 80/443, and authentication. The pack never runs
+a host-wide Docker teardown, prunes volumes, or casually mounts the Docker
+socket.
 
-`selfhost` is the user-facing router. It resolves intent through a declarative
-catalog, loads non-secret preferences, asks only for material choices, and
-selects focused capabilities:
+Downloader VPN safety requires a recorded tunnel-break test that proves traffic
+fails closed. Backup safety requires an isolated restore; a backup file on the
+same disk is not independent recovery.
 
-| Skill | Boundary |
+## Small skills that compose
+
+`selfhost` is the user-facing router. It selects only the capabilities needed
+for the goal:
+
+| Skill | Plain-language job |
 | --- | --- |
-| `selfhost-host` | Read-only host, runtime, port, identity, and storage inspection |
-| `selfhost-compose` | One explicitly owned Docker Compose project |
-| `selfhost-ingress` | LAN, tailnet, reverse proxy, DNS, TLS, and tunnels |
-| `selfhost-vpn` | Downloader-only VPN topology and kill-switch evidence |
-| `selfhost-backup` | Backup policy, consistency, retention, and restore proof |
-| `selfhost-observe` | Health, APIs, dependencies, edge, storage, logs, metrics, and alerts |
-| `selfhost-operations` | Upgrades, migrations, troubleshooting, rollback, and recovery |
-| `selfhost-research` | Current primary-source, lifecycle, Compose, link, and browser research |
-| `selfhost-verify` | Independent, secret-free acceptance aggregation |
-| `selfhost-media` | Managed seven-service personal-media adapter and packaged harness |
-| `selfhost-homarr` | Homarr app, integration, widget, API, and MCP workflow |
+| `selfhost-host` | Inspect the current host and recommend safe paths |
+| `selfhost-compose` | Own one clearly identified Docker Compose project |
+| `selfhost-ingress` | Plan LAN, tailnet, reverse proxy, DNS, TLS, or tunnels |
+| `selfhost-vpn` | Isolate only the downloader behind a VPN |
+| `selfhost-backup` | Plan backups and prove recovery with a restore |
+| `selfhost-observe` | Plan health checks, logs, metrics, and alerts |
+| `selfhost-operations` | Plan upgrades, migrations, rollback, and recovery |
+| `selfhost-research` | Gather current official deployment evidence |
+| `selfhost-verify` | Independently decide whether evidence is sufficient |
+| `selfhost-media` | Manage the seven-service personal-media harness |
+| `selfhost-homarr` | Plan and verify Homarr, its API, and its MCP access |
 
-The checked pack registry contains 12 packaged skills, including 2 application adapters:
-`selfhost-media` and `selfhost-homarr`. Its declarations at
-`.agents/skills/selfhost/references/catalog/skills.json` must exactly match the
-installed skill directories. Adding, removing, or renaming a skill therefore
-updates the registry in the same change; only application adapters set
-`adapter: true`.
+The checked registry contains 12 packaged skills, including 2 application adapters:
+`selfhost-media` and `selfhost-homarr`. The registry is
+`.agents/skills/selfhost/references/catalog/skills.json`. Capabilities remain
+separate so a photo setup does not inherit media or public-network authority.
 
-Capabilities stay separate so a photo plan does not load a media runbook and an
-ingress decision does not inherit Docker authority. An application gets a
-dedicated skill only when it has reusable behavior that declarative catalog
-data cannot safely express.
+## Media and Homarr boundary
 
-## Catalog and goals
-
-The validated catalog contains 107 applications across 27 broad categories:
-media and
-downloads; photos; documents and OCR; files and sync; passwords and identity;
-home automation and cameras; DNS, firewalls, ingress, and private access;
-monitoring and observability; backups; containers, NAS, and virtualization;
-developer tools; productivity and communication; analytics; databases and
-storage; and local AI.
-
-Current goal stacks cover:
-
-- personal media;
-- photos and mobile backup;
-- documents, PDF, and OCR;
-- files and synchronization;
-- password vaults;
-- home automation;
-- remote access;
-- backups and disaster recovery;
-- monitoring and observability;
-- DNS and network filtering;
-- local AI;
-- downloader privacy; and
-- a new hosting platform.
-
-Catalog priority and automation confidence are different axes:
-
-| Field | Meaning |
-| --- | --- |
-| `managed` | A versioned adapter owns deterministic render, preflight, idempotent apply, acceptance, and rollback |
-| `guided` | Current primary guidance and safety gates exist; generation remains host-specific |
-| `discovery` | Selection and lifecycle context only; no deployment promise |
-| `retired` | Migration and replacement routing only |
-| `T0 / T1 / T2` | Curation priority, not deployment confidence or product quality |
-
-A T0 app can still be guided, and a T2 alternative can be the right choice for
-specific hardware, licensing, or operating constraints.
-
-## Host, storage, and existing infrastructure
-
-The host capability observes only bounded, redacted facts. It distinguishes
-`not_installed` from `not_observable` and separates observed facts, user
-choices, and derived recommendations. It supports macOS and Mac mini, Linux
-and VPS hosts, Unraid, TrueNAS SCALE, and Proxmox VM/LXC decisions.
-
-Confirmed non-secret choices may be stored at:
+The managed owned-content stack connects Seerr, Jellyfin, Sonarr, Radarr,
+Prowlarr, qBittorrent, and Homarr. Homarr must use exactly:
 
 ```text
-.selfhost/preferences.json
+ghcr.io/homarr-labs/homarr-test:v2
 ```
 
-Preferences can contain logical path choices, locale, exposure class, backup
-cadence, and provenance. They reject credentials, tokens, keys, cookies, and
-secret-like values. The file is local runtime state and is ignored by Git.
-
-Storage planning keeps configuration, databases, downloads, media, caches, and
-backups distinct. Databases and caches may use Docker-managed volumes on
-macOS; Linux and NAS paths retain their platform ownership and ACL model.
-Media automation uses one consistent container view such as `/data`, and
-downloads plus media must share a filesystem when hardlinks or atomic moves
-are expected. A backup on the same disk or pool is staging, not independent
-recovery.
-
-Existing containers, networks, ports, storage, and proxies are classified as
-`reuse`, `coexist`, or `conflict` only after their owner and lifecycle are
-known. The pack never adopts infrastructure because its name merely looks
-familiar.
-
-## Docker Compose and access
-
-The Compose capability owns one context, project ID, manifest, network set,
-path set, and exact file. It rejects floating production inputs, ambiguous
-ownership, public protected ports, unsafe privilege, Docker socket mounts, and
-secret values. Rendering, `docker compose config` preflight, apply, stop, and
-acceptance remain separate stages. It never performs a host-wide teardown,
-volume prune, or routine `down --volumes`.
-
-Access is private-first:
-
-- local or LAN binding when remote access is unnecessary;
-- Tailscale Serve for private tailnet access, or Headscale when the operator
-  intentionally owns the coordination plane;
-- one existing Caddy, Traefik, or Nginx Proxy Manager owner for public
-  DNS/TLS/80/443;
-- Cloudflare Tunnel or Pangolin/Newt for an explicitly approved public route;
-  and
-- ngrok only for an approved, expiring development endpoint.
-
-A tunnel supplies transport, not authorization. Databases, Docker control,
-identity administration, Arr services, and downloader administration remain
-private.
-
-Downloader privacy is a separate capability. Only the downloader joins the
-Gluetun or WireGuard gateway namespace; Arr, Seerr, Jellyfin, Homarr, proxies,
-and host administration stay on their normal private network. A healthy tunnel
-is not proof. Acceptance requires a recorded tunnel-break test in which
-external IP and DNS access fail closed while the downloader remains running,
-followed by restored VPN egress.
-
-## Backups, observability, and operations
-
-A backup plan classifies configuration, durable user data, databases, and
-rebuildable caches. It records application-consistent capture, independent
-encrypted off-host storage, retention, immutability or offline protection,
-RPO/RTO, owners, alerts, and recovery-key custody through opaque references.
-Only a timestamped restore into an isolated target can promote the narrow
-restore claim to verified.
-
-Observability covers process state, application readiness, dependencies, edge
-DNS/TLS/auth, storage, backup freshness, logs, metrics, alerts, and routing.
-`planned`, `configured`, and `observed` are distinct states. HTTP 200 or a
-running container is never whole-application acceptance.
-
-Upgrade and migration plans preserve current versions, compatibility evidence,
-backup and restore gates, health and acceptance checks, and an executable
-rollback or forward-recovery path. Every Compose mutation is delegated to the
-Compose owner.
-
-## Homarr: links, integrations, widgets, API, and MCP
-
-Homarr models three different things:
-
-- an **app tile** is primarily a board link plus a status/ping surface;
-- an **integration** is a credentialed backend connection; and
-- a **widget** presents data and may consume an integration.
-
-A generic app tile does not prove an official integration, and an integration
-does not prove that its widget works. The catalog records those claims
-separately. The audited v2 surface contains 54 standard external integration
-kinds, with Docker and Kubernetes documented as separate system surfaces.
-
-The managed workflow keeps the Homarr API key in a private profile and uses
-canonical `/api/mcp`. A local stdio bridge injects that key at runtime, so a
-generated client fragment contains only the Node executable, bridge path, and
-non-secret profile path. The key, Homarr URL, credential-file path, and
-credential environment-variable name never enter client configuration. The
-default client fragment remains strictly read-only and its real merge requires
-`INSTALL-MCP:<profile>`. The bridge prefers Homarr's native catalog; its
-three-tool read-only projection is enforced when native listing works, and the
-same curated schemas are used only for the exact known Date JSON-Schema failure
-in `tools/list`.
-
-If the user says “add Spider-Man,” the default bridge may search, present an
-exact structured match, and ask for confirmation, but it still stops without
-submitting a request. Search evidence and confirmation do not expand a
-read-only fragment's authority.
+Homarr app tiles, integrations, and widgets are verified as separate claims.
+Its API key stays in a private profile and the local bridge injects it at
+runtime. The default client fragment remains strictly read-only. It can search
+for a movie, show the exact match, and ask for confirmation, but it does not
+submit a request.
 
 The pack does not provide a mutation-capable Homarr client fragment or bridge.
 `integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`, and
-every other unapproved tool remain unavailable even after confirmation.
+other unapproved tools remain unavailable. The media stack supports only
+legally obtained, owned, public-domain, or otherwise authorized content.
 
-## Managed seven-service media graph
+## Install fewer skills
 
-The first managed adapter is a private owned-content graph:
-
-```text
-Seerr -> Jellyfin
-      -> Sonarr / Radarr -> Prowlarr -> qBittorrent
-Homarr -> six integrations, six generated app tiles, and integration widgets
-```
-
-The seven services are Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin,
-and Homarr. The required Homarr image is exactly
-`ghcr.io/homarr-labs/homarr-test:v2`.
-
-The packaged harness assigns every candidate a unique `RUN_ID`. That identifier
-owns its Compose project, network, ports, state root, browser session, private
-secret store, and evidence. Parallel candidates may share the checkout but may
-not inspect, reuse, stop, or modify another run.
-
-The prompt-survival history is intentionally preserved:
-
-| Generation | Result |
-| --- | --- |
-| 1 | Both Luna candidates were disqualified; a supervisor trace established the complete reference path |
-| 2 | Both isolated runs completed; candidate A survived with 64 meaningful actions versus 70 |
-| 3 | Homarr API/MCP augmentation survived on both Generation 2 runs; A needed 4 extra actions versus 7 and remained promoted |
-| 4 | The survivor became the portable 12-skill pack and passed private install plus live dashboard acceptance |
-| 5 | Two fresh full-stack runs exposed one real widget-auth failure; the independently audited second run survived |
-
-Generation 3 proved native and bridged read-only search for “Spider-Man: No
-Way Home.” Generation 5 added fixed structural proof for every expected Homarr
-widget and exact Seerr-to-Jellyfin/Sonarr/Radarr verification. No candidate
-invoked a media request or started a download.
-
-This repository supports legally obtained, owned, public-domain, or otherwise
-authorized content only. It does not grant acquisition rights, choose
-infringing sources, or treat technical reachability as legal authorization.
-
-## Research and browser proof
-
-`selfhost-research` uses current primary sources, labels community packaging
-separately, records lifecycle and image provenance, validates status-aware
-links, and redacts extracted material before it is reported. Browser work uses
-an isolated named `agent-browser` session, an explicit domain allowlist, fresh
-accessibility references after navigation, no restored profile or auth state,
-and cleanup on every exit path.
-
-If Chromium cannot start with its sandbox, research stops with a browser
-environment prerequisite. Disabling the browser sandbox is an explicit human
-security decision and is never added automatically.
-
-## Selective installation
-
-List discoverable skills without installing:
+List the available skills without installing:
 
 ```bash
 npx skills@latest add ajnart/selfhost-skills --list
 ```
 
-For a smaller non-interactive install, replace `--skill '*'` in the recommended
-command with a named `--skill <name>` selection, repeat that flag as needed,
-and retain only the intended `--agent` targets. You can also omit the selection
-flags to use the CLI's interactive picker. Include every sibling listed under
-the selected stack's `requiredSkills`. A missing sibling leaves the plan
-readable but blocks apply; it is never silently substituted.
+For a smaller install, replace `--skill '*'` with a named selection such as
+`--skill selfhost-host`, repeat it as needed, and keep only the intended
+`--agent` targets. Install every required sibling named by the selected stack.
+A missing sibling blocks apply; it is never silently replaced.
 
-Use copy mode where symlinks are unavailable. The complete skill directory,
-including `scripts/`, `references/`, and `assets/`, is the installable unit.
+Use the `--copy` option where symlinks are unavailable. The complete skill
+directory, including `scripts/`, `references/`, and `assets/`, is the
+installable unit.
 
-## Missing prerequisite prompts
+## Requirements when something is missing
 
-Give an agent one of these compact prompts when a prerequisite is absent:
+- **Git and Node:** install Git and Node.js 22.20.0 or newer from a supported
+  source, preferably Node.js 24. Verify `git`, `node`, `npm`, and `npx`, then
+  configure private GitHub access without exposing a token.
+- **Docker:** install Docker Engine or Docker Desktop and Docker Compose v2 from
+  official platform documentation. Verify the intended Docker context before
+  starting containers or changing exposure.
+- **Browser checks:** install `agent-browser` from its current skill
+  instructions and use an isolated named session. Never disable Chromium's
+  sandbox automatically.
 
-> Inspect this host, then install Git and Node.js 22.20.0 or newer from their
-> supported upstream or OS package source; prefer Node.js 24. Verify
-> `git --version`, `node --version`, `npm --version`, and `npx --version`.
-> Configure private GitHub access through the existing credential helper,
-> GitHub CLI, or SSH. Do not put a token in a command, URL, prompt, or file.
+## Validate this repository
 
-> Inspect this host, then install Docker Engine or Docker Desktop and the
-> Docker Compose v2 plugin from official documentation for this platform.
-> Verify only `docker version`, `docker compose version`, and the intended
-> Docker context. Do not start containers, change firewall exposure, or mount
-> the Docker socket until the selfhost plan is approved.
-
-> Activate Node.js 22.20.0 or newer, preferably Node.js 24, then install and
-> verify `agent-browser` using its current official skill instructions. Load
-> its core workflow, create an isolated named session, and run a public
-> allowlisted preflight without authentication or restored state. If Chromium
-> requires `--no-sandbox`, stop and ask for explicit acceptance; never disable
-> the sandbox automatically.
-
-The media password helper never installs or downloads agent-browser. It first
-uses the active direct executable. Only a direct `ENOENT` retries the fixed
-`mise exec node@24 -- agent-browser` path; it never retries a launched nonzero
-browser action.
-
-## Validation
-
-The installed skill scripts and dependency-free repository gate target Node.js
-18 or newer. This lower runtime floor does not apply to the external installer:
+The dependency-free repository gate runs on Node.js 18 or newer. That lower
+floor does not apply to the external installer:
 
 ```bash
 node scripts/validate-repo.mjs
 node scripts/validate-repo.mjs --json
 ```
 
-It validates skill metadata and local references, essential README and
-contribution commands, JSON and catalog semantics, required sibling skills,
-the Homarr image contract, packaged media-bundle integrity and source drift,
-prohibited runtime material, and Node/Bash syntax. It does not use Docker, a
-browser, or the network.
+It checks skill metadata, references, catalog semantics, required sibling
+skills, the Homarr image, bundled media drift, prohibited runtime material, and
+Node/Bash syntax. It does not use Docker, a browser, or the network.
 
 The explicit installer smoke test is separate:
 
@@ -354,38 +224,35 @@ The explicit installer smoke test is separate:
 bash scripts/smoke-install.sh
 ```
 
-The smoke check requires Node.js 22.20.0 or newer. It validates first, resolves
-the current `skills` package through npx, proves the required CLI flags from
-local help output, and uses separate trap-owned projects to test the default
-canonical-copy-plus-symlink layout and explicit `--copy` layout. Each layout
-must preserve the exact skill payload. It never changes a real client or
-global configuration.
+The smoke check requires Node.js 22.20.0 or newer. It uses disposable projects
+to verify the default symlink layout and explicit copy layout without changing
+a real client or global configuration.
 
 ## Troubleshooting
 
-- **Private repository not found:** verify GitHub CLI/credential-helper or SSH
-  access directly. Keep tokens out of the command.
-- **A required skill is missing:** reinstall the full pack or install the
-  exact siblings named by the plan.
-- **Host facts are blocked:** grant only the narrow read capability needed, or
-  keep the field `not_observable`. Do not widen privileges for convenience.
-- **Catalog facts are stale:** refresh the official source, lifecycle date,
-  image provenance, and alternatives before proposing apply.
+- **Private repository not found:** verify GitHub CLI, credential-helper, or SSH
+  access directly. Keep tokens out of commands and URLs.
+- **A required skill is missing:** install the full pack or the exact siblings
+  named by the plan.
+- **Host facts are unavailable:** grant only the narrow read access needed, or
+  leave them unknown.
+- **Catalog facts are stale:** refresh official lifecycle, image, and deployment
+  evidence before applying a plan.
 - **Media bundle drift:** update the canonical harness through its owning
-  workflow and regenerate the packaged bundle; never patch the generated copy
-  to hide drift.
-- **Browser environment blocked:** satisfy the browser prerequisite or report
-  UI proof as unverified. Do not infer application failure.
+  workflow and regenerate the bundle. Do not patch the generated copy.
+- **Browser checks are blocked:** fix the browser prerequisite or report the UI
+  as unverified.
 
-## Affiliates, contributing, and license boundaries
+## Advanced reference
 
-The machine-readable affiliate registry is
-[`affiliates.json`](.agents/skills/selfhost/references/catalog/affiliates.json)
-and is currently empty. If an affiliate relationship is ever added, it must be
-disclosed beside the human-facing link and must not influence catalog ranking,
-defaults, or machine-readable selection.
+- [How invocation and composition work](.agents/invocation.md)
+- [Installation details](.agents/install.md)
+- [Shared concepts and safety model](.agents/CONTEXT.md)
+- [Catalog design](.agents/skills/selfhost/references/catalog.md)
+- [Media harness guide](docs/README.md)
+- [Contribution and release rules](CONTRIBUTING.md)
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for catalog, adapter, evidence, and
-release requirements. Product names, trademarks, upstream licenses, container
-image licenses, hosted-service terms, and media rights remain with their
+Affiliate relationships, if any are added later, must be disclosed beside the
+link and cannot influence rankings or defaults. Product names, trademarks,
+upstream licenses, hosted-service terms, and media rights remain with their
 respective owners.
