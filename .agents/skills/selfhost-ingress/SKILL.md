@@ -32,6 +32,7 @@ Use `--json` only for non-secret input that is safe in a process argument. The p
 
 - Keep service ports loopback-bound or private by default. A proxy or tunnel is the public edge; the backend is not a second edge.
 - Keep database, Docker API/socket, identity administration, Arr, downloader, qBittorrent, and general administration surfaces off the public internet. Provide private tailnet or LAN access instead.
+- For a media stack, Homarr's dashboard may be the single approved management edge while its Arr and downloader integrations stay private. Jellyfin may use a separate approved playback edge. Keep Homarr's native `/api/mcp` private and let the local read-only bridge reach it over loopback, LAN, or a private tailnet. A public dashboard route must deny that path and prove the denial from a public client; a public native MCP route requires a separate constrained profile and approval that this pack does not provide.
 - Require `publicApproved: true` and an approved authentication policy for every public or temporary route. A tunnel supplies transport, not application authorization.
 - Assign one owner per host port 80 and 443, DNS zone or hostname, and TLS certificate/termination point. Report competing owners as `conflict`; never steal a listener or edit another owner's route.
 - Keep Caddy certificate data and proxy configuration persistent. Treat Traefik Docker API access as privileged. Keep Nginx Proxy Manager administration private.

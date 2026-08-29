@@ -23,7 +23,7 @@ proof current.
 1. Use the exact project root supplied or confirmed by the user. Do not search
    unrelated directories for project state.
 2. Load the project record and confirmed non-secret preferences.
-3. Rebuild the plan against the current catalog and report any drift.
+3. Rebuild the plan against the current catalog and report any drift. A newly recommended optional role stays off unless its saved selection explicitly enables it.
 4. Run a fresh bounded `selfhost-host` inspection. Treat the saved checkpoint
    and evidence IDs as stale until their owners revalidate them.
 5. Prove ownership before classifying each relevant resource as `reuse`,

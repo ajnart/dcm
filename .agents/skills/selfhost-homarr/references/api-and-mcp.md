@@ -1,5 +1,18 @@
 # API and MCP
 
+## Agent gateway boundary
+
+Homarr can give a coding agent one MCP endpoint for inspecting integrations
+across a selected self-hosted stack. This reduces the need to expose each
+administrative UI, but it does not make Homarr mandatory and does not transfer
+authorization from Homarr to the connected services.
+
+The shipped bridge is strictly read-only. It supports inspection and exact
+Seerr search only. It does not request media, update applications, or decide
+requests. Describe broader action workflows as future capabilities unless a
+separate implementation supplies an explicit tool allowlist, narrow approval,
+confirmation, and verification contract.
+
 ## Authentication and routes
 
 Create Authentication under Homarr `/manage/tools/api`. Native Streamable HTTP uses the `ApiKey` request header at canonical `/api/mcp`. Treat `/api/mcp/mcp` as a compatibility route and report it separately whenever used.

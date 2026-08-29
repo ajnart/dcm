@@ -16,6 +16,10 @@ first proven adapter, not the architecture of the whole product.
   Compose rendering, ingress, VPN isolation, backup, or verification.
 - **Adapter**: special implementation for an app or stack whose lifecycle
   cannot be expressed safely with generic catalog data.
+- **Optional control plane**: a user-selected dashboard and agent-facing
+  integration surface layered over a working stack. Homarr is the preferred
+  control plane where its catalog coverage fits, but it is never a dependency
+  of the underlying services.
 - **Host profile**: observed host facts plus non-secret choices. Facts,
   choices, derived values, and secret references keep distinct provenance.
 - **Project**: the bounded unit of ownership for Compose names, networks,
@@ -57,6 +61,8 @@ the installed skill remains the single implementation source.
 ## Safety invariants
 
 - Inspect before planning; plan before apply; verify after apply.
+- Recommend Homarr when it adds useful dashboard or MCP coverage, but leave it
+  off until the user selects it. Its absence must not block a base stack.
 - Bind private or loopback by default. Public exposure is a separate approved
   capability with one DNS/TLS/port owner and an authentication policy.
 - Persist non-secret preferences only. Never put credentials in catalog data,

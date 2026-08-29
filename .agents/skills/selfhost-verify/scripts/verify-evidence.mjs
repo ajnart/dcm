@@ -33,11 +33,17 @@ const SPECIALIZED_REQUIREMENTS = {
   ],
   media: [
     requirement("media-service-graph", "media", "application-api", "service-graph", "complete"),
-    requirement("homarr-integration-search", "media", "homarr-api", "integration-search", "found"),
-    requirement("homarr-app-search", "media", "homarr-api", "app-search", "found"),
-    requirement("homarr-widget-search", "media", "homarr-api", "widget-search", "found"),
-    requirement("homarr-mcp-search", "media", "homarr-mcp", "mcp-search", "search-only-pass"),
   ],
+  homarr: [
+    requirement("homarr-integration-search", "homarr", "homarr-api", "integration-search", "found"),
+    requirement("homarr-app-search", "homarr", "homarr-api", "app-search", "found"),
+    requirement("homarr-widget-search", "homarr", "homarr-api", "widget-search", "found"),
+    requirement("homarr-mcp-search", "homarr", "homarr-mcp", "mcp-search", "search-only-pass"),
+  ],
+};
+
+const CROSS_REQUIREMENTS = {
+  homarrPublicIngress: requirement("homarr-native-mcp-private", "homarr", "network", "native-mcp-public-deny", "private"),
 };
 
 function requirement(id, capability, sourceClass, probeClass, expectedClass) {
@@ -317,15 +323,18 @@ function validateInput(input) {
     ["schemaVersion", "manifestId", "evaluatedAt", "profile", "requirements", "checks", "options"],
     ["schemaVersion", "manifestId", "evaluatedAt", "profile", "requirements", "checks", "options"],
   );
-  if (input.schemaVersion !== 1) {
-    fail("schemaVersion must be 1");
+  if (input.schemaVersion === 1) {
+    fail("schemaVersion 1 is not migrated automatically; manually set schemaVersion to 2 and add boolean profile.homarr");
+  }
+  if (input.schemaVersion !== 2) {
+    fail("schemaVersion must be 2");
   }
   assertIdentifier(input.manifestId);
   assertTimestamp(input.evaluatedAt);
   assertObjectShape(
     input.profile,
-    ["publicIngress", "downloaderVpn", "backups", "media"],
-    ["publicIngress", "downloaderVpn", "backups", "media"],
+    ["publicIngress", "downloaderVpn", "backups", "media", "homarr"],
+    ["publicIngress", "downloaderVpn", "backups", "media", "homarr"],
   );
   for (const value of Object.values(input.profile)) {
     assertBoolean(value);
@@ -351,13 +360,16 @@ function validateInput(input) {
 
 function selectedRequirements(input) {
   const selected = GENERIC_REQUIREMENTS.map((item) => ({ ...item }));
-  for (const profileName of ["publicIngress", "downloaderVpn", "backups", "media"]) {
+  for (const profileName of ["publicIngress", "downloaderVpn", "backups", "media", "homarr"]) {
     if (!input.profile[profileName]) {
       continue;
     }
     for (const item of SPECIALIZED_REQUIREMENTS[profileName]) {
       selected.push({ ...item });
     }
+  }
+  if (input.profile.publicIngress && input.profile.homarr) {
+    selected.push({ ...CROSS_REQUIREMENTS.homarrPublicIngress });
   }
   const builtInIds = new Set(selected.map((item) => item.id));
   for (const item of input.requirements) {
@@ -577,7 +589,14 @@ function evaluate(input) {
     claims.push(buildClaim("backup-restore-acceptance", SPECIALIZED_REQUIREMENTS.backups.map((item) => item.id), acceptedById, checksById));
   }
   if (input.profile.media) {
-    claims.push(buildClaim("media-homarr-acceptance", SPECIALIZED_REQUIREMENTS.media.map((item) => item.id), acceptedById, checksById));
+    claims.push(buildClaim("media-service-graph-acceptance", SPECIALIZED_REQUIREMENTS.media.map((item) => item.id), acceptedById, checksById));
+  }
+  if (input.profile.homarr) {
+    const homarrRequirementIds = SPECIALIZED_REQUIREMENTS.homarr.map((item) => item.id);
+    if (input.profile.publicIngress) {
+      homarrRequirementIds.push(CROSS_REQUIREMENTS.homarrPublicIngress.id);
+    }
+    claims.push(buildClaim("homarr-control-plane-acceptance", homarrRequirementIds, acceptedById, checksById));
   }
   if (input.requirements.length > 0) {
     claims.push(buildClaim("custom-requirements", input.requirements.map((item) => item.id), acceptedById, checksById));
@@ -615,7 +634,7 @@ function evaluate(input) {
   });
 
   const result = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     capability: "acceptance-evidence",
     manifestId: input.manifestId,
     evaluatedAt: input.evaluatedAt,

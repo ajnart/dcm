@@ -1,4 +1,4 @@
 interface:
   display_name: "Self-host Homarr"
-  short_description: "Plan and verify read-only Homarr access"
-  default_prompt: "Use $selfhost-homarr to plan and verify my read-only Homarr integration without exposing credentials."
+  short_description: "Add an optional Homarr dashboard and agent gateway"
+  default_prompt: "Use $selfhost-homarr to add Homarr as my optional private dashboard and verify its read-only MCP access without exposing credentials."

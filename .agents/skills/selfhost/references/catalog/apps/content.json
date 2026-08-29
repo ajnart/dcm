@@ -2,7 +2,7 @@
   {
     "id": "jellyfin", "name": "Jellyfin", "aliases": ["personal streaming", "media server"], "categories": ["media"], "roles": ["video-playback", "media-library"],
     "upstream": {"url": "https://jellyfin.org/", "repository": "https://github.com/jellyfin/jellyfin", "docs": "https://jellyfin.org/docs/general/installation/container/"}, "image": {"reference": "jellyfin/jellyfin", "source": "upstream", "status": "known"},
-    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current upstream container guidance is available."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Jellyfin"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current upstream container guidance is available."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Jellyfin"},
     "dependencies": ["capability:media-storage"], "alternatives": ["plex", "emby"], "security": ["Keep administration private and approve any GPU device access."], "pitfalls": ["Hardware acceleration depends on matching host drivers and devices."], "sources": ["https://jellyfin.org/docs/general/installation/container/"]
   },
   {
@@ -20,25 +20,25 @@
   {
     "id": "seerr", "name": "Seerr", "aliases": ["media requests", "request movies", "request tv"], "categories": ["requests", "media"], "roles": ["media-request"],
     "upstream": {"url": "https://seerr.dev/", "repository": "https://github.com/seerr-team/seerr", "docs": "https://docs.seerr.dev/getting-started/docker/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
-    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Seerr supersedes Jellyseerr and Overseerr for new installs."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Seerr"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Seerr supersedes Jellyseerr and Overseerr for new installs."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Seerr"},
     "dependencies": ["capability:media-server", "sonarr", "radarr"], "alternatives": ["jellyseerr"], "security": ["Keep API credentials in secret storage and scope public access."], "pitfalls": ["A container cannot reach a sibling through localhost; use service DNS."], "sources": ["https://docs.seerr.dev/getting-started/docker/", "https://docs.seerr.dev/blog/seerr-release/"]
   },
   {
     "id": "sonarr", "name": "Sonarr", "aliases": ["tv automation", "tv manager"], "categories": ["requests", "media"], "roles": ["tv-automation"],
     "upstream": {"url": "https://sonarr.tv/", "repository": "https://github.com/Sonarr/Sonarr", "docs": "https://wiki.servarr.com/sonarr"}, "image": {"reference": null, "source": "community", "status": "unknown"},
-    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Sonarr"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Sonarr"},
     "dependencies": ["prowlarr", "qbittorrent", "capability:shared-download-path"], "alternatives": ["radarr"], "security": ["Treat API keys as secrets and keep the management UI private."], "pitfalls": ["Mismatched downloader and library paths break imports and hardlinks."], "sources": ["https://wiki.servarr.com/sonarr"]
   },
   {
     "id": "radarr", "name": "Radarr", "aliases": ["movie automation", "movie manager"], "categories": ["requests", "media"], "roles": ["movie-automation"],
     "upstream": {"url": "https://radarr.video/", "repository": "https://github.com/Radarr/Radarr", "docs": "https://radarr.video/docs/"}, "image": {"reference": null, "source": "community", "status": "unknown"},
-    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Radarr"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Radarr"},
     "dependencies": ["prowlarr", "qbittorrent", "capability:shared-download-path"], "alternatives": ["sonarr"], "security": ["Treat API keys as secrets and keep the management UI private."], "pitfalls": ["Mismatched downloader and library paths break imports and hardlinks."], "sources": ["https://radarr.video/docs/download_clients"]
   },
   {
     "id": "prowlarr", "name": "Prowlarr", "aliases": ["indexer manager", "indexer sync"], "categories": ["requests", "downloads"], "roles": ["indexer-management"],
     "upstream": {"url": "https://prowlarr.com/", "repository": "https://github.com/Prowlarr/Prowlarr", "docs": "https://wiki.servarr.com/prowlarr"}, "image": {"reference": null, "source": "community", "status": "unknown"},
-    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active indexer-management application."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "Prowlarr"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active indexer-management application."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Prowlarr"},
     "dependencies": ["capability:indexer-access"], "alternatives": ["sonarr", "radarr"], "security": ["Protect indexer credentials and API keys as secrets."], "pitfalls": ["Indexer availability and acceptable use are external constraints."], "sources": ["https://wiki.servarr.com/prowlarr"]
   },
   {
@@ -50,7 +50,7 @@
   {
     "id": "qbittorrent", "name": "qBittorrent", "aliases": ["torrent client", "torrent downloader"], "categories": ["downloads"], "roles": ["torrent-download"],
     "upstream": {"url": "https://www.qbittorrent.org/", "repository": "https://github.com/qbittorrent/qBittorrent", "docs": "https://github.com/qbittorrent/qBittorrent/wiki"}, "image": {"reference": null, "source": "community", "status": "unknown"},
-    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active upstream; container user and path conventions depend on packager."}, "support": {"automation": "managed", "tier": "T0", "adapterSkill": "selfhost-media"}, "homarr": {"support": "supported", "integration": "qBittorrent"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active upstream; container user and path conventions depend on packager."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "qBittorrent"},
     "dependencies": ["capability:download-storage"], "alternatives": ["sabnzbd"], "security": ["Keep the WebUI private and separately approve downloader VPN routing."], "pitfalls": ["VPN status alone does not prove a working kill switch."], "sources": ["https://github.com/qbittorrent/qBittorrent/wiki"]
   },
   {

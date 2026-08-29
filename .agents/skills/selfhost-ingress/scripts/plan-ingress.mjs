@@ -2,10 +2,12 @@
 
 import fs from "node:fs";
 import { isIP } from "node:net";
+import { pathToFileURL } from "node:url";
 
 const MAX_INPUT_BYTES = 256 * 1024;
 const MAX_COLLECTION_ITEMS = 100;
 const PUBLIC_ROUTES = new Set(["reverse-proxy", "cloudflare-tunnel", "pangolin-newt", "ngrok"]);
+const PRIVATE_MCP_ROUTES = new Set(["loopback", "lan", "private-tailnet"]);
 const PROTECTED_CLASSES = new Set([
   "admin",
   "database",
@@ -272,8 +274,7 @@ function hasSecretReference(references, terms) {
   });
 }
 
-function main() {
-  const input = readDocument(parseArgs(process.argv.slice(2)));
+export function buildIngressPlan(input) {
   if (!isObject(input) || input.schemaVersion !== 1) {
     fail("schemaVersion must be 1");
   }
@@ -304,10 +305,12 @@ function main() {
   const conflicts = [];
   const decisionsNeeded = [];
   const steps = [];
+  const requiredEvidence = [];
   const secretRefs = arrayOrEmpty(preferences.secretRefs);
   validateSecretReferences(secretRefs);
   let selectedOwner = "service-owner";
   let exposure = "private";
+  let nativeMcpPolicy = null;
 
   function gate(id, passed, detail) {
     let status = "blocked";
@@ -347,6 +350,49 @@ function main() {
       && typeof authentication.owner === "string"
       && authentication.owner.length > 0;
     gate("authentication-approval", authenticationReady, "Choose and approve an authentication policy with an accountable owner.");
+  }
+
+  const publicHomarr = PUBLIC_ROUTES.has(route) && serviceId.toLowerCase() === "homarr";
+  if (publicHomarr) {
+    const nativeMcp = objectOrEmpty(preferences.nativeMcp);
+    let publicAccess = "";
+    if (typeof nativeMcp.publicAccess === "string") {
+      publicAccess = nativeMcp.publicAccess.toLowerCase();
+    }
+    let privateBridgeRoute = "";
+    if (typeof nativeMcp.privateBridgeRoute === "string") {
+      privateBridgeRoute = nativeMcp.privateBridgeRoute.toLowerCase();
+    }
+    const publicDenied = publicAccess === "deny";
+    const privateBridgeReady = PRIVATE_MCP_ROUTES.has(privateBridgeRoute);
+    gate(
+      "homarr-native-mcp-private",
+      publicDenied && privateBridgeReady,
+      "Declare preferences.nativeMcp.publicAccess as deny and choose privateBridgeRoute as loopback, lan, or private-tailnet.",
+    );
+    if (publicAccess.length > 0 && !publicDenied) {
+      conflict(
+        "homarr-native-mcp-public-route",
+        "Public native Homarr MCP is unsupported; expose the dashboard while denying /api/mcp at the public edge.",
+      );
+    }
+    nativeMcpPolicy = {
+      path: "/api/mcp",
+      publicAccess: "deny",
+      privateBridgeRoute: null,
+    };
+    if (privateBridgeReady) {
+      nativeMcpPolicy.privateBridgeRoute = privateBridgeRoute;
+    }
+    requiredEvidence.push({
+      id: "homarr-native-mcp-private",
+      capability: "homarr",
+      sourceClass: "network",
+      probeClass: "native-mcp-public-deny",
+      expectedClass: "private",
+    });
+    steps.push("Expose the Homarr dashboard while denying /api/mcp at the public edge.");
+    steps.push("Keep the packaged read-only bridge on the selected loopback, LAN, or private-tailnet route to /api/mcp.");
   }
 
   if (route === "local") {
@@ -479,35 +525,55 @@ function main() {
     plannedHostname = hostname.toLowerCase();
   }
 
+  const routePlan = {
+    mode: route,
+    exposure,
+    owner: selectedOwner,
+    backendPolicy: "private-only",
+    hostname: plannedHostname,
+    steps,
+  };
+  if (nativeMcpPolicy) {
+    routePlan.nativeMcp = nativeMcpPolicy;
+  }
+
+  const verification = [
+    "Resolve the hostname from an intended client network when a hostname applies.",
+    "Verify TLS name and expiry when TLS applies.",
+    "Prove the route reaches only the intended service and enforces its access policy.",
+    "Prove direct service and protected management ports remain non-public.",
+  ];
+  if (publicHomarr) {
+    verification.push("Collect homarr-native-mcp-private evidence from a public client proving /api/mcp is denied while the Homarr dashboard remains usable.");
+    verification.push("Prove the packaged read-only bridge reaches /api/mcp only through the selected private bridge route.");
+  }
+
   const plan = {
     schemaVersion: 1,
     planner: "selfhost-ingress",
     status,
     authority: "read-only-plan",
     service: { id: serviceId, class: serviceClass },
-    route: {
-      mode: route,
-      exposure,
-      owner: selectedOwner,
-      backendPolicy: "private-only",
-      hostname: plannedHostname,
-      steps,
-    },
+    route: routePlan,
     gates,
     conflicts,
     decisionsNeeded: [...new Set(decisionsNeeded)],
-    verification: [
-      "Resolve the hostname from an intended client network when a hostname applies.",
-      "Verify TLS name and expiry when TLS applies.",
-      "Prove the route reaches only the intended service and enforces its access policy.",
-      "Prove direct service and protected management ports remain non-public.",
-    ],
+    requiredEvidence,
+    verification,
     claims: {
       applied: false,
       externallyVerified: false,
     },
   };
+  return plan;
+}
+
+function main() {
+  const input = readDocument(parseArgs(process.argv.slice(2)));
+  const plan = buildIngressPlan(input);
   process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
 }
 
-main();
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  main();
+}

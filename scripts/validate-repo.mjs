@@ -871,6 +871,7 @@ async function loadStrictSkillRegistry() {
   const schemaItemProperties = isPlainObject(schemaItems) && schemaItems.properties;
   const schemaId = isPlainObject(schemaItemProperties) && schemaItemProperties.id;
   const schemaAdapter = isPlainObject(schemaItemProperties) && schemaItemProperties.adapter;
+  const schemaScope = isPlainObject(schemaItemProperties) && schemaItemProperties.scope;
   if (
     !isPlainObject(schema)
     || schema.type !== "object"
@@ -880,7 +881,7 @@ async function loadStrictSkillRegistry() {
     || !schema.required.includes("schemaVersion")
     || !schema.required.includes("skills")
     || !isPlainObject(schemaVersion)
-    || schemaVersion.const !== 1
+    || schemaVersion.const !== 2
     || !isPlainObject(schemaSkills)
     || schemaSkills.type !== "array"
     || schemaSkills.minItems !== 1
@@ -889,23 +890,27 @@ async function loadStrictSkillRegistry() {
     || schemaItems.type !== "object"
     || schemaItems.additionalProperties !== false
     || !Array.isArray(schemaItems.required)
-    || schemaItems.required.length !== 2
+    || schemaItems.required.length !== 3
     || !schemaItems.required.includes("id")
     || !schemaItems.required.includes("adapter")
-    || !hasExactKeys(schemaItemProperties, ["adapter", "id"])
+    || !schemaItems.required.includes("scope")
+    || !hasExactKeys(schemaItemProperties, ["adapter", "id", "scope"])
     || !isPlainObject(schemaId)
     || schemaId.type !== "string"
     || schemaId.pattern !== "^selfhost(?:-[a-z0-9]+)*$"
     || !isPlainObject(schemaAdapter)
     || schemaAdapter.type !== "boolean"
+    || !isPlainObject(schemaScope)
+    || !Array.isArray(schemaScope.enum)
+    || JSON.stringify(schemaScope.enum) !== JSON.stringify(["application", "stack", null])
   ) {
     fail("skill registry: skills.schema.json contract is invalid");
   }
   if (!hasExactKeys(registry, ["schemaVersion", "skills"])) {
     fail("skill registry: root contains missing or unsupported fields");
   }
-  if (registry.schemaVersion !== 1) {
-    errors.push("skill registry: schemaVersion must be 1");
+  if (registry.schemaVersion !== 2) {
+    errors.push("skill registry: schemaVersion must be 2");
   }
   if (!Array.isArray(registry.skills) || registry.skills.length === 0) {
     errors.push("skill registry: skills must be a non-empty array");
@@ -914,11 +919,13 @@ async function loadStrictSkillRegistry() {
 
   const ids = new Set();
   const adapters = new Set();
+  const applicationAdapters = new Set();
+  const stackAdapters = new Set();
   let previousId = "";
   for (let index = 0; index < registry.skills.length; index += 1) {
     const record = registry.skills[index];
     const label = `record ${index + 1}`;
-    if (!hasExactKeys(record, ["adapter", "id"])) {
+    if (!hasExactKeys(record, ["adapter", "id", "scope"])) {
       errors.push(`skill registry: ${label} contains missing or unsupported fields`);
       continue;
     }
@@ -944,6 +951,20 @@ async function loadStrictSkillRegistry() {
     }
     if (record.adapter) {
       adapters.add(record.id);
+      if (record.scope !== "application" && record.scope !== "stack") {
+        errors.push(`skill registry: ${record.id} adapter scope must be application or stack`);
+        continue;
+      }
+      if (record.scope === "application") {
+        applicationAdapters.add(record.id);
+      }
+      if (record.scope === "stack") {
+        stackAdapters.add(record.id);
+      }
+      continue;
+    }
+    if (record.scope !== null) {
+      errors.push(`skill registry: ${record.id} non-adapter scope must be null`);
     }
   }
   if (adapters.size === 0) {
@@ -962,7 +983,7 @@ async function loadStrictSkillRegistry() {
   }
 
   failMany(errors);
-  return { adapters, available, ids };
+  return { adapters, applicationAdapters, available, ids, stackAdapters };
 }
 
 async function validateSkillRegistry() {
@@ -974,7 +995,7 @@ async function validateSkillRegistry() {
   } catch {
     fail("skill registry: README.md is missing");
   }
-  const countContract = `${registry.ids.size} packaged skills, including ${registry.adapters.size} application adapters`;
+  const countContract = `${registry.ids.size} packaged skills, including ${registry.adapters.size} specialized adapters`;
   if (!readme.includes(countContract)) {
     fail("skill registry: README package and adapter counts are stale");
   }
@@ -1010,6 +1031,9 @@ async function validateCatalogSkillReferences() {
     for (const skillName of stack.requiredSkills) {
       if (typeof skillName === "string") {
         required.add(skillName);
+        if (registry.adapters.has(skillName)) {
+          errors.push(`catalog skills: specialized adapter cannot be an implicit required skill ${skillName}`);
+        }
       }
     }
   }
@@ -1057,13 +1081,13 @@ async function validateCatalogSkillReferences() {
     }
   }
   for (const skillName of [...adapterReferences].sort()) {
-    if (!registry.adapters.has(skillName)) {
-      errors.push(`catalog skills: managed adapter is not registered as an adapter ${skillName}`);
+    if (!registry.applicationAdapters.has(skillName)) {
+      errors.push(`catalog skills: managed adapter is not registered as an application adapter ${skillName}`);
     }
   }
-  for (const skillName of [...registry.adapters].sort()) {
+  for (const skillName of [...registry.applicationAdapters].sort()) {
     if (!adapterReferences.has(skillName)) {
-      errors.push(`catalog skills: registered adapter has no managed catalog reference ${skillName}`);
+      errors.push(`catalog skills: registered application adapter has no managed catalog reference ${skillName}`);
     }
   }
   failMany(errors);

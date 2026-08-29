@@ -1,6 +1,6 @@
 ---
 name: selfhost-verify
-description: Independently aggregate secret-free acceptance evidence for self-hosted changes without mutating the system. Use after a plan or apply stage when checks must declare capability, timestamp, source/probe class, expected and actual classification, result, evidence references and hashes, and freshness; when missing, stale, duplicate, conflicting, failed, or blocked evidence must prevent acceptance; or when gating public ingress, downloader VPN fail-closed behavior, backup restores, and media plus Homarr integration/app/widget/MCP search claims. Emits narrow JSON claims and an optional Markdown summary only from supplied evidence.
+description: Independently aggregate secret-free acceptance evidence for self-hosted changes without mutating the system. Use after a plan or apply stage when checks must declare capability, timestamp, source/probe class, expected and actual classification, result, evidence references and hashes, and freshness; when missing, stale, duplicate, conflicting, failed, or blocked evidence must prevent acceptance; or when gating public ingress, downloader VPN fail-closed behavior, backup restores, media service graphs, and optional Homarr integration/app/widget/MCP search claims. Emits narrow JSON claims and an optional Markdown summary only from supplied evidence.
 ---
 
 # Self-host verify
@@ -21,10 +21,31 @@ Resolve the script relative to this `SKILL.md`.
 
 ```bash
 node <skill-directory>/scripts/verify-evidence.mjs --input evidence-manifest.json
-node <skill-directory>/scripts/verify-evidence.mjs --json '{"schemaVersion":1,"manifestId":"change-001","evaluatedAt":"2026-08-28T12:00:00Z","profile":{"publicIngress":false,"downloaderVpn":false,"backups":false,"media":false},"requirements":[],"checks":[],"options":{"markdownSummary":true}}'
+node <skill-directory>/scripts/verify-evidence.mjs --json '{"schemaVersion":2,"manifestId":"change-001","evaluatedAt":"2026-08-28T12:00:00Z","profile":{"publicIngress":false,"downloaderVpn":false,"backups":false,"media":false,"homarr":false},"requirements":[],"checks":[],"options":{"markdownSummary":true}}'
 ```
 
 Use `--json` only for non-secret manifests safe in a process argument. Evidence references are opaque IDs and hashes are `sha256:` identifiers; store any underlying protected artifact outside the manifest.
+
+### Convert a version 1 manifest manually
+
+The verifier accepts version 2 only. It has no migration command and never
+infers Homarr scope from `profile.media` or from supplied check IDs.
+
+1. Change `schemaVersion` from `1` to `2`.
+2. Add the exact boolean `profile.homarr`. Set it to `true` only when the
+   intended accepted scope includes the optional Homarr control plane; set it
+   to `false` when the intended scope excludes Homarr.
+3. When `profile.homarr` is `true`, change the `capability` on the four existing
+   `homarr-*-search` checks from `media` to `homarr`. Keep their evidence only
+   when it was collected for the same acceptance window.
+4. When both `profile.publicIngress` and `profile.homarr` are `true`, collect a
+   new `homarr-native-mcp-private` check. Do not manufacture or infer that
+   evidence from the old manifest.
+
+Setting `profile.homarr` to `false` makes old Homarr rows unrequired; remove
+them unless retaining clearly labeled unrequired rows is useful to the caller.
+Version 2 emits separate `media-service-graph-acceptance` and
+`homarr-control-plane-acceptance` claims.
 
 ## Mandatory gates
 
@@ -32,7 +53,9 @@ Use `--json` only for non-secret manifests safe in a process argument. Evidence 
 - Public ingress additionally requires DNS, TLS, authentication enforcement, and direct-port privacy evidence.
 - Downloader VPN additionally requires healthy egress, a timestamped tunnel-break failure, DNS fail-closed behavior, restored tunnel egress, and route/firewall audit evidence.
 - Backups additionally require an isolated restore, integrity/ownership, and application acceptance evidence. Backup existence is insufficient.
-- Media additionally requires the service graph plus Homarr integration, app, widget, and MCP search evidence. Search evidence never authorizes a media request or other mutation.
+- Media additionally requires only the private media service graph.
+- Homarr is an independent optional profile requiring integration, app, widget, and MCP search evidence. Search evidence never authorizes a media request or other mutation.
+- Homarr combined with public ingress additionally requires proof that the public dashboard route denies native `/api/mcp`; the read-only bridge must use a private route.
 
 ## Result contract
 
@@ -42,4 +65,4 @@ Each emitted claim covers only its listed check IDs and evidence window. It does
 
 ## Completion criteria
 
-Verification is complete when all selected mandatory rows and custom requirements are accounted for exactly once; freshness is evaluated against the supplied clock; conflicts and failures are visible; specialized claims pass only with their complete evidence set; outputs contain classifications and opaque evidence identifiers without payloads or secrets; and `mutationsPerformed` remains false.
+Verification is complete when all selected mandatory rows and custom requirements are accounted for exactly once; freshness is evaluated against the supplied clock; conflicts and failures are visible; media and Homarr claims remain independently selectable and pass only with their own complete evidence sets; outputs contain classifications and opaque evidence identifiers without payloads or secrets; and `mutationsPerformed` remains false.

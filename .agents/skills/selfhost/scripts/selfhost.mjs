@@ -506,10 +506,35 @@ function printPlainSummary(plan, projectContext = null, options = {}) {
 function printPlan(plan, projectContext = null) {
   process.stdout.write(`Read-only plan ${plan.planId}: ${plan.goal.name}\n`);
   process.stdout.write(`${plan.goal.summary}\n`);
-  process.stdout.write(`Stack capability: ${plan.goal.automation}; effective automation: ${plan.effectiveAutomation}.\n\nRoles\n`);
+  process.stdout.write(`Stack capability: ${plan.goal.automation}; effective automation: ${plan.effectiveAutomation}.\n`);
+  if (plan.recommendations.length > 0) {
+    const hasAvailableRecommendation = plan.recommendations.some((recommendation) => recommendation.status === "available");
+    const heading = hasAvailableRecommendation ? "Recommended optional control plane" : "Selected optional control plane";
+    process.stdout.write(`\n${heading}\n`);
+    for (const recommendation of plan.recommendations) {
+      if (recommendation.status === "selected") {
+        process.stdout.write(`  ${recommendation.name}: selected (${recommendation.selected})\n`);
+      } else {
+        process.stdout.write(`  ${recommendation.name}: available, not selected\n`);
+        process.stdout.write(`    enable: ${recommendation.select}\n`);
+      }
+      process.stdout.write(`    why: ${recommendation.reason}\n`);
+      if (recommendation.coverage.supported.length > 0) {
+        const services = recommendation.coverage.supported.map((app) => app.name).join(", ");
+        process.stdout.write(`    dedicated integrations: ${services}\n`);
+      } else {
+        process.stdout.write("    coverage: app links only; selected services have no dedicated Homarr integration\n");
+      }
+    }
+  }
+  process.stdout.write("\nRoles\n");
   for (const role of plan.roles) {
     const selected = role.selected || "off";
-    process.stdout.write(`  ${role.name}: ${selected}\n`);
+    let recommendation = "";
+    if (role.recommended) {
+      recommendation = " (recommended optional)";
+    }
+    process.stdout.write(`  ${role.name}: ${selected}${recommendation}\n`);
     process.stdout.write(`    why: ${role.reason}\n`);
     if (role.alternatives.length > 0) {
       process.stdout.write(`    alternatives: ${role.alternatives.join(", ")}\n`);

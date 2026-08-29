@@ -34,7 +34,9 @@ capability.
   verification requires an isolated restore.
 - Support level and T0/T1/T2 priority remain independent.
 - Packaged `.agents/skills/*` directories and the sorted skill registry have
-  exact ID equality. Only application adapters use `adapter: true`.
+  exact ID equality. Specialized adapters use `adapter: true` with scope
+  `application` or `stack`; only application-scoped adapters may appear in an
+  app's `adapterSkill`, while stack-scoped adapters are invoked directly.
 - App tiles, Homarr integrations, and widgets are separate claims.
 - The media adapter uses exactly
   `ghcr.io/homarr-labs/homarr-test:v2` and only authorized content.

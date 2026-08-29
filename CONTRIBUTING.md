@@ -64,8 +64,12 @@ Select only the resource directories the skill needs. Then:
    explicitly names `$selfhost-example`.
 3. Add the exact ID to
    `.agents/skills/selfhost/references/catalog/skills.json` in sorted order.
-   Set `adapter: true` only for an application adapter; registry IDs must
-   exactly equal the packaged skill directories. Update
+   Set `adapter: true` only for a specialized adapter and declare its scope as
+   `application` or `stack`; non-adapters use `scope: null`. Only an
+   application-scoped adapter may appear in an app's `adapterSkill`.
+   Stack-scoped adapters are invoked directly for their complete bundle and
+   must not be hidden in a goal's `requiredSkills`. Registry IDs must exactly
+   equal the packaged skill directories. Update
    `schemas/skills.schema.json` only when the registry shape changes.
 4. Keep runtime dependencies inside that skill directory so copy-mode installs
    work.
@@ -156,7 +160,8 @@ a Homarr app tile cannot promote support.
 - Frontmatter and `agents/openai.yaml` pass quick validation.
 - Every JSON file parses and catalog semantics pass.
 - The sorted skill registry exactly equals packaged skill directories; every
-  managed `adapterSkill` is present and marked `adapter: true`.
+  managed `adapterSkill` is present, marked `adapter: true`, and scoped to
+  `application`; every direct bundle adapter is scoped to `stack`.
 - Every stack `requiredSkills` entry and managed adapter exists.
 - Local Markdown and script references resolve inside their install boundary.
 - Essential README and contributing commands, flags, and paths match the

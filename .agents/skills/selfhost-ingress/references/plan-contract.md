@@ -54,6 +54,19 @@ Supported routes are `local`, `lan`, `tailscale-serve`, `headscale`, `reverse-pr
 
 Service classes `admin`, `database`, `queue`, `arr`, `downloader`, `qbittorrent`, `docker-api`, `docker-socket`, and `identity-admin` cannot use a public route. `application` is the general user-facing class.
 
+A public route for `service.id: "homarr"` exposes the dashboard, not native MCP. It must include this explicit path contract:
+
+```json
+{
+  "nativeMcp": {
+    "publicAccess": "deny",
+    "privateBridgeRoute": "loopback"
+  }
+}
+```
+
+Place the object under `preferences`. `privateBridgeRoute` accepts `loopback`, `lan`, or `private-tailnet`. A missing contract blocks the `homarr-native-mcp-private` gate. Any requested public access conflicts because this pack has no approved public native-MCP profile. Private Homarr routes do not require this public-edge contract.
+
 Each `existingIngress` reuse candidate needs `kind`, `owner`, `lifecycleOwner`, `routeContract`, `network`, `acceptsRoutes: true`, and the ports it owns. Ownership records are evidence supplied by the caller; duplicate owners for the same resource become a conflict.
 
 Use `secretRefs` for opaque identifiers such as `cloudflare.tunnel-token`, `pangolin.newt-token`, or `ngrok.agent-token`. The planner does not resolve them. Secret-bearing fields such as `token`, `password`, `apiKey`, `privateKey`, or `credentials` make the input invalid and are rejected without echoing a value.
@@ -64,6 +77,8 @@ Use `secretRefs` for opaque identifiers such as `cloudflare.tunnel-token`, `pang
 - `blocked`: a required fact, owner, secret reference, or approval is absent.
 - `conflict`: competing ownership or a prohibited exposure must be resolved.
 - `route.steps`: desired topology only, never evidence that configuration exists.
+- `route.nativeMcp`: the required `/api/mcp` public-deny and private-bridge path policy for public Homarr routes.
+- `requiredEvidence`: machine-readable post-apply requirements. Public Homarr emits `homarr-native-mcp-private`, matching the verifier's public-ingress plus Homarr gate.
 - `verification`: post-apply obligations. The planner never marks them performed.
 
 Keep the input as a reviewable artifact only when the user asks. If persisted, use private permissions and keep secret values outside it.

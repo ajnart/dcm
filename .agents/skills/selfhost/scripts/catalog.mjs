@@ -17,6 +17,7 @@ const IMAGE_STATUSES = new Set(["known", "verify", "unknown", "not-applicable"])
 const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"]);
 const HOMARR_EXCLUDED_VALUES = new Set(["mock", "searchch", "releaseprovider"]);
 const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
+const ADAPTER_SCOPES = new Set(["application", "stack"]);
 const AUTOMATION_RANK = new Map([
   ["managed", 0],
   ["guided", 1],
@@ -45,11 +46,12 @@ const SECRET_VALUE_PATTERNS = [
 
 const APP_KEYS = ["aliases", "alternatives", "categories", "dependencies", "homarr", "id", "image", "lifecycle", "name", "pitfalls", "roles", "security", "sources", "support", "upstream"];
 const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates", "id", "name", "requiredSkills", "roles", "summary"];
-const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "purpose", "reason", "required"];
+const REQUIRED_ROLE_KEYS = ["choices", "default", "gates", "id", "name", "purpose", "reason", "required"];
+const ROLE_KEYS = [...REQUIRED_ROLE_KEYS, "recommended"];
 const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
 const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
 const SKILL_REGISTRY_KEYS = ["schemaVersion", "skills"];
-const SKILL_RECORD_KEYS = ["adapter", "id"];
+const SKILL_RECORD_KEYS = ["adapter", "id", "scope"];
 
 function normalize(value) {
   return String(value)
@@ -168,6 +170,15 @@ function hasExactKeys(value, allowedKeys) {
   return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
+function hasRequiredAndAllowedKeys(value, requiredKeys, allowedKeys) {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const allowed = new Set(allowedKeys);
+  return requiredKeys.every((key) => Object.hasOwn(value, key))
+    && Object.keys(value).every((key) => allowed.has(key));
+}
+
 function scanForSecretLikeData(value, path, errors) {
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
@@ -207,15 +218,17 @@ function duplicateValues(values) {
 function validateSkillRegistry(registry, errors) {
   const ids = new Set();
   const adapters = new Set();
+  const applicationAdapters = new Set();
+  const stackAdapters = new Set();
   addError(errors, isPlainObject(registry), "skills: registry must be an object");
   if (!isPlainObject(registry)) {
-    return { ids, adapters };
+    return { ids, adapters, applicationAdapters, stackAdapters };
   }
   addError(errors, hasExactKeys(registry, SKILL_REGISTRY_KEYS), "skills: registry contains missing or unsupported fields");
-  addError(errors, registry.schemaVersion === 1, "skills: schemaVersion must be 1");
+  addError(errors, registry.schemaVersion === 2, "skills: schemaVersion must be 2");
   addError(errors, Array.isArray(registry.skills) && registry.skills.length > 0, "skills: records must be a non-empty array");
   if (!Array.isArray(registry.skills)) {
-    return { ids, adapters };
+    return { ids, adapters, applicationAdapters, stackAdapters };
   }
   const orderedIds = [];
   for (const record of registry.skills) {
@@ -227,11 +240,23 @@ function validateSkillRegistry(registry, errors) {
     addError(errors, hasExactKeys(record, SKILL_RECORD_KEYS), `skill ${label}: contains missing or unsupported fields`);
     addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(record.id || ""), `skill ${label}: invalid id`);
     addError(errors, typeof record.adapter === "boolean", `skill ${label}: adapter must be boolean`);
+    if (record.adapter === true) {
+      addError(errors, ADAPTER_SCOPES.has(record.scope), `skill ${label}: adapter scope must be application or stack`);
+    }
+    if (record.adapter === false) {
+      addError(errors, record.scope === null, `skill ${label}: non-adapter scope must be null`);
+    }
     if (isNonEmptyString(record.id)) {
       ids.add(record.id);
       orderedIds.push(record.id);
       if (record.adapter === true) {
         adapters.add(record.id);
+        if (record.scope === "application") {
+          applicationAdapters.add(record.id);
+        }
+        if (record.scope === "stack") {
+          stackAdapters.add(record.id);
+        }
       }
     }
   }
@@ -242,7 +267,7 @@ function validateSkillRegistry(registry, errors) {
   addError(errors, JSON.stringify(orderedIds) === JSON.stringify(sortedIds), "skills: records must be sorted by id");
   addError(errors, ids.has("selfhost"), "skills: selfhost router record is required");
   addError(errors, adapters.size > 0, "skills: at least one adapter is required");
-  return { ids, adapters };
+  return { ids, adapters, applicationAdapters, stackAdapters };
 }
 
 function validateAppShape(app, categories, skillContract, errors) {
@@ -303,7 +328,7 @@ function validateAppShape(app, categories, skillContract, errors) {
       addError(errors, /^selfhost-[a-z0-9-]+$/.test(app.support.adapterSkill || ""), `${prefix}: managed adapterSkill must be a selfhost skill id`);
     }
     if (app.support.adapterSkill !== null) {
-      addError(errors, skillContract.adapters.has(app.support.adapterSkill), `${prefix}: adapterSkill ${app.support.adapterSkill} is not available as an adapter in this skill pack`);
+      addError(errors, skillContract.applicationAdapters.has(app.support.adapterSkill), `${prefix}: adapterSkill ${app.support.adapterSkill} is not available as an application adapter in this skill pack`);
     }
     if (app.support.automation !== "managed") {
       addError(errors, app.support.adapterSkill === null, `${prefix}: only managed support may name adapterSkill`);
@@ -377,11 +402,18 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
       if (!isPlainObject(role)) {
         continue;
       }
-      addError(errors, hasExactKeys(role, ROLE_KEYS), `${rolePrefix}: contains missing or unsupported fields`);
+      addError(errors, hasRequiredAndAllowedKeys(role, REQUIRED_ROLE_KEYS, ROLE_KEYS), `${rolePrefix}: contains missing or unsupported fields`);
       roleIds.push(role.id);
       addError(errors, ID_PATTERN.test(role.id || ""), `${rolePrefix}: invalid id`);
       addError(errors, isNonEmptyString(role.name), `${rolePrefix}: name is required`);
       addError(errors, typeof role.required === "boolean", `${rolePrefix}: required must be boolean`);
+      if (Object.hasOwn(role, "recommended")) {
+        addError(errors, typeof role.recommended === "boolean", `${rolePrefix}: recommended must be boolean`);
+      }
+      if (role.recommended === true) {
+        addError(errors, role.required === false, `${rolePrefix}: recommended role must be optional`);
+        addError(errors, role.default === null, `${rolePrefix}: recommended role must remain off by default`);
+      }
       addError(errors, isStringArray(role.choices, 1), `${rolePrefix}: choices are required`);
       addError(errors, isNonEmptyString(role.reason), `${rolePrefix}: reason is required`);
       addError(errors, isNonEmptyString(role.purpose), `${rolePrefix}: purpose is required`);
@@ -392,6 +424,17 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
         }
         if (role.default !== null) {
           addError(errors, role.choices.includes(role.default), `${rolePrefix}: default must be a listed choice`);
+        }
+        if (role.choices.includes("homarr")) {
+          const isExplicitHomarrGoal = stack.id === "homarr-control-plane";
+          if (isExplicitHomarrGoal) {
+            addError(errors, role.required === true, `${rolePrefix}: explicit Homarr goal must select its control plane`);
+            addError(errors, role.default === "homarr", `${rolePrefix}: explicit Homarr goal must default to Homarr`);
+          } else {
+            addError(errors, role.recommended === true, `${rolePrefix}: Homarr role must be recommended`);
+            addError(errors, role.required === false, `${rolePrefix}: Homarr role must be optional`);
+            addError(errors, role.default === null, `${rolePrefix}: Homarr role must remain off by default`);
+          }
         }
       }
       if (role.required) {
@@ -407,6 +450,7 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
     for (const skill of stack.requiredSkills) {
       addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(skill), `${prefix}: invalid required skill ${skill}`);
       addError(errors, skillContract.ids.has(skill), `${prefix}: required skill ${skill} is not available in this skill pack`);
+      addError(errors, !skillContract.adapters.has(skill), `${prefix}: specialized adapter ${skill} cannot be an implicit required skill`);
     }
     for (const duplicate of duplicateValues(stack.requiredSkills)) {
       errors.push(`${prefix}: duplicate required skill ${duplicate}`);
@@ -414,6 +458,10 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
   }
   addError(errors, isStringArray(stack.gates, 1), `${prefix}: gates are required`);
   addError(errors, isStringArray(stack.acceptance, 1), `${prefix}: acceptance checks are required`);
+  if (Array.isArray(stack.acceptance)) {
+    const hasHomarrAcceptance = stack.acceptance.some((check) => /homarr/i.test(check));
+    addError(errors, !hasHomarrAcceptance, `${prefix}: Homarr acceptance must be conditional on explicit selection`);
+  }
 }
 
 function validateAffiliates(affiliates, errors) {
@@ -599,6 +647,7 @@ function validateCatalogDocument(catalog) {
       if (dependency.startsWith("capability:")) {
         continue;
       }
+      addError(errors, dependency !== "homarr", `app ${app.id}: Homarr must be selected through an optional role, not implied as a dependency`);
       addError(errors, appIds.has(dependency), `app ${app.id}: unknown dependency ${dependency}`);
     }
   }
@@ -1132,6 +1181,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       id: role.id,
       name: role.name,
       required: role.required,
+      recommended: role.recommended === true,
       selected,
       reason: role.reason,
       purpose: role.purpose,
@@ -1148,6 +1198,59 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       throw new Error(`Application ${app.id} is retired and cannot be selected for a new deployment.`);
     }
   }
+  const homarrCoverage = {
+    supported: appDetails
+      .filter((app) => app.id !== "homarr" && app.homarr.support === "supported")
+      .map((app) => ({ id: app.id, name: app.name, integration: app.homarr.integration }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    partial: appDetails
+      .filter((app) => app.id !== "homarr" && app.homarr.support === "partial")
+      .map((app) => ({ id: app.id, name: app.name }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    gaps: appDetails
+      .filter((app) => app.id !== "homarr" && app.homarr.support === "gap")
+      .map((app) => ({ id: app.id, name: app.name }))
+      .sort((left, right) => left.id.localeCompare(right.id))
+  };
+  for (const role of roles) {
+    const isHomarrRole = role.selected === "homarr" || role.alternatives.includes("homarr");
+    if (isHomarrRole) {
+      role.controlPlaneCoverage = homarrCoverage;
+    }
+  }
+  const recommendations = roles
+    .filter((role) => role.recommended)
+    .map((role) => {
+      let suggested = role.selected;
+      if (suggested === null) {
+        suggested = role.alternatives[0] || null;
+      }
+      let select = null;
+      if (suggested !== null) {
+        select = `--select ${role.id}=${suggested}`;
+      }
+      let status = "available";
+      if (role.selected !== null) {
+        status = "selected";
+      }
+      let coverageMode = "dedicated-integrations";
+      if (homarrCoverage.supported.length === 0) {
+        coverageMode = "app-links-only";
+      }
+      return {
+        id: role.id,
+        name: role.name,
+        kind: "optional-control-plane",
+        status,
+        selected: role.selected,
+        suggested,
+        select,
+        coverageMode,
+        coverage: homarrCoverage,
+        reason: role.reason,
+        purpose: role.purpose
+      };
+    });
   const gates = new Set(stack.gates);
   for (const role of roles) {
     if (role.selected === null) {
@@ -1250,6 +1353,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   const appFingerprints = appDetails.map((app) => ({
     id: app.id,
     dependencies: app.dependencies,
+    homarr: app.homarr,
     image: app.image,
     lifecycle: app.lifecycle,
     name: app.name,
@@ -1269,6 +1373,12 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   });
   const planId = createHash("sha256").update(hashInput).digest("hex").slice(0, 16);
   const acceptance = new Set(stack.acceptance);
+  if (selectedIds.includes("homarr")) {
+    acceptance.add("Every selected Homarr app tile opens the intended private service.");
+    acceptance.add("Every configured Homarr integration authenticates and returns expected data.");
+    acceptance.add("Every selected Homarr widget renders data from its intended integration.");
+    acceptance.add("The packaged Homarr MCP bridge exposes only the approved profile and a bounded read-only probe succeeds.");
+  }
   if (selectedIds.includes("gluetun")) {
     acceptance.add("Breaking the VPN tunnel makes downloader egress fail; restoring it returns only the expected VPN egress.");
     acceptance.add("Control-plane and management traffic remain outside the downloader VPN namespace.");
@@ -1299,6 +1409,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     effectiveAutomation,
     automationLimiters,
     roles,
+    recommendations,
     impliedApps: dependencies.implied,
     requiredCapabilities: dependencies.capabilities,
     requiredSkills: [...requiredSkills].sort(),

@@ -1,17 +1,17 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "skills": [
-    {"id": "selfhost", "adapter": false},
-    {"id": "selfhost-backup", "adapter": false},
-    {"id": "selfhost-compose", "adapter": false},
-    {"id": "selfhost-homarr", "adapter": true},
-    {"id": "selfhost-host", "adapter": false},
-    {"id": "selfhost-ingress", "adapter": false},
-    {"id": "selfhost-media", "adapter": true},
-    {"id": "selfhost-observe", "adapter": false},
-    {"id": "selfhost-operations", "adapter": false},
-    {"id": "selfhost-research", "adapter": false},
-    {"id": "selfhost-verify", "adapter": false},
-    {"id": "selfhost-vpn", "adapter": false}
+    {"id": "selfhost", "adapter": false, "scope": null},
+    {"id": "selfhost-backup", "adapter": false, "scope": null},
+    {"id": "selfhost-compose", "adapter": false, "scope": null},
+    {"id": "selfhost-homarr", "adapter": true, "scope": "application"},
+    {"id": "selfhost-host", "adapter": false, "scope": null},
+    {"id": "selfhost-ingress", "adapter": false, "scope": null},
+    {"id": "selfhost-media", "adapter": true, "scope": "stack"},
+    {"id": "selfhost-observe", "adapter": false, "scope": null},
+    {"id": "selfhost-operations", "adapter": false, "scope": null},
+    {"id": "selfhost-research", "adapter": false, "scope": null},
+    {"id": "selfhost-verify", "adapter": false, "scope": null},
+    {"id": "selfhost-vpn", "adapter": false, "scope": null}
   ]
 }

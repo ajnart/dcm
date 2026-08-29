@@ -2,7 +2,9 @@
 
 ## Plan shape
 
-A plan contains the resolved goal, selected roles, non-selected alternatives, required sibling skills, approval gates, acceptance evidence, unresolved decisions, and the catalog check date. It preserves the stack capability and reports an effective automation level limited by every selected and implied application. It may summarize non-secret preferences and stale project context. Its human summary explains every selected service and states that the router neither inspected nor changed the host. It has no apply command or mutation authority.
+A plan contains the resolved goal, selected roles, non-selected alternatives, prominent optional recommendations, required sibling skills, approval gates, acceptance evidence, unresolved decisions, and the catalog check date. A recommendation never selects or deploys its application; only an explicit role choice does. It preserves the stack capability and reports an effective automation level limited by every selected and implied application. It may summarize non-secret preferences and stale project context. Its human summary explains every selected service and states that the router neither inspected nor changed the host. It has no apply command or mutation authority.
+
+When Homarr is explicitly selected, the plan adds the Homarr application adapter, exposure and secret gates, and separate acceptance claims for app tiles, integrations, widgets, and the approved MCP profile. When Homarr remains off, none of those Homarr-specific services, skills, or claims are present.
 
 ## Composition order
 

@@ -48,6 +48,34 @@ More examples:
 A bare `vpn` stays ambiguous because private remote access and downloader-only
 VPN routing solve different problems.
 
+## One optional control plane with Homarr
+
+Homarr is the recommended bonus layer for supported stacks: one dashboard for
+apps and widgets, plus one MCP endpoint that a coding agent can use to inspect
+connected services. It stays optional. A stack must remain useful without
+Homarr, and choosing it never grants permission to change another service.
+
+Use `$selfhost homarr` in Codex or `/selfhost homarr` in Claude Code for a
+standalone deployment plan. Call the `selfhost-homarr` skill directly when an
+existing instance only needs onboarding, integrations, or MCP setup. Inside
+another supported plan, use the exact opt-in shown by the router, such as
+`--select dashboard=homarr`.
+
+A practical remote setup can expose only Homarr and user-facing apps such as
+Jellyfin while keeping Sonarr, Radarr, Prowlarr, and qBittorrent administration
+private. Public access is never automatic: the plan still needs an explicit
+ingress and authentication decision with one owner for DNS, TLS, and ports
+80/443. Keep Homarr's native `/api/mcp` private; a public dashboard route must
+deny that path, while the packaged read-only bridge reaches it over loopback,
+LAN, or a private tailnet.
+
+The packaged Homarr MCP bridge is currently read-only. An agent can inspect
+integrations and search Seerr, then show the exact match, but it cannot submit
+a request or modify an app. Future write actions must use a separate, narrowly
+approved capability rather than inheriting access from the dashboard. Homarr's
+native MCP remains the extension point for those future agent actions, so each
+connected service does not need a separate public agent endpoint.
+
 ## What can it replace?
 
 | Goal | Common self-hosted choices | What they do |
@@ -61,7 +89,7 @@ VPN routing solve different problems.
 | Remote access | Tailscale, Headscale, Caddy, Pangolin | Reach selected services safely |
 | Cloud AI tools | Ollama, Open WebUI | Run supported models on your own hardware |
 
-The validated catalog contains 107 applications across media, photos,
+The validated catalog contains 107 applications across 14 goal stacks for media, photos,
 documents, files, passwords, home automation, networking, monitoring, backups,
 containers, developer tools, productivity, databases, storage, and local AI.
 
@@ -147,22 +175,28 @@ for the goal:
 | `selfhost-operations` | Plan upgrades, migrations, rollback, and recovery |
 | `selfhost-research` | Gather current official deployment evidence |
 | `selfhost-verify` | Independently decide whether evidence is sufficient |
-| `selfhost-media` | Manage the seven-service personal-media harness |
-| `selfhost-homarr` | Plan and verify Homarr, its API, and its MCP access |
+| `selfhost-media` | Manage the opt-in Homarr-enhanced media harness |
+| `selfhost-homarr` | Add the optional Homarr dashboard and read-only agent gateway |
 
-The checked registry contains 12 packaged skills, including 2 application adapters:
-`selfhost-media` and `selfhost-homarr`. The registry is
+The checked registry contains 12 packaged skills, including 2 specialized adapters:
+the stack-scoped `selfhost-media` and application-scoped `selfhost-homarr`. The registry is
 `.agents/skills/selfhost/references/catalog/skills.json`. Capabilities remain
 separate so a photo setup does not inherit media or public-network authority.
 
 ## Media and Homarr boundary
 
-The managed owned-content stack connects Seerr, Jellyfin, Sonarr, Radarr,
-Prowlarr, qBittorrent, and Homarr. Homarr must use exactly:
+The managed seven-service owned-content harness is an explicitly
+Homarr-enhanced adapter. Generic media plans can omit Homarr. When this adapter
+is selected, it connects Seerr, Jellyfin, Sonarr, Radarr, Prowlarr,
+qBittorrent, and Homarr. Homarr must use exactly:
 
 ```text
 ghcr.io/homarr-labs/homarr-test:v2
 ```
+
+Invoke `$selfhost-media` in Codex or `/selfhost-media` in Claude Code for that
+exact harness. `/selfhost netflix` is the generic guided plan and keeps Homarr
+off until you select it.
 
 Homarr app tiles, integrations, and widgets are verified as separate claims.
 Its API key stays in a private profile and the local bridge injects it at

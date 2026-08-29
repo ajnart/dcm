@@ -23,6 +23,7 @@
           "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
           "name": {"type": "string"},
           "required": {"type": "boolean"},
+          "recommended": {"type": "boolean"},
           "default": {"type": ["string", "null"]},
           "choices": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
           "reason": {"type": "string", "minLength": 8},

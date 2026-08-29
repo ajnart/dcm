@@ -11,6 +11,9 @@ The router never treats invocation as approval to mutate a host. It resolves
 the goal, inspects what is safe to inspect, loads non-secret preferences,
 selects a stack, and presents a redacted plan. It asks only for decisions that
 materially change storage, exposure, secrets, destructive work, or rollback.
+An explicit request for Homarr itself routes to the `homarr-control-plane`
+goal and its `selfhost-homarr` adapter; Homarr stays an unselected
+recommendation when it is only an enhancement to another goal.
 
 For a returning project, load `.selfhost/project.json` plus confirmed non-secret
 preferences from its exact project root. The project record keeps the goal,
@@ -39,8 +42,9 @@ bounded task. Initial boundaries are:
 - `selfhost-operations`: upgrades, migrations, rollback, and troubleshooting.
 - `selfhost-research`: current primary-source and browser research harness.
 - `selfhost-verify`: independent acceptance and secret-free evidence.
-- `selfhost-media`: managed personal-media adapter.
-- `selfhost-homarr`: Homarr integration, dashboard, API, and MCP adapter.
+- `selfhost-media`: opt-in Homarr-enhanced personal-media adapter.
+- `selfhost-homarr`: optional Homarr control-plane, dashboard, API, and
+  read-only MCP adapter.
 
 Do not create one skill per catalog row. An app earns a dedicated skill only
 when it has reusable special behavior beyond declarative facts.
@@ -51,11 +55,27 @@ when it has reusable special behavior beyond declarative facts.
 2. Inspect the selected host with `selfhost-host`.
 3. Reuse compatible infrastructure or report a conflict.
 4. Compose only the selected capabilities and apps; optional roles remain off.
-5. Present the plan and obtain the relevant approval.
-6. Apply through the owning capability or adapter.
-7. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
+5. When Homarr covers useful selected apps, offer it prominently as an
+   optional control plane. Never auto-select it or make its absence block the
+   base stack.
+6. Present the plan and obtain the relevant approval.
+7. Apply through the owning capability or adapter.
+8. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
    plan selected those capabilities.
-8. Persist only confirmed non-secret preferences and evidence paths.
+9. Persist only confirmed non-secret preferences and evidence paths.
+
+Homarr's dashboard can be the only remotely reachable administration surface while
+service administration such as Sonarr, Radarr, Prowlarr, and qBittorrent stays
+private. User-facing apps such as Jellyfin may also be exposed. That topology
+still requires an explicit `selfhost-ingress` plan and approval for DNS, TLS,
+ports 80/443, and authentication. Selecting Homarr does not approve public
+access. Keep native `/api/mcp` access private and connect the packaged bridge
+over loopback, LAN, or a private tailnet.
+
+The shipped Homarr MCP bridge is strictly read-only: it supports inspection
+and Seerr search, not requests or configuration changes. A future write path
+must be a separate, narrowly scoped capability with its own approval and
+verification contract.
 
 ## Required end summary
 
