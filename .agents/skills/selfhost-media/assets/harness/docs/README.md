@@ -13,6 +13,16 @@ Before any browser command:
 4. Use the run's `AGENT_BROWSER_SESSION`; re-snapshot after every page change.
 5. Resolve host URLs with `scripts/session.sh urls RUN_ID`. Never assume a port.
 
+Authenticated browser diagnostics are secret-bearing. Candidates must never
+invoke, print, or persist agent-browser `console`, raw `network requests`, HAR
+output, or another raw trace inside or outside their run; headers, cookies,
+URLs, and payloads can contain access tokens. Candidates use only page-scoped
+evaluation that returns approved fixed summaries or fixed harness summaries.
+Only the supervisor may use a raw trace, and only with explicit authorization
+in a unique owner-only temporary directory outside candidate execution. The
+supervisor must never surface its contents or treat it as candidate evidence and
+must delete it immediately after deriving the approved fixed summary.
+
 The harness never installs or downloads agent-browser. On a mise-managed host
 where the direct executable is absent, load the core workflow with
 `mise exec node@24 -- agent-browser skills get core`. The password helper first

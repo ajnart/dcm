@@ -1,3 +1,5 @@
+import { pathToFileURL } from "node:url";
+
 import {
   arrHeaders,
   deriveSessionPassword,
@@ -229,6 +231,235 @@ function apiKeyIsMask(value) {
   return typeof value === "string" && /^\*{8,}$/.test(value);
 }
 
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasPositiveId(value) {
+  return Number.isInteger(Number(value)) && Number(value) > 0;
+}
+
+function isSafeServiceId(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+export function validateSeerrSettings(settings, expected) {
+  check(isRecord(settings), "Seerr settings are invalid");
+  check(isRecord(expected), "Seerr expected settings are invalid");
+  check(isRecord(settings.public), "Seerr public settings are invalid");
+  check(settings.public.initialized === true, "Seerr is not initialized");
+
+  const jellyfin = settings.jellyfin;
+  check(isRecord(jellyfin), "Seerr Jellyfin settings are invalid");
+  check(jellyfin.ip === "jellyfin", "Seerr Jellyfin host is incorrect");
+  check(Number(jellyfin.port) === 8096, "Seerr Jellyfin port is incorrect");
+  check(jellyfin.useSsl === false, "Seerr Jellyfin SSL setting is incorrect");
+  check(
+    jellyfin.externalHostname === expected.jellyfinExternalHostname,
+    "Seerr Jellyfin external URL is incorrect",
+  );
+  check(
+    typeof jellyfin.serverId === "string" && jellyfin.serverId !== "",
+    "Seerr Jellyfin server ID is missing",
+  );
+  const enabledLibraries = requireArray(
+    jellyfin.libraries,
+    "Seerr Jellyfin library list",
+  ).filter((library) => isRecord(library) && library.enabled === true);
+  const enabledLibraryNames = enabledLibraries
+    .map((library) => normalizeName(library.name))
+    .sort();
+  check(
+    enabledLibraryNames.length === 2
+      && enabledLibraryNames[0] === "movies"
+      && enabledLibraryNames[1] === "shows",
+    "Seerr Jellyfin enabled libraries are incorrect",
+  );
+
+  const radarr = requireArray(settings.radarr, "Seerr Radarr settings");
+  check(radarr.length === 1, "Seerr must have exactly one Radarr server");
+  const radarrServer = radarr[0];
+  check(isRecord(radarrServer), "Seerr Radarr server is invalid");
+  check(isSafeServiceId(radarrServer.id), "Seerr Radarr ID is invalid");
+  check(radarrServer.hostname === "radarr", "Seerr Radarr host is incorrect");
+  check(Number(radarrServer.port) === 7878, "Seerr Radarr port is incorrect");
+  check(radarrServer.useSsl === false, "Seerr Radarr SSL setting is incorrect");
+  check(radarrServer.isDefault === true, "Seerr Radarr is not the default");
+  check(radarrServer.is4k === false, "Seerr Radarr must be non-4K");
+  check(
+    radarrServer.activeDirectory === "/data/media/movies",
+    "Seerr Radarr root folder is incorrect",
+  );
+  check(
+    hasPositiveId(radarrServer.activeProfileId)
+      && normalizeName(radarrServer.activeProfileName) === "any",
+    "Seerr Radarr quality profile is incorrect",
+  );
+  check(radarrServer.preventSearch === false, "Seerr Radarr search is disabled");
+  check(radarrServer.syncEnabled === true, "Seerr Radarr sync is disabled");
+  check(
+    radarrServer.externalUrl === expected.radarrExternalUrl,
+    "Seerr Radarr external URL is incorrect",
+  );
+  check(
+    radarrServer.apiKey === expected.radarrApiKey,
+    "Seerr Radarr API key is incorrect",
+  );
+
+  const sonarr = requireArray(settings.sonarr, "Seerr Sonarr settings");
+  check(sonarr.length === 1, "Seerr must have exactly one Sonarr server");
+  const sonarrServer = sonarr[0];
+  check(isRecord(sonarrServer), "Seerr Sonarr server is invalid");
+  check(isSafeServiceId(sonarrServer.id), "Seerr Sonarr ID is invalid");
+  check(sonarrServer.hostname === "sonarr", "Seerr Sonarr host is incorrect");
+  check(Number(sonarrServer.port) === 8989, "Seerr Sonarr port is incorrect");
+  check(sonarrServer.useSsl === false, "Seerr Sonarr SSL setting is incorrect");
+  check(sonarrServer.isDefault === true, "Seerr Sonarr is not the default");
+  check(sonarrServer.is4k === false, "Seerr Sonarr must be non-4K");
+  check(
+    sonarrServer.activeDirectory === "/data/media/tv"
+      && sonarrServer.activeAnimeDirectory === "/data/media/tv",
+    "Seerr Sonarr root folders are incorrect",
+  );
+  check(
+    hasPositiveId(sonarrServer.activeProfileId)
+      && normalizeName(sonarrServer.activeProfileName) === "any"
+      && hasPositiveId(sonarrServer.activeAnimeProfileId)
+      && normalizeName(sonarrServer.activeAnimeProfileName) === "any",
+    "Seerr Sonarr quality profiles are incorrect",
+  );
+  check(sonarrServer.preventSearch === false, "Seerr Sonarr search is disabled");
+  check(sonarrServer.syncEnabled === true, "Seerr Sonarr sync is disabled");
+  check(
+    sonarrServer.monitorNewItems === "all",
+    "Seerr Sonarr new-item monitoring is incorrect",
+  );
+  check(
+    sonarrServer.enableSeasonFolders === true,
+    "Seerr Sonarr season folders are disabled",
+  );
+  check(
+    sonarrServer.externalUrl === expected.sonarrExternalUrl,
+    "Seerr Sonarr external URL is incorrect",
+  );
+  check(
+    sonarrServer.apiKey === expected.sonarrApiKey,
+    "Seerr Sonarr API key is incorrect",
+  );
+
+  return {
+    radarr: radarrServer.id,
+    sonarr: sonarrServer.id,
+  };
+}
+
+export function validateSeerrCredentialIndex(index, expectedIds) {
+  check(isRecord(index), "Seerr credential index is invalid");
+  check(isRecord(expectedIds), "Seerr expected service IDs are invalid");
+  check(
+    isSafeServiceId(expectedIds.radarr) && isSafeServiceId(expectedIds.sonarr),
+    "Seerr expected service IDs are invalid",
+  );
+
+  const users = requireArray(index.jellyfinUsers, "Seerr Jellyfin user list");
+  check(
+    users.length > 0 && users.every((user) => isRecord(user)),
+    "Seerr Jellyfin persisted user is missing",
+  );
+
+  const radarr = requireArray(index.radarr, "Seerr Radarr service list");
+  check(radarr.length === 1, "Seerr Radarr service list is not exact");
+  check(isRecord(radarr[0]), "Seerr Radarr service record is invalid");
+  check(
+    isSafeServiceId(radarr[0].id) && radarr[0].id === expectedIds.radarr,
+    "Seerr Radarr service ID is incorrect",
+  );
+
+  const sonarr = requireArray(index.sonarr, "Seerr Sonarr service list");
+  check(sonarr.length === 1, "Seerr Sonarr service list is not exact");
+  check(isRecord(sonarr[0]), "Seerr Sonarr service record is invalid");
+  check(
+    isSafeServiceId(sonarr[0].id) && sonarr[0].id === expectedIds.sonarr,
+    "Seerr Sonarr service ID is incorrect",
+  );
+
+  return {
+    radarr: radarr[0].id,
+    sonarr: sonarr[0].id,
+  };
+}
+
+function validateSeerrServiceDetail(detail, label) {
+  check(isRecord(detail), `${label} service detail is invalid`);
+  const profiles = requireArray(detail.profiles, `${label} profile list`);
+  const rootFolders = requireArray(detail.rootFolders, `${label} root-folder list`);
+  requireArray(detail.tags, `${label} tag list`);
+  check(profiles.length > 0, `${label} profile list is empty`);
+  check(rootFolders.length > 0, `${label} root-folder list is empty`);
+}
+
+export function validateSeerrServiceDetails(details) {
+  check(isRecord(details), "Seerr service details are invalid");
+  validateSeerrServiceDetail(details.radarr, "Seerr Radarr");
+  validateSeerrServiceDetail(details.sonarr, "Seerr Sonarr");
+}
+
+export async function verifySeerr(session, getJson = requestJson) {
+  const apiRoot = `${loopback(session.manifest.SEERR_PORT)}/api/v1/settings`;
+  const headers = arrHeaders(session.secrets.SEERR_API_KEY);
+  const endpoints = ["public", "jellyfin", "radarr", "sonarr"];
+  const responses = Object.create(null);
+
+  for (const endpoint of endpoints) {
+    responses[endpoint] = await getJson(
+      `${apiRoot}/${endpoint}`,
+      { method: "GET", headers },
+      { label: `Seerr ${endpoint} settings` },
+    );
+  }
+
+  const settingsIds = validateSeerrSettings(responses, {
+    jellyfinExternalHostname: loopback(session.manifest.JELLYFIN_PORT),
+    radarrApiKey: session.secrets.RADARR_API_KEY,
+    radarrExternalUrl: loopback(session.manifest.RADARR_PORT),
+    sonarrApiKey: session.secrets.SONARR_API_KEY,
+    sonarrExternalUrl: loopback(session.manifest.SONARR_PORT),
+  });
+
+  const credentialIndex = {
+    jellyfinUsers: await getJson(
+      `${apiRoot}/jellyfin/users`,
+      { method: "GET", headers },
+      { label: "Seerr Jellyfin user settings" },
+    ),
+    radarr: await getJson(
+      `${loopback(session.manifest.SEERR_PORT)}/api/v1/service/radarr`,
+      { method: "GET", headers },
+      { label: "Seerr Radarr service list" },
+    ),
+    sonarr: await getJson(
+      `${loopback(session.manifest.SEERR_PORT)}/api/v1/service/sonarr`,
+      { method: "GET", headers },
+      { label: "Seerr Sonarr service list" },
+    ),
+  };
+  const serviceIds = validateSeerrCredentialIndex(credentialIndex, settingsIds);
+  const serviceRoot = `${loopback(session.manifest.SEERR_PORT)}/api/v1/service`;
+  const details = {
+    radarr: await getJson(
+      `${serviceRoot}/radarr/${encodeURIComponent(String(serviceIds.radarr))}`,
+      { method: "GET", headers },
+      { label: "Seerr Radarr service detail" },
+    ),
+    sonarr: await getJson(
+      `${serviceRoot}/sonarr/${encodeURIComponent(String(serviceIds.sonarr))}`,
+      { method: "GET", headers },
+      { label: "Seerr Sonarr service detail" },
+    ),
+  };
+  validateSeerrServiceDetails(details);
+}
+
 async function verifyProwlarr(session, arrDefinitions) {
   const apiRoot = `${loopback(session.manifest.PROWLARR_PORT)}/api/v1`;
   const headers = arrHeaders(session.secrets.PROWLARR_API_KEY);
@@ -404,9 +635,17 @@ async function main() {
 
   await verifyProwlarr(session, arrDefinitions);
   console.log("PASS Prowlarr applications and public indexer state");
+
+  await verifySeerr(session);
+  console.log("PASS Seerr links and persisted credentials");
 }
 
-main().catch((error) => {
-  console.error(`FAIL core verification: ${error.message}`);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error) => {
+    console.error(`FAIL core verification: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

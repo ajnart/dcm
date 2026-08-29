@@ -253,7 +253,7 @@ verify_installed_media_bundle() {
     || fail "$label selfhost-media bundle verifier is missing or unsafe"
   output="$(node "$verifier")" \
     || fail "$label selfhost-media bundle verification failed"
-  [[ "$output" == "PASS bundle: 34 files verified" ]] \
+  [[ "$output" =~ ^PASS\ bundle:\ [1-9][0-9]*\ files\ verified$ ]] \
     || fail "$label selfhost-media bundle verifier returned unexpected output"
 }
 

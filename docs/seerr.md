@@ -29,8 +29,10 @@
 
 ## Proof
 
-- Public settings report initialized.
-- Seerr settings show Jellyfin plus one default Sonarr and one default Radarr.
+- `session.sh verify` requires initialized public settings, exact loopback
+  external URLs, and exact persisted Sonarr and Radarr API keys.
+- Its read-only GET probes require a persisted Jellyfin user plus matching
+  Radarr/Sonarr service IDs and nonempty service-detail profiles and roots.
 - Both service tests succeed with selected profiles/root folders.
 - Homarr's Seerr integration test succeeds; request list/stats/search capability
   is present on the generated dashboard.

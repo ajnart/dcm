@@ -34,7 +34,13 @@
    `./scripts/session.sh mcp-config "$RUN_ID"`, and
    `./scripts/session.sh mcp-verify "$RUN_ID"` in that order. The finalizer
    changes only the six generated apps to host-reachable primary links while
-   retaining their Docker URLs for container-side ping.
+   retaining their Docker URLs for container-side ping. If `app_update` reports
+   an error after committing a change, the finalizer accepts it only when a
+   fresh read-only `app_all` finds exactly one app matching every submitted
+   writable field: `id`, `name`, `description`, `iconUrl`, `href`, and
+   `pingUrl`; every other case preserves the update failure. Final verification
+   repeats the full-field check for mutated apps and the URL check for unchanged
+   apps.
 9. Keep the secret-free client fragment candidate-scoped. Installation into a
    local client is a promotion action reserved for the winning run.
 
@@ -79,11 +85,19 @@ unapproved tool before upstream dispatch.
   Arr/Prowlarr data.
 - Reload the board, leave edit mode, and capture a full-page screenshot in the
   run's artifact directory.
-- All generated tRPC widget calls succeed after reload. Empty media libraries
-  legitimately render empty states; request/network errors do not. For the
-  media-release widget, an empty `releases` array is valid when the response's
-  `failedIntegrations` array is also empty, even if the current UI says
-  `No integration data available`.
+- After reload, fixed evidence contains one row for each expected procedure:
+  `widget.indexerManager.getIndexersStatus`,
+  `widget.downloads.getJobsAndStatuses`, `widget.mediaRequests.getStats`,
+  `widget.mediaServer.getCurrentStreams`, `widget.calendar.findAllEvents`,
+  `widget.mediaOrganizer.getData`, and
+  `widget.mediaRelease.getMediaReleases`. Each row records only method `GET`, its
+  sanitized `/api/trpc/<procedure>` path without query data, HTTP status 200,
+  and a non-error response-envelope classification.
+- `mediaRelease` proof also reports `releases.length` and
+  `failedIntegrations.length`; a zero release count is valid only when the
+  failed-integration count is zero. Visible empty-state text,
+  `No integration data available`, `Try again`, or a screenshot alone is not
+  widget evidence.
 
 ## Traps
 
@@ -91,6 +105,10 @@ unapproved tool before upstream dispatch.
 - Re-snapshot after dialogs and menus; stale refs and overlays are common.
 - Never pass the derived password in an agent-browser or shell argument; use
   only the bounded browser-password helper with fresh refs.
+- As a candidate, never invoke, print, or persist authenticated agent-browser
+  diagnostics such as `console`, raw `network requests`, or HAR output inside
+  or outside the run; use only page-scoped approved fixed summaries or fixed
+  harness summaries.
 - A green integration list without visible generated apps/widgets is incomplete.
 - Never fall back to post-onboarding manual placement to claim auto-generation.
 - Never screenshot the one-time API key or put it in a client fragment.

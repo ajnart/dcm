@@ -261,9 +261,13 @@ The prompt-survival history is intentionally preserved:
 | 1 | Both Luna candidates were disqualified; a supervisor trace established the complete reference path |
 | 2 | Both isolated runs completed; candidate A survived with 64 meaningful actions versus 70 |
 | 3 | Homarr API/MCP augmentation survived on both Generation 2 runs; A needed 4 extra actions versus 7 and remained promoted |
+| 4 | The survivor became the portable 12-skill pack and passed private install plus live dashboard acceptance |
+| 5 | Two fresh full-stack runs exposed one real widget-auth failure; the independently audited second run survived |
 
 Generation 3 proved native and bridged read-only search for “Spider-Man: No
-Way Home.” Neither candidate invoked a media request or started a download.
+Way Home.” Generation 5 added fixed structural proof for every expected Homarr
+widget and exact Seerr-to-Jellyfin/Sonarr/Radarr verification. No candidate
+invoked a media request or started a download.
 
 This repository supports legally obtained, owned, public-domain, or otherwise
 authorized content only. It does not grant acquisition rights, choose

@@ -19,6 +19,18 @@ Run `doctor` and the core verifier again at the end. Inspect the real UI and
 redacted response structure. HTTP 200 alone is insufficient. Empty media data
 passes only when the response reports no failed integrations.
 
+For Homarr widgets, require one fixed proof row for each expected procedure:
+`widget.indexerManager.getIndexersStatus`,
+`widget.downloads.getJobsAndStatuses`, `widget.mediaRequests.getStats`,
+`widget.mediaServer.getCurrentStreams`, `widget.calendar.findAllEvents`,
+`widget.mediaOrganizer.getData`, and
+`widget.mediaRelease.getMediaReleases`. Each row records only method `GET`, its
+sanitized `/api/trpc/<procedure>` path without query data, HTTP status 200, and a
+non-error response-envelope classification. `mediaRelease` proof must also
+report `releases.length` and `failedIntegrations.length`; a zero release count
+passes only when the failed-integration count is zero. Visible empty-state text,
+`Try again`, or a screenshot alone is not evidence.
+
 The report must include the acceptance matrix with evidence paths, meaningful
 action count per service, recoveries with causes, exact observed image
 IDs/versions, final run status, and secret-safe Homarr API/MCP proof. Keep all

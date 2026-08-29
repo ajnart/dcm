@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { pathToFileURL } from "node:url";
+
 import {
   loadHomarrApiKey,
   loadSession,
@@ -88,6 +90,41 @@ function writableApp(app, service) {
   };
 }
 
+const WRITABLE_APP_FIELDS = Object.freeze([
+  "id",
+  "name",
+  "description",
+  "iconUrl",
+  "href",
+  "pingUrl",
+]);
+
+export function appMatchesUpdate(app, update) {
+  return isRecord(app) && isRecord(update) && WRITABLE_APP_FIELDS.every(
+    (field) => Object.hasOwn(app, field)
+      && Object.hasOwn(update, field)
+      && app[field] === update[field],
+  );
+}
+
+export async function updateApp(client, update) {
+  try {
+    await client.callTool("app_update", update);
+    return;
+  } catch (updateError) {
+    try {
+      const apps = toolResultArray(await client.callTool("app_all"));
+      const app = appById(apps, update.id);
+      if (appMatchesUpdate(app, update)) {
+        return;
+      }
+    } catch {
+      // Preserve the original mutation failure when reconciliation is unavailable.
+    }
+    throw updateError;
+  }
+}
+
 async function main() {
   if (process.argv.length !== 3) {
     throw new Error("RUN_ID is required");
@@ -154,12 +191,20 @@ async function main() {
   process.stdout.write("PASS Homarr six app and integration links verified\n");
 
   for (const update of updates) {
-    await client.callTool("app_update", update);
+    await updateApp(client, update);
   }
 
+  const updatesById = new Map(updates.map((update) => [update.id, update]));
   const finalizedApps = toolResultArray(await client.callTool("app_all"));
   for (const [appId, service] of expectedApps) {
     const app = appById(finalizedApps, appId);
+    const update = updatesById.get(appId);
+    if (update !== undefined) {
+      if (!appMatchesUpdate(app, update)) {
+        throw new Error("Homarr app update did not fully persist");
+      }
+      continue;
+    }
     if (app.href !== service.navigationUrl || app.pingUrl !== service.pingUrl) {
       throw new Error("Homarr app URL update did not persist");
     }
@@ -167,7 +212,12 @@ async function main() {
   process.stdout.write("PASS Homarr app navigation and ping URLs finalized\n");
 }
 
-main().catch(() => {
-  process.stdout.write("FAIL Homarr finalization\n");
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch(() => {
+    process.stdout.write("FAIL Homarr finalization\n");
+    process.exitCode = 1;
+  });
+}

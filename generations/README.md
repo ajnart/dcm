@@ -26,3 +26,6 @@ The current sequence is:
 3. Generation 3 added read-only Homarr API and MCP verification.
 4. Generation 4 packaged the survivor as composable skills and verified the
    private installer plus the live dashboard UI.
+5. Generation 5 repeated the full stack in two fresh isolated runs, promoted
+   the browser-audited survivor, and hardened finalizer reconciliation and
+   authentication-safe evidence capture.

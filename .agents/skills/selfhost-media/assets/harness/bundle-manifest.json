@@ -5,7 +5,7 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "0f6e46dc3341b8c5abeab32acb12acd0d18446f390e0e94beefd6f3a87b428a7"
+      "sourceSha256": "73e6acaf5d6af8ecba17402f7e3587a7b343ecb95177e5a8b67e2ca463c07856"
     },
     {
       "path": "prompts/00-contract.md",
@@ -27,12 +27,12 @@
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "29c135c20e56533220450e3fac70dfe1ddc2c3162b01cfea53e543ed4ad60024"
+      "sha256": "42b1520ea55d2f47e544daa7009de2ffb5751411429bf82fa9c30e3eef328953"
     },
     {
       "path": "docs/homarr.md",
       "mode": "0644",
-      "sha256": "f83af42d8018e4e56c75a3bc129a1bcc5246f994a697935756bf367b1edfb062"
+      "sha256": "9912ddd6c264a1d2693e3740607bd55b466f3fe920c240cdb52f93ebb966f9fd"
     },
     {
       "path": "docs/jellyfin.md",
@@ -57,7 +57,7 @@
     {
       "path": "docs/seerr.md",
       "mode": "0644",
-      "sha256": "6a8e1421019f492f40f9b049904b949cf55038a4f4ea005525f504961e319e6c"
+      "sha256": "68059258e8333195036c820139b6c10bfae4c25e0dddc885f4ccddb7d032ff1b"
     },
     {
       "path": "docs/sonarr.md",
@@ -102,12 +102,12 @@
     {
       "path": "prompts/80-acceptance.md",
       "mode": "0644",
-      "sha256": "7e7cd421364c4156f44865aac1ff93590fd6fd09e417e50f98f0adec46b9db29"
+      "sha256": "fdfa1d61426081c174fa1355b2e1f750de09b9c60854edf11ca4434fddf6c29c"
     },
     {
       "path": "prompts/90-evidence.md",
       "mode": "0644",
-      "sha256": "3e3648e22b8c2a13e7f000a6d719542da0bd7939f3d9811a46404b99b9038215"
+      "sha256": "4200b668956193d9fa65384437a77ca587b1f3b0c51dbdf1551b55cd46326645"
     },
     {
       "path": "prompts/manifest.txt",
@@ -120,9 +120,19 @@
       "sha256": "3546de133b23f4c1a07c0437271511d2ec9b55235423941fef3238eee9c0bdf1"
     },
     {
+      "path": "scripts/check-homarr-finalize.mjs",
+      "mode": "0644",
+      "sha256": "4eebe19f40207072d501c88a467ead3b0c3e91e8306548ddb55c1015c66f6a22"
+    },
+    {
       "path": "scripts/check-homarr-mcp-bridge.mjs",
       "mode": "0644",
       "sha256": "c48fc16636a8e15b2181dd33283032dfb79fc5066c1c5d95cb0994252ae27f87"
+    },
+    {
+      "path": "scripts/check-seerr-verifier.mjs",
+      "mode": "0644",
+      "sha256": "9a05d7dceda9e46ce5065b9d0e7fddaff9836036a957f70d9b4999f80d6507cb"
     },
     {
       "path": "scripts/check-session-password.mjs",
@@ -137,7 +147,7 @@
     {
       "path": "scripts/homarr-finalize.mjs",
       "mode": "0644",
-      "sha256": "f491d4b61147f1a99ef544101202ccf4216fbdbd6431f7728832e8448907dd37"
+      "sha256": "5f4ede4b088b954921ed17b8c26a7e89fd283fee6c386d8353e8cb13ce56f84a"
     },
     {
       "path": "scripts/homarr-mcp-bridge.mjs",
@@ -172,7 +182,7 @@
     {
       "path": "scripts/verify-core.mjs",
       "mode": "0644",
-      "sha256": "33adfa66ff3c89f581766313a360cf5822353621d39bedb84b539ec2f65538a6"
+      "sha256": "6322e39cae8601190636253aec51abf8d2a044179a7b12c34676180cbcddbc02"
     },
     {
       "path": "scripts/verify-homarr-mcp.mjs",

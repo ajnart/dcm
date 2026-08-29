@@ -20,6 +20,14 @@
 - Keep authentication pages, raw authenticated payloads, cookies, passwords,
   API keys, and encryption keys out of output, screenshots, arguments, tracked
   files, and client configuration.
+- Treat authenticated agent-browser `console`, raw `network requests`, HAR
+  output, and every other raw trace as secret-bearing. Candidates must never
+  invoke, print, or persist them inside or outside their run; use only
+  page-scoped approved fixed summaries or fixed harness summaries. Only the
+  supervisor may use a raw trace, and only with explicit authorization in a
+  unique owner-only temporary directory outside candidate execution. Never
+  surface its contents or treat it as candidate evidence, and delete it
+  immediately after deriving the approved fixed summary.
 - Keep the generated MCP client fragment candidate-scoped. It must remain
   secret-free and uninstalled until a winner is explicitly promoted.
 
