@@ -5,7 +5,7 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "73e6acaf5d6af8ecba17402f7e3587a7b343ecb95177e5a8b67e2ca463c07856"
+      "sourceSha256": "8d9292439c55e278432a0eefe4546edb2d05b14e8d456c4377cebd86e55cd5f1"
     },
     {
       "path": "prompts/00-contract.md",
@@ -22,12 +22,12 @@
     {
       "path": "docker-compose.yml",
       "mode": "0644",
-      "sha256": "e6dff79ca4556e9a7602fb805d3b4664c676eae7f1d8bf7c84bc4265a31bde6e"
+      "sha256": "27595be9825ab8c1dfb3d5f278b7142f2062cff0593f8298147749d4578cd1dd"
     },
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "42b1520ea55d2f47e544daa7009de2ffb5751411429bf82fa9c30e3eef328953"
+      "sha256": "de6795088e21d83f83f83a7db4c2da8119e0af085ba9228cb32530c20f90653b"
     },
     {
       "path": "docs/homarr.md",

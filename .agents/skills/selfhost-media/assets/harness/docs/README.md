@@ -4,6 +4,11 @@ These are the short operational references for fresh test sessions. Read the
 service note before configuring that service; the root-level historical guides
 are evidence from an older, non-isolated run and may have stale ports or UI refs.
 
+Compose port mappings omit a host IP and provide service-specific fallback
+ports. Session-created runs still assign collision-free ports. Docker may
+publish them on every host interface, so keep the host behind a trusted LAN or
+firewall; this harness does not configure public ingress or authentication.
+
 Before any browser command:
 
 1. Read the available `agent-browser` skill's `SKILL.md`.

@@ -127,6 +127,16 @@ the portable bundle and its manifest. Never hand-edit only the generated copy
 or update hashes to conceal drift. If no approved regeneration path is
 available, stop and leave the change blocked.
 
+Run the fixed repository-owned workflow after an approved canonical change:
+
+```bash
+node scripts/refresh-media-bundle.mjs
+```
+
+It accepts no path arguments, regenerates the allowlisted bundle from the
+canonical root, writes the manifest last, and verifies bundle integrity plus
+source drift before reporting success.
+
 ## Support promotion evidence
 
 Promotion is exact and evidence-based:

@@ -79,6 +79,9 @@ generated. Never fix drift by editing only the bundle or by changing hashes.
 Regenerate through the owning workflow after a canonical harness change. If no
 approved generator is available, stop and report the bundle refresh as blocked.
 Repository tooling added under root `scripts/` is not media runtime input.
+Refresh the generated bundle only with
+`node scripts/refresh-media-bundle.mjs`; the command accepts no paths and
+verifies the complete source/bundle relationship after writing.
 
 ## Focused commands
 

@@ -198,6 +198,11 @@ Invoke `$selfhost-media` in Codex or `/selfhost-media` in Claude Code for that
 exact harness. `/selfhost netflix` is the generic guided plan and keeps Homarr
 off until you select it.
 
+The harness publishes each service as `${PORT:-default}:container-port` without
+forcing a host IP. This is easier on LAN hosts, but Docker may listen on every
+host interface; keep the machine behind a trusted firewall and use the ingress
+skill before making anything internet-facing.
+
 Homarr app tiles, integrations, and widgets are verified as separate claims.
 Its API key stays in a private profile and the local bridge injects it at
 runtime. The default client fragment remains strictly read-only. It can search

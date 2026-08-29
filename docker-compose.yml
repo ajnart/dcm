@@ -11,7 +11,7 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/prowlarr:/config
     ports:
-      - "127.0.0.1:${PROWLARR_PORT}:9696"
+      - "${PROWLARR_PORT:-9696}:9696"
     restart: unless-stopped
 
   radarr:
@@ -25,7 +25,7 @@ services:
       - ${SESSION_ROOT}/config/radarr:/config
       - ${SESSION_ROOT}/data:/data
     ports:
-      - "127.0.0.1:${RADARR_PORT}:7878"
+      - "${RADARR_PORT:-7878}:7878"
     restart: unless-stopped
 
   sonarr:
@@ -39,7 +39,7 @@ services:
       - ${SESSION_ROOT}/config/sonarr:/config
       - ${SESSION_ROOT}/data:/data
     ports:
-      - "127.0.0.1:${SONARR_PORT}:8989"
+      - "${SONARR_PORT:-8989}:8989"
     restart: unless-stopped
 
   qbittorrent:
@@ -49,13 +49,13 @@ services:
       PGID: ${PGID}
       TZ: ${TZ}
       UMASK: "022"
-      WEBUI_PORT: ${QBITTORRENT_PORT}
-      WEBUI_PORTS: ${QBITTORRENT_PORT}/tcp
+      WEBUI_PORT: ${QBITTORRENT_PORT:-8080}
+      WEBUI_PORTS: ${QBITTORRENT_PORT:-8080}/tcp
     volumes:
       - ${SESSION_ROOT}/config/qbittorrent:/config
       - ${SESSION_ROOT}/data/torrents:/data/torrents
     ports:
-      - "127.0.0.1:${QBITTORRENT_PORT}:${QBITTORRENT_PORT}"
+      - "${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"
     restart: unless-stopped
 
   jellyfin:
@@ -69,7 +69,7 @@ services:
       - ${SESSION_ROOT}/config/jellyfin:/config
       - ${SESSION_ROOT}/data/media:/data/media
     ports:
-      - "127.0.0.1:${JELLYFIN_PORT}:8096"
+      - "${JELLYFIN_PORT:-8096}:8096"
     restart: unless-stopped
 
   seerr:
@@ -81,7 +81,7 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/seerr:/app/config
     ports:
-      - "127.0.0.1:${SEERR_PORT}:5055"
+      - "${SEERR_PORT:-5055}:5055"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
       start_period: 20s
@@ -99,7 +99,7 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/homarr:/appdata
     ports:
-      - "127.0.0.1:${HOMARR_PORT}:7575"
+      - "${HOMARR_PORT:-7575}:7575"
     restart: unless-stopped
 
 networks:

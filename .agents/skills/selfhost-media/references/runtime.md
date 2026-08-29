@@ -48,9 +48,11 @@ bits, symlinks, hard links, other mode changes, and wrong ownership still fail.
 Do not use `chmod` to work around a verifier failure.
 
 The six non-Homarr `:latest` images are intentional only in this isolated,
-loopback-bound, disposable evaluation harness. Production composition must use
-`selfhost-compose`, whose contract rejects floating images. Do not pin these
-evaluation references without verified remote multi-architecture index digests.
+disposable evaluation harness with per-run ports. Published ports omit a host
+IP, so keep the host behind a trusted LAN or firewall. Production composition
+must use `selfhost-compose`, whose contract rejects floating images. Do not pin
+these evaluation references without verified remote multi-architecture index
+digests.
 
 ## Browser runtime prerequisite
 

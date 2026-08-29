@@ -26,6 +26,11 @@ const FORMAT_VERSION = 1;
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const ROOT_FILES = new Set(["PROMPT.md", "docker-compose.yml"]);
 const CANONICAL_DIRECTORIES = new Set(["docs", "prompts", "scripts"]);
+const ROOT_TOOLING_FILES = new Set([
+  "scripts/refresh-media-bundle.mjs",
+  "scripts/smoke-install.sh",
+  "scripts/validate-repo.mjs",
+]);
 const EXCLUDED_SEGMENTS = new Set([
   ".git",
   ".sessions",
@@ -166,7 +171,7 @@ function sha256Content(content) {
   return createHash("sha256").update(content).digest("hex");
 }
 
-function applyPortabilityTransform(transformId, sourceContent) {
+export function applyPortabilityTransform(transformId, sourceContent) {
   const transform = PORTABILITY_TRANSFORMS.get(transformId);
   if (!transform) {
     fail("bundle manifest contains an unknown source transform");
@@ -406,6 +411,27 @@ async function verifyComposeContract(bundleRoot) {
       fail("Compose Seerr healthcheck contract changed");
     }
   }
+
+  const requiredPublishedPorts = [
+    '      - "${PROWLARR_PORT:-9696}:9696"',
+    '      - "${RADARR_PORT:-7878}:7878"',
+    '      - "${SONARR_PORT:-8989}:8989"',
+    '      - "${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"',
+    '      - "${JELLYFIN_PORT:-8096}:8096"',
+    '      - "${SEERR_PORT:-5055}:5055"',
+    '      - "${HOMARR_PORT:-7575}:7575"',
+  ];
+  for (const line of requiredPublishedPorts) {
+    if (!compose.includes(`${line}\n`)) {
+      fail("Compose published-port contract changed");
+    }
+  }
+  if (
+    !compose.includes("      WEBUI_PORT: ${QBITTORRENT_PORT:-8080}\n")
+    || !compose.includes("      WEBUI_PORTS: ${QBITTORRENT_PORT:-8080}/tcp\n")
+  ) {
+    fail("Compose qBittorrent fallback-port contract changed");
+  }
 }
 
 async function verifyPromptManifest(bundleRoot, manifest) {
@@ -437,14 +463,20 @@ async function verifyPortableContract(bundleRoot) {
   }
 }
 
-export async function loadAndVerifyBundle(bundleRoot = DEFAULT_BUNDLE_ROOT) {
+export async function loadAndVerifyBundleStructure(bundleRoot = DEFAULT_BUNDLE_ROOT) {
   const safeRoot = await assertRootDirectory(bundleRoot, "bundle root");
   const manifest = await readManifest(safeRoot);
   await verifyBundleTree(safeRoot, manifest);
-  await verifyComposeContract(safeRoot);
-  await verifyPromptManifest(safeRoot, manifest);
-  await verifyPortableContract(safeRoot);
   return { bundleRoot: safeRoot, manifest };
+}
+
+export async function loadAndVerifyBundle(bundleRoot = DEFAULT_BUNDLE_ROOT) {
+  const bundle = await loadAndVerifyBundleStructure(bundleRoot);
+  const safeRoot = bundle.bundleRoot;
+  await verifyComposeContract(safeRoot);
+  await verifyPromptManifest(safeRoot, bundle.manifest);
+  await verifyPortableContract(safeRoot);
+  return bundle;
 }
 
 async function assertSafeSourceRoot(sourceRoot) {
@@ -478,6 +510,9 @@ async function detectUnexpectedSourceFiles(sourceRoot, manifest) {
         continue;
       }
       const relativePath = `${relativeDirectory}/${entry.name}`;
+      if (ROOT_TOOLING_FILES.has(relativePath)) {
+        continue;
+      }
       if (entry.isDirectory()) {
         if (!expectedDirs.has(relativePath)) {
           fail("source drift: unexpected canonical directory");

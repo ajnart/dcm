@@ -1,7 +1,9 @@
 # Media service graph
 
-Use one isolated Compose project and network per run. Bind every host port to
-`127.0.0.1`; discover its assigned value through the session helper.
+Use one isolated Compose project and network per run. Published ports omit a
+host IP and therefore use Docker's default host interfaces; discover each
+assigned value through the session helper. Keep the host behind a trusted LAN
+or firewall because this harness does not configure public ingress or auth.
 
 ```text
 Prowlarr --full sync--> Sonarr ----+
@@ -38,7 +40,7 @@ Homarr --> Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, Seerr
 | Homarr | `ghcr.io/homarr-labs/homarr-test:v2` |
 
 The bundle verifier treats this exact seven-image set as an invariant. The six
-non-Homarr `:latest` references are allowed only in this isolated,
-loopback-bound, disposable evaluation harness. Production composition must go
-through `selfhost-compose`, which rejects floating images. Do not replace them
-with unverified pins; first verify the remote multi-architecture index digests.
+non-Homarr `:latest` references are allowed only in this isolated, disposable
+evaluation harness with per-run ports. Production composition must go through
+`selfhost-compose`, which rejects floating images. Do not replace them with
+unverified pins; first verify the remote multi-architecture index digests.

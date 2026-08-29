@@ -28,6 +28,7 @@ const SKILL_REGISTRY_SCHEMA_PATH = join(
   "skills.schema.json",
 );
 const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
+  "scripts/refresh-media-bundle.mjs",
   "scripts/smoke-install.sh",
   "scripts/validate-repo.mjs",
 ]);
@@ -1269,6 +1270,7 @@ async function validateScriptSyntax() {
       }
     }
   }
+  scripts.push(join(REPOSITORY_ROOT, "scripts", "refresh-media-bundle.mjs"));
   scripts.push(join(REPOSITORY_ROOT, "scripts", "validate-repo.mjs"));
   scripts.push(join(REPOSITORY_ROOT, "scripts", "smoke-install.sh"));
 
