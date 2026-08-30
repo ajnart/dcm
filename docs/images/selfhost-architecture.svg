@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Markdown-led composable selfhost skill architecture</title>
+  <desc id="desc">The user goal enters the selfhost router. Markdown workflows and declarative references select focused capability skills. Bounded deterministic scripts inspect, render, debug, and verify one owned project, with Homarr as an optional control plane.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <style>
+      .heading { font-family: system-ui, sans-serif; font-size: 28px; font-weight: 700; fill: #f8fafc; }
+      .eyebrow { font-family: system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; fill: #2563eb; }
+      .title { font-family: system-ui, sans-serif; font-size: 19px; font-weight: 700; fill: #0f172a; }
+      .body { font-family: system-ui, sans-serif; font-size: 15px; fill: #334155; }
+      .small { font-family: system-ui, sans-serif; font-size: 14px; fill: #475569; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 600; fill: #1e3a8a; }
+      .arrow { fill: none; stroke: #2563eb; stroke-width: 3; marker-end: url(#arrow); }
+      .soft-arrow { fill: none; stroke: #64748b; stroke-width: 2; stroke-dasharray: 6 6; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1200" height="650" rx="28" fill="#0f172a"/>
+  <text x="54" y="54" class="eyebrow">COMPOSABLE BY DESIGN</text>
+  <text x="54" y="90" class="heading">Markdown owns intent; scripts keep execution bounded</text>
+
+  <g transform="translate(54 124)">
+    <rect width="190" height="94" rx="18" fill="#ffffff" stroke="#94a3b8"/>
+    <text x="24" y="38" class="title">User goal</text>
+    <text x="24" y="66" class="body">Purpose or default</text>
+  </g>
+  <path class="arrow" d="M244 171 H300"/>
+
+  <g transform="translate(300 114)">
+    <rect width="246" height="114" rx="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+    <text x="24" y="38" class="mono">selfhost/SKILL.md</text>
+    <text x="24" y="70" class="title">Conversational router</text>
+    <text x="24" y="94" class="small">Selects only what the goal needs</text>
+  </g>
+  <path class="arrow" d="M546 171 H602"/>
+
+  <g transform="translate(602 114)">
+    <rect width="272" height="114" rx="18" fill="#ffffff" stroke="#3b82f6"/>
+    <text x="24" y="38" class="mono">references/ + catalog/</text>
+    <text x="24" y="70" class="title">Facts and contracts</text>
+    <text x="24" y="94" class="small">Stacks, choices, gates, evidence</text>
+  </g>
+
+  <g transform="translate(928 114)">
+    <rect width="218" height="114" rx="18" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="24" y="38" class="title">Homarr</text>
+    <text x="24" y="66" class="body">Optional dashboard</text>
+    <text x="24" y="90" class="body">+ private MCP</text>
+  </g>
+  <path class="soft-arrow" d="M874 171 H928"/>
+
+  <text x="54" y="280" class="eyebrow">FOCUSED CAPABILITIES</text>
+  <g transform="translate(54 302)">
+    <rect width="1092" height="118" rx="20" fill="#ffffff" stroke="#94a3b8"/>
+    <g transform="translate(22 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="35" y="34" class="title">Host</text>
+      <text x="17" y="57" class="small">inspect</text>
+    </g>
+    <g transform="translate(152 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="20" y="34" class="title">Compose</text>
+      <text x="18" y="57" class="small">one project</text>
+    </g>
+    <g transform="translate(282 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="22" y="34" class="title">Ingress</text>
+      <text x="22" y="57" class="small">safe access</text>
+    </g>
+    <g transform="translate(412 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="39" y="34" class="title">VPN</text>
+      <text x="18" y="57" class="small">downloader</text>
+    </g>
+    <g transform="translate(542 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="23" y="34" class="title">Backup</text>
+      <text x="25" y="57" class="small">restore proof</text>
+    </g>
+    <g transform="translate(672 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="18" y="34" class="title">Observe</text>
+      <text x="29" y="57" class="small">signals</text>
+    </g>
+    <g transform="translate(802 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="12" y="34" class="title">Operations</text>
+      <text x="23" y="57" class="small">rollback</text>
+    </g>
+    <g transform="translate(932 22)">
+      <rect width="116" height="74" rx="12" fill="#eff6ff"/>
+      <text x="28" y="34" class="title">Verify</text>
+      <text x="21" y="57" class="small">acceptance</text>
+    </g>
+  </g>
+
+  <path class="arrow" d="M600 420 V468"/>
+  <g transform="translate(54 468)">
+    <rect width="516" height="132" rx="20" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+    <text x="24" y="36" class="mono">scripts/</text>
+    <text x="24" y="70" class="title">Deterministic helpers</text>
+    <text x="24" y="98" class="body">Inspect · render · validate · debug · verify</text>
+  </g>
+
+  <path class="arrow" d="M570 534 H630"/>
+  <g transform="translate(630 468)">
+    <rect width="516" height="132" rx="20" fill="#ffffff" stroke="#22c55e" stroke-width="2"/>
+    <text x="24" y="36" class="eyebrow">OWNED OUTPUT</text>
+    <text x="24" y="70" class="title">One bounded project</text>
+    <text x="24" y="98" class="body">Private-first services · evidence · credential handoff</text>
+  </g>
+</svg>

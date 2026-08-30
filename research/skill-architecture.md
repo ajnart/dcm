@@ -6,6 +6,11 @@ Scope: architecture and migration research only. This report is the only file
 created by this research pass. No implementation files, `.sessions` content,
 secret values, Docker processes, or tests were touched.
 
+> Historical snapshot: this report predates the portable skill packaging now
+> shipped under `.agents/skills/`. Its checkout-bound installation proposal was
+> superseded by [the current installation contract](../.agents/install.md),
+> which installs complete global copies that need no source checkout at runtime.
+
 ## Recommendation in one page
 
 Keep the existing repository as the operational source of truth and add a
@@ -538,4 +543,3 @@ has been exercised once.
 - [Agent Skills validator](https://github.com/agentskills/agentskills/blob/main/skills-ref/README.md)
 - [Anthropic skill validator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/scripts/quick_validate.py)
 - [Anthropic skill packager](https://github.com/anthropics/skills/blob/main/skills/skill-creator/scripts/package_skill.py)
-

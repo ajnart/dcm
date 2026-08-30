@@ -10,6 +10,7 @@ MINIMUM_NODE_MINOR=20
 MINIMUM_NODE_PATCH=0
 SMOKE_TEMP_DIR=""
 SOURCE_SKILL_NAMES=()
+INSTALL_SOURCE=""
 
 fail() {
   printf 'FAIL smoke-install: %s\n' "$1" >&2
@@ -88,6 +89,9 @@ require_add_flag() {
       ;;
     --copy)
       signature="--copy                 Copy files instead of symlinking to agent directories"
+      ;;
+    --global)
+      signature="-g, --global           Install skill globally"
       ;;
     --list)
       signature="-l, --list             List available skills in the repository without installing"
@@ -257,6 +261,24 @@ verify_installed_media_bundle() {
     || fail "$label selfhost-media bundle verifier returned unexpected output"
 }
 
+verify_source_independent_runtime() {
+  local project_root="$1"
+  local installed_root="$2"
+  local label="$3"
+  local source_path
+
+  for source_path in "$REPOSITORY_ROOT" "$INSTALL_SOURCE"; do
+    if grep -R -F -l -- "$source_path" "$installed_root" >/dev/null; then
+      fail "$label retains a source path"
+    fi
+  done
+  (
+    cd -- "$project_root"
+    node "$installed_root/selfhost/scripts/selfhost.mjs" catalog validate --json >/dev/null
+    node "$installed_root/selfhost-media/scripts/verify-bundle.mjs" >/dev/null
+  ) || fail "$label does not run independently"
+}
+
 trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
@@ -269,6 +291,9 @@ require_command npx
 require_command git
 require_command find
 require_command cmp
+require_command cp
+require_command grep
+require_command mv
 
 node "$REPOSITORY_ROOT/scripts/validate-repo.mjs"
 
@@ -280,10 +305,12 @@ done
 
 SMOKE_TEMP_DIR="$(mktemp -d /tmp/selfhost-skills-smoke.XXXXXX)"
 [[ -d "$SMOKE_TEMP_DIR" ]] || fail "mktemp did not create the disposable directory"
+INSTALL_SOURCE="$SMOKE_TEMP_DIR/source-package"
 LIST_PROJECT="$SMOKE_TEMP_DIR/list"
 SYMLINK_PROJECT="$SMOKE_TEMP_DIR/symlink"
 COPY_PROJECT="$SMOKE_TEMP_DIR/copy"
-mkdir -p -- "$LIST_PROJECT" "$SYMLINK_PROJECT" "$COPY_PROJECT"
+mkdir -p -- "$INSTALL_SOURCE" "$LIST_PROJECT" "$SYMLINK_PROJECT" "$COPY_PROJECT"
+cp -R -- "$REPOSITORY_ROOT/.agents" "$INSTALL_SOURCE/.agents"
 
 export DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
@@ -304,6 +331,7 @@ ADD_HELP="$(
 for required_flag in \
   "--list" \
   "--copy" \
+  "--global" \
   "--skill" \
   "--agent" \
   "--yes" \
@@ -313,7 +341,7 @@ done
 
 LIST_OUTPUT="$(
   cd -- "$LIST_PROJECT"
-  npx --yes skills@latest add "$REPOSITORY_ROOT" --list
+  npx --yes skills@latest add "$INSTALL_SOURCE" --list
 )" || fail "skills CLI could not list the local repository"
 case "$LIST_OUTPUT" in
   *"Available Skills"*)
@@ -354,9 +382,11 @@ for skill_name in "${LISTED_SKILL_NAMES[@]}"; do
     || fail "skills CLI listed an unexpected skill: $skill_name"
 done
 
+# The current CLI derives global canonical targets from the process home. Keep
+# this smoke project-local so it never repurposes HOME or touches real clients.
 (
   cd -- "$SYMLINK_PROJECT"
-  npx --yes skills@latest add "$REPOSITORY_ROOT" \
+  npx --yes skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \
@@ -365,13 +395,17 @@ done
 
 (
   cd -- "$COPY_PROJECT"
-  npx --yes skills@latest add "$REPOSITORY_ROOT" \
+  npx --yes skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \
     --copy \
     --yes
 ) || fail "copy-mode disposable install failed"
+
+mv -- "$INSTALL_SOURCE" "$SMOKE_TEMP_DIR/source-package.unavailable"
+[[ ! -e "$INSTALL_SOURCE" && ! -L "$INSTALL_SOURCE" ]] \
+  || fail "staged installer source remains available"
 
 verify_symlink_project "$SYMLINK_PROJECT"
 verify_copy_project "$COPY_PROJECT"
@@ -381,6 +415,18 @@ verify_installed_media_bundle \
 verify_installed_media_bundle \
   "$COPY_PROJECT/.agents/skills/selfhost-media" \
   "copy canonical install"
+verify_source_independent_runtime \
+  "$SYMLINK_PROJECT" \
+  "$SYMLINK_PROJECT/.agents/skills" \
+  "default canonical install"
+verify_source_independent_runtime \
+  "$COPY_PROJECT" \
+  "$COPY_PROJECT/.agents/skills" \
+  "copy Codex install"
+verify_source_independent_runtime \
+  "$COPY_PROJECT" \
+  "$COPY_PROJECT/.claude/skills" \
+  "copy Claude Code install"
 
 for payload_kind in scripts references assets; do
   [[ -d "$SYMLINK_PROJECT/.agents/skills/selfhost-media/$payload_kind" ]] \
@@ -391,5 +437,5 @@ for payload_kind in scripts references assets; do
     || fail "Claude Code copy is missing selfhost-media $payload_kind"
 done
 
-printf 'PASS smoke-install: %d exact skills verified in default symlink and copy projects\n' \
+printf 'PASS smoke-install: %d exact skills verified in detached project-local default and copy installs\n' \
   "${#SOURCE_SKILL_NAMES[@]}"

@@ -28,14 +28,19 @@ const SKILL_REGISTRY_SCHEMA_PATH = join(
   "skills.schema.json",
 );
 const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
+  "docs/images/selfhost-architecture.svg",
+  "docs/images/selfhost-flow.svg",
   "scripts/refresh-media-bundle.mjs",
   "scripts/smoke-install.sh",
   "scripts/validate-repo.mjs",
 ]);
+const GLOBAL_COPY_INSTALL_COMMAND =
+  "npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes";
 const DOCUMENTATION_CONTRACTS = [
   {
     path: "README.md",
     required: [
+      ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "private install command",
         "npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
@@ -76,6 +81,7 @@ const DOCUMENTATION_CONTRACTS = [
   {
     path: ".agents/install.md",
     required: [
+      ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "targeted agent install command",
         "npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",

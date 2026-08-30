@@ -1,25 +1,35 @@
 ---
 name: selfhost
-description: Route self-hosting goals into composable, read-only plans using a curated application and stack catalog, with Homarr offered as a prominent optional control plane where useful. Use for `/selfhost`, `$selfhost`, "my own Netflix", replacing hosted services such as Google Photos or Dropbox, selecting self-hosted apps, planning storage or remote access, and deciding how media, photos, documents, passwords, home automation, DNS, backups, monitoring, or local AI should fit an existing host.
+description: Guide self-hosting goals through a short conversational intake, then produce composable, read-only plans from a curated application and stack catalog, with Homarr offered as a prominent optional control plane where useful. Use for `/selfhost`, `$selfhost`, "my own Netflix", replacing hosted services such as Google Photos or Dropbox, selecting self-hosted apps, planning storage or remote access, and deciding how media, photos, documents, passwords, home automation, DNS, backups, monitoring, or local AI should fit an existing host.
 ---
 
 # Selfhost
 
-Turn a goal into a bounded plan. Treat planning and mutation as separate authorities.
+Turn a goal into a bounded plan. Keep the conversation brief and planning
+separate from mutation.
+
+## Start with a conversation
+
+Read [references/conversation.md](references/conversation.md) before asking
+intake questions, offering defaults, resuming a project, or discussing access
+credentials. Follow `explore -> present -> confirm -> write`: reuse what the
+user already said, recommend one answer first, explain each service's purpose,
+and ask only for choices that remain open. Accept `defaults` as the safe
+planning choices defined there.
 
 ## Route the request
 
-1. If no goal is present, check only the exact current project root for `.selfhost/project.json`. When it exists, run `project status` and `project resume` for that root. Otherwise run `node scripts/selfhost.mjs catalog menu` and show the short menu. Never search unrelated directories for resumable state.
-2. Resolve a stated goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
+1. If no goal is present, check only the exact current project root for `.selfhost/project.json`. When it exists, run `project status` and `project resume` for that root. Otherwise run `node scripts/selfhost.mjs catalog menu`, show the short menu, and ask which outcome sounds closest. Never search unrelated directories for resumable state.
+2. Resolve the stated or confirmed goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
 3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component and resolve every `unresolvedIntent` before planning against one shared host inspection. Never silently choose or drop one branch of a composite request.
 4. Search or inspect individual applications with `catalog search` and `catalog show`; avoid loading the whole JSON catalog into context. An explicit request for Homarr itself resolves to the `homarr-control-plane` goal and composes `selfhost-compose` with the installed `selfhost-homarr` adapter.
 5. Confirm one exact project root. Read [references/project-state.md](references/project-state.md), then run `project status` when that root already has `.selfhost/project.json`. Use `project resume` instead of reconstructing its goal and service choices.
 6. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing preferences file is an empty choice set, not an error.
 7. Invoke `selfhost-host` for fresh observed facts on every new or returning run. Saved checkpoints explain prior intent but are stale until rechecked. Prove ownership before calling a resource reusable.
-8. For a new goal, run `stack plan "<request>"`. For a no-goal resume, use the plan rebuilt by `project resume`; do not require or invent a new request. Present its role choices, alternatives, required skills, safety gates, unresolved decisions, and plain-language service summary.
+8. For a new goal, run `stack plan "<request>"`. For a no-goal resume, use the plan rebuilt by `project resume`; do not require or invent a new request. Present the recommended choices first, followed by material alternatives, required skills, safety gates, unresolved decisions, and a one-line purpose for every service.
 9. When a stack defines the Homarr role, present it prominently as a recommended optional control plane for dashboard and agent-facing MCP access. Report dedicated integrations separately from app-links-only coverage. Keep it off unless the user selects the catalog role or separately requests `selfhost-homarr`. Its absence never blocks the underlying stack.
 10. Confirm each named sibling skill is installed. If one is absent, keep the plan usable but mark apply as blocked and name the missing skill. Invoke only the capabilities named by the plan.
-11. On a first run, after the user confirms the goal, service choices, and project root, disclose that only secret-free local resume state will be written and run `project init`. Do not let the planning command itself write state. If a record already exists, use `project revise` only for an explicitly changed choice.
+11. On a first run, after the user confirms the goal, service choices, and project root, disclose that only secret-free local resume state will be written and run `project init`. Persist only confirmed non-secret preferences. Do not let the planning command itself write state. If a record already exists, use `project revise` only for an explicitly changed choice.
 12. Record progress only from work that actually happened. After `project init`, record `inspected` only when `selfhost-host` supplied a fresh typed inspection evidence ID. Then record `planned` after the rebuilt plan and ownership decisions have been reviewed. Never invent an evidence ID; when evidence is unavailable, leave the checkpoint at its earlier stage. On later runs, advance only through the legal next stage and keep saved evidence stale until its owner rechecks it.
 13. Stop at the redacted plan until the user separately approves an apply step owned by a capability or adapter skill.
 14. End every run, including blocked and read-only runs, with what happened, what each selected service does, what current evidence says was reused or changed, what was not changed, blockers, and the next safe action.

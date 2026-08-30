@@ -7,13 +7,14 @@ as `/selfhost netflix` in Claude Code and `$selfhost netflix` in Codex, plus
 natural-language goals such as “replace Google Photos” or “make Immich private
 on my phone.” Its discovery description therefore permits implicit invocation.
 
-The router never treats invocation as approval to mutate a host. It resolves
-the goal, inspects what is safe to inspect, loads non-secret preferences,
-selects a stack, and presents a redacted plan. It asks only for decisions that
-materially change storage, exposure, secrets, destructive work, or rollback.
-An explicit request for Homarr itself routes to the `homarr-control-plane`
-goal and its `selfhost-homarr` adapter; Homarr stays an unselected
-recommendation when it is only an enhancement to another goal.
+The router never treats invocation as approval to mutate a host. It follows a
+short `explore -> present -> confirm -> write` conversation, resolves the goal,
+inspects what is safe to inspect, loads non-secret preferences, selects a stack,
+and presents a redacted plan. It leads with a recommended answer, explains each
+service's purpose, skips settled questions, and accepts `defaults` for safe
+planning choices. An explicit request for Homarr itself routes to the
+`homarr-control-plane` goal and its `selfhost-homarr` adapter; Homarr stays an
+unselected recommendation when it is only an enhancement to another goal.
 
 For a returning project, load `.selfhost/project.json` plus confirmed non-secret
 preferences from its exact project root. The project record keeps the goal,
@@ -27,6 +28,22 @@ When no goal is supplied, first check only the exact current project root. If
 it contains `.selfhost/project.json`, resume its recorded goal and service
 choices. Only a root without saved state gets the categories and small set of
 common goals. Never dump every catalog record into the context window.
+
+## Conversation contract
+
+The canonical intake is
+[`selfhost/references/conversation.md`](skills/selfhost/references/conversation.md).
+Ask only unresolved choices that change the plan: purpose, people and devices,
+exact project root, services and optional Homarr, relevant paths, exposure,
+backup and VPN policy when applicable, and credential policy. Recommend one
+answer first and keep alternatives short. A one-word `defaults` answer accepts
+catalog and private-first planning defaults; it does not select optional roles
+or approve mutation and risk gates.
+
+Collect credential policy, never credential payloads. The managed media adapter
+uses fixed username `admin` with a generated per-run password and a private
+handoff. Other custom credentials wait for a supported private apply boundary.
+Never request password, token, key, cookie, or recovery-code values in chat.
 
 ## Capability skills
 
@@ -51,18 +68,20 @@ when it has reusable special behavior beyond declarative facts.
 
 ## Composition rules
 
-1. Route from a goal to a stack and role choices.
-2. Inspect the selected host with `selfhost-host`.
+1. Resume saved intent or confirm a goal, exact project root, and initial role
+   choices through the conversation contract.
+2. Inspect the selected host with `selfhost-host`, including returning projects.
 3. Reuse compatible infrastructure or report a conflict.
-4. Compose only the selected capabilities and apps; optional roles remain off.
-5. When Homarr covers useful selected apps, offer it prominently as an
+4. Present host-dependent paths and gates, then confirm only unresolved choices.
+5. Compose only the selected capabilities and apps; optional roles remain off.
+6. When Homarr covers useful selected apps, offer it prominently as an
    optional control plane. Never auto-select it or make its absence block the
    base stack.
-6. Present the plan and obtain the relevant approval.
-7. Apply through the owning capability or adapter.
-8. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
+7. Present the plan and obtain the relevant approval.
+8. Apply through the owning capability or adapter.
+9. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
    plan selected those capabilities.
-9. Persist only confirmed non-secret preferences and evidence paths.
+10. Persist only confirmed non-secret preferences and evidence paths.
 
 Homarr's dashboard can be the only remotely reachable administration surface while
 service administration such as Sonarr, Radarr, Prowlarr, and qBittorrent stays

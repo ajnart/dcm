@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Selfhost conversation and approval flow</title>
+  <desc id="desc">A six-stage flow from a user's goal through read-only inspection, a reviewable plan, explicit approval, bounded apply, and evidence-based verification.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#93c5fd"/>
+    </marker>
+    <style>
+      .heading { font-family: system-ui, sans-serif; font-size: 28px; font-weight: 700; fill: #f8fafc; }
+      .eyebrow { font-family: system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; fill: #93c5fd; }
+      .title { font-family: system-ui, sans-serif; font-size: 22px; font-weight: 700; fill: #f8fafc; }
+      .body { font-family: system-ui, sans-serif; font-size: 15px; fill: #cbd5e1; }
+      .number { font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700; fill: #0f172a; }
+      .arrow { fill: none; stroke: #93c5fd; stroke-width: 3; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1200" height="560" rx="28" fill="#0f172a"/>
+  <text x="56" y="58" class="eyebrow">ONE CONVERSATION, ONE CONTROLLED PROJECT</text>
+  <text x="56" y="94" class="heading">From intent to evidence without hidden authority</text>
+
+  <path class="arrow" d="M348 212 H414"/>
+  <path class="arrow" d="M776 212 H842"/>
+  <path class="arrow" d="M1026 294 V340"/>
+  <path class="arrow" d="M852 448 H786"/>
+  <path class="arrow" d="M424 448 H358"/>
+
+  <g transform="translate(56 132)">
+    <rect width="292" height="162" rx="18" fill="#1e293b" stroke="#475569"/>
+    <circle cx="32" cy="32" r="18" fill="#93c5fd"/>
+    <text x="27" y="38" class="number">1</text>
+    <text x="60" y="40" class="title">Talk</text>
+    <text x="24" y="82" class="body">Goal, purpose, username,</text>
+    <text x="24" y="106" class="body">credential strategy, access,</text>
+    <text x="24" y="130" class="body">or recommended defaults.</text>
+  </g>
+
+  <g transform="translate(424 132)">
+    <rect width="352" height="162" rx="18" fill="#1e293b" stroke="#475569"/>
+    <circle cx="32" cy="32" r="18" fill="#93c5fd"/>
+    <text x="27" y="38" class="number">2</text>
+    <text x="60" y="40" class="title">Inspect read-only</text>
+    <text x="24" y="82" class="body">Host, Docker context, paths, disks,</text>
+    <text x="24" y="106" class="body">ports, networks, and bounded existing</text>
+    <text x="24" y="130" class="body">resources. Unknown stays unknown.</text>
+  </g>
+
+  <g transform="translate(852 132)">
+    <rect width="292" height="162" rx="18" fill="#1e293b" stroke="#475569"/>
+    <circle cx="32" cy="32" r="18" fill="#93c5fd"/>
+    <text x="27" y="38" class="number">3</text>
+    <text x="60" y="40" class="title">Plan</text>
+    <text x="24" y="82" class="body">Reviewable choices, ownership,</text>
+    <text x="24" y="106" class="body">exposure, rollback, and optional</text>
+    <text x="24" y="130" class="body">Homarr—without secret values.</text>
+  </g>
+
+  <g transform="translate(852 350)">
+    <rect width="292" height="162" rx="18" fill="#172a46" stroke="#60a5fa" stroke-width="2"/>
+    <circle cx="32" cy="32" r="18" fill="#fbbf24"/>
+    <text x="27" y="38" class="number">4</text>
+    <text x="60" y="40" class="title">Approve</text>
+    <text x="24" y="82" class="body">The human accepts the exact</text>
+    <text x="24" y="106" class="body">project and operation. Sensitive</text>
+    <text x="24" y="130" class="body">choices keep separate gates.</text>
+  </g>
+
+  <g transform="translate(424 350)">
+    <rect width="352" height="162" rx="18" fill="#1e293b" stroke="#475569"/>
+    <circle cx="32" cy="32" r="18" fill="#86efac"/>
+    <text x="27" y="38" class="number">5</text>
+    <text x="60" y="40" class="title">Apply narrowly</text>
+    <text x="24" y="82" class="body">Only the owning capability changes</text>
+    <text x="24" y="106" class="body">one identified Compose project or</text>
+    <text x="24" y="130" class="body">configuration boundary.</text>
+  </g>
+
+  <g transform="translate(56 350)">
+    <rect width="292" height="162" rx="18" fill="#1e293b" stroke="#475569"/>
+    <circle cx="32" cy="32" r="18" fill="#86efac"/>
+    <text x="27" y="38" class="number">6</text>
+    <text x="60" y="40" class="title">Verify + hand off</text>
+    <text x="24" y="82" class="body">Independent evidence, remaining</text>
+    <text x="24" y="106" class="body">limits, next action, and a private</text>
+    <text x="24" y="130" class="body">local credential reveal path.</text>
+  </g>
+</svg>
