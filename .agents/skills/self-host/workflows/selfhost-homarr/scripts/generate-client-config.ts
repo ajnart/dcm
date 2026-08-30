@@ -15,7 +15,7 @@ import {
   loadProfile,
 } from "./lib/profile.ts";
 
-const FORMATS = new Set(["claude-code", "codex", "generic-json", "generic-toml"]);
+const FORMATS = new Set(["claude-code", "codex", "pi", "generic-json", "generic-toml"]);
 
 function bridgePath() {
   const path = resolve(fileURLToPath(new URL("./homarr-mcp-bridge.ts", import.meta.url)));
@@ -41,7 +41,7 @@ function tomlString(value) {
 
 function render(format, serverName, nodePath, path, profilePath) {
   const args = [path, profilePath];
-  if (format === "claude-code") {
+  if (format === "claude-code" || format === "pi") {
     return `${JSON.stringify({
       mcpServers: {
         [serverName]: {
@@ -83,6 +83,9 @@ function fileName(format) {
   }
   if (format === "codex") {
     return "codex.toml";
+  }
+  if (format === "pi") {
+    return "pi.json";
   }
   if (format === "generic-json") {
     return "generic.json";
