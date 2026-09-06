@@ -4,10 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPOSITORY_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
-MINIMUM_NODE_VERSION="22.20.0"
-MINIMUM_NODE_MAJOR=22
-MINIMUM_NODE_MINOR=20
-MINIMUM_NODE_PATCH=0
+MINIMUM_BUN_VERSION="1.4.0"
+MINIMUM_BUN_MAJOR=1
+MINIMUM_BUN_MINOR=4
+MINIMUM_BUN_PATCH=0
 SMOKE_TEMP_DIR=""
 SOURCE_SKILL_NAMES=()
 INSTALL_SOURCE=""
@@ -21,33 +21,33 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-require_node_version() {
+require_bun_version() {
   local version
   local major
   local minor
   local patch
 
-  version="$(node -p 'process.versions.node')" \
-    || fail "unable to read the Node.js version"
+  version="$(bun --version)" \
+    || fail "unable to read the Bun version"
   if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(\+[0-9A-Za-z.-]+)?$ ]]; then
-    fail "unable to parse the Node.js version"
+    fail "unable to parse the Bun version"
   fi
   major=$((10#${BASH_REMATCH[1]}))
   minor=$((10#${BASH_REMATCH[2]}))
   patch=$((10#${BASH_REMATCH[3]}))
 
-  if ((major < MINIMUM_NODE_MAJOR)); then
-    fail "Node.js $MINIMUM_NODE_VERSION or newer is required"
+  if ((major < MINIMUM_BUN_MAJOR)); then
+    fail "Bun $MINIMUM_BUN_VERSION or newer is required"
   fi
-  if ((major == MINIMUM_NODE_MAJOR && minor < MINIMUM_NODE_MINOR)); then
-    fail "Node.js $MINIMUM_NODE_VERSION or newer is required"
+  if ((major == MINIMUM_BUN_MAJOR && minor < MINIMUM_BUN_MINOR)); then
+    fail "Bun $MINIMUM_BUN_VERSION or newer is required"
   fi
   if ((
-    major == MINIMUM_NODE_MAJOR
-    && minor == MINIMUM_NODE_MINOR
-    && patch < MINIMUM_NODE_PATCH
+    major == MINIMUM_BUN_MAJOR
+    && minor == MINIMUM_BUN_MINOR
+    && patch < MINIMUM_BUN_PATCH
   )); then
-    fail "Node.js $MINIMUM_NODE_VERSION or newer is required"
+    fail "Bun $MINIMUM_BUN_VERSION or newer is required"
   fi
 }
 
@@ -251,11 +251,11 @@ verify_installed_media_bundle() {
   local skill_root="$1"
   local label="$2"
   local output
-  local verifier="$skill_root/scripts/verify-bundle.mjs"
+  local verifier="$skill_root/scripts/verify-bundle.ts"
 
   [[ -f "$verifier" && ! -L "$verifier" ]] \
     || fail "$label selfhost-media bundle verifier is missing or unsafe"
-  output="$(node "$verifier")" \
+  output="$(bun "$verifier")" \
     || fail "$label selfhost-media bundle verification failed"
   [[ "$output" =~ ^PASS\ bundle:\ [1-9][0-9]*\ files\ verified$ ]] \
     || fail "$label selfhost-media bundle verifier returned unexpected output"
@@ -274,8 +274,8 @@ verify_source_independent_runtime() {
   done
   (
     cd -- "$project_root"
-    node "$installed_root/selfhost/scripts/selfhost.mjs" catalog validate --json >/dev/null
-    node "$installed_root/selfhost-media/scripts/verify-bundle.mjs" >/dev/null
+    bun "$installed_root/selfhost/scripts/selfhost.ts" catalog validate --json >/dev/null
+    bun "$installed_root/selfhost-media/scripts/verify-bundle.ts" >/dev/null
   ) || fail "$label does not run independently"
 }
 
@@ -284,10 +284,9 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-require_command node
-require_node_version
-require_command npm
-require_command npx
+require_command bun
+require_bun_version
+require_command bunx
 require_command git
 require_command find
 require_command cmp
@@ -295,7 +294,7 @@ require_command cp
 require_command grep
 require_command mv
 
-node "$REPOSITORY_ROOT/scripts/validate-repo.mjs"
+bun "$REPOSITORY_ROOT/scripts/validate-repo.ts"
 
 for source_skill in "$REPOSITORY_ROOT"/.agents/skills/*; do
   [[ -d "$source_skill" ]] || continue
@@ -314,6 +313,7 @@ cp -R -- "$REPOSITORY_ROOT/.agents" "$INSTALL_SOURCE/.agents"
 
 export DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
+export BUN_INSTALL_CACHE_DIR="$SMOKE_TEMP_DIR/bun-cache"
 export NPM_CONFIG_AUDIT=false
 export NPM_CONFIG_CACHE="$SMOKE_TEMP_DIR/npm-cache"
 export NPM_CONFIG_FUND=false
@@ -325,7 +325,7 @@ export XDG_STATE_HOME="$SMOKE_TEMP_DIR/xdg-state"
 
 ADD_HELP="$(
   cd -- "$LIST_PROJECT"
-  npx --yes skills@latest add --help 2>&1
+  bunx skills@latest add --help 2>&1
 )" || fail "unable to resolve the current skills CLI help"
 
 for required_flag in \
@@ -341,7 +341,7 @@ done
 
 LIST_OUTPUT="$(
   cd -- "$LIST_PROJECT"
-  npx --yes skills@latest add "$INSTALL_SOURCE" --list
+  bunx skills@latest add "$INSTALL_SOURCE" --list
 )" || fail "skills CLI could not list the local repository"
 case "$LIST_OUTPUT" in
   *"Available Skills"*)
@@ -386,7 +386,7 @@ done
 # this smoke project-local so it never repurposes HOME or touches real clients.
 (
   cd -- "$SYMLINK_PROJECT"
-  npx --yes skills@latest add "$INSTALL_SOURCE" \
+  bunx skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \
@@ -395,7 +395,7 @@ done
 
 (
   cd -- "$COPY_PROJECT"
-  npx --yes skills@latest add "$INSTALL_SOURCE" \
+  bunx skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \

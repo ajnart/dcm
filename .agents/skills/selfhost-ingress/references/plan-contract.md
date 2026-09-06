@@ -1,6 +1,6 @@
 # Ingress planner contract
 
-`plan-ingress.mjs` consumes explicit, secret-free JSON and emits a deterministic read-only plan. It does not inspect the host, validate a supplied fact, resolve DNS, open a socket, or write a file.
+`plan-ingress.ts` consumes explicit, secret-free JSON and emits a deterministic read-only plan. It does not inspect the host, validate a supplied fact, resolve DNS, open a socket, or write a file.
 
 ## Input
 

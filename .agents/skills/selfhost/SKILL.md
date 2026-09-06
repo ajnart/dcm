@@ -1,96 +1,60 @@
 ---
 name: selfhost
-description: Guide self-hosting goals through a short conversational intake, then produce composable, read-only plans from a curated application and stack catalog, with Homarr offered as a prominent optional control plane where useful. Use for `/selfhost`, `$selfhost`, "my own Netflix", replacing hosted services such as Google Photos or Dropbox, selecting self-hosted apps, planning storage or remote access, and deciding how media, photos, documents, passwords, home automation, DNS, backups, monitoring, or local AI should fit an existing host.
+description: Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.
 ---
 
 # Selfhost
 
-Turn a goal into a bounded plan. Keep the conversation brief and planning
-separate from mutation.
+Turn a goal into a bounded plan. Keep planning separate from mutation.
 
-## Start with a conversation
+## Workflow
 
-Read [references/conversation.md](references/conversation.md) before asking
-intake questions, offering defaults, resuming a project, or discussing access
-credentials. Follow `explore -> present -> confirm -> write`: reuse what the
-user already said, recommend one answer first, explain each service's purpose,
-and ask only for choices that remain open. Accept `defaults` as the safe
-planning choices defined there.
+1. Read [references/conversation.md](references/conversation.md). Reuse stated
+   intent, recommend one answer first, and ask only for open choices that alter
+   safety or topology. `defaults` accepts private-first planning defaults; it
+   never selects optional roles or approves mutation.
+2. Confirm one exact project root. Invoke `scripts/selfhost.ts plan` with the
+   stated goal. With no new goal, use that command to resume only the supplied
+   root. Never search unrelated directories for project state.
+3. If the result is ambiguous or needs composition, show its candidates or
+   components and resolve every open intent. Preserve all branches of a clear
+   composite request.
+4. Use `catalog search` or `catalog show` for individual applications instead
+   of loading the full catalog. Treat a media-title search as a
+   `selfhost-homarr` read-only search, never as approval to request media.
+5. Invoke `selfhost-host` for fresh facts on every new or returning project.
+   Saved checkpoints explain intent but never prove current host state. Adopt a
+   resource only after its ownership is known.
+6. Present selected services, their purposes, alternatives, required skills,
+   gates, unresolved decisions, and optional Homarr coverage. Keep Homarr off
+   unless the user selects it or asks for it directly.
+7. After confirmed non-secret intent, use `state init` or `state revise` as the
+   separate persistence step. Record a checkpoint only for work that happened
+   and only with a real typed evidence ID.
+8. Stop at the redacted plan until the user separately approves an apply step
+   owned by the selected capability or adapter.
 
-## Route the request
+## Command boundary
 
-1. If no goal is present, check only the exact current project root for `.selfhost/project.json`. When it exists, run `project status` and `project resume` for that root. Otherwise run `node scripts/selfhost.mjs catalog menu`, show the short menu, and ask which outcome sounds closest. Never search unrelated directories for resumable state.
-2. Resolve the stated or confirmed goal with `node scripts/selfhost.mjs stack resolve "<request>"`.
-3. If resolution is ambiguous, show the ranked candidates and ask the user to choose. If it returns `needsComposition`, show every component and resolve every `unresolvedIntent` before planning against one shared host inspection. Never silently choose or drop one branch of a composite request.
-4. Search or inspect individual applications with `catalog search` and `catalog show`; avoid loading the whole JSON catalog into context. An explicit request for Homarr itself resolves to the `homarr-control-plane` goal and composes `selfhost-compose` with the installed `selfhost-homarr` adapter.
-5. Confirm one exact project root. Read [references/project-state.md](references/project-state.md), then run `project status` when that root already has `.selfhost/project.json`. Use `project resume` instead of reconstructing its goal and service choices.
-6. Read non-secret project preferences with `preferences show --project-root /absolute/project`. A missing preferences file is an empty choice set, not an error.
-7. Invoke `selfhost-host` for fresh observed facts on every new or returning run. Saved checkpoints explain prior intent but are stale until rechecked. Prove ownership before calling a resource reusable.
-8. For a new goal, run `stack plan "<request>"`. For a no-goal resume, use the plan rebuilt by `project resume`; do not require or invent a new request. Present the recommended choices first, followed by material alternatives, required skills, safety gates, unresolved decisions, and a one-line purpose for every service.
-9. When a stack defines the Homarr role, present it prominently as a recommended optional control plane for dashboard and agent-facing MCP access. Report dedicated integrations separately from app-links-only coverage. Keep it off unless the user selects the catalog role or separately requests `selfhost-homarr`. Its absence never blocks the underlying stack.
-10. Confirm each named sibling skill is installed. If one is absent, keep the plan usable but mark apply as blocked and name the missing skill. Invoke only the capabilities named by the plan.
-11. On a first run, after the user confirms the goal, service choices, and project root, disclose that only secret-free local resume state will be written and run `project init`. Persist only confirmed non-secret preferences. Do not let the planning command itself write state. If a record already exists, use `project revise` only for an explicitly changed choice.
-12. Record progress only from work that actually happened. After `project init`, record `inspected` only when `selfhost-host` supplied a fresh typed inspection evidence ID. Then record `planned` after the rebuilt plan and ownership decisions have been reviewed. Never invent an evidence ID; when evidence is unavailable, leave the checkpoint at its earlier stage. On later runs, advance only through the legal next stage and keep saved evidence stale until its owner rechecks it.
-13. Stop at the redacted plan until the user separately approves an apply step owned by a capability or adapter skill.
-14. End every run, including blocked and read-only runs, with what happened, what each selected service does, what current evidence says was reused or changed, what was not changed, blockers, and the next safe action.
-
-## Commands
-
-Run all commands from this skill directory, or use absolute paths to `scripts/selfhost.mjs`.
-
-```text
-node scripts/selfhost.mjs catalog menu [--json]
-node scripts/selfhost.mjs catalog list [--category NAME] [--support LEVEL] [--tier T0] [--json]
-node scripts/selfhost.mjs catalog search <words...> [--json]
-node scripts/selfhost.mjs catalog show <app-id> [--json]
-node scripts/selfhost.mjs catalog homarr [--status supported|gap] [--json]
-node scripts/selfhost.mjs catalog validate [--json]
-
-node scripts/selfhost.mjs stack resolve <goal...> [--json]
-node scripts/selfhost.mjs stack plan <goal...> [--select role=app] [--project-root ABSOLUTE | --preferences ABSOLUTE] [--json]
-
-node scripts/selfhost.mjs project init <goal...> --project-root ABSOLUTE [--select role=app] [--json]
-node scripts/selfhost.mjs project revise <same-goal...> --project-root ABSOLUTE [--select role=app] [--json]
-node scripts/selfhost.mjs project status --project-root ABSOLUTE [--json]
-node scripts/selfhost.mjs project resume --project-root ABSOLUTE [--json]
-node scripts/selfhost.mjs project checkpoint <inspected|planned|applied|verified> --project-root ABSOLUTE [--evidence TYPE:ID] [--json]
-
-node scripts/selfhost.mjs preferences init (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
-node scripts/selfhost.mjs preferences show (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
-node scripts/selfhost.mjs preferences set <field> <value> (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
-node scripts/selfhost.mjs preferences validate (--project-root ABSOLUTE | --path ABSOLUTE) [--json]
-```
+Resolve this skill directory and invoke its script by absolute path. Run
+`scripts/selfhost.ts --help` for the authoritative syntax; do not copy a stale
+command table into the conversation.
 
 `--project-root` must name an existing absolute real directory and derives `<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file alternative. Omitting both uses no stored preferences for planning and is rejected for preference writes. Paths inside the installed skill are rejected. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
 
-The same root derives `<project>/.selfhost/project.json`. `project init` creates
-it without replacing an existing record. `project revise` may change service
-choices only for the same goal and clears old progress. `project status` and
-`project resume` never inspect or change the host. A resumed plan always marks
-saved inspection and evidence as stale until `selfhost-host` and the owning
-capabilities provide fresh proof.
+The same root derives `<project>/.selfhost/project.json`. State writes refuse
+replacement, retain one goal, and clear stale progress after a revised choice.
+A resumed plan marks saved inspection and evidence stale until their owners
+provide fresh proof.
 
 Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private remote access or downloader-only privacy. Preserve that choice inside composites such as `photos and VPN`; clarification is mandatory before planning. Phrases such as `route qBittorrent through VPN` resolve to downloader privacy, while `access from phone` resolves to remote access. Clear combinations such as `photos and backups` and `make Immich private on my phone` return a composition instead of dropping one intent.
 
-## Interpret support correctly
-
-- `managed`: a named installed adapter owns deterministic render, apply, verify, and rollback.
-- `guided`: current primary guidance and gates exist; generation remains host-specific.
-- `discovery`: selection context only; verify current deployment facts before proposing an install.
-- `retired`: migration routing only. Never select for a new deployment.
-
-The stack's automation field describes its best supported capability. A generated plan also reports `effectiveAutomation`, reduced to the least automated selected or implied application. Every selected adapter skill appears in `requiredSkills`; a guided or discovery alternative never inherits a managed claim.
-
-T0/T1/T2 are curation priorities, independent of automation support. An upstream project and a container image are separate facts; `null` image data means it must be researched at apply time.
-
-Use `catalog homarr` to inspect the exact current Homarr identifier/display mapping and catalog coverage. `supported` includes the standard registry and Docker/Kubernetes special surfaces; `gap` lists catalog applications without a dedicated integration. Homarr support does not override upstream lifecycle or make a retired project selectable for a new deployment.
-
-Treat Homarr as an optional control plane, not an application dependency. It
-may provide a single dashboard and read-only MCP surface while administrative
-UIs stay private. If the user wants Homarr or a consumer app such as Jellyfin
-reachable remotely, invoke `selfhost-ingress` and require separate exposure
-and authentication approval. The current Homarr bridge can inspect and search;
-it cannot submit requests or change connected applications.
+Read [references/catalog.md](references/catalog.md) for support levels,
+curation tiers, app facts, image provenance, and Homarr coverage. A stack's
+best automation never upgrades a weaker selected app. Homarr remains an
+optional control plane and its bridge remains inspect-and-search only.
 
 ## Enforce the plan boundary
 

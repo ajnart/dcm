@@ -43,7 +43,7 @@ above remains historical rather than newly reverified.
 The audited private install command was:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
 
 It cloned the private repository, discovered exactly 12 skills, installed the

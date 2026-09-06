@@ -2,17 +2,17 @@
 
 The packaged harness lives below `assets/harness` and has no repository-root
 dependency. Set `MEDIA_SKILL_ROOT` to the absolute directory containing the
-skill's `SKILL.md`; its `scripts/media-runtime.mjs` copies the harness into the
+skill's `SKILL.md`; its `scripts/media-runtime.ts` copies the harness into the
 selected project's `.selfhost/media-harness` directory.
 
 ## Installer commands
 
 ```bash
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" init [--project PATH]
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" sync [--project PATH]
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" verify [--project PATH]
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec [--project PATH] -- session ARGS...
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec [--project PATH] -- render-prompt ARGS...
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" init [--project PATH]
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" sync [--project PATH]
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" verify [--project PATH]
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec [--project PATH] -- session ARGS...
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec [--project PATH] -- render-prompt ARGS...
 ```
 
 - `init` creates or resumes an allowlisted private copy.
@@ -31,8 +31,8 @@ chmod, or delete an existing tree with that name.
 ## Bundle checks
 
 ```bash
-node "$MEDIA_SKILL_ROOT/scripts/verify-bundle.mjs"
-node "$MEDIA_SKILL_ROOT/scripts/verify-bundle.mjs" --source-root /path/to/canonical/source
+bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts"
+bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts" --source-root /path/to/canonical/source
 ```
 
 The first command validates the manifest, allowed paths, modes, SHA256 hashes,
@@ -68,13 +68,13 @@ After installation, use one identifier matching
 `[a-z0-9][a-z0-9_-]{0,39}`:
 
 ```bash
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session create RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session doctor RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session urls RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session up RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session bootstrap RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session verify RUN_ID
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session credentials RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session doctor RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session urls RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session up RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session bootstrap RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session verify RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session credentials RUN_ID
 ```
 
 Run state belongs only to `.sessions/RUN_ID`. Use project-scoped status and logs;

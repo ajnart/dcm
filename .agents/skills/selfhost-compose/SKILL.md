@@ -1,6 +1,8 @@
 ---
 name: selfhost-compose
-description: Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use when a self-hosting plan needs a generic Compose boundary for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, `docker compose config`, idempotent `up`, or scoped `stop`. Rejects ambiguous ownership, plaintext secrets, unsafe privilege, broad Docker actions, and unapproved exposure.
+description: Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, idempotent `up`, or scoped `stop`. Ownership, privilege, exposure, and mutation stay explicitly gated.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Planning requires Bun 1.4.0 or newer; approved lifecycle actions require Docker with Compose v2.
 ---
 
 # Self-host Compose
@@ -11,7 +13,7 @@ Own one exact Compose project. Keep validation and planning read-only; treat ren
 
 1. Invoke `selfhost-host` when project paths, listeners, networks, or existing ownership have not been inspected.
 2. Read [manifest-contract.md](references/manifest-contract.md) before creating input. Supply explicit observed resources and opaque `secretRefs`; never supply secret values.
-3. Run `node scripts/compose-project.mjs validate --input project.json`, then `plan`. Resolve every `blocked` or `conflict` result before rendering.
+3. Run `bun scripts/compose-project.ts validate --input project.json`, then `plan`. Resolve every `blocked` or `conflict` result before rendering.
 4. Read [render-apply-contract.md](references/render-apply-contract.md). Render only the validated manifest into its exact private project directory. Rendering is atomic and refuses to overwrite a file.
 5. Run the lifecycle wrapper's `preflight` action. It revalidates the manifest, verifies the rendered file byte-for-byte, and runs `docker compose config --quiet` for that exact project and file.
 6. Obtain the exact `APPLY:<project>` token before `apply`, or `STOP:<project>` before `stop`. Delegate independent health and acceptance checks to `selfhost-verify` after apply.
@@ -21,9 +23,9 @@ Own one exact Compose project. Keep validation and planning read-only; treat ren
 Resolve paths relative to this `SKILL.md`.
 
 ```text
-node scripts/compose-project.mjs validate --input project.json
-node scripts/compose-project.mjs plan --input project.json
-node scripts/compose-project.mjs render --input project.json --output-dir /exact/private/project
+bun scripts/compose-project.ts validate --input project.json
+bun scripts/compose-project.ts plan --input project.json
+bun scripts/compose-project.ts render --input project.json --output-dir /exact/private/project
 
 bash scripts/compose-lifecycle.sh preflight --manifest project.json --context exact-context --project exact-id --file /exact/private/project/compose.<plan-id>.yaml
 bash scripts/compose-lifecycle.sh apply --manifest project.json --context exact-context --project exact-id --file /exact/private/project/compose.<plan-id>.yaml --approval APPLY:exact-id

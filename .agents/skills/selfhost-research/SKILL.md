@@ -1,6 +1,8 @@
 ---
 name: selfhost-research
-description: Research current self-hosted software and deployment evidence without changing a host. Use when an agent must find official installation or API documentation, extract a secret-safe Docker Compose contract, compare alternatives with official and community evidence kept distinct, check lifecycle or deprecation and image provenance, validate documentation links, inspect Homarr integration coverage, or capture bounded public web UI proof for a catalog or deployment plan.
+description: Research current self-hosted software without changing a host. Use for official installation or API evidence, secret-free Compose extraction, alternative comparisons, lifecycle or image provenance, documentation-link validation, Homarr coverage, or bounded public UI proof. Keep official and community evidence distinct.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer; live research may require approved public network or browser access.
 ---
 
 # Selfhost research
@@ -14,8 +16,8 @@ Produce current, auditable evidence without installing software, changing a host
 3. Read [references/methods.md](references/methods.md) for official-doc discovery, Compose extraction, alternative comparison, and lifecycle review.
 4. Before any browser command, read [references/browser-contract.md](references/browser-contract.md). Load the installed browser workflow with `agent-browser skills get core` or `agent-browser skills get core --full` before creating a session.
 5. Use a unique named session, pass the allowlist on every browser command, wait explicitly after navigation, and use status-aware `read --json`. Keep the requested source URL, canonical URL, and observed final URL distinct.
-6. Send extracted text through `scripts/redact.mjs` before printing, saving, or giving it to another agent. Extract Compose snippets with `scripts/extract-compose.mjs`; never preserve environment values or host volume sources.
-7. Validate captured link envelopes with `scripts/validate-link-result.mjs` and lifecycle records with `scripts/validate-lifecycle.mjs`. Treat `blocked` as missing evidence, not as a negative finding.
+6. Send extracted text through `scripts/redact.ts` before printing, saving, or giving it to another agent. Extract Compose snippets with `scripts/extract-compose.ts`; never preserve environment values or host volume sources.
+7. Validate captured link envelopes with `scripts/validate-link-result.ts` and lifecycle records with `scripts/validate-lifecycle.ts`. Treat `blocked` as missing evidence, not as a negative finding.
 8. For UI proof, use `snapshot -i`, interact through a fresh ref, verify the URL, wait, and take a new snapshot. Do not reuse refs after navigation or state changes.
 9. Copy [assets/research-report.md](assets/research-report.md) for the deliverable. Include exact source roles, check date, confidence, limitations, and redaction counts; omit raw browser payloads.
 10. Close the named browser session in cleanup on success, failure, or interruption. Confirm closure in the report.
@@ -30,13 +32,13 @@ An allowlist limits browser navigation but is not an egress security boundary. R
 
 ## Utilities
 
-Resolve scripts relative to this `SKILL.md`; do not assume the repository is the current directory. Every utility accepts stdin or `--file FILE`, writes JSON to stdout, and has no package dependency beyond Node.js 18 or newer.
+Resolve scripts relative to this `SKILL.md`; do not assume the repository is the current directory. Every utility accepts stdin or `--file FILE`, writes JSON to stdout, and runs on Bun 1.4.0 or newer without package dependencies.
 
 ```text
-node scripts/redact.mjs [--file FILE] [--pretty]
-node scripts/extract-compose.mjs [--file FILE] [--pretty]
-node scripts/validate-link-result.mjs [--file FILE] [--pretty]
-node scripts/validate-lifecycle.mjs [--file FILE] [--max-age-days N] [--strict] [--pretty]
+bun scripts/redact.ts [--file FILE] [--pretty]
+bun scripts/extract-compose.ts [--file FILE] [--pretty]
+bun scripts/validate-link-result.ts [--file FILE] [--pretty]
+bun scripts/validate-lifecycle.ts [--file FILE] [--max-age-days N] [--strict] [--pretty]
 ```
 
 Read [references/evidence-contract.md](references/evidence-contract.md) before constructing link or lifecycle input. Utilities intentionally return reason codes instead of rejected values. Do not paste a rejected payload into a report to explain a failure.

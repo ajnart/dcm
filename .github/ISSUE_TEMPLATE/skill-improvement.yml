@@ -1,0 +1,33 @@
+name: Skill improvement
+description: Propose a focused catalog, capability, or routing improvement.
+title: "[skill]: "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Affected skill or catalog area
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: Describe the behavior, not an implementation preference.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current evidence
+      description: Link primary sources and provide a redacted reproduction.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: This report contains no credentials, cookies, private addresses, or session data.
+          required: true

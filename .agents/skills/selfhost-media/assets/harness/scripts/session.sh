@@ -1428,80 +1428,80 @@ main() {
       ;;
     keys)
       [[ "$#" -eq 2 ]] || fail "keys requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_credentials_transients "$SESSION_DIR"
       sync_arr_api_keys
-      exec node "$SCRIPT_DIR/lib/session-context.mjs" credentials "$run_id"
+      exec bun "$SCRIPT_DIR/lib/session-context.ts" credentials "$run_id"
       ;;
     bootstrap)
       [[ "$#" -eq 2 ]] || fail "bootstrap requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_credentials_transients "$SESSION_DIR"
-      exec node "$SCRIPT_DIR/bootstrap-core.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/bootstrap-core.ts" "$run_id"
       ;;
     verify)
       [[ "$#" -eq 2 ]] || fail "verify requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec node "$SCRIPT_DIR/verify-core.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/verify-core.ts" "$run_id"
       ;;
     browser-password)
       [[ "$#" -ge 3 && "$#" -le 6 ]] \
         || fail "browser-password requires one RUN_ID and one to four @eN refs"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec node "$SCRIPT_DIR/fill-browser-password.mjs" "$run_id" "${@:3}"
+      exec bun "$SCRIPT_DIR/fill-browser-password.ts" "$run_id" "${@:3}"
       ;;
     homarr-key)
       [[ "$#" -eq 2 ]] || fail "homarr-key requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_homarr_key_transients "$SESSION_DIR"
       cleanup_validated_credentials_transients "$SESSION_DIR"
-      exec node "$SCRIPT_DIR/store-homarr-key.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/store-homarr-key.ts" "$run_id"
       ;;
     homarr-finalize)
       [[ "$#" -eq 2 ]] || fail "homarr-finalize requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec node "$SCRIPT_DIR/homarr-finalize.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/homarr-finalize.ts" "$run_id"
       ;;
     mcp-config)
       [[ "$#" -eq 2 ]] || fail "mcp-config requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec node "$SCRIPT_DIR/write-mcp-config.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/write-mcp-config.ts" "$run_id"
       ;;
     mcp-verify)
       [[ "$#" -eq 2 ]] || fail "mcp-verify requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
-      exec node "$SCRIPT_DIR/verify-homarr-mcp.mjs" "$run_id"
+      exec bun "$SCRIPT_DIR/verify-homarr-mcp.ts" "$run_id"
       ;;
     credentials)
       [[ "$#" -eq 2 ]] || fail "credentials requires one RUN_ID"
-      require_command node
+      require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_credentials_transients "$SESSION_DIR"
-      exec node "$SCRIPT_DIR/lib/session-context.mjs" credentials "$run_id"
+      exec bun "$SCRIPT_DIR/lib/session-context.ts" credentials "$run_id"
       ;;
     down)
       [[ "$#" -eq 2 ]] || fail "down requires one RUN_ID"

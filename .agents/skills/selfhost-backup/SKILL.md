@@ -1,6 +1,8 @@
 ---
 name: selfhost-backup
-description: Plan and assess read-only backup and restore protection for self-hosted services. Use when classifying configuration, user data, databases, and caches; choosing local and off-host encrypted targets, retention, immutability, versioning, offline copies, consistency hooks, RPO/RTO, owners, and failure alerts; or deciding whether timestamped isolated restore evidence proves recoverability. Produces a secret-free plan and never runs a backup, prunes data, overwrites a target, restores production, or treats backup existence as restore proof.
+description: Plan and assess secret-free backup and restore protection for self-hosted services. Use for data classification, encrypted targets, retention, immutability, consistency hooks, RPO/RTO, alerts, or isolated restore evidence. This capability plans and evaluates evidence; it does not run, prune, overwrite, or restore backups.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted JSON facts only.
 ---
 
 # Self-host backup
@@ -11,7 +13,7 @@ Design for recovery, then distinguish the plan from direct restore evidence. Tre
 
 1. Inventory configuration, user data, databases, and caches. Mark caches excluded only when they are explicitly rebuildable.
 2. Read [plan-contract.md](references/plan-contract.md). Record source and target failure domains, consistency methods, owners, RPO/RTO, retention, pruning approval, encryption references, recovery-key custody, and failure routing.
-3. Run `scripts/plan-backup.mjs` with bounded, secret-free JSON. The planner performs no filesystem discovery, backup, pruning, notification, or restore.
+3. Run `scripts/plan-backup.ts` with bounded, secret-free JSON. The planner performs no filesystem discovery, backup, pruning, notification, or restore.
 4. Resolve overlap, failure-domain, database-consistency, custody, destructive-target, and pruning gates before handing a plan to an apply capability.
 5. Keep the result `not-verified` until evidence records a timestamped restore into an isolated target, integrity checks, application acceptance, and RTO compliance.
 6. Present the JSON with a concise explanation of blocked gates and the narrow restore claim. Request separate approval before any later quiesce, snapshot, export, prune, overwrite, or restore action.
@@ -21,8 +23,8 @@ Design for recovery, then distinguish the plan from direct restore evidence. Tre
 Resolve the script relative to this `SKILL.md`.
 
 ```bash
-node <skill-directory>/scripts/plan-backup.mjs --input backup-input.json
-node <skill-directory>/scripts/plan-backup.mjs --json '{"schemaVersion":1,"project":{"id":"photos","owner":"operator"},"objectives":{"rpoMinutes":1440,"rtoMinutes":240},"sources":[],"targets":[],"schedule":{"cadenceMinutes":1440,"retention":{"keepLast":7,"daily":7,"weekly":4,"monthly":6},"pruning":{"enabled":false,"approved":false,"owner":""}},"notifications":{"failureOwner":"operator","routeRefs":["alerts.backup"]},"restoreDrill":null}'
+bun <skill-directory>/scripts/plan-backup.ts --input backup-input.json
+bun <skill-directory>/scripts/plan-backup.ts --json '{"schemaVersion":1,"project":{"id":"photos","owner":"operator"},"objectives":{"rpoMinutes":1440,"rtoMinutes":240},"sources":[],"targets":[],"schedule":{"cadenceMinutes":1440,"retention":{"keepLast":7,"daily":7,"weekly":4,"monthly":6},"pruning":{"enabled":false,"approved":false,"owner":""}},"notifications":{"failureOwner":"operator","routeRefs":["alerts.backup"]},"restoreDrill":null}'
 ```
 
 Use `--json` only for non-secret input safe in a process argument. Supply encryption and repository credentials only as opaque identifiers in `secretRefs`; the planner never resolves them.

@@ -45,7 +45,7 @@ Use the plan utility with this strict selection shape:
 Prefer the checked catalog handoff directly:
 
 ```text
-node <selfhost-skill>/scripts/selfhost.mjs catalog homarr --json | node <homarr-skill>/scripts/integration-plan.mjs selection.json --coverage -
+bun <selfhost-skill>/scripts/selfhost.ts catalog homarr --json | bun <homarr-skill>/scripts/integration-plan.ts selection.json --coverage -
 ```
 
 The handoff uses `checkedAt` plus `entries[]`. A `supported` entry becomes `official integration`; a `gap` entry becomes `app-tile-only gap`. Immich is an official integration.

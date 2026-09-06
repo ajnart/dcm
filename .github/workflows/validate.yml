@@ -5,27 +5,119 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  static:
+    name: Static contracts (Bun 1.4.0)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up supported Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          node-version: 24
+          fetch-depth: 0
 
-      - name: Report Node version
-        run: node --version
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
 
-      - name: Run repository and skill quick validation
-        run: node scripts/validate-repo.mjs
+      - name: Validate public and repository contracts
+        run: bun scripts/skillpack.ts validate --scope all
+
+      - name: Audit publishable history and assets
+        run: bun scripts/skillpack.ts audit
+
+  behavior:
+    name: Deterministic behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Run affected scenarios
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: bun scripts/skillpack.ts test --changed-from "$BASE_REF"
+
+      - name: Run complete scenarios
+        if: github.event_name != 'pull_request'
+        run: bun scripts/skillpack.ts test --all
+
+      - name: Enforce router latency budget
+        run: bun scripts/skillpack.ts benchmark --runs 5
+
+  package:
+    name: Reproducible plugin package
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Check generated indexes
+        run: bun scripts/skillpack.ts index --check
+
+      - name: Build release package
+        run: bun scripts/skillpack.ts package --output dist
+
+      - name: Verify ZIP structure
+        run: unzip -t dist/selfhost-skills-*.zip
+
+  release:
+    name: Release artifact
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - static
+      - behavior
+      - package
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Enforce release tag and changelog
+        run: bun scripts/skillpack.ts release-check --tag "$GITHUB_REF_NAME"
+
+      - name: Build release payload
+        run: bun scripts/skillpack.ts package --output dist
+
+      - name: Upload release payload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: selfhost-skills-${{ github.ref_name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30

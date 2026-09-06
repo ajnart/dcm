@@ -80,25 +80,25 @@ Regenerate through the owning workflow after a canonical harness change. If no
 approved generator is available, stop and report the bundle refresh as blocked.
 Repository tooling added under root `scripts/` is not media runtime input.
 Refresh the generated bundle only with
-`node scripts/refresh-media-bundle.mjs`; the command accepts no paths and
+`bun scripts/refresh-media-bundle.ts`; the command accepts no paths and
 verifies the complete source/bundle relationship after writing.
 
 ## Focused commands
 
 ```bash
-node scripts/validate-repo.mjs
-node scripts/validate-repo.mjs --json
-node .agents/skills/selfhost/scripts/selfhost.mjs catalog validate --json
-node .agents/skills/selfhost-media/scripts/verify-bundle.mjs
+bun scripts/validate-repo.ts
+bun scripts/validate-repo.ts --json
+bun .agents/skills/selfhost/scripts/selfhost.ts catalog validate --json
+bun .agents/skills/selfhost-media/scripts/verify-bundle.ts
 ```
 
-Use `node --check path/to/changed.mjs` and `bash -n
+Use `bun build path/to/changed.ts --target=bun --outfile=/dev/null` and `bash -n
 path/to/changed.sh` for changed scripts. Run only the minimal new or affected
 fixture. Do not run Docker, browser, installer, full-stack, or broad test suites
 for a focused source change.
 
-`scripts/smoke-install.sh` is an explicit Node.js 22.20.0+ release check. It
-resolves the `skills` package through npx and verifies both default symlink and
+`scripts/smoke-install.sh` is an explicit Bun 1.4.0+ release check. It resolves
+the `skills` package through `bunx` and verifies both default symlink and
 explicit copy layouts in disposable projects. Keep it out of ordinary local
 and CI validation.
 

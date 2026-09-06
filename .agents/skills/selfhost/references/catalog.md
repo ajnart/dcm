@@ -12,11 +12,11 @@ The catalog is data, not deployment authority. `catalog/taxonomy.json` defines g
 4. Select automation support independently from T0/T1/T2 priority. `managed` requires an installed `adapterSkill`.
 5. Record Homarr as `supported`, `partial`, or `gap`; a URL tile is `partial`, not a dedicated integration.
 6. Include roles, dependencies, alternatives, security requirements, pitfalls, and primary sources. Use `null` for unknown deployment facts.
-7. Run `node scripts/selfhost.mjs catalog validate`.
+7. Run `bun scripts/selfhost.ts catalog validate`.
 
 ## Maintain Homarr coverage
 
-Update `catalog/homarr-integrations.json` only from its official sources, preserving exact identifier case and display punctuation. Standard integrations and the Docker/Kubernetes special surfaces must each map to exactly one `supported` app record. Keep development-only mock definitions, Search.ch widget behavior, and release-provider widget behavior outside the global integration registry. Use `node scripts/selfhost.mjs catalog homarr [--status supported|gap]` to inspect deterministic coverage; a supported integration remains independent from upstream lifecycle and automation support.
+Update `catalog/homarr-integrations.json` only from its official sources, preserving exact identifier case and display punctuation. Standard integrations and the Docker/Kubernetes special surfaces must each map to exactly one `supported` app record. Keep development-only mock definitions, Search.ch widget behavior, and release-provider widget behavior outside the global integration registry. Use `bun scripts/selfhost.ts catalog homarr [--status supported|gap]` to inspect deterministic coverage; a supported integration remains independent from upstream lifecycle and automation support.
 
 ## Add a stack
 

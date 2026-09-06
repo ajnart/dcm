@@ -5,13 +5,12 @@
 Install the complete pack once for Codex and Claude Code:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
 ```
 
-Run it from any directory with Node.js 22.20.0 or newer active; Node.js 24 is
-recommended. The repository is private, so authenticate Git first with an
-existing credential helper, `gh auth login`, or SSH. Keep tokens out of the
-command, URL, prompt, shell history, and repository files.
+Run it from any directory with Bun 1.4.0 or newer active. Keep tokens out of
+the command, URL, prompt, shell history, and
+repository files.
 
 This command is the canonical distribution path:
 
@@ -33,7 +32,7 @@ therefore contain every required `SKILL.md`, `agents/`, `scripts/`,
 Omit `--global` to scope the pack to the current project:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
 
 Run that form from the project that should own the installation. Add `--copy`
@@ -46,7 +45,7 @@ Replace `'*'` with one or more named `--skill` selections and retain only the
 intended `--agent` targets. For example:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill selfhost \
+bunx skills@latest add ajnart/selfhost-skills --skill selfhost \
   --agent codex --agent claude-code --global --copy --yes
 ```
 
@@ -70,3 +69,10 @@ an active Node.js 22.20.0+ toolchain. The media password helper never installs
 or downloads it: direct execution is attempted first, and only a direct
 `ENOENT` retries the fixed `mise exec node@24 -- agent-browser` path. A launched
 nonzero browser action is never retried.
+
+The release ZIP projects the canonical `.agents/skills/` tree to one native
+`skills/` directory. That projection is generated and hash-checked; it is not
+a second editable source tree. It also contains native Codex and Claude plugin
+manifests for validation and public-directory submission. The source checkout
+is deliberately not advertised as a repo marketplace plugin because native
+plugins require `skills/` at their root.

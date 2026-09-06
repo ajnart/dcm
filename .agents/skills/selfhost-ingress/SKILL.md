@@ -1,6 +1,8 @@
 ---
 name: selfhost-ingress
-description: Plan safe ingress and remote access for self-hosted services. Use when choosing or reviewing local-only or LAN access, Tailscale Serve, a Headscale-controlled tailnet, an existing Caddy, Traefik, or Nginx Proxy Manager reverse proxy, Cloudflare Tunnel, Pangolin with Newt, or a temporary ngrok endpoint; when resolving ownership of ports 80/443, DNS, TLS, proxy networks, and authentication; or when checking whether a service may be exposed publicly. Produces a private-first, redacted plan and never configures providers, DNS, firewalls, proxies, tunnels, or containers.
+description: Plan private-first ingress and remote access for self-hosted services. Use for local or LAN access, tailnets, reverse proxies, tunnels, DNS, TLS, ports 80/443, authentication, ownership conflicts, or separate public-exposure approval. This capability produces a redacted plan and does not configure the edge.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for the bundled planner; provider configuration stays outside this read-only capability.
 ---
 
 # Self-host ingress
@@ -12,7 +14,7 @@ Choose one route for each service and keep one accountable owner for every edge 
 1. Establish the target service, host, intended clients, and whether access is local, LAN, private remote, public, or temporary. Default an unspecified route to local-only.
 2. Invoke `selfhost-host` when host listeners, existing proxies, tunnel clients, or network ownership have not been inspected. Accept only bounded, redacted facts.
 3. Read [routes.md](references/routes.md) for the selected route. Read [plan-contract.md](references/plan-contract.md) before constructing planner input or interpreting its result.
-4. Run `scripts/plan-ingress.mjs` with explicit facts and preferences. The planner never discovers infrastructure or contacts a provider.
+4. Run `scripts/plan-ingress.ts` with explicit facts and preferences. The planner never discovers infrastructure or contacts a provider.
 5. Resolve every `conflict` and `blocked` gate before proposing an apply action. Reuse an existing Caddy, Traefik, or Nginx Proxy Manager only when its owner, lifecycle, network, route contract, and port ownership are known.
 6. Present the redacted plan. Obtain separate approval for public reachability and its authentication policy. Hand implementation to the capability that owns the selected proxy, tunnel, DNS, TLS, or firewall.
 7. Require post-apply evidence for client-side name resolution, certificate identity and expiry when TLS applies, intended route delivery, access-policy enforcement, and continued privacy of direct service ports.
@@ -22,8 +24,8 @@ Choose one route for each service and keep one accountable owner for every edge 
 Resolve the script relative to this `SKILL.md`.
 
 ```bash
-node <skill-directory>/scripts/plan-ingress.mjs --input ingress-input.json
-node <skill-directory>/scripts/plan-ingress.mjs --json '{"schemaVersion":1,"service":{"id":"photos","class":"application"},"facts":{},"preferences":{}}'
+bun <skill-directory>/scripts/plan-ingress.ts --input ingress-input.json
+bun <skill-directory>/scripts/plan-ingress.ts --json '{"schemaVersion":1,"service":{"id":"photos","class":"application"},"facts":{},"preferences":{}}'
 ```
 
 Use `--json` only for non-secret input that is safe in a process argument. The planner rejects secret-bearing fields and accepts opaque identifiers only through `secretRefs`.

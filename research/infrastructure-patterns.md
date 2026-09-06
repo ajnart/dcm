@@ -33,10 +33,10 @@ The local browser prerequisite was inspected without opening an application sess
 The current checkout already contains useful seams:
 
 - [`scripts/session.sh`](../scripts/session.sh) has per-run IDs, a managed port range, file locks, ownership/mode/symlink checks, atomic staging, and project-scoped Compose invocation. These are good primitives for a host adapter, provided the state root is made configurable and the port range is not assumed to be globally safe.
-- [`scripts/lib/session-context.mjs`](../scripts/lib/session-context.mjs) separates managed process environment from secrets, validates private files, and writes sensitive values atomically. Keep this boundary; replace stack-specific key names with capability-scoped secret references.
+- [`scripts/lib/session-context.ts`](../scripts/lib/session-context.ts) separates managed process environment from secrets, validates private files, and writes sensitive values atomically. Keep this boundary; replace stack-specific key names with capability-scoped secret references.
 - [`docker-compose.yml`](../docker-compose.yml) demonstrates explicit project naming, service-name DNS, per-project bind mounts, loopback publication, healthchecks, and a private project network. These are reusable patterns, not production defaults.
 - [`docs/README.md`](../docs/README.md), [`prompts/10-isolation-and-start.md`](../prompts/10-isolation-and-start.md), and [`prompts/80-acceptance.md`](../prompts/80-acceptance.md) show the right separation between preflight, apply, health, and evidence gates.
-- [`scripts/lib/homarr-mcp.mjs`](../scripts/lib/homarr-mcp.mjs), [`scripts/homarr-mcp-bridge.mjs`](../scripts/homarr-mcp-bridge.mjs), and [`scripts/write-mcp-config.mjs`](../scripts/write-mcp-config.mjs) demonstrate capability-scoped protocol validation, bounded responses, a private credential adapter, and secret-free client configuration.
+- [`scripts/lib/homarr-mcp.ts`](../scripts/lib/homarr-mcp.ts), [`scripts/homarr-mcp-bridge.ts`](../scripts/homarr-mcp-bridge.ts), and [`scripts/write-mcp-config.ts`](../scripts/write-mcp-config.ts) demonstrate capability-scoped protocol validation, bounded responses, a private credential adapter, and secret-free client configuration.
 
 ### Stack-specific pieces that must stay behind an adapter
 

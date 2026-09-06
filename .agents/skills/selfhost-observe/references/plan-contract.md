@@ -1,6 +1,6 @@
 # Observability planner contract
 
-`plan-observability.mjs` accepts bounded, exact-key JSON and emits a deterministic redacted plan. It does not inspect a runtime, call an API, resolve DNS, open a socket, read logs, send an alert, or write a file.
+`plan-observability.ts` accepts bounded, exact-key JSON and emits a deterministic redacted plan. It does not inspect a runtime, call an API, resolve DNS, open a socket, read logs, send an alert, or write a file.
 
 ## Layers
 

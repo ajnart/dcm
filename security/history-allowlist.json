@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "pattern": "literal-password",
+      "blob": "95a59eee3a121b9b32a7f096824a27821d13e3c0",
+      "path": ".agents/skills/selfhost-media/assets/harness/scripts/lib/session-context.mjs",
+      "classification": "retired-local-default",
+      "reason": "A pre-v1 local harness used a fixed default. The current tree rejects that value and generates unique credentials; preserved history requires users of pre-v1 commits to rotate it.",
+      "reviewedFor": "1.0.0"
+    }
+  ]
+}

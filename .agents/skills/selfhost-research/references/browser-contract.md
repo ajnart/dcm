@@ -27,4 +27,4 @@ Use no restore key, browser profile, auth vault, cookie import, recording, video
 
 Use `snapshot -i`, act on one current accessibility ref, verify the resulting URL, wait, then take a fresh snapshot. Store only the relevant visible labels, URL, timestamp, and optional secret-safe screenshot path. Never reuse an old ref after page change.
 
-Raw DOM and `eval` output can contain generated credentials embedded by documentation pages. Prefer outline/filter reads. If DOM extraction is unavoidable, send it directly to `redact.mjs` before any display or persistence.
+Raw DOM and `eval` output can contain generated credentials embedded by documentation pages. Prefer outline/filter reads. If DOM extraction is unavoidable, send it directly to `redact.ts` before any display or persistence.

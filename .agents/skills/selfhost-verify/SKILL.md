@@ -1,6 +1,8 @@
 ---
 name: selfhost-verify
-description: Independently aggregate secret-free acceptance evidence for self-hosted changes without mutating the system. Use after a plan or apply stage when checks must declare capability, timestamp, source/probe class, expected and actual classification, result, evidence references and hashes, and freshness; when missing, stale, duplicate, conflicting, failed, or blocked evidence must prevent acceptance; or when gating public ingress, downloader VPN fail-closed behavior, backup restores, media service graphs, and optional Homarr integration/app/widget/MCP search claims. Emits narrow JSON claims and an optional Markdown summary only from supplied evidence.
+description: Independently aggregate secret-free acceptance evidence without mutation. Use after planning or apply to assess source class, expected and actual classifications, timestamps, hashes, freshness, missing or conflicting evidence, public ingress, VPN fail-closed behavior, restore proof, media graphs, or Homarr claims. Emit claims only from supplied evidence.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer; evaluates local redacted evidence documents without probing the target.
 ---
 
 # Self-host verify
@@ -11,7 +13,7 @@ Evaluate evidence independently from the capability that made the change. A gree
 
 1. Establish one manifest ID and deterministic `evaluatedAt` timestamp. Select specialized profiles only for capabilities actually in scope.
 2. Read [evidence-contract.md](references/evidence-contract.md). Collect classifications and artifact references, never raw response bodies, headers, credentials, cookies, host inspection dumps, or secret payloads.
-3. Run `scripts/verify-evidence.mjs`. It reads the manifest, performs no probe, and changes nothing.
+3. Run `scripts/verify-evidence.ts`. It reads the manifest, performs no probe, and changes nothing.
 4. Treat missing, stale, duplicate, conflicting, failed, and blocked checks as non-pass. Resolve evidence problems through the owning verifier; this skill does not repair a service.
 5. Report only emitted narrow claims. Include the optional Markdown summary when the caller needs a human-readable acceptance artifact.
 
@@ -20,8 +22,8 @@ Evaluate evidence independently from the capability that made the change. A gree
 Resolve the script relative to this `SKILL.md`.
 
 ```bash
-node <skill-directory>/scripts/verify-evidence.mjs --input evidence-manifest.json
-node <skill-directory>/scripts/verify-evidence.mjs --json '{"schemaVersion":2,"manifestId":"change-001","evaluatedAt":"2026-08-28T12:00:00Z","profile":{"publicIngress":false,"downloaderVpn":false,"backups":false,"media":false,"homarr":false},"requirements":[],"checks":[],"options":{"markdownSummary":true}}'
+bun <skill-directory>/scripts/verify-evidence.ts --input evidence-manifest.json
+bun <skill-directory>/scripts/verify-evidence.ts --json '{"schemaVersion":2,"manifestId":"change-001","evaluatedAt":"2026-08-28T12:00:00Z","profile":{"publicIngress":false,"downloaderVpn":false,"backups":false,"media":false,"homarr":false},"requirements":[],"checks":[],"options":{"markdownSummary":true}}'
 ```
 
 Use `--json` only for non-secret manifests safe in a process argument. Evidence references are opaque IDs and hashes are `sha256:` identifiers; store any underlying protected artifact outside the manifest.

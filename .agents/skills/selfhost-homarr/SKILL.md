@@ -1,11 +1,13 @@
 ---
 name: selfhost-homarr
-description: Add Homarr v2 as a recommended optional private control plane, dashboard, and read-only agent-facing MCP gateway for self-hosted services. Use for standalone Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, Claude Code or Codex MCP setup, Seerr search that must stop before requesting, and scoped generated-dashboard evidence for any self-hosted stack.
+description: Add Homarr v2 as an optional private dashboard and read-only agent gateway. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, Codex or Claude Code client setup, generated-dashboard evidence, or Seerr title search that must stop before requesting.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.
 ---
 
 # Self-host Homarr
 
-Resolve `SKILL_DIR` to this skill directory and invoke every bundled script through its absolute path. The scripts require dependency-free Node.js 18 or newer and have no repository-root or sibling-skill dependency.
+Resolve `SKILL_DIR` to this skill directory and invoke every bundled script through its absolute path. The scripts require Bun 1.4.0 or newer and have no repository-root or sibling-skill dependency.
 
 Homarr is a recommended bonus layer, never a prerequisite for the services it
 connects. Use it as a private dashboard and agent-facing integration surface
@@ -29,22 +31,22 @@ without Homarr remains valid.
 3. Initialize a project profile:
 
    ```text
-   node <skill-dir>/scripts/profile.mjs init <profile> --base-url <homarr-origin> --project-root <absolute-project-root>
+   bun <skill-dir>/scripts/profile.ts init <profile> --base-url <homarr-origin> --project-root <absolute-project-root>
    ```
 
 4. Read [api-and-mcp.md](references/api-and-mcp.md) before API or MCP work. Create the key in Homarr only when requested, then use the one-time browser-to-stdin pipeline in [client-installation.md](references/client-installation.md).
-5. Run `profile.mjs doctor <absolute-profile-path>` before starting the bridge, generating a fragment, or verifying.
-6. Generate a secret-free client fragment with `generate-client-config.mjs <claude-code|codex|generic-json|generic-toml> <absolute-profile-path>`.
-7. Run `verify-homarr.mjs <absolute-profile-path>`. Add `--media-search` for the read-only default search `Spider-Man: No Way Home`, or append a different title. Require one usable Seerr integration and an exact structured result.
+5. Run `profile.ts doctor <absolute-profile-path>` before starting the bridge, generating a fragment, or verifying.
+6. Generate a secret-free client fragment with `generate-client-config.ts <claude-code|codex|generic-json|generic-toml> <absolute-profile-path>`.
+7. Run `verify-homarr.ts <absolute-profile-path>`. Add `--media-search` for the read-only default search `Spider-Man: No Way Home`, or append a different title. Require one usable Seerr integration and an exact structured result.
 8. Read [safety-and-acceptance.md](references/safety-and-acceptance.md) and report only the PASS lines actually observed. Keep compatibility and curated-catalog fallback modes explicit.
 
 ## Planning utility
 
-Run `integration-plan.mjs <selection.json|-> [--coverage <catalog-homarr.json|-> | --mapping <mapping.json>]`. Prefer the direct catalog coverage handoff; the utility never imports sibling catalogs. See the onboarding reference for schemas and provenance.
+Run `integration-plan.ts <selection.json|-> [--coverage <catalog-homarr.json|-> | --mapping <mapping.json>]`. Prefer the direct catalog coverage handoff; the utility never imports sibling catalogs. See the onboarding reference for schemas and provenance.
 
 ## Client bridge
 
-Start `homarr-mcp-bridge.mjs` with exactly one argument: the absolute profile path. The bridge privately loads the key, prefers canonical `/api/mcp`, and exposes a read-only projection of a valid native catalog. It tries compatibility only after a definitive canonical 404/405 and uses the curated fallback only for exact RPC `-32603` message `Date cannot be represented in JSON Schema`.
+Start `homarr-mcp-bridge.ts` with exactly one argument: the absolute profile path. The bridge privately loads the key, prefers canonical `/api/mcp`, and exposes a read-only projection of a valid native catalog. It tries compatibility only after a definitive canonical 404/405 and uses the curated fallback only for exact RPC `-32603` message `Date cannot be represented in JSON Schema`.
 
 This bridge is the current shipped agent gateway, but it is not a write proxy.
 Inspection and Seerr search are available; requests, approvals, and connected-

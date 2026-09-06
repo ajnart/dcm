@@ -29,10 +29,10 @@ proof current.
 5. Prove ownership before classifying each relevant resource as `reuse`,
    `coexist`, or `conflict`. A matching name is not ownership evidence.
 6. Continue from the first incomplete safe stage. A changed service choice uses
-   `project revise`, which clears the old checkpoint and evidence IDs.
+   `state revise`, which clears the old checkpoint and evidence IDs.
 
-`project init`, `project revise`, and `project checkpoint` write only private
-local state. `project status` and `project resume` are read-only.
+`state init`, `state revise`, and `state checkpoint` write only private local
+state. `plan --project-root` resumes read-only.
 Checkpoint stages advance one step at a time. `inspected`, `applied`, and
 `verified` require a typed opaque evidence ID; the checkpoint command records
 the ID but does not perform or verify the work itself.

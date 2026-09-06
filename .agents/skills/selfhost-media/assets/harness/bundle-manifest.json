@@ -115,54 +115,54 @@
       "sha256": "ac9148d07dd7dabd3bcf78a0c113a23358f2eadb023c0af071888abfe3cf3100"
     },
     {
-      "path": "scripts/bootstrap-core.mjs",
+      "path": "scripts/bootstrap-core.ts",
       "mode": "0644",
-      "sha256": "fca174441bbfdbb4cae60e00ce1de35cd6c9ce54ab04e9cb1c0ab37ffd45b8d6"
+      "sha256": "4d04784d95a897934fdb9f8a59d67bdaa75542b37707181034a9d1e8a89c2ea2"
     },
     {
-      "path": "scripts/check-homarr-finalize.mjs",
+      "path": "scripts/check-homarr-finalize.ts",
       "mode": "0644",
-      "sha256": "4eebe19f40207072d501c88a467ead3b0c3e91e8306548ddb55c1015c66f6a22"
+      "sha256": "e7109f017ac79f4de3649037b97a744d8aa16a8741c1608afb12254d31039170"
     },
     {
-      "path": "scripts/check-homarr-mcp-bridge.mjs",
+      "path": "scripts/check-homarr-mcp-bridge.ts",
       "mode": "0644",
-      "sha256": "c48fc16636a8e15b2181dd33283032dfb79fc5066c1c5d95cb0994252ae27f87"
+      "sha256": "f05592616cc9bc47396377378f0195eff7e509f4bb244dd926dcaf30215ca54b"
     },
     {
-      "path": "scripts/check-seerr-verifier.mjs",
+      "path": "scripts/check-seerr-verifier.ts",
       "mode": "0644",
-      "sha256": "9a05d7dceda9e46ce5065b9d0e7fddaff9836036a957f70d9b4999f80d6507cb"
+      "sha256": "e817078959bbea714254f3f05c39f32711dd9cd521349ebdf99666947f0f5db6"
     },
     {
-      "path": "scripts/check-session-password.mjs",
+      "path": "scripts/check-session-password.ts",
       "mode": "0644",
-      "sha256": "609279719731bc2357f1acee1074c9ca97158d82568f164e3b7117b14e7a71b1"
+      "sha256": "101b0f967b0c75c0e3171dae5806746b5fe5e23123e3cfde3d4b2ad6be6f54f4"
     },
     {
-      "path": "scripts/fill-browser-password.mjs",
+      "path": "scripts/fill-browser-password.ts",
       "mode": "0644",
-      "sha256": "1bc263fa29c4be1c89ec47ef7735ee3e85143a174f159dae29ef3409417dfb14"
+      "sha256": "05b3239082d8d76d844b886ed06d634447cdcc6fc8f898fa75e56f8376d9de5d"
     },
     {
-      "path": "scripts/homarr-finalize.mjs",
+      "path": "scripts/homarr-finalize.ts",
       "mode": "0644",
-      "sha256": "5f4ede4b088b954921ed17b8c26a7e89fd283fee6c386d8353e8cb13ce56f84a"
+      "sha256": "23d6a0c83e5817f0d57c199b883a4cba65d24c7179066b90230b2758c326c477"
     },
     {
-      "path": "scripts/homarr-mcp-bridge.mjs",
+      "path": "scripts/homarr-mcp-bridge.ts",
       "mode": "0644",
-      "sha256": "c6b039d5e09b8c9d17060cbef4d715b14c5a51b127a4f9580c3678082d9e20a0"
+      "sha256": "d34dbc891fd618683031cb9ddc34977df19e75a2945351530f1a330219179721"
     },
     {
-      "path": "scripts/lib/homarr-mcp.mjs",
+      "path": "scripts/lib/homarr-mcp.ts",
       "mode": "0644",
       "sha256": "5cda71be2171c0a421fe2c0690b3ac347d1ebc2d3e1ea9f2c627c9e377f8510a"
     },
     {
-      "path": "scripts/lib/session-context.mjs",
+      "path": "scripts/lib/session-context.ts",
       "mode": "0644",
-      "sha256": "576a022d13b2e657b68b4ff5bc0e247b91aea1041c96100bc7c0afb5e83dd43f"
+      "sha256": "1a2606bd980267a8e455db54f21bd855d196ca7f1063a984494b9f4192749392"
     },
     {
       "path": "scripts/render-prompt.sh",
@@ -172,27 +172,27 @@
     {
       "path": "scripts/session.sh",
       "mode": "0755",
-      "sha256": "de663ac608dcd300e51bd320f78083c255170475a1919dbd03b603e2fdaa2cba"
+      "sha256": "3a6638b0d6cb79ed119bfe9538fd7927ba67bfea3ff3b2a3afb20c30745b6332"
     },
     {
-      "path": "scripts/store-homarr-key.mjs",
+      "path": "scripts/store-homarr-key.ts",
       "mode": "0644",
-      "sha256": "baf0e198ae7741c8a1ab163f58c3849391d6b77b8c1bd5f9510aa98649b8d1cb"
+      "sha256": "fcd240374cd83c64de742d0af4d2c68c19c7c5526005880802530b80372872c2"
     },
     {
-      "path": "scripts/verify-core.mjs",
+      "path": "scripts/verify-core.ts",
       "mode": "0644",
-      "sha256": "fdacab1a48fa21d4eb78a6f5d00b21c8cea9acf6fea179d443c1fdde3e1f88bd"
+      "sha256": "4d51a3a4da2b59979b1ecbad6a57aa2d1cc9ea818ab6d3ddcf4f678a1160cb04"
     },
     {
-      "path": "scripts/verify-homarr-mcp.mjs",
+      "path": "scripts/verify-homarr-mcp.ts",
       "mode": "0644",
-      "sha256": "b1c9ce71defb6d23caa1073688d8d6cb06abeef237305914c7a44d1cf951bf48"
+      "sha256": "a75be4a5430fce181ae8cf81ab8c274cbaa71cca45aad205b310a27705edeab4"
     },
     {
-      "path": "scripts/write-mcp-config.mjs",
+      "path": "scripts/write-mcp-config.ts",
       "mode": "0644",
-      "sha256": "291266b7c694cbf4429284da5ad3b61e3c61c0cd268159f3c993c547ebd47774"
+      "sha256": "665f6e6e71088f5cd1bc28cac93d524048f16e36eb052a7ba18fb83b2a16b2e6"
     }
   ]
 }

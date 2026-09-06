@@ -18,3 +18,5 @@
 /evidence/
 /screenshots/
 /coverage/
+/dist/
+/node_modules/

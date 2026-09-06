@@ -8,7 +8,7 @@ The profile utilities reject filesystem root or home as the project/profile boun
 
 ## Read-only verification
 
-`verify-homarr.mjs` checks:
+`verify-homarr.ts` checks:
 
 1. `ApiKey` authentication on canonical `/api/mcp`;
 2. native catalog or the exact curated Date-schema fallback;

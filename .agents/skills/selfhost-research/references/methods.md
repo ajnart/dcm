@@ -8,7 +8,7 @@ For each source, record `checkedAt`, source role, requested URL, canonical URL, 
 
 ## Compose extraction
 
-Use filtered documentation reads to isolate one Compose snippet. Redact it first when it came from a dynamic page, then pass it to `extract-compose.mjs`. The extractor supports a conservative Compose subset and reports unsupported YAML rather than guessing.
+Use filtered documentation reads to isolate one Compose snippet. Redact it first when it came from a dynamic page, then pass it to `extract-compose.ts`. The extractor supports a conservative Compose subset and reports unsupported YAML rather than guessing.
 
 Retain only service and image references, ports, container volume targets and purposes, environment names with secret-reference status, health presence, networks, restart, init, and empty provenance slots. Never retain environment values, bind-mount sources, generated keys, interpolation results, or a fully rendered Compose model.
 

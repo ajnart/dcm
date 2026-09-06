@@ -14,12 +14,12 @@ explains tradeoffs and keeps the final choice yours.
 
 ## Install once, use anywhere
 
-Before running it, install Git and Node.js 22.20.0 or newer, including npm/npx.
-Node.js 24 is recommended. Then install all skills globally into Codex and
-Claude Code as standalone copies:
+Before running it, install Git and Bun 1.4.0 or newer, including `bunx`.
+
+Install all skills globally into Codex and Claude Code as standalone copies:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
 ```
 
 Run this command from any directory. `--global` makes the pack available
@@ -28,9 +28,14 @@ directories instead of linking clients to the installer's canonical copy.
 Neither mode links back to this repository; after installation, no clone,
 checkout, or source-repository path is needed at runtime.
 
-The repository is private. Give Git access through your existing credential
-helper, `gh auth login`, or SSH before running the command. Never put a token
-in the command, clone URL, prompt, shell history, or a checked-in file.
+The versioned release ZIP contains the native `skills/`, `.codex-plugin/`, and
+`.claude-plugin/` layout used for plugin validation and public-directory
+submission. The source checkout deliberately remains canonical under
+`.agents/skills/`, so it is not advertised as a repo marketplace plugin.
+
+See the generated [skill index](SKILL_INDEX.md) for risk, activation, and
+compatibility metadata. Never put a token in an install command, clone URL,
+prompt, shell history, or a checked-in file.
 
 ## Your first conversation
 
@@ -290,13 +295,13 @@ The global copy command at the top is the recommended install. For a
 project-local install, run this from that project directory:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
 
 List available skills without installing:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --list
+bunx skills@latest add ajnart/selfhost-skills --list
 ```
 
 For a smaller install, replace `--skill '*'` with a named selection such as
@@ -307,16 +312,14 @@ a missing sibling blocks apply.
 `--all` is deliberately broader: it selects every skill for every agent target
 supported by the CLI. Use it only when that fan-out is intentional. Keep
 `--copy` when each client should receive a direct copy instead of a link to the
-installer's canonical copy.
-
 See [the installation contract](.agents/install.md) for global, project-local,
 copy, and selective-install behavior.
 
 ## Requirements
 
-- **Git and Node:** Git plus Node.js 22.20.0 or newer for installation;
-  Node.js 24 is recommended. Verify `git`, `node`, `npm`, and `npx`, then
-  configure private GitHub access without exposing a token.
+- **Git and Bun:** Git plus Bun 1.4.0 or newer for installation. Verify `git`,
+  `bun`, and `bunx`, then
+  install from the public repository without embedding credentials in URLs.
 - **Docker:** Docker Engine or Docker Desktop with Docker Compose v2 for stacks
   that use Compose. Confirm the intended Docker context before any apply.
 - **Storage:** enough suitable storage for the selected workload, plus a
@@ -329,17 +332,16 @@ copy, and selective-install behavior.
 
 ## Validate this repository
 
-The dependency-free repository gate runs on Node.js 18 or newer. That lower
-floor does not apply to the external installer:
+The repository maintenance gate runs on Bun 1.4.0 or newer:
 
 ```bash
-node scripts/validate-repo.mjs
-node scripts/validate-repo.mjs --json
+bun scripts/skillpack.ts validate --scope all
+bun scripts/skillpack.ts validate --scope all --json
 ```
 
 It checks skill metadata, references, catalog semantics, required siblings,
 the Homarr image, bundled-media drift, prohibited runtime material, and
-Node/Bash syntax. It does not use Docker, a browser, or the network.
+Bun TypeScript/Bash syntax. It does not use Docker, a browser, or the network.
 
 The explicit installer smoke test is separate:
 
@@ -347,14 +349,14 @@ The explicit installer smoke test is separate:
 bash scripts/smoke-install.sh
 ```
 
-The smoke check requires Node.js 22.20.0 or newer. It resolves the installer
-through npx and uses disposable projects to verify default symlink and explicit
+The smoke check requires Bun 1.4.0 or newer. It resolves the installer through
+`bunx` and uses disposable projects to verify default symlink and explicit
 copy layouts. It does not change a real client or global configuration.
 
 ## Troubleshooting
 
-- **Private repository not found:** verify GitHub CLI, credential-helper, or
-  SSH access directly. Keep tokens out of commands and URLs.
+- **Repository not found:** confirm the repository and requested release or
+  branch exist; keep credentials out of commands and URLs.
 - **A required skill is missing:** install the full pack or the exact siblings
   named by the plan.
 - **The skill works only inside the source repo:** reinstall with both

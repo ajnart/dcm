@@ -1,6 +1,8 @@
 ---
 name: selfhost-observe
-description: Create and assess read-only observability plans for self-hosted services. Use when covering container or process state, application API readiness, dependencies, edge DNS/TLS/auth, storage capacity, backup freshness, logs, metrics, alerts, ownership, and alert routing; when reusing existing monitoring for a minimal stack; or when validating supplied observations without exposing hosts, IPs, secrets, protected administration, or a Docker socket casually. Distinguishes planned, configured, and observed state and never deploys collectors or claims evidence it did not receive.
+description: Create and assess read-only observability plans for self-hosted services. Use for process state, API readiness, dependencies, edge health, storage, backup freshness, logs, metrics, alerts, ownership, or minimal reuse. Keep planned, configured, and observed state distinct and report only supplied redacted evidence.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted facts and evidence only.
 ---
 
 # Self-host observe
@@ -12,7 +14,7 @@ Cover the failure path from process to user-facing edge while preserving the dif
 1. Establish the project, services, dependency/ingress/backup scope, and accountable owners. Use `minimal` mode when local health, bounded logs/metrics, and one alert route meet the need.
 2. Reuse existing monitoring only after its owner, lifecycle, acceptance, visibility, and protected-admin boundary are explicit.
 3. Read [plan-contract.md](references/plan-contract.md). Represent all nine layers and mark dependency, edge, and backup freshness required only when the scope needs them.
-4. Run `scripts/plan-observability.mjs` with bounded JSON. It makes no request, opens no socket, reads no runtime, and writes no configuration.
+4. Run `scripts/plan-observability.ts` with bounded JSON. It makes no request, opens no socket, reads no runtime, and writes no configuration.
 5. Resolve missing owners/routing, protected public surfaces, unsafe targets, and Docker-socket gates. Prefer application APIs, runtime CLI output, agents, or an existing monitor over direct daemon access.
 6. Present the redacted result. Hand any implementation to an explicitly authorized apply capability, then rerun with independently recorded observations.
 
@@ -21,7 +23,7 @@ Cover the failure path from process to user-facing edge while preserving the dif
 Resolve the script relative to this `SKILL.md`.
 
 ```bash
-node <skill-directory>/scripts/plan-observability.mjs --input observability-input.json
+bun <skill-directory>/scripts/plan-observability.ts --input observability-input.json
 ```
 
 The input accepts structured probe targets and optional `http` or `https` URLs without credentials, query strings, or fragments. Output retains only scheme, host class, and port; it never repeats a hostname, IP address, or URL.

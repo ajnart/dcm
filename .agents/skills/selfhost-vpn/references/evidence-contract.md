@@ -1,6 +1,6 @@
 # VPN evidence contract
 
-`plan-vpn.mjs` consumes recorded facts; it performs no request, namespace inspection, tunnel break, container operation, or file write. Evidence must be collected from the downloader namespace by an explicitly authorized verification capability.
+`plan-vpn.ts` consumes recorded facts; it performs no request, namespace inspection, tunnel break, container operation, or file write. Evidence must be collected from the downloader namespace by an explicitly authorized verification capability.
 
 ## Input
 

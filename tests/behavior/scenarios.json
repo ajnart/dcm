@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "id": "selfhost",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "plan", "classes": ["happy"] },
+        { "name": "blocked-resume", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] },
+        { "name": "router-regression", "classes": ["happy", "rejection"] }
+      ]
+    },
+    {
+      "id": "selfhost-backup",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "verified-restore", "classes": ["happy"] },
+        { "name": "destructive-conflict", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-compose",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "owned-project", "classes": ["happy"] },
+        { "name": "existing-project-conflict", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-homarr",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "integration-plan", "classes": ["happy"] },
+        { "name": "unsupported-field", "classes": ["rejection", "secret"] },
+        { "name": "compound-audit", "classes": ["happy", "rejection"] }
+      ]
+    },
+    {
+      "id": "selfhost-host",
+      "structuredInput": false,
+      "scenarios": [
+        { "name": "bounded-inspection", "classes": ["happy"] },
+        { "name": "invalid-limit", "classes": ["rejection"] }
+      ]
+    },
+    {
+      "id": "selfhost-ingress",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "private-mcp", "classes": ["happy"] },
+        { "name": "public-mcp-conflict", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-media",
+      "structuredInput": false,
+      "scenarios": [
+        { "name": "bundle-integrity", "classes": ["happy"] },
+        { "name": "missing-bundle", "classes": ["rejection"] }
+      ]
+    },
+    {
+      "id": "selfhost-observe",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "observed-plan", "classes": ["happy"] },
+        { "name": "docker-socket-conflict", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-operations",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "upgrade-plan", "classes": ["happy"] },
+        { "name": "missing-compatibility", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-research",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "public-evidence", "classes": ["happy"] },
+        { "name": "invalid-evidence", "classes": ["rejection"] },
+        { "name": "secret-redaction", "classes": ["happy", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-verify",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "generic-acceptance", "classes": ["happy"] },
+        { "name": "missing-readiness", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-vpn",
+      "structuredInput": true,
+      "scenarios": [
+        { "name": "fail-closed", "classes": ["happy"] },
+        { "name": "egress-leak", "classes": ["rejection"] },
+        { "name": "secret-field", "classes": ["rejection", "secret"] }
+      ]
+    }
+  ],
+  "contract": {
+    "repeatRuns": 2,
+    "requiredClasses": ["happy", "rejection"],
+    "structuredInputSecretCheck": true,
+    "hostMutationAllowed": false,
+    "dockerInvocationAllowed": false
+  }
+}

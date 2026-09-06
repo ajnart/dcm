@@ -1,6 +1,8 @@
 ---
 name: selfhost-vpn
-description: Plan and assess downloader-only VPN isolation for self-hosted download clients. Use when routing qBittorrent or another downloader through Gluetun or a WireGuard gateway namespace, keeping Arr, Seerr, media servers, proxies, and management traffic outside that namespace, defining LAN WebUI control allowlists and secret references, or evaluating DNS and egress leak evidence and a hard kill-switch tunnel-break test. Produces a provider-neutral, read-only topology and verification plan; it never handles credentials, changes Docker or networking, recommends copyrighted downloads, or claims safety without recorded fail-closed evidence.
+description: Plan and assess downloader-only VPN isolation. Use for Gluetun or WireGuard gateway topology, keeping management services outside the namespace, LAN control allowlists, opaque secret references, DNS or egress leak evidence, and a hard tunnel-break test. Produce a provider-neutral read-only plan for authorized content only.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for the bundled planner; live tunnel testing is a separate approved verification step.
 ---
 
 # Self-host VPN
@@ -13,7 +15,7 @@ Isolate the downloader's egress without moving the control plane. Treat tunnel h
 2. Invoke `selfhost-host` when the host, TUN support, existing gateway, bind addresses, or port ownership are unknown. Accept only bounded, redacted facts.
 3. Read [topology.md](references/topology.md) before designing the namespace, WebUI publication, LAN allowlist, DNS, or secret boundaries.
 4. Read [evidence-contract.md](references/evidence-contract.md) before recording or interpreting tunnel-health, tunnel-break, restoration, route, firewall, DNS, or optional legal peer evidence.
-5. Run `scripts/plan-vpn.mjs` with explicit JSON. Resolve every `conflict` and `blocked` gate. The planner performs no network request and cannot create evidence.
+5. Run `scripts/plan-vpn.ts` with explicit JSON. Resolve every `conflict` and `blocked` gate. The planner performs no network request and cannot create evidence.
 6. Present the provider-neutral plan. Obtain approval before an apply capability changes container namespaces, capabilities, devices, firewall rules, or service availability.
 7. After apply, collect the evidence contract from the downloader namespace. Break the tunnel while leaving the downloader running; require external IP and DNS requests to fail closed; restore the tunnel; then rerun the planner with the recorded evidence.
 
@@ -22,8 +24,8 @@ Isolate the downloader's egress without moving the control plane. Treat tunnel h
 Resolve the script relative to this `SKILL.md`.
 
 ```bash
-node <skill-directory>/scripts/plan-vpn.mjs --input vpn-input.json
-node <skill-directory>/scripts/plan-vpn.mjs --json '{"schemaVersion":1,"service":{"id":"qbittorrent","class":"downloader","webUiPort":8080},"facts":{},"preferences":{"mode":"gluetun","scope":["qbittorrent"],"lanControlCidrs":["192.168.1.0/24"],"webUiBind":"127.0.0.1","secretRefs":["vpn.credentials"],"legalContentOnly":true}}'
+bun <skill-directory>/scripts/plan-vpn.ts --input vpn-input.json
+bun <skill-directory>/scripts/plan-vpn.ts --json '{"schemaVersion":1,"service":{"id":"qbittorrent","class":"downloader","webUiPort":8080},"facts":{},"preferences":{"mode":"gluetun","scope":["qbittorrent"],"lanControlCidrs":["192.168.1.0/24"],"webUiBind":"127.0.0.1","secretRefs":["vpn.credentials"],"legalContentOnly":true}}'
 ```
 
 Use `--json` only for non-secret input safe in a process argument. Supply opaque reference identifiers through `secretRefs`; resolve their payloads only at a later, private apply boundary.

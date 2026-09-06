@@ -1,17 +1,119 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "packVersion": "1.0.0",
   "skills": [
-    {"id": "selfhost", "adapter": false, "scope": null},
-    {"id": "selfhost-backup", "adapter": false, "scope": null},
-    {"id": "selfhost-compose", "adapter": false, "scope": null},
-    {"id": "selfhost-homarr", "adapter": true, "scope": "application"},
-    {"id": "selfhost-host", "adapter": false, "scope": null},
-    {"id": "selfhost-ingress", "adapter": false, "scope": null},
-    {"id": "selfhost-media", "adapter": true, "scope": "stack"},
-    {"id": "selfhost-observe", "adapter": false, "scope": null},
-    {"id": "selfhost-operations", "adapter": false, "scope": null},
-    {"id": "selfhost-research", "adapter": false, "scope": null},
-    {"id": "selfhost-verify", "adapter": false, "scope": null},
-    {"id": "selfhost-vpn", "adapter": false, "scope": null}
+    {
+      "id": "selfhost",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-ingress",
+        "selfhost-media",
+        "selfhost-observe",
+        "selfhost-operations",
+        "selfhost-research",
+        "selfhost-verify",
+        "selfhost-vpn"
+      ]
+    },
+    {
+      "id": "selfhost-backup",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-compose",
+      "kind": "capability",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-host", "selfhost-verify"]
+    },
+    {
+      "id": "selfhost-homarr",
+      "kind": "adapter",
+      "scope": "application",
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": ["selfhost-ingress", "selfhost-verify"]
+    },
+    {
+      "id": "selfhost-host",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-ingress",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-host", "selfhost-verify"]
+    },
+    {
+      "id": "selfhost-media",
+      "kind": "adapter",
+      "scope": "stack",
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": [
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-observe",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-verify"]
+    },
+    {
+      "id": "selfhost-operations",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-backup", "selfhost-compose", "selfhost-verify"]
+    },
+    {
+      "id": "selfhost-research",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-verify",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-vpn",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-verify"]
+    }
   ]
 }

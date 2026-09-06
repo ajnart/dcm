@@ -1,0 +1,23 @@
+{
+  "name": "selfhost-skills",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Composable, private-first self-hosting skills for Codex and Claude Code.",
+  "license": "Apache-2.0",
+  "packageManager": "bun@1.4.0",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "scripts": {
+    "selfhost": "bun .agents/skills/selfhost/scripts/selfhost.ts",
+    "skillpack": "bun scripts/skillpack.ts",
+    "inspect": "bun scripts/skillpack.ts inspect",
+    "audit": "bun scripts/skillpack.ts audit",
+    "validate": "bun scripts/skillpack.ts validate --scope all",
+    "test": "bun scripts/skillpack.ts test --all",
+    "benchmark": "bun scripts/skillpack.ts benchmark",
+    "release-check": "bun scripts/skillpack.ts release-check",
+    "package": "bun scripts/skillpack.ts package --output dist"
+  }
+}

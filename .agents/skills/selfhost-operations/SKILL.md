@@ -1,6 +1,8 @@
 ---
 name: selfhost-operations
-description: Plan bounded upgrades, migrations, rollbacks, and troubleshooting for an explicitly owned self-hosted Compose project. Use when evaluating a version change, schema or data migration, recovery to a prior release, or a production problem that needs compatibility, backup/restore, health, acceptance, and rollback gates. Produces a strict secret-free read-only plan and delegates every Compose mutation to `selfhost-compose`; it never executes or claims verification.
+description: Plan bounded upgrades, migrations, rollbacks, and troubleshooting for one owned self-hosted Compose project. Use for version or schema changes, recovery, compatibility, backup/restore, health, acceptance, and rollback gates. Produce a secret-free plan and delegate every Compose mutation to `selfhost-compose`.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires Bun 1.4.0 or newer for the bundled planner; execution is delegated to selfhost-compose.
 ---
 
 # Self-host operations
@@ -11,7 +13,7 @@ Turn one owned project operation into gated choreography. Keep planning read-onl
 
 1. Confirm the exact Docker context, project ID, owner, current manifest reference, observed version, and ownership evidence. Invoke `selfhost-host` when these facts are absent.
 2. Read [operation-contract.md](references/operation-contract.md). Use immutable current and target versions, current compatibility evidence, and opaque references only.
-3. Run `node scripts/plan-operation.mjs plan --input operation.json`. Resolve `conflict` before `blocked`; neither result authorizes mutation.
+3. Run `bun scripts/plan-operation.ts plan --input operation.json`. Resolve `conflict` before `blocked`; neither result authorizes mutation.
 4. Require backup capture and restore-drill evidence for migrations, rollback operations, stateful or schema-risk changes, and every forward-only operation.
 5. Confirm every named sibling skill is installed; mark the plan blocked and name any missing capability. Read [choreography.md](references/choreography.md). For a mutating operation, hand the exact target manifest to `selfhost-compose` for validation, render, config preflight, approval, and apply. Do not run Docker directly from this skill.
 6. Run the named health and acceptance checks after apply. If a gate fails, stop and follow the recorded rollback or forward-recovery statement; do not improvise resource deletion.
@@ -22,8 +24,8 @@ Turn one owned project operation into gated choreography. Keep planning read-onl
 Resolve the script relative to this `SKILL.md`.
 
 ```text
-node scripts/plan-operation.mjs validate --input operation.json
-node scripts/plan-operation.mjs plan --input operation.json
+bun scripts/plan-operation.ts validate --input operation.json
+bun scripts/plan-operation.ts plan --input operation.json
 ```
 
 The script accepts only a regular non-symlink input file, performs no Docker, filesystem mutation, or network access, and exits 3 for `blocked` or `conflict`. `pass` means the supplied evidence makes the choreography reviewable; it never means the operation ran or passed acceptance.

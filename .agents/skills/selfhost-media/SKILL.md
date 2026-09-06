@@ -1,6 +1,8 @@
 ---
 name: selfhost-media
-description: Plan, initialize, synchronize, and verify a private self-hosted media harness for Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr. Use for owned-content media-stack topology, isolated local evaluation runs, safe harness installation, service wiring, secret-safe acceptance evidence, or read-only Homarr API/MCP checks.
+description: Plan, initialize, synchronize, and verify the private owned-content media harness for Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr. Use for isolated evaluation, safe harness installation, service wiring, secret-free evidence, or read-only Homarr API/MCP checks.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Planning requires Bun 1.4.0 or newer and Bash; approved harness runs require Docker Compose and browser evidence requires agent-browser.
 ---
 
 # Self-hosted media
@@ -11,8 +13,8 @@ project before running any harness command:
 
 ```bash
 MEDIA_SKILL_ROOT="/absolute/path/to/selfhost-media"
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" init
-node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" verify
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" init
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" verify
 ```
 
 Pass `--project /absolute/project/path` before `--` to select another project.
@@ -32,8 +34,8 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
 5. Render the runbook or forward a session command explicitly:
 
    ```bash
-   node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- render-prompt RUN_ID
-   node "$MEDIA_SKILL_ROOT/scripts/media-runtime.mjs" exec -- session create RUN_ID
+   bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- render-prompt RUN_ID
+   bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID
    ```
 
 6. Follow the installed `PROMPT.md`, ordered prompt modules, and per-service
@@ -42,6 +44,6 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
 7. Read [acceptance.md](references/acceptance.md) before reporting completion.
    Mark indirect or absent evidence unproven.
 
-Run `node "$MEDIA_SKILL_ROOT/scripts/verify-bundle.mjs"` to verify the packaged
+Run `bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts"` to verify the packaged
 asset. Add `--source-root /path/to/source` only when auditing source drift.
 Neither verifier uses Docker or reads runtime sessions.

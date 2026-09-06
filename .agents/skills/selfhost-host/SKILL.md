@@ -1,6 +1,8 @@
 ---
 name: selfhost-host
-description: Read-only discovery and planning for a self-hosting host. Use before deploying, extending, migrating, or troubleshooting a self-hosted stack when an agent must identify the platform, Docker and Compose availability, Docker context, bounded existing containers and networks, listening ports, filesystems, numeric identity, or safe config/data/media/download/backup paths. Supports macOS and Mac mini, Linux and VPS hosts, Unraid, TrueNAS SCALE, and Proxmox VM or LXC decisions. Produces redacted facts and non-secret recommendations; it never authorizes installation, host mutation, secret collection, or public exposure.
+description: Inspect and plan a self-hosting host without mutation. Use before deployment, migration, or troubleshooting to identify the platform, Docker context, bounded containers and networks, listeners, filesystems, numeric identity, or safe paths across macOS, Linux, Unraid, TrueNAS SCALE, and Proxmox. Return redacted facts and non-secret recommendations only.
+license: Apache-2.0; see LICENSE.txt
+compatibility: Requires POSIX shell tooling on macOS or Linux; Docker inspection is optional and remains read-only.
 ---
 
 # Self-host host
@@ -55,27 +57,9 @@ Inspect explicit path metadata only. Before a later mutation, another capability
 
 ## Result contract
 
-Return a concise Markdown summary plus the probe's JSON path when one was requested. Use this shape:
-
-```yaml
-status: pass | warn | blocked | conflict
-target:
-  platform: {value: linux, source: observed}
-  dockerContext: {value: default, source: observed}
-facts:
-  runtime: {}
-  identity: {}
-  storage: []
-  listeners: []
-  existingResources: []
-recommendations:
-  deploymentBoundary: {value: docker-engine, source: derived}
-  logicalPaths: {}
-  identityMode: {value: explicit-numeric-user, source: derived}
-decisionsNeeded: []
-conflicts: []
-limitations: []
-```
+Return the typed result from [inspection-contract.md](references/inspection-contract.md)
+plus a concise Markdown summary. Include the probe's JSON path only when the
+user requested one.
 
 Do not copy the full bounded container or listener inventory into prose. Highlight only facts that affect the requested stack. Do not persist host facts as preferences until the user confirms them.
 

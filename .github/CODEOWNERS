@@ -1,0 +1,11 @@
+/.agents/skills/selfhost/references/catalog/ @ajnart
+/.agents/skills/selfhost-compose/ @ajnart
+/.agents/skills/selfhost-ingress/ @ajnart
+/.agents/skills/selfhost-vpn/ @ajnart
+/.agents/skills/selfhost-backup/ @ajnart
+/.agents/skills/selfhost-verify/ @ajnart
+/.codex-plugin/ @ajnart
+/.claude-plugin/ @ajnart
+/scripts/skillpack.ts @ajnart
+/scripts/lib/skillpack.ts @ajnart
+/SECURITY.md @ajnart

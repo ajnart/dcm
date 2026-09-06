@@ -66,15 +66,15 @@ application:
 - [`scripts/session.sh`](../scripts/session.sh) owns per-run allocation,
   locks, private state, generated credentials, environment projection, status,
   teardown, and the command dispatch for the rest of the harness.
-- [`scripts/lib/session-context.mjs`](../scripts/lib/session-context.mjs) owns
+- [`scripts/lib/session-context.ts`](../scripts/lib/session-context.ts) owns
   strict session/secret validation and sanitized child environments.
-- [`scripts/bootstrap-core.mjs`](../scripts/bootstrap-core.mjs) and
-  [`scripts/verify-core.mjs`](../scripts/verify-core.mjs) provide deterministic
+- [`scripts/bootstrap-core.ts`](../scripts/bootstrap-core.ts) and
+  [`scripts/verify-core.ts`](../scripts/verify-core.ts) provide deterministic
   service graph setup and independent checks.
-- [`scripts/homarr-finalize.mjs`](../scripts/homarr-finalize.mjs),
-  [`scripts/homarr-mcp-bridge.mjs`](../scripts/homarr-mcp-bridge.mjs),
-  [`scripts/lib/homarr-mcp.mjs`](../scripts/lib/homarr-mcp.mjs), and
-  [`scripts/verify-homarr-mcp.mjs`](../scripts/verify-homarr-mcp.mjs) already
+- [`scripts/homarr-finalize.ts`](../scripts/homarr-finalize.ts),
+  [`scripts/homarr-mcp-bridge.ts`](../scripts/homarr-mcp-bridge.ts),
+  [`scripts/lib/homarr-mcp.ts`](../scripts/lib/homarr-mcp.ts), and
+  [`scripts/verify-homarr-mcp.ts`](../scripts/verify-homarr-mcp.ts) already
   form a coherent private-key/native-MCP adapter.
 - [`scripts/render-prompt.sh`](../scripts/render-prompt.sh) is effectively a
   prompt compiler: it resolves the manifest and optional modules without
@@ -273,7 +273,7 @@ After the private repository is accessible through the user's configured Git
 credential helper, the intended one-command installation is:
 
 ```bash
-npx skills@latest add ajnart/selfhost-skills --skill '*' --agent '*' -y
+bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent '*' -y
 ```
 
 The exact `--agent` set can be narrowed when desired, for example
@@ -418,12 +418,12 @@ stable seam:
 | Existing asset | Package as | Reuse rule |
 | --- | --- | --- |
 | `docker-compose.yml` | harness runtime | Keep at repository root; never embed a second compose file in a skill |
-| `scripts/session.sh` + `scripts/lib/session-context.mjs` | run lifecycle/private-state capability | Skills invoke documented subcommands; secret values stay in the private store |
-| `scripts/bootstrap-core.mjs` | core-bootstrap implementation | Call it from `selfhost-core-bootstrap`; do not copy qBit/Arr field logic |
-| `scripts/verify-core.mjs` | core verification implementation | Expose bounded PASS/FAIL summaries only |
-| `scripts/homarr-finalize.mjs` + `scripts/lib/homarr-mcp.mjs` | Homarr adapter | Keep native endpoint and fallback policy in this one adapter |
-| `scripts/homarr-mcp-bridge.mjs` + `scripts/write-mcp-config.mjs` | client bridge/artifact support | Generate secret-free config; private key remains session-owned |
-| `scripts/verify-homarr-mcp.mjs` | MCP acceptance | Preserve search-only proof and the no-`integration_requestMedia` guard |
+| `scripts/session.sh` + `scripts/lib/session-context.ts` | run lifecycle/private-state capability | Skills invoke documented subcommands; secret values stay in the private store |
+| `scripts/bootstrap-core.ts` | core-bootstrap implementation | Call it from `selfhost-core-bootstrap`; do not copy qBit/Arr field logic |
+| `scripts/verify-core.ts` | core verification implementation | Expose bounded PASS/FAIL summaries only |
+| `scripts/homarr-finalize.ts` + `scripts/lib/homarr-mcp.ts` | Homarr adapter | Keep native endpoint and fallback policy in this one adapter |
+| `scripts/homarr-mcp-bridge.ts` + `scripts/write-mcp-config.ts` | client bridge/artifact support | Generate secret-free config; private key remains session-owned |
+| `scripts/verify-homarr-mcp.ts` | MCP acceptance | Preserve search-only proof and the no-`integration_requestMedia` guard |
 | `scripts/render-prompt.sh` | prompt/compiler compatibility | Use it to render a candidate prompt while the skill layer coexists with generations |
 | `prompts/*.md` | orchestration references | Migrate by responsibility; keep module files as regression/spec evidence until replacement is proven |
 | `docs/*.md` | on-demand references | Link/quote only the relevant service facts in capability references |

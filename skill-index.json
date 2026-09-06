@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "packVersion": "1.0.0",
+  "skills": [
+    {
+      "id": "selfhost",
+      "displayName": "Selfhost",
+      "description": "Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.",
+      "compatibility": "Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.",
+      "license": "Apache-2.0",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-ingress",
+        "selfhost-media",
+        "selfhost-observe",
+        "selfhost-operations",
+        "selfhost-research",
+        "selfhost-verify",
+        "selfhost-vpn"
+      ]
+    },
+    {
+      "id": "selfhost-backup",
+      "displayName": "Self-host Backup",
+      "description": "Plan and assess secret-free backup and restore protection for self-hosted services. Use for data classification, encrypted targets, retention, immutability, consistency hooks, RPO/RTO, alerts, or isolated restore evidence. This capability plans and evaluates evidence; it does not run, prune, overwrite, or restore backups.",
+      "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted JSON facts only.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-compose",
+      "displayName": "Self-host Compose",
+      "description": "Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, idempotent `up`, or scoped `stop`. Ownership, privilege, exposure, and mutation stay explicitly gated.",
+      "compatibility": "Planning requires Bun 1.4.0 or newer; approved lifecycle actions require Docker with Compose v2.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-host",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-homarr",
+      "displayName": "Self-host Homarr",
+      "description": "Add Homarr v2 as an optional private dashboard and read-only agent gateway. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, Codex or Claude Code client setup, generated-dashboard evidence, or Seerr title search that must stop before requesting.",
+      "compatibility": "Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.",
+      "license": "Apache-2.0",
+      "kind": "adapter",
+      "scope": "application",
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": [
+        "selfhost-ingress",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-host",
+      "displayName": "Self-host Host",
+      "description": "Inspect and plan a self-hosting host without mutation. Use before deployment, migration, or troubleshooting to identify the platform, Docker context, bounded containers and networks, listeners, filesystems, numeric identity, or safe paths across macOS, Linux, Unraid, TrueNAS SCALE, and Proxmox. Return redacted facts and non-secret recommendations only.",
+      "compatibility": "Requires POSIX shell tooling on macOS or Linux; Docker inspection is optional and remains read-only.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-ingress",
+      "displayName": "Self-host Ingress",
+      "description": "Plan private-first ingress and remote access for self-hosted services. Use for local or LAN access, tailnets, reverse proxies, tunnels, DNS, TLS, ports 80/443, authentication, ownership conflicts, or separate public-exposure approval. This capability produces a redacted plan and does not configure the edge.",
+      "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; provider configuration stays outside this read-only capability.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-host",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-media",
+      "displayName": "Self-hosted Media Stack",
+      "description": "Plan, initialize, synchronize, and verify the private owned-content media harness for Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr. Use for isolated evaluation, safe harness installation, service wiring, secret-free evidence, or read-only Homarr API/MCP checks.",
+      "compatibility": "Planning requires Bun 1.4.0 or newer and Bash; approved harness runs require Docker Compose and browser evidence requires agent-browser.",
+      "license": "Apache-2.0",
+      "kind": "adapter",
+      "scope": "stack",
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": [
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-observe",
+      "displayName": "Self-host Observe",
+      "description": "Create and assess read-only observability plans for self-hosted services. Use for process state, API readiness, dependencies, edge health, storage, backup freshness, logs, metrics, alerts, ownership, or minimal reuse. Keep planned, configured, and observed state distinct and report only supplied redacted evidence.",
+      "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted facts and evidence only.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-operations",
+      "displayName": "Self-host Operations",
+      "description": "Plan bounded upgrades, migrations, rollbacks, and troubleshooting for one owned self-hosted Compose project. Use for version or schema changes, recovery, compatibility, backup/restore, health, acceptance, and rollback gates. Produce a secret-free plan and delegate every Compose mutation to `selfhost-compose`.",
+      "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; execution is delegated to selfhost-compose.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "selfhost-research",
+      "displayName": "Selfhost Research",
+      "description": "Research current self-hosted software without changing a host. Use for official installation or API evidence, secret-free Compose extraction, alternative comparisons, lifecycle or image provenance, documentation-link validation, Homarr coverage, or bounded public UI proof. Keep official and community evidence distinct.",
+      "compatibility": "Requires Bun 1.4.0 or newer; live research may require approved public network or browser access.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-verify",
+      "displayName": "Self-host Verify",
+      "description": "Independently aggregate secret-free acceptance evidence without mutation. Use after planning or apply to assess source class, expected and actual classifications, timestamps, hashes, freshness, missing or conflicting evidence, public ingress, VPN fail-closed behavior, restore proof, media graphs, or Homarr claims. Emit claims only from supplied evidence.",
+      "compatibility": "Requires Bun 1.4.0 or newer; evaluates local redacted evidence documents without probing the target.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": []
+    },
+    {
+      "id": "selfhost-vpn",
+      "displayName": "Self-host VPN",
+      "description": "Plan and assess downloader-only VPN isolation. Use for Gluetun or WireGuard gateway topology, keeping management services outside the namespace, LAN control allowlists, opaque secret references, DNS or egress leak evidence, and a hard tunnel-break test. Produce a provider-neutral read-only plan for authorized content only.",
+      "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; live tunnel testing is a separate approved verification step.",
+      "license": "Apache-2.0",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-verify"
+      ]
+    }
+  ]
+}

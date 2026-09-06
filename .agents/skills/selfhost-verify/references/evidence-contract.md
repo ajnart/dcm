@@ -1,6 +1,6 @@
 # Acceptance evidence contract
 
-`verify-evidence.mjs` is a dependency-free schema-version-2 manifest aggregator. It accepts exact-key JSON, evaluates freshness against the caller-supplied `evaluatedAt`, and emits deterministic schema-version-2 JSON. It never performs a check or treats a plan/configuration record as observation.
+`verify-evidence.ts` is a dependency-free schema-version-2 manifest aggregator. It accepts exact-key JSON, evaluates freshness against the caller-supplied `evaluatedAt`, and emits deterministic schema-version-2 JSON. It never performs a check or treats a plan/configuration record as observation.
 
 The exact profile shape is:
 

@@ -34,11 +34,11 @@ list of ports is not enough.
    or `retired` from evidence, never popularity.
 6. Update a goal stack only when its roles, defaults, gates, required skills,
    or acceptance contract changes.
-7. Run the semantic catalog validator and the repository gate.
+7. Run the semantic catalog validator and the focused skill-pack gate.
 
 ```bash
-node .agents/skills/selfhost/scripts/selfhost.mjs catalog validate --json
-node scripts/validate-repo.mjs
+bun .agents/skills/selfhost/scripts/selfhost.ts catalog validate --json
+bun scripts/skillpack.ts validate --scope content
 ```
 
 The JSON schemas document the declarative contract; the catalog script enforces
@@ -64,8 +64,9 @@ Select only the resource directories the skill needs. Then:
    explicitly names `$selfhost-example`.
 3. Add the exact ID to
    `.agents/skills/selfhost/references/catalog/skills.json` in sorted order.
-   Set `adapter: true` only for a specialized adapter and declare its scope as
-   `application` or `stack`; non-adapters use `scope: null`. Only an
+   Set `kind: adapter` only for a specialized adapter and declare its scope as
+   `application` or `stack`; routers and capabilities use `scope: null`. Also
+   declare risk, activation, and direct delegation edges. Only an
    application-scoped adapter may appear in an app's `adapterSkill`.
    Stack-scoped adapters are invoked directly for their complete bundle and
    must not be hidden in a goal's `requiredSkills`. Registry IDs must exactly
@@ -78,7 +79,7 @@ Select only the resource directories the skill needs. Then:
 7. Keep inspection and planning read-only. Put every mutation behind an exact,
    separately approved owner.
 
-## Fixtures and focused validation
+## Deterministic scenarios and focused validation
 
 Each changed planner or validator needs a small, secret-free fixture that
 proves its new branch and its nearest rejection boundary. Reuse an existing
@@ -87,16 +88,22 @@ repository validation, not Docker or browser testing.
 
 For a script change:
 
-- run `node --check` on changed Node files or `bash -n` on changed shell files;
+- run the focused Bun TypeScript syntax gate or `bash -n` on changed shell files;
 - invoke only the changed script's minimal passing and failing fixture;
 - verify deterministic output and nonzero failure status;
 - keep inputs bounded, non-symlinked where required, and free of credentials;
   and
 - report checks that were not run instead of expanding into a full stack test.
 
+Use the registry graph to run only affected deterministic checks:
+
+```bash
+bun scripts/skillpack.ts test --changed-from origin/main
+```
+
 Run Docker, browser, installer, or live-host acceptance only when the change
 owns that surface and the operator explicitly requests it. The installer smoke
-test uses npx package resolution and is never an implicit validation step.
+test uses `bunx` package resolution and is never an implicit validation step.
 
 ## Privacy, secrets, and generated state
 
@@ -130,7 +137,7 @@ available, stop and leave the change blocked.
 Run the fixed repository-owned workflow after an approved canonical change:
 
 ```bash
-node scripts/refresh-media-bundle.mjs
+bun scripts/refresh-media-bundle.ts
 ```
 
 It accepts no path arguments, regenerates the allowlisted bundle from the
@@ -170,7 +177,7 @@ a Homarr app tile cannot promote support.
 - Frontmatter and `agents/openai.yaml` pass quick validation.
 - Every JSON file parses and catalog semantics pass.
 - The sorted skill registry exactly equals packaged skill directories; every
-  managed `adapterSkill` is present, marked `adapter: true`, and scoped to
+  managed `adapterSkill` is present, marked `kind: adapter`, and scoped to
   `application`; every direct bundle adapter is scoped to `stack`.
 - Every stack `requiredSkills` entry and managed adapter exists.
 - Local Markdown and script references resolve inside their install boundary.
@@ -179,11 +186,14 @@ a Homarr app tile cannot promote support.
 - The exact Homarr image is
   `ghcr.io/homarr-labs/homarr-test:v2` in source, catalog, and media bundle.
 - Media bundle integrity and canonical-source drift pass.
-- Changed Node/Bash files pass syntax and their targeted fixtures.
+- Changed Bun TypeScript/Bash files pass syntax and their targeted fixtures.
 - No runtime, secret, session, evidence, or client-install material is staged.
 - Affiliate disclosures and legal owned-content boundaries remain accurate.
 - Default symlink-mode and explicit `--copy` installer smoke both pass when
   installation packaging changed; run them through `scripts/smoke-install.sh`
-  on Node.js 22.20.0 or newer.
+  on Bun 1.4.0 or newer.
 - The final diff contains only the intended source and generated release
   artifacts.
+- Plugin templates, package, registry, indexes, tag, and archive versions all
+  match.
+- Two in-memory package builds produce the same SHA-256 digest.

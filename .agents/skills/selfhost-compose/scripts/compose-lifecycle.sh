@@ -92,9 +92,9 @@ if [[ "$action" == 'stop' && "$approval" != "STOP:$project" ]]; then
 fi
 
 script_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-validator="$script_directory/compose-project.mjs"
+validator="$script_directory/compose-project.ts"
 
-node "$validator" lifecycle-check --input "$manifest" --context "$docker_context" --project "$project" --file "$compose_file" >/dev/null
+bun "$validator" lifecycle-check --input "$manifest" --context "$docker_context" --project "$project" --file "$compose_file" >/dev/null
 
 docker --context "$docker_context" compose --project-name "$project" --file "$compose_file" config --quiet
 

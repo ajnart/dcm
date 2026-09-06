@@ -1,6 +1,6 @@
 # Backup planner contract
 
-`plan-backup.mjs` accepts one JSON object, validates every object key recursively, and emits a deterministic secret-free assessment. It reads only the named input file and never inspects a source or target.
+`plan-backup.ts` accepts one JSON object, validates every object key recursively, and emits a deterministic secret-free assessment. It reads only the named input file and never inspects a source or target.
 
 ## Input model
 
