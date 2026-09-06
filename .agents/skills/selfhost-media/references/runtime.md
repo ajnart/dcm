@@ -92,6 +92,11 @@ identifier instead of migrating access state in place.
 The internal read-only Compose-log helper remains marker-optional; there is no
 standalone `session.sh logs` command.
 
+Sessions created by the previous harness may contain both the current password
+scheme and a private `credentials.env`. The harness accepts that file only as a
+bounded migration artifact without reading it. `connections` or `handoff`
+replaces it with `connections.env`; `destroy` removes it during cleanup.
+
 Bootstrap creates mode-`0600` `SESSION_ROOT/connections.env`. `keys`,
 `homarr-key`, and `connections` refresh it atomically. It contains `RUN_ID`,
 service URLs, usernames, and only available API keys; it never contains a

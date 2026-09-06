@@ -207,14 +207,8 @@ validate_connections_control_file() {
 validate_legacy_credentials_control_file() {
   local file_path="$1"
   local expected_parent="$2"
-  local manifest_file="$3"
-  local label="$4"
+  local label="$3"
 
-  validate_private_control_file "$manifest_file" "$expected_parent" "legacy session manifest"
-  validate_manifest_syntax "$manifest_file"
-  if grep -q '^SESSION_PASSWORD_SCHEME=' "$manifest_file"; then
-    fail "$label is not allowed for a current session"
-  fi
   validate_private_control_file "$file_path" "$expected_parent" "$label"
   (( $(stat -c '%s' -- "$file_path") <= 8192 )) || fail "$label is too large"
 }
@@ -450,7 +444,6 @@ load_session() {
     validate_legacy_credentials_control_file \
       "$resolved_session_dir/credentials.env" \
       "$resolved_session_dir" \
-      "$manifest" \
       "legacy credentials file"
   fi
 
@@ -1189,7 +1182,6 @@ remove_marked_empty_content_roots() {
     validate_legacy_credentials_control_file \
       "$SESSION_DIR/credentials.env" \
       "$SESSION_DIR" \
-      "$MANIFEST_FILE" \
       "legacy credentials file"
   fi
 
@@ -1296,7 +1288,6 @@ finish_destroy_tombstone() {
     validate_legacy_credentials_control_file \
       "$tombstone_dir/credentials.env" \
       "$tombstone_dir" \
-      "$tombstone_dir/manifest.env" \
       "destroy tombstone legacy credentials file"
   fi
 

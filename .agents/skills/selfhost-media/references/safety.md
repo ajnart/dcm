@@ -19,6 +19,9 @@
 - Keep generated `connections.env` mode `0600`. It contains only `RUN_ID`,
   service URLs, usernames, and available API keys. It is a human handoff file,
   not a harness input or evidence artifact, and never contains a password.
+- A private legacy `credentials.env` from the previous harness is accepted only
+  for migration or bounded cleanup. Never read or print it; `connections` and
+  `handoff` replace it, while `destroy` removes it.
 - Run `handoff` only at final setup or when the user explicitly requests a fresh
   access handoff during upkeep. Its authorized output displays the admin username
   and derived password to the user; never copy that password into a file,

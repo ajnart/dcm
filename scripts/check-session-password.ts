@@ -315,9 +315,9 @@ function assertLegacySessionCommandPolicy() {
     "legacy credentials must retain private control-file validation",
   );
   assert.equal(
-    legacyValidator.includes("grep -q '^SESSION_PASSWORD_SCHEME=' \"$manifest_file\""),
-    true,
-    "legacy credentials must be rejected for current-scheme sessions",
+    legacyValidator.includes("SESSION_PASSWORD_SCHEME"),
+    false,
+    "legacy credentials must remain migratable for current-scheme sessions",
   );
   assert.equal(
     legacyValidator.includes('< "$file_path"'),

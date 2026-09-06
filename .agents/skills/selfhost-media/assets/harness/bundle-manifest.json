@@ -137,7 +137,7 @@
     {
       "path": "scripts/check-session-password.ts",
       "mode": "0644",
-      "sha256": "9fe5efa057b6ac1ca46ce746d69515e91b54b97029bc2319e33dc540594cb813"
+      "sha256": "3a71866733295b942ce3935ec6ad6723319db1acaeadd6ebdce88d8222a3fede"
     },
     {
       "path": "scripts/fill-browser-password.ts",
@@ -172,7 +172,7 @@
     {
       "path": "scripts/session.sh",
       "mode": "0755",
-      "sha256": "556ad15e63be8866fe9d1a9f3e8bfedd8bc5ef7f3961d15b12c979b41eda5549"
+      "sha256": "6dd730bb68bdce9aa3685e5aa67117545839d700418a8c64d7cb5b8514dcd7b0"
     },
     {
       "path": "scripts/store-homarr-key.ts",
