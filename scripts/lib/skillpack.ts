@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { runRepositoryValidation } from "../validate-repo.ts";
+import { applyPortabilityTransform } from "../../.agents/skills/selfhost-media/scripts/verify-bundle.ts";
 
 export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const skillsRoot = join(repositoryRoot, ".agents", "skills");
@@ -22,7 +23,8 @@ export const registryPath = join(skillsRoot, "selfhost", "references", "catalog"
 const PACKAGE_SIZE_BUDGET = Math.floor(1.35 * 1024 * 1024);
 const SECRET_MESSAGE = /(?:password|passwd|secret|token|api[-_]?key|private[-_]?key|cookie|session)\s*[:=]\s*\S+/gi;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$/;
-const SENSITIVE_HISTORY_PATH = /(?:^|\/)(?:\.sessions|(?:browser-)?profiles?|cookies?|secrets?)(?:\/|$)|(?:^|\/)(?:\.env[^/]*|credentials\.env|[^/]+\.(?:pem|key|p12|pfx|kdbx))$/i;
+const SENSITIVE_HISTORY_PATH = /(?:^|\/)(?:\.sessions|(?:browser-)?profiles?|cookies?|secrets?)(?:\/|$)|(?:^|\/)(?:\.env[^/]*|credentials\.env|connections\.env|[^/]+\.(?:pem|key|p12|pfx|kdbx))$/i;
+const INSTALL_GROUPS = new Set(["base", "pack", "extension"]);
 const CREDENTIAL_PATTERNS = [
   ["private-key", /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/],
   ["github-token", /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/],
@@ -36,6 +38,8 @@ const BENCHMARK_P95_BUDGET_MS = 500;
 
 const PUBLIC_FILES = [
   "README.md",
+  "NOTEPAD.md",
+  "research/skills-repo-patterns.md",
   "CONTRIBUTING.md",
   "LICENSE",
   "SECURITY.md",
@@ -186,10 +190,21 @@ async function walkFiles(root) {
 
 function parseOpenAiYaml(yaml) {
   const values = new Map();
+  let section = "";
   for (const line of yaml.replace(/\r\n/g, "\n").split("\n")) {
+    const heading = /^([a-zA-Z][a-zA-Z0-9_-]*):\s*$/.exec(line);
+    if (heading) {
+      section = heading[1];
+      continue;
+    }
     const match = /^\s{2}(display_name|short_description|default_prompt):\s*(.+)$/.exec(line);
-    if (match) {
+    if (match && section === "interface") {
       values.set(match[1], parseYamlScalar(match[2]));
+      continue;
+    }
+    const policy = /^\s{2}(allow_implicit_invocation):\s*(true|false)$/.exec(line);
+    if (policy && section === "policy") {
+      values.set(policy[1], policy[2]);
     }
   }
   return values;
@@ -238,8 +253,8 @@ function validateRegistryShape(registry, skillIds) {
   if (JSON.stringify(rootKeys) !== JSON.stringify(["packVersion", "schemaVersion", "skills"])) {
     errors.push("Skill registry root keys must be packVersion, schemaVersion, and skills");
   }
-  if (registry.schemaVersion !== 3) {
-    errors.push("Skill registry schemaVersion must be 3");
+  if (registry.schemaVersion !== 4) {
+    errors.push("Skill registry schemaVersion must be 4");
   }
   if (typeof registry.packVersion !== "string" || !SEMVER.test(registry.packVersion)) {
     errors.push("Skill registry packVersion must be strict semantic versioning");
@@ -256,7 +271,7 @@ function validateRegistryShape(registry, skillIds) {
       continue;
     }
     const keys = Object.keys(record).sort();
-    const expected = ["activation", "delegatesTo", "id", "kind", "risk", "scope"];
+    const expected = ["activation", "delegatesTo", "id", "install", "kind", "risk", "scope"];
     if (JSON.stringify(keys) !== JSON.stringify(expected)) {
       errors.push(`Skill registry record ${record.id || "<unknown>"} has unsupported keys`);
       continue;
@@ -267,7 +282,7 @@ function validateRegistryShape(registry, skillIds) {
     }
     ids.push(record.id);
     records.set(record.id, record);
-    if (!["router", "capability", "adapter"].includes(record.kind)) {
+    if (!["router", "capability", "adapter", "workflow"].includes(record.kind)) {
       errors.push(`Skill ${record.id} has an invalid kind`);
     }
     if (!["read-only", "approval-gated-write"].includes(record.risk)) {
@@ -289,6 +304,26 @@ function validateRegistryShape(registry, skillIds) {
     if (record.kind === "router" && record.activation !== "implicit") {
       errors.push(`Router ${record.id} must use implicit activation`);
     }
+    if (record.kind === "workflow" && (record.activation !== "explicit" || record.scope !== null)) {
+      errors.push(`Workflow ${record.id} must be explicit with null scope`);
+    }
+    if (!record.install || typeof record.install !== "object" || Array.isArray(record.install)) {
+      errors.push(`Skill ${record.id} install metadata must be an object`);
+    } else {
+      const installKeys = Object.keys(record.install).sort();
+      if (JSON.stringify(installKeys) !== JSON.stringify(["group", "requires"])) {
+        errors.push(`Skill ${record.id} install metadata has unsupported keys`);
+      }
+      if (!INSTALL_GROUPS.has(record.install.group)) {
+        errors.push(`Skill ${record.id} install group is invalid`);
+      }
+      if (!Array.isArray(record.install.requires) || new Set(record.install.requires).size !== record.install.requires.length) {
+        errors.push(`Skill ${record.id} install requirements must be a unique array`);
+      }
+      if (record.kind === "workflow" && record.install.group !== "base") {
+        errors.push(`Workflow ${record.id} must be part of the base install group`);
+      }
+    }
   }
   const sortedIds = [...ids].sort();
   if (JSON.stringify(ids) !== JSON.stringify(sortedIds)) {
@@ -307,6 +342,17 @@ function validateRegistryShape(registry, skillIds) {
       }
       if (target === record.id) {
         errors.push(`Skill ${record.id} cannot delegate to itself`);
+      }
+    }
+    if (!record.install || !Array.isArray(record.install.requires)) {
+      continue;
+    }
+    for (const target of record.install.requires) {
+      if (!records.has(target)) {
+        errors.push(`Skill ${record.id} requires missing skill ${target}`);
+      }
+      if (target === record.id) {
+        errors.push(`Skill ${record.id} cannot require itself`);
       }
     }
   }
@@ -335,6 +381,213 @@ function validateRegistryShape(registry, skillIds) {
   for (const id of ids) {
     visit(id);
   }
+  const installVisiting = new Set();
+  const installVisited = new Set();
+  function visitInstall(id) {
+    if (installVisiting.has(id)) {
+      errors.push(`Install dependency graph contains a cycle at ${id}`);
+      return;
+    }
+    if (installVisited.has(id)) {
+      return;
+    }
+    installVisiting.add(id);
+    const record = records.get(id);
+    if (record && record.install && Array.isArray(record.install.requires)) {
+      for (const target of record.install.requires) {
+        if (records.has(target)) {
+          visitInstall(target);
+        }
+      }
+    }
+    installVisiting.delete(id);
+    installVisited.add(id);
+  }
+  for (const id of ids) {
+    visitInstall(id);
+  }
+  return errors;
+}
+
+async function validateInstallProfiles(registry) {
+  const errors = [];
+  const path = join(skillsRoot, "selfhost-setup", "references", "install-profiles.json");
+  let document;
+  try {
+    document = await readJson(path, "Install profile manifest");
+  } catch (error) {
+    return [safeMessage(error instanceof Error ? error.message : error)];
+  }
+  if (
+    !document
+    || typeof document !== "object"
+    || Array.isArray(document)
+    || JSON.stringify(Object.keys(document).sort()) !== JSON.stringify(["browser", "profiles", "schemaVersion", "source"])
+    || document.schemaVersion !== 1
+    || document.source !== "ajnart/selfhost-skills"
+  ) {
+    return ["Install profile manifest identity or shape is invalid"];
+  }
+  if (
+    !document.browser
+    || JSON.stringify(Object.keys(document.browser).sort()) !== JSON.stringify(["package", "skill", "source"])
+    || document.browser.package !== "agent-browser"
+    || document.browser.skill !== "agent-browser"
+    || document.browser.source !== "vercel-labs/agent-browser"
+  ) {
+    errors.push("Install profile browser prerequisite is invalid");
+  }
+  if (!Array.isArray(document.profiles) || document.profiles.length === 0) {
+    return [...errors, "Install profile manifest has no profiles"];
+  }
+  const records = new Map(registry.skills.map((record) => [record.id, record]));
+  const profiles = new Map();
+  let previousOptionalProfileId = "";
+  for (const profile of document.profiles) {
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+      errors.push("Install profile manifest contains a non-object profile");
+      continue;
+    }
+    const keys = Object.keys(profile).sort();
+    if (JSON.stringify(keys) !== JSON.stringify([
+      "approvalEvidence",
+      "description",
+      "extends",
+      "id",
+      "kind",
+      "label",
+      "serviceConsumption",
+      "skills",
+      "verificationEvidence",
+    ])) {
+      errors.push(`Install profile ${profile.id || "<unknown>"} has unsupported fields`);
+      continue;
+    }
+    if (
+      typeof profile.id !== "string"
+      || !/^[a-z][a-z0-9-]{0,31}$/.test(profile.id)
+      || profiles.has(profile.id)
+    ) {
+      errors.push("Install profile ID is invalid or duplicated");
+      continue;
+    }
+    if (profile.id === "basic" && profiles.size !== 0) {
+      errors.push("Basic install profile must be first");
+    }
+    if (profile.id !== "basic") {
+      if (previousOptionalProfileId && profile.id <= previousOptionalProfileId) {
+        errors.push("Optional install profile IDs must be sorted");
+      }
+      previousOptionalProfileId = profile.id;
+    }
+    profiles.set(profile.id, profile);
+    if (!["base", "pack", "extension"].includes(profile.kind)) {
+      errors.push(`Install profile ${profile.id} kind is invalid`);
+    }
+    if (typeof profile.label !== "string" || !profile.label || typeof profile.description !== "string" || !profile.description) {
+      errors.push(`Install profile ${profile.id} text is invalid`);
+    }
+    if (
+      !Array.isArray(profile.extends)
+      || !profile.extends.every((dependency) => typeof dependency === "string")
+      || new Set(profile.extends).size !== profile.extends.length
+      || JSON.stringify(profile.extends) !== JSON.stringify([...profile.extends].sort())
+      || !Array.isArray(profile.approvalEvidence)
+      || !profile.approvalEvidence.every(
+        (evidence) => typeof evidence === "string" && /^approval:[a-z0-9][a-z0-9._-]{0,47}$/.test(evidence)
+      )
+      || new Set(profile.approvalEvidence).size !== profile.approvalEvidence.length
+      || JSON.stringify(profile.approvalEvidence) !== JSON.stringify([...profile.approvalEvidence].sort())
+      || !Array.isArray(profile.skills)
+      || !profile.skills.every((skill) => typeof skill === "string")
+      || new Set(profile.skills).size !== profile.skills.length
+      || JSON.stringify(profile.skills) !== JSON.stringify([...profile.skills].sort())
+      || !Array.isArray(profile.verificationEvidence)
+      || !profile.verificationEvidence.every(
+        (evidence) => typeof evidence === "string" && /^verify:[a-z0-9][a-z0-9._-]{0,47}$/.test(evidence)
+      )
+      || new Set(profile.verificationEvidence).size !== profile.verificationEvidence.length
+      || JSON.stringify(profile.verificationEvidence) !== JSON.stringify([...profile.verificationEvidence].sort())
+      || !["none", "explicit"].includes(profile.serviceConsumption)
+    ) {
+      errors.push(`Install profile ${profile.id} dependencies are invalid`);
+    }
+    let expectedExtends = ["basic"];
+    if (profile.id === "basic") {
+      expectedExtends = [];
+    }
+    if (JSON.stringify(profile.extends) !== JSON.stringify(expectedExtends)) {
+      errors.push(`Install profile ${profile.id} must use the exact basic dependency`);
+    }
+    if (profile.id === "basic" && profile.kind !== "base") {
+      errors.push("Basic install profile must use kind base");
+    }
+    if (profile.id !== "basic" && profile.kind === "base") {
+      errors.push(`Optional install profile ${profile.id} cannot use kind base`);
+    }
+    if (Array.isArray(profile.skills)) {
+      for (const skill of profile.skills) {
+        const record = records.get(skill);
+        if (record && record.install?.group !== profile.kind) {
+          errors.push(`Install profile ${profile.id} contains ${skill} from another install group`);
+        }
+      }
+    }
+  }
+  const covered = new Set();
+  const resolveProfile = (id, active = new Set(), selected = new Set()) => {
+    const profile = profiles.get(id);
+    if (!profile) {
+      errors.push(`Install profile dependency ${id} is missing`);
+      return selected;
+    }
+    if (active.has(id)) {
+      errors.push(`Install profile dependency cycle includes ${id}`);
+      return selected;
+    }
+    active.add(id);
+    const dependencies = Array.isArray(profile.extends) ? profile.extends : [];
+    for (const dependency of dependencies) {
+      resolveProfile(dependency, active, selected);
+    }
+    active.delete(id);
+    const profileSkills = Array.isArray(profile.skills) ? profile.skills : [];
+    for (const skill of profileSkills) {
+      selected.add(skill);
+      covered.add(skill);
+      if (!records.has(skill)) {
+        errors.push(`Install profile ${id} names missing skill ${skill}`);
+      }
+    }
+    return selected;
+  };
+  for (const id of profiles.keys()) {
+    const closure = resolveProfile(id);
+    for (const skill of closure) {
+      const record = records.get(skill);
+      if (!record || !record.install || !Array.isArray(record.install.requires)) {
+        continue;
+      }
+      for (const requirement of record.install.requires) {
+        if (!closure.has(requirement)) {
+          errors.push(`Install profile ${id} omits ${skill} requirement ${requirement}`);
+        }
+      }
+    }
+  }
+  for (const id of records.keys()) {
+    if (!covered.has(id)) {
+      errors.push(`Skill ${id} is not selectable through an install profile`);
+    }
+  }
+  let basic = new Set();
+  if (profiles.has("basic")) {
+    basic = resolveProfile("basic");
+  }
+  const baseSkills = new Set(registry.skills.filter((record) => record.install?.group === "base").map((record) => record.id));
+  if (JSON.stringify([...basic].sort()) !== JSON.stringify([...baseSkills].sort())) {
+    errors.push("Basic install profile must exactly equal the base skill group");
+  }
   return errors;
 }
 
@@ -346,8 +599,9 @@ function wordCount(value) {
   return words.length;
 }
 
-function validateSkillMetadata(skills) {
+function validateSkillMetadata(skills, registry) {
   const errors = [];
+  const records = new Map(registry.skills.map((record) => [record.id, record]));
   let discoveryCharacters = 0;
   for (const skill of skills) {
     const values = skill.frontmatter.values;
@@ -391,6 +645,26 @@ function validateSkillMetadata(skills) {
     }
     if (typeof defaultPrompt !== "string" || !defaultPrompt.includes(`$${skill.id}`)) {
       errors.push(`${skill.id}: agents/openai.yaml default_prompt must mention $${skill.id}`);
+    }
+    const record = records.get(skill.id);
+    if (record && record.install) {
+      const discoveryPrefixes = {
+        base: "Base ",
+        pack: "Media pack ",
+        extension: "Optional ",
+      };
+      const expectedPrefix = discoveryPrefixes[record.install.group];
+      if (typeof description === "string" && !description.startsWith(expectedPrefix)) {
+        errors.push(`${skill.id}: description must expose its ${record.install.group} install group`);
+      }
+    }
+    if (record && record.activation === "explicit") {
+      if (values.get("disable-model-invocation") !== "true") {
+        errors.push(`${skill.id}: explicit skill must disable model invocation`);
+      }
+      if (skill.openAi.get("allow_implicit_invocation") !== "false") {
+        errors.push(`${skill.id}: explicit skill must disable implicit OpenAI invocation`);
+      }
     }
   }
   if (discoveryCharacters > 5000) {
@@ -559,7 +833,8 @@ function buildIndexData(registry, skills) {
         scope: record.scope,
         risk: record.risk,
         activation: record.activation,
-        delegatesTo: record.delegatesTo
+        delegatesTo: record.delegatesTo,
+        install: record.install
       };
     })
   };
@@ -573,11 +848,15 @@ export function renderIndexArtifacts(registry, skills, options = {}) {
     "",
     `Pack version: \`${data.packVersion}\``,
     "",
-    "| Skill | Kind | Risk | Activation | Purpose |",
-    "| --- | --- | --- | --- | --- |"
+    "| Skill | Install group | Requires | Kind | Risk | Activation | Purpose |",
+    "| --- | --- | --- | --- | --- | --- | --- |"
   ];
   for (const skill of data.skills) {
-    markdown.push(`| [\`${skill.id}\`](${skillsDirectory}/${skill.id}/SKILL.md) | ${skill.kind} | ${skill.risk} | ${skill.activation} | ${skill.description} |`);
+    let requirements = "none";
+    if (skill.install.requires.length > 0) {
+      requirements = skill.install.requires.join(", ");
+    }
+    markdown.push(`| [\`${skill.id}\`](${skillsDirectory}/${skill.id}/SKILL.md) | ${skill.install.group} | ${requirements} | ${skill.kind} | ${skill.risk} | ${skill.activation} | ${skill.description} |`);
   }
   markdown.push("", "Generated from the canonical registry and skill frontmatter. Do not edit this file by hand.", "");
 
@@ -592,7 +871,7 @@ export function renderIndexArtifacts(registry, skills, options = {}) {
     ""
   ];
   for (const skill of data.skills) {
-    llms.push(`- [${skill.id}](${skillsDirectory}/${skill.id}/SKILL.md): ${skill.description}`);
+    llms.push(`- [${skill.id}](${skillsDirectory}/${skill.id}/SKILL.md) [${skill.install.group}]: ${skill.description}`);
   }
   llms.push("", "## Primary documentation", "", "- [README](README.md)", "- [Security policy](SECURITY.md)", "- [Contribution guide](CONTRIBUTING.md)", "");
   return {
@@ -671,9 +950,11 @@ export async function validatePack(scope = "all") {
   const checks = [];
   const registryErrors = validateRegistryShape(registry, skills.map((skill) => skill.id));
   checks.push({ name: "registry", status: registryErrors.length === 0 ? "pass" : "fail", errors: registryErrors });
+  const profileErrors = await validateInstallProfiles(registry);
+  checks.push({ name: "install profiles", status: profileErrors.length === 0 ? "pass" : "fail", errors: profileErrors });
 
   if (scope === "metadata" || scope === "content" || scope === "all") {
-    const metadata = validateSkillMetadata(skills);
+    const metadata = validateSkillMetadata(skills, registry);
     checks.push({ name: "skill metadata", status: metadata.errors.length === 0 ? "pass" : "fail", errors: metadata.errors, discoveryCharacters: metadata.discoveryCharacters });
   }
   if (scope === "public" || scope === "package" || scope === "all") {
@@ -1160,6 +1441,15 @@ function assertPackagedLinks(content, availablePaths, label, baseDirectory = "")
   }
 }
 
+function assertRequiredPackagedLink(content, target, label) {
+  const linkedTargets = new Set(
+    [...content.matchAll(/\]\(([^)]+)\)/g)].map((match) => match[1].split("#", 1)[0])
+  );
+  if (!linkedTargets.has(target)) {
+    throw new Error(`${label} must link to packaged path ${target}`);
+  }
+}
+
 async function buildPackageEntries(version) {
   await assertNoSymlinkPath(skillsRoot, "Skills root");
   const skills = await discoverSkills();
@@ -1201,9 +1491,11 @@ async function buildPackageEntries(version) {
   const projectedFiles = new Map();
   for (const projection of PROJECTED_PUBLIC_FILES) {
     const source = await readPackageFile(projection.source, `Projected package file ${projection.source}`);
-    entries.push({ name: projection.destination, data: source.data, mode: 0o100644 });
-    manifestFiles.push({ source: projection.source, path: projection.destination, sha256: sha256(source.data), size: source.data.length, mode: "0644" });
-    projectedFiles.set(projection.destination, source.data.toString("utf8"));
+    const content = source.data.toString("utf8");
+    const data = Buffer.from(content);
+    entries.push({ name: projection.destination, data, mode: 0o100644 });
+    manifestFiles.push({ source: projection.source, path: projection.destination, sha256: sha256(data), size: data.length, mode: "0644" });
+    projectedFiles.set(projection.destination, content);
   }
 
   const releaseIndexes = renderIndexArtifacts(registry, skills, { skillsDirectory: "skills" });
@@ -1221,6 +1513,13 @@ async function buildPackageEntries(version) {
       data = Buffer.from(releaseReadme);
       provenance = "generated:README.md";
     }
+    if (fileName === "docs/README.md") {
+      data = Buffer.from(applyPortabilityTransform(
+        "portable-agent-browser-skill-path-v1",
+        source.data.toString("utf8"),
+      ));
+      provenance = "generated:docs/README.md";
+    }
     if (Object.hasOwn(releaseIndexes, fileName)) {
       data = Buffer.from(releaseIndexes[fileName]);
       provenance = `generated:${fileName}`;
@@ -1236,6 +1535,12 @@ async function buildPackageEntries(version) {
   assertPackagedLinks(releaseIndexes["SKILL_INDEX.md"], availablePaths, "Packaged SKILL_INDEX.md");
   assertPackagedLinks(releaseIndexes["llms.txt"], availablePaths, "Packaged llms.txt");
   assertPackagedLinks(releaseReadme, availablePaths, "Packaged README.md");
+  assertRequiredPackagedLink(
+    projectedFiles.get("INSTALL.md"),
+    "skills/selfhost-setup/references/install-profiles.json",
+    "Packaged INSTALL.md",
+  );
+  assertPackagedLinks(projectedFiles.get("INSTALL.md"), availablePaths, "Packaged INSTALL.md");
   assertPackagedLinks(projectedFiles.get("INVOCATION.md"), availablePaths, "Packaged INVOCATION.md");
   const mediaGuide = entries.find((entry) => entry.name === "docs/README.md");
   assertPackagedLinks(mediaGuide.data.toString("utf8"), availablePaths, "Packaged docs/README.md", "docs");

@@ -32,9 +32,24 @@ When one request directly names multiple distinct goal aliases, resolution retur
 
 The taxonomy may declare an alias in `ambiguousAliases` only when at least two stacks intentionally own it. Resolution then returns every top-scoring meaning instead of choosing. `vpn` is deliberately shared by private remote access and downloader-only privacy.
 
-Every adapter and required skill must exist in `catalog/skills.json`. Only an `adapter: true` record with `scope: application` may appear as an application's `adapterSkill`; a `scope: stack` adapter is invoked directly for its complete, documented bundle. Non-adapters use a `null` scope. Keep the registry sorted by exact skill ID and conform it to `schemas/skills.schema.json`; change the schema only when the registry shape changes. Managed defaults must remain managed, lower-automation alternatives are allowed and lower the generated plan's `effectiveAutomation`, and retired applications cannot be stack choices.
+Every adapter and required skill must exist in `catalog/skills.json`. Only a
+`kind: adapter` record with `scope: application` may appear as an application's
+`adapterSkill`; a `scope: stack` adapter is invoked directly for its complete,
+documented bundle. Non-adapters use a `null` scope. Each record also declares
+one install group and its exact required sibling skills. The checked
+`selfhost-setup/references/install-profiles.json` manifest turns those
+dependencies into the selectable `basic`, pack, and extension closures. Keep
+both graphs acyclic, keep the registry sorted by exact skill ID, and conform it
+to `schemas/skills.schema.json`; change the schema only when the registry shape
+changes. Managed defaults must remain managed, lower-automation alternatives
+are allowed and lower the generated plan's `effectiveAutomation`, and retired
+applications cannot be stack choices.
 
-`selfhost-homarr` is the Homarr application adapter. `selfhost-media` is the explicit Homarr-enhanced seven-service stack adapter, not managed support for each individual media application. Generic personal-media plans remain guided and do not load that bundle implicitly.
+`selfhost-homarr` is the Homarr application adapter. `selfhost-media` is the
+selection-gated Homarr-enhanced seven-service stack adapter, not managed
+support for each individual media application. It runs only when directly
+requested or delegated by explicit setup/upkeep for a selected media pack;
+generic personal-media plans remain guided and do not load that bundle.
 
 ## Support promotion
 

@@ -1,6 +1,6 @@
 ---
 name: selfhost-backup
-description: Plan and assess secret-free backup and restore protection for self-hosted services. Use for data classification, encrypted targets, retention, immutability, consistency hooks, RPO/RTO, alerts, or isolated restore evidence. This capability plans and evaluates evidence; it does not run, prune, overwrite, or restore backups.
+description: Optional backup extension. Plan and assess secret-free backup and restore protection for self-hosted services. Use for data classification, encrypted targets, retention, immutability, consistency hooks, RPO/RTO, alerts, or isolated restore evidence. This capability plans and evaluates evidence; it does not run, prune, overwrite, or restore backups.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted JSON facts only.
 ---

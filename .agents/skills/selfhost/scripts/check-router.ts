@@ -11,13 +11,17 @@ const validation = validateCatalog(catalog);
 assert.equal(validation.valid, true);
 assert.deepEqual(
   [validation.counts.apps, validation.counts.stacks, validation.counts.skills, validation.counts.adapters, validation.counts.homarrStandardCovered, validation.counts.homarrSpecialCovered],
-  [107, 14, 12, 2, 54, 2]
+  [107, 14, 14, 2, 54, 2]
 );
 const registeredSkillIds = catalog.skills.skills.map((record) => record.id);
 assert.deepEqual(registeredSkillIds, [...registeredSkillIds].sort());
 assert.deepEqual(
   catalog.skills.skills.filter((record) => record.kind === "adapter").map((record) => [record.id, record.scope]),
   [["selfhost-homarr", "application"], ["selfhost-media", "stack"]]
+);
+assert.deepEqual(
+  catalog.skills.skills.filter((record) => record.kind === "workflow").map((record) => [record.id, record.activation]),
+  [["selfhost-setup", "explicit"], ["selfhost-upkeep", "explicit"]]
 );
 assert.equal(catalog.apps.some((app) => app.support.adapterSkill === "selfhost-media"), false);
 

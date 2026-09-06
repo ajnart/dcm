@@ -16,25 +16,30 @@
 ## Secrets
 
 - Let the session harness create and consume per-run keys and credentials.
-- Keep the generated `credentials.env` mode `0600`. It is the human access
-  sheet, not a harness input or evidence artifact. Report its path and local
-  reveal command without echoing its contents into agent output.
+- Keep generated `connections.env` mode `0600`. It contains only `RUN_ID`,
+  service URLs, usernames, and available API keys. It is a human handoff file,
+  not a harness input or evidence artifact, and never contains a password.
+- Run `handoff` only at final setup or when the user explicitly requests a fresh
+  access handoff during upkeep. Its authorized output displays the admin username
+  and derived password to the user; never copy that password into a file,
+  screenshot, report, command argument, or unrelated later agent output.
 - Pass one-time Homarr material directly over stdin to `homarr-key`.
 - Refer to environment variable names in commands and reports. Record only
   fixed PASS/FAIL summaries and redacted structures.
 - Keep authentication pages, raw authenticated payloads, cookies, passwords,
   API keys, and encryption keys out of output, screenshots, arguments, tracked
-  files, client configuration, and reports.
+  files, client configuration, and reports, except for the authorized final
+  password output from `handoff`.
 - Treat authenticated agent-browser `console`, raw `network requests`, HAR
-  output, and every other raw trace as secret-bearing. Candidates must never
+  output, and every other raw trace as secret-bearing. Setup agents must never
   invoke, print, or persist them inside or outside their run; use only
   page-scoped approved fixed summaries or fixed harness summaries. Only the
-  supervisor may use a raw trace, and only with explicit authorization in a
-  unique owner-only temporary directory outside candidate execution. Never
-  surface its contents or treat it as candidate evidence, and delete it
+  reviewer may use a raw trace, and only with explicit authorization in a
+  unique owner-only temporary directory outside setup execution. Never surface
+  its contents or treat it as setup evidence, and delete it
   immediately after deriving the approved fixed summary.
-- Keep the generated MCP client fragment candidate-scoped. It must remain
-  secret-free and uninstalled until a winner is explicitly promoted.
+- Keep the generated MCP client fragment run-scoped. It must remain secret-free
+  and uninstalled unless the user separately authorizes installation.
 
 ## Media mutations
 
@@ -51,7 +56,7 @@ content, or manifest failures. The installer leaves every existing `.sessions`
 tree untouched.
 
 The six non-Homarr `:latest` images are an intentional exception only for this
-isolated, disposable evaluation harness with per-run ports. Production
+isolated setup harness with per-run ports. Production
 composition must go through `selfhost-compose`, which rejects floating images.
 Do not invent pins: a replacement requires verified remote multi-architecture
 index digests.

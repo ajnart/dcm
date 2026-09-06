@@ -1,7 +1,21 @@
 #!/usr/bin/env bun
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -406,6 +420,12 @@ async function media() {
   const passing = deterministic(() => runBun(cli));
   assertExit(passing, 0);
   assert.match(passing.stdout, /^PASS bundle:/);
+  const skillContract = readFileSync(join(root, ".agents", "skills", "selfhost-media", "SKILL.md"), "utf8");
+  assert.match(skillContract, /During initial setup, also forward `session\s+handoff RUN_ID`/);
+  assert.match(skillContract, /During upkeep, do not run `handoff` unless the user explicitly asked/);
+  const harnessContract = readFileSync(join(root, "PROMPT.md"), "utf8");
+  assert.match(harnessContract, /For initial setup, also run\s+the explicit `handoff` command/);
+  assert.match(harnessContract, /During upkeep, run `handoff` only when the user explicitly requested/);
   const missing = deterministic(() => runBun(cli, ["--bundle", join(temporaryRoot, "missing-bundle")]));
   assertExit(missing, 1);
   assert.match(missing.stderr, /^error:/);
@@ -475,6 +495,551 @@ async function research() {
   assertExit(redactResult, 0);
 }
 
+async function setup() {
+  const cli = ".agents/skills/selfhost-setup/scripts/stack.ts";
+  const profiles = deterministic(() => runBun(cli, ["profiles", "--json"]));
+  assertExit(profiles, 0);
+  const profileDocument = parseJson(profiles);
+  assert.deepEqual(profileDocument.profiles.map((profile) => profile.id), [
+    "basic",
+    "backup",
+    "ingress",
+    "media",
+    "observe",
+    "research",
+    "vpn",
+  ]);
+  for (const profile of profileDocument.profiles) {
+    const closure = runBun(cli, [
+      "prerequisites",
+      "--profile",
+      profile.id,
+      "--agent",
+      "codex",
+      "--scope",
+      "project",
+      "--project-root",
+      root,
+      "--json",
+    ]);
+    assertExit(closure, 0);
+    const closureOutput = parseJson(closure);
+    const expectedProfiles = ["basic"];
+    if (profile.id !== "basic") {
+      expectedProfiles.push(profile.id);
+    }
+    assert.deepEqual(closureOutput.resolvedProfiles, expectedProfiles);
+  }
+
+  const prerequisite = deterministic(() => runBun(cli, [
+    "prerequisites",
+    "--profile",
+    "media",
+    "--agent",
+    "codex",
+    "--scope",
+    "project",
+    "--project-root",
+    root,
+    "--json",
+  ]));
+  assertExit(prerequisite, 0);
+  const prerequisiteOutput = parseJson(prerequisite);
+  assert.deepEqual(prerequisiteOutput.resolvedProfiles, ["basic", "media"]);
+  assert.equal(prerequisiteOutput.resolvedSkills.includes("selfhost-setup"), true);
+  assert.equal(prerequisiteOutput.targetSkillsRoot, join(root, ".agents", "skills"));
+  for (const install of prerequisiteOutput.installCommands) {
+    assert.equal(/\bnode\b|\bmise\b/.test(install.command), false);
+  }
+
+  const isolatedProject = join(temporaryRoot, "isolated-prerequisites");
+  mkdirSync(isolatedProject, { mode: 0o700 });
+  const isolated = runBun(cli, [
+    "prerequisites",
+    "--profile",
+    "media",
+    "--agent",
+    "codex",
+    "--scope",
+    "project",
+    "--project-root",
+    isolatedProject,
+    "--json",
+  ]);
+  assertExit(isolated, 0);
+  assert.deepEqual(parseJson(isolated).missingSkills, prerequisiteOutput.resolvedSkills);
+  assert.equal(parseJson(isolated).targetSkillsRoot, join(isolatedProject, ".agents", "skills"));
+  assertExit(runBun(cli, [
+    "prerequisites", "--profile", "basic", "--agent", "codex", "--scope", "project", "--json",
+  ]), 1);
+  assertExit(runBun(cli, [
+    "prerequisites", "--profile", "basic", "--agent", "codex", "--scope", "global",
+    "--project-root", root, "--json",
+  ]), 1);
+
+  const prerequisiteProject = join(temporaryRoot, "installed-prerequisites");
+  const installedRoot = join(prerequisiteProject, ".agents", "skills");
+  mkdirSync(installedRoot, { mode: 0o700, recursive: true });
+  cpSync(
+    join(root, ".agents", "skills", "selfhost-setup"),
+    join(installedRoot, "selfhost-setup"),
+    { recursive: true },
+  );
+  const fakeBin = join(temporaryRoot, "installed-prerequisites", "bin");
+  mkdirSync(fakeBin, { mode: 0o700 });
+  const installedCli = join(installedRoot, "selfhost-setup", "scripts", "stack.ts");
+  const missing = spawnSync(process.execPath, [
+    installedCli,
+    "prerequisites",
+    "--profile",
+    "media",
+    "--agent",
+    "codex",
+    "--scope",
+    "project",
+    "--project-root",
+    prerequisiteProject,
+    "--json",
+  ], {
+    cwd: prerequisiteProject,
+    encoding: "utf8",
+    env: { PATH: fakeBin, LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(missing.status, 0, `${missing.stdout}${missing.stderr}`);
+  const missingOutput = JSON.parse(missing.stdout);
+  assert.equal(missingOutput.ready, false);
+  assert.equal(missingOutput.targetSkillsRoot, installedRoot);
+  assert.deepEqual(missingOutput.installCommands.map((item) => item.reason), [
+    "selected-profile-skills",
+    "agent-browser-skill",
+    "agent-browser-runtime",
+    "agent-browser-browser",
+  ]);
+  assert.equal(missingOutput.installCommands[0].command.startsWith("bunx --bun skills@latest add ajnart/selfhost-skills"), true);
+  assert.equal(missingOutput.installCommands[1].command.startsWith("bunx --bun skills@latest add vercel-labs/agent-browser"), true);
+  assert.equal(missingOutput.installCommands[2].command, "bun add --global agent-browser");
+  assert.equal(missingOutput.installCommands[3].command, "agent-browser install");
+  assert.equal(missingOutput.installCommands[0].workingDirectory, prerequisiteProject);
+  assert.equal(missingOutput.installCommands[1].workingDirectory, prerequisiteProject);
+  assert.equal(missingOutput.installCommands[2].workingDirectory, null);
+
+  for (const skill of prerequisiteOutput.resolvedSkills) {
+    const skillRoot = join(installedRoot, skill);
+    mkdirSync(skillRoot, { mode: 0o700, recursive: true });
+    if (skill !== "selfhost-setup") {
+      writeFileSync(join(skillRoot, "SKILL.md"), `---\nname: ${skill}\ndescription: fixture\n---\n`, { mode: 0o600 });
+    }
+  }
+  const browserSkillRoot = join(installedRoot, "agent-browser");
+  mkdirSync(browserSkillRoot, { mode: 0o700 });
+  writeFileSync(join(browserSkillRoot, "SKILL.md"), "---\nname: agent-browser\ndescription: fixture\n---\n", { mode: 0o600 });
+  const fakeBrowser = join(fakeBin, "agent-browser");
+  const browserInvocationLog = join(temporaryRoot, "browser-invocations.log");
+  writeFileSync(
+    fakeBrowser,
+    "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> \"$AGENT_BROWSER_TEST_LOG\"\nexit 0\n",
+    { mode: 0o700 },
+  );
+  chmodSync(fakeBrowser, 0o700);
+  const browserEnvironment = {
+    PATH: `${fakeBin}:${process.env.PATH || ""}`,
+    LANG: "C",
+    LC_ALL: "C",
+    AGENT_BROWSER_TEST_LOG: browserInvocationLog,
+  };
+  const unchecked = spawnSync(process.execPath, [
+    installedCli,
+    "prerequisites",
+    "--profile",
+    "media",
+    "--agent",
+    "codex",
+    "--scope",
+    "project",
+    "--project-root",
+    prerequisiteProject,
+    "--json",
+  ], {
+    cwd: prerequisiteProject,
+    encoding: "utf8",
+    env: browserEnvironment,
+    maxBuffer: 8 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(unchecked.status, 0, `${unchecked.stdout}${unchecked.stderr}`);
+  assert.equal(JSON.parse(unchecked.stdout).browser.browserVerified, false);
+  assert.deepEqual(JSON.parse(unchecked.stdout).installCommands.map((item) => item.reason), [
+    "agent-browser-browser",
+  ]);
+  assert.equal(existsSync(browserInvocationLog), false, "default prerequisites invoked agent-browser");
+  const ready = spawnSync(process.execPath, [
+    installedCli,
+    "prerequisites",
+    "--profile",
+    "media",
+    "--agent",
+    "codex",
+    "--scope",
+    "project",
+    "--project-root",
+    prerequisiteProject,
+    "--verify-browser",
+    "--json",
+  ], {
+    cwd: prerequisiteProject,
+    encoding: "utf8",
+    env: browserEnvironment,
+    maxBuffer: 8 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(ready.status, 0, `${ready.stdout}${ready.stderr}`);
+  assert.equal(JSON.parse(ready.stdout).ready, true);
+  assert.equal(JSON.parse(ready.stdout).browser.browserVerified, true);
+  assert.deepEqual(JSON.parse(ready.stdout).installCommands, []);
+  assert.equal(readFileSync(browserInvocationLog, "utf8"), "doctor --offline --quick --json\n");
+
+  const project = join(temporaryRoot, "setup-project");
+  mkdirSync(project, { mode: 0o700 });
+  const initialized = runBun(cli, [
+    "init",
+    "--project-root",
+    project,
+    "--profile",
+    "media",
+    "--adapter",
+    "selfhost-media",
+    "--run-id",
+    "media_demo",
+    "--json",
+  ]);
+  assertExit(initialized, 0);
+  const initializedOutput = parseJson(initialized);
+  assert.equal(initializedOutput.metadata.checkpoint.stage, "selected");
+  assert.equal(initializedOutput.metadata.connections.initialPasswordStored, false);
+  assert.deepEqual(initializedOutput.metadata.connections.contains, ["api-keys", "urls", "usernames"]);
+  assert.equal(initializedOutput.metadata.services.length, 7);
+  assert.deepEqual(initializedOutput.metadata.serviceBindings, []);
+  assert.equal(statSync(join(project, ".selfhost")).mode & 0o777, 0o700);
+  assert.equal(statSync(join(project, ".selfhost", "stack.json")).mode & 0o777, 0o600);
+  assert.equal(readFileSync(join(project, ".selfhost", ".gitignore"), "utf8"), "*\n");
+
+  const beforeShow = readFileSync(join(project, ".selfhost", "stack.json"), "utf8");
+  const shown = runBun(cli, ["show", "--project-root", project, "--json"]);
+  assertExit(shown, 0);
+  assert.equal(readFileSync(join(project, ".selfhost", "stack.json"), "utf8"), beforeShow);
+
+  const stateDirectory = join(project, ".selfhost");
+  chmodSync(stateDirectory, 0o750);
+  assertExit(runBun(cli, ["show", "--project-root", project, "--json"]), 1);
+  chmodSync(stateDirectory, 0o700);
+
+  const stackPath = join(stateDirectory, "stack.json");
+  const inconsistent = JSON.parse(beforeShow);
+  inconsistent.skills = inconsistent.skills.filter((skill) => skill !== "selfhost-verify");
+  writeFileSync(stackPath, `${JSON.stringify(inconsistent, null, 2)}\n`, { mode: 0o600 });
+  assertExit(runBun(cli, ["show", "--project-root", project, "--json"]), 1);
+  writeFileSync(stackPath, beforeShow, { mode: 0o600 });
+
+  const wrongAdapter = JSON.parse(beforeShow);
+  wrongAdapter.runtime.adapter = "selfhost-upkeep";
+  writeFileSync(stackPath, `${JSON.stringify(wrongAdapter, null, 2)}\n`, { mode: 0o600 });
+  assertExit(runBun(cli, ["show", "--project-root", project, "--json"]), 1);
+  writeFileSync(stackPath, beforeShow, { mode: 0o600 });
+
+  assertExit(runBun(cli, ["checkpoint", "--project-root", project, "--stage", "planned", "--json"]), 1);
+  const lockPath = join(stateDirectory, ".stack.lock");
+  writeFileSync(lockPath, `${JSON.stringify({
+    schemaVersion: 1,
+    pid: 99_999_999,
+    createdAt: new Date().toISOString(),
+    nonce: "0123456789abcdef",
+  })}\n`, { mode: 0o600 });
+  const recoveryLockPath = join(stateDirectory, ".stack.recovery.lock");
+  writeFileSync(recoveryLockPath, `${JSON.stringify({
+    schemaVersion: 1,
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+    nonce: "abcdef0123456789",
+  })}\n`, { mode: 0o600 });
+  const guardedRecovery = [
+    "checkpoint",
+    "--project-root",
+    project,
+    "--stage",
+    "planned",
+    "--evidence",
+    "plan:media",
+    "--evidence",
+    "approval:compose-project",
+    "--evidence",
+    "approval:media-project",
+    "--evidence",
+    "approval:owned-content",
+    "--json",
+  ];
+  assertExit(runBun(cli, guardedRecovery), 1);
+  assert.equal(existsSync(lockPath), true);
+  assert.equal(existsSync(recoveryLockPath), true);
+  unlinkSync(recoveryLockPath);
+  assertExit(runBun(cli, [
+    ...guardedRecovery,
+  ]), 0);
+  assert.equal(existsSync(lockPath), false);
+  assertExit(runBun(cli, ["checkpoint", "--project-root", project, "--stage", "planned", "--evidence", "plan:media", "--json"]), 1);
+  assertExit(runBun(cli, ["checkpoint", "--project-root", project, "--stage", "planned", "--evidence", "plan:media-refresh", "--json"]), 0);
+  const missingApply = runBun(cli, ["checkpoint", "--project-root", project, "--stage", "applied", "--json"]);
+  assertExit(missingApply, 1);
+  const secretLike = runBun(cli, ["checkpoint", "--project-root", project, "--stage", "applied", "--evidence", "apply:password", "--json"]);
+  assertExit(secretLike, 1);
+  assert.equal(secretLike.stderr.includes("password"), false);
+  assertExit(runBun(cli, ["checkpoint", "--project-root", project, "--stage", "applied", "--evidence", "apply:media", "--json"]), 0);
+  const incompleteVerification = runBun(cli, ["checkpoint", "--project-root", project, "--stage", "verified", "--evidence", "verify:media", "--json"]);
+  assertExit(incompleteVerification, 1);
+  const verificationEvidence = [
+    "verify:stack",
+    "verify:media-browser",
+    "verify:media-homarr",
+    "verify:media-jellyfin",
+    "verify:media-prowlarr",
+    "verify:media-qbittorrent",
+    "verify:media-radarr",
+    "verify:media-relationships",
+    "verify:media-seerr",
+    "verify:media-sonarr",
+  ];
+  const verifiedArguments = ["checkpoint", "--project-root", project, "--stage", "verified"];
+  for (const evidence of verificationEvidence) {
+    verifiedArguments.push("--evidence", evidence);
+  }
+  verifiedArguments.push("--json");
+  const verified = runBun(cli, verifiedArguments);
+  assertExit(verified, 0);
+  assert.equal(parseJson(verified).metadata.checkpoint.stage, "verified");
+
+  const activeLock = {
+    schemaVersion: 1,
+    pid: process.pid,
+    createdAt: new Date(Date.now() - 600_000).toISOString(),
+    nonce: "fedcba9876543210",
+  };
+  writeFileSync(lockPath, `${JSON.stringify(activeLock)}\n`, { mode: 0o600 });
+  assertExit(runBun(cli, ["checkpoint", "--project-root", project, "--stage", "verified", "--evidence", "verify:media-refresh", "--json"]), 1);
+  assert.equal(existsSync(lockPath), true);
+  rmSync(lockPath);
+}
+
+async function upkeep() {
+  const cli = ".agents/skills/selfhost-setup/scripts/stack.ts";
+  const project = join(temporaryRoot, "upkeep-project");
+  mkdirSync(project, { mode: 0o700 });
+  const initialized = runBun(cli, [
+    "init",
+    "--project-root",
+    project,
+    "--profile",
+    "media",
+    "--adapter",
+    "selfhost-media",
+    "--run-id",
+    "upkeep_demo",
+    "--json",
+  ]);
+  assertExit(initialized, 0);
+  const before = parseJson(initialized).metadata;
+  const missingBinding = runBun(cli, ["extend", "--project-root", project, "--profile", "backup", "--json"]);
+  assertExit(missingBinding, 1);
+  const extended = runBun(cli, [
+    "extend",
+    "--project-root",
+    project,
+    "--profile",
+    "backup",
+    "--consume",
+    "backup=radarr",
+    "--json",
+  ]);
+  assertExit(extended, 0);
+  const after = parseJson(extended).metadata;
+  assert.equal(after.profiles.includes("backup"), true);
+  assert.deepEqual(after.runtime, before.runtime);
+  assert.deepEqual(after.services, before.services);
+  assert.deepEqual(after.serviceBindings, [{ profileId: "backup", serviceIds: ["radarr"] }]);
+  assert.equal(after.checkpoint.stage, "selected");
+  assert.equal(after.revision, before.revision + 1);
+  const afterExtension = readFileSync(join(project, ".selfhost", "stack.json"), "utf8");
+  const noOp = runBun(cli, ["extend", "--project-root", project, "--profile", "backup", "--json"]);
+  assertExit(noOp, 1);
+  assert.equal(readFileSync(join(project, ".selfhost", "stack.json"), "utf8"), afterExtension);
+  const replacement = runBun(cli, [
+    "extend",
+    "--project-root",
+    project,
+    "--profile",
+    "observe",
+    "--adapter",
+    "selfhost-media",
+    "--run-id",
+    "another_run",
+    "--json",
+  ]);
+  assertExit(replacement, 1);
+  const shown = runBun(cli, ["show", "--project-root", project, "--json"]);
+  assertExit(shown, 0);
+  assert.equal(parseJson(shown).metadata.runtime.runId, "upkeep_demo");
+  const pendingResume = runBun(cli, ["resume", "--project-root", project, "--json"]);
+  assertExit(pendingResume, 0);
+  assert.equal(parseJson(pendingResume).adapterConnectionsValid, false);
+  assert.equal(parseJson(pendingResume).adapterConnectionsStatus, "pending-before-apply");
+
+  const mediaRuntime = ".agents/skills/selfhost-media/scripts/media-runtime.ts";
+  assertExit(runBun(mediaRuntime, ["init", "--project", project]), 0);
+  assertExit(runBun(mediaRuntime, [
+    "exec",
+    "--project",
+    project,
+    "--",
+    "session",
+    "create",
+    "upkeep_demo",
+  ]), 0);
+  assertExit(runBun(mediaRuntime, [
+    "exec",
+    "--project",
+    project,
+    "--",
+    "session",
+    "connections",
+    "upkeep_demo",
+  ]), 0);
+  assertExit(runBun(cli, [
+    "checkpoint",
+    "--project-root",
+    project,
+    "--stage",
+    "planned",
+    "--evidence",
+    "plan:upkeep",
+    "--json",
+  ]), 0);
+  assertExit(runBun(cli, [
+    "checkpoint",
+    "--project-root",
+    project,
+    "--stage",
+    "applied",
+    "--evidence",
+    "apply:upkeep",
+    "--evidence",
+    "approval:backup-target",
+    "--evidence",
+    "approval:compose-project",
+    "--evidence",
+    "approval:media-project",
+    "--evidence",
+    "approval:owned-content",
+    "--json",
+  ]), 0);
+  const resumed = runBun(cli, ["resume", "--project-root", project, "--json"]);
+  assertExit(resumed, 0);
+  assert.equal(parseJson(resumed).adapterConnectionsValid, true);
+  assert.equal(parseJson(resumed).adapterConnectionsStatus, "valid");
+
+  const connectionsPath = join(
+    project,
+    ".selfhost",
+    "media-harness",
+    ".sessions",
+    "upkeep_demo",
+    "connections.env",
+  );
+  unlinkSync(connectionsPath);
+  assertExit(runBun(cli, ["resume", "--project-root", project, "--json"]), 1);
+  assertExit(runBun(mediaRuntime, [
+    "exec", "--project", project, "--", "session", "connections", "upkeep_demo",
+  ]), 0);
+
+  const savedConnectionsPath = `${connectionsPath}.saved`;
+  renameSync(connectionsPath, savedConnectionsPath);
+  symlinkSync(savedConnectionsPath, connectionsPath);
+  assertExit(runBun(cli, ["resume", "--project-root", project, "--json"]), 1);
+  unlinkSync(connectionsPath);
+  renameSync(savedConnectionsPath, connectionsPath);
+
+  appendFileSync(connectionsPath, "ADMIN_PASSWORD=forbidden\n");
+  const tamperedConnections = runBun(cli, ["resume", "--project-root", project, "--json"]);
+  assertExit(tamperedConnections, 1);
+  assert.equal(`${tamperedConnections.stdout}${tamperedConnections.stderr}`.includes("forbidden"), false);
+  unlinkSync(connectionsPath);
+  assertExit(runBun(mediaRuntime, [
+    "exec", "--project", project, "--", "session", "connections", "upkeep_demo",
+  ]), 0);
+
+  const serviceProject = join(temporaryRoot, "service-obligation-project");
+  mkdirSync(serviceProject, { mode: 0o700 });
+  const missingService = runBun(cli, [
+    "init",
+    "--project-root",
+    serviceProject,
+    "--profile",
+    "backup",
+    "--json",
+  ]);
+  assertExit(missingService, 1);
+  const withService = runBun(cli, [
+    "init",
+    "--project-root",
+    serviceProject,
+    "--profile",
+    "backup",
+    "--service",
+    "demo=selfhost-compose",
+    "--json",
+  ]);
+  assertExit(withService, 1);
+  const withBinding = runBun(cli, [
+    "init",
+    "--project-root",
+    serviceProject,
+    "--profile",
+    "backup",
+    "--service",
+    "demo=selfhost-compose",
+    "--consume",
+    "backup=demo",
+    "--json",
+  ]);
+  assertExit(withBinding, 0);
+  assert.deepEqual(parseJson(withBinding).metadata.serviceBindings, [
+    { profileId: "backup", serviceIds: ["demo"] },
+  ]);
+
+  const mediaExtensionProject = join(temporaryRoot, "media-extension-project");
+  mkdirSync(mediaExtensionProject, { mode: 0o700 });
+  assertExit(runBun(cli, [
+    "init", "--project-root", mediaExtensionProject, "--profile", "basic", "--json",
+  ]), 0);
+  assertExit(runBun(cli, [
+    "extend", "--project-root", mediaExtensionProject, "--profile", "media", "--json",
+  ]), 1);
+  const mediaExtension = runBun(cli, [
+    "extend",
+    "--project-root",
+    mediaExtensionProject,
+    "--profile",
+    "media",
+    "--adapter",
+    "selfhost-media",
+    "--run-id",
+    "extended_media",
+    "--json",
+  ]);
+  assertExit(mediaExtension, 0);
+  assert.equal(parseJson(mediaExtension).metadata.runtime.runId, "extended_media");
+  assert.equal(parseJson(mediaExtension).metadata.services.length, 7);
+}
+
 async function verify() {
   const cli = ".agents/skills/selfhost-verify/scripts/verify-evidence.ts";
   const input = evidenceInput();
@@ -514,6 +1079,8 @@ const runners = new Map([
   ["selfhost-observe", observe],
   ["selfhost-operations", operations],
   ["selfhost-research", research],
+  ["selfhost-setup", setup],
+  ["selfhost-upkeep", upkeep],
   ["selfhost-verify", verify],
   ["selfhost-vpn", vpn],
 ]);

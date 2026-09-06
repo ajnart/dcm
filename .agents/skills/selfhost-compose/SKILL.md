@@ -1,6 +1,6 @@
 ---
 name: selfhost-compose
-description: Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, idempotent `up`, or scoped `stop`. Ownership, privilege, exposure, and mutation stay explicitly gated.
+description: Base apply capability. Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, idempotent `up`, or scoped `stop`. Ownership, privilege, exposure, and mutation stay explicitly gated.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Planning requires Bun 1.4.0 or newer; approved lifecycle actions require Docker with Compose v2.
 ---

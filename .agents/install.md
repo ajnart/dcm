@@ -1,78 +1,103 @@
 # Installation contract
 
-## Canonical global copy install
+## Interactive install
 
-Install the complete pack once for Codex and Claude Code:
-
-```bash
-bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
-```
-
-Run it from any directory with Bun 1.4.0 or newer active. Keep tokens out of
-the command, URL, prompt, shell history, and
-repository files.
-
-This command is the canonical distribution path:
-
-- `--skill '*'` selects all packaged skills;
-- the two `--agent` flags target Codex and Claude Code;
-- `--global` makes them available outside the current project;
-- `--copy` installs complete directories in each client instead of linking
-  clients to the installer's canonical copy; and
-- `--yes` makes the resolved install non-interactive.
-
-After it finishes, runtime use needs no clone, checkout, or path back to this
-repository. Default link mode is also source-repository-independent because
-the installer first creates a canonical copy. Each installed skill must
-therefore contain every required `SKILL.md`, `agents/`, `scripts/`,
-`references/`, and `assets/` file.
-
-## Project-local alternative
-
-Omit `--global` to scope the pack to the current project:
+Run the installer from the project that should receive the skills:
 
 ```bash
-bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx --bun skills@latest add ajnart/selfhost-skills
 ```
 
-Run that form from the project that should own the installation. Add `--copy`
-when each client should receive a direct copy instead of linking to the
-project's canonical skill copy.
+The installer asks which skills and agents to target. With no scope flag it
+installs project-locally; add `--global` when the choices should be available
+from every project, and add `--copy` when direct copies are preferred. Select
+the seven `basic` skill IDs below, then only the pack or extension IDs needed
+by this stack. Every portable description starts with `Base`, `Media pack`, or
+`Optional`; clients that render `agents/openai.yaml` also receive numbered base
+display names.
 
-## Selective installation
+The profile manifest in
+[`skills/selfhost-setup/references/install-profiles.json`](skills/selfhost-setup/references/install-profiles.json)
+defines the exact sets and
+their service, approval-evidence, and verification-evidence obligations:
 
-Replace `'*'` with one or more named `--skill` selections and retain only the
-intended `--agent` targets. For example:
+- `basic` contains `selfhost-setup`, `selfhost-upkeep`, `selfhost`,
+  `selfhost-host`, `selfhost-compose`, `selfhost-operations`, and
+  `selfhost-verify`.
+- `media` extends `basic` with `selfhost-media` and `selfhost-homarr`.
+- `backup`, `ingress`, `observe`, `research`, and `vpn` each extend `basic`
+  with the matching `selfhost-<id>` capability.
+- Multiple packs and extensions form one union. They never select each other,
+  and no optional pack or extension is selected by default.
+
+Profiles marked for explicit service consumption must bind each affected
+record with `--consume PROFILE=SERVICE` during stack initialization or
+extension. An unrelated service record never satisfies that obligation.
+
+Selecting a pack or extension during `$selfhost-setup` or
+`$selfhost-upkeep` resolves its `basic` dependency. The prerequisite check
+returns one exact install command for any missing members.
+
+## Non-interactive install
+
+Install every packaged skill globally for Codex and Claude Code:
 
 ```bash
-bunx skills@latest add ajnart/selfhost-skills --skill selfhost \
-  --agent codex --agent claude-code --global --copy --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
 ```
 
-The full pack is the simplest route. Selective installs must include every
-required sibling named by the selected stack; `selfhost` is the core dependency
-for catalog-backed capabilities.
+For a project-local install, omit `--global`:
 
-Use `--list` to inspect discovery without installing. The CLI's `--all` flag is intentionally broader:
-it selects every skill for every supported agent target, so use it only when
-that fan-out is desired.
+```bash
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+```
 
-## Runtime and release boundary
+`--skill '*'` selects the complete repository, the repeated `--agent` flags
+limit targets, `--copy` writes complete directories to each client, and
+`--yes` accepts the resolved non-interactive selection. Omit `--copy` to use
+the installer's normal link mode.
+
+For a named selection, repeat `--skill` and include the complete profile. This
+example installs the base for Codex only:
+
+```bash
+bunx --bun skills@latest add ajnart/selfhost-skills \
+  --skill selfhost-setup --skill selfhost-upkeep --skill selfhost \
+  --skill selfhost-host --skill selfhost-compose \
+  --skill selfhost-operations --skill selfhost-verify \
+  --agent codex --global --copy --yes
+```
+
+Use `bunx --bun skills@latest add ajnart/selfhost-skills --list` for read-only
+discovery. `--all` is broader than `--skill '*'`: it targets every supported
+agent as well as every skill.
+
+## First use
+
+Invoke `$selfhost-setup` explicitly for a new stack. It checks the selected
+profile closure and installs missing skills plus the official `agent-browser`
+skill, runtime, and browser through the active agent's normal approval flow.
+The initial check is non-mutating. After approval, setup repeats it with
+`--verify-browser`; the official doctor may clean stale agent-browser daemon
+sidecars. Setup then creates `<project>/.selfhost/stack.json` and carries the
+selected stack through apply and verification.
+
+Invoke `$selfhost-upkeep` explicitly to resume, extend, upgrade, repair, or
+re-verify that recorded stack. Use `$selfhost` alone for read-only planning.
+
+For the managed media pack, the private `connections.env` stores local URLs,
+usernames, and API keys needed for later wiring. It never stores the generated
+initial admin password. Final setup tells the user the `admin` username and
+generated password directly, along with the metadata and connection-file paths.
+
+## Packaging boundary
 
 The installer discovers `.agents/skills/<name>/SKILL.md` and installs each
-whole skill directory. Runtime behavior must not depend on arbitrary files at
-the source repository root. Both default link mode and explicit copy mode are
-release gates; packaging checks belong in disposable projects.
-
-Browser-backed media verification additionally requires `agent-browser` under
-an active Node.js 22.20.0+ toolchain. The media password helper never installs
-or downloads it: direct execution is attempted first, and only a direct
-`ENOENT` retries the fixed `mise exec node@24 -- agent-browser` path. A launched
-nonzero browser action is never retried.
+whole skill directory. Runtime behavior must not depend on arbitrary source
+repository files. Both link and copy installs must work without a later clone
+or checkout, so every skill packages its required `agents/`, `scripts/`,
+`references/`, and `assets/` content.
 
 The release ZIP projects the canonical `.agents/skills/` tree to one native
-`skills/` directory. That projection is generated and hash-checked; it is not
-a second editable source tree. It also contains native Codex and Claude plugin
-manifests for validation and public-directory submission. The source checkout
-is deliberately not advertised as a repo marketplace plugin because native
-plugins require `skills/` at their root.
+`skills/` directory. That generated, hash-checked projection is not a second
+editable source tree.

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "packVersion": "1.0.0",
   "skills": [
     {
@@ -20,7 +20,8 @@
         "selfhost-research",
         "selfhost-verify",
         "selfhost-vpn"
-      ]
+      ],
+      "install": {"group": "base", "requires": []}
     },
     {
       "id": "selfhost-backup",
@@ -28,7 +29,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": []
+      "delegatesTo": [],
+      "install": {"group": "extension", "requires": ["selfhost"]}
     },
     {
       "id": "selfhost-compose",
@@ -36,15 +38,17 @@
       "scope": null,
       "risk": "approval-gated-write",
       "activation": "delegated",
-      "delegatesTo": ["selfhost-host", "selfhost-verify"]
+      "delegatesTo": ["selfhost-host", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-host", "selfhost-verify"]}
     },
     {
       "id": "selfhost-homarr",
       "kind": "adapter",
       "scope": "application",
       "risk": "approval-gated-write",
-      "activation": "explicit",
-      "delegatesTo": ["selfhost-ingress", "selfhost-verify"]
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-ingress", "selfhost-verify"],
+      "install": {"group": "pack", "requires": ["selfhost", "selfhost-verify"]}
     },
     {
       "id": "selfhost-host",
@@ -52,7 +56,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": []
+      "delegatesTo": [],
+      "install": {"group": "base", "requires": ["selfhost"]}
     },
     {
       "id": "selfhost-ingress",
@@ -60,20 +65,32 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": ["selfhost-host", "selfhost-verify"]
+      "delegatesTo": ["selfhost-host", "selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-host", "selfhost-verify"]}
     },
     {
       "id": "selfhost-media",
       "kind": "adapter",
       "scope": "stack",
       "risk": "approval-gated-write",
-      "activation": "explicit",
+      "activation": "delegated",
       "delegatesTo": [
         "selfhost-compose",
         "selfhost-homarr",
         "selfhost-host",
         "selfhost-verify"
-      ]
+      ],
+      "install": {
+        "group": "pack",
+        "requires": [
+          "selfhost-compose",
+          "selfhost-homarr",
+          "selfhost-host",
+          "selfhost-setup",
+          "selfhost-upkeep",
+          "selfhost-verify"
+        ]
+      }
     },
     {
       "id": "selfhost-observe",
@@ -81,7 +98,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": ["selfhost-verify"]
+      "delegatesTo": ["selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-verify"]}
     },
     {
       "id": "selfhost-operations",
@@ -89,7 +107,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": ["selfhost-backup", "selfhost-compose", "selfhost-verify"]
+      "delegatesTo": ["selfhost-backup", "selfhost-compose", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-compose", "selfhost-verify"]}
     },
     {
       "id": "selfhost-research",
@@ -97,7 +116,36 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": []
+      "delegatesTo": [],
+      "install": {"group": "extension", "requires": ["selfhost"]}
+    },
+    {
+      "id": "selfhost-setup",
+      "kind": "workflow",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": ["selfhost", "selfhost-compose", "selfhost-host", "selfhost-media", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-compose", "selfhost-host", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-upkeep",
+      "kind": "workflow",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-host",
+        "selfhost-operations",
+        "selfhost-setup",
+        "selfhost-verify"
+      ],
+      "install": {
+        "group": "base",
+        "requires": ["selfhost-compose", "selfhost-host", "selfhost-operations", "selfhost-setup", "selfhost-verify"]
+      }
     },
     {
       "id": "selfhost-verify",
@@ -105,7 +153,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": []
+      "delegatesTo": [],
+      "install": {"group": "base", "requires": ["selfhost"]}
     },
     {
       "id": "selfhost-vpn",
@@ -113,7 +162,8 @@
       "scope": null,
       "risk": "read-only",
       "activation": "delegated",
-      "delegatesTo": ["selfhost-verify"]
+      "delegatesTo": ["selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-verify"]}
     }
   ]
 }

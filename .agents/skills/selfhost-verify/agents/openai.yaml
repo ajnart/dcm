@@ -1,5 +1,5 @@
 interface:
-  display_name: "Self-host Verify"
+  display_name: "7 · Base · Verify Stack"
   short_description: "Aggregate strict secret-free acceptance evidence"
   default_prompt: "Use $selfhost-verify to evaluate a bounded acceptance evidence manifest without changing the system."
 policy:

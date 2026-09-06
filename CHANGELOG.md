@@ -7,7 +7,12 @@ semantic versioning; individual skills share the pack version.
 
 - Establish the first public compatibility contract under Apache-2.0.
 - Add Codex and Claude native release metadata plus universal skill discovery.
-- Add registry schema v3 with skill kind, risk, activation, and delegation.
+- Add registry schema v4 with skill kind, risk, activation, delegation, install
+  groups, and checked sibling requirements.
+- Add explicit setup and upkeep workflows with selectable Base, Pack, and
+  Extension profiles plus resumable private stack metadata.
+- Make the agent-browser skill, Bun CLI, and browser an agent-managed setup
+  prerequisite.
 - Add generated human and machine skill indexes.
 - Add the `skillpack` inspect, validation, scenario, benchmark, and reproducible
   packaging interface.
@@ -15,4 +20,7 @@ semantic versioning; individual skills share the pack version.
   human-friendly `skillpack` CLI.
 - Replace the pre-v1 media harness default with generated credentials and
   document the preserved-history rotation requirement.
+- Keep media API keys, URLs, and usernames in private `connections.env`, never
+  persist the initial admin password there, and display that password in the
+  explicit final setup handoff.
 - Preserve schema-v1 project and preference documents.

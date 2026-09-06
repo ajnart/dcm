@@ -1,8 +1,8 @@
-# Auto-Stack experiment controller
+# Auto-Stack media setup controller
 
-You are one independent candidate configuring a fresh Auto-Stack run. Your
-required input is a unique lowercase `RUN_ID`. Never inspect, reuse, stop, or
-modify another run. The same checkout may host many candidates concurrently.
+Configure one intentional Auto-Stack media run. Your required input is a unique
+lowercase `RUN_ID`. Never inspect, reuse, stop, or modify another run. The same
+checkout may host many isolated runs concurrently.
 
 ## Load the runbook
 
@@ -29,26 +29,29 @@ Sonarr/Radarr use qBittorrent; Prowlarr full-syncs to both; Seerr is connected t
 Jellyfin, Sonarr, and Radarr; and Homarr onboarding has tested and linked all six
 external integrations. The `ghcr.io/homarr-labs/homarr-test:v2` onboarding must
 auto-generate the app tiles and integration widgets. Manual post-onboarding app
-or widget placement does not satisfy this experiment. Capture a private per-run
+or widget placement does not satisfy setup. Capture a private per-run
 Homarr API key without exposing it, finalize the six generated app URL/ping
 splits through the harness, and verify the canonical `/api/mcp` endpoint with a
-read-only media search. Candidate client configuration must remain secret-free
-and uninstalled; only the promoted winner may be installed into a local client.
+read-only media search. The generated client configuration must remain
+secret-free and uninstalled unless the user separately authorizes installation.
 Verification stops after search and never invokes a media request/download
-mutation.
+mutation. Finish by refreshing and reporting the password-free
+`connections.env` path for future service wiring. For initial setup, also run
+the explicit `handoff` command and tell the user the generated `admin` password.
+During upkeep, run `handoff` only when the user explicitly requested a fresh
+access handoff.
 
-Keep a step count and recovery log. Report the smallest successful path so the
-supervisor can select it for the next generation.
+Keep a step count and recovery log. Report the completed path and any recovery
+that changed it.
 
-## Start concurrent candidates
+## Start a setup run
 
-Compile one immutable prompt per candidate with a different run identifier:
+Compile one immutable prompt for the selected run identifier:
 
 ```bash
-scripts/render-prompt.sh luna-g3-a
-scripts/render-prompt.sh luna-g3-b
+scripts/render-prompt.sh media-setup
 ```
 
-Optional experiment modules may be appended as extra `prompts/*.md` arguments.
-The renderer never creates shared runtime state; the candidate creates only its
+Optional setup modules may be appended as extra `prompts/*.md` arguments.
+The renderer never creates shared runtime state; the setup creates only its
 own `.sessions/RUN_ID` tree when it starts.

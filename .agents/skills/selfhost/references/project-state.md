@@ -6,6 +6,11 @@ private local state, separate from `.selfhost/preferences.json`.
 Its strict schema is
 [`catalog/schemas/project-state.schema.json`](catalog/schemas/project-state.schema.json).
 
+It is also separate from `.selfhost/stack.json`. The router may create or
+revise `project.json` while planning, but only explicit `$selfhost-setup`
+creates `stack.json`; explicit `$selfhost-upkeep` resumes or extends that stack
+record. Neither saved file replaces fresh host inspection or direct evidence.
+
 The first state write also creates `.selfhost/.gitignore` with a wildcard rule,
 so installed use does not depend on the target repository already ignoring
 local state. The state directory is mode `0700`; its records, ignore file, and

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "source": "ajnart/selfhost-skills",
+  "browser": {
+    "source": "vercel-labs/agent-browser",
+    "skill": "agent-browser",
+    "package": "agent-browser"
+  },
+  "profiles": [
+    {
+      "id": "basic",
+      "kind": "base",
+      "label": "Base setup and upkeep",
+      "description": "Intentional planning, host inspection, bounded Compose apply, resumable upkeep, and independent verification.",
+      "extends": [],
+      "approvalEvidence": ["approval:compose-project"],
+      "serviceConsumption": "none",
+      "verificationEvidence": ["verify:stack"],
+      "skills": [
+        "selfhost",
+        "selfhost-compose",
+        "selfhost-host",
+        "selfhost-operations",
+        "selfhost-setup",
+        "selfhost-upkeep",
+        "selfhost-verify"
+      ]
+    },
+    {
+      "id": "backup",
+      "kind": "extension",
+      "label": "Backup and restore extension",
+      "description": "Add backup policy, retention, failure-domain review, and isolated restore evidence.",
+      "extends": ["basic"],
+      "approvalEvidence": ["approval:backup-target"],
+      "serviceConsumption": "explicit",
+      "verificationEvidence": ["verify:isolated-restore"],
+      "skills": ["selfhost-backup"]
+    },
+    {
+      "id": "ingress",
+      "kind": "extension",
+      "label": "Private ingress extension",
+      "description": "Add LAN, tailnet, proxy, DNS, and separately approved public-route planning.",
+      "extends": ["basic"],
+      "approvalEvidence": ["approval:ingress-route"],
+      "serviceConsumption": "explicit",
+      "verificationEvidence": ["verify:edge"],
+      "skills": ["selfhost-ingress"]
+    },
+    {
+      "id": "media",
+      "kind": "pack",
+      "label": "Media and Homarr pack",
+      "description": "Set up and verify Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr.",
+      "extends": ["basic"],
+      "approvalEvidence": ["approval:media-project", "approval:owned-content"],
+      "serviceConsumption": "none",
+      "verificationEvidence": [
+        "verify:media-browser",
+        "verify:media-homarr",
+        "verify:media-jellyfin",
+        "verify:media-prowlarr",
+        "verify:media-qbittorrent",
+        "verify:media-radarr",
+        "verify:media-relationships",
+        "verify:media-seerr",
+        "verify:media-sonarr"
+      ],
+      "skills": ["selfhost-homarr", "selfhost-media"]
+    },
+    {
+      "id": "observe",
+      "kind": "extension",
+      "label": "Observability extension",
+      "description": "Add health, dependency, storage, log, metric, and alert planning.",
+      "extends": ["basic"],
+      "approvalEvidence": ["approval:observability"],
+      "serviceConsumption": "explicit",
+      "verificationEvidence": ["verify:observability"],
+      "skills": ["selfhost-observe"]
+    },
+    {
+      "id": "research",
+      "kind": "extension",
+      "label": "Current software research extension",
+      "description": "Add current official lifecycle, installation, API, and alternative research.",
+      "extends": ["basic"],
+      "approvalEvidence": [],
+      "serviceConsumption": "none",
+      "verificationEvidence": ["verify:source-freshness"],
+      "skills": ["selfhost-research"]
+    },
+    {
+      "id": "vpn",
+      "kind": "extension",
+      "label": "Downloader VPN extension",
+      "description": "Add downloader-only VPN isolation and fail-closed evidence planning.",
+      "extends": ["basic"],
+      "approvalEvidence": ["approval:vpn-routing"],
+      "serviceConsumption": "explicit",
+      "verificationEvidence": ["verify:vpn-fail-closed"],
+      "skills": ["selfhost-vpn"]
+    }
+  ]
+}

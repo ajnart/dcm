@@ -10,6 +10,17 @@ MINIMUM_BUN_MINOR=4
 MINIMUM_BUN_PATCH=0
 SMOKE_TEMP_DIR=""
 SOURCE_SKILL_NAMES=()
+PROFILE_SKILL_NAMES=(
+  selfhost
+  selfhost-compose
+  selfhost-homarr
+  selfhost-host
+  selfhost-media
+  selfhost-operations
+  selfhost-setup
+  selfhost-upkeep
+  selfhost-verify
+)
 INSTALL_SOURCE=""
 
 fail() {
@@ -133,6 +144,27 @@ verify_target_set() {
   done
   if ((target_count != ${#SOURCE_SKILL_NAMES[@]})); then
     fail "installed skill count does not match exact discovery"
+  fi
+}
+
+verify_profile_target_set() {
+  local agent_root="$1"
+  local target_count=0
+  local target_name
+  local target_skill
+
+  [[ -d "$agent_root" ]] || fail "selected-profile install root was not created"
+  for target_skill in "$agent_root"/*; do
+    if [[ ! -e "$target_skill" && ! -L "$target_skill" ]]; then
+      continue
+    fi
+    target_name="${target_skill##*/}"
+    name_in_array "$target_name" "${PROFILE_SKILL_NAMES[@]}" \
+      || fail "selected-profile install created an unexpected skill: $target_name"
+    target_count=$((target_count + 1))
+  done
+  if ((target_count != ${#PROFILE_SKILL_NAMES[@]})); then
+    fail "selected-profile install has the wrong skill count"
   fi
 }
 
@@ -308,7 +340,8 @@ INSTALL_SOURCE="$SMOKE_TEMP_DIR/source-package"
 LIST_PROJECT="$SMOKE_TEMP_DIR/list"
 SYMLINK_PROJECT="$SMOKE_TEMP_DIR/symlink"
 COPY_PROJECT="$SMOKE_TEMP_DIR/copy"
-mkdir -p -- "$INSTALL_SOURCE" "$LIST_PROJECT" "$SYMLINK_PROJECT" "$COPY_PROJECT"
+PROFILE_PROJECT="$SMOKE_TEMP_DIR/profile"
+mkdir -p -- "$INSTALL_SOURCE" "$LIST_PROJECT" "$SYMLINK_PROJECT" "$COPY_PROJECT" "$PROFILE_PROJECT"
 cp -R -- "$REPOSITORY_ROOT/.agents" "$INSTALL_SOURCE/.agents"
 
 export DISABLE_TELEMETRY=1
@@ -325,7 +358,7 @@ export XDG_STATE_HOME="$SMOKE_TEMP_DIR/xdg-state"
 
 ADD_HELP="$(
   cd -- "$LIST_PROJECT"
-  bunx skills@latest add --help 2>&1
+  bunx --bun skills@latest add --help 2>&1
 )" || fail "unable to resolve the current skills CLI help"
 
 for required_flag in \
@@ -341,7 +374,7 @@ done
 
 LIST_OUTPUT="$(
   cd -- "$LIST_PROJECT"
-  bunx skills@latest add "$INSTALL_SOURCE" --list
+  bunx --bun skills@latest add "$INSTALL_SOURCE" --list
 )" || fail "skills CLI could not list the local repository"
 case "$LIST_OUTPUT" in
   *"Available Skills"*)
@@ -350,6 +383,18 @@ case "$LIST_OUTPUT" in
     fail "skills CLI list output is missing its documented heading"
     ;;
 esac
+for discovery_group in \
+  "Base setup workflow." \
+  "Media pack adapter." \
+  "Optional backup extension."; do
+  case "$LIST_OUTPUT" in
+    *"$discovery_group"*)
+      ;;
+    *)
+      fail "skills CLI list output is missing discovery group: $discovery_group"
+      ;;
+  esac
+done
 
 LISTED_SKILL_NAMES=()
 while IFS= read -r list_line; do
@@ -382,11 +427,37 @@ for skill_name in "${LISTED_SKILL_NAMES[@]}"; do
     || fail "skills CLI listed an unexpected skill: $skill_name"
 done
 
+BROWSER_LIST_OUTPUT="$(
+  cd -- "$LIST_PROJECT"
+  bunx --bun skills@latest add vercel-labs/agent-browser --list
+)" || fail "skills CLI could not list the official agent-browser repository"
+BROWSER_SKILL_COUNT=0
+while IFS= read -r list_line; do
+  list_line="${list_line%$'\r'}"
+  listed_name=""
+  case "$list_line" in
+    "│    "*)
+      listed_name="${list_line#"│    "}"
+      ;;
+    "|    "*)
+      listed_name="${list_line#"|    "}"
+      ;;
+  esac
+  if [[ "$listed_name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    [[ "$listed_name" == "agent-browser" ]] \
+      || fail "official agent-browser repository listed an unexpected skill"
+    BROWSER_SKILL_COUNT=$((BROWSER_SKILL_COUNT + 1))
+  fi
+done <<< "$BROWSER_LIST_OUTPUT"
+if ((BROWSER_SKILL_COUNT != 1)); then
+  fail "official agent-browser repository did not list exactly agent-browser"
+fi
+
 # The current CLI derives global canonical targets from the process home. Keep
 # this smoke project-local so it never repurposes HOME or touches real clients.
 (
   cd -- "$SYMLINK_PROJECT"
-  bunx skills@latest add "$INSTALL_SOURCE" \
+  bunx --bun skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \
@@ -395,7 +466,7 @@ done
 
 (
   cd -- "$COPY_PROJECT"
-  bunx skills@latest add "$INSTALL_SOURCE" \
+  bunx --bun skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
     --agent codex \
     --agent claude-code \
@@ -403,18 +474,32 @@ done
     --yes
 ) || fail "copy-mode disposable install failed"
 
+profile_arguments=(skills@latest add "$INSTALL_SOURCE")
+for profile_skill in "${PROFILE_SKILL_NAMES[@]}"; do
+  profile_arguments+=(--skill "$profile_skill")
+done
+profile_arguments+=(--agent codex --copy --yes)
+(
+  cd -- "$PROFILE_PROJECT"
+  bunx --bun "${profile_arguments[@]}"
+) || fail "selected media-profile disposable install failed"
+
 mv -- "$INSTALL_SOURCE" "$SMOKE_TEMP_DIR/source-package.unavailable"
 [[ ! -e "$INSTALL_SOURCE" && ! -L "$INSTALL_SOURCE" ]] \
   || fail "staged installer source remains available"
 
 verify_symlink_project "$SYMLINK_PROJECT"
 verify_copy_project "$COPY_PROJECT"
+verify_profile_target_set "$PROFILE_PROJECT/.agents/skills"
 verify_installed_media_bundle \
   "$SYMLINK_PROJECT/.agents/skills/selfhost-media" \
   "default canonical install"
 verify_installed_media_bundle \
   "$COPY_PROJECT/.agents/skills/selfhost-media" \
   "copy canonical install"
+verify_installed_media_bundle \
+  "$PROFILE_PROJECT/.agents/skills/selfhost-media" \
+  "selected media-profile install"
 verify_source_independent_runtime \
   "$SYMLINK_PROJECT" \
   "$SYMLINK_PROJECT/.agents/skills" \
@@ -427,6 +512,10 @@ verify_source_independent_runtime \
   "$COPY_PROJECT" \
   "$COPY_PROJECT/.claude/skills" \
   "copy Claude Code install"
+verify_source_independent_runtime \
+  "$PROFILE_PROJECT" \
+  "$PROFILE_PROJECT/.agents/skills" \
+  "selected media-profile install"
 
 for payload_kind in scripts references assets; do
   [[ -d "$SYMLINK_PROJECT/.agents/skills/selfhost-media/$payload_kind" ]] \
@@ -437,5 +526,5 @@ for payload_kind in scripts references assets; do
     || fail "Claude Code copy is missing selfhost-media $payload_kind"
 done
 
-printf 'PASS smoke-install: %d exact skills verified in detached project-local default and copy installs\n' \
+printf 'PASS smoke-install: %d exact skills plus selected media profile verified in detached installs\n' \
   "${#SOURCE_SKILL_NAMES[@]}"

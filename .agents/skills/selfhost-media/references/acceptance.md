@@ -14,7 +14,7 @@ Treat every row as unproven until its direct evidence exists.
 | Homarr integrations | Six passing records with host app links and internal ping URLs |
 | Homarr auto-generation | Six onboarding-generated app tiles and live widgets after reload |
 | Homarr API/MCP | Private key capture; finalizer/config/verifier PASS; canonical endpoint and bridge return the read-only match; no mutation or client install |
-| User access handoff | Private credentials sheet refreshed after acceptance; exact path and local reveal command reported without secret values |
+| Reusable connections | Password-free private connections file refreshed after acceptance; initial setup, or explicitly requested fresh upkeep handoff, displays the admin username and derived password to the user |
 
 Run `doctor` and the core verifier again at the end. Inspect the real UI and
 redacted response structure. HTTP 200 alone is insufficient. Empty media data
@@ -35,5 +35,5 @@ passes only when the failed-integration count is zero. Visible empty-state text,
 The report must include the acceptance matrix with evidence paths, meaningful
 action count per service, recoveries with causes, exact observed image
 IDs/versions, final run status, and secret-safe Homarr API/MCP proof. Keep all
-artifacts inside the selected run. Preserve the run for supervisor review unless
-the user explicitly authorizes destruction.
+artifacts inside the selected run. Preserve the run for user review unless the
+user explicitly authorizes destruction.

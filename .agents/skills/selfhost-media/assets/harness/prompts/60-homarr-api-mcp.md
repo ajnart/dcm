@@ -13,7 +13,7 @@ tested six integrations and generated six linked apps plus their widgets.
    `./scripts/session.sh homarr-key "$RUN_ID"`. The browser value must flow
    directly over stdin; run neither side alone.
 3. Observe only the harness acknowledgement. Keep the key out of terminal
-   output, shell variables, command arguments, candidate-created files,
+   output, shell variables, command arguments, setup-created files,
    screenshots, and reports. The private harness store is its only persistence.
    If capture fails, revoke that key and repeat with a new one.
 
@@ -25,7 +25,7 @@ Run in order:
 ./scripts/session.sh homarr-finalize "$RUN_ID"
 ./scripts/session.sh mcp-config "$RUN_ID"
 ./scripts/session.sh mcp-verify "$RUN_ID"
-./scripts/session.sh credentials "$RUN_ID"
+./scripts/session.sh connections "$RUN_ID"
 ```
 
 `homarr-finalize` must update only the six onboarding-generated service apps:
@@ -36,11 +36,10 @@ The native server contract is Streamable HTTP at the canonical `/api/mcp`
 endpoint with the per-run key in the `ApiKey` header. `/api/mcp/mcp` is a
 compatibility alias to probe only when the canonical route is unavailable, not
 the configured target. `mcp-config` must produce a secret-free client fragment
-at `SESSION_ROOT/artifacts/mcp-client.json`. Keep that artifact candidate-scoped
-and do not install it into any shared or local client. The supervisor installs
-only the promoted winner so concurrent candidates cannot race over client
-configuration. The fragment identifies the per-run bridge and `RUN_ID`; it never
-embeds the `ApiKey` value.
+at `SESSION_ROOT/artifacts/mcp-client.json`. Keep that artifact run-scoped and
+do not install it into any client without separate user authorization. The
+fragment identifies the per-run bridge and `RUN_ID`; it never embeds the
+`ApiKey` value.
 
 Direct native MCP remains authoritative. The generated local stdio bridge is a
 credential adapter: it reads the private per-run key and proxies Homarr without
@@ -63,11 +62,11 @@ dispatch. Only the preceding harness-owned finalizer may update app links.
 ## Stop gate
 
 - `homarr-key` and all four follow-up commands emit secret-safe summaries.
-- The final credentials summary explains every service and gives the exact
-  private access-sheet path plus a local reveal command without echoing values.
+- The connections summary explains every service and gives the exact private
+  file path plus a local reveal command without persisting a password.
 - The six generated apps have host links plus internal Docker ping URLs.
 - The canonical native endpoint authenticates, and both native MCP and the
   stdio adapter return the read-only title match; record whether its temporary
   curated Date-schema catalog was required.
-- No key appears in evidence, no media mutation ran, and no candidate client
+- No key appears in evidence, no media mutation ran, and no generated client
   configuration was installed.

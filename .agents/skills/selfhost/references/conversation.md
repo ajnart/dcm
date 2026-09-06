@@ -60,14 +60,16 @@ Use this order, skipping settled branches:
 
 For the managed `selfhost-media` adapter, state the implemented contract
 directly: every service uses username `admin`, and the harness generates the
-per-run password. The user receives it through the private credential handoff;
-it never enters chat. The adapter does not currently offer a custom username or
-password. For other stacks, defer custom values to the selected capability's
-supported private apply boundary; block the apply when no such boundary exists.
+per-run password. Final `$selfhost-setup` handoff tells the user that generated
+password directly and does not retain it in a file. The adapter does not
+currently offer a custom username or password. For other stacks, defer custom
+values to the selected capability's supported private apply boundary; block
+the apply when no such boundary exists.
 
 Never request passwords, tokens, API keys, private keys, cookies, or recovery
 codes in chat. If the user sends one, do not repeat it. Tell them to rotate it
-and continue with only its intended purpose or secret reference.
+and continue with only its intended purpose or secret reference. The generated
+media setup password is the narrow output-only exception above.
 
 ## Keep prompts compact
 

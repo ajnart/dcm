@@ -1,6 +1,6 @@
 ---
 name: selfhost-operations
-description: Plan bounded upgrades, migrations, rollbacks, and troubleshooting for one owned self-hosted Compose project. Use for version or schema changes, recovery, compatibility, backup/restore, health, acceptance, and rollback gates. Produce a secret-free plan and delegate every Compose mutation to `selfhost-compose`.
+description: Base operations capability. Plan bounded upgrades, migrations, rollbacks, and troubleshooting for one owned self-hosted Compose project. Use for version or schema changes, recovery, compatibility, backup/restore, health, acceptance, and rollback gates. Produce a secret-free plan and delegate every Compose mutation to `selfhost-compose`.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for the bundled planner; execution is delegated to selfhost-compose.
 ---

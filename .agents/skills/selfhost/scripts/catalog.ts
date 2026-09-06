@@ -18,6 +18,7 @@ const HOMARR_LEVELS = new Set(["supported", "partial", "gap", "not-applicable"])
 const HOMARR_EXCLUDED_VALUES = new Set(["mock", "searchch", "releaseprovider"]);
 const STACK_SUPPORT = new Set(["managed", "guided", "discovery"]);
 const ADAPTER_SCOPES = new Set(["application", "stack"]);
+const INSTALL_GROUPS = new Set(["base", "pack", "extension"]);
 const AUTOMATION_RANK = new Map([
   ["managed", 0],
   ["guided", 1],
@@ -51,7 +52,7 @@ const ROLE_KEYS = [...REQUIRED_ROLE_KEYS, "recommended"];
 const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
 const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
 const SKILL_REGISTRY_KEYS = ["packVersion", "schemaVersion", "skills"];
-const SKILL_RECORD_KEYS = ["activation", "delegatesTo", "id", "kind", "risk", "scope"];
+const SKILL_RECORD_KEYS = ["activation", "delegatesTo", "id", "install", "kind", "risk", "scope"];
 
 function normalize(value) {
   return String(value)
@@ -225,7 +226,7 @@ function validateSkillRegistry(registry, errors) {
     return { ids, adapters, applicationAdapters, stackAdapters };
   }
   addError(errors, hasExactKeys(registry, SKILL_REGISTRY_KEYS), "skills: registry contains missing or unsupported fields");
-  addError(errors, registry.schemaVersion === 3, "skills: schemaVersion must be 3");
+  addError(errors, registry.schemaVersion === 4, "skills: schemaVersion must be 4");
   addError(errors, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$/.test(registry.packVersion || ""), "skills: packVersion must be semantic versioning");
   addError(errors, Array.isArray(registry.skills) && registry.skills.length > 0, "skills: records must be a non-empty array");
   if (!Array.isArray(registry.skills)) {
@@ -240,7 +241,7 @@ function validateSkillRegistry(registry, errors) {
     }
     addError(errors, hasExactKeys(record, SKILL_RECORD_KEYS), `skill ${label}: contains missing or unsupported fields`);
     addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(record.id || ""), `skill ${label}: invalid id`);
-    addError(errors, ["router", "capability", "adapter"].includes(record.kind), `skill ${label}: kind is invalid`);
+    addError(errors, ["router", "capability", "adapter", "workflow"].includes(record.kind), `skill ${label}: kind is invalid`);
     addError(errors, ["read-only", "approval-gated-write"].includes(record.risk), `skill ${label}: risk is invalid`);
     addError(errors, ["implicit", "delegated", "explicit"].includes(record.activation), `skill ${label}: activation is invalid`);
     addError(errors, isStringArray(record.delegatesTo), `skill ${label}: delegatesTo must contain skill ids`);
@@ -252,6 +253,20 @@ function validateSkillRegistry(registry, errors) {
     }
     if (record.kind === "router") {
       addError(errors, record.activation === "implicit", `skill ${label}: router activation must be implicit`);
+    }
+    if (record.kind === "workflow") {
+      addError(errors, record.activation === "explicit", `skill ${label}: workflow activation must be explicit`);
+    }
+    addError(errors, hasExactKeys(record.install, ["group", "requires"]), `skill ${label}: install metadata is invalid`);
+    if (isPlainObject(record.install)) {
+      addError(errors, INSTALL_GROUPS.has(record.install.group), `skill ${label}: install group is invalid`);
+      addError(errors, isStringArray(record.install.requires), `skill ${label}: install requirements must contain skill ids`);
+      if (Array.isArray(record.install.requires)) {
+        addError(errors, duplicateValues(record.install.requires).length === 0, `skill ${label}: install requirements must be unique`);
+      }
+      if (record.kind === "workflow") {
+        addError(errors, record.install.group === "base", `skill ${label}: workflow must be in the base install group`);
+      }
     }
     if (isNonEmptyString(record.id)) {
       ids.add(record.id);
@@ -279,6 +294,13 @@ function validateSkillRegistry(registry, errors) {
     for (const target of record.delegatesTo) {
       addError(errors, ids.has(target), `skill ${record.id}: delegates to missing skill ${target}`);
       addError(errors, target !== record.id, `skill ${record.id}: cannot delegate to itself`);
+    }
+    if (!isPlainObject(record.install) || !Array.isArray(record.install.requires)) {
+      continue;
+    }
+    for (const target of record.install.requires) {
+      addError(errors, ids.has(target), `skill ${record.id}: requires missing skill ${target}`);
+      addError(errors, target !== record.id, `skill ${record.id}: cannot require itself`);
     }
   }
   addError(errors, ids.has("selfhost"), "skills: selfhost router record is required");

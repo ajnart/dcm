@@ -1,28 +1,39 @@
 # Skill invocation model
 
-## Entry point
+## User entry points
 
-`selfhost` is the single user-facing router. It supports explicit calls such
-as `/selfhost netflix` in Claude Code and `$selfhost netflix` in Codex, plus
-natural-language goals such as “replace Google Photos” or “make Immich private
-on my phone.” Its discovery description therefore permits implicit invocation.
+Use `$selfhost-setup` explicitly for a new stack. It checks the selected base,
+pack, and extensions, installs missing prerequisites through the active agent,
+creates `.selfhost/stack.json`, and continues through approved apply, browser
+configuration, verification, and access handoff.
 
-The router never treats invocation as approval to mutate a host. It follows a
-short `explore -> present -> confirm -> write` conversation, resolves the goal,
-inspects what is safe to inspect, loads non-secret preferences, selects a stack,
-and presents a redacted plan. It leads with a recommended answer, explains each
-service's purpose, skips settled questions, and accepts `defaults` for safe
-planning choices. An explicit request for Homarr itself routes to the
+Use `$selfhost-upkeep` explicitly for an existing `.selfhost/stack.json`
+project. It refreshes host evidence before status, extension, upgrade,
+migration, repair, reconnect, or re-verification work.
+
+Use `selfhost` for planning. It supports explicit calls such as `/selfhost
+netflix` in Claude Code and `$selfhost netflix` in Codex, plus natural-language
+goals such as “replace Google Photos.” Its discovery description permits
+implicit invocation, but it never treats invocation as approval to mutate a
+host.
+
+The router follows a short `explore -> present -> confirm -> write`
+conversation, resolves the goal, inspects what is safe to inspect, loads
+non-secret preferences, selects a stack, and presents a redacted plan. It leads
+with a recommended answer, explains each service's purpose, skips settled
+questions, and accepts `defaults` for safe planning choices. An explicit
+request for Homarr itself routes to the
 `homarr-control-plane` goal and its `selfhost-homarr` adapter; Homarr stays an
 unselected recommendation when it is only an enhancement to another goal.
 
-For a returning project, load `.selfhost/project.json` plus confirmed non-secret
-preferences from its exact project root. The project record keeps the goal,
-service choices, plan fingerprint, checkpoint, and bounded evidence IDs; it
-does not keep raw host truth. Then inspect the real host again. Saved context
-explains intent; it does not prove that a container, network, port, path, proxy,
-or backup is still present or healthy. Resume at the first incomplete stage and
-never adopt a same-name resource without ownership evidence.
+For a returning planning project, load `.selfhost/project.json` plus confirmed
+non-secret preferences from its exact project root. The project record keeps
+the goal, service choices, plan fingerprint, checkpoint, and bounded evidence
+IDs; it does not keep raw host truth. Then inspect the real host again. Saved
+context explains intent; it does not prove that a container, network, port,
+path, proxy, or backup is still present or healthy. Resume at the first
+incomplete stage and never adopt a same-name resource without ownership
+evidence.
 
 When no goal is supplied, first check only the exact current project root. If
 it contains `.selfhost/project.json`, resume its recorded goal and service
@@ -41,24 +52,39 @@ catalog and private-first planning defaults; it does not select optional roles
 or approve mutation and risk gates.
 
 Collect credential policy, never credential payloads. The managed media adapter
-uses fixed username `admin` with a generated per-run password and a private
-handoff. Other custom credentials wait for a supported private apply boundary.
-Never request password, token, key, cookie, or recovery-code values in chat.
+uses fixed username `admin` with a generated per-run password. Final setup
+tells the user that password directly without storing it. Other custom
+credentials wait for a supported private apply boundary. Never request
+password, token, key, cookie, or recovery-code values in chat.
 
-## Capability skills
+## Base capabilities
 
-Capability skills are model-invoked and may also be called explicitly for a
-bounded task. Initial boundaries are:
+Portable descriptions label every base entry. Clients that render the OpenAI
+metadata also number them as setup, upkeep, planning, host inspection, Compose,
+operations, then verification. Setup and upkeep are explicit-only; the other
+capabilities are model-invoked and may also be called explicitly for a bounded
+task.
 
 - `selfhost-host`: host/runtime/storage/network inspection and path advice.
 - `selfhost-compose`: project rendering, preflight, apply, and ownership.
-- `selfhost-ingress`: LAN, tailnet, reverse proxy, DNS, TLS, and tunnels.
-- `selfhost-vpn`: downloader-only VPN routing and kill-switch evidence.
-- `selfhost-backup`: backup policy, app-consistent capture, and restore drills.
-- `selfhost-observe`: health, metrics, logs, alerts, and edge checks.
 - `selfhost-operations`: upgrades, migrations, rollback, and troubleshooting.
-- `selfhost-research`: current primary-source and browser research harness.
 - `selfhost-verify`: independent acceptance and secret-free evidence.
+
+## Packs and extensions
+
+- `selfhost-media` and `selfhost-homarr`: the Media + Homarr pack, which
+  extends the complete base.
+- `selfhost-backup`: backup policy, app-consistent capture, and restore drills.
+- `selfhost-ingress`: LAN, tailnet, reverse proxy, DNS, TLS, and tunnels.
+- `selfhost-observe`: health, metrics, logs, alerts, and edge checks.
+- `selfhost-research`: current primary-source and browser research harness.
+- `selfhost-vpn`: downloader-only VPN routing and kill-switch evidence.
+
+Each extension extends the complete base independently. Multiple selections
+form a union; optional packs and extensions are never implied.
+
+The Media + Homarr pack contains:
+
 - `selfhost-media`: opt-in Homarr-enhanced personal-media adapter.
 - `selfhost-homarr`: optional Homarr control-plane, dashboard, API, and
   read-only MCP adapter.
@@ -108,9 +134,12 @@ or read-only runs. State:
 - unresolved decisions and blockers; and
 - the next safe action.
 
-When a capability creates a private credential handoff for the user, report its
-exact path and a local reveal command without copying secret values into the
-agent transcript.
+When an adapter creates a private connection file, report its exact path
+without opening or printing its API keys. The managed media file may contain
+URLs, usernames, and API keys, but never its generated initial admin password.
+Final `$selfhost-setup` handoff tells the user the `admin` username and generated
+password directly; later upkeep displays a password only for a requested fresh
+access handoff.
 
 Do not hide uncertainty behind internal status names. Translate them for the
 user while retaining exact structured values in machine-readable output. Say

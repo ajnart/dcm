@@ -65,10 +65,10 @@ main() {
     modules+=("${@:2}")
   fi
 
-  printf '# Auto-Stack candidate invocation\n\n'
+  printf '# Auto-Stack setup invocation\n\n'
   printf 'RUN_ID: `%s`\n\n' "$run_id"
   printf '```bash\nexport RUN_ID=%s\n```\n\n' "$run_id"
-  printf 'This compiled prompt is immutable for this candidate. The controller and ordered modules follow.\n\n'
+  printf 'This compiled prompt is immutable for this run. The controller and ordered modules follow.\n\n'
   sed -n '1,$p' "$PROMPT_FILE"
 
   for module in "${modules[@]}"; do

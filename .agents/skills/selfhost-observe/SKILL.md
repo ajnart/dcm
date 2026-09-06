@@ -1,6 +1,6 @@
 ---
 name: selfhost-observe
-description: Create and assess read-only observability plans for self-hosted services. Use for process state, API readiness, dependencies, edge health, storage, backup freshness, logs, metrics, alerts, ownership, or minimal reuse. Keep planned, configured, and observed state distinct and report only supplied redacted evidence.
+description: Optional observability extension. Create and assess read-only observability plans for self-hosted services. Use for process state, API readiness, dependencies, edge health, storage, backup freshness, logs, metrics, alerts, ownership, or minimal reuse. Keep planned, configured, and observed state distinct and report only supplied redacted evidence.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for the bundled planner; accepts redacted facts and evidence only.
 ---

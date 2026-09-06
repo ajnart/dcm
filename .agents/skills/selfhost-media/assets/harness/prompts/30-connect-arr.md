@@ -3,7 +3,7 @@
 ## Actions
 
 Do not rebuild the pipeline manually. `scripts/session.sh bootstrap "$RUN_ID"`
-live-tests candidate public indexers until one works, configures both download
+live-tests available public indexers until one works, configures both download
 clients and Full Sync applications, triggers `ApplicationIndexerSync`, and
 waits for the chosen indexer downstream.
 

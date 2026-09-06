@@ -1,6 +1,6 @@
 ---
 name: selfhost-homarr
-description: Add Homarr v2 as an optional private dashboard and read-only agent gateway. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, Codex or Claude Code client setup, generated-dashboard evidence, or Seerr title search that must stop before requesting.
+description: Media pack adapter. Add Homarr v2 as an optional private dashboard and read-only agent gateway when directly requested or delegated by a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.
 ---

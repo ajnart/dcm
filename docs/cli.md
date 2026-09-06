@@ -32,6 +32,37 @@ JSON commands use:
 Exit `0` means pass or warning, `1` an unexpected internal failure, `2` invalid
 usage, `3` a safety or evidence block, and `4` an ownership or state conflict.
 
+## Stack lifecycle
+
+Resolve the installed `selfhost-setup` directory and run its Bun TypeScript
+CLI. It never installs or applies by itself; explicit setup/upkeep agents
+execute the returned prerequisite commands and delegate each approved change.
+
+```text
+bun scripts/stack.ts profiles [--json]
+bun scripts/stack.ts prerequisites --profile ID [--profile ID] --agent codex|claude-code --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
+bun scripts/stack.ts init --project-root ABSOLUTE --profile ID [--adapter selfhost-media --run-id ID] [--service ID=OWNER] [--consume PROFILE=SERVICE] [--json]
+bun scripts/stack.ts show|validate --project-root ABSOLUTE [--json]
+bun scripts/stack.ts resume --project-root ABSOLUTE [--json]
+bun scripts/stack.ts extend --project-root ABSOLUTE --profile ID [--adapter selfhost-media --run-id ID] [--service ID=OWNER] [--consume PROFILE=SERVICE] [--json]
+bun scripts/stack.ts checkpoint --project-root ABSOLUTE --stage planned|applied|verified [--evidence TYPE:ID] [--json]
+```
+
+`profiles` and the first `prerequisites` pass resolve the checked `basic`, pack,
+and extension closures without mutation. Project-scoped checks require
+`--project-root` so installed-skill detection and returned command working
+directories match the requested client and scope. After the returned installs are
+approved and run, repeat `prerequisites` with `--verify-browser`; that pass uses
+the official browser doctor and may clean stale agent-browser daemon sidecars.
+`init`, `extend`, and `checkpoint` write only private
+`.selfhost/stack.json`. `--consume PROFILE=SERVICE` explicitly binds extensions
+to the recorded service IDs they affect. `show` and `validate` are read-only. Media metadata
+points to a private `connections.env` containing URLs, usernames, and API keys;
+it records no initial password. Before `applied`, `resume` reports that adapter
+connection state is pending so interrupted setup can continue. At `applied` or
+`verified`, it delegates a secret-free exact connection-file check to the
+recorded adapter and fails closed on drift.
+
 ## Skill-pack maintenance
 
 ```text

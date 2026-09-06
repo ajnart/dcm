@@ -40,21 +40,22 @@ const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "scripts/validate-repo.ts",
 ]);
 const GLOBAL_COPY_INSTALL_COMMAND =
-  "bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes";
+  "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes";
 const DOCUMENTATION_CONTRACTS = [
   {
     path: "README.md",
     required: [
+      ["interactive install command", "bunx --bun skills@latest add ajnart/selfhost-skills"],
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "private install command",
-        "bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+        "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
       ],
       [
         "broad all-agents warning",
         "`--all` is deliberately broader: it selects every skill for every agent target",
       ],
-      ["private list command", "bunx skills@latest add ajnart/selfhost-skills --list"],
+      ["private list command", "bunx --bun skills@latest add ajnart/selfhost-skills --list"],
       [
         "install prerequisite",
         "Before running it, install Git and Bun 1.4.0 or newer",
@@ -63,7 +64,12 @@ const DOCUMENTATION_CONTRACTS = [
       ["selective skill flag", "--skill"],
       ["selective agent flag", "--agent"],
       ["copy-mode flag", "--copy"],
+      ["profile CLI", "bun run stack profiles"],
+      ["explicit setup entry point", "$selfhost-setup"],
+      ["explicit upkeep entry point", "$selfhost-upkeep"],
       ["preferences path", ".selfhost/preferences.json"],
+      ["stack metadata path", ".selfhost/stack.json"],
+      ["private connection file", "connections.env"],
       [
         "skill registry path",
         ".agents/skills/selfhost/references/catalog/skills.json",
@@ -86,15 +92,22 @@ const DOCUMENTATION_CONTRACTS = [
   {
     path: ".agents/install.md",
     required: [
+      ["interactive install command", "bunx --bun skills@latest add ajnart/selfhost-skills"],
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "targeted agent install command",
-        "bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+        "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
       ],
       [
         "all-agents fan-out warning",
-        "The CLI's `--all` flag is intentionally broader",
+        "`--all` is broader than `--skill '*'`",
       ],
+      ["install profile manifest", "selfhost-setup/references/install-profiles.json"],
+      ["explicit setup entry point", "$selfhost-setup"],
+      ["explicit upkeep entry point", "$selfhost-upkeep"],
+      ["stack metadata path", ".selfhost/stack.json"],
+      ["private connection file", "connections.env"],
+      ["browser prerequisite", "agent-browser"],
     ],
   },
   {
@@ -127,6 +140,7 @@ const STANDARD_FRONTMATTER_KEYS = new Set([
   "allowed-tools",
   "compatibility",
   "description",
+  "disable-model-invocation",
   "license",
   "metadata",
   "name",
@@ -458,6 +472,7 @@ async function validateSkillMetadata() {
       const description = frontmatter.get("description");
       const license = frontmatter.get("license");
       const compatibility = frontmatter.get("compatibility");
+      const disableModelInvocation = frontmatter.get("disable-model-invocation");
       if (name !== skill.name) {
         fail(`skill ${skill.name}: frontmatter name must match its directory`);
       }
@@ -529,6 +544,14 @@ async function validateSkillMetadata() {
         || !defaultPrompt.includes(`$${skill.name}`)
       ) {
         fail(`skill ${skill.name}: default_prompt must mention $${skill.name}`);
+      }
+      if (disableModelInvocation !== undefined) {
+        if (disableModelInvocation !== "true") {
+          fail(`skill ${skill.name}: disable-model-invocation must be true when present`);
+        }
+        if (!/^  allow_implicit_invocation: false$/m.test(yaml)) {
+          fail(`skill ${skill.name}: explicit invocation policy is missing`);
+        }
       }
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -926,7 +949,7 @@ async function loadStrictSkillRegistry() {
     || !schema.required.includes("packVersion")
     || !schema.required.includes("skills")
     || !isPlainObject(schemaVersion)
-    || schemaVersion.const !== 3
+    || schemaVersion.const !== 4
     || !isPlainObject(schemaPackVersion)
     || schemaPackVersion.type !== "string"
     || !isPlainObject(schemaSkills)
@@ -937,15 +960,15 @@ async function loadStrictSkillRegistry() {
     || schemaItems.type !== "object"
     || schemaItems.additionalProperties !== false
     || !Array.isArray(schemaItems.required)
-    || !hasExactKeys(schemaItemProperties, ["activation", "delegatesTo", "id", "kind", "risk", "scope"])
+    || !hasExactKeys(schemaItemProperties, ["activation", "delegatesTo", "id", "install", "kind", "risk", "scope"])
   ) {
     fail("skill registry: skills.schema.json contract is invalid");
   }
   if (!hasExactKeys(registry, ["packVersion", "schemaVersion", "skills"])) {
     fail("skill registry: root contains missing or unsupported fields");
   }
-  if (registry.schemaVersion !== 3) {
-    errors.push("skill registry: schemaVersion must be 3");
+  if (registry.schemaVersion !== 4) {
+    errors.push("skill registry: schemaVersion must be 4");
   }
   if (
     typeof registry.packVersion !== "string"
@@ -967,7 +990,7 @@ async function loadStrictSkillRegistry() {
   for (let index = 0; index < registry.skills.length; index += 1) {
     const record = registry.skills[index];
     const label = `record ${index + 1}`;
-    if (!hasExactKeys(record, ["activation", "delegatesTo", "id", "kind", "risk", "scope"])) {
+    if (!hasExactKeys(record, ["activation", "delegatesTo", "id", "install", "kind", "risk", "scope"])) {
       errors.push(`skill registry: ${label} contains missing or unsupported fields`);
       continue;
     }
@@ -988,7 +1011,7 @@ async function loadStrictSkillRegistry() {
     ids.add(record.id);
     records.set(record.id, record);
 
-    if (!["router", "capability", "adapter"].includes(record.kind)) {
+    if (!["router", "capability", "adapter", "workflow"].includes(record.kind)) {
       errors.push(`skill registry: ${record.id} has an invalid kind`);
     }
     if (!["read-only", "approval-gated-write"].includes(record.risk)) {
@@ -1002,6 +1025,37 @@ async function loadStrictSkillRegistry() {
     }
     if (record.kind === "router" && record.activation !== "implicit") {
       errors.push(`skill registry: router ${record.id} must use implicit activation`);
+    }
+    if (record.kind === "workflow" && (record.activation !== "explicit" || record.scope !== null)) {
+      errors.push(`skill registry: workflow ${record.id} must be explicit with null scope`);
+    }
+    if (record.kind === "workflow") {
+      try {
+        const markdown = await readFile(join(SKILLS_ROOT, record.id, "SKILL.md"), "utf8");
+        const frontmatter = parseFrontmatter(markdown, `skill ${record.id}`);
+        const openAi = await readFile(join(SKILLS_ROOT, record.id, "agents", "openai.yaml"), "utf8");
+        if (frontmatter.get("disable-model-invocation") !== "true") {
+          errors.push(`skill registry: workflow ${record.id} must disable model invocation`);
+        }
+        if (!/^  allow_implicit_invocation: false$/m.test(openAi)) {
+          errors.push(`skill registry: workflow ${record.id} must disable implicit OpenAI invocation`);
+        }
+      } catch {
+        errors.push(`skill registry: workflow ${record.id} metadata is unreadable`);
+      }
+    }
+    if (!hasExactKeys(record.install, ["group", "requires"])) {
+      errors.push(`skill registry: ${record.id} install metadata is invalid`);
+    } else {
+      if (!["base", "pack", "extension"].includes(record.install.group)) {
+        errors.push(`skill registry: ${record.id} install group is invalid`);
+      }
+      if (!Array.isArray(record.install.requires) || new Set(record.install.requires).size !== record.install.requires.length) {
+        errors.push(`skill registry: ${record.id} install requirements must be a unique array`);
+      }
+      if (record.kind === "workflow" && record.install.group !== "base") {
+        errors.push(`skill registry: workflow ${record.id} must be in the base install group`);
+      }
     }
     if (record.kind === "adapter") {
       adapters.add(record.id);
@@ -1034,6 +1088,17 @@ async function loadStrictSkillRegistry() {
         errors.push(`skill registry: ${record.id} cannot delegate to itself`);
       }
     }
+    if (!record.install || !Array.isArray(record.install.requires)) {
+      continue;
+    }
+    for (const target of record.install.requires) {
+      if (!ids.has(target)) {
+        errors.push(`skill registry: ${record.id} requires missing skill ${target}`);
+      }
+      if (target === record.id) {
+        errors.push(`skill registry: ${record.id} cannot require itself`);
+      }
+    }
   }
 
   const visiting = new Set();
@@ -1060,6 +1125,32 @@ async function loadStrictSkillRegistry() {
   }
   for (const id of ids) {
     visit(id);
+  }
+
+  const installVisiting = new Set();
+  const installVisited = new Set();
+  function visitInstall(id) {
+    if (installVisiting.has(id)) {
+      errors.push(`skill registry: install dependency cycle includes ${id}`);
+      return;
+    }
+    if (installVisited.has(id)) {
+      return;
+    }
+    installVisiting.add(id);
+    const record = records.get(id);
+    if (record && record.install && Array.isArray(record.install.requires)) {
+      for (const target of record.install.requires) {
+        if (records.has(target)) {
+          visitInstall(target);
+        }
+      }
+    }
+    installVisiting.delete(id);
+    installVisited.add(id);
+  }
+  for (const id of ids) {
+    visitInstall(id);
   }
 
   for (const skillName of [...available].sort()) {

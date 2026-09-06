@@ -11,6 +11,7 @@
   },
   "scripts": {
     "selfhost": "bun .agents/skills/selfhost/scripts/selfhost.ts",
+    "stack": "bun .agents/skills/selfhost-setup/scripts/stack.ts",
     "skillpack": "bun scripts/skillpack.ts",
     "inspect": "bun scripts/skillpack.ts inspect",
     "audit": "bun scripts/skillpack.ts audit",

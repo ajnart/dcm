@@ -448,8 +448,7 @@ export function storeHomarrApiKey(session, apiKey) {
   }
 }
 
-function credentialsContents(session, homarrApiKey) {
-  const password = deriveSessionPassword(session);
+export function connectionsContents(session, homarrApiKey) {
   const lines = [`RUN_ID=${session.runId}`];
   for (const [service, portKey, apiKey] of [
     ["PROWLARR", "PROWLARR_PORT", session.secrets.PROWLARR_API_KEY],
@@ -463,9 +462,8 @@ function credentialsContents(session, homarrApiKey) {
     lines.push(
       `${service}_URL=http://localhost:${session.manifest[portKey]}`,
       `${service}_USERNAME=${STANDARD_USERNAME}`,
-      `${service}_PASSWORD=${password}`,
     );
-    if (apiKey !== null) {
+    if (apiKey !== null && apiKey !== "") {
       lines.push(`${service}_API_KEY=${apiKey}`);
     }
   }
@@ -473,124 +471,126 @@ function credentialsContents(session, homarrApiKey) {
   return lines.join("\n");
 }
 
-function validateCredentialsFile(session, options = {}) {
+function validateConnectionsFile(session, options = {}) {
   const optional = options.optional === true;
   const expectedContents = options.expectedContents;
-  const filePath = join(session.sessionDir, "credentials.env");
+  const filePath = join(session.sessionDir, "connections.env");
   try {
     lstatSync(filePath);
   } catch (error) {
     if (optional && error?.code === "ENOENT") {
       return null;
     }
-    fail("credentials file is missing");
+    fail("connections file is missing");
   }
 
-  assertPrivateControlFile(filePath, session.sessionDir, "credentials file");
+  assertPrivateControlFile(filePath, session.sessionDir, "connections file");
   const contents = readFileSync(filePath, "utf8");
   if (Buffer.byteLength(contents, "utf8") > 8_192) {
-    fail("credentials file is too large");
+    fail("connections file is too large");
   }
-  if (expectedContents === undefined) {
-    return Object.freeze({ filePath });
-  }
-  if (contents !== expectedContents) {
-    fail("credentials file did not persist correctly");
+  if (expectedContents !== undefined && contents !== expectedContents) {
+    fail("connections file did not persist correctly");
   }
 
   const keys = new Set();
   const lines = contents.endsWith("\n")
     ? contents.slice(0, -1).split("\n")
     : [];
-  if (lines.length !== 27) {
-    fail("credentials file has an unexpected schema");
-  }
   for (const line of lines) {
     const separator = line.indexOf("=");
     if (separator <= 0) {
-      fail("credentials file contains an invalid entry");
+      fail("connections file contains an invalid entry");
     }
     const key = line.slice(0, separator);
     const value = line.slice(separator + 1);
     if (keys.has(key)) {
-      fail("credentials file contains a duplicate entry");
+      fail("connections file contains a duplicate entry");
     }
     keys.add(key);
 
     if (key === "RUN_ID") {
       if (value !== session.runId) {
-        fail("credentials file RUN_ID mismatch");
+        fail("connections file RUN_ID mismatch");
       }
       continue;
     }
     if (key.endsWith("_URL")) {
       if (!/^http:\/\/localhost:\d+$/.test(value)) {
-        fail("credentials file contains an invalid URL");
+        fail("connections file contains an invalid URL");
       }
       continue;
     }
     if (key.endsWith("_USERNAME")) {
       if (value !== STANDARD_USERNAME) {
-        fail("credentials file contains an invalid username");
-      }
-      continue;
-    }
-    if (key.endsWith("_PASSWORD")) {
-      if (!/^Autostack-[0-9a-f]{24}!$/.test(value)) {
-        fail("credentials file contains an invalid password");
+        fail("connections file contains an invalid username");
       }
       continue;
     }
     if (key === "HOMARR_API_KEY") {
-      if (value !== "") {
-        validateHomarrApiKey(value);
-      }
+      validateHomarrApiKey(value);
       continue;
     }
     if (key.endsWith("_API_KEY")) {
       if (!/^[0-9a-f]{32}$/.test(value)) {
-        fail("credentials file contains an invalid API key");
+        fail("connections file contains an invalid API key");
       }
       continue;
     }
-    fail("credentials file contains an unexpected entry");
+    fail("connections file contains an unexpected entry");
   }
 
   const expectedKeys = new Set([
     "RUN_ID",
     ...["PROWLARR", "RADARR", "SONARR", "QBITTORRENT", "JELLYFIN", "SEERR", "HOMARR"]
-      .flatMap((service) => [
-        `${service}_URL`,
-        `${service}_USERNAME`,
-        `${service}_PASSWORD`,
-      ]),
+      .flatMap((service) => [`${service}_URL`, `${service}_USERNAME`]),
     "PROWLARR_API_KEY",
     "RADARR_API_KEY",
     "SONARR_API_KEY",
     "SEERR_API_KEY",
-    "HOMARR_API_KEY",
   ]);
+  if (keys.has("HOMARR_API_KEY")) {
+    expectedKeys.add("HOMARR_API_KEY");
+  }
   if (keys.size !== expectedKeys.size) {
-    fail("credentials file has an unexpected schema");
+    fail("connections file has an unexpected schema");
   }
   for (const key of expectedKeys) {
     if (!keys.has(key)) {
-      fail("credentials file is incomplete");
+      fail("connections file is incomplete");
     }
   }
   return Object.freeze({ filePath });
 }
 
-export function writeSessionCredentials(runId) {
-  const session = loadSession(runId);
+function removeLegacyCredentialsFile(session) {
+  const filePath = join(session.sessionDir, "credentials.env");
+  try {
+    const stat = assertPrivateControlFile(
+      filePath,
+      session.sessionDir,
+      "legacy credentials file",
+    );
+    if (stat.size > 8_192) {
+      fail("legacy credentials file is too large");
+    }
+    unlinkSync(filePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+}
+
+export function writeConnectionsFile(session, homarrApiKey = "") {
   requireSessionPasswordScheme(session);
-  validateCredentialsFile(session, { optional: true });
-  const homarr = loadHomarrApiKey(session, { optional: true });
-  const contents = credentialsContents(session, homarr?.apiKey ?? "");
-  const destination = join(session.sessionDir, "credentials.env");
+  validateConnectionsFile(session, { optional: true });
+  const contents = connectionsContents(session, homarrApiKey);
+  const destination = join(session.sessionDir, "connections.env");
   const replacement = join(
     session.sessionDir,
-    `.credentials.env.${randomBytes(12).toString("hex")}`,
+    `.connections.env.${randomBytes(12).toString("hex")}`,
   );
   let descriptor;
   let cleanupArmed = false;
@@ -600,11 +600,11 @@ export function writeSessionCredentials(runId) {
     const pathStat = assertPrivateControlFile(
       replacement,
       session.sessionDir,
-      "replacement credentials file",
+      "replacement connections file",
     );
     const descriptorStat = fstatSync(descriptor);
     if (descriptorStat.dev !== pathStat.dev || descriptorStat.ino !== pathStat.ino) {
-      fail("replacement credentials file changed after creation");
+      fail("replacement connections file changed after creation");
     }
     cleanupArmed = true;
     writeFileSync(descriptor, contents, "utf8");
@@ -614,11 +614,12 @@ export function writeSessionCredentials(runId) {
     assertPrivateControlFile(
       replacement,
       session.sessionDir,
-      "replacement credentials file",
+      "replacement connections file",
     );
     renameSync(replacement, destination);
     cleanupArmed = false;
-    validateCredentialsFile(session, { expectedContents: contents });
+    validateConnectionsFile(session, { expectedContents: contents });
+    removeLegacyCredentialsFile(session);
     const directoryDescriptor = openSync(session.sessionDir, "r");
     try {
       fsyncSync(directoryDescriptor);
@@ -633,7 +634,7 @@ export function writeSessionCredentials(runId) {
       assertPrivateControlFile(
         replacement,
         session.sessionDir,
-        "replacement credentials file",
+        "replacement connections file",
       );
       unlinkSync(replacement);
     }
@@ -641,27 +642,49 @@ export function writeSessionCredentials(runId) {
 
   return Object.freeze({
     filePath: destination,
-    homarrApiKeyStored: homarr !== null,
+    homarrApiKeyStored: homarrApiKey !== "",
   });
+}
+
+export function writeSessionConnections(runId) {
+  const session = loadSession(runId);
+  const homarr = loadHomarrApiKey(session, { optional: true });
+  return writeConnectionsFile(session, homarr?.apiKey ?? "");
 }
 
 function shellQuote(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-export function printSessionCredentialsSummary(result) {
+export function printSessionConnectionsSummary(result) {
   let homarrStatus = "pending capture";
   if (result.homarrApiKeyStored) {
     homarrStatus = "included";
   }
   process.stdout.write([
-    "PASS private credentials file refreshed",
-    `Credentials file: ${result.filePath}`,
+    "PASS private connections file refreshed",
+    `Connections file: ${result.filePath}`,
     `Reveal locally: cat -- ${shellQuote(result.filePath)}`,
     "Services: Homarr dashboard/MCP; Seerr requests; Sonarr shows; Radarr movies; Prowlarr indexers; qBittorrent downloads; Jellyfin playback.",
-    `Stored access: 7 service URLs, 7 admin logins, 4 service API keys; Homarr API key ${homarrStatus}.`,
+    `Stored access: 7 service URLs, 7 admin usernames, 4 service API keys; Homarr API key ${homarrStatus}. No password is persisted.`,
     "",
   ].join("\n"));
+}
+
+export function handoffContents(session) {
+  requireSessionPasswordScheme(session);
+  return [
+    "PASS user access handoff ready",
+    `Admin username: ${STANDARD_USERNAME}`,
+    `Admin password: ${deriveSessionPassword(session)}`,
+    "",
+  ].join("\n");
+}
+
+export function printSessionHandoff(runId) {
+  const result = writeSessionConnections(runId);
+  printSessionConnectionsSummary(result);
+  process.stdout.write(handoffContents(loadSession(runId)));
 }
 
 export function refreshArrKeys(runId) {
@@ -962,13 +985,17 @@ export function normalizeName(value) {
 const invokedFile = Bun.argv[1] ? resolve(Bun.argv[1]) : "";
 if (invokedFile === fileURLToPath(import.meta.url)) {
   try {
-    if (Bun.argv.length !== 4 || Bun.argv[2] !== "credentials") {
-      fail("usage: session-context.ts credentials RUN_ID");
+    if (Bun.argv.length !== 4 || !["connections", "handoff"].includes(Bun.argv[2])) {
+      fail("usage: session-context.ts connections|handoff RUN_ID");
     }
-    const result = writeSessionCredentials(Bun.argv[3]);
-    printSessionCredentialsSummary(result);
+    if (Bun.argv[2] === "connections") {
+      const result = writeSessionConnections(Bun.argv[3]);
+      printSessionConnectionsSummary(result);
+    } else {
+      printSessionHandoff(Bun.argv[3]);
+    }
   } catch {
-    process.stdout.write("FAIL private credentials file refresh\n");
+    process.stdout.write("FAIL session connections or handoff\n");
     process.exitCode = 1;
   }
 }

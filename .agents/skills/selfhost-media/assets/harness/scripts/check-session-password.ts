@@ -3,7 +3,16 @@
 import assert from "node:assert/strict";
 import { spawn as realSpawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { readFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -15,9 +24,12 @@ import {
 } from "./fill-browser-password.ts";
 import {
   classifySessionPasswordScheme,
+  connectionsContents,
   deriveSessionPassword,
+  handoffContents,
   REPO_ROOT,
   SESSION_PASSWORD_SCHEME,
+  writeConnectionsFile,
 } from "./lib/session-context.ts";
 
 const NODE_DEBUG_RUNNER_ARGUMENT = "--node-debug-runner";
@@ -41,7 +53,9 @@ const CURRENT_SCHEME_SESSION_COMMANDS = [
   "homarr-key",
   "homarr-finalize",
   "mcp-config",
-  "credentials",
+  "connections-check",
+  "connections",
+  "handoff",
 ];
 
 function sessionFor(runId, keyByte) {
@@ -49,10 +63,21 @@ function sessionFor(runId, keyByte) {
     runId,
     manifest: {
       AGENT_BROWSER_SESSION: `auto-stack-${runId}`,
+      HOMARR_PORT: "21006",
+      JELLYFIN_PORT: "21004",
+      PROWLARR_PORT: "21000",
+      QBITTORRENT_PORT: "21003",
+      RADARR_PORT: "21001",
+      SEERR_PORT: "21005",
       SESSION_PASSWORD_SCHEME,
+      SONARR_PORT: "21002",
     },
     secrets: {
       HOMARR_ENCRYPTION_KEY: keyByte.repeat(64),
+      PROWLARR_API_KEY: "a".repeat(32),
+      RADARR_API_KEY: "b".repeat(32),
+      SEERR_API_KEY: "c".repeat(32),
+      SONARR_API_KEY: "d".repeat(32),
     },
   };
 }
@@ -274,6 +299,55 @@ function assertLegacySessionCommandPolicy() {
     );
   }
 
+  const legacyValidatorStart = sessionScript.indexOf(
+    "validate_legacy_credentials_control_file()",
+  );
+  const legacyValidatorEnd = sessionScript.indexOf(
+    "\n}\n\nvalidate_connections_schema_file()",
+    legacyValidatorStart,
+  );
+  assert.notEqual(legacyValidatorStart, -1, "legacy credentials validator is missing");
+  assert.notEqual(legacyValidatorEnd, -1, "legacy credentials validator boundary is missing");
+  const legacyValidator = sessionScript.slice(legacyValidatorStart, legacyValidatorEnd);
+  assert.equal(
+    legacyValidator.includes("validate_private_control_file"),
+    true,
+    "legacy credentials must retain private control-file validation",
+  );
+  assert.equal(
+    legacyValidator.includes("grep -q '^SESSION_PASSWORD_SCHEME=' \"$manifest_file\""),
+    true,
+    "legacy credentials must be rejected for current-scheme sessions",
+  );
+  assert.equal(
+    legacyValidator.includes('< "$file_path"'),
+    false,
+    "legacy credentials validation must not read secret payloads",
+  );
+  assert.equal(
+    sessionScript.match(/! -path "\$SESSION_DIR\/credentials\.env"/g)?.length,
+    4,
+    "every normal-session destroy allowlist must include legacy credentials",
+  );
+  assert.equal(
+    sessionScript.match(/! -path "\$tombstone_dir\/credentials\.env"/g)?.length,
+    1,
+    "the tombstone allowlist must include legacy credentials",
+  );
+  const tombstoneDeleteStart = sessionScript.indexOf("for control_file in \\");
+  const credentialsDeleteIndex = sessionScript.indexOf(
+    '"$tombstone_dir/credentials.env"',
+    tombstoneDeleteStart,
+  );
+  const manifestDeleteIndex = sessionScript.indexOf(
+    '"$tombstone_dir/manifest.env"',
+    tombstoneDeleteStart,
+  );
+  assert.ok(
+    tombstoneDeleteStart < credentialsDeleteIndex && credentialsDeleteIndex < manifestDeleteIndex,
+    "legacy credentials must be deleted before the manifest for retry safety",
+  );
+
   assertGateOrder(
     readFileSync(join(REPO_ROOT, "scripts", "store-homarr-key.ts"), "utf8"),
     "const session = loadSession(Bun.argv[2]);",
@@ -409,11 +483,9 @@ async function runChecks() {
   assert.equal(fallbackInvocations[0].executable, "agent-browser");
   assert.deepEqual(fallbackInvocations[0].args, directInvocation.args);
   assert.equal(fallbackInvocations[0].child.capturedInput(), "");
-  assert.equal(fallbackInvocations[1].executable, "mise");
+  assert.equal(fallbackInvocations[1].executable, "bunx");
   assert.deepEqual(fallbackInvocations[1].args, [
-    "exec",
-    "node@24",
-    "--",
+    "--bun",
     "agent-browser",
     "--session",
     "auto-stack-alpha",
@@ -502,12 +574,62 @@ async function runChecks() {
   assert.equal(BROWSER_PASSWORD_PASS_LINE, "PASS browser password filled\n");
   assert.equal(BROWSER_PASSWORD_FAIL_LINE, "FAIL browser password fill\n");
 
+  const connectionsWithoutHomarr = connectionsContents(alphaSession, "");
+  assert.equal(connectionsWithoutHomarr.includes("_PASSWORD="), false);
+  assert.equal(connectionsWithoutHomarr.includes(alphaPassword), false);
+  assert.equal(
+    connectionsWithoutHomarr.includes(alphaSession.secrets.HOMARR_ENCRYPTION_KEY),
+    false,
+  );
+  assert.equal(connectionsWithoutHomarr.includes("HOMARR_API_KEY="), false);
+  assert.equal(connectionsWithoutHomarr.includes("PROWLARR_API_KEY="), true);
+  assert.equal(connectionsWithoutHomarr.includes("SEERR_API_KEY="), true);
+
+  const homarrApiKey = `${"e".repeat(16)}.${"f".repeat(16)}`;
+  const connectionsWithHomarr = connectionsContents(alphaSession, homarrApiKey);
+  assert.equal(connectionsWithHomarr.includes(`HOMARR_API_KEY=${homarrApiKey}`), true);
+  assert.equal(connectionsWithHomarr.includes("_PASSWORD="), false);
+
+  const handoff = handoffContents(alphaSession);
+  assert.equal(handoff.includes("Admin username: admin"), true);
+  assert.equal(handoff.includes(`Admin password: ${alphaPassword}`), true);
+  assert.equal(handoff.includes(alphaSession.secrets.HOMARR_ENCRYPTION_KEY), false);
+
+  const connectionDirectory = mkdtempSync(join(tmpdir(), "auto-stack-connections-"));
+  chmodSync(connectionDirectory, 0o700);
+  try {
+    const fileSession = { ...alphaSession, sessionDir: connectionDirectory };
+    const legacyPath = join(connectionDirectory, "credentials.env");
+    writeFileSync(legacyPath, `ADMIN_PASSWORD=${alphaPassword}\n`, { mode: 0o600 });
+    const result = writeConnectionsFile(fileSession, homarrApiKey);
+    const persisted = readFileSync(result.filePath, "utf8");
+    assert.equal(statSync(result.filePath).mode & 0o777, 0o600);
+    assert.equal(persisted, connectionsWithHomarr);
+    assert.equal(persisted.includes(alphaPassword), false);
+    assert.equal(persisted.includes("PASSWORD="), false);
+    assert.equal(existsSync(legacyPath), false);
+
+    writeFileSync(result.filePath, `${persisted}ADMIN_PASSWORD=${alphaPassword}\n`, { mode: 0o600 });
+    assert.throws(() => writeConnectionsFile(fileSession, homarrApiKey));
+    assert.equal(readFileSync(result.filePath, "utf8").includes("ADMIN_PASSWORD="), true);
+  } finally {
+    rmSync(connectionDirectory, { force: true, recursive: true });
+  }
+
+  const sessionContextSource = readFileSync(
+    join(REPO_ROOT, "scripts", "lib", "session-context.ts"),
+    "utf8",
+  );
+  assert.equal(sessionContextSource.includes("legacy credentials file"), true);
+  assert.equal(sessionContextSource.includes("connections.env"), true);
+
   assertLegacySessionCommandPolicy();
   await runNodeDebugRegression();
 
   process.stdout.write("PASS session password derivation and scheme gating\n");
   process.stdout.write("PASS legacy session command policy\n");
   process.stdout.write("PASS browser password helper\n");
+  process.stdout.write("PASS password-free connections and explicit handoff\n");
   process.stdout.write("PASS NODE_DEBUG child-process redaction\n");
 }
 

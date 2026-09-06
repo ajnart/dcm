@@ -91,6 +91,28 @@
       ]
     },
     {
+      "id": "selfhost-setup",
+      "structuredInput": false,
+      "scenarios": [
+        { "name": "media-lifecycle", "classes": ["happy"] },
+        { "name": "checkpoint-and-secret-rejection", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
+      "id": "selfhost-upkeep",
+      "structuredInput": false,
+      "scenarios": [
+        { "name": "retain-and-extend", "classes": ["happy"] },
+        { "name": "runtime-replacement-rejection", "classes": ["rejection"] },
+        { "name": "pending-pre-apply-resume", "classes": ["happy"] },
+        { "name": "connection-resume", "classes": ["happy"] },
+        { "name": "media-extension-runtime-reservation", "classes": ["happy", "rejection"] },
+        { "name": "missing-connection-state", "classes": ["rejection"] },
+        { "name": "symlinked-connection-state", "classes": ["rejection"] },
+        { "name": "tampered-connection-state", "classes": ["rejection", "secret"] }
+      ]
+    },
+    {
       "id": "selfhost-verify",
       "structuredInput": true,
       "scenarios": [

@@ -12,21 +12,32 @@ permission to change your host.
 Not every subscription has a practical self-hosted replacement. The catalog
 explains tradeoffs and keeps the final choice yours.
 
-## Install once, use anywhere
+## Install and choose your stack
 
 Before running it, install Git and Bun 1.4.0 or newer, including `bunx`.
 
-Install all skills globally into Codex and Claude Code as standalone copies:
+Start the interactive installer from the project that will own the stack:
 
 ```bash
-bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+bunx --bun skills@latest add ajnart/selfhost-skills
 ```
 
-Run this command from any directory. `--global` makes the pack available
-outside one project. `--copy` gives each selected client its own complete skill
-directories instead of linking clients to the installer's canonical copy.
-Neither mode links back to this repository; after installation, no clone,
-checkout, or source-repository path is needed at runtime.
+Choose all seven entries labeled Base, then only the Media pack or Optional
+entries you want. The required `basic` profile is setup, upkeep, planning,
+host inspection, Compose, operations, and verification. The `media` pack adds the exact
+seven-service Media + Homarr workflow. Backup, ingress, observability, research,
+and downloader VPN are independent extensions. Setup checks this dependency
+closure and installs anything you missed.
+
+To install the complete pack globally into Codex and Claude Code instead:
+
+```bash
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+```
+
+`--global` makes the selection available outside one project. `--copy` gives
+each client complete standalone skill directories. Neither mode needs this
+source checkout after installation.
 
 The versioned release ZIP contains the native `skills/`, `.codex-plugin/`, and
 `.claude-plugin/` layout used for plugin validation and public-directory
@@ -37,15 +48,23 @@ See the generated [skill index](SKILL_INDEX.md) for risk, activation, and
 compatibility metadata. Never put a token in an install command, clone URL,
 prompt, shell history, or a checked-in file.
 
+From a source checkout, inspect the same checked profiles through the Bun
+TypeScript CLI:
+
+```bash
+bun run stack profiles
+```
+
 ## Your first conversation
 
-Start with the client-native invocation or ordinary language:
+Invoke setup on purpose when you want changes:
 
 | Client | Start here |
 | --- | --- |
-| Codex | `$selfhost` or `$selfhost photos` |
-| Claude Code | `/selfhost` or `/selfhost netflix` |
-| Either | “Help me replace Dropbox on my existing server.” |
+| Codex | `$selfhost-setup media` |
+| Claude Code | `/selfhost-setup media` |
+| Existing stack | `$selfhost-upkeep` or `/selfhost-upkeep` |
+| Plan only | `$selfhost photos`, `/selfhost netflix`, or ordinary language |
 
 The skill keeps the conversation short. It asks only for choices that affect
 the result:
@@ -68,7 +87,7 @@ decision.
 For example:
 
 ```text
-You:    $selfhost photos
+You:    $selfhost-setup photos
 Agent:  I can plan Immich on this host. Private access is the default.
         Should I use the recommended credential policy and services, or do
         you want to change them or add the optional Homarr dashboard?
@@ -76,9 +95,9 @@ You:    Use the defaults, but add Homarr.
 Agent:  I’ll inspect the host read-only and show you the plan before changes.
 ```
 
-Do not paste an existing password or API key into chat. The agent can ask which
-credential strategy you prefer, then resolve or generate the value only at the
-narrow apply boundary.
+Do not paste an existing password or API key into chat. The setup agent resolves
+or generates values only at the narrow apply boundary. For the managed media
+pack, it tells you the generated `admin` password at final handoff.
 
 ## Homarr: the optional front door
 
@@ -104,26 +123,32 @@ deployment or every integration is verified._
 
 ![Selfhost conversation and approval flow](docs/images/selfhost-flow.svg)
 
-1. **Understand the goal.** The router turns a purpose into a small set of
+1. **Resolve the selected profile.** `$selfhost-setup` first checks the required
+   Base, Pack, and Extension skills without mutating browser state. Through the
+   normal approval flow it installs missing selected skills plus the official
+   `agent-browser` skill, CLI, and browser, then runs the gated browser check.
+2. **Understand the goal.** The router turns a purpose into a small set of
    service choices and offers recommended defaults.
-2. **Inspect read-only.** `selfhost-host` checks the platform, Docker context,
+3. **Inspect read-only.** `selfhost-host` checks the platform, Docker context,
    ports, paths, disks, networks, and bounded existing resources it can see.
-3. **Build a plan.** The selected capabilities describe reuse, conflicts,
+4. **Build a plan.** The selected capabilities describe reuse, conflicts,
    paths, exposure, secrets, backups, acceptance, and rollback without secret
    values.
-4. **Ask for approval.** The agent shows the exact project and operations.
+5. **Ask for approval.** The agent shows the exact project and operations.
    Material choices remain visible instead of being hidden behind defaults.
-5. **Apply narrowly.** Only the owning capability may change its explicitly
+6. **Apply narrowly.** Only the owning capability may change its explicitly
    identified Compose project or configuration boundary.
-6. **Verify independently.** Evidence is checked against the selected stack's
+7. **Verify independently.** Evidence is checked against the selected stack's
    acceptance contract. A running process or HTTP 200 is not broad success.
-7. **Hand back clearly.** The final summary says what changed, what stayed
-   untouched, what remains blocked, and how the human retrieves credentials.
+8. **Record and hand back.** Private `.selfhost/stack.json` records the profile,
+   owned services, explicit extension-to-service bindings, adapter pointers,
+   and typed checkpoint evidence for upkeep. The
+   final summary includes the media admin password when one was generated.
 
 Every run follows the same lifecycle:
 
 ```text
-inspect -> plan -> approval -> apply -> verify
+select -> inspect -> plan -> approval -> apply -> verify -> handoff
 ```
 
 Planning is a valid stopping point. If the host cannot be inspected, a secret
@@ -155,25 +180,26 @@ routing solve different problems. The skill asks which purpose you mean.
 
 ## Resume an existing project
 
-Return to the same project directory and invoke `/selfhost` or `$selfhost`
-again. The workflow reads confirmed, secret-free intent from:
+Return to the same project directory and explicitly invoke `$selfhost-upkeep`
+or `/selfhost-upkeep`. It reads confirmed intent and lifecycle state from:
 
 ```text
 .selfhost/preferences.json
 .selfhost/project.json
+.selfhost/stack.json
 ```
 
 `preferences.json` remembers choices such as paths, locale, exposure, and
 backup policy. `project.json` remembers the goal, selected services, plan
-fingerprint, workflow checkpoint, and short opaque evidence IDs. The first
-write also creates `.selfhost/.gitignore`; neither file stores credentials or
-raw host inventory.
+fingerprint, and planning checkpoint. `stack.json` records selected profiles,
+installed skills, owned services, explicit consuming-profile bindings, runtime
+and connection-file pointers, and typed lifecycle evidence. The first write
+creates `.selfhost/.gitignore`;
+these records contain neither raw host inventory nor secret values.
 
-With no new goal, the skill resumes the first incomplete stage. It still
-re-inspects the real host because containers, ports, disks, networks, and
-proxies may have changed. Saved context explains intent; it does not prove that
-current infrastructure is safe to reuse. Resources become `reuse`, `coexist`,
-or `conflict` only after ownership is known.
+Upkeep re-inspects the real host, then resumes, extends, updates, repairs, or
+re-verifies the exact recorded stack. Saved context explains intent; it does
+not prove that containers, ports, disks, networks, or proxies remain healthy.
 
 ## Credential handoff
 
@@ -181,11 +207,12 @@ The conversation may collect a username and credential policy only when the
 selected apply capability implements it. Secret values stay out of prompts,
 plans, logs, screenshots, fixtures, and client configuration.
 
-When an adapter creates credentials, the final summary reports a private file
-path and a local reveal command. For the seven-service media harness, that is
-one mode-`0600` `credentials.env` containing local URLs, the generated `admin`
-login, and available API keys. The agent reports the path, purpose, and
-presence of values—not the values themselves.
+For the seven-service media harness, one mode-`0600` `connections.env` retains
+local URLs, usernames, and available API keys so later extensions can wire
+services without rediscovery. It never stores the initial admin password.
+After verification, setup runs the explicit handoff command and tells the user
+the generated `admin` password directly. The stack record stores only the
+connection-file path and its non-secret schema, never its values.
 
 ## Safe by default
 
@@ -215,11 +242,15 @@ Declarative JSON holds catalog facts and stack choices. Small scripts perform
 bounded deterministic work such as inspection, rendering, validation,
 verification, and debugging; they do not become a second policy layer.
 
-`selfhost` is the user-facing router. It composes only the capabilities needed
-for the selected goal:
+`selfhost-setup` and `selfhost-upkeep` are explicit lifecycle entry points.
+`selfhost` remains the planning router. Together they compose only the
+capabilities needed for the selected profile and goal:
 
 | Skill | Boundary it owns |
 | --- | --- |
+| `selfhost-setup` | Prerequisites, selected-profile setup, stack metadata, and final access handoff |
+| `selfhost-upkeep` | Resume, extension, upgrade, repair, and re-verification of a recorded stack |
+| `selfhost` | Goal routing, catalog choices, preferences, and a redacted plan |
 | `selfhost-host` | Read-only host discovery and path advice |
 | `selfhost-compose` | One explicitly owned Docker Compose project |
 | `selfhost-ingress` | LAN, tailnet, reverse proxy, DNS, TLS, and tunnels |
@@ -232,7 +263,7 @@ for the selected goal:
 | `selfhost-media` | Opt-in Homarr-enhanced media harness |
 | `selfhost-homarr` | Optional dashboard, integrations, API, and read-only MCP |
 
-The checked registry contains 12 packaged skills, including 2 specialized adapters:
+The checked registry contains 14 packaged skills, including 2 specialized adapters:
 the stack-scoped `selfhost-media` and application-scoped `selfhost-homarr`.
 Capabilities remain separate so a photo setup does not inherit media,
 downloader, or public-network authority.
@@ -242,6 +273,8 @@ downloader, or public-network authority.
 ```text
 .agents/
 ├── skills/selfhost/              # Router, catalog, stack selection
+├── skills/selfhost-setup/        # Explicit new-stack lifecycle
+├── skills/selfhost-upkeep/       # Explicit continuation lifecycle
 ├── skills/selfhost-*/            # One operational boundary per capability
 ├── CONTEXT.md                    # Shared product and safety vocabulary
 ├── invocation.md                 # Composition and resume contract
@@ -291,29 +324,27 @@ reaches it over loopback, LAN, or a private tailnet.
 
 ## Installation options
 
-The global copy command at the top is the recommended install. For a
-project-local install, run this from that project directory:
+For a non-interactive project-local install of the complete pack:
 
 ```bash
-bunx skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
 ```
 
 List available skills without installing:
 
 ```bash
-bunx skills@latest add ajnart/selfhost-skills --list
+bunx --bun skills@latest add ajnart/selfhost-skills --list
 ```
 
 For a smaller install, replace `--skill '*'` with a named selection such as
-`--skill selfhost-host`, repeat it as needed, and keep only the intended
-`--agent` targets. Install every required sibling named by the selected stack;
-a missing sibling blocks apply.
+`--skill selfhost-setup`, repeat it for the desired profile, and keep only the
+intended `--agent` targets. The setup prerequisite gate resolves and offers to
+install every missing required sibling before apply.
 
 `--all` is deliberately broader: it selects every skill for every agent target
-supported by the CLI. Use it only when that fan-out is intentional. Keep
-`--copy` when each client should receive a direct copy instead of a link to the
-See [the installation contract](.agents/install.md) for global, project-local,
-copy, and selective-install behavior.
+supported by the CLI. Use it only when that fan-out is intentional. See
+[the installation contract](.agents/install.md) for exact Base, Pack,
+Extension, global, project-local, copy, and selective-install behavior.
 
 ## Requirements
 
@@ -324,9 +355,12 @@ copy, and selective-install behavior.
   that use Compose. Confirm the intended Docker context before any apply.
 - **Storage:** enough suitable storage for the selected workload, plus a
   distinct backup target when recovery matters.
-- **Browser evidence:** `agent-browser` under an active Node.js 22.20.0+
-  toolchain for browser-backed media checks. Use an isolated named session;
-  never disable Chromium's sandbox automatically.
+- **Browser evidence:** setup installs the official `agent-browser` skill, Bun
+  CLI package, and Chrome for Testing when they are absent. Its first
+  prerequisite pass is non-mutating; after approval, `--verify-browser` may
+  clean stale agent-browser daemon sidecars through the official doctor.
+  Browser-backed checks use an isolated named session and never disable
+  Chromium's sandbox automatically.
 - **Platform-specific dependencies:** follow the official source selected by
   `selfhost-research`; discovery never implies permission to install them.
 
@@ -350,19 +384,20 @@ bash scripts/smoke-install.sh
 ```
 
 The smoke check requires Bun 1.4.0 or newer. It resolves the installer through
-`bunx` and uses disposable projects to verify default symlink and explicit
-copy layouts. It does not change a real client or global configuration.
+`bunx --bun` and uses disposable projects to verify default symlink, explicit
+copy, and selected-profile layouts. It does not change a real client or global
+configuration.
 
 ## Troubleshooting
 
 - **Repository not found:** confirm the repository and requested release or
   branch exist; keep credentials out of commands and URLs.
 - **A required skill is missing:** install the full pack or the exact siblings
-  named by the plan.
+  returned by `$selfhost-setup` or `$selfhost-upkeep` prerequisite checks.
 - **The skill works only inside the source repo:** reinstall with both
   `--global` and `--copy`, then start a new client session.
-- **An existing project does not resume:** invoke from the directory that owns
-  `.selfhost/project.json`.
+- **An existing project does not resume:** invoke `$selfhost-upkeep` from the
+  directory that owns `.selfhost/stack.json`.
 - **Host facts are unavailable:** grant only the narrow read access needed, or
   leave those facts unknown.
 - **Catalog facts are stale:** refresh official lifecycle, image, and
@@ -378,6 +413,7 @@ copy layouts. It does not change a real client or global configuration.
 - [Installation contract](.agents/install.md)
 - [Shared concepts and safety model](.agents/CONTEXT.md)
 - [Catalog design](.agents/skills/selfhost/references/catalog.md)
+- [First-party skills repository research](research/skills-repo-patterns.md)
 - [Media harness guide](docs/README.md)
 - [Contribution and release rules](CONTRIBUTING.md)
 

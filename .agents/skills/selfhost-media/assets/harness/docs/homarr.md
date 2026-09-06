@@ -41,8 +41,8 @@
    `pingUrl`; every other case preserves the update failure. Final verification
    repeats the full-field check for mutated apps and the URL check for unchanged
    apps.
-9. Keep the secret-free client fragment candidate-scoped. Installation into a
-   local client is a promotion action reserved for the winning run.
+9. Keep the secret-free client fragment run-scoped and uninstalled unless the
+   user separately authorizes client installation.
 
 ## API/MCP contract
 
@@ -50,7 +50,7 @@
 - Compatibility alias: `/api/mcp/mcp`; probe it only when the canonical route
   is unavailable and never select it for new configuration.
 - Authentication: the private per-run key in the `ApiKey` header. The harness,
-  not candidate-authored commands or config, owns key injection.
+  not setup-authored commands or config, owns key injection.
 - Direct native MCP is the target. The generated local stdio bridge injects the
   private per-run key without persisting it in client configuration. It projects
   only `integration_all`, `integration_byId`, and
@@ -58,9 +58,9 @@
   three curated schemas are available only for exact RPC `-32603` message
   `Date cannot be represented in JSON Schema`. Neither mode masks auth, route,
   or network failures.
-- `mcp-config` writes the credential-free candidate fragment to
-  `SESSION_ROOT/artifacts/mcp-client.json`. Concurrent candidates leave it
-  uninstalled so they cannot overwrite or reload the same client configuration.
+- `mcp-config` writes the credential-free run fragment to
+  `SESSION_ROOT/artifacts/mcp-client.json`. It remains uninstalled unless the
+  user separately authorizes a client configuration change.
   The fragment identifies the local bridge and `RUN_ID`, never the key value.
 
 The bridge uses `integration_all` and `integration_byId` to verify the one Seerr
@@ -105,7 +105,7 @@ unapproved tool before upstream dispatch.
 - Re-snapshot after dialogs and menus; stale refs and overlays are common.
 - Never pass the derived password in an agent-browser or shell argument; use
   only the bounded browser-password helper with fresh refs.
-- As a candidate, never invoke, print, or persist authenticated agent-browser
+- During setup, never invoke, print, or persist authenticated agent-browser
   diagnostics such as `console`, raw `network requests`, or HAR output inside
   or outside the run; use only page-scoped approved fixed summaries or fixed
   harness summaries.

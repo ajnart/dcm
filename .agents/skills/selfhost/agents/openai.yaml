@@ -1,5 +1,5 @@
 interface:
-  display_name: "Selfhost"
+  display_name: "3 · Base · Plan Stack"
   short_description: "Plan composable self-hosted software stacks"
   default_prompt: "Use $selfhost to turn my goal into a safe, reviewable self-hosting plan."
 policy:

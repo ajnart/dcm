@@ -66,12 +66,17 @@ Select only the resource directories the skill needs. Then:
    `.agents/skills/selfhost/references/catalog/skills.json` in sorted order.
    Set `kind: adapter` only for a specialized adapter and declare its scope as
    `application` or `stack`; routers and capabilities use `scope: null`. Also
-   declare risk, activation, and direct delegation edges. Only an
+   declare risk, activation, direct delegation edges, the install group, and
+   every required sibling. Explicit setup/upkeep workflows use
+   `kind: workflow`, `disable-model-invocation: true`, and matching OpenAI
+   invocation policy. Only an
    application-scoped adapter may appear in an app's `adapterSkill`.
    Stack-scoped adapters are invoked directly for their complete bundle and
    must not be hidden in a goal's `requiredSkills`. Registry IDs must exactly
    equal the packaged skill directories. Update
-   `schemas/skills.schema.json` only when the registry shape changes.
+   `schemas/skills.schema.json` only when the registry shape changes. Update
+   `selfhost-setup/references/install-profiles.json` with the same acyclic
+   dependency closure.
 4. Keep runtime dependencies inside that skill directory so copy-mode installs
    work.
 5. Use shallow references and resolve all scripts relative to `SKILL.md`.
@@ -103,7 +108,8 @@ bun scripts/skillpack.ts test --changed-from origin/main
 
 Run Docker, browser, installer, or live-host acceptance only when the change
 owns that surface and the operator explicitly requests it. The installer smoke
-test uses `bunx` package resolution and is never an implicit validation step.
+test uses `bunx --bun` package resolution and is never an implicit validation
+step.
 
 ## Privacy, secrets, and generated state
 
@@ -112,7 +118,10 @@ test uses `bunx` package resolution and is never an implicit validation step.
   state, interpolated Compose output, or private host URLs.
 - Do not inspect `.sessions/`, `.env*`, credential stores, or existing client
   sessions while contributing.
-- Keep `.selfhost/preferences.json` non-secret and untracked.
+- Keep `.selfhost/preferences.json`, `.selfhost/project.json`, and
+  `.selfhost/stack.json` non-secret and untracked. Adapter-owned
+  `connections.env` may retain private API keys, URLs, and usernames but never
+  the generated initial admin password.
 - Keep reports and screenshots redacted. A rejected payload is not safe to
   paste into an error explanation.
 - Never add a broad Docker teardown, volume deletion, host-wide prune, or
@@ -180,6 +189,8 @@ a Homarr app tile cannot promote support.
   managed `adapterSkill` is present, marked `kind: adapter`, and scoped to
   `application`; every direct bundle adapter is scoped to `stack`.
 - Every stack `requiredSkills` entry and managed adapter exists.
+- Every selectable Base, Pack, and Extension profile contains the full checked
+  install dependency closure; setup and upkeep remain explicit-only.
 - Local Markdown and script references resolve inside their install boundary.
 - Essential README and contributing commands, flags, and paths match the
   static repository documentation contract.

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Self-host Homarr"
+  display_name: "Pack · Media + Homarr · Homarr"
   short_description: "Add an optional Homarr dashboard and agent gateway"
   default_prompt: "Use $selfhost-homarr to add Homarr as my optional private dashboard and verify its read-only MCP access without exposing credentials."

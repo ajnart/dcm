@@ -655,7 +655,7 @@ async function main() {
   console.log("PASS Prowlarr auth, applications, and public indexer state");
 
   await verifySeerr(session);
-  console.log("PASS Seerr links and persisted credentials");
+  console.log("PASS Seerr links and persisted service configuration");
 }
 
 if (

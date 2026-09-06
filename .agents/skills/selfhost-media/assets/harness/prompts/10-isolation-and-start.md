@@ -18,8 +18,8 @@ command that consumes a key; never print the file.
 
 `bootstrap` waits for the core APIs, captures the freshly generated Arr keys,
 configures qBittorrent, Sonarr, Radarr, Prowlarr, and full indexer sync, and emits
-only secret-safe summaries. It also creates the private credentials access sheet
-and reports how the user can reveal it locally. Use
+only secret-safe summaries. It also creates the private connections file and
+reports how the user can reveal it locally. Use
 `scripts/session.sh status "$RUN_ID"` and
 only project-scoped Compose logs to diagnose startup. Do not touch the legacy
 containers or another session.

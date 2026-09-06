@@ -1,11 +1,15 @@
 ---
 name: selfhost-media
-description: Plan, initialize, synchronize, and verify the private owned-content media harness for Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr. Use for isolated evaluation, safe harness installation, service wiring, secret-free evidence, or read-only Homarr API/MCP checks.
+description: Media pack adapter. Use only when directly requested or delegated by explicit selfhost-setup or selfhost-upkeep to set up, synchronize, and verify the exact private owned-content stack of Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Planning requires Bun 1.4.0 or newer and Bash; approved harness runs require Docker Compose and browser evidence requires agent-browser.
 ---
 
 # Self-hosted media
+
+Proceed only after a direct user request for this exact harness or delegation
+from an explicitly invoked `selfhost-setup` or `selfhost-upkeep` workflow. A
+generic personal-media plan is not authority to install this bundle.
 
 Use the packaged harness as immutable input. Set `MEDIA_SKILL_ROOT` to the
 absolute directory containing this `SKILL.md`, then install into the current
@@ -43,6 +47,12 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
    scoped to one run identifier.
 7. Read [acceptance.md](references/acceptance.md) before reporting completion.
    Mark indirect or absent evidence unproven.
+8. After every acceptance row passes, forward `session connections RUN_ID` and
+   report its path for API reuse. During initial setup, also forward `session
+   handoff RUN_ID` and tell the user the displayed `admin` username and generated
+   password. During upkeep, do not run `handoff` unless the user explicitly asked
+   for a fresh access handoff. Never persist the password in connections or
+   evidence.
 
 Run `bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts"` to verify the packaged
 asset. Add `--source-root /path/to/source` only when auditing source drift.

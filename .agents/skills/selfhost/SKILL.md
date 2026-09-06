@@ -1,6 +1,6 @@
 ---
 name: selfhost
-description: Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.
+description: Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.
 ---
@@ -35,6 +35,10 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
    and only with a real typed evidence ID.
 8. Stop at the redacted plan until the user separately approves an apply step
    owned by the selected capability or adapter.
+9. For a new stack that should be changed, tell the user to invoke
+   `$selfhost-setup` explicitly. For work on an existing
+   `.selfhost/stack.json`, tell them to invoke `$selfhost-upkeep` explicitly.
+   This planning skill creates neither stack metadata nor mutation authority.
 
 ## Command boundary
 

@@ -18,12 +18,6 @@ const BROWSER_ENVIRONMENT_KEYS = [
   "HOME",
   "LANG",
   "LC_ALL",
-  "MISE_CACHE_DIR",
-  "MISE_CONFIG_DIR",
-  "MISE_DATA_DIR",
-  "MISE_GLOBAL_CONFIG_FILE",
-  "MISE_STATE_DIR",
-  "MISE_SYSTEM_CONFIG_FILE",
   "PATH",
   "TMPDIR",
   "TZ",
@@ -217,8 +211,8 @@ export async function fillBrowserPassword(session, selectors, options = {}) {
   if (executableWasNotFound(result)) {
     result = await runBrowserChild(
       spawnImplementation,
-      "mise",
-      ["exec", "node@24", "--", "agent-browser", ...browserArguments],
+      "bunx",
+      ["--bun", "agent-browser", ...browserArguments],
       spawnOptions,
       input,
     );

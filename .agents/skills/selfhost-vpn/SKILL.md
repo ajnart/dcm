@@ -1,6 +1,6 @@
 ---
 name: selfhost-vpn
-description: Plan and assess downloader-only VPN isolation. Use for Gluetun or WireGuard gateway topology, keeping management services outside the namespace, LAN control allowlists, opaque secret references, DNS or egress leak evidence, and a hard tunnel-break test. Produce a provider-neutral read-only plan for authorized content only.
+description: Optional downloader VPN extension. Plan and assess downloader-only VPN isolation. Use for Gluetun or WireGuard gateway topology, keeping management services outside the namespace, LAN control allowlists, opaque secret references, DNS or egress leak evidence, and a hard tunnel-break test. Produce a provider-neutral read-only plan for authorized content only.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for the bundled planner; live tunnel testing is a separate approved verification step.
 ---

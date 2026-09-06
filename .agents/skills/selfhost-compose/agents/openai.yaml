@@ -1,5 +1,5 @@
 interface:
-  display_name: "Self-host Compose"
+  display_name: "5 · Base · Apply Compose"
   short_description: "Plan and apply owned Compose projects safely"
   default_prompt: "Use $selfhost-compose to validate and plan this explicitly owned Compose project."
 policy:

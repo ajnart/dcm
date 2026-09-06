@@ -1,6 +1,6 @@
 ---
 name: selfhost-ingress
-description: Plan private-first ingress and remote access for self-hosted services. Use for local or LAN access, tailnets, reverse proxies, tunnels, DNS, TLS, ports 80/443, authentication, ownership conflicts, or separate public-exposure approval. This capability produces a redacted plan and does not configure the edge.
+description: Optional ingress extension. Plan private-first ingress and remote access for self-hosted services. Use for local or LAN access, tailnets, reverse proxies, tunnels, DNS, TLS, ports 80/443, authentication, ownership conflicts, or separate public-exposure approval. This capability produces a redacted plan and does not configure the edge.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for the bundled planner; provider configuration stays outside this read-only capability.
 ---

@@ -1,5 +1,5 @@
 interface:
-  display_name: "Self-host Backup"
+  display_name: "Extension · Backup + Restore"
   short_description: "Plan safe backups and prove isolated restores"
   default_prompt: "Use $selfhost-backup to create a read-only backup plan and assess isolated restore evidence without exposing secrets."
 policy:

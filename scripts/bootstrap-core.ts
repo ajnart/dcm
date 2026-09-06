@@ -5,7 +5,7 @@ import {
   fieldValue,
   loadSession,
   normalizeName,
-  printSessionCredentialsSummary,
+  printSessionConnectionsSummary,
   refreshArrKeys,
   request,
   requestJson,
@@ -15,7 +15,7 @@ import {
   tryRequest,
   validateRunId,
   writableFields,
-  writeSessionCredentials,
+  writeSessionConnections,
 } from "./lib/session-context.ts";
 
 const runId = Bun.argv[2] ?? "";
@@ -809,7 +809,7 @@ async function main() {
   await syncAndWait(session, arrDefinitions);
   console.log("PASS Prowlarr indexer synced to Sonarr and Radarr");
 
-  printSessionCredentialsSummary(writeSessionCredentials(runId));
+  printSessionConnectionsSummary(writeSessionConnections(runId));
 }
 
 main().catch((error) => {

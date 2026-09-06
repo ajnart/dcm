@@ -1,6 +1,6 @@
 ---
 name: selfhost-host
-description: Inspect and plan a self-hosting host without mutation. Use before deployment, migration, or troubleshooting to identify the platform, Docker context, bounded containers and networks, listeners, filesystems, numeric identity, or safe paths across macOS, Linux, Unraid, TrueNAS SCALE, and Proxmox. Return redacted facts and non-secret recommendations only.
+description: Base inspection capability. Inspect and plan a self-hosting host without mutation. Use before deployment, migration, or troubleshooting to identify the platform, Docker context, bounded containers and networks, listeners, filesystems, numeric identity, or safe paths across macOS, Linux, Unraid, TrueNAS SCALE, and Proxmox. Return redacted facts and non-secret recommendations only.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires POSIX shell tooling on macOS or Linux; Docker inspection is optional and remains read-only.
 ---

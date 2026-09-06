@@ -1,6 +1,6 @@
 ---
 name: selfhost-research
-description: Research current self-hosted software without changing a host. Use for official installation or API evidence, secret-free Compose extraction, alternative comparisons, lifecycle or image provenance, documentation-link validation, Homarr coverage, or bounded public UI proof. Keep official and community evidence distinct.
+description: Optional research extension. Research current self-hosted software without changing a host. Use for official installation or API evidence, secret-free Compose extraction, alternative comparisons, lifecycle or image provenance, documentation-link validation, Homarr coverage, or bounded public UI proof. Keep official and community evidence distinct.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer; live research may require approved public network or browser access.
 ---

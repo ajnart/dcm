@@ -26,6 +26,13 @@ first proven adapter, not the architecture of the whole product.
   paths, ports, backups, and rollback. No command targets every deployment.
 - **Plan**: a redacted, reviewable diff between the observed host and desired
   stack. A plan has no authority to apply itself.
+- **Install profile**: an additive skill selection. `basic` is the required
+  setup/upkeep base; every pack or extension extends it without selecting any
+  other optional profile. The profile also declares service consumption and
+  exact approval/verification evidence obligations.
+- **Stack record**: private continuation metadata in
+  `.selfhost/stack.json`, created only by explicit `$selfhost-setup` and resumed
+  or extended by explicit `$selfhost-upkeep`.
 - **Secret reference**: a name or location resolved only at the narrow apply
   boundary. It is never the secret value.
 - **Evidence**: bounded, secret-free proof from health, API, edge, VPN, backup,
@@ -51,7 +58,8 @@ T0/T1/T2 express catalog curation priority, not deployment confidence.
 The `selfhost` skill owns intent routing, the catalog, preferences, and the
 plan contract. Capability skills own one operational concern. App or stack
 adapters own special API/UI behavior and package their runtime assets inside
-their skill directory so `npx skills` copy mode remains functional.
+their skill directory so `bunx --bun skills@latest` copy mode remains
+functional.
 
 Skills may locate an installed sibling by name, but must fail clearly when a
 required sibling is absent. They must not depend on files outside the installed
@@ -67,6 +75,9 @@ the installed skill remains the single implementation source.
   capability with one DNS/TLS/port owner and an authentication policy.
 - Persist non-secret preferences only. Never put credentials in catalog data,
   preferences, commands, screenshots, reports, or client configuration.
+- Adapter-owned private connection files may retain API keys, URLs, and
+  usernames for later wiring. They never retain an initial admin password;
+  setup gives that generated password directly to the user at final handoff.
 - Reuse existing resources only after ownership and lifecycle are known.
 - Never use a broad Docker teardown, delete volumes during routine upgrades,
   mount the Docker socket casually, or claim VPN safety without a kill-switch

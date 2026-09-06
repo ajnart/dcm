@@ -5,19 +5,19 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "809b5e5f0aaac7e4fb047064bc006ce505407aeb490128ce7fe163ba0086b67c"
+      "sourceSha256": "4f0bfb7a8a1d9c5b2762185e9cbf3af00144ce07c348a68bc3029d33bf9e5b2a"
     },
     {
       "path": "prompts/00-contract.md",
       "id": "portable-working-directory-v1",
-      "sourceSha256": "0571d91c0d83ab2b69e1bf32585223eac16dcb90780a095250808f44cb40d6df"
+      "sourceSha256": "f0fee3baee1228afe4de906175b9a5d95c15132d7b600256c314a22b920e937a"
     }
   ],
   "files": [
     {
       "path": "PROMPT.md",
       "mode": "0644",
-      "sha256": "c1235b714dae7707b63ac4641a7862182724576c62857957c4e9ffcbe0d70529"
+      "sha256": "81d5354548e11bbdb603dc2c7a89a9994f6d7123c7897a24b5d4eef8580323d2"
     },
     {
       "path": "docker-compose.yml",
@@ -27,12 +27,12 @@
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "1b6a2841bd58d852efb374dd76db81a56ec014e68a2ab37e656bd96327ca763d"
+      "sha256": "069e62ee439c68c9165cff45f9781bd3572ac4638d74417b1b0f02d488b47930"
     },
     {
       "path": "docs/homarr.md",
       "mode": "0644",
-      "sha256": "9912ddd6c264a1d2693e3740607bd55b466f3fe920c240cdb52f93ebb966f9fd"
+      "sha256": "5681eee242a35a1480f6187e2be6c3d3355ef78ccf5df75c558811c37543a972"
     },
     {
       "path": "docs/jellyfin.md",
@@ -67,12 +67,12 @@
     {
       "path": "prompts/00-contract.md",
       "mode": "0644",
-      "sha256": "49f73146c9ed28574083bfcfe7b388339a8012f515e60c9d5f8edaf750de8a39"
+      "sha256": "bb6a5a69a5d149a871f3faeae8935710bbfc3f38b1261b8907bb41eeaaee4ab9"
     },
     {
       "path": "prompts/10-isolation-and-start.md",
       "mode": "0644",
-      "sha256": "d3a2148f097d257a8a9fea056568abfe1b02f072601605fce83266ce25d3acc2"
+      "sha256": "d53994d88b744d81ea4a83a8d23fde55d89438ce5f1823c19a12c55ec9f52255"
     },
     {
       "path": "prompts/20-bootstrap.md",
@@ -82,7 +82,7 @@
     {
       "path": "prompts/30-connect-arr.md",
       "mode": "0644",
-      "sha256": "78369714912c1128ce132c5290aec353ee89a1c842d93d126f32f7a88da3ca6c"
+      "sha256": "19f461a7519ce856a994044da3815b9d1dcb69a0e1c0c04475a282d5a62fcd6b"
     },
     {
       "path": "prompts/40-seerr.md",
@@ -97,17 +97,17 @@
     {
       "path": "prompts/60-homarr-api-mcp.md",
       "mode": "0644",
-      "sha256": "ae9d675572940641dfc0621375a282de51cc8d309058ea0cca03317d94020b7a"
+      "sha256": "2d97d05e977e5a4f0e5cacc70df614728a13f94243326db962b03c100b4fef01"
     },
     {
       "path": "prompts/80-acceptance.md",
       "mode": "0644",
-      "sha256": "6eace57817ebd26a1af1da0b5994cbc3fb490803d7c234703c5a8b1b3a94417c"
+      "sha256": "c57687ca1e0bd40024b5c8da5206b52e558c850b0e9e4e593d64eddf919facc1"
     },
     {
       "path": "prompts/90-evidence.md",
       "mode": "0644",
-      "sha256": "61ce5a970d52e1aff845ae4526c8e47916f2c284d2d0e3db31b18e9495a739e0"
+      "sha256": "ab9229168033ca82ed81eff4d47fb3d52b915448854c361649833874d47c8310"
     },
     {
       "path": "prompts/manifest.txt",
@@ -117,7 +117,7 @@
     {
       "path": "scripts/bootstrap-core.ts",
       "mode": "0644",
-      "sha256": "4d04784d95a897934fdb9f8a59d67bdaa75542b37707181034a9d1e8a89c2ea2"
+      "sha256": "980291ee72b38f8a73a09c37d8b6fe2cd9ec3ba772fea577ebb2be299ce3ef9a"
     },
     {
       "path": "scripts/check-homarr-finalize.ts",
@@ -137,12 +137,12 @@
     {
       "path": "scripts/check-session-password.ts",
       "mode": "0644",
-      "sha256": "101b0f967b0c75c0e3171dae5806746b5fe5e23123e3cfde3d4b2ad6be6f54f4"
+      "sha256": "9fe5efa057b6ac1ca46ce746d69515e91b54b97029bc2319e33dc540594cb813"
     },
     {
       "path": "scripts/fill-browser-password.ts",
       "mode": "0644",
-      "sha256": "05b3239082d8d76d844b886ed06d634447cdcc6fc8f898fa75e56f8376d9de5d"
+      "sha256": "a2333011d142c7850eb65ab83bd0f1eb0e13d20b750a12ddfcd351530b014ac2"
     },
     {
       "path": "scripts/homarr-finalize.ts",
@@ -162,27 +162,27 @@
     {
       "path": "scripts/lib/session-context.ts",
       "mode": "0644",
-      "sha256": "1a2606bd980267a8e455db54f21bd855d196ca7f1063a984494b9f4192749392"
+      "sha256": "ff5f4afa30a5caa8f45157fdc9f24846a784edcd1eb1345fcf7c6d609188639d"
     },
     {
       "path": "scripts/render-prompt.sh",
       "mode": "0755",
-      "sha256": "65dcaa18e8c9a429e9bb8c165fc6d03d7eea273926385e6555a032530acaa634"
+      "sha256": "953c5df1bf1444601e35f95328856b5b6478f2b3b13416eba24b195ff49d91b4"
     },
     {
       "path": "scripts/session.sh",
       "mode": "0755",
-      "sha256": "3a6638b0d6cb79ed119bfe9538fd7927ba67bfea3ff3b2a3afb20c30745b6332"
+      "sha256": "556ad15e63be8866fe9d1a9f3e8bfedd8bc5ef7f3961d15b12c979b41eda5549"
     },
     {
       "path": "scripts/store-homarr-key.ts",
       "mode": "0644",
-      "sha256": "fcd240374cd83c64de742d0af4d2c68c19c7c5526005880802530b80372872c2"
+      "sha256": "9530e02b96009e5c9e6271ff219d085d7696a9433fb82e6a322b0c6eb2b5f5b6"
     },
     {
       "path": "scripts/verify-core.ts",
       "mode": "0644",
-      "sha256": "4d51a3a4da2b59979b1ecbad6a57aa2d1cc9ea818ab6d3ddcf4f678a1160cb04"
+      "sha256": "de6ac634ab01a09d44836a831d5b81bcca377ed08f135f5f04fb58cf7ba3d3c0"
     },
     {
       "path": "scripts/verify-homarr-mcp.ts",
