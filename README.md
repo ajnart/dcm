@@ -22,10 +22,10 @@ Start the interactive installer from the project that will own the stack:
 bunx --bun skills@latest add ajnart/selfhost-skills
 ```
 
-Choose all seven entries labeled Base, then only the Media pack or Optional
+Choose all eight entries labeled Base, then only the Media pack or Optional
 entries you want. The required `basic` profile is setup, upkeep, planning,
-host inspection, Compose, operations, and verification. The `media` pack adds the exact
-seven-service Media + Homarr workflow. Backup, ingress, observability, research,
+host inspection, Compose, operations, Homarr, and verification. The `media`
+pack adds the exact seven-service workflow. Backup, ingress, observability, research,
 and downloader VPN are independent extensions. Setup checks this dependency
 closure and installs anything you missed.
 
@@ -85,12 +85,13 @@ the result:
 - your username policy, when the selected apply capability supports one;
 - whether that capability should generate credentials or resolve an existing
   secret reference; and
-- whether you want optional pieces such as Homarr, backups, or monitoring.
+- whether you want optional pieces such as backups or monitoring; Homarr is
+  included as the standard access layer.
 
 Say “use the defaults” to accept the recommended stack, private access, one
 bounded Compose project, and generated credentials where implemented. An
 unsupported credential choice becomes a visible blocker instead of a promise.
-Homarr is offered prominently when useful but remains opt-in. Public exposure,
+Homarr is included by default. Public exposure,
 destructive work, migrations, and secret entry still require an explicit
 decision.
 
@@ -98,10 +99,10 @@ For example:
 
 ```text
 You:    $selfhost-setup photos
-Agent:  I can plan Immich on this host. Private access is the default.
+Agent:  I can plan Immich with Homarr as its private front door on this host.
         Should I use the recommended credential policy and services, or do
-        you want to change them or add the optional Homarr dashboard?
-You:    Use the defaults, but add Homarr.
+        you want to change them?
+You:    Use the defaults.
 Agent:  I’ll inspect the host read-only and show you the plan before changes.
 ```
 
@@ -109,17 +110,16 @@ Do not paste an existing password or API key into chat. The setup agent resolves
 or generates values only at the narrow apply boundary. For the managed media
 pack, it tells you the generated `admin` password at final handoff.
 
-## Homarr: the optional front door
+## Homarr: the default front door
 
-[Homarr](https://homarr.dev) is the recommended optional control plane for
-supported stacks. It can provide one dashboard for apps and widgets plus one
-private MCP endpoint for read-only agent inspection. The underlying stack must
-still work without it, and selecting Homarr never grants authority over another
-service or makes anything public.
+[Homarr](https://homarr.dev) is the standard control plane for every stack. It
+provides one dashboard for apps and widgets plus one private MCP endpoint for
+read-only agent inspection. The underlying services still operate
+independently, and Homarr never grants authority over another service or makes
+anything public.
 
 Use `$selfhost homarr` in Codex or `/selfhost homarr` in Claude Code for a
-standalone Homarr plan. In another goal, accept it when the router offers the
-optional dashboard role. Direct administration for Sonarr, Radarr, Prowlarr,
+standalone Homarr plan. Other goals include it automatically. Direct administration for Sonarr, Radarr, Prowlarr,
 and qBittorrent can remain private even when approved users reach Homarr or
 Jellyfin remotely.
 
@@ -271,7 +271,7 @@ capabilities needed for the selected profile and goal:
 | `selfhost-research` | Current official deployment and lifecycle evidence |
 | `selfhost-verify` | Independent, secret-free acceptance aggregation |
 | `selfhost-media` | Opt-in Homarr-enhanced media harness |
-| `selfhost-homarr` | Optional dashboard, integrations, API, and read-only MCP |
+| `selfhost-homarr` | Default dashboard, integrations, API, and read-only MCP |
 
 The checked registry contains 14 packaged skills, including 2 specialized adapters:
 the stack-scoped `selfhost-media` and application-scoped `selfhost-homarr`.
@@ -305,7 +305,7 @@ does not depend on arbitrary files in this repository.
 ## Media and Homarr boundary
 
 The managed owned-content adapter connects Seerr, Jellyfin, Sonarr, Radarr,
-Prowlarr, qBittorrent, and Homarr. Generic media plans can omit Homarr. Invoke
+Prowlarr, qBittorrent, and the required Homarr control plane. Invoke
 `$selfhost-media` in Codex or `/selfhost-media` in Claude Code only when you
 want that exact seven-service harness.
 

@@ -8,7 +8,11 @@ Store a first key with `profile.ts store-key <absolute-profile-path>`. Replace a
 
 ## One-time browser-key pipeline
 
-When the user asks to create a key, use `agent-browser` to open `/manage/tools/api`, create Authentication, and make the browser accessor the left side of one pipeline. Make `bun <skill-dir>/scripts/profile.ts store-key <absolute-profile-path>` the right side.
+Use `agent-browser` to open `/manage/tools/api`, select **Authentication**, and
+create one key for the profile. Resolve its one-time input from a fresh
+snapshot, then make `agent-browser get value @eN` the left side of one pipeline.
+Make `bun <skill-dir>/scripts/profile.ts store-key
+<absolute-profile-path>` the right side.
 
 The left side retrieves the key once from the live page without a screenshot, clipboard file, shell variable, log, or persistent browser artifact. The right side consumes stdin immediately. Neither side runs alone. Never replay a browser command that would print the key after storage.
 

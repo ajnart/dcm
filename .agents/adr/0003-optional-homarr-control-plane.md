@@ -1,6 +1,6 @@
 # ADR 0003: Position Homarr as an optional control plane
 
-Status: accepted on 2026-08-29
+Status: superseded on 2026-09-07 by ADR 0005
 
 ## Context
 

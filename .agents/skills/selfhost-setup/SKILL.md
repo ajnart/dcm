@@ -19,7 +19,7 @@ a concrete blocker prevents the next safe action.
 
 1. Read [install-profiles.json](references/install-profiles.json). Explain the
    selected base, packs, and extensions in plain language. `basic` is always
-   the seven-skill setup/upkeep base. Every pack or extension extends `basic`;
+   the eight-skill setup/upkeep and Homarr base. Every pack or extension extends `basic`;
    multiple selections form a union and never select another optional profile.
    Use `basic` alone unless the user explicitly chooses more.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
@@ -47,19 +47,27 @@ a concrete blocker prevents the next safe action.
    consuming extension to each service it actually affects with repeated
    `--consume PROFILE=SERVICE`. For media, reserve the one run ID that the
    adapter will create in the next step.
-6. Delegate mutation to the selected owner. For the `media` pack, invoke
-   `selfhost-media`, install its harness into this exact project, create the
-   exact recorded run, and follow its browser-backed runbook through all seven services. Use
-   deterministic API setup where the adapter supports it and `agent-browser`
-   for UI-only configuration and visual evidence.
+6. Delegate mutation to the selected owner. Every stack invokes
+   `selfhost-homarr` after its underlying services are ready, then uses
+   agent-browser for onboarding, selected app links and integrations, private
+   API-key capture, and UI evidence. The `media` pack instead invokes
+   `selfhost-media`, which owns the complete embedded Homarr flow: install its
+   harness into this exact project, create the exact recorded run, navigate the
+   checked service settings paths, capture fresh API-key refs through the
+   adapter's secret-safe helper, fill Homarr directly, and verify all seven
+   services. Never deploy a second Homarr for media. Use deterministic API
+   setup where the adapter supports it; never copy a key through chat,
+   clipboard files, visible shell output, or command arguments.
 7. Record `planned`, `applied`, and `verified` checkpoints only after their
-   evidence exists. Store URLs, usernames, and API keys in the adapter-owned
-   mode-`0600` `connections.env`; keep the initial admin password out of every
-   file.
-8. End setup by running the adapter's `handoff` command. Tell the user the
-   displayed `admin` username and generated password, plus the stack metadata
-   and connection-file paths. Do not retain the password or hide it behind a
-   reveal command.
+   evidence exists. For media, store URLs, usernames, and API keys in the
+   adapter-owned mode-`0600` `connections.env`; keep the initial admin password
+   out of every file. Other adapters report only their documented private
+   profile and handoff paths.
+8. For initial media setup, end with the adapter's `handoff` command. Tell the
+   user the displayed `admin` username and generated password, plus the stack
+   metadata and connection-file paths. Do not retain the password or hide it
+   behind a reveal command. Other stacks use only their owning adapter's
+   documented credential handoff and never invent a generated password.
 
 ## Commands
 
@@ -78,6 +86,7 @@ bun scripts/stack.ts extend --project-root ABSOLUTE --profile PROFILE \
 ```
 
 Completion requires a passing prerequisite check, recorded selection, explicit
-apply approval, direct acceptance evidence for every selected service, a
-verified stack checkpoint, password-free connection storage, and the admin
-password delivered to the user during the final handoff.
+apply approval, direct acceptance evidence for every selected service and
+Homarr, and a verified stack checkpoint. Media additionally requires
+password-free connection storage and the generated admin password delivered to
+the user during the final handoff.

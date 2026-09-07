@@ -34,9 +34,9 @@ The verifier accepts version 2 only. It has no migration command and never
 infers Homarr scope from `profile.media` or from supplied check IDs.
 
 1. Change `schemaVersion` from `1` to `2`.
-2. Add the exact boolean `profile.homarr`. Set it to `true` only when the
-   intended accepted scope includes the optional Homarr control plane; set it
-   to `false` when the intended scope excludes Homarr.
+2. Add the exact boolean `profile.homarr`. Set it to `true` for every new stack
+   in this pack. Use `false` only when evaluating a legacy or external evidence
+   scope that explicitly predates or excludes the Homarr control plane.
 3. When `profile.homarr` is `true`, change the `capability` on the four existing
    `homarr-*-search` checks from `media` to `homarr`. Keep their evidence only
    when it was collected for the same acceptance window.
@@ -56,7 +56,9 @@ Version 2 emits separate `media-service-graph-acceptance` and
 - Downloader VPN additionally requires healthy egress, a timestamped tunnel-break failure, DNS fail-closed behavior, restored tunnel egress, and route/firewall audit evidence.
 - Backups additionally require an isolated restore, integrity/ownership, and application acceptance evidence. Backup existence is insufficient.
 - Media additionally requires only the private media service graph.
-- Homarr is an independent optional profile requiring integration, app, widget, and MCP search evidence. Search evidence never authorizes a media request or other mutation.
+- Homarr is the default control-plane profile requiring integration, app,
+  widget, and MCP search evidence. Search evidence never authorizes a media
+  request or other mutation.
 - Homarr combined with public ingress additionally requires proof that the public dashboard route denies native `/api/mcp`; the read-only bridge must use a private route.
 
 ## Result contract
@@ -67,4 +69,4 @@ Each emitted claim covers only its listed check IDs and evidence window. It does
 
 ## Completion criteria
 
-Verification is complete when all selected mandatory rows and custom requirements are accounted for exactly once; freshness is evaluated against the supplied clock; conflicts and failures are visible; media and Homarr claims remain independently selectable and pass only with their own complete evidence sets; outputs contain classifications and opaque evidence identifiers without payloads or secrets; and `mutationsPerformed` remains false.
+Verification is complete when all selected mandatory rows and custom requirements are accounted for exactly once; freshness is evaluated against the supplied clock; conflicts and failures are visible; required Homarr claims and optional media claims pass only with their own complete evidence sets; outputs contain classifications and opaque evidence identifiers without payloads or secrets; and `mutationsPerformed` remains false.

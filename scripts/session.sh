@@ -28,6 +28,7 @@ Usage:
   scripts/session.sh bootstrap RUN_ID
   scripts/session.sh verify RUN_ID
   scripts/session.sh browser-password RUN_ID @eN [@eN ...]
+  scripts/session.sh browser-key capture|fill RUN_ID SERVICE @eN
   scripts/session.sh homarr-key RUN_ID < ONE_TIME_KEY
   scripts/session.sh homarr-finalize RUN_ID
   scripts/session.sh mcp-config RUN_ID
@@ -1573,6 +1574,18 @@ main() {
       load_session "$run_id"
       require_session_password_scheme
       exec bun "$SCRIPT_DIR/fill-browser-password.ts" "$run_id" "${@:3}"
+      ;;
+    browser-key)
+      [[ "$#" -eq 5 ]] \
+        || fail "browser-key requires capture|fill RUN_ID SERVICE @eN"
+      require_command bun
+      run_id="$3"
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      cleanup_validated_homarr_key_transients "$SESSION_DIR"
+      cleanup_validated_connections_transients "$SESSION_DIR"
+      exec bun "$SCRIPT_DIR/browser-api-key.ts" "$2" "$run_id" "$4" "$5"
       ;;
     homarr-key)
       [[ "$#" -eq 2 ]] || fail "homarr-key requires one RUN_ID"

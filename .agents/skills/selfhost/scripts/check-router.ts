@@ -82,71 +82,50 @@ const personalMedia = catalog.stacks.find((stack) => stack.id === "personal-medi
 const genericMediaPlan = buildPlan(catalog, personalMedia);
 assert.equal(genericMediaPlan.effectiveAutomation, "guided");
 assert.deepEqual(genericMediaPlan.requiredSkills, [...genericMediaPlan.requiredSkills].sort());
-assert.equal(genericMediaPlan.roles.find((role) => role.id === "dashboard").selected, null);
-assert.equal(genericMediaPlan.roles.find((role) => role.id === "dashboard").recommended, true);
-assert.deepEqual(genericMediaPlan.recommendations.map((recommendation) => [recommendation.kind, recommendation.status, recommendation.suggested]), [["optional-control-plane", "available", "homarr"]]);
-assert.equal(genericMediaPlan.selectedApps.some((app) => app.id === "homarr"), false);
-assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-homarr"), false);
+assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").selected, "homarr");
+assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").required, true);
+assert.equal(genericMediaPlan.selectedApps.some((app) => app.id === "homarr"), true);
+assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-homarr"), true);
 assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-media"), false);
-assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("Homarr")), false);
-
-const homarrMediaPlan = buildPlan(catalog, personalMedia, { dashboard: "homarr" });
-assert.equal(homarrMediaPlan.planId === genericMediaPlan.planId, false);
-assert.equal(homarrMediaPlan.selectedApps.some((app) => app.id === "homarr"), true);
-assert.equal(homarrMediaPlan.requiredSkills.includes("selfhost-homarr"), true);
-assert.equal(homarrMediaPlan.requiredSkills.includes("selfhost-media"), false);
-assert.equal(homarrMediaPlan.gates.includes("exposure"), true);
-assert.equal(homarrMediaPlan.gates.includes("secrets"), true);
-assert.deepEqual(homarrMediaPlan.recommendations.map((recommendation) => [recommendation.status, recommendation.selected]), [["selected", "homarr"]]);
-assert.equal(homarrMediaPlan.acceptance.filter((claim) => claim.includes("Homarr")).length, 4);
-assert.equal(homarrMediaPlan.acceptance.some((claim) => claim.includes("app tile")), true);
-assert.equal(homarrMediaPlan.acceptance.some((claim) => claim.includes("integration")), true);
-assert.equal(homarrMediaPlan.acceptance.some((claim) => claim.includes("widget")), true);
-assert.equal(homarrMediaPlan.acceptance.some((claim) => claim.includes("MCP bridge")), true);
+assert.equal(genericMediaPlan.gates.includes("exposure"), true);
+assert.equal(genericMediaPlan.gates.includes("secrets"), true);
+assert.equal(genericMediaPlan.acceptance.filter((claim) => claim.includes("Homarr")).length, 4);
+assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("app tile")), true);
+assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("integration")), true);
+assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("widget")), true);
+assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("MCP bridge")), true);
 
 assert.equal(buildPlan(catalog, personalMedia, { playback: "plex" }).effectiveAutomation, "guided");
 assert.equal(buildPlan(catalog, personalMedia, { playback: "emby" }).effectiveAutomation, "discovery");
 assert.throws(() => buildPlan(catalog, personalMedia, { unknown: "jellyfin" }), /Unknown selection role/);
 
 const photos = catalog.stacks.find((stack) => stack.id === "photos");
-const homarrPlan = buildPlan(catalog, photos, { dashboard: "homarr" });
+const homarrPlan = buildPlan(catalog, photos);
 assert.equal(homarrPlan.requiredSkills.includes("selfhost-homarr"), true);
 
 const photoPrismPlan = buildPlan(catalog, photos, { "photo-library": "photoprism" });
-assert.equal(photoPrismPlan.recommendations.length, 1);
-assert.equal(photoPrismPlan.recommendations[0].status, "available");
-assert.equal(photoPrismPlan.recommendations[0].coverageMode, "app-links-only");
-assert.equal(photoPrismPlan.roles.find((role) => role.id === "dashboard").recommended, true);
-assert.equal(photoPrismPlan.roles.find((role) => role.id === "dashboard").controlPlaneCoverage.supported.length, 0);
+assert.equal(photoPrismPlan.roles.find((role) => role.id === "control-plane").controlPlaneCoverage.supported.length, 0);
 
 const changedCoverageCatalog = structuredClone(catalog);
 const changedImmich = changedCoverageCatalog.apps.find((app) => app.id === "immich");
 changedImmich.homarr = { support: "gap", integration: null };
 const changedCoveragePlan = buildPlan(changedCoverageCatalog, photos);
-assert.equal(changedCoveragePlan.recommendations.length, 1);
-assert.equal(changedCoveragePlan.recommendations[0].coverageMode, "app-links-only");
+assert.equal(changedCoveragePlan.roles.find((role) => role.id === "control-plane").controlPlaneCoverage.supported.length, 0);
 assert.notEqual(changedCoveragePlan.planId, buildPlan(catalog, photos).planId);
 
-const recommendedHomarrStacks = catalog.stacks
-  .filter((stack) => stack.roles.some((role) => role.recommended === true))
-  .map((stack) => stack.id)
-  .sort();
-assert.deepEqual(recommendedHomarrStacks, ["dns", "documents", "files", "home-automation", "monitoring", "personal-media", "photos"]);
-for (const stackId of recommendedHomarrStacks) {
-  const stack = catalog.stacks.find((candidate) => candidate.id === stackId);
-  const role = stack.roles.find((candidate) => candidate.choices.includes("homarr"));
-  assert.equal(role.recommended, true);
-  assert.equal(role.required, false);
-  assert.equal(role.default, null);
+for (const stack of catalog.stacks) {
   const defaultPlan = buildPlan(catalog, stack);
-  assert.equal(defaultPlan.selectedApps.some((app) => app.id === "homarr"), false);
-  assert.equal(defaultPlan.requiredSkills.includes("selfhost-homarr"), false);
-  assert.equal(defaultPlan.acceptance.some((claim) => claim.includes("Homarr")), false);
+  const controlPlane = defaultPlan.roles.find((role) => role.id === "control-plane");
+  assert.equal(controlPlane.required, true);
+  assert.equal(controlPlane.selected, "homarr");
+  assert.equal(defaultPlan.selectedApps.some((app) => app.id === "homarr"), true);
+  assert.equal(defaultPlan.requiredSkills.includes("selfhost-homarr"), true);
+  assert.equal(defaultPlan.acceptance.filter((claim) => claim.includes("Homarr")).length, 4);
 }
 
 const impliedCatalog = structuredClone(catalog);
 impliedCatalog.apps.find((app) => app.id === "immich").dependencies.push("homarr");
-assert.equal(validateCatalog(impliedCatalog).errors.some((error) => error.includes("Homarr must be selected through an optional role")), true);
+assert.equal(validateCatalog(impliedCatalog).errors.some((error) => error.includes("Homarr is injected as the default control plane")), true);
 
 assert.throws(() => buildPlan(catalog, personalMedia, { playback: "readarr" }), /retired/);
 
@@ -162,25 +141,17 @@ const unknownAdapter = structuredClone(catalog);
 unknownAdapter.apps.find((app) => app.id === "homarr").support.adapterSkill = "selfhost-missing";
 assert.equal(validateCatalog(unknownAdapter).errors.some((error) => error.includes("not available as an application adapter in this skill pack")), true);
 
-const invalidRecommendedType = structuredClone(catalog);
-invalidRecommendedType.stacks.find((stack) => stack.id === "photos").roles.find((role) => role.id === "dashboard").recommended = "yes";
-assert.equal(validateCatalog(invalidRecommendedType).errors.some((error) => error.includes("recommended must be boolean")), true);
+const optionalControlPlane = structuredClone(catalog);
+optionalControlPlane.taxonomy.defaultControlPlane.required = false;
+assert.equal(validateCatalog(optionalControlPlane).errors.some((error) => error.includes("defaultControlPlane: must be required")), true);
 
-const implicitRecommendation = structuredClone(catalog);
-implicitRecommendation.stacks.find((stack) => stack.id === "photos").roles.find((role) => role.id === "dashboard").default = "homarr";
-assert.equal(validateCatalog(implicitRecommendation).errors.some((error) => error.includes("recommended role must remain off by default")), true);
+const wrongControlPlaneDefault = structuredClone(catalog);
+wrongControlPlaneDefault.taxonomy.defaultControlPlane.default = null;
+assert.equal(validateCatalog(wrongControlPlaneDefault).errors.some((error) => error.includes("defaultControlPlane: default must be homarr")), true);
 
-const requiredRecommendation = structuredClone(catalog);
-requiredRecommendation.stacks.find((stack) => stack.id === "photos").roles.find((role) => role.id === "dashboard").required = true;
-assert.equal(validateCatalog(requiredRecommendation).errors.some((error) => error.includes("recommended role must be optional")), true);
-
-const unmarkedHomarrRole = structuredClone(catalog);
-delete unmarkedHomarrRole.stacks.find((stack) => stack.id === "photos").roles.find((role) => role.id === "dashboard").recommended;
-assert.equal(validateCatalog(unmarkedHomarrRole).errors.some((error) => error.includes("Homarr role must be recommended")), true);
-
-const unconditionalHomarrAcceptance = structuredClone(catalog);
-unconditionalHomarrAcceptance.stacks.find((stack) => stack.id === "photos").acceptance.push("Homarr must pass.");
-assert.equal(validateCatalog(unconditionalHomarrAcceptance).errors.some((error) => error.includes("Homarr acceptance must be conditional")), true);
+const wrongControlPlaneChoices = structuredClone(catalog);
+wrongControlPlaneChoices.taxonomy.defaultControlPlane.choices.push("homepage");
+assert.equal(validateCatalog(wrongControlPlaneChoices).errors.some((error) => error.includes("defaultControlPlane: choices must contain only homarr")), true);
 
 const invalidApplicationScope = structuredClone(catalog);
 invalidApplicationScope.skills.skills.find((skill) => skill.id === "selfhost-homarr").scope = "stack";

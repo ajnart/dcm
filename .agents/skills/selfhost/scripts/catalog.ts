@@ -47,8 +47,7 @@ const SECRET_VALUE_PATTERNS = [
 
 const APP_KEYS = ["aliases", "alternatives", "categories", "dependencies", "homarr", "id", "image", "lifecycle", "name", "pitfalls", "roles", "security", "sources", "support", "upstream"];
 const STACK_KEYS = ["acceptance", "aliases", "automation", "categories", "gates", "id", "name", "requiredSkills", "roles", "summary"];
-const REQUIRED_ROLE_KEYS = ["choices", "default", "gates", "id", "name", "purpose", "reason", "required"];
-const ROLE_KEYS = [...REQUIRED_ROLE_KEYS, "recommended"];
+const ROLE_KEYS = ["choices", "default", "gates", "id", "name", "purpose", "reason", "required"];
 const HOMARR_REGISTRY_KEYS = ["checkedAt", "officialSources", "schemaVersion", "special", "standard"];
 const HOMARR_SURFACE_KEYS = ["displayName", "identifier"];
 const SKILL_REGISTRY_KEYS = ["packVersion", "schemaVersion", "skills"];
@@ -169,15 +168,6 @@ function hasExactKeys(value, allowedKeys) {
   const actual = Object.keys(value).sort();
   const expected = [...allowedKeys].sort();
   return JSON.stringify(actual) === JSON.stringify(expected);
-}
-
-function hasRequiredAndAllowedKeys(value, requiredKeys, allowedKeys) {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  const allowed = new Set(allowedKeys);
-  return requiredKeys.every((key) => Object.hasOwn(value, key))
-    && Object.keys(value).every((key) => allowed.has(key));
 }
 
 function scanForSecretLikeData(value, path, errors) {
@@ -413,6 +403,32 @@ function validateAppShape(app, categories, skillContract, errors) {
   }
 }
 
+function validateRoleShape(role, prefix, appIds, errors) {
+  addError(errors, isPlainObject(role), `${prefix}: must be an object`);
+  if (!isPlainObject(role)) {
+    return;
+  }
+  addError(errors, hasExactKeys(role, ROLE_KEYS), `${prefix}: contains missing or unsupported fields`);
+  addError(errors, ID_PATTERN.test(role.id || ""), `${prefix}: invalid id`);
+  addError(errors, isNonEmptyString(role.name), `${prefix}: name is required`);
+  addError(errors, typeof role.required === "boolean", `${prefix}: required must be boolean`);
+  addError(errors, isStringArray(role.choices, 1), `${prefix}: choices are required`);
+  addError(errors, isNonEmptyString(role.reason), `${prefix}: reason is required`);
+  addError(errors, isNonEmptyString(role.purpose), `${prefix}: purpose is required`);
+  addError(errors, isStringArray(role.gates), `${prefix}: gates must be strings`);
+  if (Array.isArray(role.choices)) {
+    for (const choice of role.choices) {
+      addError(errors, appIds.has(choice), `${prefix}: unknown app choice ${choice}`);
+    }
+    if (role.default !== null) {
+      addError(errors, role.choices.includes(role.default), `${prefix}: default must be a listed choice`);
+    }
+  }
+  if (role.required) {
+    addError(errors, role.default !== null, `${prefix}: required role needs a default`);
+  }
+}
+
 function validateStackShape(stack, categories, appIds, skillContract, errors) {
   const prefix = `stack ${stack && stack.id ? stack.id : "<unknown>"}`;
   addError(errors, isPlainObject(stack), `${prefix}: record must be an object`);
@@ -431,52 +447,19 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
     }
   }
   addError(errors, STACK_SUPPORT.has(stack.automation), `${prefix}: invalid automation support`);
-  addError(errors, Array.isArray(stack.roles) && stack.roles.length > 0, `${prefix}: roles are required`);
+  addError(errors, Array.isArray(stack.roles), `${prefix}: roles are required`);
   const roleIds = [];
   if (Array.isArray(stack.roles)) {
     for (const role of stack.roles) {
       const rolePrefix = `${prefix} role ${role && role.id ? role.id : "<unknown>"}`;
-      addError(errors, isPlainObject(role), `${rolePrefix}: must be an object`);
+      validateRoleShape(role, rolePrefix, appIds, errors);
       if (!isPlainObject(role)) {
         continue;
       }
-      addError(errors, hasRequiredAndAllowedKeys(role, REQUIRED_ROLE_KEYS, ROLE_KEYS), `${rolePrefix}: contains missing or unsupported fields`);
       roleIds.push(role.id);
-      addError(errors, ID_PATTERN.test(role.id || ""), `${rolePrefix}: invalid id`);
-      addError(errors, isNonEmptyString(role.name), `${rolePrefix}: name is required`);
-      addError(errors, typeof role.required === "boolean", `${rolePrefix}: required must be boolean`);
-      if (Object.hasOwn(role, "recommended")) {
-        addError(errors, typeof role.recommended === "boolean", `${rolePrefix}: recommended must be boolean`);
-      }
-      if (role.recommended === true) {
-        addError(errors, role.required === false, `${rolePrefix}: recommended role must be optional`);
-        addError(errors, role.default === null, `${rolePrefix}: recommended role must remain off by default`);
-      }
-      addError(errors, isStringArray(role.choices, 1), `${rolePrefix}: choices are required`);
-      addError(errors, isNonEmptyString(role.reason), `${rolePrefix}: reason is required`);
-      addError(errors, isNonEmptyString(role.purpose), `${rolePrefix}: purpose is required`);
-      addError(errors, isStringArray(role.gates), `${rolePrefix}: gates must be strings`);
+      addError(errors, role.id !== "control-plane", `${rolePrefix}: control-plane is reserved for taxonomy.defaultControlPlane`);
       if (Array.isArray(role.choices)) {
-        for (const choice of role.choices) {
-          addError(errors, appIds.has(choice), `${rolePrefix}: unknown app choice ${choice}`);
-        }
-        if (role.default !== null) {
-          addError(errors, role.choices.includes(role.default), `${rolePrefix}: default must be a listed choice`);
-        }
-        if (role.choices.includes("homarr")) {
-          const isExplicitHomarrGoal = stack.id === "homarr-control-plane";
-          if (isExplicitHomarrGoal) {
-            addError(errors, role.required === true, `${rolePrefix}: explicit Homarr goal must select its control plane`);
-            addError(errors, role.default === "homarr", `${rolePrefix}: explicit Homarr goal must default to Homarr`);
-          } else {
-            addError(errors, role.recommended === true, `${rolePrefix}: Homarr role must be recommended`);
-            addError(errors, role.required === false, `${rolePrefix}: Homarr role must be optional`);
-            addError(errors, role.default === null, `${rolePrefix}: Homarr role must remain off by default`);
-          }
-        }
-      }
-      if (role.required) {
-        addError(errors, role.default !== null, `${rolePrefix}: required role needs a default`);
+        addError(errors, !role.choices.includes("homarr"), `${rolePrefix}: Homarr comes from taxonomy.defaultControlPlane`);
       }
     }
   }
@@ -496,10 +479,6 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
   }
   addError(errors, isStringArray(stack.gates, 1), `${prefix}: gates are required`);
   addError(errors, isStringArray(stack.acceptance, 1), `${prefix}: acceptance checks are required`);
-  if (Array.isArray(stack.acceptance)) {
-    const hasHomarrAcceptance = stack.acceptance.some((check) => /homarr/i.test(check));
-    addError(errors, !hasHomarrAcceptance, `${prefix}: Homarr acceptance must be conditional on explicit selection`);
-  }
 }
 
 function validateAffiliates(affiliates, errors) {
@@ -639,8 +618,8 @@ function validateCatalogDocument(catalog) {
   addError(errors, isPlainObject(catalog.taxonomy), "taxonomy: must be an object");
   const categories = new Set();
   if (isPlainObject(catalog.taxonomy)) {
-    addError(errors, hasExactKeys(catalog.taxonomy, ["ambiguousAliases", "categories", "checkedAt", "schemaVersion"]), "taxonomy: contains missing or unsupported fields");
-    addError(errors, catalog.taxonomy.schemaVersion === 1, "taxonomy: schemaVersion must be 1");
+    addError(errors, hasExactKeys(catalog.taxonomy, ["ambiguousAliases", "categories", "checkedAt", "defaultControlPlane", "schemaVersion"]), "taxonomy: contains missing or unsupported fields");
+    addError(errors, catalog.taxonomy.schemaVersion === 2, "taxonomy: schemaVersion must be 2");
     addError(errors, DATE_PATTERN.test(catalog.taxonomy.checkedAt || ""), "taxonomy: checkedAt must be a date");
     addError(errors, isStringArray(catalog.taxonomy.ambiguousAliases), "taxonomy: ambiguousAliases must be strings");
     addError(errors, Array.isArray(catalog.taxonomy.categories), "taxonomy: categories must be an array");
@@ -674,6 +653,17 @@ function validateCatalogDocument(catalog) {
     }
   }
 
+  if (isPlainObject(catalog.taxonomy)) {
+    const controlPlane = catalog.taxonomy.defaultControlPlane;
+    validateRoleShape(controlPlane, "taxonomy defaultControlPlane", appIds, errors);
+    if (isPlainObject(controlPlane)) {
+      addError(errors, controlPlane.id === "control-plane", "taxonomy defaultControlPlane: id must be control-plane");
+      addError(errors, controlPlane.required === true, "taxonomy defaultControlPlane: must be required");
+      addError(errors, controlPlane.default === "homarr", "taxonomy defaultControlPlane: default must be homarr");
+      addError(errors, JSON.stringify(controlPlane.choices) === JSON.stringify(["homarr"]), "taxonomy defaultControlPlane: choices must contain only homarr");
+    }
+  }
+
   for (const app of appRecords.filter(isPlainObject)) {
     const alternatives = Array.isArray(app.alternatives) ? app.alternatives : [];
     for (const alternative of alternatives) {
@@ -685,7 +675,7 @@ function validateCatalogDocument(catalog) {
       if (dependency.startsWith("capability:")) {
         continue;
       }
-      addError(errors, dependency !== "homarr", `app ${app.id}: Homarr must be selected through an optional role, not implied as a dependency`);
+      addError(errors, dependency !== "homarr", `app ${app.id}: Homarr is injected as the default control plane, not implied as a dependency`);
       addError(errors, appIds.has(dependency), `app ${app.id}: unknown dependency ${dependency}`);
     }
   }
@@ -1186,7 +1176,8 @@ function expandDependencies(catalog, selectedIds) {
 
 export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   const appById = new Map(catalog.apps.map((app) => [app.id, app]));
-  const roleIds = new Set(stack.roles.map((role) => role.id));
+  const planRoles = [catalog.taxonomy.defaultControlPlane, ...stack.roles];
+  const roleIds = new Set(planRoles.map((role) => role.id));
   for (const roleId of Object.keys(selections).sort()) {
     if (!roleIds.has(roleId)) {
       throw new Error(`Unknown selection role ${roleId}. Choose one of: ${[...roleIds].sort().join(", ")}`);
@@ -1194,7 +1185,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   }
   const roles = [];
   const selectedIds = [];
-  for (const role of stack.roles) {
+  for (const role of planRoles) {
     let selected = role.default;
     if (Object.hasOwn(selections, role.id)) {
       selected = selections[role.id];
@@ -1219,7 +1210,6 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       id: role.id,
       name: role.name,
       required: role.required,
-      recommended: role.recommended === true,
       selected,
       reason: role.reason,
       purpose: role.purpose,
@@ -1256,39 +1246,6 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       role.controlPlaneCoverage = homarrCoverage;
     }
   }
-  const recommendations = roles
-    .filter((role) => role.recommended)
-    .map((role) => {
-      let suggested = role.selected;
-      if (suggested === null) {
-        suggested = role.alternatives[0] || null;
-      }
-      let select = null;
-      if (suggested !== null) {
-        select = `--select ${role.id}=${suggested}`;
-      }
-      let status = "available";
-      if (role.selected !== null) {
-        status = "selected";
-      }
-      let coverageMode = "dedicated-integrations";
-      if (homarrCoverage.supported.length === 0) {
-        coverageMode = "app-links-only";
-      }
-      return {
-        id: role.id,
-        name: role.name,
-        kind: "optional-control-plane",
-        status,
-        selected: role.selected,
-        suggested,
-        select,
-        coverageMode,
-        coverage: homarrCoverage,
-        reason: role.reason,
-        purpose: role.purpose
-      };
-    });
   const gates = new Set(stack.gates);
   for (const role of roles) {
     if (role.selected === null) {
@@ -1447,7 +1404,6 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     effectiveAutomation,
     automationLimiters,
     roles,
-    recommendations,
     impliedApps: dependencies.implied,
     requiredCapabilities: dependencies.capabilities,
     requiredSkills: [...requiredSkills].sort(),

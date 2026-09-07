@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
   <title id="title">Markdown-led composable selfhost skill architecture</title>
-  <desc id="desc">The user goal enters the selfhost router. Markdown workflows and declarative references select focused capability skills. Bounded deterministic scripts inspect, render, debug, and verify one owned project, with Homarr as an optional control plane.</desc>
+  <desc id="desc">The user goal enters the selfhost router. Markdown workflows and declarative references select focused capability skills. Bounded deterministic scripts inspect, render, debug, and verify one owned project, with Homarr as the default control plane.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>

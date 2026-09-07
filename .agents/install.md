@@ -11,7 +11,7 @@ bunx --bun skills@latest add ajnart/selfhost-skills
 The installer asks which skills and agents to target. With no scope flag it
 installs project-locally; add `--global` when the choices should be available
 from every project, and add `--copy` when direct copies are preferred. Select
-the seven `basic` skill IDs below, then only the pack or extension IDs needed
+the eight `basic` skill IDs below, then only the pack or extension IDs needed
 by this stack. Every portable description starts with `Base`, `Media pack`, or
 `Optional`; clients that render `agents/openai.yaml` also receive numbered base
 display names.
@@ -22,9 +22,9 @@ defines the exact sets and
 their service, approval-evidence, and verification-evidence obligations:
 
 - `basic` contains `selfhost-setup`, `selfhost-upkeep`, `selfhost`,
-  `selfhost-host`, `selfhost-compose`, `selfhost-operations`, and
-  `selfhost-verify`.
-- `media` extends `basic` with `selfhost-media` and `selfhost-homarr`.
+  `selfhost-host`, `selfhost-compose`, `selfhost-operations`,
+  `selfhost-homarr`, and `selfhost-verify`.
+- `media` extends `basic` with `selfhost-media`.
 - `backup`, `ingress`, `observe`, `research`, and `vpn` each extend `basic`
   with the matching `selfhost-<id>` capability.
 - Multiple packs and extensions form one union. They never select each other,

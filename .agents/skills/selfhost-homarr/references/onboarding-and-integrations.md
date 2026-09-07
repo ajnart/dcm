@@ -1,11 +1,11 @@
 # Onboarding and integration graph
 
-## Optional control-plane role
+## Default control-plane role
 
-Homarr is the preferred optional front door when it covers useful selected
-apps. It can collect navigation, health, widgets, and agent-readable
-integrations without becoming a dependency of those apps. Never add it
-implicitly, and never fail a base stack because the user declined it.
+Homarr is the standard private front door for every selected stack. It can
+collect navigation, health, widgets, and agent-readable integrations without
+becoming a runtime dependency of those apps. A Homarr outage must not stop the
+underlying services from operating independently.
 
 A private-first topology can publish Homarr's dashboard and user-facing services such as
 Jellyfin while keeping Sonarr, Radarr, Prowlarr, and qBittorrent administration
@@ -73,6 +73,6 @@ Before a generated media dashboard can reach a managed evidence check, observe a
 
 `ready-for-managed-evidence-check` is only a topology gate. The standalone verifier does not inspect generated app links, ping targets, or widgets; supply that evidence through `selfhost-media` and aggregate it with `selfhost-verify`.
 
-The seven-service `selfhost-media` harness is an explicitly Homarr-enhanced
-adapter. Do not generalize its required Homarr checks to a generic media stack
-whose user did not select Homarr.
+The seven-service `selfhost-media` harness includes Homarr and its browser,
+integration, widget, app-link, API, and MCP evidence. Other stacks still adapt
+their acceptance to the selected apps and available Homarr integrations.

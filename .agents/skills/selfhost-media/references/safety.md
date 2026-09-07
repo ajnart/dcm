@@ -26,7 +26,10 @@
   access handoff during upkeep. Its authorized output displays the admin username
   and derived password to the user; never copy that password into a file,
   screenshot, report, command argument, or unrelated later agent output.
-- Pass one-time Homarr material directly over stdin to `homarr-key`.
+- Prefer `browser-key` for browser-to-run capture and run-to-browser fill. It
+  accepts only fresh snapshot refs, suppresses browser output, compares
+  Arr/Seerr values with managed run state, and stores Homarr's one-time key in
+  the private run. `homarr-key` is the stdin-only fallback.
 - Refer to environment variable names in commands and reports. Record only
   fixed PASS/FAIL summaries and redacted structures.
 - Keep authentication pages, raw authenticated payloads, cookies, passwords,

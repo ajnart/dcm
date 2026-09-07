@@ -1,7 +1,17 @@
 {
-  "schemaVersion": 1,
-  "checkedAt": "2026-08-28",
+  "schemaVersion": 2,
+  "checkedAt": "2026-09-07",
   "ambiguousAliases": ["vpn"],
+  "defaultControlPlane": {
+    "id": "control-plane",
+    "name": "Homarr access",
+    "required": true,
+    "default": "homarr",
+    "choices": ["homarr"],
+    "reason": "Homarr is the standard private front door for every planned stack.",
+    "purpose": "Homarr provides app links, supported integrations and widgets, and the agent-facing MCP endpoint.",
+    "gates": ["exposure", "secrets"]
+  },
   "categories": [
     {"id": "dashboard", "name": "Dashboards", "description": "Navigation, status, and supported app integrations."},
     {"id": "media", "name": "Media", "description": "Personal video, music, books, and playback libraries."},

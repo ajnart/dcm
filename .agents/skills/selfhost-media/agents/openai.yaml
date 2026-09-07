@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pack · Media + Homarr"
+  display_name: "Pack · Media Stack"
   short_description: "Plan and initialize a private media stack"
   default_prompt: "Use $selfhost-media to plan and initialize a private owned-content media stack."

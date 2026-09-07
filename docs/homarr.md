@@ -20,7 +20,9 @@
 4. Use Docker URLs: `http://sonarr:8989`, `http://radarr:7878`,
    `http://prowlarr:9696`, `http://qbittorrent:$QBITTORRENT_PORT`,
    `http://jellyfin:8096`, and `http://seerr:5055`.
-5. Use per-run API keys for the three Arr apps and Seerr; select the
+5. Use agent-browser to retrieve each Arr/Seerr key from its current
+   run-scoped settings path, then fill the matching Homarr form with
+   `scripts/session.sh browser-key`; use the exact workflow below. Select the
    username/password mode for qBittorrent and Jellyfin. Fill each password ref
    only through `scripts/session.sh browser-password "$RUN_ID" @eN`.
 6. Review must state 6 integrations and 6 app tiles. Build and let `v2` generate
@@ -28,8 +30,8 @@
    test.
 7. Stop UI configuration after proving the generated board. In
    `/manage/tools/api`, use the **Authentication** tab to create one API key for
-   this run. Pipe its one-time browser value directly into
-   `./scripts/session.sh homarr-key "$RUN_ID"`; do not expose or stage it.
+   this run. Capture its one-time input through `./scripts/session.sh
+   browser-key capture "$RUN_ID" homarr @eN`; do not expose or stage it.
 8. Run `./scripts/session.sh homarr-finalize "$RUN_ID"`,
    `./scripts/session.sh mcp-config "$RUN_ID"`, and
    `./scripts/session.sh mcp-verify "$RUN_ID"` in that order. The finalizer
@@ -43,6 +45,42 @@
    apps.
 9. Keep the secret-free client fragment run-scoped and uninstalled unless the
    user separately authorizes client installation.
+
+## Agent-browser credential path
+
+Resolve every host URL with `scripts/session.sh urls RUN_ID`; never open the
+Docker URL in the host browser. These current upstream helper paths were
+rechecked on 2026-09-07:
+
+| Service | Host-browser path | Browser action |
+| --- | --- | --- |
+| Sonarr | `/settings/general` | capture the API-key ref, then fill Homarr |
+| Radarr | `/settings/general` | capture the API-key ref, then fill Homarr |
+| Prowlarr | `/settings/general` | capture the API-key ref, then fill Homarr |
+| Seerr | `/settings` | capture the API-key ref, then fill Homarr |
+| qBittorrent | `/#/settings/webui` | reference only; Homarr uses the managed login |
+| Jellyfin | `/web/index.html#!/dashboard/keys` | reference only; Homarr uses the managed login |
+| Homarr | `/manage/tools/api`, then **Authentication** | capture the one-time API-key ref |
+
+For each Arr or Seerr service, navigate with agent-browser, snapshot, and use
+the fresh API-key input ref:
+
+```bash
+scripts/session.sh browser-key capture "$RUN_ID" SERVICE @eN
+```
+
+This proves that the UI value matches the run's managed key. Return to Homarr,
+snapshot its integration form, and fill the fresh key ref:
+
+```bash
+scripts/session.sh browser-key fill "$RUN_ID" SERVICE @eN
+```
+
+The helper accepts `sonarr`, `radarr`, `prowlarr`, or `seerr`; Homarr is
+capture-only. It tries the installed agent-browser executable first and falls
+back to `bunx --bun agent-browser` only when that executable is absent. Browser
+output is suppressed, values travel through stdin or private process memory,
+and only fixed PASS/FAIL text is emitted.
 
 ## API/MCP contract
 
@@ -102,6 +140,8 @@ unapproved tool before upstream dispatch.
 ## Traps
 
 - Integration URLs are base URLs only; never append settings/API paths.
+- Homarr's Docker URLs are not host-browser routes. Use the run-scoped host URL
+  plus the table suffix when retrieving credentials with agent-browser.
 - Re-snapshot after dialogs and menus; stale refs and overlays are common.
 - Never pass the derived password in an agent-browser or shell argument; use
   only the bounded browser-password helper with fresh refs.
@@ -118,4 +158,6 @@ Sources: [Docker installation](https://homarr.dev/docs/getting-started/installat
 [integration management](https://homarr.dev/docs/management/integrations/),
 [API](https://homarr.dev/docs/management/api/),
 [MCP](https://homarr.dev/docs/management/mcp/), and
-[Seerr integration](https://homarr.dev/docs/integrations/seerr/).
+[Seerr integration](https://homarr.dev/docs/integrations/seerr/). Exact helper
+paths come from Homarr's current
+[`integration.ts`](https://github.com/homarr-labs/homarr/blob/dev/packages/definitions/src/integration.ts).

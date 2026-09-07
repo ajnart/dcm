@@ -25,8 +25,8 @@ non-secret preferences, selects a stack, and presents a redacted plan. It leads
 with a recommended answer, explains each service's purpose, skips settled
 questions, and accepts `defaults` for safe planning choices. An explicit
 request for Homarr itself routes to the
-`homarr-control-plane` goal and its `selfhost-homarr` adapter; Homarr stays an
-unselected recommendation when it is only an enhancement to another goal.
+`homarr-control-plane` goal and its `selfhost-homarr` adapter. Every other goal
+also receives the required Homarr control-plane role from the taxonomy.
 
 For a returning planning project, load `.selfhost/project.json` plus confirmed
 non-secret preferences from its exact project root. The project record keeps
@@ -47,7 +47,7 @@ common goals. Never dump every catalog record into the context window.
 The canonical intake is
 [`selfhost/references/conversation.md`](skills/selfhost/references/conversation.md).
 Ask only unresolved choices that change the plan: purpose, people and devices,
-exact project root, services and optional Homarr, relevant paths, exposure,
+exact project root, services and Homarr coverage, relevant paths, exposure,
 backup and VPN policy when applicable, and credential policy. Recommend one
 answer first and keep alternatives short. A one-word `defaults` answer accepts
 catalog and private-first planning defaults; it does not select optional roles
@@ -63,7 +63,7 @@ password, token, key, cookie, or recovery-code values in chat.
 
 Portable descriptions label every base entry. Clients that render the OpenAI
 metadata also number them as setup, upkeep, planning, host inspection, Compose,
-operations, then verification. Setup and upkeep are explicit-only; the other
+operations, Homarr, then verification. Setup and upkeep are explicit-only; the other
 capabilities are model-invoked and may also be called explicitly for a bounded
 task.
 
@@ -74,8 +74,8 @@ task.
 
 ## Packs and extensions
 
-- `selfhost-media` and `selfhost-homarr`: the Media + Homarr pack, which
-  extends the complete base.
+- `selfhost-media`: the media pack, which extends the complete Homarr-enabled
+  base.
 - `selfhost-backup`: backup policy, app-consistent capture, and restore drills.
 - `selfhost-ingress`: LAN, tailnet, reverse proxy, DNS, TLS, and tunnels.
 - `selfhost-observe`: health, metrics, logs, alerts, and edge checks.
@@ -85,11 +85,9 @@ task.
 Each extension extends the complete base independently. Multiple selections
 form a union; optional packs and extensions are never implied.
 
-The Media + Homarr pack contains:
+The base contains `selfhost-homarr`; the media pack adds:
 
 - `selfhost-media`: opt-in Homarr-enhanced personal-media adapter.
-- `selfhost-homarr`: optional Homarr control-plane, dashboard, API, and
-  read-only MCP adapter.
 
 Do not create one skill per catalog row. An app earns a dedicated skill only
 when it has reusable special behavior beyond declarative facts.
@@ -102,9 +100,8 @@ when it has reusable special behavior beyond declarative facts.
 3. Reuse compatible infrastructure or report a conflict.
 4. Present host-dependent paths and gates, then confirm only unresolved choices.
 5. Compose only the selected capabilities and apps; optional roles remain off.
-6. When Homarr covers useful selected apps, offer it prominently as an
-   optional control plane. Never auto-select it or make its absence block the
-   base stack.
+6. Include Homarr as the required private control plane and report dedicated
+   integration coverage separately from app-link-only gaps.
 7. Present the plan and obtain the relevant approval.
 8. Apply through the owning capability or adapter.
 9. Verify through `selfhost-verify`, including edge/VPN/restore proof when the

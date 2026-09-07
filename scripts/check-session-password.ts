@@ -50,6 +50,7 @@ const CURRENT_SCHEME_SESSION_COMMANDS = [
   "bootstrap",
   "verify",
   "browser-password",
+  "browser-key",
   "homarr-key",
   "homarr-finalize",
   "mcp-config",

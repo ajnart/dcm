@@ -5,7 +5,7 @@
     {
       "id": "selfhost",
       "displayName": "3 · Base · Plan Stack",
-      "description": "Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.",
+      "description": "Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Include Homarr as the standard private control plane.",
       "compatibility": "Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.",
       "license": "Apache-2.0",
       "kind": "router",
@@ -73,8 +73,8 @@
     },
     {
       "id": "selfhost-homarr",
-      "displayName": "Pack · Media + Homarr · Homarr",
-      "description": "Media pack adapter. Add Homarr v2 as an optional private dashboard and read-only agent gateway when directly requested or delegated by a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.",
+      "displayName": "7 · Base · Homarr Control Plane",
+      "description": "Base control-plane adapter. Set up Homarr v2 as the standard private dashboard and read-only agent gateway for a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.",
       "compatibility": "Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.",
       "license": "Apache-2.0",
       "kind": "adapter",
@@ -86,7 +86,7 @@
         "selfhost-verify"
       ],
       "install": {
-        "group": "pack",
+        "group": "base",
         "requires": [
           "selfhost",
           "selfhost-verify"
@@ -136,7 +136,7 @@
     },
     {
       "id": "selfhost-media",
-      "displayName": "Pack · Media + Homarr",
+      "displayName": "Pack · Media Stack",
       "description": "Media pack adapter. Use only when directly requested or delegated by explicit selfhost-setup or selfhost-upkeep to set up, synchronize, and verify the exact private owned-content stack of Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr.",
       "compatibility": "Planning requires Bun 1.4.0 or newer and Bash; approved harness runs require Docker Compose and browser evidence requires agent-browser.",
       "license": "Apache-2.0",
@@ -283,7 +283,7 @@
     },
     {
       "id": "selfhost-verify",
-      "displayName": "7 · Base · Verify Stack",
+      "displayName": "8 · Base · Verify Stack",
       "description": "Base verification capability. Independently aggregate secret-free acceptance evidence without mutation. Use after planning or apply to assess source class, expected and actual classifications, timestamps, hashes, freshness, missing or conflicting evidence, public ingress, VPN fail-closed behavior, restore proof, media graphs, or Homarr claims. Emit claims only from supplied evidence.",
       "compatibility": "Requires Bun 1.4.0 or newer; evaluates local redacted evidence documents without probing the target.",
       "license": "Apache-2.0",

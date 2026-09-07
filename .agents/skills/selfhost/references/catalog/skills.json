@@ -48,7 +48,7 @@
       "risk": "approval-gated-write",
       "activation": "delegated",
       "delegatesTo": ["selfhost-ingress", "selfhost-verify"],
-      "install": {"group": "pack", "requires": ["selfhost", "selfhost-verify"]}
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-verify"]}
     },
     {
       "id": "selfhost-host",

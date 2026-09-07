@@ -5,7 +5,7 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "4f0bfb7a8a1d9c5b2762185e9cbf3af00144ce07c348a68bc3029d33bf9e5b2a"
+      "sourceSha256": "6d42c6d4148a93975f43038844a4bb8799e511526d22b321656a0b0686f9e4e2"
     },
     {
       "path": "prompts/00-contract.md",
@@ -17,7 +17,7 @@
     {
       "path": "PROMPT.md",
       "mode": "0644",
-      "sha256": "81d5354548e11bbdb603dc2c7a89a9994f6d7123c7897a24b5d4eef8580323d2"
+      "sha256": "669414252c9ac852a9df484f57ffb0fefe10ef0c48962396eb57c89c492ff890"
     },
     {
       "path": "docker-compose.yml",
@@ -27,12 +27,12 @@
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "069e62ee439c68c9165cff45f9781bd3572ac4638d74417b1b0f02d488b47930"
+      "sha256": "a8faaaffb986752aaccc06da7536fbcbc151087bcbcaf526beef5661153debda"
     },
     {
       "path": "docs/homarr.md",
       "mode": "0644",
-      "sha256": "5681eee242a35a1480f6187e2be6c3d3355ef78ccf5df75c558811c37543a972"
+      "sha256": "90f80e0a3288750c7d505b001f7825ca34ac69e3d776d47b997f78dea8e4424b"
     },
     {
       "path": "docs/jellyfin.md",
@@ -92,12 +92,12 @@
     {
       "path": "prompts/50-homarr.md",
       "mode": "0644",
-      "sha256": "e6dbb4977f22658fb9147086423dfaa965e5b207f2023c0510e6b7e2c21d6eb7"
+      "sha256": "174f58ce0bfb19f02065d15850465db48c16ecd6db74607002d3ed938e73f24c"
     },
     {
       "path": "prompts/60-homarr-api-mcp.md",
       "mode": "0644",
-      "sha256": "2d97d05e977e5a4f0e5cacc70df614728a13f94243326db962b03c100b4fef01"
+      "sha256": "61c8a06f5d67fcd8a798594738700f2febee1617deb2e8b697c0447b81b09cd4"
     },
     {
       "path": "prompts/80-acceptance.md",
@@ -120,6 +120,11 @@
       "sha256": "980291ee72b38f8a73a09c37d8b6fe2cd9ec3ba772fea577ebb2be299ce3ef9a"
     },
     {
+      "path": "scripts/browser-api-key.ts",
+      "mode": "0644",
+      "sha256": "2eb45c89450e8c54fc8d9a2a2e2e3e2ea2dae596d1ccfb400969f25efce1f828"
+    },
+    {
       "path": "scripts/check-homarr-finalize.ts",
       "mode": "0644",
       "sha256": "e7109f017ac79f4de3649037b97a744d8aa16a8741c1608afb12254d31039170"
@@ -137,7 +142,7 @@
     {
       "path": "scripts/check-session-password.ts",
       "mode": "0644",
-      "sha256": "3a71866733295b942ce3935ec6ad6723319db1acaeadd6ebdce88d8222a3fede"
+      "sha256": "d34f43bbe264ca11c07d6e7c138de94615b36cbbba898a88442f9c2abb73be0e"
     },
     {
       "path": "scripts/fill-browser-password.ts",
@@ -172,7 +177,7 @@
     {
       "path": "scripts/session.sh",
       "mode": "0755",
-      "sha256": "6dd730bb68bdce9aa3685e5aa67117545839d700418a8c64d7cb5b8514dcd7b0"
+      "sha256": "370d1b5a0acf463a3bb7f1bbd7ce3f79dc6222ab10687a231c1bb142e486a520"
     },
     {
       "path": "scripts/store-homarr-key.ts",

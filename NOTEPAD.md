@@ -36,7 +36,7 @@ shared patterns and the corresponding repository decisions are:
 | P0 | Experiment framing | The media pack is a purposeful setup workflow, not a candidate competition, and ends only after the full seven-service acceptance matrix passes. | Runbook contract and exact typed verification obligations | proved |
 | P1 | No upkeep entry point | A user-invoked upkeep skill resumes, extends, updates, repairs, and re-verifies the exact recorded stack. | Eight upkeep scenarios with pre-apply continuation, media extension, and adapter-owned accepted-state validation | proved |
 | P1 | Extension ambiguity | Extensions declare required skills, consuming service records, approval gates, and verification obligations before mutation. | Install-profile closure and lifecycle validation | proved |
-| P1 | Runtime drift | The portable media bundle, generated indexes, release package, and installer layouts remain exact after every lifecycle change. | 36-file source-drift, package, index, and detached-install gates | proved |
+| P1 | Runtime drift | The portable media bundle, generated indexes, release package, and installer layouts remain exact after every lifecycle change. | 37-file source-drift, package, index, and detached-install gates | proved |
 
 ## Iterations
 
@@ -51,7 +51,7 @@ shared patterns and the corresponding repository decisions are:
 
 1. Freeze the existing safety and ownership invariants and map every change to
    one owning skill, canonical runtime source, schema, or release surface.
-2. Model installation as an additive graph: seven-skill `basic`, optional
+2. Model installation as an additive graph: eight-skill Homarr-enabled `basic`, optional
    `media` pack, independent extensions, exact transitive closure, and cycle
    rejection. Keep this product contract separate from portable frontmatter.
 3. Expose the graph through portable Base, Media pack, and Optional description
@@ -89,7 +89,7 @@ shared patterns and the corresponding repository decisions are:
 | Behavior | All 14 skills are covered and pass. Setup proves project/scope-isolated prerequisites, gated browser checks, safe stale-lock recovery, and explicit profile-to-service bindings; upkeep accepts pending pre-apply adapter state, then checks valid, missing, symlinked, and tampered accepted connection state. |
 | Real Skills CLI | Lists exactly 14 grouped choices, verifies link and copy modes, installs the exact 9-skill media profile, and runs every detached install after source removal. The official `vercel-labs/agent-browser` source resolves exactly the `agent-browser` skill. |
 | Password and connections | All 5 focused verifier sections pass; the generated password is derived only for authorized handoff, the private connection file contains exact reusable fields and no password, and legacy password-bearing files remain safely destroyable. |
-| Generated media | All 36 bundle files verify and match canonical sources, with only the two declared portability transforms. |
+| Generated media | All 37 bundle files verify and match canonical sources, with only the two declared portability transforms. |
 | Performance | Thirty-run p95 is 38.56 ms for catalog, 42.50 ms for photos, and 38.59 ms for backups against a 500 ms budget. |
 | Independent review | Fresh read-only spec and standards audits report no remaining concrete P0/P1 gap after checking canonical sources, generated artifacts, and the complete worktree diff. |
 | Source policy | No tracked `.js`, `.mjs`, `.cjs`, or `.jsx` source exists; executable implementation is Bun TypeScript and Bash. |

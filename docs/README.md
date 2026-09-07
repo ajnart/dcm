@@ -45,13 +45,21 @@ batch over stdin, suppresses child output, and returns only fixed PASS/FAIL
 text. The password must never appear in command arguments, screenshots, or
 reports.
 
+Homarr setup is browser-driven. For Sonarr, Radarr, Prowlarr, and Seerr, open
+the run-scoped host settings URL from [homarr.md](homarr.md), take a fresh
+snapshot, and use `scripts/session.sh browser-key capture RUN_ID SERVICE @eN`
+to verify the displayed key against the managed run. Return to Homarr, take a
+fresh snapshot, and use `browser-key fill` on its key input. For the one-time
+Homarr API key, use `browser-key capture RUN_ID homarr @eN`. The helper emits
+only fixed PASS/FAIL text and never puts a key in an argument or report.
+
 Runs without `SESSION_PASSWORD_SCHEME=hmac-v1` are legacy and are never
 migrated in place. Their command boundary is explicit:
 
 | Legacy run behavior | Commands |
 | --- | --- |
 | Inspection and bounded cleanup allowed | `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, `destroy` |
-| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config`, `connections`, `handoff` |
+| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `browser-key`, `homarr-key`, `homarr-finalize`, `mcp-config`, `connections`, `handoff` |
 
 Recreate a legacy run under a new `RUN_ID` before starting services,
 configuring connections, writing client artifacts, or continuing acceptance
@@ -79,8 +87,9 @@ schemas only for exact RPC `-32603` message
 
 `.sessions/RUN_ID/secrets.env` is the harness source of truth for service API
 keys and the Homarr encryption key. The five-entry schema is unchanged; the
-password is derived from that source. `homarr-key` stores the Homarr API/MCP key
-separately in the private run. `bootstrap`, `keys`, `homarr-key`, and the
+password is derived from that source. `browser-key capture ... homarr` stores
+the Homarr API/MCP key separately in the private run; `homarr-key` remains the
+secret-safe stdin fallback. `bootstrap`, `keys`, `browser-key`, `homarr-key`, and the
 explicit command below atomically refresh the user-facing connections file:
 
 ```bash

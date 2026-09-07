@@ -8,10 +8,12 @@ tested six integrations and generated six linked apps plus their widgets.
 1. In the run-scoped agent-browser session, open this run's Homarr host URL at
    `/manage/tools/api`, select **Authentication**, and create one API key for
    the local admin.
-2. Resolve the one-time key element to a fresh browser ref. Run its matching
-   agent-browser accessor as the left side of a pipe whose right side is
-   `./scripts/session.sh homarr-key "$RUN_ID"`. The browser value must flow
-   directly over stdin; run neither side alone.
+2. Resolve the one-time key input to a fresh browser ref, then capture it
+   directly from the run-scoped browser into the private harness store:
+
+   ```bash
+   ./scripts/session.sh browser-key capture "$RUN_ID" homarr @eN
+   ```
 3. Observe only the harness acknowledgement. Keep the key out of terminal
    output, shell variables, command arguments, setup-created files,
    screenshots, and reports. The private harness store is its only persistence.
@@ -61,7 +63,7 @@ dispatch. Only the preceding harness-owned finalizer may update app links.
 
 ## Stop gate
 
-- `homarr-key` and all four follow-up commands emit secret-safe summaries.
+- `browser-key` and all four follow-up commands emit secret-safe summaries.
 - The connections summary explains every service and gives the exact private
   file path plus a local reveal command without persisting a password.
 - The six generated apps have host links plus internal Docker ping URLs.

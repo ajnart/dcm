@@ -20,11 +20,9 @@ Update `catalog/homarr-integrations.json` only from its official sources, preser
 
 ## Add a stack
 
-Model a user goal rather than a product bundle. Each required role needs choices and one default. Optional roles remain off unless the request or preferences select them. A `recommended: true` role is prominent advice, not an implicit selection: it must be optional and have a `null` default. Put cross-cutting work in `requiredSkills`, and represent risk decisions in `gates`.
+Model a user goal rather than a product bundle. Each required role needs choices and one default. Optional roles remain off unless the request or preferences select them. Put cross-cutting work in `requiredSkills`, and represent risk decisions in `gates`.
 
-Use a recommended Homarr role only where a private front door adds value. Report dedicated integration coverage separately from app-links-only coverage instead of hiding the recommendation when a selected alternative has no integration. Homarr remains an optional control plane; selecting it adds its application adapter and Homarr-specific acceptance claims, while leaving it off adds no Homarr service, skill, or evidence requirement.
-The `homarr-control-plane` goal is the narrow exception: its required Homarr
-role is valid because the user explicitly asked for Homarr itself.
+`taxonomy.defaultControlPlane` injects the required Homarr role into every plan. Do not repeat Homarr in individual stack roles or dependencies. Report dedicated integration coverage separately from app-links-only coverage. Every plan includes the Homarr adapter and Homarr-specific acceptance claims.
 
 Aliases must describe genuine intent. Keep them distinct enough for deterministic longest-phrase resolution. If two stacks share an alias, catalog validation fails.
 

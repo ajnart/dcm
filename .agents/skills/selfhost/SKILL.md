@@ -1,6 +1,6 @@
 ---
 name: selfhost
-description: Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Offer Homarr as an optional control plane when useful.
+description: Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Include Homarr as the standard private control plane.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.
 ---
@@ -28,8 +28,8 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
    Saved checkpoints explain intent but never prove current host state. Adopt a
    resource only after its ownership is known.
 6. Present selected services, their purposes, alternatives, required skills,
-   gates, unresolved decisions, and optional Homarr coverage. Keep Homarr off
-   unless the user selects it or asks for it directly.
+   gates, unresolved decisions, and Homarr coverage. Homarr is the required
+   private control plane for every plan.
 7. After confirmed non-secret intent, use `state init` or `state revise` as the
    separate persistence step. Record a checkpoint only for work that happened
    and only with a real typed evidence ID.
@@ -57,8 +57,8 @@ Treat bare `VPN` as intentionally ambiguous: ask whether the user wants private 
 
 Read [references/catalog.md](references/catalog.md) for support levels,
 curation tiers, app facts, image provenance, and Homarr coverage. A stack's
-best automation never upgrades a weaker selected app. Homarr remains an
-optional control plane and its bridge remains inspect-and-search only.
+best automation never upgrades a weaker selected app. Homarr is the default
+control plane and its bridge remains inspect-and-search only.
 
 ## Enforce the plan boundary
 

@@ -20,8 +20,8 @@ or confirmed non-secret preferences.
    created. Initialize or revise project state and persist only confirmed,
    non-secret preferences. Keep planning commands read-only.
 
-`defaults` selects catalog defaults plus private-first planning defaults.
-Optional roles, including Homarr, remain off until explicitly selected. It does
+`defaults` selects catalog defaults, required Homarr, and private-first planning defaults.
+Other optional roles remain off until explicitly selected. It does
 not approve apply, public exposure, destructive work, privilege expansion, a
 VPN change, or a migration.
 
@@ -41,8 +41,8 @@ Use this order, skipping settled branches:
    Confirm the root before reading elsewhere or writing project-local state.
 4. **Services.** Present the catalog default first and explain its purpose.
    Name only alternatives that change support, complexity, or capability.
-   Present Homarr as optional and currently off; recommend it when a dashboard
-   or read-only agent-facing MCP front door materially helps.
+   Include Homarr as the standard private dashboard and read-only agent-facing
+   MCP front door.
 5. **Paths.** After fresh host inspection, propose config, data, media,
    download, and backup paths that are relevant to the selected services. Ask
    only about mappings the host facts cannot settle.
@@ -82,9 +82,8 @@ Use this shape:
 For service choices, pair names with purposes:
 
 > Recommended services: **Jellyfin** plays your library; **Seerr** lets your
-> household search and request titles. **Homarr** is an optional dashboard and
-> read-only agent front door, currently off. Use these defaults, add Homarr, or
-> change a service?
+> household search and request titles. **Homarr** is the private dashboard and
+> read-only agent front door. Use these defaults or change a service?
 
 End intake when every plan-changing choice is confirmed or visibly unresolved,
 the project root is exact, no secret value was collected, and the next action

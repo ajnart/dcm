@@ -58,9 +58,12 @@ digests.
 
 `selfhost-setup` installs and checks the agent-browser skill, runtime, and
 browser before the media harness starts. The harness does not manage that
-prerequisite. `browser-password` first invokes agent-browser directly. Only a
-direct `ENOENT` retries `bunx --bun agent-browser`; a launched nonzero action is
-never retried.
+prerequisite. `browser-password` and `browser-key` invoke agent-browser
+directly. Only a direct `ENOENT` retries `bunx --bun agent-browser`; a launched
+nonzero action is never retried. `browser-key capture` retrieves a fresh key
+input without printing it, verifies Arr/Seerr keys against managed run state,
+and privately stores the one-time Homarr key. `browser-key fill` sends the
+selected managed key to one fresh Homarr input ref over browser stdin.
 
 ## Session lifecycle
 
@@ -74,6 +77,8 @@ bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session urls RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session up RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session bootstrap RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session verify RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session browser-key capture RUN_ID SERVICE @eN
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session browser-key fill RUN_ID SERVICE @eN
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session connections-check RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session connections RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session handoff RUN_ID
@@ -86,7 +91,7 @@ New manifests carry `SESSION_PASSWORD_SCHEME=hmac-v1`. A missing marker denotes
 a legacy run and is accepted only for inspection and bounded cleanup. Legacy
 runs allow `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, and
 `destroy`. The exact current marker is required for `up`, `keys`, `bootstrap`,
-`verify`, `browser-password`, `homarr-key`, `homarr-finalize`, `mcp-config`,
+`verify`, `browser-password`, `browser-key`, `homarr-key`, `homarr-finalize`, `mcp-config`,
 `connections-check`, `connections`, and `handoff`; recreate under a new run
 identifier instead of migrating access state in place.
 The internal read-only Compose-log helper remains marker-optional; there is no
@@ -98,7 +103,7 @@ bounded migration artifact without reading it. `connections` or `handoff`
 replaces it with `connections.env`; `destroy` removes it during cleanup.
 
 Bootstrap creates mode-`0600` `SESSION_ROOT/connections.env`. `keys`,
-`homarr-key`, and `connections` refresh it atomically. It contains `RUN_ID`,
+`browser-key`, `homarr-key`, and `connections` refresh it atomically. It contains `RUN_ID`,
 service URLs, usernames, and only available API keys; it never contains a
 password field or derived password. Its URLs use `localhost` and assigned
 collision-free ports; use the host's private LAN name or address from another

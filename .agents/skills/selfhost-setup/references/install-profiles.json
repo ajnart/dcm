@@ -10,8 +10,8 @@
     {
       "id": "basic",
       "kind": "base",
-      "label": "Base setup and upkeep",
-      "description": "Intentional planning, host inspection, bounded Compose apply, resumable upkeep, and independent verification.",
+      "label": "Base setup, Homarr, and upkeep",
+      "description": "Intentional planning, host inspection, required Homarr control-plane setup, bounded Compose apply, resumable upkeep, and independent verification.",
       "extends": [],
       "approvalEvidence": ["approval:compose-project"],
       "serviceConsumption": "none",
@@ -19,6 +19,7 @@
       "skills": [
         "selfhost",
         "selfhost-compose",
+        "selfhost-homarr",
         "selfhost-host",
         "selfhost-operations",
         "selfhost-setup",
@@ -51,8 +52,8 @@
     {
       "id": "media",
       "kind": "pack",
-      "label": "Media and Homarr pack",
-      "description": "Set up and verify Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and Homarr.",
+      "label": "Media stack pack",
+      "description": "Set up and verify Seerr, Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, and the base Homarr control plane through agent-browser.",
       "extends": ["basic"],
       "approvalEvidence": ["approval:media-project", "approval:owned-content"],
       "serviceConsumption": "none",
@@ -67,7 +68,7 @@
         "verify:media-seerr",
         "verify:media-sonarr"
       ],
-      "skills": ["selfhost-homarr", "selfhost-media"]
+      "skills": ["selfhost-media"]
     },
     {
       "id": "observe",

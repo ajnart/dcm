@@ -29,8 +29,10 @@ Sonarr/Radarr use qBittorrent; Prowlarr full-syncs to both; Seerr is connected t
 Jellyfin, Sonarr, and Radarr; and Homarr onboarding has tested and linked all six
 external integrations. The `ghcr.io/homarr-labs/homarr-test:v2` onboarding must
 auto-generate the app tiles and integration widgets. Manual post-onboarding app
-or widget placement does not satisfy setup. Capture a private per-run
-Homarr API key without exposing it, finalize the six generated app URL/ping
+or widget placement does not satisfy setup. Use agent-browser with fresh refs
+and the secret-safe browser helper to retrieve service keys, fill Homarr, and
+capture a private per-run Homarr API key without exposing it. Finalize the six
+generated app URL/ping
 splits through the harness, and verify the canonical `/api/mcp` endpoint with a
 read-only media search. The generated client configuration must remain
 secret-free and uninstalled unless the user separately authorizes installation.

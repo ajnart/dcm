@@ -14,7 +14,8 @@ The exact profile shape is:
 }
 ```
 
-`media` and `homarr` are independent. Select `homarr` only when the optional Homarr control plane is in the accepted scope.
+`homarr` is part of every accepted stack scope. `media` remains a separate
+profile and adds its complete seven-service acceptance matrix.
 
 ## Manual version 1 conversion
 

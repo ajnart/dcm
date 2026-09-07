@@ -1,6 +1,6 @@
 ---
 name: selfhost-homarr
-description: Media pack adapter. Add Homarr v2 as an optional private dashboard and read-only agent gateway when directly requested or delegated by a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.
+description: Base control-plane adapter. Set up Homarr v2 as the standard private dashboard and read-only agent gateway for a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.
 ---
@@ -9,10 +9,10 @@ compatibility: Requires Bun 1.4.0 or newer; live API checks need an explicitly i
 
 Resolve `SKILL_DIR` to this skill directory and invoke every bundled script through its absolute path. The scripts require Bun 1.4.0 or newer and have no repository-root or sibling-skill dependency.
 
-Homarr is a recommended bonus layer, never a prerequisite for the services it
-connects. Use it as a private dashboard and agent-facing integration surface
-without transferring ownership of the underlying apps to this skill. A stack
-without Homarr remains valid.
+Homarr is the required default access layer for plans in this pack. Use it as a
+private dashboard and agent-facing integration surface without transferring
+ownership of the underlying apps to this skill. The underlying services remain
+independently operable when Homarr is temporarily unavailable.
 
 ## Contract
 
@@ -27,7 +27,9 @@ without Homarr remains valid.
 ## Workflow
 
 1. Read [onboarding-and-integrations.md](references/onboarding-and-integrations.md) when selecting apps, classifying coverage, onboarding, or accepting a generated dashboard.
-2. Confirm that the user selected Homarr as an optional layer. Do not add it merely because selected apps have integrations.
+2. Confirm the selected stack and include Homarr as its standard private
+   control plane. This does not authorize public exposure or mutation of the
+   connected apps.
 3. Initialize a project profile:
 
    ```text
