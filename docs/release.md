@@ -1,8 +1,9 @@
 # Release gate
 
-Version 1 releases preserve Git history and publish one generated native plugin
-archive. The source of truth remains `.agents/skills/`; never commit a second
-`skills/` tree or a portability symlink.
+Version 1 releases preserve Git history and publish one generated Agent Plugins
+1.0 archive with a Claude Code compatibility manifest. The source of truth
+remains `.agents/skills/`; never commit a second `skills/` tree or a portability
+symlink.
 
 ## Prepare
 
@@ -30,9 +31,16 @@ The audit never reads a sensitive historical path or prints a matched value.
 Review tracked screenshots visually for host details, user data, and credentials
 even when their PNG/SVG metadata scan passes.
 
-Extract the ZIP into a disposable directory and run the current Codex and
-Claude native plugin validators against that directory. Validate the ZIP and
-`SHA256SUMS`, then remove the disposable files.
+Extract the ZIP into a disposable directory. Validate root `plugin.json`
+against Agent Plugins 1.0, validate every immediate `skills/<name>/SKILL.md`
+against Agent Skills, and run the current Claude plugin validator against the
+same directory. Validate the ZIP and `SHA256SUMS`, then remove the disposable
+files.
+
+The package projection removes only the source-only
+`disable-model-invocation` key from explicit workflows. Their standard
+`metadata` marker and in-body activation gate remain, and Codex retains its
+`agents/openai.yaml` policy. Source installs keep the client-native key.
 
 ## Publish
 

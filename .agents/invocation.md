@@ -12,8 +12,10 @@ project. It refreshes host evidence before status, extension, upgrade,
 migration, repair, reconnect, or re-verification work.
 
 Use `selfhost` for planning. It supports explicit calls such as `/selfhost
-netflix` in Claude Code and `$selfhost netflix` in Codex, plus natural-language
-goals such as “replace Google Photos.” Its discovery description permits
+netflix` in Claude Code, `$selfhost netflix` in Codex, and
+`/skill:selfhost netflix` in Pi, plus natural-language goals such as “replace
+Google Photos.” Other clients use their skill picker or native invocation UI.
+Its discovery description permits
 implicit invocation, but it never treats invocation as approval to mutate a
 host.
 
@@ -152,7 +154,11 @@ change the system.
 
 ## Product overlays
 
-Canonical `SKILL.md` files use Agent Skills standard frontmatter. Codex UI and
-invocation metadata lives in `agents/openai.yaml`. Client-specific packaging
-may project the same canonical skills, but it must not create a second editable
-source tree.
+Canonical explicit workflows retain the client-native
+`disable-model-invocation` guard plus a portable activation marker and an
+in-body activation gate. Codex invocation policy lives in `agents/openai.yaml`.
+The release projection removes the non-standard top-level key so every packaged
+`SKILL.md` uses only Agent Skills frontmatter. It also uses the Agent Plugins
+1.0 fixed `skills/<name>/SKILL.md` discovery layout and a closed root
+`plugin.json`; the `.claude-plugin/` manifest is a compatibility surface. This
+projection does not create a second editable source tree.

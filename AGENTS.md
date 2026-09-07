@@ -8,6 +8,8 @@
 - `.agents/skills/selfhost-*` capabilities own one operational boundary each.
 - `.agents/CONTEXT.md`, `invocation.md`, and `install.md` define shared product
   vocabulary, composition, and packaging.
+- `packaging/agent-plugin.json` owns the portable Agent Plugins 1.0 manifest;
+  `packaging/claude-plugin.json` is the Claude Code compatibility manifest.
 - `.agents/adr/` records stable architecture and support decisions.
 - Root `PROMPT.md`, `docker-compose.yml`, `prompts/`, `docs/`, and their
   `scripts/` are the canonical media harness.

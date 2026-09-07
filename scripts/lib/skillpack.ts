@@ -21,10 +21,33 @@ export const skillsRoot = join(repositoryRoot, ".agents", "skills");
 export const registryPath = join(skillsRoot, "selfhost", "references", "catalog", "skills.json");
 
 const PACKAGE_SIZE_BUDGET = Math.floor(1.35 * 1024 * 1024);
+const AGENT_PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
+const AGENT_SKILLS_FRONTMATTER_FIELDS = new Set([
+  "allowed-tools",
+  "compatibility",
+  "description",
+  "license",
+  "metadata",
+  "name",
+]);
 const SECRET_MESSAGE = /(?:password|passwd|secret|token|api[-_]?key|private[-_]?key|cookie|session)\s*[:=]\s*\S+/gi;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$/;
 const SENSITIVE_HISTORY_PATH = /(?:^|\/)(?:\.sessions|(?:browser-)?profiles?|cookies?|secrets?)(?:\/|$)|(?:^|\/)(?:\.env[^/]*|credentials\.env|connections\.env|[^/]+\.(?:pem|key|p12|pfx|kdbx))$/i;
 const INSTALL_GROUPS = new Set(["base", "pack", "extension"]);
+const COMMON_AGENT_IDS = [
+  "amp",
+  "claude-code",
+  "cline",
+  "codex",
+  "cursor",
+  "gemini-cli",
+  "github-copilot",
+  "kiro-cli",
+  "opencode",
+  "pi",
+  "roo",
+  "windsurf",
+];
 const CREDENTIAL_PATTERNS = [
   ["private-key", /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/],
   ["github-token", /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/],
@@ -116,6 +139,28 @@ function safeMessage(value) {
     .replaceAll(repositoryRoot, "<repository>")
     .replace(SECRET_MESSAGE, "<redacted>")
     .slice(0, 800);
+}
+
+function portableSkillContent(content, skillId) {
+  const source = content.toString("utf8");
+  const projected = source.replace(/^disable-model-invocation: true\n/m, "");
+  const frontmatter = parseFrontmatter(projected, `Packaged ${skillId}/SKILL.md`);
+  for (const field of frontmatter.values.keys()) {
+    if (!AGENT_SKILLS_FRONTMATTER_FIELDS.has(field)) {
+      throw new Error(`Packaged ${skillId}/SKILL.md contains non-standard field ${field}`);
+    }
+  }
+  if (frontmatter.values.get("name") !== skillId) {
+    throw new Error(`Packaged ${skillId}/SKILL.md name must match its directory`);
+  }
+  const description = frontmatter.values.get("description");
+  if (typeof description !== "string" || description.length < 1 || description.length > 1024) {
+    throw new Error(`Packaged ${skillId}/SKILL.md description is invalid`);
+  }
+  if (source !== projected && !/^metadata:\n  selfhost-activation: explicit$/m.test(projected)) {
+    throw new Error(`Packaged ${skillId}/SKILL.md lost its explicit activation marker`);
+  }
+  return Buffer.from(projected);
 }
 
 async function readJson(path, label) {
@@ -591,6 +636,68 @@ async function validateInstallProfiles(registry) {
   return errors;
 }
 
+async function validateCodingAgents() {
+  const errors = [];
+  const path = join(skillsRoot, "selfhost-setup", "references", "coding-agents.json");
+  let document;
+  try {
+    document = await readJson(path, "Coding agent manifest");
+  } catch (error) {
+    return [safeMessage(error instanceof Error ? error.message : error)];
+  }
+  if (
+    !document
+    || typeof document !== "object"
+    || Array.isArray(document)
+    || JSON.stringify(Object.keys(document).sort()) !== JSON.stringify(["agents", "schemaVersion"])
+    || document.schemaVersion !== 1
+    || !Array.isArray(document.agents)
+  ) {
+    return ["Coding agent manifest identity or shape is invalid"];
+  }
+  const ids = [];
+  const installPath = /^(?:\.?[a-z0-9][a-z0-9-]*)(?:\/[a-z0-9][a-z0-9-]*)*$/;
+  for (const agent of document.agents) {
+    if (!agent || typeof agent !== "object" || Array.isArray(agent)) {
+      errors.push("Coding agent manifest contains a non-object agent");
+      continue;
+    }
+    if (JSON.stringify(Object.keys(agent).sort()) !== JSON.stringify([
+      "globalHomeEnvironment",
+      "globalRootDir",
+      "globalSkillsDir",
+      "id",
+      "label",
+      "projectSkillsDir",
+    ])) {
+      errors.push(`Coding agent ${agent.id || "<unknown>"} has unsupported fields`);
+      continue;
+    }
+    if (
+      typeof agent.id !== "string"
+      || !/^[a-z][a-z0-9-]{0,31}$/.test(agent.id)
+      || typeof agent.label !== "string"
+      || agent.label.trim() === ""
+      || typeof agent.projectSkillsDir !== "string"
+      || !installPath.test(agent.projectSkillsDir)
+      || typeof agent.globalRootDir !== "string"
+      || !installPath.test(agent.globalRootDir)
+      || typeof agent.globalSkillsDir !== "string"
+      || !installPath.test(agent.globalSkillsDir)
+      || typeof agent.globalHomeEnvironment !== "string"
+      || (agent.globalHomeEnvironment !== "" && !/^[A-Z][A-Z0-9_]*$/.test(agent.globalHomeEnvironment))
+    ) {
+      errors.push(`Coding agent ${agent.id || "<unknown>"} is invalid`);
+      continue;
+    }
+    ids.push(agent.id);
+  }
+  if (JSON.stringify(ids) !== JSON.stringify(COMMON_AGENT_IDS)) {
+    errors.push("Coding agent manifest must contain the exact sorted common-agent set");
+  }
+  return errors;
+}
+
 function wordCount(value) {
   const words = value.match(/[A-Za-z0-9][A-Za-z0-9'./:-]*/g);
   if (!words) {
@@ -661,6 +768,9 @@ function validateSkillMetadata(skills, registry) {
     if (record && record.activation === "explicit") {
       if (values.get("disable-model-invocation") !== "true") {
         errors.push(`${skill.id}: explicit skill must disable model invocation`);
+      }
+      if (!/^metadata:\n  selfhost-activation: explicit$/m.test(skill.markdown)) {
+        errors.push(`${skill.id}: explicit skill must declare portable activation metadata`);
       }
       if (skill.openAi.get("allow_implicit_invocation") !== "false") {
         errors.push(`${skill.id}: explicit skill must disable implicit OpenAI invocation`);
@@ -778,9 +888,78 @@ function validateVersionParity(registry, manifests) {
 
 async function loadPublicManifests() {
   const packageManifest = await readJson(join(repositoryRoot, "package.json"), "package.json");
-  const codex = await readJson(join(repositoryRoot, "packaging", "codex-plugin.json"), "Codex plugin template");
+  const agentPlugin = await readJson(join(repositoryRoot, "packaging", "agent-plugin.json"), "Agent Plugin template");
   const claude = await readJson(join(repositoryRoot, "packaging", "claude-plugin.json"), "Claude plugin template");
-  return { packageManifest, codex, claude };
+  return { packageManifest, agentPlugin, claude };
+}
+
+function validateAgentPluginManifest(manifest) {
+  const errors = [];
+  const allowedFields = new Set([
+    "$schema",
+    "author",
+    "description",
+    "extensions",
+    "homepage",
+    "keywords",
+    "license",
+    "name",
+    "repository",
+    "version",
+  ]);
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    return ["Agent Plugin template must be an object"];
+  }
+  if (Object.keys(manifest).some((field) => !allowedFields.has(field))) {
+    errors.push("Agent Plugin template must use only the Agent Plugins 1.0 fields");
+  }
+  if (manifest.$schema !== AGENT_PLUGIN_SCHEMA) {
+    errors.push("Agent Plugin template must target Agent Plugins 1.0.0");
+  }
+  if (
+    typeof manifest.name !== "string"
+    || !/^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(manifest.name)
+    || manifest.name.length > 64
+  ) {
+    errors.push("Agent Plugin name is invalid");
+  }
+  if (!manifest.author || typeof manifest.author !== "object" || Array.isArray(manifest.author)) {
+    errors.push("Agent Plugin author is invalid");
+  } else {
+    const authorFields = Object.keys(manifest.author).sort();
+    if (authorFields.some((field) => !["email", "name", "url"].includes(field))) {
+      errors.push("Agent Plugin author contains unsupported fields");
+    }
+    if (authorFields.some((field) => typeof manifest.author[field] !== "string")) {
+      errors.push("Agent Plugin author values must be strings");
+    }
+  }
+  for (const field of ["version", "description", "homepage", "repository", "license"]) {
+    if (field in manifest && typeof manifest[field] !== "string") {
+      errors.push(`Agent Plugin ${field} must be a string`);
+    }
+  }
+  if (
+    "keywords" in manifest
+    && (!Array.isArray(manifest.keywords)
+      || manifest.keywords.some((keyword) => typeof keyword !== "string"))
+  ) {
+    errors.push("Agent Plugin keywords must be strings");
+  }
+  if (
+    "extensions" in manifest
+    && (
+      !manifest.extensions
+      || typeof manifest.extensions !== "object"
+      || Array.isArray(manifest.extensions)
+      || Object.values(manifest.extensions).some((value) => (
+        !value || typeof value !== "object" || Array.isArray(value)
+      ))
+    )
+  ) {
+    errors.push("Agent Plugin extensions must be namespaced objects");
+  }
+  return errors;
 }
 
 async function validatePublicSurface(registry) {
@@ -788,14 +967,12 @@ async function validatePublicSurface(registry) {
   const manifests = await loadPublicManifests();
   errors.push(...validateVersionParity(registry, [
     ["package.json", manifests.packageManifest.version],
-    ["Codex plugin", manifests.codex.version],
+    ["Agent Plugin", manifests.agentPlugin.version],
     ["Claude plugin", manifests.claude.version]
   ]));
-  if (manifests.codex.name !== "selfhost-skills" || manifests.codex.skills !== "./skills/") {
-    errors.push("Codex release template must expose the native skills directory");
-  }
-  if (manifests.codex.hooks || manifests.codex.mcpServers || manifests.codex.apps) {
-    errors.push("Codex plugin must not auto-enable hooks, MCP servers, or apps");
+  errors.push(...validateAgentPluginManifest(manifests.agentPlugin));
+  if (manifests.agentPlugin.name !== "selfhost-skills") {
+    errors.push("Agent Plugin name is invalid");
   }
   if (manifests.claude.name !== "selfhost-skills") {
     errors.push("Claude plugin name is invalid");
@@ -952,6 +1129,8 @@ export async function validatePack(scope = "all") {
   checks.push({ name: "registry", status: registryErrors.length === 0 ? "pass" : "fail", errors: registryErrors });
   const profileErrors = await validateInstallProfiles(registry);
   checks.push({ name: "install profiles", status: profileErrors.length === 0 ? "pass" : "fail", errors: profileErrors });
+  const codingAgentErrors = await validateCodingAgents();
+  checks.push({ name: "coding agents", status: codingAgentErrors.length === 0 ? "pass" : "fail", errors: codingAgentErrors });
 
   if (scope === "metadata" || scope === "content" || scope === "all") {
     const metadata = validateSkillMetadata(skills, registry);
@@ -1467,20 +1646,32 @@ async function buildPackageEntries(version) {
         continue;
       }
       const destination = `skills/${skill.id}/${skillRelative}`;
-      const data = await readFile(file.path);
+      const sourceData = await readFile(file.path);
+      let data = sourceData;
+      let provenance = sourceRelative;
+      if (skillRelative === "SKILL.md") {
+        data = portableSkillContent(data, skill.id);
+        if (!data.equals(sourceData)) {
+          provenance = `generated:${sourceRelative}`;
+        }
+      }
       let mode = 0o100644;
       if ((file.details.mode & 0o111) !== 0) {
         mode = 0o100755;
       }
       entries.push({ name: destination, data, mode });
-      manifestFiles.push({ source: sourceRelative, path: destination, sha256: sha256(data), size: data.length, mode: mode === 0o100755 ? "0755" : "0644" });
+      manifestFiles.push({ source: provenance, path: destination, sha256: sha256(data), size: data.length, mode: mode === 0o100755 ? "0755" : "0644" });
     }
   }
-  const codexTemplate = await readPackageFile("packaging/codex-plugin.json", "Codex plugin template");
-  const codex = JSON.parse(codexTemplate.data.toString("utf8"));
-  const codexContent = Buffer.from(`${JSON.stringify(codex, null, 2)}\n`);
-  entries.push({ name: ".codex-plugin/plugin.json", data: codexContent, mode: 0o100644 });
-  manifestFiles.push({ source: "packaging/codex-plugin.json", path: ".codex-plugin/plugin.json", sha256: sha256(codexContent), size: codexContent.length, mode: "0644" });
+  const agentPluginTemplate = await readPackageFile("packaging/agent-plugin.json", "Agent Plugin template");
+  const agentPlugin = JSON.parse(agentPluginTemplate.data.toString("utf8"));
+  const agentPluginErrors = validateAgentPluginManifest(agentPlugin);
+  if (agentPluginErrors.length > 0 || agentPlugin.version !== version) {
+    throw new Error("Agent Plugin template failed the portable package contract");
+  }
+  const agentPluginContent = Buffer.from(`${JSON.stringify(agentPlugin, null, 2)}\n`);
+  entries.push({ name: "plugin.json", data: agentPluginContent, mode: 0o100644 });
+  manifestFiles.push({ source: "packaging/agent-plugin.json", path: "plugin.json", sha256: sha256(agentPluginContent), size: agentPluginContent.length, mode: "0644" });
 
   const claudeTemplate = await readPackageFile("packaging/claude-plugin.json", "Claude plugin template");
   const claude = JSON.parse(claudeTemplate.data.toString("utf8"));
@@ -1509,7 +1700,11 @@ async function buildPackageEntries(version) {
         .replaceAll(".agents/install.md", "INSTALL.md")
         .replaceAll(".agents/invocation.md", "INVOCATION.md")
         .replaceAll(".agents/CONTEXT.md", "CONTEXT.md")
-        .replaceAll(".agents/skills/selfhost/references/catalog.md", "skills/selfhost/references/catalog.md");
+        .replaceAll(".agents/skills/selfhost/references/catalog.md", "skills/selfhost/references/catalog.md")
+        .replaceAll(
+          ".agents/skills/selfhost-setup/references/coding-agents.json",
+          "skills/selfhost-setup/references/coding-agents.json",
+        );
       data = Buffer.from(releaseReadme);
       provenance = "generated:README.md";
     }
@@ -1532,6 +1727,14 @@ async function buildPackageEntries(version) {
     manifestFiles.push({ source: provenance, path: fileName, sha256: sha256(data), size: data.length, mode: mode === 0o100755 ? "0755" : "0644" });
   }
   const availablePaths = new Set(entries.map((entry) => entry.name));
+  if (!availablePaths.has("plugin.json")) {
+    throw new Error("Packaged Agent Plugin manifest is missing");
+  }
+  for (const skill of skills) {
+    if (!availablePaths.has(`skills/${skill.id}/SKILL.md`)) {
+      throw new Error(`Packaged Agent Plugin is missing immediate skill ${skill.id}`);
+    }
+  }
   assertPackagedLinks(releaseIndexes["SKILL_INDEX.md"], availablePaths, "Packaged SKILL_INDEX.md");
   assertPackagedLinks(releaseIndexes["llms.txt"], availablePaths, "Packaged llms.txt");
   assertPackagedLinks(releaseReadme, availablePaths, "Packaged README.md");

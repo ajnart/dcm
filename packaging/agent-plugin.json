@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "selfhost-skills",
+  "version": "1.0.0",
+  "description": "Plan and operate private self-hosted services through composable, safety-gated skills.",
+  "author": {
+    "name": "ajnart",
+    "url": "https://github.com/ajnart"
+  },
+  "homepage": "https://github.com/ajnart/selfhost-skills",
+  "repository": "https://github.com/ajnart/selfhost-skills",
+  "license": "Apache-2.0",
+  "keywords": ["self-hosting", "docker-compose", "homarr", "privacy"]
+}

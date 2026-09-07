@@ -39,8 +39,11 @@ const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "scripts/smoke-install.sh",
   "scripts/validate-repo.ts",
 ]);
+const COMMON_AGENT_FLAGS = "--agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf";
 const GLOBAL_COPY_INSTALL_COMMAND =
-  "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes";
+  `bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' ${COMMON_AGENT_FLAGS} --global --copy --yes`;
+const PROJECT_INSTALL_COMMAND =
+  `bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' ${COMMON_AGENT_FLAGS} --yes`;
 const DOCUMENTATION_CONTRACTS = [
   {
     path: "README.md",
@@ -49,7 +52,7 @@ const DOCUMENTATION_CONTRACTS = [
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "private install command",
-        "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+        PROJECT_INSTALL_COMMAND,
       ],
       [
         "broad all-agents warning",
@@ -64,6 +67,10 @@ const DOCUMENTATION_CONTRACTS = [
       ["selective skill flag", "--skill"],
       ["selective agent flag", "--agent"],
       ["copy-mode flag", "--copy"],
+      ["Agent Plugins standard", "Agent Plugins 1.0"],
+      ["Agent Skills standard", "Agent Skills specification"],
+      ["common coding-agent manifest", "coding-agents.json"],
+      ["Pi invocation", "/skill:selfhost-setup"],
       ["profile CLI", "bun run stack profiles"],
       ["explicit setup entry point", "$selfhost-setup"],
       ["explicit upkeep entry point", "$selfhost-upkeep"],
@@ -96,7 +103,7 @@ const DOCUMENTATION_CONTRACTS = [
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
       [
         "targeted agent install command",
-        "bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes",
+        PROJECT_INSTALL_COMMAND,
       ],
       [
         "all-agents fan-out warning",
@@ -108,6 +115,8 @@ const DOCUMENTATION_CONTRACTS = [
       ["stack metadata path", ".selfhost/stack.json"],
       ["private connection file", "connections.env"],
       ["browser prerequisite", "agent-browser"],
+      ["common coding-agent manifest", "coding-agents.json"],
+      ["portable plugin manifest", "Agent Plugins 1.0 `plugin.json`"],
     ],
   },
   {
@@ -136,7 +145,7 @@ const DOCUMENTATION_CONTRACTS = [
   },
 ];
 
-const STANDARD_FRONTMATTER_KEYS = new Set([
+const SOURCE_FRONTMATTER_KEYS = new Set([
   "allowed-tools",
   "compatibility",
   "description",
@@ -464,7 +473,7 @@ async function validateSkillMetadata() {
       const markdown = await readFile(skillPath, "utf8");
       const frontmatter = parseFrontmatter(markdown, `skill ${skill.name}`);
       for (const key of frontmatter.keys()) {
-        if (!STANDARD_FRONTMATTER_KEYS.has(key)) {
+        if (!SOURCE_FRONTMATTER_KEYS.has(key)) {
           fail(`skill ${skill.name}: non-standard frontmatter key ${key}`);
         }
       }
@@ -548,6 +557,9 @@ async function validateSkillMetadata() {
       if (disableModelInvocation !== undefined) {
         if (disableModelInvocation !== "true") {
           fail(`skill ${skill.name}: disable-model-invocation must be true when present`);
+        }
+        if (!/^metadata:\n  selfhost-activation: explicit$/m.test(markdown)) {
+          fail(`skill ${skill.name}: portable explicit activation metadata is missing`);
         }
         if (!/^  allow_implicit_invocation: false$/m.test(yaml)) {
           fail(`skill ${skill.name}: explicit invocation policy is missing`);
@@ -1036,6 +1048,9 @@ async function loadStrictSkillRegistry() {
         const openAi = await readFile(join(SKILLS_ROOT, record.id, "agents", "openai.yaml"), "utf8");
         if (frontmatter.get("disable-model-invocation") !== "true") {
           errors.push(`skill registry: workflow ${record.id} must disable model invocation`);
+        }
+        if (!/^metadata:\n  selfhost-activation: explicit$/m.test(markdown)) {
+          errors.push(`skill registry: workflow ${record.id} must declare portable activation metadata`);
         }
         if (!/^  allow_implicit_invocation: false$/m.test(openAi)) {
           errors.push(`skill registry: workflow ${record.id} must disable implicit OpenAI invocation`);

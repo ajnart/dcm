@@ -4,12 +4,16 @@ description: Base setup workflow. Intentionally install prerequisites and carry 
 disable-model-invocation: true
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer; apply needs the selected runtime, and browser setup uses agent-browser.
+metadata:
+  selfhost-activation: explicit
 ---
 
 # Selfhost setup
 
-Set up one stack only after explicit invocation. Continue until it is verified
-or a concrete blocker prevents the next safe action.
+Activation gate: proceed only when the current user request explicitly invokes
+`selfhost-setup` or asks to set up or change a self-hosted stack. Otherwise
+return read-only guidance. Continue an authorized setup until it is verified or
+a concrete blocker prevents the next safe action.
 
 ## Workflow
 
@@ -18,8 +22,9 @@ or a concrete blocker prevents the next safe action.
    the seven-skill setup/upkeep base. Every pack or extension extends `basic`;
    multiple selections form a union and never select another optional profile.
    Use `basic` alone unless the user explicitly chooses more.
-2. Run `bun scripts/stack.ts prerequisites` with every selected `--profile`,
-   the active client, and the intended project/global scope. Project scope also
+2. Read [coding-agents.json](references/coding-agents.json), then run `bun
+   scripts/stack.ts prerequisites` with every selected `--profile`, the active
+   client ID, and the intended project/global scope. Project scope also
    requires the exact `--project-root`; run returned skill-install commands from
    the reported working directory. This first pass is
    non-mutating and always returns an idempotent browser-install command until
@@ -62,7 +67,7 @@ Resolve this skill directory and use absolute script paths in real runs.
 
 ```text
 bun scripts/stack.ts profiles [--json]
-bun scripts/stack.ts prerequisites --profile basic [--profile media] --agent codex|claude-code --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
+bun scripts/stack.ts prerequisites --profile basic [--profile media] --agent ID --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
 bun scripts/stack.ts init --project-root ABSOLUTE --profile basic [--profile media] [--adapter selfhost-media --run-id ID] [--service ID=OWNER_SKILL] [--consume PROFILE=SERVICE] [--json]
 bun scripts/stack.ts show --project-root ABSOLUTE [--json]
 bun scripts/stack.ts resume --project-root ABSOLUTE [--json]

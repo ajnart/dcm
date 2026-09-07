@@ -38,23 +38,31 @@ Selecting a pack or extension during `$selfhost-setup` or
 `$selfhost-upkeep` resolves its `basic` dependency. The prerequisite check
 returns one exact install command for any missing members.
 
+The common coding-agent IDs and their checked project/global skill targets are
+defined once in
+[`skills/selfhost-setup/references/coding-agents.json`](skills/selfhost-setup/references/coding-agents.json).
+They cover Amp, Claude Code, Cline, Codex, Cursor, Gemini CLI, GitHub Copilot,
+Kiro CLI, OpenCode, Pi, Roo Code, and Windsurf.
+
 ## Non-interactive install
 
-Install every packaged skill globally for Codex and Claude Code:
+Install every packaged skill globally for the checked common-agent set:
 
 ```bash
-bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf --global --copy --yes
 ```
 
 For a project-local install, omit `--global`:
 
 ```bash
-bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf --yes
 ```
 
 `--skill '*'` selects the complete repository, the repeated `--agent` flags
-limit targets, `--copy` writes complete directories to each client, and
-`--yes` accepts the resolved non-interactive selection. Omit `--copy` to use
+limit targets, `--copy` writes each distinct client directory, and `--yes`
+accepts the resolved non-interactive selection. Codex represents the universal
+`.agents/skills` target shared by Amp, Cline, Cursor, Gemini CLI, GitHub Copilot,
+and OpenCode, so the command writes that directory once. Omit `--copy` to use
 the installer's normal link mode.
 
 For a named selection, repeat `--skill` and include the complete profile. This
@@ -74,9 +82,12 @@ agent as well as every skill.
 
 ## First use
 
-Invoke `$selfhost-setup` explicitly for a new stack. It checks the selected
-profile closure and installs missing skills plus the official `agent-browser`
-skill, runtime, and browser through the active agent's normal approval flow.
+Invoke `selfhost-setup` explicitly for a new stack: `$selfhost-setup` in Codex,
+`/selfhost-setup` in Claude Code, or `/skill:selfhost-setup` in Pi. Other
+clients expose skills through their own picker or invocation UI; Agent Skills
+does not standardize that UI. Setup checks the selected profile closure and
+installs missing skills plus the official `agent-browser` skill, runtime, and
+browser through the active agent's normal approval flow.
 The initial check is non-mutating. After approval, setup repeats it with
 `--verify-browser`; the official doctor may clean stale agent-browser daemon
 sidecars. Setup then creates `<project>/.selfhost/stack.json` and carries the
@@ -99,5 +110,8 @@ or checkout, so every skill packages its required `agents/`, `scripts/`,
 `references/`, and `assets/` content.
 
 The release ZIP projects the canonical `.agents/skills/` tree to one native
-`skills/` directory. That generated, hash-checked projection is not a second
-editable source tree.
+`skills/` directory with one immediate child per skill and adds the root
+Agent Plugins 1.0 `plugin.json`. The manifest does not list skills because
+component discovery is fixed by the specification. A `.claude-plugin/`
+compatibility manifest remains for Claude Code. The generated, hash-checked
+projection is not a second editable source tree.

@@ -3,11 +3,11 @@
 **Replace subscriptions with private services, keep your data on hardware you
 control, and decide exactly who can reach it.**
 
-`selfhost-skills` gives Codex and Claude Code a conversational, safety-gated
+`selfhost-skills` gives popular coding agents a conversational, safety-gated
 way to plan and operate self-hosted software. Ask for an outcome such as “my
-own Netflix,” “replace Google Photos,” or “back up this server.” The agent
-turns that goal into a reviewable stack without treating the request as
-permission to change your host.
+own Netflix,” “replace Google Photos,” or “back up this server.” The agent turns
+that goal into a reviewable stack without treating the request as permission
+to change your host.
 
 Not every subscription has a practical self-hosted replacement. The catalog
 explains tradeoffs and keeps the final choice yours.
@@ -29,20 +29,28 @@ seven-service Media + Homarr workflow. Backup, ingress, observability, research,
 and downloader VPN are independent extensions. Setup checks this dependency
 closure and installs anything you missed.
 
-To install the complete pack globally into Codex and Claude Code instead:
+To install the complete pack globally into the checked common-agent set:
 
 ```bash
-bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --global --copy --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf --global --copy --yes
 ```
 
 `--global` makes the selection available outside one project. `--copy` gives
-each client complete standalone skill directories. Neither mode needs this
-source checkout after installation.
+each distinct client directory a complete standalone copy. Codex is the single
+installer target for the universal `.agents/skills` directory also read by Amp,
+Cline, Cursor, Gemini CLI, GitHub Copilot, and OpenCode; repeating those flags
+would only rewrite the same target. The common set therefore covers Amp, Claude
+Code, Cline, Codex, Cursor, Gemini CLI, GitHub Copilot, Kiro CLI, OpenCode, Pi,
+Roo Code, and Windsurf. Use the interactive installer to target any other agent
+supported by the current CLI.
 
-The versioned release ZIP contains the native `skills/`, `.codex-plugin/`, and
-`.claude-plugin/` layout used for plugin validation and public-directory
-submission. The source checkout deliberately remains canonical under
-`.agents/skills/`, so it is not advertised as a repo marketplace plugin.
+The versioned release ZIP is an [Agent Plugins 1.0](https://agent-plugins.org/specification)
+package: root `plugin.json`, flat immediate children under `skills/`, and a
+`.claude-plugin/` compatibility manifest for Claude Code. Every `SKILL.md`
+in that portable package follows the
+[Agent Skills specification](https://agentskills.io/specification).
+The source checkout remains canonical under `.agents/skills/`; the release
+projection avoids committing a second editable skill tree.
 
 See the generated [skill index](SKILL_INDEX.md) for risk, activation, and
 compatibility metadata. Never put a token in an install command, clone URL,
@@ -63,6 +71,8 @@ Invoke setup on purpose when you want changes:
 | --- | --- |
 | Codex | `$selfhost-setup media` |
 | Claude Code | `/selfhost-setup media` |
+| Pi | `/skill:selfhost-setup media` |
+| Other supported agents | Select `selfhost-setup` explicitly and pass `media` |
 | Existing stack | `$selfhost-upkeep` or `/selfhost-upkeep` |
 | Plan only | `$selfhost photos`, `/selfhost netflix`, or ordinary language |
 
@@ -327,7 +337,7 @@ reaches it over loopback, LAN, or a private tailnet.
 For a non-interactive project-local install of the complete pack:
 
 ```bash
-bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --yes
+bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' --agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf --yes
 ```
 
 List available skills without installing:
@@ -340,6 +350,9 @@ For a smaller install, replace `--skill '*'` with a named selection such as
 `--skill selfhost-setup`, repeat it for the desired profile, and keep only the
 intended `--agent` targets. The setup prerequisite gate resolves and offers to
 install every missing required sibling before apply.
+
+The checked IDs and project/global target directories live in
+[`coding-agents.json`](.agents/skills/selfhost-setup/references/coding-agents.json).
 
 `--all` is deliberately broader: it selects every skill for every agent target
 supported by the CLI. Use it only when that fan-out is intentional. See

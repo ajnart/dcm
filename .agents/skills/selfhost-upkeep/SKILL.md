@@ -4,11 +4,15 @@ description: Base upkeep workflow. Intentionally resume, inspect, extend, upgrad
 disable-model-invocation: true
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer plus the setup skill and the runtime recorded by the stack.
+metadata:
+  selfhost-activation: explicit
 ---
 
 # Selfhost upkeep
 
-Continue one exact recorded stack. Treat saved state as intent, then refresh
+Activation gate: proceed only when the current user request explicitly invokes
+`selfhost-upkeep` or asks to change an existing recorded self-hosted stack.
+Otherwise return read-only guidance. Treat saved state as intent, then refresh
 real evidence before acting.
 
 ## Workflow

@@ -4,8 +4,8 @@
 /.agents/skills/selfhost-vpn/ @ajnart
 /.agents/skills/selfhost-backup/ @ajnart
 /.agents/skills/selfhost-verify/ @ajnart
-/.codex-plugin/ @ajnart
-/.claude-plugin/ @ajnart
+/packaging/agent-plugin.json @ajnart
+/packaging/claude-plugin.json @ajnart
 /scripts/skillpack.ts @ajnart
 /scripts/lib/skillpack.ts @ajnart
 /SECURITY.md @ajnart

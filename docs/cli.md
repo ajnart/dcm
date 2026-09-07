@@ -40,7 +40,7 @@ execute the returned prerequisite commands and delegate each approved change.
 
 ```text
 bun scripts/stack.ts profiles [--json]
-bun scripts/stack.ts prerequisites --profile ID [--profile ID] --agent codex|claude-code --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
+bun scripts/stack.ts prerequisites --profile ID [--profile ID] --agent ID --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
 bun scripts/stack.ts init --project-root ABSOLUTE --profile ID [--adapter selfhost-media --run-id ID] [--service ID=OWNER] [--consume PROFILE=SERVICE] [--json]
 bun scripts/stack.ts show|validate --project-root ABSOLUTE [--json]
 bun scripts/stack.ts resume --project-root ABSOLUTE [--json]
@@ -51,8 +51,10 @@ bun scripts/stack.ts checkpoint --project-root ABSOLUTE --stage planned|applied|
 `profiles` and the first `prerequisites` pass resolve the checked `basic`, pack,
 and extension closures without mutation. Project-scoped checks require
 `--project-root` so installed-skill detection and returned command working
-directories match the requested client and scope. After the returned installs are
-approved and run, repeat `prerequisites` with `--verify-browser`; that pass uses
+directories match the requested client and scope. Supported common IDs and
+their exact targets are in
+[`coding-agents.json`](../.agents/skills/selfhost-setup/references/coding-agents.json).
+After the returned installs are approved and run, repeat `prerequisites` with `--verify-browser`; that pass uses
 the official browser doctor and may clean stale agent-browser daemon sidecars.
 `init`, `extend`, and `checkpoint` write only private
 `.selfhost/stack.json`. `--consume PROFILE=SERVICE` explicitly binds extensions

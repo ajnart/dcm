@@ -20,12 +20,12 @@ import { fileURLToPath } from "node:url";
 const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS_ROOT = resolve(SKILL_ROOT, "..");
 const PROFILE_PATH = join(SKILL_ROOT, "references", "install-profiles.json");
+const AGENT_PATH = join(SKILL_ROOT, "references", "coding-agents.json");
 const STACK_FILE = "stack.json";
 const LOCK_FILE = ".stack.lock";
 const RECOVERY_LOCK_FILE = ".stack.recovery.lock";
 const STAGES = ["selected", "planned", "applied", "verified"];
 const PROFILE_KINDS = new Set(["base", "pack", "extension"]);
-const AGENTS = new Set(["codex", "claude-code"]);
 const SCOPES = new Set(["project", "global"]);
 const IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 const SKILL_ID = /^selfhost(?:-[a-z0-9]+)*$/;
@@ -52,12 +52,21 @@ interface ParsedArguments {
   verifyBrowser: boolean;
 }
 
+interface CodingAgent {
+  globalHomeEnvironment: string;
+  globalRootDir: string;
+  globalSkillsDir: string;
+  id: string;
+  label: string;
+  projectSkillsDir: string;
+}
+
 function usage(): string {
   return `Selfhost stack lifecycle
 
 Profiles:
   profiles [--json]
-  prerequisites --profile ID [--profile ID] --agent codex|claude-code --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
+  prerequisites --profile ID [--profile ID] --agent ID --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
 
 Metadata:
   init --project-root ABSOLUTE --profile ID [--profile ID] [--adapter ID --run-id ID] [--service ID=OWNER] [--consume PROFILE=SERVICE] [--json]
@@ -297,6 +306,72 @@ async function loadProfiles(): Promise<Record<string, unknown>> {
   return document;
 }
 
+async function loadCodingAgents(): Promise<CodingAgent[]> {
+  let document: unknown;
+  try {
+    document = JSON.parse(await readFile(AGENT_PATH, "utf8"));
+  } catch {
+    fail("Coding agent manifest is unreadable");
+  }
+  if (!exactKeys(document, ["agents", "schemaVersion"]) || document.schemaVersion !== 1) {
+    fail("Coding agent manifest is invalid");
+  }
+  if (!Array.isArray(document.agents) || document.agents.length === 0) {
+    fail("Coding agent manifest is empty");
+  }
+
+  const agents: CodingAgent[] = [];
+  let previousId = "";
+  for (const value of document.agents) {
+    if (!exactKeys(value, [
+      "globalHomeEnvironment",
+      "globalRootDir",
+      "globalSkillsDir",
+      "id",
+      "label",
+      "projectSkillsDir",
+    ])) {
+      fail("Coding agent entry contains unsupported fields");
+    }
+    if (
+      typeof value.id !== "string"
+      || !/^[a-z][a-z0-9-]{0,31}$/.test(value.id)
+      || value.id <= previousId
+      || typeof value.label !== "string"
+      || value.label.trim() === ""
+      || typeof value.projectSkillsDir !== "string"
+      || typeof value.globalRootDir !== "string"
+      || typeof value.globalSkillsDir !== "string"
+      || typeof value.globalHomeEnvironment !== "string"
+    ) {
+      fail("Coding agent entry is invalid or unsorted");
+    }
+    for (const relativePath of [
+      value.projectSkillsDir,
+      value.globalRootDir,
+      value.globalSkillsDir,
+    ]) {
+      if (
+        relativePath === ""
+        || isAbsolute(relativePath)
+        || relativePath.split("/").includes("..")
+        || resolve("/agent-root", relativePath) === "/agent-root"
+      ) {
+        fail(`Coding agent ${value.id} contains an invalid skill path`);
+      }
+    }
+    if (
+      value.globalHomeEnvironment !== ""
+      && !/^[A-Z][A-Z0-9_]*$/.test(value.globalHomeEnvironment)
+    ) {
+      fail(`Coding agent ${value.id} contains an invalid home environment`);
+    }
+    agents.push(value as CodingAgent);
+    previousId = value.id;
+  }
+  return agents;
+}
+
 function resolveProfiles(document: Record<string, unknown>, requested: string[]) {
   if (requested.length === 0) {
     fail("At least one --profile is required");
@@ -401,40 +476,33 @@ function installCommand(source: string, skills: string[], agent: string, scope: 
   return parts.map(quoted).join(" ");
 }
 
-async function prerequisiteTarget(agent: string, scope: string, projectRoot: string | null) {
+async function prerequisiteTarget(agent: CodingAgent, scope: string, projectRoot: string | null) {
   if (scope === "project") {
     if (projectRoot === null) {
       fail("--project-root is required for project-scoped prerequisites");
     }
     const safeRoot = await validateProjectRoot(projectRoot);
-    let clientDirectory = ".agents";
-    if (agent === "claude-code") {
-      clientDirectory = ".claude";
-    }
     return {
-      skillsRoot: join(safeRoot, clientDirectory, "skills"),
+      skillsRoot: join(safeRoot, ...agent.projectSkillsDir.split("/")),
       workingDirectory: safeRoot,
     };
   }
   if (projectRoot !== null) {
     fail("--project-root is only valid for project-scoped prerequisites");
   }
-  if (agent === "codex") {
-    return {
-      skillsRoot: join(homedir(), ".agents", "skills"),
-      workingDirectory: null,
-    };
+  let globalRoot = join(homedir(), ...agent.globalRootDir.split("/"));
+  let configuredRoot = "";
+  if (agent.globalHomeEnvironment !== "") {
+    configuredRoot = process.env[agent.globalHomeEnvironment]?.trim() || "";
   }
-  let claudeRoot = join(homedir(), ".claude");
-  const configuredRoot = process.env.CLAUDE_CONFIG_DIR?.trim();
   if (configuredRoot) {
     if (!isAbsolute(configuredRoot) || resolve(configuredRoot) !== configuredRoot) {
-      fail("CLAUDE_CONFIG_DIR must be an absolute normalized path");
+      fail(`${agent.globalHomeEnvironment} must be an absolute normalized path`);
     }
-    claudeRoot = configuredRoot;
+    globalRoot = configuredRoot;
   }
   return {
-    skillsRoot: join(claudeRoot, "skills"),
+    skillsRoot: join(globalRoot, ...agent.globalSkillsDir.split("/")),
     workingDirectory: null,
   };
 }
@@ -459,12 +527,17 @@ function browserRuntimeStatus(verifyBrowser: boolean) {
   };
 }
 
-async function prerequisites(parsed: ParsedArguments, profileDocument: Record<string, unknown>) {
-  const agent = oneFlag(parsed, "agent", true) as string;
+async function prerequisites(
+  parsed: ParsedArguments,
+  profileDocument: Record<string, unknown>,
+  codingAgents: CodingAgent[],
+) {
+  const agentId = oneFlag(parsed, "agent", true) as string;
   const scope = oneFlag(parsed, "scope", true) as string;
   const projectRoot = oneFlag(parsed, "project-root");
-  if (!AGENTS.has(agent)) {
-    fail("--agent must be codex or claude-code");
+  const agent = codingAgents.find((candidate) => candidate.id === agentId);
+  if (!agent) {
+    fail(`--agent must be one of: ${codingAgents.map((candidate) => candidate.id).join(", ")}`);
   }
   if (!SCOPES.has(scope)) {
     fail("--scope must be project or global");
@@ -484,14 +557,14 @@ async function prerequisites(parsed: ParsedArguments, profileDocument: Record<st
   if (missingSkills.length > 0) {
     installCommands.push({
       reason: "selected-profile-skills",
-      command: installCommand(String(profileDocument.source), missingSkills, agent, scope),
+      command: installCommand(String(profileDocument.source), missingSkills, agent.id, scope),
       workingDirectory: target.workingDirectory,
     });
   }
   if (!browserSkillInstalled) {
     installCommands.push({
       reason: "agent-browser-skill",
-      command: installCommand(browser.source, [browser.skill], agent, scope),
+      command: installCommand(browser.source, [browser.skill], agent.id, scope),
       workingDirectory: target.workingDirectory,
     });
   }
@@ -1492,13 +1565,14 @@ async function main() {
     fail(`Unexpected argument ${parsed.positional[0]}`);
   }
   const profileDocument = await loadProfiles();
+  const codingAgents = await loadCodingAgents();
   let result: Record<string, unknown>;
   if (command === "profiles") {
     rejectFlagsExcept(parsed, []);
     result = { status: "profiles", profiles: profileDocument.profiles };
   } else if (command === "prerequisites") {
     rejectFlagsExcept(parsed, ["agent", "profile", "project-root", "scope"], true);
-    result = await prerequisites(parsed, profileDocument);
+    result = await prerequisites(parsed, profileDocument, codingAgents);
   } else if (command === "init") {
     rejectFlagsExcept(parsed, ["adapter", "consume", "profile", "project-root", "run-id", "service"]);
     result = await initialize(parsed, profileDocument);

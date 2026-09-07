@@ -6,7 +6,9 @@ semantic versioning; individual skills share the pack version.
 ## 1.0.0 - Unreleased
 
 - Establish the first public compatibility contract under Apache-2.0.
-- Add Codex and Claude native release metadata plus universal skill discovery.
+- Add an Agent Plugins 1.0 release manifest, Agent Skills-conformant flat
+  discovery, Claude compatibility metadata, and checked installation for the
+  common coding-agent set.
 - Add registry schema v4 with skill kind, risk, activation, delegation, install
   groups, and checked sibling requirements.
 - Add explicit setup and upkeep workflows with selectable Base, Pack, and

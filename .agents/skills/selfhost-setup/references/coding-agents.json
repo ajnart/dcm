@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "agents": [
+    {
+      "id": "amp",
+      "label": "Amp",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "projectSkillsDir": ".claude/skills",
+      "globalRootDir": ".claude",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": "CLAUDE_CONFIG_DIR"
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "codex",
+      "label": "Codex",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "cursor",
+      "label": "Cursor",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "gemini-cli",
+      "label": "Gemini CLI",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "github-copilot",
+      "label": "GitHub Copilot",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "kiro-cli",
+      "label": "Kiro CLI",
+      "projectSkillsDir": ".kiro/skills",
+      "globalRootDir": ".kiro",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "projectSkillsDir": ".agents/skills",
+      "globalRootDir": ".agents",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "pi",
+      "label": "Pi",
+      "projectSkillsDir": ".pi/skills",
+      "globalRootDir": ".pi/agent",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "roo",
+      "label": "Roo Code",
+      "projectSkillsDir": ".roo/skills",
+      "globalRootDir": ".roo",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    },
+    {
+      "id": "windsurf",
+      "label": "Windsurf",
+      "projectSkillsDir": ".windsurf/skills",
+      "globalRootDir": ".codeium/windsurf",
+      "globalSkillsDir": "skills",
+      "globalHomeEnvironment": ""
+    }
+  ]
+}

@@ -21,6 +21,22 @@ PROFILE_SKILL_NAMES=(
   selfhost-upkeep
   selfhost-verify
 )
+COMMON_AGENT_ARGUMENTS=(
+  --agent codex
+  --agent claude-code
+  --agent kiro-cli
+  --agent pi
+  --agent roo
+  --agent windsurf
+)
+COMMON_COPY_ROOTS=(
+  .agents/skills
+  .claude/skills
+  .kiro/skills
+  .pi/skills
+  .roo/skills
+  .windsurf/skills
+)
 INSTALL_SOURCE=""
 
 fail() {
@@ -258,13 +274,13 @@ verify_symlink_project() {
 verify_copy_project() {
   local project_root="$1"
   local agent_root
+  local relative_root
   local skill_name
   local source_skill
   local target_skill
 
-  for agent_root in \
-    "$project_root/.agents/skills" \
-    "$project_root/.claude/skills"; do
+  for relative_root in "${COMMON_COPY_ROOTS[@]}"; do
+    agent_root="$project_root/$relative_root"
     verify_target_set "$agent_root"
     if [[ -n "$(find "$agent_root" -type l -print -quit)" ]]; then
       fail "copy-mode project contains a symlink"
@@ -468,8 +484,7 @@ fi
   cd -- "$COPY_PROJECT"
   bunx --bun skills@latest add "$INSTALL_SOURCE" \
     --skill '*' \
-    --agent codex \
-    --agent claude-code \
+    "${COMMON_AGENT_ARGUMENTS[@]}" \
     --copy \
     --yes
 ) || fail "copy-mode disposable install failed"
@@ -504,14 +519,12 @@ verify_source_independent_runtime \
   "$SYMLINK_PROJECT" \
   "$SYMLINK_PROJECT/.agents/skills" \
   "default canonical install"
-verify_source_independent_runtime \
-  "$COPY_PROJECT" \
-  "$COPY_PROJECT/.agents/skills" \
-  "copy Codex install"
-verify_source_independent_runtime \
-  "$COPY_PROJECT" \
-  "$COPY_PROJECT/.claude/skills" \
-  "copy Claude Code install"
+for copy_root in "${COMMON_COPY_ROOTS[@]}"; do
+  verify_source_independent_runtime \
+    "$COPY_PROJECT" \
+    "$COPY_PROJECT/$copy_root" \
+    "common-agent copy install at $copy_root"
+done
 verify_source_independent_runtime \
   "$PROFILE_PROJECT" \
   "$PROFILE_PROJECT/.agents/skills" \
