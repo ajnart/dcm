@@ -140,6 +140,12 @@ Then run:
 docker-compose up -d
 ```
 
+### 🚀 Using Easypanel
+
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform. It has a one-click Easypanel template for DCM, which runs the image above.
+
+[![Deploy on Easypanel](https://easypanel.io/img/deploy-on-easypanel-40.svg)](https://easypanel.io/templates/dcm)
+
 ### 🛠️ Build from Source
 
 1. Clone the repository:
