@@ -9,6 +9,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync,
@@ -311,6 +312,103 @@ function secretRejection(relativePath, argsForPath, input) {
   const result = runBun(relativePath, argsForPath(path));
   assert.notEqual(result.exitCode, 0);
   assertNoSecret(result);
+}
+
+async function publicEntry() {
+  const project = join(temporaryRoot, "public-entry-project");
+  const installedSkills = join(project, ".agents", "skills");
+  const installedSkill = join(installedSkills, "self-host");
+  const planProject = join(project, "plan");
+  mkdirSync(installedSkills, { mode: 0o700, recursive: true });
+  mkdirSync(planProject, { mode: 0o700 });
+  cpSync(join(root, ".agents", "skills", "self-host"), installedSkill, { recursive: true });
+
+  const discovered = readdirSync(installedSkills, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(installedSkills, entry.name, "SKILL.md")))
+    .map((entry) => entry.name);
+  assert.deepEqual(discovered, ["self-host"]);
+  const workflows = readdirSync(join(installedSkill, "workflows"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(installedSkill, "workflows", entry.name, "GUIDE.md")));
+  assert.equal(workflows.length, 14);
+
+  const planner = join(installedSkill, "workflows", "selfhost", "scripts", "selfhost.ts");
+  const plan = spawnSync(process.execPath, [planner, "plan", "photos", "--project-root", planProject, "--json"], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.equal(plan.status, 0, `${plan.stdout}${plan.stderr}`);
+  const planned = JSON.parse(plan.stdout);
+  assert.equal(planned.status, "pass");
+  assert.equal(planned.data.goal.id, "photos");
+  assert.equal(planned.data.roles.some((role) => role.selected === "immich"), true);
+  assert.equal(planned.data.roles.some((role) => role.selected === "homarr"), true);
+
+  for (const unsafeRoot of [installedSkill, join(installedSkill, "workflows", "selfhost-media")]) {
+    const unsafePreferences = spawnSync(process.execPath, [
+      planner,
+      "preferences",
+      "set",
+      "project.name",
+      "unsafe",
+      "--project-root",
+      unsafeRoot,
+      "--json",
+    ], {
+      cwd: project,
+      encoding: "utf8",
+      env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.notEqual(unsafePreferences.status, 0);
+    assert.match(
+      `${unsafePreferences.stdout}${unsafePreferences.stderr}`,
+      /Project root cannot be the installed skill directory or one of its descendants/,
+    );
+    assert.equal(existsSync(join(unsafeRoot, ".selfhost")), false);
+  }
+  const stack = join(installedSkill, "workflows", "selfhost-setup", "scripts", "stack.ts");
+  const unsafeStack = spawnSync(process.execPath, [
+    stack,
+    "init",
+    "--project-root",
+    installedSkill,
+    "--profile",
+    "basic",
+    "--json",
+  ], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.notEqual(unsafeStack.status, 0);
+  assert.match(
+    `${unsafeStack.stdout}${unsafeStack.stderr}`,
+    /Project root cannot be the installed skill directory or one of its descendants/,
+  );
+  assert.equal(existsSync(join(installedSkill, ".selfhost")), false);
+
+  const goals = join(installedSkill, "workflows", "selfhost", "references", "catalog", "stacks", "goals.json");
+  renameSync(goals, `${goals}.missing`);
+  const missingDependency = spawnSync(process.execPath, [
+    planner,
+    "plan",
+    "photos",
+    "--project-root",
+    planProject,
+    "--json",
+  ], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.notEqual(missingDependency.status, 0);
+  const missingOutput = `${missingDependency.stdout}${missingDependency.stderr}`;
+  assert.match(missingOutput, /Catalog|catalog|goals\.json|ENOENT/);
+  assert.equal(missingOutput.includes(sentinel), false);
 }
 
 async function selfhost() {
@@ -1085,6 +1183,7 @@ async function vpn() {
 }
 
 const runners = new Map([
+  ["self-host", publicEntry],
   ["selfhost", selfhost],
   ["selfhost-backup", backup],
   ["selfhost-compose", compose],

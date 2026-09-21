@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "skills": [
     {
+      "id": "self-host",
+      "structuredInput": false,
+      "scenarios": [
+        { "name": "single-skill-photo-routing", "classes": ["happy"] },
+        { "name": "missing-bundled-catalog", "classes": ["rejection"] },
+        { "name": "installed-bundle-state-rejection", "classes": ["rejection"] }
+      ]
+    },
+    {
       "id": "selfhost",
       "structuredInput": true,
       "scenarios": [

@@ -1278,6 +1278,72 @@ function parseBatchObjects(buffer) {
   return objects;
 }
 
+export function selectEligibleHistoryBlobs(metadata) {
+  const eligible = [];
+  for (const line of metadata.split("\n")) {
+    if (!line) {
+      continue;
+    }
+    const [objectId, type, rawSize] = line.split(" ");
+    const size = Number.parseInt(rawSize, 10);
+    if (
+      /^[a-f0-9]{40}$/.test(objectId)
+      && type === "blob"
+      && Number.isInteger(size)
+      && size >= 0
+      && size <= 1024 * 1024
+    ) {
+      eligible.push({ objectId, size });
+    }
+  }
+  return eligible;
+}
+
+function eligibleHistoryBlobIds(ids) {
+  const eligible = [];
+  const batchSize = 4096;
+  for (let offset = 0; offset < ids.length; offset += batchSize) {
+    const batch = ids.slice(offset, offset + batchSize);
+    const output = runGit(
+      ["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+      { input: `${batch.join("\n")}\n` },
+    );
+    eligible.push(...selectEligibleHistoryBlobs(output));
+  }
+  return eligible;
+}
+
+function readHistoryBlobs(ids) {
+  const objects = new Map();
+  const eligible = eligibleHistoryBlobIds(ids);
+  const maximumBatchBytes = 8 * 1024 * 1024;
+  let batch = [];
+  let batchBytes = 0;
+
+  const flush = () => {
+    if (batch.length === 0) {
+      return;
+    }
+    const input = `${batch.map((entry) => entry.objectId).join("\n")}\n`;
+    const parsed = parseBatchObjects(runGit(["cat-file", "--batch"], { input, buffer: true }));
+    for (const [objectId, object] of parsed) {
+      objects.set(objectId, object);
+    }
+    batch = [];
+    batchBytes = 0;
+  };
+
+  for (const entry of eligible) {
+    if (batch.length > 0 && batchBytes + entry.size > maximumBatchBytes) {
+      flush();
+    }
+    batch.push(entry);
+    batchBytes += entry.size;
+  }
+  flush();
+  return objects;
+}
+
 function pngMetadataChunks(content) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (content.length < 8 || !content.subarray(0, 8).equals(signature)) {
@@ -1376,8 +1442,7 @@ function auditHistory(allowlist) {
     pathsByObject.get(objectId).push(path);
   }
   const ids = [...pathsByObject.keys()];
-  const batchInput = `${ids.join("\n")}\n`;
-  const objects = parseBatchObjects(runGit(["cat-file", "--batch"], { input: batchInput, buffer: true }));
+  const objects = readHistoryBlobs(ids);
   const findings = [];
   const matchedAllowlist = new Set();
   let textBlobsScanned = 0;
@@ -1388,6 +1453,7 @@ function auditHistory(allowlist) {
     textBlobsScanned += 1;
     const content = object.content.toString("utf8");
     for (const [id, pattern] of CREDENTIAL_PATTERNS) {
+      pattern.lastIndex = 0;
       const match = pattern.exec(content);
       if (match) {
         const line = content.slice(0, match.index).split("\n").length;

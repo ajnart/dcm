@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 export const DEFAULT_PREFERENCES_RELATIVE_PATH = join(".selfhost", "preferences.json");
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
-const INSTALLED_SKILL_DIRECTORY = dirname(SCRIPT_DIRECTORY);
+const INSTALLED_SKILL_DIRECTORY = resolve(SCRIPT_DIRECTORY, "../../..");
 
 const ALLOWED_FIELDS = new Set([
   "platform", "timezone", "locale", "project.name", "paths.stateRoot", "paths.configRoot",

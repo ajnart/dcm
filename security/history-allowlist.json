@@ -8,6 +8,22 @@
       "classification": "retired-local-default",
       "reason": "A pre-v1 local harness used a fixed default. The current tree rejects that value and generates unique credentials; preserved history requires users of pre-v1 commits to rotate it.",
       "reviewedFor": "1.0.0"
+    },
+    {
+      "pattern": "credential-url",
+      "blob": "5bd5774ebe8d140d7ff01496bcae70a5b5a1ef1d",
+      "path": ".agents/skills/self-host/workflows/selfhost-media/assets/harness/scripts/check-session-access.ts",
+      "classification": "synthetic-rejection-fixture",
+      "reason": "Synthetic URL userinfo in a negative test that proves credential-bearing access URLs are rejected. No deployed credential is present; acknowledgement is limited to this exact historical blob and path.",
+      "reviewedFor": "1.0.0"
+    },
+    {
+      "pattern": "credential-url",
+      "blob": "aa64b7fd02a29ef1bca537e8f3dad1f0e3de7621",
+      "path": ".agents/skills/self-host/workflows/selfhost-media/assets/harness/scripts/check-session-password.ts",
+      "classification": "synthetic-rejection-fixture",
+      "reason": "Synthetic URL userinfo in a negative test that proves credential-bearing access URLs are rejected. No deployed credential is present; acknowledgement is limited to this exact historical blob and path.",
+      "reviewedFor": "1.0.0"
     }
   ]
 }

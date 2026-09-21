@@ -20,6 +20,7 @@ import { householdCredentialStatus } from "./household-credentials.ts";
 
 const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const WORKFLOWS_ROOT = resolve(SKILL_ROOT, "..");
+const PUBLIC_SKILL_ROOT = resolve(SKILL_ROOT, "../..");
 const PROFILE_PATH = join(SKILL_ROOT, "references", "install-profiles.json");
 const AGENT_PATH = join(SKILL_ROOT, "references", "coding-agents.json");
 const STACK_FILE = "stack.json";
@@ -650,6 +651,9 @@ async function validateProjectRoot(projectRoot: string): Promise<string> {
   }
   if (projectRoot === sep || projectRoot === resolve(homedir())) {
     fail("Project root cannot be the filesystem root or user home");
+  }
+  if (projectRoot === PUBLIC_SKILL_ROOT || projectRoot.startsWith(`${PUBLIC_SKILL_ROOT}${sep}`)) {
+    fail("Project root cannot be the installed skill directory or one of its descendants");
   }
   let info;
   try {
