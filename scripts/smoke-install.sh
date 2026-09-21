@@ -11,31 +11,22 @@ MINIMUM_BUN_PATCH=0
 SMOKE_TEMP_DIR=""
 SOURCE_SKILL_NAMES=()
 PROFILE_SKILL_NAMES=(
-  selfhost
-  selfhost-compose
-  selfhost-homarr
-  selfhost-host
-  selfhost-media
-  selfhost-operations
-  selfhost-setup
-  selfhost-upkeep
-  selfhost-verify
+  self-host
 )
 COMMON_AGENT_ARGUMENTS=(
   --agent codex
   --agent claude-code
-  --agent kiro-cli
+  --agent opencode
   --agent pi
-  --agent roo
-  --agent windsurf
+  --agent openclaw
+  --agent hermes-agent
 )
 COMMON_COPY_ROOTS=(
   .agents/skills
   .claude/skills
-  .kiro/skills
   .pi/skills
-  .roo/skills
-  .windsurf/skills
+  skills
+  .hermes/skills
 )
 INSTALL_SOURCE=""
 
@@ -322,8 +313,8 @@ verify_source_independent_runtime() {
   done
   (
     cd -- "$project_root"
-    bun "$installed_root/selfhost/scripts/selfhost.ts" catalog validate --json >/dev/null
-    bun "$installed_root/selfhost-media/scripts/verify-bundle.ts" >/dev/null
+    bun "$installed_root/self-host/workflows/selfhost/scripts/selfhost.ts" catalog validate --json >/dev/null
+    bun "$installed_root/self-host/workflows/selfhost-media/scripts/verify-bundle.ts" >/dev/null
   ) || fail "$label does not run independently"
 }
 
@@ -400,9 +391,7 @@ case "$LIST_OUTPUT" in
     ;;
 esac
 for discovery_group in \
-  "Base setup workflow." \
-  "Media pack adapter." \
-  "Optional backup extension."; do
+  "self-hosted"; do
   case "$LIST_OUTPUT" in
     *"$discovery_group"*)
       ;;
@@ -507,13 +496,13 @@ verify_symlink_project "$SYMLINK_PROJECT"
 verify_copy_project "$COPY_PROJECT"
 verify_profile_target_set "$PROFILE_PROJECT/.agents/skills"
 verify_installed_media_bundle \
-  "$SYMLINK_PROJECT/.agents/skills/selfhost-media" \
+  "$SYMLINK_PROJECT/.agents/skills/self-host/workflows/selfhost-media" \
   "default canonical install"
 verify_installed_media_bundle \
-  "$COPY_PROJECT/.agents/skills/selfhost-media" \
+  "$COPY_PROJECT/.agents/skills/self-host/workflows/selfhost-media" \
   "copy canonical install"
 verify_installed_media_bundle \
-  "$PROFILE_PROJECT/.agents/skills/selfhost-media" \
+  "$PROFILE_PROJECT/.agents/skills/self-host/workflows/selfhost-media" \
   "selected media-profile install"
 verify_source_independent_runtime \
   "$SYMLINK_PROJECT" \
@@ -531,13 +520,13 @@ verify_source_independent_runtime \
   "selected media-profile install"
 
 for payload_kind in scripts references assets; do
-  [[ -d "$SYMLINK_PROJECT/.agents/skills/selfhost-media/$payload_kind" ]] \
+  [[ -d "$SYMLINK_PROJECT/.agents/skills/self-host/workflows/selfhost-media/$payload_kind" ]] \
     || fail "default install is missing selfhost-media $payload_kind"
-  [[ -d "$COPY_PROJECT/.agents/skills/selfhost-media/$payload_kind" ]] \
+  [[ -d "$COPY_PROJECT/.agents/skills/self-host/workflows/selfhost-media/$payload_kind" ]] \
     || fail "copy install is missing selfhost-media $payload_kind"
-  [[ -d "$COPY_PROJECT/.claude/skills/selfhost-media/$payload_kind" ]] \
+  [[ -d "$COPY_PROJECT/.claude/skills/self-host/workflows/selfhost-media/$payload_kind" ]] \
     || fail "Claude Code copy is missing selfhost-media $payload_kind"
 done
 
-printf 'PASS smoke-install: %d exact skills plus selected media profile verified in detached installs\n' \
+printf 'PASS smoke-install: %d public skill with internal workflows verified in detached installs\n' \
   "${#SOURCE_SKILL_NAMES[@]}"

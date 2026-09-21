@@ -1,7 +1,7 @@
 # Contributing
 
 This repository is a declarative catalog plus composable operational
-capabilities. Prefer a small catalog change over a new skill, and prefer a
+capabilities. Prefer a small catalog change over a new workflow, and prefer a
 focused capability over an application-specific automation fork.
 
 ## Choose the right change
@@ -11,9 +11,9 @@ categories, roles, alternatives, dependencies, lifecycle, official sources,
 image provenance, Homarr support, safety notes, or stack selection.
 
 Add a stack when a user goal needs a reusable set of roles, choices, gates,
-required skills, and acceptance checks.
+required workflows, and acceptance checks.
 
-Add an application-specific skill only when the application has stable,
+Add an application-specific workflow only when the application has stable,
 reusable behavior that cannot be expressed safely through the catalog and
 generic host, Compose, ingress, backup, operations, or verification
 capabilities. Examples include a special API lifecycle, a first-run state
@@ -23,7 +23,7 @@ list of ports is not enough.
 ## Catalog workflow
 
 1. Update the relevant JSON under
-   `.agents/skills/selfhost/references/catalog/`.
+   `.agents/skills/self-host/workflows/selfhost/references/catalog/`.
 2. Keep upstream product facts separate from container image facts.
 3. Add a current primary source for every technical, lifecycle, license, and
    image-provenance claim. Label vendor and community packaging separately.
@@ -32,12 +32,12 @@ list of ports is not enough.
    replacement source where applicable.
 5. Keep T0/T1/T2 as curation priority. Set `managed`, `guided`, `discovery`,
    or `retired` from evidence, never popularity.
-6. Update a goal stack only when its roles, defaults, gates, required skills,
+6. Update a goal stack only when its roles, defaults, gates, required workflows,
    or acceptance contract changes.
 7. Run the semantic catalog validator and the focused skill-pack gate.
 
 ```bash
-bun .agents/skills/selfhost/scripts/selfhost.ts catalog validate --json
+bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts catalog validate --json
 bun scripts/skillpack.ts validate --scope content
 ```
 
@@ -45,44 +45,25 @@ The JSON schemas document the declarative contract; the catalog script enforces
 cross-record semantics, aliases, alternatives, dependencies, lifecycle,
 support, affiliate rules, and the Homarr image contract.
 
-## Creating a skill
+## Adding a workflow
 
-New skill directories must be initialized with the `init_skill.py` supplied by
-the installed `skill-creator` skill. Do not hand-scaffold a partial directory.
+Keep `.agents/skills/self-host/SKILL.md` as the lean public entry. Put conditional
+procedures under `workflows/<id>/GUIDE.md` with shallow references and executable
+helpers. A separate public skill needs a useful independent invocation, not
+merely another setup step. Internal modules have no `SKILL.md` files.
 
-```bash
-python3 /path/to/skill-creator/scripts/init_skill.py selfhost-example \
-  --path .agents/skills \
-  --resources scripts,references,assets
-```
+Update the sorted registry at
+`.agents/skills/self-host/workflows/selfhost/references/catalog/skills.json`
+when adding or renaming a module. Stable IDs describe ownership, risk, delegation,
+and profile dependencies; they remain compatible with saved stack metadata.
+Application adapters use `kind: adapter` and `scope: application`; stack adapters
+use `scope: stack`. Only application adapters may be an app's `adapterSkill`.
+Keep install-profile dependency closure and service/evidence obligations coherent.
 
-Select only the resource directories the skill needs. Then:
-
-1. Keep canonical Agent Skills frontmatter in `SKILL.md`; `name` must match the
-   directory.
-2. Add `agents/openai.yaml` with a concise interface and a default prompt that
-   explicitly names `$selfhost-example`.
-3. Add the exact ID to
-   `.agents/skills/selfhost/references/catalog/skills.json` in sorted order.
-   Set `kind: adapter` only for a specialized adapter and declare its scope as
-   `application` or `stack`; routers and capabilities use `scope: null`. Also
-   declare risk, activation, direct delegation edges, the install group, and
-   every required sibling. Explicit setup/upkeep workflows use
-   `kind: workflow`, `disable-model-invocation: true`, and matching OpenAI
-   invocation policy. Only an
-   application-scoped adapter may appear in an app's `adapterSkill`.
-   Stack-scoped adapters are invoked directly for their complete bundle and
-   must not be hidden in a goal's `requiredSkills`. Registry IDs must exactly
-   equal the packaged skill directories. Update
-   `schemas/skills.schema.json` only when the registry shape changes. Update
-   `selfhost-setup/references/install-profiles.json` with the same acyclic
-   dependency closure.
-4. Keep runtime dependencies inside that skill directory so copy-mode installs
-   work.
-5. Use shallow references and resolve all scripts relative to `SKILL.md`.
-6. Return bounded `pass`, `warn`, `blocked`, or `conflict` results.
-7. Keep inspection and planning read-only. Put every mutation behind an exact,
-   separately approved owner.
+All helpers and required resources must be inside the public skill's install
+boundary. Run scripts by absolute path and return bounded results. Keep shared
+constraints in the selected workflow and conditional details behind precise
+reference links. Never concatenate all guides into a request's context.
 
 ## Deterministic scenarios and focused validation
 
@@ -161,7 +142,7 @@ Promotion is exact and evidence-based:
   explicit image provenance or an explicit image-research gate, alternatives,
   platform limits, secret boundaries, exposure gates, backup implications, and
   a dated review.
-- **guided -> managed:** a versioned adapter packaged entirely in its skill;
+- **guided -> managed:** a versioned adapter packaged entirely in the self-host skill;
   deterministic render; focused preflight; one explicitly owned, idempotent
   apply boundary; restart/reload acceptance; secret-free evidence; rollback;
   and copy-mode install proof.
@@ -182,15 +163,15 @@ a Homarr app tile cannot promote support.
 
 ## Release checklist
 
-- All skill directories are complete, portable, non-symlinked packages.
+- The single public skill is complete, portable, and self-contained.
 - Frontmatter and `agents/openai.yaml` pass quick validation.
 - Every JSON file parses and catalog semantics pass.
-- The sorted skill registry exactly equals packaged skill directories; every
+- The sorted registry exactly matches the public entry plus bundled workflow IDs; every
   managed `adapterSkill` is present, marked `kind: adapter`, and scoped to
   `application`; every direct bundle adapter is scoped to `stack`.
 - Every stack `requiredSkills` entry and managed adapter exists.
 - Every selectable Base, Pack, and Extension profile contains the full checked
-  install dependency closure; setup and upkeep remain explicit-only.
+  workflow dependency closure; mutation still requires user intent and exact approval.
 - Local Markdown and script references resolve inside their install boundary.
 - Essential README and contributing commands, flags, and paths match the
   static repository documentation contract.

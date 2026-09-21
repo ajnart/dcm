@@ -10,8 +10,8 @@
     "bun": ">=1.4.0"
   },
   "scripts": {
-    "selfhost": "bun .agents/skills/selfhost/scripts/selfhost.ts",
-    "stack": "bun .agents/skills/selfhost-setup/scripts/stack.ts",
+    "selfhost": "bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts",
+    "stack": "bun .agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts",
     "skillpack": "bun scripts/skillpack.ts",
     "inspect": "bun scripts/skillpack.ts inspect",
     "audit": "bun scripts/skillpack.ts audit",

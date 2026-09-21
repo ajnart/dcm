@@ -1,9 +1,9 @@
-/.agents/skills/selfhost/references/catalog/ @ajnart
-/.agents/skills/selfhost-compose/ @ajnart
-/.agents/skills/selfhost-ingress/ @ajnart
-/.agents/skills/selfhost-vpn/ @ajnart
-/.agents/skills/selfhost-backup/ @ajnart
-/.agents/skills/selfhost-verify/ @ajnart
+/.agents/skills/self-host/workflows/selfhost/references/catalog/ @ajnart
+/.agents/skills/self-host/workflows/selfhost-compose/ @ajnart
+/.agents/skills/self-host/workflows/selfhost-ingress/ @ajnart
+/.agents/skills/self-host/workflows/selfhost-vpn/ @ajnart
+/.agents/skills/self-host/workflows/selfhost-backup/ @ajnart
+/.agents/skills/self-host/workflows/selfhost-verify/ @ajnart
 /packaging/agent-plugin.json @ajnart
 /packaging/claude-plugin.json @ajnart
 /scripts/skillpack.ts @ajnart

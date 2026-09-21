@@ -20,7 +20,7 @@ import {
   loadAndVerifyBundleStructure,
   validateManifestPath,
   verifySourceDrift,
-} from "../.agents/skills/selfhost-media/scripts/verify-bundle.ts";
+} from "../.agents/skills/self-host/workflows/selfhost-media/scripts/verify-bundle.ts";
 
 // Runtime additions are explicit so repository tooling is never packaged by accident.
 const RUNTIME_ADDITIONS = [

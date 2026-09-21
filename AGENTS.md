@@ -2,10 +2,10 @@
 
 ## Map
 
-- `.agents/skills/selfhost/` owns intent routing, catalog, stack selection,
+- `.agents/skills/self-host/workflows/selfhost/` owns intent routing, catalog, stack selection,
   non-secret preferences, and the exact packaged-skill registry at
   `references/catalog/skills.json`.
-- `.agents/skills/selfhost-*` capabilities own one operational boundary each.
+- Internal `self-host/workflows/selfhost-*` modules own one operational boundary each.
 - `.agents/CONTEXT.md`, `invocation.md`, and `install.md` define shared product
   vocabulary, composition, and packaging.
 - `packaging/agent-plugin.json` owns the portable Agent Plugins 1.0 manifest;
@@ -13,10 +13,10 @@
 - `.agents/adr/` records stable architecture and support decisions.
 - Root `PROMPT.md`, `docker-compose.yml`, `prompts/`, `docs/`, and their
   `scripts/` are the canonical media harness.
-- `.agents/skills/selfhost-media/assets/harness/` is its generated portable
+- `.agents/skills/self-host/workflows/selfhost-media/assets/harness/` is its generated portable
   bundle. `generations/` and `research/` are evidence, not runtime input.
 
-Read the owning `SKILL.md` and its directly linked references before changing a
+Read the owning `GUIDE.md` (or the public `SKILL.md`) and its directly linked references before changing a
 capability.
 
 ## Protected invariants
@@ -37,8 +37,8 @@ capability.
 - VPN safety requires a recorded tunnel-break fail-closed test. Backup
   verification requires an isolated restore.
 - Support level and T0/T1/T2 priority remain independent.
-- Packaged `.agents/skills/*` directories and the sorted skill registry have
-  exact ID equality. Specialized adapters use `adapter: true` with scope
+- The only discoverable skill is `.agents/skills/self-host/SKILL.md`. Internal
+  workflows use `GUIDE.md`; their IDs plus `self-host` exactly match the sorted registry. Specialized adapters use `adapter: true` with scope
   `application` or `stack`; only application-scoped adapters may appear in an
   app's `adapterSkill`, while stack-scoped adapters are invoked directly.
 - App tiles, Homarr integrations, and widgets are separate claims.
@@ -60,9 +60,9 @@ capability.
 - Seven-service harness: `selfhost-media`.
 - Homarr API/UI/MCP behavior: `selfhost-homarr`.
 
-Do not duplicate another owner's implementation. Add an app-specific skill only
+Do not duplicate another owner's implementation. Add an app-specific workflow only
 for reusable special behavior beyond declarative catalog data. Add, remove, or
-rename a skill together with its exact registry entry.
+rename a workflow together with its exact registry entry.
 
 ## Safety while working
 
@@ -92,8 +92,8 @@ verifies the complete source/bundle relationship after writing.
 ```bash
 bun scripts/validate-repo.ts
 bun scripts/validate-repo.ts --json
-bun .agents/skills/selfhost/scripts/selfhost.ts catalog validate --json
-bun .agents/skills/selfhost-media/scripts/verify-bundle.ts
+bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts catalog validate --json
+bun .agents/skills/self-host/workflows/selfhost-media/scripts/verify-bundle.ts
 ```
 
 Use `bun build path/to/changed.ts --target=bun --outfile=/dev/null` and `bash -n

@@ -53,7 +53,7 @@ and extension closures without mutation. Project-scoped checks require
 `--project-root` so installed-skill detection and returned command working
 directories match the requested client and scope. Supported common IDs and
 their exact targets are in
-[`coding-agents.json`](../.agents/skills/selfhost-setup/references/coding-agents.json).
+[`coding-agents.json`](../.agents/skills/self-host/workflows/selfhost-setup/references/coding-agents.json).
 After the returned installs are approved and run, repeat `prerequisites` with `--verify-browser`; that pass uses
 the official browser doctor and may clean stale agent-browser daemon sidecars.
 `init`, `extend`, and `checkpoint` write only private

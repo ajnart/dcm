@@ -1,6 +1,6 @@
 # Selfhost Skills domain
 
-This repository is an installable Agent Skills pack for planning, deploying,
+This repository is an self-contained Agent Skill for planning, deploying,
 and operating self-hosted software. The seven-service media harness is its
 first proven adapter, not the architecture of the whole product.
 
@@ -25,13 +25,13 @@ first proven adapter, not the architecture of the whole product.
   paths, ports, backups, and rollback. No command targets every deployment.
 - **Plan**: a redacted, reviewable diff between the observed host and desired
   stack. A plan has no authority to apply itself.
-- **Install profile**: an additive skill selection. `basic` is the required
+- **Install profile**: an additive workflow and service selection. `basic` is the required
   setup/upkeep base; every pack or extension extends it without selecting any
   other optional profile. The profile also declares service consumption and
   exact approval/verification evidence obligations.
 - **Stack record**: private continuation metadata in
-  `.selfhost/stack.json`, created only by explicit `$selfhost-setup` and resumed
-  or extended by explicit `$selfhost-upkeep`.
+  `.selfhost/stack.json`, created by the setup workflow and resumed
+  or extended by upkeep through `self-host`.
 - **Secret reference**: a name or location resolved only at the narrow apply
   boundary. It is never the secret value.
 - **Evidence**: bounded, secret-free proof from health, API, edge, VPN, backup,
@@ -54,16 +54,16 @@ T0/T1/T2 express catalog curation priority, not deployment confidence.
 
 ## Stable boundaries
 
-The `selfhost` skill owns intent routing, the catalog, preferences, and the
-plan contract. Capability skills own one operational concern. App or stack
-adapters own special API/UI behavior and package their runtime assets inside
-their skill directory so `bunx --bun skills@latest` copy mode remains
-functional.
+The public `self-host` entry owns user-facing routing. Its bundled
+`workflows/selfhost` module owns the catalog, preferences, and plan contract.
+Other workflow modules own one operational concern; adapters own special API/UI
+behavior. All live inside the single installed skill, including runtime assets.
 
-Skills may locate an installed sibling by name, but must fail clearly when a
-required sibling is absent. They must not depend on files outside the installed
-skill directories. Root-level compatibility entry points may delegate inward;
-the installed skill remains the single implementation source.
+Internal module IDs remain stable in saved state and the registry. Resolve
+`workflows/<id>/GUIDE.md` within the installed skill; load only the selected
+workflow and necessary references. No separately discoverable internal skills
+or repository checkout are required. A separate public skill must justify an
+independent user task and trigger rather than an internal execution step.
 
 ## Safety invariants
 

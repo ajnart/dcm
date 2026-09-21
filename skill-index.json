@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "packVersion": "1.0.0",
-  "skills": [
+  "publicSkills": [
     {
       "id": "self-host",
-      "displayName": "Self-host · Start here",
-      "description": "Base public self-hosting entry point. Use for `/self-host [service]`, setup, planning, maintenance, recovery, or verification of private services. Route to the installed selfhost workflow and keep Homarr as the standard private control plane.",
-      "compatibility": "Requires the basic selfhost skill profile; setup and upkeep require Bun 1.4.0 or newer.",
+      "displayName": "Self-host",
+      "description": "Set up or maintain self-hosted apps from names or replacement goals, with Homarr, service wiring, and private credential handoff.",
+      "compatibility": "Requires Git and Bun 1.4.0 or newer; deployment also needs Docker and agent-browser.",
       "license": "Apache-2.0",
       "kind": "router",
       "scope": null,
@@ -25,7 +25,9 @@
           "selfhost-upkeep"
         ]
       }
-    },
+    }
+  ],
+  "workflows": [
     {
       "id": "selfhost",
       "displayName": "Support · Stack planner",
@@ -252,7 +254,7 @@
     {
       "id": "selfhost-setup",
       "displayName": "Support · New stack setup",
-      "description": "Base setup workflow. Intentionally install prerequisites and carry one selected self-hosted stack through plan, approval, apply, browser configuration, verification, metadata recording, and access handoff. Invoke this skill explicitly when you want the stack changed.",
+      "description": "Base setup workflow. Intentionally install prerequisites and carry one selected self-hosted stack through plan, approval, apply, browser configuration, verification, metadata recording, and access handoff. Internal workflow loaded for requested setup.",
       "compatibility": "Requires Bun 1.4.0 or newer; apply needs the selected runtime, and browser setup uses agent-browser.",
       "license": "Apache-2.0",
       "kind": "workflow",
@@ -279,7 +281,7 @@
     {
       "id": "selfhost-upkeep",
       "displayName": "Support · Existing stack",
-      "description": "Base upkeep workflow. Intentionally resume, inspect, extend, upgrade, repair, or re-verify a stack recorded by selfhost-setup. Invoke this skill explicitly for continuing work on an existing `.selfhost/stack.json` project.",
+      "description": "Base upkeep workflow. Intentionally resume, inspect, extend, upgrade, repair, or re-verify a stack recorded by selfhost-setup. Internal workflow for continuing work on an existing `.selfhost/stack.json` project.",
       "compatibility": "Requires Bun 1.4.0 or newer plus the setup skill and the runtime recorded by the stack.",
       "license": "Apache-2.0",
       "kind": "workflow",

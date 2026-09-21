@@ -1,45 +1,37 @@
 ---
 name: self-host
-description: Base public self-hosting entry point. Use for `/self-host [service]`, setup, planning, maintenance, recovery, or verification of private services. Route to the installed selfhost workflow and keep Homarr as the standard private control plane.
+description: Set up or maintain self-hosted apps from names or replacement goals, with Homarr, service wiring, and private credential handoff.
 license: Apache-2.0; see LICENSE.txt
-compatibility: Requires the basic selfhost skill profile; setup and upkeep require Bun 1.4.0 or newer.
+compatibility: Requires Git and Bun 1.4.0 or newer; deployment also needs Docker and agent-browser.
 ---
 
 # Self-host
 
-Give the user one command for the complete lifecycle. A subscription name or
-plain-language need is enough; the user does not need to know app names.
-Read [choosing-services.md](references/choosing-services.md) when explaining
-replacements, combining needs, introducing Homarr, or discussing access/costs.
+Explain the proposed apps in plain language. Include Homarr as the dashboard
+for opening apps and seeing connected services. A named app selects that app,
+its dependencies, and Homarr; optional services need a user choice.
 
-## Route the request
+Confirm the target host and project directory. Check only that directory for
+`.selfhost/stack.json`, then read **one** workflow:
 
-1. Explain the proposed apps and Homarr in one short recommendation. Reuse the
-   known target host and project directory; if missing, ask which computer or
-   NAS should run the apps and propose an owned directory. Check only the
-   selected directory for `.selfhost/stack.json`.
-2. Resolve installed sibling skills by name. Read only the workflow selected
-   below and the references it directs you to:
-   - Explicit planning, comparison, or an undecided request: follow
-     `selfhost/SKILL.md`.
-   - `/self-host SERVICE`, a replacement goal, or a new install without a
-     stack record: follow `selfhost-setup/SKILL.md`, which plans before apply.
-     A named app selects that app, required dependencies and Homarr; it does
-     not imply a larger stack. Continue toward setup after required choices
-     and the concrete apply approval; do not end at a catalog recommendation.
-   - Status, extension, update, repair, recovery, or verification of a recorded
-     stack: follow `selfhost-upkeep/SKILL.md`.
-3. Keep the user's original `/self-host` invocation as authorization to enter
-   the selected workflow. Ask for unresolved choices and exact mutation
-   approval where that workflow requires it; never ask them to invoke another
-   skill.
-4. Continue until that workflow's completion criterion is met or a concrete
-   blocker prevents the next safe action.
+| Request | Read |
+| --- | --- |
+| New install, `/self-host SERVICE`, or replacement goal | [Setup](workflows/selfhost-setup/GUIDE.md) |
+| Status, extend, update, repair, or verify an existing stack | [Upkeep](workflows/selfhost-upkeep/GUIDE.md) |
+| Plan only, compare, or undecided | [Planning](workflows/selfhost/GUIDE.md) |
 
-Lead with service purposes and user choices. Keep skill names, capability
-boundaries, and internal status labels out of the conversation unless they
-explain a blocker or help an advanced user inspect the plan.
+Read [service choices](references/choosing-services.md) when explaining replacements,
+and [access choices](references/access.md) when choosing local, LAN, or remote access.
 
-Completion means the selected workflow completed its own plan, setup, or
-upkeep contract and the user received one plain-language handoff with what was
-planned, changed, verified, saved, and still blocked.
+Internal names such as `selfhost-compose` mean bundled workflows:
+`workflows/<name>/GUIDE.md`. Read their linked references only when needed;
+run helpers by absolute path. They are ordinary files, not additional skills
+to install or ask the user to invoke. Search the selected workflow or query
+the catalog CLI instead of loading every guide or catalog record.
+
+Follow inspect → plan → approval → apply → verify. Ask for the username;
+generate passwords through the owning helper. Keep credentials out of chat
+and normal reports; provide the private handoff path when requested.
+
+Continue through the selected workflow's completion criteria. End with what
+changed, verified access links, saved artifact paths, and any concrete blockers.

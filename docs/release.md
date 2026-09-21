@@ -2,8 +2,8 @@
 
 Version 1 releases preserve Git history and publish one generated Agent Plugins
 1.0 archive with a Claude Code compatibility manifest. The source of truth
-remains `.agents/skills/`; never commit a second `skills/` tree or a portability
-symlink.
+remains `.agents/skills/`; never commit a second `skills/` tree or a runtime portability
+symlink. The repository-only `CLAUDE.md` alias is not part of the skill payload.
 
 ## Prepare
 
@@ -11,7 +11,7 @@ symlink.
    files under `packaging/`. CI derives the archive version from the registry.
 2. Replace `Unreleased` in the matching changelog heading with an ISO date.
 3. Regenerate discovery files with `bun scripts/skillpack.ts index --write`.
-4. Review every changed skill against its owning contract and keep generated,
+4. Review every changed workflow against its owning contract and keep generated,
    secret, session, evidence, and client-install state out of Git.
 
 ## Prove
@@ -32,15 +32,15 @@ Review tracked screenshots visually for host details, user data, and credentials
 even when their PNG/SVG metadata scan passes.
 
 Extract the ZIP into a disposable directory. Validate root `plugin.json`
-against Agent Plugins 1.0, validate every immediate `skills/<name>/SKILL.md`
+against Agent Plugins 1.0, validate the single `skills/self-host/SKILL.md`
 against Agent Skills, and run the current Claude plugin validator against the
 same directory. Validate the ZIP and `SHA256SUMS`, then remove the disposable
 files.
 
-The package projection removes only the source-only
-`disable-model-invocation` key from explicit workflows. Their standard
-`metadata` marker and in-body activation gate remain, and Codex retains its
-`agents/openai.yaml` policy. Source installs keep the client-native key.
+The package contains the full `self-host/workflows/` tree. Internal documents
+use `GUIDE.md` and are not independently discovered. Verify the public entry's
+size budget, every on-demand link, saved owner/profile ID compatibility, and
+standalone runtime helpers in both copy and symlink install layouts.
 
 ## Publish
 

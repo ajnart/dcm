@@ -29,7 +29,7 @@
 
   <g transform="translate(300 114)">
     <rect width="246" height="114" rx="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
-    <text x="24" y="38" class="mono">selfhost/SKILL.md</text>
+    <text x="24" y="38" class="mono">selfhost/GUIDE.md</text>
     <text x="24" y="70" class="title">Conversational router</text>
     <text x="24" y="94" class="small">Selects only what the goal needs</text>
   </g>
