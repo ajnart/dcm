@@ -1598,7 +1598,7 @@ function benchmarkCommand(name, args, runs) {
 }
 
 export function benchmarkPack(runs = 30) {
-  const selfhost = join(repositoryRoot, ".agents", "skills", "selfhost", "scripts", "selfhost.ts");
+  const selfhost = join(workflowsRoot, "selfhost", "scripts", "selfhost.ts");
   const projectRoot = mkdtempSync(join(tmpdir(), "selfhost-benchmark-"));
   try {
     const results = [
