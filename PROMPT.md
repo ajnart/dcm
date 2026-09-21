@@ -39,7 +39,7 @@ secret-free and uninstalled unless the user separately authorizes installation.
 Verification stops after search and never invokes a media request/download
 mutation. Finish by refreshing and reporting the password-free
 `connections.env` path for future service wiring. For initial setup, also run
-the explicit `handoff` command and tell the user the generated `admin` password.
+the explicit `handoff` command and return only its artifact paths.
 During upkeep, run `handoff` only when the user explicitly requested a fresh
 access handoff.
 

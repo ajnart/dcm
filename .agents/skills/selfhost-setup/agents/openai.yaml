@@ -1,6 +1,6 @@
 interface:
-  display_name: "1 · Base · Setup Stack"
-  short_description: "Install prerequisites and set up a complete stack"
+  display_name: "Support · New stack setup"
+  short_description: "Used by Self-host for approved new installs"
   default_prompt: "Use $selfhost-setup to install prerequisites and set up my selected self-hosted stack."
 policy:
   allow_implicit_invocation: false

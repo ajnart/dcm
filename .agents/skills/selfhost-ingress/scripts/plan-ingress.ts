@@ -20,6 +20,28 @@ const PROTECTED_CLASSES = new Set([
   "identity-admin",
 ]);
 const PROXY_KINDS = new Set(["caddy", "traefik", "npm", "nginx-proxy-manager"]);
+const CADDY_APPLICATION_PROFILES = new Map([
+  ["homarr", [
+    "Use the client-facing HTTPS URL for Homarr tiles and Docker DNS/internal HTTP URLs for integrations.",
+    "If this route later becomes public, deny /api/mcp at that edge under the public Homarr contract.",
+  ]],
+  ["immich", [
+    "Serve Immich at the root of its own hostname; unsupported subpath routing must not be generated.",
+    "Verify forwarded headers, large uploads without a proxy body cap, and long-running upload timeouts live.",
+  ]],
+  ["jellyfin", [
+    "Configure only the exact observed Caddy proxy address as a Jellyfin Known Proxy; do not add broad trusted ranges.",
+    "Verify forwarded client identity and WebSocket behavior live; use root-host routing unless Jellyfin has the matching Base URL.",
+  ]],
+  ["nextcloud", [
+    "Configure the friendly hostname as a trusted domain and only the exact observed proxy address or narrow CIDR as a trusted proxy.",
+    "Verify HTTPS protocol detection, canonical generated URLs, login, and CalDAV/CardDAV discovery live; set overwriteprotocol or overwritehost only when required.",
+  ]],
+  ["vaultwarden", [
+    "Use the HTTPS hostname for Vaultwarden clients because the web vault requires a secure context.",
+    "Verify browser and native-client login and sync live; local CA trust does not replace Vaultwarden authentication.",
+  ]],
+]);
 
 function usage() {
   process.stdout.write(`Usage: plan-ingress.ts (--input FILE | --json JSON)\n\n`);
@@ -177,6 +199,36 @@ function validHostname(value) {
   return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(value);
 }
 
+function validAbsolutePath(value) {
+  return typeof value === "string"
+    && value.startsWith("/")
+    && !value.includes("..")
+    && !/[\u0000-\u001f\u007f]/.test(value);
+}
+
+function validDockerName(value) {
+  return typeof value === "string" && /^[a-z0-9][a-z0-9_.-]{0,62}$/i.test(value);
+}
+
+function privateBindScope(value) {
+  if (value === "127.0.0.1" || value === "::1") {
+    return "host-only";
+  }
+  if (typeof value !== "string" || isIP(value) === 0) {
+    return null;
+  }
+  if (isIP(value) === 4) {
+    const octets = parseIpv4(value);
+    if (octets?.[0] === 10 || (octets?.[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets?.[0] === 192 && octets[1] === 168)) {
+      return "lan";
+    }
+  }
+  if (isIP(value) === 6 && /^(?:fc|fd)/i.test(value)) {
+    return "lan";
+  }
+  return null;
+}
+
 function parseIpv4(value) {
   const parts = value.split(".");
   if (parts.length !== 4) {
@@ -292,6 +344,7 @@ export function buildIngressPlan(input) {
     "lan",
     "tailscale-serve",
     "headscale",
+    "caddy-private",
     "reverse-proxy",
     "cloudflare-tunnel",
     "pangolin-newt",
@@ -311,6 +364,8 @@ export function buildIngressPlan(input) {
   let selectedOwner = "service-owner";
   let exposure = "private";
   let nativeMcpPolicy = null;
+  let caddyConfig = null;
+  let applicationRequirements = [];
 
   function gate(id, passed, detail) {
     let status = "blocked";
@@ -427,6 +482,109 @@ export function buildIngressPlan(input) {
     steps.push("Enroll the intended client and advertise only the selected private route under the approved ACL.");
   }
 
+  if (route === "caddy-private") {
+    const caddy = objectOrEmpty(preferences.caddy);
+    const privateDns = objectOrEmpty(facts.privateDns);
+    const hostname = preferences.hostname;
+    const runtime = caddy.runtime;
+    const upstreamHost = caddy.upstreamHost;
+    const hostBindAddress = caddy.hostBindAddress;
+    const clientScope = caddy.clientScope;
+    const httpsPort = caddy.httpsPort === undefined ? 443 : Number(caddy.httpsPort);
+    const bindScope = privateBindScope(hostBindAddress);
+    const upstreamPort = Number(service.internalPort);
+    const hostnameReady = validHostname(hostname);
+    const privateDnsReady = hostnameReady
+      && privateDns.hostname === hostname
+      && privateDns.resolvesToPrivateAddress === true
+      && typeof privateDns.owner === "string"
+      && privateDns.owner.length > 0;
+    const persistenceReady = validAbsolutePath(caddy.configPath)
+      && validAbsolutePath(caddy.dataPath)
+      && caddy.configPath !== caddy.dataPath;
+    let upstreamReady = false;
+    if (runtime === "container") {
+      upstreamReady = validDockerName(upstreamHost) && upstreamHost !== "localhost";
+    }
+    if (runtime === "host") {
+      upstreamReady = upstreamHost === "127.0.0.1";
+    }
+
+    selectedOwner = boundedLabel(caddy.owner, "caddy-owner-pending");
+    const httpsPortOwners = ownersFor(ownership.ports, (record) => Number(record.port) === httpsPort);
+    gate("private-hostname", hostnameReady, "Choose a valid private hostname, such as app.home.arpa.");
+    gate("private-dns", privateDnsReady, "Record the private DNS owner and confirm the hostname resolves to a private address.");
+    gate("caddy-owner", typeof caddy.owner === "string" && caddy.owner.length > 0, "Identify who owns the private Caddy lifecycle.");
+    gate("caddy-runtime", runtime === "container" || runtime === "host", "Choose whether Caddy runs on the host or in the Compose project.");
+    gate("caddy-private-bind", bindScope !== null && bindScope === clientScope, "Choose clientScope host-only with a loopback bind, or lan with one explicit RFC1918/ULA host address; wildcard and public binds are invalid.");
+    gate("caddy-https-port", Number.isInteger(httpsPort) && httpsPort > 0 && httpsPort <= 65535, "Choose a valid private Caddy HTTPS port.");
+    if (httpsPortOwners.length > 1 || (httpsPortOwners.length === 1 && httpsPortOwners[0] !== selectedOwner)) {
+      conflict("caddy-https-port-owner", `Resolve competing ownership for host port ${httpsPort}; the planner will not replace it.`);
+    }
+    gate("caddy-https-port-owner", httpsPortOwners.length === 1 && httpsPortOwners[0] === selectedOwner, `Record ${selectedOwner} as the sole observed owner of host port ${httpsPort}.`);
+    gate("caddy-upstream", upstreamReady && Number.isInteger(upstreamPort) && upstreamPort > 0 && upstreamPort <= 65535, "Use Docker DNS for container Caddy, or 127.0.0.1 for host Caddy, with a valid internal service port.");
+    gate("caddy-persistence", persistenceReady, "Choose distinct absolute persistent paths for Caddy config and certificate data.");
+    gate("caddy-client-trust", preferences.clientTrustPlanned === true, "Plan installation of Caddy's local CA root on each intended client; HTTPS alone is not authentication.");
+    steps.push("Create a private DNS record for the friendly hostname; do not create public DNS or public reachability.");
+    steps.push("Render a Caddyfile with internal TLS and hand its Compose lifecycle and persistent config/data mounts to selfhost-compose.");
+    steps.push("Keep the Docker socket unmounted and keep the backend on its private network or loopback binding.");
+    let plannedCaddyHostname = null;
+    if (hostnameReady) {
+      plannedCaddyHostname = hostname.toLowerCase();
+    }
+    let plannedCaddyRuntime = null;
+    if (runtime === "container" || runtime === "host") {
+      plannedCaddyRuntime = runtime;
+    }
+    let plannedUpstreamHost = null;
+    if (upstreamReady) {
+      plannedUpstreamHost = upstreamHost.toLowerCase();
+    }
+    let plannedUpstreamPort = null;
+    if (Number.isInteger(upstreamPort) && upstreamPort > 0 && upstreamPort <= 65535) {
+      plannedUpstreamPort = upstreamPort;
+    }
+    let plannedConfigPath = null;
+    if (validAbsolutePath(caddy.configPath)) {
+      plannedConfigPath = caddy.configPath;
+    }
+    let plannedDataPath = null;
+    if (validAbsolutePath(caddy.dataPath)) {
+      plannedDataPath = caddy.dataPath;
+    }
+    let plannedHttpsPort = null;
+    if (Number.isInteger(httpsPort) && httpsPort > 0 && httpsPort <= 65535) {
+      plannedHttpsPort = httpsPort;
+    }
+    let privateUrl = null;
+    if (plannedCaddyHostname && plannedHttpsPort) {
+      privateUrl = `https://${plannedCaddyHostname}`;
+      if (plannedHttpsPort !== 443) {
+        privateUrl = `${privateUrl}:${plannedHttpsPort}`;
+      }
+    }
+    caddyConfig = {
+      hostname: plannedCaddyHostname,
+      httpsPort: plannedHttpsPort,
+      privateUrl,
+      tls: "internal",
+      runtime: plannedCaddyRuntime,
+      upstreamHost: plannedUpstreamHost,
+      upstreamPort: plannedUpstreamPort,
+      configPath: plannedConfigPath,
+      dataPath: plannedDataPath,
+      hostBindAddress: bindScope ? hostBindAddress : null,
+      clientScope: bindScope === clientScope ? clientScope : null,
+      composePublishAddress: runtime === "container" && bindScope ? hostBindAddress : null,
+      resourceOwnership: plannedHttpsPort && httpsPortOwners.length === 1 ? { httpsPort: plannedHttpsPort, owner: httpsPortOwners[0], hostBindAddress: bindScope ? hostBindAddress : null } : null,
+      dockerSocket: "forbidden",
+    };
+    const profile = CADDY_APPLICATION_PROFILES.get(serviceId.toLowerCase());
+    if (profile) {
+      applicationRequirements = [...profile];
+    }
+  }
+
   if (route === "reverse-proxy") {
     const desiredOwner = boundedLabel(preferences.desiredOwner, "");
     let candidates = arrayOrEmpty(facts.existingIngress).filter((candidate) => {
@@ -536,6 +694,10 @@ export function buildIngressPlan(input) {
   if (nativeMcpPolicy) {
     routePlan.nativeMcp = nativeMcpPolicy;
   }
+  if (caddyConfig) {
+    routePlan.caddy = caddyConfig;
+    routePlan.applicationRequirements = applicationRequirements;
+  }
 
   const verification = [
     "Resolve the hostname from an intended client network when a hostname applies.",
@@ -543,6 +705,10 @@ export function buildIngressPlan(input) {
     "Prove the route reaches only the intended service and enforces its access policy.",
     "Prove direct service and protected management ports remain non-public.",
   ];
+  if (route === "caddy-private") {
+    verification.push("From each intended private client, prove private DNS resolution and trust of Caddy's local CA root.");
+    verification.push("Confirm Caddy config and certificate data survive a scoped service recreation.");
+  }
   if (publicHomarr) {
     verification.push("Collect homarr-native-mcp-private evidence from a public client proving /api/mcp is denied while the Homarr dashboard remains usable.");
     verification.push("Prove the packaged read-only bridge reaches /api/mcp only through the selected private bridge route.");

@@ -8,6 +8,7 @@ const DATE_SCHEMA_FAILURE_MESSAGE = "Date cannot be represented in JSON Schema";
 
 export const MUTATING_HOMARR_TOOL_NAMES = Object.freeze([
   "app_update",
+  "integration_request",
   "integration_requestMedia",
   "mediaRequests_answerRequest",
 ]);

@@ -28,10 +28,9 @@ capability.
   provenance.
 - Preferences contain no secrets. Secret payloads stay at the narrow apply
   boundary and out of commands, screenshots, fixtures, and client configuration.
-  The sole output exception is the generated media admin password: an explicitly
-  invoked setup displays it directly to the user once in the final handoff and
-  never persists it or repeats it unless the user explicitly requests a fresh
-  access handoff.
+  An explicitly requested private credential handoff may save passwords and API
+  keys in the adapter-owned mode-0600 file. Ordinary reports and benchmark
+  evidence contain only its path. Re-export on upkeep only when requested.
 - One Compose project is the mutation boundary. No broad Docker teardown,
   prune, volume deletion, unowned network/proxy edit, or casual socket mount.
 - Container liveness and HTTP 200 are narrow observations, not acceptance.

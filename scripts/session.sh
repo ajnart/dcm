@@ -22,20 +22,29 @@ DESTROY_SERVICES=(prowlarr radarr sonarr qbittorrent jellyfin seerr homarr)
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/session.sh create [RUN_ID]
+  scripts/session.sh create [RUN_ID] USERNAME [--homarr-bind 0.0.0.0 --homarr-host HOST]
   scripts/session.sh up RUN_ID
   scripts/session.sh keys RUN_ID
-  scripts/session.sh bootstrap RUN_ID
+  scripts/session.sh bootstrap RUN_ID [--identities-only]
+  scripts/session.sh bootstrap-jellyfin RUN_ID
+  scripts/session.sh bootstrap-seerr RUN_ID
   scripts/session.sh verify RUN_ID
   scripts/session.sh browser-password RUN_ID @eN [@eN ...]
+  scripts/session.sh browser-form RUN_ID
   scripts/session.sh browser-key capture|fill RUN_ID SERVICE @eN
+  scripts/session.sh browser-key capture-code RUN_ID homarr
+  scripts/session.sh browser-key capture-field RUN_ID sonarr|radarr|prowlarr
   scripts/session.sh homarr-key RUN_ID < ONE_TIME_KEY
-  scripts/session.sh homarr-finalize RUN_ID
+  scripts/session.sh homarr-finalize RUN_ID [BOARD_NAME]
+  scripts/session.sh homarr-notebook RUN_ID BOARD_NAME
+  scripts/session.sh homarr-widgets RUN_ID BOARD_NAME
   scripts/session.sh mcp-config RUN_ID
   scripts/session.sh mcp-verify RUN_ID
   scripts/session.sh connections-check RUN_ID
   scripts/session.sh connections RUN_ID
   scripts/session.sh handoff RUN_ID
+  scripts/session.sh access-proxy set RUN_ID SERVICE ORIGIN [--private-dns-confirmed]
+  scripts/session.sh access-proxy clear RUN_ID SERVICE
   scripts/session.sh down RUN_ID
   scripts/session.sh status RUN_ID
   scripts/session.sh urls RUN_ID
@@ -45,6 +54,10 @@ Usage:
 
 RUN_ID must start with a lowercase letter or digit and contain only lowercase
 letters, digits, underscores, and hyphens (maximum 40 characters).
+USERNAME is required for new sessions and must contain only letters, digits,
+periods, underscores, and hyphens (maximum 64 characters).
+Homarr remains loopback-only unless both explicit headless-access options are
+provided. HOST is the private hostname or address users open, never 0.0.0.0.
 
 destroy is intentionally explicit. It only removes the validated run named
 twice on the command line; no command targets all sessions or the legacy stack.
@@ -269,7 +282,7 @@ validate_connections_schema_file() {
         [[ "$value" == "http://localhost:$HOMARR_PORT" ]] || fail "$label contains an invalid Homarr URL"
         ;;
       *_USERNAME)
-        [[ "$value" == "admin" ]] || fail "$label contains an invalid username"
+        [[ "$value" == "$ADMIN_USERNAME" ]] || fail "$label contains an invalid username"
         ;;
       PROWLARR_API_KEY|RADARR_API_KEY|SONARR_API_KEY|SEERR_API_KEY)
         [[ "$value" =~ ^[0-9a-f]{32}$ ]] || fail "$label contains an invalid service API key"
@@ -381,6 +394,10 @@ validate_manifest_syntax() {
     case "$key" in
       RUN_ID|COMPOSE_PROJECT_NAME|SESSION_ROOT|AGENT_BROWSER_SESSION|PUID|PGID|TZ)
         ;;
+      ADMIN_USERNAME)
+        [[ "${line#*=}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] \
+          || fail "invalid admin username"
+        ;;
       PROWLARR_PORT|RADARR_PORT|SONARR_PORT|QBITTORRENT_PORT)
         ;;
       JELLYFIN_PORT|SEERR_PORT|HOMARR_PORT)
@@ -388,6 +405,17 @@ validate_manifest_syntax() {
       SESSION_PASSWORD_SCHEME)
         [[ "${line#*=}" == "$CURRENT_SESSION_PASSWORD_SCHEME" ]] \
           || fail "invalid session password scheme"
+        ;;
+      HOMARR_BIND_ADDRESS)
+        [[ "${line#*=}" == "127.0.0.1" || "${line#*=}" == "0.0.0.0" ]] \
+          || fail "invalid Homarr bind address"
+        ;;
+      HOMARR_ADVERTISED_HOST)
+        [[ "${line#*=}" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,251}[A-Za-z0-9]$ ]] \
+          || fail "invalid Homarr advertised host"
+        [[ "${line#*=}" != "localhost" && "${line#*=}" != "0.0.0.0" \
+          && "${line#*=}" != "127.0.0.1" ]] \
+          || fail "invalid Homarr advertised host"
         ;;
       *)
         fail "unexpected manifest key: $key"
@@ -451,7 +479,8 @@ load_session() {
   unset RUN_ID COMPOSE_PROJECT_NAME SESSION_ROOT AGENT_BROWSER_SESSION
   unset PUID PGID TZ PROWLARR_PORT RADARR_PORT SONARR_PORT
   unset QBITTORRENT_PORT JELLYFIN_PORT SEERR_PORT HOMARR_PORT
-  unset SESSION_PASSWORD_SCHEME
+  unset SESSION_PASSWORD_SCHEME ADMIN_USERNAME
+  unset HOMARR_BIND_ADDRESS HOMARR_ADVERTISED_HOST
   unset HOMARR_ENCRYPTION_KEY SONARR_API_KEY RADARR_API_KEY
   unset PROWLARR_API_KEY SEERR_API_KEY
   unset HOMARR_API_KEY
@@ -467,6 +496,21 @@ load_session() {
     && "$SESSION_PASSWORD_SCHEME" != "$CURRENT_SESSION_PASSWORD_SCHEME" ]]; then
     fail "invalid session password scheme"
   fi
+  if [[ -z "${ADMIN_USERNAME+x}" ]]; then
+    ADMIN_USERNAME="admin"
+  fi
+  if [[ -z "${HOMARR_BIND_ADDRESS+x}" ]]; then
+    HOMARR_BIND_ADDRESS="127.0.0.1"
+  fi
+  [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" || "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]] \
+    || fail "invalid Homarr bind address"
+  if [[ "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]]; then
+    [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]] || fail "wildcard Homarr bind requires an advertised host"
+  elif [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
+    fail "Homarr advertised host requires a non-loopback bind"
+  fi
+  [[ "$ADMIN_USERNAME" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] \
+    || fail "invalid admin username"
   [[ "$PUID" =~ ^[0-9]+$ ]] || fail "invalid PUID"
   [[ "$PGID" =~ ^[0-9]+$ ]] || fail "invalid PGID"
 
@@ -647,7 +691,7 @@ collect_used_ports_locked() {
           ;;
       esac
     done < "$manifest"
-    if [[ "${#manifest_keys[@]}" != "14" && "${#manifest_keys[@]}" != "15" ]]; then
+    if (( ${#manifest_keys[@]} < 14 || ${#manifest_keys[@]} > 18 )); then
       fail "existing session manifest is incomplete"
     fi
     [[ "$port_count" == "7" ]] || fail "existing session manifest has an invalid port set"
@@ -737,6 +781,10 @@ rollback_staged_session() {
 
 create_session() {
   local requested_run_id="${1:-}"
+  local admin_username="${2:-}"
+  shift 2 || true
+  local homarr_bind_address="127.0.0.1"
+  local homarr_advertised_host=""
   local run_id
   local session_dir
   local tombstone_dir
@@ -754,11 +802,44 @@ create_session() {
   local homarr_port
   local timezone
 
+  while (( "$#" > 0 )); do
+    case "$1" in
+      --homarr-bind)
+        [[ "$#" -ge 2 ]] || fail "--homarr-bind requires an address"
+        homarr_bind_address="$2"
+        shift 2
+        ;;
+      --homarr-host)
+        [[ "$#" -ge 2 ]] || fail "--homarr-host requires a hostname or address"
+        homarr_advertised_host="$2"
+        shift 2
+        ;;
+      *)
+        fail "unknown create option: $1"
+        ;;
+    esac
+  done
+
+  [[ "$homarr_bind_address" == "127.0.0.1" || "$homarr_bind_address" == "0.0.0.0" ]] \
+    || fail "--homarr-bind accepts only 127.0.0.1 or 0.0.0.0"
+  if [[ "$homarr_bind_address" == "0.0.0.0" ]]; then
+    [[ "$homarr_advertised_host" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,251}[A-Za-z0-9]$ ]] \
+      || fail "wildcard Homarr bind requires a valid --homarr-host"
+    [[ "$homarr_advertised_host" != "localhost" && "$homarr_advertised_host" != "0.0.0.0" \
+      && "$homarr_advertised_host" != "127.0.0.1" ]] \
+      || fail "--homarr-host must identify a non-loopback client-reachable host"
+  elif [[ -n "$homarr_advertised_host" ]]; then
+    fail "--homarr-host requires --homarr-bind 0.0.0.0"
+  fi
+
   require_command flock
   require_command openssl
   require_command awk
   require_command find
   require_command mktemp
+
+  [[ "$admin_username" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] \
+    || fail "create requires an explicit valid USERNAME"
 
   if [[ -n "$requested_run_id" ]]; then
     run_id="$requested_run_id"
@@ -833,7 +914,12 @@ create_session() {
     printf 'COMPOSE_PROJECT_NAME=%s\n' "$project_name"
     printf 'SESSION_ROOT=%s\n' "$session_dir"
     printf 'AGENT_BROWSER_SESSION=%s\n' "$browser_session"
+    printf 'ADMIN_USERNAME=%s\n' "$admin_username"
     printf 'SESSION_PASSWORD_SCHEME=%s\n' "$CURRENT_SESSION_PASSWORD_SCHEME"
+    printf 'HOMARR_BIND_ADDRESS=%s\n' "$homarr_bind_address"
+    if [[ -n "$homarr_advertised_host" ]]; then
+      printf 'HOMARR_ADVERTISED_HOST=%s\n' "$homarr_advertised_host"
+    fi
     printf 'PUID=%s\n' "$(id -u)"
     printf 'PGID=%s\n' "$(id -g)"
     printf 'TZ=%s\n' "$timezone"
@@ -884,6 +970,13 @@ print_urls() {
   printf 'JELLYFIN_URL=http://127.0.0.1:%s\n' "$JELLYFIN_PORT"
   printf 'SEERR_URL=http://127.0.0.1:%s\n' "$SEERR_PORT"
   printf 'HOMARR_URL=http://127.0.0.1:%s\n' "$HOMARR_PORT"
+  if [[ "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]]; then
+    printf 'HOMARR_REACHABLE_URL=http://%s:%s\n' "$HOMARR_ADVERTISED_HOST" "$HOMARR_PORT"
+    printf 'HOMARR_REACHABILITY=configured-not-verified\n'
+  else
+    printf 'HOMARR_SSH_TUNNEL=ssh -N -L <local-port>:127.0.0.1:%s <ssh-user>@<server>\n' \
+      "$HOMARR_PORT"
+  fi
 }
 
 print_env() {
@@ -891,6 +984,11 @@ print_env() {
   printf 'export COMPOSE_PROJECT_NAME=%q\n' "$COMPOSE_PROJECT_NAME"
   printf 'export SESSION_ROOT=%q\n' "$SESSION_ROOT"
   printf 'export AGENT_BROWSER_SESSION=%q\n' "$AGENT_BROWSER_SESSION"
+  printf 'export ADMIN_USERNAME=%q\n' "$ADMIN_USERNAME"
+  printf 'export HOMARR_BIND_ADDRESS=%q\n' "$HOMARR_BIND_ADDRESS"
+  if [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
+    printf 'export HOMARR_ADVERTISED_HOST=%q\n' "$HOMARR_ADVERTISED_HOST"
+  fi
   printf 'export PROWLARR_PORT=%q\n' "$PROWLARR_PORT"
   printf 'export RADARR_PORT=%q\n' "$RADARR_PORT"
   printf 'export SONARR_PORT=%q\n' "$SONARR_PORT"
@@ -1528,8 +1626,8 @@ main() {
 
   case "$command" in
     create)
-      [[ "$#" -le 2 ]] || fail "create accepts at most one RUN_ID"
-      create_session "$run_id"
+      [[ "$#" -ge 3 ]] || fail "create requires RUN_ID and USERNAME"
+      create_session "${@:2}"
       ;;
     up)
       [[ "$#" -eq 2 ]] || fail "up requires one RUN_ID"
@@ -1550,13 +1648,30 @@ main() {
       exec bun "$SCRIPT_DIR/lib/session-context.ts" connections "$run_id"
       ;;
     bootstrap)
-      [[ "$#" -eq 2 ]] || fail "bootstrap requires one RUN_ID"
+      [[ "$#" -eq 2 || ( "$#" -eq 3 && "$3" == "--identities-only" ) ]] \
+        || fail "bootstrap requires RUN_ID and optional --identities-only"
       require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
       cleanup_validated_connections_transients "$SESSION_DIR"
-      exec bun "$SCRIPT_DIR/bootstrap-core.ts" "$run_id"
+      exec bun "$SCRIPT_DIR/bootstrap-core.ts" "$run_id" "${3:-}"
+      ;;
+    bootstrap-jellyfin)
+      [[ "$#" -eq 2 ]] || fail "bootstrap-jellyfin requires one RUN_ID"
+      require_command bun
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/bootstrap-jellyfin.ts" "$run_id"
+      ;;
+    bootstrap-seerr)
+      [[ "$#" -eq 2 ]] || fail "bootstrap-seerr requires one RUN_ID"
+      require_command bun
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/bootstrap-seerr.ts" "$run_id"
       ;;
     verify)
       [[ "$#" -eq 2 ]] || fail "verify requires one RUN_ID"
@@ -1575,9 +1690,17 @@ main() {
       require_session_password_scheme
       exec bun "$SCRIPT_DIR/fill-browser-password.ts" "$run_id" "${@:3}"
       ;;
+    browser-form)
+      [[ "$#" -eq 2 ]] || fail "browser-form requires one RUN_ID"
+      require_command bun
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/browser-form.ts" "$run_id"
+      ;;
     browser-key)
-      [[ "$#" -eq 5 ]] \
-        || fail "browser-key requires capture|fill RUN_ID SERVICE @eN"
+      [[ "$#" -eq 5 || ( "$#" -eq 4 && ( "$2" == "refs" || "$2" == "capture-code" || "$2" == "capture-field" ) ) ]] \
+        || fail "browser-key requires refs RUN_ID SERVICE or capture|fill RUN_ID SERVICE @eN"
       require_command bun
       run_id="$3"
       open_run_lock "$run_id"
@@ -1585,7 +1708,7 @@ main() {
       require_session_password_scheme
       cleanup_validated_homarr_key_transients "$SESSION_DIR"
       cleanup_validated_connections_transients "$SESSION_DIR"
-      exec bun "$SCRIPT_DIR/browser-api-key.ts" "$2" "$run_id" "$4" "$5"
+      exec bun "$SCRIPT_DIR/browser-api-key.ts" "$2" "$run_id" "${@:4}"
       ;;
     homarr-key)
       [[ "$#" -eq 2 ]] || fail "homarr-key requires one RUN_ID"
@@ -1597,13 +1720,27 @@ main() {
       cleanup_validated_connections_transients "$SESSION_DIR"
       exec bun "$SCRIPT_DIR/store-homarr-key.ts" "$run_id"
       ;;
+    homarr-widgets)
+      [[ "$#" -eq 3 ]] || fail "homarr-widgets requires RUN_ID and BOARD_NAME"
+      require_command bun
+      load_session "$2"
+      exec bun "$SCRIPT_DIR/prove-homarr-widgets.ts" "$2" "$3"
+      ;;
+    homarr-notebook)
+      [[ "$#" -eq 3 ]] || fail "homarr-notebook requires RUN_ID and BOARD_NAME"
+      require_command bun
+      open_run_lock "$2"
+      load_session "$2"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/homarr-notebook.ts" "$2" "$3"
+      ;;
     homarr-finalize)
-      [[ "$#" -eq 2 ]] || fail "homarr-finalize requires one RUN_ID"
+      [[ "$#" -eq 2 || "$#" -eq 3 ]] || fail "homarr-finalize requires RUN_ID and optional BOARD_NAME"
       require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec bun "$SCRIPT_DIR/homarr-finalize.ts" "$run_id"
+      exec bun "$SCRIPT_DIR/homarr-finalize.ts" "$run_id" "${@:3}"
       ;;
     mcp-config)
       [[ "$#" -eq 2 ]] || fail "mcp-config requires one RUN_ID"
@@ -1650,6 +1787,15 @@ main() {
       require_session_password_scheme
       cleanup_validated_connections_transients "$SESSION_DIR"
       exec bun "$SCRIPT_DIR/lib/session-context.ts" handoff "$run_id"
+      ;;
+    access-proxy)
+      [[ "$#" -ge 4 ]] || fail "access-proxy requires set|clear RUN_ID SERVICE"
+      require_command bun
+      run_id="$3"
+      open_run_lock "$run_id"
+      load_session "$run_id"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/lib/session-context.ts" access-proxy "$2" "${@:3}"
       ;;
     down)
       [[ "$#" -eq 2 ]] || fail "down requires one RUN_ID"

@@ -1,6 +1,6 @@
 interface:
-  display_name: "2 · Base · Upkeep Stack"
-  short_description: "Resume, extend, update, and verify a stack"
+  display_name: "Support · Existing stack"
+  short_description: "Used by Self-host for maintenance and recovery"
   default_prompt: "Use $selfhost-upkeep to resume, extend, update, or verify my existing self-hosted stack."
 policy:
   allow_implicit_invocation: false

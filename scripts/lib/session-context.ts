@@ -17,10 +17,17 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  resolveSessionAccess,
+  SESSION_ACCESS_SERVICES,
+  sessionSshTunnel,
+  validatePrivateProxyOrigin,
+} from "./session-access.ts";
+
 const SCRIPT_LIB_DIR = dirname(fileURLToPath(import.meta.url));
 
 export const REPO_ROOT = realpathSync(resolve(SCRIPT_LIB_DIR, "../.."));
-export const STANDARD_USERNAME = "admin";
+export const LEGACY_STANDARD_USERNAME = "admin";
 export const SESSION_PASSWORD_SCHEME = "hmac-v1";
 
 const SESSION_PASSWORD_DERIVATION_DOMAIN =
@@ -44,7 +51,10 @@ const REQUIRED_MANIFEST_KEYS = new Set([
 ]);
 const MANIFEST_KEYS = new Set([
   ...REQUIRED_MANIFEST_KEYS,
+  "ADMIN_USERNAME",
   "SESSION_PASSWORD_SCHEME",
+  "HOMARR_BIND_ADDRESS",
+  "HOMARR_ADVERTISED_HOST",
 ]);
 
 const SECRET_KEYS = new Set([
@@ -165,6 +175,47 @@ export function deriveSessionPassword(session) {
     .digest("hex")
     .slice(0, 24);
   return `Autostack-${digest}!`;
+}
+
+export function validateAdminUsername(username) {
+  if (typeof username !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/.test(username)) {
+    fail("admin username is invalid");
+  }
+  return username;
+}
+
+export function sessionUsername(session) {
+  if (!session || typeof session !== "object" || !session.manifest) {
+    fail("session username source is invalid");
+  }
+  const username = session.manifest.ADMIN_USERNAME;
+  if (username === undefined) {
+    return LEGACY_STANDARD_USERNAME;
+  }
+  return validateAdminUsername(username);
+}
+
+export function validateBrowserPageUrl(session, rawUrl) {
+  if (typeof rawUrl !== "string" || Buffer.byteLength(rawUrl, "utf8") > 2_048) {
+    fail("browser page URL is invalid");
+  }
+  let pageUrl;
+  try {
+    pageUrl = new URL(rawUrl.trim());
+  } catch {
+    fail("browser page URL is invalid");
+  }
+  const allowedPorts = new Set(PORT_KEYS.map((key) => String(session?.manifest?.[key] ?? "")));
+  if (
+    pageUrl.protocol !== "http:"
+    || !["127.0.0.1", "localhost"].includes(pageUrl.hostname)
+    || pageUrl.username !== ""
+    || pageUrl.password !== ""
+    || !allowedPorts.has(pageUrl.port)
+  ) {
+    fail("browser page is outside the managed session");
+  }
+  return pageUrl.href;
 }
 
 function assertPrivateControlFile(filePath, expectedParent, label) {
@@ -342,13 +393,127 @@ export function loadSession(runId) {
     }
   }
 
-  return Object.freeze({
+  const session = Object.freeze({
     runId,
     sessionDir,
     manifestFile,
     secretsFile,
     manifest: Object.freeze(manifest),
     secrets: Object.freeze(secrets),
+  });
+  sessionAccess(session);
+  return session;
+}
+
+export function sessionAccess(session) {
+  const bindAddress = session.manifest.HOMARR_BIND_ADDRESS ?? "127.0.0.1";
+  if (bindAddress === "127.0.0.1" && session.manifest.HOMARR_ADVERTISED_HOST !== undefined) {
+    fail("Homarr advertised host requires a non-loopback bind");
+  }
+  const accessConfig = loadSessionAccessConfig(session);
+  return resolveSessionAccess({
+    advertisedHost: session.manifest.HOMARR_ADVERTISED_HOST,
+    bindAddress,
+    directServices: ["homarr"],
+    ports: session.manifest,
+    reverseProxyUrls: accessConfig.reverseProxyUrls,
+  });
+}
+
+export function loadSessionAccessConfig(session) {
+  const artifactDirectory = join(session.sessionDir, "artifacts");
+  const filePath = join(artifactDirectory, "access.json");
+  if (!existsSync(filePath)) {
+    return Object.freeze({ reverseProxyUrls: Object.freeze({}), routes: Object.freeze({}) });
+  }
+  assertPrivateControlFile(filePath, artifactDirectory, "session access file");
+  const contents = readFileSync(filePath, "utf8");
+  if (Buffer.byteLength(contents, "utf8") > 8_192) {
+    fail("session access file is too large");
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(contents);
+  } catch {
+    fail("session access file is invalid");
+  }
+  if (
+    !parsed
+    || typeof parsed !== "object"
+    || Array.isArray(parsed)
+    || parsed.schemaVersion !== 1
+    || !parsed.routes
+    || typeof parsed.routes !== "object"
+    || Array.isArray(parsed.routes)
+    || Object.keys(parsed).some((key) => !["schemaVersion", "routes"].includes(key))
+  ) {
+    fail("session access file is invalid");
+  }
+  const reverseProxyUrls = {};
+  const routes = {};
+  for (const [service, route] of Object.entries(parsed.routes)) {
+    if (!SESSION_ACCESS_SERVICES.includes(service)) {
+      fail("session access file contains an unknown service");
+    }
+    if (
+      !route
+      || typeof route !== "object"
+      || Array.isArray(route)
+      || typeof route.origin !== "string"
+      || typeof route.privateDnsConfirmed !== "boolean"
+      || Object.keys(route).some((key) => !["origin", "privateDnsConfirmed"].includes(key))
+    ) {
+      fail("session access file contains an invalid route");
+    }
+    reverseProxyUrls[service] = validatePrivateProxyOrigin(
+      route.origin,
+      service,
+      route.privateDnsConfirmed,
+    );
+    routes[service] = Object.freeze({
+      origin: reverseProxyUrls[service],
+      privateDnsConfirmed: route.privateDnsConfirmed,
+    });
+  }
+  return Object.freeze({
+    reverseProxyUrls: Object.freeze(reverseProxyUrls),
+    routes: Object.freeze(routes),
+  });
+}
+
+export function configureSessionProxyAccess(
+  session,
+  action,
+  service,
+  rawOrigin,
+  privateDnsConfirmed = false,
+) {
+  requireSessionPasswordScheme(session);
+  if (!SESSION_ACCESS_SERVICES.includes(service)) {
+    fail("session access service is invalid");
+  }
+  const existing = loadSessionAccessConfig(session);
+  const routes = {};
+  for (const [existingService, route] of Object.entries(existing.routes)) {
+    routes[existingService] = { ...route };
+  }
+  if (action === "set") {
+    const origin = validatePrivateProxyOrigin(rawOrigin, service, privateDnsConfirmed);
+    routes[service] = { origin, privateDnsConfirmed };
+  } else if (action === "clear") {
+    delete routes[service];
+  } else {
+    fail("session access action is invalid");
+  }
+  replacePrivateArtifact(
+    session,
+    "access.json",
+    `${JSON.stringify({ schemaVersion: 1, routes }, null, 2)}\n`,
+  );
+  loadSessionAccessConfig(session);
+  return Object.freeze({
+    count: Object.keys(routes).length,
+    filePath: join(session.sessionDir, "artifacts", "access.json"),
   });
 }
 
@@ -449,6 +614,7 @@ export function storeHomarrApiKey(session, apiKey) {
 }
 
 export function connectionsContents(session, homarrApiKey) {
+  const username = sessionUsername(session);
   const lines = [`RUN_ID=${session.runId}`];
   for (const [service, portKey, apiKey] of [
     ["PROWLARR", "PROWLARR_PORT", session.secrets.PROWLARR_API_KEY],
@@ -461,7 +627,7 @@ export function connectionsContents(session, homarrApiKey) {
   ]) {
     lines.push(
       `${service}_URL=http://localhost:${session.manifest[portKey]}`,
-      `${service}_USERNAME=${STANDARD_USERNAME}`,
+      `${service}_USERNAME=${username}`,
     );
     if (apiKey !== null && apiKey !== "") {
       lines.push(`${service}_API_KEY=${apiKey}`);
@@ -522,7 +688,7 @@ function validateConnectionsFile(session, options = {}) {
       continue;
     }
     if (key.endsWith("_USERNAME")) {
-      if (value !== STANDARD_USERNAME) {
+      if (value !== sessionUsername(session)) {
         fail("connections file contains an invalid username");
       }
       continue;
@@ -652,10 +818,6 @@ export function writeSessionConnections(runId) {
   return writeConnectionsFile(session, homarr?.apiKey ?? "");
 }
 
-function shellQuote(value) {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-}
-
 export function printSessionConnectionsSummary(result) {
   let homarrStatus = "pending capture";
   if (result.homarrApiKeyStored) {
@@ -664,9 +826,8 @@ export function printSessionConnectionsSummary(result) {
   process.stdout.write([
     "PASS private connections file refreshed",
     `Connections file: ${result.filePath}`,
-    `Reveal locally: cat -- ${shellQuote(result.filePath)}`,
     "Services: Homarr dashboard/MCP; Seerr requests; Sonarr shows; Radarr movies; Prowlarr indexers; qBittorrent downloads; Jellyfin playback.",
-    `Stored access: 7 service URLs, 7 admin usernames, 4 service API keys; Homarr API key ${homarrStatus}. No password is persisted.`,
+    `Stored in connections.env: 7 service URLs, 7 admin usernames, 4 service API keys; Homarr API key ${homarrStatus}. connections.env contains no password.`,
     "",
   ].join("\n"));
 }
@@ -675,16 +836,301 @@ export function handoffContents(session) {
   requireSessionPasswordScheme(session);
   return [
     "PASS user access handoff ready",
-    `Admin username: ${STANDARD_USERNAME}`,
+    `Admin username: ${sessionUsername(session)}`,
     `Admin password: ${deriveSessionPassword(session)}`,
     "",
   ].join("\n");
 }
 
+function handoffActions() {
+  return [
+    "At export time, recorded the run-scoped session identity, storage, and ports",
+    "Derived the run administrator password and collected managed service API keys",
+    "At export time, refreshed the reusable connections file from managed session state",
+    "At export time, included the Homarr API key only when it had already been captured",
+    "At export time, wrote this private handoff and a separate redacted report",
+  ];
+}
+
+function handoffLocations(session) {
+  return {
+    sessionRoot: session.sessionDir,
+    manifest: session.manifestFile,
+    secrets: session.secretsFile,
+    connections: join(session.sessionDir, "connections.env"),
+    access: join(session.sessionDir, "artifacts", "access.json"),
+    boardAccess: optionalKnownArtifact(session, "board-access.json"),
+    mcpClient: optionalKnownArtifact(session, "mcp-client.json"),
+    config: join(session.sessionDir, "config"),
+    data: join(session.sessionDir, "data"),
+    artifacts: join(session.sessionDir, "artifacts"),
+  };
+}
+
+function optionalKnownArtifact(session, filename) {
+  const artifactDirectory = join(session.sessionDir, "artifacts");
+  const filePath = join(artifactDirectory, filename);
+  try {
+    assertPrivateControlFile(filePath, artifactDirectory, filename);
+    return filePath;
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export function loadBoardAccessMetadata(session) {
+  const artifactDirectory = join(session.sessionDir, "artifacts");
+  const filePath = join(artifactDirectory, "board-access.json");
+  if (!existsSync(filePath)) {
+    return null;
+  }
+  assertPrivateControlFile(filePath, artifactDirectory, "board access metadata");
+  const contents = readFileSync(filePath, "utf8");
+  if (Buffer.byteLength(contents, "utf8") > 8_192) {
+    fail("board access metadata is too large");
+  }
+  let value;
+  try {
+    value = JSON.parse(contents);
+  } catch {
+    fail("board access metadata is invalid");
+  }
+  const allowedKeys = ["schemaVersion", "board", "notebook", "urls", "evidence"];
+  if (!value || typeof value !== "object" || Array.isArray(value)
+    || Object.keys(value).some((key) => !allowedKeys.includes(key))
+    || Object.keys(value).length !== allowedKeys.length
+    || value.schemaVersion !== 1
+    || !value.board || typeof value.board !== "object"
+    || typeof value.board.id !== "string" || typeof value.board.name !== "string"
+    || typeof value.board.path !== "string"
+    || value.board.isPublic !== false
+    || Object.keys(value.board).some((key) => !["id", "name", "path", "isPublic"].includes(key))
+    || Object.keys(value.board).length !== 4
+    || !value.notebook || value.notebook.status !== "verified-at-recording"
+    || value.notebook.marker !== "Your homelab at a glance"
+    || typeof value.notebook.verifiedAt !== "string" || Number.isNaN(Date.parse(value.notebook.verifiedAt))
+    || Object.keys(value.notebook).some((key) => !["status", "marker", "verifiedAt"].includes(key))
+    || Object.keys(value.notebook).length !== 3
+    || !value.urls || typeof value.urls.local !== "string"
+    || !(value.urls.user === null || typeof value.urls.user === "string")
+    || Object.keys(value.urls).some((key) => !["local", "user"].includes(key))
+    || Object.keys(value.urls).length !== 2
+    || value.evidence !== "private board and notebook read back from Homarr API") {
+    fail("board access metadata is invalid");
+  }
+  const expectedPath = `/boards/${encodeURIComponent(value.board.name)}`;
+  const access = sessionAccess(session);
+  const expectedLocal = `${access.services.homarr.browserUrl}${expectedPath}`;
+  let expectedUser = null;
+  if (access.services.homarr.reachableUrl !== null) {
+    expectedUser = `${access.services.homarr.reachableUrl}${expectedPath}`;
+  }
+  if (value.board.path !== expectedPath) fail("board access metadata path is invalid");
+  return Object.freeze({ ...value, urls: Object.freeze({ local: expectedLocal, user: expectedUser }) });
+}
+
+export function writeBoardAccessMetadata(session, board) {
+  if (!board || typeof board !== "object" || typeof board.id !== "string"
+    || typeof board.name !== "string" || board.name.length < 1 || board.name.length > 255
+    || board.isPublic !== false) {
+    fail("verified board metadata is invalid");
+  }
+  const access = sessionAccess(session);
+  const path = `/boards/${encodeURIComponent(board.name)}`;
+  let userUrl = null;
+  if (access.services.homarr.reachableUrl !== null) {
+    userUrl = `${access.services.homarr.reachableUrl}${path}`;
+  }
+  replacePrivateArtifact(session, "board-access.json", `${JSON.stringify({
+    schemaVersion: 1,
+    board: { id: board.id, name: board.name, path, isPublic: false },
+    notebook: { status: "verified-at-recording", marker: "Your homelab at a glance", verifiedAt: new Date().toISOString() },
+    urls: { local: `${access.services.homarr.browserUrl}${path}`, user: userUrl },
+    evidence: "private board and notebook read back from Homarr API",
+  }, null, 2)}\n`);
+  return loadBoardAccessMetadata(session);
+}
+
+export function privateHandoffContents(session, homarrApiKey = "") {
+  requireSessionPasswordScheme(session);
+  const username = sessionUsername(session);
+  const password = deriveSessionPassword(session);
+  const access = sessionAccess(session);
+  const sshTunnel = sessionSshTunnel(access);
+  const boardAccess = loadBoardAccessMetadata(session);
+  const mcpClientPath = optionalKnownArtifact(session, "mcp-client.json");
+  const services = Object.create(null);
+  for (const [service, portKey, internalUrl, apiKey] of [
+    ["prowlarr", "PROWLARR_PORT", "http://prowlarr:9696", session.secrets.PROWLARR_API_KEY],
+    ["radarr", "RADARR_PORT", "http://radarr:7878", session.secrets.RADARR_API_KEY],
+    ["sonarr", "SONARR_PORT", "http://sonarr:8989", session.secrets.SONARR_API_KEY],
+    ["qbittorrent", "QBITTORRENT_PORT", `http://qbittorrent:${session.manifest.QBITTORRENT_PORT}`, null],
+    ["jellyfin", "JELLYFIN_PORT", "http://jellyfin:8096", null],
+    ["seerr", "SEERR_PORT", "http://seerr:5055", session.secrets.SEERR_API_KEY],
+    ["homarr", "HOMARR_PORT", "http://homarr:7575", homarrApiKey || null],
+  ]) {
+    services[service] = {
+      url: `http://localhost:${session.manifest[portKey]}`,
+      localUrl: access.services[service].browserUrl,
+      userUrl: access.services[service].reachableUrl,
+      internalUrl,
+      configPath: join(session.sessionDir, "config", service),
+      username,
+      password,
+      apiKey,
+    };
+  }
+  return `${JSON.stringify({
+    runId: session.runId,
+    warning: "PRIVATE: contains passwords and API keys; keep mode 0600",
+    acceptance: "unverified by handoff; consult separate acceptance evidence when present",
+    actions: handoffActions(),
+    locations: handoffLocations(session),
+    access: {
+      note: "Configured URLs are not client-side reachability evidence",
+      sshTunnel,
+      board: boardAccess,
+    },
+    homarrNotebook: boardAccess === null ? "not verified" : boardAccess.notebook.status,
+    mcp: {
+      profile: "expected read-only bridge profile; candidate client artifact is not revalidated by handoff",
+      bridge: join(REPO_ROOT, "scripts", "homarr-mcp-bridge.ts"),
+      clientConfig: mcpClientPath,
+      instruction: mcpClientPath === null
+        ? "Run scripts/session.sh mcp-config RUN_ID to create the uninstalled client fragment"
+        : "Re-run mcp-config to validate and refresh this candidate before separately authorized installation",
+    },
+    services,
+  }, null, 2)}\n`;
+}
+
+export function redactedHandoffContents(session, homarrApiKey = "") {
+  requireSessionPasswordScheme(session);
+  const locations = handoffLocations(session);
+  const access = sessionAccess(session);
+  const sshTunnel = sessionSshTunnel(access);
+  const boardAccess = loadBoardAccessMetadata(session);
+  const mcpClientPath = optionalKnownArtifact(session, "mcp-client.json");
+  const reachableLines = SESSION_ACCESS_SERVICES.map((service) => {
+    const reachableUrl = access.services[service].reachableUrl;
+    if (reachableUrl === null) {
+      return `- ${service}: SSH forward required`;
+    }
+    return `- ${service}: \`${reachableUrl}\` (configured; not client-verified)`;
+  });
+  const lines = [
+    "# Self-hosted stack handoff",
+    "",
+    `Run: \`${session.runId}\``,
+    `Username: \`${sessionUsername(session)}\``,
+    "Password: `[REDACTED - saved in private-handoff.json]`",
+    `Local Homarr URL: \`${access.services.homarr.browserUrl}\``,
+    access.services.homarr.reachableUrl === null
+      ? `Remote stack access: establish one tunnel with \`${sshTunnel.command}\``
+      : `User-reachable Homarr URL: \`${access.services.homarr.reachableUrl}\` (configured; client reachability still requires verification)`,
+    "Homarr's direct wildcard option exposes only the dashboard. Service app links need the SSH forwards above or explicit private proxy origins.",
+    boardAccess === null
+      ? "Personal board: not verified by the notebook helper"
+      : `Personal board: \`${boardAccess.urls.user ?? boardAccess.urls.local}\` (recorded private board identity; notebook verified at ${boardAccess.notebook.verifiedAt}; current board state and overall acceptance remain separate)`,
+    `Homarr notebook: ${boardAccess === null ? "not verified" : boardAccess.notebook.status}`,
+    mcpClientPath === null
+      ? "MCP client: run `scripts/session.sh mcp-config RUN_ID` to create the uninstalled read-only client fragment"
+      : `MCP client candidate: \`${mcpClientPath}\` (handoff did not validate its contents; re-run mcp-config before separately authorized installation)`,
+    "",
+    "## User URLs",
+    "",
+    ...reachableLines,
+    "",
+    "## Actions",
+    "",
+    ...handoffActions().map((action) => `- ${action}`),
+    "",
+    "## Locations",
+    "",
+    ...Object.entries(locations).map(([name, path]) => `- ${name}: \`${path}\``),
+    "",
+    "## Credentials",
+    "",
+    "- Prowlarr, Radarr, Sonarr, and Seerr API keys: `[REDACTED - saved]`",
+    `- Homarr API key: ${homarrApiKey ? "`[REDACTED - saved]`" : "pending capture"}`,
+    "- Shared administrator password: `[REDACTED - saved]`",
+    "",
+  ];
+  return lines.join("\n");
+}
+
+function replacePrivateArtifact(session, filename, contents) {
+  const artifactDirectory = join(session.sessionDir, "artifacts");
+  const directoryStat = lstatSync(artifactDirectory);
+  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()
+    || realpathSync(artifactDirectory) !== artifactDirectory
+    || directoryStat.uid !== process.getuid() || (directoryStat.mode & 0o077) !== 0) {
+    fail("handoff artifact directory must be private and owned");
+  }
+  const destination = join(artifactDirectory, filename);
+  const replacement = join(
+    artifactDirectory,
+    `.${filename}.${randomBytes(12).toString("hex")}`,
+  );
+  let descriptor;
+  let cleanupArmed = false;
+  try {
+    descriptor = openSync(replacement, "wx", 0o600);
+    fchmodSync(descriptor, 0o600);
+    cleanupArmed = true;
+    writeFileSync(descriptor, contents, "utf8");
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+    assertPrivateControlFile(replacement, artifactDirectory, `replacement ${filename}`);
+    renameSync(replacement, destination);
+    cleanupArmed = false;
+    assertPrivateControlFile(destination, artifactDirectory, filename);
+    const directoryDescriptor = openSync(artifactDirectory, "r");
+    try {
+      fsyncSync(directoryDescriptor);
+    } finally {
+      closeSync(directoryDescriptor);
+    }
+  } finally {
+    if (descriptor !== undefined) {
+      closeSync(descriptor);
+    }
+    if (cleanupArmed && existsSync(replacement)) {
+      assertPrivateControlFile(replacement, artifactDirectory, `replacement ${filename}`);
+      unlinkSync(replacement);
+    }
+  }
+  return destination;
+}
+
+export function writeSessionHandoffArtifacts(session, homarrApiKey = "") {
+  const privatePath = replacePrivateArtifact(
+    session,
+    "private-handoff.json",
+    privateHandoffContents(session, homarrApiKey),
+  );
+  const redactedPath = replacePrivateArtifact(
+    session,
+    "handoff-report.md",
+    redactedHandoffContents(session, homarrApiKey),
+  );
+  return Object.freeze({ privatePath, redactedPath });
+}
+
 export function printSessionHandoff(runId) {
-  const result = writeSessionConnections(runId);
-  printSessionConnectionsSummary(result);
-  process.stdout.write(handoffContents(loadSession(runId)));
+  writeSessionConnections(runId);
+  const session = loadSession(runId);
+  const homarr = loadHomarrApiKey(session, { optional: true });
+  const artifacts = writeSessionHandoffArtifacts(session, homarr?.apiKey ?? "");
+  process.stdout.write([
+    `Private handoff artifact: ${artifacts.privatePath}`,
+    `Redacted handoff report: ${artifacts.redactedPath}`,
+    "",
+  ].join("\n"));
 }
 
 export function refreshArrKeys(runId) {
@@ -985,17 +1431,41 @@ export function normalizeName(value) {
 const invokedFile = Bun.argv[1] ? resolve(Bun.argv[1]) : "";
 if (invokedFile === fileURLToPath(import.meta.url)) {
   try {
-    if (Bun.argv.length !== 4 || !["connections", "handoff"].includes(Bun.argv[2])) {
-      fail("usage: session-context.ts connections|handoff RUN_ID");
-    }
-    if (Bun.argv[2] === "connections") {
+    if (Bun.argv.length === 4 && Bun.argv[2] === "connections") {
       const result = writeSessionConnections(Bun.argv[3]);
       printSessionConnectionsSummary(result);
-    } else {
+    } else if (Bun.argv.length === 4 && Bun.argv[2] === "handoff") {
       printSessionHandoff(Bun.argv[3]);
+    } else if (Bun.argv[2] === "access-proxy") {
+      const action = Bun.argv[3];
+      if (action === "set") {
+        if (
+          ![7, 8].includes(Bun.argv.length)
+          || (Bun.argv.length === 8 && Bun.argv[7] !== "--private-dns-confirmed")
+        ) {
+          fail("usage: session-context.ts access-proxy set RUN_ID SERVICE ORIGIN [--private-dns-confirmed]");
+        }
+        const session = loadSession(Bun.argv[4]);
+        const result = configureSessionProxyAccess(
+          session,
+          "set",
+          Bun.argv[5],
+          Bun.argv[6],
+          Bun.argv[7] === "--private-dns-confirmed",
+        );
+        process.stdout.write(`PASS private proxy access saved for one service (${result.count} total)\n`);
+      } else if (action === "clear" && Bun.argv.length === 6) {
+        const session = loadSession(Bun.argv[4]);
+        const result = configureSessionProxyAccess(session, "clear", Bun.argv[5]);
+        process.stdout.write(`PASS private proxy access removed for one service (${result.count} remain)\n`);
+      } else {
+        fail("usage: session-context.ts access-proxy set|clear RUN_ID SERVICE [ORIGIN] [--private-dns-confirmed]");
+      }
+    } else {
+      fail("usage: session-context.ts connections|handoff|access-proxy ...");
     }
   } catch {
-    process.stdout.write("FAIL session connections or handoff\n");
+    process.stdout.write("FAIL session access or handoff operation\n");
     process.exitCode = 1;
   }
 }

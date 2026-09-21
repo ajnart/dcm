@@ -114,13 +114,13 @@
     "dependencies": ["capability:scheduled-network-test", "capability:metrics-storage"], "alternatives": ["uptime-kuma", "gatus"], "security": ["Protect administration and treat public IP, ISP, and location metadata as private operational data."], "pitfalls": ["Frequent tests consume bandwidth and can distort application traffic or provider usage limits."], "sources": ["https://docs.speedtest-tracker.dev/getting-started/installation/using-docker-compose", "https://github.com/alexjustesen/speedtest-tracker"]
   },
   {
-    "id": "audiobookshelf", "name": "Audiobookshelf", "aliases": ["audiobook server", "podcast library"], "categories": ["media"], "roles": ["audiobook-server", "podcast-library"],
+    "id": "audiobookshelf", "name": "Audiobookshelf", "aliases": ["audiobooks", "audio books", "audiobook", "audiobook server", "podcast library"], "categories": ["media"], "roles": ["audiobook-server", "podcast-library"],
     "upstream": {"url": "https://www.audiobookshelf.org/", "repository": "https://github.com/advplyr/audiobookshelf", "docs": "https://www.audiobookshelf.org/docs"}, "image": {"reference": null, "source": "unknown", "status": "verify"},
     "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current audiobook and podcast server with upstream documentation."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Audiobookshelf"},
     "dependencies": ["capability:media-storage"], "alternatives": ["navidrome", "jellyfin"], "security": ["Protect accounts, listening history, library metadata, and remote access."], "pitfalls": ["File ownership, metadata matching, and database plus media backup must be planned together."], "sources": ["https://www.audiobookshelf.org/docs", "https://github.com/advplyr/audiobookshelf"]
   },
   {
-    "id": "navidrome", "name": "Navidrome", "aliases": ["music server", "subsonic music server"], "categories": ["media"], "roles": ["music-server", "music-library"],
+    "id": "navidrome", "name": "Navidrome", "aliases": ["music", "music server", "subsonic music server"], "categories": ["media"], "roles": ["music-server", "music-library"],
     "upstream": {"url": "https://www.navidrome.org/", "repository": "https://github.com/navidrome/navidrome", "docs": "https://www.navidrome.org/docs/installation/docker/"}, "image": {"reference": null, "source": "unknown", "status": "verify"},
     "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current music server with documented container deployment."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Navidrome"},
     "dependencies": ["capability:media-storage"], "alternatives": ["audiobookshelf", "jellyfin"], "security": ["Protect user accounts, listening data, media paths, and any public streaming route."], "pitfalls": ["Library scanning and metadata behavior depend on stable paths, tags, and file ownership."], "sources": ["https://www.navidrome.org/docs/installation/docker/", "https://github.com/navidrome/navidrome"]

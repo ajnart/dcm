@@ -419,13 +419,13 @@ async function verifyComposeContract(bundleRoot) {
   }
 
   const requiredPublishedPorts = [
-    '      - "${PROWLARR_PORT:-9696}:9696"',
-    '      - "${RADARR_PORT:-7878}:7878"',
-    '      - "${SONARR_PORT:-8989}:8989"',
-    '      - "${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"',
-    '      - "${JELLYFIN_PORT:-8096}:8096"',
-    '      - "${SEERR_PORT:-5055}:5055"',
-    '      - "${HOMARR_PORT:-7575}:7575"',
+    '      - "127.0.0.1:${PROWLARR_PORT:-9696}:9696"',
+    '      - "127.0.0.1:${RADARR_PORT:-7878}:7878"',
+    '      - "127.0.0.1:${SONARR_PORT:-8989}:8989"',
+    '      - "127.0.0.1:${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"',
+    '      - "127.0.0.1:${JELLYFIN_PORT:-8096}:8096"',
+    '      - "127.0.0.1:${SEERR_PORT:-5055}:5055"',
+    '      - "${HOMARR_BIND_ADDRESS:-127.0.0.1}:${HOMARR_PORT:-7575}:7575"',
   ];
   for (const line of requiredPublishedPorts) {
     if (!compose.includes(`${line}\n`)) {

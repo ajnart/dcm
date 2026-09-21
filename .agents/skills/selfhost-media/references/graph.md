@@ -1,9 +1,8 @@
 # Media service graph
 
-Use one isolated Compose project and network per run. Published ports omit a
-host IP and therefore use Docker's default host interfaces; discover each
-assigned value through the session helper. Keep the host behind a trusted LAN
-or firewall because this harness does not configure public ingress or auth.
+Use one isolated Compose project and network per run. Published ports bind
+to `127.0.0.1`; discover assigned values through the session helper.
+Container-to-container connections use service DNS and internal ports.
 
 ```text
 Prowlarr --full sync--> Sonarr ----+

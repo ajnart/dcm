@@ -39,7 +39,7 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
 
    ```bash
    bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- render-prompt RUN_ID
-   bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID
+   bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID USERNAME
    ```
 
 6. Follow the installed `PROMPT.md`, ordered prompt modules, and per-service
@@ -47,12 +47,18 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
    scoped to one run identifier.
 7. Read [acceptance.md](references/acceptance.md) before reporting completion.
    Mark indirect or absent evidence unproven.
-8. After every acceptance row passes, forward `session connections RUN_ID` and
-   report its path for API reuse. During initial setup, also forward `session
-   handoff RUN_ID` and tell the user the displayed `admin` username and generated
-   password. During upkeep, do not run `handoff` unless the user explicitly asked
-   for a fresh access handoff. Never persist the password in connections or
-   evidence.
+8. Report passed, failed and pending acceptance rows. Refresh `session
+   connections RUN_ID`. If the user requested saved credentials, run `session
+   handoff RUN_ID`: it writes `artifacts/private-handoff.json` (0600) containing
+   generated password, usernames, available API keys, URLs and storage paths,
+   plus a redacted `handoff-report.md`. Return the paths without opening the
+   private file. Re-export on upkeep only when requested. Partial setup must
+   remain explicitly incomplete in the setup report.
+
+Ask for the admin username before `create`; never silently choose `admin`.
+Read the installed `docs/browser-benchmark.md` and use `browser-benchmark.ts
+lookup SERVICE` for the selected service’s direct browser paths. Use
+`browser-key refs` instead of visible snapshots on populated API-key pages.
 
 Run `bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts"` to verify the packaged
 asset. Add `--source-root /path/to/source` only when auditing source drift.

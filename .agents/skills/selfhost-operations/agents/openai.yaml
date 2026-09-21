@@ -1,6 +1,6 @@
 interface:
-  display_name: "6 · Base · Operate Stack"
-  short_description: "Plan safe upgrades, migrations, and recovery"
+  display_name: "Support · Stack operations"
+  short_description: "Handles upgrades, migrations, and recovery"
   default_prompt: "Use $selfhost-operations to plan this owned self-hosted project operation and its rollback gates."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

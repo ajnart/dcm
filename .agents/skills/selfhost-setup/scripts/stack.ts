@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   chmod,
   link,
@@ -16,6 +16,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { householdCredentialStatus } from "./household-credentials.ts";
 
 const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS_ROOT = resolve(SKILL_ROOT, "..");
@@ -28,7 +29,7 @@ const STAGES = ["selected", "planned", "applied", "verified"];
 const PROFILE_KINDS = new Set(["base", "pack", "extension"]);
 const SCOPES = new Set(["project", "global"]);
 const IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,62}$/;
-const SKILL_ID = /^selfhost(?:-[a-z0-9]+)*$/;
+const SKILL_ID = /^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/;
 const RUN_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const EVIDENCE_ID = /^(?:inspection|plan|approval|apply|manifest|verify):[a-z0-9][a-z0-9._-]{0,47}$/;
 const SECRET_LIKE = /(?:password|passwd|secret|token|credential|api[-_]?key|private[-_]?key|cookie|session)/i;
@@ -42,6 +43,17 @@ const MEDIA_SERVICES = [
   ["seerr", "selfhost-media"],
   ["sonarr", "selfhost-media"],
 ];
+const FULL_HOUSEHOLD_SERVICES = [
+  ["audiobookshelf", "selfhost-compose"],
+  ["immich", "selfhost-compose"],
+  ["navidrome", "selfhost-compose"],
+  ["nextcloud", "selfhost-compose"],
+  ["vaultwarden", "selfhost-compose"],
+];
+const FULL_HOUSEHOLD_IDS = new Set(FULL_HOUSEHOLD_SERVICES.map(([id]) => id));
+const HOUSEHOLD_COMMON_CHECKS = ["account-login", "private-access", "storage"];
+const HOUSEHOLD_APP_CHECKS = ["homarr-integration", "homarr-widget"];
+const VAULTWARDEN_CHECKS = ["homarr-shortcut", "recovery", "registration-closed"];
 
 type FlagMap = Record<string, string[]>;
 
@@ -74,7 +86,9 @@ Metadata:
   validate --project-root ABSOLUTE [--json]
   resume --project-root ABSOLUTE [--json]
   extend --project-root ABSOLUTE --profile ID [--profile ID] [--adapter ID --run-id ID] [--service ID=OWNER] [--consume PROFILE=SERVICE] [--json]
-  checkpoint --project-root ABSOLUTE --stage planned|applied|verified [--evidence TYPE:ID] [--json]`;
+  checkpoint --project-root ABSOLUTE --stage planned|applied|verified [--evidence TYPE:ID] [--json]
+  service-checkpoint --project-root ABSOLUTE --service ID --stage planned|applied|verified --evidence TYPE:ID [--evidence-file ABSOLUTE_JSON] [--json]
+  bind-household --project-root ABSOLUTE --run-id ID [--json]`;
 }
 
 function fail(message: string): never {
@@ -100,6 +114,7 @@ function parseArguments(input: string[]): ParsedArguments {
     agent: [],
     consume: [],
     evidence: [],
+    "evidence-file": [],
     profile: [],
     "project-root": [],
     "run-id": [],
@@ -283,8 +298,11 @@ async function loadProfiles(): Promise<Record<string, unknown>> {
     if (profile.id === "basic") {
       expectedExtends = [];
     }
+    if (profile.id === "full") {
+      expectedExtends = ["ingress", "media"];
+    }
     if (JSON.stringify(profile.extends) !== JSON.stringify(expectedExtends)) {
-      fail(`Install profile ${profile.id} must use the exact basic dependency`);
+      fail(`Install profile ${profile.id} dependencies are invalid`);
     }
     if (profile.id === "basic" && profile.kind !== "base") {
       fail("Basic install profile must use kind base");
@@ -780,12 +798,60 @@ function validateEvidence(evidenceIds: unknown): string[] {
   return evidenceIds;
 }
 
+function validateStageEvidence(stage: string, evidence: string[], label: string) {
+  if (stage === "planned" && !evidence.some((id) => id.startsWith("plan:"))) {
+    fail(`${label} planned checkpoint requires plan evidence`);
+  }
+  if (stage === "applied" && !evidence.some((id) => id.startsWith("apply:") || id.startsWith("manifest:"))) {
+    fail(`${label} applied checkpoint requires apply or manifest evidence`);
+  }
+  if (stage === "verified" && !evidence.some((id) => id.startsWith("verify:"))) {
+    fail(`${label} verified checkpoint requires verification evidence`);
+  }
+}
+
+function validateServiceCheckpoint(value: unknown, updatedAt: unknown) {
+  const checkpointKeys = isRecord(value) && Object.hasOwn(value, "acceptanceReport")
+    ? ["acceptanceReport", "evidenceIds", "recordedAt", "stage"]
+    : ["evidenceIds", "recordedAt", "stage"];
+  if (!exactKeys(value, checkpointKeys)) {
+    fail("Service checkpoint is invalid");
+  }
+  const stage = String(value.stage);
+  if (stage === "selected" || !STAGES.includes(stage) || !validDateTime(value.recordedAt)) {
+    fail("Service checkpoint is invalid");
+  }
+  if (Date.parse(String(value.recordedAt)) > Date.parse(String(updatedAt))) {
+    fail("Service checkpoint timestamp is invalid");
+  }
+  const evidence = validateEvidence(value.evidenceIds);
+  const rank = STAGES.indexOf(stage);
+  if (rank >= STAGES.indexOf("planned")) {
+    validateStageEvidence("planned", evidence, "Service");
+  }
+  if (rank >= STAGES.indexOf("applied")) {
+    validateStageEvidence("applied", evidence, "Service");
+  }
+  if (rank >= STAGES.indexOf("verified")) {
+    validateStageEvidence("verified", evidence, "Service");
+    if (!exactKeys(value.acceptanceReport, ["path", "sha256"]) || typeof value.acceptanceReport.path !== "string" || !/^\.selfhost\/evidence\/[a-z0-9][a-z0-9._-]{0,62}\.json$/.test(value.acceptanceReport.path) || typeof value.acceptanceReport.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.acceptanceReport.sha256)) {
+      fail("Verified household service checkpoint requires a valid acceptance report pointer");
+    }
+  } else if (Object.hasOwn(value, "acceptanceReport")) {
+    fail("Acceptance reports are valid only on verified service checkpoints");
+  }
+  return value as Record<string, unknown>;
+}
+
 function sameStrings(left: unknown, right: string[]): boolean {
   return Array.isArray(left) && JSON.stringify(left) === JSON.stringify(right);
 }
 
 function validateMetadata(document: unknown, profileDocument: Record<string, unknown>) {
-  if (!exactKeys(document, ["checkpoint", "connections", "createdAt", "profiles", "revision", "runtime", "schemaVersion", "serviceBindings", "services", "skills", "updatedAt"])) {
+  const metadataKeys = isRecord(document) && Object.hasOwn(document, "householdCredentials")
+    ? ["checkpoint", "connections", "createdAt", "householdCredentials", "profiles", "revision", "runtime", "schemaVersion", "serviceBindings", "services", "skills", "updatedAt"]
+    : ["checkpoint", "connections", "createdAt", "profiles", "revision", "runtime", "schemaVersion", "serviceBindings", "services", "skills", "updatedAt"];
+  if (!exactKeys(document, metadataKeys)) {
     fail("Stack metadata contains missing or unsupported fields");
   }
   if (document.schemaVersion !== 1 || !Number.isInteger(document.revision) || Number(document.revision) < 1) {
@@ -845,7 +911,10 @@ function validateMetadata(document: unknown, profileDocument: Record<string, unk
   }
   const serviceIds = new Set<string>();
   for (const service of document.services) {
-    if (!exactKeys(service, ["id", "ownerSkill"])) {
+    const serviceKeys = Object.hasOwn(service, "checkpoint")
+      ? ["checkpoint", "id", "ownerSkill"]
+      : ["id", "ownerSkill"];
+    if (!exactKeys(service, serviceKeys)) {
       fail("Stack service record is invalid");
     }
     if (
@@ -856,6 +925,12 @@ function validateMetadata(document: unknown, profileDocument: Record<string, unk
       || !document.skills.includes(service.ownerSkill)
     ) {
       fail("Stack service record is invalid");
+    }
+    if (Object.hasOwn(service, "checkpoint")) {
+      if (!document.profiles.includes("full") || !FULL_HOUSEHOLD_IDS.has(String(service.id))) {
+        fail("Only full household services may contain a service checkpoint");
+      }
+      validateServiceCheckpoint(service.checkpoint, document.updatedAt);
     }
     serviceIds.add(service.id);
   }
@@ -880,11 +955,24 @@ function validateMetadata(document: unknown, profileDocument: Record<string, unk
   if ((document.runtime === null) !== (document.connections === null)) {
     fail("Stack runtime and connection metadata must be recorded together");
   }
+  if (Object.hasOwn(document, "householdCredentials") && document.householdCredentials !== null) {
+    if (!exactKeys(document.householdCredentials, ["path", "runId"]) || document.runtime === null || document.householdCredentials.runId !== document.runtime.runId || document.householdCredentials.path !== `.selfhost/household/.sessions/${document.householdCredentials.runId}/artifacts/private-handoff.json`) {
+      fail("Household credential pointer is invalid");
+    }
+  }
   if (mediaSelected) {
     for (const [id, ownerSkill] of MEDIA_SERVICES) {
       const service = document.services.find((candidate) => candidate.id === id);
       if (!service || service.ownerSkill !== ownerSkill) {
         fail("Media stack metadata is missing a required owned service");
+      }
+    }
+  }
+  if (document.profiles.includes("full")) {
+    for (const [id, ownerSkill] of FULL_HOUSEHOLD_SERVICES) {
+      const service = document.services.find((candidate) => candidate.id === id);
+      if (!service || service.ownerSkill !== ownerSkill) {
+        fail("Full stack metadata is missing a required household service");
       }
     }
   }
@@ -921,7 +1009,141 @@ function validateMetadata(document: unknown, profileDocument: Record<string, unk
   ) {
     fail("Verified stack metadata is missing selected-profile verification evidence");
   }
+  if (rank >= STAGES.indexOf("verified") && document.profiles.includes("full")) {
+    if (!Object.hasOwn(document, "householdCredentials") || document.householdCredentials === null) {
+      fail("Verified full stack requires bound household credentials");
+    }
+    const householdVerified = document.services
+      .filter((service) => FULL_HOUSEHOLD_IDS.has(String(service.id)))
+      .every((service) => service.checkpoint?.stage === "verified");
+    if (!householdVerified) {
+      fail("Verified full stack requires every household service checkpoint");
+    }
+  }
   return document;
+}
+
+function requiredHouseholdChecks(serviceId: string): string[] {
+  const specific = serviceId === "vaultwarden" ? VAULTWARDEN_CHECKS : HOUSEHOLD_APP_CHECKS;
+  return [...HOUSEHOLD_COMMON_CHECKS, ...specific].sort();
+}
+
+function assertAcceptanceReportSecretFree(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      assertAcceptanceReportSecretFree(item);
+    }
+    return;
+  }
+  if (isRecord(value)) {
+    for (const [key, item] of Object.entries(value)) {
+      if (SECRET_LIKE.test(key)) {
+        fail("Household acceptance report contains a secret-like field");
+      }
+      assertAcceptanceReportSecretFree(item);
+    }
+    return;
+  }
+  if (typeof value === "string" && SECRET_LIKE.test(value)) {
+    fail("Household acceptance report contains a secret-like value");
+  }
+}
+
+function validateAcceptanceReportDocument(value: unknown, serviceId: string, runId: string, referenceTime: number): void {
+  if (!exactKeys(value, ["checkedAt", "checks", "kind", "observer", "runId", "schemaVersion", "service"])) {
+    fail("Household acceptance report schema is invalid");
+  }
+  assertAcceptanceReportSecretFree(value);
+  if (value.schemaVersion !== 1 || value.kind !== "household-acceptance" || value.service !== serviceId || value.runId !== runId || typeof value.observer !== "string" || !IDENTIFIER.test(value.observer)) {
+    fail("Household acceptance report identity is invalid");
+  }
+  if (!validDateTime(value.checkedAt)) {
+    fail("Household acceptance report timestamp is invalid");
+  }
+  const checkedAt = Date.parse(String(value.checkedAt));
+  if (checkedAt > referenceTime + 5 * 60 * 1000 || checkedAt < referenceTime - 24 * 60 * 60 * 1000) {
+    fail("Household acceptance report is not recent");
+  }
+  if (!Array.isArray(value.checks)) {
+    fail("Household acceptance report checks are invalid");
+  }
+  const checkIds: string[] = [];
+  for (const check of value.checks) {
+    if (!exactKeys(check, ["evidenceRefs", "id", "status"]) || typeof check.id !== "string" || !IDENTIFIER.test(check.id) || check.status !== "pass" || !Array.isArray(check.evidenceRefs) || check.evidenceRefs.length === 0) {
+      fail("Household acceptance report check is invalid or not passing");
+    }
+    for (const reference of check.evidenceRefs) {
+      if (typeof reference !== "string" || !/^[a-z0-9][a-z0-9._:/-]{2,127}$/i.test(reference) || SECRET_LIKE.test(reference)) {
+        fail("Household acceptance report evidence reference is invalid");
+      }
+    }
+    checkIds.push(check.id);
+  }
+  if (new Set(checkIds).size !== checkIds.length || JSON.stringify([...checkIds].sort()) !== JSON.stringify(requiredHouseholdChecks(serviceId))) {
+    fail("Household acceptance report is missing required checks");
+  }
+}
+
+async function validateAcceptanceReportFile(projectRoot: string, document: Record<string, unknown>, serviceId: string, absolutePath: string | null = null) {
+  if (document.runtime === null) {
+    fail("Household acceptance reports require the recorded full-stack run");
+  }
+  const runtime = document.runtime as Record<string, unknown>;
+  const service = (document.services as Array<Record<string, unknown>>).find((candidate) => candidate.id === serviceId);
+  const pointer = service && isRecord(service.checkpoint) && isRecord(service.checkpoint.acceptanceReport) ? service.checkpoint.acceptanceReport : null;
+  const replacingPointer = absolutePath !== null;
+  let reportPath = absolutePath;
+  if (reportPath === null && pointer) {
+    reportPath = join(projectRoot, String(pointer.path));
+  }
+  const evidenceDirectory = join(projectRoot, ".selfhost", "evidence");
+  if (reportPath === null || !isAbsolute(reportPath) || resolve(reportPath) !== reportPath || dirname(reportPath) !== evidenceDirectory) {
+    fail("--evidence-file must be directly inside project .selfhost/evidence");
+  }
+  let directoryInfo;
+  try {
+    directoryInfo = await lstat(evidenceDirectory);
+  } catch {
+    fail("Household evidence directory is missing or unsafe");
+  }
+  if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink() || await realpath(evidenceDirectory) !== evidenceDirectory || (process.platform !== "win32" && (directoryInfo.uid !== process.getuid() || directoryInfo.gid !== process.getgid() || (directoryInfo.mode & 0o7777) !== 0o700))) {
+    fail("Household evidence directory is missing or unsafe");
+  }
+  const info = await inspectPrivateFile(reportPath);
+  if (info === null) {
+    fail("Household acceptance report is missing");
+  }
+  let content: string;
+  let report: unknown;
+  try {
+    content = await readFile(reportPath, "utf8");
+    report = JSON.parse(content);
+  } catch {
+    fail("Household acceptance report is invalid JSON");
+  }
+  let referenceTime = Date.now();
+  if (!replacingPointer && pointer && service && isRecord(service.checkpoint)) {
+    referenceTime = Date.parse(String(service.checkpoint.recordedAt));
+  }
+  validateAcceptanceReportDocument(report, serviceId, String(runtime.runId), referenceTime);
+  const relativePath = `.selfhost/evidence/${reportPath.slice(evidenceDirectory.length + 1)}`;
+  const sha256 = createHash("sha256").update(content).digest("hex");
+  if (!replacingPointer && pointer && (pointer.path !== relativePath || pointer.sha256 !== sha256)) {
+    fail("Household acceptance report changed after checkpoint");
+  }
+  return { path: relativePath, sha256 };
+}
+
+async function validateHouseholdAcceptanceReports(projectRoot: string, document: Record<string, unknown>): Promise<void> {
+  if (!(document.profiles as string[]).includes("full")) {
+    return;
+  }
+  for (const service of document.services as Array<Record<string, unknown>>) {
+    if (!FULL_HOUSEHOLD_IDS.has(String(service.id)) || !isRecord(service.checkpoint) || service.checkpoint.stage !== "verified") {
+      continue;
+    }
+    await validateAcceptanceReportFile(projectRoot, document, String(service.id));
+  }
 }
 
 async function loadMetadata(projectRoot: string, profileDocument: Record<string, unknown>) {
@@ -935,7 +1157,9 @@ async function loadMetadata(projectRoot: string, profileDocument: Record<string,
   } catch {
     fail("Stack metadata is invalid JSON");
   }
-  return { path, document: validateMetadata(document, profileDocument) as Record<string, unknown> };
+  const validated = validateMetadata(document, profileDocument) as Record<string, unknown>;
+  await validateHouseholdAcceptanceReports(safeRoot, validated);
+  return { path, document: validated };
 }
 
 async function validateAdapterConnections(
@@ -981,6 +1205,31 @@ async function validateAdapterConnections(
   return true;
 }
 
+function householdCredentialBindingStatus(projectRoot: string, metadata: Record<string, unknown>) {
+  if (!(metadata.profiles as string[]).includes("full")) {
+    return { status: "not-applicable", valid: false };
+  }
+  if (!Object.hasOwn(metadata, "householdCredentials") || metadata.householdCredentials === null) {
+    return { status: "missing-unbound", valid: false };
+  }
+  try {
+    const pointer = metadata.householdCredentials as Record<string, unknown>;
+    const runtime = metadata.runtime as Record<string, unknown>;
+    if (pointer.runId !== runtime.runId || pointer.path !== `.selfhost/household/.sessions/${pointer.runId}/artifacts/private-handoff.json`) {
+      return { status: "invalid", valid: false };
+    }
+    const credentialStatus = householdCredentialStatus(projectRoot, String(pointer.runId));
+    const selected = credentialStatus.services.map((service) => service.id).sort();
+    const required = [...FULL_HOUSEHOLD_IDS].sort();
+    if (credentialStatus.status !== "not-verified" || credentialStatus.path !== join(projectRoot, String(pointer.path)) || JSON.stringify(selected) !== JSON.stringify(required)) {
+      return { status: "invalid", valid: false };
+    }
+    return { status: "valid", valid: true };
+  } catch {
+    return { status: "invalid", valid: false };
+  }
+}
+
 async function resume(parsed: ParsedArguments, profileDocument: Record<string, unknown>) {
   const projectRoot = oneFlag(parsed, "project-root", true) as string;
   const loaded = await loadMetadata(projectRoot, profileDocument);
@@ -995,11 +1244,31 @@ async function resume(parsed: ParsedArguments, profileDocument: Record<string, u
     adapterConnectionsValid = await validateAdapterConnections(projectRoot, loaded.document);
     adapterConnectionsStatus = "valid";
   }
+  const pendingHouseholdServices: Array<{ id: string; stage: string }> = [];
+  const householdCredentials = householdCredentialBindingStatus(projectRoot, loaded.document);
+  if ((loaded.document.profiles as string[]).includes("full")) {
+    for (const service of loaded.document.services as Array<Record<string, unknown>>) {
+      if (!FULL_HOUSEHOLD_IDS.has(String(service.id))) {
+        continue;
+      }
+      let nextStage = "planned";
+      if (isRecord(service.checkpoint)) {
+        const currentIndex = STAGES.indexOf(String(service.checkpoint.stage));
+        nextStage = STAGES[Math.min(currentIndex + 1, STAGES.length - 1)];
+      }
+      if (nextStage !== "verified" || !isRecord(service.checkpoint) || service.checkpoint.stage !== "verified") {
+        pendingHouseholdServices.push({ id: String(service.id), stage: nextStage });
+      }
+    }
+  }
   return {
     status: "upkeep-ready",
     path: loaded.path,
     adapterConnectionsValid,
     adapterConnectionsStatus,
+    householdCredentialsStatus: householdCredentials.status,
+    householdCredentialsValid: householdCredentials.valid,
+    pendingHouseholdServices,
     metadata: loaded.document,
   };
 }
@@ -1346,12 +1615,25 @@ function mediaServices(profiles: string[], skills: string[]) {
   });
 }
 
+function fullHouseholdServices(profiles: string[], skills: string[]) {
+  if (!profiles.includes("full")) {
+    return [];
+  }
+  return FULL_HOUSEHOLD_SERVICES.map(([id, ownerSkill]) => {
+    if (!skills.includes(ownerSkill)) {
+      fail("Full profile skill closure is incomplete");
+    }
+    return { id, ownerSkill };
+  });
+}
+
 async function initialize(parsed: ParsedArguments, profileDocument: Record<string, unknown>) {
   const projectRoot = oneFlag(parsed, "project-root", true) as string;
   const safeRoot = await validateProjectRoot(projectRoot);
   const resolved = resolveProfiles(profileDocument, parsed.flags.profile);
   const runtime = runtimeFromFlags(parsed, resolved.profiles);
   const services = mediaServices(resolved.profiles, resolved.skills);
+  services.push(...fullHouseholdServices(resolved.profiles, resolved.skills));
   services.push(...parseServices(parsed.flags.service, resolved.skills));
   const serviceIds = new Set<string>();
   for (const service of services) {
@@ -1434,6 +1716,7 @@ async function extend(parsed: ParsedArguments, profileDocument: Record<string, u
     }
     const existingServices = structuredClone(loaded.document.services) as Array<{ id: string; ownerSkill: string }>;
     const additions = mediaServices(resolved.profiles, resolved.skills);
+    additions.push(...fullHouseholdServices(resolved.profiles, resolved.skills));
     additions.push(...parseServices(parsed.flags.service, resolved.skills));
     const byId = new Map(existingServices.map((service) => [service.id, service]));
     let serviceAdded = false;
@@ -1496,6 +1779,17 @@ async function checkpoint(parsed: ParsedArguments, profileDocument: Record<strin
   return await withLock(stateDirectory, async () => {
     const loaded = await loadMetadata(safeRoot, profileDocument);
     const currentCheckpoint = loaded.document.checkpoint as Record<string, unknown>;
+    if (stage === "verified" && (loaded.document.profiles as string[]).includes("full")) {
+      const householdVerified = (loaded.document.services as Array<Record<string, unknown>>)
+        .filter((service) => FULL_HOUSEHOLD_IDS.has(String(service.id)))
+        .every((service) => isRecord(service.checkpoint) && service.checkpoint.stage === "verified");
+      if (!householdVerified) {
+        fail("Verified full stack requires every household service checkpoint");
+      }
+      if (!householdCredentialBindingStatus(safeRoot, loaded.document).valid) {
+        fail("Verified full stack requires valid bound household credentials");
+      }
+    }
     const current = STAGES.indexOf(String(currentCheckpoint.stage));
     const requested = STAGES.indexOf(stage);
     if (requested < current || requested > current + 1) {
@@ -1515,6 +1809,105 @@ async function checkpoint(parsed: ParsedArguments, profileDocument: Record<strin
     };
     await writeMetadata(loaded.path, loaded.document, false, profileDocument);
     return { status: "checkpoint-recorded", path: loaded.path, metadata: loaded.document };
+  });
+}
+
+async function bindHousehold(parsed: ParsedArguments, profileDocument: Record<string, unknown>) {
+  const projectRoot = oneFlag(parsed, "project-root", true) as string;
+  const runId = oneFlag(parsed, "run-id", true) as string;
+  if (!RUN_ID.test(runId)) {
+    fail("--run-id is invalid");
+  }
+  const safeRoot = await validateProjectRoot(projectRoot);
+  const stateDirectory = await inspectStateDirectory(safeRoot);
+  return await withLock(stateDirectory, async () => {
+    const loaded = await loadMetadata(safeRoot, profileDocument);
+    if (!(loaded.document.profiles as string[]).includes("full") || loaded.document.runtime === null || (loaded.document.runtime as Record<string, unknown>).runId !== runId) {
+      fail("Household credentials must use the recorded full-stack run ID");
+    }
+    const pointer = { runId, path: `.selfhost/household/.sessions/${runId}/artifacts/private-handoff.json` };
+    const candidate = { ...loaded.document, householdCredentials: pointer };
+    const status = householdCredentialBindingStatus(safeRoot, candidate);
+    if (!status.valid) {
+      fail("Household credential handoff is missing, unsafe, or does not match every selected household service");
+    }
+    const recordedAt = new Date().toISOString();
+    loaded.document.householdCredentials = pointer;
+    loaded.document.revision = Number(loaded.document.revision) + 1;
+    loaded.document.updatedAt = recordedAt;
+    (loaded.document.checkpoint as Record<string, unknown>).recordedAt = recordedAt;
+    await writeMetadata(loaded.path, loaded.document, false, profileDocument);
+    return { status: "household-credentials-bound", path: loaded.path, householdCredentialsStatus: "valid", metadata: loaded.document };
+  });
+}
+
+async function serviceCheckpoint(parsed: ParsedArguments, profileDocument: Record<string, unknown>) {
+  const projectRoot = oneFlag(parsed, "project-root", true) as string;
+  const serviceId = oneFlag(parsed, "service", true) as string;
+  const stage = oneFlag(parsed, "stage", true) as string;
+  const evidenceFile = oneFlag(parsed, "evidence-file");
+  if (!FULL_HOUSEHOLD_IDS.has(serviceId)) {
+    fail("--service must name a full household service");
+  }
+  if (!STAGES.includes(stage) || stage === "selected") {
+    fail("--stage must be planned, applied, or verified");
+  }
+  const supplied = validateEvidence(parsed.flags.evidence);
+  if (supplied.length === 0) {
+    fail("Service checkpoint requires new evidence");
+  }
+  validateStageEvidence(stage, supplied, "Service");
+  if (stage === "verified" && evidenceFile === null) {
+    fail("Verified household service checkpoint requires --evidence-file");
+  }
+  if (stage !== "verified" && evidenceFile !== null) {
+    fail("--evidence-file is valid only for a verified household service checkpoint");
+  }
+  const safeRoot = await validateProjectRoot(projectRoot);
+  const stateDirectory = await inspectStateDirectory(safeRoot);
+  return await withLock(stateDirectory, async () => {
+    const loaded = await loadMetadata(safeRoot, profileDocument);
+    if (!(loaded.document.profiles as string[]).includes("full")) {
+      fail("Service checkpoints require the full profile");
+    }
+    const services = loaded.document.services as Array<Record<string, unknown>>;
+    const service = services.find((candidate) => candidate.id === serviceId);
+    if (!service || service.ownerSkill !== "selfhost-compose") {
+      fail("Full household service metadata is invalid");
+    }
+    let currentStage = "selected";
+    let existingEvidence: string[] = [];
+    if (isRecord(service.checkpoint)) {
+      currentStage = String(service.checkpoint.stage);
+      existingEvidence = service.checkpoint.evidenceIds as string[];
+    }
+    const current = STAGES.indexOf(currentStage);
+    const requested = STAGES.indexOf(stage);
+    if (requested < current || requested > current + 1) {
+      fail("Service checkpoints must advance one stage at a time");
+    }
+    if (supplied.some((id) => existingEvidence.includes(id))) {
+      fail("Service checkpoint evidence must be new");
+    }
+    const recordedAt = new Date().toISOString();
+    let acceptanceReport = null;
+    if (stage === "verified") {
+      acceptanceReport = await validateAcceptanceReportFile(safeRoot, loaded.document, serviceId, evidenceFile);
+    }
+    service.checkpoint = {
+      stage,
+      recordedAt,
+      evidenceIds: [...new Set([...existingEvidence, ...supplied])].sort(),
+    };
+    if (acceptanceReport !== null) {
+      service.checkpoint.acceptanceReport = acceptanceReport;
+    }
+    const globalCheckpoint = loaded.document.checkpoint as Record<string, unknown>;
+    globalCheckpoint.recordedAt = recordedAt;
+    loaded.document.revision = Number(loaded.document.revision) + 1;
+    loaded.document.updatedAt = recordedAt;
+    await writeMetadata(loaded.path, loaded.document, false, profileDocument);
+    return { status: "service-checkpoint-recorded", path: loaded.path, metadata: loaded.document };
   });
 }
 
@@ -1547,6 +1940,9 @@ function printHuman(result: Record<string, unknown>) {
   process.stdout.write(`Checkpoint: ${checkpointData.stage}\n`);
   if (typeof result.adapterConnectionsStatus === "string") {
     process.stdout.write(`Adapter connections: ${result.adapterConnectionsStatus}\n`);
+  }
+  if (typeof result.householdCredentialsStatus === "string") {
+    process.stdout.write(`Household credentials: ${result.householdCredentialsStatus}\n`);
   }
   if (metadata.connections !== null) {
     const connections = metadata.connections as Record<string, unknown>;
@@ -1590,6 +1986,12 @@ async function main() {
   } else if (command === "checkpoint") {
     rejectFlagsExcept(parsed, ["evidence", "project-root", "stage"]);
     result = await checkpoint(parsed, profileDocument);
+  } else if (command === "service-checkpoint") {
+    rejectFlagsExcept(parsed, ["evidence", "evidence-file", "project-root", "service", "stage"]);
+    result = await serviceCheckpoint(parsed, profileDocument);
+  } else if (command === "bind-household") {
+    rejectFlagsExcept(parsed, ["project-root", "run-id"]);
+    result = await bindHousehold(parsed, profileDocument);
   } else {
     fail(`Unknown command ${command}`);
   }

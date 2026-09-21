@@ -3,9 +3,33 @@
   "packVersion": "1.0.0",
   "skills": [
     {
+      "id": "self-host",
+      "displayName": "Self-host · Start here",
+      "description": "Base public self-hosting entry point. Use for `/self-host [service]`, setup, planning, maintenance, recovery, or verification of private services. Route to the installed selfhost workflow and keep Homarr as the standard private control plane.",
+      "compatibility": "Requires the basic selfhost skill profile; setup and upkeep require Bun 1.4.0 or newer.",
+      "license": "Apache-2.0",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": [
+        "selfhost",
+        "selfhost-setup",
+        "selfhost-upkeep"
+      ],
+      "install": {
+        "group": "base",
+        "requires": [
+          "selfhost",
+          "selfhost-setup",
+          "selfhost-upkeep"
+        ]
+      }
+    },
+    {
       "id": "selfhost",
-      "displayName": "3 · Base · Plan Stack",
-      "description": "Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Include Homarr as the standard private control plane.",
+      "displayName": "Support · Stack planner",
+      "description": "Base supporting planning router. Use from the self-host entry point to resolve goals, compare services, and produce short, composable, read-only plans from the curated catalog. Include Homarr as the standard private control plane.",
       "compatibility": "Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.",
       "license": "Apache-2.0",
       "kind": "router",
@@ -50,7 +74,7 @@
     },
     {
       "id": "selfhost-compose",
-      "displayName": "5 · Base · Apply Compose",
+      "displayName": "Support · Compose apply",
       "description": "Base apply capability. Validate, plan, render, preflight, and apply one explicitly owned Docker Compose project. Use for project IDs, pinned images, private ports, bind paths, networks, opaque secret references, deterministic rendering, idempotent `up`, or scoped `stop`. Ownership, privilege, exposure, and mutation stay explicitly gated.",
       "compatibility": "Planning requires Bun 1.4.0 or newer; approved lifecycle actions require Docker with Compose v2.",
       "license": "Apache-2.0",
@@ -73,7 +97,7 @@
     },
     {
       "id": "selfhost-homarr",
-      "displayName": "7 · Base · Homarr Control Plane",
+      "displayName": "Support · Homarr control plane",
       "description": "Base control-plane adapter. Set up Homarr v2 as the standard private dashboard and read-only agent gateway for a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.",
       "compatibility": "Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.",
       "license": "Apache-2.0",
@@ -95,7 +119,7 @@
     },
     {
       "id": "selfhost-host",
-      "displayName": "4 · Base · Inspect Host",
+      "displayName": "Support · Host inspection",
       "description": "Base inspection capability. Inspect and plan a self-hosting host without mutation. Use before deployment, migration, or troubleshooting to identify the platform, Docker context, bounded containers and networks, listeners, filesystems, numeric identity, or safe paths across macOS, Linux, Unraid, TrueNAS SCALE, and Proxmox. Return redacted facts and non-secret recommendations only.",
       "compatibility": "Requires POSIX shell tooling on macOS or Linux; Docker inspection is optional and remains read-only.",
       "license": "Apache-2.0",
@@ -185,7 +209,7 @@
     },
     {
       "id": "selfhost-operations",
-      "displayName": "6 · Base · Operate Stack",
+      "displayName": "Support · Stack operations",
       "description": "Base operations capability. Plan bounded upgrades, migrations, rollbacks, and troubleshooting for one owned self-hosted Compose project. Use for version or schema changes, recovery, compatibility, backup/restore, health, acceptance, and rollback gates. Produce a secret-free plan and delegate every Compose mutation to `selfhost-compose`.",
       "compatibility": "Requires Bun 1.4.0 or newer for the bundled planner; execution is delegated to selfhost-compose.",
       "license": "Apache-2.0",
@@ -227,7 +251,7 @@
     },
     {
       "id": "selfhost-setup",
-      "displayName": "1 · Base · Setup Stack",
+      "displayName": "Support · New stack setup",
       "description": "Base setup workflow. Intentionally install prerequisites and carry one selected self-hosted stack through plan, approval, apply, browser configuration, verification, metadata recording, and access handoff. Invoke this skill explicitly when you want the stack changed.",
       "compatibility": "Requires Bun 1.4.0 or newer; apply needs the selected runtime, and browser setup uses agent-browser.",
       "license": "Apache-2.0",
@@ -254,7 +278,7 @@
     },
     {
       "id": "selfhost-upkeep",
-      "displayName": "2 · Base · Upkeep Stack",
+      "displayName": "Support · Existing stack",
       "description": "Base upkeep workflow. Intentionally resume, inspect, extend, upgrade, repair, or re-verify a stack recorded by selfhost-setup. Invoke this skill explicitly for continuing work on an existing `.selfhost/stack.json` project.",
       "compatibility": "Requires Bun 1.4.0 or newer plus the setup skill and the runtime recorded by the stack.",
       "license": "Apache-2.0",
@@ -283,7 +307,7 @@
     },
     {
       "id": "selfhost-verify",
-      "displayName": "8 · Base · Verify Stack",
+      "displayName": "Support · Stack verification",
       "description": "Base verification capability. Independently aggregate secret-free acceptance evidence without mutation. Use after planning or apply to assess source class, expected and actual classifications, timestamps, hashes, freshness, missing or conflicting evidence, public ingress, VPN fail-closed behavior, restore proof, media graphs, or Homarr claims. Emit claims only from supplied evidence.",
       "compatibility": "Requires Bun 1.4.0 or newer; evaluates local redacted evidence documents without probing the target.",
       "license": "Apache-2.0",

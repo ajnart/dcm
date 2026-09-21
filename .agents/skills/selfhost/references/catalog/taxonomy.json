@@ -9,7 +9,7 @@
     "default": "homarr",
     "choices": ["homarr"],
     "reason": "Homarr is the standard private front door for every planned stack.",
-    "purpose": "Homarr provides app links, supported integrations and widgets, and the agent-facing MCP endpoint.",
+    "purpose": "Homarr is the dashboard for opening selected apps and seeing useful live information from supported integrations and widgets; its MCP endpoint provides bounded agent access.",
     "gates": ["exposure", "secrets"]
   },
   "categories": [

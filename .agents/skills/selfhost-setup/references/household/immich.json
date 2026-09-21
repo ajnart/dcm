@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "immich",
+  "checkedAt": "2026-09-21",
+  "recipe": "immich.md",
+  "officialSources": [
+    "https://docs.immich.app/install/docker-compose/",
+    "https://docs.immich.app/install/environment-variables/",
+    "https://docs.immich.app/install/requirements/",
+    "https://docs.immich.app/administration/user-management/"
+  ],
+  "services": ["immich-server", "immich-machine-learning", "redis", "database"],
+  "initialAccount": {
+    "method": "browser",
+    "fields": ["fullName", "email", "password"],
+    "usernameMapping": "display-name-only"
+  },
+  "supportedSecretFileVariables": ["DB_PASSWORD_FILE", "REDIS_PASSWORD_FILE"],
+  "homarr": {
+    "integration": "immich",
+    "credential": "apiKey",
+    "settingsPath": "/user-settings",
+    "acceptance": ["integration-test", "authenticated-widget-data"]
+  },
+  "genericComposeStatus": "manifest-supported-unverified",
+  "genericComposeBuilder": "../../scripts/immich-plan.ts",
+  "genericComposeBlockers": []
+}

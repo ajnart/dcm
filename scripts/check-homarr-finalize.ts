@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   appMatchesUpdate,
+  repairLegacyStatsItem,
   updateApp,
 } from "./homarr-finalize.ts";
 
@@ -101,7 +102,49 @@ async function runChecks() {
   const unreadableClient = clientFor([unreadableUpdateError, readError]);
   await assertOriginalFailure(unreadableClient, unreadableUpdateError);
 
-  process.stdout.write("PASS Homarr update reconciliation checks\n");
+  const integrationIds = new Set(["i1", "i2", "i3", "i4", "i5", "i6"]);
+  const appIds = new Set(["a1", "a2", "a3", "a4", "a5", "a6"]);
+  const baseItems = [
+    ...[...appIds].map((appId, index) => ({ id: `app-${index}`, kind: "app", options: { appId }, integrationIds: [], layouts: [] })),
+    { id: "request-stats", kind: "mediaRequests-requestStats", options: {}, integrationIds: ["i6"], layouts: [] },
+    { id: "legacy-stats", kind: "stats", options: {}, integrationIds: [...integrationIds], layouts: [{ layoutId: "desktop", sectionId: "main", width: 1, height: 1, xOffset: 0, yOffset: 1 }] },
+    { id: "preserved", kind: "clock", options: {}, integrationIds: [], layouts: [] },
+  ];
+  function boardClient(items = baseItems) {
+    let detail = { id: "board-1", name: "MyHomelab", isPublic: false, sections: [{ id: "main", kind: "empty" }], items: structuredClone(items) };
+    const calls = [];
+    return {
+      calls,
+      async query(procedure) {
+        calls.push({ procedure, type: "query" });
+        if (procedure === "board.getAllBoards") return [{ id: "board-1", name: "MyHomelab", isPublic: false }];
+        return structuredClone(detail);
+      },
+      async mutate(procedure, input) {
+        calls.push({ input: structuredClone(input), procedure, type: "mutation" });
+        assert.equal(procedure, "board.saveBoard");
+        detail = { ...detail, sections: structuredClone(input.sections), items: structuredClone(input.items) };
+      },
+    };
+  }
+  const repairClient = boardClient();
+  assert.deepEqual(await repairLegacyStatsItem(repairClient, "MyHomelab", integrationIds, appIds), { repaired: true });
+  const save = repairClient.calls.find((call) => call.type === "mutation");
+  assert.equal(save.input.items.some((item) => item.id === "legacy-stats"), false);
+  assert.equal(save.input.items.some((item) => item.id === "preserved"), true);
+  const noopClient = boardClient(baseItems.filter((item) => item.kind !== "stats"));
+  assert.deepEqual(await repairLegacyStatsItem(noopClient, "MyHomelab", integrationIds, appIds), { repaired: false });
+  assert.equal(noopClient.calls.some((call) => call.type === "mutation"), false);
+  for (const items of [
+    [...baseItems, { ...baseItems.find((item) => item.kind === "stats"), id: "legacy-duplicate" }],
+    baseItems.map((item) => item.kind === "stats" ? { ...item, options: { changed: true } } : item),
+    baseItems.filter((item) => item.kind !== "mediaRequests-requestStats"),
+    baseItems.filter((item) => item.options?.appId !== "a6"),
+  ]) {
+    await assert.rejects(repairLegacyStatsItem(boardClient(items), "MyHomelab", integrationIds, appIds));
+  }
+
+  process.stdout.write("PASS Homarr update reconciliation and legacy stats compatibility checks\n");
 }
 
 runChecks().catch(() => {

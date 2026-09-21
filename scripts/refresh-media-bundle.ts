@@ -22,6 +22,30 @@ import {
   verifySourceDrift,
 } from "../.agents/skills/selfhost-media/scripts/verify-bundle.ts";
 
+// Runtime additions are explicit so repository tooling is never packaged by accident.
+const RUNTIME_ADDITIONS = [
+  "docs/browser-benchmark.md",
+  "docs/browser-paths.json",
+  "scripts/browser-benchmark.ts",
+  "scripts/check-browser-benchmark.ts",
+  "scripts/check-browser-api-key.ts",
+  "scripts/check-bootstrap-qbittorrent.ts",
+  "scripts/bootstrap-jellyfin.ts",
+  "scripts/check-bootstrap-jellyfin.ts",
+  "scripts/lib/session-access.ts",
+  "scripts/check-session-access.ts",
+  "docs/headless-access.md",
+  "scripts/browser-form.ts",
+  "scripts/check-browser-form.ts",
+  "scripts/bootstrap-seerr.ts",
+  "scripts/check-bootstrap-seerr.ts",
+  "scripts/check-prowlarr-verifier.ts",
+  "scripts/homarr-notebook.ts",
+  "scripts/check-homarr-notebook.ts",
+  "scripts/prove-homarr-widgets.ts",
+  "scripts/check-prove-homarr-widgets.ts",
+];
+
 const SOURCE_ROOT = fileURLToPath(new URL("../", import.meta.url));
 
 function fail(message) {
@@ -92,7 +116,19 @@ async function main() {
   const files = [];
   const sourceTransforms = [];
 
-  for (const currentFile of current.manifest.files) {
+  const manifestFiles = [...current.manifest.files];
+  for (const path of RUNTIME_ADDITIONS) {
+    if (!manifestFiles.some((file) => file.path === path)) {
+      const stat = await lstat(join(SOURCE_ROOT, path));
+      manifestFiles.push({ path, mode: canonicalMode(stat), sha256: "" });
+    }
+  }
+  manifestFiles.sort((a, b) => {
+    if (a.path < b.path) return -1;
+    if (a.path > b.path) return 1;
+    return 0;
+  });
+  for (const currentFile of manifestFiles) {
     const file = { ...currentFile };
     const source = await readCanonicalFile(file.path, file.mode);
     const transform = transformByPath.get(file.path);
@@ -128,7 +164,7 @@ async function main() {
         throw error;
       }
     }
-    if (previous.sha256 === nextHash && targetExists) {
+    if (previous?.sha256 === nextHash && targetExists) {
       continue;
     }
     await atomicWrite(targetPath, file.content, file.mode);

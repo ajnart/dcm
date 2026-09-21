@@ -7,7 +7,8 @@ import {
   homarrCoverage,
   listApps,
   loadCatalog,
-  resolveStack,
+  resolvePlanTarget,
+  stackForGoalId,
   searchApps,
   validateCatalog
 } from "./catalog.ts";
@@ -767,7 +768,7 @@ async function handlePlan(args) {
     return;
   }
 
-  const resolution = resolveStack(loaded.catalog, query);
+  const resolution = resolvePlanTarget(loaded.catalog, query);
   if (!resolution.resolved) {
     const summary = buildResolutionSummary(resolution, query, loaded.catalog);
     activeStatus = "blocked";
@@ -824,7 +825,7 @@ function requireProjectRoot(flags) {
 async function loadRecordedProject(catalog, projectRoot) {
   const statePath = await projectStatePathForProjectRoot(projectRoot);
   const saved = await loadProjectState(statePath);
-  const stack = catalog.stacks.find((candidate) => candidate.id === saved.document.goalId);
+  const stack = stackForGoalId(catalog, saved.document.goalId);
   if (!stack) {
     throw new Error("The recorded project goal is no longer available in the current catalog.");
   }
@@ -862,7 +863,7 @@ async function handleState(action, args) {
     if (parsed.flags.evidence.length > 0) {
       throw new Error(`state ${action} does not accept evidence IDs.`);
     }
-    const resolution = resolveStack(loaded.catalog, query);
+    const resolution = resolvePlanTarget(loaded.catalog, query);
     if (!resolution.resolved) {
       const summary = buildResolutionSummary(resolution, query, loaded.catalog);
       if (parsed.flags.json) {

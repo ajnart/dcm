@@ -11,7 +11,7 @@ bunx --bun skills@latest add ajnart/selfhost-skills
 The installer asks which skills and agents to target. With no scope flag it
 installs project-locally; add `--global` when the choices should be available
 from every project, and add `--copy` when direct copies are preferred. Select
-the eight `basic` skill IDs below, then only the pack or extension IDs needed
+the nine `basic` skill IDs below, starting with `self-host`, then only the pack or extension IDs needed
 by this stack. Every portable description starts with `Base`, `Media pack`, or
 `Optional`; clients that render `agents/openai.yaml` also receive numbered base
 display names.
@@ -21,7 +21,7 @@ The profile manifest in
 defines the exact sets and
 their service, approval-evidence, and verification-evidence obligations:
 
-- `basic` contains `selfhost-setup`, `selfhost-upkeep`, `selfhost`,
+- `basic` contains `self-host`, `selfhost-setup`, `selfhost-upkeep`, `selfhost`,
   `selfhost-host`, `selfhost-compose`, `selfhost-operations`,
   `selfhost-homarr`, and `selfhost-verify`.
 - `media` extends `basic` with `selfhost-media`.
@@ -70,7 +70,7 @@ example installs the base for Codex only:
 
 ```bash
 bunx --bun skills@latest add ajnart/selfhost-skills \
-  --skill selfhost-setup --skill selfhost-upkeep --skill selfhost \
+  --skill self-host --skill selfhost-setup --skill selfhost-upkeep --skill selfhost \
   --skill selfhost-host --skill selfhost-compose \
   --skill selfhost-operations --skill selfhost-verify \
   --agent codex --global --copy --yes
@@ -82,8 +82,8 @@ agent as well as every skill.
 
 ## First use
 
-Invoke `selfhost-setup` explicitly for a new stack: `$selfhost-setup` in Codex,
-`/selfhost-setup` in Claude Code, or `/skill:selfhost-setup` in Pi. Other
+Invoke the public entry for every lifecycle: `$self-host` in Codex,
+`/self-host` in Claude Code, or `/skill:self-host` in Pi. Other
 clients expose skills through their own picker or invocation UI; Agent Skills
 does not standardize that UI. Setup checks the selected profile closure and
 installs missing skills plus the official `agent-browser` skill, runtime, and
@@ -93,8 +93,8 @@ The initial check is non-mutating. After approval, setup repeats it with
 sidecars. Setup then creates `<project>/.selfhost/stack.json` and carries the
 selected stack through apply and verification.
 
-Invoke `$selfhost-upkeep` explicitly to resume, extend, upgrade, repair, or
-re-verify that recorded stack. Use `$selfhost` alone for read-only planning.
+Run the same `self-host` command from the recorded project to resume, extend,
+upgrade, repair, or re-verify it. Ask for plan-only behavior when no apply is wanted.
 
 For the managed media pack, the private `connections.env` stores local URLs,
 usernames, and API keys needed for later wiring. It never stores the generated

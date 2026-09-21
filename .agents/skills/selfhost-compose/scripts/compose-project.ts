@@ -9,6 +9,7 @@ const MAX_INPUT_BYTES = 256 * 1024;
 const MAX_ITEMS = 100;
 const MAX_DEPTH = 12;
 const MAX_STRING = 2048;
+const MAX_SECRET_FILE_BYTES = 64 * 1024;
 const FLOATING_TAGS = new Set(["latest", "stable", "edge", "main", "master", "nightly", "rolling", "current", "dev"]);
 const PROTECTED_PURPOSES = new Set(["admin", "database", "management", "docker-api"]);
 const PROTECTED_PORTS = new Set([22, 2375, 2376, 3306, 5432, 6379, 27017]);
@@ -24,6 +25,9 @@ const PROJECT_ID = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/;
 const DOCKER_CONTEXT = /^[a-zA-Z0-9](?:[a-zA-Z0-9_.-]{0,126}[a-zA-Z0-9])?$/;
 const NETWORK_NAME = /^[a-zA-Z0-9](?:[a-zA-Z0-9_.-]{0,126}[a-zA-Z0-9])?$/;
 const ENV_NAME = /^[A-Z_][A-Z0-9_]{0,127}$/;
+const DEPENDENCY_CONDITIONS = new Set(["service_started", "service_healthy", "service_completed_successfully"]);
+const IMAGE_USER_REASONS = new Set(["upstream-init-requires-default-user", "image-declares-nonroot-user", "official-image-runtime-contract"]);
+const RUNTIME_ARG_SENSITIVE = /password|passwd|token|api[-_]?key|private[-_]?key|credential|secret|cookie|auth/i;
 const FORBIDDEN_SOURCE_PREFIXES = ["/proc", "/sys", "/dev", "/run", "/var/run", "/var/lib/docker"];
 const FORBIDDEN_ROOTS = new Set(["/", "/bin", "/boot", "/dev", "/etc", "/home", "/lib", "/lib64", "/opt", "/proc", "/root", "/run", "/sbin", "/srv", "/sys", "/tmp", "/usr", "/var"]);
 
@@ -206,6 +210,24 @@ function exactObject(value, keys, context) {
   }
 }
 
+function exactObjectWithOptional(value, requiredKeys, optionalKeys, context) {
+  if (!isObject(value)) {
+    reject(`${context} must be an object`);
+  }
+  const required = new Set(requiredKeys);
+  const allowed = new Set([...requiredKeys, ...optionalKeys]);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      reject(`${context} contains an unsupported field`);
+    }
+  }
+  for (const key of required) {
+    if (!Object.hasOwn(value, key)) {
+      reject(`${context} is missing a required field`);
+    }
+  }
+}
+
 function requireArray(value, context) {
   if (!Array.isArray(value)) {
     reject(`${context} must be an array`);
@@ -347,7 +369,7 @@ function requireImage(value) {
   if (/\s/.test(value) || value.startsWith("-") || value.includes("//")) {
     reject("service image reference is invalid");
   }
-  const imagePattern = /^(?:(?:[a-z0-9]+(?:[._-][a-z0-9]+)*)(?::\d+)?\/)?(?:[a-z0-9]+(?:[._-][a-z0-9]+)*\/)*[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}|@sha256:[a-f0-9]{64})$/;
+  const imagePattern = /^(?:(?:[a-z0-9]+(?:[._-][a-z0-9]+)*)(?::\d+)?\/)?(?:[a-z0-9]+(?:[._-][a-z0-9]+)*\/)*[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[A-Za-z0-9_][A-Za-z0-9_.-]{0,127})?(?:@sha256:[a-f0-9]{64})?$/;
   if (!imagePattern.test(value)) {
     reject("service image reference is invalid");
   }
@@ -356,6 +378,15 @@ function requireImage(value) {
   }
   const digestMatch = value.match(/@sha256:([a-f0-9]{64})$/i);
   if (digestMatch) {
+    const repositoryAndTag = value.slice(0, value.lastIndexOf("@sha256:"));
+    const tagSlash = repositoryAndTag.lastIndexOf("/");
+    const tagColon = repositoryAndTag.lastIndexOf(":");
+    if (tagColon > tagSlash) {
+      const tag = repositoryAndTag.slice(tagColon + 1).toLowerCase();
+      if (FLOATING_TAGS.has(tag)) {
+        reject("floating image tags are not accepted");
+      }
+    }
     return value;
   }
   const lastSlash = value.lastIndexOf("/");
@@ -424,13 +455,23 @@ function normalizeProject(value, observedProject) {
   return { dockerContext, id, owner, root, directory, ownership, observedProject };
 }
 
-function normalizeEnvironment(value) {
+function normalizeEnvironment(value, secretRefs) {
   const result = [];
   const seen = new Set();
   for (const entry of requireArray(value, "service.environment")) {
     exactObject(entry, ["name", "value"], "environment entry");
-    if (typeof entry.name !== "string" || !ENV_NAME.test(entry.name) || SENSITIVE_ENV.test(entry.name)) {
+    if (typeof entry.name !== "string" || !ENV_NAME.test(entry.name)) {
       reject("secret-bearing or invalid environment names are not accepted; use secretRefs");
+    }
+    const fileVariable = entry.name.endsWith("_FILE");
+    if (SENSITIVE_ENV.test(entry.name) && !fileVariable) {
+      reject("secret-bearing or invalid environment names are not accepted; use secretRefs");
+    }
+    if (fileVariable) {
+      const matchingSecret = secretRefs.find((secret) => entry.value === `/run/secrets/${secret.target}`);
+      if (!matchingSecret) {
+        reject("*_FILE environment values must exactly name a declared /run/secrets target");
+      }
     }
     if (seen.has(entry.name)) {
       reject("environment names must be unique per service");
@@ -471,7 +512,7 @@ function normalizePort(value) {
 }
 
 function normalizeMount(value, projectOwner) {
-  exactObject(value, ["source", "target", "readOnly", "shared", "owner", "ownership"], "mount");
+  exactObjectWithOptional(value, ["source", "target", "readOnly", "shared", "owner", "ownership"], ["shareGroup"], "mount");
   const source = requireSourcePath(value.source);
   const target = requireAbsolutePath(value.target, "mount target", true);
   const readOnly = requireBoolean(value.readOnly, "mount.readOnly");
@@ -484,36 +525,129 @@ function normalizeMount(value, projectOwner) {
   if (!readOnly && owner !== projectOwner) {
     reject("read-write mount sources must be project-owned");
   }
-  if (!readOnly && shared) {
-    reject("shared mount sources must be read-only");
+  let shareGroup = null;
+  if (Object.hasOwn(value, "shareGroup")) {
+    shareGroup = requireLabel(value.shareGroup, "mount.shareGroup");
+    if (!shared || readOnly) {
+      reject("mount.shareGroup is only valid for explicit shared read-write mounts");
+    }
   }
-  return { source, target, readOnly, shared, owner, ownership };
+  if (!readOnly && shared && shareGroup === null) {
+    reject("shared read-write mounts require an explicit shareGroup");
+  }
+  const result = { source, target, readOnly, shared, owner, ownership };
+  if (shareGroup !== null) {
+    result.shareGroup = shareGroup;
+  }
+  return result;
 }
 
-function normalizeSecretRef(value) {
-  exactObject(value, ["name", "ref", "target"], "secret reference");
+function normalizeSecretRef(value, projectDirectory) {
+  exactObjectWithOptional(value, ["name", "ref", "target"], ["filePath"], "secret reference");
   const name = requireLabel(value.name, "secret reference name");
   const ref = requireOpaqueRef(value.ref, "secret ref");
   const target = requireLabel(value.target, "secret target");
-  return { name, ref, target };
+  if (!Object.hasOwn(value, "filePath")) {
+    return { name, ref, target };
+  }
+  const filePath = requireAbsolutePath(value.filePath, "secret filePath");
+  const secretsDirectory = path.posix.join(projectDirectory, "secrets");
+  if (!filePath.startsWith(`${secretsDirectory}/`)) {
+    reject("secret filePath must be inside project.directory/secrets");
+  }
+  return { name, ref, target, filePath };
 }
 
-function normalizeService(value, projectOwner) {
-  exactObject(value, ["id", "image", "restart", "readOnly", "user", "environment", "ports", "mounts", "networks", "secretRefs"], "service");
+function normalizeArgv(value, context) {
+  const argv = requireArray(value, context);
+  if (argv.length === 0 || argv.length > 32) {
+    reject(`${context} must contain 1 to 32 arguments`);
+  }
+  return argv.map((argument) => {
+    const normalized = requireText(argument, `${context} argument`);
+    if (RUNTIME_ARG_SENSITIVE.test(normalized) || normalized.includes("$")) {
+      reject(`${context} must not contain secret-bearing or interpolated arguments`);
+    }
+    return normalized;
+  });
+}
+
+function normalizeHealthcheck(value) {
+  exactObject(value, ["test", "intervalSeconds", "timeoutSeconds", "startPeriodSeconds", "retries"], "healthcheck");
+  const test = normalizeArgv(value.test, "healthcheck.test");
+  if (test[0] !== "CMD" || test.length < 2) {
+    reject("healthcheck.test must be a CMD argv list");
+  }
+  return {
+    test,
+    intervalSeconds: requireInteger(value.intervalSeconds, "healthcheck.intervalSeconds", 1, 3600),
+    timeoutSeconds: requireInteger(value.timeoutSeconds, "healthcheck.timeoutSeconds", 1, 300),
+    startPeriodSeconds: requireInteger(value.startPeriodSeconds, "healthcheck.startPeriodSeconds", 0, 3600),
+    retries: requireInteger(value.retries, "healthcheck.retries", 1, 20)
+  };
+}
+
+function normalizeDependsOn(value) {
+  const dependencies = requireArray(value, "service.dependsOn").map((dependency) => {
+    exactObject(dependency, ["service", "condition"], "service dependency");
+    const service = requireLabel(dependency.service, "dependency service");
+    if (!DEPENDENCY_CONDITIONS.has(dependency.condition)) {
+      reject("dependency condition is unsupported");
+    }
+    return { service, condition: dependency.condition };
+  });
+  dependencies.sort((left, right) => left.service.localeCompare(right.service));
+  requireUnique(dependencies.map((dependency) => dependency.service), "dependency services per service");
+  return dependencies;
+}
+
+function normalizeImageUserEvidence(value) {
+  exactObject(value, ["officialUrl", "reason"], "imageUserEvidence");
+  const officialUrl = requireText(value.officialUrl, "imageUserEvidence.officialUrl");
+  let parsed;
+  try {
+    parsed = new URL(officialUrl);
+  } catch {
+    reject("imageUserEvidence.officialUrl must be an HTTPS URL");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash) {
+    reject("imageUserEvidence.officialUrl must be an HTTPS URL without credentials or fragments");
+  }
+  if (!IMAGE_USER_REASONS.has(value.reason)) {
+    reject("imageUserEvidence.reason is unsupported");
+  }
+  return { officialUrl, reason: value.reason };
+}
+
+function normalizeService(value, projectOwner, projectDirectory) {
+  exactObjectWithOptional(value, ["id", "image", "restart", "readOnly", "user", "environment", "ports", "mounts", "networks", "secretRefs"], ["command", "entrypoint", "healthcheck", "dependsOn", "imageUserEvidence", "shmSizeBytes"], "service");
   const id = requireLabel(value.id, "service.id");
   const image = requireImage(value.image);
   if (!RESTART_POLICIES.has(value.restart)) {
     reject("service.restart is unsupported");
   }
   const readOnly = requireBoolean(value.readOnly, "service.readOnly");
-  if (typeof value.user !== "string" || !/^\d{1,10}:\d{1,10}$/.test(value.user)) {
-    reject("service.user must be a numeric uid:gid");
+  let imageUserEvidence = null;
+  if (value.user === "image-default") {
+    if (!Object.hasOwn(value, "imageUserEvidence")) {
+      reject("image-default requires official imageUserEvidence");
+    }
+    imageUserEvidence = normalizeImageUserEvidence(value.imageUserEvidence);
+  } else {
+    if (typeof value.user !== "string" || !/^\d{1,10}:\d{1,10}$/.test(value.user)) {
+      reject("service.user must be a numeric uid:gid or image-default");
+    }
+    const userParts = value.user.split(":").map(Number);
+    if (userParts[0] === 0 || userParts[1] === 0) {
+      reject("service.user must not use the root uid or gid");
+    }
+    if (Object.hasOwn(value, "imageUserEvidence")) {
+      reject("imageUserEvidence is valid only with user image-default");
+    }
   }
-  const userParts = value.user.split(":").map(Number);
-  if (userParts[0] === 0 || userParts[1] === 0) {
-    reject("service.user must not use the root uid or gid");
-  }
-  const environment = normalizeEnvironment(value.environment);
+  const secretRefs = requireArray(value.secretRefs, "service.secretRefs").map((secret) => normalizeSecretRef(secret, projectDirectory));
+  secretRefs.sort((left, right) => left.name.localeCompare(right.name));
+  const environment = normalizeEnvironment(value.environment, secretRefs);
   const ports = requireArray(value.ports, "service.ports").map(normalizePort);
   ports.sort(comparePorts);
   const mounts = requireArray(value.mounts, "service.mounts").map((mount) => normalizeMount(mount, projectOwner));
@@ -524,8 +658,6 @@ function normalizeService(value, projectOwner) {
   if (networks.length === 0 || new Set(networks).size !== networks.length) {
     reject("each service needs unique explicit networks");
   }
-  const secretRefs = requireArray(value.secretRefs, "service.secretRefs").map(normalizeSecretRef);
-  secretRefs.sort((left, right) => left.name.localeCompare(right.name));
   const secretNames = new Set();
   const secretTargets = new Set();
   for (const secret of secretRefs) {
@@ -535,7 +667,61 @@ function normalizeService(value, projectOwner) {
     secretNames.add(secret.name);
     secretTargets.add(secret.target);
   }
-  return { id, image, restart: value.restart, readOnly, user: value.user, environment, ports, mounts, networks, secretRefs };
+  const result = { id, image, restart: value.restart, readOnly, user: value.user, environment, ports, mounts, networks, secretRefs };
+  if (imageUserEvidence) {
+    result.imageUserEvidence = imageUserEvidence;
+  }
+  if (Object.hasOwn(value, "command")) {
+    result.command = normalizeArgv(value.command, "service.command");
+  }
+  if (Object.hasOwn(value, "entrypoint")) {
+    result.entrypoint = normalizeArgv(value.entrypoint, "service.entrypoint");
+  }
+  if (Object.hasOwn(value, "healthcheck")) {
+    result.healthcheck = normalizeHealthcheck(value.healthcheck);
+  }
+  if (Object.hasOwn(value, "dependsOn")) {
+    result.dependsOn = normalizeDependsOn(value.dependsOn);
+  }
+  if (Object.hasOwn(value, "shmSizeBytes")) {
+    result.shmSizeBytes = requireInteger(value.shmSizeBytes, "service.shmSizeBytes", 1024 * 1024, 1024 * 1024 * 1024);
+  }
+  return result;
+}
+
+function validateDependencyGraph(services) {
+  const serviceById = new Map(services.map((service) => [service.id, service]));
+  for (const service of services) {
+    for (const dependency of service.dependsOn ?? []) {
+      const target = serviceById.get(dependency.service);
+      if (!target) {
+        reject("a service dependency references an undeclared service");
+      }
+      if (dependency.condition === "service_healthy" && !target.healthcheck) {
+        reject("service_healthy requires a healthcheck on the dependency");
+      }
+    }
+  }
+  const visiting = new Set();
+  const visited = new Set();
+  function visit(serviceId) {
+    if (visiting.has(serviceId)) {
+      reject("service dependency graph must be acyclic");
+    }
+    if (visited.has(serviceId)) {
+      return;
+    }
+    visiting.add(serviceId);
+    const service = serviceById.get(serviceId);
+    for (const dependency of service.dependsOn ?? []) {
+      visit(dependency.service);
+    }
+    visiting.delete(serviceId);
+    visited.add(serviceId);
+  }
+  for (const service of services) {
+    visit(service.id);
+  }
 }
 
 function normalizeNetwork(value) {
@@ -609,7 +795,7 @@ function normalizeManifest(input) {
   }
   const observed = normalizeObserved(input.observed);
   const project = normalizeProject(input.project, observed.project);
-  const services = requireArray(input.services, "services").map((service) => normalizeService(service, project.owner));
+  const services = requireArray(input.services, "services").map((service) => normalizeService(service, project.owner, project.directory));
   const networks = requireArray(input.networks, "networks").map(normalizeNetwork);
   if (services.length === 0 || networks.length === 0) {
     reject("at least one service and network are required");
@@ -617,6 +803,7 @@ function normalizeManifest(input) {
   services.sort((left, right) => left.id.localeCompare(right.id));
   networks.sort((left, right) => left.id.localeCompare(right.id));
   requireUnique(services.map((service) => service.id), "service IDs");
+  validateDependencyGraph(services);
   requireUnique(networks.map((network) => network.id), "network IDs");
   requireUnique(networks.map((network) => network.name), "network names");
   const networkIds = new Set(networks.map((network) => network.id));
@@ -724,7 +911,9 @@ function buildAssessment(manifest) {
       if (!pathsOverlap(left.source, right.source)) {
         continue;
       }
-      const safeShared = left.source === right.source && left.readOnly && right.readOnly && left.shared && right.shared && left.owner === right.owner && left.ownership === right.ownership;
+      const sameReadOnlyShare = left.readOnly && right.readOnly;
+      const sameReadWriteGroup = !left.readOnly && !right.readOnly && left.shareGroup && left.shareGroup === right.shareGroup && left.owner === project.owner;
+      const safeShared = left.source === right.source && left.shared && right.shared && left.owner === right.owner && left.ownership === right.ownership && (sameReadOnlyShare || sameReadWriteGroup);
       if (!safeShared) {
         conflicts.push({ kind: "path", resource: left.source, reason: "desired-path-overlap" });
       }
@@ -824,13 +1013,21 @@ function buildPlan(manifest) {
   const paths = [];
   const secretRefs = [];
   for (const service of manifest.services) {
-    services.push({
+    const serviceClaim = {
       id: service.id,
       image: service.image,
       environmentNames: service.environment.map((entry) => entry.name),
       networks: service.networks,
       secretRefNames: service.secretRefs.map((entry) => entry.name)
-    });
+    };
+    if (service.user === "image-default") {
+      serviceClaim.user = "image-default";
+      serviceClaim.imageUserEvidence = service.imageUserEvidence;
+    }
+    if (service.shmSizeBytes !== undefined) {
+      serviceClaim.shmSizeBytes = service.shmSizeBytes;
+    }
+    services.push(serviceClaim);
     for (const port of service.ports) {
       const claim = { service: service.id, hostIp: port.hostIp, published: port.published, target: port.target, protocol: port.protocol, purpose: port.purpose };
       if (isPrivateBind(port.hostIp)) {
@@ -843,7 +1040,11 @@ function buildPlan(manifest) {
       paths.push({ service: service.id, source: mount.source, target: mount.target, readOnly: mount.readOnly, owner: mount.owner, ownership: mount.ownership });
     }
     for (const secret of service.secretRefs) {
-      secretRefs.push({ service: service.id, name: secret.name, ref: secret.ref, target: secret.target });
+      if (secret.filePath) {
+        secretRefs.push({ service: service.id, name: secret.name, ref: secret.ref, target: secret.target, source: "file", filePath: secret.filePath });
+      } else {
+        secretRefs.push({ service: service.id, name: secret.name, ref: secret.ref, target: secret.target });
+      }
     }
   }
   privatePorts.sort(comparePlanPort);
@@ -906,10 +1107,36 @@ function renderCompose(manifest) {
     lines.push(`  ${yamlString(service.id)}:`);
     lines.push(`    image: ${yamlString(service.image)}`);
     lines.push(`    restart: ${yamlString(service.restart)}`);
-    lines.push(`    user: ${yamlString(service.user)}`);
+    if (service.user !== "image-default") {
+      lines.push(`    user: ${yamlString(service.user)}`);
+    }
     lines.push(`    read_only: ${String(service.readOnly)}`);
     lines.push("    security_opt:");
     lines.push(`      - ${yamlString("no-new-privileges:true")}`);
+    if (service.entrypoint) {
+      lines.push(`    entrypoint: ${yamlString(service.entrypoint)}`);
+    }
+    if (service.command) {
+      lines.push(`    command: ${yamlString(service.command)}`);
+    }
+    if (service.shmSizeBytes !== undefined) {
+      lines.push(`    shm_size: ${String(service.shmSizeBytes)}`);
+    }
+    if (service.healthcheck) {
+      lines.push("    healthcheck:");
+      lines.push(`      test: ${yamlString(service.healthcheck.test)}`);
+      lines.push(`      interval: ${yamlString(`${service.healthcheck.intervalSeconds}s`)}`);
+      lines.push(`      timeout: ${yamlString(`${service.healthcheck.timeoutSeconds}s`)}`);
+      lines.push(`      start_period: ${yamlString(`${service.healthcheck.startPeriodSeconds}s`)}`);
+      lines.push(`      retries: ${String(service.healthcheck.retries)}`);
+    }
+    if (service.dependsOn && service.dependsOn.length > 0) {
+      lines.push("    depends_on:");
+      for (const dependency of service.dependsOn) {
+        lines.push(`      ${yamlString(dependency.service)}:`);
+        lines.push(`        condition: ${yamlString(dependency.condition)}`);
+      }
+    }
     if (service.environment.length > 0) {
       lines.push("    environment:");
       for (const entry of service.environment) {
@@ -961,7 +1188,7 @@ function renderCompose(manifest) {
   const allSecrets = [];
   for (const service of manifest.services) {
     for (const secret of service.secretRefs) {
-      allSecrets.push({ source: `${service.id}-${secret.name}`, ref: secret.ref });
+      allSecrets.push({ source: `${service.id}-${secret.name}`, ref: secret.ref, filePath: secret.filePath });
     }
   }
   allSecrets.sort((left, right) => left.source.localeCompare(right.source));
@@ -969,8 +1196,12 @@ function renderCompose(manifest) {
     lines.push("secrets:");
     for (const secret of allSecrets) {
       lines.push(`  ${yamlString(secret.source)}:`);
-      lines.push("    external: true");
-      lines.push(`    name: ${yamlString(secret.ref)}`);
+      if (secret.filePath) {
+        lines.push(`    file: ${yamlString(secret.filePath)}`);
+      } else {
+        lines.push("    external: true");
+        lines.push(`    name: ${yamlString(secret.ref)}`);
+      }
     }
   }
   return `${lines.join("\n")}\n`;
@@ -1074,6 +1305,41 @@ function verifyMountSources(manifest) {
   }
 }
 
+function verifySecretFiles(manifest) {
+  const files = new Set();
+  for (const service of manifest.services) {
+    for (const secret of service.secretRefs) {
+      if (!secret.filePath) {
+        reject("external secret references are planning-only in the local Compose lifecycle; bind a private filePath or use an external secret platform");
+      }
+      files.add(secret.filePath);
+    }
+  }
+  for (const filePath of [...files].sort()) {
+    let stat;
+    try {
+      stat = fs.lstatSync(filePath);
+    } catch {
+      reject("a declared local secret file is unavailable");
+    }
+    if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(filePath) !== filePath) {
+      reject("local secret files must be regular files without symlink traversal");
+    }
+    if ((stat.mode & 0o777) !== 0o600) {
+      reject("local secret files must have mode 0600");
+    }
+    if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+      reject("local secret files must be owned by the current numeric user");
+    }
+    if (stat.nlink !== 1) {
+      reject("local secret files must not have hard links");
+    }
+    if (stat.size < 1 || stat.size > MAX_SECRET_FILE_BYTES) {
+      reject("local secret files must be non-empty and at most 64 KiB");
+    }
+  }
+}
+
 function atomicNoClobber(target, content) {
   const directory = path.dirname(target);
   const suffix = crypto.randomBytes(8).toString("hex");
@@ -1135,6 +1401,7 @@ function verifyLifecycleTarget(manifest, context, project, file) {
   }
   verifyExistingProjectDirectory(manifest);
   verifyMountSources(manifest);
+  verifySecretFiles(manifest);
   let stat;
   try {
     stat = fs.lstatSync(expected);

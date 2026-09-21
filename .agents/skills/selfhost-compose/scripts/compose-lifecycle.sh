@@ -96,6 +96,10 @@ validator="$script_directory/compose-project.ts"
 
 bun "$validator" lifecycle-check --input "$manifest" --context "$docker_context" --project "$project" --file "$compose_file" >/dev/null
 
+if ! docker --context "$docker_context" info --format '{{.ServerVersion}}' >/dev/null 2>&1; then
+  fail "cannot reach Docker context $docker_context; restore daemon access before retrying. No containers were changed"
+fi
+
 docker --context "$docker_context" compose --project-name "$project" --file "$compose_file" config --quiet
 
 if [[ "$action" == 'preflight' ]]; then

@@ -3,6 +3,15 @@
   "packVersion": "1.0.0",
   "skills": [
     {
+      "id": "self-host",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": ["selfhost", "selfhost-setup", "selfhost-upkeep"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-setup", "selfhost-upkeep"]}
+    },
+    {
       "id": "selfhost",
       "kind": "router",
       "scope": null,

@@ -6,7 +6,26 @@
     "acceptance": ["The selected control plane is API-ready on its private service route.", "Administrator onboarding completes without exposing credentials.", "Configuration storage has protected backup and restore guidance."]
   },
   {
-    "id": "personal-media", "name": "Personal media", "aliases": ["netflix", "my own netflix", "personal streaming", "media stack"], "summary": "Request, organize, and play an authorized private movie and TV library.", "categories": ["media", "requests", "downloads", "dashboard"], "automation": "guided",
+    "id": "full", "name": "Full private home server", "aliases": ["full homelab", "everything for my homelab", "complete private home server"], "summary": "Set up one bounded household stack for owned media, photos, files, music, audiobooks, passwords, and Homarr, with home automation available only when selected.", "categories": ["dashboard", "media", "requests", "downloads", "photos", "files", "passwords", "home-automation"], "automation": "guided",
+    "roles": [
+      {"id": "media-playback", "name": "Movies and shows", "required": true, "default": "jellyfin", "choices": ["jellyfin"], "reason": "Stream an owned movie and TV library through the supported media setup.", "purpose": "Jellyfin gives your owned movies and shows a TV-style library and playback experience; it does not supply subscription content.", "gates": ["storage", "hardware", "exposure"]},
+      {"id": "media-requests", "name": "Media requests", "required": true, "default": "seerr", "choices": ["seerr"], "reason": "Use the supported media setup for approved search and request workflows.", "purpose": "Seerr lets approved household users search for and request movies or shows from authorized sources.", "gates": ["secrets", "legal"]},
+      {"id": "tv-organization", "name": "TV organization", "required": true, "default": "sonarr", "choices": ["sonarr"], "reason": "Keep the supported media graph complete for television libraries.", "purpose": "Sonarr organizes approved TV files and coordinates them with the downloader.", "gates": ["storage", "secrets", "legal"]},
+      {"id": "movie-organization", "name": "Movie organization", "required": true, "default": "radarr", "choices": ["radarr"], "reason": "Keep the supported media graph complete for movie libraries.", "purpose": "Radarr organizes approved movie files and coordinates them with the downloader.", "gates": ["storage", "secrets", "legal"]},
+      {"id": "media-sources", "name": "Media source manager", "required": true, "default": "prowlarr", "choices": ["prowlarr"], "reason": "Share only the explicitly selected authorized source with Sonarr and Radarr.", "purpose": "Prowlarr shares an approved indexer configuration with Sonarr and Radarr; no source is selected automatically.", "gates": ["secrets", "legal"]},
+      {"id": "media-downloader", "name": "Media downloader", "required": true, "default": "qbittorrent", "choices": ["qbittorrent"], "reason": "Complete the supported media setup while preserving the owned-content boundary.", "purpose": "qBittorrent downloads only files the user is authorized to acquire into the selected media paths.", "gates": ["storage", "legal"]},
+      {"id": "photos", "name": "Photos and phone backup", "required": true, "default": "immich", "choices": ["immich"], "reason": "Provide a focused private photo library and mobile backup.", "purpose": "Immich backs up, organizes, searches, and shares photos from approved devices.", "gates": ["storage", "backup", "hardware", "migration"]},
+      {"id": "files", "name": "Files and sharing", "required": true, "default": "nextcloud", "choices": ["nextcloud"], "reason": "Use one service for Drive, OneDrive, and Dropbox-style file needs.", "purpose": "Nextcloud stores, synchronizes, and shares general files between approved people and devices.", "gates": ["storage", "backup", "exposure", "migration"]},
+      {"id": "music", "name": "Music", "required": true, "default": "navidrome", "choices": ["navidrome"], "reason": "Provide a focused private music library.", "purpose": "Navidrome indexes and streams your owned music files to approved clients.", "gates": ["storage", "backup", "exposure"]},
+      {"id": "audiobooks", "name": "Audiobooks", "required": true, "default": "audiobookshelf", "choices": ["audiobookshelf"], "reason": "Provide audiobook-focused metadata, progress, and clients.", "purpose": "Audiobookshelf organizes and streams your owned audiobooks and can also manage podcasts.", "gates": ["storage", "backup", "exposure"]},
+      {"id": "passwords", "name": "Passwords", "required": true, "default": "vaultwarden", "choices": ["vaultwarden"], "reason": "Provide a private password vault with explicit HTTPS and recovery requirements.", "purpose": "Vaultwarden stores passwords for compatible Bitwarden apps after HTTPS, recovery, and backup are proven.", "gates": ["secrets", "backup", "exposure", "migration"]},
+      {"id": "home-automation", "name": "Home automation", "required": false, "default": null, "choices": ["home-assistant"], "reason": "Add home automation only after compatible devices, voice hardware, and host access are confirmed.", "purpose": "Home Assistant connects compatible household devices; voice also needs microphone and speaker hardware plus an Assist pipeline.", "gates": ["hardware", "network", "privilege", "backup"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-ingress", "selfhost-backup", "selfhost-verify"], "gates": ["storage", "backup", "exposure", "secrets", "hardware", "network", "privilege", "migration", "legal"],
+    "acceptance": ["The supported media stage passes its seven-service API, UI, Homarr, and MCP acceptance without choosing an indexer automatically.", "Immich, Nextcloud, Navidrome, Audiobookshelf, and Vaultwarden each pass owner-specific readiness and private-access checks.", "Every selected stateful service has app-consistent backup and isolated restore evidence.", "Homarr contains one reviewed household board with working app links and only supported live integrations.", "Optional home automation remains absent unless explicitly selected and its hardware dependencies are proven."]
+  },
+  {
+    "id": "personal-media", "name": "Personal media", "aliases": ["personal streaming", "media stack"], "summary": "Request, organize, and play an authorized private movie and TV library.", "categories": ["media", "requests", "downloads", "dashboard"], "automation": "guided",
     "roles": [
       {"id": "playback", "name": "Playback", "required": true, "default": "jellyfin", "choices": ["jellyfin", "plex", "emby"], "reason": "Plays your own movies and shows on approved devices.", "purpose": "The media player streams your own movies and shows to approved devices.", "gates": ["storage", "hardware"]},
       {"id": "requests", "name": "Requests", "required": true, "default": "seerr", "choices": ["seerr"], "reason": "Lets approved users search for and request a movie or show.", "purpose": "Seerr lets approved users search for and request a movie or show.", "gates": ["secrets"]},
@@ -21,12 +40,29 @@
     "acceptance": ["Every selected application is API-ready on service-name DNS.", "Seerr reaches playback plus the selected Arr services.", "Shared paths support the selected import and hardlink policy."]
   },
   {
+    "id": "owned-video-library", "name": "Owned movie and TV library", "aliases": ["netflix", "replace netflix", "my own netflix", "owned movie library", "owned tv library"], "summary": "Stream movies and shows you already own through Jellyfin and Homarr without implying a content subscription.", "categories": ["media", "dashboard"], "automation": "guided",
+    "roles": [
+      {"id": "playback", "name": "Owned-library playback", "required": true, "default": "jellyfin", "choices": ["jellyfin"], "reason": "Jellyfin indexes and streams the authorized media files supplied by the owner.", "purpose": "Jellyfin streams your existing movie and TV files; it does not include or sell a catalog of content.", "gates": ["storage", "hardware", "exposure"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-verify"], "gates": ["storage", "hardware", "exposure", "backup"],
+    "acceptance": ["Jellyfin scans a bounded owned-media fixture and plays it from an approved client.", "Homarr opens Jellyfin and its dedicated integration returns expected library data.", "The plan identifies media storage and backup responsibilities without claiming bundled content."]
+  },
+  {
     "id": "photos", "name": "Photos and mobile backup", "aliases": ["photos", "replace google photos", "google photos replacement", "phone photo backup", "immich"], "summary": "Keep original photos private while providing mobile backup, search, and recovery.", "categories": ["photos"], "automation": "guided",
     "roles": [
       {"id": "photo-library", "name": "Photo library", "required": true, "default": "immich", "choices": ["immich", "photoprism"], "reason": "Own the photo index, original files, and client experience.", "purpose": "The photo library backs up, organizes, searches, and shares photos from your devices.", "gates": ["storage", "migration", "hardware"]}
     ],
     "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-backup", "selfhost-verify"], "gates": ["storage", "backup", "exposure", "migration"],
     "acceptance": ["A test upload is visible from an approved client.", "Originals and application database have separate protected backup coverage.", "A restore drill proves metadata and one original can be recovered."]
+  },
+  {
+    "id": "photos-and-files", "name": "Photos and cloud files", "aliases": ["replace google photos and google drive", "replace google photos and drive", "photos and cloud files"], "summary": "Replace photo backup with Immich and general cloud files with one Nextcloud service.", "categories": ["photos", "files"], "automation": "guided",
+    "roles": [
+      {"id": "photo-library", "name": "Photo library", "required": true, "default": "immich", "choices": ["immich"], "reason": "Use a photo-focused mobile backup and library experience.", "purpose": "Immich backs up, organizes, searches, and shares photos from approved devices.", "gates": ["storage", "migration", "hardware"]},
+      {"id": "file-service", "name": "Cloud files", "required": true, "default": "nextcloud", "choices": ["nextcloud"], "reason": "Use one general file service for Drive-style sync and sharing.", "purpose": "Nextcloud stores, synchronizes, and shares general files between approved people and devices.", "gates": ["storage", "backup", "exposure"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-backup", "selfhost-ingress", "selfhost-verify"], "gates": ["storage", "backup", "exposure", "migration"],
+    "acceptance": ["A mobile photo upload appears in Immich.", "A representative general file round-trips through Nextcloud.", "Immich and Nextcloud data plus databases have separately tested restore coverage."]
   },
   {
     "id": "documents", "name": "Documents, PDF, and OCR", "aliases": ["documents", "pdf", "paperless", "scan documents", "ocr"], "summary": "Ingest, OCR, search, transform, and recover private documents.", "categories": ["documents"], "automation": "guided",
@@ -38,7 +74,7 @@
     "acceptance": ["A test document is ingested, OCR text is searchable, and the original exports.", "Database, media, and export paths have an app-consistent restore procedure."]
   },
   {
-    "id": "files", "name": "Files and synchronization", "aliases": ["files", "replace dropbox", "dropbox replacement", "replace google drive", "dropbox"], "summary": "Choose between cloud collaboration and peer synchronization with explicit recovery.", "categories": ["files"], "automation": "guided",
+    "id": "files", "name": "Files and synchronization", "aliases": ["files", "replace dropbox", "dropbox replacement", "replace google drive", "google drive replacement", "replace microsoft onedrive", "microsoft onedrive replacement", "replace onedrive", "onedrive replacement", "dropbox", "google drive", "microsoft onedrive", "onedrive"], "summary": "Replace Google Drive, Microsoft OneDrive, and Dropbox with one file service and explicit recovery.", "categories": ["files"], "automation": "guided",
     "roles": [
       {"id": "file-service", "name": "File service", "required": true, "default": "nextcloud", "choices": ["nextcloud", "syncthing", "seafile"], "reason": "Match collaborative cloud storage or device synchronization to the real goal.", "purpose": "The file service stores or synchronizes files between the people and devices you choose.", "gates": ["storage", "backup", "exposure"]}
     ],
@@ -54,14 +90,39 @@
     "acceptance": ["TLS, login, lockout, and recovery are tested from an approved client.", "An encrypted export and full restore drill succeed without exposing secret values."]
   },
   {
-    "id": "home-automation", "name": "Home automation", "aliases": ["home automation", "smart home", "home assistant"], "summary": "Run a private automation hub with deliberate LAN discovery and device privileges.", "categories": ["home-automation", "cameras"], "automation": "guided",
+    "id": "home-automation", "name": "Home automation", "aliases": ["home automation", "smart home", "home assistant", "smart speaker", "replace smart speaker"], "summary": "Run a private automation hub with deliberate LAN discovery, voice hardware, and device privileges.", "categories": ["home-automation", "cameras"], "automation": "guided",
     "roles": [
-      {"id": "hub", "name": "Automation hub", "required": true, "default": "home-assistant", "choices": ["home-assistant", "homebridge"], "reason": "Own device state, automations, and client access.", "purpose": "The hub connects smart-home devices and runs the automations you define.", "gates": ["privilege", "network", "backup"]},
+      {"id": "hub", "name": "Automation hub", "required": true, "default": "home-assistant", "choices": ["home-assistant", "homebridge"], "reason": "Own device state, automations, client access, and optional voice pipelines.", "purpose": "Home Assistant connects smart-home devices and can coordinate voice assistants when compatible microphone, speaker, wake-word, speech-to-text, and text-to-speech components are supplied.", "gates": ["privilege", "network", "backup", "hardware"]},
       {"id": "flows", "name": "Automation flows", "required": false, "default": null, "choices": ["node-red"], "reason": "Add visual flows only when their control scope is understood.", "purpose": "Node-RED lets you build automations by connecting steps in a visual editor.", "gates": ["privilege", "secrets"]},
-      {"id": "cameras", "name": "Camera recorder", "required": false, "default": null, "choices": ["frigate"], "reason": "Add local recording and detection only with hardware and retention planning.", "purpose": "Frigate records camera video locally and detects selected events.", "gates": ["hardware", "storage", "privacy"]}
+      {"id": "cameras", "name": "Camera recorder", "required": false, "default": null, "choices": ["frigate", "scrypted"], "reason": "Add local recording and detection only with hardware, licensing, and retention planning.", "purpose": "The selected camera platform connects approved cameras and can record or process their streams.", "gates": ["hardware", "storage", "privacy", "license"]}
     ],
     "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-backup", "selfhost-verify"], "gates": ["privilege", "network", "storage", "privacy", "backup"],
     "acceptance": ["Required LAN devices remain discoverable after restart.", "A test automation executes without granting unrelated host control.", "Configuration and device recovery steps are verified."]
+  },
+  {
+    "id": "audio-library", "name": "Audiobooks and music", "aliases": ["audio books and music", "audiobooks and music", "audiobook and music server", "private audio library"], "summary": "Stream an owned audiobook and music library through focused private services.", "categories": ["media"], "automation": "guided",
+    "roles": [
+      {"id": "audiobooks", "name": "Audiobooks", "required": true, "default": "audiobookshelf", "choices": ["audiobookshelf"], "reason": "Use audiobook-focused metadata, progress, and client support.", "purpose": "Audiobookshelf organizes and streams your owned audiobooks and can also manage podcasts.", "gates": ["storage", "backup", "exposure"]},
+      {"id": "music", "name": "Music", "required": true, "default": "navidrome", "choices": ["navidrome"], "reason": "Use a lightweight music library with broad Subsonic-compatible client support.", "purpose": "Navidrome indexes and streams your owned music files to approved clients.", "gates": ["storage", "backup", "exposure"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-backup", "selfhost-verify"], "gates": ["storage", "backup", "exposure"],
+    "acceptance": ["An owned audiobook preserves playback progress from an approved client.", "An owned music fixture is indexed and streams from an approved client.", "Homarr opens both services and each dedicated integration returns expected data."]
+  },
+  {
+    "id": "personal-finance", "name": "Personal finance", "aliases": ["personal finance", "finance app", "self hosted finance", "budgeting"], "summary": "Choose a private budget or finance tracker with explicit import, export, and recovery boundaries.", "categories": ["productivity"], "automation": "discovery",
+    "roles": [
+      {"id": "finance", "name": "Finance tracker", "required": true, "default": "actual-budget", "choices": ["actual-budget", "firefly-iii"], "reason": "Choose the workflow that matches envelope budgeting or broader transaction and account tracking.", "purpose": "The finance tracker stores budgets, accounts, and transactions for approved users.", "gates": ["privacy", "backup", "secrets", "migration"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-backup", "selfhost-verify"], "gates": ["privacy", "backup", "secrets", "migration", "exposure"],
+    "acceptance": ["A redacted sample transaction imports and exports without loss.", "Authentication and private access are verified from an approved client.", "A database and uploads restore proves the finance data is recoverable."]
+  },
+  {
+    "id": "private-notes", "name": "Private notes and knowledge", "aliases": ["productivity", "private notes", "knowledge workspace", "anytype or obsidian"], "summary": "Choose a local-first knowledge tool and make its sync and backup boundary explicit.", "categories": ["productivity"], "automation": "discovery",
+    "roles": [
+      {"id": "notes", "name": "Notes workspace", "required": true, "default": "anytype", "choices": ["anytype", "obsidian"], "reason": "Anytype and Obsidian have different client, synchronization, and server ownership models.", "purpose": "The selected notes workspace stores linked personal notes locally and uses only the synchronization path you approve.", "gates": ["privacy", "backup", "migration", "network"]}
+    ],
+    "requiredSkills": ["selfhost-host", "selfhost-research", "selfhost-backup", "selfhost-verify"], "gates": ["privacy", "backup", "migration", "network"],
+    "acceptance": ["A representative note remains available offline and synchronizes only through the selected path.", "Export and restore preserve the representative note and its attachment.", "The plan distinguishes a local client workspace from a self-hosted synchronization service."]
   },
   {
     "id": "remote-access", "name": "Remote access", "aliases": ["remote access", "access online", "access from phone", "make accessible remotely", "private on my phone", "vpn"], "summary": "Expose selected services through a private overlay or separately approved public edge.", "categories": ["remote-access", "ingress", "identity"], "automation": "guided",

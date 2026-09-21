@@ -260,12 +260,16 @@ export function validateStructuredSearchResult(result, query) {
 
 export function validateBridgeResponses(responses, options) {
   const initialized = responses.get(1);
+  const expectedMode = options.capabilityMode ?? "read-only";
+  const expectedInstruction = expectedMode === "read-only"
+    ? "strictly read-only"
+    : "policy-constrained integration_request";
   if (
     !isRecord(initialized?.result)
     || initialized.result.protocolVersion !== "2025-06-18"
     || typeof initialized.result.instructions !== "string"
     || !initialized.result.instructions.includes("Canonical endpoint /api/mcp is active")
-    || !initialized.result.instructions.includes("strictly read-only")
+    || !initialized.result.instructions.includes(expectedInstruction)
   ) {
     throw new Error("Homarr bridge initialize failed");
   }
@@ -275,7 +279,7 @@ export function validateBridgeResponses(responses, options) {
     !isRecord(listed?.result)
     || !Array.isArray(listed.result.tools)
     || !isRecord(listed.result._meta)
-    || listed.result._meta["selfhost-homarr/bridgeMode"] !== "read-only"
+    || listed.result._meta["selfhost-homarr/bridgeMode"] !== expectedMode
     || listed.result._meta["selfhost-homarr/endpointMode"] !== "canonical"
   ) {
     throw new Error("Homarr bridge tools/list failed");
@@ -294,6 +298,12 @@ export function validateBridgeResponses(responses, options) {
     }
   }
   for (const mutatingName of MUTATING_HOMARR_TOOL_NAMES) {
+    if (mutatingName === "integration_request" && expectedMode === "integration-request-policy") {
+      if (!names.has(mutatingName)) {
+        throw new Error("Homarr bridge integration request tool is unavailable");
+      }
+      continue;
+    }
     if (names.has(mutatingName)) {
       throw new Error("Homarr bridge exposed a mutating tool");
     }
@@ -339,6 +349,9 @@ export async function main() {
   }
 
   const verificationOptions = { ...options };
+  verificationOptions.capabilityMode = profile.capabilityPolicy
+    ? "integration-request-policy"
+    : "read-only";
   if (options.mediaSearch) {
     const integrations = toolResultArray(await client.callTool("integration_all", {}));
     const seerr = identifySeerrIntegration(integrations);
@@ -347,7 +360,7 @@ export async function main() {
 
   const responses = await probeBridge(profile.profilePath, verificationOptions);
   validateBridgeResponses(responses, verificationOptions);
-  process.stdout.write("PASS Homarr bridge initialize, tools/list, and read-only tools/call\n");
+  process.stdout.write(`PASS Homarr bridge initialize, tools/list, and ${verificationOptions.capabilityMode} tools/call\n`);
   if (options.mediaSearch) {
     process.stdout.write("PASS Homarr Seerr media search\n");
   }

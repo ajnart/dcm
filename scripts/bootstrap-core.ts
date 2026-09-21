@@ -3,6 +3,7 @@ import {
   composeLogs,
   deriveSessionPassword,
   fieldValue,
+  LEGACY_STANDARD_USERNAME,
   loadSession,
   normalizeName,
   printSessionConnectionsSummary,
@@ -11,14 +12,17 @@ import {
   requestJson,
   setField,
   sleep,
-  STANDARD_USERNAME,
+  sessionUsername,
   tryRequest,
   validateRunId,
   writableFields,
   writeSessionConnections,
 } from "./lib/session-context.ts";
+import { pathToFileURL } from "node:url";
 
 const runId = Bun.argv[2] ?? "";
+const identitiesOnly = Bun.argv[3] === "--identities-only";
+let activeUsername = "";
 
 function loopback(port) {
   return `http://127.0.0.1:${port}`;
@@ -75,14 +79,14 @@ function qbitHeaders(baseUrl, cookie = "") {
   return headers;
 }
 
-async function qbitLogin(baseUrl, password) {
+async function qbitLogin(baseUrl, username, password) {
   const response = await tryRequest(
     `${baseUrl}/api/v2/auth/login`,
     {
       method: "POST",
       headers: qbitHeaders(baseUrl),
       body: new URLSearchParams({
-        username: STANDARD_USERNAME,
+        username,
         password,
       }),
     },
@@ -131,52 +135,72 @@ async function qbitPost(baseUrl, cookie, endpoint, values, label) {
   );
 }
 
-async function configureQbit(session, sessionPassword) {
-  const baseUrl = loopback(session.manifest.QBITTORRENT_PORT);
-  let cookie = await qbitLogin(baseUrl, sessionPassword);
-
+export async function establishQbitIdentity(options) {
+  const {
+    activeUsername: selectedUsername,
+    sessionPassword,
+    login,
+    temporaryPassword,
+    updatePreferences,
+  } = options;
+  let cookie = await login(selectedUsername, sessionPassword);
   if (cookie === "") {
-    let temporaryPassword = "";
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      temporaryPassword = latestTemporaryQbitPassword(
-        composeLogs(session, "qbittorrent"),
-      );
-      if (temporaryPassword !== "") {
-        break;
-      }
-      await sleep(500);
-    }
-
-    if (temporaryPassword === "") {
-      throw new Error("qBittorrent temporary password was not available");
-    }
-
-    cookie = await qbitLogin(baseUrl, temporaryPassword);
-    temporaryPassword = "";
+    const firstStartPassword = await temporaryPassword();
+    cookie = await login(LEGACY_STANDARD_USERNAME, firstStartPassword);
     if (cookie === "") {
       throw new Error("qBittorrent temporary login failed");
     }
   }
 
-  await qbitPost(
-    baseUrl,
-    cookie,
-    "app/setPreferences",
-    {
-      json: jsonBody({
-        save_path: "/data/torrents",
-        temp_path: "/data/torrents/incomplete",
-        temp_path_enabled: true,
-        web_ui_password: sessionPassword,
-      }),
-    },
-    "qBittorrent preference update",
-  );
-
-  cookie = await qbitLogin(baseUrl, sessionPassword);
+  await updatePreferences(cookie, {
+    web_ui_username: selectedUsername,
+    web_ui_password: sessionPassword,
+  });
+  cookie = await login(selectedUsername, sessionPassword);
   if (cookie === "") {
     throw new Error("qBittorrent standard login verification failed");
   }
+  return cookie;
+}
+
+async function configureQbit(session, sessionPassword) {
+  const baseUrl = loopback(session.manifest.QBITTORRENT_PORT);
+  const cookie = await establishQbitIdentity({
+    activeUsername,
+    sessionPassword,
+    login: (username, password) => qbitLogin(baseUrl, username, password),
+    temporaryPassword: async () => {
+      let temporaryPassword = "";
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        temporaryPassword = latestTemporaryQbitPassword(
+          composeLogs(session, "qbittorrent"),
+        );
+        if (temporaryPassword !== "") {
+          break;
+        }
+        await sleep(500);
+      }
+
+      if (temporaryPassword === "") {
+        throw new Error("qBittorrent temporary password was not available");
+      }
+      return temporaryPassword;
+    },
+    updatePreferences: async (authenticatedCookie, identityPreferences) => qbitPost(
+      baseUrl,
+      authenticatedCookie,
+      "app/setPreferences",
+      {
+        json: jsonBody({
+          save_path: "/data/torrents",
+          temp_path: "/data/torrents/incomplete",
+          temp_path_enabled: true,
+          ...identityPreferences,
+        }),
+      },
+      "qBittorrent preference update",
+    ),
+  });
 
   const categories = await requestJson(
     `${baseUrl}/api/v2/torrents/categories`,
@@ -224,7 +248,7 @@ function downloadClientPayload(
   const fields = writableFields(source);
   setField(fields, "host", "qbittorrent");
   setField(fields, "port", Number(qbitPort));
-  setField(fields, "username", STANDARD_USERNAME);
+  setField(fields, "username", activeUsername);
   setField(fields, "password", sessionPassword);
   setField(fields, categoryField, category);
 
@@ -257,7 +281,7 @@ function downloadClientPayload(
   return payload;
 }
 
-async function configureArr(session, definition, sessionPassword) {
+async function configureArr(session, definition, sessionPassword, options = {}) {
   const baseUrl = loopback(session.manifest[definition.portKey]);
   const headers = arrHeaders(session.secrets[definition.apiKey]);
   const apiRoot = `${baseUrl}/api/v3`;
@@ -271,7 +295,7 @@ async function configureArr(session, definition, sessionPassword) {
     ...hostConfig,
     authenticationMethod: "forms",
     authenticationRequired: "enabled",
-    username: STANDARD_USERNAME,
+    username: activeUsername,
     password: sessionPassword,
     passwordConfirmation: sessionPassword,
   };
@@ -287,6 +311,10 @@ async function configureArr(session, definition, sessionPassword) {
       label: `${definition.name} forms authentication update`,
     },
   );
+
+  if (options.identitiesOnly === true) {
+    return;
+  }
 
   const rootFolders = requireArray(
     await requestJson(
@@ -418,7 +446,7 @@ async function configureProwlarrAuth(session, sessionPassword) {
         ...hostConfig,
         authenticationMethod: "forms",
         authenticationRequired: "enabled",
-        username: STANDARD_USERNAME,
+        username: activeUsername,
         password: sessionPassword,
         passwordConfirmation: sessionPassword,
       }),
@@ -533,235 +561,13 @@ async function configureProwlarrApplications(session, arrDefinitions) {
   }
 }
 
-const PUBLIC_INDEXER_PREFERENCES = [
-  "internetarchive",
-  "eztv",
-  "yts",
-  "nyaasi",
-  "limetorrents",
-];
-
-function publicIndexerRank(resource) {
-  const names = [
-    normalizeName(resource.definitionName),
-    normalizeName(resource.name),
-  ];
-  for (let rank = 0; rank < PUBLIC_INDEXER_PREFERENCES.length; rank += 1) {
-    const preference = PUBLIC_INDEXER_PREFERENCES[rank];
-    if (names.some((name) => name === preference || name.includes(preference))) {
-      return rank;
-    }
-  }
-  return -1;
-}
-
-function isPublicTorrentIndexer(resource) {
-  const privacy = String(resource.privacy ?? "public").toLowerCase();
-  const protocol = String(resource.protocol ?? "torrent").toLowerCase();
-  return privacy === "public" && protocol === "torrent";
-}
-
-function supportsMoviesAndTv(resource) {
-  const categories = resource.capabilities?.categories ?? [];
-  const categoryIds = new Set();
-  for (const category of categories) {
-    categoryIds.add(Number(category.id));
-    for (const subCategory of category.subCategories ?? []) {
-      categoryIds.add(Number(subCategory.id));
-    }
-  }
-  return categoryIds.has(2000) && categoryIds.has(5000);
-}
-
-function indexerPayload(schema, appProfileId) {
-  return {
-    appProfileId,
-    enable: true,
-    name: schema.definitionName ?? schema.name,
-    priority: Number(schema.priority ?? 25),
-    protocol: schema.protocol ?? "torrent",
-    fields: writableFields(schema),
-    implementationName: schema.implementationName,
-    implementation: schema.implementation,
-    configContract: schema.configContract,
-    tags: [],
-  };
-}
-
-async function testSavedIndexer(apiRoot, headers, indexer) {
-  if (!indexer.id) {
-    return false;
-  }
-  return testPublicIndexerPayload(apiRoot, headers, indexer);
-}
-
-async function testPublicIndexerPayload(apiRoot, headers, payload) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const result = await tryRequest(
-      `${apiRoot}/indexer/test`,
-      {
-        method: "POST",
-        headers,
-        body: jsonBody(payload),
-      },
-      [200],
-    );
-    if (result.ok) {
-      return true;
-    }
-    if (attempt < 2) {
-      await sleep(1_000);
-    }
-  }
-  return false;
-}
-
-async function configurePublicIndexer(session) {
-  const baseUrl = loopback(session.manifest.PROWLARR_PORT);
-  const apiRoot = `${baseUrl}/api/v1`;
-  const headers = arrHeaders(session.secrets.PROWLARR_API_KEY);
-  const allExisting = requireArray(
-    await requestJson(
-      `${apiRoot}/indexer`,
-      { headers },
-      { label: "Prowlarr indexer list" },
-    ),
-    "Prowlarr indexer list",
-  );
-  const existing = allExisting.filter((indexer) => (
-    indexer.enable === true
-    && isPublicTorrentIndexer(indexer)
-    && supportsMoviesAndTv(indexer)
-    && publicIndexerRank(indexer) >= 0
-  ));
-  existing.sort((left, right) => publicIndexerRank(left) - publicIndexerRank(right));
-
-  for (const indexer of existing) {
-    if (await testSavedIndexer(apiRoot, headers, indexer)) {
-      return indexer;
-    }
-  }
-
-  const profiles = requireArray(
-    await requestJson(
-      `${apiRoot}/appprofile`,
-      { headers },
-      { label: "Prowlarr app-profile list" },
-    ),
-    "Prowlarr app-profile list",
-  );
-  if (!profiles[0]?.id) {
-    throw new Error("Prowlarr has no application profile");
-  }
-
-  const schemas = requireArray(
-    await requestJson(
-      `${apiRoot}/indexer/schema`,
-      { headers },
-      { label: "Prowlarr indexer schemas" },
-    ),
-    "Prowlarr indexer schemas",
-  ).filter((schema) => (
-    isPublicTorrentIndexer(schema)
-    && supportsMoviesAndTv(schema)
-    && publicIndexerRank(schema) >= 0
-  ));
-  schemas.sort((left, right) => publicIndexerRank(left) - publicIndexerRank(right));
-
-  for (const schema of schemas) {
-    const payload = indexerPayload(schema, profiles[0].id);
-    const matching = allExisting.find((indexer) => (
-      normalizeName(indexer.definitionName) === normalizeName(schema.definitionName)
-    ));
-    if (matching?.id) {
-      payload.id = matching.id;
-    }
-    if (!await testPublicIndexerPayload(apiRoot, headers, payload)) {
-      continue;
-    }
-
-    let endpoint = `${apiRoot}/indexer`;
-    let method = "POST";
-    if (matching?.id) {
-      endpoint = `${apiRoot}/indexer/${matching.id}`;
-      method = "PUT";
-    }
-    const saved = await requestJson(
-      endpoint,
-      {
-        method,
-        headers,
-        body: jsonBody(payload),
-      },
-      {
-        expectedStatuses: [200, 201, 202],
-        label: "Prowlarr public indexer save",
-      },
-    );
-    if (!await testSavedIndexer(apiRoot, headers, saved)) {
-      throw new Error("saved Prowlarr public indexer failed its test");
-    }
-    return saved;
-  }
-
-  throw new Error("no supported public indexer passed its live test");
-}
-
-function arrIndexerIsEnabled(indexer) {
-  return indexer.enableRss === true
-    && indexer.enableAutomaticSearch === true
-    && indexer.enableInteractiveSearch === true;
-}
-
-async function hasProwlarrIndexer(session, definition) {
-  const baseUrl = loopback(session.manifest[definition.portKey]);
-  const indexers = requireArray(
-    await requestJson(
-      `${baseUrl}/api/v3/indexer`,
-      { headers: arrHeaders(session.secrets[definition.apiKey]) },
-      { label: `${definition.name} indexer list` },
-    ),
-    `${definition.name} indexer list`,
-  );
-
-  return indexers.some((indexer) => (
-    arrIndexerIsEnabled(indexer)
-    && String(fieldValue(indexer, "baseUrl") ?? "")
-      .startsWith("http://prowlarr:9696")
-  ));
-}
-
-async function syncAndWait(session, arrDefinitions) {
-  const apiRoot = `${loopback(session.manifest.PROWLARR_PORT)}/api/v1`;
-  await request(
-    `${apiRoot}/command`,
-    {
-      method: "POST",
-      headers: arrHeaders(session.secrets.PROWLARR_API_KEY),
-      body: jsonBody({ name: "ApplicationIndexerSync" }),
-    },
-    {
-      expectedStatuses: [200, 201, 202, 204],
-      label: "Prowlarr application sync",
-    },
-  );
-
-  for (let attempt = 0; attempt < 90; attempt += 1) {
-    const results = await Promise.all(
-      arrDefinitions.map((definition) => hasProwlarrIndexer(session, definition)),
-    );
-    if (results.every(Boolean)) {
-      return;
-    }
-    await sleep(1_000);
-  }
-
-  throw new Error("Prowlarr indexer sync did not reach both Arr services");
-}
-
 async function main() {
+  if (Bun.argv.length > 4 || (Bun.argv[3] && !identitiesOnly)) {
+    throw new Error("usage: bootstrap-core.ts RUN_ID [--identities-only]");
+  }
   validateRunId(runId);
   let session = loadSession(runId);
+  activeUsername = sessionUsername(session);
   const sessionPassword = deriveSessionPassword(session);
   await waitForCoreServices(session);
   refreshArrKeys(runId);
@@ -793,26 +599,33 @@ async function main() {
   ];
 
   for (const definition of arrDefinitions) {
-    await configureArr(session, definition, sessionPassword);
-    console.log(`PASS ${definition.name} auth, root folder, and qBittorrent link configured`);
+    await configureArr(session, definition, sessionPassword, { identitiesOnly });
+    if (identitiesOnly) {
+      console.log(`PASS ${definition.name} forms authentication configured`);
+    } else {
+      console.log(`PASS ${definition.name} auth, root folder, and qBittorrent link configured`);
+    }
   }
 
   await configureProwlarrAuth(session, sessionPassword);
   console.log("PASS Prowlarr forms authentication configured");
 
+  if (identitiesOnly) {
+    printSessionConnectionsSummary(writeSessionConnections(runId));
+    console.log("PASS identities-only bootstrap complete; service links remain for browser setup");
+    return;
+  }
+
   await configureProwlarrApplications(session, arrDefinitions);
   console.log("PASS Prowlarr Sonarr and Radarr application tests");
-
-  await configurePublicIndexer(session);
-  console.log("PASS Prowlarr public indexer live test");
-
-  await syncAndWait(session, arrDefinitions);
-  console.log("PASS Prowlarr indexer synced to Sonarr and Radarr");
+  console.log("PENDING authorized indexer selection and downstream sync");
 
   printSessionConnectionsSummary(writeSessionConnections(runId));
 }
 
-main().catch((error) => {
-  console.error(`FAIL core bootstrap: ${error.message}`);
-  process.exitCode = 1;
-});
+if (Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
+  main().catch((error) => {
+    console.error(`FAIL core bootstrap: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

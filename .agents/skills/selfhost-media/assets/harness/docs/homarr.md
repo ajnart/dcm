@@ -11,7 +11,7 @@
 ## Minimum fresh-run path
 
 1. Open `/init` with agent-browser, start from scratch, and create the standard
-   local admin username `admin`. Fill its fresh password and confirmation refs
+   local admin username `$ADMIN_USERNAME`. Fill its fresh password and confirmation refs
    through `scripts/session.sh browser-password "$RUN_ID" @eN @eN`.
 2. Continue past Discover when it reports the intentionally absent Docker
    socket; manual setup is the isolation-safe path.
@@ -30,9 +30,10 @@
    test.
 7. Stop UI configuration after proving the generated board. In
    `/manage/tools/api`, use the **Authentication** tab to create one API key for
-   this run. Capture its one-time input through `./scripts/session.sh
-   browser-key capture "$RUN_ID" homarr @eN`; do not expose or stage it.
-8. Run `./scripts/session.sh homarr-finalize "$RUN_ID"`,
+   this run. After the key appears beside **Copy API key**, capture its one-time
+   code privately through `./scripts/session.sh browser-key capture-code
+   "$RUN_ID" homarr`; do not copy it to the clipboard, expose it, or stage it.
+8. Run `./scripts/session.sh homarr-finalize "$RUN_ID" "$BOARD_NAME"`,
    `./scripts/session.sh mcp-config "$RUN_ID"`, and
    `./scripts/session.sh mcp-verify "$RUN_ID"` in that order. The finalizer
    changes only the six generated apps to host-reachable primary links while
@@ -54,19 +55,33 @@ rechecked on 2026-09-07:
 
 | Service | Host-browser path | Browser action |
 | --- | --- | --- |
-| Sonarr | `/settings/general` | capture the API-key ref, then fill Homarr |
-| Radarr | `/settings/general` | capture the API-key ref, then fill Homarr |
-| Prowlarr | `/settings/general` | capture the API-key ref, then fill Homarr |
+| Sonarr | `/settings/general` | capture the fixed readonly API-key field, then fill Homarr |
+| Radarr | `/settings/general` | capture the fixed readonly API-key field, then fill Homarr |
+| Prowlarr | `/settings/general` | capture the fixed readonly API-key field, then fill Homarr |
 | Seerr | `/settings` | capture the API-key ref, then fill Homarr |
 | qBittorrent | `/#/settings/webui` | reference only; Homarr uses the managed login |
 | Jellyfin | `/web/index.html#!/dashboard/keys` | reference only; Homarr uses the managed login |
-| Homarr | `/manage/tools/api`, then **Authentication** | capture the one-time API-key ref |
+| Homarr | `/init`, then **Extend** → **MCP** | create the key, then use `capture-code` on the one-time code beside **Copy API key** |
 
-For each Arr or Seerr service, navigate with agent-browser, snapshot, and use
-the fresh API-key input ref:
+For Sonarr, Radarr, and Prowlarr, navigate directly to `/settings/general` and
+capture the fixed readonly field without a snapshot or ref:
 
 ```bash
-scripts/session.sh browser-key capture "$RUN_ID" SERVICE @eN
+scripts/session.sh browser-key capture-field "$RUN_ID" SERVICE
+```
+
+For Seerr, navigate directly to settings and obtain a fresh input ref with
+`scripts/session.sh browser-key refs "$RUN_ID" seerr`.
+This privately snapshots the page and prints only the single API-key field ref. Capture the DOM input
+value through the private helper; do not click Copy (clipboard APIs can fail on
+HTTP). Do not print `get value` directly or inspect full authenticated HTML.
+If the field is absent, check the current page and Show Advanced once, then
+refresh refs instead of retrying a stale selector:
+
+
+```bash
+scripts/session.sh browser-key capture "$RUN_ID" seerr @eN
+scripts/session.sh browser-key capture-code "$RUN_ID" homarr
 ```
 
 This proves that the UI value matches the run's managed key. Return to Homarr,

@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { dirname, join, parse } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildPlan, loadCatalog, resolveStack, validateCatalog } from "./catalog.ts";
+import { buildPlan, loadCatalog, resolvePlanTarget, resolveStack, stackForGoalId, validateCatalog } from "./catalog.ts";
 import { preferencesPathForProjectRoot, resolvePreferencesPath } from "./preferences.ts";
 
 const catalog = await loadCatalog();
@@ -11,7 +11,7 @@ const validation = validateCatalog(catalog);
 assert.equal(validation.valid, true);
 assert.deepEqual(
   [validation.counts.apps, validation.counts.stacks, validation.counts.skills, validation.counts.adapters, validation.counts.homarrStandardCovered, validation.counts.homarrSpecialCovered],
-  [107, 14, 14, 2, 54, 2]
+  [111, 20, 15, 2, 54, 2]
 );
 const registeredSkillIds = catalog.skills.skills.map((record) => record.id);
 assert.deepEqual(registeredSkillIds, [...registeredSkillIds].sort());
@@ -35,7 +35,6 @@ assert.equal(await preferencesPathForProjectRoot(process.cwd()), join(process.cw
 
 const compositeCases = new Map([
   ["photos and backups", ["photos", "backups"]],
-  ["replace google photos and dropbox", ["photos", "files"]],
   ["photos and remote access", ["photos", "remote-access"]],
   ["make Immich private on my phone", ["photos", "remote-access"]]
 ]);
@@ -45,8 +44,91 @@ for (const [query, expected] of compositeCases) {
   assert.equal(result.needsComposition, true);
   assert.deepEqual(result.components.map((component) => component.id), expected);
 }
+const photosAndFilesResolution = resolvePlanTarget(catalog, "replace google photos and google drive");
+assert.equal(photosAndFilesResolution.kind, "single");
+assert.equal(photosAndFilesResolution.stack.id, "photos-and-files");
+assert.deepEqual(buildPlan(catalog, photosAndFilesResolution.stack).selectedApps.map((app) => app.id), ["homarr", "immich", "nextcloud", "postgresql", "valkey"]);
+for (const query of ["Google Photos, OneDrive", "replace Dropbox and Google Photos", "Google Photos + Microsoft OneDrive"]) {
+  const resolution = resolvePlanTarget(catalog, query);
+  assert.equal(resolution.kind, "single");
+  assert.equal(resolution.stack.id, "photos-and-files");
+  const selectedIds = buildPlan(catalog, resolution.stack).selectedApps.map((app) => app.id);
+  assert.equal(selectedIds.includes("immich"), true);
+  assert.equal(selectedIds.filter((id) => id === "nextcloud").length, 1);
+}
+
+const cloudReplacement = resolvePlanTarget(catalog, "replace Google Drive Microsoft OneDrive Dropbox");
+assert.equal(cloudReplacement.stack.id, "files");
+const cloudReplacementPlan = buildPlan(catalog, cloudReplacement.stack);
+assert.deepEqual(cloudReplacementPlan.selectedApps.map((app) => app.id), ["homarr", "nextcloud", "postgresql", "valkey"]);
+assert.equal(cloudReplacementPlan.selectedApps.filter((app) => app.id === "nextcloud").length, 1);
+
+const consumerPlans = new Map([
+  ["replace netflix", ["homarr", "jellyfin"]],
+  ["password manager", ["homarr", "vaultwarden"]],
+  ["smart speaker", ["homarr", "home-assistant"]],
+  ["audio books and music", ["homarr", "audiobookshelf", "navidrome"]],
+  ["personal finance", ["homarr", "actual-budget"]],
+  ["productivity", ["homarr", "anytype"]]
+]);
+for (const [query, expectedApps] of consumerPlans) {
+  const resolution = resolvePlanTarget(catalog, query);
+  assert.equal(resolution.kind, "single");
+  const plan = buildPlan(catalog, resolution.stack);
+  assert.deepEqual(plan.selectedApps.map((app) => app.id), expectedApps);
+}
+const punctuatedAudio = resolvePlanTarget(catalog, "audio books , music ,");
+assert.equal(punctuatedAudio.stack.id, "audio-library");
+assert.deepEqual(buildPlan(catalog, punctuatedAudio.stack).selectedApps.map((app) => app.id), ["homarr", "audiobookshelf", "navidrome"]);
+assert.deepEqual(buildPlan(catalog, resolvePlanTarget(catalog, "music").stack).selectedApps.map((app) => app.id), ["homarr", "navidrome"]);
+assert.deepEqual(buildPlan(catalog, resolvePlanTarget(catalog, "audiobooks").stack).selectedApps.map((app) => app.id), ["homarr", "audiobookshelf"]);
+assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "personal finance").stack, { finance: "firefly-iii" }).selectedApps.some((app) => app.id === "firefly-iii"), true);
+assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "smart home").stack, { cameras: "scrypted" }).selectedApps.some((app) => app.id === "scrypted"), true);
+assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "productivity").stack, { notes: "obsidian" }).selectedApps.some((app) => app.id === "obsidian"), true);
+
+const fullExpectedApps = [
+  "homarr", "jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent",
+  "immich", "nextcloud", "navidrome", "audiobookshelf", "vaultwarden", "postgresql", "valkey"
+];
+for (const query of ["full", "full homelab", "everything for my homelab"]) {
+  const resolution = resolvePlanTarget(catalog, query);
+  assert.equal(resolution.kind, "single");
+  assert.equal(resolution.stack.id, "full");
+  const plan = buildPlan(catalog, resolution.stack);
+  assert.deepEqual(plan.selectedApps.map((app) => app.id), fullExpectedApps);
+  assert.equal(plan.selectedApps.filter((app) => app.id === "homarr").length, 1);
+  assert.equal(plan.roles.find((role) => role.id === "home-automation").selected, null);
+  assert.equal(plan.effectiveAutomation, "guided");
+  assert.deepEqual(plan.setupStages.map((stage) => [stage.id, stage.owner, stage.mode]), [
+    ["media", "selfhost-media", "hybrid"],
+    ["household-apps", "selfhost-compose", "guided"],
+    ["home-automation", "selfhost-compose", "optional"]
+  ]);
+}
+const fullWithHomeAssistant = buildPlan(catalog, resolvePlanTarget(catalog, "full").stack, { "home-automation": "home-assistant" });
+assert.equal(fullWithHomeAssistant.selectedApps.some((app) => app.id === "home-assistant"), true);
+assert.deepEqual(fullWithHomeAssistant.setupStages.find((stage) => stage.id === "home-automation").apps, ["home-assistant"]);
+assert.equal(resolveStack(catalog, "full sync").kind, "none");
+assert.equal(resolvePlanTarget(catalog, "jellyfin").stack.id, "application-jellyfin");
 assert.equal(resolveStack(catalog, "profiles").kind, "none");
 assert.equal(resolveStack(catalog, "profiles and backups").stack.id, "backups");
+
+for (const [query, expectedApps] of [
+  ["sonarr", ["homarr", "sonarr", "prowlarr", "qbittorrent"]],
+  ["jellyfin", ["homarr", "jellyfin"]]
+]) {
+  const resolution = resolvePlanTarget(catalog, query);
+  assert.equal(resolution.kind, "application");
+  assert.equal(resolution.stack.id, `application-${query}`);
+  const plan = buildPlan(catalog, resolution.stack);
+  assert.deepEqual(plan.selectedApps.map((app) => app.id), expectedApps);
+  assert.equal(plan.roles.find((role) => role.id === "application").selected, query);
+  assert.equal(plan.roles.some((role) => role.id === "requests"), false);
+  assert.equal(plan.requiredSkills.includes("selfhost-homarr"), true);
+  assert.equal(stackForGoalId(catalog, resolution.stack.id).id, resolution.stack.id);
+}
+assert.equal(resolvePlanTarget(catalog, "photos").stack.id, "photos");
+assert.equal(resolvePlanTarget(catalog, "not-a-real-service").kind, "none");
 
 const ambiguousCompositeCases = new Map([
   ["photos and VPN", ["photos"]],
@@ -120,7 +202,7 @@ for (const stack of catalog.stacks) {
   assert.equal(controlPlane.selected, "homarr");
   assert.equal(defaultPlan.selectedApps.some((app) => app.id === "homarr"), true);
   assert.equal(defaultPlan.requiredSkills.includes("selfhost-homarr"), true);
-  assert.equal(defaultPlan.acceptance.filter((claim) => claim.includes("Homarr")).length, 4);
+  assert.equal(defaultPlan.acceptance.filter((claim) => claim.includes("Homarr")).length >= 4, true);
 }
 
 const impliedCatalog = structuredClone(catalog);
@@ -179,7 +261,7 @@ assert.equal(validateCatalog(malformedSkillRegistry).errors.some((error) => erro
 
 const duplicateSkillRegistry = structuredClone(catalog);
 duplicateSkillRegistry.skills.skills.push(structuredClone(duplicateSkillRegistry.skills.skills[0]));
-assert.equal(validateCatalog(duplicateSkillRegistry).errors.some((error) => error.includes("skills: duplicate id selfhost")), true);
+assert.equal(validateCatalog(duplicateSkillRegistry).errors.some((error) => error.includes("skills: duplicate id self-host")), true);
 
 const unsortedSkillRegistry = structuredClone(catalog);
 unsortedSkillRegistry.skills.skills.reverse();

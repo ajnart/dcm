@@ -20,7 +20,7 @@
         "additionalProperties": false,
         "required": ["id", "kind", "scope", "risk", "activation", "delegatesTo", "install"],
         "properties": {
-          "id": {"type": "string", "pattern": "^selfhost(?:-[a-z0-9]+)*$"},
+          "id": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"},
           "kind": {"enum": ["router", "capability", "adapter", "workflow"]},
           "scope": {"enum": ["application", "stack", null]},
           "risk": {"enum": ["read-only", "approval-gated-write"]},
@@ -28,7 +28,7 @@
           "delegatesTo": {
             "type": "array",
             "uniqueItems": true,
-            "items": {"type": "string", "pattern": "^selfhost(?:-[a-z0-9]+)*$"}
+            "items": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"}
           },
           "install": {
             "type": "object",
@@ -39,7 +39,7 @@
               "requires": {
                 "type": "array",
                 "uniqueItems": true,
-                "items": {"type": "string", "pattern": "^selfhost(?:-[a-z0-9]+)*$"}
+                "items": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"}
               }
             }
           }

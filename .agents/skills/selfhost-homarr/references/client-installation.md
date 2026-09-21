@@ -18,6 +18,8 @@ The left side retrieves the key once from the live page without a screenshot, cl
 
 For rotation, use the same single pipeline with `rotate-key` on the right.
 
+For an existing media-harness key file, use the exact owner handoff in [media-profile-handoff.md](media-profile-handoff.md). `import-media-key` consumes the complete one-line file on stdin and never prints its value.
+
 ## Fragment generation and merge gate
 
 The generator writes one no-clobber fragment under the profile's private `client-fragments` directory:
@@ -29,7 +31,7 @@ The generator writes one no-clobber fragment under the profile's private `client
 | `generic-json` | `generic.json` | named stdio JSON object |
 | `generic-toml` | `generic.toml` | named stdio TOML object |
 
-Each fragment points to the strictly read-only bridge and contains only the absolute Node executable, this skill's absolute bridge path, and the non-secret profile path. It contains no URL, credential, credential-file path, credential environment-variable name, or mutation enablement.
+Each fragment points to the bridge and contains only the absolute Node executable, this skill's absolute bridge path, and the non-secret profile path. It contains no URL, credential, or credential-file path. Profiles without an integration policy remain strictly read-only. A policy-enabled fragment adds `-integration-request` to its MCP server name so the merge diff exposes the capability. The policy must be selected and reviewed before fragment generation; use a separate profile and installation approval for that capability.
 
 Fragment generation does not authorize installation. Before touching a real client config:
 

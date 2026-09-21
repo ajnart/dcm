@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "selfhost-skills",
   "version": "1.0.0",
-  "description": "Plan and operate private self-hosted services through composable, safety-gated skills.",
+  "description": "Plan, install, and maintain private services from one self-host entry point.",
   "author": {
     "name": "ajnart",
     "url": "https://github.com/ajnart"

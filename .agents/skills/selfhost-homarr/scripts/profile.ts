@@ -3,8 +3,10 @@
 import {
   doctorProfile,
   initializeProfile,
+  storeCapabilityPolicy,
   storeApiKey,
   validateApiKey,
+  validateMediaKeyEnvelope,
 } from "./lib/profile.ts";
 
 const MAX_STDIN_BYTES = 2 * 1024 + 2;
@@ -32,6 +34,39 @@ async function keyFromStdin() {
     throw new Error("Homarr API key input must be one line");
   }
   return validateApiKey(value);
+}
+
+async function mediaKeyFileFromStdin() {
+  if (process.stdin.isTTY) {
+    throw new Error("media Homarr key file must arrive on stdin");
+  }
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    size += chunk.byteLength;
+    if (size > MAX_STDIN_BYTES + 32) {
+      throw new Error("media Homarr key input is too large");
+    }
+    chunks.push(chunk);
+  }
+  const encoded = Buffer.concat(chunks).toString("utf8");
+  return validateMediaKeyEnvelope(encoded);
+}
+
+async function jsonFromStdin() {
+  if (process.stdin.isTTY) {
+    throw new Error("integration policy must arrive on stdin");
+  }
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    size += chunk.byteLength;
+    if (size > 16 * 1024) {
+      throw new Error("integration policy input is too large");
+    }
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
 function parseInit(args) {
@@ -76,6 +111,14 @@ async function main() {
     process.stdout.write("PASS Homarr API key stored\n");
     return;
   }
+  if (command === "import-media-key") {
+    if (args.length !== 1) {
+      throw new Error("profile path is required");
+    }
+    storeApiKey(args[0], await mediaKeyFileFromStdin());
+    process.stdout.write("PASS Homarr media key imported\n");
+    return;
+  }
   if (command === "doctor") {
     if (args.length !== 1) {
       throw new Error("profile path is required");
@@ -85,6 +128,14 @@ async function main() {
     process.stdout.write("PASS Homarr profile config\n");
     process.stdout.write("PASS Homarr private credential\n");
     process.stdout.write("PASS Homarr profile doctor\n");
+    return;
+  }
+  if (command === "set-integration-policy") {
+    if (args.length !== 1) {
+      throw new Error("profile path is required");
+    }
+    storeCapabilityPolicy(args[0], await jsonFromStdin());
+    process.stdout.write("PASS Homarr integration-request policy stored\n");
     return;
   }
   throw new Error("unknown profile command");

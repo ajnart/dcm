@@ -17,8 +17,9 @@ independently operable when Homarr is temporarily unavailable.
 ## Contract
 
 - Keep app tiles, integrations, and widgets as separate resources and acceptance claims.
-- Use `ghcr.io/homarr-labs/homarr-test:v2` when the requested image policy applies.
-- Keep the default bridge, generated client fragments, integration plan, and verifier strictly read-only. The bridge hides and rejects every known mutating tool.
+- Use `ghcr.io/homarr-labs/homarr-test:v2` for every new Homarr setup in this
+  pack until the project changes its image policy.
+- Keep the default bridge, generated client fragments, integration plan, and verifier strictly read-only. An explicitly selected profile may expose only policy-constrained authenticated integration requests under [api-and-mcp.md](references/api-and-mcp.md); every other mutating tool stays hidden.
 - A remote-access plan may expose Homarr's dashboard and consumer apps such as Jellyfin while keeping Sonarr, Radarr, Prowlarr, qBittorrent, and native `/api/mcp` access private. Delegate every public route to `selfhost-ingress`; selecting Homarr is not exposure approval.
 - For `add Spider-Man` or equivalent mutation wording, search the one configured Seerr integration, present exact matches, and stop pending confirmation. After confirmation, report that the mutation path is intentionally unavailable; never claim a request was submitted.
 - Merge a generated client fragment only after the user supplies the exact approval `INSTALL-MCP:<profile>`. Fragment generation is not installation.
@@ -42,15 +43,16 @@ independently operable when Homarr is temporarily unavailable.
 7. Run `verify-homarr.ts <absolute-profile-path>`. Add `--media-search` for the read-only default search `Spider-Man: No Way Home`, or append a different title. Require one usable Seerr integration and an exact structured result.
 8. Read [safety-and-acceptance.md](references/safety-and-acceptance.md) and report only the PASS lines actually observed. Keep compatibility and curated-catalog fallback modes explicit.
 
+For a media-harness key already captured in its private run, follow [media-profile-handoff.md](references/media-profile-handoff.md). The setup orchestrator transfers the existing key file to owner stdin; neither capability imports the other's runtime code.
+
 ## Planning utility
 
 Run `integration-plan.ts <selection.json|-> [--coverage <catalog-homarr.json|-> | --mapping <mapping.json>]`. Prefer the direct catalog coverage handoff; the utility never imports sibling catalogs. See the onboarding reference for schemas and provenance.
 
 ## Client bridge
 
-Start `homarr-mcp-bridge.ts` with exactly one argument: the absolute profile path. The bridge privately loads the key, prefers canonical `/api/mcp`, and exposes a read-only projection of a valid native catalog. It tries compatibility only after a definitive canonical 404/405 and uses the curated fallback only for exact RPC `-32603` message `Date cannot be represented in JSON Schema`.
+Start `homarr-mcp-bridge.ts` with exactly one argument: the absolute profile path. The bridge privately loads the key and prefers canonical `/api/mcp`. By default it exposes a read-only projection. A profile policy may additionally expose native `integration_request` through exact service, method, and route rules. It tries compatibility only after a definitive canonical 404/405 and uses the curated fallback only for exact RPC `-32603` message `Date cannot be represented in JSON Schema`.
 
-This bridge is the current shipped agent gateway, but it is not a write proxy.
-Inspection and Seerr search are available; requests, approvals, and connected-
-app configuration are not. Any future write capability needs its own narrow
-authorization, tool allowlist, confirmation, and acceptance evidence.
+The bridge is not a general write proxy. Policy mode does not expose app,
+request-decision, or media-request mutation tools and does not bypass Homarr's
+full-access check or DELETE confirmation.

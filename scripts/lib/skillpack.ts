@@ -263,7 +263,7 @@ export async function discoverSkills() {
   const entries = await readdir(skillsRoot, { withFileTypes: true });
   const skills = [];
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-    if (!entry.isDirectory() || !entry.name.startsWith("selfhost")) {
+    if (!entry.isDirectory() || (entry.name !== "self-host" && !entry.name.startsWith("selfhost"))) {
       continue;
     }
     const root = join(skillsRoot, entry.name);
@@ -321,7 +321,7 @@ function validateRegistryShape(registry, skillIds) {
       errors.push(`Skill registry record ${record.id || "<unknown>"} has unsupported keys`);
       continue;
     }
-    if (typeof record.id !== "string" || !/^selfhost(?:-[a-z0-9]+)*$/.test(record.id)) {
+    if (typeof record.id !== "string" || !/^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(record.id)) {
       errors.push("Skill registry contains an invalid id");
       continue;
     }

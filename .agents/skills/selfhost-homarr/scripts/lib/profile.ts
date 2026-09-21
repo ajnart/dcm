@@ -27,11 +27,18 @@ import {
 
 const CONFIG_FILE = "profile.json";
 const KEY_FILE = ".credential";
+const CAPABILITY_FILE = "integration-policy.json";
 const MAX_CONFIG_BYTES = 16 * 1024;
 const MAX_KEY_BYTES = 2 * 1024;
 const PROFILE_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const CONFIG_FIELDS = new Set(["schemaVersion", "profile", "baseUrl", "mcpPath"]);
 const SECRET_FIELD_PATTERN = /(api.?key|authorization|credential|password|private.?key|secret|token)/i;
+const INTEGRATION_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+const INTEGRATION_REQUEST_SERVICES = new Set([
+  "sonarr", "radarr", "lidarr", "readarr", "prowlarr", "overseerr", "jellyseerr", "seerr",
+  "immich", "slskd", "homeassistant", "coolify", "audiobookshelf", "speedtesttracker",
+  "adguardhome", "nextcloud",
+]);
 
 function isRecord(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -383,6 +390,17 @@ export function validateApiKey(value) {
   return value;
 }
 
+export function validateMediaKeyEnvelope(value) {
+  if (typeof value !== "string") {
+    throw new Error("media Homarr key input is invalid");
+  }
+  const match = value.match(/^HOMARR_API_KEY=([^\r\n]+)\r?\n$/);
+  if (!match) {
+    throw new Error("media Homarr key input is invalid");
+  }
+  return validateApiKey(match[1]);
+}
+
 export function loadProfile(profilePath, options = {}) {
   const inspected = inspectProfilePath(profilePath);
   const configPath = join(inspected.profilePath, CONFIG_FILE);
@@ -408,7 +426,79 @@ export function loadProfile(profilePath, options = {}) {
     }
     loaded.apiKey = validateApiKey(encoded.slice(0, -1));
   }
+  const capabilityPath = join(inspected.profilePath, CAPABILITY_FILE);
+  if (existsSync(capabilityPath)) {
+    assertPrivateFile(capabilityPath, inspected.profilePath, MAX_CONFIG_BYTES, "integration policy");
+    let capability;
+    try {
+      capability = JSON.parse(readFileSync(capabilityPath, "utf8"));
+    } catch {
+      throw new Error("integration policy is invalid JSON");
+    }
+    loaded.capabilityPolicy = validateCapabilityPolicy(capability);
+  }
   return loaded;
+}
+
+export function validateCapabilityPolicy(value) {
+  rejectSecretFields(value);
+  if (value.schemaVersion !== 1 || value.mode !== "integration-request" || !Array.isArray(value.rules)) {
+    throw new Error("integration policy is invalid");
+  }
+  if (value.rules.length < 1 || value.rules.length > 32) {
+    throw new Error("integration policy rules are invalid");
+  }
+  const rules = value.rules.map((rule) => {
+    rejectSecretFields(rule);
+    const keys = Object.keys(rule);
+    const expected = new Set(["integrationId", "service", "methods", "paths"]);
+    if (keys.length !== expected.size || keys.some((key) => !expected.has(key))) {
+      throw new Error("integration policy rule fields are invalid");
+    }
+    if (typeof rule.integrationId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(rule.integrationId)) {
+      throw new Error("integration policy integration is invalid");
+    }
+    if (typeof rule.service !== "string" || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(rule.service)) {
+      throw new Error("integration policy service is invalid");
+    }
+    const service = rule.service.toLowerCase();
+    if (!INTEGRATION_REQUEST_SERVICES.has(service)) {
+      throw new Error("integration policy service is unsupported");
+    }
+    if (!Array.isArray(rule.methods) || rule.methods.length < 1 || rule.methods.length > 5
+      || rule.methods.some((method) => !INTEGRATION_METHODS.has(method))) {
+      throw new Error("integration policy methods are invalid");
+    }
+    if (!Array.isArray(rule.paths) || rule.paths.length < 1 || rule.paths.length > 32) {
+      throw new Error("integration policy paths are invalid");
+    }
+    for (const path of rule.paths) {
+      if (typeof path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,1023}$/.test(path)
+        || path.includes("..") || path.includes("//")) {
+        throw new Error("integration policy path is invalid");
+      }
+    }
+    return {
+      integrationId: rule.integrationId,
+      service,
+      methods: [...new Set(rule.methods)],
+      paths: [...new Set(rule.paths)],
+    };
+  });
+  return { schemaVersion: 1, mode: "integration-request", rules };
+}
+
+export function storeCapabilityPolicy(profilePath, policy) {
+  const loaded = loadProfile(profilePath);
+  if (existsSync(join(loaded.profilePath, "client-fragments"))) {
+    throw new Error("integration policy must be selected before fragment generation");
+  }
+  const validated = validateCapabilityPolicy(policy);
+  atomicWritePrivate(
+    join(loaded.profilePath, CAPABILITY_FILE),
+    `${JSON.stringify(validated, null, 2)}\n`,
+    { maxBytes: MAX_CONFIG_BYTES },
+  );
 }
 
 export function storeApiKey(profilePath, apiKey, options = {}) {

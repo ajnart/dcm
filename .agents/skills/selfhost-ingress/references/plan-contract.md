@@ -50,7 +50,37 @@
 }
 ```
 
-Supported routes are `local`, `lan`, `tailscale-serve`, `headscale`, `reverse-proxy`, `cloudflare-tunnel`, `pangolin-newt`, and `ngrok`. An absent route becomes `local`.
+Supported routes are `local`, `lan`, `caddy-private`, `tailscale-serve`, `headscale`, `reverse-proxy`, `cloudflare-tunnel`, `pangolin-newt`, and `ngrok`. An absent route becomes `local`.
+
+`caddy-private` plans private HTTPS without granting public exposure. It requires `service.internalPort`, a valid `preferences.hostname`, `preferences.clientTrustPlanned: true`, and:
+
+```json
+{
+  "facts": {
+    "privateDns": {"hostname":"photos.home.arpa","owner":"home-dns","resolvesToPrivateAddress":true},
+    "ownership": {"ports":[{"port":443,"owner":"home-stack"}]}
+  },
+  "preferences": {
+    "route":"caddy-private",
+    "hostname":"photos.home.arpa",
+    "clientTrustPlanned":true,
+    "caddy": {
+      "owner":"home-stack",
+      "runtime":"container",
+      "upstreamHost":"photos",
+      "clientScope":"lan",
+      "hostBindAddress":"192.168.1.10",
+      "httpsPort":443,
+      "configPath":"/srv/home-stack/caddy/config",
+      "dataPath":"/srv/home-stack/caddy/data"
+    }
+  }
+}
+```
+
+Container Caddy requires a Docker DNS service name and rejects `localhost`; host Caddy requires `127.0.0.1` as its backend. `clientScope` is `host-only` with a loopback `hostBindAddress`, or `lan` with one explicit RFC1918/ULA address. Wildcard and public binds are rejected. `httpsPort` is optional and defaults to 443; it must be 1–65535 and have exactly one observed owner matching the Caddy lifecycle owner. The plan records its exact private URL and resource ownership. Host Caddy emits a `bind` directive. Both runtimes disable automatic HTTP redirects so no port-80 listener is assumed. Container Caddy records the same address as `route.caddy.composePublishAddress`, which `selfhost-compose` must use for the published HTTPS port. Private DNS is not exposure control. Config and certificate data paths must be distinct, absolute, and persistent. The plan forbids a Docker socket mount. Render one passing private plan with `bun scripts/render-caddyfile.ts --input plan.json`, or compatible plans into one Caddyfile with `bun scripts/render-caddyfile.ts --inputs homarr.json jellyfin.json`. Aggregation requires the same owner, runtime, private bind, config path, data path, and HTTPS port, plus unique hostnames. The renderer emits one global options block, writes to stdout, and does not deploy. The generated `tls internal` configuration requires clients to trust Caddy's local CA root. It supplies transport encryption, not user authentication. Delegate Compose rendering and apply to `selfhost-compose`.
+
+For Nextcloud, Immich, Jellyfin, Vaultwarden, and Homarr, `route.applicationRequirements` carries the required application-owned handoff and live checks from [application-profiles.md](application-profiles.md). The renderer deliberately emits a root-host proxy only. It never invents application subpaths or claims those settings and checks are complete.
 
 Service classes `admin`, `database`, `queue`, `arr`, `downloader`, `qbittorrent`, `docker-api`, `docker-socket`, and `identity-admin` cannot use a public route. `application` is the general user-facing class.
 

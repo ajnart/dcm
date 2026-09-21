@@ -10,18 +10,16 @@ metadata:
 
 # Selfhost setup
 
-Activation gate: proceed only when the current user request explicitly invokes
-`selfhost-setup` or asks to set up or change a self-hosted stack. Otherwise
-return read-only guidance. Continue an authorized setup until it is verified or
-a concrete blocker prevents the next safe action.
+Activation gate: proceed for explicit `selfhost-setup`, `self-host` setup
+intent, or a request to change a self-hosted stack. Continue until verified or
+concretely blocked.
 
 ## Workflow
 
 1. Read [install-profiles.json](references/install-profiles.json). Explain the
-   selected base, packs, and extensions in plain language. `basic` is always
-   the eight-skill setup/upkeep and Homarr base. Every pack or extension extends `basic`;
-   multiple selections form a union and never select another optional profile.
-   Use `basic` alone unless the user explicitly chooses more.
+   selection plainly. Start with `basic`; add only selected packs/extensions.
+   Their union retains basic setup, upkeep, and Homarr support without silently
+   selecting other optional profiles.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
    scripts/stack.ts prerequisites` with every selected `--profile`, the active
    client ID, and the intended project/global scope. Project scope also
@@ -36,9 +34,9 @@ a concrete blocker prevents the next safe action.
    the official `agent-browser` skill, runtime, and browser through this flow.
 3. Run `agent-browser skills get core` after the browser check passes. Treat
    that live workflow as authoritative for browser commands.
-4. Invoke `selfhost` to resolve the goal and choices. Invoke `selfhost-host` for
-   fresh facts. Record confirmed intent with `selfhost state init`; show the
-   exact private-first plan and resolve ownership, paths, ports, and gates.
+4. Resolve choices with `selfhost`. Ask once for the username; the adapter
+   generates its password. Inspect with `selfhost-host`, record `selfhost state
+   init`, and resolve ownership, paths, ports, and private access.
 5. After the user approves the exact apply, initialize `.selfhost/stack.json`
    with `bun scripts/stack.ts init`. Read [lifecycle.md](references/lifecycle.md)
    for the metadata contract and checkpoint rules. Record every selected
@@ -47,36 +45,41 @@ a concrete blocker prevents the next safe action.
    consuming extension to each service it actually affects with repeated
    `--consume PROFILE=SERVICE`. For media, reserve the one run ID that the
    adapter will create in the next step.
-6. Delegate mutation to the selected owner. Every stack invokes
+6. Delegate mutation to the selected owner. For `full`, execute the stages in
+   [lifecycle.md](references/lifecycle.md#full-stack-stages) and reuse one Homarr.
+   Every stack invokes
    `selfhost-homarr` after its underlying services are ready, then uses
    agent-browser for onboarding, selected app links and integrations, private
    API-key capture, and UI evidence. The `media` pack instead invokes
    `selfhost-media`, which owns the complete embedded Homarr flow: install its
    harness into this exact project, create the exact recorded run, navigate the
-   checked service settings paths, capture fresh API-key refs through the
-   adapter's secret-safe helper, fill Homarr directly, and verify all seven
+   checked service settings paths, capture keys through the adapter's checked direct-field or reference
+   helper, fill Homarr directly, and verify all seven
    services. Never deploy a second Homarr for media. Use deterministic API
    setup where the adapter supports it; never copy a key through chat,
    clipboard files, visible shell output, or command arguments.
 7. Record `planned`, `applied`, and `verified` checkpoints only after their
    evidence exists. For media, store URLs, usernames, and API keys in the
-   adapter-owned mode-`0600` `connections.env`; keep the initial admin password
-   out of every file. Other adapters report only their documented private
-   profile and handoff paths.
-8. For initial media setup, end with the adapter's `handoff` command. Tell the
-   user the displayed `admin` username and generated password, plus the stack
-   metadata and connection-file paths. Do not retain the password or hide it
-   behind a reveal command. Other stacks use only their owning adapter's
-   documented credential handoff and never invent a generated password.
+   adapter-owned mode-`0600` `connections.env`, which stays password-free.
+   Other adapters report only their documented private profile and handoff paths.
+8. If saved media credentials were requested, run the adapter's `handoff`:
+   `.sessions/<run>/artifacts/private-handoff.json` (0600) contains the generated
+   password, usernames, available API keys, URLs and storage paths. Return only
+   its path and the separate redacted report. Never print its contents. For
+   `full`, follow [the combined handoff](references/household/full-handoff.md)
+   after binding the household credentials; its partial status must stay visible
+   until every selected service is accepted. Other stacks use their owning
+   adapter's documented private handoff.
 
 ## Commands
 
-Resolve this skill directory and use absolute script paths in real runs.
+Use absolute skill script paths in real runs.
 
 ```text
 bun scripts/stack.ts profiles [--json]
 bun scripts/stack.ts prerequisites --profile basic [--profile media] --agent ID --scope project|global [--project-root ABSOLUTE] [--verify-browser] [--json]
 bun scripts/stack.ts init --project-root ABSOLUTE --profile basic [--profile media] [--adapter selfhost-media --run-id ID] [--service ID=OWNER_SKILL] [--consume PROFILE=SERVICE] [--json]
+bun scripts/stack.ts bind-household --project-root ABSOLUTE --run-id ID [--json]
 bun scripts/stack.ts show --project-root ABSOLUTE [--json]
 bun scripts/stack.ts resume --project-root ABSOLUTE [--json]
 bun scripts/stack.ts checkpoint --project-root ABSOLUTE --stage planned|applied|verified [--evidence TYPE:ID] [--json]
@@ -88,5 +91,5 @@ bun scripts/stack.ts extend --project-root ABSOLUTE --profile PROFILE \
 Completion requires a passing prerequisite check, recorded selection, explicit
 apply approval, direct acceptance evidence for every selected service and
 Homarr, and a verified stack checkpoint. Media additionally requires
-password-free connection storage and the generated admin password delivered to
-the user during the final handoff.
+password-free connection storage and, when requested, the owner-only private
+credential export with its path delivered to the user.

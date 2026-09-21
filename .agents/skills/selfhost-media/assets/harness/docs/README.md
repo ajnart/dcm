@@ -4,10 +4,11 @@ These are the short operational references for intentional setup sessions. Read 
 service note before configuring that service; the root-level historical guides
 are evidence from an older, non-isolated run and may have stale ports or UI refs.
 
-Compose port mappings omit a host IP and provide service-specific fallback
-ports. Session-created runs still assign collision-free ports. Docker may
-publish them on every host interface, so keep the host behind a trusted LAN or
-firewall; this harness does not configure public ingress or authentication.
+Compose publishes assigned collision-free ports on `127.0.0.1` by default. Use
+the local host URLs or an explicitly selected private access route. See
+[headless and remote access](headless-access.md) for the bounded Homarr wildcard
+option, SSH forwarding, and private Caddy routes. Public ingress is a separate
+decision.
 
 Before any browser command:
 
@@ -33,24 +34,26 @@ owns that prerequisite. The password helper first tries the direct executable
 and retries through `bunx --bun agent-browser` only when direct launch fails
 with `ENOENT`; it never retries a launched nonzero browser action.
 
-The local username is `admin`. The harness derives a bounded password from each
-run's encryption key without reusing the key itself. The password is never
-persisted in a handoff file. After bootstrap it stores the resolved URLs,
+Ask once for the admin username before `create RUN_ID USERNAME`; reuse the
+user’s explicit answer. The runtime exports it as `ADMIN_USERNAME`. The harness derives a bounded password from each
+run's encryption key without reusing the key itself. The password is saved only by the explicitly requested private handoff. After bootstrap it stores the resolved URLs,
 usernames, and available API keys in private mode-`0600`
 `.sessions/RUN_ID/connections.env`. Fill one to four fresh
 password-input refs with
 `scripts/session.sh browser-password "$RUN_ID" @eN [@eN ...]`. This helper
-accepts only snapshot refs, sends the password to the run-scoped agent-browser
-batch over stdin, suppresses child output, and returns only fixed PASS/FAIL
-text. The password must never appear in command arguments, screenshots, or
-reports.
+accepts only snapshot refs, privately checks every ref in the run-scoped browser
+session is an enabled, non-read-only `type=password` field before any fill, then sends the password to the run-scoped
+agent-browser batch over stdin. It checks all refs before mutation, suppresses
+child output, and returns only fixed PASS/FAIL text. The password must never
+appear in command arguments, screenshots, or reports.
 
-Homarr setup is browser-driven. For Sonarr, Radarr, Prowlarr, and Seerr, open
-the run-scoped host settings URL from [homarr.md](homarr.md), take a fresh
-snapshot, and use `scripts/session.sh browser-key capture RUN_ID SERVICE @eN`
-to verify the displayed key against the managed run. Return to Homarr, take a
+Homarr setup is browser-driven. For Sonarr, Radarr, and Prowlarr, open the
+run-scoped `/settings/general` URL and use `scripts/session.sh browser-key
+capture-field RUN_ID SERVICE` to verify the fixed readonly field against the
+managed run without a snapshot or ref. Use `browser-key capture RUN_ID seerr
+@eN` for Seerr. Return to Homarr, take a
 fresh snapshot, and use `browser-key fill` on its key input. For the one-time
-Homarr API key, use `browser-key capture RUN_ID homarr @eN`. The helper emits
+Homarr API key, use `browser-key capture-code RUN_ID homarr`. The helper emits
 only fixed PASS/FAIL text and never puts a key in an argument or report.
 
 Runs without `SESSION_PASSWORD_SCHEME=hmac-v1` are legacy and are never
@@ -59,7 +62,7 @@ migrated in place. Their command boundary is explicit:
 | Legacy run behavior | Commands |
 | --- | --- |
 | Inspection and bounded cleanup allowed | `doctor`, `urls`, `env`, `status`, `mcp-verify`, `down`, `destroy` |
-| Current scheme required | `up`, `keys`, `bootstrap`, `verify`, `browser-password`, `browser-key`, `homarr-key`, `homarr-finalize`, `mcp-config`, `connections`, `handoff` |
+| Current scheme required | `up`, `keys`, `bootstrap`, `bootstrap-jellyfin`, `verify`, `browser-password`, `browser-form`, `browser-key`, `homarr-key`, `homarr-finalize`, `mcp-config`, `connections`, `handoff`, `access-proxy` |
 
 Recreate a legacy run under a new `RUN_ID` before starting services,
 configuring connections, writing client artifacts, or continuing acceptance
@@ -68,8 +71,9 @@ is no standalone `session.sh logs` command.
 
 After `scripts/session.sh up RUN_ID`, run `scripts/session.sh bootstrap RUN_ID`.
 It replaces the repetitive qBittorrent/Arr/Prowlarr forms with idempotent,
-secret-safe API configuration. Run `scripts/session.sh verify RUN_ID` before
-Seerr and again during acceptance.
+secret-safe API configuration. It does not choose or create an indexer. Add and
+test the user's selected authorized source before expecting full `verify` to
+pass, then run it before Seerr and again during acceptance.
 
 After Homarr onboarding generates six linked apps and their widgets, follow
 [homarr.md](homarr.md) to stream a newly created API key into the private run
@@ -120,11 +124,14 @@ After all acceptance checks pass, refresh the private connection file:
 scripts/session.sh connections RUN_ID
 ```
 
-For initial setup, then run `scripts/session.sh handoff RUN_ID`; it refreshes
-`connections.env` and intentionally displays the shared `admin` username and
-derived admin password to the user. During upkeep, run it only when the user
-explicitly requests a fresh access handoff. Do not persist its password output
-in evidence or another file.
+For initial setup with a requested saved credential handoff, run
+`scripts/session.sh handoff RUN_ID`. It writes owner-only (0600)
+`SESSION_ROOT/artifacts/private-handoff.json` with the generated password,
+usernames, available API keys, host/internal URLs and storage paths. It also
+writes `handoff-report.md` with secrets redacted. Return these paths, never
+print or open the private file. During upkeep, re-export only when requested.
+The handoff lists topology and marks acceptance unverified; the separate setup
+report records actual passed, failed and pending checks.
 
 The session parent remains mode 0700. Its nested Seerr config and shared data
 mounts are writable because rootless Docker remaps application UIDs; do not

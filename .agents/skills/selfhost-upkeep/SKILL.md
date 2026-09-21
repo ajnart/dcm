@@ -11,7 +11,8 @@ metadata:
 # Selfhost upkeep
 
 Activation gate: proceed only when the current user request explicitly invokes
-`selfhost-upkeep` or asks to change an existing recorded self-hosted stack.
+`selfhost-upkeep`, invokes `self-host` for an existing stack, or asks to change
+an existing recorded self-hosted stack.
 Otherwise return read-only guidance. Treat saved state as intent, then refresh
 real evidence before acting.
 

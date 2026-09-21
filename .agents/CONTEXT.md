@@ -75,8 +75,10 @@ the installed skill remains the single implementation source.
 - Persist non-secret preferences only. Never put credentials in catalog data,
   preferences, commands, screenshots, reports, or client configuration.
 - Adapter-owned private connection files may retain API keys, URLs, and
-  usernames for later wiring. They never retain an initial admin password;
-  setup gives that generated password directly to the user at final handoff.
+  usernames for later wiring and remain password-free. An explicitly requested
+  media export may save the generated password, usernames, available API keys,
+  URLs and storage paths in `.sessions/<run>/artifacts/private-handoff.json`
+  (0600). Ordinary reports return only its path; upkeep requires a fresh request.
 - Reuse existing resources only after ownership and lifecycle are known.
 - Never use a broad Docker teardown, delete volumes during routine upgrades,
   mount the Docker socket casually, or claim VPN safety without a kill-switch

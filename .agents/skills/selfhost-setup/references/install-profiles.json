@@ -17,6 +17,7 @@
       "serviceConsumption": "none",
       "verificationEvidence": ["verify:stack"],
       "skills": [
+        "self-host",
         "selfhost",
         "selfhost-compose",
         "selfhost-homarr",
@@ -37,6 +38,17 @@
       "serviceConsumption": "explicit",
       "verificationEvidence": ["verify:isolated-restore"],
       "skills": ["selfhost-backup"]
+    },
+    {
+      "id": "full",
+      "kind": "pack",
+      "label": "Full household stack",
+      "description": "Continue the media stack with private ingress and the selected household services: Immich, Nextcloud, Navidrome, Audiobookshelf, and Vaultwarden.",
+      "extends": ["ingress", "media"],
+      "approvalEvidence": [],
+      "serviceConsumption": "none",
+      "verificationEvidence": ["verify:household-acceptance"],
+      "skills": ["selfhost-compose"]
     },
     {
       "id": "ingress",

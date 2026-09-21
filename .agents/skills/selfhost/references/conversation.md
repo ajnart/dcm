@@ -58,18 +58,21 @@ Use this order, skipping settled branches:
    an existing secret-manager reference, or custom credentials entered later
    through a supported private apply boundary.
 
-For the managed `selfhost-media` adapter, state the implemented contract
-directly: every service uses username `admin`, and the harness generates the
-per-run password. Final `$selfhost-setup` handoff tells the user that generated
-password directly and does not retain it in a file. The adapter does not
-currently offer a custom username or password. For other stacks, defer custom
-values to the selected capability's supported private apply boundary; block
-the apply when no such boundary exists.
+For the managed `selfhost-media` adapter, ask once for the username before the
+run is created. The harness uses it across supported services and generates a
+per-run password. Confirm the username in the plan; never ask the user to
+invent or paste a password. When saved credentials are explicitly requested,
+run the media handoff helper. It writes `.sessions/<run>/artifacts/private-handoff.json`
+(mode `0600`) with the generated password, usernames, available API keys, URLs
+and storage paths. Return its path only; ordinary reports contain no secrets.
+The separate owner-only `connections.env` remains password-free. For other
+stacks, defer custom values to the selected capability's supported private
+apply boundary; block the apply when no such boundary exists.
 
 Never request passwords, tokens, API keys, private keys, cookies, or recovery
 codes in chat. If the user sends one, do not repeat it. Tell them to rotate it
-and continue with only its intended purpose or secret reference. The generated
-media setup password is the narrow output-only exception above.
+and continue with only its intended purpose or secret reference. Use only the
+explicitly requested private export above for saved media credentials.
 
 ## Keep prompts compact
 

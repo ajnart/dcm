@@ -1,23 +1,17 @@
 # Skill invocation model
 
-## User entry points
+## User entry point
 
-Use `$selfhost-setup` explicitly for a new stack. It checks the selected base,
-pack, and extensions, installs missing prerequisites through the active agent,
-creates `.selfhost/stack.json`, and continues through approved apply, browser
-configuration, verification, and access handoff.
+Use `self-host` for the complete lifecycle: `/self-host jellyfin` in Claude
+Code, `$self-host jellyfin` in Codex, or `/skill:self-host jellyfin` in Pi.
+Other clients select **Self-host · Start here**. The facade checks only the
+confirmed project root and progressively loads the planning, new-setup, or
+existing-stack workflow. The user never has to choose an internal skill.
 
-Use `$selfhost-upkeep` explicitly for an existing `.selfhost/stack.json`
-project. It refreshes host evidence before status, extension, upgrade,
-migration, repair, reconnect, or re-verification work.
-
-Use `selfhost` for planning. It supports explicit calls such as `/selfhost
-netflix` in Claude Code, `$selfhost netflix` in Codex, and
-`/skill:selfhost netflix` in Pi, plus natural-language goals such as “replace
-Google Photos.” Other clients use their skill picker or native invocation UI.
-Its discovery description permits
-implicit invocation, but it never treats invocation as approval to mutate a
-host.
+Invocation authorizes routing and read-only work. The selected workflow still
+asks for exact apply approval before mutation. A new setup creates
+`.selfhost/stack.json`; a returning run refreshes host evidence before status,
+extension, upgrade, migration, repair, reconnect, or re-verification.
 
 The router follows a short `explore -> present -> confirm -> write`
 conversation, resolves the goal, inspects what is safe to inspect, loads
@@ -61,11 +55,11 @@ password, token, key, cookie, or recovery-code values in chat.
 
 ## Base capabilities
 
-Portable descriptions label every base entry. Clients that render the OpenAI
-metadata also number them as setup, upkeep, planning, host inspection, Compose,
-operations, Homarr, then verification. Setup and upkeep are explicit-only; the other
-capabilities are model-invoked and may also be called explicitly for a bounded
-task.
+Clients that render OpenAI metadata show **Self-host · Start here** as the
+public choice. The remaining Base entries are labeled as supporting workflows
+or capabilities. Setup and upkeep remain explicit-only implementation
+boundaries; the facade may enter them from the user's explicit `self-host`
+request.
 
 - `selfhost-host`: host/runtime/storage/network inspection and path advice.
 - `selfhost-compose`: project rendering, preflight, apply, and ownership.

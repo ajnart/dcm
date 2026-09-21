@@ -10,6 +10,7 @@ import {
   isReadOnlyHomarrTool,
   isRecord,
   NativeHomarrMcpClient,
+  toolResultValue,
 } from "./lib/homarr-mcp.ts";
 
 const MAX_LINE_BYTES = 1024 * 1024;
@@ -58,7 +59,42 @@ function validInitializeParams(params) {
     && isRecord(params.capabilities);
 }
 
-export function createReadOnlyBridge(client) {
+function pathAllowed(path, paths) {
+  if (typeof path !== "string" || path.length > 8192 || !path.startsWith("/")
+    || /[\\\s\u0000-\u001f\u007f#]/u.test(path)) {
+    return false;
+  }
+  let pathname;
+  try {
+    pathname = new URL(path, "https://policy.invalid").pathname;
+  } catch {
+    return false;
+  }
+  return paths.includes(pathname);
+}
+
+function validateIntegrationRequest(args, policy) {
+  const allowedFields = new Set(["integrationId", "method", "path", "body", "confirmed"]);
+  if (Object.keys(args).some((key) => !allowedFields.has(key))) {
+    throw new Error("request fields are outside the configured integration policy");
+  }
+  const rule = policy.rules.find((candidate) => candidate.integrationId === args.integrationId);
+  if (!rule || !rule.methods.includes(args.method) || !pathAllowed(args.path, rule.paths)) {
+    throw new Error("request is outside the configured integration policy");
+  }
+  if (args.method === "GET" && args.body !== undefined) {
+    throw new Error("GET body is unavailable");
+  }
+  if (args.method === "DELETE" && args.confirmed !== true) {
+    throw new Error("DELETE requires confirmed true");
+  }
+  if (args.body !== undefined && Buffer.byteLength(JSON.stringify(args.body), "utf8") > 10 * 1024) {
+    throw new Error("request body exceeds policy limit");
+  }
+  return rule;
+}
+
+export function createCapabilityBridge(client, capabilityPolicy = null) {
   if (
     !client
     || typeof client.connect !== "function"
@@ -70,13 +106,22 @@ export function createReadOnlyBridge(client) {
 
   let catalog;
   let useFallbackCatalog = false;
+  const capabilityEnabled = capabilityPolicy?.mode === "integration-request";
 
   async function endpointInstructions() {
     await client.connect();
-    if (client.endpointMode === "compatibility") {
-      return `${SERVER_INSTRUCTIONS} Compatibility endpoint /api/mcp/mcp is active because canonical /api/mcp returned 404 or 405.`;
+    let instructions = SERVER_INSTRUCTIONS;
+    if (capabilityEnabled) {
+      instructions = [
+        "This Homarr bridge exposes read-only tools plus one policy-constrained integration_request tool.",
+        "Every integration request must match its configured integration ID, service kind, method, and exact path.",
+        "DELETE also requires confirmed true after the user confirms its effects.",
+      ].join(" ");
     }
-    return `${SERVER_INSTRUCTIONS} Canonical endpoint /api/mcp is active.`;
+    if (client.endpointMode === "compatibility") {
+      return `${instructions} Compatibility endpoint /api/mcp/mcp is active because canonical /api/mcp returned 404 or 405.`;
+    }
+    return `${instructions} Canonical endpoint /api/mcp is active.`;
   }
 
   async function getCatalog() {
@@ -84,9 +129,10 @@ export function createReadOnlyBridge(client) {
       return catalog;
     }
     const listed = await client.listTools();
-    catalog = listed.tools.filter(
-      (tool) => isRecord(tool) && isReadOnlyHomarrTool(tool.name),
-    );
+    catalog = listed.tools.filter((tool) => isRecord(tool) && (
+      isReadOnlyHomarrTool(tool.name)
+      || (capabilityEnabled && tool.name === "integration_request")
+    ));
     useFallbackCatalog = listed.fallback;
     return catalog;
   }
@@ -103,6 +149,24 @@ export function createReadOnlyBridge(client) {
       || !isRecord(args)
     ) {
       return protocolError(id, -32602, "Invalid params");
+    }
+    if (name === "integration_request" && capabilityEnabled) {
+      try {
+        const tools = await getCatalog();
+        if (!tools.some((tool) => tool.name === name)) {
+          return protocolError(id, -32602, "Unknown tool");
+        }
+        const rule = validateIntegrationRequest(args, capabilityPolicy);
+        const integration = toolResultValue(await client.callTool("integration_byId", { id: rule.integrationId }, {
+          curatedOnly: useFallbackCatalog,
+        }));
+        if (!isRecord(integration) || String(integration.kind).toLowerCase() !== rule.service.toLowerCase()) {
+          return protocolError(id, -32004, "Integration service does not match policy");
+        }
+        return protocolResult(id, await client.callTool(name, args));
+      } catch {
+        return protocolError(id, -32003, "Integration request rejected by policy");
+      }
     }
     if (isMutatingHomarrTool(name)) {
       return protocolError(id, -32003, "Mutating Homarr tools are unavailable on the read-only bridge");
@@ -149,7 +213,10 @@ export function createReadOnlyBridge(client) {
         return protocolResult(message.id, {
           protocolVersion: chooseProtocolVersion(params),
           capabilities: { tools: { listChanged: false } },
-          serverInfo: { name: "selfhost-homarr-read-only", version: "1.0.0" },
+          serverInfo: {
+            name: capabilityEnabled ? "selfhost-homarr-integration-policy" : "selfhost-homarr-read-only",
+            version: "1.0.0",
+          },
           instructions: await endpointInstructions(),
         });
       } catch {
@@ -169,7 +236,7 @@ export function createReadOnlyBridge(client) {
         return protocolResult(message.id, {
           tools,
           _meta: {
-            "selfhost-homarr/bridgeMode": "read-only",
+            "selfhost-homarr/bridgeMode": capabilityEnabled ? "integration-request-policy" : "read-only",
             "selfhost-homarr/endpointMode": client.endpointMode,
             "selfhost-homarr/catalogMode": catalogMode,
           },
@@ -187,6 +254,10 @@ export function createReadOnlyBridge(client) {
   return { handleRequest };
 }
 
+export function createReadOnlyBridge(client) {
+  return createCapabilityBridge(client);
+}
+
 function createProfileBridge(profilePath) {
   const profile = loadProfile(profilePath, { requireKey: true });
   const client = new NativeHomarrMcpClient({
@@ -194,7 +265,7 @@ function createProfileBridge(profilePath) {
     apiKey: profile.apiKey,
     allowCompatibility: true,
   });
-  return createReadOnlyBridge(client);
+  return createCapabilityBridge(client, profile.capabilityPolicy ?? null);
 }
 
 function writeProtocol(value) {

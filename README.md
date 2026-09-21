@@ -12,6 +12,50 @@ to change your host.
 Not every subscription has a practical self-hosted replacement. The catalog
 explains tradeoffs and keeps the final choice yours.
 
+## Tell it what you want to replace
+
+You don't need to know the software names. Start with a familiar service:
+
+```text
+/self-host I want to replace Google Photos and Google Drive
+/self-host Netflix
+/self-host password manager
+/self-host Google Drive, Microsoft OneDrive, Dropbox
+/self-host smart speaker
+/self-host audio books and music
+```
+
+| Your goal | Suggested apps | What they do |
+| --- | --- | --- |
+| Photos and cloud storage | **Immich + Nextcloud** | Back up and browse photos; sync and share files. |
+| Your own movie library | **Jellyfin** | Watch movies and shows you own on your TV, phone or browser. |
+| Music and audiobooks | **Navidrome + Audiobookshelf** | Stream your own music and audiobook collection, plus podcasts. |
+| A private password manager | **Vaultwarden** | Use compatible Bitwarden apps; set up HTTPS and recovery before importing passwords. |
+| Household budgeting | **Actual Budget** or **Firefly III** | Track budgets, accounts and spending. |
+| Smart-home control, optional voice and cameras | **Home Assistant**, optionally **Scrypted** | Connect compatible devices, automations and camera systems. |
+| Files, office work or notes | **Nextcloud**, with tools chosen for your needs | Share files and add document collaboration when needed; evaluate local note apps separately. |
+
+Every stack includes **Homarr**, a nice dashboard to open your self-hosted
+apps and see useful information from connected services. Setup checks the
+available integrations and widgets; a shortcut alone isn't a tested integration.
+Moving existing data and setting up a separate backup are planned before switching.
+We currently use `ghcr.io/homarr-labs/homarr-test:v2`.
+
+Caddy is an optional way to give apps friendly HTTPS addresses. Setup reuses an
+existing proxy where possible and keeps access private unless you choose
+otherwise. Network access settings determine who can reach the apps; HTTPS
+protects traffic; each app still needs appropriate login and
+access controls. Voice assistants need suitable hardware, and media apps need
+your own content: these apps don't include a Netflix or Spotify subscription
+catalog. Savings depend on the subscriptions you can cancel and the cost of
+hardware, hosting, electricity and backups.
+
+The agent explains these choices briefly, then guides setup. See the
+[service selection guide](.agents/skills/self-host/references/choosing-services.md)
+for the replacement boundaries. Catalog coverage remains broader than the
+seven-service tested media harness; other setups retain their stated guided
+or discovery status until verified.
+
 ## Install and choose your stack
 
 Before running it, install Git and Bun 1.4.0 or newer, including `bunx`.
@@ -22,8 +66,10 @@ Start the interactive installer from the project that will own the stack:
 bunx --bun skills@latest add ajnart/selfhost-skills
 ```
 
-Choose all eight entries labeled Base, then only the Media pack or Optional
-entries you want. The required `basic` profile is setup, upkeep, planning,
+For the simplest install, use the complete-pack command below. After
+installation, use **Self-host · Start here**; the other entries are supporting
+capabilities the agent reads when needed. For a selective install, keep the
+complete `basic` profile and add the packs you want. The required `basic` profile is the public entry, setup, upkeep, planning,
 host inspection, Compose, operations, Homarr, and verification. The `media`
 pack adds the exact seven-service workflow. Backup, ingress, observability, research,
 and downloader VPN are independent extensions. Setup checks this dependency
@@ -65,23 +111,23 @@ bun run stack profiles
 
 ## Your first conversation
 
-Invoke setup on purpose when you want changes:
+Use one command for planning, setup, and later maintenance:
 
 | Client | Start here |
 | --- | --- |
-| Codex | `$selfhost-setup media` |
-| Claude Code | `/selfhost-setup media` |
-| Pi | `/skill:selfhost-setup media` |
-| Other supported agents | Select `selfhost-setup` explicitly and pass `media` |
-| Existing stack | `$selfhost-upkeep` or `/selfhost-upkeep` |
-| Plan only | `$selfhost photos`, `/selfhost netflix`, or ordinary language |
+| Codex | `$self-host media` |
+| Claude Code | `/self-host media` |
+| Pi | `/skill:self-host media` |
+| Other supported agents | Select **Self-host · Start here** and pass `media` |
+| Existing stack | Run the same command from its project directory |
+| Plan only | Ask to plan without applying, or use ordinary language |
 
 The skill keeps the conversation short. It asks only for choices that affect
 the result:
 
 - what you want to run, replace, protect, or reach;
 - which host should own it and whether existing services may be reused;
-- who needs access: this machine, the LAN, a private tailnet, or the public;
+- whether you want access only at home or also from your phone while away;
 - your username policy, when the selected apply capability supports one;
 - whether that capability should generate credentials or resolve an existing
   secret reference; and
@@ -98,7 +144,7 @@ decision.
 For example:
 
 ```text
-You:    $selfhost-setup photos
+You:    $self-host photos
 Agent:  I can plan Immich with Homarr as its private front door on this host.
         Should I use the recommended credential policy and services, or do
         you want to change them?
@@ -108,7 +154,8 @@ Agent:  I’ll inspect the host read-only and show you the plan before changes.
 
 Do not paste an existing password or API key into chat. The setup agent resolves
 or generates values only at the narrow apply boundary. For the managed media
-pack, it tells you the generated `admin` password at final handoff.
+pack, it asks for your username and generates the password. When you request
+saved credentials, it gives you the path to an owner-only private access file.
 
 ## Homarr: the default front door
 
@@ -133,7 +180,7 @@ deployment or every integration is verified._
 
 ![Selfhost conversation and approval flow](docs/images/selfhost-flow.svg)
 
-1. **Resolve the selected profile.** `$selfhost-setup` first checks the required
+1. **Resolve the selected profile.** `$self-host` routes setup to the supporting workflow, which checks the required
    Base, Pack, and Extension skills without mutating browser state. Through the
    normal approval flow it installs missing selected skills plus the official
    `agent-browser` skill, CLI, and browser, then runs the gated browser check.
@@ -152,8 +199,8 @@ deployment or every integration is verified._
    acceptance contract. A running process or HTTP 200 is not broad success.
 8. **Record and hand back.** Private `.selfhost/stack.json` records the profile,
    owned services, explicit extension-to-service bindings, adapter pointers,
-   and typed checkpoint evidence for upkeep. The
-   final summary includes the media admin password when one was generated.
+   and typed checkpoint evidence for upkeep. The final summary links the
+   redacted report and any explicitly requested private credential export.
 
 Every run follows the same lifecycle:
 
@@ -180,7 +227,7 @@ of inventing certainty.
 | “Monitor my services” | Uptime Kuma, Gatus, Beszel | Observe health and route actionable alerts |
 | “Run AI locally” | Ollama, Open WebUI | Serve supported models behind a private interface |
 
-The validated catalog contains 107 applications across 14 goal stacks for
+The validated catalog contains 111 applications across 20 goal stacks for
 media, photos, documents, files, passwords, home automation, networking,
 monitoring, backups, containers, developer tools, productivity, databases,
 storage, and local AI.
@@ -190,8 +237,8 @@ routing solve different problems. The skill asks which purpose you mean.
 
 ## Resume an existing project
 
-Return to the same project directory and explicitly invoke `$selfhost-upkeep`
-or `/selfhost-upkeep`. It reads confirmed intent and lifecycle state from:
+Return to the same project directory and invoke `$self-host` or `/self-host`.
+It detects the recorded stack and reads confirmed intent and lifecycle state from:
 
 ```text
 .selfhost/preferences.json
@@ -220,9 +267,13 @@ plans, logs, screenshots, fixtures, and client configuration.
 For the seven-service media harness, one mode-`0600` `connections.env` retains
 local URLs, usernames, and available API keys so later extensions can wire
 services without rediscovery. It never stores the initial admin password.
-After verification, setup runs the explicit handoff command and tells the user
-the generated `admin` password directly. The stack record stores only the
-connection-file path and its non-secret schema, never its values.
+When you request saved credentials, `handoff` writes
+`.sessions/<run>/artifacts/private-handoff.json` with owner-only permissions
+(0600): generated password, usernames, available API keys, service URLs and
+storage paths. The separate `handoff-report.md` contains no credentials. The
+agent returns file paths without printing private contents. An export can
+contain partial setup state and does not prove verification passed. The stack
+record stores only the connection-file path and its non-secret schema.
 
 ## Safe by default
 
@@ -252,13 +303,14 @@ Declarative JSON holds catalog facts and stack choices. Small scripts perform
 bounded deterministic work such as inspection, rendering, validation,
 verification, and debugging; they do not become a second policy layer.
 
-`selfhost-setup` and `selfhost-upkeep` are explicit lifecycle entry points.
-`selfhost` remains the planning router. Together they compose only the
+`self-host` is the public lifecycle entry point. It discloses the supporting
+planning, setup, or upkeep workflow as needed. Together they compose only the
 capabilities needed for the selected profile and goal:
 
 | Skill | Boundary it owns |
 | --- | --- |
-| `selfhost-setup` | Prerequisites, selected-profile setup, stack metadata, and final access handoff |
+| `self-host` | Public command that routes planning, setup, and upkeep |
+| `selfhost-setup` | Supporting prerequisites, setup, stack metadata, and final access handoff |
 | `selfhost-upkeep` | Resume, extension, upgrade, repair, and re-verification of a recorded stack |
 | `selfhost` | Goal routing, catalog choices, preferences, and a redacted plan |
 | `selfhost-host` | Read-only host discovery and path advice |
@@ -273,7 +325,7 @@ capabilities needed for the selected profile and goal:
 | `selfhost-media` | Opt-in Homarr-enhanced media harness |
 | `selfhost-homarr` | Default dashboard, integrations, API, and read-only MCP |
 
-The checked registry contains 14 packaged skills, including 2 specialized adapters:
+The checked registry contains 15 packaged skills, including 2 specialized adapters:
 the stack-scoped `selfhost-media` and application-scoped `selfhost-homarr`.
 Capabilities remain separate so a photo setup does not inherit media,
 downloader, or public-network authority.
@@ -282,6 +334,7 @@ downloader, or public-network authority.
 
 ```text
 .agents/
+├── skills/self-host/             # Public lifecycle entry point
 ├── skills/selfhost/              # Router, catalog, stack selection
 ├── skills/selfhost-setup/        # Explicit new-stack lifecycle
 ├── skills/selfhost-upkeep/       # Explicit continuation lifecycle
@@ -309,10 +362,11 @@ Prowlarr, qBittorrent, and the required Homarr control plane. Invoke
 `$selfhost-media` in Codex or `/selfhost-media` in Claude Code only when you
 want that exact seven-service harness.
 
-The harness publishes each service as `${PORT:-default}:container-port`
-without forcing a host IP. This is convenient on LAN hosts, but Docker may
-listen on every host interface. Keep the machine behind a trusted firewall and
-use `selfhost-ingress` before making anything internet-facing.
+The harness binds service ports to loopback by default. For a headless host,
+the access plan distinguishes the browser's address, Homarr's internal service
+addresses, and links the user can actually open. An explicitly selected host
+bind or private proxy route can make Homarr reachable from approved devices;
+public exposure requires its own ingress plan.
 
 Homarr must use exactly:
 
@@ -326,11 +380,14 @@ runtime. The default client fragment remains strictly read-only. It can inspect
 integrations and search Seerr, then show the exact match and ask for
 confirmation, but it cannot submit a request or modify an app.
 
-The pack does not provide a mutation-capable Homarr client fragment or bridge.
-`integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`, and
-other unapproved tools remain unavailable. Keep Homarr's native `/api/mcp`
-private; a public dashboard route must deny that path while the packaged bridge
-reaches it over loopback, LAN, or a private tailnet.
+A separate policy-enabled profile can expose authenticated
+`integration_request` calls for explicitly approved integration IDs, service
+kinds, HTTP methods, and exact paths. It does not enable arbitrary requests;
+`integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`
+remain unavailable. See the
+[integration-request policy](.agents/skills/selfhost-homarr/references/api-and-mcp.md#integration-request-policy).
+Keep Homarr's native `/api/mcp` private; a public dashboard route must deny that
+path while the packaged bridge reaches it over loopback, LAN, or a private tailnet.
 
 ## Installation options
 

@@ -1,20 +1,36 @@
 # 30 - Connect the Arr pipeline
 
-## Actions
+## Browser wiring
 
-Do not rebuild the pipeline manually. `scripts/session.sh bootstrap "$RUN_ID"`
-live-tests available public indexers until one works, configures both download
-clients and Full Sync applications, triggers `ApplicationIndexerSync`, and
-waits for the chosen indexer downstream.
+Use the run's host URLs and fresh refs. Login with `$ADMIN_USERNAME` and
+`browser-password`; fill API-key inputs with `browser-key fill`. Keep secrets
+out of snapshots, screenshots and command arguments.
 
-Run `scripts/session.sh verify "$RUN_ID"`. In agent-browser, spot-check the
-Prowlarr indexer/application lists and Sonarr/Radarr download-client/indexer
-lists. If a Forms login appears, use username `admin` and fill its fresh
-password ref only through
-`scripts/session.sh browser-password "$RUN_ID" @eN`. Record the chosen public
-indexer; availability is environmental, so do not hard-code a provider that
-failed its live test.
+1. In Sonarr `/settings/mediamanagement`, add root folder `/data/media/tv`.
+   In Radarr use `/data/media/movies`.
+2. Open each app's `/settings/downloadclients`, add qBittorrent, and enter
+   host `qbittorrent`, the run's `QBITTORRENT_PORT`, chosen username, and generated
+   password. Use category `tv-sonarr` or `movies-radarr`. Test, then save.
+3. In Prowlarr `/settings/applications`, add Sonarr and Radarr with Full Sync.
+   Use `http://prowlarr:9696` as Prowlarr server, and the target's Docker URL
+   (`http://sonarr:8989` or `http://radarr:7878`). Fill its key privately, test,
+   and save.
+4. Add the user's selected authorized-content indexer in Prowlarr. Test before
+   saving, then sync applications. If no content source is selected, record
+   indexer sync as pending and ask for that choice; do not silently choose a
+   provider merely because it responds.
+5. Run `scripts/session.sh verify "$RUN_ID"`. Confirm both download clients,
+   both Full Sync applications, and the downstream indexer lists in the UI.
+
+## Hybrid baseline
+
+Full API bootstrap can complete the application and download-client wiring.
+Inspect those lists without repeating the forms, then add the user's selected
+authorized-content indexer and sync it before verification. Label that run
+`hybrid`; the reduced browser count is not a browser-only speed improvement.
 
 ## Stop gate
 
-All verifier lines pass and the UI lists agree with them.
+Every claimed graph edge passes its connection test. An unavailable indexer
+leaves acquisition acceptance pending; the remaining private integrations can
+still be configured and tested. Record the exact cause and any recovery.

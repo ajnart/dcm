@@ -10,21 +10,16 @@
 
 ## Minimum fresh-run path
 
-1. Initialize Seerr using Jellyfin. Its split form expects host `jellyfin`, port
-   `8096`, disposable email `admin@example.test`, and username `admin`. Fill the
-   fresh password ref through
-   `scripts/session.sh browser-password "$RUN_ID" @eN`. Focus the action and
-   press Enter if a mouse click is inert.
-2. Sync, select Movies and Shows, set the host URL as External URL, save, and
-   start the first manual scan.
-3. Add Radarr: hostname `radarr`, port `7878`, no SSL, per-run Radarr API key,
-   default non-4K server, a quality profile, `/data/media/movies`, scan enabled.
-4. Add Sonarr: hostname `sonarr`, port `8989`, no SSL, per-run Sonarr API key,
-   default non-4K server, a quality profile, `/data/media/tv`, scan enabled.
-   Select the standard and anime profile/root fields, enable season folders,
-   and enable automatic search for both services.
-5. Finish setup and verify the Discover page.
-6. Add Seerr to Homarr during Homarr onboarding using `http://seerr:5055` and
+1. Run `bun scripts/bootstrap-seerr.ts "$RUN_ID"`. The helper authenticates the
+   selected Jellyfin administrator without printing credentials, configures the
+   internal Jellyfin address, and enables exactly Movies and Shows.
+2. The helper tests Radarr and Sonarr through Seerr, selects the unique `Any`
+   profile and expected root returned by each live API, creates or resumes the
+   default non-4K services, then marks setup initialized. Conflicting existing
+   servers, libraries, profiles, or roots stop the run.
+3. Open Seerr and verify the Discover page. A scan may be started separately;
+   the bootstrap does not request media or start downloads.
+4. Add Seerr to Homarr during Homarr onboarding using `http://seerr:5055` and
    the per-run Seerr API key.
 
 ## Proof
@@ -37,6 +32,24 @@
 - Homarr's Seerr integration test succeeds; request list/stats/search capability
   is present on the generated dashboard.
 
+## v3.4.1 API contract
+
+The bootstrap targets the routes shipped by the documented v3.4.1 image:
+
+- `GET /api/v1/settings/public` reports initialization without authentication.
+- `POST /api/v1/auth/jellyfin` creates or resumes the administrator session and
+  returns the session cookie used until initialization completes.
+- `GET /api/v1/settings/jellyfin/library?sync=true` refreshes libraries; a
+  second `GET` with `enable=<ids>` persists the exact enabled set.
+- Radarr and Sonarr use `GET` for current settings, `POST .../test`, `POST` to
+  create (HTTP 201), and `PUT .../<id>` to resume (HTTP 200).
+- `POST /api/v1/settings/initialize` is the final mutation.
+
+Source: [Seerr v3.4.1 settings routes](https://github.com/seerr-team/seerr/blob/v3.4.1/server/routes/settings/index.ts),
+[Radarr routes](https://github.com/seerr-team/seerr/blob/v3.4.1/server/routes/settings/radarr.ts),
+[Sonarr routes](https://github.com/seerr-team/seerr/blob/v3.4.1/server/routes/settings/sonarr.ts), and
+[Jellyfin authentication](https://github.com/seerr-team/seerr/blob/v3.4.1/server/routes/auth.ts).
+
 ## Traps
 
 - `localhost` and `127.0.0.1` are invalid internal Docker targets.
@@ -44,6 +57,9 @@
   only Seerr's nested config mount writable while keeping its parent run private.
 - Sonarr/Radarr requests fail unless a default server, quality profile, and root
   folder are all selected.
+- API setup is safe to resume only when the existing Jellyfin, Radarr, and
+  Sonarr identities match the managed topology. It rejects conflicts rather
+  than replacing another server.
 - The API key grants admin access. Source it from the session file, never copy it
   into Markdown or screenshots.
 

@@ -6,16 +6,19 @@ import {
   fieldValue,
   loadSession,
   normalizeName,
+  request,
   requestJson,
+  sessionAccess,
   setField,
   sleep,
-  STANDARD_USERNAME,
+  sessionUsername,
   tryRequest,
   validateRunId,
   writableFields,
 } from "./lib/session-context.ts";
 
 const runId = Bun.argv[2] ?? "";
+let activeUsername = "";
 
 function loopback(port) {
   return `http://127.0.0.1:${port}`;
@@ -56,7 +59,7 @@ async function qbitLogin(baseUrl, sessionPassword) {
       method: "POST",
       headers: qbitHeaders(baseUrl),
       body: new URLSearchParams({
-        username: STANDARD_USERNAME,
+        username: activeUsername,
         password: sessionPassword,
       }),
     },
@@ -97,6 +100,73 @@ async function verifyQbit(session, sessionPassword) {
   );
 }
 
+export async function verifyJellyfin(session, io = { request, requestJson }) {
+  const baseUrl = loopback(session.manifest.JELLYFIN_PORT);
+  const username = sessionUsername(session);
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `MediaBrowser Client="Selfhost", Device="Verify", DeviceId="selfhost-verify-${session.runId}", Version="1.0"`,
+  };
+  const login = await io.requestJson(`${baseUrl}/Users/AuthenticateByName`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ Username: username, Pw: deriveSessionPassword(session) }),
+  }, { label: "Jellyfin selected account login" });
+  check(
+    typeof login?.AccessToken === "string"
+      && login.AccessToken !== ""
+      && login.User?.Name === username
+      && login.User?.Policy?.IsAdministrator === true,
+    "Jellyfin selected administrator verification failed",
+  );
+  const authenticatedHeaders = { ...headers, "X-Emby-Token": login.AccessToken };
+  try {
+    const folders = requireArray(await io.requestJson(
+      `${baseUrl}/Library/VirtualFolders`,
+      { headers: authenticatedHeaders },
+      { label: "Jellyfin library verification" },
+    ), "Jellyfin library list");
+    const expected = [
+      { name: "Movies", type: "movies", path: "/data/media/movies" },
+      { name: "Shows", type: "tvshows", path: "/data/media/tv" },
+    ];
+    check(expected.every((library) => folders.some((folder) => (
+      folder?.Name === library.name
+      && folder?.CollectionType === library.type
+      && folder?.Locations?.includes(library.path)
+    ))), "Jellyfin managed libraries are incorrect");
+  } finally {
+    await io.request(`${baseUrl}/Sessions/Logout`, {
+      method: "POST",
+      headers: authenticatedHeaders,
+    }, { label: "Jellyfin verification logout", expectedStatuses: [200, 204] });
+  }
+}
+
+export async function runVerificationRows(rows, write = console.log) {
+  const safePrefixes = ["qBittorrent", "Sonarr", "Radarr", "Prowlarr", "Seerr", "Jellyfin", "service schema"];
+  let failed = false;
+  for (const row of rows) {
+    try {
+      await row.verify();
+      write(`PASS ${row.label}`);
+    } catch (error) {
+      failed = true;
+      let message = "verification failed";
+      if (
+        error instanceof Error
+        && error.message.length <= 200
+        && !/[\r\n]/.test(error.message)
+        && safePrefixes.some((prefix) => error.message.startsWith(prefix))
+      ) {
+        message = error.message;
+      }
+      write(`FAIL ${row.label}: ${message}`);
+    }
+  }
+  return !failed;
+}
+
 async function arrResources(session, definition, sessionPassword) {
   const baseUrl = loopback(session.manifest[definition.portKey]);
   const headers = arrHeaders(session.secrets[definition.apiKey]);
@@ -122,7 +192,7 @@ async function arrResources(session, definition, sessionPassword) {
     `${definition.name} authentication is not required`,
   );
   check(
-    hostConfig.username === STANDARD_USERNAME,
+    hostConfig.username === activeUsername,
     `${definition.name} standard username is not configured`,
   );
 
@@ -164,7 +234,7 @@ async function arrResources(session, definition, sessionPassword) {
     `${definition.name} qBittorrent port is incorrect`,
   );
   check(
-    fieldValue(client, "username") === STANDARD_USERNAME,
+    fieldValue(client, "username") === activeUsername,
     `${definition.name} qBittorrent username is incorrect`,
   );
   check(
@@ -191,6 +261,11 @@ async function arrResources(session, definition, sessionPassword) {
     `${definition.name} qBittorrent connection test failed`,
   );
 
+}
+
+async function verifyArrIndexer(session, definition) {
+  const apiRoot = `${loopback(session.manifest[definition.portKey])}/api/v3`;
+  const headers = arrHeaders(session.secrets[definition.apiKey]);
   const indexers = requireArray(
     await requestJson(
       `${apiRoot}/indexer`,
@@ -404,7 +479,7 @@ export function validateSeerrServiceDetails(details) {
   validateSeerrServiceDetail(details.sonarr, "Seerr Sonarr");
 }
 
-export async function verifySeerr(session, getJson = requestJson) {
+export async function verifySeerr(session, getJson = requestJson, access = sessionAccess(session)) {
   const apiRoot = `${loopback(session.manifest.SEERR_PORT)}/api/v1/settings`;
   const headers = arrHeaders(session.secrets.SEERR_API_KEY);
   const endpoints = ["public", "jellyfin", "radarr", "sonarr"];
@@ -419,11 +494,11 @@ export async function verifySeerr(session, getJson = requestJson) {
   }
 
   const settingsIds = validateSeerrSettings(responses, {
-    jellyfinExternalHostname: loopback(session.manifest.JELLYFIN_PORT),
+    jellyfinExternalHostname: access.services.jellyfin.reachableUrl ?? access.services.jellyfin.browserUrl,
     radarrApiKey: session.secrets.RADARR_API_KEY,
-    radarrExternalUrl: loopback(session.manifest.RADARR_PORT),
+    radarrExternalUrl: access.services.radarr.reachableUrl ?? access.services.radarr.browserUrl,
     sonarrApiKey: session.secrets.SONARR_API_KEY,
-    sonarrExternalUrl: loopback(session.manifest.SONARR_PORT),
+    sonarrExternalUrl: access.services.sonarr.reachableUrl ?? access.services.sonarr.browserUrl,
   });
 
   const credentialIndex = {
@@ -460,6 +535,44 @@ export async function verifySeerr(session, getJson = requestJson) {
   validateSeerrServiceDetails(details);
 }
 
+export async function verifyProwlarrIndexers(
+  indexers,
+  indexerStatuses,
+  testIndexer,
+  options = {},
+) {
+  const enabledIndexers = requireArray(indexers, "Prowlarr indexer list")
+    .filter((indexer) => indexer.enable === true);
+  check(enabledIndexers.length > 0, "Prowlarr has no enabled indexer");
+
+  const now = options.now ?? Date.now();
+  const statusByIndexerId = new Map(
+    requireArray(indexerStatuses, "Prowlarr indexer status")
+      .map((status) => [status.indexerId, status]),
+  );
+  const availableIndexers = enabledIndexers.filter((indexer) => {
+    const status = statusByIndexerId.get(indexer.id);
+    if (!status?.disabledTill) {
+      return true;
+    }
+    return new Date(status.disabledTill).getTime() <= now;
+  });
+  check(availableIndexers.length > 0, "Prowlarr has no available enabled indexer");
+
+  const wait = options.wait ?? sleep;
+  for (const indexer of availableIndexers) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (await testIndexer(indexer)) {
+        return;
+      }
+      if (attempt < 2) {
+        await wait(1_000);
+      }
+    }
+  }
+  check(false, "Prowlarr enabled indexer test failed");
+}
+
 async function verifyProwlarr(session, arrDefinitions) {
   const apiRoot = `${loopback(session.manifest.PROWLARR_PORT)}/api/v1`;
   const headers = arrHeaders(session.secrets.PROWLARR_API_KEY);
@@ -484,7 +597,7 @@ async function verifyProwlarr(session, arrDefinitions) {
     "Prowlarr authentication is not required",
   );
   check(
-    hostConfig.username === STANDARD_USERNAME,
+    hostConfig.username === activeUsername,
     "Prowlarr standard username is not configured",
   );
 
@@ -564,12 +677,6 @@ async function verifyProwlarr(session, arrDefinitions) {
     ),
     "Prowlarr indexer list",
   );
-  const publicIndexers = indexers.filter((indexer) => (
-    indexer.enable === true
-    && String(indexer.privacy ?? "public").toLowerCase() === "public"
-  ));
-  check(publicIndexers.length > 0, "Prowlarr has no enabled public indexer");
-
   const indexerStatuses = requireArray(
     await requestJson(
       `${apiRoot}/indexerstatus`,
@@ -578,49 +685,24 @@ async function verifyProwlarr(session, arrDefinitions) {
     ),
     "Prowlarr indexer status",
   );
-  const now = Date.now();
-  const statusByIndexerId = new Map(
-    indexerStatuses.map((status) => [status.indexerId, status]),
-  );
-  const hasAvailablePublicIndexer = publicIndexers.some((indexer) => {
-    const status = statusByIndexerId.get(indexer.id);
-    if (!status?.disabledTill) {
-      return true;
-    }
-    return new Date(status.disabledTill).getTime() <= now;
+  await verifyProwlarrIndexers(indexers, indexerStatuses, async (indexer) => {
+    const indexerTest = await tryRequest(
+      `${apiRoot}/indexer/test`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(indexer),
+      },
+      [200],
+    );
+    return indexerTest.ok;
   });
-  check(hasAvailablePublicIndexer, "Prowlarr has no available public indexer");
-
-  let testedPublicIndexer = false;
-  for (const indexer of publicIndexers) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const indexerTest = await tryRequest(
-        `${apiRoot}/indexer/test`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(indexer),
-        },
-        [200],
-      );
-      if (indexerTest.ok) {
-        testedPublicIndexer = true;
-        break;
-      }
-      if (attempt < 2) {
-        await sleep(1_000);
-      }
-    }
-    if (testedPublicIndexer) {
-      break;
-    }
-  }
-  check(testedPublicIndexer, "Prowlarr public indexer test failed");
 }
 
-async function main() {
-  validateRunId(runId);
-  const session = loadSession(runId);
+export async function main(selectedRunId = runId, mode = "all") {
+  validateRunId(selectedRunId);
+  const session = loadSession(selectedRunId);
+  activeUsername = sessionUsername(session);
   const sessionPassword = deriveSessionPassword(session);
   const arrDefinitions = [
     {
@@ -643,26 +725,38 @@ async function main() {
     },
   ];
 
-  await verifyQbit(session, sessionPassword);
-  console.log("PASS qBittorrent login and categories");
-
-  for (const definition of arrDefinitions) {
-    await arrResources(session, definition, sessionPassword);
-    console.log(`PASS ${definition.name} auth, root, qBittorrent, and Prowlarr links`);
+  if (mode === "verify-seerr") {
+    return runVerificationRows([{
+      label: "Seerr links and persisted service configuration",
+      verify: () => verifySeerr(session),
+    }]);
   }
-
-  await verifyProwlarr(session, arrDefinitions);
-  console.log("PASS Prowlarr auth, applications, and public indexer state");
-
-  await verifySeerr(session);
-  console.log("PASS Seerr links and persisted service configuration");
+  const rows = [
+    { label: "qBittorrent login and categories", verify: () => verifyQbit(session, sessionPassword) },
+    ...arrDefinitions.map((definition) => ({
+      label: `${definition.name} auth, root, and qBittorrent link`,
+      verify: () => arrResources(session, definition, sessionPassword),
+    })),
+    ...arrDefinitions.map((definition) => ({
+      label: `${definition.name} Prowlarr indexer edge`,
+      verify: () => verifyArrIndexer(session, definition),
+    })),
+    { label: "Prowlarr auth, applications, and indexer state", verify: () => verifyProwlarr(session, arrDefinitions) },
+    { label: "Jellyfin selected administrator and managed libraries", verify: () => verifyJellyfin(session) },
+    { label: "Seerr links and persisted service configuration", verify: () => verifySeerr(session) },
+  ];
+  return runVerificationRows(rows);
 }
 
 if (
   Bun.argv[1] !== undefined
   && import.meta.url === pathToFileURL(Bun.argv[1]).href
 ) {
-  main().catch((error) => {
+  const mode = Bun.argv[2] === "verify-seerr" ? "verify-seerr" : "all";
+  const selectedRunId = mode === "verify-seerr" ? Bun.argv[3] ?? "" : runId;
+  main(selectedRunId, mode).then((passed) => {
+    if (!passed) process.exitCode = 1;
+  }).catch((error) => {
     console.error(`FAIL core verification: ${error.message}`);
     process.exitCode = 1;
   });

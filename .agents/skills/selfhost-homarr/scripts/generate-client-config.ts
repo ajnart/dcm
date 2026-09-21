@@ -107,7 +107,10 @@ function main() {
 
   const path = bridgePath();
   const nodePath = realpathSync(process.execPath);
-  const serverName = `homarr-${profile.profile}`;
+  let serverName = `homarr-${profile.profile}`;
+  if (profile.capabilityPolicy?.mode === "integration-request") {
+    serverName = `${serverName}-integration-request`;
+  }
   const content = render(format, serverName, nodePath, path, profile.profilePath);
   if (
     content.includes("ApiKey")

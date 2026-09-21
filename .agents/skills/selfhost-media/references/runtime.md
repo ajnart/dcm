@@ -48,8 +48,8 @@ bits, symlinks, hard links, other mode changes, and wrong ownership still fail.
 Do not use `chmod` to work around a verifier failure.
 
 The six non-Homarr `:latest` images are intentional only in this isolated setup
-harness with per-run ports. Published ports omit a host
-IP, so keep the host behind a trusted LAN or firewall. Production composition
+harness with per-run ports. Published ports bind to loopback; remote access requires a separately selected
+private route. Production composition
 must use `selfhost-compose`, whose contract rejects floating images. Do not pin
 these setup references without verified remote multi-architecture index
 digests.
@@ -71,7 +71,7 @@ After installation, use one identifier matching
 `[a-z0-9][a-z0-9_-]{0,39}`:
 
 ```bash
-bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID
+bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID USERNAME
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session doctor RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session urls RUN_ID
 bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session up RUN_ID
@@ -108,6 +108,8 @@ service URLs, usernames, and only available API keys; it never contains a
 password field or derived password. Its URLs use `localhost` and assigned
 collision-free ports; use the host's private LAN name or address from another
 device. After acceptance, `connections` refreshes that file without revealing a
-password. Initial setup then uses `handoff` to display the admin username and
-derived password without persisting it. Upkeep runs `handoff` only when the user
-explicitly requests a fresh access handoff.
+password. When requested, `handoff` writes
+`artifacts/private-handoff.json` (0600) with the generated password, usernames,
+available API keys, URLs and storage paths, plus redacted `handoff-report.md`.
+It prints only paths and fixed summaries. Upkeep exports only when explicitly
+requested. Export does not prove that setup or acceptance succeeded.

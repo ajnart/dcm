@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 
-import { createReadOnlyBridge } from "./homarr-mcp-bridge.ts";
+import { createCapabilityBridge, createReadOnlyBridge } from "./homarr-mcp-bridge.ts";
 import {
   CURATED_HOMARR_TOOLS,
   MUTATING_HOMARR_TOOL_NAMES,
@@ -19,6 +20,7 @@ import {
   mediaSearchArguments,
   validateStructuredSearchResult,
 } from "./verify-homarr.ts";
+import { validateCapabilityPolicy, validateMediaKeyEnvelope } from "./lib/profile.ts";
 
 const TEST_KEY = "TEST_ONLY_HOMARR_KEY_123456789";
 const QUERY = "Spider-Man: No Way Home";
@@ -131,6 +133,112 @@ async function checkReadOnlyBridge() {
     assert.equal(rejected.error.code, -32003);
   }
   assert.equal(upstreamCalls.length, 1);
+}
+
+async function checkIntegrationRequestPolicy() {
+  const calls = [];
+  assert.throws(() => validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "integration-request",
+    rules: [{
+      integrationId: "qbit-main",
+      service: "qbittorrent",
+      methods: ["GET"],
+      paths: ["/api/v2/app"],
+    }],
+  }), /unsupported/);
+  const policy = validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "integration-request",
+    rules: [{
+      integrationId: "sonarr-main",
+      service: "sonarr",
+      methods: ["GET", "PATCH", "DELETE"],
+      paths: ["/api/v3/series"],
+    }],
+  });
+  const client = {
+    endpointMode: "canonical",
+    async connect() {},
+    async listTools() {
+      return {
+        fallback: false,
+        tools: [
+          ...CURATED_HOMARR_TOOLS,
+          { name: "integration_request", description: "request", inputSchema: { type: "object" } },
+        ],
+      };
+    },
+    async callTool(name, args) {
+      calls.push({ name, args });
+      if (name === "integration_byId") {
+        return { structuredContent: { id: "sonarr-main", kind: "sonarr" } };
+      }
+      return { structuredContent: { status: 200, data: [] } };
+    },
+  };
+  const bridge = createCapabilityBridge(client, policy);
+  const listed = await bridge.handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+  assert.equal(listed.result._meta["selfhost-homarr/bridgeMode"], "integration-request-policy");
+  assert.equal(listed.result.tools.some((tool) => tool.name === "integration_request"), true);
+
+  const allowed = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: {
+      name: "integration_request",
+      arguments: { integrationId: "sonarr-main", method: "GET", path: "/api/v3/series?monitored=true" },
+    },
+  });
+  assert.ok(allowed.result);
+  assert.deepEqual(calls.map((call) => call.name), ["integration_byId", "integration_request"]);
+
+  for (const argumentsValue of [
+    { integrationId: "radarr-main", method: "GET", path: "/api/v3/series" },
+    { integrationId: "sonarr-main", method: "POST", path: "/api/v3/series" },
+    { integrationId: "sonarr-main", method: "GET", path: "/api/v3/command" },
+    { integrationId: "sonarr-main", method: "DELETE", path: "/api/v3/series/42" },
+  ]) {
+    const rejected = await bridge.handleRequest({
+      jsonrpc: "2.0",
+      id: "rejected",
+      method: "tools/call",
+      params: { name: "integration_request", arguments: argumentsValue },
+    });
+    assert.equal(rejected.error.code, -32003);
+  }
+  assert.equal(calls.length, 2);
+
+  const wrongServicePolicy = validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "integration-request",
+    rules: [{
+      integrationId: "sonarr-main",
+      service: "radarr",
+      methods: ["GET"],
+      paths: ["/api/v3/series"],
+    }],
+  });
+  const wrongService = createCapabilityBridge(client, wrongServicePolicy);
+  const mismatch = await wrongService.handleRequest({
+    jsonrpc: "2.0",
+    id: 3,
+    method: "tools/call",
+    params: {
+      name: "integration_request",
+      arguments: { integrationId: "sonarr-main", method: "GET", path: "/api/v3/series" },
+    },
+  });
+  assert.equal(mismatch.error.code, -32004);
+  assert.equal(calls.at(-1).name, "integration_byId");
+}
+
+function checkMediaKeyEnvelope() {
+  const key = randomBytes(24).toString("base64url");
+  assert.equal(validateMediaKeyEnvelope(`HOMARR_API_KEY=${key}\n`), key);
+  assert.throws(() => validateMediaKeyEnvelope(`${key}\n`));
+  assert.throws(() => validateMediaKeyEnvelope(`HOMARR_API_KEY=${key}\nEXTRA=value\n`));
 }
 
 async function checkCanonicalFailures() {
@@ -351,6 +459,10 @@ function checkCoverageHandoff() {
 
 await checkReadOnlyBridge();
 process.stdout.write("PASS read-only bridge rejects mutations after search\n");
+await checkIntegrationRequestPolicy();
+process.stdout.write("PASS integration request bridge enforces service, method, and route policy\n");
+checkMediaKeyEnvelope();
+process.stdout.write("PASS media key handoff validates the private envelope\n");
 await checkCanonicalFailures();
 process.stdout.write("PASS canonical failures cannot trigger compatibility\n");
 await checkDateFallback();

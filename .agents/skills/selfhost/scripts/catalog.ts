@@ -230,7 +230,7 @@ function validateSkillRegistry(registry, errors) {
       continue;
     }
     addError(errors, hasExactKeys(record, SKILL_RECORD_KEYS), `skill ${label}: contains missing or unsupported fields`);
-    addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(record.id || ""), `skill ${label}: invalid id`);
+    addError(errors, /^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(record.id || ""), `skill ${label}: invalid id`);
     addError(errors, ["router", "capability", "adapter", "workflow"].includes(record.kind), `skill ${label}: kind is invalid`);
     addError(errors, ["read-only", "approval-gated-write"].includes(record.risk), `skill ${label}: risk is invalid`);
     addError(errors, ["implicit", "delegated", "explicit"].includes(record.activation), `skill ${label}: activation is invalid`);
@@ -469,7 +469,7 @@ function validateStackShape(stack, categories, appIds, skillContract, errors) {
   addError(errors, isStringArray(stack.requiredSkills, 1), `${prefix}: requiredSkills are required`);
   if (Array.isArray(stack.requiredSkills)) {
     for (const skill of stack.requiredSkills) {
-      addError(errors, /^selfhost(?:-[a-z0-9]+)*$/.test(skill), `${prefix}: invalid required skill ${skill}`);
+      addError(errors, /^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(skill), `${prefix}: invalid required skill ${skill}`);
       addError(errors, skillContract.ids.has(skill), `${prefix}: required skill ${skill} is not available in this skill pack`);
       addError(errors, !skillContract.adapters.has(skill), `${prefix}: specialized adapter ${skill} cannot be an implicit required skill`);
     }
@@ -970,7 +970,9 @@ function stackScore(stack, query) {
     return { score: 0, matched: null };
   }
   const queryTokens = new Set(normalizedQuery.split(" "));
-  const phrases = [stack.id, stack.name, ...stack.aliases].map(normalize);
+  const phrases = [stack.id, stack.name, ...stack.aliases]
+    .filter((phrase) => !(stack.id === "full" && phrase === stack.id))
+    .map(normalize);
   let best = 0;
   let matched = null;
   for (const phrase of phrases) {
@@ -1009,6 +1011,7 @@ function directStackIntents(catalog, query) {
   const matches = [];
   for (const stack of catalog.stacks) {
     const phrases = [stack.id, stack.name, ...stack.aliases]
+      .filter((phrase) => !(stack.id === "full" && phrase === stack.id))
       .map(normalize)
       .filter((phrase) => phrase && !ambiguousAliases.has(phrase));
     let best = null;
@@ -1026,13 +1029,21 @@ function directStackIntents(catalog, query) {
       matches.push({ stack, ...best });
     }
   }
-  matches.sort((left, right) => {
+  const unshadowed = matches.filter((candidate) => !matches.some((other) => {
+    if (other === candidate || other.score <= candidate.score) {
+      return false;
+    }
+    const candidateEnd = candidate.index + candidate.matched.length;
+    const otherEnd = other.index + other.matched.length;
+    return other.index <= candidate.index && otherEnd >= candidateEnd;
+  }));
+  unshadowed.sort((left, right) => {
     if (left.index !== right.index) {
       return left.index - right.index;
     }
     return left.stack.id.localeCompare(right.stack.id);
   });
-  return matches;
+  return unshadowed;
 }
 
 function unresolvedAmbiguousIntents(catalog, query, directIntents) {
@@ -1062,6 +1073,61 @@ function unresolvedAmbiguousIntents(catalog, query, directIntents) {
 }
 
 export function resolveStack(catalog, query) {
+  const normalizedQuery = normalize(query);
+  if (normalizedQuery === "full") {
+    const stack = catalog.stacks.find((candidate) => candidate.id === "full");
+    return {
+      kind: "single",
+      resolved: true,
+      ambiguous: false,
+      needsComposition: false,
+      needsClarification: false,
+      requiredAction: null,
+      stack,
+      matched: "full",
+      components: [],
+      unresolvedIntents: [],
+      candidates: [{ id: stack.id, name: stack.name, score: 1, matched: "full" }]
+    };
+  }
+  const hasGooglePhotos = phraseIndex(normalizedQuery, "google photos") >= 0;
+  const hasCloudFileBrand = ["google drive", "microsoft onedrive", "onedrive", "dropbox"]
+    .some((phrase) => phraseIndex(normalizedQuery, phrase) >= 0);
+  if (hasGooglePhotos && hasCloudFileBrand) {
+    const stack = catalog.stacks.find((candidate) => candidate.id === "photos-and-files");
+    return {
+      kind: "single",
+      resolved: true,
+      ambiguous: false,
+      needsComposition: false,
+      needsClarification: false,
+      requiredAction: null,
+      stack,
+      matched: "google photos plus cloud files",
+      components: [],
+      unresolvedIntents: [],
+      candidates: [{ id: stack.id, name: stack.name, score: 1, matched: "google photos plus cloud files" }]
+    };
+  }
+  const hasAudiobooks = ["audio books", "audiobooks", "audiobook"]
+    .some((phrase) => phraseIndex(normalizedQuery, phrase) >= 0);
+  const hasMusic = phraseIndex(normalizedQuery, "music") >= 0;
+  if (hasAudiobooks && hasMusic) {
+    const stack = catalog.stacks.find((candidate) => candidate.id === "audio-library");
+    return {
+      kind: "single",
+      resolved: true,
+      ambiguous: false,
+      needsComposition: false,
+      needsClarification: false,
+      requiredAction: null,
+      stack,
+      matched: "audiobooks plus music",
+      components: [],
+      unresolvedIntents: [],
+      candidates: [{ id: stack.id, name: stack.name, score: 1, matched: "audiobooks plus music" }]
+    };
+  }
   const directIntents = directStackIntents(catalog, query);
   const unresolvedIntents = unresolvedAmbiguousIntents(catalog, query, directIntents);
   if (directIntents.length > 0 && unresolvedIntents.length > 0) {
@@ -1147,6 +1213,96 @@ export function resolveStack(catalog, query) {
   };
 }
 
+function applicationStack(app) {
+  const rolePurpose = `${app.name} provides ${app.roles.join(" and ").replaceAll("-", " ")} for this private service.`;
+  return {
+    id: `application-${app.id}`,
+    name: app.name,
+    aliases: [app.id, app.name, ...app.aliases],
+    summary: `Run ${app.name} as one private service with only its required dependencies and Homarr.`,
+    categories: app.categories,
+    automation: app.support.automation,
+    roles: [{
+      id: "application",
+      name: app.name,
+      required: true,
+      default: app.id,
+      choices: [app.id],
+      reason: `The request named ${app.name} explicitly.`,
+      purpose: rolePurpose,
+      gates: ["storage", "exposure", "secrets"]
+    }],
+    requiredSkills: ["selfhost-host", "selfhost-compose", "selfhost-verify"],
+    gates: ["storage", "exposure", "secrets", "migration"],
+    acceptance: [
+      `${app.name} is API-ready on its private service route.`,
+      `Every required dependency for ${app.name} is reachable on the private project network.`
+    ]
+  };
+}
+
+export function stackForGoalId(catalog, goalId) {
+  const stack = catalog.stacks.find((candidate) => candidate.id === goalId);
+  if (stack) {
+    return stack;
+  }
+  const prefix = "application-";
+  if (!goalId.startsWith(prefix)) {
+    return null;
+  }
+  const app = catalog.apps.find((candidate) => candidate.id === goalId.slice(prefix.length));
+  if (!app) {
+    return null;
+  }
+  return applicationStack(app);
+}
+
+export function resolvePlanTarget(catalog, query) {
+  const resolution = resolveStack(catalog, query);
+  if (resolution.kind !== "none") {
+    return resolution;
+  }
+  const normalizedQuery = normalize(query);
+  const matches = catalog.apps.filter((app) =>
+    [app.id, app.name, ...app.aliases].some((value) => normalize(value) === normalizedQuery)
+  );
+  if (matches.length === 0) {
+    return resolution;
+  }
+  if (matches.length > 1) {
+    return {
+      ...resolution,
+      kind: "ambiguous",
+      ambiguous: true,
+      needsClarification: true,
+      requiredAction: "choose-one-before-planning",
+      candidates: matches.map((app) => ({ id: app.id, name: app.name }))
+    };
+  }
+  const app = matches[0];
+  if (app.support.automation === "retired" || app.lifecycle.status === "retired") {
+    return {
+      ...resolution,
+      kind: "retired-application",
+      requiredAction: "choose-active-alternative",
+      candidates: app.alternatives.map((id) => ({ id, name: catalog.apps.find((candidate) => candidate.id === id)?.name || id }))
+    };
+  }
+  return {
+    kind: "application",
+    resolved: true,
+    ambiguous: false,
+    needsComposition: false,
+    needsClarification: false,
+    requiredAction: null,
+    stack: applicationStack(app),
+    matched: app.id,
+    components: [],
+    unresolvedIntents: [],
+    candidates: [{ id: app.id, name: app.name, matched: app.id }]
+  };
+}
+
 function expandDependencies(catalog, selectedIds) {
   const appById = new Map(catalog.apps.map((app) => [app.id, app]));
   const selected = new Set(selectedIds);
@@ -1219,7 +1375,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   }
 
   const dependencies = expandDependencies(catalog, selectedIds);
-  const allAppIds = [...selectedIds, ...dependencies.implied.map((entry) => entry.app)];
+  const allAppIds = [...new Set([...selectedIds, ...dependencies.implied.map((entry) => entry.app)])];
   const appDetails = allAppIds.map((id) => appById.get(id)).filter(Boolean);
   for (const app of appDetails) {
     if (app.support.automation === "retired" || app.lifecycle.status === "retired") {
@@ -1395,6 +1551,34 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     }
   }
 
+  const setupStages = [];
+  if (stack.id === "full") {
+    setupStages.push({
+      id: "media",
+      owner: "selfhost-media",
+      mode: "hybrid",
+      automation: "executable",
+      apps: ["jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent", "homarr"],
+      note: "Uses the supported media harness and APIs for repeatable setup, with browser onboarding, credential capture, and proof. An authorized content source remains a separate choice."
+    });
+    setupStages.push({
+      id: "household-apps",
+      owner: "selfhost-compose",
+      mode: "guided",
+      automation: "guided",
+      apps: ["immich", "nextcloud", "navidrome", "audiobookshelf", "vaultwarden"],
+      note: "Each application remains guided and must pass its owning storage, access, backup, and migration gates before apply."
+    });
+    setupStages.push({
+      id: "home-automation",
+      owner: "selfhost-compose",
+      mode: "optional",
+      automation: "guided",
+      apps: roles.some((role) => role.id === "home-automation" && role.selected === "home-assistant") ? ["home-assistant"] : [],
+      note: "Runs only when explicitly selected after hardware, network, and privilege review."
+    });
+  }
+
   return {
     mode: "read-only",
     status: "planned",
@@ -1403,6 +1587,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
     goal: { id: stack.id, name: stack.name, summary: stack.summary, automation: stack.automation },
     effectiveAutomation,
     automationLimiters,
+    setupStages,
     roles,
     impliedApps: dependencies.implied,
     requiredCapabilities: dependencies.capabilities,

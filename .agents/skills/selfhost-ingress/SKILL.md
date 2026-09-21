@@ -13,7 +13,7 @@ Choose one route for each service and keep one accountable owner for every edge 
 
 1. Establish the target service, host, intended clients, and whether access is local, LAN, private remote, public, or temporary. Default an unspecified route to local-only.
 2. Invoke `selfhost-host` when host listeners, existing proxies, tunnel clients, or network ownership have not been inspected. Accept only bounded, redacted facts.
-3. Read [routes.md](references/routes.md) for the selected route. Read [plan-contract.md](references/plan-contract.md) before constructing planner input or interpreting its result.
+3. Read [routes.md](references/routes.md) and [plan-contract.md](references/plan-contract.md). For listed applications, also read [application-profiles.md](references/application-profiles.md).
 4. Run `scripts/plan-ingress.ts` with explicit facts and preferences. The planner never discovers infrastructure or contacts a provider.
 5. Resolve every `conflict` and `blocked` gate before proposing an apply action. Reuse an existing Caddy, Traefik, or Nginx Proxy Manager only when its owner, lifecycle, network, route contract, and port ownership are known.
 6. Present the redacted plan. Obtain separate approval for public reachability and its authentication policy. Hand implementation to the capability that owns the selected proxy, tunnel, DNS, TLS, or firewall.
@@ -37,7 +37,7 @@ Use `--json` only for non-secret input that is safe in a process argument. The p
 - For a media stack, Homarr's dashboard may be the single approved management edge while its Arr and downloader integrations stay private. Jellyfin may use a separate approved playback edge. Keep Homarr's native `/api/mcp` private and let the local read-only bridge reach it over loopback, LAN, or a private tailnet. A public dashboard route must deny that path and prove the denial from a public client; a public native MCP route requires a separate constrained profile and approval that this pack does not provide.
 - Require `publicApproved: true` and an approved authentication policy for every public or temporary route. A tunnel supplies transport, not application authorization.
 - Assign one owner per host port 80 and 443, DNS zone or hostname, and TLS certificate/termination point. Report competing owners as `conflict`; never steal a listener or edit another owner's route.
-- Keep Caddy certificate data and proxy configuration persistent. Treat Traefik Docker API access as privileged. Keep Nginx Proxy Manager administration private.
+- Keep Caddy state persistent; its private route contract lives in [plan-contract.md](references/plan-contract.md). Treat Traefik Docker API access as privileged. Keep Nginx Proxy Manager administration private.
 - Use Tailscale Serve for private tailnet access. Treat Headscale as a chosen self-hosted coordination plane with an explicit lifecycle and ACL owner.
 - Use Cloudflare Tunnel or Pangolin/Newt only with the relevant account/control-plane contract, secret references, and access policy. Use ngrok only for an approved, expiring, non-production endpoint.
 

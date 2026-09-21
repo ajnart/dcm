@@ -70,7 +70,7 @@ const DOCUMENTATION_CONTRACTS = [
       ["Agent Plugins standard", "Agent Plugins 1.0"],
       ["Agent Skills standard", "Agent Skills specification"],
       ["common coding-agent manifest", "coding-agents.json"],
-      ["Pi invocation", "/skill:selfhost-setup"],
+      ["Pi invocation", "/skill:self-host"],
       ["profile CLI", "bun run stack profiles"],
       ["explicit setup entry point", "$selfhost-setup"],
       ["explicit upkeep entry point", "$selfhost-upkeep"],
@@ -87,8 +87,8 @@ const DOCUMENTATION_CONTRACTS = [
       ["Homarr image", HOMARR_IMAGE],
       ["default read-only Homarr fragment", "default client fragment remains strictly read-only"],
       [
-        "no mutation-capable Homarr bridge",
-        "The pack does not provide a mutation-capable Homarr client fragment or bridge.",
+        "explicitly scoped Homarr integration requests",
+        "`integration_request` calls for explicitly approved integration IDs, service",
       ],
       [
         "blocked Homarr mutation tools",
@@ -190,6 +190,10 @@ const SOURCE_EXCLUDED_ROOTS = new Set([
   "evidence",
   "node_modules",
   "screenshots",
+]);
+const SOURCE_DIRECTORIES = new Set([
+  ".agents", ".claude-plugin", ".codex-plugin", ".github",
+  "docs", "packaging", "prompts", "scripts", "security", "tests",
 ]);
 const TEXT_EXTENSIONS = new Set([
   ".cjs",
@@ -669,6 +673,14 @@ async function collectSourceFiles() {
       ) {
         continue;
       }
+      if (entry.name === ".sessions" || entry.name === "node_modules"
+        || entry.name.startsWith(".env")) {
+        continue;
+      }
+      if (relativeDirectory.length === 0 && entry.isDirectory()
+        && !SOURCE_DIRECTORIES.has(entry.name)) {
+        continue;
+      }
       const entryPath = join(directoryPath, entry.name);
       const stat = await lstat(entryPath);
       if (stat.isSymbolicLink()) {
@@ -1008,7 +1020,7 @@ async function loadStrictSkillRegistry() {
     }
     if (
       typeof record.id !== "string"
-      || !/^selfhost(?:-[a-z0-9]+)*$/.test(record.id)
+      || !/^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(record.id)
     ) {
       errors.push(`skill registry: ${label} has an invalid id`);
       continue;

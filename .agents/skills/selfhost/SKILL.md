@@ -1,11 +1,11 @@
 ---
 name: selfhost
-description: Base planning router. Route self-hosting goals into short, composable, read-only plans from the curated catalog. Use for `/selfhost`, `$selfhost`, replacing hosted services, choosing apps, or deciding how media, photos, files, passwords, automation, networking, backups, monitoring, or local AI fit a host. Include Homarr as the standard private control plane.
+description: Base supporting planning router. Use from the self-host entry point to resolve goals, compare services, and produce short, composable, read-only plans from the curated catalog. Include Homarr as the standard private control plane.
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer for bundled planning scripts; host mutation remains capability-owned and approval-gated.
 ---
 
-# Selfhost
+# Selfhost planner
 
 Turn a goal into a bounded plan. Keep planning separate from mutation.
 
@@ -18,7 +18,9 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
 2. Confirm one exact project root. Invoke `scripts/selfhost.ts plan` with the
    stated goal. With no new goal, use that command to resume only the supplied
    root. Never search unrelated directories for project state.
-3. If the result is ambiguous or needs composition, show its candidates or
+3. An exact application name selects that application, its required
+   dependencies, and Homarr. Do not expand it into a broader goal stack. If the
+   result is ambiguous or needs composition, show its candidates or
    components and resolve every open intent. Preserve all branches of a clear
    composite request.
 4. Use `catalog search` or `catalog show` for individual applications instead
@@ -33,12 +35,10 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
 7. After confirmed non-secret intent, use `state init` or `state revise` as the
    separate persistence step. Record a checkpoint only for work that happened
    and only with a real typed evidence ID.
-8. Stop at the redacted plan until the user separately approves an apply step
+8. Stop at the redacted plan until the user approves an exact apply step
    owned by the selected capability or adapter.
-9. For a new stack that should be changed, tell the user to invoke
-   `$selfhost-setup` explicitly. For work on an existing
-   `.selfhost/stack.json`, tell them to invoke `$selfhost-upkeep` explicitly.
-   This planning skill creates neither stack metadata nor mutation authority.
+9. Return control to `self-host` for setup or upkeep. This planning skill
+   creates neither stack metadata nor mutation authority.
 
 ## Command boundary
 

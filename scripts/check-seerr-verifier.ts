@@ -1,20 +1,23 @@
 #!/usr/bin/env bun
 
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 
 import {
   validateSeerrCredentialIndex,
   validateSeerrServiceDetails,
   validateSeerrSettings,
+  runVerificationRows,
+  verifyJellyfin,
   verifySeerr,
 } from "./verify-core.ts";
 
 const RADARR_KEY = "fixture-radarr-key";
 const SONARR_KEY = "fixture-sonarr-key";
 const SEERR_KEY = "fixture-seerr-key";
-const JELLYFIN_EXTERNAL_URL = "http://127.0.0.1:15004";
-const RADARR_EXTERNAL_URL = "http://127.0.0.1:15002";
-const SONARR_EXTERNAL_URL = "http://127.0.0.1:15003";
+const JELLYFIN_EXTERNAL_URL = "https://jellyfin.home.arpa";
+const RADARR_EXTERNAL_URL = "https://radarr.home.arpa";
+const SONARR_EXTERNAL_URL = "https://sonarr.home.arpa";
 
 function fixtureSettings() {
   return {
@@ -237,6 +240,11 @@ async function runChecks() {
       assert.equal(responseByUrl.has(url), true);
       return structuredClone(responseByUrl.get(url));
     },
+    { services: {
+      jellyfin: { reachableUrl: JELLYFIN_EXTERNAL_URL, browserUrl: "http://127.0.0.1:15004" },
+      radarr: { reachableUrl: RADARR_EXTERNAL_URL, browserUrl: "http://127.0.0.1:15002" },
+      sonarr: { reachableUrl: SONARR_EXTERNAL_URL, browserUrl: "http://127.0.0.1:15003" },
+    } },
   );
   assert.deepEqual(
     calls.map((call) => call.url),
@@ -260,6 +268,43 @@ async function runChecks() {
     });
     assert.match(call.requestOptions.label, /^Seerr /);
   }
+
+  const rowOutput = [];
+  const rowCalls = [];
+  const rowsPassed = await runVerificationRows([
+    { label: "first", verify: async () => { rowCalls.push("first"); throw new Error("Seerr expected failure"); } },
+    { label: "second", verify: async () => { rowCalls.push("second"); } },
+    { label: "third", verify: async () => { rowCalls.push("third"); } },
+    { label: "unsafe", verify: async () => { rowCalls.push("unsafe"); throw new Error('{"apiKey":"must-not-print"}'); } },
+  ], (line) => rowOutput.push(line));
+  assert.equal(rowsPassed, false);
+  assert.deepEqual(rowCalls, ["first", "second", "third", "unsafe"]);
+  assert.deepEqual(rowOutput, [
+    "FAIL first: Seerr expected failure",
+    "PASS second",
+    "PASS third",
+    "FAIL unsafe: verification failed",
+  ]);
+
+  const jellyfinCalls = [];
+  await verifyJellyfin({
+    runId: "fixture-seerr",
+    manifest: { JELLYFIN_PORT: "15004", ADMIN_USERNAME: "chosen-user", SESSION_PASSWORD_SCHEME: "hmac-v1" },
+    secrets: { HOMARR_ENCRYPTION_KEY: randomBytes(32).toString("hex") },
+  }, {
+    requestJson: async (url, options) => {
+      jellyfinCalls.push({ url, options });
+      if (url.endsWith("/Users/AuthenticateByName")) {
+        return { AccessToken: randomBytes(20).toString("hex"), User: { Name: "chosen-user", Policy: { IsAdministrator: true } } };
+      }
+      return [
+        { Name: "Movies", CollectionType: "movies", Locations: ["/data/media/movies"] },
+        { Name: "Shows", CollectionType: "tvshows", Locations: ["/data/media/tv"] },
+      ];
+    },
+    request: async (url, options) => { jellyfinCalls.push({ url, options }); },
+  });
+  assert.equal(jellyfinCalls.at(-1).url.endsWith("/Sessions/Logout"), true);
 
   process.stdout.write("PASS Seerr verifier checks\n");
 }

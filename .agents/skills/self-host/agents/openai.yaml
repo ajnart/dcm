@@ -1,0 +1,6 @@
+interface:
+  display_name: "Self-host · Start here"
+  short_description: "Plan, install, or maintain a private service"
+  default_prompt: "Use $self-host for my self-hosting request and handle the full lifecycle."
+policy:
+  allow_implicit_invocation: true

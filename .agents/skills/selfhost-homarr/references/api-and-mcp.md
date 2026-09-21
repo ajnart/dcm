@@ -7,11 +7,17 @@ across a selected self-hosted stack. This reduces the need to expose each
 administrative UI, but it does not make Homarr mandatory and does not transfer
 authorization from Homarr to the connected services.
 
-The shipped bridge is strictly read-only. It supports inspection and exact
-Seerr search only. It does not request media, update applications, or decide
-requests. Describe broader action workflows as future capabilities unless a
-separate implementation supplies an explicit tool allowlist, narrow approval,
-confirmation, and verification contract.
+The default bridge is strictly read-only. An optional `integration-request`
+profile mode exposes Homarr's authenticated `integration_request` tool only
+through exact integration ID, expected service kind, method, and path
+rules. It does not expose Homarr's other mutating tools.
+
+Homarr requires full integration access even for GET because arbitrary service
+endpoints can expose credentials or change state. A policy is authorization for
+only its listed request shapes; it is not permission to improvise endpoints.
+Consult the selected service's current official API contract before adding a
+rule. DELETE still requires `confirmed: true` after the user confirms its exact
+effects.
 
 ## Authentication and routes
 
@@ -25,7 +31,41 @@ Project only the known read-only tools from a valid native `tools/list` catalog.
 
 Try `/api/mcp/mcp` only when the first canonical probe returns definitive HTTP 404/405 without a valid JSON-RPC response. Fall back from modern discovery to legacy `tools/list` on the same endpoint only for a valid HTTP 2xx RPC `-32601` method-not-found response.
 
-The bridge labels catalog mode as `native-read-only-projection` or `curated-date-schema-fallback`, bridge mode as `read-only`, and endpoint mode as `canonical` or `compatibility`.
+The bridge labels catalog mode as `native-read-only-projection` or `curated-date-schema-fallback`, bridge mode as `read-only` or `integration-request-policy`, and endpoint mode as `canonical` or `compatibility`. The optional tool requires native catalog discovery; it is never invented by the curated fallback.
+
+## Integration-request policy
+
+Select this mode before generating a client fragment. Pipe a secret-free policy to:
+
+```text
+bun <skill-dir>/scripts/profile.ts set-integration-policy <absolute-profile-path>
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "mode": "integration-request",
+  "rules": [{
+    "integrationId": "sonarr-main",
+    "service": "sonarr",
+    "methods": ["GET"],
+    "paths": ["/api/v3/series"]
+  }]
+}
+```
+
+Rules accept only exact root-relative paths; query strings do not change the
+matched path. Absolute URLs, fragments, backslashes, whitespace, and traversal
+markers are rejected. Unlisted paths and
+unlisted methods are rejected. At call time the bridge queries
+`integration_byId` and requires the live integration kind to match `service`.
+GET bodies are rejected; JSON bodies retain Homarr's 10 KiB limit. The bridge
+passes Homarr's redacted `{status,data}` result through without logging it.
+
+Policy creation does not call a service or install client configuration. Once a
+fragment directory exists, capability mode cannot be enabled for that profile;
+create a separate reviewed profile so installation approval reflects the
+bridge's capability.
 
 ## Media workflow
 
@@ -34,4 +74,10 @@ The bridge labels catalog mode as `native-read-only-projection` or `curated-date
 3. Require a non-empty structured results array containing a `title` or `name` that exactly normalizes to the query.
 4. Present and disambiguate the match, then stop pending confirmation.
 
-The default bridge has no mutation path. It rejects media requests, app updates, and request decisions even after search or confirmation. Treat a future one-use, expiring, exact-result authorization bridge as separate work; never imply it is installed.
+The default bridge has no mutation path. A policy-enabled profile may use only
+its configured `integration_request` routes. Media-request tools, app updates,
+and request decisions remain unavailable unless the selected service exposes an
+explicitly documented endpoint that was separately added to the policy.
+
+Sources: [Homarr MCP management](https://v2.preview.homarr.dev/docs/management/mcp#authenticated-integration-requests),
+[authenticated integration request implementation](https://github.com/homarr-labs/homarr/pull/6835).

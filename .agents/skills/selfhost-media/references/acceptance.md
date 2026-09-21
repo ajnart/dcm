@@ -15,7 +15,7 @@ Treat every row as unproven until its direct evidence exists.
 | Homarr auto-generation | Six onboarding-generated app tiles and live widgets after reload |
 | Browser credential setup | Fresh agent-browser refs; Arr/Seerr capture matches managed keys; Homarr forms are filled through the private helper; no key appears in arguments or output |
 | Homarr API/MCP | Private one-time key capture through agent-browser; finalizer/config/verifier PASS; canonical endpoint and bridge return the read-only match; no mutation or client install |
-| Reusable connections | Password-free private connections file refreshed after acceptance; initial setup, or explicitly requested fresh upkeep handoff, displays the admin username and derived password to the user |
+| Reusable connections | Password-free private connections file refreshed after acceptance; explicitly requested handoff writes owner-only private credentials and a separate redacted report; only paths appear in output |
 
 Run `doctor` and the core verifier again at the end. Inspect the real UI and
 redacted response structure. HTTP 200 alone is insufficient. Empty media data

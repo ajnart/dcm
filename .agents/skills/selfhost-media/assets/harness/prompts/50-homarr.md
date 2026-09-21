@@ -1,7 +1,7 @@
 # 50 - Generate Homarr from onboarding
 
 Read `docs/homarr.md`. Open Homarr `/init`, start from scratch, and create the
-local admin username `admin`. Fill its password and confirmation fields through
+local admin username `$ADMIN_USERNAME`. Fill its password and confirmation fields through
 `scripts/session.sh browser-password "$RUN_ID" @eN @eN` using fresh refs. Do
 not skip the onboarding integration phase.
 
@@ -26,12 +26,19 @@ For each password input, take a fresh snapshot and call
 `scripts/session.sh browser-password "$RUN_ID" @eN`; never place the password
 in an agent-browser or shell argument.
 
-For Sonarr, Radarr, Prowlarr, and Seerr, use agent-browser to open the
-run-scoped host URL at the table path and take a fresh snapshot. Capture the
-visible key field without printing it:
+For Sonarr, Radarr, and Prowlarr, capture the fixed readonly API-key field
+directly from `/settings/general` without a snapshot or ref:
 
 ```bash
-scripts/session.sh browser-key capture "$RUN_ID" SERVICE @eN
+scripts/session.sh browser-key capture-field "$RUN_ID" SERVICE
+```
+
+For Seerr, open its run-scoped settings URL and use `browser-key refs RUN_ID
+seerr`; ordinary snapshots can reveal its value.
+Capture that fresh field without printing it:
+
+```bash
+scripts/session.sh browser-key capture "$RUN_ID" seerr @eN
 ```
 
 The capture must match the key already managed by this run. Return to the
@@ -50,8 +57,13 @@ On Review require **6 integrations** and **6 app tiles**, then Build my board an
 Open my board. Dismiss the tour with a real click if keyboard activation merely
 advances it. Do not manually add or move an app/widget to manufacture success.
 
-Stop onboarding work after proving the generated board. Preserve the six apps
-exactly as generated and do not edit them in the UI.
+Prove the generated board before adding optional content. Preserve its six
+generated apps. After that proof, add a TLDR Notebook widget to the personal
+board with service purposes, access links, storage/backup notes and MCP usage.
+Use `scripts/session.sh homarr-notebook "$RUN_ID" "$BOARD_NAME"` with the exact
+created board name. The helper preserves existing items and verifies the saved
+recap; repeating it does not add a duplicate. Never put credentials or the
+private artifact contents in the widget.
 `prompts/60-homarr-api-mcp.md` captures a Homarr API key and runs the
 deterministic finalizer that assigns host-reachable app links while retaining
 the Docker URLs for internal ping.
