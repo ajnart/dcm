@@ -32,6 +32,9 @@ jobs:
       - name: Validate public and repository contracts
         run: bun scripts/skillpack.ts validate --scope all
 
+      - name: Fetch public branch history for the audit
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+
       - name: Audit publishable history and assets
         run: bun scripts/skillpack.ts audit
 
