@@ -315,6 +315,16 @@ function secretRejection(relativePath, argsForPath, input) {
 }
 
 async function publicEntry() {
+  const entryGuide = readFileSync(join(root, ".agents/skills/self-host/SKILL.md"), "utf8");
+  const conversationGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost/references/conversation.md"), "utf8");
+  const setupGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-setup/GUIDE.md"), "utf8");
+  const upkeepGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-upkeep/GUIDE.md"), "utf8");
+  for (const guide of [entryGuide, conversationGuide, setupGuide, upkeepGuide]) {
+    assert.match(guide, /\$HOME\/\.selfhostedskills/);
+  }
+  assert.doesNotMatch(entryGuide, /Confirm the target host and project directory/);
+  assert.doesNotMatch(conversationGuide, /ask for one existing absolute directory/);
+
   const project = join(temporaryRoot, "public-entry-project");
   const installedSkills = join(project, ".agents", "skills");
   const installedSkill = join(installedSkills, "self-host");

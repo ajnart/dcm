@@ -30,8 +30,8 @@ for the resulting Homarr and follow-up behavior. Ask one compact question at a
 time, skip answers already supplied, and accept `defaults` for the recommended
 non-secret choices.
 
-Confirm the target host and project directory. Check only that directory for
-`.selfhost/stack.json`, then read **one** workflow:
+Use the fixed `$HOME/.selfhostedskills` project root without asking for a
+directory. Check only its `.selfhost/stack.json`, then read **one** workflow:
 
 | Request | Read |
 | --- | --- |

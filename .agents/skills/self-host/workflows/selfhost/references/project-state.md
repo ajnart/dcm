@@ -25,8 +25,9 @@ proof current.
 
 ## Resume order
 
-1. Use the exact project root supplied or confirmed by the user. Do not search
-   unrelated directories for project state.
+1. Use only the fixed `$HOME/.selfhostedskills` project root. Do not ask for a
+   directory, use the current working directory, or search elsewhere for
+   project state.
 2. Load the project record and confirmed non-secret preferences.
 3. Rebuild the plan against the current catalog and report any drift. Required
    Homarr is injected from the taxonomy; newly added optional roles stay off
