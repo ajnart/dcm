@@ -27,7 +27,10 @@ bun scripts/skillpack.ts release-check --tag v1.0.0
 bun scripts/skillpack.ts package --version 1.0.0 --output dist
 ```
 
-The audit never reads a sensitive historical path or prints a matched value.
+The audit scans `HEAD`, branch, remote-branch, and tag history; CI fetches all
+remote branches first. Codex-local checkpoint refs are outside the published
+repository history. The audit never reads a sensitive historical path or prints
+a matched value.
 Review tracked screenshots visually for host details, user data, and credentials
 even when their PNG/SVG metadata scan passes.
 

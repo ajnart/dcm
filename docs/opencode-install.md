@@ -29,6 +29,17 @@ Omit it to use the Skills CLI's symlink layout. Omit `--global` for a
 project-local install. OpenCode discovers project skills under
 `.agents/skills/` and global skills under `~/.agents/skills/`.
 
+To register a project `/self-host` command after a direct Skills CLI install,
+run the adapter bundled with the installed skill:
+
+```sh
+bun .agents/skills/self-host/scripts/install-command.ts --agent opencode --scope project --project-root "$PWD"
+```
+
+The adapter checks for command name collisions. The repository's one-step
+`bun scripts/install.ts` installs both the skill and command. See the
+[command install contract](../.agents/install.md#named-slash-command).
+
 ## Update or remove
 
 Update only this skill in the scope where it was installed:
@@ -51,8 +62,9 @@ See the Skills CLI's [install and update options](https://github.com/vercel-labs
 Start a fresh OpenCode session and ask it to use the `self-host` skill, for
 example: “Use the self-host skill to plan a private photo service.” OpenCode
 advertises available skills by name and description, then loads the full
-`SKILL.md` on demand through its `skill` tool. OpenCode does not guarantee a
-`/self-host` slash command.
+`SKILL.md` on demand through its `skill` tool. `/self-host` works after the
+optional command adapter is installed; skill discovery alone does not create
+that command.
 
 To check discovery locally, run `opencode debug skill` from the installed
 project. Confirm the `self-host` entry points to the intended
