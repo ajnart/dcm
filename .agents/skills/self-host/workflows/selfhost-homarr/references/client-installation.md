@@ -28,10 +28,11 @@ The generator writes one no-clobber fragment under the profile's private `client
 | --- | --- | --- |
 | `claude-code` | `claude-code.json` | `mcpServers` stdio entry |
 | `codex` | `codex.toml` | `mcp_servers` TOML table |
+| `pi` | `pi.json` | `mcpServers` stdio entry |
 | `generic-json` | `generic.json` | named stdio JSON object |
 | `generic-toml` | `generic.toml` | named stdio TOML object |
 
-Each fragment points to the bridge and contains only the absolute Node executable, this skill's absolute bridge path, and the non-secret profile path. It contains no URL, credential, or credential-file path. Profiles without an integration policy remain strictly read-only. A policy-enabled fragment adds `-integration-request` to its MCP server name so the merge diff exposes the capability. The policy must be selected and reviewed before fragment generation; use a separate profile and installation approval for that capability.
+Each fragment points to the bridge and contains only the absolute Node executable, this skill's absolute bridge path, and the non-secret profile path. It contains no URL, credential, or credential-file path. Pi's JSON fragment can be merged into its MCP configuration. Profiles without an integration policy remain strictly read-only. A policy-enabled fragment adds `-integration-request` to its MCP server name so the merge diff exposes the capability. The policy must be selected and reviewed before fragment generation; use a separate profile and installation approval for that capability.
 
 Fragment generation does not authorize installation. Before touching a real client config:
 

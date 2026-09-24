@@ -55,16 +55,25 @@ run both installation and its bundled TypeScript helpers.
 
 ## Native Pi package
 
-After `v1.0.0` is published, install this repository through Pi's package manager:
+Install the default branch through Pi's package manager for rolling updates:
+
+```bash
+pi install git:github.com/ajnart/selfhost-skills
+pi update --extensions
+```
+
+The root `package.json` exposes the canonical skill and `/self-host` prompt to
+Pi. `/skill:self-host` remains available as the native skill command. Pi saves
+the package to personal settings by default; append `--local` to `pi install`
+to save it in the current project's `.pi/settings.json`, which Pi loads after
+project trust is granted.
+
+After `v1.0.0` is published, users who prefer stable releases can pin it:
 
 ```bash
 pi install git:github.com/ajnart/selfhost-skills@v1.0.0
 ```
 
-The root `package.json` exposes the canonical `.agents/skills` directory to Pi.
-The skill is available as `/skill:self-host`. Pi saves this command to personal
-settings by default; append `--local` to `pi install` to save it in the current
-project's `.pi/settings.json`, which Pi loads after project trust is granted.
 Move the Git ref to a newer released tag before `pi update --extensions`;
 updating alone does not advance a pinned ref. See the [Pi package
 docs](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)

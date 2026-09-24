@@ -39,7 +39,7 @@ independently operable when Homarr is temporarily unavailable.
 
 4. Read [api-and-mcp.md](references/api-and-mcp.md) before API or MCP work. Create the key in Homarr only when requested, then use the one-time browser-to-stdin pipeline in [client-installation.md](references/client-installation.md).
 5. Run `profile.ts doctor <absolute-profile-path>` before starting the bridge, generating a fragment, or verifying.
-6. Generate a secret-free client fragment with `generate-client-config.ts <claude-code|codex|generic-json|generic-toml> <absolute-profile-path>`.
+6. Generate a secret-free client fragment with `generate-client-config.ts <claude-code|codex|pi|generic-json|generic-toml> <absolute-profile-path>`.
 7. Run `verify-homarr.ts <absolute-profile-path>`. Add `--media-search` for the read-only default search `Spider-Man: No Way Home`, or append a different title. Require one usable Seerr integration and an exact structured result.
 8. Read [safety-and-acceptance.md](references/safety-and-acceptance.md) and report only the PASS lines actually observed. Keep compatibility and curated-catalog fallback modes explicit.
 

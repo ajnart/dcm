@@ -2,7 +2,7 @@
 
 Use `self-host` for planning, setup, and upkeep. The public entry reads one
 selected workflow from its bundled `workflows/` directory and follows that
-workflow's links only as needed. The user does not invoke internal owners.
+workflow's links only as needed. The user does not invoke internal owners. Pi users can invoke it with `/skill:self-host` or `/skill:self-host <goal>`.
 
 The client slash-command template is a thin entry into the same skill.
 Pi and OpenCode expose it as `/self-host`; Codex CLI and IDE expose it as the
