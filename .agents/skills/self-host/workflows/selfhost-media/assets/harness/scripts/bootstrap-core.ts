@@ -14,6 +14,7 @@ import {
   sleep,
   sessionUsername,
   tryRequest,
+  useCurlTransport,
   validateRunId,
   writableFields,
   writeSessionConnections,
@@ -561,6 +562,67 @@ async function configureProwlarrApplications(session, arrDefinitions) {
   }
 }
 
+const arrDefinitions = [
+  {
+    name: "Sonarr",
+    portKey: "SONARR_PORT",
+    apiKey: "SONARR_API_KEY",
+    rootFolder: "/data/media/tv",
+    categoryField: "tvCategory",
+    category: "tv-sonarr",
+    internalUrl: "http://sonarr:8989",
+  },
+  {
+    name: "Radarr",
+    portKey: "RADARR_PORT",
+    apiKey: "RADARR_API_KEY",
+    rootFolder: "/data/media/movies",
+    categoryField: "movieCategory",
+    category: "movies-radarr",
+    internalUrl: "http://radarr:7878",
+  },
+];
+
+export async function setupCoreService(runId, service) {
+  validateRunId(runId);
+  let session = loadSession(runId);
+  useCurlTransport(session);
+  activeUsername = sessionUsername(session);
+  const sessionPassword = deriveSessionPassword(session);
+
+  if (service === "qbittorrent") {
+    await request(`${loopback(session.manifest.QBITTORRENT_PORT)}/api/v2/app/version`, {}, {
+      attempts: 40, expectedStatuses: [200, 401, 403], label: "qBittorrent readiness check",
+    });
+    await configureQbit(session, sessionPassword);
+    return "qBittorrent authentication and categories";
+  }
+
+  if (service === "sonarr" || service === "radarr" || service === "prowlarr") {
+    const portKey = `${service.toUpperCase()}_PORT`;
+    await request(`${loopback(session.manifest[portKey])}/ping`, {}, {
+      attempts: 40, expectedStatuses: [200], label: `${service} readiness check`,
+    });
+    refreshArrKeys(runId, [service]);
+    session = loadSession(runId);
+  }
+
+  if (service === "sonarr" || service === "radarr") {
+    const definition = arrDefinitions.find((item) => item.name.toLowerCase() === service);
+    await configureArr(session, definition, sessionPassword, { identitiesOnly: false });
+    return `${definition.name} authentication, root folder, and qBittorrent link`;
+  }
+
+  if (service === "prowlarr") {
+    await configureProwlarrAuth(session, sessionPassword);
+    await configureProwlarrApplications(session, arrDefinitions);
+    writeSessionConnections(runId);
+    return "Prowlarr authentication and Sonarr/Radarr Full Sync links; authorized indexer pending";
+  }
+
+  throw new Error("unsupported core service");
+}
+
 async function main() {
   if (Bun.argv.length > 4 || (Bun.argv[3] && !identitiesOnly)) {
     throw new Error("usage: bootstrap-core.ts RUN_ID [--identities-only]");
@@ -576,27 +638,6 @@ async function main() {
 
   await configureQbit(session, sessionPassword);
   console.log("PASS qBittorrent login and categories configured");
-
-  const arrDefinitions = [
-    {
-      name: "Sonarr",
-      portKey: "SONARR_PORT",
-      apiKey: "SONARR_API_KEY",
-      rootFolder: "/data/media/tv",
-      categoryField: "tvCategory",
-      category: "tv-sonarr",
-      internalUrl: "http://sonarr:8989",
-    },
-    {
-      name: "Radarr",
-      portKey: "RADARR_PORT",
-      apiKey: "RADARR_API_KEY",
-      rootFolder: "/data/media/movies",
-      categoryField: "movieCategory",
-      category: "movies-radarr",
-      internalUrl: "http://radarr:7878",
-    },
-  ];
 
   for (const definition of arrDefinitions) {
     await configureArr(session, definition, sessionPassword, { identitiesOnly });

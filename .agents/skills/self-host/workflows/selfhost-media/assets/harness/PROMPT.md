@@ -18,9 +18,10 @@ Read these modules in order and follow every stop gate:
 8. `prompts/80-acceptance.md`
 9. `prompts/90-evidence.md`
 
-Read `docs/README.md` and the seven `docs/<service>.md` notes as each service is
-reached. Those local TLDRs and the live agent-browser skill are authoritative;
-root-level service guides are historical evidence only.
+Read `docs/README.md`, `docs/headless-setup.md`, and the seven
+`docs/<service>.md` notes as each service is reached. Scripts are the setup
+path; load agent-browser only for a targeted fallback or requested visual proof.
+Root-level service guides are historical evidence only.
 
 ## Non-negotiable outcome
 
@@ -29,9 +30,9 @@ Sonarr/Radarr use qBittorrent; Prowlarr full-syncs to both; Seerr is connected t
 Jellyfin, Sonarr, and Radarr; and Homarr onboarding has tested and linked all six
 external integrations. The `ghcr.io/homarr-labs/homarr-test:v2` onboarding must
 auto-generate the app tiles and integration widgets. Manual post-onboarding app
-or widget placement does not satisfy setup. Use agent-browser with fresh refs
-and the secret-safe browser helper to retrieve service keys, fill Homarr, and
-capture a private per-run Homarr API key without exposing it. Finalize the six
+or widget placement does not satisfy setup. Use the run-scoped API scripts to
+configure services, test Homarr integrations, and privately save its API key.
+Use agent-browser only if a script fails or visual proof is requested. Finalize the six
 generated app URL/ping
 splits through the harness, and verify the canonical `/api/mcp` endpoint with a
 read-only media search. The generated client configuration must remain

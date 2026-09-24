@@ -3,7 +3,15 @@
 Read the API/MCP section of `docs/homarr.md`. Begin only after onboarding has
 tested six integrations and generated six linked apps plus their widgets.
 
-## Capture the API key
+## Private API key
+
+`setup-homarr.ts` creates and stores the key directly after the board is
+complete. Run `session.sh connections-check "$RUN_ID"` to confirm it is
+present without revealing the value. If script setup stopped before the key
+was stored, first rerun that script; only use the UI fallback below if the
+script cannot recover.
+
+## Browser fallback for key creation
 
 1. In the run-scoped agent-browser session, open this run's Homarr host URL at
    `/manage/tools/api`, select **Authentication**, and create one API key for
@@ -66,7 +74,7 @@ dispatch. Only the preceding harness-owned finalizer may update app links.
 
 ## Stop gate
 
-- `browser-key` and all four follow-up commands emit secret-safe summaries.
+- API-key storage and all four follow-up commands emit secret-safe summaries.
 - The connections summary explains every service and gives the exact private
   file path plus a local reveal command without persisting a password.
 - The six generated apps have host links plus internal Docker ping URLs.

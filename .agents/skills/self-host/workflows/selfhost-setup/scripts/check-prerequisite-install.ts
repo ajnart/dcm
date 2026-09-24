@@ -33,6 +33,8 @@ const fixture = mkdtempSync(join(tmpdir(), "selfhost-prerequisite-install-"));
 process.on("exit", () => rmSync(fixture, { force: true, recursive: true }));
 const missing = run(fixture);
 assert.deepEqual(missing.missingSkills, basic.skills);
+assert.equal(missing.ready, false);
+assert.equal(missing.installCommands.some((item: { reason: string }) => item.reason.startsWith("agent-browser")), false);
 const install = missing.installCommands.find((item: { reason: string }) => item.reason === "selected-profile-skills");
 assert.ok(install);
 assert.match(install.command, /--skill self-host/);
@@ -52,6 +54,8 @@ for (const workflow of basic.skills as string[]) {
 
 const installed = run(fixture);
 assert.deepEqual(installed.missingSkills, []);
+assert.equal(installed.ready, true);
+assert.equal(installed.installCommands.length, 0);
 assert.equal(
   installed.installCommands.some((item: { reason: string }) => item.reason === "selected-profile-skills"),
   false,

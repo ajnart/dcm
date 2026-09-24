@@ -597,34 +597,34 @@ async function prerequisites(
       workingDirectory: target.workingDirectory,
     });
   }
-  if (!browserSkillInstalled) {
+  if (parsed.verifyBrowser && !browserSkillInstalled) {
     installCommands.push({
       reason: "agent-browser-skill",
       command: installCommand(browser.source, [browser.skill], agent.id, scope),
       workingDirectory: target.workingDirectory,
     });
   }
-  if (!runtime.available) {
+  if (parsed.verifyBrowser && !runtime.available) {
     installCommands.push({
       reason: "agent-browser-runtime",
       command: `bun add --global ${quoted(browser.package)}`,
       workingDirectory: null,
     });
   }
-  if (!runtime.ready) {
+  if (parsed.verifyBrowser && !runtime.ready) {
     installCommands.push({
       reason: "agent-browser-browser",
       command: "agent-browser install",
       workingDirectory: null,
     });
   }
-  const ready = missingSkills.length === 0 && browserSkillInstalled && runtime.ready;
-  let next = "Load agent-browser skills get core, then continue setup.";
+  const ready = missingSkills.length === 0 && (!parsed.verifyBrowser || (browserSkillInstalled && runtime.ready));
+  let next = "Continue script-first setup; use --verify-browser only for browser fallback or visual proof.";
   if (!ready && parsed.verifyBrowser) {
     next = "Run the listed commands through the normal approval boundary, then repeat with --verify-browser.";
   }
   if (!ready && !parsed.verifyBrowser) {
-    next = "Approve and run the listed commands, then repeat with --verify-browser; that verified pass may clean stale agent-browser daemon sidecars.";
+    next = "Install the selected skill package, then repeat prerequisites; browser setup is optional.";
   }
   return {
     status: ready ? "ready" : "missing-prerequisites",

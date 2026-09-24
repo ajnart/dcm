@@ -1,6 +1,6 @@
 ---
 name: selfhost-setup
-description: Base setup workflow. Intentionally install prerequisites and carry one selected self-hosted stack through plan, approval, apply, browser configuration, verification, metadata recording, and access handoff. Internal workflow loaded for requested setup.
+description: Base setup workflow. Install selected prerequisites and carry one self-hosted stack through plan, approval, script-first apply, verification, metadata recording, and access handoff. Internal workflow loaded for requested setup.
 disable-model-invocation: true
 license: Apache-2.0; see LICENSE.txt
 compatibility: Requires Bun 1.4.0 or newer; apply needs the selected runtime, and browser setup uses agent-browser.
@@ -23,24 +23,25 @@ never a password in chat. Confirm the exact selection before the apply gate.
 
 1. Read [install-profiles.json](references/install-profiles.json). Explain the
    selection plainly. Start with `basic`; add only selected packs/extensions.
-   Their union retains basic setup, upkeep, and Homarr support without silently
-   selecting other optional profiles. If the user declines Homarr, do not use
-   these Homarr-bearing profiles as an app-only installer. Produce the app-only
-   plan and use a supported focused owner, or report the managed-adapter gap.
+   Their union retains basic setup, upkeep, and Homarr capability without
+   deploying Homarr unless selected. If the user declines Homarr, omit its
+   service and verification rows; use the focused app owner or Compose recipe.
+   The fixed seven-service media adapter still has a Homarr requirement, so
+   select another owner or report that adapter gap for an app-only media plan.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
    scripts/stack.ts prerequisites` with every selected `--profile`, the active
    client ID, and the intended project/global scope. Project scope also
    requires the exact `--project-root`; run returned installation commands from
    the reported working directory. This first pass is
-   non-mutating and always returns an idempotent browser-install command until
-   browser verification is approved. Tell the user what will be installed and
-   that the verified pass uses the official browser doctor, which may clean
-   stale agent-browser daemon sidecars. Execute the returned `bunx --bun
-   skills@latest` and browser commands through the normal agent approval
-   boundary, then repeat with `--verify-browser` until `ready` is true. Install
-   the official `agent-browser` skill, runtime, and browser through this flow.
-3. Run `agent-browser skills get core` after the browser check passes. Treat
-   that live workflow as authoritative for browser commands.
+   non-mutating and checks only selected skill files by default. Install any
+   missing skill through the normal approval boundary, then repeat until
+   `ready` is true. Do not install a browser for a script-first path.
+   If a service script fails or visual proof is requested, repeat with
+   `--verify-browser`, explain that the official doctor may clean stale
+   agent-browser daemon sidecars, and install/verify its skill, runtime, and
+   browser through the returned commands.
+3. Only for browser fallback, run `agent-browser skills get core` after the
+   browser check passes. Treat that live workflow as authoritative.
 4. Resolve choices with `selfhost`. Confirm the username (`admin` for managed
    media if the user accepted defaults); the adapter generates its password.
    Inspect with `selfhost-host`, record `selfhost state init`, and resolve
@@ -57,14 +58,14 @@ never a password in chat. Confirm the exact selection before the apply gate.
    [lifecycle.md](references/lifecycle.md#full-stack-stages) and reuse one Homarr.
    A stack with Homarr invokes
    `selfhost-homarr` after its underlying services are ready, then uses
-   agent-browser for onboarding, selected app links and integrations, private
-   API-key capture, and UI evidence. The `media` pack instead invokes
+   its bounded API paths for integrations and MCP where supported; use
+   agent-browser only for a failed path or requested UI evidence. The `media`
+   pack instead invokes
    `selfhost-media`, which owns the complete embedded Homarr flow: install its
-   harness into this exact project, create the exact recorded run, navigate the
-   checked service settings paths, capture keys through the adapter's checked direct-field or reference
-   helper, fill Homarr directly, and verify all seven
-   services. Never deploy a second Homarr for media. Use deterministic API
-   setup where the adapter supports it; never copy a key through chat,
+   harness into this exact project, create the exact recorded run, use the
+   script-first setup paths, and verify all seven services. Never deploy a
+   second Homarr for media. Use checked browser paths and private credential
+   helpers only as fallback; never copy a key through chat,
    clipboard files, visible shell output, or command arguments.
 7. Record `planned`, `applied`, and `verified` checkpoints only after their
    evidence exists. For media, store URLs, usernames, and API keys in the

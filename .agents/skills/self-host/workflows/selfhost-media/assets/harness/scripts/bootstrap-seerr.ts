@@ -73,7 +73,10 @@ export async function configureSeerr(session, io = { request, requestJson }, acc
         body: JSON.stringify(resumeLogin),
       }, { label: "Seerr API setup /auth/jellyfin" });
     }
-    headers = { ...headers, Cookie: sessionCookie(response) };
+    const cookie = sessionCookie(response);
+    if (io.cookieJar !== true) {
+      headers = { ...headers, Cookie: cookie };
+    }
   }
 
   const jellyfin = await json("/settings/jellyfin");

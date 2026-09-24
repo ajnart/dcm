@@ -56,6 +56,15 @@ export function widgetProofEval(origin, boardName) {
     const expectedOrigin=${expectedOrigin};
     const expectedBoard=${expectedBoard};
     const procedures=${procedures};
+    const healthy=(procedure,value,ids)=>{
+      if(!Array.isArray(ids)||ids.length<1||new Set(ids).size!==ids.length)return false;
+      if(procedure==="widget.mediaRelease.getMediaReleases")return value&&Array.isArray(value.releases)&&Array.isArray(value.failedIntegrations)&&value.failedIntegrations.length===0;
+      if(procedure==="widget.mediaRequests.getStats")return value&&Array.isArray(value.failedIntegrations)&&value.failedIntegrations.length===0&&Array.isArray(value.integrations)&&value.integrations.length===ids.length&&value.integrations.every((entry)=>ids.includes(entry?.id));
+      if(!Array.isArray(value)||value.length!==ids.length)return false;
+      const seen=new Set();
+      for(const entry of value){const id=entry?.integrationId??entry?.integration?.id;if(!ids.includes(id)||seen.has(id)||entry?.error!=null)return false;seen.add(id)}
+      return true;
+    };
     if(location.origin!==expectedOrigin||location.pathname!==${expectedPath})throw new Error("unexpected Homarr page");
     const call=async(procedure,input)=>{
       const path="/api/trpc/"+procedure;
@@ -65,7 +74,7 @@ export function widgetProofEval(origin, boardName) {
       if(text.length>8388608)throw new Error("response too large");
       let payload=null;try{payload=JSON.parse(text)}catch{}
       const json=payload?.result?.data?.json;
-      const row={procedure,method:"GET",path,status:response.status,classification:json!==undefined&&!payload?.error?"result":"error"};
+      const row={procedure,method:"GET",path,status:response.status,classification:json!==undefined&&!payload?.error&&healthy(procedure,json,input.integrationIds)?"result":"error"};
       if(procedure==="widget.mediaRelease.getMediaReleases"&&json!==undefined){row.releases=Array.isArray(json.releases)?json.releases.length:-1;row.failedIntegrations=Array.isArray(json.failedIntegrations)?json.failedIntegrations.length:-1}
       return row;
     };

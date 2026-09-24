@@ -42,9 +42,13 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
    bun "$MEDIA_SKILL_ROOT/scripts/media-runtime.ts" exec -- session create RUN_ID USERNAME
    ```
 
-6. Follow the installed `PROMPT.md`, ordered prompt modules, and per-service
-   notes. Resolve assigned ports through the session helper; keep every action
-   scoped to one run identifier.
+6. Follow the installed `PROMPT.md`, ordered prompt modules, and
+   `docs/headless-setup.md`. Use the run-scoped API scripts first; use
+   agent-browser only for a failed service path or requested visual evidence.
+   Run their relative commands from the installed project's
+   `.selfhost/media-harness` directory. Resolve assigned ports through the
+   session helper and keep every action scoped to one run identifier. Do not
+   live-test a new headless path before the user approves that test.
 7. Read [acceptance.md](references/acceptance.md) before reporting completion.
    Mark indirect or absent evidence unproven.
 8. Report passed, failed and pending acceptance rows. Refresh `session
@@ -57,9 +61,9 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
 
 Confirm the admin username before `create`. `defaults` selects `admin` and a
 generated password; do not silently select a username without that consent.
-Read the installed `docs/browser-benchmark.md` and use `browser-benchmark.ts
-lookup SERVICE` for the selected service’s direct browser paths. Use
-`browser-key refs` instead of visible snapshots on populated API-key pages.
+If browser fallback is needed, read `docs/browser-benchmark.md` and use
+`browser-benchmark.ts lookup SERVICE` for the selected service’s direct paths.
+Use `browser-key refs` instead of visible snapshots on populated API-key pages.
 
 Run `bun "$MEDIA_SKILL_ROOT/scripts/verify-bundle.ts"` to verify the packaged
 asset. Add `--source-root /path/to/source` only when auditing source drift.

@@ -3,12 +3,13 @@
 Read `docs/qbittorrent.md`, `docs/jellyfin.md`, `docs/sonarr.md`,
 `docs/radarr.md`, and `docs/prowlarr.md`.
 
-The core bootstrap prepared qBittorrent and Arr. In default hybrid mode run
-`scripts/session.sh bootstrap-jellyfin "$RUN_ID"`, then use the run-scoped
-browser to sign in and prove both libraries on the home page. Skip completed
-wizard forms. Keep API setup time in the benchmark.
+The core bootstrap prepared qBittorrent and Arr. Run
+`bun scripts/setup-jellyfin.ts "$RUN_ID"` to create or verify its admin and
+Movies/Shows libraries. If setup fails, diagnose the exact service and use
+the run-scoped browser wizard below as a targeted fallback. Keep all API setup
+time in the benchmark.
 
-For browser mode or an unsupported startup API, use the wizard:
+For an unsupported startup API, use the wizard:
 
 1. Create the local admin username `$ADMIN_USERNAME` in the first-run wizard. After a
    fresh snapshot, fill its password and confirmation refs together with
@@ -27,4 +28,5 @@ not snapshots or waits, in the fitness count.
 
 ## Stop gate
 
-Jellyfin accepts the per-run login and shows both libraries. The Arr graph remains pending until the next module.
+Jellyfin accepts the per-run login and its API lists both libraries. The Arr
+graph remains pending until the next module.

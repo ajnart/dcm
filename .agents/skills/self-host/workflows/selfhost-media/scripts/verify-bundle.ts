@@ -28,12 +28,16 @@ const ROOT_FILES = new Set(["PROMPT.md", "docker-compose.yml"]);
 const CANONICAL_DIRECTORIES = new Set(["docs", "prompts", "scripts"]);
 const SOURCE_DRIFT_EXCLUSIONS = new Set([
   "docs/cli.md",
+  "docs/command-first-roadmap.md",
   "docs/images",
   "docs/migration-v1.md",
   "docs/opencode-install.md",
   "docs/plugin-audit.md",
   "docs/release.md",
+  "scripts/browser-command-log.mjs",
+  "scripts/check-curl-http.ts",
   "scripts/distribution.ts",
+  "scripts/install.ts",
   "scripts/lib/claude-marketplace.ts",
   "scripts/publish-plugin-branches.sh",
   "scripts/refresh-media-bundle.ts",

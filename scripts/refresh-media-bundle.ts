@@ -44,6 +44,17 @@ const RUNTIME_ADDITIONS = [
   "scripts/check-homarr-notebook.ts",
   "scripts/prove-homarr-widgets.ts",
   "scripts/check-prove-homarr-widgets.ts",
+  "scripts/lib/curl-http.ts",
+  "scripts/lib/setup-core-cli.ts",
+  "scripts/setup-qbittorrent.ts",
+  "scripts/setup-sonarr.ts",
+  "scripts/setup-radarr.ts",
+  "scripts/setup-prowlarr.ts",
+  "scripts/setup-jellyfin.ts",
+  "scripts/setup-seerr.ts",
+  "scripts/setup-homarr.ts",
+  "scripts/prove-homarr-widgets-api.ts",
+  "docs/headless-setup.md",
 ];
 
 const SOURCE_ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -131,7 +142,12 @@ async function main() {
   for (const currentFile of manifestFiles) {
     const file = { ...currentFile };
     const source = await readCanonicalFile(file.path, file.mode);
-    const transform = transformByPath.get(file.path);
+    let transform = transformByPath.get(file.path);
+    if (file.path === "prompts/00-contract.md" && transform?.id === "portable-working-directory-v1") {
+      const portableLine = "- Working tree is the project where the packaged media harness was initialized.";
+      if (!source.toString("utf8").includes(portableLine)) fail("portable working-directory contract changed");
+      transform = undefined;
+    }
     let content = source;
     if (transform) {
       content = Buffer.from(

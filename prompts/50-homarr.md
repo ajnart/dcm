@@ -1,9 +1,21 @@
 # 50 - Generate Homarr from onboarding
 
-Read `docs/homarr.md`. Open Homarr `/init`, start from scratch, and create the
-local admin username `$ADMIN_USERNAME`. Fill its password and confirmation fields through
-`scripts/session.sh browser-password "$RUN_ID" @eN @eN` using fresh refs. Do
-not skip the onboarding integration phase.
+Read `docs/homarr.md`. Run `bun scripts/setup-homarr.ts "$RUN_ID"
+"$BOARD_NAME"` after the six services are configured. The script claims the
+fresh onboarding session, creates or signs in as `$ADMIN_USERNAME`, tests all
+six internal integrations, builds their generated board, and stores a private
+Homarr API key. It does not install the MCP client configuration.
+
+If it fails, stop and diagnose the specific step. Use the browser workflow
+below only as a targeted fallback; do not bypass a claim held by another
+client. On resume, inspect the current onboarding step and existing key first.
+
+## Browser fallback
+
+Open Homarr `/init`, start from scratch, and create the local admin username
+`$ADMIN_USERNAME`. Fill password fields through
+`scripts/session.sh browser-password "$RUN_ID" @eN @eN` using fresh refs.
+Do not skip the onboarding integration phase.
 
 During onboarding add, test, and link an app for all six integrations. The
 Docker URL is what Homarr stores; the host-browser path is where agent-browser

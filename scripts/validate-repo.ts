@@ -38,6 +38,8 @@ const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "docs/opencode-install.md",
   "docs/plugin-audit.md",
   "docs/release.md",
+  "scripts/browser-command-log.mjs",
+  "scripts/check-curl-http.ts",
   "scripts/distribution.ts",
   "scripts/lib/claude-marketplace.ts",
   "scripts/install.ts",
@@ -1434,11 +1436,12 @@ async function validateMediaBundleDrift() {
 
 async function validateScriptSyntax() {
   const sourceFiles = await collectSourceFiles();
+  const nodeLogger = join(REPOSITORY_ROOT, "scripts", "browser-command-log.mjs");
   const legacyScripts = sourceFiles.filter((filePath) =>
-    [".cjs", ".js", ".jsx", ".mjs"].includes(extname(filePath).toLowerCase())
+    filePath !== nodeLogger && [".cjs", ".js", ".jsx", ".mjs"].includes(extname(filePath).toLowerCase())
   );
   const uniqueScripts = sourceFiles
-    .filter((filePath) => [".sh", ".ts"].includes(extname(filePath).toLowerCase()))
+    .filter((filePath) => filePath === nodeLogger || [".sh", ".ts"].includes(extname(filePath).toLowerCase()))
     .sort();
   const errors = [];
   for (const scriptPath of legacyScripts) {
@@ -1449,6 +1452,8 @@ async function validateScriptSyntax() {
     let result;
     if (extension === ".sh") {
       result = runLocal("bash", ["-n", scriptPath]);
+    } else if (scriptPath === nodeLogger) {
+      result = runLocal("node", ["--check", scriptPath]);
     } else {
       result = runLocal(process.execPath, [
         "build",

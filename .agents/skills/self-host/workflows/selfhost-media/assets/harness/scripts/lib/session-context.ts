@@ -23,6 +23,7 @@ import {
   sessionSshTunnel,
   validatePrivateProxyOrigin,
 } from "./session-access.ts";
+import { curlFetch, enableCurlHttp } from "./curl-http.ts";
 
 const SCRIPT_LIB_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -1133,15 +1134,26 @@ export function printSessionHandoff(runId) {
   ].join("\n"));
 }
 
-export function refreshArrKeys(runId) {
+export function refreshArrKeys(runId, services = ["sonarr", "radarr", "prowlarr"]) {
   const session = loadSession(runId);
   requireSessionPasswordScheme(session);
-  const arrKeys = Object.create(null);
+  const arrKeys = {
+    SONARR_API_KEY: session.secrets.SONARR_API_KEY,
+    RADARR_API_KEY: session.secrets.RADARR_API_KEY,
+    PROWLARR_API_KEY: session.secrets.PROWLARR_API_KEY,
+  };
+  const allowedServices = new Set(["sonarr", "radarr", "prowlarr"]);
+  if (!Array.isArray(services) || services.length === 0 || services.some((service) => !allowedServices.has(service))) {
+    fail("invalid Arr service selection");
+  }
   for (const [service, secretName] of [
     ["sonarr", "SONARR_API_KEY"],
     ["radarr", "RADARR_API_KEY"],
     ["prowlarr", "PROWLARR_API_KEY"],
   ]) {
+    if (!services.includes(service)) {
+      continue;
+    }
     const result = spawnSync("docker", [
       "compose",
       "--project-name",
@@ -1324,7 +1336,17 @@ export function sleep(milliseconds) {
   });
 }
 
+let curlTransportEnabled = false;
+
+export function useCurlTransport(session) {
+  enableCurlHttp(session);
+  curlTransportEnabled = true;
+}
+
 async function fetchWithTimeout(url, options = {}) {
+  if (curlTransportEnabled) {
+    return curlFetch(url, options);
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5_000);
 

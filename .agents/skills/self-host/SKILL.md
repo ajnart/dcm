@@ -3,7 +3,7 @@ name: self-host
 description: User-invoked command to plan, install, or maintain self-hosted apps from names or replacement goals, with Homarr and private credential handoff.
 disable-model-invocation: true
 license: Apache-2.0; see LICENSE.txt
-compatibility: Requires Git and Bun 1.4.0 or newer; deployment also needs Docker and agent-browser.
+compatibility: Requires Git and Bun 1.4.0 or newer; deployment needs the selected runtime, and browser fallback needs agent-browser.
 metadata:
   selfhost-activation: explicit
   opencode/autoinvoke: "false"

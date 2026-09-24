@@ -2,7 +2,7 @@
 
 ## Actions
 
-From the repository root:
+From the installed `.selfhost/media-harness` root:
 
 ```bash
 scripts/session.sh create "$RUN_ID" "$ADMIN_USERNAME"

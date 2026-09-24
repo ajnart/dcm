@@ -3,13 +3,14 @@
 ## Inputs
 
 - A unique `RUN_ID` matching `[a-z0-9][a-z0-9_-]{0,39}`.
-- Working directory: the installed harness root.
+- Working tree is the project where the packaged media harness was initialized.
 - Ask the user for their admin username before creating a session; reuse an
-  explicitly supplied answer. Store it as `ADMIN_USERNAME`. Accept 1–64 ASCII
+  explicitly supplied answer. Store it as `ADMIN_USERNAME`. Accept 3–64 ASCII
   letters, digits, dots, underscores or hyphens, starting with a letter/digit.
   Never silently choose `admin`. The harness generates the password.
-- Default setup mode: `hybrid` uses supported APIs for repeatable configuration,
-  then agent-browser for onboarding, credential capture and visible proof.
+- Default setup mode: `script-first` uses supported APIs for repeatable
+  configuration and Homarr onboarding, then agent-browser only for a failed
+  service path or requested visual proof.
   Use `browser-wiring` to benchmark service forms after API identity setup, or
   `browser` for full UI experiments. Report the actual mode and all retries.
 - Disposable contact email `admin@example.test` where Seerr requires one.
@@ -29,12 +30,12 @@
   harness writes mode-`0600` `connections.env` with URLs, usernames, and only
   available API keys. Source `.sessions/RUN_ID/secrets.env` when automation
   needs a key and reference shell variable names in commands.
-- Enter the run password only through
+- During browser fallback, enter the run password only through
   `scripts/session.sh browser-password "$RUN_ID" @eN [@eN ...]`, using fresh
   password-input refs. The helper rejects non-password, disabled, or read-only
   refs before filling any field. Never put the password in a shell argument or
   browser command.
-- On every form that contains credentials, use
+- On every browser fallback form that contains credentials, use
   `scripts/session.sh browser-form "$RUN_ID"` instead of an ordinary snapshot.
   It returns only fresh ref, role, and accessible-name metadata; it never emits
   snapshot tree text or input values.

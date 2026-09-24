@@ -6,7 +6,7 @@
       "id": "self-host",
       "displayName": "Self-host",
       "description": "User-invoked command to plan, install, or maintain self-hosted apps from names or replacement goals, with Homarr and private credential handoff.",
-      "compatibility": "Requires Git and Bun 1.4.0 or newer; deployment also needs Docker and agent-browser.",
+      "compatibility": "Requires Git and Bun 1.4.0 or newer; deployment needs the selected runtime, and browser fallback needs agent-browser.",
       "license": "Apache-2.0",
       "kind": "router",
       "scope": null,
@@ -254,7 +254,7 @@
     {
       "id": "selfhost-setup",
       "displayName": "Support · New stack setup",
-      "description": "Base setup workflow. Intentionally install prerequisites and carry one selected self-hosted stack through plan, approval, apply, browser configuration, verification, metadata recording, and access handoff. Internal workflow loaded for requested setup.",
+      "description": "Base setup workflow. Install selected prerequisites and carry one self-hosted stack through plan, approval, script-first apply, verification, metadata recording, and access handoff. Internal workflow loaded for requested setup.",
       "compatibility": "Requires Bun 1.4.0 or newer; apply needs the selected runtime, and browser setup uses agent-browser.",
       "license": "Apache-2.0",
       "kind": "workflow",

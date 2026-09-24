@@ -126,14 +126,17 @@ To install globally for Codex, Claude Code, OpenCode, Pi, OpenClaw, and Hermes:
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --agent claude-code --agent opencode --agent pi --agent openclaw --agent hermes-agent --global --copy --yes
 ```
 
-To add a named slash command after a direct Skills CLI global install:
+If Codex was included in a direct global Skills CLI install, this also
+registers named commands for the selected clients:
 
 ```bash
 bun ~/.codex/skills/self-host/scripts/install-command.ts --agent codex --agent pi --agent opencode --scope global
 ```
 
-The direct Skills CLI path needs this separate command registration step for
-Pi and OpenCode. The repository installer above performs both steps.
+For a Pi- or OpenCode-only install, run `install-command.ts` from that client's
+installed `self-host` skill directory instead of the Codex path; see
+[installation and migration](.agents/install.md). The repository installer
+above performs command registration automatically.
 
 Use only the `--agent` flags you need. Omit `--global` for a project install;
 omit `--copy` for the installer's normal symlink layout. `--all` targets every
@@ -189,8 +192,9 @@ Agent: [applies and verifies] Reports working links, checks, artifact paths,
 2. Inspect the host and show a concrete plan before making changes.
 3. Check prerequisites and install the official `agent-browser` tooling when
    needed. Apply only the approved Compose projects.
-4. Configure apps using supported APIs or browser paths, capture keys privately,
-   and connect Homarr integrations and widgets where supported.
+4. Configure apps with run-scoped API scripts; use the browser only for failed
+   paths or requested visual proof. Save keys privately and let Homarr's
+   onboarding generate connected apps and widgets where supported.
 5. Verify the selected services and return links, what each service does,
    locations, credential-handoff path, and remaining gaps.
 
@@ -204,6 +208,11 @@ The agent loads only the guides for your goal. Adding an app usually means a
 catalog record; a special workflow is needed only when its setup cannot be
 described by shared capabilities. See the [workflow index](SKILL_INDEX.md) and
 [contributor guide](CONTRIBUTING.md).
+
+The public entry stays short and routes into focused guides, following the
+composable style of [mattpocock/skills](https://github.com/mattpocock/skills).
+The [media setup reference](.agents/skills/self-host/workflows/selfhost-media/assets/harness/docs/headless-setup.md) lists the exact local API
+sequence and private cookie handling behind the repeatable commands.
 
 For example, in the managed media pack, Jellyfin plays your library, Seerr
 takes requests, Sonarr and Radarr organize shows and movies, Prowlarr connects
@@ -261,6 +270,17 @@ media run, the installed harness also exposes scoped `session status RUN_ID`,
 `session doctor RUN_ID`, and `session up RUN_ID` through
 `selfhost-media/scripts/media-runtime.ts`; the agent will resolve the installed
 path and exact run ID from this project. It never needs the source repo.
+
+To restart one already-created media run from the project where you installed
+the skill (replace `RUN_ID` with that run's identifier):
+
+```bash
+bun .agents/skills/self-host/workflows/selfhost-media/scripts/media-runtime.ts exec -- session up RUN_ID
+```
+
+This starts only that run's Compose project; it does not recreate accounts or
+change another stack. Use `session status RUN_ID` through the same runtime to
+check containers and `session doctor RUN_ID` for diagnostics.
 
 ## One skill, on-demand workflows
 

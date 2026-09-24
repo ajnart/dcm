@@ -3,8 +3,14 @@
 These are the short operational references for intentional setup sessions. Read the
 service note before configuring that service; the root-level historical guides
 are evidence from an older, non-isolated run and may have stale ports or UI refs.
+Start with `docs/headless-setup.md` in the installed media harness; the browser instructions
+below are targeted fallback and visual-proof procedures.
 
-Compose publishes assigned collision-free ports on `127.0.0.1` by default. Use
+Compose publishes assigned run-scoped ports on `127.0.0.1` by default. The
+allocator spreads independent checkouts across the port range and checks
+listeners visible to the process; a sandbox can still hide another checkout's
+rootless Docker listener. If `up` reports a bind collision, create a new run
+identifier rather than touching the other project. Use
 the local host URLs or an explicitly selected private access route. See
 [headless and remote access](headless-access.md) for the bounded Homarr wildcard
 option, SSH forwarding, and private Caddy routes. Public ingress is a separate
@@ -47,7 +53,7 @@ agent-browser batch over stdin. It checks all refs before mutation, suppresses
 child output, and returns only fixed PASS/FAIL text. The password must never
 appear in command arguments, screenshots, or reports.
 
-Homarr setup is browser-driven. For Sonarr, Radarr, and Prowlarr, open the
+If the Homarr script fails, setup can fall back to the browser. For Sonarr, Radarr, and Prowlarr, open the
 run-scoped `/settings/general` URL and use `scripts/session.sh browser-key
 capture-field RUN_ID SERVICE` to verify the fixed readonly field against the
 managed run without a snapshot or ref. Use `browser-key capture RUN_ID seerr
@@ -73,7 +79,8 @@ After `scripts/session.sh up RUN_ID`, run `scripts/session.sh bootstrap RUN_ID`.
 It replaces the repetitive qBittorrent/Arr/Prowlarr forms with idempotent,
 secret-safe API configuration. It does not choose or create an indexer. Add and
 test the user's selected authorized source before expecting full `verify` to
-pass, then run it before Seerr and again during acceptance.
+pass, then run it before Seerr and again during acceptance. Resume a failed
+service with its individual `bun scripts/setup-SERVICE.ts RUN_ID` script.
 
 After Homarr onboarding generates six linked apps and their widgets, follow
 [homarr.md](homarr.md) to stream a newly created API key into the private run

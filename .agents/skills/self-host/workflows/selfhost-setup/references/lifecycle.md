@@ -35,7 +35,10 @@ selected -> planned -> applied -> verified
 - `planned` requires new `plan:` evidence. `applied` requires new `apply:` or
   `manifest:` evidence plus every selected profile's `approval:` IDs.
   `verified` requires every selected profile's declared `verify:` IDs; the
-  media pack names all seven services, browser proof, and relationship proof.
+  media pack names all seven services, a legacy `verify:media-browser`
+  evidence ID, and relationship proof. For script-first runs, that legacy ID
+  records authenticated API board/widget evidence; browser screenshots are
+  additional evidence only when requested or used as fallback.
 - Repeating a stage is allowed only to append fresh evidence.
 
 The `full` profile also records an optional checkpoint on each household

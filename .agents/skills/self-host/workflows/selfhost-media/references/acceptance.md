@@ -9,16 +9,17 @@ Treat every row as unproven until its direct evidence exists.
 | qBittorrent authentication | Fresh login plus authenticated version API |
 | Sonarr/Radarr to qBittorrent | Enabled client records and passing tests |
 | Prowlarr to Sonarr/Radarr | Two passing full-sync apps and downstream indexer |
-| Jellyfin | Authenticated home page with Movies and Shows libraries |
+| Jellyfin | Authenticated admin API session and Movies/Shows virtual folders; visual home proof when requested |
 | Seerr | Jellyfin connected; default Sonarr and Radarr fully configured |
 | Homarr integrations | Six passing records with host app links and internal ping URLs |
-| Homarr auto-generation | Six onboarding-generated app tiles and live widgets after reload |
-| Browser credential setup | Fresh agent-browser refs; Arr/Seerr capture matches managed keys; Homarr forms are filled through the private helper; no key appears in arguments or output |
-| Homarr API/MCP | Private one-time key capture through agent-browser; finalizer/config/verifier PASS; canonical endpoint and bridge return the read-only match; no mutation or client install |
+| Homarr auto-generation | API board detail has six linked app items and integration-backed widgets; live widget queries pass; visual reload proof when requested |
+| Credential setup | Run-scoped scripts pass without emitting values; browser fallback uses fresh refs and private helpers; no key appears in arguments or output |
+| Homarr API/MCP | Private key created by setup script or captured by browser fallback; finalizer/config/verifier PASS; canonical endpoint and bridge return the read-only match; no media mutation or client install |
 | Reusable connections | Password-free private connections file refreshed after acceptance; explicitly requested handoff writes owner-only private credentials and a separate redacted report; only paths appear in output |
 
-Run `doctor` and the core verifier again at the end. Inspect the real UI and
-redacted response structure. HTTP 200 alone is insufficient. Empty media data
+Run `doctor` and the core verifier again at the end. Inspect authenticated API
+records and redacted response structure; use the real UI when a fallback or
+screenshot is needed. HTTP 200 alone is insufficient. Empty media data
 passes only when the response reports no failed integrations.
 
 For Homarr widgets, require one fixed proof row for each expected procedure:

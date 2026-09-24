@@ -1,8 +1,16 @@
 # 30 - Connect the Arr pipeline
 
-## Browser wiring
+## Script-first wiring
 
-Use the run's host URLs and fresh refs. Login with `$ADMIN_USERNAME` and
+`session.sh bootstrap` already configures qBittorrent and the Arr graph.
+On a resumed or failed service, rerun only `bun scripts/setup-SERVICE.ts
+"$RUN_ID"` for `qbittorrent`, `sonarr`, `radarr`, or `prowlarr`.
+Run `session.sh verify "$RUN_ID"` to check the saved graph. No browser is
+needed for a passing API path.
+
+## Browser fallback
+
+Only after a script fails, use the run's host URLs and fresh refs. Login with `$ADMIN_USERNAME` and
 `browser-password`; fill API-key inputs with `browser-key fill`. Keep secrets
 out of snapshots, screenshots and command arguments.
 
@@ -22,12 +30,8 @@ out of snapshots, screenshots and command arguments.
 5. Run `scripts/session.sh verify "$RUN_ID"`. Confirm both download clients,
    both Full Sync applications, and the downstream indexer lists in the UI.
 
-## Hybrid baseline
-
-Full API bootstrap can complete the application and download-client wiring.
-Inspect those lists without repeating the forms, then add the user's selected
-authorized-content indexer and sync it before verification. Label that run
-`hybrid`; the reduced browser count is not a browser-only speed improvement.
+Do not select an indexer for the user. If none was authorized, downstream
+indexer sync stays pending even when every other connection passes.
 
 ## Stop gate
 

@@ -838,7 +838,7 @@ create_session() {
   require_command find
   require_command mktemp
 
-  [[ "$admin_username" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] \
+  [[ "$admin_username" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$ ]] \
     || fail "create requires an explicit valid USERNAME"
 
   if [[ -n "$requested_run_id" ]]; then
@@ -859,7 +859,9 @@ create_session() {
 
   collect_used_ports_locked
   collect_listening_ports
-  NEXT_PORT=$PORT_MIN
+  # Spread independent checkouts across the range. A restricted network
+  # namespace may hide another checkout's rootless Docker listeners.
+  NEXT_PORT=$((PORT_MIN + (((RANDOM << 15) | RANDOM) % 10000)))
   allocate_port prowlarr_port
   allocate_port radarr_port
   allocate_port sonarr_port
@@ -893,6 +895,9 @@ create_session() {
     "$staging_dir/config/seerr" \
     "$staging_dir/config/homarr" \
     "$staging_dir/data/torrents" \
+    "$staging_dir/data/torrents/tv-sonarr" \
+    "$staging_dir/data/torrents/movies-radarr" \
+    "$staging_dir/data/torrents/incomplete" \
     "$staging_dir/data/media/tv" \
     "$staging_dir/data/media/movies" \
     "$staging_dir/artifacts"
@@ -905,6 +910,9 @@ create_session() {
     "$staging_dir/config/seerr" \
     "$staging_dir/data" \
     "$staging_dir/data/torrents" \
+    "$staging_dir/data/torrents/tv-sonarr" \
+    "$staging_dir/data/torrents/movies-radarr" \
+    "$staging_dir/data/torrents/incomplete" \
     "$staging_dir/data/media" \
     "$staging_dir/data/media/tv" \
     "$staging_dir/data/media/movies"

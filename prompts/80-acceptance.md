@@ -12,7 +12,7 @@ Treat every row as unproven until its listed evidence exists.
 | Jellyfin | admin login and two media libraries |
 | Seerr | initialized, Jellyfin connected, default Sonarr/Radarr fully set |
 | Homarr integrations | six passing records; apps use host URL + internal ping |
-| Homarr auto-generation | all app tiles and live widgets visible after reload |
+| Homarr auto-generation | board-detail API lists six linked app tiles and integration-backed widgets; live widget queries pass; reload screenshot when requested |
 | Homarr API/MCP | private key capture plus `homarr-finalize`, `mcp-config`, and `mcp-verify` PASS; secret-free `mcp-client.json`; canonical `/api/mcp` and bridge read-only searches find Spider-Man: No Way Home; no request/download or client install |
 | Reusable connections | password-free `connections.env` refreshed; initial setup, or explicitly requested fresh upkeep handoff, returns the access artifact paths without credential values |
 
@@ -22,9 +22,10 @@ passes, run `scripts/session.sh connections "$RUN_ID"` and return its path. For
 initial setup, also run `scripts/session.sh handoff "$RUN_ID"` as the final
 command and return only its artifact paths. During
 upkeep, run `handoff` only when the user explicitly asked for a fresh access
-handoff. Do not copy the password into evidence. Inspect this run's UI and
-redacted response structure. Run `scripts/session.sh homarr-widgets "$RUN_ID"
-"$BOARD_NAME"` on the saved board after reload and before adding the recap.
+handoff. Do not copy the password into evidence. Run
+`bun scripts/prove-homarr-widgets-api.ts "$RUN_ID" "$BOARD_NAME"` on the
+saved board before adding the recap. Use the browser widget helper only if the
+API proof fails or a screenshot was requested.
 On Homarr, require all onboarding test calls and a
 fixed proof row for each expected generated-widget procedure:
 `widget.indexerManager.getIndexersStatus`,
@@ -33,7 +34,7 @@ fixed proof row for each expected generated-widget procedure:
 `widget.mediaOrganizer.getData`, and
 `widget.mediaRelease.getMediaReleases`. Each row records only method `GET`, the
 sanitized `/api/trpc/<procedure>` path without query data, HTTP status 200, and
-a non-error response-envelope classification after reload. `mediaRelease` proof
+a non-error response-envelope classification. `mediaRelease` proof
 must also report `releases.length` and `failedIntegrations.length`; a zero
 release count is valid only when the failed-integration count is zero. Visible
 empty-state text, `Try again`, or a screenshot alone is not widget evidence. If

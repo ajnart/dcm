@@ -54,10 +54,10 @@ must use `selfhost-compose`, whose contract rejects floating images. Do not pin
 these setup references without verified remote multi-architecture index
 digests.
 
-## Browser runtime prerequisite
+## Browser fallback prerequisite
 
-`selfhost-setup` installs and checks the agent-browser skill, runtime, and
-browser before the media harness starts. The harness does not manage that
+`selfhost-setup` installs and checks agent-browser only after an API script
+fails or visual proof is requested. The harness does not manage that optional
 prerequisite. `browser-password` and `browser-key` invoke agent-browser
 directly. Only a direct `ENOENT` retries `bunx --bun agent-browser`; a launched
 nonzero action is never retried. `browser-key capture` retrieves a fresh key

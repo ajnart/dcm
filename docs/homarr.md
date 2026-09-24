@@ -10,6 +10,20 @@
 
 ## Minimum fresh-run path
 
+Run `bun scripts/setup-homarr.ts RUN_ID personal` after Jellyfin, Seerr, and
+the Arr services pass their setup scripts. This uses the first-party
+onboarding API, not a manually constructed board: claim, admin creation,
+credentials login, six connection tests, `completeSetup`, then `apiKeys.create`.
+It stores the key in the private run and prints no credential value. Continue
+with `session.sh homarr-finalize`, `mcp-config`, and `mcp-verify`.
+The API path is not yet live-proven in this revision; use the browser fallback
+below when it fails and record the exact failure. Do not call a browser merely
+to repeat a successful API form.
+Use `bun scripts/prove-homarr-widgets-api.ts RUN_ID personal` for the
+generated-widget API check; screenshots remain separate visual evidence.
+
+### Browser fallback
+
 1. Open `/init` with agent-browser, start from scratch, and create the standard
    local admin username `$ADMIN_USERNAME`. Fill its fresh password and confirmation refs
    through `scripts/session.sh browser-password "$RUN_ID" @eN @eN`.
@@ -47,7 +61,7 @@
 9. Keep the secret-free client fragment run-scoped and uninstalled unless the
    user separately authorizes client installation.
 
-## Agent-browser credential path
+## Agent-browser credential path (fallback)
 
 Resolve every host URL with `scripts/session.sh urls RUN_ID`; never open the
 Docker URL in the host browser. These current upstream helper paths were
@@ -133,12 +147,11 @@ unapproved tool before upstream dispatch.
 - `homarr-finalize`, `mcp-config`, and `mcp-verify` emit PASS without revealing
   the key; canonical native MCP and the stdio adapter return the read-only title
   search result, with native-versus-curated catalog mode reported explicitly.
-- The generated board visibly contains all six app tiles plus integration-backed
-  widgets, including Seerr requests, Jellyfin media, qBittorrent downloads, and
-  Arr/Prowlarr data.
-- Reload the board, leave edit mode, and capture a full-page screenshot in the
-  run's artifact directory.
-- After reload, fixed evidence contains one row for each expected procedure:
+- The board-detail API lists all six app tiles plus integration-backed widgets,
+  including Seerr requests, Jellyfin media, qBittorrent downloads, and
+  Arr/Prowlarr data. If the user requests visual proof, reload the board, leave
+  edit mode, and capture a full-page screenshot in the run's artifact directory.
+- Fixed API evidence contains one row for each expected procedure:
   `widget.indexerManager.getIndexersStatus`,
   `widget.downloads.getJobsAndStatuses`, `widget.mediaRequests.getStats`,
   `widget.mediaServer.getCurrentStreams`, `widget.calendar.findAllEvents`,
