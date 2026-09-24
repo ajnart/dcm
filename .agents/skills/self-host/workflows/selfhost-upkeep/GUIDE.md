@@ -18,9 +18,10 @@ real evidence before acting.
 
 ## Workflow
 
-1. Confirm the exact project root. Read `../selfhost-setup/GUIDE.md`
-   and run its `scripts/stack.ts show`. Stop if stack metadata is missing or
-   invalid; use its saved profiles only as desired state.
+1. Use `$HOME/.selfhostedskills` as the exact project root without asking for
+   another directory. Read `../selfhost-setup/GUIDE.md` and run its
+   `scripts/stack.ts show` against that root. Stop if stack metadata is missing
+   or invalid; use its saved profiles only as desired state.
 2. Run `scripts/stack.ts prerequisites` for every saved profile, the exact
    project root, active agent, and project scope. The first pass is
    non-mutating. Repair an incomplete self-host installation from the returned working

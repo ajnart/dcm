@@ -23,6 +23,9 @@ password in chat. Confirm the exact selection before the apply gate.
 Every initial installation is loopback-only. **New** includes Homarr in that
 installation. **Advanced** installs and verifies the requested service without
 optional Homarr or Vaultwarden first, then offers each addition separately.
+Use `$HOME/.selfhostedskills` as the fixed project root for setup state,
+generated configuration, and workflow artifacts. Do not ask for another
+project directory.
 
 ## Workflow
 
@@ -37,9 +40,9 @@ optional Homarr or Vaultwarden first, then offers each addition separately.
    app-only media plan.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
    scripts/stack.ts prerequisites` with every selected `--profile`, the active
-   client ID, and the intended project/global scope. Project scope also
-   requires the exact `--project-root`; run returned installation commands from
-   the reported working directory. This first pass is
+   client ID, and the intended project/global scope. Project scope uses
+   `--project-root "$HOME/.selfhostedskills"`; run returned installation
+   commands from that fixed root. This first pass is
    non-mutating and checks only selected skill files by default. Install any
    missing skill through the normal approval boundary, then repeat until
    `ready` is true. Do not install a browser for a script-first path.

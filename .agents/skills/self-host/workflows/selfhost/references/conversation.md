@@ -7,8 +7,8 @@ or confirmed non-secret preferences.
 ## Choose the setup path
 
 After receiving the first service or replacement goal, preserve that goal and
-read `onboarding.experience` from the confirmed project root. When it is
-missing, ask:
+read `onboarding.experience` from the fixed `$HOME/.selfhostedskills` project
+root. When it is missing, ask:
 
 > Which setup path do you want?
 > **New** installs safe local defaults and includes Homarr.
@@ -34,10 +34,11 @@ device question before that installation completes.
 
 ## Run the loop
 
-1. **Explore.** Extract the goal, users, devices, exact project root, service
-   choices, paths, exposure, resilience needs, and credential policy already
-   supplied. For a returning project, resume its exact saved goal and service
-   choices. Mark saved host evidence stale.
+1. **Explore.** Extract the goal, users, devices, service choices, paths,
+   exposure, resilience needs, and credential policy already supplied. Use
+   `$HOME/.selfhostedskills` as the project root. For a returning project,
+   resume its exact saved goal and service choices. Mark saved host evidence
+   stale.
 2. **Present.** Lead with one recommended answer and one short reason. Follow
    with at most two materially different alternatives. Explain every proposed
    service in one sentence before asking the user to choose it.
@@ -66,10 +67,11 @@ Use this order, skipping settled branches:
 2. **People and devices.** For initial setup, do not ask. Both paths install on
    loopback first. The **Advanced** post-install phone question may start a
    separate Tailscale plan; **New** receives that option only in Homarr.
-3. **Project root.** Recommend the exact current project root when appropriate;
-   otherwise ask for one existing absolute directory. The router may read
-   `.selfhost/project.json` only from the exact current root to detect a resume.
-   Confirm the root before reading elsewhere or writing project-local state.
+3. **Project root.** Always use `$HOME/.selfhostedskills`; do not ask for a
+   directory or use the current working directory. Read
+   `$HOME/.selfhostedskills/.selfhost/project.json` only from that root to
+   detect a resume. Before the first confirmed state write, disclose the local
+   files and create the root as a mode-`0700` real directory when absent.
 4. **Services.** Present the catalog default first and explain its purpose.
    Name only alternatives that change support, complexity, or capability.
    Include Homarr automatically for **New**. For **Advanced**, install the
@@ -122,5 +124,5 @@ After those choices are complete:
 > Do you want to reach your services from your phone while away from home?
 
 End intake when every plan-changing choice is confirmed or visibly unresolved,
-the project root is exact, no secret value was collected, and the next action
-is either a redacted plan or a clearly named blocker.
+the fixed project root is ready, no secret value was collected, and the next
+action is either a redacted plan or a clearly named blocker.

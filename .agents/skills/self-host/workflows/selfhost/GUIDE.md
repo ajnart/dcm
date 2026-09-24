@@ -16,9 +16,10 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
    value, preserve the goal and ask for **New** or **Advanced** before resolving
    optional services. `defaults` accepts that path's private-first planning
    defaults; it never selects optional roles or approves mutation.
-2. Confirm one exact project root. Invoke `scripts/selfhost.ts plan` with the
-   stated goal. With no new goal, use that command to resume only the supplied
-   root. Never search unrelated directories for project state.
+2. Use `$HOME/.selfhostedskills` as the exact project root without asking for
+   another directory. Pass it to `scripts/selfhost.ts plan` with the stated
+   goal. With no new goal, use that command to resume only this root. Never use
+   the current directory or search elsewhere for project state.
 3. An exact application name selects that application and its required
    dependencies. The **New** path keeps default Homarr selection. The
    **Advanced** initial plan uses `--select control-plane=none` unless Homarr was
@@ -51,7 +52,13 @@ Resolve this workflow directory and invoke its script by absolute path. Run
 `scripts/selfhost.ts --help` for the authoritative syntax; do not copy a stale
 command table into the conversation.
 
-`--project-root` must name an existing absolute real directory and derives `<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file alternative. Omitting both uses no stored preferences for planning and is rejected for preference writes. Paths inside the installed skill are rejected. Preferences store chosen, non-secret values with provenance. Secret-like keys and values are rejected without echoing them.
+The entry workflow always passes `--project-root "$HOME/.selfhostedskills"`.
+The low-level option must name an existing absolute real directory and derives
+`<project>/.selfhost/preferences.json`; `--path` is the explicit absolute-file
+alternative for direct helper use. Before the first state write, disclose and
+create the fixed root with mode `0700` when absent. Paths inside the installed
+skill are rejected. Preferences store chosen, non-secret values with
+provenance. Secret-like keys and values are rejected without echoing them.
 
 The same root derives `<project>/.selfhost/project.json`. State writes refuse
 replacement, retain one goal, and clear stale progress after a revised choice.
