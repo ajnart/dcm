@@ -14,11 +14,13 @@ import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { runRepositoryValidation } from "../validate-repo.ts";
-import { applyPortabilityTransform } from "../../.agents/skills/selfhost-media/scripts/verify-bundle.ts";
+import { applyPortabilityTransform } from "../../.agents/skills/self-host/workflows/selfhost-media/scripts/verify-bundle.ts";
 
 export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const skillsRoot = join(repositoryRoot, ".agents", "skills");
-export const registryPath = join(skillsRoot, "selfhost", "references", "catalog", "skills.json");
+export const publicSkillRoot = join(skillsRoot, "self-host");
+export const workflowsRoot = join(publicSkillRoot, "workflows");
+export const registryPath = join(workflowsRoot, "selfhost", "references", "catalog", "skills.json");
 
 const PACKAGE_SIZE_BUDGET = Math.floor(1.35 * 1024 * 1024);
 const AGENT_PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
@@ -42,7 +44,9 @@ const COMMON_AGENT_IDS = [
   "cursor",
   "gemini-cli",
   "github-copilot",
+  "hermes-agent",
   "kiro-cli",
+  "openclaw",
   "opencode",
   "pi",
   "roo",
@@ -61,6 +65,7 @@ const BENCHMARK_P95_BUDGET_MS = 500;
 
 const PUBLIC_FILES = [
   "README.md",
+  "AGENTS.md",
   "NOTEPAD.md",
   "research/skills-repo-patterns.md",
   "CONTRIBUTING.md",
@@ -77,6 +82,7 @@ const PUBLIC_FILES = [
   "docs/release.md",
   "docs/README.md",
   "docs/homarr.md",
+  "docs/headless-access.md",
   "docs/jellyfin.md",
   "docs/prowlarr.md",
   "docs/qbittorrent.md",
@@ -91,7 +97,8 @@ const PUBLIC_FILES = [
 const PROJECTED_PUBLIC_FILES = [
   { source: ".agents/install.md", destination: "INSTALL.md" },
   { source: ".agents/invocation.md", destination: "INVOCATION.md" },
-  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" }
+  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" },
+  { source: "AGENTS.md", destination: "CLAUDE.md" }
 ];
 
 function normalizePath(path) {
@@ -263,7 +270,7 @@ export async function discoverSkills() {
   const entries = await readdir(skillsRoot, { withFileTypes: true });
   const skills = [];
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-    if (!entry.isDirectory() || !entry.name.startsWith("selfhost")) {
+    if (!entry.isDirectory() || entry.name !== "self-host") {
       continue;
     }
     const root = join(skillsRoot, entry.name);
@@ -287,6 +294,22 @@ export async function discoverSkills() {
     });
   }
   return skills;
+}
+
+async function discoverWorkflowMetadata() {
+  const entries = await readdir(workflowsRoot, { withFileTypes: true });
+  const workflows = [];
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (!entry.isDirectory() || !entry.name.startsWith("selfhost")) {
+      continue;
+    }
+    const root = join(workflowsRoot, entry.name);
+    const markdown = await readFile(join(root, "GUIDE.md"), "utf8");
+    const frontmatter = parseFrontmatter(markdown, `${entry.name}/GUIDE.md`);
+    const openAi = parseOpenAiYaml(await readFile(join(root, "agents", "openai.yaml"), "utf8"));
+    workflows.push({ id: entry.name, root, markdown, frontmatter, openAi });
+  }
+  return workflows;
 }
 
 function validateRegistryShape(registry, skillIds) {
@@ -321,7 +344,7 @@ function validateRegistryShape(registry, skillIds) {
       errors.push(`Skill registry record ${record.id || "<unknown>"} has unsupported keys`);
       continue;
     }
-    if (typeof record.id !== "string" || !/^selfhost(?:-[a-z0-9]+)*$/.test(record.id)) {
+    if (typeof record.id !== "string" || !/^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(record.id)) {
       errors.push("Skill registry contains an invalid id");
       continue;
     }
@@ -378,7 +401,7 @@ function validateRegistryShape(registry, skillIds) {
     errors.push("Skill registry ids must be unique");
   }
   if (JSON.stringify(sortedIds) !== JSON.stringify([...skillIds].sort())) {
-    errors.push("Skill registry ids must exactly match canonical skill directories");
+    errors.push("Workflow registry ids must exactly match the public skill and internal workflow directories");
   }
   for (const record of records.values()) {
     for (const target of record.delegatesTo) {
@@ -456,7 +479,7 @@ function validateRegistryShape(registry, skillIds) {
 
 async function validateInstallProfiles(registry) {
   const errors = [];
-  const path = join(skillsRoot, "selfhost-setup", "references", "install-profiles.json");
+  const path = join(workflowsRoot, "selfhost-setup", "references", "install-profiles.json");
   let document;
   try {
     document = await readJson(path, "Install profile manifest");
@@ -561,6 +584,9 @@ async function validateInstallProfiles(registry) {
     if (profile.id === "basic") {
       expectedExtends = [];
     }
+    if (profile.id === "full") {
+      expectedExtends = ["ingress", "media"];
+    }
     if (JSON.stringify(profile.extends) !== JSON.stringify(expectedExtends)) {
       errors.push(`Install profile ${profile.id} must use the exact basic dependency`);
     }
@@ -569,14 +595,6 @@ async function validateInstallProfiles(registry) {
     }
     if (profile.id !== "basic" && profile.kind === "base") {
       errors.push(`Optional install profile ${profile.id} cannot use kind base`);
-    }
-    if (Array.isArray(profile.skills)) {
-      for (const skill of profile.skills) {
-        const record = records.get(skill);
-        if (record && record.install?.group !== profile.kind) {
-          errors.push(`Install profile ${profile.id} contains ${skill} from another install group`);
-        }
-      }
     }
   }
   const covered = new Set();
@@ -638,7 +656,7 @@ async function validateInstallProfiles(registry) {
 
 async function validateCodingAgents() {
   const errors = [];
-  const path = join(skillsRoot, "selfhost-setup", "references", "coding-agents.json");
+  const path = join(workflowsRoot, "selfhost-setup", "references", "coding-agents.json");
   let document;
   try {
     document = await readJson(path, "Coding agent manifest");
@@ -719,8 +737,8 @@ function validateSkillMetadata(skills, registry) {
     if (name !== skill.id) {
       errors.push(`${skill.id}: frontmatter name must match the directory`);
     }
-    if (typeof description !== "string" || description.length < 1 || description.length > 600) {
-      errors.push(`${skill.id}: description must be 1-600 characters`);
+    if (typeof description !== "string" || description.length < 1 || description.length > 180) {
+      errors.push(`${skill.id}: public description must be 1-180 characters`);
     } else {
       discoveryCharacters += description.length;
     }
@@ -731,12 +749,14 @@ function validateSkillMetadata(skills, registry) {
       errors.push(`${skill.id}: compatibility must be 20-240 characters`);
     }
     const lines = skill.markdown.replace(/\r\n/g, "\n").split("\n").length;
-    let budget = 700;
-    if (skill.id === "selfhost") {
-      budget = 900;
+    if (lines > 240 || Buffer.byteLength(skill.markdown) > 12 * 1024 || wordCount(skill.frontmatter.body) > 350) {
+      errors.push(`${skill.id}: public SKILL.md exceeds its lean entry budget`);
     }
-    if (lines > 500 || Buffer.byteLength(skill.markdown) > 16 * 1024 || wordCount(skill.frontmatter.body) > budget) {
-      errors.push(`${skill.id}: SKILL.md exceeds its progressive-disclosure budget`);
+    for (const file of skill.files) {
+      const skillRelative = normalizePath(relative(skill.root, file.path));
+      if (skillRelative !== "SKILL.md" && skillRelative.endsWith("/SKILL.md")) {
+        errors.push(`${skill.id}: nested SKILL.md would be rediscovered as a public skill`);
+      }
     }
     if (!skill.files.some((file) => file.path === join(skill.root, "LICENSE.txt"))) {
       errors.push(`${skill.id}: packaged LICENSE.txt is missing`);
@@ -754,17 +774,6 @@ function validateSkillMetadata(skills, registry) {
       errors.push(`${skill.id}: agents/openai.yaml default_prompt must mention $${skill.id}`);
     }
     const record = records.get(skill.id);
-    if (record && record.install) {
-      const discoveryPrefixes = {
-        base: "Base ",
-        pack: "Media pack ",
-        extension: "Optional ",
-      };
-      const expectedPrefix = discoveryPrefixes[record.install.group];
-      if (typeof description === "string" && !description.startsWith(expectedPrefix)) {
-        errors.push(`${skill.id}: description must expose its ${record.install.group} install group`);
-      }
-    }
     if (record && record.activation === "explicit") {
       if (values.get("disable-model-invocation") !== "true") {
         errors.push(`${skill.id}: explicit skill must disable model invocation`);
@@ -824,10 +833,13 @@ export async function affectedSkillsFromRef(reference) {
   }
   const direct = new Set();
   for (const path of changed.split("\n")) {
-    const match = /^\.agents\/skills\/(selfhost(?:-[a-z0-9]+)*)\//.exec(path);
+    const match = /^\.agents\/skills\/self-host\/workflows\/(selfhost(?:-[a-z0-9]+)*)\//.exec(path);
     if (match) {
       direct.add(match[1]);
       continue;
+    }
+    if (path.startsWith(".agents/skills/self-host/")) {
+      return [...all].sort();
     }
     if (
       path.startsWith("scripts/lib/skillpack")
@@ -993,49 +1005,56 @@ async function validatePublicSurface(registry) {
   return errors;
 }
 
-function buildIndexData(registry, skills) {
-  const byId = new Map(skills.map((skill) => [skill.id, skill]));
+function buildIndexData(registry, skills, workflows) {
+  const byId = new Map([...skills, ...workflows].map((skill) => [skill.id, skill]));
+  const entries = registry.skills.map((record) => {
+    const skill = byId.get(record.id);
+    return {
+      id: record.id,
+      displayName: skill.openAi.get("display_name"),
+      description: skill.frontmatter.values.get("description"),
+      compatibility: skill.frontmatter.values.get("compatibility"),
+      license: "Apache-2.0",
+      kind: record.kind,
+      scope: record.scope,
+      risk: record.risk,
+      activation: record.activation,
+      delegatesTo: record.delegatesTo,
+      install: record.install
+    };
+  });
   return {
     schemaVersion: 1,
     packVersion: registry.packVersion,
-    skills: registry.skills.map((record) => {
-      const skill = byId.get(record.id);
-      return {
-        id: record.id,
-        displayName: skill.openAi.get("display_name"),
-        description: skill.frontmatter.values.get("description"),
-        compatibility: skill.frontmatter.values.get("compatibility"),
-        license: "Apache-2.0",
-        kind: record.kind,
-        scope: record.scope,
-        risk: record.risk,
-        activation: record.activation,
-        delegatesTo: record.delegatesTo,
-        install: record.install
-      };
-    })
+    publicSkills: entries.filter((entry) => entry.id === "self-host"),
+    workflows: entries.filter((entry) => entry.id !== "self-host"),
   };
 }
 
 export function renderIndexArtifacts(registry, skills, options = {}) {
-  const data = buildIndexData(registry, skills);
+  const workflows = options.workflows || [];
+  const data = buildIndexData(registry, skills, workflows);
   const skillsDirectory = options.skillsDirectory || ".agents/skills";
   const markdown = [
     "# Selfhost Skill Index",
     "",
     `Pack version: \`${data.packVersion}\``,
     "",
-    "| Skill | Install group | Requires | Kind | Risk | Activation | Purpose |",
+    "| Public skill | Install group | Requires | Kind | Risk | Activation | Purpose |",
     "| --- | --- | --- | --- | --- | --- | --- |"
   ];
-  for (const skill of data.skills) {
+  for (const skill of data.publicSkills) {
     let requirements = "none";
     if (skill.install.requires.length > 0) {
       requirements = skill.install.requires.join(", ");
     }
     markdown.push(`| [\`${skill.id}\`](${skillsDirectory}/${skill.id}/SKILL.md) | ${skill.install.group} | ${requirements} | ${skill.kind} | ${skill.risk} | ${skill.activation} | ${skill.description} |`);
   }
-  markdown.push("", "Generated from the canonical registry and skill frontmatter. Do not edit this file by hand.", "");
+  markdown.push("", "## Internal workflows", "", "These workflow IDs are internal routing metadata inside the installed `self-host` skill. They are not separately installable skills.", "", "| Workflow | Kind | Activation | Purpose |", "| --- | --- | --- | --- |");
+  for (const workflow of data.workflows) {
+    markdown.push(`| [\`${workflow.id}\`](${skillsDirectory}/self-host/workflows/${workflow.id}/GUIDE.md) | ${workflow.kind} | ${workflow.activation} | ${workflow.description} |`);
+  }
+  markdown.push("", "Generated from the canonical workflow registry and public skill frontmatter. Do not edit this file by hand.", "");
 
   const llms = [
     "# Selfhost Skills",
@@ -1044,11 +1063,15 @@ export function renderIndexArtifacts(registry, skills, options = {}) {
     "",
     `Pack version: ${data.packVersion}`,
     "",
-    "## Skills",
+    "## Public skill",
     ""
   ];
-  for (const skill of data.skills) {
+  for (const skill of data.publicSkills) {
     llms.push(`- [${skill.id}](${skillsDirectory}/${skill.id}/SKILL.md) [${skill.install.group}]: ${skill.description}`);
+  }
+  llms.push("", "## Internal workflows", "");
+  for (const workflow of data.workflows) {
+    llms.push(`- [${workflow.id}](${skillsDirectory}/self-host/workflows/${workflow.id}/GUIDE.md): ${workflow.description}`);
   }
   llms.push("", "## Primary documentation", "", "- [README](README.md)", "- [Security policy](SECURITY.md)", "- [Contribution guide](CONTRIBUTING.md)", "");
   return {
@@ -1061,7 +1084,8 @@ export function renderIndexArtifacts(registry, skills, options = {}) {
 export async function writeIndexArtifacts() {
   const registry = await loadRegistry();
   const skills = await discoverSkills();
-  const artifacts = renderIndexArtifacts(registry, skills);
+  const workflows = await discoverWorkflowMetadata();
+  const artifacts = renderIndexArtifacts(registry, skills, { workflows });
   for (const [name, content] of Object.entries(artifacts)) {
     await writeFile(join(repositoryRoot, name), content, "utf8");
   }
@@ -1070,7 +1094,8 @@ export async function writeIndexArtifacts() {
 
 async function validateIndexArtifacts(registry, skills) {
   const errors = [];
-  const expected = renderIndexArtifacts(registry, skills);
+  const workflows = await discoverWorkflowMetadata();
+  const expected = renderIndexArtifacts(registry, skills, { workflows });
   for (const [name, content] of Object.entries(expected)) {
     let actual = "";
     try {
@@ -1110,6 +1135,7 @@ export async function inspectPack() {
     packVersion: registry.packVersion,
     schemaVersion: registry.schemaVersion,
     skills: skills.length,
+    workflows: registry.skills.length - skills.length,
     adapters: registry.skills.filter((record) => record.kind === "adapter").length,
     files,
     bytes,
@@ -1124,8 +1150,12 @@ export async function validatePack(scope = "all") {
   }
   const registry = await loadRegistry();
   const skills = await discoverSkills();
+  const workflows = await discoverWorkflowMetadata();
   const checks = [];
-  const registryErrors = validateRegistryShape(registry, skills.map((skill) => skill.id));
+  const registryErrors = validateRegistryShape(
+    registry,
+    [...skills, ...workflows].map((skill) => skill.id),
+  );
   checks.push({ name: "registry", status: registryErrors.length === 0 ? "pass" : "fail", errors: registryErrors });
   const profileErrors = await validateInstallProfiles(registry);
   checks.push({ name: "install profiles", status: profileErrors.length === 0 ? "pass" : "fail", errors: profileErrors });
@@ -1248,6 +1278,72 @@ function parseBatchObjects(buffer) {
   return objects;
 }
 
+export function selectEligibleHistoryBlobs(metadata) {
+  const eligible = [];
+  for (const line of metadata.split("\n")) {
+    if (!line) {
+      continue;
+    }
+    const [objectId, type, rawSize] = line.split(" ");
+    const size = Number.parseInt(rawSize, 10);
+    if (
+      /^[a-f0-9]{40}$/.test(objectId)
+      && type === "blob"
+      && Number.isInteger(size)
+      && size >= 0
+      && size <= 1024 * 1024
+    ) {
+      eligible.push({ objectId, size });
+    }
+  }
+  return eligible;
+}
+
+function eligibleHistoryBlobIds(ids) {
+  const eligible = [];
+  const batchSize = 4096;
+  for (let offset = 0; offset < ids.length; offset += batchSize) {
+    const batch = ids.slice(offset, offset + batchSize);
+    const output = runGit(
+      ["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+      { input: `${batch.join("\n")}\n` },
+    );
+    eligible.push(...selectEligibleHistoryBlobs(output));
+  }
+  return eligible;
+}
+
+function readHistoryBlobs(ids) {
+  const objects = new Map();
+  const eligible = eligibleHistoryBlobIds(ids);
+  const maximumBatchBytes = 8 * 1024 * 1024;
+  let batch = [];
+  let batchBytes = 0;
+
+  const flush = () => {
+    if (batch.length === 0) {
+      return;
+    }
+    const input = `${batch.map((entry) => entry.objectId).join("\n")}\n`;
+    const parsed = parseBatchObjects(runGit(["cat-file", "--batch"], { input, buffer: true }));
+    for (const [objectId, object] of parsed) {
+      objects.set(objectId, object);
+    }
+    batch = [];
+    batchBytes = 0;
+  };
+
+  for (const entry of eligible) {
+    if (batch.length > 0 && batchBytes + entry.size > maximumBatchBytes) {
+      flush();
+    }
+    batch.push(entry);
+    batchBytes += entry.size;
+  }
+  flush();
+  return objects;
+}
+
 function pngMetadataChunks(content) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (content.length < 8 || !content.subarray(0, 8).equals(signature)) {
@@ -1346,8 +1442,7 @@ function auditHistory(allowlist) {
     pathsByObject.get(objectId).push(path);
   }
   const ids = [...pathsByObject.keys()];
-  const batchInput = `${ids.join("\n")}\n`;
-  const objects = parseBatchObjects(runGit(["cat-file", "--batch"], { input: batchInput, buffer: true }));
+  const objects = readHistoryBlobs(ids);
   const findings = [];
   const matchedAllowlist = new Set();
   let textBlobsScanned = 0;
@@ -1358,6 +1453,7 @@ function auditHistory(allowlist) {
     textBlobsScanned += 1;
     const content = object.content.toString("utf8");
     for (const [id, pattern] of CREDENTIAL_PATTERNS) {
+      pattern.lastIndex = 0;
       const match = pattern.exec(content);
       if (match) {
         const line = content.slice(0, match.index).split("\n").length;
@@ -1502,7 +1598,7 @@ function benchmarkCommand(name, args, runs) {
 }
 
 export function benchmarkPack(runs = 30) {
-  const selfhost = join(repositoryRoot, ".agents", "skills", "selfhost", "scripts", "selfhost.ts");
+  const selfhost = join(workflowsRoot, "selfhost", "scripts", "selfhost.ts");
   const projectRoot = mkdtempSync(join(tmpdir(), "selfhost-benchmark-"));
   try {
     const results = [
@@ -1632,6 +1728,7 @@ function assertRequiredPackagedLink(content, target, label) {
 async function buildPackageEntries(version) {
   await assertNoSymlinkPath(skillsRoot, "Skills root");
   const skills = await discoverSkills();
+  const workflows = await discoverWorkflowMetadata();
   const registry = await loadRegistry();
   if (registry.packVersion !== version) {
     throw new Error(`Package version must equal registry packVersion ${registry.packVersion}`);
@@ -1642,6 +1739,9 @@ async function buildPackageEntries(version) {
     for (const file of skill.files) {
       const sourceRelative = normalizePath(relative(repositoryRoot, file.path));
       const skillRelative = normalizePath(relative(skill.root, file.path));
+      if (skillRelative !== "SKILL.md" && skillRelative.endsWith("/SKILL.md")) {
+        throw new Error(`Nested SKILL.md is not packageable: ${skillRelative}`);
+      }
       if (/^scripts\/check-[^/]+\.ts$/.test(skillRelative)) {
         continue;
       }
@@ -1689,7 +1789,7 @@ async function buildPackageEntries(version) {
     projectedFiles.set(projection.destination, content);
   }
 
-  const releaseIndexes = renderIndexArtifacts(registry, skills, { skillsDirectory: "skills" });
+  const releaseIndexes = renderIndexArtifacts(registry, skills, { skillsDirectory: "skills", workflows });
   let releaseReadme = "";
   for (const fileName of PUBLIC_FILES) {
     const source = await readPackageFile(fileName, `Public package file ${fileName}`);
@@ -1700,10 +1800,11 @@ async function buildPackageEntries(version) {
         .replaceAll(".agents/install.md", "INSTALL.md")
         .replaceAll(".agents/invocation.md", "INVOCATION.md")
         .replaceAll(".agents/CONTEXT.md", "CONTEXT.md")
-        .replaceAll(".agents/skills/selfhost/references/catalog.md", "skills/selfhost/references/catalog.md")
+        .replaceAll(".agents/skills/self-host/", "skills/self-host/")
+        .replaceAll(".agents/skills/self-host/workflows/selfhost/references/catalog.md", "skills/self-host/workflows/selfhost/references/catalog.md")
         .replaceAll(
-          ".agents/skills/selfhost-setup/references/coding-agents.json",
-          "skills/selfhost-setup/references/coding-agents.json",
+          ".agents/skills/self-host/workflows/selfhost-setup/references/coding-agents.json",
+          "skills/self-host/workflows/selfhost-setup/references/coding-agents.json",
         );
       data = Buffer.from(releaseReadme);
       provenance = "generated:README.md";
@@ -1740,7 +1841,7 @@ async function buildPackageEntries(version) {
   assertPackagedLinks(releaseReadme, availablePaths, "Packaged README.md");
   assertRequiredPackagedLink(
     projectedFiles.get("INSTALL.md"),
-    "skills/selfhost-setup/references/install-profiles.json",
+    "skills/self-host/workflows/selfhost-setup/references/install-profiles.json",
     "Packaged INSTALL.md",
   );
   assertPackagedLinks(projectedFiles.get("INSTALL.md"), availablePaths, "Packaged INSTALL.md");

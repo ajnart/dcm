@@ -16,7 +16,7 @@
 2. It creates/tests the Prowlarr Full Sync application at
    `http://radarr:7878` and waits for its indexer.
 3. Confirm the list state in agent-browser and run the verifier. If login is
-   required, use username `admin` and fill its fresh password ref through
+   required, use username `$ADMIN_USERNAME` and fill its fresh password ref through
    `scripts/session.sh browser-password "$RUN_ID" @eN`.
 4. Seerr must add Radarr as its default non-4K movie server, select a quality
    profile and `/data/media/movies`, and enable scanning.

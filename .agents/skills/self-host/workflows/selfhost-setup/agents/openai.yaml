@@ -1,0 +1,6 @@
+interface:
+  display_name: "Support · New stack setup"
+  short_description: "Used by Self-host for approved new installs"
+  default_prompt: "Use $selfhost-setup to install prerequisites and set up my selected self-hosted stack."
+policy:
+  allow_implicit_invocation: false

@@ -5,8 +5,8 @@
 - Internal URL: `http://qbittorrent:$QBITTORRENT_PORT`; this run deliberately
   uses the same dynamic port inside and outside the container.
 - State: `/config`; downloads: `/data/torrents`.
-- Authentication: `admin` plus a generated first-start password, replaced with
-  the harness-derived per-run password.
+- Authentication: first-start `admin` plus a generated temporary password,
+  replaced with the run's selected administrator username and derived password.
 
 ## Minimum fresh-run path
 
@@ -32,6 +32,8 @@
 ## Traps
 
 - The temporary password rotates whenever fresh config is created.
+- A fresh qBittorrent instance always uses `admin` for the temporary login;
+  bootstrap changes the username only after that login succeeds.
 - qBittorrent rejects mismatched WebUI/Host-header ports. The session harness
   keeps `WEBUI_PORT`, `WEBUI_PORTS`, published port, and downstream port equal.
 - API requests must send a matching `Origin` or `Referer`; preserve the exact

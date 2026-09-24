@@ -24,15 +24,18 @@ tested six integrations and generated six linked apps plus their widgets.
 Run in order:
 
 ```bash
-./scripts/session.sh homarr-finalize "$RUN_ID"
+./scripts/session.sh homarr-finalize "$RUN_ID" "$BOARD_NAME"
 ./scripts/session.sh mcp-config "$RUN_ID"
 ./scripts/session.sh mcp-verify "$RUN_ID"
 ./scripts/session.sh connections "$RUN_ID"
 ```
 
-`homarr-finalize` must update only the six onboarding-generated service apps:
-their primary links become run-scoped host URLs and their ping URLs remain the
-Docker URLs. Do not reproduce these edits through six UI forms.
+`homarr-finalize` updates the six onboarding-generated service apps: their
+primary links become run-scoped host URLs and their ping URLs remain Docker
+URLs. With the exact board name, it also repairs the preview image's obsolete
+`stats` placeholder only when its six managed integrations and the valid
+replacement statistics widget are verified. Other widgets and their layouts
+remain unchanged. Do not reproduce these edits through individual UI forms.
 
 The native server contract is Streamable HTTP at the canonical `/api/mcp`
 endpoint with the per-run key in the `ApiKey` header. `/api/mcp/mcp` is a

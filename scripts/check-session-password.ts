@@ -6,6 +6,7 @@ import { EventEmitter } from "node:events";
 import {
   chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -27,9 +28,15 @@ import {
   connectionsContents,
   deriveSessionPassword,
   handoffContents,
+  privateHandoffContents,
+  redactedHandoffContents,
   REPO_ROOT,
   SESSION_PASSWORD_SCHEME,
+  sessionUsername,
+  validateAdminUsername,
+  validateBrowserPageUrl,
   writeConnectionsFile,
+  writeSessionHandoffArtifacts,
 } from "./lib/session-context.ts";
 
 const NODE_DEBUG_RUNNER_ARGUMENT = "--node-debug-runner";
@@ -41,6 +48,7 @@ const LEGACY_ALLOWED_SESSION_COMMANDS = [
   "env",
   "status",
   "mcp-verify",
+  "homarr-widgets",
   "down",
   "destroy",
 ];
@@ -48,11 +56,16 @@ const CURRENT_SCHEME_SESSION_COMMANDS = [
   "up",
   "keys",
   "bootstrap",
+  "bootstrap-jellyfin",
+  "bootstrap-seerr",
   "verify",
   "browser-password",
+  "browser-form",
+  "access-proxy",
   "browser-key",
   "homarr-key",
   "homarr-finalize",
+  "homarr-notebook",
   "mcp-config",
   "connections-check",
   "connections",
@@ -62,7 +75,11 @@ const CURRENT_SCHEME_SESSION_COMMANDS = [
 function sessionFor(runId, keyByte) {
   return {
     runId,
+    sessionDir: `/tmp/auto-stack-fixture/${runId}`,
+    manifestFile: `/tmp/auto-stack-fixture/${runId}/manifest.env`,
+    secretsFile: `/tmp/auto-stack-fixture/${runId}/secrets.env`,
     manifest: {
+      ADMIN_USERNAME: "alice",
       AGENT_BROWSER_SESSION: `auto-stack-${runId}`,
       HOMARR_PORT: "21006",
       JELLYFIN_PORT: "21004",
@@ -118,6 +135,38 @@ function simulatedChild({
   return child;
 }
 
+function successfulBrowserOutput(args) {
+  if (args.includes("attr")) {
+    const attribute = args[args.indexOf("attr") + 2];
+    return JSON.stringify({
+      success: true,
+      data: {
+        value: attribute === "type" ? "password" : null,
+        origin: "http://127.0.0.1:21006",
+        lifecycle: "fresh",
+      },
+      error: null,
+    });
+  }
+  if (args.includes("is")) {
+    return JSON.stringify({
+      success: true,
+      data: {
+        enabled: true,
+        origin: "http://127.0.0.1:21006",
+        lifecycle: "fresh",
+      },
+      error: null,
+    });
+  }
+  return "";
+}
+
+function successfulBrowserChild(args, overrides = {}) {
+  const stdout = successfulBrowserOutput(args);
+  return simulatedChild({ ...overrides, stdout });
+}
+
 async function withoutProcessOutput(operation) {
   let stderrCalls = 0;
   let stdoutCalls = 0;
@@ -148,6 +197,7 @@ async function assertNoFallback(session, resultFactory) {
         calls += 1;
         return resultFactory();
       },
+      pageUrl: "http://127.0.0.1:21006/setup",
     }),
     (error) => {
       assert.equal(error.message, "browser password fill failed");
@@ -180,14 +230,18 @@ function captureChild(executable, args, options) {
 async function runNodeDebugRunner() {
   const fixtureSession = sessionFor("node-debug", "4");
   await fillBrowserPassword(fixtureSession, ["@e8"], {
-    spawnImplementation: (_executable, _args, options) => realSpawn(
+    spawnImplementation: (_executable, args, options) => {
+      const output = successfulBrowserOutput(args);
+      return realSpawn(
       process.execPath,
       [
         "-e",
-        "process.stdin.resume(); process.stdin.on('end', () => process.exit(0));",
+        `process.stdin.resume(); process.stdin.on('end', () => { process.stdout.write(${JSON.stringify(output)}); process.exit(0); });`,
       ],
       options,
-    ),
+    );
+    },
+    pageUrl: "http://127.0.0.1:21006/setup",
   });
 }
 
@@ -392,6 +446,23 @@ async function runChecks() {
   const otherRunSameKeySession = sessionFor("gamma", "1");
   const alphaPassword = deriveSessionPassword(alphaSession);
 
+  assert.equal(validateAdminUsername("habs.user-1"), "habs.user-1");
+  for (const invalidUsername of ["", " space", "user name", "user@host", "a".repeat(65)]) {
+    assert.throws(() => validateAdminUsername(invalidUsername));
+  }
+  assert.equal(
+    validateBrowserPageUrl(alphaSession, "http://127.0.0.1:21006/settings/general"),
+    "http://127.0.0.1:21006/settings/general",
+  );
+  for (const invalidPageUrl of [
+    "https://127.0.0.1:21006/",
+    "http://example.com:21006/",
+    "http://127.0.0.1:9999/",
+    "http://user:pass@127.0.0.1:21006/",
+  ]) {
+    assert.throws(() => validateBrowserPageUrl(alphaSession, invalidPageUrl));
+  }
+
   assert.equal(alphaPassword, deriveSessionPassword(alphaSession));
   assert.notEqual(alphaPassword, deriveSessionPassword(betaSession));
   assert.notEqual(alphaPassword, deriveSessionPassword(alphaOtherKeySession));
@@ -413,22 +484,47 @@ async function runChecks() {
   assert.throws(() => deriveSessionPassword(wrongSchemeSession));
 
   let directInvocation;
+  const directInvocations = [];
   let directCalls = 0;
   const directOutput = await withoutProcessOutput(async () => {
     await fillBrowserPassword(alphaSession, ["@e4", "@e5"], {
+      pageUrl: "http://127.0.0.1:21006/setup",
       spawnImplementation: (executable, args, options) => {
         directCalls += 1;
-        const child = simulatedChild({
+        const child = successfulBrowserChild(args, {
           stderr: alphaSession.secrets.HOMARR_ENCRYPTION_KEY,
-          stdout: alphaPassword,
         });
-        directInvocation = { args, child, executable, options };
+        const invocation = { args, child, executable, options };
+        directInvocations.push(invocation);
+        if (args.includes("batch")) {
+          directInvocation = invocation;
+        }
         return child;
       },
     });
   });
   assert.deepEqual(directOutput, { stderrCalls: 0, stdoutCalls: 0 });
-  assert.equal(directCalls, 1);
+  assert.equal(directCalls, 9);
+  const directInspections = directInvocations.slice(0, 8);
+  assert.equal(directInspections.every((invocation) => (
+    invocation.args[0] === "--session"
+    && invocation.args[1] === "auto-stack-alpha"
+    && invocation.args.at(-1) === "--json"
+  )), true);
+  assert.equal(directInspections.some((invocation) => invocation.args.includes("editable")), false);
+  assert.deepEqual(
+    directInspections.map((invocation) => invocation.args.slice(2, -1)),
+    [
+      ["get", "attr", "@e4", "type"],
+      ["get", "attr", "@e4", "disabled"],
+      ["get", "attr", "@e4", "readonly"],
+      ["is", "enabled", "@e4"],
+      ["get", "attr", "@e5", "type"],
+      ["get", "attr", "@e5", "disabled"],
+      ["get", "attr", "@e5", "readonly"],
+      ["is", "enabled", "@e5"],
+    ],
+  );
   assert.equal(directInvocation.executable, "agent-browser");
   assert.deepEqual(directInvocation.args, [
     "--session",
@@ -459,19 +555,76 @@ async function runChecks() {
     false,
   );
 
+  const rejectedTextInvocations = [];
+  await assert.rejects(
+    fillBrowserPassword(alphaSession, ["@e9"], {
+      pageUrl: "http://127.0.0.1:21006/setup",
+      spawnImplementation: (executable, args, options) => {
+        const attribute = args[args.indexOf("attr") + 2];
+        let stdout = successfulBrowserOutput(args);
+        if (attribute === "type") {
+          stdout = JSON.stringify({
+            success: true,
+            data: { value: "text", origin: "http://127.0.0.1:21006", lifecycle: "fresh" },
+            error: null,
+          });
+        }
+        const child = simulatedChild({ stdout });
+        rejectedTextInvocations.push({ args, child, executable, options });
+        return child;
+      },
+    }),
+    /browser password field is invalid/,
+  );
+  assert.equal(rejectedTextInvocations.length, 4);
+  assert.equal(rejectedTextInvocations.every((invocation) => (
+    invocation.args[0] === "--session" && invocation.args[1] === "auto-stack-alpha"
+  )), true);
+  assert.equal(rejectedTextInvocations.some((invocation) => invocation.args.includes("batch")), false);
+  assert.equal(
+    rejectedTextInvocations.some((invocation) => invocation.child.capturedInput().includes(alphaPassword)),
+    false,
+  );
+
+  for (const blockedAttribute of ["disabled", "readonly"]) {
+    let mutationCalls = 0;
+    await assert.rejects(
+      fillBrowserPassword(alphaSession, ["@e10"], {
+        pageUrl: "http://127.0.0.1:21006/setup",
+        spawnImplementation: (_executable, args) => {
+          if (args.includes("batch")) {
+            mutationCalls += 1;
+          }
+          const attribute = args[args.indexOf("attr") + 2];
+          let stdout = successfulBrowserOutput(args);
+          if (attribute === blockedAttribute) {
+            stdout = JSON.stringify({
+              success: true,
+              data: { value: blockedAttribute, origin: "http://127.0.0.1:21006", lifecycle: "fresh" },
+              error: null,
+            });
+          }
+          return simulatedChild({ stdout });
+        },
+      }),
+      /browser password field is invalid/,
+    );
+    assert.equal(mutationCalls, 0);
+  }
+
   const missingExecutableError = new Error("missing executable");
   missingExecutableError.code = "ENOENT";
   const fallbackInvocations = [];
   const fallbackOutput = await withoutProcessOutput(async () => {
     await fillBrowserPassword(alphaSession, ["@e6"], {
+      pageUrl: "http://localhost:21006/setup",
       spawnImplementation: (executable, args, options) => {
         let child;
         if (fallbackInvocations.length === 0) {
           child = simulatedChild({ spawnError: missingExecutableError });
         } else {
-          child = simulatedChild({
+          child = successfulBrowserChild(args, {
             stderr: alphaPassword,
-            stdout: alphaSession.secrets.HOMARR_ENCRYPTION_KEY,
           });
         }
         fallbackInvocations.push({ args, child, executable, options });
@@ -480,29 +633,23 @@ async function runChecks() {
     });
   });
   assert.deepEqual(fallbackOutput, { stderrCalls: 0, stdoutCalls: 0 });
-  assert.equal(fallbackInvocations.length, 2);
+  assert.equal(fallbackInvocations.length, 6);
   assert.equal(fallbackInvocations[0].executable, "agent-browser");
-  assert.deepEqual(fallbackInvocations[0].args, directInvocation.args);
+  assert.deepEqual(fallbackInvocations[0].args.slice(2, -1), ["get", "attr", "@e6", "type"]);
   assert.equal(fallbackInvocations[0].child.capturedInput(), "");
   assert.equal(fallbackInvocations[1].executable, "bunx");
-  assert.deepEqual(fallbackInvocations[1].args, [
-    "--bun",
-    "agent-browser",
-    "--session",
-    "auto-stack-alpha",
-    "batch",
-    "--bail",
-    "--json",
-  ]);
+  assert.deepEqual(fallbackInvocations[1].args.slice(4, -1), ["get", "attr", "@e6", "type"]);
   assert.strictEqual(
     fallbackInvocations[0].options,
     fallbackInvocations[1].options,
   );
-  assert.deepEqual(JSON.parse(fallbackInvocations[1].child.capturedInput()), [
+  const fallbackFill = fallbackInvocations.at(-1);
+  assert.equal(fallbackFill.executable, "agent-browser");
+  assert.deepEqual(JSON.parse(fallbackFill.child.capturedInput()), [
     ["fill", "@e6", alphaPassword],
   ]);
   assert.equal(
-    JSON.stringify(fallbackInvocations[1].options).includes(alphaPassword),
+    JSON.stringify(fallbackFill.options).includes(alphaPassword),
     false,
   );
 
@@ -592,14 +739,35 @@ async function runChecks() {
   assert.equal(connectionsWithHomarr.includes("_PASSWORD="), false);
 
   const handoff = handoffContents(alphaSession);
-  assert.equal(handoff.includes("Admin username: admin"), true);
+  assert.equal(sessionUsername(alphaSession), "alice");
+  assert.equal(handoff.includes("Admin username: alice"), true);
   assert.equal(handoff.includes(`Admin password: ${alphaPassword}`), true);
   assert.equal(handoff.includes(alphaSession.secrets.HOMARR_ENCRYPTION_KEY), false);
+
+  const privateHandoff = privateHandoffContents(alphaSession, homarrApiKey);
+  const parsedPrivateHandoff = JSON.parse(privateHandoff);
+  assert.equal(parsedPrivateHandoff.services.sonarr.username, "alice");
+  assert.equal(parsedPrivateHandoff.services.sonarr.password, alphaPassword);
+  assert.equal(parsedPrivateHandoff.services.sonarr.apiKey, alphaSession.secrets.SONARR_API_KEY);
+  assert.equal(parsedPrivateHandoff.services.homarr.apiKey, homarrApiKey);
+  assert.equal(parsedPrivateHandoff.actions.length >= 4, true);
+  const redactedHandoff = redactedHandoffContents(alphaSession, homarrApiKey);
+  assert.equal(redactedHandoff.includes(alphaPassword), false);
+  assert.equal(redactedHandoff.includes(homarrApiKey), false);
+  assert.equal(redactedHandoff.includes(alphaSession.secrets.SONARR_API_KEY), false);
+  assert.equal(redactedHandoff.includes("[REDACTED - saved]"), true);
 
   const connectionDirectory = mkdtempSync(join(tmpdir(), "auto-stack-connections-"));
   chmodSync(connectionDirectory, 0o700);
   try {
-    const fileSession = { ...alphaSession, sessionDir: connectionDirectory };
+    const artifactDirectory = join(connectionDirectory, "artifacts");
+    mkdirSync(artifactDirectory, { mode: 0o700 });
+    const fileSession = {
+      ...alphaSession,
+      sessionDir: connectionDirectory,
+      manifestFile: join(connectionDirectory, "manifest.env"),
+      secretsFile: join(connectionDirectory, "secrets.env"),
+    };
     const legacyPath = join(connectionDirectory, "credentials.env");
     writeFileSync(legacyPath, `ADMIN_PASSWORD=${alphaPassword}\n`, { mode: 0o600 });
     const result = writeConnectionsFile(fileSession, homarrApiKey);
@@ -609,6 +777,16 @@ async function runChecks() {
     assert.equal(persisted.includes(alphaPassword), false);
     assert.equal(persisted.includes("PASSWORD="), false);
     assert.equal(existsSync(legacyPath), false);
+
+    const artifacts = writeSessionHandoffArtifacts(fileSession, homarrApiKey);
+    assert.equal(statSync(artifacts.privatePath).mode & 0o777, 0o600);
+    assert.equal(statSync(artifacts.redactedPath).mode & 0o777, 0o600);
+    assert.equal(readFileSync(artifacts.privatePath, "utf8").includes(alphaPassword), true);
+    assert.equal(readFileSync(artifacts.redactedPath, "utf8").includes(alphaPassword), false);
+    chmodSync(artifactDirectory, 0o755);
+    assert.throws(() => writeSessionHandoffArtifacts(fileSession, homarrApiKey), /private and owned/);
+    chmodSync(artifactDirectory, 0o700);
+
 
     writeFileSync(result.filePath, `${persisted}ADMIN_PASSWORD=${alphaPassword}\n`, { mode: 0o600 });
     assert.throws(() => writeConnectionsFile(fileSession, homarrApiKey));

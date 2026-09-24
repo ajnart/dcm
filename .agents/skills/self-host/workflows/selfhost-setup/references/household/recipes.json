@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-21",
+  "recipes": [
+    {
+      "id": "immich",
+      "document": "immich.md",
+      "support": "guided",
+      "metadata": "immich.json"
+    },
+    {
+      "id": "nextcloud",
+      "document": "nextcloud.md",
+      "support": "guided",
+      "metadata": "nextcloud.json"
+    },
+    {
+      "id": "navidrome",
+      "document": "navidrome.md",
+      "support": "guided",
+      "metadata": "navidrome.json"
+    },
+    {
+      "id": "audiobookshelf",
+      "document": "audiobookshelf.md",
+      "support": "guided",
+      "metadata": "audiobookshelf.json"
+    },
+    {
+      "id": "vaultwarden",
+      "document": "vaultwarden.md",
+      "support": "guided"
+    }
+  ]
+}

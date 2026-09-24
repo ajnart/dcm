@@ -9,15 +9,15 @@
 
 ## Minimum fresh-run path
 
-1. Run `scripts/session.sh bootstrap RUN_ID`; it configures Forms auth, probes a
-   bounded public-indexer list, and keeps only an entry whose live test passes.
+1. Run `scripts/session.sh bootstrap RUN_ID`; it configures Forms auth without
+   creating, replacing, or choosing an indexer.
 2. It adds Sonarr at `http://sonarr:8989` and Radarr at
    `http://radarr:7878`, using per-run keys and **Full Sync**.
-3. It triggers the supported `ApplicationIndexerSync` task through the command
-   API and waits until both downstream apps contain the indexer.
-4. Confirm the indexer and both apps in agent-browser, then run
+3. Add the user's selected authorized-content indexer in the UI and test it,
+   then sync applications. Existing indexer records remain untouched.
+4. Confirm the selected indexer and both apps in agent-browser, then run
    `scripts/session.sh verify RUN_ID`. If login is required, use username
-   `admin` and fill its fresh password ref through
+   `$ADMIN_USERNAME` and fill its fresh password ref through
    `scripts/session.sh browser-password "$RUN_ID" @eN`.
 
 ## Proof
@@ -32,11 +32,8 @@
 ## Traps
 
 - An entry that merely saved is not a working indexer.
-- Internet Archive returned 429 and several sources hit Cloudflare in the first
-  generation; Nyaa.si passed on 2026-08-28. Always retain live probing rather
-  than treating that observation as a permanent provider choice.
-- 1337x is commonly Cloudflare-protected and requires a working FlareSolverr
-  proxy; use a test-passing source unless FlareSolverr is part of the run.
+- Bootstrap never chooses a provider based on availability. Without an explicit
+  authorized source, indexer sync and acquisition acceptance remain pending.
 - Use Docker DNS and internal ports for all application links.
 
 Sources: [Servarr Prowlarr docs](https://wiki.servarr.com/prowlarr),

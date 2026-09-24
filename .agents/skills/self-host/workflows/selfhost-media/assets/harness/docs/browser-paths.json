@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "services": [
+    {
+      "id": "sonarr",
+      "credential": "api-key",
+      "settingsPath": "/settings/general",
+      "linkedDoc": "docs/sonarr.md",
+      "authMethod": "Forms login with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "General settings exposes the API-key field and the verifier confirms the qBittorrent client plus a Prowlarr-synced indexer.",
+      "controlHints": [
+        "Username",
+        "Password",
+        "Log In",
+        "Settings",
+        "General",
+        "API Key"
+      ],
+      "sourceChecked": "Live 2026-09-21: returning authenticated fixed-field API-key capture passed 9/9 runs with 311 ms median; no snapshot or element ref was used.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "complete-onboarding",
+          "configure-root",
+          "configure-download-client",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "browser-wiring": [
+          "prepare-identity-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "configure-root",
+          "configure-download-client",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open-settings",
+        "login-if-required",
+        "fixed-key-field",
+        "capture-key",
+        "verify"
+      ],
+      "captureHelper": "session browser-key capture-field RUN_ID sonarr"
+    },
+    {
+      "id": "radarr",
+      "credential": "api-key",
+      "settingsPath": "/settings/general",
+      "linkedDoc": "docs/radarr.md",
+      "authMethod": "Forms login with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "General settings exposes the API-key field and the verifier confirms the qBittorrent client plus a Prowlarr-synced indexer.",
+      "controlHints": [
+        "Username",
+        "Password",
+        "Log In",
+        "Settings",
+        "General",
+        "API Key"
+      ],
+      "sourceChecked": "Live 2026-09-21: returning authenticated fixed-field API-key capture passed 9/9 runs with 469 ms median; no snapshot or element ref was used.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "complete-onboarding",
+          "configure-root",
+          "configure-download-client",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "browser-wiring": [
+          "prepare-identity-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "configure-root",
+          "configure-download-client",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open-settings",
+        "login-if-required",
+        "fixed-key-field",
+        "capture-key",
+        "verify"
+      ],
+      "captureHelper": "session browser-key capture-field RUN_ID radarr"
+    },
+    {
+      "id": "prowlarr",
+      "credential": "api-key",
+      "settingsPath": "/settings/general",
+      "linkedDoc": "docs/prowlarr.md",
+      "authMethod": "Forms login with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "General settings exposes the API-key field and the verifier confirms two passing Full Sync applications and their downstream indexers.",
+      "controlHints": [
+        "Username",
+        "Password",
+        "Log In",
+        "Settings",
+        "General",
+        "API Key"
+      ],
+      "sourceChecked": "Live 2026-09-21: returning authenticated fixed-field API-key capture passed 9/9 runs with 447 ms median; no snapshot or element ref was used.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "complete-onboarding",
+          "configure-applications",
+          "configure-indexer",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "browser-wiring": [
+          "prepare-identity-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "configure-applications",
+          "configure-indexer",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open-settings",
+          "fixed-key-field",
+          "capture-key",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open-settings",
+        "login-if-required",
+        "fixed-key-field",
+        "capture-key",
+        "verify"
+      ],
+      "captureHelper": "session browser-key capture-field RUN_ID prowlarr"
+    },
+    {
+      "id": "qbittorrent",
+      "credential": "username-password",
+      "settingsPath": "/#/settings/webui",
+      "linkedDoc": "docs/qbittorrent.md",
+      "authMethod": "Initial admin login with the temporary startup password; browser-wiring uses the rotated harness-managed password.",
+      "successSignal": "Authenticated WebUI loads and the version API plus both Arr download-client tests pass.",
+      "controlHints": [
+        "Username",
+        "Password",
+        "Login",
+        "Tools",
+        "Options",
+        "Web UI"
+      ],
+      "sourceChecked": "Live 2026-09-21: selected-identity API bootstrap, categories, Arr connections, and Homarr integration passed.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "login-temporary-password",
+          "rotate-password",
+          "verify"
+        ],
+        "browser-wiring": [
+          "prepare-identity-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "configure-paths",
+          "configure-categories",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open",
+        "snapshot",
+        "login-if-required",
+        "verify"
+      ],
+      "captureHelper": "session browser-password RUN_ID FRESH_REF"
+    },
+    {
+      "id": "jellyfin",
+      "credential": "username-password",
+      "settingsPath": "/web/index.html#!/dashboard/keys",
+      "linkedDoc": "docs/jellyfin.md",
+      "authMethod": "First-run local administrator creation with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "Authenticated home page loads with Movies and Shows libraries and Seerr can authenticate against the account.",
+      "controlHints": [
+        "Username",
+        "Password",
+        "Confirm Password",
+        "Next",
+        "Add Media Library",
+        "Sign In"
+      ],
+      "sourceChecked": "Live 2026-09-21: API setup, selected-admin authentication, Movies/Shows verification, and Homarr integration passed.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "complete-wizard",
+          "create-libraries",
+          "sign-in",
+          "verify"
+        ],
+        "browser-wiring": [
+          "open",
+          "snapshot",
+          "complete-wizard",
+          "create-libraries",
+          "sign-in",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open",
+          "snapshot",
+          "login-managed-password",
+          "verify-libraries"
+        ]
+      },
+      "returning": [
+        "open",
+        "snapshot",
+        "login-if-required",
+        "verify-libraries"
+      ],
+      "captureHelper": "session browser-password RUN_ID FRESH_REF"
+    },
+    {
+      "id": "seerr",
+      "credential": "api-key",
+      "settingsPath": "/settings",
+      "linkedDoc": "docs/seerr.md",
+      "authMethod": "Jellyfin account authentication with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "Discover loads after setup; settings show Jellyfin plus one default Sonarr and Radarr service, and the API-key field is available.",
+      "controlHints": [
+        "Use your Jellyfin account",
+        "Hostname or IP Address",
+        "Port",
+        "Username",
+        "Password",
+        "Sign In",
+        "Settings",
+        "API Key"
+      ],
+      "sourceChecked": "Live 2026-09-21: API setup, Jellyfin and Arr configuration, strict Seerr verification, and Homarr integration passed.",
+      "fresh": {
+        "browser": [
+          "open",
+          "snapshot",
+          "connect-jellyfin",
+          "configure-libraries",
+          "configure-arr",
+          "open-settings",
+          "private-key-ref",
+          "capture-key",
+          "verify"
+        ],
+        "browser-wiring": [
+          "prepare-identity-api",
+          "open",
+          "snapshot",
+          "connect-jellyfin",
+          "configure-libraries",
+          "configure-arr",
+          "open-settings",
+          "private-key-ref",
+          "capture-key",
+          "verify"
+        ],
+        "hybrid": [
+          "bootstrap-api",
+          "open-settings",
+          "private-key-ref",
+          "capture-key",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open-settings",
+        "login-if-required",
+        "private-key-ref",
+        "capture-key",
+        "verify"
+      ],
+      "captureHelper": "session browser-key capture RUN_ID seerr FRESH_REF"
+    },
+    {
+      "id": "homarr",
+      "credential": "one-time-api-key",
+      "settingsPath": "/manage/tools/api",
+      "linkedDoc": "docs/homarr.md",
+      "authMethod": "First-run local administrator creation with the user-selected ADMIN_USERNAME and the harness-managed password.",
+      "successSignal": "Generated dashboard contains six app tiles and live integration widgets; Authentication creates a one-time API key captured by the helper.",
+      "controlHints": [
+        "Start from scratch",
+        "Username",
+        "Password",
+        "Confirm Password",
+        "Connect",
+        "Test connection",
+        "Build",
+        "Authentication",
+        "Create API Key"
+      ],
+      "sourceChecked": "Live 2026-09-21: six integration tests, generated-board build, finalizer, and all five read-only MCP checks passed.",
+      "fresh": {
+        "browser": [
+          "open-init",
+          "snapshot",
+          "create-admin",
+          "connect-six-services",
+          "generate-dashboard",
+          "open-api-tools",
+          "select-authentication",
+          "snapshot",
+          "create-key",
+          "generated-key-code",
+          "capture-key",
+          "verify"
+        ],
+        "browser-wiring": [
+          "open-init",
+          "snapshot",
+          "create-admin",
+          "connect-six-services",
+          "generate-dashboard",
+          "open-api-tools",
+          "select-authentication",
+          "snapshot",
+          "create-key",
+          "generated-key-code",
+          "capture-key",
+          "verify"
+        ],
+        "hybrid": [
+          "open-init",
+          "snapshot",
+          "create-admin",
+          "connect-six-services",
+          "generate-dashboard",
+          "open-api-tools",
+          "select-authentication",
+          "snapshot",
+          "create-key",
+          "generated-key-code",
+          "capture-key",
+          "verify"
+        ]
+      },
+      "returning": [
+        "open-api-tools",
+        "login-if-required",
+        "select-authentication",
+        "snapshot",
+        "create-key",
+        "generated-key-code",
+        "capture-key",
+        "verify"
+      ],
+      "captureHelper": "session browser-key capture-code RUN_ID homarr"
+    }
+  ],
+  "rules": {
+    "selector": "Use semantic locators for known controls; obtain API-key FRESH_REF using session browser-key refs RUN_ID SERVICE. Ordinary snapshots can reveal populated values. Refresh refs after page changes.",
+    "secretCapture": "Use the named harness helper. Do not use clipboard, get value directly, console, raw network output, HAR, screenshots, or command arguments for secrets.",
+    "measurement": "Record only bounded counters and elapsed milliseconds. A recipe is documentation, not a measured result."
+  }
+}

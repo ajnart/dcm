@@ -9,6 +9,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync,
@@ -313,8 +314,105 @@ function secretRejection(relativePath, argsForPath, input) {
   assertNoSecret(result);
 }
 
+async function publicEntry() {
+  const project = join(temporaryRoot, "public-entry-project");
+  const installedSkills = join(project, ".agents", "skills");
+  const installedSkill = join(installedSkills, "self-host");
+  const planProject = join(project, "plan");
+  mkdirSync(installedSkills, { mode: 0o700, recursive: true });
+  mkdirSync(planProject, { mode: 0o700 });
+  cpSync(join(root, ".agents", "skills", "self-host"), installedSkill, { recursive: true });
+
+  const discovered = readdirSync(installedSkills, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(installedSkills, entry.name, "SKILL.md")))
+    .map((entry) => entry.name);
+  assert.deepEqual(discovered, ["self-host"]);
+  const workflows = readdirSync(join(installedSkill, "workflows"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(installedSkill, "workflows", entry.name, "GUIDE.md")));
+  assert.equal(workflows.length, 14);
+
+  const planner = join(installedSkill, "workflows", "selfhost", "scripts", "selfhost.ts");
+  const plan = spawnSync(process.execPath, [planner, "plan", "photos", "--project-root", planProject, "--json"], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.equal(plan.status, 0, `${plan.stdout}${plan.stderr}`);
+  const planned = JSON.parse(plan.stdout);
+  assert.equal(planned.status, "pass");
+  assert.equal(planned.data.goal.id, "photos");
+  assert.equal(planned.data.roles.some((role) => role.selected === "immich"), true);
+  assert.equal(planned.data.roles.some((role) => role.selected === "homarr"), true);
+
+  for (const unsafeRoot of [installedSkill, join(installedSkill, "workflows", "selfhost-media")]) {
+    const unsafePreferences = spawnSync(process.execPath, [
+      planner,
+      "preferences",
+      "set",
+      "project.name",
+      "unsafe",
+      "--project-root",
+      unsafeRoot,
+      "--json",
+    ], {
+      cwd: project,
+      encoding: "utf8",
+      env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.notEqual(unsafePreferences.status, 0);
+    assert.match(
+      `${unsafePreferences.stdout}${unsafePreferences.stderr}`,
+      /Project root cannot be the installed skill directory or one of its descendants/,
+    );
+    assert.equal(existsSync(join(unsafeRoot, ".selfhost")), false);
+  }
+  const stack = join(installedSkill, "workflows", "selfhost-setup", "scripts", "stack.ts");
+  const unsafeStack = spawnSync(process.execPath, [
+    stack,
+    "init",
+    "--project-root",
+    installedSkill,
+    "--profile",
+    "basic",
+    "--json",
+  ], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.notEqual(unsafeStack.status, 0);
+  assert.match(
+    `${unsafeStack.stdout}${unsafeStack.stderr}`,
+    /Project root cannot be the installed skill directory or one of its descendants/,
+  );
+  assert.equal(existsSync(join(installedSkill, ".selfhost")), false);
+
+  const goals = join(installedSkill, "workflows", "selfhost", "references", "catalog", "stacks", "goals.json");
+  renameSync(goals, `${goals}.missing`);
+  const missingDependency = spawnSync(process.execPath, [
+    planner,
+    "plan",
+    "photos",
+    "--project-root",
+    planProject,
+    "--json",
+  ], {
+    cwd: project,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "", LANG: "C", LC_ALL: "C" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  assert.notEqual(missingDependency.status, 0);
+  const missingOutput = `${missingDependency.stdout}${missingDependency.stderr}`;
+  assert.match(missingOutput, /Catalog|catalog|goals\.json|ENOENT/);
+  assert.equal(missingOutput.includes(sentinel), false);
+}
+
 async function selfhost() {
-  const cli = ".agents/skills/selfhost/scripts/selfhost.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts";
   const project = join(temporaryRoot, "router-project");
   mkdirSync(project, { mode: 0o700 });
   const passing = deterministic(() => runBun(cli, ["plan", "photos", "--project-root", project, "--json"]));
@@ -328,13 +426,13 @@ async function selfhost() {
   const secret = runBun(cli, ["preferences", "set", "password", sentinel, "--project-root", project, "--json"]);
   assertExit(secret, 3);
   assertNoSecret(secret);
-  const router = deterministic(() => runBun(".agents/skills/selfhost/scripts/check-router.ts"));
+  const router = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost/scripts/check-router.ts"));
   assertExit(router, 0);
   assert.match(router.stdout, /^selfhost router checks passed/);
 }
 
 async function backup() {
-  const cli = ".agents/skills/selfhost-backup/scripts/plan-backup.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-backup/scripts/plan-backup.ts";
   const input = backupInput();
   const passing = deterministic(() => runBun(cli, ["--json", JSON.stringify(input)]));
   assertExit(passing, 0);
@@ -348,7 +446,7 @@ async function backup() {
 }
 
 async function compose() {
-  const cli = ".agents/skills/selfhost-compose/scripts/compose-project.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-compose/scripts/compose-project.ts";
   const input = composeInput();
   const path = writeJson("compose-pass.json", input);
   const passing = deterministic(() => runBun(cli, ["validate", "--input", path]));
@@ -366,7 +464,7 @@ async function compose() {
 }
 
 async function homarr() {
-  const cli = ".agents/skills/selfhost-homarr/scripts/integration-plan.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-homarr/scripts/integration-plan.ts";
   const selection = { selectedApps: ["seerr", "immich"], media: true, connectedIntegrations: ["seerr", "sonarr", "radarr", "prowlarr", "qbittorrent", "jellyfin"], generatedDashboard: true };
   const path = writeJson("homarr-pass.json", selection);
   const passing = deterministic(() => runBun(cli, [path]));
@@ -376,12 +474,12 @@ async function homarr() {
   const invalid = deterministic(() => runBun(cli, [invalidPath]));
   assertExit(invalid, 1);
   assertNoSecret(invalid);
-  const audit = deterministic(() => runBun(".agents/skills/selfhost-homarr/scripts/check-audit.ts"));
+  const audit = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-homarr/scripts/check-audit.ts"));
   assertExit(audit, 0);
 }
 
 async function host() {
-  const cli = ".agents/skills/selfhost-host/scripts/inspect-host.sh";
+  const cli = ".agents/skills/self-host/workflows/selfhost-host/scripts/inspect-host.sh";
   const normalize = (result) => {
     const value = parseJson(result);
     delete value.observedAt;
@@ -402,7 +500,7 @@ async function host() {
 }
 
 async function ingress() {
-  const cli = ".agents/skills/selfhost-ingress/scripts/plan-ingress.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-ingress/scripts/plan-ingress.ts";
   const input = ingressInput();
   const passing = deterministic(() => runBun(cli, ["--json", JSON.stringify(input)]));
   assertExit(passing, 0);
@@ -416,13 +514,16 @@ async function ingress() {
 }
 
 async function media() {
-  const cli = ".agents/skills/selfhost-media/scripts/verify-bundle.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-media/scripts/verify-bundle.ts";
   const passing = deterministic(() => runBun(cli));
   assertExit(passing, 0);
   assert.match(passing.stdout, /^PASS bundle:/);
-  const skillContract = readFileSync(join(root, ".agents", "skills", "selfhost-media", "SKILL.md"), "utf8");
-  assert.match(skillContract, /During initial setup, also forward `session\s+handoff RUN_ID`/);
-  assert.match(skillContract, /During upkeep, do not run `handoff` unless the user explicitly asked/);
+  const skillContract = readFileSync(
+    join(root, ".agents", "skills", "self-host", "workflows", "selfhost-media", "GUIDE.md"),
+    "utf8",
+  );
+  assert.match(skillContract, /If the user requested saved credentials, run `session\s+handoff RUN_ID`/);
+  assert.match(skillContract, /Re-export on upkeep only when requested/);
   const harnessContract = readFileSync(join(root, "PROMPT.md"), "utf8");
   assert.match(harnessContract, /For initial setup, also run\s+the explicit `handoff` command/);
   assert.match(harnessContract, /During upkeep, run `handoff` only when the user explicitly requested/);
@@ -432,7 +533,7 @@ async function media() {
 }
 
 async function observe() {
-  const cli = ".agents/skills/selfhost-observe/scripts/plan-observability.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-observe/scripts/plan-observability.ts";
   const input = observeInput();
   const passing = deterministic(() => runBun(cli, ["--json", JSON.stringify(input)]));
   assertExit(passing, 0);
@@ -448,7 +549,7 @@ async function observe() {
 }
 
 async function operations() {
-  const cli = ".agents/skills/selfhost-operations/scripts/plan-operation.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-operations/scripts/plan-operation.ts";
   const input = operationInput();
   const path = writeJson("operations-pass.json", input);
   const passing = deterministic(() => runBun(cli, ["plan", "--input", path]));
@@ -466,14 +567,14 @@ async function operations() {
 }
 
 async function research() {
-  const composeResult = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/extract-compose.ts", [], "services:\n  web:\n    image: docker.io/library/nginx:1.27.4\n"));
+  const composeResult = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/extract-compose.ts", [], "services:\n  web:\n    image: docker.io/library/nginx:1.27.4\n"));
   assertExit(composeResult, 0);
   assert.equal(parseJson(composeResult).status, "pass");
-  const noServices = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/extract-compose.ts", [], "name: demo\n"));
+  const noServices = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/extract-compose.ts", [], "name: demo\n"));
   assertExit(noServices, 1);
   assert.equal(parseJson(noServices).status, "blocked");
   const lifecycle = { id: "demo", lifecycle: { status: "active", checkedAt: "2026-09-06", sourceUrl: "https://example.com/docs" } };
-  const lifecycleResult = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/validate-lifecycle.ts", [], JSON.stringify(lifecycle)));
+  const lifecycleResult = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/validate-lifecycle.ts", [], JSON.stringify(lifecycle)));
   assertExit(lifecycleResult, 0);
   const link = {
     checkedAt: observedAt,
@@ -484,25 +585,26 @@ async function research() {
     wait: { completed: true, kind: "network-idle" },
     evidence: { titleCaptured: true, title: "Documentation", contentMarkerCaptured: true, soft404Checked: true },
   };
-  const linkResult = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/validate-link-result.ts", [], JSON.stringify(link)));
+  const linkResult = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/validate-link-result.ts", [], JSON.stringify(link)));
   assertExit(linkResult, 0);
   assert.equal(parseJson(linkResult).status, "pass");
   const secretLink = structuredClone(link);
   secretLink.sourceUrl = `https://example.com/docs?token=${sentinel}`;
-  const redacted = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/validate-link-result.ts", [], JSON.stringify(secretLink)));
+  const redacted = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/validate-link-result.ts", [], JSON.stringify(secretLink)));
   assertNoSecret(redacted);
-  const redactResult = deterministic(() => runBun(".agents/skills/selfhost-research/scripts/redact.ts", [], "ordinary public text\n"));
+  const redactResult = deterministic(() => runBun(".agents/skills/self-host/workflows/selfhost-research/scripts/redact.ts", [], "ordinary public text\n"));
   assertExit(redactResult, 0);
 }
 
 async function setup() {
-  const cli = ".agents/skills/selfhost-setup/scripts/stack.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts";
   const profiles = deterministic(() => runBun(cli, ["profiles", "--json"]));
   assertExit(profiles, 0);
   const profileDocument = parseJson(profiles);
   assert.deepEqual(profileDocument.profiles.map((profile) => profile.id), [
     "basic",
     "backup",
+    "full",
     "ingress",
     "media",
     "observe",
@@ -525,7 +627,9 @@ async function setup() {
     assertExit(closure, 0);
     const closureOutput = parseJson(closure);
     const expectedProfiles = ["basic"];
-    if (profile.id !== "basic") {
+    if (profile.id === "full") {
+      expectedProfiles.push("ingress", "media", "full");
+    } else if (profile.id !== "basic") {
       expectedProfiles.push(profile.id);
     }
     assert.deepEqual(closureOutput.resolvedProfiles, expectedProfiles);
@@ -579,15 +683,21 @@ async function setup() {
 
   const prerequisiteProject = join(temporaryRoot, "installed-prerequisites");
   const installedRoot = join(prerequisiteProject, ".agents", "skills");
-  mkdirSync(installedRoot, { mode: 0o700, recursive: true });
+  const publicSkillRoot = join(installedRoot, "self-host");
+  const workflowsRoot = join(publicSkillRoot, "workflows");
+  mkdirSync(workflowsRoot, { mode: 0o700, recursive: true });
   cpSync(
-    join(root, ".agents", "skills", "selfhost-setup"),
-    join(installedRoot, "selfhost-setup"),
+    join(root, ".agents", "skills", "self-host", "SKILL.md"),
+    join(publicSkillRoot, "SKILL.md"),
+  );
+  cpSync(
+    join(root, ".agents", "skills", "self-host", "workflows", "selfhost-setup"),
+    join(workflowsRoot, "selfhost-setup"),
     { recursive: true },
   );
   const fakeBin = join(temporaryRoot, "installed-prerequisites", "bin");
   mkdirSync(fakeBin, { mode: 0o700 });
-  const installedCli = join(installedRoot, "selfhost-setup", "scripts", "stack.ts");
+  const installedCli = join(workflowsRoot, "selfhost-setup", "scripts", "stack.ts");
   const missing = spawnSync(process.execPath, [
     installedCli,
     "prerequisites",
@@ -618,6 +728,8 @@ async function setup() {
     "agent-browser-browser",
   ]);
   assert.equal(missingOutput.installCommands[0].command.startsWith("bunx --bun skills@latest add ajnart/selfhost-skills"), true);
+  assert.match(missingOutput.installCommands[0].command, /--skill self-host/);
+  assert.doesNotMatch(missingOutput.installCommands[0].command, /--skill selfhost(?:\s|-)/);
   assert.equal(missingOutput.installCommands[1].command.startsWith("bunx --bun skills@latest add vercel-labs/agent-browser"), true);
   assert.equal(missingOutput.installCommands[2].command, "bun add --global agent-browser");
   assert.equal(missingOutput.installCommands[3].command, "agent-browser install");
@@ -626,11 +738,12 @@ async function setup() {
   assert.equal(missingOutput.installCommands[2].workingDirectory, null);
 
   for (const skill of prerequisiteOutput.resolvedSkills) {
-    const skillRoot = join(installedRoot, skill);
-    mkdirSync(skillRoot, { mode: 0o700, recursive: true });
-    if (skill !== "selfhost-setup") {
-      writeFileSync(join(skillRoot, "SKILL.md"), `---\nname: ${skill}\ndescription: fixture\n---\n`, { mode: 0o600 });
+    if (skill === "self-host" || skill === "selfhost-setup") {
+      continue;
     }
+    const workflowRoot = join(workflowsRoot, skill);
+    mkdirSync(workflowRoot, { mode: 0o700, recursive: true });
+    writeFileSync(join(workflowRoot, "GUIDE.md"), `---\nname: ${skill}\ndescription: fixture\n---\n`, { mode: 0o600 });
   }
   const browserSkillRoot = join(installedRoot, "agent-browser");
   mkdirSync(browserSkillRoot, { mode: 0o700 });
@@ -831,7 +944,7 @@ async function setup() {
 }
 
 async function upkeep() {
-  const cli = ".agents/skills/selfhost-setup/scripts/stack.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts";
   const project = join(temporaryRoot, "upkeep-project");
   mkdirSync(project, { mode: 0o700 });
   const initialized = runBun(cli, [
@@ -893,7 +1006,7 @@ async function upkeep() {
   assert.equal(parseJson(pendingResume).adapterConnectionsValid, false);
   assert.equal(parseJson(pendingResume).adapterConnectionsStatus, "pending-before-apply");
 
-  const mediaRuntime = ".agents/skills/selfhost-media/scripts/media-runtime.ts";
+  const mediaRuntime = ".agents/skills/self-host/workflows/selfhost-media/scripts/media-runtime.ts";
   assertExit(runBun(mediaRuntime, ["init", "--project", project]), 0);
   assertExit(runBun(mediaRuntime, [
     "exec",
@@ -903,6 +1016,7 @@ async function upkeep() {
     "session",
     "create",
     "upkeep_demo",
+    "upkeep-user",
   ]), 0);
   assertExit(runBun(mediaRuntime, [
     "exec",
@@ -1041,7 +1155,7 @@ async function upkeep() {
 }
 
 async function verify() {
-  const cli = ".agents/skills/selfhost-verify/scripts/verify-evidence.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-verify/scripts/verify-evidence.ts";
   const input = evidenceInput();
   const passing = deterministic(() => runBun(cli, ["--json", JSON.stringify(input)]));
   assertExit(passing, 0);
@@ -1055,7 +1169,7 @@ async function verify() {
 }
 
 async function vpn() {
-  const cli = ".agents/skills/selfhost-vpn/scripts/plan-vpn.ts";
+  const cli = ".agents/skills/self-host/workflows/selfhost-vpn/scripts/plan-vpn.ts";
   const input = vpnInput();
   const passing = deterministic(() => runBun(cli, ["--json", JSON.stringify(input)]));
   assertExit(passing, 0);
@@ -1069,6 +1183,7 @@ async function vpn() {
 }
 
 const runners = new Map([
+  ["self-host", publicEntry],
   ["selfhost", selfhost],
   ["selfhost-backup", backup],
   ["selfhost-compose", compose],

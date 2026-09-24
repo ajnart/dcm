@@ -1,6 +1,0 @@
-interface:
-  display_name: "4 · Base · Inspect Host"
-  short_description: "Inspect host, storage, and Docker safely"
-  default_prompt: "Use $selfhost-host to inspect this host read-only, report bounded redacted facts, and recommend portable non-secret paths and identities."
-policy:
-  allow_implicit_invocation: true

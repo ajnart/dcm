@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 4,
+  "packVersion": "1.0.0",
+  "skills": [
+    {
+      "id": "self-host",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": ["selfhost", "selfhost-setup", "selfhost-upkeep"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-setup", "selfhost-upkeep"]}
+    },
+    {
+      "id": "selfhost",
+      "kind": "router",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "implicit",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-ingress",
+        "selfhost-media",
+        "selfhost-observe",
+        "selfhost-operations",
+        "selfhost-research",
+        "selfhost-verify",
+        "selfhost-vpn"
+      ],
+      "install": {"group": "base", "requires": []}
+    },
+    {
+      "id": "selfhost-backup",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [],
+      "install": {"group": "extension", "requires": ["selfhost"]}
+    },
+    {
+      "id": "selfhost-compose",
+      "kind": "capability",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-host", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-host", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-homarr",
+      "kind": "adapter",
+      "scope": "application",
+      "risk": "approval-gated-write",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-ingress", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-host",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [],
+      "install": {"group": "base", "requires": ["selfhost"]}
+    },
+    {
+      "id": "selfhost-ingress",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-host", "selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-host", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-media",
+      "kind": "adapter",
+      "scope": "stack",
+      "risk": "approval-gated-write",
+      "activation": "delegated",
+      "delegatesTo": [
+        "selfhost-compose",
+        "selfhost-homarr",
+        "selfhost-host",
+        "selfhost-verify"
+      ],
+      "install": {
+        "group": "pack",
+        "requires": [
+          "selfhost-compose",
+          "selfhost-homarr",
+          "selfhost-host",
+          "selfhost-setup",
+          "selfhost-upkeep",
+          "selfhost-verify"
+        ]
+      }
+    },
+    {
+      "id": "selfhost-observe",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-operations",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-backup", "selfhost-compose", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-compose", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-research",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [],
+      "install": {"group": "extension", "requires": ["selfhost"]}
+    },
+    {
+      "id": "selfhost-setup",
+      "kind": "workflow",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": ["selfhost", "selfhost-compose", "selfhost-host", "selfhost-media", "selfhost-verify"],
+      "install": {"group": "base", "requires": ["selfhost", "selfhost-compose", "selfhost-host", "selfhost-verify"]}
+    },
+    {
+      "id": "selfhost-upkeep",
+      "kind": "workflow",
+      "scope": null,
+      "risk": "approval-gated-write",
+      "activation": "explicit",
+      "delegatesTo": [
+        "selfhost-backup",
+        "selfhost-compose",
+        "selfhost-host",
+        "selfhost-operations",
+        "selfhost-setup",
+        "selfhost-verify"
+      ],
+      "install": {
+        "group": "base",
+        "requires": ["selfhost-compose", "selfhost-host", "selfhost-operations", "selfhost-setup", "selfhost-verify"]
+      }
+    },
+    {
+      "id": "selfhost-verify",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": [],
+      "install": {"group": "base", "requires": ["selfhost"]}
+    },
+    {
+      "id": "selfhost-vpn",
+      "kind": "capability",
+      "scope": null,
+      "risk": "read-only",
+      "activation": "delegated",
+      "delegatesTo": ["selfhost-verify"],
+      "install": {"group": "extension", "requires": ["selfhost", "selfhost-verify"]}
+    }
+  ]
+}

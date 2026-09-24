@@ -8,6 +8,8 @@ import {
   deriveSessionPassword,
   loadSession,
   REPO_ROOT,
+  requireSessionPasswordScheme,
+  validateBrowserPageUrl,
 } from "./lib/session-context.ts";
 
 const MAX_SELECTORS = 4;
@@ -81,6 +83,8 @@ function runBrowserChild(
     let launched = false;
     let settled = false;
     let stdinFailed = false;
+    let stdout = "";
+    let stdoutBytes = 0;
 
     function finish(result) {
       if (settled) {
@@ -99,14 +103,22 @@ function runBrowserChild(
         && closeResult.status === 0
         && (closeResult.signal === null || closeResult.signal === undefined)
       ) {
-        finish({ kind: "success" });
+        finish({ kind: "success", stdout });
         return;
       }
       finish({ kind: "failed" });
     }
 
-    if (child.stdout && typeof child.stdout.resume === "function") {
-      child.stdout.resume();
+    if (child.stdout && typeof child.stdout.on === "function") {
+      child.stdout.on("data", (chunk) => {
+        stdoutBytes += chunk.byteLength;
+        if (stdoutBytes > 2_048) {
+          child.kill?.();
+          finish({ kind: "failed" });
+          return;
+        }
+        stdout += chunk.toString("utf8");
+      });
     }
     if (child.stderr && typeof child.stderr.resume === "function") {
       child.stderr.resume();
@@ -164,6 +176,76 @@ function validatedSelectors(selectors) {
   return [...selectors];
 }
 
+function structuredBrowserData(raw, session) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("browser password field inspection failed");
+  }
+  if (
+    typeof parsed !== "object"
+    || parsed === null
+    || parsed.success !== true
+    || typeof parsed.data !== "object"
+    || parsed.data === null
+    || parsed.error !== null
+  ) {
+    throw new Error("browser password field inspection failed");
+  }
+  if (typeof parsed.data.origin === "string") {
+    validateBrowserPageUrl(session, parsed.data.origin);
+  }
+  return parsed.data;
+}
+
+async function validatePasswordFields(session, selectors, invoke) {
+  const browserSession = session.manifest.AGENT_BROWSER_SESSION;
+  const inspected = [];
+  for (const selector of selectors) {
+    const typeData = structuredBrowserData(await invoke([
+      "--session", browserSession, "get", "attr", selector, "type", "--json"
+    ]), session);
+    const disabledData = structuredBrowserData(await invoke([
+      "--session", browserSession, "get", "attr", selector, "disabled", "--json"
+    ]), session);
+    const readOnlyData = structuredBrowserData(await invoke([
+      "--session", browserSession, "get", "attr", selector, "readonly", "--json"
+    ]), session);
+    const enabledData = structuredBrowserData(await invoke([
+      "--session", browserSession, "is", "enabled", selector, "--json"
+    ]), session);
+    if (
+      !Object.hasOwn(typeData, "value")
+      || !Object.hasOwn(disabledData, "value")
+      || !Object.hasOwn(readOnlyData, "value")
+      || typeof enabledData.enabled !== "boolean"
+      || (typeData.value !== null && typeof typeData.value !== "string")
+      || (disabledData.value !== null && typeof disabledData.value !== "string")
+      || (readOnlyData.value !== null && typeof readOnlyData.value !== "string")
+    ) {
+      throw new Error("browser password field inspection failed");
+    }
+    inspected.push({
+      disabled: disabledData.value,
+      enabled: enabledData.enabled,
+      readOnly: readOnlyData.value,
+      selector,
+      type: typeData.value,
+    });
+  }
+  for (const field of inspected) {
+    if (
+      field.type !== "password"
+      || field.disabled !== null
+      || field.readOnly !== null
+      || !field.enabled
+    ) {
+      throw new Error("browser password field is invalid");
+    }
+  }
+}
+
 export async function fillBrowserPassword(session, selectors, options = {}) {
   const safeSelectors = validatedSelectors(selectors);
   const expectedBrowserSession = `auto-stack-${session?.runId || ""}`;
@@ -179,13 +261,12 @@ export async function fillBrowserPassword(session, selectors, options = {}) {
   ) {
     throw new Error("browser session is invalid");
   }
+  requireSessionPasswordScheme(session);
 
   let spawnImplementation = spawn;
   if (typeof options.spawnImplementation === "function") {
     spawnImplementation = options.spawnImplementation;
   }
-  const password = deriveSessionPassword(session);
-  const commands = safeSelectors.map((selector) => ["fill", selector, password]);
   const browserArguments = [
     "--session",
     session.manifest.AGENT_BROWSER_SESSION,
@@ -200,26 +281,43 @@ export async function fillBrowserPassword(session, selectors, options = {}) {
     timeout: 30_000,
     windowsHide: true,
   };
-  const input = `${JSON.stringify(commands)}\n`;
-  let result = await runBrowserChild(
-    spawnImplementation,
-    "agent-browser",
-    browserArguments,
-    spawnOptions,
-    input,
-  );
-  if (executableWasNotFound(result)) {
-    result = await runBrowserChild(
+  async function invoke(args, stdin = "") {
+    let result = await runBrowserChild(
       spawnImplementation,
-      "bunx",
-      ["--bun", "agent-browser", ...browserArguments],
+      "agent-browser",
+      args,
       spawnOptions,
-      input,
+      stdin,
     );
+    if (executableWasNotFound(result)) {
+      result = await runBrowserChild(
+        spawnImplementation,
+        "bunx",
+        ["--bun", "agent-browser", ...args],
+        spawnOptions,
+        stdin,
+      );
+    }
+    if (result.kind !== "success") {
+      throw new Error("browser password fill failed");
+    }
+    return result.stdout;
   }
-  if (result.kind !== "success") {
-    throw new Error("browser password fill failed");
+  let currentUrl = options.pageUrl;
+  if (typeof currentUrl !== "string") {
+    currentUrl = await invoke([
+      "--session",
+      session.manifest.AGENT_BROWSER_SESSION,
+      "get",
+      "url",
+    ]);
   }
+  validateBrowserPageUrl(session, currentUrl);
+  await validatePasswordFields(session, safeSelectors, invoke);
+  const password = deriveSessionPassword(session);
+  const commands = safeSelectors.map((selector) => ["fill", selector, password]);
+  const input = `${JSON.stringify(commands)}\n`;
+  await invoke(browserArguments, input);
 }
 
 async function main() {

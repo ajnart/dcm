@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-21",
+  "id": "navidrome",
+  "document": "navidrome.md",
+  "support": "guided",
+  "composeOwner": "selfhost-compose",
+  "imageRepository": "deluan/navidrome",
+  "imagePolicy": "resolve-and-record-immutable-digest-before-apply",
+  "containerPort": 4533,
+  "storage": [
+    {
+      "containerPath": "/data",
+      "access": "read-write",
+      "purpose": "database-and-cache"
+    },
+    {
+      "containerPath": "/music",
+      "access": "read-only",
+      "purpose": "owned-music"
+    }
+  ],
+  "firstAdmin": {
+    "mode": "browser",
+    "path": "/",
+    "credential": "username-password"
+  },
+  "homarr": {
+    "internalUrl": "http://navidrome:4533",
+    "credential": "username-password",
+    "widget": "audio-stats"
+  },
+  "acceptance": [
+    "persistent-data-and-readable-music",
+    "administrator-login",
+    "completed-library-scan",
+    "homarr-integration-test",
+    "linked-tile-and-audio-stats"
+  ]
+}

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "jellyfin", "name": "Jellyfin", "aliases": ["personal streaming", "media server"], "categories": ["media"], "roles": ["video-playback", "media-library"],
+    "upstream": {"url": "https://jellyfin.org/", "repository": "https://github.com/jellyfin/jellyfin", "docs": "https://jellyfin.org/docs/general/installation/container/"}, "image": {"reference": "jellyfin/jellyfin", "source": "upstream", "status": "known"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current upstream container guidance is available."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Jellyfin"},
+    "dependencies": ["capability:media-storage"], "alternatives": ["plex", "emby"], "security": ["Keep administration private and approve any GPU device access."], "pitfalls": ["Hardware acceleration depends on matching host drivers and devices."], "sources": ["https://jellyfin.org/docs/general/installation/container/"]
+  },
+  {
+    "id": "plex", "name": "Plex", "aliases": ["plex media server"], "categories": ["media"], "roles": ["video-playback", "media-library"],
+    "upstream": {"url": "https://www.plex.tv/", "repository": null, "docs": "https://support.plex.tv/articles/200288586-installation/"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Commercial service and licensing boundaries require review."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Plex"},
+    "dependencies": ["capability:media-storage"], "alternatives": ["jellyfin", "emby"], "security": ["Review account linkage and remote-access exposure before enabling it."], "pitfalls": ["Features and account requirements vary by subscription and release."], "sources": ["https://support.plex.tv/articles/200288586-installation/"]
+  },
+  {
+    "id": "emby", "name": "Emby", "aliases": ["emby server"], "categories": ["media"], "roles": ["video-playback", "media-library"],
+    "upstream": {"url": "https://emby.media/", "repository": null, "docs": "https://emby.media/support/articles/Installation.html"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Vendor documentation remains the deployment authority."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Emby"},
+    "dependencies": ["capability:media-storage"], "alternatives": ["jellyfin", "plex"], "security": ["Keep administration private and review remote access."], "pitfalls": ["License and hardware-transcoding features must be checked before selection."], "sources": ["https://emby.media/support/articles/Installation.html"]
+  },
+  {
+    "id": "seerr", "name": "Seerr", "aliases": ["media requests", "request movies", "request tv"], "categories": ["requests", "media"], "roles": ["media-request"],
+    "upstream": {"url": "https://seerr.dev/", "repository": "https://github.com/seerr-team/seerr", "docs": "https://docs.seerr.dev/getting-started/docker/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Seerr supersedes Jellyseerr and Overseerr for new installs."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Seerr"},
+    "dependencies": ["capability:media-server", "sonarr", "radarr"], "alternatives": ["jellyseerr"], "security": ["Keep API credentials in secret storage and scope public access."], "pitfalls": ["A container cannot reach a sibling through localhost; use service DNS."], "sources": ["https://docs.seerr.dev/getting-started/docker/", "https://docs.seerr.dev/blog/seerr-release/"]
+  },
+  {
+    "id": "sonarr", "name": "Sonarr", "aliases": ["tv automation", "tv manager"], "categories": ["requests", "media"], "roles": ["tv-automation"],
+    "upstream": {"url": "https://sonarr.tv/", "repository": "https://github.com/Sonarr/Sonarr", "docs": "https://wiki.servarr.com/sonarr"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Sonarr"},
+    "dependencies": ["prowlarr", "qbittorrent", "capability:shared-download-path"], "alternatives": ["radarr"], "security": ["Treat API keys as secrets and keep the management UI private."], "pitfalls": ["Mismatched downloader and library paths break imports and hardlinks."], "sources": ["https://wiki.servarr.com/sonarr"]
+  },
+  {
+    "id": "radarr", "name": "Radarr", "aliases": ["movie automation", "movie manager"], "categories": ["requests", "media"], "roles": ["movie-automation"],
+    "upstream": {"url": "https://radarr.video/", "repository": "https://github.com/Radarr/Radarr", "docs": "https://radarr.video/docs/"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Servarr application; image packaging is a separate choice."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Radarr"},
+    "dependencies": ["prowlarr", "qbittorrent", "capability:shared-download-path"], "alternatives": ["sonarr"], "security": ["Treat API keys as secrets and keep the management UI private."], "pitfalls": ["Mismatched downloader and library paths break imports and hardlinks."], "sources": ["https://radarr.video/docs/download_clients"]
+  },
+  {
+    "id": "prowlarr", "name": "Prowlarr", "aliases": ["indexer manager", "indexer sync"], "categories": ["requests", "downloads"], "roles": ["indexer-management"],
+    "upstream": {"url": "https://prowlarr.com/", "repository": "https://github.com/Prowlarr/Prowlarr", "docs": "https://wiki.servarr.com/prowlarr"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active indexer-management application."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Prowlarr"},
+    "dependencies": ["capability:indexer-access"], "alternatives": ["sonarr", "radarr"], "security": ["Protect indexer credentials and API keys as secrets."], "pitfalls": ["Indexer availability and acceptable use are external constraints."], "sources": ["https://wiki.servarr.com/prowlarr"]
+  },
+  {
+    "id": "bazarr", "name": "Bazarr", "aliases": ["subtitle automation", "subtitle manager"], "categories": ["requests", "media"], "roles": ["subtitle-automation"],
+    "upstream": {"url": "https://www.bazarr.media/", "repository": "https://github.com/morpheus65535/bazarr", "docs": "https://wiki.bazarr.media/"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Optional subtitle automation for Arr-managed media."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Bazarr"},
+    "dependencies": ["sonarr", "radarr", "capability:media-storage"], "alternatives": ["jellyfin"], "security": ["Store provider credentials outside catalog and preferences."], "pitfalls": ["Permissions and path mapping must match the Arr applications."], "sources": ["https://wiki.bazarr.media/"]
+  },
+  {
+    "id": "qbittorrent", "name": "qBittorrent", "aliases": ["torrent client", "torrent downloader"], "categories": ["downloads"], "roles": ["torrent-download"],
+    "upstream": {"url": "https://www.qbittorrent.org/", "repository": "https://github.com/qbittorrent/qBittorrent", "docs": "https://github.com/qbittorrent/qBittorrent/wiki"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active upstream; container user and path conventions depend on packager."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "qBittorrent"},
+    "dependencies": ["capability:download-storage"], "alternatives": ["sabnzbd"], "security": ["Keep the WebUI private and separately approve downloader VPN routing."], "pitfalls": ["VPN status alone does not prove a working kill switch."], "sources": ["https://github.com/qbittorrent/qBittorrent/wiki"]
+  },
+  {
+    "id": "sabnzbd", "name": "SABnzbd", "aliases": ["usenet downloader", "nzb downloader"], "categories": ["downloads"], "roles": ["usenet-download"],
+    "upstream": {"url": "https://sabnzbd.org/", "repository": "https://github.com/sabnzbd/sabnzbd", "docs": "https://sabnzbd.org/wiki/"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active Usenet downloader with external provider dependency."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "SABnzbd"},
+    "dependencies": ["capability:download-storage", "capability:usenet-provider"], "alternatives": ["qbittorrent"], "security": ["Treat provider credentials and server configuration as secrets."], "pitfalls": ["Provider access and retention are external operational dependencies."], "sources": ["https://sabnzbd.org/wiki/"]
+  },
+  {
+    "id": "gluetun", "name": "Gluetun", "aliases": ["torrent vpn", "downloader vpn"], "categories": ["downloads", "remote-access"], "roles": ["downloader-vpn-gateway"],
+    "upstream": {"url": "https://github.com/qdm12/gluetun", "repository": "https://github.com/qdm12/gluetun", "docs": "https://github.com/qdm12/gluetun-wiki"}, "image": {"reference": "qmcgaw/gluetun", "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "VPN gateway pattern requires provider-specific validation."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Gluetun"},
+    "dependencies": ["capability:vpn-provider", "capability:vpn-protocol"], "alternatives": ["wireguard"], "security": ["Keep credentials as secret references and require NET_ADMIN or TUN approval."], "pitfalls": ["A green tunnel without a failure-mode egress test is insufficient evidence."], "sources": ["https://github.com/qdm12/gluetun", "https://github.com/qdm12/gluetun-wiki/blob/main/faq/firewall.md"]
+  },
+  {
+    "id": "immich", "name": "Immich", "aliases": ["google photos replacement", "phone photo backup"], "categories": ["photos"], "roles": ["photo-library", "mobile-photo-backup"],
+    "upstream": {"url": "https://immich.app/", "repository": "https://github.com/immich-app/immich", "docs": "https://docs.immich.app/install/docker-compose/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current Compose release and requirements must be used together."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Immich"},
+    "dependencies": ["postgresql", "valkey", "capability:photo-storage"], "alternatives": ["photoprism"], "security": ["Keep originals private and protect mobile/session credentials."], "pitfalls": ["PostgreSQL belongs on suitable local storage; back up database and originals."], "sources": ["https://docs.immich.app/install/requirements/", "https://docs.immich.app/install/docker-compose/"]
+  },
+  {
+    "id": "photoprism", "name": "PhotoPrism", "aliases": ["photo gallery", "photo organizer"], "categories": ["photos"], "roles": ["photo-library"],
+    "upstream": {"url": "https://www.photoprism.app/", "repository": "https://github.com/photoprism/photoprism", "docs": "https://docs.photoprism.app/getting-started/docker-compose/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current editions and feature boundaries need selection review."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:photo-storage"], "alternatives": ["immich"], "security": ["Keep originals private and publish only through approved ingress."], "pitfalls": ["Indexing cost and database choice depend on library size."], "sources": ["https://docs.photoprism.app/getting-started/docker-compose/"]
+  },
+  {
+    "id": "paperless-ngx", "name": "Paperless-ngx", "aliases": ["paperless office", "document archive", "ocr archive"], "categories": ["documents"], "roles": ["document-archive", "ocr"],
+    "upstream": {"url": "https://docs.paperless-ngx.com/", "repository": "https://github.com/paperless-ngx/paperless-ngx", "docs": "https://docs.paperless-ngx.com/setup/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Current Compose guidance covers database and optional OCR services."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Paperless-ngx"},
+    "dependencies": ["postgresql", "valkey", "capability:document-storage"], "alternatives": ["mayan-edms", "stirling-pdf"], "security": ["Treat document contents as sensitive and control ingest paths."], "pitfalls": ["Network filesystems may require polling; database and archive restore together."], "sources": ["https://docs.paperless-ngx.com/setup/", "https://docs.paperless-ngx.com/configuration/"]
+  },
+  {
+    "id": "stirling-pdf", "name": "Stirling PDF", "aliases": ["pdf tools", "pdf editor"], "categories": ["documents"], "roles": ["pdf-toolbox"],
+    "upstream": {"url": "https://www.stirlingpdf.com/", "repository": "https://github.com/Stirling-Tools/Stirling-PDF", "docs": "https://docs.stirlingpdf.com/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Feature and authentication modes should be checked before exposure."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:document-storage"], "alternatives": ["paperless-ngx", "mayan-edms"], "security": ["Process sensitive PDFs only on a trusted private route."], "pitfalls": ["A PDF toolbox is not a durable document archive or backup."], "sources": ["https://docs.stirlingpdf.com/"]
+  },
+  {
+    "id": "mayan-edms", "name": "Mayan EDMS", "aliases": ["enterprise document management"], "categories": ["documents"], "roles": ["document-archive", "workflow"],
+    "upstream": {"url": "https://www.mayan-edms.com/", "repository": "https://gitlab.com/mayan-edms/mayan-edms", "docs": "https://docs.mayan-edms.com/"}, "image": {"reference": null, "source": "upstream", "status": "unknown"},
+    "lifecycle": {"status": "verify", "checkedAt": "2026-08-28", "note": "Candidate requires a fresh deployment and edition review."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:document-storage"], "alternatives": ["paperless-ngx", "stirling-pdf"], "security": ["Define document permissions and recovery before ingestion."], "pitfalls": ["Workflow complexity is substantially higher than a PDF toolbox."], "sources": ["https://docs.mayan-edms.com/"]
+  },
+  {
+    "id": "nextcloud", "name": "Nextcloud", "aliases": ["dropbox replacement", "personal cloud", "google drive replacement"], "categories": ["files", "productivity"], "roles": ["cloud-files", "collaboration"],
+    "upstream": {"url": "https://nextcloud.com/", "repository": "https://github.com/nextcloud/server", "docs": "https://github.com/nextcloud/docker"}, "image": {"reference": null, "source": "community", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Official image and vendor-supported AIO are distinct deployment paths."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Nextcloud"},
+    "dependencies": ["postgresql", "valkey", "capability:file-storage"], "alternatives": ["syncthing", "seafile"], "security": ["Require TLS, protected administration, and coordinated database/data backup."], "pitfalls": ["Cloud collaboration is heavier than device-to-device folder sync."], "sources": ["https://github.com/nextcloud/docker", "https://github.com/nextcloud/all-in-one"]
+  },
+  {
+    "id": "syncthing", "name": "Syncthing", "aliases": ["device file sync", "folder sync"], "categories": ["files"], "roles": ["device-sync"],
+    "upstream": {"url": "https://syncthing.net/", "repository": "https://github.com/syncthing/syncthing", "docs": "https://docs.syncthing.net/"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Active peer-to-peer synchronization project."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:file-storage"], "alternatives": ["nextcloud", "seafile"], "security": ["Protect device credentials and review share scope per peer."], "pitfalls": ["Synchronization propagates deletions and is not a backup."], "sources": ["https://docs.syncthing.net/users/faq.html"]
+  },
+  {
+    "id": "seafile", "name": "Seafile", "aliases": ["file cloud", "file synchronization server"], "categories": ["files"], "roles": ["cloud-files", "device-sync"],
+    "upstream": {"url": "https://www.seafile.com/", "repository": "https://github.com/haiwen/seafile", "docs": "https://manual.seafile.com/docker/deploy_seafile_with_docker/"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Community and professional edition boundaries require review."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:file-storage"], "alternatives": ["nextcloud", "syncthing"], "security": ["Require TLS and coordinated metadata/data recovery."], "pitfalls": ["Edition, database, and storage topology must be selected together."], "sources": ["https://manual.seafile.com/docker/deploy_seafile_with_docker/"]
+  },
+  {
+    "id": "vaultwarden", "name": "Vaultwarden", "aliases": ["password manager", "bitwarden compatible"], "categories": ["passwords"], "roles": ["password-vault"],
+    "upstream": {"url": "https://github.com/dani-garcia/vaultwarden", "repository": "https://github.com/dani-garcia/vaultwarden", "docs": "https://github.com/dani-garcia/vaultwarden/blob/main/docker/README.md"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Unofficial Bitwarden-compatible server, not the vendor server."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:tls-ingress", "capability:vault-recovery"], "alternatives": ["passbolt"], "security": ["Require TLS, private administration, protected recovery material, and tested export."], "pitfalls": ["Compatibility and recovery are higher consequence than an ordinary web app."], "sources": ["https://github.com/dani-garcia/vaultwarden/blob/main/docker/README.md"]
+  },
+  {
+    "id": "passbolt", "name": "Passbolt", "aliases": ["team password manager"], "categories": ["passwords"], "roles": ["password-vault", "team-secrets"],
+    "upstream": {"url": "https://www.passbolt.com/", "repository": "https://github.com/passbolt/passbolt_api", "docs": "https://www.passbolt.com/docs/hosting/install/ce/docker/"}, "image": {"reference": null, "source": "vendor", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Community and paid feature boundaries require review."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:tls-ingress", "capability:smtp"], "alternatives": ["vaultwarden"], "security": ["Protect recovery keys, mail flow, TLS, and administrative access."], "pitfalls": ["Email and client recovery paths are part of availability."], "sources": ["https://www.passbolt.com/docs/hosting/install/ce/docker/"]
+  },
+  {
+    "id": "home-assistant", "name": "Home Assistant", "aliases": ["smart home", "home automation hub"], "categories": ["home-automation"], "roles": ["automation-hub"],
+    "upstream": {"url": "https://www.home-assistant.io/", "repository": "https://github.com/home-assistant/core", "docs": "https://www.home-assistant.io/installation/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "Home Assistant OS and Container are supported paths; legacy Core/Supervised guidance is retired."}, "support": {"automation": "guided", "tier": "T0", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Home Assistant"},
+    "dependencies": ["capability:lan-discovery", "capability:device-access", "capability:voice-hardware", "capability:voice-pipeline"], "alternatives": ["node-red", "homebridge"], "security": ["Approve host networking, USB radios, microphones, speakers, and public exposure separately."], "pitfalls": ["Container mode does not provide the same add-on lifecycle as Home Assistant OS.", "A smart-speaker experience also needs compatible audio hardware plus chosen wake-word, speech-to-text, and text-to-speech components; Home Assistant alone is not a physical speaker."], "sources": ["https://www.home-assistant.io/installation/linux/", "https://www.home-assistant.io/voice_control/"]
+  },
+  {
+    "id": "scrypted", "name": "Scrypted", "aliases": ["smart camera platform", "camera bridge", "scrypted nvr"], "categories": ["cameras", "home-automation"], "roles": ["camera-platform", "nvr"],
+    "upstream": {"url": "https://www.scrypted.app/", "repository": "https://github.com/koush/scrypted", "docs": "https://docs.scrypted.app/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-09-21", "note": "Current camera integration platform; NVR features and some deployment paths have separate licensing and hardware requirements."}, "support": {"automation": "discovery", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:camera-streams", "capability:nvr-storage", "capability:accelerator", "capability:host-network"], "alternatives": ["frigate", "home-assistant"], "security": ["Protect camera credentials and approve host networking, device mounts, and update authority separately."], "pitfalls": ["The official Compose example uses host networking and optional USB or GPU devices; NVR storage, acceleration, and licensing must be confirmed before apply."], "sources": ["https://github.com/koush/scrypted/wiki/Installation:-Docker-Compose-Linux", "https://github.com/koush/scrypted/blob/main/install/docker/docker-compose.yml"]
+  },
+  {
+    "id": "frigate", "name": "Frigate", "aliases": ["camera nvr", "local camera detection"], "categories": ["cameras", "home-automation"], "roles": ["nvr", "object-detection"],
+    "upstream": {"url": "https://frigate.video/", "repository": "https://github.com/blakeblackshear/frigate", "docs": "https://docs.frigate.video/guides/getting_started/"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Hardware and camera topology determine the safe deployment."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:camera-streams", "capability:accelerator"], "alternatives": ["home-assistant"], "security": ["Keep camera credentials secret and approve GPU/TPU devices explicitly."], "pitfalls": ["Retention and inference load can exhaust storage or compute."], "sources": ["https://docs.frigate.video/guides/getting_started/", "https://docs.frigate.video/configuration/hardware_acceleration_video"]
+  },
+  {
+    "id": "node-red", "name": "Node-RED", "aliases": ["automation flows", "visual automation"], "categories": ["home-automation", "developer-tools"], "roles": ["automation-flows"],
+    "upstream": {"url": "https://nodered.org/", "repository": "https://github.com/node-red/node-red", "docs": "https://nodered.org/docs/getting-started/docker"}, "image": {"reference": null, "source": "upstream", "status": "verify"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "General automation tool whose privileges depend on installed flows."}, "support": {"automation": "guided", "tier": "T1", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:automation-targets"], "alternatives": ["home-assistant", "homebridge"], "security": ["Review contributed nodes and every credential or host integration used by flows."], "pitfalls": ["A flow editor can become a broad control plane without clear ownership."], "sources": ["https://nodered.org/docs/getting-started/docker"]
+  },
+  {
+    "id": "homebridge", "name": "Homebridge", "aliases": ["homekit bridge"], "categories": ["home-automation"], "roles": ["homekit-bridge"],
+    "upstream": {"url": "https://homebridge.io/", "repository": "https://github.com/homebridge/homebridge", "docs": "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker"}, "image": {"reference": null, "source": "community", "status": "unknown"},
+    "lifecycle": {"status": "active", "checkedAt": "2026-08-28", "note": "Plugin selection determines compatibility and risk."}, "support": {"automation": "discovery", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "gap", "integration": null},
+    "dependencies": ["capability:lan-discovery"], "alternatives": ["home-assistant", "node-red"], "security": ["Review plugins and LAN discovery exposure before install."], "pitfalls": ["Third-party plugins have independent maintenance and privilege profiles."], "sources": ["https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker"]
+  },
+  {
+    "id": "readarr", "name": "Readarr", "aliases": ["book automation"], "categories": ["requests", "media"], "roles": ["book-automation"],
+    "upstream": {"url": "https://github.com/Readarr/Readarr", "repository": "https://github.com/Readarr/Readarr", "docs": null}, "image": {"reference": null, "source": "unknown", "status": "unknown"},
+    "lifecycle": {"status": "retired", "checkedAt": "2026-08-28", "note": "The upstream repository is archived; keep only for migration routing."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Readarr"},
+    "dependencies": [], "alternatives": ["bookstack", "jellyfin"], "security": ["Preserve existing data before migrating away from an archived service."], "pitfalls": ["Do not propose Readarr for a new installation."], "sources": ["https://github.com/Readarr/Readarr"]
+  },
+  {
+    "id": "jellyseerr", "name": "Jellyseerr", "aliases": ["legacy jellyfin requests", "jellyseerr migration"], "categories": ["requests", "media"], "roles": ["legacy-media-request"],
+    "upstream": {"url": "https://github.com/Fallenbagel/jellyseerr", "repository": "https://github.com/Fallenbagel/jellyseerr", "docs": "https://docs.seerr.dev/migration-guide/"}, "image": {"reference": null, "source": "unknown", "status": "unknown"},
+    "lifecycle": {"status": "transitioning", "checkedAt": "2026-08-28", "note": "The Jellyseerr and Overseerr projects merged into Seerr."}, "support": {"automation": "retired", "tier": "T2", "adapterSkill": null}, "homarr": {"support": "supported", "integration": "Jellyseerr"},
+    "dependencies": [], "alternatives": ["seerr"], "security": ["Back up configuration before following the current Seerr migration path."], "pitfalls": ["Use Seerr for new installations; retain this record only for migration."], "sources": ["https://docs.seerr.dev/blog/seerr-release/", "https://docs.seerr.dev/migration-guide/"]
+  }
+]

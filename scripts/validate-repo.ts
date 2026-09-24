@@ -8,19 +8,21 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS_ROOT = join(REPOSITORY_ROOT, ".agents", "skills");
+const SELF_HOST_ROOT = join(SKILLS_ROOT, "self-host");
+const WORKFLOWS_ROOT = join(SELF_HOST_ROOT, "workflows");
 const HOMARR_IMAGE = "ghcr.io/homarr-labs/homarr-test:v2";
-const MEDIA_SKILL_ROOT = join(SKILLS_ROOT, "selfhost-media");
+const MEDIA_SKILL_ROOT = join(WORKFLOWS_ROOT, "selfhost-media");
 const MEDIA_BUNDLE_ROOT = join(MEDIA_SKILL_ROOT, "assets", "harness");
 const MEDIA_BUNDLE_MANIFEST = join(MEDIA_BUNDLE_ROOT, "bundle-manifest.json");
 const SKILL_REGISTRY_PATH = join(
-  SKILLS_ROOT,
+  WORKFLOWS_ROOT,
   "selfhost",
   "references",
   "catalog",
   "skills.json",
 );
 const SKILL_REGISTRY_SCHEMA_PATH = join(
-  SKILLS_ROOT,
+  WORKFLOWS_ROOT,
   "selfhost",
   "references",
   "catalog",
@@ -39,61 +41,23 @@ const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "scripts/smoke-install.sh",
   "scripts/validate-repo.ts",
 ]);
-const COMMON_AGENT_FLAGS = "--agent codex --agent claude-code --agent kiro-cli --agent pi --agent roo --agent windsurf";
+const COMMON_AGENT_FLAGS = "--agent codex --agent claude-code --agent opencode --agent pi --agent openclaw --agent hermes-agent";
 const GLOBAL_COPY_INSTALL_COMMAND =
-  `bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' ${COMMON_AGENT_FLAGS} --global --copy --yes`;
-const PROJECT_INSTALL_COMMAND =
-  `bunx --bun skills@latest add ajnart/selfhost-skills --skill '*' ${COMMON_AGENT_FLAGS} --yes`;
+  `bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host ${COMMON_AGENT_FLAGS} --global --copy --yes`;
 const DOCUMENTATION_CONTRACTS = [
   {
     path: "README.md",
     required: [
       ["interactive install command", "bunx --bun skills@latest add ajnart/selfhost-skills"],
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
-      [
-        "private install command",
-        PROJECT_INSTALL_COMMAND,
-      ],
-      [
-        "broad all-agents warning",
-        "`--all` is deliberately broader: it selects every skill for every agent target",
-      ],
-      ["private list command", "bunx --bun skills@latest add ajnart/selfhost-skills --list"],
-      [
-        "install prerequisite",
-        "Before running it, install Git and Bun 1.4.0 or newer",
-      ],
-      ["smoke Bun floor", "The smoke check requires Bun 1.4.0 or newer."],
+      ["single public skill", "There is only\n**one skill** to select"],
       ["selective skill flag", "--skill"],
       ["selective agent flag", "--agent"],
       ["copy-mode flag", "--copy"],
-      ["Agent Plugins standard", "Agent Plugins 1.0"],
-      ["Agent Skills standard", "Agent Skills specification"],
-      ["common coding-agent manifest", "coding-agents.json"],
-      ["Pi invocation", "/skill:selfhost-setup"],
-      ["profile CLI", "bun run stack profiles"],
-      ["explicit setup entry point", "$selfhost-setup"],
-      ["explicit upkeep entry point", "$selfhost-upkeep"],
-      ["preferences path", ".selfhost/preferences.json"],
+      ["Pi invocation", "/skill:self-host"],
       ["stack metadata path", ".selfhost/stack.json"],
-      ["private connection file", "connections.env"],
-      [
-        "skill registry path",
-        ".agents/skills/selfhost/references/catalog/skills.json",
-      ],
       ["repository validation command", "bun scripts/skillpack.ts validate --scope all"],
-      ["JSON validation command", "bun scripts/skillpack.ts validate --scope all --json"],
-      ["installer smoke command", "bash scripts/smoke-install.sh"],
       ["Homarr image", HOMARR_IMAGE],
-      ["default read-only Homarr fragment", "default client fragment remains strictly read-only"],
-      [
-        "no mutation-capable Homarr bridge",
-        "The pack does not provide a mutation-capable Homarr client fragment or bridge.",
-      ],
-      [
-        "blocked Homarr mutation tools",
-        "`integration_requestMedia`, `app_update`, `mediaRequests_answerRequest`",
-      ],
     ],
   },
   {
@@ -101,22 +65,10 @@ const DOCUMENTATION_CONTRACTS = [
     required: [
       ["interactive install command", "bunx --bun skills@latest add ajnart/selfhost-skills"],
       ["global copy install command", GLOBAL_COPY_INSTALL_COMMAND],
-      [
-        "targeted agent install command",
-        PROJECT_INSTALL_COMMAND,
-      ],
-      [
-        "all-agents fan-out warning",
-        "`--all` is broader than `--skill '*'`",
-      ],
-      ["install profile manifest", "selfhost-setup/references/install-profiles.json"],
-      ["explicit setup entry point", "$selfhost-setup"],
-      ["explicit upkeep entry point", "$selfhost-upkeep"],
-      ["stack metadata path", ".selfhost/stack.json"],
-      ["private connection file", "connections.env"],
+      ["targeted agent install command", "bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host"],
+      ["install profile manifest", "self-host/workflows/selfhost-setup/references/install-profiles.json"],
       ["browser prerequisite", "agent-browser"],
-      ["common coding-agent manifest", "coding-agents.json"],
-      ["portable plugin manifest", "Agent Plugins 1.0 `plugin.json`"],
+      ["internal workflow boundary", "not separate packages to install"],
     ],
   },
   {
@@ -124,22 +76,14 @@ const DOCUMENTATION_CONTRACTS = [
     required: [
       [
         "catalog validation command",
-        "bun .agents/skills/selfhost/scripts/selfhost.ts catalog validate --json",
+        "bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts catalog validate --json",
       ],
       ["repository validation command", "bun scripts/skillpack.ts validate --scope content"],
       [
-        "skill initializer command",
-        "python3 /path/to/skill-creator/scripts/init_skill.py selfhost-example",
-      ],
-      ["skill initializer path", "--path .agents/skills"],
-      ["skill initializer resources", "--resources scripts,references,assets"],
-      [
         "skill registry path",
-        ".agents/skills/selfhost/references/catalog/skills.json",
+        ".agents/skills/self-host/workflows/selfhost/references/catalog/skills.json",
       ],
-      ["skill registry schema path", "schemas/skills.schema.json"],
       ["installer smoke path", "scripts/smoke-install.sh"],
-      ["installer Bun floor", "Bun 1.4.0"],
       ["Homarr image", HOMARR_IMAGE],
     ],
   },
@@ -190,6 +134,10 @@ const SOURCE_EXCLUDED_ROOTS = new Set([
   "evidence",
   "node_modules",
   "screenshots",
+]);
+const SOURCE_DIRECTORIES = new Set([
+  ".agents", ".claude-plugin", ".codex-plugin", ".github",
+  "docs", "packaging", "prompts", "scripts", "security", "tests",
 ]);
 const TEXT_EXTENSIONS = new Set([
   ".cjs",
@@ -496,9 +444,9 @@ async function validateSkillMetadata() {
       if (
         typeof description !== "string"
         || description.trim().length < 1
-        || description.length > 600
+        || description.length > 180
       ) {
-        fail(`skill ${skill.name}: description must be 1-600 characters`);
+        fail(`skill ${skill.name}: public description must be 1-180 characters`);
       }
       descriptionCharacters += description.length;
       if (license !== "Apache-2.0; see LICENSE.txt") {
@@ -516,12 +464,8 @@ async function validateSkillMetadata() {
       const byteCount = Buffer.byteLength(markdown, "utf8");
       const body = markdown.replace(/^---\n[\s\S]*?\n---\n/, "");
       const wordCount = body.match(/[A-Za-z0-9][A-Za-z0-9'./:-]*/g)?.length || 0;
-      let wordBudget = 700;
-      if (skill.name === "selfhost") {
-        wordBudget = 900;
-      }
-      if (lineCount > 500 || byteCount > 16 * 1024 || wordCount > wordBudget) {
-        fail(`skill ${skill.name}: SKILL.md exceeds its progressive-disclosure budget`);
+      if (lineCount > 240 || byteCount > 12 * 1024 || wordCount > 350) {
+        fail(`skill ${skill.name}: public SKILL.md exceeds its lean entry budget`);
       }
 
       await statRegularFile(join(skill.root, "LICENSE.txt"), `skill ${skill.name} license`);
@@ -618,6 +562,12 @@ async function validateSkillTrees() {
     for (const linkPath of tree.symlinks) {
       errors.push(`skill ${skill.name}: symlink or special entry ${repositoryPath(linkPath)}`);
     }
+    for (const filePath of tree.files) {
+      const skillRelative = repositoryPath(filePath).slice(repositoryPath(skill.root).length + 1);
+      if (skillRelative !== "SKILL.md" && skillRelative.endsWith("/SKILL.md")) {
+        errors.push(`skill ${skill.name}: nested SKILL.md would be rediscovered as a public skill`);
+      }
+    }
     for (const directoryPath of tree.directories) {
       const name = directoryPath.split(sep).at(-1).toLowerCase();
       if (FORBIDDEN_SKILL_DIRECTORIES.has(name)) {
@@ -667,6 +617,14 @@ async function collectSourceFiles() {
         relativeDirectory.length === 0
         && SOURCE_EXCLUDED_ROOTS.has(entry.name)
       ) {
+        continue;
+      }
+      if (entry.name === ".sessions" || entry.name === "node_modules"
+        || entry.name.startsWith(".env")) {
+        continue;
+      }
+      if (relativeDirectory.length === 0 && entry.isDirectory()
+        && !SOURCE_DIRECTORIES.has(entry.name)) {
         continue;
       }
       const entryPath = join(directoryPath, entry.name);
@@ -907,7 +865,7 @@ function runLocal(command, args) {
 
 async function validateCatalogSemantics() {
   const validatorPath = join(
-    SKILLS_ROOT,
+    WORKFLOWS_ROOT,
     "selfhost",
     "scripts",
     "catalog.ts",
@@ -929,8 +887,13 @@ async function validateCatalogSemantics() {
 }
 
 async function loadStrictSkillRegistry() {
-  const skills = await discoverSkillRoots();
-  const available = new Set(skills.map((skill) => skill.name));
+  const workflowEntries = await readdir(WORKFLOWS_ROOT, { withFileTypes: true });
+  const available = new Set(["self-host"]);
+  for (const entry of workflowEntries) {
+    if (entry.isDirectory() && entry.name.startsWith("selfhost")) {
+      available.add(entry.name);
+    }
+  }
   const errors = [];
   let registry;
   let schema;
@@ -1008,7 +971,7 @@ async function loadStrictSkillRegistry() {
     }
     if (
       typeof record.id !== "string"
-      || !/^selfhost(?:-[a-z0-9]+)*$/.test(record.id)
+      || !/^(?:self-host|selfhost(?:-[a-z0-9]+)*)$/.test(record.id)
     ) {
       errors.push(`skill registry: ${label} has an invalid id`);
       continue;
@@ -1043,9 +1006,9 @@ async function loadStrictSkillRegistry() {
     }
     if (record.kind === "workflow") {
       try {
-        const markdown = await readFile(join(SKILLS_ROOT, record.id, "SKILL.md"), "utf8");
+        const markdown = await readFile(join(WORKFLOWS_ROOT, record.id, "GUIDE.md"), "utf8");
         const frontmatter = parseFrontmatter(markdown, `skill ${record.id}`);
-        const openAi = await readFile(join(SKILLS_ROOT, record.id, "agents", "openai.yaml"), "utf8");
+        const openAi = await readFile(join(WORKFLOWS_ROOT, record.id, "agents", "openai.yaml"), "utf8");
         if (frontmatter.get("disable-model-invocation") !== "true") {
           errors.push(`skill registry: workflow ${record.id} must disable model invocation`);
         }
@@ -1170,12 +1133,12 @@ async function loadStrictSkillRegistry() {
 
   for (const skillName of [...available].sort()) {
     if (!ids.has(skillName)) {
-      errors.push(`skill registry: packaged skill is undeclared ${skillName}`);
+      errors.push(`skill registry: internal workflow is undeclared ${skillName}`);
     }
   }
   for (const skillName of [...ids].sort()) {
     if (!available.has(skillName)) {
-      errors.push(`skill registry: declared skill package is missing ${skillName}`);
+      errors.push(`skill registry: declared workflow directory is missing ${skillName}`);
     }
   }
 
@@ -1193,18 +1156,7 @@ async function loadStrictSkillRegistry() {
 
 async function validateSkillRegistry() {
   const registry = await loadStrictSkillRegistry();
-  const readmePath = join(REPOSITORY_ROOT, "README.md");
-  let readme;
-  try {
-    readme = await readFile(readmePath, "utf8");
-  } catch {
-    fail("skill registry: README.md is missing");
-  }
-  const countContract = `${registry.ids.size} packaged skills, including ${registry.adapters.size} specialized adapters`;
-  if (!readme.includes(countContract)) {
-    fail("skill registry: README package and adapter counts are stale");
-  }
-  return `${registry.ids.size} packages, ${registry.adapters.size} adapters, exact directory match`;
+  return `1 public skill, ${registry.ids.size - 1} internal workflows, exact registry match`;
 }
 
 async function validateCatalogSkillReferences() {
@@ -1213,7 +1165,7 @@ async function validateCatalogSkillReferences() {
   const adapterReferences = new Set();
   const errors = [];
   const goalsPath = join(
-    SKILLS_ROOT,
+    WORKFLOWS_ROOT,
     "selfhost",
     "references",
     "catalog",
@@ -1244,7 +1196,7 @@ async function validateCatalogSkillReferences() {
   }
 
   const appsDirectory = join(
-    SKILLS_ROOT,
+    WORKFLOWS_ROOT,
     "selfhost",
     "references",
     "catalog",
@@ -1282,7 +1234,7 @@ async function validateCatalogSkillReferences() {
       continue;
     }
     if (!registry.available.has(skillName)) {
-      errors.push(`catalog skills: required skill package is missing ${skillName}`);
+      errors.push(`catalog skills: required workflow is missing ${skillName}`);
     }
   }
   for (const skillName of [...adapterReferences].sort()) {
@@ -1341,7 +1293,7 @@ async function validateHomarrImage() {
   }
 
   const operationsPath = join(
-    SKILLS_ROOT,
+    WORKFLOWS_ROOT,
     "selfhost",
     "references",
     "catalog",

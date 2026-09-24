@@ -41,14 +41,19 @@ fixed harness summaries.
    and its response-envelope error classification. Include the seven-row total,
    HTTP-200 count, error count, `mediaRelease.releases.length`, and
    `mediaRelease.failedIntegrations.length`.
-9. the private connections-file path and handoff disposition, never its contents
-   or the password shown during an authorized handoff.
+9. the private connections and credential-handoff paths, never their contents;
+10. benchmark mode (`browser`, `browser-wiring`, or `hybrid`), measured elapsed
+    time, and separate navigation, interaction, snapshot, wait, tool-call and
+    retry counts from `scripts/browser-benchmark.ts`. Mark unrun paths unmeasured.
 
 Never capture the Authentication page while the one-time key is visible.
 Evidence may include only secret-free command summaries and structural results;
 the API key and raw authenticated payloads must never be printed or stored as
 evidence. `connections.env` is a private user handoff, not an artifact; do not
-copy it into `SESSION_ROOT/artifacts` or `setup-report.md`.
+copy it into `setup-report.md`. The explicit private export is the sole
+secret-bearing artifact: `artifacts/private-handoff.json`, mode 0600. Keep it
+out of screenshots, benchmark inputs, shared archives and ordinary reports.
+Return its path separately from the redacted handoff and benchmark reports.
 
 Do not destroy the session. Preserve it for user review of the evidence and live
 Homarr board.

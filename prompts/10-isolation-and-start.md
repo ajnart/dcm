@@ -5,7 +5,7 @@
 From the repository root:
 
 ```bash
-scripts/session.sh create "$RUN_ID"
+scripts/session.sh create "$RUN_ID" "$ADMIN_USERNAME"
 scripts/session.sh doctor "$RUN_ID"
 scripts/session.sh urls "$RUN_ID"
 scripts/session.sh up "$RUN_ID"
@@ -16,13 +16,10 @@ Load the non-secret exports emitted by `scripts/session.sh env "$RUN_ID"` into
 each shell that drives the run. Source `.sessions/$RUN_ID/secrets.env` only in a
 command that consumes a key; never print the file.
 
-`bootstrap` waits for the core APIs, captures the freshly generated Arr keys,
-configures qBittorrent, Sonarr, Radarr, Prowlarr, and full indexer sync, and emits
-only secret-safe summaries. It also creates the private connections file and
-reports how the user can reveal it locally. Use
-`scripts/session.sh status "$RUN_ID"` and
-only project-scoped Compose logs to diagnose startup. Do not touch the legacy
-containers or another session.
+The default hybrid bootstrap waits for core APIs, captures keys privately,
+sets the chosen login, and wires the supported service graph. Skip forms it
+already saved. For a browser-wiring benchmark use `--identities-only` instead.
+Record the selected mode; API setup time remains part of the full-run total. Use project-scoped status for diagnosis.
 
 ## Stop gate
 

@@ -9,6 +9,7 @@ import {
   REPO_ROOT,
   requireSessionPasswordScheme,
   storeHomarrApiKey,
+  validateBrowserPageUrl,
   validateHomarrApiKey,
   writeSessionConnections,
 } from "./lib/session-context.ts";
@@ -18,6 +19,11 @@ const SERVICE_SECRET_KEYS = new Map([
   ["radarr", "RADARR_API_KEY"],
   ["seerr", "SEERR_API_KEY"],
   ["sonarr", "SONARR_API_KEY"],
+]);
+const ARR_GENERAL_PORT_KEYS = new Map([
+  ["prowlarr", "PROWLARR_PORT"],
+  ["radarr", "RADARR_PORT"],
+  ["sonarr", "SONARR_PORT"],
 ]);
 const BROWSER_ENVIRONMENT_KEYS = [
   "HOME",
@@ -116,7 +122,7 @@ function runBrowser(executable, args, input) {
 
     child.stdout.on("data", (chunk) => {
       stdoutBytes += chunk.byteLength;
-      if (stdoutBytes > 2_048) {
+      if (stdoutBytes > 262_144) {
         child.kill();
         finish({ kind: "failed" });
         return;
@@ -177,6 +183,50 @@ function normalizeCapturedValue(raw) {
   return value;
 }
 
+export function homarrMcpKeyEvalScript() {
+  return `(() => {
+    if (window.location.pathname !== "/init") throw new Error("invalid Homarr onboarding location");
+    const buttons = document.querySelectorAll('button[aria-label="Copy API key"]');
+    if (buttons.length !== 1) throw new Error("one Homarr MCP key button is required");
+    const parent = buttons[0].parentElement;
+    if (!parent) throw new Error("Homarr MCP key container is missing");
+    const codes = parent.querySelectorAll(":scope > code");
+    if (codes.length !== 1) throw new Error("one Homarr MCP key code is required");
+    return codes[0].textContent ?? "";
+  })()`;
+}
+
+export function arrApiKeyEvalScript() {
+  return `(() => {
+    if (window.location.pathname !== "/settings/general") throw new Error("invalid Arr general settings location");
+    const fields = document.querySelectorAll('input[name="apiKey"]');
+    if (fields.length !== 1) throw new Error("one Arr API key field is required");
+    const field = fields[0];
+    if (field.name !== "apiKey" || field.type !== "text" || field.readOnly !== true) throw new Error("Arr API key field is invalid");
+    return field.value;
+  })()`;
+}
+
+function validateHomarrInitUrl(session, raw) {
+  validateBrowserPageUrl(session, raw);
+  const url = new URL(raw.trim());
+  if (url.port !== session.manifest.HOMARR_PORT || url.pathname !== "/init") {
+    throw new Error("browser is not on Homarr MCP onboarding");
+  }
+}
+
+function validateArrGeneralUrl(session, service, raw) {
+  const portKey = ARR_GENERAL_PORT_KEYS.get(service);
+  if (!portKey) {
+    throw new Error("field capture is supported only for Arr services");
+  }
+  validateBrowserPageUrl(session, raw);
+  const url = new URL(raw.trim());
+  if (url.port !== session.manifest[portKey] || url.pathname !== "/settings/general") {
+    throw new Error("browser is not on the selected Arr general settings page");
+  }
+}
+
 function serviceApiKey(session, service) {
   const secretKey = SERVICE_SECRET_KEYS.get(service);
   if (!secretKey) {
@@ -189,9 +239,38 @@ function serviceApiKey(session, service) {
   return value;
 }
 
+export function keyRefsFromSnapshot(raw) {
+  const parsed = JSON.parse(raw);
+  if (parsed.success !== true || !parsed.data?.refs) {
+    throw new Error("browser snapshot failed");
+  }
+  const refs = Object.entries(parsed.data.refs).filter(([ref, field]) => (
+    /^e[1-9][0-9]{0,5}$/.test(ref)
+    && field && field.role === "textbox"
+    && ["api key", "apikey", "key"].includes(String(field.name).trim().toLowerCase())
+  )).map(([ref]) => `@${ref}`);
+  if (refs.length !== 1) {
+    throw new Error("one API-key field is required");
+  }
+  return refs[0];
+}
+
+export async function locateBrowserApiKey(session) {
+  const browserSession = validateBrowserSession(session);
+  const currentUrl = await invokeBrowser(["--session", browserSession, "get", "url"]);
+  validateBrowserPageUrl(session, currentUrl);
+  const snapshot = await invokeBrowser(["--session", browserSession, "snapshot", "-i", "--json"]);
+  return keyRefsFromSnapshot(snapshot);
+}
+
 export async function captureBrowserApiKey(session, service, selector) {
   const browserSession = validateBrowserSession(session);
   const safeSelector = validateSelector(selector);
+  const currentUrl = await invokeBrowser(
+    ["--session", browserSession, "get", "url"],
+    undefined,
+  );
+  validateBrowserPageUrl(session, currentUrl);
   const raw = await invokeBrowser(
     ["--session", browserSession, "get", "value", safeSelector],
     undefined,
@@ -208,15 +287,67 @@ export async function captureBrowserApiKey(session, service, selector) {
   }
 }
 
-export async function fillBrowserApiKey(session, service, selector) {
+export async function captureHomarrMcpKeyCode(session, options = {}) {
+  const browserSession = validateBrowserSession(session);
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(
+    ["--session", browserSession, "get", "url"],
+    undefined,
+  );
+  validateHomarrInitUrl(session, currentUrl);
+  const raw = await invoke(
+    ["--session", browserSession, "eval", "--stdin"],
+    `${homarrMcpKeyEvalScript()}\n`,
+  );
+  const captured = validateHomarrApiKey(normalizeCapturedValue(raw));
+  const store = options.storeImplementation || storeHomarrApiKey;
+  const writeConnections = options.writeConnectionsImplementation || writeSessionConnections;
+  store(session, captured);
+  writeConnections(session.runId);
+}
+
+export async function captureArrApiKeyField(session, service, options = {}) {
+  const browserSession = validateBrowserSession(session);
+  if (!ARR_GENERAL_PORT_KEYS.has(service)) {
+    throw new Error("field capture is supported only for Arr services");
+  }
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(
+    ["--session", browserSession, "get", "url"],
+    undefined,
+  );
+  validateArrGeneralUrl(session, service, currentUrl);
+  const raw = await invoke(
+    ["--session", browserSession, "eval", "--stdin"],
+    `${arrApiKeyEvalScript()}\n`,
+  );
+  if (normalizeCapturedValue(raw) !== serviceApiKey(session, service)) {
+    throw new Error("browser API key does not match the managed session");
+  }
+}
+
+export async function fillBrowserApiKey(session, service, selector, options = {}) {
   const browserSession = validateBrowserSession(session);
   const safeSelector = validateSelector(selector);
   if (service === "homarr") {
     throw new Error("Homarr API keys are capture-only");
   }
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(
+    ["--session", browserSession, "get", "url"],
+    undefined,
+  );
+  validateBrowserPageUrl(session, currentUrl);
+  const snapshot = await invoke(
+    ["--session", browserSession, "snapshot", "-i", "--json"],
+    undefined,
+  );
+  if (keyRefsFromSnapshot(snapshot) !== safeSelector) {
+    throw new Error("browser API-key selector does not match the fresh form");
+  }
   const apiKey = serviceApiKey(session, service);
   const commands = [["fill", safeSelector, apiKey]];
-  await invokeBrowser(
+  await invoke(
     ["--session", browserSession, "batch", "--bail", "--json"],
     `${JSON.stringify(commands)}\n`,
   );
@@ -224,16 +355,34 @@ export async function fillBrowserApiKey(session, service, selector) {
 
 async function main() {
   const [action, runId, service, selector] = Bun.argv.slice(2);
-  if (!action || !runId || !service || !selector || Bun.argv.length !== 6) {
-    throw new Error("capture|fill, RUN_ID, SERVICE, and @eN are required");
+  const noSelectorAction = action === "refs" || action === "capture-code" || action === "capture-field";
+  if (!action || !runId || !service || (noSelectorAction && selector !== undefined) || (!noSelectorAction && (!selector || Bun.argv.length !== 6))) {
+    throw new Error("capture|capture-code|capture-field|fill|refs arguments are invalid");
   }
   if (![...SERVICE_SECRET_KEYS.keys(), "homarr"].includes(service)) {
     throw new Error("unsupported API-key service");
   }
   const session = loadSession(runId);
   requireSessionPasswordScheme(session);
+  if (action === "refs") {
+    process.stdout.write(`${await locateBrowserApiKey(session)}\n`);
+    return;
+  }
   if (action === "capture") {
     await captureBrowserApiKey(session, service, selector);
+    process.stdout.write("PASS browser API key captured\n");
+    return;
+  }
+  if (action === "capture-code") {
+    if (service !== "homarr") {
+      throw new Error("code capture is supported only for Homarr");
+    }
+    await captureHomarrMcpKeyCode(session);
+    process.stdout.write("PASS browser API key captured\n");
+    return;
+  }
+  if (action === "capture-field") {
+    await captureArrApiKeyField(session, service);
     process.stdout.write("PASS browser API key captured\n");
     return;
   }

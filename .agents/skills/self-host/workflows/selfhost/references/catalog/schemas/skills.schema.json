@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ajnart.dev/selfhost-skills/skills.schema.json",
+  "title": "Selfhost skill-pack registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packVersion", "skills"],
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "packVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "scope", "risk", "activation", "delegatesTo", "install"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"},
+          "kind": {"enum": ["router", "capability", "adapter", "workflow"]},
+          "scope": {"enum": ["application", "stack", null]},
+          "risk": {"enum": ["read-only", "approval-gated-write"]},
+          "activation": {"enum": ["implicit", "delegated", "explicit"]},
+          "delegatesTo": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"}
+          },
+          "install": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["group", "requires"],
+            "properties": {
+              "group": {"enum": ["base", "pack", "extension"]},
+              "requires": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^(?:self-host|selfhost(?:-[a-z0-9]+)*)$"}
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"kind": {"const": "adapter"}}},
+            "then": {"properties": {"scope": {"enum": ["application", "stack"]}}},
+            "else": {"properties": {"scope": {"const": null}}}
+          },
+          {
+            "if": {"properties": {"kind": {"const": "router"}}},
+            "then": {"properties": {"activation": {"const": "implicit"}}}
+          },
+          {
+            "if": {"properties": {"kind": {"const": "workflow"}}},
+            "then": {"properties": {"activation": {"const": "explicit"}, "install": {"properties": {"group": {"const": "base"}}}}}
+          }
+        ]
+      }
+    }
+  }
+}

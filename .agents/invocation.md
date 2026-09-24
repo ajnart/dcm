@@ -1,161 +1,65 @@
-# Skill invocation model
+# Invocation and context loading
 
-## User entry points
+Use `self-host` for planning, setup, and upkeep. The public entry reads one
+selected workflow from its bundled `workflows/` directory and follows that
+workflow's links only as needed. The user does not invoke internal owners.
 
-Use `$selfhost-setup` explicitly for a new stack. It checks the selected base,
-pack, and extensions, installs missing prerequisites through the active agent,
-creates `.selfhost/stack.json`, and continues through approved apply, browser
-configuration, verification, and access handoff.
+Skill discovery normally loads names and descriptions, not every full skill.
+Invocation loads `SKILL.md`. Supporting files cost context when read; scripts
+can run without loading their source. Keep these costs separate from package
+size. A large catalog on disk is fine; dumping it into each conversation is not.
 
-Use `$selfhost-upkeep` explicitly for an existing `.selfhost/stack.json`
-project. It refreshes host evidence before status, extension, upgrade,
-migration, repair, reconnect, or re-verification work.
+## Selecting a workflow
 
-Use `selfhost` for planning. It supports explicit calls such as `/selfhost
-netflix` in Claude Code, `$selfhost netflix` in Codex, and
-`/skill:selfhost netflix` in Pi, plus natural-language goals such as “replace
-Google Photos.” Other clients use their skill picker or native invocation UI.
-Its discovery description permits
-implicit invocation, but it never treats invocation as approval to mutate a
-host.
+- A new app or replacement goal loads `selfhost-setup/GUIDE.md`.
+- An existing stack request loads `selfhost-upkeep/GUIDE.md`.
+- Plan-only, comparison, or unresolved intent loads `selfhost/GUIDE.md`.
 
-The router follows a short `explore -> present -> confirm -> write`
-conversation, resolves the goal, inspects what is safe to inspect, loads
-non-secret preferences, selects a stack, and presents a redacted plan. It leads
-with a recommended answer, explains each service's purpose, skips settled
-questions, and accepts `defaults` for safe planning choices. An explicit
-request for Homarr itself routes to the
-`homarr-control-plane` goal and its `selfhost-homarr` adapter. Every other goal
-also receives the required Homarr control-plane role from the taxonomy.
+Resolve these paths under the installed `self-host/workflows/` directory.
+An internal ID such as `selfhost-compose` is a stable ownership label and
+reference path, not a separately installed skill. Read its guide before using
+its helpers. For app lookup use catalog `search`/`show`; read only selected
+service recipes, not the whole catalog or every guide.
 
-For a returning planning project, load `.selfhost/project.json` plus confirmed
-non-secret preferences from its exact project root. The project record keeps
-the goal, service choices, plan fingerprint, checkpoint, and bounded evidence
-IDs; it does not keep raw host truth. Then inspect the real host again. Saved
-context explains intent; it does not prove that a container, network, port,
-path, proxy, or backup is still present or healthy. Resume at the first
-incomplete stage and never adopt a same-name resource without ownership
-evidence.
+A separate skill is appropriate when users independently invoke a task with
+its own scope and useful trigger. Split for that reason, not for every internal
+step. The current workflows all participate in the same self-host lifecycle,
+so one self-contained install avoids missing-sibling problems across clients.
 
-When no goal is supplied, first check only the exact current project root. If
-it contains `.selfhost/project.json`, resume its recorded goal and service
-choices. Only a root without saved state gets the categories and small set of
-common goals. Never dump every catalog record into the context window.
+## Intake and execution
 
-## Conversation contract
+Follow the selected workflow and its
+[conversation contract](skills/self-host/workflows/selfhost/references/conversation.md).
+Ask only for unresolved choices: purpose, target host and project, selected
+services, relevant storage, access, username, required email, and optional
+backup/VPN choices. “Defaults” accepts a recommendation, not new services or
+unreviewed destructive operations. Explain what each app does and include Homarr.
 
-The canonical intake is
-[`selfhost/references/conversation.md`](skills/selfhost/references/conversation.md).
-Ask only unresolved choices that change the plan: purpose, people and devices,
-exact project root, services and Homarr coverage, relevant paths, exposure,
-backup and VPN policy when applicable, and credential policy. Recommend one
-answer first and keep alternatives short. A one-word `defaults` answer accepts
-catalog and private-first planning defaults; it does not select optional roles
-or approve mutation and risk gates.
+Inspect → plan → approval → apply → verify. Existing `.selfhost` records describe
+intent; refresh actual host and service evidence before resuming. Mutation stays
+within the exact approved owner's project. Public access, destructive changes,
+VPN routing, and restores retain their own gates and evidence requirements.
 
-Collect credential policy, never credential payloads. The managed media adapter
-uses fixed username `admin` with a generated per-run password. Final setup
-tells the user that password directly without storing it. Other custom
-credentials wait for a supported private apply boundary. Never request
-password, token, key, cookie, or recovery-code values in chat.
+Ask for usernames, not passwords. Generate credentials or resolve private
+references through the owning helper. Requested credential exports use the
+private handoff file; report its path without printing secret values. Upkeep
+re-exports only when requested.
 
-## Base capabilities
+## Access and completion
 
-Portable descriptions label every base entry. Clients that render the OpenAI
-metadata also number them as setup, upkeep, planning, host inspection, Compose,
-operations, Homarr, then verification. Setup and upkeep are explicit-only; the other
-capabilities are model-invoked and may also be called explicitly for a bounded
-task.
+Choose access from the user's actual devices; see
+[access choices](skills/self-host/references/access.md). Homarr links must resolve
+from that location. Container network URLs are for integrations, and host
+loopback URLs are for local automation; neither substitutes for user access.
+Homarr is the dashboard, not an automatic reverse proxy for every linked app.
 
-- `selfhost-host`: host/runtime/storage/network inspection and path advice.
-- `selfhost-compose`: project rendering, preflight, apply, and ownership.
-- `selfhost-operations`: upgrades, migrations, rollback, and troubleshooting.
-- `selfhost-verify`: independent acceptance and secret-free evidence.
+The default Homarr MCP profile is read-only. Bounded integration requests require
+an explicit policy for integration IDs, paths, and methods. Client configuration
+contains secret references rather than keys.
 
-## Packs and extensions
+Finish with the selected goal, apps and purposes, actual changes, verification,
+working access links, saved artifact paths, and blockers. A plan, running
+container, generated password, or partial handoff does not prove completed setup.
 
-- `selfhost-media`: the media pack, which extends the complete Homarr-enabled
-  base.
-- `selfhost-backup`: backup policy, app-consistent capture, and restore drills.
-- `selfhost-ingress`: LAN, tailnet, reverse proxy, DNS, TLS, and tunnels.
-- `selfhost-observe`: health, metrics, logs, alerts, and edge checks.
-- `selfhost-research`: current primary-source and browser research harness.
-- `selfhost-vpn`: downloader-only VPN routing and kill-switch evidence.
-
-Each extension extends the complete base independently. Multiple selections
-form a union; optional packs and extensions are never implied.
-
-The base contains `selfhost-homarr`; the media pack adds:
-
-- `selfhost-media`: opt-in Homarr-enhanced personal-media adapter.
-
-Do not create one skill per catalog row. An app earns a dedicated skill only
-when it has reusable special behavior beyond declarative facts.
-
-## Composition rules
-
-1. Resume saved intent or confirm a goal, exact project root, and initial role
-   choices through the conversation contract.
-2. Inspect the selected host with `selfhost-host`, including returning projects.
-3. Reuse compatible infrastructure or report a conflict.
-4. Present host-dependent paths and gates, then confirm only unresolved choices.
-5. Compose only the selected capabilities and apps; optional roles remain off.
-6. Include Homarr as the required private control plane and report dedicated
-   integration coverage separately from app-link-only gaps.
-7. Present the plan and obtain the relevant approval.
-8. Apply through the owning capability or adapter.
-9. Verify through `selfhost-verify`, including edge/VPN/restore proof when the
-   plan selected those capabilities.
-10. Persist only confirmed non-secret preferences and evidence paths.
-
-Homarr's dashboard can be the only remotely reachable administration surface while
-service administration such as Sonarr, Radarr, Prowlarr, and qBittorrent stays
-private. User-facing apps such as Jellyfin may also be exposed. That topology
-still requires an explicit `selfhost-ingress` plan and approval for DNS, TLS,
-ports 80/443, and authentication. Selecting Homarr does not approve public
-access. Keep native `/api/mcp` access private and connect the packaged bridge
-over loopback, LAN, or a private tailnet.
-
-The shipped Homarr MCP bridge is strictly read-only: it supports inspection
-and Seerr search, not requests or configuration changes. A future write path
-must be a separate, narrowly scoped capability with its own approval and
-verification contract.
-
-## Required end summary
-
-Every invocation ends with a short plain-language summary, including blocked
-or read-only runs. State:
-
-- the user's goal;
-- what was inspected, planned, changed, and verified;
-- what each selected service does;
-- which owned resources were reused, created, left unchanged, or conflicted;
-- unresolved decisions and blockers; and
-- the next safe action.
-
-When an adapter creates a private connection file, report its exact path
-without opening or printing its API keys. The managed media file may contain
-URLs, usernames, and API keys, but never its generated initial admin password.
-Final `$selfhost-setup` handoff tells the user the `admin` username and generated
-password directly; later upkeep displays a password only for a requested fresh
-access handoff.
-
-Do not hide uncertainty behind internal status names. Translate them for the
-user while retaining exact structured values in machine-readable output. Say
-explicitly when a plan changed nothing, when host state was not observable, or
-when evidence was too weak or stale to verify a claim.
-
-Capability output uses `pass`, `warn`, `blocked`, or `conflict`. A capability
-must not silently repair a failed verification unless the user asked it to
-change the system.
-
-## Product overlays
-
-Canonical explicit workflows retain the client-native
-`disable-model-invocation` guard plus a portable activation marker and an
-in-body activation gate. Codex invocation policy lives in `agents/openai.yaml`.
-The release projection removes the non-standard top-level key so every packaged
-`SKILL.md` uses only Agent Skills frontmatter. It also uses the Agent Plugins
-1.0 fixed `skills/<name>/SKILL.md` discovery layout and a closed root
-`plugin.json`; the `.claude-plugin/` manifest is a compatibility surface. This
-projection does not create a second editable source tree.
+Design references: [Agent Skills progressive disclosure](https://agentskills.io/specification#progressive-disclosure) and
+[Anthropic skill-creator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md).
