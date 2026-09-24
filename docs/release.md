@@ -40,9 +40,11 @@ against Agent Skills, and run the current Claude plugin validator against the
 same directory. Validate the ZIP and `SHA256SUMS`, then remove the disposable
 files.
 
-Build the provider catalogs from that exact ZIP, manifest, and checksum. The
-URL below is the intended public GitHub Release asset; local export verifies
-its shape and version but cannot prove it exists until publication:
+Build the provider catalogs and plugin trees from that exact ZIP, manifest, and
+checksum. The URL below identifies the intended GitHub Release asset in both
+provenance manifests. Claude installs from its generated Git branch, so the
+repository can remain private; local export verifies the URL shape and version
+but cannot prove the asset exists until publication:
 
 ```bash
 bun scripts/distribution.ts \
@@ -53,16 +55,16 @@ bun scripts/distribution.ts \
   --output dist/distribution
 ```
 
-`dist/distribution/codex/` contains the generated plugin tree and Codex
-marketplace. `dist/distribution/claude/` contains only the Claude archive
-marketplace. The separate roots prevent Codex from also discovering Claude's
+Each provider root contains an independently verified plugin tree and its own
+marketplace. The Claude catalog points to `./plugins/selfhost-skills` inside
+its Git branch. Separate roots prevent Codex from also discovering Claude's
 legacy-compatible marketplace path. The exporter rejects path escapes, extra
 public skills, file/hash/mode mismatches, an unsafe URL, and nonempty output.
 The tag job adds the source commit to both provenance manifests; the branch
 publisher rejects an older or unrelated source commit and changed archive
 bytes under an existing version.
 [OpenAI marketplace paths](https://developers.openai.com/plugins/build/plugins)
-and [Claude archive sources](https://code.claude.com/docs/en/plugin-marketplaces)
+and [Claude relative plugin sources](https://code.claude.com/docs/en/plugin-marketplaces)
 define the two catalogs.
 
 The package contains the full `self-host/workflows/` tree. Internal documents
@@ -73,7 +75,7 @@ standalone runtime helpers in both copy and symlink install layouts.
 ## Publish
 
 Create the signed or annotated `v<version>` tag only after every gate passes and
-push it to the public source repository. The tag workflow rechecks the release
+push it to the source repository. The tag workflow rechecks the release
 contract, builds the ZIP, uploads a short-lived Actions artifact, then creates
 a durable GitHub Release with the ZIP, manifest, and checksum. It downloads the
 published assets and checks byte equality before exporting and pushing two
@@ -81,7 +83,7 @@ generated branches in the same repository:
 
 | Ref | Contents | Client source |
 | --- | --- | --- |
-| `plugin-claude` | `.claude-plugin/marketplace.json` and provenance | `/plugin marketplace add ajnart/selfhost-skills@plugin-claude` |
+| `plugin-claude` | `.claude-plugin/marketplace.json`, `plugins/selfhost-skills/`, and provenance | `/plugin marketplace add ajnart/selfhost-skills@plugin-claude` |
 | `plugin-codex` | `.agents/plugins/marketplace.json`, `plugins/selfhost-skills/`, and provenance | `codex plugin marketplace add ajnart/selfhost-skills --ref plugin-codex` |
 
 The source `main` branch remains the only editable skill tree. The generated

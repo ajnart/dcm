@@ -239,7 +239,7 @@ async function main(): Promise<void> {
       category: "Productivity"
     }]
   };
-  const claudeCatalog = createClaudeMarketplace({ archiveUrl: url.toString(), digest, version });
+  const claudeCatalog = createClaudeMarketplace({ version });
   const provenance: Record<string, unknown> = {
     schemaVersion: 1,
     name: PLUGIN_NAME,
@@ -255,6 +255,7 @@ async function main(): Promise<void> {
   const codexRoot = join(output, "codex");
   const claudeRoot = join(output, "claude");
   await writeTree(join(codexRoot, "plugins", PLUGIN_NAME), files);
+  await writeTree(join(claudeRoot, "plugins", PLUGIN_NAME), files);
   await mkdir(join(codexRoot, ".agents", "plugins"), { recursive: true });
   await mkdir(join(claudeRoot, ".claude-plugin"), { recursive: true });
   await writeFile(join(codexRoot, ".agents", "plugins", "marketplace.json"), `${JSON.stringify(codexCatalog, null, 2)}\n`, { flag: "wx" });

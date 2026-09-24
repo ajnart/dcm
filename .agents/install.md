@@ -72,10 +72,13 @@ and [Pi skills docs](https://github.com/earendil-works/pi/blob/main/packages/cod
 
 ## Native Claude Code plugin
 
-After the matching release and `plugin-claude` ref are published:
+After the matching release and `plugin-claude` ref are published, use GitHub
+credentials that can read the repository. For private repositories, Claude's
+GitHub shorthand clones over SSH by default; set `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`
+when your Git credentials use HTTPS:
 
 ```bash
-claude plugin marketplace add ajnart/selfhost-skills@plugin-claude
+CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1 claude plugin marketplace add ajnart/selfhost-skills@plugin-claude
 claude plugin install selfhost-skills@selfhost-skills-claude
 ```
 
@@ -85,8 +88,10 @@ Invoke `/selfhost-skills:self-host`. To refresh, run
 session or reload plugins if Claude asks. This route installs the published
 archive into Claude's plugin cache. A direct Skills CLI install remains
 `/self-host`; remove any duplicate entry from the same scope after checking
-the plugin. See [Claude marketplace installation](https://code.claude.com/docs/en/discover-plugins)
-and [archive sources](https://code.claude.com/docs/en/plugin-marketplaces).
+the plugin. The generated Git marketplace includes the full verified plugin
+tree, so the install does not need a public ZIP URL. See [Claude marketplace
+installation](https://code.claude.com/docs/en/discover-plugins) and
+[private Git marketplace sources](https://code.claude.com/docs/en/plugin-marketplaces).
 
 ## Native Codex plugin
 
