@@ -29,3 +29,5 @@ The current sequence is:
 5. Generation 5 repeated the full stack in two fresh isolated runs, promoted
    the browser-audited survivor, and hardened finalizer reconciliation and
    authentication-safe evidence capture.
+6. Generation 6 compares a private installed-skill UI baseline with a new
+   script-first source path. Runtime headless testing waits for the user's GO.
