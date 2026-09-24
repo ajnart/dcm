@@ -24,6 +24,23 @@ For all projects under your user account:
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent opencode --global --copy --yes
 ```
 
+For a pinned private release, use Git credentials with access to this
+repository. If the Skills CLI's Git fetch cannot use those credentials, clone
+the tag with authenticated Git and run the repository installer from the
+project that should receive the skill:
+
+```sh
+git clone --depth 1 --branch v1.0.0 https://github.com/ajnart/selfhost-skills.git /tmp/selfhost-skills-v1.0.0
+bun /tmp/selfhost-skills-v1.0.0/scripts/install.ts --agent opencode --scope project --project-root "$PWD"
+```
+
+The installer copies the skill and creates the project `/self-host` command,
+so the checkout can be removed after installation. This private-tag route was
+verified with OpenCode 1.18.32. For Git clone authentication, use the Git
+credential helper configured for your authorized GitHub account. [Skills CLI
+sources](https://github.com/vercel-labs/skills#readme), [OpenCode skill
+discovery](https://opencode.ai/docs/skills/).
+
 `--copy` keeps the installation usable after the source checkout is removed.
 Omit it to use the Skills CLI's symlink layout. Omit `--global` for a
 project-local install. OpenCode discovers project skills under
