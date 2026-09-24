@@ -7,7 +7,9 @@ and hands back access links and an optional private credentials file.
 
 ## Tell it what you want to replace
 
-You don't need to know the software names. Start with a familiar service:
+You don't need to know the software names. Start with a familiar service.
+These examples use the Pi/OpenCode `/self-host` command; see the client table
+below for Codex syntax.
 
 ```text
 /self-host I want to replace Google Photos and Google Drive
@@ -49,7 +51,26 @@ for the replacement boundaries. Catalog coverage remains broader than the
 seven-service tested media harness; other setups retain their stated guided
 or discovery status until verified.
 
-## Install once
+## Install the command
+
+Clone this repository, then install into the project where you will invoke it:
+
+```bash
+git clone https://github.com/ajnart/selfhost-skills.git /tmp/selfhost-skills
+bun /tmp/selfhost-skills/scripts/install.ts --agent pi --agent opencode --scope project --project-root /path/to/your/project
+```
+
+This installs the skill and registers `/self-host` for Pi and OpenCode in one
+step. For Codex, use `--agent codex`; invoke `$self-host` or select it with
+`/skills`. Codex has no supported project slash command. To install globally,
+use `--scope global` and omit `--project-root`. Add `--codex-prompt` only if you
+want Codex's deprecated global `/prompts:self-host` bridge.
+
+The installer copies the complete skill, checks for command name collisions,
+and updates only its own command files. Run it again to update. See
+[installation and migration](.agents/install.md) for removal and other clients.
+
+## Skills CLI alternative
 
 Install Git and Bun 1.4.0 or newer, including `bunx`. From your project:
 
@@ -67,6 +88,15 @@ To install globally for Codex, Claude Code, OpenCode, Pi, OpenClaw, and Hermes:
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --agent claude-code --agent opencode --agent pi --agent openclaw --agent hermes-agent --global --copy --yes
 ```
 
+To add a named slash command after a direct Skills CLI global install:
+
+```bash
+bun ~/.codex/skills/self-host/scripts/install-command.ts --agent codex --agent pi --agent opencode --scope global
+```
+
+The direct Skills CLI path needs this separate command registration step for
+Pi and OpenCode. The repository installer above performs both steps.
+
 Use only the `--agent` flags you need. Omit `--global` for a project install;
 omit `--copy` for the installer's normal symlink layout. `--all` targets every
 supported agent, which is usually unnecessary. Other Agent Skills clients can
@@ -75,17 +105,34 @@ See [installation and migration](.agents/install.md) for paths and older install
 
 | Agent | Start a conversation |
 | --- | --- |
-| Codex | `$self-host photos` |
+| Codex CLI / IDE | `$self-host photos` or `/skills`; optional deprecated global `/prompts:self-host photos` |
 | Claude Code | `/self-host photos` |
-| Pi | `/skill:self-host photos` |
+| Pi | `/self-host photos` after command setup; `/skill:self-host photos` without it |
 | OpenClaw | `/skill self-host photos` |
 | Hermes | `/self-host photos` |
-| OpenCode and other clients | Ask “use the self-host skill to set up photos” or select it in the client |
+| OpenCode | `/self-host photos` after command setup |
+| Other clients | Ask to use the `self-host` skill or select it in the client |
 
 Use the same entry point to plan, install, resume, add services, update, or
 repair. `/self-host full` selects the supported household recipe; it does not
 install every catalog app. The agent loads only the workflow and app references
-needed for your request. Actual command/picker support varies by client.
+needed for your request. Codex's custom prompts are deprecated and use the
+`/prompts:` prefix; its supported shared entry remains the skill.
+
+Example exchange (illustrative, not a deployment log):
+
+```text
+You: /self-host plan replace Google Photos
+Agent: Immich handles photo backup; Homarr opens the services. I need the
+       project directory and access devices before proposing storage.
+       No host changes were made.
+You: /self-host install Immich in /srv/photos for phones on my home network
+Agent: [inspects host] Here is the exact project, storage, access, and
+       verification plan. Approve this apply?
+You: Approve the proposed apply.
+Agent: [applies and verifies] Reports working links, checks, artifact paths,
+       and remaining gaps. Secrets stay in private files.
+```
 
 ## What setup does
 
@@ -144,6 +191,8 @@ and re-exports credentials only when requested.
 ```text
 .agents/skills/self-host/
 ├── SKILL.md             # Small public entry point
+├── commands/            # Optional client slash-command template
+├── scripts/             # Optional command installer
 ├── references/          # Service and access explanations
 └── workflows/
     ├── selfhost/        # Planning and searchable catalog
@@ -177,6 +226,7 @@ canonical media harness. After changing them, regenerate the bundled copy with
 
 - [Workflow index](SKILL_INDEX.md)
 - [Invocation](.agents/invocation.md) and [installation](.agents/install.md)
+- [Seven-repository command comparison](research/skill-command-comparison-2026-09-24.md)
 - [Domain and safety boundaries](.agents/CONTEXT.md)
 - [Contribution rules](CONTRIBUTING.md) and [release checks](docs/release.md)
 

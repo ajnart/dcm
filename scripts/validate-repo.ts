@@ -31,10 +31,12 @@ const SKILL_REGISTRY_SCHEMA_PATH = join(
 );
 const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "docs/cli.md",
+  "docs/command-first-roadmap.md",
   "docs/images/selfhost-architecture.svg",
   "docs/images/selfhost-flow.svg",
   "docs/migration-v1.md",
   "docs/release.md",
+  "scripts/install.ts",
   "scripts/lib/skillpack.ts",
   "scripts/refresh-media-bundle.ts",
   "scripts/skillpack.ts",
@@ -508,6 +510,17 @@ async function validateSkillMetadata() {
         if (!/^  allow_implicit_invocation: false$/m.test(yaml)) {
           fail(`skill ${skill.name}: explicit invocation policy is missing`);
         }
+        if (!/^  opencode\/autoinvoke: "false"$/m.test(markdown)
+          || !/^  opencode\/slash: "false"$/m.test(markdown)) {
+          fail(`skill ${skill.name}: OpenCode command ownership policy is missing`);
+        }
+        const commandTemplate = await readFile(join(skill.root, "commands", "self-host.md"), "utf8");
+        if (!commandTemplate.includes("<!-- Managed by selfhost-skills. -->")
+          || !commandTemplate.includes("{{SELF_HOST_SKILL_PATH}}")
+          || !commandTemplate.includes("$ARGUMENTS")) {
+          fail(`skill ${skill.name}: command adapter contract is incomplete`);
+        }
+        await statRegularFile(join(skill.root, "scripts", "install-command.ts"), `skill ${skill.name} command installer`);
       }
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -998,8 +1011,13 @@ async function loadStrictSkillRegistry() {
     if (!Array.isArray(record.delegatesTo) || new Set(record.delegatesTo).size !== record.delegatesTo.length) {
       errors.push(`skill registry: ${record.id} delegatesTo must be a unique array`);
     }
-    if (record.kind === "router" && record.activation !== "implicit") {
-      errors.push(`skill registry: router ${record.id} must use implicit activation`);
+    if (record.kind === "router") {
+      if (record.id === "self-host" && record.activation !== "explicit") {
+        errors.push("skill registry: public router self-host must use explicit activation");
+      }
+      if (record.id !== "self-host" && record.activation !== "implicit") {
+        errors.push(`skill registry: internal router ${record.id} must use implicit activation`);
+      }
     }
     if (record.kind === "workflow" && (record.activation !== "explicit" || record.scope !== null)) {
       errors.push(`skill registry: workflow ${record.id} must be explicit with null scope`);

@@ -51,7 +51,11 @@
             "else": {"properties": {"scope": {"const": null}}}
           },
           {
-            "if": {"properties": {"kind": {"const": "router"}}},
+            "if": {"properties": {"id": {"const": "self-host"}}},
+            "then": {"properties": {"kind": {"const": "router"}, "activation": {"const": "explicit"}}}
+          },
+          {
+            "if": {"properties": {"kind": {"const": "router"}, "id": {"not": {"const": "self-host"}}}},
             "then": {"properties": {"activation": {"const": "implicit"}}}
           },
           {
