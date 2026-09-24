@@ -68,6 +68,7 @@ const PUBLIC_FILES = [
   "AGENTS.md",
   "NOTEPAD.md",
   "research/skills-repo-patterns.md",
+  "research/skill-command-comparison-2026-09-24.md",
   "CONTRIBUTING.md",
   "LICENSE",
   "SECURITY.md",
@@ -80,6 +81,7 @@ const PUBLIC_FILES = [
   "docs/migration-v1.md",
   "docs/cli.md",
   "docs/release.md",
+  "docs/opencode-install.md",
   "docs/README.md",
   "docs/homarr.md",
   "docs/headless-access.md",
@@ -91,14 +93,14 @@ const PUBLIC_FILES = [
   "docs/sonarr.md",
   "docs/images/selfhost-architecture.svg",
   "docs/images/selfhost-flow.svg",
-  "homarr-dashboard.png"
+  "homarr-dashboard.png",
+  "scripts/install.ts"
 ];
 
 const PROJECTED_PUBLIC_FILES = [
   { source: ".agents/install.md", destination: "INSTALL.md" },
   { source: ".agents/invocation.md", destination: "INVOCATION.md" },
-  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" },
-  { source: "AGENTS.md", destination: "CLAUDE.md" }
+  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" }
 ];
 
 function normalizePath(path) {
@@ -369,8 +371,13 @@ function validateRegistryShape(registry, skillIds) {
     } else if (record.scope !== null) {
       errors.push(`Non-adapter ${record.id} must have null scope`);
     }
-    if (record.kind === "router" && record.activation !== "implicit") {
-      errors.push(`Router ${record.id} must use implicit activation`);
+    if (record.kind === "router") {
+      if (record.id === "self-host" && record.activation !== "explicit") {
+        errors.push("Public router self-host must use explicit activation");
+      }
+      if (record.id !== "self-host" && record.activation !== "implicit") {
+        errors.push(`Internal router ${record.id} must use implicit activation`);
+      }
     }
     if (record.kind === "workflow" && (record.activation !== "explicit" || record.scope !== null)) {
       errors.push(`Workflow ${record.id} must be explicit with null scope`);
@@ -783,6 +790,10 @@ function validateSkillMetadata(skills, registry) {
       }
       if (skill.openAi.get("allow_implicit_invocation") !== "false") {
         errors.push(`${skill.id}: explicit skill must disable implicit OpenAI invocation`);
+      }
+      if (!/^  opencode\/autoinvoke: "false"$/m.test(skill.markdown)
+        || !/^  opencode\/slash: "false"$/m.test(skill.markdown)) {
+        errors.push(`${skill.id}: OpenCode command ownership policy is missing`);
       }
     }
   }
@@ -1421,8 +1432,20 @@ function validateHistoryAllowlist(document) {
   return entries;
 }
 
+function publicationHistoryRefs() {
+  const refs = runGit([
+    "for-each-ref",
+    "--format=%(refname)",
+    "refs/heads",
+    "refs/remotes",
+    "refs/tags"
+  ]).trim().split("\n").filter(Boolean);
+  return ["HEAD", ...refs];
+}
+
 function auditHistory(allowlist) {
-  const objectLines = runGit(["rev-list", "--objects", "--all"]).trim().split("\n").filter(Boolean);
+  const historyRefs = publicationHistoryRefs();
+  const objectLines = runGit(["rev-list", "--objects", ...historyRefs]).trim().split("\n").filter(Boolean);
   const pathsByObject = new Map();
   let sensitivePathRecords = 0;
   for (const line of objectLines) {
@@ -1475,7 +1498,7 @@ function auditHistory(allowlist) {
       }
     }
   }
-  const authors = runGit(["log", "--format=%aN%x00%aE", "--all"])
+  const authors = runGit(["log", "--format=%aN%x00%aE", ...historyRefs])
     .trim()
     .split("\n")
     .filter(Boolean)
@@ -1485,7 +1508,7 @@ function auditHistory(allowlist) {
     uniqueAuthors.set(`${name}\0${email}`, { name, addressKind: /@users\.noreply\.github\.com$/i.test(email) ? "noreply" : "direct" });
   }
   return {
-    commits: Number.parseInt(runGit(["rev-list", "--count", "--all"]).trim(), 10),
+    commits: Number.parseInt(runGit(["rev-list", "--count", ...historyRefs]).trim(), 10),
     objectsWithPaths: pathsByObject.size,
     textBlobsScanned,
     sensitivePathRecords,
@@ -1808,6 +1831,14 @@ async function buildPackageEntries(version) {
         );
       data = Buffer.from(releaseReadme);
       provenance = "generated:README.md";
+    }
+    if (fileName === "research/skill-command-comparison-2026-09-24.md") {
+      const content = source.data.toString("utf8")
+        .replaceAll("../.agents/skills/self-host/", "../skills/self-host/")
+        .replaceAll("../.agents/install.md", "../INSTALL.md")
+        .replaceAll("../.agents/invocation.md", "../INVOCATION.md");
+      data = Buffer.from(content);
+      provenance = "generated:research/skill-command-comparison-2026-09-24.md";
     }
     if (fileName === "docs/README.md") {
       data = Buffer.from(applyPortabilityTransform(

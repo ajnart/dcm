@@ -7,7 +7,7 @@
       "kind": "router",
       "scope": null,
       "risk": "approval-gated-write",
-      "activation": "implicit",
+      "activation": "explicit",
       "delegatesTo": ["selfhost", "selfhost-setup", "selfhost-upkeep"],
       "install": {"group": "base", "requires": ["selfhost", "selfhost-setup", "selfhost-upkeep"]}
     },

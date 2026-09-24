@@ -3,8 +3,12 @@
 All notable public changes are documented here. The project uses pack-level
 semantic versioning; individual skills share the pack version.
 
-## 1.0.0 - Unreleased
+## 1.0.0 - 2026-09-24
 
+- Make `self-host` explicitly invoked, with a single command route for Pi and
+  OpenCode, native `$self-host` for Codex, and an optional Codex prompt bridge.
+- Add a one-step installer that registers owned command files with copied
+  skills and works from an extracted release ZIP.
 - Establish the first public compatibility contract under Apache-2.0.
 - Add an Agent Plugins 1.0 release manifest, Agent Skills-conformant flat
   discovery, Claude compatibility metadata, and checked installation for the
@@ -18,6 +22,8 @@ semantic versioning; individual skills share the pack version.
 - Add generated human and machine skill indexes.
 - Add the `skillpack` inspect, validation, scenario, benchmark, and reproducible
   packaging interface.
+- Add native Pi package metadata, Claude and Codex marketplace export, durable
+  GitHub Release assets, and generated client-specific distribution branches.
 - Run repository tooling as native TypeScript on Bun 1.4 with a typed,
   human-friendly `skillpack` CLI.
 - Replace the pre-v1 media harness default with generated credentials and

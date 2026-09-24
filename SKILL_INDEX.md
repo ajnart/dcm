@@ -4,7 +4,7 @@ Pack version: `1.0.0`
 
 | Public skill | Install group | Requires | Kind | Risk | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| [`self-host`](.agents/skills/self-host/SKILL.md) | base | selfhost, selfhost-setup, selfhost-upkeep | router | approval-gated-write | implicit | Set up or maintain self-hosted apps from names or replacement goals, with Homarr, service wiring, and private credential handoff. |
+| [`self-host`](.agents/skills/self-host/SKILL.md) | base | selfhost, selfhost-setup, selfhost-upkeep | router | approval-gated-write | explicit | User-invoked command to plan, install, or maintain self-hosted apps from names or replacement goals, with Homarr and private credential handoff. |
 
 ## Internal workflows
 

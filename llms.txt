@@ -6,7 +6,7 @@ Pack version: 1.0.0
 
 ## Public skill
 
-- [self-host](.agents/skills/self-host/SKILL.md) [base]: Set up or maintain self-hosted apps from names or replacement goals, with Homarr, service wiring, and private credential handoff.
+- [self-host](.agents/skills/self-host/SKILL.md) [base]: User-invoked command to plan, install, or maintain self-hosted apps from names or replacement goals, with Homarr and private credential handoff.
 
 ## Internal workflows
 
