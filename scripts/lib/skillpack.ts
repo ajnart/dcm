@@ -68,6 +68,7 @@ const PUBLIC_FILES = [
   "AGENTS.md",
   "NOTEPAD.md",
   "research/skills-repo-patterns.md",
+  "research/skill-command-comparison-2026-09-24.md",
   "CONTRIBUTING.md",
   "LICENSE",
   "SECURITY.md",
@@ -92,7 +93,8 @@ const PUBLIC_FILES = [
   "docs/sonarr.md",
   "docs/images/selfhost-architecture.svg",
   "docs/images/selfhost-flow.svg",
-  "homarr-dashboard.png"
+  "homarr-dashboard.png",
+  "scripts/install.ts"
 ];
 
 const PROJECTED_PUBLIC_FILES = [
@@ -369,8 +371,13 @@ function validateRegistryShape(registry, skillIds) {
     } else if (record.scope !== null) {
       errors.push(`Non-adapter ${record.id} must have null scope`);
     }
-    if (record.kind === "router" && record.activation !== "implicit") {
-      errors.push(`Router ${record.id} must use implicit activation`);
+    if (record.kind === "router") {
+      if (record.id === "self-host" && record.activation !== "explicit") {
+        errors.push("Public router self-host must use explicit activation");
+      }
+      if (record.id !== "self-host" && record.activation !== "implicit") {
+        errors.push(`Internal router ${record.id} must use implicit activation`);
+      }
     }
     if (record.kind === "workflow" && (record.activation !== "explicit" || record.scope !== null)) {
       errors.push(`Workflow ${record.id} must be explicit with null scope`);
@@ -783,6 +790,10 @@ function validateSkillMetadata(skills, registry) {
       }
       if (skill.openAi.get("allow_implicit_invocation") !== "false") {
         errors.push(`${skill.id}: explicit skill must disable implicit OpenAI invocation`);
+      }
+      if (!/^  opencode\/autoinvoke: "false"$/m.test(skill.markdown)
+        || !/^  opencode\/slash: "false"$/m.test(skill.markdown)) {
+        errors.push(`${skill.id}: OpenCode command ownership policy is missing`);
       }
     }
   }
@@ -1808,6 +1819,14 @@ async function buildPackageEntries(version) {
         );
       data = Buffer.from(releaseReadme);
       provenance = "generated:README.md";
+    }
+    if (fileName === "research/skill-command-comparison-2026-09-24.md") {
+      const content = source.data.toString("utf8")
+        .replaceAll("../.agents/skills/self-host/", "../skills/self-host/")
+        .replaceAll("../.agents/install.md", "../INSTALL.md")
+        .replaceAll("../.agents/invocation.md", "../INVOCATION.md");
+      data = Buffer.from(content);
+      provenance = "generated:research/skill-command-comparison-2026-09-24.md";
     }
     if (fileName === "docs/README.md") {
       data = Buffer.from(applyPortabilityTransform(

@@ -4,6 +4,17 @@ Use `self-host` for planning, setup, and upkeep. The public entry reads one
 selected workflow from its bundled `workflows/` directory and follows that
 workflow's links only as needed. The user does not invoke internal owners.
 
+The client slash-command template is a thin entry into the same skill.
+Pi and OpenCode expose it as `/self-host`; Codex CLI and IDE expose it as the
+deprecated `/prompts:self-host` custom prompt. Installation and reload steps
+are in `.agents/install.md` (source) or `INSTALL.md` (release). The command
+does not own a second workflow or relax any approval gate.
+
+The repository installer registers Pi and OpenCode commands alongside the
+skill. Codex uses its native `$self-host` entry unless the optional deprecated
+global prompt bridge is requested. All three receive the same command
+arguments and route through the public skill.
+
 Skill discovery normally loads names and descriptions, not every full skill.
 Invocation loads `SKILL.md`. Supporting files cost context when read; scripts
 can run without loading their source. Keep these costs separate from package
