@@ -80,6 +80,7 @@ const PUBLIC_FILES = [
   "docs/migration-v1.md",
   "docs/cli.md",
   "docs/release.md",
+  "docs/opencode-install.md",
   "docs/README.md",
   "docs/homarr.md",
   "docs/headless-access.md",
@@ -97,8 +98,7 @@ const PUBLIC_FILES = [
 const PROJECTED_PUBLIC_FILES = [
   { source: ".agents/install.md", destination: "INSTALL.md" },
   { source: ".agents/invocation.md", destination: "INVOCATION.md" },
-  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" },
-  { source: "AGENTS.md", destination: "CLAUDE.md" }
+  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" }
 ];
 
 function normalizePath(path) {

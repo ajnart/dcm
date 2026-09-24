@@ -25,6 +25,65 @@ Read-only discovery: `bunx --bun skills@latest add ajnart/selfhost-skills --list
 The upstream CLI also documents `npx skills add`; this repository uses Bun to
 run both installation and its bundled TypeScript helpers.
 
+## Native Pi package
+
+After `v1.0.0` is published, install this repository through Pi's package manager:
+
+```bash
+pi install git:github.com/ajnart/selfhost-skills@v1.0.0
+```
+
+The root `package.json` exposes the canonical `.agents/skills` directory to Pi.
+The skill is available as `/skill:self-host`. Pi saves this command to personal
+settings by default; append `--local` to `pi install` to save it in the current
+project's `.pi/settings.json`, which Pi loads after project trust is granted.
+Move the Git ref to a newer released tag before `pi update --extensions`;
+updating alone does not advance a pinned ref. See the [Pi package
+docs](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
+and [Pi skills docs](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md).
+
+## Native Claude Code plugin
+
+After the matching release and `plugin-claude` ref are published:
+
+```bash
+claude plugin marketplace add ajnart/selfhost-skills@plugin-claude
+claude plugin install selfhost-skills@selfhost-skills-claude
+```
+
+Invoke `/selfhost-skills:self-host`. To refresh, run
+`claude plugin marketplace update selfhost-skills-claude` and
+`claude plugin update selfhost-skills@selfhost-skills-claude`; start a new
+session or reload plugins if Claude asks. This route installs the published
+archive into Claude's plugin cache. A direct Skills CLI install remains
+`/self-host`; remove any duplicate entry from the same scope after checking
+the plugin. See [Claude marketplace installation](https://code.claude.com/docs/en/discover-plugins)
+and [archive sources](https://code.claude.com/docs/en/plugin-marketplaces).
+
+## Native Codex plugin
+
+After the matching release and `plugin-codex` ref are published:
+
+```bash
+codex plugin marketplace add ajnart/selfhost-skills --ref plugin-codex
+codex plugin marketplace list
+codex plugin add selfhost-skills@selfhost-skills-codex
+```
+
+Alternatively, select the `selfhost-skills-codex` marketplace in the ChatGPT
+desktop Plugins Directory and install `selfhost-skills`. Start a new task and select its
+`self-host` skill; record the picker label shown by your client. Refresh the
+catalog with `codex plugin marketplace upgrade selfhost-skills-codex` before
+installing a newer version. The Plugins Directory installs a cached copy;
+the source checkout is not the runtime dependency. `codex plugin add` was
+confirmed with Codex CLI 0.156.1; the [Codex marketplace and desktop install
+guide](https://developers.openai.com/plugins/build/plugins) documents the
+catalog and UI route.
+
+For OpenCode, follow the [native skill discovery check](https://github.com/ajnart/selfhost-skills/blob/main/docs/opencode-install.md).
+OpenCode loads the Agent Skill directly and does not require an executable
+JS/TS plugin for this workflow. [OpenCode skills](https://opencode.ai/docs/skills/).
+
 ## Agent paths and invocation
 
 These are the Skills CLI targets checked against its official source. Clients

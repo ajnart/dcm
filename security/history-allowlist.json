@@ -24,6 +24,22 @@
       "classification": "synthetic-rejection-fixture",
       "reason": "Synthetic URL userinfo in a negative test that proves credential-bearing access URLs are rejected. No deployed credential is present; acknowledgement is limited to this exact historical blob and path.",
       "reviewedFor": "1.0.0"
+    },
+    {
+      "pattern": "credential-url",
+      "blob": "d99fb5323e1590d9602567e11b40b7d7f09cc833",
+      "path": "side-projects/selfhost-online/apps/cli/client_test.go",
+      "classification": "synthetic-example",
+      "reason": "Repository owner privately reviewed this historical Go test line and confirmed it is a synthetic example. Acknowledgement is limited to this exact blob, path, and pattern; the value was not inspected or printed during release preparation.",
+      "reviewedFor": "1.0.0"
+    },
+    {
+      "pattern": "credential-url",
+      "blob": "8cfca266f413b91e8bb6d490455ac1758f6f57ae",
+      "path": "side-projects/selfhost-online/deploy/server.env.example",
+      "classification": "synthetic-example",
+      "reason": "Repository owner privately reviewed this historical deployment example line and confirmed it is synthetic. Acknowledgement is limited to this exact blob, path, and pattern; the value was not inspected or printed during release preparation.",
+      "reviewedFor": "1.0.0"
     }
   ]
 }
