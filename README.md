@@ -51,7 +51,19 @@ for the replacement boundaries. Catalog coverage remains broader than the
 seven-service tested media harness; other setups retain their stated guided
 or discovery status until verified.
 
-## Install the command
+## Install in Pi
+
+Install the rolling package and update it with Pi:
+
+```bash
+pi install git:github.com/ajnart/selfhost-skills
+pi update --extensions
+```
+
+This registers `/self-host` and `/skill:self-host`. Pin a release tag instead
+when stability matters; pinned refs must be advanced explicitly.
+
+## One-step multi-client installer
 
 Clone this repository, then install into the project where you will invoke it:
 
