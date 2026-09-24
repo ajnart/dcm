@@ -51,9 +51,11 @@ intent; refresh actual host and service evidence before resuming. Mutation stays
 within the exact approved owner's project. Public access, destructive changes,
 VPN routing, and restores retain their own gates and evidence requirements.
 
-Ask for usernames, not passwords. Generate credentials or resolve private
-references through the owning helper. Requested credential exports use the
-private handoff file; report its path without printing secret values. Upkeep
+Confirm a username and password policy, never a password value. `defaults`
+selects `admin` and a generated password for the managed media adapter.
+Generate credentials or resolve private references through the owning helper.
+Requested credential exports use the private handoff file; report its path
+without printing secret values. Upkeep
 re-exports only when requested.
 
 ## Access and completion

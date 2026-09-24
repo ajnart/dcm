@@ -5,10 +5,10 @@
   "defaultControlPlane": {
     "id": "control-plane",
     "name": "Homarr access",
-    "required": true,
+    "required": false,
     "default": "homarr",
     "choices": ["homarr"],
-    "reason": "Homarr is the standard private front door for every planned stack.",
+    "reason": "Homarr is the recommended private front door; omit it when the user prefers app-only access.",
     "purpose": "Homarr is the dashboard for opening selected apps and seeing useful live information from supported integrations and widgets; its MCP endpoint provides bounded agent access.",
     "gates": ["exposure", "secrets"]
   },

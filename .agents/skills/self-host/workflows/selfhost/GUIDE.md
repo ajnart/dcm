@@ -19,8 +19,9 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
    stated goal. With no new goal, use that command to resume only the supplied
    root. Never search unrelated directories for project state.
 3. An exact application name selects that application, its required
-   dependencies, and Homarr. Do not expand it into a broader goal stack. If the
-   result is ambiguous or needs composition, show its candidates or
+   dependencies, and Homarr by default. `--select control-plane=none` omits
+   Homarr when the user declines it. Do not expand it into a broader goal stack.
+   If the result is ambiguous or needs composition, show its candidates or
    components and resolve every open intent. Preserve all branches of a clear
    composite request.
 4. Use `catalog search` or `catalog show` for individual applications instead
@@ -30,8 +31,8 @@ Turn a goal into a bounded plan. Keep planning separate from mutation.
    Saved checkpoints explain intent but never prove current host state. Adopt a
    resource only after its ownership is known.
 6. Present selected services, their purposes, alternatives, required skills,
-   gates, unresolved decisions, and Homarr coverage. Homarr is the required
-   private control plane for every plan.
+   gates, unresolved decisions, and Homarr coverage when selected. Homarr is
+   the recommended private control plane, not a prerequisite for an app-only plan.
 7. After confirmed non-secret intent, use `state init` or `state revise` as the
    separate persistence step. Record a checkpoint only for work that happened
    and only with a real typed evidence ID.

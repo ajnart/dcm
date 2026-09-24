@@ -55,7 +55,8 @@ existing `.sessions` tree and rejects other unrecognized runtime content.
    private file. Re-export on upkeep only when requested. Partial setup must
    remain explicitly incomplete in the setup report.
 
-Ask for the admin username before `create`; never silently choose `admin`.
+Confirm the admin username before `create`. `defaults` selects `admin` and a
+generated password; do not silently select a username without that consent.
 Read the installed `docs/browser-benchmark.md` and use `browser-benchmark.ts
 lookup SERVICE` for the selected service’s direct browser paths. Use
 `browser-key refs` instead of visible snapshots on populated API-key pages.

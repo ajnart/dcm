@@ -165,7 +165,7 @@ const genericMediaPlan = buildPlan(catalog, personalMedia);
 assert.equal(genericMediaPlan.effectiveAutomation, "guided");
 assert.deepEqual(genericMediaPlan.requiredSkills, [...genericMediaPlan.requiredSkills].sort());
 assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").selected, "homarr");
-assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").required, true);
+assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").required, false);
 assert.equal(genericMediaPlan.selectedApps.some((app) => app.id === "homarr"), true);
 assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-homarr"), true);
 assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-media"), false);
@@ -198,7 +198,7 @@ assert.notEqual(changedCoveragePlan.planId, buildPlan(catalog, photos).planId);
 for (const stack of catalog.stacks) {
   const defaultPlan = buildPlan(catalog, stack);
   const controlPlane = defaultPlan.roles.find((role) => role.id === "control-plane");
-  assert.equal(controlPlane.required, true);
+  assert.equal(controlPlane.required, false);
   assert.equal(controlPlane.selected, "homarr");
   assert.equal(defaultPlan.selectedApps.some((app) => app.id === "homarr"), true);
   assert.equal(defaultPlan.requiredSkills.includes("selfhost-homarr"), true);
@@ -223,9 +223,14 @@ const unknownAdapter = structuredClone(catalog);
 unknownAdapter.apps.find((app) => app.id === "homarr").support.adapterSkill = "selfhost-missing";
 assert.equal(validateCatalog(unknownAdapter).errors.some((error) => error.includes("not available as an application adapter in this skill pack")), true);
 
-const optionalControlPlane = structuredClone(catalog);
-optionalControlPlane.taxonomy.defaultControlPlane.required = false;
-assert.equal(validateCatalog(optionalControlPlane).errors.some((error) => error.includes("defaultControlPlane: must be required")), true);
+const requiredControlPlane = structuredClone(catalog);
+requiredControlPlane.taxonomy.defaultControlPlane.required = true;
+assert.equal(validateCatalog(requiredControlPlane).errors.some((error) => error.includes("defaultControlPlane: must be optional")), true);
+
+const appOnlyMedia = buildPlan(catalog, personalMedia, { "control-plane": "none" });
+assert.equal(appOnlyMedia.selectedApps.some((app) => app.id === "homarr"), false);
+assert.equal(appOnlyMedia.requiredSkills.includes("selfhost-homarr"), false);
+assert.equal(appOnlyMedia.acceptance.some((claim) => /homarr/i.test(claim)), false);
 
 const wrongControlPlaneDefault = structuredClone(catalog);
 wrongControlPlaneDefault.taxonomy.defaultControlPlane.default = null;

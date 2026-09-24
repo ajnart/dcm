@@ -662,7 +662,7 @@ function validateCatalogDocument(catalog) {
     validateRoleShape(controlPlane, "taxonomy defaultControlPlane", appIds, errors);
     if (isPlainObject(controlPlane)) {
       addError(errors, controlPlane.id === "control-plane", "taxonomy defaultControlPlane: id must be control-plane");
-      addError(errors, controlPlane.required === true, "taxonomy defaultControlPlane: must be required");
+      addError(errors, controlPlane.required === false, "taxonomy defaultControlPlane: must be optional");
       addError(errors, controlPlane.default === "homarr", "taxonomy defaultControlPlane: default must be homarr");
       addError(errors, JSON.stringify(controlPlane.choices) === JSON.stringify(["homarr"]), "taxonomy defaultControlPlane: choices must contain only homarr");
     }
@@ -1377,6 +1377,9 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       gates: role.gates
     });
   }
+  if (stack.id === "homarr-control-plane" && !selectedIds.includes("homarr")) {
+    throw new Error("This goal is Homarr itself; choose another goal to plan an app-only stack.");
+  }
 
   const dependencies = expandDependencies(catalog, selectedIds);
   const allAppIds = [...new Set([...selectedIds, ...dependencies.implied.map((entry) => entry.app)])];
@@ -1401,8 +1404,7 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
       .sort((left, right) => left.id.localeCompare(right.id))
   };
   for (const role of roles) {
-    const isHomarrRole = role.selected === "homarr" || role.alternatives.includes("homarr");
-    if (isHomarrRole) {
+    if (role.selected === "homarr") {
       role.controlPlaneCoverage = homarrCoverage;
     }
   }
@@ -1528,6 +1530,16 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
   });
   const planId = createHash("sha256").update(hashInput).digest("hex").slice(0, 16);
   const acceptance = new Set(stack.acceptance);
+  if (!selectedIds.includes("homarr")) {
+    for (const criterion of acceptance) {
+      if (/homarr/i.test(criterion)) {
+        acceptance.delete(criterion);
+      }
+    }
+    if (stack.id === "full") {
+      acceptance.add("The selected media services pass their API, UI, and relationship checks without an automatically chosen indexer.");
+    }
+  }
   if (selectedIds.includes("homarr")) {
     acceptance.add("Every selected Homarr app tile opens the intended private service.");
     acceptance.add("Every configured Homarr integration authenticates and returns expected data.");
@@ -1557,13 +1569,25 @@ export function buildPlan(catalog, stack, selections = {}, preferences = null) {
 
   const setupStages = [];
   if (stack.id === "full") {
+    const mediaApps = ["jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent"];
+    let mediaNote = "Six-service setup omits Homarr. Verify each service and its links independently; the current media harness still defines a Homarr container, so do not claim a fully managed app-only apply.";
+    let mediaOwner = "selfhost-compose";
+    let mediaMode = "guided";
+    let mediaAutomation = "guided";
+    if (selectedIds.includes("homarr")) {
+      mediaApps.push("homarr");
+      mediaNote = "Uses the supported media harness and APIs for repeatable setup, with browser onboarding, credential capture, and proof. An authorized content source remains a separate choice.";
+      mediaOwner = "selfhost-media";
+      mediaMode = "hybrid";
+      mediaAutomation = "executable";
+    }
     setupStages.push({
       id: "media",
-      owner: "selfhost-media",
-      mode: "hybrid",
-      automation: "executable",
-      apps: ["jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent", "homarr"],
-      note: "Uses the supported media harness and APIs for repeatable setup, with browser onboarding, credential capture, and proof. An authorized content source remains a separate choice."
+      owner: mediaOwner,
+      mode: mediaMode,
+      automation: mediaAutomation,
+      apps: mediaApps,
+      note: mediaNote
     });
     setupStages.push({
       id: "household-apps",

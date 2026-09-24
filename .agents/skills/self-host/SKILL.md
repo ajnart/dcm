@@ -16,14 +16,17 @@ Route the command's arguments before loading a workflow:
 
 | Input | Route |
 | --- | --- |
-| No app or goal | Ask what the user wants to self-host |
+| No app or goal | Ask what the user wants to do or replace; offer a few examples |
 | `plan <goal>` or `compare <goal>` | Planning |
 | `install <app or goal>` or a named app/replacement goal | Setup |
 | `status`, `verify`, `add`, `update`, or `repair` | Upkeep |
 
-The command expresses intent, not approval to change a host. Explain the proposed apps in plain language. Include Homarr as the dashboard
-for opening apps and seeing connected services. A named app selects that app,
-its dependencies, and Homarr; optional services need a user choice.
+The command expresses intent, not approval to change a host. Recommend only
+services that serve the stated goal, explaining each in plain language. Offer
+Homarr as the dashboard and agent front door; a user can decline it. Read the
+[conversation contract](workflows/selfhost/references/conversation.md) for new
+setups or changed choices. Ask one compact question at a time, skip answers
+already supplied, and accept `defaults` for the recommended non-secret choices.
 
 Confirm the target host and project directory. Check only that directory for
 `.selfhost/stack.json`, then read **one** workflow:
@@ -43,9 +46,12 @@ run helpers by absolute path. They are ordinary files, not additional skills
 to install or ask the user to invoke. Search the selected workflow or query
 the catalog CLI instead of loading every guide or catalog record.
 
-Follow inspect → plan → approval → apply → verify. Ask for the username;
-generate passwords through the owning helper. Keep credentials out of chat
-and normal reports; provide the private handoff path when requested.
+Follow inspect → plan → approval → apply → verify. Confirm the username
+(`admin` for managed media when the user accepts defaults) and whether to generate a password
+(recommended) or use a supported private credential source. Never collect
+password values in chat. Generate and save credentials through the owning
+helper; provide only the private handoff path in normal reports. `defaults`
+never approves deployment, public access, or destructive work.
 
 Continue through the selected workflow's completion criteria. End with what
 changed, verified access links, saved artifact paths, and any concrete blockers.

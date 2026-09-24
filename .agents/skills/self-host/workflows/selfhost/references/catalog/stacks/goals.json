@@ -6,7 +6,7 @@
     "acceptance": ["The selected control plane is API-ready on its private service route.", "Administrator onboarding completes without exposing credentials.", "Configuration storage has protected backup and restore guidance."]
   },
   {
-    "id": "full", "name": "Full private home server", "aliases": ["full homelab", "everything for my homelab", "complete private home server"], "summary": "Set up one bounded household stack for owned media, photos, files, music, audiobooks, passwords, and Homarr, with home automation available only when selected.", "categories": ["dashboard", "media", "requests", "downloads", "photos", "files", "passwords", "home-automation"], "automation": "guided",
+    "id": "full", "name": "Full private home server", "aliases": ["full homelab", "everything for my homelab", "complete private home server"], "summary": "Set up one bounded household stack for owned media, photos, files, music, audiobooks, and passwords, with Homarr as the recommended dashboard and home automation available only when selected.", "categories": ["dashboard", "media", "requests", "downloads", "photos", "files", "passwords", "home-automation"], "automation": "guided",
     "roles": [
       {"id": "media-playback", "name": "Movies and shows", "required": true, "default": "jellyfin", "choices": ["jellyfin"], "reason": "Stream an owned movie and TV library through the supported media setup.", "purpose": "Jellyfin gives your owned movies and shows a TV-style library and playback experience; it does not supply subscription content.", "gates": ["storage", "hardware", "exposure"]},
       {"id": "media-requests", "name": "Media requests", "required": true, "default": "seerr", "choices": ["seerr"], "reason": "Use the supported media setup for approved search and request workflows.", "purpose": "Seerr lets approved household users search for and request movies or shows from authorized sources.", "gates": ["secrets", "legal"]},
@@ -40,7 +40,7 @@
     "acceptance": ["Every selected application is API-ready on service-name DNS.", "Seerr reaches playback plus the selected Arr services.", "Shared paths support the selected import and hardlink policy."]
   },
   {
-    "id": "owned-video-library", "name": "Owned movie and TV library", "aliases": ["netflix", "replace netflix", "my own netflix", "owned movie library", "owned tv library"], "summary": "Stream movies and shows you already own through Jellyfin and Homarr without implying a content subscription.", "categories": ["media", "dashboard"], "automation": "guided",
+    "id": "owned-video-library", "name": "Owned movie and TV library", "aliases": ["netflix", "replace netflix", "my own netflix", "owned movie library", "owned tv library"], "summary": "Stream movies and shows you already own through Jellyfin, with Homarr as the recommended dashboard and no implied content subscription.", "categories": ["media", "dashboard"], "automation": "guided",
     "roles": [
       {"id": "playback", "name": "Owned-library playback", "required": true, "default": "jellyfin", "choices": ["jellyfin"], "reason": "Jellyfin indexes and streams the authorized media files supplied by the owner.", "purpose": "Jellyfin streams your existing movie and TV files; it does not include or sell a catalog of content.", "gates": ["storage", "hardware", "exposure"]}
     ],

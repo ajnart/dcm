@@ -20,7 +20,10 @@ or confirmed non-secret preferences.
    created. Initialize or revise project state and persist only confirmed,
    non-secret preferences. Keep planning commands read-only.
 
-`defaults` selects catalog defaults, required Homarr, and private-first planning defaults.
+`defaults` selects catalog defaults, the recommended Homarr dashboard, `admin`
+as the media administrator username, a generated password, and private-first
+planning defaults. Confirm those choices in the plan; a user may change or
+decline them.
 Other optional roles remain off until explicitly selected. It does
 not approve apply, public exposure, destructive work, privilege expansion, a
 VPN change, or a migration.
@@ -41,8 +44,8 @@ Use this order, skipping settled branches:
    Confirm the root before reading elsewhere or writing project-local state.
 4. **Services.** Present the catalog default first and explain its purpose.
    Name only alternatives that change support, complexity, or capability.
-   Include Homarr as the standard private dashboard and read-only agent-facing
-   MCP front door.
+   Offer Homarr as the standard private dashboard and read-only agent-facing
+   MCP front door; ask only if the user signals they may not want it.
 5. **Paths.** After fresh host inspection, propose config, data, media,
    download, and backup paths that are relevant to the selected services. Ask
    only about mappings the host facts cannot settle.
@@ -54,13 +57,16 @@ Use this order, skipping settled branches:
    Ask about downloader-only VPN routing only when downloads are selected or
    the user mentions it. Treat bare `VPN` as ambiguous between private remote
    access and downloader privacy.
-8. **Credentials.** Ask for a policy, never a secret value: generated defaults,
-   an existing secret-manager reference, or custom credentials entered later
-   through a supported private apply boundary.
+8. **Credentials.** Confirm the username and ask for a policy, never a secret
+   value: generated password (recommended), an existing secret-manager
+   reference, or custom credentials entered later through a supported private
+   apply boundary. Accept `defaults` as `admin` plus a generated password for
+   the managed media adapter.
 
-For the managed `selfhost-media` adapter, ask once for the username before the
-run is created. The harness uses it across supported services and generates a
-per-run password. Confirm the username in the plan; never ask the user to
+For the managed `selfhost-media` adapter, confirm the username before the run
+is created. The harness uses it across supported services and generates a
+per-run password. `admin` is valid only after the user accepts defaults or
+explicitly chooses it. Confirm the username in the plan; never ask the user to
 invent or paste a password. When saved credentials are explicitly requested,
 run the media handoff helper. It writes `.sessions/<run>/artifacts/private-handoff.json`
 (mode `0600`) with the generated password, usernames, available API keys, URLs

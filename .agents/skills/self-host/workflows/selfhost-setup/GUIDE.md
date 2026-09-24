@@ -14,12 +14,19 @@ Activation gate: proceed for explicit `selfhost-setup`, `self-host` setup
 intent, or a request to change a self-hosted stack. Continue until verified or
 concretely blocked.
 
+Start with the [conversation contract](../selfhost/references/conversation.md).
+Ask only for choices the request or saved project has not answered. Offer a
+short recommendation and let `defaults` accept it; collect a credential policy,
+never a password in chat. Confirm the exact selection before the apply gate.
+
 ## Workflow
 
 1. Read [install-profiles.json](references/install-profiles.json). Explain the
    selection plainly. Start with `basic`; add only selected packs/extensions.
    Their union retains basic setup, upkeep, and Homarr support without silently
-   selecting other optional profiles.
+   selecting other optional profiles. If the user declines Homarr, do not use
+   these Homarr-bearing profiles as an app-only installer. Produce the app-only
+   plan and use a supported focused owner, or report the managed-adapter gap.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
    scripts/stack.ts prerequisites` with every selected `--profile`, the active
    client ID, and the intended project/global scope. Project scope also
@@ -34,9 +41,10 @@ concretely blocked.
    the official `agent-browser` skill, runtime, and browser through this flow.
 3. Run `agent-browser skills get core` after the browser check passes. Treat
    that live workflow as authoritative for browser commands.
-4. Resolve choices with `selfhost`. Ask once for the username; the adapter
-   generates its password. Inspect with `selfhost-host`, record `selfhost state
-   init`, and resolve ownership, paths, ports, and private access.
+4. Resolve choices with `selfhost`. Confirm the username (`admin` for managed
+   media if the user accepted defaults); the adapter generates its password.
+   Inspect with `selfhost-host`, record `selfhost state init`, and resolve
+   ownership, paths, ports, and private access.
 5. After the user approves the exact apply, initialize `.selfhost/stack.json`
    with `bun scripts/stack.ts init`. Read [lifecycle.md](references/lifecycle.md)
    for the metadata contract and checkpoint rules. Record every selected
@@ -47,7 +55,7 @@ concretely blocked.
    adapter will create in the next step.
 6. Delegate mutation to the selected owner. For `full`, execute the stages in
    [lifecycle.md](references/lifecycle.md#full-stack-stages) and reuse one Homarr.
-   Every stack invokes
+   A stack with Homarr invokes
    `selfhost-homarr` after its underlying services are ready, then uses
    agent-browser for onboarding, selected app links and integrations, private
    API-key capture, and UI evidence. The `media` pack instead invokes
@@ -79,7 +87,7 @@ and continuation. Prerequisites check one installed `self-host` package and
 its selected workflow files; profiles do not require separate skill installs.
 
 Completion requires a passing prerequisite check, recorded selection, explicit
-apply approval, direct acceptance evidence for every selected service and
-Homarr, and a verified stack checkpoint. Media additionally requires
+apply approval, direct acceptance evidence for every selected service (and
+Homarr when selected), and a verified stack checkpoint. Media additionally requires
 password-free connection storage and, when requested, the owner-only private
 credential export with its path delivered to the user.

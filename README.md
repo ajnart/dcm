@@ -1,9 +1,33 @@
 # Self-host
 
-One skill to turn “replace Google Photos” or “set up a password manager” into a
-working self-hosted setup, connected to **Homarr**. The agent explains the apps,
-asks for your username, generates passwords, configures supported services,
-and hands back access links and an optional private credentials file.
+Own your photos, media, files, and passwords instead of depending on another
+subscription. Tell your coding agent what you want; it helps choose, install,
+connect, and verify self-hosted apps. **Homarr** is the recommended dashboard
+and agent front door, not a requirement for every goal.
+
+## Install without cloning this repo
+
+From the project that should own your stack, run this one command (Git and Bun
+1.4+ required; authenticate to GitHub first if this repository is private):
+
+```bash
+bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --copy --yes
+```
+
+Then ask Codex: `$self-host photos`, `$self-host Netflix`, or just `$self-host`.
+Add `--global` to install for all projects. For Claude Code, replace
+`--agent codex` with `--agent claude-code` and invoke `/self-host`; other
+clients are listed [below](#skills-cli-alternative). The installed copy
+contains the workflows, catalog, scripts, and media harness. It does not use
+this source checkout at runtime. Installing the skill does not deploy apps.
+
+![Conversation, approval, and verification flow](docs/images/selfhost-flow.svg)
+
+The agent asks only for choices that change your setup. “Defaults” means a
+recommended private setup, username `admin` for the managed media stack, and a
+generated password. You can choose another username or a supported private
+credential source. The agent never asks you to paste a password into chat;
+deployment still waits for your approval of the exact plan.
 
 ## Tell it what you want to replace
 
@@ -30,11 +54,12 @@ below for Codex syntax.
 | Smart-home control, optional voice and cameras | **Home Assistant**, optionally **Scrypted** | Connect compatible devices, automations and camera systems. |
 | Files, office work or notes | **Nextcloud**, with tools chosen for your needs | Share files and add document collaboration when needed; evaluate local note apps separately. |
 
-Every stack includes **Homarr**, a nice dashboard to open your self-hosted
-apps and see useful information from connected services. Setup checks the
+**Homarr** gives you one place to open apps, see connected services, and use
+its read-only MCP integration from a coding agent. Setup checks the
 available integrations and widgets; a shortcut alone isn't a tested integration.
 Moving existing data and setting up a separate backup are planned before switching.
-We currently use `ghcr.io/homarr-labs/homarr-test:v2`.
+The managed seven-service media recipe currently includes Homarr and uses
+`ghcr.io/homarr-labs/homarr-test:v2`. Other plans may omit Homarr when you ask.
 
 Caddy is an optional way to give apps friendly HTTPS addresses. Setup reuses an
 existing proxy where possible and keeps access private unless you choose
@@ -63,7 +88,7 @@ pi update --extensions
 This registers `/self-host` and `/skill:self-host`. Pin a release tag instead
 when stability matters; pinned refs must be advanced explicitly.
 
-## One-step multi-client installer
+## Optional source installer for named commands
 
 Clone this repository, then install into the project where you will invoke it:
 
@@ -72,9 +97,10 @@ git clone https://github.com/ajnart/selfhost-skills.git /tmp/selfhost-skills
 bun /tmp/selfhost-skills/scripts/install.ts --agent pi --agent opencode --scope project --project-root /path/to/your/project
 ```
 
-This installs the skill and registers `/self-host` for Pi and OpenCode in one
-step. For Codex, use `--agent codex`; invoke `$self-host` or select it with
-`/skills`. Codex has no supported project slash command. To install globally,
+This installs the skill and registers `/self-host` for Pi and OpenCode. The
+single Skills CLI command above is enough for normal skill use; clone only if
+you want this command adapter. For Codex, use `--agent codex`; invoke
+`$self-host` or select it with `/skills`. Codex has no supported project slash command. To install globally,
 use `--scope global` and omit `--project-root`. Add `--codex-prompt` only if you
 want Codex's deprecated global `/prompts:self-host` bridge.
 
@@ -142,13 +168,14 @@ needed for your request. Codex's custom prompts are deprecated and use the
 Example exchange (illustrative, not a deployment log):
 
 ```text
-You: /self-host plan replace Google Photos
-Agent: Immich handles photo backup; Homarr opens the services. I need the
-       project directory and access devices before proposing storage.
-       No host changes were made.
-You: /self-host install Immich in /srv/photos for phones on my home network
+You: $self-host personal media
+Agent: Jellyfin plays your library; Seerr handles requests. Homarr is the
+       optional dashboard.
+       Recommended: private home-network access, username admin, generated
+       password. Use defaults, or tell me what to change?
+You: Defaults; use /srv/media and username alex.
 Agent: [inspects host] Here is the exact project, storage, access, and
-       verification plan. Approve this apply?
+       verification plan. No host changes yet. Approve this apply?
 You: Approve the proposed apply.
 Agent: [applies and verifies] Reports working links, checks, artifact paths,
        and remaining gaps. Secrets stay in private files.
@@ -156,14 +183,34 @@ Agent: [applies and verifies] Reports working links, checks, artifact paths,
 
 ## What setup does
 
-1. Explain the apps and ask only for missing choices: host, storage, access,
-   username, and any required email.
+1. Ask what you want to do, then recommend apps with a one-line purpose for
+   each. Accept `defaults`, or ask one short question when a choice matters:
+   people/devices, storage, access, username, or credential policy.
 2. Inspect the host and show a concrete plan before making changes.
 3. Check prerequisites and install the official `agent-browser` tooling when
    needed. Apply only the approved Compose projects.
 4. Configure apps using supported APIs or browser paths, capture keys privately,
    and connect Homarr integrations and widgets where supported.
-5. Verify the selected services and return links, locations, and remaining gaps.
+5. Verify the selected services and return links, what each service does,
+   locations, credential-handoff path, and remaining gaps.
+
+![The composable skill, catalog, capabilities, and bounded scripts](docs/images/selfhost-architecture.svg)
+
+The public [`SKILL.md`](.agents/skills/self-host/SKILL.md) routes the request.
+Focused Markdown guides own setup, upkeep, networking, backups, media, and
+Homarr. Catalog records describe apps and dependencies; scripts perform
+repeatable host inspection, Compose operations, API setup, and verification.
+The agent loads only the guides for your goal. Adding an app usually means a
+catalog record; a special workflow is needed only when its setup cannot be
+described by shared capabilities. See the [workflow index](SKILL_INDEX.md) and
+[contributor guide](CONTRIBUTING.md).
+
+For example, in the managed media pack, Jellyfin plays your library, Seerr
+takes requests, Sonarr and Radarr organize shows and movies, Prowlarr connects
+an authorized indexer, and qBittorrent downloads through the configured route.
+Homarr can show those services, but a dashboard tile, a saved integration, and
+a working widget are three different verification claims. The agent reports
+each separately. No media or indexer source is selected for you.
 
 Homarr runs with `ghcr.io/homarr-labs/homarr-test:v2` for now. App shortcuts,
 working integrations, and working widgets are checked separately. The default
@@ -193,7 +240,9 @@ or the [media headless guide](docs/headless-access.md).
 
 ## Credentials and resuming
 
-The agent asks for a username and generates passwords through the owning helper.
+The agent confirms a username (`admin` if you choose defaults) and generates
+passwords through the owning helper. If you prefer a custom password, choose
+a supported private entry method; do not paste it into the chat.
 Existing passwords and API keys stay out of chat, commands, screenshots, and
 ordinary reports. When requested, the private handoff is a mode-0600
 `private-handoff.json` containing available credentials, URLs, and storage paths.
@@ -205,6 +254,13 @@ progress live in `.selfhost/preferences.json`, `.selfhost/project.json`, and
 `.selfhost/stack.json`. The media adapter retains wiring keys in its private,
 password-free `connections.env`. Upkeep checks real host state before resuming
 and re-exports credentials only when requested.
+
+Ask `$self-host status` to see what is actually running, `$self-host verify` to
+recheck connections, or `$self-host repair` to diagnose a failure. For a managed
+media run, the installed harness also exposes scoped `session status RUN_ID`,
+`session doctor RUN_ID`, and `session up RUN_ID` through
+`selfhost-media/scripts/media-runtime.ts`; the agent will resolve the installed
+path and exact run ID from this project. It never needs the source repo.
 
 ## One skill, on-demand workflows
 
