@@ -10,5 +10,22 @@
   "homepage": "https://github.com/ajnart/selfhost-skills",
   "repository": "https://github.com/ajnart/selfhost-skills",
   "license": "Apache-2.0",
-  "keywords": ["self-hosting", "docker-compose", "homarr", "privacy"]
+  "keywords": ["self-hosting", "docker-compose", "homarr", "privacy"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Self-host",
+        "shortDescription": "Plan and manage private self-hosted services.",
+        "longDescription": "Choose services, inspect a host, review a concrete plan, then set up and maintain an approved private stack with verification.",
+        "developerName": "ajnart",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/ajnart/selfhost-skills",
+        "defaultPrompt": [
+          "Use self-host to plan a private photo backup service.",
+          "Use self-host to review and maintain my existing stack."
+        ]
+      }
+    }
+  }
 }

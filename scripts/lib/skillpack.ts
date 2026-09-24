@@ -81,6 +81,7 @@ const PUBLIC_FILES = [
   "docs/migration-v1.md",
   "docs/cli.md",
   "docs/release.md",
+  "docs/opencode-install.md",
   "docs/README.md",
   "docs/homarr.md",
   "docs/headless-access.md",
@@ -99,8 +100,7 @@ const PUBLIC_FILES = [
 const PROJECTED_PUBLIC_FILES = [
   { source: ".agents/install.md", destination: "INSTALL.md" },
   { source: ".agents/invocation.md", destination: "INVOCATION.md" },
-  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" },
-  { source: "AGENTS.md", destination: "CLAUDE.md" }
+  { source: ".agents/CONTEXT.md", destination: "CONTEXT.md" }
 ];
 
 function normalizePath(path) {
@@ -1432,8 +1432,20 @@ function validateHistoryAllowlist(document) {
   return entries;
 }
 
+function publicationHistoryRefs() {
+  const refs = runGit([
+    "for-each-ref",
+    "--format=%(refname)",
+    "refs/heads",
+    "refs/remotes",
+    "refs/tags"
+  ]).trim().split("\n").filter(Boolean);
+  return ["HEAD", ...refs];
+}
+
 function auditHistory(allowlist) {
-  const objectLines = runGit(["rev-list", "--objects", "--all"]).trim().split("\n").filter(Boolean);
+  const historyRefs = publicationHistoryRefs();
+  const objectLines = runGit(["rev-list", "--objects", ...historyRefs]).trim().split("\n").filter(Boolean);
   const pathsByObject = new Map();
   let sensitivePathRecords = 0;
   for (const line of objectLines) {
@@ -1486,7 +1498,7 @@ function auditHistory(allowlist) {
       }
     }
   }
-  const authors = runGit(["log", "--format=%aN%x00%aE", "--all"])
+  const authors = runGit(["log", "--format=%aN%x00%aE", ...historyRefs])
     .trim()
     .split("\n")
     .filter(Boolean)
@@ -1496,7 +1508,7 @@ function auditHistory(allowlist) {
     uniqueAuthors.set(`${name}\0${email}`, { name, addressKind: /@users\.noreply\.github\.com$/i.test(email) ? "noreply" : "direct" });
   }
   return {
-    commits: Number.parseInt(runGit(["rev-list", "--count", "--all"]).trim(), 10),
+    commits: Number.parseInt(runGit(["rev-list", "--count", ...historyRefs]).trim(), 10),
     objectsWithPaths: pathsByObject.size,
     textBlobsScanned,
     sensitivePathRecords,

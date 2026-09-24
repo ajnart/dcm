@@ -9,6 +9,9 @@
   "engines": {
     "bun": ">=1.4.0"
   },
+  "pi": {
+    "skills": ["./.agents/skills"]
+  },
   "scripts": {
     "selfhost": "bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts",
     "stack": "bun .agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts",

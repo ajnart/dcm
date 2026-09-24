@@ -101,7 +101,15 @@ Use only the `--agent` flags you need. Omit `--global` for a project install;
 omit `--copy` for the installer's normal symlink layout. `--all` targets every
 supported agent, which is usually unnecessary. Other Agent Skills clients can
 copy the whole `.agents/skills/self-host/` directory into their own skill folder.
-See [installation and migration](.agents/install.md) for paths and older installs.
+See [installation and migration](.agents/install.md) for paths and older installs;
+the [OpenCode install guide](docs/opencode-install.md) includes a discovery check.
+
+For native package routes, the versioned release provides a Claude Code plugin
+marketplace and a Codex marketplace on the `plugin-claude` and `plugin-codex`
+Git refs. Pi can install the source repository as a Git package. OpenCode uses
+its Agent Skills loader; it does not need a JS plugin for this workflow. See
+[the install guide](.agents/install.md) for client commands and
+[the release gate](docs/release.md) for publication checks.
 
 | Agent | Start a conversation |
 | --- | --- |
@@ -208,8 +216,9 @@ package. No runtime helper depends on a later repository checkout.
 
 The release ZIP follows [Agent Plugins 1.0](https://agent-plugins.org/specification)
 with one `skills/self-host/SKILL.md`, plus Claude Code compatibility metadata.
-The repository's [CLAUDE.md](CLAUDE.md) links to [AGENTS.md](AGENTS.md) so contributor
-instructions have one source. That link is not required for using the installed skill.
+The source repository's `CLAUDE.md` symlink points to `AGENTS.md` for
+contributors. That alias is not part of the release ZIP or needed by the
+installed skill.
 
 ## Develop and inspect
 
