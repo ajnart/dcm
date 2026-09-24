@@ -5,6 +5,10 @@ semantic versioning; individual skills share the pack version.
 
 ## 1.0.0 - Unreleased
 
+- Make `self-host` explicitly invoked, with a single command route for Pi and
+  OpenCode, native `$self-host` for Codex, and an optional Codex prompt bridge.
+- Add a one-step installer that registers owned command files with copied
+  skills and works from an extracted release ZIP.
 - Establish the first public compatibility contract under Apache-2.0.
 - Add an Agent Plugins 1.0 release manifest, Agent Skills-conformant flat
   discovery, Claude compatibility metadata, and checked installation for the

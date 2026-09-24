@@ -242,7 +242,11 @@ function validateSkillRegistry(registry, errors) {
       addError(errors, record.scope === null, `skill ${label}: non-adapter scope must be null`);
     }
     if (record.kind === "router") {
-      addError(errors, record.activation === "implicit", `skill ${label}: router activation must be implicit`);
+      if (record.id === "self-host") {
+        addError(errors, record.activation === "explicit", `skill ${label}: public router activation must be explicit`);
+      } else {
+        addError(errors, record.activation === "implicit", `skill ${label}: internal router activation must be implicit`);
+      }
     }
     if (record.kind === "workflow") {
       addError(errors, record.activation === "explicit", `skill ${label}: workflow activation must be explicit`);
