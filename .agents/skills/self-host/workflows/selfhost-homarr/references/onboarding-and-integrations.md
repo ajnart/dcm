@@ -2,7 +2,7 @@
 
 ## Default control-plane role
 
-Homarr is the standard private front door for every selected stack. It can
+When selected, Homarr is the private front door for the stack. It can
 collect navigation, health, widgets, and agent-readable integrations without
 becoming a runtime dependency of those apps. A Homarr outage must not stop the
 underlying services from operating independently.
@@ -13,6 +13,28 @@ reachable only from the private network. Keep native `/api/mcp` access private
 for the local bridge. This is a topology recommendation, not permission to
 configure it. Public exposure requires a separate ingress and authentication
 plan.
+
+## New-path onboarding notes
+
+After a **New** setup is verified, create exactly two private Homarr Notebook
+note widgets. Match existing widgets by the marker in their content and update
+them instead of creating duplicates.
+
+1. Marker: `SELFHOST_ONBOARDING_VAULTWARDEN_V1`
+   Title: `Add a password manager`
+   Body: `Ask your self-hosting agent to install Vaultwarden when you want a private place for passwords.`
+2. Marker: `SELFHOST_ONBOARDING_PHONE_ACCESS_V1`
+   Title: `Use your services away from home`
+   Body: `Ask your self-hosting agent to enable private phone access with Tailscale when you need it.`
+
+Use Homarr item kind `notebook`. Place both on the user's private board, keep
+the toolbar hidden, and include no URL, credential, token, API key, or automatic
+action. Acceptance requires browser evidence that both widgets render with the
+exact title and body and that the board is not public. These notes are not
+approval to install Vaultwarden or Tailscale.
+
+Do not create these notes for **Advanced**. Offer the same choices directly in
+the setup conversation after the initial local installation.
 
 ## Resource graph
 

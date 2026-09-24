@@ -423,6 +423,12 @@ async function selfhost() {
   const blocked = deterministic(() => runBun(cli, ["plan", "--project-root", project, "--json"]));
   assertExit(blocked, 3);
   assert.equal(parseJson(blocked).status, "blocked");
+  const persona = runBun(cli, ["preferences", "set", "onboarding.experience", "new", "--project-root", project, "--json"]);
+  assertExit(persona, 0);
+  const savedPersona = parseJson(runBun(cli, ["preferences", "show", "--project-root", project, "--json"]));
+  assert.equal(savedPersona.data.choices["onboarding.experience"].value, "new");
+  const invalidPersona = runBun(cli, ["preferences", "set", "onboarding.experience", "beginner", "--project-root", project, "--json"]);
+  assertExit(invalidPersona, 2);
   const secret = runBun(cli, ["preferences", "set", "password", sentinel, "--project-root", project, "--json"]);
   assertExit(secret, 3);
   assertNoSecret(secret);
@@ -465,6 +471,12 @@ async function compose() {
 
 async function homarr() {
   const cli = ".agents/skills/self-host/workflows/selfhost-homarr/scripts/integration-plan.ts";
+  const onboardingContract = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-homarr/references/onboarding-and-integrations.md"), "utf8");
+  assert.match(onboardingContract, /SELFHOST_ONBOARDING_VAULTWARDEN_V1/);
+  assert.match(onboardingContract, /SELFHOST_ONBOARDING_PHONE_ACCESS_V1/);
+  assert.match(onboardingContract, /item kind `notebook`/);
+  assert.match(onboardingContract, /board is not public/);
+  assert.match(onboardingContract, /Do not create these notes for \*\*Advanced\*\*/);
   const selection = { selectedApps: ["seerr", "immich"], media: true, connectedIntegrations: ["seerr", "sonarr", "radarr", "prowlarr", "qbittorrent", "jellyfin"], generatedDashboard: true };
   const path = writeJson("homarr-pass.json", selection);
   const passing = deterministic(() => runBun(cli, [path]));
@@ -598,6 +610,13 @@ async function research() {
 
 async function setup() {
   const cli = ".agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts";
+  const setupContract = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-setup/GUIDE.md"), "utf8");
+  assert.match(setupContract, /Every initial installation is loopback-only/);
+  assert.match(setupContract, /\*\*New\*\* includes Homarr/);
+  assert.match(setupContract, /Do not install a browser for a script-first path/);
+  assert.match(setupContract, /checked `agent-browser` fallback/);
+  assert.match(setupContract, /ask separately whether to add\s+Homarr and Vaultwarden/);
+  assert.match(setupContract, /separate Tailscale plan and approval flow/);
   const profiles = deterministic(() => runBun(cli, ["profiles", "--json"]));
   assertExit(profiles, 0);
   const profileDocument = parseJson(profiles);
@@ -709,6 +728,7 @@ async function setup() {
     "project",
     "--project-root",
     prerequisiteProject,
+    "--verify-browser",
     "--json",
   ], {
     cwd: prerequisiteProject,
@@ -782,10 +802,9 @@ async function setup() {
     stdio: ["ignore", "pipe", "pipe"],
   });
   assert.equal(unchecked.status, 0, `${unchecked.stdout}${unchecked.stderr}`);
+  assert.equal(JSON.parse(unchecked.stdout).ready, true);
   assert.equal(JSON.parse(unchecked.stdout).browser.browserVerified, false);
-  assert.deepEqual(JSON.parse(unchecked.stdout).installCommands.map((item) => item.reason), [
-    "agent-browser-browser",
-  ]);
+  assert.deepEqual(JSON.parse(unchecked.stdout).installCommands, []);
   assert.equal(existsSync(browserInvocationLog), false, "default prerequisites invoked agent-browser");
   const ready = spawnSync(process.execPath, [
     installedCli,

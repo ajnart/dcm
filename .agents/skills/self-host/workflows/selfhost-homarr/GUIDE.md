@@ -9,14 +9,18 @@ compatibility: Requires Bun 1.4.0 or newer; live API checks need an explicitly i
 
 Resolve `SKILL_DIR` to this workflow directory and invoke every bundled script through its absolute path. The scripts require Bun 1.4.0 or newer and have no repository-root or sibling-skill dependency.
 
-Homarr is the required default access layer for plans in this pack. Use it as a
-private dashboard and agent-facing integration surface without transferring
-ownership of the underlying apps to this skill. The underlying services remain
-independently operable when Homarr is temporarily unavailable.
+Homarr is the included private dashboard for the **New** setup path and an
+optional post-install addition for **Advanced**. Use it as a private dashboard
+and agent-facing integration surface without transferring ownership of the
+underlying apps to this skill. The underlying services remain independently
+operable when Homarr is temporarily unavailable.
 
 ## Contract
 
 - Keep app tiles, integrations, and widgets as separate resources and acceptance claims.
+- For the **New** path, create the two private onboarding Notebook note widgets
+  from [onboarding-and-integrations.md](references/onboarding-and-integrations.md).
+  Keep their exact markers idempotent and their content secret-free.
 - Use `ghcr.io/homarr-labs/homarr-test:v2` for every new Homarr setup in this
   pack until the project changes its image policy.
 - Keep the default bridge, generated client fragments, integration plan, and verifier strictly read-only. An explicitly selected profile may expose only policy-constrained authenticated integration requests under [api-and-mcp.md](references/api-and-mcp.md); every other mutating tool stays hidden.
@@ -28,9 +32,9 @@ independently operable when Homarr is temporarily unavailable.
 ## Workflow
 
 1. Read [onboarding-and-integrations.md](references/onboarding-and-integrations.md) when selecting apps, classifying coverage, onboarding, or accepting a generated dashboard.
-2. Confirm the selected stack and include Homarr as its standard private
-   control plane. This does not authorize public exposure or mutation of the
-   connected apps.
+2. Confirm the selected stack. Include Homarr automatically for **New** or only
+   after an **Advanced** user selects it. This does not authorize public
+   exposure or mutation of the connected apps.
 3. Initialize a project profile:
 
    ```text
@@ -41,7 +45,12 @@ independently operable when Homarr is temporarily unavailable.
 5. Run `profile.ts doctor <absolute-profile-path>` before starting the bridge, generating a fragment, or verifying.
 6. Generate a secret-free client fragment with `generate-client-config.ts <claude-code|codex|pi|generic-json|generic-toml> <absolute-profile-path>`.
 7. Run `verify-homarr.ts <absolute-profile-path>`. Add `--media-search` for the read-only default search `Spider-Man: No Way Home`, or append a different title. Require one usable Seerr integration and an exact structured result.
-8. Read [safety-and-acceptance.md](references/safety-and-acceptance.md) and report only the PASS lines actually observed. Keep compatibility and curated-catalog fallback modes explicit.
+8. For **New**, after script-first setup and verification, use the checked
+   `agent-browser` fallback to create or update both marked onboarding Notebook
+   note widgets on the private board; no bounded API path in this workflow
+   creates them. Verify their kind, exact content, and private placement without
+   capturing the API key.
+9. Read [safety-and-acceptance.md](references/safety-and-acceptance.md) and report only the PASS lines actually observed. Keep compatibility and curated-catalog fallback modes explicit.
 
 For a media-harness key already captured in its private run, follow [media-profile-handoff.md](references/media-profile-handoff.md). The setup orchestrator transfers the existing key file to owner stdin; neither capability imports the other's runtime code.
 

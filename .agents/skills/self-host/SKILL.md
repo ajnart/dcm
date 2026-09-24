@@ -22,11 +22,13 @@ Route the command's arguments before loading a workflow:
 | `status`, `verify`, `add`, `update`, or `repair` | Upkeep |
 
 The command expresses intent, not approval to change a host. Recommend only
-services that serve the stated goal, explaining each in plain language. Offer
-Homarr as the dashboard and agent front door; a user can decline it. Read the
-[conversation contract](workflows/selfhost/references/conversation.md) for new
-setups or changed choices. Ask one compact question at a time, skip answers
-already supplied, and accept `defaults` for the recommended non-secret choices.
+services that serve the stated goal, explaining each in plain language. For a
+new setup, preserve the requested goal and ask whether the user wants the
+**New** or **Advanced** path when `onboarding.experience` is not already saved.
+Read the [conversation contract](workflows/selfhost/references/conversation.md)
+for the resulting Homarr and follow-up behavior. Ask one compact question at a
+time, skip answers already supplied, and accept `defaults` for the recommended
+non-secret choices.
 
 Confirm the target host and project directory. Check only that directory for
 `.selfhost/stack.json`, then read **one** workflow:

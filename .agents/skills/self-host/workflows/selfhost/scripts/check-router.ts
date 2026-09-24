@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { dirname, join, parse } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildPlan, loadCatalog, resolvePlanTarget, resolveStack, stackForGoalId, validateCatalog } from "./catalog.ts";
-import { preferencesPathForProjectRoot, resolvePreferencesPath } from "./preferences.ts";
+import { preferencesPathForProjectRoot, resolvePreferencesPath, validatePreferencesDocument } from "./preferences.ts";
 
 const catalog = await loadCatalog();
 const validation = validateCatalog(catalog);
@@ -32,6 +32,22 @@ assert.throws(() => resolvePreferencesPath(join(skillDirectory, "..data", "prefe
 await assert.rejects(() => preferencesPathForProjectRoot(skillDirectory), /installed skill directory/);
 await assert.rejects(() => preferencesPathForProjectRoot(parse(process.cwd()).root), /filesystem root/);
 assert.equal(await preferencesPathForProjectRoot(process.cwd()), join(process.cwd(), ".selfhost", "preferences.json"));
+const preferenceRecord = (value) => ({ value, source: "chosen", updatedAt: "2026-09-24T13:30:00Z" });
+assert.equal(validatePreferencesDocument({
+  schemaVersion: 1,
+  updatedAt: "2026-09-24T13:30:00Z",
+  choices: { "onboarding.experience": preferenceRecord("new") },
+}).valid, true);
+assert.equal(validatePreferencesDocument({
+  schemaVersion: 1,
+  updatedAt: "2026-09-24T13:30:00Z",
+  choices: { "onboarding.experience": preferenceRecord("advanced") },
+}).valid, true);
+assert.equal(validatePreferencesDocument({
+  schemaVersion: 1,
+  updatedAt: "2026-09-24T13:30:00Z",
+  choices: { "onboarding.experience": preferenceRecord("beginner") },
+}).valid, false);
 
 const compositeCases = new Map([
   ["photos and backups", ["photos", "backups"]],

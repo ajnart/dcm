@@ -6,7 +6,13 @@ Do not use preferences as a deployment ledger. Returning-project intent and
 checkpoint IDs live separately in `.selfhost/project.json`; current host facts
 still come from a fresh inspection.
 
-Allowed fields cover platform, locale/timezone, project naming, logical config/data/media/download/backup paths, UID/GID, Docker network, host alias, ingress mode/owner/domain, VPN mode/scope, backup cadence, hardware acceleration, and UI theme. The schema is `catalog/schemas/preferences.schema.json`.
+Allowed fields cover onboarding experience (`new` or `advanced`), platform,
+locale/timezone, project naming, logical config/data/media/download/backup
+paths, UID/GID, Docker network, host alias, ingress mode/owner/domain, VPN
+mode/scope, backup cadence, hardware acceleration, and UI theme. The schema is
+`catalog/schemas/preferences.schema.json`. A missing `onboarding.experience`
+means setup must ask once and save the confirmed answer; no separate onboarding
+status is needed.
 
 The CLI writes a private temporary file, flushes it, atomically renames it, and sets mode `0600`. Its project-local state directory is created with mode `0700`. Preference and project-state writes share one private per-project update lock, so concurrent writes fail clearly instead of overwriting one another. It rejects linked/special paths and broader preference permissions. It rejects secret-like field names and values before serialization and never echoes the rejected input.
 
