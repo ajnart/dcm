@@ -5,7 +5,7 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "c8f621c502913055b1bdecd2130194022f4368bf1816723deafdc9122681bd91"
+      "sourceSha256": "b51bf09db03b79487d41d15383369493b40919b97337fd12d41be7884caea0c4"
     }
   ],
   "files": [
@@ -22,7 +22,7 @@
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "56936d1531f193eb7afca9b622a51342037f6b3be2cbe3b71ce76453ec5ada7c"
+      "sha256": "73c427c6e3476aaa0ebaf8ccc67366690413d751a2fa8e2dba415e8c3a8f622e"
     },
     {
       "path": "docs/browser-benchmark.md",

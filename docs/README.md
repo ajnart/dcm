@@ -25,6 +25,14 @@ Before any browser command:
 4. Use the run's `AGENT_BROWSER_SESSION`; re-snapshot after every page change.
 5. Resolve host URLs with `scripts/session.sh urls RUN_ID`. Never assume a port.
 
+If a restricted Chromium runtime reports a Unix socket path-length error,
+create one short, owner-only runtime directory under `/tmp` and set
+`XDG_RUNTIME_DIR` to that **same** path for every agent-browser command and
+`browser-key`/`browser-password` helper. Keep the manifest's
+`AGENT_BROWSER_SESSION` unchanged: the secret-safe helpers reject a different
+browser session, even if it opens Homarr successfully. Do not reuse another
+run's runtime directory.
+
 Authenticated browser diagnostics are secret-bearing. Setup agents must never
 invoke, print, or persist agent-browser `console`, raw `network requests`, HAR
 output, or another raw trace inside or outside their run; headers, cookies,
