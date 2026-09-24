@@ -47,7 +47,7 @@
     {
       "path": "docs/homarr.md",
       "mode": "0644",
-      "sha256": "70ed3b8231f936c8779d9bc92207075c75bd4b85d4cb292daa3f216e71693c59"
+      "sha256": "2dc5a881031ce1eaf34fbcf1bfb06a096e3bb6b2864567af77f142efb29fc2c3"
     },
     {
       "path": "docs/jellyfin.md",
@@ -107,7 +107,7 @@
     {
       "path": "prompts/50-homarr.md",
       "mode": "0644",
-      "sha256": "0ca390399229bb46d9b633aa06b41e990128b28e005cf664c6daabb01e865c2c"
+      "sha256": "fe331f383c7d01beee10a4592efdfaad50c67f4e471e2c4123e836f9b1b26a3b"
     },
     {
       "path": "prompts/60-homarr-api-mcp.md",

@@ -33,6 +33,9 @@ retrieves the current credential before filling Homarr:
 The missing Docker socket on Discover is expected isolation; continue to manual
 Connect. Select each service card, expand its panel, enter the values above, and
 use **Test connection** until all six headings say **Connection tested**.
+Save/collapse each tested panel before opening the next; verify its status
+persists after returning. `browser-key refs` and `fill` intentionally stop if
+more than one API-key field is visible. Never guess a field ref to bypass this.
 qBittorrent and Jellyfin use the Username + Password mode.
 For each password input, take a fresh snapshot and call
 `scripts/session.sh browser-password "$RUN_ID" @eN`; never place the password

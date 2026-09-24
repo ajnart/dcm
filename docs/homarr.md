@@ -39,6 +39,9 @@ generated-widget API check; screenshots remain separate visual evidence.
    `scripts/session.sh browser-key`; use the exact workflow below. Select the
    username/password mode for qBittorrent and Jellyfin. Fill each password ref
    only through `scripts/session.sh browser-password "$RUN_ID" @eN`.
+   Keep only one integration panel open while filling a key: the helper refuses
+   ambiguous visible API-key fields. Test, save/collapse, and revisit each
+   panel to confirm its status persisted before selecting another.
 6. Review must state 6 integrations and 6 app tiles. Build and let `v2` generate
    the dashboard. Do not manually add apps/widgets: generation itself is under
    test.
