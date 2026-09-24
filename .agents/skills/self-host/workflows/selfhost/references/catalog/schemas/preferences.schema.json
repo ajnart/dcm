@@ -12,7 +12,7 @@
       "type": "object",
       "propertyNames": {
         "enum": [
-          "platform", "timezone", "locale", "project.name", "paths.stateRoot",
+          "onboarding.experience", "platform", "timezone", "locale", "project.name", "paths.stateRoot",
           "paths.configRoot", "paths.dataRoot", "paths.mediaRoot", "paths.downloadsRoot",
           "paths.backupRoot", "identity.uid", "identity.gid", "docker.network",
           "host.alias", "ingress.mode", "ingress.owner", "ingress.domain",

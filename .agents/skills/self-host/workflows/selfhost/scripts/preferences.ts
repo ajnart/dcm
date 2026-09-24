@@ -9,7 +9,7 @@ const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const INSTALLED_SKILL_DIRECTORY = resolve(SCRIPT_DIRECTORY, "../../..");
 
 const ALLOWED_FIELDS = new Set([
-  "platform", "timezone", "locale", "project.name", "paths.stateRoot", "paths.configRoot",
+  "onboarding.experience", "platform", "timezone", "locale", "project.name", "paths.stateRoot", "paths.configRoot",
   "paths.dataRoot", "paths.mediaRoot", "paths.downloadsRoot", "paths.backupRoot",
   "identity.uid", "identity.gid", "docker.network", "host.alias", "ingress.mode",
   "ingress.owner", "ingress.domain", "vpn.mode", "vpn.scope", "backup.cadence",
@@ -119,6 +119,7 @@ function validateFieldValue(field, value) {
   }
 
   const enums = {
+    "onboarding.experience": ["new", "advanced"],
     "platform": ["auto", "linux", "docker-desktop-mac", "unraid", "truenas-scale", "proxmox", "vps"],
     "ingress.mode": ["local", "lan", "tailnet", "public", "tunnel"],
     "ingress.owner": ["none", "caddy", "traefik", "nginx-proxy-manager", "cloudflare-tunnel", "pangolin", "tailscale"],

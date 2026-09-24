@@ -15,19 +15,26 @@ intent, or a request to change a self-hosted stack. Continue until verified or
 concretely blocked.
 
 Start with the [conversation contract](../selfhost/references/conversation.md).
-Ask only for choices the request or saved project has not answered. Offer a
-short recommendation and let `defaults` accept it; collect a credential policy,
-never a password in chat. Confirm the exact selection before the apply gate.
+Preserve the requested service while loading or asking for the **New** or
+**Advanced** setup path. Ask only for choices that path leaves open. Let
+`defaults` accept its non-secret defaults; collect a credential policy, never a
+password in chat. Confirm the exact selection before the apply gate.
+
+Every initial installation is loopback-only. **New** includes Homarr in that
+installation. **Advanced** installs and verifies the requested service without
+optional Homarr or Vaultwarden first, then offers each addition separately.
 
 ## Workflow
 
 1. Read [install-profiles.json](references/install-profiles.json). Explain the
-   selection plainly. Start with `basic`; add only selected packs/extensions.
-   Their union retains basic setup, upkeep, and Homarr capability without
-   deploying Homarr unless selected. If the user declines Homarr, omit its
-   service and verification rows; use the focused app owner or Compose recipe.
-   The fixed seven-service media adapter still has a Homarr requirement, so
-   select another owner or report that adapter gap for an app-only media plan.
+   selection plainly. Start with the internal `basic` capability profile, which
+   is unrelated to the user-facing **New** path; add only selected
+   packs/extensions. Their union retains basic setup, upkeep, and Homarr
+   capability without deploying Homarr unless selected. If the user declines
+   Homarr, omit its service and verification rows; use the focused app owner or
+   Compose recipe. The fixed seven-service media adapter still has a Homarr
+   requirement, so select another owner or report that adapter gap for an
+   app-only media plan.
 2. Read [coding-agents.json](references/coding-agents.json), then run `bun
    scripts/stack.ts prerequisites` with every selected `--profile`, the active
    client ID, and the intended project/global scope. Project scope also
@@ -42,10 +49,13 @@ never a password in chat. Confirm the exact selection before the apply gate.
    browser through the returned commands.
 3. Only for browser fallback, run `agent-browser skills get core` after the
    browser check passes. Treat that live workflow as authoritative.
-4. Resolve choices with `selfhost`. Confirm the username (`admin` for managed
+4. Resolve choices with `selfhost`. For **New**, keep default Homarr selection.
+   For the initial **Advanced** plan, pass `--select control-plane=none` unless
+   Homarr was explicitly requested. Confirm the username (`admin` for managed
    media if the user accepted defaults); the adapter generates its password.
    Inspect with `selfhost-host`, record `selfhost state init`, and resolve
-   ownership, paths, ports, and private access.
+   ownership, paths, and ports. Bind every initial published port to loopback;
+   do not ask for another exposure mode yet.
 5. After the user approves the exact apply, initialize `.selfhost/stack.json`
    with `bun scripts/stack.ts init`. Read [lifecycle.md](references/lifecycle.md)
    for the metadata contract and checkpoint rules. Record every selected
@@ -67,11 +77,17 @@ never a password in chat. Confirm the exact selection before the apply gate.
    second Homarr for media. Use checked browser paths and private credential
    helpers only as fallback; never copy a key through chat,
    clipboard files, visible shell output, or command arguments.
-7. Record `planned`, `applied`, and `verified` checkpoints only after their
+7. For **New**, after Homarr and the requested service pass verification, use
+   the checked `agent-browser` fallback to create or update the two private
+   onboarding Notebook widgets defined by `selfhost-homarr`; no bounded
+   `selfhost-homarr` API path creates them. Run the prerequisite check with
+   `--verify-browser` first, then capture evidence for their kind, exact content,
+   and private board placement. Do not place credentials in either widget.
+8. Record `planned`, `applied`, and `verified` checkpoints only after their
    evidence exists. For media, store URLs, usernames, and API keys in the
    adapter-owned mode-`0600` `connections.env`, which stays password-free.
    Other adapters report only their documented private profile and handoff paths.
-8. If saved media credentials were requested, run the adapter's `handoff`:
+9. If saved media credentials were requested, run the adapter's `handoff`:
    `.sessions/<run>/artifacts/private-handoff.json` (0600) contains the generated
    password, usernames, available API keys, URLs and storage paths. Return only
    its path and the separate redacted report. Never print its contents. For
@@ -89,6 +105,12 @@ its selected workflow files; profiles do not require separate skill installs.
 
 Completion requires a passing prerequisite check, recorded selection, explicit
 apply approval, direct acceptance evidence for every selected service (and
-Homarr when selected), and a verified stack checkpoint. Media additionally requires
+Homarr when selected), and a verified stack checkpoint. **New** also requires
+both private Homarr onboarding Notebook widgets. Media additionally requires
 password-free connection storage and, when requested, the owner-only private
 credential export with its path delivered to the user.
+
+After the initial **Advanced** completion summary, ask separately whether to add
+Homarr and Vaultwarden. Apply each accepted addition through a new exact plan
+and approval. When both choices finish, ask whether phone access away from home
+is wanted; a yes starts a separate Tailscale plan and approval flow.
