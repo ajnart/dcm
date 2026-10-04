@@ -1,6 +1,6 @@
 # Selfhost Skill Index
 
-Pack version: `1.1.1`
+Pack version: `1.1.2`
 
 | Public skill | Install group | Requires | Kind | Risk | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |

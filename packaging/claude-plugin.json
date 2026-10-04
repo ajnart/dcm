@@ -1,6 +1,6 @@
 {
   "name": "selfhost-skills",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Plan, install, and maintain private services from one self-host entry point.",
   "author": {
     "name": "ajnart",

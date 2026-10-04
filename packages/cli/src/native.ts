@@ -3,12 +3,14 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { protectPrivatePath } from "./lib/platform-private.ts";
 
 if (!Bun.isStandaloneExecutable) {
   console.error("This entry is for a Bun-compiled self-host artifact only.");
   process.exitCode = 1;
 } else {
   const root = await mkdtemp(join(tmpdir(), "selfhost-native-"));
+  protectPrivatePath(root, 0o700);
   process.once("exit", () => {
     try { rmSync(root, { recursive: true, force: true }); }
     catch { /* Do not replace a command result with temporary-cleanup failure. */ }

@@ -172,7 +172,29 @@ function check(command: string[], label: string, required: boolean) {
   return { tool: label, required, ok, version };
 }
 
-function doctor(json: boolean, scope: "plan" | "media") {
+function doctor(json: boolean, scope: "plan" | "compose" | "media") {
+  if (scope === "compose") {
+    const embedded = Boolean(process.versions.bun);
+    const tools = [
+      { tool: "Linux, macOS, or Windows host", required: true,
+        ok: ["linux", "darwin", "win32"].includes(process.platform), version: process.platform },
+      { tool: "Embedded Bun runtime", required: embedded, ok: embedded, version: process.versions.bun ?? "not embedded" },
+      check(["docker", "compose", "version", "--short"], "Docker Compose v2", true),
+      check(["docker", "info", "--format", "{{.OSType}}"], "Docker daemon (Linux containers)", true),
+    ];
+    if (!embedded) tools.push(check(["bun", "--version"], "Bun 1.4+ setup runner", true));
+    if (process.platform === "linux") tools.push(check(["bash", "--version"], "Linux host inspection", true));
+    if (process.platform === "win32") tools.push(check(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", "$PSVersionTable.PSVersion.ToString()"], "Windows credential ACL support", true));
+    const engine = tools.find((tool) => tool.tool === "Docker daemon (Linux containers)");
+    if (engine) engine.ok = engine.ok && engine.version === "linux";
+    const result = { scope, platform: process.platform,
+      status: tools.every((tool) => !tool.required || tool.ok) ? "ready" : "needs-attention", tools,
+      advisories: ["Uses the selected local Docker context. Docker Desktop must use Linux containers and share the selected project folder. Device/VPN and same-host Docker-manager recipes retain their specific platform gates."] };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else for (const tool of tools) console.log(`${tool.ok ? "OK" : "MISSING"} ${tool.tool}: ${tool.version}`);
+    if (result.status !== "ready") process.exitCode = 1;
+    return;
+  }
   if (scope === "plan") {
     const native = typeof Bun !== "undefined" && Bun.isStandaloneExecutable;
     let tool = "Node.js 20.12+ for catalog, planner, and TUI";
@@ -186,7 +208,7 @@ function doctor(json: boolean, scope: "plan" | "media") {
     }
     const tools = [{ tool, required: true, ok, version }];
     const result = { scope, platform: process.platform, status: tools[0].ok ? "ready" : "needs-attention", tools,
-      advisories: ["This check covers read-only planning only. The current media and household deploy adapters require a Linux Docker host."] };
+      advisories: ["This check covers planning only. Use doctor --scope compose for shared installation on Linux or Docker Desktop; legacy media and household adapters remain Linux-only."] };
     if (json) console.log(JSON.stringify(result, null, 2));
     else {
       console.log(`${tools[0].ok ? "OK" : "MISSING"} ${tools[0].tool}: ${tools[0].version}`);
@@ -315,7 +337,7 @@ wraps this same CLI for choices and exceptional repairs; it is not required.`;
   const legacyUsage = `self-host — older per-app, media and bundle commands
 
   --interactive|interactive                Guided terminal planner (requires a TTY)
-  doctor [--scope plan|media] [--json]     Check planner or Linux deployment prerequisites
+  doctor [--scope plan|compose|media] [--json]  Check planning, shared Docker, or legacy Linux prerequisites
   host inspect|inspect-host --output ABSOLUTE [--limit COUNT] [--check-tcp-port PORT ...]
   app image --id ID [--json] (read-only pinned-image and architecture resolution)
   app plan --id ID --project-root ABSOLUTE --image IMAGE@sha256:DIGEST --port PORT [--connect-homarr] [--json] (read-only)
@@ -518,8 +540,8 @@ export async function command(input: string[], mediaCommand: MediaCommand, immic
   if (action === "doctor") {
     only(flags, ["--scope"]);
     if (args.length !== 1) fail("doctor takes no positionals");
-    const scope = flags["--scope"] ?? "media";
-    if (scope !== "plan" && scope !== "media") fail("--scope must be plan or media");
+    const scope = flags["--scope"] ?? "compose";
+    if (scope !== "plan" && scope !== "compose" && scope !== "media") fail("--scope must be plan, compose, or media");
     doctor(json, scope);
     return;
   }

@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
@@ -10,6 +11,7 @@ import { loadCompatibilityReceipts, prepareCompatibilityEvidenceRoot, publishCom
 import { readSharedAcceptanceSource } from "./shared-acceptance-contract.ts";
 import { SharedAcceptanceOwnerError } from "./shared-acceptance-owner.ts";
 import { requireLocalSharedDockerContext } from "./shared-host-observation.ts";
+import { localDockerBindSourceMatches } from "./desktop-host-observation.ts";
 import { loadSharedProjectState, type SharedProjectState } from "./shared-project-state.ts";
 import { sharedUnitRecipeCheck } from "./shared-unit-setup.ts";
 
@@ -74,9 +76,10 @@ function contractFor(state: SharedProjectState, appId: string,
 }
 async function owned(path: string, directory = false): Promise<void> {
   const stat = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (stat.isDirectory() ? 0o700 : 0o600));
   let mode = 0o600;
   if (directory) mode = 0o700;
-  if (stat.isSymbolicLink() || stat.uid !== process.getuid?.() || (stat.mode & 0o7777) !== mode
+  if (stat.isSymbolicLink() || !ownedByCurrentUser(stat) || !privateMode(stat, mode)
     || await realpath(path) !== path || (directory && !stat.isDirectory())
     || (!directory && (!stat.isFile() || stat.nlink !== 1 || stat.size > 32 * 1024))) fail("unsafe owner ledger");
 }
@@ -97,10 +100,11 @@ export async function readSharedComposeCompatibilityIdentity(root: string, proje
   let value: Ledger;
   try {
     const before = await handle.stat();
-    if (!before.isFile() || before.nlink !== 1 || before.uid !== process.getuid?.()
-      || (before.mode & 0o7777) !== 0o600 || before.size > 32 * 1024) fail("unsafe owner ledger");
+    if (!before.isFile() || before.nlink !== 1 || !ownedByCurrentUser(before)
+      || !privateMode(before, 0o600) || before.size > 32 * 1024) fail("unsafe owner ledger");
     value = JSON.parse(await handle.readFile("utf8"));
     const after = await handle.stat(); const named = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (named.isDirectory() ? 0o700 : 0o600));
     if (before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs
       || before.ctimeMs !== after.ctimeMs || named.ino !== before.ino || named.dev !== before.dev || named.isSymbolicLink()) fail("ledger changed");
   } finally { await handle.close(); }
@@ -175,9 +179,11 @@ async function runtimeChecks(state: SharedProjectState, appId: string, composeTa
         if (volume.driver !== "local" || volume.project !== state.project.id || volume.owner !== state.project.owner
           || volume.id !== mount.name.slice(state.project.id.length + 1) || volume.volume !== mount.name) storage = false;
       } else {
-        if (found[0].Type !== "bind" || found[0].Source !== mount.source || await realpath(mount.source) !== mount.source) { storage = false; continue; }
+        if (found[0].Type !== "bind" || !localDockerBindSourceMatches(state.project.dockerContext, found[0].Source, mount.source)
+          || await realpath(mount.source) !== mount.source) { storage = false; continue; }
         const metadata = await lstat(mount.source);
-        if (metadata.isSymbolicLink() || (!metadata.isFile() && !metadata.isDirectory()) || metadata.uid !== process.getuid?.()) storage = false;
+        if (process.platform === "win32") assertPrivatePath(mount.source, 0o600);
+        if (metadata.isSymbolicLink() || (!metadata.isFile() && !metadata.isDirectory()) || !ownedByCurrentUser(metadata)) storage = false;
       }
     }
     // An anonymous image volume or an undeclared writable mount is not owned storage.
@@ -249,7 +255,7 @@ async function publishCompletedCreate(attempted: SharedProjectState, completed: 
       await owned(completed.project.directory, true);
       const handle = await open(join(completed.project.directory, `compose-run-${appId}.json`),
         constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-      try { await handle.writeFile(JSON.stringify(ledger)); await handle.sync(); } finally { await handle.close(); }
+      try { protectPrivatePath(join(completed.project.directory, `compose-run-${appId}.json`), 0o600); await handle.writeFile(JSON.stringify(ledger)); await handle.sync(); } finally { await handle.close(); }
     } catch {
       console.error(`Compose apply completed; ${appId} compatibility evidence is incomplete. Inspect without replaying apply.`);
     }

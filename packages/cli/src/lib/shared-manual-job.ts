@@ -1,3 +1,4 @@
+import { assertPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -22,8 +23,9 @@ function comparable(value: Record<string, any>): string {
 }
 async function directory(path: string): Promise<void> {
   const metadata = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, 0o700);
   if (!metadata.isDirectory() || metadata.isSymbolicLink() || await realpath(path) !== path
-    || metadata.uid !== process.getuid?.() || (metadata.mode & 0o7777) !== 0o700) fail();
+    || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o700)) fail();
 }
 
 /** No status/HTTP/Docker, initialization, repair, or probe. Existing bytes only. */

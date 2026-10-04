@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { constants, closeSync, fstatSync, lstatSync, openSync, readFileSync, realpathSync, statSync, type Stats } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
@@ -7,18 +8,16 @@ import type { SharedProjectState } from "./shared-project-state.ts";
 
 const maximumBytes = 8 * 1024 * 1024;
 function fail(): never { throw new Error("Shared derived recipe binding is missing, unsafe or differs from its exact saved owner"); }
-function uid(): number {
-  if (!process.getuid) fail();
-  return process.getuid();
-}
+
 function checkedDirectory(directory: string, metadata: Stats, canonical: string): void {
+  assertPrivatePath(directory, 0o700);
   if (!isAbsolute(directory) || resolve(directory) !== directory || canonical !== directory
-    || !metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== uid()
-    || (metadata.mode & 0o7777) !== 0o700) fail();
+    || !metadata.isDirectory() || metadata.isSymbolicLink() || !ownedByCurrentUser(metadata)
+    || !privateMode(metadata, 0o700)) fail();
 }
 function checkedFile(metadata: Stats): void {
-  if (!metadata.isFile() || metadata.nlink !== 1 || metadata.uid !== uid()
-    || (metadata.mode & 0o7777) !== 0o600 || metadata.size < 1 || metadata.size > maximumBytes) fail();
+  if (!metadata.isFile() || metadata.nlink !== 1 || !ownedByCurrentUser(metadata)
+    || !privateMode(metadata, 0o600) || metadata.size < 1 || metadata.size > maximumBytes) fail();
 }
 function unchanged(before: Stats, after: Stats): void {
   if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
@@ -42,6 +41,7 @@ function decoded(bytes: Buffer, directory: string, appId: string): SharedDerived
 }
 
 function readPrivateBytes(path: string): Buffer {
+  assertPrivatePath(path, 0o600);
   if (realpathSync(path) !== path) fail();
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
@@ -137,7 +137,7 @@ export async function prepareSharedDerivedRecipeBinding(current: SharedProjectSt
     if (JSON.stringify(saved) !== JSON.stringify(binding)) fail();
     return path;
   }
-  try { await file.writeFile(bytes); await file.sync(); }
+  try { protectPrivatePath(path, 0o600); await file.writeFile(bytes); await file.sync(); }
   finally { await file.close(); }
   // Validate exact metadata and bytes after the durable write; never repair a partial artifact.
   const saved = loadSharedDerivedRecipeBindingSync(directory, binding.selection.appId);

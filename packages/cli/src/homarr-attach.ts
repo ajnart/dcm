@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+import { assertPrivatePath, privateMode } from "./lib/platform-private.ts";
 import { homarrImmichCommand } from "./homarr-immich.ts";
 import { homarrUptimeKumaCommand } from "./homarr-uptime-kuma.ts";
 import { homarrPaperlessCommand } from "./homarr-paperless.ts";
@@ -154,7 +155,8 @@ export function validateInput(value: unknown): Input {
 async function ownerFile(path: string, maxBytes: number): Promise<string> {
   if (!isAbsolute(path) || resolve(path) !== path) fail("Input file paths must be exact and absolute");
   const metadata = await lstat(path);
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || (metadata.mode & 0o777) !== 0o600
+  assertPrivatePath(path, 0o600);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || !privateMode(metadata, 0o600)
     || await realpath(path) !== path || metadata.size < 1 || metadata.size > maxBytes) {
     fail("Input files must be owner-only regular files (0600) without links");
   }

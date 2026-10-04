@@ -7,6 +7,7 @@ import type { SharedProjectCandidate, SharedProjectInput,
   SharedProjectObservation } from "./shared-compose-project.ts";
 import { MAX_SHARED_SERVICES, MAX_SHARED_TCP_PORTS } from "./shared-project-limits.ts";
 import { isManualJobService } from "./manual-job.ts";
+import { inspectDesktopHost, localDesktopEndpoint, localDockerBindSourceMatches } from "./desktop-host-observation.ts";
 
 type Entry = Record<string, unknown>;
 
@@ -45,7 +46,7 @@ function array(value: unknown, label: string): unknown[] {
 function checkedRequest(request: SharedHostRequest): void {
   if (!request || !isAbsolute(request.projectRoot)
     || resolve(request.projectRoot) !== request.projectRoot
-    || request.projectRoot === "/" || !projectIdPattern.test(request.projectId)
+    || resolve(request.projectRoot, "..") === request.projectRoot || !projectIdPattern.test(request.projectId)
     || !Array.isArray(request.tcpPorts)
     || request.tcpPorts.length > MAX_SHARED_TCP_PORTS
     || request.tcpPorts.some((port) => !Number.isInteger(port) || port < 1024 || port > 65535)
@@ -91,12 +92,16 @@ export function sharedHostFacts(reportValue: unknown, request: SharedHostRequest
   const listeners = object(network.listeningPorts, "listeners");
   const selected = object(network.selectedTcpPorts, "selected TCP ports");
   const storage = object(report.storage, "storage");
+  const desktop = (process.platform === "darwin" || process.platform === "win32")
+    && report.desktopHost === process.platform;
+  const supportedContexts = ["default", "rootless"];
+  if (desktop) supportedContexts.push("desktop-linux");
   const portsObserved = selected.state === "observed" && selected.complete === true;
   const noPortsRequested = request.tcpPorts.length === 0 && selected.state === "not_requested"
     && selected.complete === false && Array.isArray(selected.items) && selected.items.length === 0;
   if (report.schemaVersion !== 1 || report.mode !== "read-only"
     || docker.state !== "running" || context.state !== "observed"
-    || !["default", "rootless"].includes(String(context.current))
+    || !supportedContexts.includes(String(context.current))
     || identity.state !== "observed" || !Number.isSafeInteger(identity.uid)
     || !Number.isSafeInteger(identity.gid) || Number(identity.uid) <= 0
     || Number(identity.gid) <= 0 || timezone.state !== "observed"
@@ -125,7 +130,8 @@ export function sharedHostFacts(reportValue: unknown, request: SharedHostRequest
   for (const raw of array(containers.items, "container inventory")) {
     const container = object(raw, "container");
     if (typeof container.name !== "string" || (!existingProject
-      && (container.name === request.projectId || container.name.startsWith(`${request.projectId}-`)))) {
+      && (container.name === request.projectId || container.name.startsWith(`${request.projectId}-`)
+        || container.composeProject === request.projectId))) {
       fail("the proposed Compose project already has a container or an unidentifiable container exists");
     }
     if (container.publishedPorts !== null && typeof container.publishedPorts !== "string") {
@@ -179,7 +185,8 @@ export function sharedHostFacts(reportValue: unknown, request: SharedHostRequest
     || !Number.isSafeInteger(inspectedRoot.availableBytes)
     || Number(inspectedRoot.availableBytes) < request.minimumFreeBytes
     || !Number.isSafeInteger(inspectedRoot.availableInodes)
-    || Number(inspectedRoot.availableInodes) < 1) {
+    || (Number(inspectedRoot.availableInodes) < 1
+      && !(desktop && process.platform === "win32" && inspectedRoot.inodeAccounting === "desktop-host"))) {
     fail("project root lacks observed, local, writable capacity");
   }
   if (request.mediaPath !== null) {
@@ -233,7 +240,9 @@ export function requireLocalSharedDockerContext(context: string): void {
   if (Object.hasOwn(process.env, "DOCKER_HOST") || Object.hasOwn(process.env, "DOCKER_CONTEXT")) {
     fail("remove Docker endpoint environment overrides before shared-project planning or apply");
   }
-  if (context !== "default" && context !== "rootless") {
+  const desktop = process.platform === "darwin" || process.platform === "win32";
+  if ((!desktop && context !== "default" && context !== "rootless")
+    || (desktop && context !== "default" && context !== "desktop-linux")) {
     fail("shared-project context is not a supported local Docker context");
   }
   const inspected = spawnSync("docker", ["context", "inspect", context,
@@ -247,9 +256,27 @@ export function requireLocalSharedDockerContext(context: string): void {
   let endpoint: unknown;
   try { endpoint = JSON.parse(inspected.stdout.trim()); }
   catch { fail("Docker context endpoint was not a JSON string"); }
+  if (desktop) {
+    if (!localDesktopEndpoint(context, endpoint)) fail("Docker context endpoint is not a supported local Desktop socket");
+    return;
+  }
   const local = context === "default" ? "unix:///var/run/docker.sock"
     : `unix:///run/user/${process.getuid?.()}/docker.sock`;
   if (endpoint !== local) fail("Docker context endpoint is not the inspected local Linux socket");
+}
+
+function inspectHostReport(request: SharedHostRequest): unknown {
+  if (process.platform === "darwin" || process.platform === "win32") {
+    return inspectDesktopHost(request, requireLocalSharedDockerContext);
+  }
+  const args = [hostScript(), "--path", request.projectRoot, "--limit", String(MAX_SHARED_SERVICES)];
+  if (request.mediaPath !== null) args.push("--path", request.mediaPath);
+  for (const port of request.tcpPorts) args.push("--check-tcp-port", String(port));
+  const probe = spawnSync("bash", args, { encoding: "utf8", timeout: 30_000,
+    maxBuffer: 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+  if (probe.error || probe.status !== 0) fail("bounded host probe failed; child output was suppressed");
+  try { return JSON.parse(probe.stdout); }
+  catch { fail("bounded host probe returned invalid JSON"); }
 }
 
 /** Reads only bounded host metadata. It never creates files or invokes Compose. */
@@ -258,18 +285,10 @@ export function inspectNewSharedHost(request: SharedHostRequest): SharedHostFact
   if (Object.hasOwn(process.env, "DOCKER_HOST") || Object.hasOwn(process.env, "DOCKER_CONTEXT")) {
     fail("remove Docker endpoint environment overrides before shared-project planning or apply");
   }
-  const args = [hostScript(), "--path", request.projectRoot, "--limit", String(MAX_SHARED_SERVICES)];
-  if (request.mediaPath !== null) args.push("--path", request.mediaPath);
-  for (const port of request.tcpPorts) args.push("--check-tcp-port", String(port));
-  const probe = spawnSync("bash", args, { encoding: "utf8", timeout: 30_000,
-    maxBuffer: 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
-  if (probe.error || probe.status !== 0) fail("bounded host probe failed; child output was suppressed");
-  let report: unknown;
-  try { report = JSON.parse(probe.stdout); }
-  catch { fail("bounded host probe returned invalid JSON"); }
+  const report = inspectHostReport(request);
   const context = object(object(report, "report").runtime, "runtime");
   const dockerContext = object(context.dockerContext, "Docker context").current;
-  if (dockerContext !== "default" && dockerContext !== "rootless") {
+  if (typeof dockerContext !== "string") {
     fail("shared project requires an inspected local Docker context");
   }
   requireLocalSharedDockerContext(dockerContext);
@@ -383,18 +402,10 @@ export function inspectExistingSharedHost(request: SharedHostRequest,
         && mount.owner === request.projectId))) {
     fail("the prepared media path is not owned by a saved service");
   }
-  const args = [hostScript(), "--path", request.projectRoot, "--limit", String(MAX_SHARED_SERVICES)];
-  if (request.mediaPath !== null) args.push("--path", request.mediaPath);
-  for (const port of request.tcpPorts) args.push("--check-tcp-port", String(port));
-  const probe = spawnSync("bash", args, { encoding: "utf8", timeout: 30_000,
-    maxBuffer: 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
-  if (probe.error || probe.status !== 0) fail("bounded host probe failed; child output was suppressed");
-  let report: unknown;
-  try { report = JSON.parse(probe.stdout); }
-  catch { fail("bounded host probe returned invalid JSON"); }
+  const report = inspectHostReport(request);
   const runtime = object(object(report, "report").runtime, "runtime");
   const context = object(runtime.dockerContext, "Docker context").current;
-  if ((context !== "default" && context !== "rootless")
+  if (typeof context !== "string"
     || context !== manifest.project.dockerContext) fail("saved local Docker context changed");
   requireLocalSharedDockerContext(context);
   const listed = spawnSync("docker", ["--context", context, "volume", "ls", "--quiet"], {
@@ -511,7 +522,7 @@ export function inspectExistingSharedHost(request: SharedHostRequest,
           fail("saved container volume differs from the manifest");
         }
       } else {
-        if (actual.Type !== "bind" || actual.Source !== mount.source
+        if (actual.Type !== "bind" || !localDockerBindSourceMatches(context, actual.Source, mount.source)
           || mount.owner !== request.projectId || typeof mount.source !== "string") {
           fail("saved container bind differs from the manifest");
         }

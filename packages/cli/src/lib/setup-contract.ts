@@ -37,8 +37,8 @@ async function sourceHash(url: URL, maximumBytes = MAX_SOURCE_BYTES, dependencyH
   try {
     const before = await handle.stat();
     if (!before.isFile() || (!dependencyHardLinks && before.nlink !== 1)
-      || (dependencyHardLinks && (before.nlink < 1 || before.uid !== process.getuid?.())) || before.size < 1
-      || before.size > maximumBytes || (before.mode & 0o002) !== 0) fail();
+      || (dependencyHardLinks && (before.nlink < 1 || (typeof process.getuid === "function" && before.uid !== process.getuid()))) || before.size < 1
+      || before.size > maximumBytes || (process.platform !== "win32" && (before.mode & 0o002) !== 0)) fail();
     const bytes = Buffer.alloc(before.size + 1);
     let offset = 0;
     while (offset < bytes.length) {
@@ -81,6 +81,8 @@ async function implementationHashes(): Promise<Array<[string, string]>> {
     const catalog = new URL("../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/", own);
     parts = [
       ["contract", own],
+      ["platform-private", new URL("./platform-private.ts", own)],
+      ["compose-private-policy", new URL("../../../../.agents/skills/self-host/workflows/selfhost-compose/scripts/platform-private.ts", own)],
       ["engine", new URL("../control-panel/setup-engine.ts", own)],
       ["transport", new URL("../control-panel/setup-transport.ts", own)],
       ["websocket", new URL("../control-panel/setup-websocket.ts", own)],
@@ -126,6 +128,7 @@ async function implementationHashes(): Promise<Array<[string, string]>> {
   let workflows = new URL("./workflows/", own);
   if (sourceMode) workflows = new URL("../../../../.agents/skills/self-host/workflows/", own);
   for (const path of ["selfhost-compose/scripts/compose-project.ts",
+    "selfhost-compose/scripts/platform-private.ts",
     "selfhost-compose/scripts/compose-lifecycle.sh", "selfhost-host/scripts/inspect-host.sh",
     "selfhost/references/catalog/types/manual-job.ts", "selfhost/references/catalog/types/non-secret-policy.ts",
     "selfhost/references/catalog/types/private-daemon.ts", "selfhost/references/catalog/types/runtime-resources.ts",
@@ -135,6 +138,7 @@ async function implementationHashes(): Promise<Array<[string, string]>> {
     if (!parts.some(([, included]) => included.href === url.href)) parts.push([`owner/${path}`, url]);
   }
   const hashes: Array<[string, string]> = [];
+  if (!sourceMode) parts.push(["owner/compose-project.js", new URL("selfhost-compose/scripts/compose-project.js", workflows)]);
   if (sourceMode) {
     // Bun legitimately hardlinks immutable dependency files into its cache.
     // Permit that only for this resolved, exact pinned package, never app code.

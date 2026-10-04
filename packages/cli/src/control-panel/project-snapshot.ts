@@ -1,3 +1,4 @@
+import { assertPrivatePath, ownedByCurrentUser } from "../lib/platform-private.ts";
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { MAX_SHARED_APPS } from "../lib/shared-project-limits.ts";
@@ -93,13 +94,14 @@ async function privateDirectory(path: string): Promise<boolean> {
   let metadata;
   try {
     metadata = await lstat(path);
+    if (process.platform === "win32") assertPrivatePath(path, metadata.isDirectory() ? 0o700 : 0o600);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw error;
   }
   if (!metadata.isDirectory() || metadata.isSymbolicLink()
-    || await realpath(path) !== path || (metadata.mode & 0o077) !== 0
-    || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) {
+    || await realpath(path) !== path || (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
+    || !ownedByCurrentUser(metadata)) {
     throw new Error("Saved project owner directory is unsafe");
   }
   return true;
@@ -114,8 +116,8 @@ async function privateMarker(path: string): Promise<boolean> {
     throw error;
   }
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-    || (metadata.mode & 0o077) !== 0
-    || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) {
+    || (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
+    || !ownedByCurrentUser(metadata)) {
     throw new Error("Saved project owner marker is unsafe");
   }
   return true;

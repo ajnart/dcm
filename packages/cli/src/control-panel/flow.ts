@@ -675,6 +675,10 @@ export function createControlPanel({
   }
 
   async function exactAppLifecycle(root: string, ids: readonly string[], action: "up" | "down"): Promise<boolean> {
+    if (ids.length === 0) {
+      note("No apps are installed in this saved plan. Choose Select apps for a new project to install them.", "Nothing installed");
+      return false;
+    }
     const pending: Array<{ id: string; approval: string }> = [];
     for (const id of ids) {
       const value = await readOnlyCliJson(["app", "status", "--id", id,
@@ -989,7 +993,13 @@ export function createControlPanel({
         snapshot = await enrichment;
         note(controlPanelSummary(snapshot, true, excluded), "Current project checks");
       }
-      if (action === "apps") await changeSelectedApps(root, snapshot, enrichment);
+      if (action === "apps") {
+        if (snapshot.apps.length === 0 && snapshot.shared.length === 0
+          && !snapshot.owners.cli && !snapshot.owners.stack && !snapshot.owners.appBatch
+          && snapshot.owners.bundles.length === 0) {
+          await createSharedProject(root, { invoke, runJsonCli, stopIfCancelled, offerHomarrMcp });
+        } else await changeSelectedApps(root, snapshot, enrichment);
+      }
       if (action === "homarr-links") {
         const currentExcluded = await excludedAppIds(root);
         if (currentExcluded.includes("homarr")) {

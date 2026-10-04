@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { open, lstat } from "node:fs/promises";
 import { join } from "node:path";
+import { assertPrivatePath, privateMode, ownedByCurrentUser } from "./platform-private.ts";
 import type { SharedProjectCandidate } from "./shared-compose-project.ts";
 import type { SharedProjectState } from "./shared-project-state.ts";
 import { bundledPostAccountTransition } from "./shared-post-account-settings.ts";
@@ -33,9 +34,10 @@ export async function requireFirstAccountProof(state: SharedProjectState, appId:
   try { handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
   catch { throw new Error("No exact saved first-account proof exists"); }
   try {
+    assertPrivatePath(path, 0o600);
     const before = await handle.stat();
     if (!before.isFile() || before.nlink !== 1 || before.size < 2 || before.size > 65536
-      || (before.mode & 0o7777) !== 0o600
+      || !privateMode(before, 0o600)
       || (typeof process.getuid === "function" && before.uid !== process.getuid())) {
       throw new Error("Saved first-account proof is not an owner-only regular file");
     }
@@ -65,8 +67,9 @@ export async function requireFirstAccountProof(state: SharedProjectState, appId:
         throw new Error("Saved first-account proof lacks its verified API-key reference");
       }
       const file = await lstat(expectedApiKeyRef);
+      assertPrivatePath(expectedApiKeyRef, 0o600);
       if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1
-        || file.uid !== process.getuid?.() || (file.mode & 0o7777) !== 0o600
+        || !ownedByCurrentUser(file) || !privateMode(file, 0o600)
         || file.size < 8 || file.size > 8192) {
         throw new Error("Saved first-account API-key reference is not an owner-only file");
       }

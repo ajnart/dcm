@@ -34,7 +34,7 @@ function read(url: URL): Buffer {
   try {
     const before = fstatSync(fd);
     if (!before.isFile() || before.nlink !== 1 || before.size < 1 || before.size > 16 * 1024 * 1024
-      || (before.mode & 0o002) !== 0) fail();
+      || (process.platform !== "win32" && (before.mode & 0o002) !== 0)) fail();
     const bytes = readFileSync(fd);
     const after = fstatSync(fd), named = statSync(path);
     if (bytes.length !== before.size || after.dev !== before.dev || after.ino !== before.ino

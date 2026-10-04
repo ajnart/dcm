@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { lstat, mkdir, readFile, readdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, parse, resolve } from "node:path";
+import { protectPrivatePath } from "./lib/platform-private.ts";
 import { cancel, confirm, intro, isCancel, multiselect, note, outro, password, select, spinner, text } from "@clack/prompts";
 import { householdAdoptedAllInterfaceKey, householdAppPortSet, householdBeginArgs, householdCatalogSupported, householdFullReviewArgs, householdMediaWebHandoff, householdParallelAdapterReview, householdParallelGraphSupported, householdParallelPlan, householdParallelPorts, householdPortCandidates, householdPortSet, householdReviewRunArgs, reviewedExistingMedia, reviewedHouseholdPlan, reviewedMediaWebHostReport, unavailableHouseholdPorts, type AdoptedMediaSelection, type HouseholdChoices, type HouseholdPorts } from "./interactive-household.ts";
 import { localCaddyOrigins, localCaddySelection, reviewedCaddyInputs, reviewedHttpsReady,
@@ -512,6 +513,7 @@ async function chooseRoot(createIfMissing: boolean, requireExplicit = false): Pr
     if (!create) throw new Error("No project directory was created.");
     if (!samePath(await realpath(dirname(root)), dirname(root))) throw new Error("Project parent contains a symlink.");
     await mkdir(root, { mode: 0o700 });
+    protectPrivatePath(root, 0o700);
   }
   const metadata = await lstat(root);
   if (!metadata.isDirectory() || metadata.isSymbolicLink() || !samePath(await realpath(root), root)) {
@@ -728,7 +730,7 @@ async function planFlow(appSelection?: string, preferredDirectory?: string | nul
   if (selections.length) plan = invoke(planArgs(goals, apps, root, selections, directory));
   if (!plan.data) throw new Error("The planner did not return a plan.");
   showPlan(plan.data);
-  if (process.platform === "linux" && bundledCatalogPlan(plan.data)) {
+  if (["linux", "darwin", "win32"].includes(process.platform) && bundledCatalogPlan(plan.data)) {
     const snapshot = await loadProjectSnapshot(root, readOnlyCliJson);
     const recipes = bundledSharedRecipeChoices(invoke(["catalog", "recipes"]).data ?? {},
       invoke(["catalog", "list"]).data?.apps);
@@ -4711,15 +4713,17 @@ export async function interactive() {
     try { supported.media = await installPlanSupported("media"); } catch { /* Planning remains available. */ }
     try { supported.household = await installPlanSupported("household"); } catch { /* Planning remains available. */ }
     catalogActions.push(...installActions(supported));
-    if (process.platform === "linux") {
+    if (["linux", "darwin", "win32"].includes(process.platform)) {
       try {
         const recipes = invoke(["catalog", "recipes"]);
         recipeChoices = bundledRecipeChoices(recipes.data ?? {});
         if (recipeChoices.length > 0) {
           catalogActions.splice(1, 0, { value: "select-apps", label: "Select apps for a new project",
             hint: "Search, Space to toggle, Enter to review" });
-          catalogActions.push({ value: "install-recipe", label: "Set up one app",
-            hint: `${recipeChoices.length} Linux recipe(s); Homarr is optional` });
+          if (process.platform === "linux") {
+            catalogActions.push({ value: "install-recipe", label: "Set up one app",
+              hint: `${recipeChoices.length} Linux recipe(s); Homarr is optional` });
+          }
         }
       } catch { /* A missing or invalid recipe catalog removes this action. */ }
     }
@@ -4743,6 +4747,7 @@ export async function interactive() {
     const scope = stopIfCancelled(await select({
       message: "Which prerequisites should be checked?",
       options: [
+        { value: "compose", label: "Installing apps with Docker", hint: "Linux or Docker Desktop on macOS / Windows" },
         { value: "plan", label: "Planning on this computer", hint: "Windows, macOS, or Linux" },
         { value: "media", label: "Deploying on a Linux Docker host", hint: "Bun, Docker, Bash, and API tools" },
       ],

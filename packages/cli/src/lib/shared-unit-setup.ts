@@ -1,3 +1,4 @@
+import { assertPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { spawnSync } from "node:child_process";
 import { closeSync, constants, existsSync, fstatSync, lstatSync,
   openSync, readFileSync, realpathSync } from "node:fs";
@@ -497,8 +498,9 @@ export async function sharedUnitHandoff(root: string, projectId: string, appId: 
     let clientKeyCustodyFile: string | null = null;
     if (existsSync(custodyPath)) {
       const file = lstatSync(custodyPath);
+  if (process.platform === "win32") assertPrivatePath(custodyPath, (file.isDirectory() ? 0o700 : 0o600));
       if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1
-        || file.uid !== process.getuid?.() || (file.mode & 0o7777) !== 0o600
+        || !ownedByCurrentUser(file) || !privateMode(file, 0o600)
         || realpathSync(custodyPath) !== custodyPath || file.size < 1 || file.size > 1048576) {
         fail("the client-key custody reference is not an exact owner-only file");
       }
@@ -549,16 +551,18 @@ export async function sharedUnitHandoff(root: string, projectId: string, appId: 
 
 function ownedSecret(path: string, directory: string): string {
   const folder = lstatSync(directory);
+  if (process.platform === "win32") assertPrivatePath(directory, 0o700);
   if (!folder.isDirectory() || folder.isSymbolicLink() || realpathSync(directory) !== directory
-    || (folder.mode & 0o7777) !== 0o700 || folder.uid !== process.getuid?.()) {
+    || !privateMode(folder, 0o700) || !ownedByCurrentUser(folder)) {
     fail("a requested credential is not an exact owner-only file");
   }
   const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
     const file = fstatSync(descriptor);
     const pathname = lstatSync(path);
-    if (!file.isFile() || file.nlink !== 1 || file.uid !== process.getuid?.()
-      || (file.mode & 0o7777) !== 0o600 || file.size < 4 || file.size > 8192
+  if (process.platform === "win32") assertPrivatePath(path, (pathname.isDirectory() ? 0o700 : 0o600));
+    if (!file.isFile() || file.nlink !== 1 || !ownedByCurrentUser(file)
+      || !privateMode(file, 0o600) || file.size < 4 || file.size > 8192
       || pathname.isSymbolicLink() || pathname.dev !== file.dev || pathname.ino !== file.ino) {
       fail("a requested credential is not an exact owner-only file");
     }

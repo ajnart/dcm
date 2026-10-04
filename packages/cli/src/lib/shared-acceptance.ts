@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { constants, closeSync, fstatSync, fsyncSync, lstatSync, openSync, readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -82,9 +83,10 @@ function checkedLedger(value: unknown, identity: SharedAcceptanceIdentity): asse
 }
 function owned(path: string, directory: boolean): void {
   const stat = lstatSync(path);
+  if (process.platform === "win32") assertPrivatePath(path, (stat.isDirectory() ? 0o700 : 0o600));
   let mode = 0o600;
   if (directory) mode = 0o700;
-  if (stat.isSymbolicLink() || stat.uid !== process.getuid?.() || (stat.mode & 0o7777) !== mode
+  if (stat.isSymbolicLink() || !ownedByCurrentUser(stat) || !privateMode(stat, mode)
     || realpathSync(path) !== path || (directory && !stat.isDirectory())
     || (!directory && (!stat.isFile() || stat.nlink !== 1 || stat.size > 32 * 1024))) fail();
 }
@@ -95,9 +97,10 @@ function read(identity: SharedAcceptanceIdentity): Ledger | null {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = fstatSync(fd);
-    if (!before.isFile() || before.nlink !== 1 || before.uid !== process.getuid?.()
-      || (before.mode & 0o7777) !== 0o600 || before.size < 1 || before.size > 32 * 1024) fail();
+    if (!before.isFile() || before.nlink !== 1 || !ownedByCurrentUser(before)
+      || !privateMode(before, 0o600) || before.size < 1 || before.size > 32 * 1024) fail();
     const raw = readFileSync(fd, "utf8"); const after = fstatSync(fd); const named = lstatSync(path);
+  if (process.platform === "win32") assertPrivatePath(path, (named.isDirectory() ? 0o700 : 0o600));
     if (before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs
       || before.ctimeMs !== after.ctimeMs || named.ino !== before.ino || named.dev !== before.dev || named.isSymbolicLink()) fail();
     let value: unknown;
@@ -119,11 +122,14 @@ function save(identity: SharedAcceptanceIdentity, value: Ledger): void {
   if (Buffer.byteLength(raw) > 32 * 1024) fail();
   const temporary = join(identity.directory, `acceptance-run-${randomUUID()}.tmp`);
   const fd = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-  try { writeFileSync(fd, raw); fsyncSync(fd); } finally { closeSync(fd); }
+  try {
+    protectPrivatePath(temporary, 0o600); writeFileSync(fd, raw); fsyncSync(fd); } finally { closeSync(fd); }
   try { owned(identity.directory, true); renameSync(temporary, join(identity.directory, `acceptance-run-${identity.appId}.json`)); }
   finally { try { unlinkSync(temporary); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; } }
-  const directory = openSync(identity.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+  if (process.platform !== "win32") {
+    const directory = openSync(identity.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
   try { fsyncSync(directory); } finally { closeSync(directory); }
+  }
 }
 
 /** Load the app-owned packaged verifier, never a caller supplied module. */

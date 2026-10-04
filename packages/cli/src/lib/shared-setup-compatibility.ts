@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { link, lstat, open, realpath, rename, unlink } from "node:fs/promises";
@@ -40,9 +41,10 @@ function exact(value: unknown, keys: string[]): value is Entry {
 }
 async function owned(path: string, directory = false): Promise<void> {
   const info = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (info.isDirectory() ? 0o700 : 0o600));
   let mode = 0o600;
   if (directory) mode = 0o700;
-  if (info.isSymbolicLink() || info.uid !== process.getuid?.() || (info.mode & 0o7777) !== mode
+  if (info.isSymbolicLink() || !ownedByCurrentUser(info) || !privateMode(info, mode)
     || await realpath(path) !== path || (directory && !info.isDirectory())
     || (!directory && (!info.isFile() || info.nlink !== 1 || info.size < 1 || info.size > 32 * 1024))) fail();
 }
@@ -112,11 +114,12 @@ async function readLedger(state: SharedProjectState, appId: string): Promise<Led
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = await handle.stat();
-    if (!before.isFile() || before.nlink !== 1 || before.uid !== process.getuid?.()
-      || (before.mode & 0o7777) !== 0o600 || before.size < 1 || before.size > 32 * 1024) fail();
+    if (!before.isFile() || before.nlink !== 1 || !ownedByCurrentUser(before)
+      || !privateMode(before, 0o600) || before.size < 1 || before.size > 32 * 1024) fail();
     const value: unknown = JSON.parse(await handle.readFile("utf8"));
     const after = await handle.stat();
     const named = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (named.isDirectory() ? 0o700 : 0o600));
     if (before.ino !== after.ino || before.dev !== after.dev || before.size !== after.size
       || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs
       || named.ino !== before.ino || named.dev !== before.dev || named.isSymbolicLink()) fail();
@@ -190,7 +193,7 @@ export async function publishSharedSetupCompatibility(approved: SharedProjectSta
   const handle = await open(output,
     constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
   try {
-    try { await handle.writeFile(JSON.stringify(ledger)); await handle.sync(); } finally { await handle.close(); }
+    try { protectPrivatePath(output, 0o600); await handle.writeFile(JSON.stringify(ledger)); await handle.sync(); } finally { await handle.close(); }
     if (previous) {
       const latest = await readLedger(state, appId);
       if (!latest || hash(latest) !== hash(previous)) fail();
@@ -204,6 +207,8 @@ export async function publishSharedSetupCompatibility(approved: SharedProjectSta
     try { await unlink(output); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
   }
-  const directoryHandle = await open(state.project.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+  if (process.platform !== "win32") {
+    const directoryHandle = await open(state.project.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
   try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+  }
 }

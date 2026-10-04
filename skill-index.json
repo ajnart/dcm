@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "packVersion": "1.1.1",
+  "packVersion": "1.1.2",
   "publicSkills": [
     {
       "id": "self-host",

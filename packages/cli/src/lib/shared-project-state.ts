@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { link, lstat, mkdir, open, readdir, realpath, unlink } from "node:fs/promises";
@@ -510,8 +511,9 @@ function checkedCandidate(candidate: SharedProjectCandidate): ProjectIdentity {
 
 async function privateDirectory(path: string): Promise<void> {
   const info = await lstat(path);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o777) !== 0o700
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
+  if (process.platform === "win32") assertPrivatePath(path, (info.isDirectory() ? 0o700 : 0o600));
+  if (!info.isDirectory() || info.isSymbolicLink() || !privateMode(info, 0o700)
+    || !ownedByCurrentUser(info)
     || await realpath(path) !== path) {
     fail(`unsafe owner-only directory: ${path}`);
   }
@@ -519,8 +521,9 @@ async function privateDirectory(path: string): Promise<void> {
 
 async function ownedProjectRoot(path: string): Promise<void> {
   const info = await lstat(path);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o022) !== 0
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
+  if (process.platform === "win32") assertPrivatePath(path, (info.isDirectory() ? 0o700 : 0o600));
+  if (!info.isDirectory() || info.isSymbolicLink() || (process.platform !== "win32" && (info.mode & 0o022) !== 0)
+    || !ownedByCurrentUser(info)
     || await realpath(path) !== path) {
     fail("shared-project root must be a current-user-owned real directory without group or world write access");
   }
@@ -576,7 +579,7 @@ async function stateDirectory(projectDirectory: string, create: boolean): Promis
   await privateDirectory(projectDirectory);
   const directory = join(projectDirectory, "state");
   if (create) {
-    try { await mkdir(directory, { mode: 0o700 }); }
+    try { await mkdir(directory, { mode: 0o700 }); protectPrivatePath(directory, 0o700); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
@@ -597,17 +600,19 @@ function recordName(revision: number): string {
 }
 
 async function readRecord(path: string): Promise<SharedProjectState> {
+  if (process.platform === "win32") assertPrivatePath(path, 0o600);
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = await handle.stat();
     if (!before.isFile() || before.nlink !== 1 || before.size < 2 || before.size > maxStateBytes
-      || (before.mode & 0o777) !== 0o600
-      || (typeof process.getuid === "function" && before.uid !== process.getuid())) {
+      || !privateMode(before, 0o600)
+      || !ownedByCurrentUser(before)) {
       fail(`unsafe revision file: ${path}`);
     }
     const bytes = await handle.readFile("utf8");
     const after = await handle.stat();
     const pathInfo = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (pathInfo.isDirectory() ? 0o700 : 0o600));
     if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
       || after.dev !== pathInfo.dev || after.ino !== pathInfo.ino || pathInfo.nlink !== 1) {
       fail(`revision changed while reading: ${path}`);
@@ -1030,6 +1035,7 @@ export async function saveSharedProjectState(candidate: SharedProjectCandidate,
   const target = join(directory, recordName(record.revision));
   const handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
   try {
+    protectPrivatePath(temporary, 0o600);
     await handle.writeFile(bytes);
     await handle.sync();
   } finally {
@@ -1045,9 +1051,11 @@ export async function saveSharedProjectState(candidate: SharedProjectCandidate,
   } finally {
     await unlink(temporary);
   }
-  const directoryHandle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-  try { await directoryHandle.sync(); }
-  finally { await directoryHandle.close(); }
+  if (process.platform !== "win32") {
+    const directoryHandle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    try { await directoryHandle.sync(); }
+    finally { await directoryHandle.close(); }
+  }
   recordPostAccountHistory(current, record);
   return record;
 }

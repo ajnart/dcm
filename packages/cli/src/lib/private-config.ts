@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import type { Stats } from "node:fs";
@@ -64,14 +65,15 @@ export function checkedPrivateConfigs(recipe: Entry): Map<string, PrivateConfig>
 }
 
 function intact(metadata: Stats, expected?: Stats): boolean {
-  return metadata.isFile() && metadata.uid === process.getuid?.()
-    && metadata.nlink === 1 && (metadata.mode & 0o777) === 0o600
+  return metadata.isFile() && ownedByCurrentUser(metadata)
+    && metadata.nlink === 1 && privateMode(metadata, 0o600)
     && (!expected || (metadata.dev === expected.dev && metadata.ino === expected.ino
       && metadata.size === expected.size));
 }
 
 async function readPrivate(path: string, limit: number): Promise<Buffer> {
   const before = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (before.isDirectory() ? 0o700 : 0o600));
   if (!intact(before) || before.size < 1 || before.size > limit || await realpath(path) !== path) {
     throw new Error("Private configuration file must be an intact owner-only regular file");
   }
@@ -103,8 +105,9 @@ export async function preparePrivateConfigs(recipe: Entry, fileDirectory: string
   const configs = checkedPrivateConfigs(recipe);
   if (configs.size === 0) return;
   const directory = await lstat(fileDirectory);
+  if (process.platform === "win32") assertPrivatePath(fileDirectory, 0o700);
   if (!directory.isDirectory() || directory.isSymbolicLink()
-    || directory.uid !== process.getuid?.() || (directory.mode & 0o777) !== 0o700
+    || !ownedByCurrentUser(directory) || !privateMode(directory, 0o700)
     || await realpath(fileDirectory) !== fileDirectory) {
     throw new Error("Private configuration directory must be a current-user-owned mode-0700 real directory");
   }
@@ -132,7 +135,8 @@ export async function preparePrivateConfigs(recipe: Entry, fileDirectory: string
       const handle = await open(target,
         constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       try {
-        await handle.writeFile(payload);
+        protectPrivatePath(target, 0o600);
+    await handle.writeFile(payload);
         await handle.sync();
         created = await handle.stat();
         if (!intact(created) || created.size !== payload.length) {

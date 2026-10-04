@@ -16,7 +16,8 @@ export const sharedPrestartRuntimeNames = ["shared-prestart.ts", "shared-docker-
   "docker-api-authority.ts", "docker-api-authority-profile.ts", "docker-api-authority-probe.ts", "docker-api-authority-state.ts",
   "shared-private-https-state.ts", "shared-project-state.ts", "shared-derived-recipe.ts", "shared-derived-recipe-loader.ts",
   "shared-derived-recipe-state.ts", "shared-compose-project.ts", "shared-saved-recipe.ts", "shared-service-target.ts", "installed-cli-root.ts",
-  "setup-cloudflare-provider.ts", "mutable-config.ts", "private-config.ts", "shared-host-observation.ts"] as const;
+  "setup-cloudflare-provider.ts", "mutable-config.ts", "private-config.ts", "shared-host-observation.ts",
+  "desktop-host-observation.ts", "platform-private.ts", "portable-compose-lifecycle.ts"] as const;
 const own = new URL(import.meta.url);
 const installedRoot = installedCliRoot(import.meta.url);
 let catalog = new URL("../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/", own);
@@ -34,7 +35,8 @@ function read(url: URL, limit = 1024 * 1024): Buffer {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = fstatSync(fd);
-    if (!before.isFile() || before.nlink !== 1 || before.size < 1 || before.size > limit || (before.mode & 0o002) !== 0) fail();
+    if (!before.isFile() || before.nlink !== 1 || before.size < 1 || before.size > limit
+      || (process.platform !== "win32" && (before.mode & 0o002) !== 0)) fail();
     const bytes = Buffer.alloc(before.size + 1);
     let count = 0;
     while (count < bytes.length) {

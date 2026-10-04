@@ -1,5 +1,6 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
+import { assertPrivatePath, ownedByCurrentUser } from "./platform-private.ts";
 
 function samePath(left: string, right: string): boolean {
   if (process.platform === "win32") {
@@ -19,10 +20,11 @@ export async function savedAppIds(root: string): Promise<string[]> {
   }
   if (!metadata.isDirectory() || metadata.isSymbolicLink()
     || !samePath(await realpath(directory), directory)
-    || (metadata.mode & 0o077) !== 0
-    || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) {
+    || (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
+    || !ownedByCurrentUser(metadata)) {
     throw new Error("Saved app state must be a current-user-owned private real directory");
   }
+  if (process.platform === "win32") assertPrivatePath(directory, 0o700);
   const entries = await readdir(directory, { withFileTypes: true });
   if (entries.length > 64) throw new Error("Too many saved app state files to review");
   const ids: string[] = [];

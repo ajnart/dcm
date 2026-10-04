@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { constants, existsSync } from "node:fs";
+import { constants, existsSync, lstatSync } from "node:fs";
 import { mkdtemp, open, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requireSharedPrestart } from "./shared-prestart.ts";
 import { installedCliRoot } from "./installed-cli-root.ts";
+import { portableComposeLifecycle } from "./portable-compose-lifecycle.ts";
+import { protectPrivatePath } from "./platform-private.ts";
 
 type JsonObject = Record<string, any>;
 
@@ -163,7 +165,13 @@ function runtimeDirectory(): string {
 }
 
 function invoke(command: string, args: string[], label: string): string {
+  const environment: NodeJS.ProcessEnv = { ...process.env, COMPOSE_PROFILES: "" };
+  if (command === "bun" && process.versions.bun) {
+    command = process.execPath;
+    environment.BUN_BE_BUN = "1";
+  }
   const result = spawnSync(command, args, {
+    env: environment,
     encoding: "utf8",
     maxBuffer: maximumOutputBytes,
     stdio: ["ignore", "pipe", "pipe"],
@@ -196,6 +204,11 @@ function invokeJson(command: string, args: string[], label: string): JsonObject 
 }
 
 function requireBunRuntime(): void {
+  if (process.versions.bun) {
+    const embedded = /^(\d+)\.(\d+)\.(\d+)/.exec(process.versions.bun);
+    if (!embedded || Number(embedded[1]) < 1 || (Number(embedded[1]) === 1 && Number(embedded[2]) < 4)) throw new ComposeRuntimeUnavailableError();
+    return;
+  }
   const result = spawnSync("bun", ["--version"], {
     encoding: "utf8",
     maxBuffer: 4096,
@@ -240,10 +253,12 @@ async function withPrivateManifest<T>(manifest: JsonObject, manifestPath: string
   }
 
   const directory = await mkdtemp(join(tmpdir(), "selfhost-compose-cli-"));
+  protectPrivatePath(directory, 0o700);
   const path = join(directory, "manifest.json");
   try {
     const handle = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
     try {
+      protectPrivatePath(path, 0o600);
       await handle.writeFile(`${JSON.stringify(manifest)}\n`);
       await handle.sync();
     } finally {
@@ -259,8 +274,27 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
   const exactManifest = structuredClone(manifest);
   const project = projectFrom(exactManifest);
   const runtime = runtimeDirectory();
-  const owner = join(runtime, "compose-project.ts");
+  let owner = join(runtime, "compose-project.ts");
+  if (existsSync(join(runtime, "compose-project.js"))) owner = join(runtime, "compose-project.js");
   const lifecycle = join(runtime, "compose-lifecycle.sh");
+  function invokeLifecycle(args: string[], label: string): string {
+    const action = args[1];
+    const options = new Map<string, string>();
+    for (let index = 2; index < args.length; index += 2) options.set(args[index], args[index + 1]);
+    portableComposeLifecycle({ action, manifest: options.get("--manifest")!, context: project.dockerContext,
+      project: project.id, file: options.get("--file")!, services: options.get("--services")?.split(","),
+      approval: options.get("--approval"), requireExistingVolumes: options.get("--require-existing-volumes") === "true" },
+      (canonicalArgs) => invoke("bun", [owner, ...canonicalArgs], label), invoke, (operation, services) => {
+        let checker = join(runtime, "pre-start-check.ts");
+        if (existsSync(join(runtime, "pre-start-check.js"))) checker = join(runtime, "pre-start-check.js");
+        const checkerStat = lstatSync(checker);
+        if (!checkerStat.isFile() || checkerStat.isSymbolicLink()) fail("Canonical app pre-start checker is missing or unsafe");
+        const checkArgs = [checker, "--manifest", options.get("--manifest")!, "--operation", operation];
+        if (services) checkArgs.push("--services", services.join(","));
+        invoke("bun", checkArgs, "selfhost-compose pre-start check");
+      });
+    return "";
+  }
   function canonicalApplyApproval(path: string): string {
     return invoke("bun", [owner, "apply-approval", "--input", path], "selfhost-compose apply approval").trim();
   }
@@ -299,7 +333,7 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
   async function preflight(planResult: SelfhostComposePlan): Promise<void> {
     const target = await checkedTarget(planResult);
     await withPrivateManifest(exactManifest, manifestPath, (path) => {
-      invoke("bash", [
+      invokeLifecycle([
         lifecycle,
         "preflight",
         "--manifest", path,
@@ -327,7 +361,7 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
     await requireSharedPrestart(exactManifest, "apply");
     const volumeGuard = requireExistingVolumes ? ["--require-existing-volumes", "true"] : [];
     await withPrivateManifest(exactManifest, manifestPath, (path) => {
-      invoke("bash", [
+      invokeLifecycle([
         lifecycle,
         "preflight",
         "--manifest", path,
@@ -336,7 +370,7 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
         "--file", target,
         ...volumeGuard,
       ], "selfhost-compose preflight");
-      invoke("bash", [
+      invokeLifecycle([
         lifecycle,
         "apply",
         "--manifest", path,
@@ -364,7 +398,7 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
   async function stop(planResult: SelfhostComposePlan): Promise<void> {
     const target = await checkedTarget(planResult);
     await withPrivateManifest(exactManifest, manifestPath, (path) => {
-      invoke("bash", [
+      invokeLifecycle([
         lifecycle,
         "stop",
         "--manifest", path,
@@ -401,7 +435,7 @@ export function createSelfhostComposeOwner(manifest: JsonObject, manifestPath?: 
     if (approval !== selection.approval) fail("Selected lifecycle needs the exact separately reviewed selection approval");
     await requireSharedPrestart(exactManifest, operation, services);
     await withPrivateManifest(exactManifest, manifestPath, (path) => {
-      invoke("bash", [lifecycle, `selected-${operation}`, "--manifest", path,
+      invokeLifecycle([lifecycle, `selected-${operation}`, "--manifest", path,
         "--context", project.dockerContext, "--project", project.id, "--file", selection.file,
         "--services", selection.services.join(","), "--approval", approval], "selfhost-compose selected lifecycle");
     });

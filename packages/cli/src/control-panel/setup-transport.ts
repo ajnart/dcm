@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "../lib/platform-private.ts";
 import { request as nodeHttpRequest } from "node:http";
 import { createHash, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -107,11 +108,12 @@ function ownsPath(path: string, directory: string, label: string): void {
   let metadata;
   try {
     metadata = lstatSync(path);
+    if (process.platform === "win32") assertPrivatePath(path, metadata.isDirectory() ? 0o700 : 0o600);
   } catch {
     fail(`${label} is unavailable; inspect the saved app project`);
   }
   if (!metadata.isDirectory() || metadata.isSymbolicLink()
-    || metadata.uid !== process.getuid?.() || (metadata.mode & 0o7777) !== 0o700
+    || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o700)
     || realpathSync(path) !== path || (directory !== path && dirname(path) !== directory)) {
     fail(`${label} is not an exact owner-only directory`);
   }
@@ -121,11 +123,12 @@ function privateFile(path: string, directory: string, label: string): void {
   let metadata;
   try {
     metadata = lstatSync(path);
+    if (process.platform === "win32") assertPrivatePath(path, metadata.isDirectory() ? 0o700 : 0o600);
   } catch {
     fail(`${label} is unavailable; inspect the saved app project`);
   }
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-    || metadata.uid !== process.getuid?.() || (metadata.mode & 0o7777) !== 0o600
+    || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o600)
     || dirname(path) !== directory || realpathSync(path) !== path) {
     fail(`${label} is not an exact owner-only file`);
   }
@@ -375,6 +378,7 @@ function replaceAdminPassword(saved: SavedProject, expected: string, password: s
       | (constants.O_NOFOLLOW ?? 0), 0o600);
     temporaryExists = true;
     try {
+      protectPrivatePath(temporary, 0o600);
       writeFileSync(descriptor, password);
       fsyncSync(descriptor);
     } finally {
@@ -386,8 +390,10 @@ function replaceAdminPassword(saved: SavedProject, expected: string, password: s
     }
     renameSync(temporary, saved.passwordFile);
     temporaryExists = false;
-    const directory = openSync(saved.privateFiles, constants.O_RDONLY);
+    if (process.platform !== "win32") {
+      const directory = openSync(saved.privateFiles, constants.O_RDONLY);
     try { fsyncSync(directory); } finally { closeSync(directory); }
+    }
   } catch {
     fail("Generated administrator password could not be saved; inspect the saved checkpoint");
   } finally {
@@ -403,8 +409,9 @@ function openOwnedFile(path: string, directory: string, label: string, maxBytes:
   try {
     const metadata = fstatSync(descriptor);
     const named = lstatSync(path);
-    if (!metadata.isFile() || metadata.nlink !== 1 || metadata.uid !== process.getuid?.()
-      || (metadata.mode & 0o7777) !== 0o600 || metadata.size < 1 || metadata.size > maxBytes
+  if (process.platform === "win32") assertPrivatePath(path, (named.isDirectory() ? 0o700 : 0o600));
+    if (!metadata.isFile() || metadata.nlink !== 1 || !ownedByCurrentUser(metadata)
+      || !privateMode(metadata, 0o600) || metadata.size < 1 || metadata.size > maxBytes
       || named.isSymbolicLink() || named.dev !== metadata.dev || named.ino !== metadata.ino) {
       fail(`${label} is not a valid owner-only file`);
     }
@@ -586,6 +593,7 @@ function writeCheckpoint(project: SavedProject, appId: string, projectRoot: stri
     fail("A setup checkpoint lock is present; inspect the exact app project before continuing");
   }
   try {
+    protectPrivatePath(lockPath, 0o600);
     writeFileSync(lock, `${process.pid}\n`);
     fsyncSync(lock);
     const current = readCheckpoint(project, appId, projectRoot, registerSecret);
@@ -612,6 +620,7 @@ function writeCheckpoint(project: SavedProject, appId: string, projectRoot: stri
         | (constants.O_NOFOLLOW ?? 0), 0o600);
       temporaryExists = true;
       try {
+        protectPrivatePath(temporary, 0o600);
         writeFileSync(descriptor, `${JSON.stringify(next)}\n`);
         fsyncSync(descriptor);
       } finally {
@@ -621,8 +630,10 @@ function writeCheckpoint(project: SavedProject, appId: string, projectRoot: stri
       if (existing) privateFile(path, project.appDirectory, "Saved setup checkpoint");
       renameSync(temporary, path);
       temporaryExists = false;
-      const directory = openSync(project.appDirectory, constants.O_RDONLY);
+      if (process.platform !== "win32") {
+        const directory = openSync(project.appDirectory, constants.O_RDONLY);
       try { fsyncSync(directory); } finally { closeSync(directory); }
+      }
     } finally {
       if (temporaryExists) unlinkSync(temporary);
     }
@@ -1276,9 +1287,12 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
 
   function captureJmapFile(saved: SavedProject, name: string, value: string): void {
     const descriptor = openSync(join(saved.privateFiles, name), constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-    try { writeFileSync(descriptor, value); fsyncSync(descriptor); } finally { closeSync(descriptor); }
-    const directory = openSync(saved.privateFiles, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    try {
+      protectPrivatePath(join(saved.privateFiles, name), 0o600); writeFileSync(descriptor, value); fsyncSync(descriptor); } finally { closeSync(descriptor); }
+    if (process.platform !== "win32") {
+      const directory = openSync(saved.privateFiles, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
     try { fsyncSync(directory); } finally { closeSync(directory); }
+    }
   }
 
   async function jmapCaptured(): Promise<SetupJmapCapture> {
@@ -1682,14 +1696,17 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
       // No await or output between one-time stdout capture and durable custody.
       const descriptor = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       try {
+        protectPrivatePath(path, 0o600);
         writeFileSync(descriptor, JSON.stringify({ schemaVersion: 1, projectId: confirmed.saved.projectId,
           selectionFingerprint: confirmed.saved.selectionFingerprint,
           canonicalOrigin: passboltRegistration.canonicalOrigin, email: passboltRegistration.expectedEmail,
           userId: invitation.userId, token }));
         fsyncSync(descriptor);
       } finally { closeSync(descriptor); }
-      const directory = openSync(confirmed.saved.privateFiles, constants.O_RDONLY);
+      if (process.platform !== "win32") {
+        const directory = openSync(confirmed.saved.privateFiles, constants.O_RDONLY);
       try { fsyncSync(directory); } finally { closeSync(directory); }
+      }
       return { exitCode: 0, stdout: "" };
     }
     if (command.captureAdminPassword !== undefined) {
@@ -1974,6 +1991,7 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
         | (constants.O_NOFOLLOW ?? 0), 0o600);
       temporaryExists = true;
       try {
+        protectPrivatePath(temporary, 0o600);
         writeFileSync(descriptor, JSON.stringify({ schemaVersion: 1, identity, cookies }));
         fsyncSync(descriptor);
       } finally { closeSync(descriptor); }
@@ -1984,8 +2002,10 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
       if (entryExists(path)) privateFile(path, saved.privateFiles, "Private setup-session cookies");
       renameSync(temporary, path);
       temporaryExists = false;
-      const directory = openSync(saved.privateFiles, constants.O_RDONLY);
+      if (process.platform !== "win32") {
+        const directory = openSync(saved.privateFiles, constants.O_RDONLY);
       try { fsyncSync(directory); } finally { closeSync(directory); }
+      }
     } catch {
       fail("Private setup-session cookies could not be saved safely");
     } finally {
@@ -2052,6 +2072,7 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
         | (constants.O_NOFOLLOW ?? 0), 0o600);
       temporaryExists = true;
       try {
+        protectPrivatePath(temporary, 0o600);
         writeFileSync(descriptor, JSON.stringify({ schemaVersion: 1, identity, data }));
         fsyncSync(descriptor);
       } finally { closeSync(descriptor); }
@@ -2064,8 +2085,10 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
       if (entryExists(path)) privateFile(path, saved.privateFiles, "Private setup-attempt material");
       renameSync(temporary, path);
       temporaryExists = false;
-      const directory = openSync(saved.privateFiles, constants.O_RDONLY);
+      if (process.platform !== "win32") {
+        const directory = openSync(saved.privateFiles, constants.O_RDONLY);
       try { fsyncSync(directory); } finally { closeSync(directory); }
+      }
     } catch { fail("Private setup-attempt material could not be saved safely"); }
     finally {
       if (temporaryExists) {
@@ -2108,6 +2131,7 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
         | (constants.O_NOFOLLOW ?? 0), 0o600);
       temporaryExists = true;
       try {
+        protectPrivatePath(temporary, 0o600);
         writeFileSync(descriptor, secret);
         fsyncSync(descriptor);
       } finally {
@@ -2127,8 +2151,10 @@ export function createSetupTransportFacilities(options: SetupTransportFacilities
       }
       unlinkSync(temporary);
       temporaryExists = false;
-      const directory = openSync(saved.privateFiles, constants.O_RDONLY);
+      if (process.platform !== "win32") {
+        const directory = openSync(saved.privateFiles, constants.O_RDONLY);
       try { fsyncSync(directory); } finally { closeSync(directory); }
+      }
       return path;
     } catch {
       fail("App API key could not be saved to its owner-only file");

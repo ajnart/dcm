@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, realpath, rename, unlink } from "node:fs/promises";
@@ -114,9 +115,10 @@ async function contractFor(state: SharedProjectState, chosen: Selection, generat
 }
 async function owned(path: string, directory = false): Promise<void> {
   const info = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (info.isDirectory() ? 0o700 : 0o600));
   let mode = 0o600;
   if (directory) mode = 0o700;
-  if (info.isSymbolicLink() || info.uid !== process.getuid?.() || (info.mode & 0o7777) !== mode
+  if (info.isSymbolicLink() || !ownedByCurrentUser(info) || !privateMode(info, mode)
     || await realpath(path) !== path || (directory && !info.isDirectory())
     || (!directory && (!info.isFile() || info.nlink !== 1 || info.size < 1 || info.size > 32 * 1024))) fail();
 }
@@ -131,10 +133,11 @@ async function readLedger(state: SharedProjectState, id: string, dependencies: D
   let value: Ledger;
   try {
     const before = await handle.stat();
-    if (!before.isFile() || before.nlink !== 1 || before.uid !== process.getuid?.()
-      || (before.mode & 0o7777) !== 0o600 || before.size < 1 || before.size > 32 * 1024) fail();
+    if (!before.isFile() || before.nlink !== 1 || !ownedByCurrentUser(before)
+      || !privateMode(before, 0o600) || before.size < 1 || before.size > 32 * 1024) fail();
     value = JSON.parse(await handle.readFile("utf8"));
     const after = await handle.stat(); const named = await lstat(path);
+  if (process.platform === "win32") assertPrivatePath(path, (named.isDirectory() ? 0o700 : 0o600));
     if (before.ino !== after.ino || before.dev !== after.dev || before.size !== after.size
       || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs
       || named.ino !== before.ino || named.dev !== before.dev || named.isSymbolicLink()) fail();
@@ -158,7 +161,8 @@ async function writeLedger(state: SharedProjectState, value: Ledger, previous: L
   const path = join(state.project.directory, `homarr-run-${value.selection.id}.json`);
   const temporary = join(state.project.directory, `.homarr-run-${randomUUID()}.tmp`);
   const handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-  try { await handle.writeFile(JSON.stringify(value)); await handle.sync(); } finally { await handle.close(); }
+  try {
+    protectPrivatePath(temporary, 0o600); await handle.writeFile(JSON.stringify(value)); await handle.sync(); } finally { await handle.close(); }
   try {
     if (hash(await readLedger(state, value.selection.id, dependencies)) !== hash(previous)) fail();
     const current = await loadSharedProjectState(state.project.directory, state.project.id);

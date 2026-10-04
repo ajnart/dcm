@@ -1,3 +1,4 @@
+import { assertPrivatePath, ownedByCurrentUser } from "../lib/platform-private.ts";
 import { randomUUID } from "node:crypto";
 import { lstat, open, readFile, realpath, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
@@ -15,9 +16,10 @@ function samePath(left: string, right: string): boolean {
 async function privateSelectionPath(root: string): Promise<string> {
   const directory = join(root, ".selfhost");
   const stat = await lstat(directory);
+  if (process.platform === "win32") assertPrivatePath(directory, 0o700);
   if (!stat.isDirectory() || stat.isSymbolicLink()
-    || (stat.mode & 0o077) !== 0 || !samePath(await realpath(directory), directory)
-    || (typeof process.getuid === "function" && stat.uid !== process.getuid())) {
+    || (process.platform !== "win32" && (stat.mode & 0o077) !== 0) || !samePath(await realpath(directory), directory)
+    || !ownedByCurrentUser(stat)) {
     throw new Error("The saved project configuration is not an owner-only real directory");
   }
   return join(directory, "control-panel.json");
@@ -37,8 +39,8 @@ export async function excludedAppIds(root: string): Promise<string[]> {
     throw error;
   }
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.size > 8192
-    || (stat.mode & 0o077) !== 0 || !samePath(await realpath(path), path)
-    || (typeof process.getuid === "function" && stat.uid !== process.getuid())) {
+    || (process.platform !== "win32" && (stat.mode & 0o077) !== 0) || !samePath(await realpath(path), path)
+    || !ownedByCurrentUser(stat)) {
     throw new Error("The saved app selection is not an owner-only regular file");
   }
   const value: unknown = JSON.parse(await readFile(path, "utf8"));

@@ -9,11 +9,12 @@ import { checkedMutableConfigs, type MutableConfigHook, type MutableConfigContex
 import { readPreparedPrivateConfig } from "./private-config.ts";
 import { installedCliRoot } from "./installed-cli-root.ts";
 import { requireLocalSharedDockerContext } from "./shared-host-observation.ts";
+import { assertPrivatePath, ownedByCurrentUser, privateMode, protectPrivatePath } from "./platform-private.ts";
 export { checkedMutableConfigs };
 type Entry = Record<string, any>;
 export const mutableConfigRuntimeNames = ["mutable-config.ts", "private-config.ts", "installed-cli-root.ts",
   "shared-host-observation.ts", "shared-project-limits.ts", "manual-job.ts",
-  "private-identity-worker.ts", "private-identity-bun.ts"] as const;
+  "private-identity-worker.ts", "private-identity-bun.ts", "platform-private.ts", "desktop-host-observation.ts"] as const;
 const own = new URL(import.meta.url);
 const installedRoot = installedCliRoot(import.meta.url);
 let catalog = new URL("../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/", own);
@@ -29,7 +30,7 @@ function sourceDigest(url: URL): string {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = fstatSync(fd);
-    if (!before.isFile() || before.nlink !== 1 || (before.mode & 0o002) !== 0 || before.size > 16 * 1024 * 1024) throw new Error("Mutable configuration source is unsafe");
+    if (!before.isFile() || before.nlink !== 1 || (process.platform !== "win32" && (before.mode & 0o002) !== 0) || before.size > 16 * 1024 * 1024) throw new Error("Mutable configuration source is unsafe");
     const bytes = Buffer.alloc(before.size + 1);
     let count = 0;
     while (count < bytes.length) {
@@ -88,17 +89,22 @@ export function mutableConfigSourceHash(recipe: Entry): string | null {
 }
 
 async function privateDirectory(path: string): Promise<void> {
-  await mkdir(path, { mode: 0o700 }).catch((error) => { if (error.code !== "EEXIST") throw error; });
+  try {
+    await mkdir(path, { mode: 0o700 });
+    protectPrivatePath(path, 0o700);
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
   const stat = await lstat(path);
-  if (!stat.isDirectory() || stat.uid !== process.getuid?.() || (stat.mode & 0o7777) !== 0o700
+  assertPrivatePath(path, 0o700);
+  if (!stat.isDirectory() || !ownedByCurrentUser(stat) || !privateMode(stat, 0o700)
     || await realpath(path) !== path) throw new Error("Mutable configuration directory must be current-user-owned mode-0700");
 }
 
 /** Bounded private read shared with resume/acceptance; never emits payloads. */
 export async function readMutableConfig(path: string): Promise<string> {
   const before = await lstat(path);
+  assertPrivatePath(path, 0o600);
   const intact = (stat: typeof before) => stat.isFile() && stat.nlink === 1
-    && stat.uid === process.getuid?.() && (stat.mode & 0o7777) === 0o600
+    && ownedByCurrentUser(stat) && privateMode(stat, 0o600)
     && stat.dev === before.dev && stat.ino === before.ino && stat.size === before.size
     && stat.mtimeMs === before.mtimeMs && stat.ctimeMs === before.ctimeMs;
   if (!intact(before) || before.size < 1 || before.size > 65536 || await realpath(path) !== path) {
@@ -135,14 +141,17 @@ export async function prepareMutableConfigs(recipe: Entry, dataDirectory: string
   const root = join(dataDirectory, "mutable-configs");
   if (initialize) await privateDirectory(root);
   for (const config of configs.values()) {
-    if (config.containerUid !== process.getuid?.()) {
+    let containerUid = 1000;
+    if (typeof process.getuid === "function") containerUid = process.getuid();
+    if (config.containerUid !== containerUid) {
       throw new Error("Mutable configuration image UID cannot read/write current-user owner-only storage; ownership remapping is not authorized");
     }
     const directory = join(root, config.id);
     if (initialize) await privateDirectory(directory);
     for (const parent of [root, directory]) {
       const stat = await lstat(parent);
-      if (!stat.isDirectory() || stat.uid !== process.getuid?.() || (stat.mode & 0o7777) !== 0o700
+      assertPrivatePath(parent, 0o700);
+      if (!stat.isDirectory() || !ownedByCurrentUser(stat) || !privateMode(stat, 0o700)
         || await realpath(parent) !== parent) throw new Error("Mutable configuration private parent is unsafe");
     }
     const context: MutableConfigContext = { ...baseContext, configId: config.id, inputs: config.inputs ?? {} };
@@ -157,7 +166,7 @@ export async function prepareMutableConfigs(recipe: Entry, dataDirectory: string
       await hook.validate(content, context);
       try {
         const handle = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-        try { await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); }
+        try { protectPrivatePath(path, 0o600); await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); }
       } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
     }
     try { await hook.validate(await readMutableConfig(path), context); }

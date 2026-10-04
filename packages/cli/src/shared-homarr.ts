@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, realpath, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { assertPrivatePath, ownedByCurrentUser, privateMode, protectPrivatePath } from "./lib/platform-private.ts";
 import { HomarrAttachClient, inspectHomarrService, planHomarrService, applyHomarrService, validateInput } from "./homarr-attach.ts";
 import { loadSharedProjectState } from "./lib/shared-project-state.ts";
 import { withSharedProjectMutationLock } from "./lib/batch-mutation-lock.ts";
@@ -234,8 +235,9 @@ export function sharedHomarrPendingDaemon(appId: string, manifest: Entry, recipe
 
 async function privateDirectory(directory: string) {
   const metadata = await lstat(directory);
-  if (!metadata.isDirectory() || metadata.uid !== process.getuid?.()
-    || (metadata.mode & 0o077) !== 0 || await realpath(directory) !== directory) fail("connection directory is not owner-only");
+  assertPrivatePath(directory, 0o700);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink() || !ownedByCurrentUser(metadata)
+    || !privateMode(metadata, 0o700) || await realpath(directory) !== directory) fail("connection directory is not owner-only");
 }
 async function readConnections(directory: string): Promise<Entry | null> {
   await privateDirectory(directory);
@@ -243,8 +245,9 @@ async function readConnections(directory: string): Promise<Entry | null> {
   let before;
   try { before = await lstat(path); }
   catch (error: any) { if (error.code === "ENOENT") return null; throw error; }
-  if (!before.isFile() || before.uid !== process.getuid?.() || before.nlink !== 1
-    || (before.mode & 0o777) !== 0o600 || before.size < 1 || before.size > 1024 * 1024) fail("connection export is not an exact owner-only file");
+  assertPrivatePath(path, 0o600);
+  if (!before.isFile() || !ownedByCurrentUser(before) || before.nlink !== 1
+    || !privateMode(before, 0o600) || before.size < 1 || before.size > 1024 * 1024) fail("connection export is not an exact owner-only file");
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const after = await handle.stat();
@@ -263,7 +266,7 @@ async function writeConnections(directory: string, expected: Entry | null, paylo
   const path = join(directory, "connections.json");
   const temporary = join(directory, `.connections-${randomUUID()}.tmp`);
   const handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-  try { await handle.writeFile(JSON.stringify(payload, null, 2)); await handle.sync(); }
+  try { protectPrivatePath(temporary, 0o600); await handle.writeFile(JSON.stringify(payload, null, 2)); await handle.sync(); }
   finally { await handle.close(); }
   try {
     await privateDirectory(directory);

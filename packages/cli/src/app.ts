@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSelfhostComposeOwner } from "./lib/selfhost-compose.ts";
+import { requireLocalSharedDockerContext } from "./lib/shared-host-observation.ts";
 import { isRecipeImageReference, matchesRecipeImagePin, pinRecipeImage } from "../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/recipe-image-reference.ts";
 import { fetchPublicRegistryImageConfig, type VerifiedImagePlatform } from "./lib/public-registry-config.ts";
 import { assertPackagedCatalogProject } from "./lib/catalog-project.ts";
@@ -1505,7 +1506,7 @@ export async function resolveImageTag(imageTag: string, architecture: string,
   return pinnedImageFromManifest(imageTag, architecture, manifest);
 }
 
-async function resolveImage(appId: string, derivedRecipe?: RecordValue): Promise<RecordValue> {
+async function resolveImage(appId: string, derivedRecipe?: RecordValue, engineArchitecture?: string): Promise<RecordValue> {
   // Only the bundled, owner-reviewed derived-recipe path supplies this override.
   // No CLI flag imports an executable recipe or replaces catalog metadata.
   let info: ReturnType<typeof recipeFor>;
@@ -1520,7 +1521,10 @@ async function resolveImage(appId: string, derivedRecipe?: RecordValue): Promise
       storage: derivedRecipe.storage, appPurpose: "Owner-derived application recipe", boundedApply: true,
       recipeSha256: createHash("sha256").update(JSON.stringify(derivedRecipe)).digest("hex") };
   } else info = recipeFor(appId, false);
-  const architecture = process.arch === "x64" ? "amd64" : process.arch === "arm64" ? "arm64" : null;
+  let architecture: string | null = null;
+  const targetArchitecture = engineArchitecture ?? process.arch;
+  if (["x64", "amd64", "x86_64"].includes(targetArchitecture)) architecture = "amd64";
+  if (["arm64", "aarch64"].includes(targetArchitecture)) architecture = "arm64";
   if (!architecture) fail("app image supports only x64 and ARM64 hosts");
   if (info.recipe.schemaVersion === 2) {
     const images: RecordValue[] = [];
@@ -4413,9 +4417,28 @@ async function homarrImmichKeyCommand(options: NonNullable<ReturnType<typeof par
 
 async function runAppCommand(args: string[]): Promise<void> {
   if (args[0] === "shared") {
+    let sharedEngineArchitecture: string | undefined;
     try {
       await sharedProjectCommand(args.slice(1), { recipeFor: (appId) => recipeFor(appId, false), appFor: catalogAppFor,
-        resolveImage });
+        resolveImage: async (appId, recipe) => {
+          if (process.platform === "linux") return resolveImage(appId, recipe);
+          if (sharedEngineArchitecture) return resolveImage(appId, recipe, sharedEngineArchitecture);
+          const context = spawnSync("docker", ["context", "show"], {
+            encoding: "utf8", timeout: 5000, maxBuffer: 4096,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+          if (context.error || context.status !== 0) fail("Start Docker Desktop before resolving app images");
+          const name = context.stdout.trim();
+          requireLocalSharedDockerContext(name);
+          const engine = spawnSync("docker", ["--context", name, "info", "--format", "{{.OSType}}/{{.Architecture}}"], {
+            encoding: "utf8", timeout: 15000, maxBuffer: 4096,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+          const platform = /^linux\/(amd64|x86_64|arm64|aarch64)$/.exec(engine.stdout?.trim() ?? "");
+          if (engine.error || engine.status !== 0 || !platform) fail("Docker Desktop must use Linux x64 or ARM64 containers");
+          sharedEngineArchitecture = platform[1];
+          return resolveImage(appId, recipe, sharedEngineArchitecture);
+        } });
     } catch (error) {
       if (error instanceof SharedAcceptanceOwnerError) fail(error.message, error.code);
       if (error instanceof SharedRecipeMigrationError) fail(error.message, error.code);

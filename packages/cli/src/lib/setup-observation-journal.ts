@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants, closeSync, fstatSync, fsyncSync, lstatSync, openSync, readFileSync,
   realpathSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join, resolve } from "node:path";
+import { assertPrivatePath, ownedByCurrentUser, privateMode, protectPrivatePath } from "./platform-private.ts";
 import type { SetupObserver } from "../control-panel/setup-engine.ts";
 import type { SetupCompatibilityResult } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/setup.ts";
 
@@ -63,17 +64,23 @@ function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 function owned(metadata: ReturnType<typeof lstatSync>, mode: number): void {
-  if ((metadata.mode & 0o7777) !== mode
-    || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) fail();
+  if (!privateMode(metadata, mode) || !ownedByCurrentUser(metadata)) fail();
 }
 function directory(path: string): void {
   if (!isAbsolute(path) || resolve(path) !== path || realpathSync(path) !== path) fail();
   const metadata = lstatSync(path);
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) fail();
   owned(metadata, 0o700);
+  assertPrivatePath(path, 0o700);
 }
 
 function read(path: string): Journal {
+  if (process.platform === "win32") {
+    try { assertPrivatePath(path, 0o600); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
   let fd: number;
   try { fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
   catch (error) {
@@ -150,6 +157,7 @@ export function createSetupObservationJournal(options: {
     catch { fail(); }
     let temporary: string | null = null;
     try {
+      protectPrivatePath(lock, 0o600);
       const current = read(path);
       const same = current.events.find((item) => item.attemptId === event.attemptId && item.outcome !== "attempted");
       if (same) {
@@ -177,12 +185,18 @@ export function createSetupObservationJournal(options: {
       }
       temporary = join(options.directory, `setup-observations.${randomUUID()}.tmp`);
       const fd = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-      try { writeFileSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); }
+      try {
+        protectPrivatePath(temporary, 0o600);
+        writeFileSync(fd, bytes);
+        fsyncSync(fd);
+      } finally { closeSync(fd); }
       directory(options.directory);
       renameSync(temporary, path);
       temporary = null;
-      const directoryFd = openSync(options.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-      try { fsyncSync(directoryFd); } finally { closeSync(directoryFd); }
+      if (process.platform !== "win32") {
+        const directoryFd = openSync(options.directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+        try { fsyncSync(directoryFd); } finally { closeSync(directoryFd); }
+      }
       return next.events[next.events.length - 1]!;
     } finally {
       if (temporary) unlinkSync(temporary);

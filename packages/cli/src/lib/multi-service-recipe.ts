@@ -4,6 +4,7 @@ import { lstat, mkdir, open, readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
+import { assertPrivatePath, ownedByCurrentUser, privateMode, protectPrivatePath } from "./platform-private.ts";
 import { checkedPrivateConfigs, preparePrivateConfigs, readPreparedPrivateConfig } from "./private-config.ts";
 import { checkedMutableConfigs, prepareMutableConfigs } from "./mutable-config.ts";
 import { checkedPrivateConfigEnvironment, serializePrivateConfigEnvironment, isCanonicalPrivateBase64 } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/private-config-environment.ts";
@@ -19,6 +20,16 @@ import { compileSharedOwnerDirectory, verifyOwnedDirectoryIdentity } from "./sha
 import { ownerDirectoryFields } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/owner-directory.ts";
 import { checkedDockerCliTlsRequest, dockerCliTlsClaim, dockerCliTlsTargets } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/docker-cli-tls.ts";
 export { checkedConnectorRecipe } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/connector.ts";
+
+function selectedContainerUid(): number {
+  if (typeof process.getuid === "function") return process.getuid();
+  return 1000;
+}
+
+function selectedContainerGid(): number {
+  if (typeof process.getgid === "function") return process.getgid();
+  return 1000;
+}
 
 type Entry = Record<string, any>;
 const secretEnvironmentName = /PASS(?:WORD|WD)?|SECRET|TOKEN|CREDENTIAL|(?:API|AUTH)_?KEY|(?:^|_)KEY(?:_|$)|(?:^|_)(?:AUTH|COOKIE|DATABASE_URL|DSN|CONNECTION_STRING)(?:_|$)/i;
@@ -149,14 +160,16 @@ function selectedHostPaths(recipe: Entry, selections: Record<string, string> | u
   for (const id of declared) {
     const path = selected[id];
     let segments: string[] = [];
-    if (typeof path === "string") segments = path.split("/").filter(Boolean);
+    if (typeof path === "string") segments = path.split(/[\\/]/).filter(Boolean);
+    const windowsHost = process.platform === "win32";
     if (typeof path !== "string" || path.length > 1024 || /[\r\n\u0000-\u001f\u007f]/.test(path)
-      || !isAbsolute(path) || path.includes("\\")
-      || normalize(path) !== path || resolve(path) !== path || path === "/" || path.endsWith("/")
+      || !isAbsolute(path) || (!windowsHost && path.includes("\\"))
+      || (windowsHost && !/^[A-Za-z]:\\/.test(path))
+      || normalize(path) !== path || resolve(path) !== path || path === "/" || /[\\/]$/.test(path)
       || segments.length < 2 || ["/proc", "/sys", "/dev", "/run", "/var/run", "/var/lib/docker"]
         .some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
-      || /(?:^|\/)(?:\.ssh|\.gnupg|\.aws|\.kube|\.docker)(?:\/|$)/i.test(path)) {
-      throw new Error("Selected host paths must be normalized, specific POSIX paths outside protected host data");
+      || /(?:^|[\\/])(?:\.ssh|\.gnupg|\.aws|\.kube|\.docker)(?:[\\/]|$)/i.test(path)) {
+      throw new Error("Selected host paths must be normalized, specific native host paths outside protected host data");
     }
     paths[id] = path;
   }
@@ -373,20 +386,23 @@ function selectedAdditionalPorts(recipe: Entry, selections: Record<string, numbe
 export async function privateDirectory(path: string): Promise<void> {
   try {
     await mkdir(path, { mode: 0o700 });
+    protectPrivatePath(path, 0o700);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
   const metadata = await lstat(path);
+  assertPrivatePath(path, 0o700);
   if (!metadata.isDirectory() || metadata.isSymbolicLink() || await realpath(path) !== path
-    || metadata.uid !== process.getuid?.() || (metadata.mode & 0o777) !== 0o700) {
+    || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o700)) {
     throw new Error("Multi-service data and secret directories must be current-user-owned mode-0700 real directories");
   }
 }
 
 async function verifyGeneratedConfigFile(target: string, content: string, mode: number): Promise<void> {
   const metadata = await lstat(target);
+  assertPrivatePath(target, mode);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-    || metadata.uid !== process.getuid?.() || (metadata.mode & 0o7777) !== mode
+    || !ownedByCurrentUser(metadata) || !privateMode(metadata, mode)
     || metadata.size !== Buffer.byteLength(content) || await realpath(target) !== target) {
     throw new Error("Generated config file is not intact with its reviewed readability");
   }
@@ -394,8 +410,8 @@ async function verifyGeneratedConfigFile(target: string, content: string, mode: 
   try {
     const current = await handle.stat();
     if (current.dev !== metadata.dev || current.ino !== metadata.ino
-      || current.nlink !== 1 || current.uid !== process.getuid?.()
-      || (current.mode & 0o7777) !== mode || current.size !== metadata.size
+      || current.nlink !== 1 || !ownedByCurrentUser(current)
+      || !privateMode(current, mode) || current.size !== metadata.size
       || await handle.readFile("utf8") !== content) {
       throw new Error("Generated config file differs from the reviewed recipe");
     }
@@ -406,8 +422,8 @@ async function verifyGeneratedConfigFile(target: string, content: string, mode: 
     }
     for (const inspected of [after, named]) {
       if (!inspected.isFile() || inspected.dev !== metadata.dev || inspected.ino !== metadata.ino
-        || inspected.nlink !== 1 || inspected.uid !== process.getuid?.()
-        || (inspected.mode & 0o7777) !== mode || inspected.size !== metadata.size
+        || inspected.nlink !== 1 || !ownedByCurrentUser(inspected)
+        || !privateMode(inspected, mode) || inspected.size !== metadata.size
         || inspected.mtimeMs !== metadata.mtimeMs || inspected.ctimeMs !== metadata.ctimeMs) {
         throw new Error("Generated config file changed during inspection");
       }
@@ -428,8 +444,9 @@ export async function verifySharedGeneratedConfigFiles(recipe: Entry, projectDir
   const directory = join(app, "config-files");
   for (const path of [projectDirectory, data, app, directory]) {
     const metadata = await lstat(path);
+    assertPrivatePath(path, 0o700);
     if (!metadata.isDirectory() || metadata.isSymbolicLink() || await realpath(path) !== path
-      || metadata.uid !== process.getuid?.() || (metadata.mode & 0o7777) !== 0o700) {
+      || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o700)) {
       throw new Error("Generated config verification needs intact owner-only directories");
     }
   }
@@ -455,6 +472,7 @@ async function privateFile(path: string, bytes: number, format: PrivateFileForma
     const handle = await open(path,
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
     try {
+      protectPrivatePath(path, 0o600);
       let value = "";
       if (format === "base64url") {
         value = randomBytes(bytes).toString("base64url");
@@ -479,9 +497,10 @@ async function privateFile(path: string, bytes: number, format: PrivateFileForma
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
   const metadata = await lstat(path);
+  assertPrivatePath(path, 0o600);
   if (!metadata.isFile() || metadata.isSymbolicLink() || await realpath(path) !== path
-    || metadata.uid !== process.getuid?.() || metadata.nlink !== 1
-    || (metadata.mode & 0o777) !== 0o600
+    || !ownedByCurrentUser(metadata) || metadata.nlink !== 1
+    || !privateMode(metadata, 0o600)
     || metadata.size !== expectedLength) {
     throw new Error("Multi-service private file must be one intact current-user-owned mode-0600 file");
   }
@@ -489,8 +508,8 @@ async function privateFile(path: string, bytes: number, format: PrivateFileForma
   try {
     const current = await handle.stat();
     if (!current.isFile() || current.dev !== metadata.dev || current.ino !== metadata.ino
-      || current.nlink !== 1 || current.uid !== process.getuid?.()
-      || (current.mode & 0o777) !== 0o600) {
+      || current.nlink !== 1 || !ownedByCurrentUser(current)
+      || !privateMode(current, 0o600)) {
       throw new Error("Multi-service private file changed during format inspection");
     }
     const value = await handle.readFile("utf8");
@@ -521,8 +540,9 @@ function capturedStalwartAdministrator(recipe: Entry, directory: string, file: E
   }
   function read(path: string): string {
     const metadata = lstatSync(path);
-    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || metadata.uid !== process.getuid?.()
-      || (metadata.mode & 0o7777) !== 0o600 || metadata.size < 1 || metadata.size > 4096 || realpathSync(path) !== path) {
+    assertPrivatePath(path, 0o600);
+    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || !ownedByCurrentUser(metadata)
+      || !privateMode(metadata, 0o600) || metadata.size < 1 || metadata.size > 4096 || realpathSync(path) !== path) {
       throw new Error("Captured Stalwart administrator metadata is unsafe");
     }
     const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -603,7 +623,7 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
   for (const service of recipe.services) {
     if (service.ownerDirectory === undefined) continue;
     if (appScope !== recipe.appId || service.user !== "host-selected" || !ownerIdentity
-      || ownerIdentity.uid !== process.getuid?.() || ownerIdentity.gid !== process.getgid?.()) throw new Error("Owned stack directories require one exact shared app and numeric host identity");
+      || ownerIdentity.uid !== selectedContainerUid() || ownerIdentity.gid !== selectedContainerGid()) throw new Error("Owned stack directories require one exact shared app and numeric host identity");
     const fields = ownerDirectoryFields(projectDirectory, recipe.appId);
     await privateDirectory(fields.path);
     verifyOwnedDirectoryIdentity(projectDirectory, recipe.appId, `${ownerIdentity.uid}:${ownerIdentity.gid}`, ownerIdentity.uid, ownerIdentity.gid);
@@ -616,8 +636,9 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
       try {
         const handle = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, mode);
         try {
-          // Set only this newly-created descriptor, independent of the caller's umask.
-          if (mode === 0o644) await handle.chmod(mode);
+          // Windows ACLs precede payload writes; Unix readability is descriptor-owned.
+          if (process.platform === "win32") protectPrivatePath(target, mode);
+          else if (mode === 0o644) await handle.chmod(mode);
           await handle.writeFile(content); await handle.sync();
         } finally { await handle.close(); }
       } catch (error) {
@@ -658,6 +679,7 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
         constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       try {
         if (!input) throw new Error("Owner secret is required before Docker apply");
+        protectPrivatePath(target, 0o600);
         await handle.writeFile(input);
         await handle.sync();
       } finally { await handle.close(); }
@@ -665,9 +687,10 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
     const metadata = await lstat(target);
+    assertPrivatePath(target, 0o600);
     if (!metadata.isFile() || metadata.isSymbolicLink() || await realpath(target) !== target
-      || metadata.uid !== process.getuid?.() || metadata.nlink !== 1
-      || (metadata.mode & 0o777) !== 0o600 || metadata.size < 1 || metadata.size > file.maxBytes) {
+      || !ownedByCurrentUser(metadata) || metadata.nlink !== 1
+      || !privateMode(metadata, 0o600) || metadata.size < 1 || metadata.size > file.maxBytes) {
       throw new Error("Owner secret must be an intact current-user-owned mode-0600 file");
     }
     if (input) {
@@ -675,8 +698,8 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
       try {
         const current = await handle.stat();
         if (current.dev !== metadata.dev || current.ino !== metadata.ino
-          || current.uid !== process.getuid?.() || current.nlink !== 1
-          || (current.mode & 0o777) !== 0o600) {
+          || !ownedByCurrentUser(current) || current.nlink !== 1
+          || !privateMode(current, 0o600)) {
           throw new Error("Owner secret changed during comparison");
         }
         if (!(await handle.readFile()).equals(input)) throw new Error("Owner secret differs from saved value");
@@ -695,8 +718,9 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
       const handle = await open(target, constants.O_RDONLY | constants.O_NOFOLLOW);
       try {
         const metadata = await handle.stat();
-        if (!metadata.isFile() || metadata.nlink !== 1 || metadata.uid !== process.getuid?.()
-          || (metadata.mode & 0o777) !== 0o600 || metadata.size > 8192) {
+        assertPrivatePath(target, 0o600);
+        if (!metadata.isFile() || metadata.nlink !== 1 || !ownedByCurrentUser(metadata)
+          || !privateMode(metadata, 0o600) || metadata.size > 8192) {
           throw new Error("Existing private env file is not owner-only");
         }
         savedEnvironment = await handle.readFile("utf8");
@@ -754,22 +778,23 @@ export async function prepareMultiServiceFiles(recipe: Entry, projectDirectory: 
     if (Buffer.byteLength(content) > 8192) throw new Error("Private environment exceeds its bounded size");
     try {
       const handle = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-      try { await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); }
+      try { protectPrivatePath(target, 0o600); await handle.writeFile(content); await handle.sync(); } finally { await handle.close(); }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
     const metadata = await lstat(target);
+    assertPrivatePath(target, 0o600);
     if (!metadata.isFile() || metadata.isSymbolicLink() || await realpath(target) !== target
-      || metadata.uid !== process.getuid?.() || metadata.nlink !== 1
-      || (metadata.mode & 0o777) !== 0o600 || metadata.size !== Buffer.byteLength(content)) {
+      || !ownedByCurrentUser(metadata) || metadata.nlink !== 1
+      || !privateMode(metadata, 0o600) || metadata.size !== Buffer.byteLength(content)) {
       throw new Error("Existing private env file does not match generated bindings");
     }
     const handle = await open(target, constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       const current = await handle.stat();
       if (current.dev !== metadata.dev || current.ino !== metadata.ino
-        || current.nlink !== 1 || current.uid !== process.getuid?.()
-        || (current.mode & 0o777) !== 0o600 || await handle.readFile("utf8") !== content) {
+        || current.nlink !== 1 || !ownedByCurrentUser(current)
+        || !privateMode(current, 0o600) || await handle.readFile("utf8") !== content) {
         throw new Error("Existing private env file does not match generated bindings");
       }
     } finally { await handle.close(); }

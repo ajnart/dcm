@@ -283,6 +283,13 @@ async function main() {
     const composeScripts = join(staging, "workflows", "selfhost-compose", "scripts");
     await mkdir(composeScripts, { recursive: true });
     await cp(join(composeOwner, "compose-project.ts"), join(composeScripts, "compose-project.ts"), { force: false });
+    await cp(join(composeOwner, "platform-private.ts"), join(composeScripts, "platform-private.ts"), { force: false });
+    const composeBuild = Bun.spawnSync({
+      cmd: [process.execPath, "build", join(composeOwner, "compose-project.ts"), "--target=bun",
+        `--outfile=${join(composeScripts, "compose-project.js")}`],
+      cwd: repositoryRoot, stdout: "pipe", stderr: "pipe",
+    });
+    if (composeBuild.exitCode !== 0) throw new Error("Canonical Compose runtime build failed");
     await cp(join(composeOwner, "compose-lifecycle.sh"), join(composeScripts, "compose-lifecycle.sh"), { force: false });
     const prestartCheck = Bun.spawnSync({
       cmd: [process.execPath, "build", join(composeOwner, "pre-start-check.ts"), "--target=node",

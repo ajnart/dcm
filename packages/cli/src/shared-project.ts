@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { lstat, mkdir, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { assertPrivatePath, protectPrivatePath, privateMode, ownedByCurrentUser } from "./lib/platform-private.ts";
 import { inspectExistingSharedHost, inspectNewSharedHost, requireLocalSharedDockerContext,
   type SharedHostRequest } from "./lib/shared-host-observation.ts";
 import { extendSharedProject, prepareSharedProjectFiles, sharedProjectCandidate,
@@ -356,23 +357,30 @@ function parse(args: string[]): SharedOptions {
 }
 
 async function privateDirectory(path: string): Promise<void> {
-  try { await mkdir(path, { mode: 0o700 }); }
+  try {
+    await mkdir(path, { mode: 0o700 });
+    protectPrivatePath(path, 0o700);
+  }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
   const info = await lstat(path);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o777) !== 0o700
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
+  if (!info.isDirectory() || info.isSymbolicLink() || !privateMode(info, 0o700)
+    || !ownedByCurrentUser(info)
     || await realpath(path) !== path) fail(`unsafe owner-only directory: ${path}`);
+  assertPrivatePath(path, 0o700);
 }
 
 async function checkedRoot(root: string): Promise<void> {
   const info = await lstat(root);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o022) !== 0
+  if (!info.isDirectory() || info.isSymbolicLink() || (process.platform !== "win32" && (info.mode & 0o022) !== 0)
     || (typeof process.getuid === "function" && info.uid !== process.getuid())
     || await realpath(root) !== root) fail("project root must be one current-user-owned real directory");
-  if (process.platform !== "linux" || typeof process.getuid !== "function"
-    || process.getuid() === 0) fail("shared Compose apply requires one non-root local Linux operator");
+  if (!["linux", "darwin", "win32"].includes(process.platform)
+    || (typeof process.getuid === "function" && process.getuid() === 0)) {
+    fail("shared Compose requires a non-root operator on Linux, macOS, or Windows with Linux containers");
+  }
+  if (process.platform === "win32") assertPrivatePath(root, 0o700);
 }
 
 function requireUnownedRoot(root: string): void {
@@ -439,8 +447,9 @@ async function sharedRemovalLinkHistoryPresent(current: SharedProjectState,
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw new SharedProjectCommandError("saved link history could not be inspected; stop before removal", "shared-remove-dependency");
   }
-  if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== process.getuid?.()
-    || (metadata.mode & 0o7777) !== 0o700 || await realpath(directory) !== directory) {
+  assertPrivatePath(directory, 0o700);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink() || !ownedByCurrentUser(metadata)
+    || !privateMode(metadata, 0o700) || await realpath(directory) !== directory) {
     throw new SharedProjectCommandError("saved link history directory is unsafe; stop before removal", "shared-remove-dependency");
   }
   let entries: string[];
@@ -458,8 +467,9 @@ async function sharedRemovalLinkHistoryPresent(current: SharedProjectState,
       let file;
       try { file = await lstat(join(directory, entry)); }
       catch { throw new SharedProjectCommandError("matching saved link history changed during inspection; stop before removal", "shared-remove-dependency"); }
-      if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1 || file.uid !== process.getuid?.()
-        || (file.mode & 0o7777) !== 0o600 || file.size < 1 || file.size > 8192) {
+      assertPrivatePath(join(directory, entry), 0o600);
+      if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1 || !ownedByCurrentUser(file)
+        || !privateMode(file, 0o600) || file.size < 1 || file.size > 8192) {
         throw new SharedProjectCommandError("matching saved link history file is unsafe; stop before removal", "shared-remove-dependency");
       }
       present = true;

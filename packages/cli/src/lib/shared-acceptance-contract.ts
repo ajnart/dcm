@@ -29,7 +29,8 @@ export function readSharedAcceptanceSource(url: URL): string {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = fstatSync(fd);
-    if (!before.isFile() || before.nlink !== 1 || before.size < 1 || before.size > 1024 * 1024 || (before.mode & 0o002)) fail();
+    if (!before.isFile() || before.nlink !== 1 || before.size < 1 || before.size > 1024 * 1024
+      || (process.platform !== "win32" && (before.mode & 0o002))) fail();
     const bytes = readFileSync(fd, "utf8"); const after = fstatSync(fd); const named = lstatSync(path);
     if (before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs
       || named.ino !== before.ino || named.dev !== before.dev || named.isSymbolicLink()) fail();

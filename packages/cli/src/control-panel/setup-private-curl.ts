@@ -1,5 +1,6 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "../lib/platform-private.ts";
 import { spawn } from "node:child_process";
-import { lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, readFile, realpath, rm, open } from "node:fs/promises";
 import { join } from "node:path";
 import { readSharedHttpsTargetCa, type SharedHttpsTarget } from "../lib/shared-https-target.ts";
 import type { SetupHttpMethod } from "../../../../.agents/skills/self-host/workflows/selfhost/references/catalog/types/setup.ts";
@@ -16,6 +17,14 @@ function quote(value: string): string {
   return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
+async function writePrivate(path: string, value: string | Buffer): Promise<void> {
+  const file = await open(path, "wx", 0o600);
+  try {
+    protectPrivatePath(path, 0o600);
+    await file.writeFile(value);
+  } finally { await file.close(); }
+}
+
 /** Caller owns approval/checkpoint/redaction. Wire payloads stay in owner-only temporary files. */
 export async function privateCurlResponse(target: SharedHttpsTarget, method: SetupHttpMethod,
   path: string, headers: Record<string, string>, body: Buffer | undefined,
@@ -27,8 +36,9 @@ export async function privateCurlResponse(target: SharedHttpsTarget, method: Set
   const url = new URL(path, target.origin);
   if (url.origin !== target.origin || url.username || url.password || url.hash) fail();
   const metadata = await lstat(privateFiles);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== process.getuid?.()
-    || (metadata.mode & 0o7777) !== 0o700 || await realpath(privateFiles) !== privateFiles) fail();
+  if (process.platform === "win32") assertPrivatePath(privateFiles, 0o700);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink() || !ownedByCurrentUser(metadata)
+    || !privateMode(metadata, 0o700) || await realpath(privateFiles) !== privateFiles) fail();
   await revalidate();
   const ca = await readSharedHttpsTargetCa(target);
   const directory = await mkdtemp(join(privateFiles, ".https-request-"));
@@ -37,6 +47,7 @@ export async function privateCurlResponse(target: SharedHttpsTarget, method: Set
   const configPath = join(directory, "request.conf");
   const caPath = join(directory, "root.crt");
   try {
+    protectPrivatePath(directory, 0o700);
     const config = [`url = ${quote(url.toString())}`, `request = ${quote(method)}`];
     if (Object.keys(headers).length > 17) fail();
     for (const [name, value] of Object.entries(headers)) {
@@ -50,13 +61,13 @@ export async function privateCurlResponse(target: SharedHttpsTarget, method: Set
     }
     if (body) {
       const bodyPath = join(directory, "request.body");
-      await writeFile(bodyPath, body, { flag: "wx", mode: 0o600 });
+      await writePrivate(bodyPath, body);
       config.push(`data-binary = ${quote(`@${bodyPath}`)}`);
     }
-    await writeFile(configPath, config.join("\n") + "\n", { flag: "wx", mode: 0o600 });
+    await writePrivate(configPath, config.join("\n") + "\n");
     // Snapshot the hash-checked public root so replacement during curl cannot change request trust.
-    await writeFile(caPath, ca, { flag: "wx", mode: 0o600 });
-    for (const file of [responsePath, headersPath]) await writeFile(file, "", { flag: "wx", mode: 0o600 });
+    await writePrivate(caPath, ca);
+    for (const file of [responsePath, headersPath]) await writePrivate(file, "");
     const args = ["--disable", "--silent", "--show-error", "--cacert", caPath, "--capath", directory,
       "--resolve", `${target.hostname}:${target.port}:${target.resolveAddress}`, "--noproxy", "*",
       "--proto", "=https", "--proto-redir", "=https", "--max-redirs", "0",
@@ -84,6 +95,8 @@ export async function privateCurlResponse(target: SharedHttpsTarget, method: Set
       });
     });
     if ((await lstat(responsePath)).size > 1024 * 1024 || (await lstat(headersPath)).size > 64 * 1024) fail();
+    assertPrivatePath(responsePath, 0o600);
+    assertPrivatePath(headersPath, 0o600);
     const bytes = await readFile(responsePath);
     const rawHeaders = await readFile(headersPath, "utf8");
     const blocks = rawHeaders.split(/\r?\n\r?\n/).filter((block) => /^HTTP\//.test(block));

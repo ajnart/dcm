@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { isIP } from "node:net";
 import path from "node:path";
+import { assertPrivatePath, protectPrivatePath } from "./platform-private.ts";
 import { checkedManualProbe } from "../../selfhost/references/catalog/types/manual-job.ts";
 import { checkedDockerCliTlsClaim, dockerCliTlsTargets } from "../../selfhost/references/catalog/types/docker-cli-tls.ts";
 import { checkedRuntimeResourceClaim, runtimeResourceEffects, verifyRuntimeResourceDevice } from "../../selfhost/references/catalog/types/runtime-resources.ts";
@@ -353,6 +354,16 @@ function requireText(value, context, maximum = 512) {
 }
 
 function requireAbsolutePath(value, context, target = false) {
+  if (!target && process.platform === "win32") {
+    if (typeof value !== "string" || !/^[A-Za-z]:\\/.test(value)
+      || path.win32.normalize(value) !== value || value === path.win32.parse(value).root
+      || /[\x00-\x1f<>"|?*]/.test(value) || value.slice(2).includes(":")) reject(`${context} must be a normalized bounded local Windows path`);
+    if (value.endsWith("\\") || value.split("\\").some((segment) => /[. ]$/.test(segment))) reject(`${context} must be normalized and bounded`);
+    if (/^[A-Za-z]:\\(?:Windows|Program Files(?: \(x86\))?|ProgramData)(?:\\|$)/i.test(value)) reject(`${context} enters a protected host path`);
+    if (/\\docker\.sock$/i.test(value)) reject("Docker socket paths are not accepted");
+    if (value.split("\\").slice(1).some((segment) => /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(segment))) reject(`${context} contains a reserved Windows device name`);
+    return value;
+  }
   if (typeof value !== "string" || !path.posix.isAbsolute(value) || value.includes("\\")) {
     reject(`${context} must be an absolute POSIX path`);
   }
@@ -378,7 +389,8 @@ function requireProjectRoot(value) {
   if (FORBIDDEN_ROOTS.has(value)) {
     reject("project.root is too broad");
   }
-  const segments = value.split("/").filter(Boolean);
+  const segments = value.split(/[\\/]/).filter(Boolean);
+  if (process.platform === "win32" && segments.length < 3) reject("project.root is too broad");
   if (segments.length < 2) {
     reject("project.root is too broad");
   }
@@ -392,7 +404,8 @@ function requireProjectRoot(value) {
 
 function requireSourcePath(value) {
   requireAbsolutePath(value, "mount source");
-  const segments = value.split("/").filter(Boolean);
+  const segments = value.split(/[\\/]/).filter(Boolean);
+  if (process.platform === "win32" && segments.length < 3) reject("mount source is too broad");
   if (segments.length < 2) {
     reject("mount source is too broad");
   }
@@ -401,7 +414,7 @@ function requireSourcePath(value) {
       reject("mount source enters a protected host path");
     }
   }
-  if (/(?:^|\/)\.(?:ssh|gnupg|aws|kube|docker)(?:\/|$)/i.test(value)) {
+  if (/(?:^|[\\/])\.(?:ssh|gnupg|aws|kube|docker)(?:[\\/]|$)/i.test(value)) {
     reject("mount source enters a credential-bearing host path");
   }
   if (value === "/etc/shadow" || value === "/etc/gshadow" || value === "/etc/sudoers") {
@@ -518,7 +531,7 @@ function normalizeProject(value, observedProject) {
   const owner = requireLabel(value.owner, "project.owner");
   const root = requireProjectRoot(value.root);
   const directory = requireAbsolutePath(value.directory, "project.directory");
-  if (directory !== path.posix.join(root, id)) {
+  if (directory !== path.join(root, id)) {
     reject("project.directory must equal project.root/project.id");
   }
   const ownership = requireOwnership(value.ownership, "project.ownership");
@@ -740,8 +753,8 @@ function normalizeSecretRef(value, projectDirectory, tlsTargets = []) {
     return { name, ref, target };
   }
   const filePath = requireAbsolutePath(value.filePath, "secret filePath");
-  const secretsDirectory = path.posix.join(projectDirectory, "secrets");
-  if (!filePath.startsWith(`${secretsDirectory}/`)) {
+  const secretsDirectory = path.join(projectDirectory, "secrets");
+  if (!filePath.startsWith(`${secretsDirectory}${path.sep}`)) {
     reject("secret filePath must be inside project.directory/secrets");
   }
   return { name, ref, target, filePath };
@@ -961,7 +974,7 @@ function normalizeService(value, projectOwner, projectId, projectDirectory, dock
   }
   if (Object.hasOwn(value, "envFilePath")) {
     const envFilePath = requireAbsolutePath(value.envFilePath, "service.envFilePath");
-    if (!envFilePath.startsWith(`${path.posix.join(projectDirectory, "secrets")}/`)
+    if (!envFilePath.startsWith(`${path.join(projectDirectory, "secrets")}${path.sep}`)
       || !envFilePath.endsWith(".env")) reject("envFilePath must be a private project secret env file");
     result.envFilePath = envFilePath;
   }
@@ -1277,6 +1290,11 @@ function pathsOverlap(left, right) {
   if (left === right) {
     return true;
   }
+  if (process.platform === "win32" && /^[A-Za-z]:\\/.test(left) && /^[A-Za-z]:\\/.test(right)) {
+    left = left.toLowerCase();
+    right = right.toLowerCase();
+    return left === right || left.startsWith(`${right}\\`) || right.startsWith(`${left}\\`);
+  }
   return left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
 }
 
@@ -1464,7 +1482,7 @@ function planIdFor(manifest) {
 }
 
 function renderTargetFor(manifest) {
-  return path.posix.join(manifest.project.directory, `compose.${planIdFor(manifest)}.yaml`);
+  return path.join(manifest.project.directory, `compose.${planIdFor(manifest)}.yaml`);
 }
 
 function buildPlan(manifest) {
@@ -1799,6 +1817,7 @@ function ensurePrivateOutputDirectory(manifest, outputDir) {
   if (manifest.project.ownership === "new") {
     if (directoryStat === null) {
       fs.mkdirSync(resolved, { mode: 0o700 });
+      protectPrivatePath(resolved, 0o700);
       directoryStat = fs.lstatSync(resolved);
     }
   } else if (directoryStat === null) {
@@ -1810,7 +1829,8 @@ function ensurePrivateOutputDirectory(manifest, outputDir) {
   if (fs.realpathSync(resolved) !== resolved) {
     reject("project directory must not traverse symlinks");
   }
-  if ((directoryStat.mode & 0o077) !== 0) {
+  if (process.platform === "win32") assertPrivatePath(resolved, 0o700);
+  else if ((directoryStat.mode & 0o077) !== 0) {
     reject("project directory must not grant group or other permissions");
   }
   if (typeof process.getuid === "function" && directoryStat.uid !== process.getuid()) {
@@ -1838,7 +1858,8 @@ function verifyExistingProjectDirectory(manifest) {
   if (fs.realpathSync(manifest.project.directory) !== manifest.project.directory) {
     reject("project directory must not traverse symlinks");
   }
-  if ((stat.mode & 0o077) !== 0) {
+  if (process.platform === "win32") assertPrivatePath(manifest.project.directory, 0o700);
+  else if ((stat.mode & 0o077) !== 0) {
     reject("project directory must not grant group or other permissions");
   }
   if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
@@ -1890,7 +1911,8 @@ function verifySecretFiles(manifest) {
     if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(filePath) !== filePath) {
       reject("local secret files must be regular files without symlink traversal");
     }
-    if ((stat.mode & 0o777) !== 0o600) {
+    if (process.platform === "win32") assertPrivatePath(filePath, 0o600);
+    else if ((stat.mode & 0o777) !== 0o600) {
       reject("local secret files must have mode 0600");
     }
     if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
@@ -1912,16 +1934,19 @@ function atomicNoClobber(target, content) {
   let descriptor = null;
   try {
     descriptor = fs.openSync(temporary, "wx", 0o600);
+    protectPrivatePath(temporary, 0o600);
     fs.writeFileSync(descriptor, content, "utf8");
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = null;
     fs.linkSync(temporary, target);
-    const directoryDescriptor = fs.openSync(directory, "r");
-    try {
-      fs.fsyncSync(directoryDescriptor);
-    } finally {
-      fs.closeSync(directoryDescriptor);
+    if (process.platform !== "win32") {
+      const directoryDescriptor = fs.openSync(directory, "r");
+      try {
+        fs.fsyncSync(directoryDescriptor);
+      } finally {
+        fs.closeSync(directoryDescriptor);
+      }
     }
   } catch (error) {
     if (error.code === "EEXIST") {

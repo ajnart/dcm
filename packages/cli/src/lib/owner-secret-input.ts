@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+import { assertPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 
 export type OwnerSecretSources = Record<string, { kind: "file"; path: string } | { kind: "stdin" }>;
 
@@ -27,8 +28,9 @@ export async function readOwnerSecretSources(sources: OwnerSecretSources): Promi
       throw new Error("Owner secret source must be an exact absolute path");
     }
     const metadata = await lstat(source.path);
+    assertPrivatePath(source.path, 0o600);
     if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-      || metadata.uid !== process.getuid?.() || (metadata.mode & 0o777) !== 0o600
+      || !ownedByCurrentUser(metadata) || !privateMode(metadata, 0o600)
       || metadata.size < 1 || metadata.size > 16384 || await realpath(source.path) !== source.path) {
       throw new Error("Owner secret source must be one current-user-owned mode-0600 regular file");
     }

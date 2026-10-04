@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { link, lstat, open, readdir, realpath, unlink } from "node:fs/promises";
 import { basename, isAbsolute, join, resolve } from "node:path";
+import { assertPrivatePath, ownedByCurrentUser, privateMode, protectPrivatePath } from "./platform-private.ts";
 
 type FileIdentity = { dev: number; ino: number };
 
@@ -35,9 +36,10 @@ async function requirePrivateParent(root: string): Promise<string> {
   }
   const parent = join(root, ".selfhost");
   const info = await lstat(parent);
+  assertPrivatePath(parent, 0o700);
   if (!info.isDirectory() || info.isSymbolicLink()
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
-    || (info.mode & 0o777) !== 0o700 || await realpath(parent) !== parent) {
+    || !ownedByCurrentUser(info)
+    || !privateMode(info, 0o700) || await realpath(parent) !== parent) {
     throw new BatchMutationLockError(".selfhost must be an owner-only real directory (0700) at the exact project root");
   }
   return parent;
@@ -49,10 +51,11 @@ async function requireProjectRoot(root: string): Promise<string> {
   }
   const info = await lstat(root);
   if (!info.isDirectory() || info.isSymbolicLink()
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
-    || (info.mode & 0o022) !== 0 || await realpath(root) !== root) {
+    || !ownedByCurrentUser(info)
+    || (process.platform !== "win32" && (info.mode & 0o022) !== 0) || await realpath(root) !== root) {
     throw new BatchMutationLockError("App mutation lock needs a current-user-owned real project root without group or world write access");
   }
+  if (process.platform === "win32") assertPrivatePath(root, 0o700);
   return root;
 }
 
@@ -64,10 +67,11 @@ async function existingLockError(parent: string, lockPath: string, label: string
     return new BatchMutationLockError(`${label} mutation lock changed during acquisition at ${lockPath}; inspect that exact path before retrying`);
   }
   if (!info.isFile() || info.isSymbolicLink()
-    || (typeof process.getuid === "function" && info.uid !== process.getuid())
-    || (info.mode & 0o777) !== 0o600 || info.nlink < 1 || info.nlink > 2) {
+    || !ownedByCurrentUser(info)
+    || !privateMode(info, 0o600) || info.nlink < 1 || info.nlink > 2) {
     return new BatchMutationLockError(`Unsafe ${label} mutation lock at ${lockPath}; inspect that exact path before retrying. This CLI will not reclaim it`);
   }
+  assertPrivatePath(lockPath, 0o600);
   const paths = [lockPath];
   if (info.nlink === 2) {
     const prefix = `${basename(lockPath)}.candidate-`;
@@ -108,6 +112,7 @@ async function withHardlinkLock<T>(parent: string, lockPath: string, label: stri
   let acquired = false;
   try {
     owner = await handle.stat();
+    protectPrivatePath(candidate, 0o600);
     await handle.writeFile(`${JSON.stringify({ schemaVersion: 1, pid: process.pid })}\n`);
     await handle.sync();
     try {

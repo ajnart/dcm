@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, parse, resolve } from "node:path";
 import { multiServiceManifest, pinnedMultiServiceImages, prepareMultiServiceFiles,
   privateDirectory, checkedConnectorRecipe, checkedPrivateDaemonRecipe } from "./multi-service-recipe.ts";
 import { createSelfhostComposeOwner } from "./selfhost-compose.ts";
@@ -189,9 +189,8 @@ function claimSelectedHostPaths(service: Entry, selection: SharedAppSelection,
 function compileSharedProjectCandidate(input: SharedProjectInput,
   retainedProviders: ReadonlySet<string>): SharedProjectCandidate {
   if (!projectIdPattern.test(input.projectId) || !isAbsolute(input.projectRoot)
-    || !input.projectRoot.startsWith("/")
     || resolve(input.projectRoot) !== input.projectRoot
-    || input.projectRoot === "/" || input.projectRoot === resolve(homedir())
+    || input.projectRoot === parse(input.projectRoot).root || input.projectRoot === resolve(homedir())
     || !Number.isSafeInteger(input.uid) || input.uid <= 0
     || !Number.isSafeInteger(input.gid) || input.gid <= 0
     || !Array.isArray(input.apps) || input.apps.length === 0 || input.apps.length > MAX_SHARED_APPS) {

@@ -1,3 +1,4 @@
+import { assertPrivatePath, protectPrivatePath, ownedByCurrentUser, privateMode } from "./platform-private.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { link, lstat, mkdir, open, readdir, realpath, unlink } from "node:fs/promises";
@@ -141,8 +142,9 @@ function receipt(artifact: Artifact, pointer: Pointer): CompatibilityEvidence | 
 
 async function privateDirectory(path: string): Promise<void> {
   const info = await lstat(path);
-  if (!info.isDirectory() || info.isSymbolicLink() || info.uid !== process.getuid?.()
-    || (info.mode & 0o7777) !== 0o700 || await realpath(path) !== path) fail("evidence directories must be canonical owner-only 0700");
+  if (process.platform === "win32") assertPrivatePath(path, 0o700);
+  if (!info.isDirectory() || info.isSymbolicLink() || !ownedByCurrentUser(info)
+    || !privateMode(info, 0o700) || await realpath(path) !== path) fail("evidence directories must be canonical owner-only 0700");
 }
 function checkedRootPath(root: string): void {
   if (!isAbsolute(root) || resolve(root) !== root || root === "/"
@@ -159,11 +161,12 @@ export async function prepareCompatibilityEvidenceRoot(root: string): Promise<vo
   checkedRootPath(root);
   const parent = resolve(root, "..");
   const info = await lstat(parent);
-  if (!info.isDirectory() || info.isSymbolicLink() || info.uid !== process.getuid?.()
-    || (info.mode & 0o0022) !== 0 || await realpath(parent) !== parent) {
+  if (process.platform === "win32") assertPrivatePath(parent, 0o700);
+  if (!info.isDirectory() || info.isSymbolicLink() || !ownedByCurrentUser(info)
+    || (process.platform !== "win32" && (info.mode & 0o0022) !== 0) || await realpath(parent) !== parent) {
     fail("the evidence parent must be a canonical owned directory without other writers");
   }
-  try { await mkdir(root, { mode: 0o700 }); }
+  try { await mkdir(root, { mode: 0o700 }); protectPrivatePath(root, 0o700); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
   await checkedRoot(root);
 }
@@ -172,7 +175,7 @@ async function parents(root: string, relative: string, create: boolean): Promise
   for (const part of relative.split("/").slice(0, -1)) {
     directory = join(directory, part);
     if (create) {
-      try { await mkdir(directory, { mode: 0o700 }); }
+      try { await mkdir(directory, { mode: 0o700 }); protectPrivatePath(directory, 0o700); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
     }
     await privateDirectory(directory);
@@ -189,7 +192,8 @@ async function checkedRead(root: string, relative: string, maximum: number): Pro
   try {
     const info = await handle.stat();
     const named = await lstat(path);
-    if (!info.isFile() || info.nlink !== 1 || info.uid !== process.getuid?.() || (info.mode & 0o7777) !== 0o600
+    if (process.platform === "win32") assertPrivatePath(path, 0o600);
+    if (!info.isFile() || info.nlink !== 1 || !ownedByCurrentUser(info) || !privateMode(info, 0o600)
       || info.size < 1 || info.size > maximum || named.isSymbolicLink() || named.ino !== info.ino || named.dev !== info.dev) fail("registry/artifact file is unsafe");
     const raw = await handle.readFile("utf8");
     const after = await handle.stat();
@@ -206,6 +210,7 @@ async function createOnly(root: string, relative: string, raw: string): Promise<
   const handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
   const original = await handle.stat();
   try {
+    protectPrivatePath(temporary, 0o600);
     await handle.writeFile(raw); await handle.sync();
     await privateDirectory(directory);
     await link(temporary, path);
@@ -215,8 +220,10 @@ async function createOnly(root: string, relative: string, raw: string): Promise<
     if (current.ino !== original.ino || current.dev !== original.dev) fail("temporary artifact ownership changed");
     await unlink(temporary);
   }
-  const directoryHandle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-  try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+  if (process.platform !== "win32") {
+    const directoryHandle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+  }
 }
 function parse(raw: string): unknown {
   try { return JSON.parse(raw); } catch { fail("registry/artifact JSON is invalid"); }
