@@ -6,8 +6,10 @@ are evidence from an older, non-isolated run and may have stale ports or UI refs
 Start with `docs/headless-setup.md` in the installed media harness; the browser instructions
 below are targeted fallback and visual-proof procedures.
 
-Compose publishes assigned run-scoped ports on `127.0.0.1` by default. The
-allocator spreads independent checkouts across the port range and checks
+Compose publishes assigned run-scoped ports on all host interfaces by default;
+approve a verified router or Docker-aware private firewall policy before starting that mode.
+Explicitly selected host-only mode binds all seven ports to `127.0.0.1`.
+The allocator spreads independent checkouts across the port range and checks
 listeners visible to the process; a sandbox can still hide another checkout's
 rootless Docker listener. If `up` reports a bind collision, create a new run
 identifier rather than touching the other project. Use

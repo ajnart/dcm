@@ -1,0 +1,15 @@
+# Tracearr shared-Compose assessment (2026-09-29)
+
+Decision: retain discovery support and do not publish `recipe.json` or `setup.ts` yet. The shared engine now supports typed `postgres-url` secret composition, so the database credential is no longer the blocking contract. A partial recipe could still start a claimable setup page without a deterministic first-admin handoff.
+
+## Upstream contract
+
+- [Official Compose installation](https://docs.tracearr.com/getting-started/installation) recommends three containers: Tracearr, TimescaleDB, and Redis. It requires distinct 64-character hexadecimal `JWT_SECRET` and `COOKIE_SECRET`, recommends an independent `BETTER_AUTH_SECRET`, and uses named volumes for database data and the poster cache. Database backup needs a consistent dump/restore rather than a copy of live PostgreSQL files. Its currently linked [PG18 example](https://github.com/connorgallopo/Tracearr/blob/main/docker/examples/docker-compose.pg18.yml) explicitly labels that topology experimental and new-installations-only, and uses a floating Tracearr `latest` image alongside pinned TimescaleDB and Redis tags.
+- [Environment reference](https://docs.tracearr.com/configuration/environment) requires `DATABASE_URL`, `REDIS_URL`, and those two signing secrets. TimescaleDB is mandatory. `CLAIM_CODE` protects the initial setup page, but the documented flow prints it to logs, which is incompatible with this project's no-secret-logs rule unless verified to be avoidable. The container listens on port 3000.
+- [First-server setup](https://docs.tracearr.com/getting-started/first-server) documents interactive local account creation or Plex/OIDC login. Jellyfin and Emby are monitored using server API keys; they are not Tracearr login providers. No official deterministic, version-pinned first-admin creation and API-key issuance contract was established in this review. A media-server connection would be a separate approved step.
+
+## Exact remaining contract gap
+
+Version 2 recipes now have a typed `postgres-url` secret-environment binding, so a generated database password can be shared with TimescaleDB and safely composed into Tracearr's `DATABASE_URL` by the owner-only preparation step. This does not establish an independently verified immutable Tracearr image or a source-pinned first-admin creation and authentication flow. The current official setup documentation describes interactive account creation, not a deterministic endpoint with lost-response recovery. An adapter must not guess endpoints or scrape a claim code from logs. The linked PG18 example also uses a PostgreSQL command and `ulimits`; any candidate must preserve its required runtime behavior or verify a supported pinned alternative.
+
+Needed before promotion: a verified pinned image/version topology compatible with the bounded recipe schema, a documented or source-pinned first-admin flow with lost-response recovery, and focused fresh-instance acceptance including restart persistence. API-key issuance remains separate if Tracearr offers a supported API key; do not infer one from media-server keys. Until then, no deployable shared candidate is advertised.

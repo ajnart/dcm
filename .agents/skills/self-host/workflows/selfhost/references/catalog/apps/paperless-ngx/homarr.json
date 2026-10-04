@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "paperlessNgx",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "paperlessNgx",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "documentsTotal",
+        "documentsInbox",
+        "tagsCount"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "paperlessNgx",
+        "procedure": "widget.paperlessNgx.getStats",
+        "inputMode": "one",
+        "field": null,
+        "shape": {
+          "type": "object",
+          "fields": {
+            "documentsTotal": "number",
+            "documentsInbox": "number",
+            "correspondentsCount": "number",
+            "tagsCount": "number",
+            "documentTypesCount": "number"
+          }
+        }
+      }
+    ]
+  }
+}

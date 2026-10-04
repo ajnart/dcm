@@ -1,0 +1,61 @@
+{
+  "id": "authentik",
+  "name": "Authentik",
+  "aliases": [
+    "single sign on",
+    "identity provider"
+  ],
+  "categories": [
+    "identity"
+  ],
+  "roles": [
+    "identity-provider",
+    "sso"
+  ],
+  "upstream": {
+    "url": "https://goauthentik.io/",
+    "repository": "https://github.com/goauthentik/authentik",
+    "docs": "https://docs.goauthentik.io/install-config/install/docker-compose/"
+  },
+  "image": {
+    "reference": "ghcr.io/goauthentik/server:2026.8.3",
+    "source": "upstream",
+    "status": "verify"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "Pinned 2026.8.3 Compose architecture uses server, worker, and PostgreSQL; Redis is absent. Token and password checks still need live deployment proof."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "postgresql",
+    "capability:tls-ingress"
+  ],
+  "alternatives": [
+    "authelia",
+    "keycloak"
+  ],
+  "security": [
+    "Keep a tested break-glass administrator and protect signing material."
+  ],
+  "pitfalls": [
+    "A failed IdP change can lock users out of every protected service.",
+    "The official Compose example mounts the Docker socket for automatic outpost management; omit it and manage outposts separately unless a reviewed privilege boundary is approved."
+  ],
+  "sources": [
+    "https://docs.goauthentik.io/install-config/install/docker-compose/",
+    "https://docs.goauthentik.io/core/architecture",
+    "https://docs.goauthentik.io/releases/2025.10",
+    "https://docs.goauthentik.io/install-config/automated-install/",
+    "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml"
+  ]
+}

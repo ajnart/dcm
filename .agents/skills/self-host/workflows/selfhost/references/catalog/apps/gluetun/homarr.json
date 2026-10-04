@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "gluetun",
+  "requiredSecrets": [
+    "username",
+    "password"
+  ],
+  "widgets": [
+    {
+      "kind": "vpn",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "status",
+        "publicIp",
+        "country"
+      ]
+    }
+  ],
+  "alternativeSecrets": [
+    [
+      "apiKey"
+    ],
+    []
+  ]
+}

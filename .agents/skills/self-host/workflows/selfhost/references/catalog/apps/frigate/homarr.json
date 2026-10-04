@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/blob/917d92c9f31829e8ce9d8411daf69d28c89a8d8b/packages/integrations/src/stats/providers/frigate.ts",
+  "integrationKind": "frigate",
+  "requiredSecrets": ["username", "password"],
+  "nativeRecipeSha256": "6ac40f983953f2ac1948865337339444f5775263829254a9c7b562a48f2f99ef",
+  "nativeTransportRequirement": "owned-private-https",
+  "widgets": [
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "cameras",
+        "uptime",
+        "version"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [{
+      "kind": "stats", "procedure": "widget.stats.snapshot", "inputMode": "one", "field": null,
+      "shape": { "type": "object", "fields": {
+        "updatedAt": "number", "error": { "type": "literal", "value": false },
+        "stale": { "type": "literal", "value": false },
+        "values": { "type": "object", "fields": { "cameras": "number", "uptime": "number", "version": "string" } }
+      } }
+    }]
+  }
+}

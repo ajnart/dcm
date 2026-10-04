@@ -28,6 +28,23 @@ After the media run has captured `homarr-api-key.env`, the setup orchestrator ma
    bun "$HOMARR_SKILL_ROOT/scripts/profile.ts" set-integration-policy "$PROFILE_PATH" < "$POLICY_FILE"
    ```
 
+   To install natural-language media requests instead, use a separate profile
+   with only the one live Homarr integration whose kind is exactly `seerr`:
+
+   ```json
+   {
+     "schemaVersion": 1,
+     "mode": "media-request",
+     "integrationId": "<seerr-id>"
+   }
+   ```
+
+   This is not a request. The installed bridge will still search and present an
+   exact match first. The agent must obtain explicit user approval for that
+   result and its downstream acquisition effect before passing `confirmed:
+   true`. The bridge treats the flag as caller attestation; it cannot prove
+   human approval. An accepted Seerr request can trigger download automation.
+
 3. Transfer the already captured key directly from the mode-0600 media file to owner stdin. The command validates the exact one-line `HOMARR_API_KEY` envelope and never prints the key:
 
    ```bash
@@ -41,4 +58,4 @@ After the media run has captured `homarr-api-key.env`, the setup orchestrator ma
    bun "$HOMARR_SKILL_ROOT/scripts/generate-client-config.ts" codex "$PROFILE_PATH"
    ```
 
-The generated server name ends in `-integration-request`. Stop there unless the user separately supplies the exact client-installation approval. A live proof may call only one configured GET status route and report its status without response bodies. It does not prove broader routes, write methods, or service mutation.
+The generated server name ends in `-integration-request` or `-media-request`. Stop there unless the user separately supplies the exact client-installation approval. A live proof for the generic policy may call only one configured GET status route and report its status without response bodies. Media-request verification may perform its scoped read-only search but must not submit a request. Neither proof authorizes broader routes or service mutation.

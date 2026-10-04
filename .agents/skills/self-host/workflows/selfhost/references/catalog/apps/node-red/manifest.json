@@ -1,0 +1,66 @@
+{
+  "id": "node-red",
+  "name": "Node-RED",
+  "aliases": [
+    "automation flows",
+    "visual automation"
+  ],
+  "categories": [
+    "home-automation",
+    "developer-tools"
+  ],
+  "roles": [
+    "automation-flows"
+  ],
+  "upstream": {
+    "url": "https://nodered.org/",
+    "repository": "https://github.com/node-red/node-red",
+    "docs": "https://nodered.org/docs/getting-started/docker"
+  },
+  "image": {
+    "reference": "nodered/node-red:5.0.7",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "A v2 shared recipe configures bcrypt-backed adminAuth before startup and its adapter verifies the saved administrator against the Admin API. Fresh-image startup, nested settings-file mount behavior, browser editing, and restart persistence remain unverified. Node-RED issues expiring Admin API access tokens, not a persistent API key."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:automation-targets"
+  ],
+  "alternatives": [
+    "home-assistant",
+    "homebridge"
+  ],
+  "security": [
+    "Configure adminAuth with a bcrypt-hashed password in /data/settings.js before exposing the editor or Admin API.",
+    "Review contributed nodes and every credential or host integration used by flows."
+  ],
+  "pitfalls": [
+    "The default settings file does not enable editor or Admin API authentication; private port binding alone is not administrator setup.",
+    "POST /auth/token returns an expiring access token; do not hand it off as a durable API key.",
+    "A flow editor can become a broad control plane without clear ownership."
+  ],
+  "sources": [
+    "https://nodered.org/docs/getting-started/docker",
+    "https://nodered.org/docs/user-guide/runtime/securing-node-red",
+    "https://nodered.org/docs/user-guide/runtime/settings-file",
+    "https://nodered.org/docs/api/admin/methods/post/auth/token/",
+    "https://nodered.org/docs/api/admin/methods/get/auth/login/",
+    "https://nodered.org/docs/api/admin/methods/get/flows/",
+    "https://github.com/node-red/node-red-docker",
+    "https://github.com/node-red/node-red-docker/releases/tag/v5.0.7",
+    "https://github.com/node-red/node-red-docker/wiki/Permissions-and-Persistence"
+  ]
+}

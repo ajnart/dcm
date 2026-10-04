@@ -1,0 +1,74 @@
+{
+  "id": "mayan-edms",
+  "name": "Mayan EDMS",
+  "aliases": [
+    "enterprise document management"
+  ],
+  "categories": [
+    "documents"
+  ],
+  "roles": [
+    "document-archive",
+    "workflow"
+  ],
+  "upstream": {
+    "url": "https://www.mayan-edms.com/",
+    "repository": "https://gitlab.com/mayan-edms/mayan-edms",
+    "docs": "https://docs.mayan-edms.com/"
+  },
+  "image": {
+    "reference": "docker.io/mayanedms/mayanedms:v4.12.2",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Publisher v4.12.2 image metadata and immutable upstream source reviewed. The four-service shared candidate seeds an upstream administrator, verifies owner login and user-view access, clears initial credential disclosure, and saves a verified durable token. Actual administrator authority, document processing, restart, and restore acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:document-storage"
+  ],
+  "alternatives": [
+    "paperless-ngx",
+    "stirling-pdf"
+  ],
+  "security": [
+    "Define document permissions and recovery before ingestion."
+  ],
+  "pitfalls": [
+    "Workflow complexity is substantially higher than a PDF toolbox.",
+    "The upstream defaults contain database, broker, and Redis passwords. The shared candidate generates private credentials and derives the required configuration without exposing passwords in command arguments.",
+    "The pinned autoadmin implementation displays even a supplied initial password on the login page. Keep bootstrap private; setup authenticates the saved owner before rehashing that same password to clear the display, then verifies it is gone. Never reset an unknown owner or repeat an ambiguous token request.",
+    "The image starts as root for its documented initialization, then runs application processes as mayan. Redis uses the current host UID to read the owner-only generated configuration; verify this identity and file readability on the intended Docker context before live acceptance."
+  ],
+  "sources": [
+    "https://docs.mayan-edms.com/chapters/docker/install_docker_compose.html",
+    "https://docs.mayan-edms.com/chapters/getting_started.html",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/docker/docker-compose.yml",
+    "https://hub.docker.com/r/mayanedms/mayanedms/tags?name=v4.12.2",
+    "https://hub.docker.com/v2/repositories/mayanedms/mayanedms/tags/v4.12.2/",
+    "https://hub.docker.com/_/postgres",
+    "https://hub.docker.com/_/rabbitmq",
+    "https://github.com/redis/docker-library-redis/blob/0ae559ebb19b1cafc36720e8de97839d5d402883/7.4/debian/docker-entrypoint.sh",
+    "https://redis.io/docs/latest/develop/tools/cli/",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/autoadmin/managers.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/autoadmin/settings.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/autoadmin/literals.py",
+    "https://github.com/redis/redis/blob/7.4.8/src/redis-cli.c",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/autoadmin/handlers.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/rest_api/urls.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/rest_api/api_views.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/user_management/api_views.py",
+    "https://gitlab.com/mayan-edms/mayan-edms/-/raw/834ffec1b539171390358e60a0406870108514f5/mayan/apps/user_management/serializers.py"
+  ]
+}

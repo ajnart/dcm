@@ -7,8 +7,9 @@ symlink. The repository-only `CLAUDE.md` alias is not part of the skill payload.
 
 ## Prepare
 
-1. Update the same semantic version in `package.json`, the registry, and both
-   files under `packaging/`. CI derives the archive version from the registry.
+1. Update the same semantic version in `package.json`, `packages/cli/package.json`,
+   the registry, and both files under `packaging/`. CI derives the archive
+   version from the registry and rejects a CLI version that differs.
 2. Replace `Unreleased` in the matching changelog heading with an ISO date.
 3. Regenerate discovery files with `bun scripts/skillpack.ts index --write`.
 4. Review every changed workflow against its owning contract and keep generated,
@@ -18,13 +19,14 @@ symlink. The repository-only `CLAUDE.md` alias is not part of the skill payload.
 
 Run only the release gates:
 
-```text
+```bash
+release_version=$(bun -p 'require("./package.json").version')
 bun scripts/skillpack.ts validate --scope all
 bun scripts/skillpack.ts audit
 bun scripts/skillpack.ts test --all
 bun scripts/skillpack.ts benchmark --runs 5
-bun scripts/skillpack.ts release-check --tag v1.0.0
-bun scripts/skillpack.ts package --version 1.0.0 --output dist
+bun scripts/skillpack.ts release-check --tag "v${release_version}"
+bun scripts/skillpack.ts package --version "$release_version" --output dist
 ```
 
 The audit scans `HEAD`, branch, remote-branch, and tag history; CI fetches all
@@ -48,10 +50,10 @@ but cannot prove the asset exists until publication:
 
 ```bash
 bun scripts/distribution.ts \
-  --archive dist/selfhost-skills-1.0.0.zip \
+  --archive "dist/selfhost-skills-${release_version}.zip" \
   --manifest dist/RELEASE-MANIFEST.json \
   --checksums dist/SHA256SUMS \
-  --archive-url https://github.com/ajnart/selfhost-skills/releases/download/v1.0.0/selfhost-skills-1.0.0.zip \
+  --archive-url "https://github.com/ajnart/selfhost-skills/releases/download/v${release_version}/selfhost-skills-${release_version}.zip" \
   --output dist/distribution
 ```
 
@@ -76,7 +78,8 @@ standalone runtime helpers in both copy and symlink install layouts.
 
 Create the signed or annotated `v<version>` tag only after every gate passes and
 push it to the source repository. The tag workflow rechecks the release
-contract, builds the ZIP, uploads a short-lived Actions artifact, then creates
+contract and publishes the standalone CLI to npm through its trusted publisher.
+It builds the ZIP, uploads a short-lived Actions artifact, then creates
 a durable GitHub Release with the ZIP, manifest, and checksum. It downloads the
 published assets and checks byte equality before exporting and pushing two
 generated branches in the same repository:
@@ -96,6 +99,34 @@ changing published assets for the same tag. [GitHub release creation](https://cl
 [release download](https://cli.github.com/manual/gh_release_download),
 [Codex marketplace Git refs](https://developers.openai.com/plugins/build/plugins),
 [Claude marketplace Git refs](https://code.claude.com/docs/en/plugin-marketplaces).
+
+### First npm publish and ongoing CLI releases
+
+`@ajnart/selfhost` is a **public** npm package even though this Git repository
+is private. Review the exact `npm pack` file list before the first publish:
+the CLI tarball contains its bundled JavaScript, catalog, media runtime,
+README, and license, but not the Agent Skill or private project state. npm
+cannot add a trusted publisher to a package that does not yet exist. The
+package owner must make one authenticated, reviewed first publish of the
+current `packages/cli` version (`npm publish --access public --provenance=false`)
+with npm account 2FA **from the exact release commit, before pushing its tag**.
+Do not use a broad repository token or put npm credentials in this repository.
+The tag job packs the CLI and checks its SHA-512 integrity against that first
+publication; it skips the duplicate publish only when the bytes match. If the
+package is still missing, or the same version has different bytes, the tag job
+fails before publishing the skill archive. Once the package exists, set its npm
+trusted publisher to GitHub user `ajnart`, repository `selfhost-skills`, workflow `validate.yml`,
+with direct `npm publish` allowed; no environment name is configured in CI.
+
+Subsequent `v<version>` tags publish the matching CLI package through GitHub
+Actions OIDC after static, behavior, package, and release-contract gates.
+The job checks npm 11.5.1+, Node 24, the exact tag/version match, and the
+published registry executable. The skill release waits for it. Private GitHub
+repositories cannot receive npm provenance attestations, so this package
+explicitly disables provenance instead of promising it. Never reuse a version
+already published to npm; bump all version sources for the next tag.
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
+[scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 After both branches are live, install each in a fresh client and record the
 skill invocation and one bundled guide/helper lookup from the cached install.

@@ -27,6 +27,7 @@ const MAX_MANIFEST_BYTES = 1024 * 1024;
 const ROOT_FILES = new Set(["PROMPT.md", "docker-compose.yml"]);
 const CANONICAL_DIRECTORIES = new Set(["docs", "prompts", "scripts"]);
 const SOURCE_DRIFT_EXCLUSIONS = new Set([
+  "docs/catalog-audits",
   "docs/cli.md",
   "docs/command-first-roadmap.md",
   "docs/images",
@@ -35,6 +36,7 @@ const SOURCE_DRIFT_EXCLUSIONS = new Set([
   "docs/plugin-audit.md",
   "docs/release.md",
   "scripts/browser-command-log.mjs",
+  "scripts/summarize-browser-log.mjs",
   "scripts/check-curl-http.ts",
   "scripts/distribution.ts",
   "scripts/install.ts",
@@ -64,7 +66,7 @@ const EXPECTED_IMAGES = new Map([
   ["qbittorrent", "ghcr.io/hotio/qbittorrent:latest"],
   ["jellyfin", "ghcr.io/hotio/jellyfin:latest"],
   ["seerr", "ghcr.io/seerr-team/seerr:latest"],
-  ["homarr", "ghcr.io/homarr-labs/homarr-test:v2"],
+  ["homarr", "ghcr.io/homarr-labs/homarr:dev"],
 ]);
 const PORTABILITY_TRANSFORMS = new Map([
   [
@@ -428,13 +430,13 @@ async function verifyComposeContract(bundleRoot) {
   }
 
   const requiredPublishedPorts = [
-    '      - "127.0.0.1:${PROWLARR_PORT:-9696}:9696"',
-    '      - "127.0.0.1:${RADARR_PORT:-7878}:7878"',
-    '      - "127.0.0.1:${SONARR_PORT:-8989}:8989"',
-    '      - "127.0.0.1:${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"',
-    '      - "127.0.0.1:${JELLYFIN_PORT:-8096}:8096"',
-    '      - "127.0.0.1:${SEERR_PORT:-5055}:5055"',
-    '      - "${HOMARR_BIND_ADDRESS:-127.0.0.1}:${HOMARR_PORT:-7575}:7575"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${PROWLARR_PORT:-9696}:9696"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${RADARR_PORT:-7878}:7878"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${SONARR_PORT:-8989}:8989"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${JELLYFIN_PORT:-8096}:8096"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${SEERR_PORT:-5055}:5055"',
+    '      - "${MEDIA_PORT_BIND_PREFIX:-}${HOMARR_PORT:-7575}:7575"',
   ];
   for (const line of requiredPublishedPorts) {
     if (!compose.includes(`${line}\n`)) {

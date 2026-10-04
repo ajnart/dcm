@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "emby",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "mediaServer",
+      "options": {}
+    },
+    {
+      "kind": "mediaReleases",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "sessions"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "mediaServer",
+        "procedure": "widget.mediaServer.getCurrentStreams",
+        "inputMode": "many",
+        "input": {
+          "showOnlyPlaying": false
+        },
+        "field": "sessions",
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": {
+              "sessionId": "string",
+              "sessionName": "string",
+              "user": {
+                "type": "object",
+                "fields": {
+                  "userId": "string",
+                  "username": "string",
+                  "profilePictureUrl": {
+                    "type": "nullable",
+                    "value": "string"
+                  }
+                }
+              },
+              "currentlyPlaying": {
+                "type": "nullable",
+                "value": {
+                  "type": "object",
+                  "fields": {
+                    "type": "string",
+                    "name": "string",
+                    "playback": {
+                      "type": "object",
+                      "fields": {
+                        "state": {
+                          "type": "nullable",
+                          "value": "string"
+                        },
+                        "positionMs": {
+                          "type": "nullable",
+                          "value": "number"
+                        },
+                        "durationMs": {
+                          "type": "nullable",
+                          "value": "number"
+                        }
+                      }
+                    },
+                    "location": {
+                      "type": "nullable",
+                      "value": "string"
+                    },
+                    "metadata": {
+                      "type": "nullable",
+                      "value": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "mediaReleases",
+        "procedure": "widget.mediaRelease.getMediaReleases",
+        "inputMode": "many",
+        "field": null,
+        "shape": {
+          "type": "object",
+          "fields": {
+            "releases": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": "string",
+                  "type": "string",
+                  "title": "string",
+                  "imageUrls": "object",
+                  "tags": {
+                    "type": "array",
+                    "items": "string"
+                  },
+                  "href": "string",
+                  "integration": {
+                    "type": "object",
+                    "fields": {
+                      "id": { "type": "binding", "value": "integrationId" },
+                      "name": "string",
+                      "kind": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "failedIntegrations": {
+              "type": "array",
+              "items": "object",
+              "maxLength": 0
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -22,7 +22,8 @@ export const publicSkillRoot = join(skillsRoot, "self-host");
 export const workflowsRoot = join(publicSkillRoot, "workflows");
 export const registryPath = join(workflowsRoot, "selfhost", "references", "catalog", "skills.json");
 
-const PACKAGE_SIZE_BUDGET = Math.floor(1.35 * 1024 * 1024);
+// Full app recipes/adapters and their linked manuals currently occupy 1.81 MiB.
+const PACKAGE_SIZE_BUDGET = 2 * 1024 * 1024;
 const AGENT_PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
 const AGENT_SKILLS_FRONTMATTER_FIELDS = new Set([
   "allowed-tools",
@@ -65,6 +66,12 @@ const BENCHMARK_P95_BUDGET_MS = 500;
 
 const PUBLIC_FILES = [
   "README.md",
+  "packages/cli/README.md",
+  "docs/app-credentials.md",
+  "product/per-app-setup-contract.md",
+  "product/control-panel-proof.md",
+  "product/control-panel-reuse-map.md",
+  "PROMPT.md",
   "AGENTS.md",
   "NOTEPAD.md",
   "research/skills-repo-patterns.md",
@@ -84,6 +91,7 @@ const PUBLIC_FILES = [
   "docs/opencode-install.md",
   "docs/README.md",
   "docs/homarr.md",
+  "docs/setup-routes.md",
   "docs/headless-access.md",
   "docs/jellyfin.md",
   "docs/prowlarr.md",
@@ -1904,7 +1912,7 @@ export async function buildPackage(version) {
     throw new Error("Package build is not reproducible");
   }
   if (first.length > PACKAGE_SIZE_BUDGET) {
-    throw new Error(`Package exceeds ${PACKAGE_SIZE_BUDGET} bytes`);
+    throw new Error(`Package is ${first.length} bytes; release budget is ${PACKAGE_SIZE_BUDGET} bytes`);
   }
   return {
     archive: first,

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "piHole",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "dnsHoleSummary",
+      "options": {}
+    },
+    {
+      "kind": "dnsHoleControls",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "dnsQueriesToday",
+        "adsBlockedToday",
+        "adsBlockedTodayPercentage"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "dnsHoleSummary",
+        "procedure": "widget.dnsHole.summary",
+        "inputMode": "many",
+        "field": "summary",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "domainsBeingBlocked": "number",
+            "adsBlockedToday": "number",
+            "adsBlockedTodayPercentage": "number",
+            "dnsQueriesToday": "number"
+          }
+        }
+      },
+      {
+        "kind": "dnsHoleControls",
+        "procedure": "widget.dnsHole.summary",
+        "inputMode": "many",
+        "field": "summary",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "domainsBeingBlocked": "number",
+            "adsBlockedToday": "number",
+            "adsBlockedTodayPercentage": "number",
+            "dnsQueriesToday": "number"
+          }
+        }
+      }
+    ]
+  }
+}

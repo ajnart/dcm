@@ -147,6 +147,10 @@ export async function runVerificationRows(rows, write = console.log) {
   const safePrefixes = ["qBittorrent", "Sonarr", "Radarr", "Prowlarr", "Seerr", "Jellyfin", "service schema"];
   let failed = false;
   for (const row of rows) {
+    if (row.pending === true) {
+      write(`PENDING ${row.label}`);
+      continue;
+    }
     try {
       await row.verify();
       write(`PASS ${row.label}`);
@@ -573,7 +577,7 @@ export async function verifyProwlarrIndexers(
   check(false, "Prowlarr enabled indexer test failed");
 }
 
-async function verifyProwlarr(session, arrDefinitions) {
+async function verifyProwlarr(session, arrDefinitions, options = {}) {
   const apiRoot = `${loopback(session.manifest.PROWLARR_PORT)}/api/v1`;
   const headers = arrHeaders(session.secrets.PROWLARR_API_KEY);
   const status = await requestJson(
@@ -669,6 +673,10 @@ async function verifyProwlarr(session, arrDefinitions) {
     );
   }
 
+  if (options.deferIndexer === true) {
+    return;
+  }
+
   const indexers = requireArray(
     await requestJson(
       `${apiRoot}/indexer`,
@@ -699,7 +707,7 @@ async function verifyProwlarr(session, arrDefinitions) {
   });
 }
 
-export async function main(selectedRunId = runId, mode = "all") {
+export async function main(selectedRunId = runId, mode = "all", options = {}) {
   validateRunId(selectedRunId);
   const session = loadSession(selectedRunId);
   activeUsername = sessionUsername(session);
@@ -731,32 +739,66 @@ export async function main(selectedRunId = runId, mode = "all") {
       verify: () => verifySeerr(session),
     }]);
   }
+  const deferIndexer = options.deferIndexer === true;
+  const indexerRows = [];
+  if (deferIndexer) {
+    indexerRows.push(
+      { label: "Prowlarr auth and full-sync applications", verify: () => verifyProwlarr(session, arrDefinitions, { deferIndexer }) },
+      { label: "Prowlarr selected indexer", pending: true },
+      { label: "Sonarr synced indexer edge", pending: true },
+      { label: "Radarr synced indexer edge", pending: true },
+    );
+  } else {
+    indexerRows.push(
+      ...arrDefinitions.map((definition) => ({
+        label: `${definition.name} Prowlarr indexer edge`,
+        verify: () => verifyArrIndexer(session, definition),
+      })),
+      { label: "Prowlarr auth, applications, and indexer state", verify: () => verifyProwlarr(session, arrDefinitions) },
+    );
+  }
   const rows = [
     { label: "qBittorrent login and categories", verify: () => verifyQbit(session, sessionPassword) },
     ...arrDefinitions.map((definition) => ({
       label: `${definition.name} auth, root, and qBittorrent link`,
       verify: () => arrResources(session, definition, sessionPassword),
     })),
-    ...arrDefinitions.map((definition) => ({
-      label: `${definition.name} Prowlarr indexer edge`,
-      verify: () => verifyArrIndexer(session, definition),
-    })),
-    { label: "Prowlarr auth, applications, and indexer state", verify: () => verifyProwlarr(session, arrDefinitions) },
+    ...indexerRows,
     { label: "Jellyfin selected administrator and managed libraries", verify: () => verifyJellyfin(session) },
     { label: "Seerr links and persisted service configuration", verify: () => verifySeerr(session) },
   ];
   return runVerificationRows(rows);
 }
 
+async function runFromCli() {
+  let mode = "all";
+  let selectedRunId = runId;
+  let deferIndexer = false;
+  if (Bun.argv[2] === "verify-seerr") {
+    mode = "verify-seerr";
+    selectedRunId = Bun.argv[3] ?? "";
+    if (Bun.argv.length !== 4) throw new Error("verify-seerr requires one RUN_ID");
+  } else {
+    const options = Bun.argv.slice(3);
+    if (options.length === 1 && options[0] === "--defer-indexer") {
+      deferIndexer = true;
+    } else if (options.length !== 0) {
+      throw new Error("verification accepts only optional --defer-indexer");
+    }
+  }
+  const passed = await main(selectedRunId, mode, { deferIndexer });
+  if (!passed) {
+    process.exitCode = 1;
+    return;
+  }
+  if (deferIndexer) process.exitCode = 2;
+}
+
 if (
   Bun.argv[1] !== undefined
   && import.meta.url === pathToFileURL(Bun.argv[1]).href
 ) {
-  const mode = Bun.argv[2] === "verify-seerr" ? "verify-seerr" : "all";
-  const selectedRunId = mode === "verify-seerr" ? Bun.argv[3] ?? "" : runId;
-  main(selectedRunId, mode).then((passed) => {
-    if (!passed) process.exitCode = 1;
-  }).catch((error) => {
+  runFromCli().catch((error) => {
     console.error(`FAIL core verification: ${error.message}`);
     process.exitCode = 1;
   });

@@ -1,0 +1,72 @@
+{
+  "id": "frigate",
+  "name": "Frigate",
+  "aliases": [
+    "camera nvr",
+    "local camera detection"
+  ],
+  "categories": [
+    "cameras",
+    "home-automation"
+  ],
+  "roles": [
+    "nvr",
+    "object-detection"
+  ],
+  "upstream": {
+    "url": "https://frigate.video/",
+    "repository": "https://github.com/blakeblackshear/frigate",
+    "docs": "https://docs.frigate.video/guides/getting_started/"
+  },
+  "image": {
+    "reference": "ghcr.io/blakeblackshear/frigate:0.18.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Pinned 0.18.0 has a source-backed private, camera-free bootstrap recipe and checkpointed administrator-password rotation. Authenticated 8971 uses the documented TLS-off setting; internal 5000 binds container loopback. Exact-start temporary-password capture is shared-engine-owned. Camera configuration, hardware, restart and live-image acceptance remain separate unverified boundaries."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Frigate"
+  },
+  "dependencies": [
+    "capability:camera-streams"
+  ],
+  "alternatives": [
+    "home-assistant"
+  ],
+  "security": [
+    "Keep camera credentials secret; keep unauthenticated port 5000 unpublished; approve GPU/TPU devices explicitly.",
+    "Capture the generated admin password only from this exact owned container's current startup into an owner-only file, rotate it with an approved checkpoint, and verify authenticated access. Do not dump container logs into reports."
+  ],
+  "pitfalls": [
+    "Retention and inference load can exhaust storage or compute.",
+    "The bootstrap explicitly disables TLS only on the private authenticated 8971 listener; authentication remains enabled. Internal unauthenticated 5000 is unpublished and bound to container loopback, so the no-secret Homarr integration does not yet have an authorized service-network endpoint.",
+    "The read-only, camera-free bootstrap config pins schema version 0.18-0. Camera additions need a separately approved writable owner-configuration boundary; the starter does not provide recording, detection, camera or hardware acceptance.",
+    "Only an exact-current-start fresh-user log block may supply the temporary password; reset blocks and ambiguous logs must be refused. Rotation checkpoints before PUT and never repeats an uncertain update. A login JWT is not a durable API key."
+  ],
+  "sources": [
+    "https://docs.frigate.video/guides/getting_started/",
+    "https://docs.frigate.video/configuration/hardware_acceleration_video",
+    "https://github.com/blakeblackshear/frigate/releases/tag/v0.18.0",
+    "https://docs.frigate.video/configuration/authentication/",
+    "https://raw.githubusercontent.com/blakeblackshear/frigate/v0.18.0/frigate/api/auth.py",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docs/docs/guides/getting_started.md",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docs/docs/configuration/tls.md",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docker/main/Dockerfile",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/frigate/app.py",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/frigate/config/config.py",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/frigate/config/network.py",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/frigate/config/telemetry.py",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docker/main/rootfs/usr/local/nginx/conf/nginx.conf",
+    "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docker/main/rootfs/usr/local/nginx/conf/auth_request.conf"
+  ]
+}

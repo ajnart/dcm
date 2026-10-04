@@ -365,6 +365,8 @@ export function buildIngressPlan(input) {
   let exposure = "private";
   let nativeMcpPolicy = null;
   let caddyConfig = null;
+  let hostOnlyLocalhostRoute = false;
+  let hostOnlyNameOverrideRoute = false;
   let applicationRequirements = [];
 
   function gate(id, passed, detail) {
@@ -494,11 +496,21 @@ export function buildIngressPlan(input) {
     const bindScope = privateBindScope(hostBindAddress);
     const upstreamPort = Number(service.internalPort);
     const hostnameReady = validHostname(hostname);
-    const privateDnsReady = hostnameReady
+    hostOnlyLocalhostRoute = hostnameReady
+      && hostname.toLowerCase().endsWith(".localhost")
+      && bindScope === "host-only"
+      && clientScope === "host-only";
+    hostOnlyNameOverrideRoute = hostnameReady
+      && !hostname.toLowerCase().endsWith(".localhost")
+      && /\.[a-z][a-z0-9-]*$/i.test(hostname)
+      && preferences.nameResolution === "host-only-override"
+      && bindScope === "host-only" && clientScope === "host-only";
+    const privateDnsReady = hostOnlyLocalhostRoute || hostOnlyNameOverrideRoute || (hostnameReady
+      && !hostname.toLowerCase().endsWith(".localhost")
       && privateDns.hostname === hostname
       && privateDns.resolvesToPrivateAddress === true
       && typeof privateDns.owner === "string"
-      && privateDns.owner.length > 0;
+      && privateDns.owner.length > 0);
     const persistenceReady = validAbsolutePath(caddy.configPath)
       && validAbsolutePath(caddy.dataPath)
       && caddy.configPath !== caddy.dataPath;
@@ -513,7 +525,7 @@ export function buildIngressPlan(input) {
     selectedOwner = boundedLabel(caddy.owner, "caddy-owner-pending");
     const httpsPortOwners = ownersFor(ownership.ports, (record) => Number(record.port) === httpsPort);
     gate("private-hostname", hostnameReady, "Choose a valid private hostname, such as app.home.arpa.");
-    gate("private-dns", privateDnsReady, "Record the private DNS owner and confirm the hostname resolves to a private address.");
+    gate("private-dns", privateDnsReady, "Host-only .localhost needs loopback; explicitly selected host-only hostname overrides prove no DNS. Names without that override and LAN routes need an owned private DNS record.");
     gate("caddy-owner", typeof caddy.owner === "string" && caddy.owner.length > 0, "Identify who owns the private Caddy lifecycle.");
     gate("caddy-runtime", runtime === "container" || runtime === "host", "Choose whether Caddy runs on the host or in the Compose project.");
     gate("caddy-private-bind", bindScope !== null && bindScope === clientScope, "Choose clientScope host-only with a loopback bind, or lan with one explicit RFC1918/ULA host address; wildcard and public binds are invalid.");
@@ -525,7 +537,13 @@ export function buildIngressPlan(input) {
     gate("caddy-upstream", upstreamReady && Number.isInteger(upstreamPort) && upstreamPort > 0 && upstreamPort <= 65535, "Use Docker DNS for container Caddy, or 127.0.0.1 for host Caddy, with a valid internal service port.");
     gate("caddy-persistence", persistenceReady, "Choose distinct absolute persistent paths for Caddy config and certificate data.");
     gate("caddy-client-trust", preferences.clientTrustPlanned === true, "Plan installation of Caddy's local CA root on each intended client; HTTPS alone is not authentication.");
-    steps.push("Create a private DNS record for the friendly hostname; do not create public DNS or public reachability.");
+    if (hostOnlyLocalhostRoute) {
+      steps.push("Verify the .localhost hostname resolves to loopback on this host; no private DNS owner is needed.");
+    } else if (hostOnlyNameOverrideRoute) {
+      steps.push("Use an exact per-request selected hostname-to-loopback override; do not edit host or network DNS or claim client resolution.");
+    } else {
+      steps.push("Create a private DNS record for the friendly hostname; do not create public DNS or public reachability.");
+    }
     steps.push("Render a Caddyfile with internal TLS and hand its Compose lifecycle and persistent config/data mounts to selfhost-compose.");
     steps.push("Keep the Docker socket unmounted and keep the backend on its private network or loopback binding.");
     let plannedCaddyHostname = null;
@@ -706,7 +724,13 @@ export function buildIngressPlan(input) {
     "Prove direct service and protected management ports remain non-public.",
   ];
   if (route === "caddy-private") {
-    verification.push("From each intended private client, prove private DNS resolution and trust of Caddy's local CA root.");
+    if (hostOnlyLocalhostRoute) {
+      verification.push("On this host, prove .localhost loopback resolution and trust of Caddy's local CA root.");
+    } else if (hostOnlyNameOverrideRoute) {
+      verification.push("Prove exact TLS hostname identity and route over the host-only name override with the exported CA; DNS and intended-client CA trust remain unverified.");
+    } else {
+      verification.push("From each intended private client, prove private DNS resolution and trust of Caddy's local CA root.");
+    }
     verification.push("Confirm Caddy config and certificate data survive a scoped service recreation.");
   }
   if (publicHomarr) {
@@ -740,6 +764,6 @@ function main() {
   process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
 }
 
-if (Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
+if (typeof Bun !== "undefined" && Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
   main();
 }

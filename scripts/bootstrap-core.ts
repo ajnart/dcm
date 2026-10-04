@@ -291,6 +291,9 @@ async function configureArr(session, definition, sessionPassword, options = {}) 
     { headers },
     { label: `${definition.name} host configuration` },
   );
+  if (!Number.isSafeInteger(hostConfig?.id) || hostConfig.id < 1) {
+    throw new Error(`${definition.name} host configuration ID is unavailable`);
+  }
 
   const securedHostConfig = {
     ...hostConfig,
@@ -301,7 +304,7 @@ async function configureArr(session, definition, sessionPassword, options = {}) 
     passwordConfirmation: sessionPassword,
   };
   await request(
-    `${apiRoot}/config/host`,
+    `${apiRoot}/config/host/${hostConfig.id}`,
     {
       method: "PUT",
       headers,
@@ -438,8 +441,11 @@ async function configureProwlarrAuth(session, sessionPassword) {
     { headers },
     { label: "Prowlarr host configuration" },
   );
+  if (!Number.isSafeInteger(hostConfig?.id) || hostConfig.id < 1) {
+    throw new Error("Prowlarr host configuration ID is unavailable");
+  }
   await request(
-    `${apiRoot}/config/host`,
+    `${apiRoot}/config/host/${hostConfig.id}`,
     {
       method: "PUT",
       headers,

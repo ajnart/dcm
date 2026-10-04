@@ -1,0 +1,69 @@
+{
+  "id": "homebridge",
+  "name": "Homebridge",
+  "aliases": [
+    "homekit bridge"
+  ],
+  "categories": [
+    "home-automation"
+  ],
+  "roles": [
+    "homekit-bridge"
+  ],
+  "upstream": {
+    "url": "https://homebridge.io/",
+    "repository": "https://github.com/homebridge/homebridge",
+    "docs": "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker"
+  },
+  "image": {
+    "reference": "docker.io/homebridge/homebridge:2026-09-25",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "Experimental private administration recipe and UI 5.29.0 first-admin API adapter. LAN discovery and HomeKit pairing still require a separately approved networking boundary. Fresh image, replay, and restart acceptance are unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:lan-discovery"
+  ],
+  "alternatives": [
+    "home-assistant",
+    "node-red"
+  ],
+  "security": [
+    "This recipe publishes administration on loopback and disables Avahi. Host networking for actual HomeKit discovery needs separate LAN exposure and port ownership approval.",
+    "UI 5.29.0 creates its first administrator through a guarded setup wizard. Saved-password login and administrator readback must succeed before permitting LAN access or installing plugins."
+  ],
+  "pitfalls": [
+    "The official Docker Compose requires network_mode: host for HomeKit discovery and persists /homebridge. The private administration recipe deliberately omits host networking; successful login is not LAN discovery or pairing acceptance.",
+    "The pinned first-admin adapter checkpoints before creation and never replays an ambiguous write. Its authenticated API credential is an expiring Bearer session, not a durable API key; tokens are not exported as keys.",
+    "Fresh-instance setup, lost-response replay and restart persistence have not been verified against a live image.",
+    "Third-party plugins have independent maintenance and privilege profiles."
+  ],
+  "sources": [
+    "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker",
+    "https://github.com/homebridge/docker-homebridge/blob/latest/README.md",
+    "https://github.com/homebridge/docker-homebridge/releases/tag/2026-09-25",
+    "https://github.com/homebridge/homebridge-config-ui-x/blob/latest/README.md",
+    "https://github.com/homebridge/homebridge-config-ui-x/wiki/API-Reference",
+    "https://github.com/homebridge/docker-homebridge/blob/2026-09-25/README.md",
+    "https://github.com/homebridge/docker-homebridge/blob/2026-09-25/Dockerfile",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/modules/setup-wizard/setup-wizard.controller.ts",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/modules/setup-wizard/setup-wizard.guard.ts",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/core/auth/auth.controller.ts",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/core/auth/auth.service.ts",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/core/config/config.service.ts",
+    "https://raw.githubusercontent.com/homebridge/homebridge-config-ui-x/v5.29.0/src/modules/users/users.controller.ts"
+  ]
+}

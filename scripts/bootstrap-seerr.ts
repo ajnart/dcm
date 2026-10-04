@@ -1,6 +1,15 @@
 #!/usr/bin/env bun
 import { pathToFileURL } from "node:url";
-import { arrHeaders, deriveSessionPassword, loadSession, request, requestJson, sessionAccess, sessionUsername } from "./lib/session-context.ts";
+import {
+  arrHeaders,
+  deriveSessionPassword,
+  loadSession,
+  request,
+  requestJson,
+  sessionAccess,
+  sessionUsername,
+  SetupRequestError,
+} from "./lib/session-context.ts";
 
 function requireArray(value, label) {
   if (!Array.isArray(value)) throw new Error(`Seerr ${label} response is invalid`);
@@ -44,33 +53,47 @@ export async function configureSeerr(session, io = { request, requestJson }, acc
   if (typeof publicSettings?.initialized !== "boolean") throw new Error("Seerr startup state unavailable");
 
   if (!publicSettings.initialized) {
-    const login = {
+    let existingJellyfin;
+    try {
+      existingJellyfin = await json("/settings/jellyfin");
+    } catch (error) {
+      if (!(error instanceof SetupRequestError)
+        || error.code !== "UNEXPECTED_STATUS" || error.status !== 403) throw error;
+    }
+    if (existingJellyfin !== undefined && typeof existingJellyfin?.ip !== "string") {
+      throw new Error("Seerr Jellyfin startup configuration is unavailable");
+    }
+    if (existingJellyfin?.ip && existingJellyfin.ip !== ""
+      && (existingJellyfin.ip !== "jellyfin" || Number(existingJellyfin.port) !== 8096
+        || existingJellyfin.useSsl === true)) {
+      throw new Error("Seerr Jellyfin configuration conflicts with managed setup");
+    }
+    const login: Record<string, string | number | boolean> = {
       username: sessionUsername(session),
       password: deriveSessionPassword(session),
-      hostname: "jellyfin",
-      port: 8096,
-      useSsl: false,
-      urlBase: "",
       email: "admin@example.test",
       serverType: 2,
     };
-    let response;
-    try {
-      response = await io.request(`${base}/auth/jellyfin`, {
+    const authUrl = `${base}/auth/jellyfin`;
+    let response = await io.request(authUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(login),
+    }, { label: "Seerr API setup /auth/jellyfin", expectedStatuses: [200, 500] });
+    if (response.status === 500) {
+      let errorMessage;
+      try {
+        errorMessage = (await response.json())?.error;
+      } catch {
+        throw new Error("Seerr Jellyfin login returned an unknown error; inspect before retrying");
+      }
+      if (errorMessage !== "No hostname provided." || existingJellyfin?.ip) {
+        throw new Error("Seerr Jellyfin login failed; inspect before retrying");
+      }
+      response = await io.request(authUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(login),
-      }, { label: "Seerr API setup /auth/jellyfin" });
-    } catch {
-      const resumeLogin = { ...login };
-      delete resumeLogin.hostname;
-      delete resumeLogin.port;
-      delete resumeLogin.useSsl;
-      delete resumeLogin.urlBase;
-      response = await io.request(`${base}/auth/jellyfin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(resumeLogin),
+        body: JSON.stringify({ ...login, hostname: "jellyfin", port: 8096, useSsl: false, urlBase: "" }),
       }, { label: "Seerr API setup /auth/jellyfin" });
     }
     const cookie = sessionCookie(response);
@@ -96,16 +119,37 @@ export async function configureSeerr(session, io = { request, requestJson }, acc
     body: JSON.stringify({ externalHostname: userUrl(access, "jellyfin") }),
   });
 
-  const synced = await json("/settings/jellyfin/library?sync=true");
-  const enabledIds = [];
+  const synced = requireArray(await json("/settings/jellyfin/library/sync", {
+    method: "POST",
+  }), "synced Jellyfin libraries");
+  const enabledIds = new Set();
   for (const name of managedLibraries) {
     const library = selectOne(synced, (item) => String(item?.name).toLowerCase() === name, `${name} library`);
-    enabledIds.push(String(library.id));
+    if (typeof library.id !== "string" || library.id.length === 0 || library.id.length > 128) {
+      throw new Error(`Seerr ${name} library ID is invalid`);
+    }
+    if (enabledIds.has(library.id)) throw new Error("Seerr managed Jellyfin library IDs are ambiguous");
+    enabledIds.add(library.id);
   }
   const unexpectedEnabled = synced.filter((item) => item?.enabled === true && !managedLibraries.includes(String(item?.name).toLowerCase()));
   if (unexpectedEnabled.length) throw new Error("Seerr enabled library configuration conflicts with managed setup");
-  const enableQuery = new URLSearchParams({ enable: enabledIds.join(",") });
-  await json(`/settings/jellyfin/library?${enableQuery}`);
+  for (const library of synced) {
+    if (!enabledIds.has(library.id) || library.enabled === true) continue;
+    await json(`/settings/jellyfin/library/${encodeURIComponent(library.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled: true }),
+    });
+  }
+  const verifiedLibraries = requireArray(await json("/settings/jellyfin/library"), "Jellyfin library readback");
+  for (const name of managedLibraries) {
+    const library = selectOne(verifiedLibraries, (item) => String(item?.name).toLowerCase() === name, `${name} library readback`);
+    if (!enabledIds.has(library.id) || library.enabled !== true) {
+      throw new Error(`Seerr ${name} library was not enabled after readback`);
+    }
+  }
+  if (verifiedLibraries.some((item) => item?.enabled === true && !enabledIds.has(item?.id))) {
+    throw new Error("Seerr enabled library configuration conflicts with managed setup");
+  }
 
   const definitions = [
     { kind: "radarr", name: "Radarr", hostname: "radarr", port: 7878, apiKey: session.secrets.RADARR_API_KEY, root: "/data/media/movies", externalUrl: userUrl(access, "radarr") },
@@ -158,8 +202,17 @@ export async function configureSeerr(session, io = { request, requestJson }, acc
       expectedStatuses = [200];
     }
     await json(path, { method: existing.length ? "PUT" : "POST", body: JSON.stringify(payload) }, { expectedStatuses });
+    const saved = requireArray(await json(`/settings/${definition.kind}`), `${definition.kind} settings readback`);
+    if (saved.length !== 1 || !compatible(saved[0], definition)
+      || Number(saved[0].activeProfileId) !== Number(profile.id)
+      || saved[0].activeDirectory !== definition.root
+      || saved[0].isDefault !== true || saved[0].preventSearch !== false) {
+      throw new Error(`Seerr ${definition.name} settings did not pass API readback`);
+    }
   }
   if (!publicSettings.initialized) await json("/settings/initialize", { method: "POST" });
+  const finalPublic = await io.requestJson(`${base}/settings/public`, {}, { label: "Seerr API setup /settings/public readback" });
+  if (finalPublic?.initialized !== true) throw new Error("Seerr did not confirm initialized settings");
   return { status: "pass", libraries: ["Movies", "Shows"], services: ["Radarr", "Sonarr"] };
 }
 

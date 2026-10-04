@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "qbittorrent",
+  "source": "https://hotio.dev/containers/qbittorrent/",
+  "services": [
+    {
+      "id": "qbittorrent",
+      "purpose": "Downloads authorized content into the selected shared data directory and provides a private WebUI.",
+      "imageTag": "ghcr.io/hotio/qbittorrent:release-5.2.3",
+      "imageSource": "https://github.com/hotio/qbittorrent/pkgs/container/qbittorrent/versions",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://hotio.dev/containers/qbittorrent/",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "UMASK", "value": "022" }
+      ],
+      "derivedEnvironment": [
+        { "name": "WEBUI_PORTS", "source": "published-port", "format": "tcp-port" }
+      ],
+      "hostEnvironment": [
+        { "name": "PUID", "source": "uid" },
+        { "name": "PGID", "source": "gid" },
+        { "name": "TZ", "source": "timezone" }
+      ],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "config", "target": "/config", "kind": "volume" },
+        { "name": "media-data", "target": "/data", "kind": "bind", "hostPath": true, "readOnly": false, "shareGroup": "media-data" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 8080,
+      "publishTargetPortSource": "published-port",
+      "publishedPortMustMatchTarget": true
+    }
+  ],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-%28qBittorrent-5.0%29",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8080,
+    "dataDirectoryName": "qbittorrent"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 10737418240
+  },
+  "acceptance": [
+    { "id": "admin-login", "method": "api", "description": "Use the fresh temporary password only for a proven new profile, set the saved administrator password, then re-login and make an authenticated API read." },
+    { "id": "api-key", "method": "api", "description": "Read and privately save the existing WebUI API key after authenticated login; never rotate it merely to extract it." },
+    { "id": "download-paths", "method": "api", "description": "Read back the approved download directories and categories under the selected shared /data mount without starting an unauthorized transfer." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only this owned unit and verify the saved login, key, and path settings remain usable." }
+  ]
+}

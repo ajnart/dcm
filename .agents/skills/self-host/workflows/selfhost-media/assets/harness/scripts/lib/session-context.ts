@@ -55,6 +55,9 @@ const MANIFEST_KEYS = new Set([
   "ADMIN_USERNAME",
   "SESSION_PASSWORD_SCHEME",
   "HOMARR_BIND_ADDRESS",
+  "MEDIA_PORT_BIND_PREFIX",
+  "MEDIA_DEFAULT_SUBNET",
+  "MEDIA_WEB_SUBNET",
   "HOMARR_ADVERTISED_HOST",
 ]);
 
@@ -110,6 +113,21 @@ const PORT_KEYS = [
   "SEERR_PORT",
   "HOMARR_PORT",
 ];
+
+function privateSubnetRange(value) {
+  const match = /^((?:0|[1-9][0-9]{0,2}))\.((?:0|[1-9][0-9]{0,2}))\.((?:0|[1-9][0-9]{0,2}))\.((?:0|[1-9][0-9]{0,2}))\/(2[4-8])$/.exec(value);
+  if (!match) fail("manifest network subnet is invalid");
+  const octets = match.slice(1, 5).map(Number);
+  if (octets.some((octet) => octet > 255)) fail("manifest network subnet is invalid");
+  const privateAddress = octets[0] === 10
+    || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31)
+    || (octets[0] === 192 && octets[1] === 168);
+  if (!privateAddress) fail("manifest network subnet is invalid");
+  const size = 2 ** (32 - Number(match[5]));
+  if (octets[3] % size !== 0) fail("manifest network subnet is invalid");
+  const first = (((octets[0] * 256 + octets[1]) * 256 + octets[2]) * 256 + octets[3]);
+  return { first, last: first + size - 1 };
+}
 
 function fail(message) {
   throw new Error(message);
@@ -364,6 +382,20 @@ export function loadSession(runId) {
     fail("manifest browser session mismatch");
   }
   classifySessionPasswordScheme(manifest);
+  if (manifest.MEDIA_PORT_BIND_PREFIX !== undefined
+    && (manifest.MEDIA_PORT_BIND_PREFIX !== "127.0.0.1:" || manifest.HOMARR_BIND_ADDRESS !== "127.0.0.1")) {
+    fail("manifest media port bind prefix is invalid");
+  }
+  if (manifest.MEDIA_DEFAULT_SUBNET !== undefined || manifest.MEDIA_WEB_SUBNET !== undefined) {
+    if (manifest.MEDIA_DEFAULT_SUBNET === undefined || manifest.MEDIA_WEB_SUBNET === undefined) {
+      fail("manifest network subnets must be selected together");
+    }
+    const defaultRange = privateSubnetRange(manifest.MEDIA_DEFAULT_SUBNET);
+    const webRange = privateSubnetRange(manifest.MEDIA_WEB_SUBNET);
+    if (defaultRange.first <= webRange.last && webRange.first <= defaultRange.last) {
+      fail("manifest network subnets overlap");
+    }
+  }
   if (!/^\d+$/.test(manifest.PUID) || !/^\d+$/.test(manifest.PGID)) {
     fail("manifest user identifiers are invalid");
   }
@@ -407,7 +439,7 @@ export function loadSession(runId) {
 }
 
 export function sessionAccess(session) {
-  const bindAddress = session.manifest.HOMARR_BIND_ADDRESS ?? "127.0.0.1";
+  const bindAddress = session.manifest.HOMARR_BIND_ADDRESS ?? "0.0.0.0";
   if (bindAddress === "127.0.0.1" && session.manifest.HOMARR_ADVERTISED_HOST !== undefined) {
     fail("Homarr advertised host requires a non-loopback bind");
   }
@@ -1035,7 +1067,7 @@ export function redactedHandoffContents(session, homarrApiKey = "") {
     "Homarr's direct wildcard option exposes only the dashboard. Service app links need the SSH forwards above or explicit private proxy origins.",
     boardAccess === null
       ? "Personal board: not verified by the notebook helper"
-      : `Personal board: \`${boardAccess.urls.user ?? boardAccess.urls.local}\` (recorded private board identity; notebook verified at ${boardAccess.notebook.verifiedAt}; current board state and overall acceptance remain separate)`,
+      : `[View dashboard](${boardAccess.urls.user ?? boardAccess.urls.local}) (private board and Notebook verified via API at ${boardAccess.notebook.verifiedAt}; ${boardAccess.urls.user === null ? "open on this host or establish the SSH tunnel above" : "configured private route; client reachability is not verified"}; board page rendering and overall acceptance remain unverified)`,
     `Homarr notebook: ${boardAccess === null ? "not verified" : boardAccess.notebook.status}`,
     mcpClientPath === null
       ? "MCP client: run `scripts/session.sh mcp-config RUN_ID` to create the uninstalled read-only client fragment"
@@ -1044,6 +1076,16 @@ export function redactedHandoffContents(session, homarrApiKey = "") {
     "## User URLs",
     "",
     ...reachableLines,
+    "",
+    "## What the services do",
+    "",
+    "These are roles, not proof that the links are working:",
+    "- Homarr: one dashboard and an optional read-only agent entry point.",
+    "- Seerr: lets people find and request media they are allowed to access.",
+    "- Sonarr: organizes shows; Radarr: organizes movies.",
+    "- Prowlarr: shares an authorized indexer with Sonarr and Radarr.",
+    "- qBittorrent: handles approved downloads; Jellyfin: plays your own library.",
+    "Expected flow: Seerr passes approved requests to Sonarr or Radarr, which use qBittorrent. Jellyfin plays from the shared media folders, and Homarr links to all six services. Check the separate acceptance report for which links actually passed.",
     "",
     "## Actions",
     "",
@@ -1122,16 +1164,34 @@ export function writeSessionHandoffArtifacts(session, homarrApiKey = "") {
   return Object.freeze({ privatePath, redactedPath });
 }
 
+export function writeSetupFallbackArtifact(session, service, contents) {
+  if (!["qbittorrent", "sonarr", "radarr", "prowlarr", "jellyfin", "seerr", "homarr"].includes(service)) {
+    fail("setup fallback service is invalid");
+  }
+  return replacePrivateArtifact(session, `setup-fallback-${service}.json`, contents);
+}
+
 export function printSessionHandoff(runId) {
   writeSessionConnections(runId);
   const session = loadSession(runId);
   const homarr = loadHomarrApiKey(session, { optional: true });
   const artifacts = writeSessionHandoffArtifacts(session, homarr?.apiKey ?? "");
-  process.stdout.write([
+  const boardAccess = loadBoardAccessMetadata(session);
+  const summary = [
     `Private handoff artifact: ${artifacts.privatePath}`,
     `Redacted handoff report: ${artifacts.redactedPath}`,
-    "",
-  ].join("\n"));
+  ];
+  if (boardAccess !== null) {
+    summary.push(`View dashboard: ${boardAccess.urls.user ?? boardAccess.urls.local}`);
+    summary.push("Dashboard configuration was verified via API; browser rendering and overall acceptance remain unverified");
+    if (boardAccess.urls.user === null) {
+      summary.push("Dashboard access: local to this host; use the SSH tunnel in the redacted report from another device");
+    } else {
+      summary.push("Dashboard access: configured private route; verify reachability on the client device");
+    }
+  }
+  summary.push("");
+  process.stdout.write(summary.join("\n"));
 }
 
 export function refreshArrKeys(runId, services = ["sonarr", "radarr", "prowlarr"]) {
@@ -1343,6 +1403,22 @@ export function useCurlTransport(session) {
   curlTransportEnabled = true;
 }
 
+export class SetupRequestError extends Error {
+  constructor({ label, url, method, status, code }) {
+    const path = new URL(url).pathname;
+    let result = `returned HTTP ${status}`;
+    if (code === "NO_RESPONSE") result = "did not respond";
+    if (code === "INVALID_JSON") result = "returned invalid JSON";
+    super(`${label} ${result}`);
+    this.name = "SetupRequestError";
+    this.step = label;
+    this.path = path;
+    this.method = String(method ?? "GET").toUpperCase();
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function fetchWithTimeout(url, options = {}) {
   if (curlTransportEnabled) {
     return curlFetch(url, options);
@@ -1383,10 +1459,19 @@ export async function request(url, options = {}, requestOptions = {}) {
     }
   }
 
+  let failureCode = "UNEXPECTED_STATUS";
+  let failureStatus = lastStatus;
   if (lastStatus === 0) {
-    fail(`${label} did not respond`);
+    failureCode = "NO_RESPONSE";
+    failureStatus = null;
   }
-  fail(`${label} returned HTTP ${lastStatus}`);
+  throw new SetupRequestError({
+    label,
+    url,
+    method: options.method,
+    status: failureStatus,
+    code: failureCode,
+  });
 }
 
 export async function requestJson(url, options = {}, requestOptions = {}) {
@@ -1394,7 +1479,13 @@ export async function requestJson(url, options = {}, requestOptions = {}) {
   try {
     return await response.json();
   } catch {
-    fail(`${requestOptions.label ?? "service request"} returned invalid JSON`);
+    throw new SetupRequestError({
+      label: requestOptions.label ?? "service request",
+      url,
+      method: options.method,
+      status: response.status,
+      code: "INVALID_JSON",
+    });
   }
 }
 

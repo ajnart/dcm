@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "appId": "keycloak",
+  "recipeSha256": "79363805a542919b65e68de9121be3d73e3082460679962268723d1fbd95be38",
+  "dependencies": [
+    { "appId": "postgresql", "serviceId": "db", "officialUrl": "https://www.keycloak.org/server/containers" }
+  ]
+}

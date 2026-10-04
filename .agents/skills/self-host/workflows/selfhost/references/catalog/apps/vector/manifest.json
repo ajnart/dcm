@@ -1,0 +1,60 @@
+{
+  "id": "vector",
+  "name": "Vector",
+  "aliases": [
+    "log collector",
+    "telemetry pipeline"
+  ],
+  "categories": [
+    "observability"
+  ],
+  "roles": [
+    "log-agent",
+    "telemetry-router"
+  ],
+  "upstream": {
+    "url": "https://vector.dev/",
+    "repository": "https://github.com/vectordotdev/vector",
+    "docs": "https://vector.dev/docs/setup/installation/platforms/docker/"
+  },
+  "image": {
+    "reference": "ghcr.io/vectordotdev/vector:0.58.0-debian",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "The private recipe only routes Vector's own logs to stdout; real telemetry needs a separately reviewed source and sink."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:log-sources"
+  ],
+  "alternatives": [
+    "prometheus",
+    "netdata"
+  ],
+  "security": [
+    "Redact credentials and personal data before routing telemetry.",
+    "The unauthenticated observability API must remain on loopback or another private trusted network when enabled."
+  ],
+  "pitfalls": [
+    "Broad Docker or host log access can collect unintended sensitive content.",
+    "The self-only recipe does not collect host or application logs; a running process or healthy API does not establish real ingestion."
+  ],
+  "sources": [
+    "https://vector.dev/docs/setup/installation/platforms/docker/",
+    "https://vector.dev/docs/reference/configuration/",
+    "https://vector.dev/docs/reference/api/",
+    "https://github.com/vectordotdev/vector/blob/v0.58.0/distribution/docker/debian/Dockerfile"
+  ]
+}

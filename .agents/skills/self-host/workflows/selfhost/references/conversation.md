@@ -1,128 +1,53 @@
 # Conversation contract
 
-Use this intake for a new project, an incomplete request, or an explicit
-revision. Skip questions already answered by the request, saved project intent,
-or confirmed non-secret preferences.
+## New shared project
 
-## Choose the setup path
+Start with the user's goal. Recommend catalog defaults, one shared Compose
+project, and Homarr. Explain each app in one sentence. Accept `defaults`,
+explicit alternatives, or a Homarr opt-out. The basic capability set is not an
+app bundle. Do not ask New/Advanced before planning a new shared project.
 
-After receiving the first service or replacement goal, preserve that goal and
-read `onboarding.experience` from the fixed `$HOME/.selfhostedskills` project
-root. When it is missing, ask:
+Reuse supplied answers. Ask one compact question only when it changes the
+plan: goal, owner/root, required app identity/path, access beyond loopback,
+recovery policy, or a declared external credential reference.
 
-> Which setup path do you want?
-> **New** installs safe local defaults and includes Homarr.
-> **Advanced** installs the requested service locally first, then offers optional additions.
+Use a supplied absolute root. Otherwise reuse the current directory only when
+a saved shared, app, batch, bundle, or stack owner identifies the project; ask
+if distinct owners compete. For a new root, show `$HOME/.selfhostedskills`
+before writing. Disclose local files and create only a confirmed missing root
+as mode `0700`. Existing paths keep their permissions and must pass ownership
+and symlink checks.
 
-Persist the answer as `new` or `advanced` only after the user confirms it.
-Do not infer experience from root execution or other host facts; inspect those
-facts independently on every run.
+Run read-only catalog and shared plan commands. Show services, pinned images,
+paths, exact ports/binds, first-run coverage, acceptance gaps, and the approval.
+`defaults` chooses non-secret options; it does not approve apply, public
+exposure, destruction, migration, or privilege changes.
 
-Both paths bind the initial installation to loopback. Do not ask an exposure or
-device question before that installation completes.
+Shared recipes publish loopback ports. A localhost link works only on the
+Docker host. LAN, remote, HTTPS, and public access need their own owner, plan,
+approval, and client-path verification. Do not invent a reachable address.
 
-- **New:** include Homarr without a separate dashboard question. Do not ask
-  networking questions. After verification, add the two onboarding Notebook
-  widgets defined by `selfhost-homarr`.
-- **Advanced:** omit Homarr from the initial plan unless it was requested.
-  After the requested service is locally installed and verified, present its
-  completion summary, then ask separately whether to add Homarr and whether to
-  add Vaultwarden. Each accepted addition keeps the normal plan, approval,
-  apply, and verify boundary. After those choices finish, ask whether the user
-  wants to reach the services from a phone while away from home. A yes starts a
-  separate Tailscale plan; it does not approve that plan.
+Let the CLI generate and reuse owner-only passwords and API keys. Ask for a
+private source-file reference only when a recipe declares an external
+credential; never secret values in chat or CLI arguments. Keep payloads at
+the approved apply boundary. Report private handoff paths, not contents. If a
+secret arrives in chat, do not repeat it; recommend rotation.
 
-## Run the loop
+After exact approval, apply through the shared CLI, review first-run setup,
+approve individual adapter actions, and separately approve Homarr publication.
+Keep missing adapters, failed checkpoints, tile-only apps, omitted widgets,
+and acceptance gaps visible. Optional capabilities are not hidden setup gates.
 
-1. **Explore.** Extract the goal, users, devices, service choices, paths,
-   exposure, resilience needs, and credential policy already supplied. Use
-   `$HOME/.selfhostedskills` as the project root. For a returning project,
-   resume its exact saved goal and service choices. Mark saved host evidence
-   stale.
-2. **Present.** Lead with one recommended answer and one short reason. Follow
-   with at most two materially different alternatives. Explain every proposed
-   service in one sentence before asking the user to choose it.
-3. **Confirm.** Ask one question or one tightly related group at a time. Accept
-   a natural-language answer, a named option, or `defaults`. Restate the
-   resulting choices before any write.
-4. **Write.** After confirmation, disclose the private local files that will be
-   created. Initialize or revise project state and persist only confirmed,
-   non-secret preferences. Keep planning commands read-only.
+Finish with changed apps, purposes, observed access, credential-file paths,
+direct evidence, blockers, and the next exact action. Container health, setup
+readiness, and dashboard readbacks are separate from app function, rendered
+content, restart persistence, VPN fail-closed proof, and isolated restore.
 
-After a setup path is chosen, `defaults` selects its catalog defaults, `admin`
-as the media administrator username, a generated password, and loopback-only
-initial access. It includes Homarr for **New** and omits optional Homarr for the
-initial **Advanced** installation. Confirm those choices in the plan.
-Other optional roles remain off until explicitly selected. It does
-not approve apply, public exposure, destructive work, privilege expansion, a
-VPN change, or a migration.
+## Saved legacy owner
 
-## Ask only what changes the plan
-
-Use this order, skipping settled branches:
-
-1. **Purpose.** Ask what the user wants to do, not which products they already
-   know. If the goal is vague, show the short catalog menu and recommend the
-   closest outcome.
-2. **People and devices.** For initial setup, do not ask. Both paths install on
-   loopback first. The **Advanced** post-install phone question may start a
-   separate Tailscale plan; **New** receives that option only in Homarr.
-3. **Project root.** Always use `$HOME/.selfhostedskills`; do not ask for a
-   directory or use the current working directory. Read
-   `$HOME/.selfhostedskills/.selfhost/project.json` only from that root to
-   detect a resume. Before the first confirmed state write, disclose the local
-   files and create the root as a mode-`0700` real directory when absent.
-4. **Services.** Present the catalog default first and explain its purpose.
-   Name only alternatives that change support, complexity, or capability.
-   Include Homarr automatically for **New**. For **Advanced**, install the
-   requested service first and offer Homarr and Vaultwarden afterward.
-5. **Paths.** After fresh host inspection, propose config, data, media,
-   download, and backup paths that are relevant to the selected services. Ask
-   only about mappings the host facts cannot settle.
-6. **Exposure.** Bind the initial installation to `127.0.0.1` or `::1` and do
-   not ask for alternatives before verification. Only the **Advanced**
-   post-install phone question can start a separate Tailscale plan. Keep
-   administrative services private unless a later reviewed topology says
-   otherwise.
-7. **Recovery and VPN.** Ask about backups when the stack holds durable state.
-   Ask about downloader-only VPN routing only when downloads are selected or
-   the user mentions it. Treat bare `VPN` as ambiguous between private remote
-   access and downloader privacy.
-8. **Credentials.** Confirm the username and ask for a policy, never a secret
-   value: generated password (recommended), an existing secret-manager
-   reference, or custom credentials entered later through a supported private
-   apply boundary. Accept `defaults` as `admin` plus a generated password for
-   the managed media adapter.
-
-For the managed `selfhost-media` adapter, confirm the username before the run
-is created. The harness uses it across supported services and generates a
-per-run password. `admin` is valid only after the user accepts defaults or
-explicitly chooses it. Confirm the username in the plan; never ask the user to
-invent or paste a password. When saved credentials are explicitly requested,
-run the media handoff helper. It writes `.sessions/<run>/artifacts/private-handoff.json`
-(mode `0600`) with the generated password, usernames, available API keys, URLs
-and storage paths. Return its path only; ordinary reports contain no secrets.
-The separate owner-only `connections.env` remains password-free. For other
-stacks, defer custom values to the selected capability's supported private
-apply boundary; block the apply when no such boundary exists.
-
-Never request passwords, tokens, API keys, private keys, cookies, or recovery
-codes in chat. If the user sends one, do not repeat it. Tell them to rotate it
-and continue with only its intended purpose or secret reference. Use only the
-explicitly requested private export above for saved media credentials.
-
-## Keep prompts compact
-
-For an **Advanced** follow-up, ask one question at a time:
-
-> Your requested service is installed locally. Do you want to add **Homarr** as a dashboard?
-
-> Do you want to add **Vaultwarden** as a password manager?
-
-After those choices are complete:
-
-> Do you want to reach your services from your phone while away from home?
-
-End intake when every plan-changing choice is confirmed or visibly unresolved,
-the fixed project root is ready, no secret value was collected, and the next
-action is either a redacted plan or a clearly named blocker.
+Preserve the existing app, batch, bundle, media, or stack owner and its recorded
+choices; use upkeep instead of silently converting it. Saved host evidence is
+stale until refreshed. Its saved `onboarding.experience` may retain legacy
+New/Advanced behavior: New uses recommended choices and Homarr; Advanced keeps
+the requested service first. Each addition still needs its exact plan,
+approval, and acceptance gates.

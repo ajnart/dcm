@@ -269,7 +269,7 @@ export function buildPlan(selection, mapping, classificationSource = null) {
   return {
     schemaVersion: 1,
     operation: "read-only-plan",
-    image: "ghcr.io/homarr-labs/homarr-test:v2",
+    image: "ghcr.io/homarr-labs/homarr:dev",
     classificationSource,
     classifications,
     steps: [

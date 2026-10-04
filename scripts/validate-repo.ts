@@ -5,12 +5,13 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadCatalog } from "../.agents/skills/self-host/workflows/selfhost/scripts/catalog.ts";
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS_ROOT = join(REPOSITORY_ROOT, ".agents", "skills");
 const SELF_HOST_ROOT = join(SKILLS_ROOT, "self-host");
 const WORKFLOWS_ROOT = join(SELF_HOST_ROOT, "workflows");
-const HOMARR_IMAGE = "ghcr.io/homarr-labs/homarr-test:v2";
+const HOMARR_IMAGE = "ghcr.io/homarr-labs/homarr:dev";
 const MEDIA_SKILL_ROOT = join(WORKFLOWS_ROOT, "selfhost-media");
 const MEDIA_BUNDLE_ROOT = join(MEDIA_SKILL_ROOT, "assets", "harness");
 const MEDIA_BUNDLE_MANIFEST = join(MEDIA_BUNDLE_ROOT, "bundle-manifest.json");
@@ -39,6 +40,7 @@ const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "docs/plugin-audit.md",
   "docs/release.md",
   "scripts/browser-command-log.mjs",
+  "scripts/summarize-browser-log.mjs",
   "scripts/check-curl-http.ts",
   "scripts/distribution.ts",
   "scripts/lib/claude-marketplace.ts",
@@ -609,7 +611,7 @@ async function validateSkillTrees() {
       }
       try {
         const content = await readFile(filePath, "utf8");
-        if (content.includes("/home/")) {
+        if (containsHostHomePath(repositoryPath(filePath), content)) {
           errors.push(`skill ${skill.name}: hardcoded home path in ${repositoryPath(filePath)}`);
         }
       } catch {
@@ -620,6 +622,36 @@ async function validateSkillTrees() {
 
   failMany(errors);
   return `${fileCount} skill files, no runtime material`;
+}
+
+/** Reviewed container mount targets are not machine-specific host homes. */
+export function containsHostHomePath(repositoryPath: string, content: string): boolean {
+  if (!content.includes("/home/")) return false;
+  if (repositoryPath === ".agents/skills/self-host/workflows/selfhost/references/catalog/apps/archive-team-warrior/configuration.ts") {
+    // Only these publisher-owned mount targets are portable. Keep rejecting
+    // host paths and every other home-path use in this derived recipe source.
+    const withoutContainerTargets = content.replace(
+      /\btarget:\s*"\/home\/warrior\/(?:projects|data)"/g,
+      "target: \"container-mount-target\"",
+    );
+    return withoutContainerTargets.includes("/home/");
+  }
+  if (!/^\.agents\/skills\/self-host\/workflows\/selfhost\/references\/catalog\/apps\/[a-z0-9-]+\/recipe\.json$/.test(repositoryPath)) {
+    return true;
+  }
+  let recipe;
+  try { recipe = JSON.parse(content); } catch { return true; }
+  if (recipe?.schemaVersion !== 2 || recipe.kind !== "multi-service-compose"
+    || !Array.isArray(recipe.services)) return true;
+  for (const service of recipe.services) {
+    if (!Array.isArray(service.mounts)) continue;
+    for (const mount of service.mounts) {
+      if (mount?.kind === "volume" && typeof mount.target === "string") {
+        mount.target = "container-volume-target";
+      }
+    }
+  }
+  return JSON.stringify(recipe).includes("/home/");
 }
 
 async function collectSourceFiles() {
@@ -678,7 +710,9 @@ async function validateCredentialHygiene() {
     if (content.includes(FORBIDDEN_REUSABLE_CREDENTIAL)) {
       fail("credential hygiene: forbidden reusable credential detected");
     }
-    if (FORBIDDEN_CREDENTIAL_IDENTIFIERS.some((name) => content.includes(name))) {
+    // Match complete identifiers, not upstream file-input names such as
+    // DATASOURCES_DEFAULT_PASSWORD_FILE, which carry paths rather than secrets.
+    if (FORBIDDEN_CREDENTIAL_IDENTIFIERS.some((name) => new RegExp(String.raw`\b${name}\b`).test(content))) {
       fail("credential hygiene: fixed credential assignment detected");
     }
     if (LITERAL_CREDENTIAL_ASSIGNMENT.test(content)) {
@@ -1220,36 +1254,16 @@ async function validateCatalogSkillReferences() {
     }
   }
 
-  const appsDirectory = join(
-    WORKFLOWS_ROOT,
-    "selfhost",
-    "references",
-    "catalog",
-    "apps",
-  );
-  const appFiles = (await readdir(appsDirectory))
-    .filter((name) => name.endsWith(".json"))
-    .sort();
-  for (const name of appFiles) {
-    let records;
-    try {
-      records = JSON.parse(await readFile(join(appsDirectory, name), "utf8"));
-    } catch {
-      fail(`catalog skills: invalid apps file ${name}`);
-    }
-    if (!Array.isArray(records)) {
-      continue;
-    }
-    for (const record of records) {
-      const support = record && record.support;
-      if (
-        support
-        && support.automation === "managed"
-        && typeof support.adapterSkill === "string"
-      ) {
-        required.add(support.adapterSkill);
-        adapterReferences.add(support.adapterSkill);
-      }
+  const { apps } = await loadCatalog();
+  for (const record of apps) {
+    const support = record && record.support;
+    if (
+      support
+      && support.automation === "managed"
+      && typeof support.adapterSkill === "string"
+    ) {
+      required.add(support.adapterSkill);
+      adapterReferences.add(support.adapterSkill);
     }
   }
 
@@ -1317,21 +1331,8 @@ async function validateHomarrImage() {
     fail("homarr image: root Compose contract changed");
   }
 
-  const operationsPath = join(
-    WORKFLOWS_ROOT,
-    "selfhost",
-    "references",
-    "catalog",
-    "apps",
-    "operations.json",
-  );
-  let operations;
-  try {
-    operations = JSON.parse(await readFile(operationsPath, "utf8"));
-  } catch {
-    fail("homarr image: operations catalog is missing or invalid");
-  }
-  const homarr = operations.find((record) => record && record.id === "homarr");
+  const { apps } = await loadCatalog();
+  const homarr = apps.find((record) => record && record.id === "homarr");
   if (!homarr || !homarr.image || homarr.image.reference !== HOMARR_IMAGE) {
     fail("homarr image: catalog contract changed");
   }
@@ -1436,12 +1437,15 @@ async function validateMediaBundleDrift() {
 
 async function validateScriptSyntax() {
   const sourceFiles = await collectSourceFiles();
-  const nodeLogger = join(REPOSITORY_ROOT, "scripts", "browser-command-log.mjs");
+  const nodeTools = new Set([
+    join(REPOSITORY_ROOT, "scripts", "browser-command-log.mjs"),
+    join(REPOSITORY_ROOT, "scripts", "summarize-browser-log.mjs"),
+  ]);
   const legacyScripts = sourceFiles.filter((filePath) =>
-    filePath !== nodeLogger && [".cjs", ".js", ".jsx", ".mjs"].includes(extname(filePath).toLowerCase())
+    !nodeTools.has(filePath) && [".cjs", ".js", ".jsx", ".mjs"].includes(extname(filePath).toLowerCase())
   );
   const uniqueScripts = sourceFiles
-    .filter((filePath) => filePath === nodeLogger || [".sh", ".ts"].includes(extname(filePath).toLowerCase()))
+    .filter((filePath) => nodeTools.has(filePath) || [".sh", ".ts"].includes(extname(filePath).toLowerCase()))
     .sort();
   const errors = [];
   for (const scriptPath of legacyScripts) {
@@ -1452,7 +1456,7 @@ async function validateScriptSyntax() {
     let result;
     if (extension === ".sh") {
       result = runLocal("bash", ["-n", scriptPath]);
-    } else if (scriptPath === nodeLogger) {
+    } else if (nodeTools.has(scriptPath)) {
       result = runLocal("node", ["--check", scriptPath]);
     } else {
       result = runLocal(process.execPath, [

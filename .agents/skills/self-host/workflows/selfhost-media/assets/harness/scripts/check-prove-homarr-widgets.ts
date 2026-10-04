@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 import assert from "node:assert/strict";
 import { PROCEDURES, proveHomarrWidgets, validateWidgetProof, widgetProofEval } from "./prove-homarr-widgets.ts";
-import { appTilesAreLinked, widgetResultIsHealthy } from "./prove-homarr-widgets-api.ts";
+import { appTilesAreLinked, widgetProofFailureReason, widgetResultIsHealthy } from "./prove-homarr-widgets-api.ts";
+import { SERVICE_DESCRIPTIONS } from "./homarr-finalize.ts";
 
 const rows = PROCEDURES.map((procedure) => ({
   procedure,
@@ -45,8 +46,17 @@ assert.equal(widgetResultIsHealthy("widget.mediaRequests.getStats", { integratio
 const services = ["sonarr", "radarr", "prowlarr", "qbittorrent", "jellyfin", "seerr"];
 const access = { services: Object.fromEntries(services.map((service) => [service, { browserUrl: `http://localhost/${service}`, reachableUrl: null, dockerUrl: `http://${service}` }])) };
 const board = { items: services.map((service) => ({ kind: "app", options: { appId: service } })) };
-const apps = services.map((service) => ({ id: service, name: service, href: `http://localhost/${service}`, pingUrl: `http://${service}` }));
+const apps = services.map((service) => ({ id: service, name: service, description: SERVICE_DESCRIPTIONS[service], href: `http://localhost/${service}`, pingUrl: `http://${service}` }));
 assert.equal(appTilesAreLinked(board, apps, access), true);
+assert.equal(appTilesAreLinked({ items: [...board.items, { kind: "app", options: { appId: "homarr-docs" } }] },
+  [...apps, { id: "homarr-docs", name: "Homarr Docs" }], access), true);
+assert.equal(appTilesAreLinked({ items: [...board.items, board.items[0]] }, apps, access), false);
 assert.equal(appTilesAreLinked(board, apps.slice(1), access), false);
 assert.equal(appTilesAreLinked(board, apps.map((app) => ({ ...app, pingUrl: "http://wrong" })), access), false);
+assert.equal(appTilesAreLinked(board, apps.map((app) => ({ ...app, description: null })), access), false);
+assert.equal(widgetProofFailureReason(new Error(`Homarr widget proof failed for ${PROCEDURES[0]}`)),
+  `procedure=${PROCEDURES[0]}`);
+assert.equal(widgetProofFailureReason(new Error("Homarr media-release proof has failed integrations")),
+  "Homarr media-release proof has failed integrations");
+assert.equal(widgetProofFailureReason(new Error("secret-key-value")), "unknown");
 console.log("PASS Homarr generated-widget proof contract, read-only eval, redaction and rejection checks");

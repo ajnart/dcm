@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { accessSync, constants, realpathSync, statSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -17,10 +18,13 @@ export const BROWSER_PASSWORD_PASS_LINE = "PASS browser password filled\n";
 export const BROWSER_PASSWORD_FAIL_LINE = "FAIL browser password fill\n";
 
 const BROWSER_ENVIRONMENT_KEYS = [
+  "AGENT_BROWSER_SESSION",
   "HOME",
   "LANG",
   "LC_ALL",
   "PATH",
+  "SELFHOST_AGENT_ID",
+  "SELFHOST_RUN_ID",
   "TMPDIR",
   "TZ",
   "XDG_CACHE_HOME",
@@ -176,6 +180,39 @@ function validatedSelectors(selectors) {
   return [...selectors];
 }
 
+function validatedBrowserExecutable(value) {
+  if (typeof value !== "string" || !isAbsolute(value)) {
+    throw new Error("browser executable must be an absolute canonical executable file");
+  }
+  try {
+    const canonical = realpathSync(value);
+    if (!statSync(canonical).isFile()) {
+      throw new Error("invalid browser executable");
+    }
+    accessSync(canonical, constants.X_OK);
+    return canonical;
+  } catch {
+    throw new Error("browser executable must be an absolute canonical executable file");
+  }
+}
+
+export function parseBrowserPasswordArguments(args) {
+  const remaining = [...args];
+  let browserExecutable;
+  if (remaining.at(-2) === "--browser-bin") {
+    browserExecutable = validatedBrowserExecutable(remaining.pop());
+    remaining.pop();
+  }
+  if (remaining.length < 2 || remaining.length > MAX_SELECTORS + 1) {
+    throw new Error("RUN_ID and password selectors are required");
+  }
+  return {
+    runId: remaining[0],
+    selectors: validatedSelectors(remaining.slice(1)),
+    browserExecutable,
+  };
+}
+
 function structuredBrowserData(raw, session) {
   let parsed;
   try {
@@ -248,6 +285,11 @@ async function validatePasswordFields(session, selectors, invoke) {
 
 export async function fillBrowserPassword(session, selectors, options = {}) {
   const safeSelectors = validatedSelectors(selectors);
+  let browserExecutable = "agent-browser";
+  const explicitBrowser = options.browserExecutable !== undefined;
+  if (explicitBrowser) {
+    browserExecutable = validatedBrowserExecutable(options.browserExecutable);
+  }
   const expectedBrowserSession = `auto-stack-${session?.runId || ""}`;
   if (
     !session
@@ -284,12 +326,12 @@ export async function fillBrowserPassword(session, selectors, options = {}) {
   async function invoke(args, stdin = "") {
     let result = await runBrowserChild(
       spawnImplementation,
-      "agent-browser",
+      browserExecutable,
       args,
       spawnOptions,
       stdin,
     );
-    if (executableWasNotFound(result)) {
+    if (!explicitBrowser && executableWasNotFound(result)) {
       result = await runBrowserChild(
         spawnImplementation,
         "bunx",
@@ -321,12 +363,9 @@ export async function fillBrowserPassword(session, selectors, options = {}) {
 }
 
 async function main() {
-  const args = Bun.argv.slice(2);
-  if (args.length < 2 || args.length > MAX_SELECTORS + 1) {
-    throw new Error("RUN_ID and password selectors are required");
-  }
-  const session = loadSession(args[0]);
-  await fillBrowserPassword(session, args.slice(1));
+  const args = parseBrowserPasswordArguments(Bun.argv.slice(2));
+  const session = loadSession(args.runId);
+  await fillBrowserPassword(session, args.selectors, { browserExecutable: args.browserExecutable });
   process.stdout.write(BROWSER_PASSWORD_PASS_LINE);
 }
 

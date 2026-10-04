@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "freshrss",
+  "source": "https://github.com/FreshRSS/FreshRSS/blob/edge/Docker/README.md",
+  "services": [
+    {
+      "id": "freshrss",
+      "purpose": "Stores private feed subscriptions and articles in its built-in SQLite database.",
+      "imageTag": "ghcr.io/freshrss/freshrss:1.30.0",
+      "imageSource": "https://github.com/FreshRSS/FreshRSS/pkgs/container/freshrss",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/FreshRSS/FreshRSS/blob/edge/Docker/README.md",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "CRON_MIN", "value": "1,31" }
+      ],
+      "hostEnvironment": [{ "name": "TZ", "source": "timezone" }],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "data", "target": "/var/www/FreshRSS/data", "kind": "volume" },
+        { "name": "extensions", "target": "/var/www/FreshRSS/extensions", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 80
+    }
+  ],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://github.com/FreshRSS/FreshRSS/blob/edge/cli/README.md",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8080,
+    "dataDirectoryName": "freshrss"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "first-admin", "method": "api", "description": "Run the pinned private CLI installation, create the first admin without a password argument, submit a bcrypt hash through stdin, and read back the saved password against the installed hash and user database. Browser form-login acceptance remains separate." },
+    { "id": "mobile-api", "method": "api", "description": "Only if requested, enable the mobile API and set a distinct API password; verify authentication without placing credentials in URLs or logs." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned Compose project and verify the administrator login and subscriptions persist." }
+  ]
+}

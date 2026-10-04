@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { curlFetch } from "./lib/curl-http.ts";
 import { loadHomarrApiKey, loadSession, requireSessionPasswordScheme, sessionAccess, useCurlTransport } from "./lib/session-context.ts";
 import { printWidgetProof, PROCEDURES, validateWidgetProof } from "./prove-homarr-widgets.ts";
+import { SERVICE_DESCRIPTIONS } from "./homarr-finalize.ts";
 
 const EXPECTED_COUNTS = {
   calendar: 2,
@@ -32,14 +33,16 @@ export function appTilesAreLinked(board, apps, access) {
   if (!Array.isArray(board?.items) || !Array.isArray(apps)) return false;
   const tiles = board.items.filter((item) => item?.kind === "app");
   const services = ["sonarr", "radarr", "prowlarr", "qbittorrent", "jellyfin", "seerr"];
-  if (tiles.length !== services.length) return false;
+  if (tiles.length < services.length) return false;
   const ids = tiles.map((item) => item?.options?.appId);
-  if (ids.some((id) => typeof id !== "string") || new Set(ids).size !== services.length) return false;
   return services.every((service) => {
     const expected = access?.services?.[service];
     const navigationUrl = expected?.reachableUrl ?? expected?.browserUrl;
-    const matches = apps.filter((app) => ids.includes(app?.id) && app?.name?.toLowerCase() === service);
-    return matches.length === 1 && matches[0].href === navigationUrl && matches[0].pingUrl === expected?.dockerUrl;
+    const matches = apps.filter((app) => app?.name?.toLowerCase() === service);
+    return matches.length === 1 && ids.filter((id) => id === matches[0].id).length === 1
+      && matches[0].href === navigationUrl
+      && matches[0].pingUrl === expected?.dockerUrl
+      && matches[0].description === SERVICE_DESCRIPTIONS[service];
   });
 }
 
@@ -70,6 +73,25 @@ export function widgetResultIsHealthy(procedure, result, integrationIds) {
       && (!Array.isArray(item.missing) || !Array.isArray(item.queued))) return false;
   }
   return true;
+}
+
+export function widgetProofFailureReason(error) {
+  if (!(error instanceof Error)) return "unknown";
+  const fixed = new Set([
+    "Homarr board is unavailable",
+    "Homarr generated app tiles or links are incomplete",
+    "Homarr generated widget is missing or disconnected",
+    "Homarr widget API returned invalid JSON",
+    "Homarr widget proof is incomplete",
+    "Homarr widget proof row schema is invalid",
+    "Homarr media-release proof counts are invalid",
+    "Homarr media-release proof has failed integrations",
+  ]);
+  if (fixed.has(error.message)) return error.message;
+  for (const procedure of PROCEDURES) {
+    if (error.message === `Homarr widget proof failed for ${procedure}`) return `procedure=${procedure}`;
+  }
+  return "unknown";
 }
 
 export async function proveHomarrWidgetsApi(session, boardName) {
@@ -135,8 +157,8 @@ if (Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
   try {
     if (Bun.argv.length !== 4) throw new Error("usage");
     printWidgetProof(await proveHomarrWidgetsApi(loadSession(Bun.argv[2]), Bun.argv[3]));
-  } catch {
-    console.error("FAIL Homarr generated-widget API proof");
+  } catch (error) {
+    console.error(`FAIL Homarr generated-widget API proof reason=${widgetProofFailureReason(error)}`);
     process.exitCode = 1;
   }
 }

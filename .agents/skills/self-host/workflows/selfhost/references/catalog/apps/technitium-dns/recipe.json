@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "technitium-dns",
+  "source": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
+  "services": [{
+    "id": "technitium-dns",
+    "purpose": "Runs the private DNS administration console; DNS ports are not published.",
+    "imageTag": "docker.io/technitium/dns-server:15.5.1",
+    "imageSource": "https://hub.docker.com/r/technitium/dns-server/tags?name=15.5.1",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [{ "name": "DNS_SERVER_DOMAIN", "value": "dns-server" }],
+    "hostEnvironment": [],
+    "fileEnvironment": [{ "name": "DNS_SERVER_ADMIN_PASSWORD_FILE", "fileId": "admin-password" }],
+    "mounts": [
+      { "name": "config", "target": "/etc/dns", "kind": "volume" },
+      { "name": "logs", "target": "/var/log/technitium/dns", "kind": "volume" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": 5380
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "initial-admin-password-file",
+    "officialUrl": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
+    "username": "admin",
+    "fileEnvironment": "DNS_SERVER_ADMIN_PASSWORD_FILE",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 5380, "dataDirectoryName": "technitium-dns" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "admin-login", "method": "api", "description": "Authenticate the generated admin password and read back the authenticated user profile." },
+    { "id": "dns-cutover", "method": "api", "description": "After separate LAN owner approval, expose TCP and UDP 53 and verify DNS from a LAN client and fallback routing." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned Compose project and verify administrator login and saved settings." }
+  ]
+}

@@ -1,11 +1,16 @@
 {
   "name": "selfhost-skills",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "Composable, private-first self-hosting skills for popular coding agents.",
   "license": "Apache-2.0",
   "packageManager": "bun@1.4.0",
+  "workspaces": ["packages/*"],
+  "dependencies": {
+    "openpgp": "6.3.2",
+    "tldts": "7.4.16"
+  },
   "engines": {
     "bun": ">=1.4.0"
   },
@@ -15,6 +20,7 @@
   },
   "scripts": {
     "selfhost": "bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts",
+    "cli:build": "bun packages/cli/scripts/build.ts",
     "stack": "bun .agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts",
     "skillpack": "bun scripts/skillpack.ts",
     "inspect": "bun scripts/skillpack.ts inspect",

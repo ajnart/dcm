@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "dashDot",
+  "requiredSecrets": [],
+  "widgets": [
+    {
+      "kind": "healthMonitoring",
+      "options": {}
+    },
+    {
+      "kind": "systemResources",
+      "options": {}
+    },
+    {
+      "kind": "systemDisks",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "cpu",
+        "memoryUsed",
+        "uptime"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "healthMonitoring",
+        "procedure": "widget.healthMonitoring.getSystemHealthStatus",
+        "inputMode": "many",
+        "field": "healthInfo",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "version": "string",
+            "cpuModelName": "string",
+            "cpuUtilization": "number",
+            "memUsedInBytes": "number",
+            "memAvailableInBytes": "number",
+            "uptime": "number",
+            "availablePkgUpdates": "number",
+            "rebootRequired": "boolean",
+            "fileSystem": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "used": "string",
+                  "available": "string",
+                  "percentage": "number"
+                }
+              }
+            },
+            "smart": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "healthy": "boolean",
+                  "overallStatus": "string",
+                  "temperature": {
+                    "type": "nullable",
+                    "value": "number"
+                  }
+                }
+              }
+            },
+            "gpu": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "gpuId": "string",
+                  "name": "string",
+                  "memoryUtilization": "number",
+                  "processorUtilization": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "systemResources",
+        "procedure": "widget.healthMonitoring.getSystemHealthStatus",
+        "inputMode": "many",
+        "field": "healthInfo",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "version": "string",
+            "cpuModelName": "string",
+            "cpuUtilization": "number",
+            "memUsedInBytes": "number",
+            "memAvailableInBytes": "number",
+            "uptime": "number",
+            "availablePkgUpdates": "number",
+            "rebootRequired": "boolean",
+            "fileSystem": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "used": "string",
+                  "available": "string",
+                  "percentage": "number"
+                }
+              }
+            },
+            "smart": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "healthy": "boolean",
+                  "overallStatus": "string",
+                  "temperature": {
+                    "type": "nullable",
+                    "value": "number"
+                  }
+                }
+              }
+            },
+            "gpu": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "gpuId": "string",
+                  "name": "string",
+                  "memoryUtilization": "number",
+                  "processorUtilization": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "systemDisks",
+        "procedure": "widget.healthMonitoring.getSystemHealthStatus",
+        "inputMode": "many",
+        "field": "healthInfo",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "version": "string",
+            "cpuModelName": "string",
+            "cpuUtilization": "number",
+            "memUsedInBytes": "number",
+            "memAvailableInBytes": "number",
+            "uptime": "number",
+            "availablePkgUpdates": "number",
+            "rebootRequired": "boolean",
+            "fileSystem": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "used": "string",
+                  "available": "string",
+                  "percentage": "number"
+                }
+              }
+            },
+            "smart": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "deviceName": "string",
+                  "healthy": "boolean",
+                  "overallStatus": "string",
+                  "temperature": {
+                    "type": "nullable",
+                    "value": "number"
+                  }
+                }
+              }
+            },
+            "gpu": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "gpuId": "string",
+                  "name": "string",
+                  "memoryUtilization": "number",
+                  "processorUtilization": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

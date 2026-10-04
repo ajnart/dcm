@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "deluge",
+  "source": "https://docs.linuxserver.io/images/docker-deluge/",
+  "services": [
+    {
+      "id": "deluge",
+      "purpose": "Provides a private Deluge Web UI with owner-selected download storage; peer ports remain unpublished.",
+      "imageTag": "lscr.io/linuxserver/deluge:2.2.0-ls381",
+      "imageSource": "https://github.com/linuxserver/docker-deluge/releases/tag/2.2.0-ls381",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://docs.linuxserver.io/images/docker-deluge/", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [
+        { "name": "PUID", "source": "uid" },
+        { "name": "PGID", "source": "gid" },
+        { "name": "TZ", "source": "timezone" }
+      ],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "config", "target": "/config", "kind": "volume" },
+        { "name": "media-data", "target": "/downloads", "kind": "bind", "hostPath": true, "readOnly": false, "shareGroup": "media-data" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 8112
+    }
+  ],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": { "kind": "manual-first-password", "officialUrl": "https://deluge.readthedocs.io/en/deluge-2.2.0/modules/deluge.ui.web.html", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8112, "dataDirectoryName": "deluge" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 10737418240 },
+  "acceptance": [
+    { "id": "web-password", "method": "api", "description": "On the private exact owner, rotate the documented initial Web password once, verify the generated password, and reject the initial password." },
+    { "id": "download-storage", "method": "persisted", "description": "Verify the selected /downloads mount and Deluge download path before any authorized transfer." },
+    { "id": "peer-port-and-vpn", "method": "persisted", "description": "Torrent peer ports and downloader VPN routing require separate approval; VPN acceptance requires a tunnel-break fail-closed test." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only this owned service and verify the saved Web password and configuration remain usable." }
+  ]
+}

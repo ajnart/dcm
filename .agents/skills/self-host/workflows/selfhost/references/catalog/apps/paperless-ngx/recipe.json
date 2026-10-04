@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "paperless-ngx",
+  "source": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml",
+  "services": [
+    {
+      "id": "paperless-ngx",
+      "purpose": "Stores documents, processes uploads, and provides search and OCR.",
+      "imageTag": "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
+      "imageSource": "https://github.com/paperless-ngx/paperless-ngx/releases/tag/v3.2.1",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://docs.paperless-ngx.com/setup/",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "PAPERLESS_REDIS", "value": "redis://broker:6379" },
+        { "name": "PAPERLESS_DBHOST", "value": "db" },
+        { "name": "PAPERLESS_DBENGINE", "value": "postgresql" },
+        { "name": "PAPERLESS_ADMIN_USER", "value": "admin" }
+      ],
+      "hostEnvironment": [
+        { "name": "USERMAP_UID", "source": "uid" },
+        { "name": "USERMAP_GID", "source": "gid" }
+      ],
+      "fileEnvironment": [
+        { "name": "PAPERLESS_DBPASS_FILE", "fileId": "database-password" },
+        { "name": "PAPERLESS_SECRET_KEY_FILE", "fileId": "application-key" },
+        { "name": "PAPERLESS_ADMIN_PASSWORD_FILE", "fileId": "admin-password" }
+      ],
+      "mounts": [
+        { "name": "data", "target": "/usr/src/paperless/data", "kind": "volume" },
+        { "name": "media", "target": "/usr/src/paperless/media", "kind": "volume" },
+        { "name": "export", "target": "/usr/src/paperless/export" },
+        { "name": "consume", "target": "/usr/src/paperless/consume" }
+      ],
+      "dependsOn": ["broker", "db"],
+      "publishTargetPort": 8000
+    },
+    {
+      "id": "broker",
+      "purpose": "Queues background document processing jobs for Paperless-ngx.",
+      "imageTag": "docker.io/valkey/valkey:9-alpine",
+      "imageSource": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [{ "name": "broker", "target": "/data", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    },
+    {
+      "id": "db",
+      "purpose": "Stores Paperless-ngx accounts, document metadata, and settings.",
+      "imageTag": "docker.io/library/postgres:18",
+      "imageSource": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "POSTGRES_DB", "value": "paperless" },
+        { "name": "POSTGRES_USER", "value": "paperless" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "application-key", "bytes": 64 },
+    { "id": "database-password", "bytes": 48 },
+    { "id": "admin-password", "bytes": 48 }
+  ],
+  "onboarding": {
+    "kind": "initial-admin-from-file",
+    "officialUrl": "https://docs.paperless-ngx.com/configuration/",
+    "username": "admin",
+    "usernameEnvironment": "PAPERLESS_ADMIN_USER",
+    "fileEnvironment": "PAPERLESS_ADMIN_PASSWORD_FILE",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8000,
+    "dataDirectoryName": "paperless-ngx"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 5368709120
+  },
+  "acceptance": [
+    { "id": "first-account", "method": "api", "description": "Verify the generated administrator password authenticates and identifies one active superuser through the private API." },
+    { "id": "document-roundtrip", "method": "api", "description": "Upload one harmless image, inspect its saved processing task, confirm OCR text, and compare the original bytes." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart this exact project and confirm the account and document remain available." }
+  ]
+}

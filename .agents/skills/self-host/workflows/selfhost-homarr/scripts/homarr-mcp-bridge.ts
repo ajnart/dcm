@@ -10,10 +10,12 @@ import {
   isReadOnlyHomarrTool,
   isRecord,
   NativeHomarrMcpClient,
+  toolResultArray,
   toolResultValue,
 } from "./lib/homarr-mcp.ts";
 
 const MAX_LINE_BYTES = 1024 * 1024;
+const MEDIA_REQUEST_TOOL = "integration_requestMedia";
 const SERVER_INSTRUCTIONS = [
   "This Homarr bridge is strictly read-only.",
   "App tiles, integrations, and widgets are distinct resources.",
@@ -94,6 +96,136 @@ function validateIntegrationRequest(args, policy) {
   return rule;
 }
 
+function normalizeTitle(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function validateMediaRequest(args, policy) {
+  const allowedFields = new Set([
+    "integrationId",
+    "query",
+    "mediaId",
+    "mediaType",
+    "seasons",
+    "confirmed",
+  ]);
+  if (Object.keys(args).some((key) => !allowedFields.has(key))) {
+    throw new Error("media request fields are outside the configured policy");
+  }
+  if (args.integrationId !== policy.integrationId || args.confirmed !== true) {
+    throw new Error("media request is outside the configured policy");
+  }
+  if (
+    typeof args.query !== "string"
+    || args.query.length < 1
+    || args.query.length > 200
+    || /[\u0000-\u001f\u007f]/u.test(args.query)
+    || normalizeTitle(args.query).length === 0
+  ) {
+    throw new Error("media request query is invalid");
+  }
+  if (typeof args.mediaId !== "number" || !Number.isFinite(args.mediaId)) {
+    throw new Error("media request media ID is invalid");
+  }
+  if (args.mediaType !== "movie" && args.mediaType !== "tv") {
+    throw new Error("media request media type is invalid");
+  }
+  if (args.seasons !== undefined) {
+    if (
+      args.mediaType !== "tv"
+      || !Array.isArray(args.seasons)
+      || args.seasons.length < 1
+      || args.seasons.length > 100
+      || args.seasons.some((season) => !Number.isInteger(season) || season < 0)
+    ) {
+      throw new Error("media request seasons are invalid");
+    }
+  }
+  const forwarded = {
+    integrationId: args.integrationId,
+    mediaId: args.mediaId,
+    mediaType: args.mediaType,
+  };
+  if (args.seasons !== undefined) {
+    forwarded.seasons = [...new Set(args.seasons)];
+  }
+  return {
+    query: args.query,
+    forwarded,
+  };
+}
+
+function validateExactMediaSearch(result, request, policy) {
+  const results = toolResultArray(result);
+  if (!Array.isArray(results) || results.length === 0) {
+    throw new Error("media request search results are invalid");
+  }
+  const expectedTitle = normalizeTitle(request.query);
+  const exactMatch = results.some((entry) => {
+    if (!isRecord(entry) || !isRecord(entry.integration)) {
+      return false;
+    }
+    const title = entry.title ?? entry.name;
+    const mediaId = entry.mediaId ?? entry.id;
+    const mediaType = entry.mediaType ?? entry.type;
+    return normalizeTitle(title) === expectedTitle
+      && mediaId === request.forwarded.mediaId
+      && mediaType === request.forwarded.mediaType
+      && entry.integration.id === policy.integrationId
+      && String(entry.integration.kind).toLowerCase() === "seerr";
+  });
+  if (!exactMatch) {
+    throw new Error("media request search result does not exactly match");
+  }
+}
+
+function mediaRequestTool(tool, integrationId) {
+  return {
+    ...tool,
+    description:
+      "Submit one confirmed exact-title result through the configured Seerr integration. Re-runs the exact search before forwarding.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        integrationId: {
+          type: "string",
+          const: integrationId,
+          description: "The one Seerr integration authorized by this profile.",
+        },
+        query: {
+          type: "string",
+          minLength: 1,
+          maxLength: 200,
+          description: "The exact title selected from integration_searchMediaRequests.",
+        },
+        mediaId: { type: "number", description: "The selected search result ID." },
+        mediaType: {
+          type: "string",
+          enum: ["movie", "tv"],
+          description: "The selected search result type.",
+        },
+        seasons: {
+          type: "array",
+          items: { type: "integer", minimum: 0 },
+          minItems: 1,
+          maxItems: 100,
+          description: "TV season numbers; omit only when the confirmed request covers all seasons.",
+        },
+        confirmed: {
+          type: "boolean",
+          const: true,
+          description: "Caller attests that the user approved this exact request and possible downstream acquisition. The bridge cannot verify human approval.",
+        },
+      },
+      required: ["integrationId", "query", "mediaId", "mediaType", "confirmed"],
+      additionalProperties: false,
+    },
+  };
+}
+
 export function createCapabilityBridge(client, capabilityPolicy = null) {
   if (
     !client
@@ -106,16 +238,43 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
 
   let catalog;
   let useFallbackCatalog = false;
-  const capabilityEnabled = capabilityPolicy?.mode === "integration-request";
+  const integrationRequestEnabled = capabilityPolicy?.mode === "integration-request";
+  const mediaRequestEnabled = capabilityPolicy?.mode === "media-request";
+
+  function bridgeMode() {
+    if (integrationRequestEnabled) {
+      return "integration-request-policy";
+    }
+    if (mediaRequestEnabled) {
+      return "media-request-policy";
+    }
+    return "read-only";
+  }
+
+  function serverName() {
+    if (integrationRequestEnabled) {
+      return "selfhost-homarr-integration-policy";
+    }
+    if (mediaRequestEnabled) {
+      return "selfhost-homarr-media-request-policy";
+    }
+    return "selfhost-homarr-read-only";
+  }
 
   async function endpointInstructions() {
     await client.connect();
     let instructions = SERVER_INSTRUCTIONS;
-    if (capabilityEnabled) {
+    if (integrationRequestEnabled) {
       instructions = [
         "This Homarr bridge exposes read-only tools plus one policy-constrained integration_request tool.",
         "Every integration request must match its configured integration ID, service kind, method, and exact path.",
         "DELETE also requires confirmed true after the user confirms its effects.",
+      ].join(" ");
+    } else if (mediaRequestEnabled) {
+      instructions = [
+        "This Homarr bridge exposes read-only tools plus one policy-constrained integration_requestMedia tool.",
+        "It can target only the configured Seerr integration ID.",
+        "Every request requires confirmed true and an exact title, media ID, and media type match from a fresh scoped search.",
       ].join(" ");
     }
     if (client.endpointMode === "compatibility") {
@@ -129,10 +288,18 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
       return catalog;
     }
     const listed = await client.listTools();
-    catalog = listed.tools.filter((tool) => isRecord(tool) && (
-      isReadOnlyHomarrTool(tool.name)
-      || (capabilityEnabled && tool.name === "integration_request")
-    ));
+    catalog = listed.tools
+      .filter((tool) => isRecord(tool) && (
+        isReadOnlyHomarrTool(tool.name)
+        || (integrationRequestEnabled && tool.name === "integration_request")
+        || (mediaRequestEnabled && tool.name === MEDIA_REQUEST_TOOL)
+      ))
+      .map((tool) => {
+        if (mediaRequestEnabled && tool.name === MEDIA_REQUEST_TOOL) {
+          return mediaRequestTool(tool, capabilityPolicy.integrationId);
+        }
+        return tool;
+      });
     useFallbackCatalog = listed.fallback;
     return catalog;
   }
@@ -150,7 +317,7 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
     ) {
       return protocolError(id, -32602, "Invalid params");
     }
-    if (name === "integration_request" && capabilityEnabled) {
+    if (name === "integration_request" && integrationRequestEnabled) {
       try {
         const tools = await getCatalog();
         if (!tools.some((tool) => tool.name === name)) {
@@ -166,6 +333,23 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
         return protocolResult(id, await client.callTool(name, args));
       } catch {
         return protocolError(id, -32003, "Integration request rejected by policy");
+      }
+    }
+    if (name === MEDIA_REQUEST_TOOL && mediaRequestEnabled) {
+      try {
+        const tools = await getCatalog();
+        if (!tools.some((tool) => tool.name === name)) {
+          return protocolError(id, -32602, "Unknown tool");
+        }
+        const request = validateMediaRequest(args, capabilityPolicy);
+        const search = await client.callTool("integration_searchMediaRequests", {
+          query: request.query,
+          integrationIds: [capabilityPolicy.integrationId],
+        });
+        validateExactMediaSearch(search, request, capabilityPolicy);
+        return protocolResult(id, await client.callTool(name, request.forwarded));
+      } catch {
+        return protocolError(id, -32003, "Media request rejected by policy");
       }
     }
     if (isMutatingHomarrTool(name)) {
@@ -214,7 +398,7 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
           protocolVersion: chooseProtocolVersion(params),
           capabilities: { tools: { listChanged: false } },
           serverInfo: {
-            name: capabilityEnabled ? "selfhost-homarr-integration-policy" : "selfhost-homarr-read-only",
+            name: serverName(),
             version: "1.0.0",
           },
           instructions: await endpointInstructions(),
@@ -236,7 +420,7 @@ export function createCapabilityBridge(client, capabilityPolicy = null) {
         return protocolResult(message.id, {
           tools,
           _meta: {
-            "selfhost-homarr/bridgeMode": capabilityEnabled ? "integration-request-policy" : "read-only",
+            "selfhost-homarr/bridgeMode": bridgeMode(),
             "selfhost-homarr/endpointMode": client.endpointMode,
             "selfhost-homarr/catalogMode": catalogMode,
           },
@@ -272,13 +456,10 @@ function writeProtocol(value) {
   process.stdout.write(`${JSON.stringify(value)}\n`);
 }
 
-async function runCli() {
+export async function runHomarrBridge(profilePath) {
   let bridge;
   try {
-    if (Bun.argv.length !== 3) {
-      throw new Error("profile path is required");
-    }
-    bridge = createProfileBridge(Bun.argv[2]);
+    bridge = createProfileBridge(profilePath);
   } catch {
     bridge = null;
   }
@@ -325,6 +506,6 @@ async function runCli() {
 }
 
 const scriptPath = fileURLToPath(import.meta.url);
-if (Bun.argv[1] && resolve(Bun.argv[1]) === scriptPath) {
-  await runCli();
+if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
+  await runHomarrBridge(process.argv.length === 3 ? process.argv[2] : undefined);
 }

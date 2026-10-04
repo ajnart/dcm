@@ -28,6 +28,33 @@ world-writable or wrong-owner projects, unsafe owners or modes, and symlinked
 paths. They reserve `.sessions` for the harness and never inspect, replace,
 chmod, or delete an existing tree with that name.
 
+For an existing CLI-managed runtime, use the installed CLI's reviewed upgrade
+transaction instead of the skill-runtime `sync` command:
+
+```bash
+self-host install media runtime-sync plan --project-root /absolute/project
+self-host install media runtime-sync apply --project-root /absolute/project --approve sha256:REVIEWED_DIGEST
+```
+
+The plan verifies the packaged and installed manifests without Docker. Apply
+holds the project runtime lock, requires the exact plan digest, preserves
+`.sessions`, installs `runtime-manifest.json` last, and appends the approved
+old-to-new hashes to the mode-`0600` transition ledger. It retains an
+owner-only content-addressed rollback copy and can resume the same transaction
+after interruption. Existing intent and deployment approvals remain pinned to
+their original runtime hash and are accepted only through that exact transition
+chain. Plan and apply require a current-owner project root without group/world
+write access and real owner-only `.selfhost` and harness directories. Close
+older CLI operations before the first sync; all current media CLI
+commands use the same project lock and refuse an incomplete transaction.
+The lock is fail-closed and is not reclaimed from a stale-looking PID. If an
+interrupted invocation leaves `.selfhost-media-runtime.lock`, confirm the
+recorded process is gone and no media CLI command is using the project, then
+inspect the exact file's owner, mode, inode, and link count before removing only
+that pathname. Link count two indicates an interrupted hardlink acquisition;
+also inspect and remove only the uniquely named candidate pathname with the
+same inode. Never use a wildcard or recursive removal for lock recovery.
+
 ## Bundle checks
 
 ```bash
@@ -48,11 +75,27 @@ bits, symlinks, hard links, other mode changes, and wrong ownership still fail.
 Do not use `chmod` to work around a verifier failure.
 
 The six non-Homarr `:latest` images are intentional only in this isolated setup
-harness with per-run ports. Published ports bind to loopback; remote access requires a separately selected
-private route. Production composition
+harness with per-run ports. Default published ports use all host interfaces;
+approve a router or Docker-aware firewall policy before starting that mode.
+`session create RUN_ID USERNAME --bind-mode host-only` explicitly publishes all
+seven ports on 127.0.0.1 for a host-local private proxy. Production composition
 must use `selfhost-compose`, whose contract rejects floating images. Do not pin
 these setup references without verified remote multi-architecture index
 digests.
+For a preplanned range, `session create RUN_ID USERNAME --port-start FIRST`
+reserves `FIRST` through `FIRST+6` or fails without creating the session.
+`FIRST` must be 20000–44993. Check all seven ports in fresh host inspection
+before bundle initialization; the default automatic allocator is unchanged.
+When fresh read-only inspection shows no usable default Docker address pool,
+`session create RUN_ID USERNAME --network-subnets DEFAULT_CIDR,WEB_CIDR`
+selects two distinct, non-overlapping canonical RFC1918 IPv4 networks from
+`/24` through `/28`. The run records `MEDIA_DEFAULT_SUBNET` and
+`MEDIA_WEB_SUBNET` and creates a mode-`0600` `network-ipam.compose.yml` inside
+that run only. Every Compose action validates and applies this project-owned
+override. It does not edit daemon configuration, global address pools, or
+unrelated Docker networks. Omitting the option preserves the existing default
+allocation path. CLI setup also records the pair in its intent and approval
+facts, so apply requires the exact reviewed digest.
 
 ## Browser fallback prerequisite
 

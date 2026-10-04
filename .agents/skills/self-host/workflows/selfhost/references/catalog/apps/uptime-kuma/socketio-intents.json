@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "appId": "uptime-kuma",
+  "source": "https://github.com/louislam/uptime-kuma/blob/2.5.5/server/socket-handlers/api-key-socket-handler.js",
+  "events": [
+    { "event": "needSetup", "action": "uptime-kuma-need-setup", "arguments": "any" },
+    { "event": "setup", "action": "uptime-kuma-setup", "arguments": "any" },
+    { "event": "login", "action": "uptime-kuma-login", "arguments": "any" },
+    { "event": "getStatusPage", "action": "uptime-kuma-get-status-page", "arguments": "any" },
+    { "event": "addStatusPage", "action": "uptime-kuma-add-status-page", "arguments": "any" },
+    { "event": "saveStatusPage", "action": "uptime-kuma-save-status-page", "arguments": "any" },
+    { "event": "getMonitor", "action": "uptime-kuma-get-monitor", "arguments": "positive-id" },
+    { "event": "getMonitorBeats", "action": "uptime-kuma-get-monitor-beats", "arguments": "positive-id-hours-24" },
+    { "event": "getAPIKeyList", "action": "uptime-kuma-get-api-key-list", "arguments": "any" },
+    { "event": "addAPIKey", "action": "uptime-kuma-add-api-key", "arguments": "any" }
+  ]
+}

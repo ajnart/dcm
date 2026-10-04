@@ -29,13 +29,21 @@ measurement.
   snapshot or ref. Use `browser-key refs RUN_ID seerr` for Seerr; regular
   snapshots include input values. On every credential form, obtain
   general field refs with `browser-form RUN_ID`; its output contains only ref,
-  role, and accessible-name metadata. Capture credentials only with
+  role, and accessible-name metadata. The unnamed Prowlarr application key
+  field uses `browser-key fill-prowlarr-app RUN_ID sonarr|radarr` only after
+  confirming the exact dialog title. Capture credentials only with
   `browser-key` or `browser-password`. Do not use
   the clipboard, print a value, query it through general browser output, or
   retain raw traces. Benchmark records accept only fixed enums and bounded
   numeric counters.
 - Record `fail` or `blocked` runs too. Do not omit retries or replace an
   observation with an estimate.
+- In a restricted test host where Chromium cannot start its own sandbox, set
+  `AGENT_BROWSER_ARGS=--no-sandbox` for every command in the named run session,
+  including `browser-form` and `browser-password`; a restarted browser process
+  otherwise loses a one-command launch flag. Keep this exception local to the
+  isolated test host and refresh refs after any relaunch. Avoid the global
+  browser doctor while another run's browser session is active.
 
 ## CLI
 

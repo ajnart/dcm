@@ -22,7 +22,7 @@ the introduction unless they affect cost, storage, hardware, or a decision.
 | YNAB or Monarch-style budgeting | Actual Budget; Firefly III when chosen | Budgeting or personal-finance records on your server. Bank connections and import compatibility need checking. |
 | Alexa/Google-style home control | Home Assistant | Control compatible lights, sensors and automations in one place. Voice needs a microphone/speaker device and an Assist setup. |
 | Ring/Nest/Arlo-style camera use | Home Assistant with compatible cameras; Scrypted when chosen | Connect and view supported cameras. Hardware compatibility, recording storage and paid NVR features need checking. |
-| Microsoft 365, Google Workspace or Notion-style work | Nextcloud plus explicitly chosen office tools; evaluate Anytype or Obsidian for notes | Files and collaboration, or private notes. These are distinct needs: do not silently install a whole office suite. Obsidian is a local app, not a web server to deploy. |
+| Microsoft 365, Google Workspace or Notion-style work | Nextcloud for files; Docmost or BookStack for collaborative pages | Files and notes are distinct. Docmost Community does not include commercial Bases/Kanban. This catalog offers only Compose-hosted apps. |
 
 For “smart speaker,” ask whether the user wants device control, voice, or both
 if the request does not already say. For music and audiobooks preserve both needs. For three file-storage
@@ -46,9 +46,17 @@ and Compose workflows. No indexer, public route, migration, subscription
 cancellation, or client installation is selected merely by choosing “full.”
 Let the user customize this list before approving any apply step.
 
+An explicit combination such as “Netflix, Google Photos, Notion, Passwords”
+is a composite request, not the `full` preset. Keep media, Immich, Docmost,
+and Vaultwarden in its plan; follow every generated `setupStages` entry and
+attach each ready app to the one Homarr board.
+
 ## Homarr in every chosen stack
 
-Use this short introduction once:
+Respect an explicit Homarr opt-out. When Homarr is already installed, reuse its
+verified saved owner, board, and private API-key references; refresh verification
+instead of repeating setup or asking for credentials. Introduce Homarr only when
+it is newly selected:
 
 > We'll also set up Homarr: a nice dashboard where you can open all your
 > self-hosted apps and see useful information from the services you connect.
@@ -61,14 +69,16 @@ selected: Seerr handles requests, Sonarr organizes shows, Radarr organizes
 movies, Prowlarr shares indexer configuration, and qBittorrent downloads
 approved files. They are not all needed just to play existing movies.
 
-Use `ghcr.io/homarr-labs/homarr-test:v2` until this project changes its image
-policy. Pull through the owning project workflow; never substitute stable or
+Use `ghcr.io/homarr-labs/homarr:dev` by default. Pull through the owning
+project workflow; never substitute stable or
 create a second Homarr instance for the same stack.
 
 ## Ask about access in everyday terms
 
-Ask “Will you use this only at home, or on your phone while away?” Reuse an
-answer already given. Explain private remote access as “only your approved
+Ask “Will you use this only at home, or on your phone while away?” only when an
+unresolved access choice changes the plan. Otherwise retain the saved access
+scope or safe private defaults and show the actual bind addresses in the plan.
+Reuse an answer already given. Explain private remote access as “only your approved
 devices can connect.” Recommend Caddy when friendly HTTPS addresses help and
 there is no existing proxy to reuse; load the sibling selfhost-ingress skill
 for the route and ownership plan.
@@ -112,5 +122,5 @@ that affect how they use, pay for, or recover their services.
 - [Actual Budget](https://actualbudget.org/)
 - [Home Assistant Assist](https://www.home-assistant.io/voice_control/)
 - [Scrypted](https://www.scrypted.app/)
-- [Obsidian](https://obsidian.md/)
+- [BookStack](https://www.bookstackapp.com/)
 - [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https)

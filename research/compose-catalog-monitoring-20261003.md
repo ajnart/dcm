@@ -1,0 +1,19 @@
+# Monitoring Compose recheck — 2026-10-03
+
+Decision: Dashdot and WUD remain guided/pending; no recipe or `setup.ts` added. Existing research was reused, Context7 resolved both projects and fetched docs first. WUD's index was sparse; exact source was then retrieved through GitHub's contents API at `9.1.0`. Dashdot source was checked at `v6.3.4`. Source checks establish contracts, not registry digests or live acceptance.
+
+## Dashdot — `mauricenino/dashdot:6.3.4`
+
+[Pinned Compose](https://github.com/MauriceNino/dashdot/blob/v6.3.4/apps/docs/content/docs/installation/docker-compose.mdx) requires `privileged: true`, host `/` mounted read-only at `/mnt/host`, and container port 3001. Current recipe schema has no privilege grant, and `multi-service-recipe.ts` rejects selected `/`. Exact privilege/root-visibility authority must be separately designed and approved; omitting it would substitute container metrics for the requested host role.
+
+[Pinned API docs](https://github.com/MauriceNino/dashdot/blob/v6.3.4/apps/docs/content/docs/integration/api.mdx) define `/info`, `/config`, and `/load/{cpu,storage,ram,network,gpu}`. No administrator/key extraction is needed or invented. [Pinned Homarr](https://github.com/homarr-labs/homarr/blob/beffe794022c22c43dd458999ee2a016bb1df2e6/packages/integrations/src/dashdot/dashdot-integration.ts) tests `/info` and reads load endpoints without credentials. A successful test would not prove accurate host visibility, metric freshness, or restart persistence.
+
+## WUD — `getwud/wud:9.1.0`
+
+[Upstream watcher guidance](https://getwud.app/docs/configuration/watchers/) defaults to the Docker socket. [Remote/proxy guidance](https://getwud.app/docs/configuration/watchers/remote-tls/) recommends a read-only proxy. The shared model still lacks a reviewed socket authority/private network boundary or an owner-selected, authorization-verified external Docker endpoint. Direct `:ro` socket access is not API authorization, and a socket-free empty UI is not monitoring. This deployment boundary, not authentication, blocks a useful recipe.
+
+[Pinned bootstrap](https://github.com/getwud/wud/blob/9.1.0/app/store/auth_bootstrap.ts) creates or **updates** the admin from USER and PASSWORD/HASH on startup. This is recurring credential ownership, not first-run-only seeding. [Auth source](https://github.com/getwud/wud/blob/9.1.0/app/api/auth.ts) defines protected `/auth/login` and `/auth/user`; [API mounts](https://github.com/getwud/wud/blob/9.1.0/app/api/api.ts) protect `/api/profile` and `/api/containers`.
+
+[Profile source](https://github.com/getwud/wud/blob/9.1.0/app/api/profile.ts) permits token inventory/creation under `/api/profile/tokens`, with `name`, `scopes`, and optional expiry. [Token store](https://github.com/getwud/wud/blob/9.1.0/app/store/token.ts) returns `rawSecret` once, stores its hash, and omits it from inventory. A future adapter must checkpoint before creation, save the secret privately, and stop after lost secret/response rather than create another token. Bearer verification updates `lastUsedAt`; even its HTTP GET requires a mutation-aware approval. [Pinned Homarr](https://github.com/homarr-labs/homarr/blob/beffe794022c22c43dd458999ee2a016bb1df2e6/packages/integrations/src/wud/wud-integration.ts) instead reads `/api/containers` with optional Basic username/password; token creation is not required for that integration.
+
+After the missing authority primitive, isolated verification must prove exact-owner login, anonymous denial, selected watched inventory, known update detection, proxy mutation denial, and restart persistence. No automatic update triggers, Docker API port publication, or socket grant is authorized by this review. No Docker, browser, credential/session read, live HTTP, deployment, CI, or new fixture was used; only manifest/schema and whitespace validation apply.

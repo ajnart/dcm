@@ -16,6 +16,7 @@ The profile utilities reject filesystem root or home as the project/profile boun
 4. optional Seerr search through exactly one usable integration ID, defaulting to `Spider-Man: No Way Home`, with an exact structured result.
 
 It prints fixed summaries and no response bodies. It never calls `integration_requestMedia`, app updates, request decisions, or another mutating tool.
+For a `media-request` profile, `--media-search` additionally requires the configured ID to resolve to the one live `seerr` integration. Catalog validation confirms that only the wrapped media-request mutation is visible; it does not exercise it.
 
 ## Acceptance language
 

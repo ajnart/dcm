@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "gatus",
+  "requiredSecrets": [],
+  "widgets": [
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "total",
+        "up",
+        "down"
+      ]
+    }
+  ]
+}

@@ -22,6 +22,8 @@ The probe uses only bounded, allowlisted fields:
 - numeric UID, GID, supplementary numeric groups, timezone, and presence of subordinate-ID prerequisites;
 - Docker client/server versions, current context name, context names, Compose version, rootless indicator, and limited lists of container name/image/state/status/published ports and network name/driver/scope;
 - listening TCP/UDP bind endpoints without owning processes;
+- bounded private IPv4 address candidates from active host interfaces and configured resolver IP candidates; neither proves the address reachable from a client or identifies the DNS administrator;
+- listening state for up to 512 explicitly selected TCP ports, collected independently of the general listener limit;
 - metadata for `/` and explicit `--path` arguments: existence, type, symlink flag, current-user writability, device ID, mount point, filesystem type, network-filesystem and read-only indicators, available bytes, and available inodes;
 - installation and safely observable liveness of a fixed set of infrastructure CLIs.
 
@@ -41,13 +43,34 @@ The probe discards command stderr. Report the collection as `not_observable`; do
 
 ```text
 --path PATH              Inspect metadata for an explicit candidate path; repeat up to 8 times.
+--check-tcp-port PORT    Check one exact TCP listener port; repeat up to 512 times.
 --platform-hint KIND     User-provided route: macos, linux, vps, unraid,
                          truenas, proxmox-vm, or proxmox-lxc.
---limit N                Items per bounded collection, 1 through 50.
+--limit N                Items per bounded collection, 1 through 512.
 --skip-docker            Do not query Docker even if its CLI exists.
 --output FILE            Atomically create a new mode-0600 report; never overwrite.
 --help                    Print usage.
 ```
+
+`network.selectedTcpPorts.complete` is true only when the native listener probe
+successfully checked every requested port. This exact bounded result may support
+a plan when `network.listeningPorts.truncated` is true. An absent port in the
+truncated general list alone is never evidence that it is free.
+Read or parse failure returns `not_observable` with `complete: false`; zero
+matches after a successful complete read means the selected ports were not
+listening. These are local-host facts and do not describe a remote Docker
+engine selected through another context.
+
+`network.lanIpv4Candidates` includes only RFC1918 host-interface addresses,
+not public, loopback, known Docker/container bridges, or tailnet addresses. It
+is intentionally incomplete when an interface cannot be classified safely;
+an empty list does not rule out LAN access through a router or another host.
+`network.dnsResolverCandidates`
+contains only nameserver IPs from the local resolver file. These are
+**candidates**, not a chosen ingress bind, DNS owner, router address, or proof
+that another device can resolve a name or trust the local CA. Present them
+before asking the user about their intended clients or DNS control. An empty
+observed list and a `not_observable` probe have different meanings.
 
 `--platform-hint` is a chosen input and remains separate from `observedKind`. It is useful for VPS and hypervisor-guest context that cannot be proven from a generic local probe.
 

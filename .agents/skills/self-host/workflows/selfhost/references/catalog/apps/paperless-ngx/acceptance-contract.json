@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "paperless-ngx",
+  "dimension": "liveRestart",
+  "inputs": [{ "key": "document-id", "format": "positive-integer", "maximumDigits": 10 }],
+  "beginEffect": "Read the selected existing Paperless original document (at most 1 MiB); retain only its identity and byte hash",
+  "finishEffect": "Download the same selected existing original document and compare its exact pre-restart bytes",
+  "cleanup": "not-required-existing-document-read-only",
+  "checks": {
+    "application-health": { "appHealthObserved": true, "authenticatedIdentityVerified": true },
+    "core-round-trip": { "documentDownloadVerified": true, "workloadScope": "selected-existing-original-document-download" },
+    "restart-persistence": { "restartPersistenceVerified": true }
+  }
+}

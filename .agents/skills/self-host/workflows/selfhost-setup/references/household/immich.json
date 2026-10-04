@@ -11,7 +11,7 @@
   ],
   "services": ["immich-server", "immich-machine-learning", "redis", "database"],
   "initialAccount": {
-    "method": "browser",
+    "method": "cli-api-preferred-browser-fallback",
     "fields": ["fullName", "email", "password"],
     "usernameMapping": "display-name-only"
   },

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "stirling-pdf",
+  "source": "https://docs.stirlingpdf.com/Installation/Docker%20Install/",
+  "services": [
+    {
+      "id": "stirling-pdf",
+      "purpose": "Provides a local PDF toolbox without an application account.",
+      "imageTag": "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
+      "imageSource": "https://github.com/Stirling-Tools/Stirling-PDF/pkgs/container/stirling-pdf/versions",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://docs.stirlingpdf.com/Installation/Docker%20Install/",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [{ "name": "SECURITY_ENABLELOGIN", "value": "false" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [{ "name": "configs", "target": "/configs", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": 8080
+    }
+  ],
+  "privateFiles": [],
+  "onboarding": {
+    "kind": "no-account",
+    "officialUrl": "https://docs.stirlingpdf.com/Installation/Docker%20Install/"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8080, "dataDirectoryName": "stirling-pdf" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "local-page", "method": "api", "description": "GET / on the exact saved loopback origin serves the Stirling PDF application page without a login redirect." },
+    { "id": "pdf-round-trip", "method": "api", "description": "Process a synthetic PDF and verify the returned document after separate approval; local-page readiness alone does not prove processing." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and confirm the no-account page and configured settings persist." }
+  ]
+}

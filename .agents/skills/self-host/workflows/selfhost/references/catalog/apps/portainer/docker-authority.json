@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "appId": "portainer",
+  "modes": ["docker-management-mtls"],
+  "sourceFiles": ["manifest.json", "recipe.json", "setup.ts"],
+  "additionalBoundaries": []
+}

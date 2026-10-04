@@ -1,0 +1,70 @@
+{
+  "id": "freshrss",
+  "name": "FreshRSS",
+  "aliases": [
+    "rss reader",
+    "google reader replacement"
+  ],
+  "categories": [
+    "productivity"
+  ],
+  "roles": [
+    "feed-reader"
+  ],
+  "upstream": {
+    "url": "https://freshrss.org/",
+    "repository": "https://github.com/FreshRSS/FreshRSS",
+    "docs": "https://github.com/FreshRSS/FreshRSS/tree/edge/Docker"
+  },
+  "image": {
+    "reference": "ghcr.io/freshrss/freshrss:1.30.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Pinned CLI setup creates one owned SQLite administrator and verifies its privately submitted password hash. Separately approved API enablement and updatePassword use private stdin to configure an independent durable API password, verify its hash/Fever derivation, and authenticate Google Reader user-info. Runtime acceptance remains unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:feed-storage"
+  ],
+  "alternatives": [
+    "linkwarden",
+    "bookstack"
+  ],
+  "security": [
+    "Protect form-login credentials; enable the separate mobile API and its distinct API password only after explicit approval."
+  ],
+  "pitfalls": [
+    "Aggressive polling can trigger source rate limits or bans.",
+    "The shared adapter never submits passwords in argv or URLs. Its exported API credential is the independent durable API password, not the Google Reader Auth value used only for verification. Foreign API passwords, lost private credentials, and incomplete uncertain writes block automatic replay. Browser form-login, feed operations, restart persistence and native Homarr integration remain unverified."
+  ],
+  "sources": [
+    "https://github.com/FreshRSS/FreshRSS/blob/edge/Docker/README.md",
+    "https://github.com/FreshRSS/FreshRSS/blob/edge/cli/README.md",
+    "https://github.com/FreshRSS/FreshRSS/releases/tag/1.30.0",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/Docker/README.md",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/Docker/entrypoint.sh",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/README.md",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/create-user.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/do-install.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/app/install.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/reconfigure-user.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/app/Utils/passwordUtil.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/reconfigure.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/cli/_cli.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/app/Controllers/apiController.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/app/Utils/feverUtil.php",
+    "https://github.com/FreshRSS/FreshRSS/blob/1.30.0/p/api/greader.php"
+  ]
+}

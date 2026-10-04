@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "ntfy",
+  "requiredSecrets": [
+    "topic"
+  ],
+  "widgets": [
+    {
+      "kind": "notifications",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "messages"
+      ]
+    }
+  ],
+  "alternativeSecrets": [
+    [
+      "topic",
+      "apiKey"
+    ]
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "notifications",
+        "procedure": "widget.notifications.getNotifications",
+        "inputMode": "many",
+        "field": "data",
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": "string",
+              "title": "string",
+              "body": "string",
+              "time": "string"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

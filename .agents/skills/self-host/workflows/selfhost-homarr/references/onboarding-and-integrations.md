@@ -16,9 +16,13 @@ plan.
 
 ## New-path onboarding notes
 
-After a **New** setup is verified, create exactly two private Homarr Notebook
-note widgets. Match existing widgets by the marker in their content and update
-them instead of creating duplicates.
+After a **New** setup is verified, these are optional suggestions, not required
+widgets or acceptance gates. Include a note only when the user asks for it and
+the capability is not already selected or installed. A household that includes
+Vaultwarden needs its actual password-manager recap, not an invitation to
+install it again. Phone access remains a separate choice and approval.
+Match requested existing notes by their content marker to avoid duplicates;
+leave other notes unchanged.
 
 1. Marker: `SELFHOST_ONBOARDING_VAULTWARDEN_V1`
    Title: `Add a password manager`
@@ -27,14 +31,49 @@ them instead of creating duplicates.
    Title: `Use your services away from home`
    Body: `Ask your self-hosting agent to enable private phone access with Tailscale when you need it.`
 
-Use Homarr item kind `notebook`. Place both on the user's private board, keep
+Use Homarr item kind `notebook`. Place each requested note on the user's private board, keep
 the toolbar hidden, and include no URL, credential, token, API key, or automatic
-action. Acceptance requires browser evidence that both widgets render with the
-exact title and body and that the board is not public. These notes are not
-approval to install Vaultwarden or Tailscale.
+action. If a note is requested, verify its exact content and that the board is not public.
+There is no bounded suggestion-note API adapter; use
+the checked browser fallback for this optional write. These notes are not
+approval to install Vaultwarden or Tailscale, and their absence does not block
+acceptance of the installed stack.
 
 Do not create these notes for **Advanced**. Offer the same choices directly in
 the setup conversation after the initial local installation.
+
+## Stack recap Notebook
+
+When Homarr is selected, maintain one primary private Notebook headed
+`Your homelab at a glance`. Summarize only services actually installed and
+verified, their plain-language roles, browser URLs and access method, storage,
+whether a backup restore has been tested, and unresolved work. This is separate
+from the two optional New-path onboarding notes. Never include a credential or
+claim a backup, route, integration, or widget works without its own evidence.
+If extra apps would clip the mobile recap, place their details in a second
+private `More services in your homelab` Notebook and keep the primary media
+instructions intact. Read back both items and check desktop and mobile rendering.
+For a working Seerr integration, explain that Homarr's search bar or Ctrl+K
+opens media-request search: choose the exact title, then request only authorized
+content. If Seerr is absent, omit this instruction rather than promising a
+search mode that is not available.
+
+The media recap and CLI app-attachment adapter share a content-aware height
+estimate. Media reconciliation grows only; attachment can compact under its
+reviewed plan. Keep desktop/mobile rendering as the readability check.
+For gaps left after compaction, review a separate CLI `board-polish
+--reflow-all` plan; it moves all items while preserving their content and size.
+
+The media adapter uses `homarr-notebook` after proving the onboarding-generated
+widgets. It uses `board.getAllBoards`, `board.getBoardByName`, `board.addItem`,
+and `widget.notebook.updateContent`, then reads the private board back. For other stacks,
+inspect the running Homarr image's generated API specification and current
+board before using these procedures; the public API overview does not publish
+the exact Notebook input schema. If the route or schema differs, take over only
+this step with the checked browser workflow. Match the recap marker and update
+it rather than creating duplicates. Link **View dashboard** in the final user
+summary only after the private board and recap have been read back, and label
+the link's local, SSH, or private-ingress access method.
 
 ## Resource graph
 

@@ -2,6 +2,7 @@
 /config/
 /.sessions/
 /.selfhost/
+**/.selfhost/
 
 # Disposable client and installer state
 /.claude/
@@ -20,3 +21,4 @@
 /coverage/
 /dist/
 /node_modules/
+**/node_modules/

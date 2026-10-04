@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "aria2",
+  "source": "https://aria2.github.io/manual/en/html/aria2c.html",
+  "services": [{
+    "id": "aria2",
+    "purpose": "Provides private token-authenticated download RPC without publishing peer ports.",
+    "imageTag": "snowdreamtech/aria2:1.37.0-debian",
+    "imageSource": "https://hub.docker.com/r/snowdreamtech/aria2/tags",
+    "user": "image-default",
+    "imageUserEvidence": {
+      "officialUrl": "https://github.com/snowdreamtech/aria2/blob/d6ad359599ae610662565395891aa72a1fc1531e/docker/debian/Dockerfile.aria2",
+      "reason": "official-image-runtime-contract"
+    },
+    "entrypoint": ["/usr/bin/aria2c"],
+    "command": ["--conf-path=/run/secrets/rpc-config"],
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "privateConfigFiles": ["rpc-config"],
+    "mounts": [{ "name": "media-data", "target": "/var/lib/aria2/downloads", "kind": "bind", "hostPath": true, "readOnly": false, "shareGroup": "media-data" }],
+    "dependsOn": [],
+    "publishTargetPort": 6800
+  }],
+  "privateFiles": [{ "id": "rpc-token", "bytes": 48, "format": "alphanumeric" }],
+  "privateConfigs": [{
+    "id": "rpc-config",
+    "officialUrl": "https://aria2.github.io/manual/en/html/aria2c.html",
+    "parts": [
+      { "literal": "enable-rpc=true\nrpc-listen-all=true\nrpc-listen-port=6800\nrpc-allow-origin-all=false\ndaemon=false\ndir=/var/lib/aria2/downloads\nenable-dht=false\nenable-dht6=false\nenable-peer-exchange=false\nconsole-log-level=warn\nquiet=true\nrpc-secret=" },
+      { "fileId": "rpc-token" },
+      { "literal": "\n" }
+    ]
+  }],
+  "onboarding": { "kind": "generated-api-token", "officialUrl": "https://aria2.github.io/manual/en/html/aria2c.html", "fileId": "rpc-token" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 6800, "dataDirectoryName": "aria2" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 10737418240 },
+  "acceptance": [
+    { "id": "rpc-token", "method": "api", "description": "Reject unauthenticated getVersion, then verify the saved token and pinned 1.37.0 version." },
+    { "id": "download-directory", "method": "api", "description": "Read global options to verify the owned download path without submitting tasks." },
+    { "id": "authorized-transfer", "method": "api", "description": "Actual authorized transfers and content readback remain a separate approval and acceptance gate." },
+    { "id": "restart-and-vpn", "method": "persisted", "description": "Session persistence and VPN fail-closed acceptance remain unverified and separately approved." }
+  ]
+}

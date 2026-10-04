@@ -1,0 +1,3 @@
+# The generated media bundle is verified byte-for-byte when building the CLI.
+# Keep checkout bytes identical on Windows, even when core.autocrlf is enabled.
+/.agents/skills/self-host/workflows/selfhost-media/assets/harness/** text eol=lf

@@ -16,6 +16,7 @@ import {
   validateSelection,
 } from "./integration-plan.ts";
 import {
+  identifyConfiguredSeerrIntegration,
   identifySeerrIntegration,
   mediaSearchArguments,
   validateStructuredSearchResult,
@@ -234,6 +235,218 @@ async function checkIntegrationRequestPolicy() {
   assert.equal(calls.at(-1).name, "integration_byId");
 }
 
+async function checkMediaRequestPolicy() {
+  assert.throws(() => validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "media-request",
+    integrationId: ["seerr-main", "seerr-backup"],
+  }), /integration/);
+  assert.throws(() => validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "media-request",
+    integrationId: "seerr-main",
+    secondIntegrationId: "seerr-backup",
+  }), /fields/);
+
+  const policy = validateCapabilityPolicy({
+    schemaVersion: 1,
+    mode: "media-request",
+    integrationId: "seerr-main",
+  });
+  const fallbackBridge = createCapabilityBridge({
+    endpointMode: "canonical",
+    async connect() {},
+    async listTools() {
+      return { fallback: true, tools: CURATED_HOMARR_TOOLS };
+    },
+    async callTool() {
+      throw new Error("fallback bridge must not forward media requests");
+    },
+  }, policy);
+  const fallbackListed = await fallbackBridge.handleRequest({
+    jsonrpc: "2.0",
+    id: "fallback-list",
+    method: "tools/list",
+    params: {},
+  });
+  assert.equal(fallbackListed.result.tools.some((tool) => tool.name === "integration_requestMedia"), false);
+
+  const calls = [];
+  let searchTitle = QUERY;
+  let searchKind = "seerr";
+  let searchWrapped = true;
+  const client = {
+    endpointMode: "canonical",
+    async connect() {},
+    async listTools() {
+      return {
+        fallback: false,
+        tools: [
+          ...CURATED_HOMARR_TOOLS,
+          ...MUTATING_HOMARR_TOOL_NAMES.map((name) => ({
+            name,
+            description: "mock mutation",
+            inputSchema: { type: "object", properties: {} },
+          })),
+        ],
+      };
+    },
+    async callTool(name, args) {
+      calls.push({ name, args });
+      if (name === "integration_searchMediaRequests") {
+        // Homarr's integration-router returns a flat array; some MCP transports
+        // wrap list results under `results` in structuredContent.
+        const results = [{
+          id: 42,
+          name: searchTitle,
+          type: "movie",
+          integration: { id: "seerr-main", kind: searchKind },
+        }];
+        if (searchWrapped) {
+          return { structuredContent: { results } };
+        }
+        return { structuredContent: results };
+      }
+      return { structuredContent: { requested: true } };
+    },
+  };
+  const bridge = createCapabilityBridge(client, policy);
+  const initialized = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: "initialize",
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "audit", version: "1.0.0" },
+    },
+  });
+  assert.equal(initialized.result.serverInfo.name, "selfhost-homarr-media-request-policy");
+  assert.equal(initialized.result.instructions.includes("confirmed true"), true);
+  const listed = await bridge.handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+  assert.equal(listed.result._meta["selfhost-homarr/bridgeMode"], "media-request-policy");
+  const names = new Set(listed.result.tools.map((tool) => tool.name));
+  assert.equal(names.has("integration_requestMedia"), true);
+  assert.equal(names.has("integration_request"), false);
+  assert.equal(names.has("mediaRequests_answerRequest"), false);
+  const requestTool = listed.result.tools.find((tool) => tool.name === "integration_requestMedia");
+  assert.equal(requestTool.inputSchema.properties.integrationId.const, "seerr-main");
+  assert.equal(requestTool.inputSchema.properties.confirmed.const, true);
+  assert.equal(requestTool.inputSchema.required.includes("query"), true);
+
+  for (const argumentsValue of [
+    {
+      integrationId: "seerr-main",
+      query: QUERY,
+      mediaId: 42,
+      mediaType: "movie",
+    },
+    {
+      integrationId: "seerr-backup",
+      query: QUERY,
+      mediaId: 42,
+      mediaType: "movie",
+      confirmed: true,
+    },
+  ]) {
+    const rejected = await bridge.handleRequest({
+      jsonrpc: "2.0",
+      id: "rejected-before-search",
+      method: "tools/call",
+      params: { name: "integration_requestMedia", arguments: argumentsValue },
+    });
+    assert.equal(rejected.error.code, -32003);
+  }
+  assert.equal(calls.length, 0);
+
+  searchTitle = "Spider-Man: Far From Home";
+  const titleMismatch = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: "title-mismatch",
+    method: "tools/call",
+    params: {
+      name: "integration_requestMedia",
+      arguments: {
+        integrationId: "seerr-main",
+        query: QUERY,
+        mediaId: 42,
+        mediaType: "movie",
+        confirmed: true,
+      },
+    },
+  });
+  assert.equal(titleMismatch.error.code, -32003);
+  assert.equal(calls.at(-1).name, "integration_searchMediaRequests");
+  assert.equal(calls.some((call) => call.name === "integration_requestMedia"), false);
+
+  searchTitle = QUERY;
+  const mediaMismatch = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: "media-mismatch",
+    method: "tools/call",
+    params: {
+      name: "integration_requestMedia",
+      arguments: {
+        integrationId: "seerr-main",
+        query: QUERY,
+        mediaId: 43,
+        mediaType: "movie",
+        confirmed: true,
+      },
+    },
+  });
+  assert.equal(mediaMismatch.error.code, -32003);
+  assert.equal(calls.some((call) => call.name === "integration_requestMedia"), false);
+
+  searchKind = "jellyseerr";
+  const serviceMismatch = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: "service-mismatch",
+    method: "tools/call",
+    params: {
+      name: "integration_requestMedia",
+      arguments: {
+        integrationId: "seerr-main",
+        query: QUERY,
+        mediaId: 42,
+        mediaType: "movie",
+        confirmed: true,
+      },
+    },
+  });
+  assert.equal(serviceMismatch.error.code, -32003);
+  assert.equal(calls.some((call) => call.name === "integration_requestMedia"), false);
+
+  searchKind = "seerr";
+  searchWrapped = false;
+  const allowed = await bridge.handleRequest({
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: {
+      name: "integration_requestMedia",
+      arguments: {
+        integrationId: "seerr-main",
+        query: QUERY,
+        mediaId: 42,
+        mediaType: "movie",
+        confirmed: true,
+      },
+    },
+  });
+  assert.ok(allowed.result);
+  assert.deepEqual(calls.slice(-2), [
+    {
+      name: "integration_searchMediaRequests",
+      args: { query: QUERY, integrationIds: ["seerr-main"] },
+    },
+    {
+      name: "integration_requestMedia",
+      args: { integrationId: "seerr-main", mediaId: 42, mediaType: "movie" },
+    },
+  ]);
+}
+
 function checkMediaKeyEnvelope() {
   const key = randomBytes(24).toString("base64url");
   assert.equal(validateMediaKeyEnvelope(`HOMARR_API_KEY=${key}\n`), key);
@@ -364,6 +577,13 @@ function checkVerifierSearchRules() {
     { id: "seerr-2", name: "Seerr" },
   ]));
   assert.throws(() => identifySeerrIntegration([{ id: "", kind: "seerr" }]));
+  assert.equal(identifyConfiguredSeerrIntegration([
+    { id: "seerr-1", kind: "seerr" },
+    { id: "seerr-2", kind: "seerr" },
+  ], "seerr-2").id, "seerr-2");
+  assert.throws(() => identifyConfiguredSeerrIntegration([
+    { id: "seerr-1", kind: "jellyseerr" },
+  ], "seerr-1"));
 
   assert.throws(() => validateStructuredSearchResult({
     structuredContent: { query: QUERY, results: [] },
@@ -461,6 +681,8 @@ await checkReadOnlyBridge();
 process.stdout.write("PASS read-only bridge rejects mutations after search\n");
 await checkIntegrationRequestPolicy();
 process.stdout.write("PASS integration request bridge enforces service, method, and route policy\n");
+await checkMediaRequestPolicy();
+process.stdout.write("PASS media request bridge requires confirmation and an exact scoped Seerr search match\n");
 checkMediaKeyEnvelope();
 process.stdout.write("PASS media key handoff validates the private envelope\n");
 await checkCanonicalFailures();

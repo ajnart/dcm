@@ -9,8 +9,10 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,6 +24,7 @@ import {
   BROWSER_PASSWORD_FAIL_LINE,
   BROWSER_PASSWORD_PASS_LINE,
   fillBrowserPassword,
+  parseBrowserPasswordArguments,
 } from "./fill-browser-password.ts";
 import {
   classifySessionPasswordScheme,
@@ -428,7 +431,7 @@ function assertLegacySessionCommandPolicy() {
     join(REPO_ROOT, "scripts", "lib", "session-context.ts"),
     "utf8",
   );
-  const refreshStart = sessionContext.indexOf("export function refreshArrKeys(runId)");
+  const refreshStart = sessionContext.indexOf("export function refreshArrKeys(runId,");
   assert.notEqual(refreshStart, -1, "Arr key refresh entrypoint is missing");
   assertGateOrder(
     sessionContext.slice(refreshStart),
@@ -454,11 +457,14 @@ async function runChecks() {
     validateBrowserPageUrl(alphaSession, "http://127.0.0.1:21006/settings/general"),
     "http://127.0.0.1:21006/settings/general",
   );
+  const credentialedUrl = new URL("http://127.0.0.1:21006/");
+  credentialedUrl.username = "user";
+  credentialedUrl.password = credentialedUrl.username;
   for (const invalidPageUrl of [
     "https://127.0.0.1:21006/",
     "http://example.com:21006/",
     "http://127.0.0.1:9999/",
-    "http://user:pass@127.0.0.1:21006/",
+    credentialedUrl.href,
   ]) {
     assert.throws(() => validateBrowserPageUrl(alphaSession, invalidPageUrl));
   }
@@ -614,6 +620,87 @@ async function runChecks() {
 
   const missingExecutableError = new Error("missing executable");
   missingExecutableError.code = "ENOENT";
+  const selectedExecutable = realpathSync(process.execPath);
+  assert.deepEqual(parseBrowserPasswordArguments(["alpha", "@e4"]), {
+    runId: "alpha", selectors: ["@e4"], browserExecutable: undefined,
+  });
+  assert.deepEqual(parseBrowserPasswordArguments([
+    "alpha", "@e1", "@e2", "@e3", "@e4", "--browser-bin", selectedExecutable,
+  ]), {
+    runId: "alpha", selectors: ["@e1", "@e2", "@e3", "@e4"], browserExecutable: selectedExecutable,
+  });
+  for (const args of [
+    ["alpha", "@e1", "--browser-bin"],
+    ["alpha", "--browser-bin", selectedExecutable],
+    ["alpha", "--browser-bin", selectedExecutable, "@e1"],
+    ["alpha", "@e1", "--browser-bin", selectedExecutable, "--browser-bin", selectedExecutable],
+    ["alpha", "@e1", "@e2", "@e3", "@e4", "@e5", "--browser-bin", selectedExecutable],
+  ]) {
+    assert.throws(() => parseBrowserPasswordArguments(args));
+  }
+  const executableFixture = mkdtempSync(join(tmpdir(), "auto-stack-browser-executable-"));
+  try {
+    const nonExecutable = join(executableFixture, "not-executable");
+    writeFileSync(nonExecutable, "fixture", { mode: 0o600 });
+    const linkedExecutable = join(executableFixture, "linked-executable");
+    symlinkSync(selectedExecutable, linkedExecutable);
+    assert.equal(parseBrowserPasswordArguments([
+      "alpha", "@e1", "--browser-bin", linkedExecutable,
+    ]).browserExecutable, selectedExecutable);
+    const linkedInvocations = [];
+    await fillBrowserPassword(alphaSession, ["@e1"], {
+      browserExecutable: linkedExecutable,
+      pageUrl: "http://localhost:21006/setup",
+      spawnImplementation: (executable, args) => {
+        linkedInvocations.push(executable);
+        return successfulBrowserChild(args);
+      },
+    });
+    assert.equal(linkedInvocations.length, 5);
+    assert.equal(linkedInvocations.every((executable) => executable === selectedExecutable), true);
+    for (const executable of [
+      "agent-browser", executableFixture, nonExecutable,
+      join(executableFixture, "missing"),
+    ]) {
+      let calls = 0;
+      await assert.rejects(fillBrowserPassword(alphaSession, ["@e1"], {
+        browserExecutable: executable,
+        spawnImplementation: () => { calls += 1; return simulatedChild(); },
+      }), /browser executable must be an absolute canonical executable file/);
+      assert.equal(calls, 0);
+    }
+  } finally {
+    rmSync(executableFixture, { recursive: true, force: true });
+  }
+  const selectedInvocations = [];
+  await fillBrowserPassword(alphaSession, ["@e6"], {
+    browserExecutable: selectedExecutable,
+    spawnImplementation: (executable, args) => {
+      let child;
+      if (args.includes("url")) {
+        child = simulatedChild({ stdout: "http://localhost:21006/setup\n" });
+      } else {
+        child = successfulBrowserChild(args);
+      }
+      selectedInvocations.push({ executable, args, child });
+      return child;
+    },
+  });
+  assert.equal(selectedInvocations.length, 6);
+  assert.equal(selectedInvocations.every(({ executable }) => executable === selectedExecutable), true);
+  assert.equal(selectedInvocations.some(({ args }) => args.includes(alphaPassword)), false);
+  assert.deepEqual(JSON.parse(selectedInvocations.at(-1).child.capturedInput()), [["fill", "@e6", alphaPassword]]);
+  let selectedMissingCalls = 0;
+  await assert.rejects(fillBrowserPassword(alphaSession, ["@e6"], {
+    browserExecutable: selectedExecutable,
+    pageUrl: "http://localhost:21006/setup",
+    spawnImplementation: (executable) => {
+      selectedMissingCalls += 1;
+      assert.equal(executable, selectedExecutable);
+      return simulatedChild({ spawnError: missingExecutableError });
+    },
+  }), /browser password fill failed/);
+  assert.equal(selectedMissingCalls, 1);
   const fallbackInvocations = [];
   const fallbackOutput = await withoutProcessOutput(async () => {
     await fillBrowserPassword(alphaSession, ["@e6"], {

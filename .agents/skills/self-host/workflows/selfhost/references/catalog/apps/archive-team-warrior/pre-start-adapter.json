@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "shared-pre-start-adapter",
+  "appId": "archive-team-warrior",
+  "sourceFiles": ["pre-start.ts", "configuration.ts", "derived-recipe.ts", "mutable-config.ts", "idle-config.ts", "idle-readback.ts", "runtime-provenance.json", "manifest.json"],
+  "effects": [
+    "Before every owner-controlled start, bind the exact public downloader nickname and idle selected_project=none/concurrency=1 to the retained shared recipe. No auto project or archival downloads/uploads are approved.",
+    "Startup POSTs https://warriorhq.archiveteam.org/api/register.json when warrior_id is absent, sends runner version, and privately persists the returned identity. Startup and ten-minute POSTs to /api/update.json send warrior_id, downloader nickname, selected_project and null lat_lng; HQ receives network source address and runner user-agent. This is not offline startup.",
+    "HQ metadata and broadcast responses are processed; version/max-age responses can cause container-local shutdown/reboot. No Docker socket or host privilege is granted. Outbound HQ-only policy is reviewed but not enforced by a network firewall; no archival project is selected.",
+    "Idle resource budget: Compose limits CPU to 1 and memory to 512 MiB; require 1 GiB free local storage. No disk quota or HQ bandwidth cap is implemented. Archival CPU/disk/bandwidth/destination authorization remains separate and unfinished.",
+    "Prepare or privately validate writable UID-1000 config.json before every owner-controlled start; preserve upstream warrior_id on resume and refuse authentication/nickname/project/concurrency drift. Generated HTTP Basic credentials do not create an administrator or API key."
+  ]
+}

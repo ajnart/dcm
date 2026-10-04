@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "jellyfin",
+  "dimension": "liveRestart",
+  "inputs": [{ "key": "item-id", "format": "opaque-id", "maximumLength": 36 }],
+  "beginEffect": "Read one reviewed existing authorized local Movie or Episode original (at most 1 MiB) and its library membership; retain only IDs, size and hashes",
+  "finishEffect": "Read the same selected original bytes and media/library metadata after restarting only the saved Jellyfin service",
+  "cleanup": "not-required-existing-media-read-only",
+  "checks": {
+    "application-health": { "appHealthObserved": true, "authenticatedApiVerified": true },
+    "core-round-trip": { "originalMediaReadVerified": true, "libraryMembershipVerified": true, "workloadScope": "selected-existing-local-original-media-download" },
+    "restart-persistence": { "restartPersistenceVerified": true }
+  }
+}

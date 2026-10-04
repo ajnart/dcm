@@ -44,7 +44,7 @@ function validateHost(rawHost, label) {
 
 function validateBindAddress(rawAddress) {
   if (rawAddress === undefined) {
-    return "127.0.0.1";
+    return "0.0.0.0";
   }
   if (typeof rawAddress !== "string") {
     fail("bind address is invalid");
@@ -192,10 +192,6 @@ export function resolveSessionAccess({
   if (advertisedHost !== undefined) {
     selectedAdvertisedHost = validateHost(advertisedHost, "advertised host");
   }
-  if (selectedBindAddress !== "127.0.0.1" && selectedAdvertisedHost === undefined) {
-    fail("a non-loopback bind requires an advertised host");
-  }
-
   const bindings = selectedBindAddress === "127.0.0.1"
     ? ["127.0.0.1"]
     : [selectedBindAddress];
@@ -233,7 +229,7 @@ export function resolveSessionAccess({
     };
   }
 
-  let exposure = "private-network";
+  let exposure = "all-host-interfaces";
   if (selectedBindAddress === "127.0.0.1") {
     exposure = "local";
   }

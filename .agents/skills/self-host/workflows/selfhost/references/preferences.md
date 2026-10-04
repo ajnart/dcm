@@ -1,10 +1,9 @@
 # Preference contract
 
 Preferences record user choices, not discovered host truth and not secrets.
-The entry workflow uses `$HOME/.selfhostedskills` as its fixed project root, so
-preferences live at `$HOME/.selfhostedskills/.selfhost/preferences.json`. The
-low-level CLI accepts an explicit absolute `--project-root` to derive
-`<project>/.selfhost/preferences.json`; an explicit absolute `--path` selects
+The entry workflow passes the selected absolute project root, so preferences
+live at `<project>/.selfhost/preferences.json`. The low-level CLI accepts an
+explicit absolute `--project-root`; an explicit absolute `--path` selects
 another file for direct helper use. Installed skill paths and filesystem roots
 are rejected. Each choice is stored as `{value, source, updatedAt}`; `source`
 is `chosen` or `imported`.

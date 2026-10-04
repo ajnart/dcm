@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "tdarr",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "mediaTranscoding",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "totalFileCount",
+        "totalTranscodeCount",
+        "failedTranscodeCount"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "mediaTranscoding",
+        "procedure": "widget.mediaTranscoding.getDataAsync",
+        "inputMode": "one",
+        "input": {
+          "page": 1,
+          "pageSize": 10
+        },
+        "field": "data",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "queue": {
+              "type": "object",
+              "fields": {
+                "array": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "id": "string",
+                      "healthCheck": "string",
+                      "transcode": "string",
+                      "filePath": "string",
+                      "container": "string",
+                      "codec": "string",
+                      "resolution": "string",
+                      "type": "string",
+                      "fileSize": "number"
+                    }
+                  }
+                },
+                "totalCount": "number",
+                "startIndex": "number",
+                "endIndex": "number"
+              }
+            },
+            "workers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": "string",
+                  "filePath": "string",
+                  "ETA": "string",
+                  "jobType": "string",
+                  "status": "string",
+                  "step": "string",
+                  "fps": "number",
+                  "percentage": "number",
+                  "originalSize": "number",
+                  "estimatedSize": {
+                    "type": "nullable",
+                    "value": "number"
+                  },
+                  "outputSize": {
+                    "type": "nullable",
+                    "value": "number"
+                  }
+                }
+              }
+            },
+            "statistics": {
+              "type": "object",
+              "fields": {
+                "libraryName": "string",
+                "totalFileCount": "number",
+                "totalTranscodeCount": "number",
+                "totalHealthCheckCount": "number",
+                "failedTranscodeCount": "number",
+                "failedHealthCheckCount": "number",
+                "stagedTranscodeCount": "number",
+                "stagedHealthCheckCount": "number",
+                "totalSavedSpace": "number",
+                "transcodeStatus": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "healthCheckStatus": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "videoCodecs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "videoContainers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "videoResolutions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "audioCodecs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                },
+                "audioContainers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "name": "string",
+                      "value": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

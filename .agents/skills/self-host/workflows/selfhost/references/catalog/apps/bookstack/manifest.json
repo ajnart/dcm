@@ -1,0 +1,68 @@
+{
+  "id": "bookstack",
+  "name": "BookStack",
+  "aliases": [
+    "self hosted wiki",
+    "knowledge base"
+  ],
+  "categories": [
+    "productivity"
+  ],
+  "roles": [
+    "knowledge-base"
+  ],
+  "upstream": {
+    "url": "https://www.bookstackapp.com/",
+    "repository": "https://github.com/BookStackApp/BookStack",
+    "docs": "https://www.bookstackapp.com/docs/admin/installation/"
+  },
+  "image": {
+    "reference": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
+    "source": "community",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "A pinned private Compose recipe and CLI-generated administrator handoff are available; fresh-instance login, content, restart, and restore acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:database",
+    "capability:file-storage"
+  ],
+  "alternatives": [
+    "nextcloud",
+    "linkwarden"
+  ],
+  "security": [
+    "The packaged container starts with publicly known admin@admin.com/password credentials; replace them before any exposure.",
+    "Keep APP_URL fixed to the reviewed origin and review registration, public access, roles, attachments, and SSO before exposure."
+  ],
+  "pitfalls": [
+    "Database and uploaded files must be backed up consistently.",
+    "The first-admin adapter uses bookstack:create-admin --initial --generate-password, capturing only its success stdout into the owner-only password file. If the database changes but that file is not saved, the result is ambiguous: never rerun the initial command or present the pre-generated placeholder as a working credential; recover through a separately approved private route.",
+    "The pinned v26.05.3 own-account form creates one API token inheriting the saved administrator's permissions, expiring 2099-01-01. Shared setup separately approves creation and the once-returned secret read, privately saves Token ID:Secret, and verifies the exact owner through the API. Interrupted creation or missing secret output requires inspection, never another token. No database extraction is used; live login, content, restart, and restore acceptance remain unverified."
+  ],
+  "sources": [
+    "https://www.bookstackapp.com/docs/admin/installation/",
+    "https://www.bookstackapp.com/docs/admin/security/",
+    "https://www.bookstackapp.com/docs/admin/commands/",
+    "https://www.bookstackapp.com/blog/bookstack-release-v25-11/",
+    "https://www.bookstackapp.com/blog/bookstack-release-v23-10/",
+    "https://github.com/linuxserver/docker-bookstack/blob/master/README.md",
+    "https://docs.linuxserver.io/images/docker-bookstack/",
+    "https://github.com/linuxserver/docker-bookstack/releases/tag/v26.05.3-ls277",
+    "https://hub.docker.com/_/mariadb",
+    "https://github.com/BookStackApp/BookStack/blob/v26.05.3/app/Api/UserApiTokenController.php",
+    "https://github.com/BookStackApp/BookStack/blob/v26.05.3/resources/views/users/api-tokens/edit.blade.php"
+  ]
+}

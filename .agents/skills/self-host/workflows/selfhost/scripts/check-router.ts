@@ -3,15 +3,16 @@
 import assert from "node:assert/strict";
 import { dirname, join, parse } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildPlan, loadCatalog, resolvePlanTarget, resolveStack, stackForGoalId, validateCatalog } from "./catalog.ts";
+import { availableCatalog, buildCompositePlan, buildPlan, loadCatalog, resolvePlanTarget, resolveStack, stackForGoalId, validateCatalog } from "./catalog.ts";
 import { preferencesPathForProjectRoot, resolvePreferencesPath, validatePreferencesDocument } from "./preferences.ts";
+import { validateProjectState } from "./project-state.ts";
 
 const catalog = await loadCatalog();
 const validation = validateCatalog(catalog);
 assert.equal(validation.valid, true);
 assert.deepEqual(
   [validation.counts.apps, validation.counts.stacks, validation.counts.skills, validation.counts.adapters, validation.counts.homarrStandardCovered, validation.counts.homarrSpecialCovered],
-  [111, 20, 15, 2, 54, 2]
+  [94, 19, 15, 2, 42, 0]
 );
 const registeredSkillIds = catalog.skills.skills.map((record) => record.id);
 assert.deepEqual(registeredSkillIds, [...registeredSkillIds].sort());
@@ -60,6 +61,58 @@ for (const [query, expected] of compositeCases) {
   assert.equal(result.needsComposition, true);
   assert.deepEqual(result.components.map((component) => component.id), expected);
 }
+const householdComposite = resolveStack(catalog, "Netflix, Google Photos, Notion, Passwords");
+assert.equal(householdComposite.kind, "composite");
+assert.deepEqual(householdComposite.components.map((component) => component.id), ["personal-media", "photos", "private-notes", "passwords"]);
+assert.deepEqual(householdComposite.unresolvedIntents, []);
+const householdStacks = householdComposite.components.map((component) => stackForGoalId(catalog, component.id));
+const householdPlan = buildCompositePlan(catalog, householdStacks);
+assert.equal(householdPlan.goal.id, "composite");
+assert.deepEqual(householdPlan.goal.components.map((component) => component.id), ["personal-media", "photos", "private-notes", "passwords"]);
+assert.equal(householdPlan.selectedApps.filter((app) => app.id === "homarr").length, 1);
+assert.equal(householdPlan.selectedApps.filter((app) => app.id === "postgresql").length, 1);
+assert.equal(householdPlan.selectedApps.filter((app) => app.id === "valkey").length, 1);
+assert.equal(householdPlan.requiredSkills.filter((skill) => skill === "selfhost-compose").length, 1);
+assert.equal(householdPlan.gates.filter((gate) => gate === "storage").length, 1);
+assert.equal(householdPlan.setupStages.some((stage) => stage.owner === "selfhost-media"), true);
+assert.deepEqual(householdPlan.setupStages.map((stage) => stage.id), [
+  "media", "app-immich", "app-docmost", "app-vaultwarden", "homarr-attachments"
+]);
+assert.deepEqual(householdPlan.setupStages.find((stage) => stage.id === "homarr-attachments").apps,
+  ["immich", "docmost", "vaultwarden"]);
+const householdInstallApps = householdPlan.setupStages
+  .filter((stage) => stage.id !== "homarr-attachments")
+  .flatMap((stage) => stage.apps);
+assert.deepEqual([...householdInstallApps].sort(), [
+  "homarr", "jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent", "immich", "docmost", "vaultwarden"
+].sort());
+assert.equal(householdPlan.roles.some((role) => role.id === "private-notes.notes"), true);
+assert.equal(buildCompositePlan(catalog, householdStacks).planId, householdPlan.planId);
+const householdWithBookStack = buildCompositePlan(catalog, householdStacks, { notes: "bookstack" });
+assert.equal(householdWithBookStack.roles.find((role) => role.id === "private-notes.notes").selected, "bookstack");
+
+const stateTimestamp = "2026-09-24T13:30:00Z";
+const legacyProjectState = {
+  schemaVersion: 1,
+  revision: 1,
+  createdAt: stateTimestamp,
+  updatedAt: stateTimestamp,
+  goalId: "photos",
+  selections: { "control-plane": "homarr", "photo-library": "immich" },
+  plan: { id: "0123456789abcdef", catalogCheckedAt: "2026-09-24" },
+  checkpoint: { stage: "intent-recorded", recordedAt: stateTimestamp, evidenceIds: [] }
+};
+assert.equal(validateProjectState(legacyProjectState).valid, true);
+const compositeProjectState = {
+  ...legacyProjectState,
+  schemaVersion: 2,
+  goalId: "composite",
+  componentGoalIds: householdPlan.goal.components.map((component) => component.id),
+  selections: Object.fromEntries(householdPlan.roles.map((role) => [role.id, role.selected])),
+  plan: { id: householdPlan.planId, catalogCheckedAt: householdPlan.catalogCheckedAt }
+};
+assert.equal(validateProjectState(compositeProjectState).valid, true);
+assert.equal(validateProjectState({ ...compositeProjectState, componentGoalIds: ["photos", "photos"] }).valid, false);
 const photosAndFilesResolution = resolvePlanTarget(catalog, "replace google photos and google drive");
 assert.equal(photosAndFilesResolution.kind, "single");
 assert.equal(photosAndFilesResolution.stack.id, "photos-and-files");
@@ -80,12 +133,12 @@ assert.deepEqual(cloudReplacementPlan.selectedApps.map((app) => app.id), ["homar
 assert.equal(cloudReplacementPlan.selectedApps.filter((app) => app.id === "nextcloud").length, 1);
 
 const consumerPlans = new Map([
-  ["replace netflix", ["homarr", "jellyfin"]],
+  ["replace netflix", ["homarr", "jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent"]],
   ["password manager", ["homarr", "vaultwarden"]],
   ["smart speaker", ["homarr", "home-assistant"]],
   ["audio books and music", ["homarr", "audiobookshelf", "navidrome"]],
   ["personal finance", ["homarr", "actual-budget"]],
-  ["productivity", ["homarr", "anytype"]]
+  ["productivity", ["homarr", "docmost", "postgresql"]]
 ]);
 for (const [query, expectedApps] of consumerPlans) {
   const resolution = resolvePlanTarget(catalog, query);
@@ -93,6 +146,19 @@ for (const [query, expectedApps] of consumerPlans) {
   const plan = buildPlan(catalog, resolution.stack);
   assert.deepEqual(plan.selectedApps.map((app) => app.id), expectedApps);
 }
+const netflixPlan = buildPlan(catalog, resolvePlanTarget(catalog, "Netflix").stack);
+assert.equal(netflixPlan.setupStages[0]?.owner, "selfhost-media");
+assert.equal(netflixPlan.requiredSkills.includes("selfhost-media"), true);
+for (const appId of ["immich", "docmost", "vaultwarden"]) {
+  const appPlan = buildPlan(catalog, resolvePlanTarget(catalog, appId).stack);
+  assert.equal(appPlan.selectedApps.find((app) => app.id === appId)?.cliSetup?.command, appId);
+  assert.equal(appPlan.setupStages.find((stage) => stage.id === `app-${appId}`)?.mode, "hybrid");
+}
+const invalidCliSetup = structuredClone(catalog);
+invalidCliSetup.apps.find((app) => app.id === "immich").cliSetup.command = "unknown";
+assert.equal(validateCatalog(invalidCliSetup).errors.some((error) => error.includes("cliSetup command has no packaged application adapter")), true);
+assert.deepEqual(buildPlan(catalog, resolvePlanTarget(catalog, "Notion").stack).setupStages.map((stage) => stage.id),
+  ["dashboard", "app-docmost", "homarr-attachments"]);
 const punctuatedAudio = resolvePlanTarget(catalog, "audio books , music ,");
 assert.equal(punctuatedAudio.stack.id, "audio-library");
 assert.deepEqual(buildPlan(catalog, punctuatedAudio.stack).selectedApps.map((app) => app.id), ["homarr", "audiobookshelf", "navidrome"]);
@@ -100,7 +166,7 @@ assert.deepEqual(buildPlan(catalog, resolvePlanTarget(catalog, "music").stack).s
 assert.deepEqual(buildPlan(catalog, resolvePlanTarget(catalog, "audiobooks").stack).selectedApps.map((app) => app.id), ["homarr", "audiobookshelf"]);
 assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "personal finance").stack, { finance: "firefly-iii" }).selectedApps.some((app) => app.id === "firefly-iii"), true);
 assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "smart home").stack, { cameras: "scrypted" }).selectedApps.some((app) => app.id === "scrypted"), true);
-assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "productivity").stack, { notes: "obsidian" }).selectedApps.some((app) => app.id === "obsidian"), true);
+assert.equal(buildPlan(catalog, resolvePlanTarget(catalog, "productivity").stack, { notes: "bookstack" }).selectedApps.some((app) => app.id === "bookstack"), true);
 
 const fullExpectedApps = [
   "homarr", "jellyfin", "seerr", "sonarr", "radarr", "prowlarr", "qbittorrent",
@@ -115,17 +181,16 @@ for (const query of ["full", "full homelab", "everything for my homelab"]) {
   assert.equal(plan.selectedApps.filter((app) => app.id === "homarr").length, 1);
   assert.equal(plan.roles.find((role) => role.id === "home-automation").selected, null);
   assert.equal(plan.effectiveAutomation, "guided");
-  assert.deepEqual(plan.setupStages.map((stage) => [stage.id, stage.owner, stage.mode]), [
-    ["media", "selfhost-media", "hybrid"],
-    ["household-apps", "selfhost-compose", "guided"],
-    ["home-automation", "selfhost-compose", "optional"]
+  assert.deepEqual(plan.setupStages.map((stage) => stage.id), [
+    "media", "app-immich", "app-nextcloud", "app-navidrome", "app-audiobookshelf", "app-vaultwarden", "homarr-attachments"
   ]);
 }
 const fullWithHomeAssistant = buildPlan(catalog, resolvePlanTarget(catalog, "full").stack, { "home-automation": "home-assistant" });
 assert.equal(fullWithHomeAssistant.selectedApps.some((app) => app.id === "home-assistant"), true);
-assert.deepEqual(fullWithHomeAssistant.setupStages.find((stage) => stage.id === "home-automation").apps, ["home-assistant"]);
+assert.deepEqual(fullWithHomeAssistant.setupStages.find((stage) => stage.id === "app-home-assistant").apps, ["home-assistant"]);
 assert.equal(resolveStack(catalog, "full sync").kind, "none");
 assert.equal(resolvePlanTarget(catalog, "jellyfin").stack.id, "application-jellyfin");
+assert.equal(resolvePlanTarget(catalog, "immich").stack.id, "application-immich");
 assert.equal(resolveStack(catalog, "profiles").kind, "none");
 assert.equal(resolveStack(catalog, "profiles and backups").stack.id, "backups");
 
@@ -184,7 +249,7 @@ assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").
 assert.equal(genericMediaPlan.roles.find((role) => role.id === "control-plane").required, false);
 assert.equal(genericMediaPlan.selectedApps.some((app) => app.id === "homarr"), true);
 assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-homarr"), true);
-assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-media"), false);
+assert.equal(genericMediaPlan.requiredSkills.includes("selfhost-media"), true);
 assert.equal(genericMediaPlan.gates.includes("exposure"), true);
 assert.equal(genericMediaPlan.gates.includes("secrets"), true);
 assert.equal(genericMediaPlan.acceptance.filter((claim) => claim.includes("Homarr")).length, 4);
@@ -194,6 +259,7 @@ assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("widget"
 assert.equal(genericMediaPlan.acceptance.some((claim) => claim.includes("MCP bridge")), true);
 
 assert.equal(buildPlan(catalog, personalMedia, { playback: "plex" }).effectiveAutomation, "guided");
+assert.equal(buildPlan(catalog, personalMedia, { playback: "plex" }).requiredSkills.includes("selfhost-media"), false);
 assert.equal(buildPlan(catalog, personalMedia, { playback: "emby" }).effectiveAutomation, "discovery");
 assert.throws(() => buildPlan(catalog, personalMedia, { unknown: "jellyfin" }), /Unknown selection role/);
 
@@ -225,7 +291,7 @@ const impliedCatalog = structuredClone(catalog);
 impliedCatalog.apps.find((app) => app.id === "immich").dependencies.push("homarr");
 assert.equal(validateCatalog(impliedCatalog).errors.some((error) => error.includes("Homarr is injected as the default control plane")), true);
 
-assert.throws(() => buildPlan(catalog, personalMedia, { playback: "readarr" }), /retired/);
+assert.throws(() => buildPlan(catalog, personalMedia, { playback: "readarr" }), /unavailable/);
 
 for (const malformedTaxonomy of [null, {}, { ambiguousAliases: {} }, { categories: {} }]) {
   const malformed = structuredClone(catalog);
@@ -288,8 +354,50 @@ const unsortedSkillRegistry = structuredClone(catalog);
 unsortedSkillRegistry.skills.skills.reverse();
 assert.equal(validateCatalog(unsortedSkillRegistry).errors.some((error) => error.includes("skills: records must be sorted by id")), true);
 
-const retiredChoice = structuredClone(catalog);
-retiredChoice.stacks.find((stack) => stack.id === "photos").roles[0].choices.push("readarr");
-assert.equal(validateCatalog(retiredChoice).errors.some((error) => error.includes("choice readarr is retired")), true);
+const removedChoice = structuredClone(catalog);
+removedChoice.stacks.find((stack) => stack.id === "photos").roles[0].choices.push("readarr");
+assert.equal(validateCatalog(removedChoice).errors.some((error) => error.includes("unknown app choice readarr")), true);
+
+const withoutBazarr = structuredClone(catalog);
+withoutBazarr.apps = withoutBazarr.apps.filter((app) => app.id !== "bazarr");
+assert.equal(validateCatalog(withoutBazarr).valid, false);
+const bazarrRuntime = availableCatalog(withoutBazarr);
+assert.equal(validateCatalog(bazarrRuntime, { runtime: true }).valid, true);
+assert.equal(bazarrRuntime.apps.some((app) => app.id === "bazarr"), false);
+assert.equal(bazarrRuntime.stacks.find((stack) => stack.id === "personal-media").roles.some((role) => role.id === "subtitles"), false);
+assert.equal(buildPlan(bazarrRuntime, resolvePlanTarget(bazarrRuntime, "netflix").stack).selectedApps.some((app) => app.id === "bazarr"), false);
+
+const withoutImmich = structuredClone(catalog);
+withoutImmich.apps = withoutImmich.apps.filter((app) => app.id !== "immich");
+const immichRuntime = availableCatalog(withoutImmich);
+assert.equal(validateCatalog(immichRuntime, { runtime: true }).valid, true);
+assert.equal(immichRuntime.stacks.some((stack) => stack.id === "photos"), false);
+assert.equal(resolvePlanTarget(immichRuntime, "replace google photos and google drive").kind, "unavailable");
+assert.equal(resolvePlanTarget(immichRuntime, "replace dropbox").stack.id, "files");
+assert.throws(() => buildPlan(withoutImmich, catalog.stacks.find((stack) => stack.id === "photos")), /unavailable/);
+
+const withoutPostgres = structuredClone(catalog);
+withoutPostgres.apps = withoutPostgres.apps.filter((app) => app.id !== "postgresql");
+const postgresRuntime = availableCatalog(withoutPostgres);
+assert.equal(postgresRuntime.apps.some((app) => app.id === "immich"), false);
+assert.equal(postgresRuntime.stacks.some((stack) => stack.id === "photos"), false);
+assert.equal(validateCatalog(postgresRuntime, { runtime: true }).valid, true);
+
+const withoutSonarr = structuredClone(catalog);
+withoutSonarr.apps = withoutSonarr.apps.filter((app) => app.id !== "sonarr");
+const sonarrRuntime = availableCatalog(withoutSonarr);
+assert.equal(validateCatalog(sonarrRuntime, { runtime: true }).valid, true);
+assert.equal(sonarrRuntime.homarrIntegrations.standard.some((surface) => surface.displayName === "Sonarr"), false);
+assert.equal(sonarrRuntime.stacks.some((stack) => stack.id === "personal-media"), false);
+assert.equal(resolvePlanTarget(sonarrRuntime, "full").kind, "unavailable");
+
+const withoutAudiobookshelf = structuredClone(catalog);
+withoutAudiobookshelf.apps = withoutAudiobookshelf.apps.filter((app) => app.id !== "audiobookshelf");
+const audioRuntime = availableCatalog(withoutAudiobookshelf);
+assert.equal(resolvePlanTarget(audioRuntime, "audio books and music").kind, "unavailable");
+
+const malformedRuntime = structuredClone(bazarrRuntime);
+malformedRuntime.skills.skills[0].scope = "application";
+assert.equal(validateCatalog(malformedRuntime, { runtime: true }).valid, false);
 
 process.stdout.write("selfhost router checks passed\n");

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { pathToFileURL } from "node:url";
-import { deriveSessionPassword, loadSession, request, requestJson, sessionUsername } from "./lib/session-context.ts";
+import { deriveSessionPassword, loadSession, request, requestJson, sessionUsername, sleep } from "./lib/session-context.ts";
 
 const libraries = [
   { name: "Movies", type: "movies", path: "/data/media/movies" },
@@ -15,7 +15,17 @@ export async function configureJellyfin(session, io = { request, requestJson }) 
     "Content-Type": "application/json",
     Authorization: `MediaBrowser Client="Selfhost", Device="Setup", DeviceId="selfhost-${session.runId}", Version="1.0"`,
   };
-  const info = await io.requestJson(`${base}/System/Info/Public`, {}, { label: "Jellyfin public readiness", attempts: 40 });
+  // First boot may spend more than 20 seconds initializing after Compose starts,
+  // especially when several isolated runs share one Docker host.
+  let info = await io.requestJson(`${base}/System/Info/Public`, {}, { label: "Jellyfin public readiness", attempts: 120 });
+  // A fresh server can answer HTTP 200 before its startup-wizard flag appears.
+  // Retry only this read; an unknown state must never authorize setup writes.
+  for (let probe = 1; probe < 12 && typeof info?.StartupWizardCompleted !== "boolean"; probe += 1) {
+    await (io.sleep ?? sleep)(500);
+    // A just-started server can briefly return HTTP 503 between two successful
+    // public-info reads. Keep retrying this read before any setup write.
+    info = await io.requestJson(`${base}/System/Info/Public`, {}, { label: "Jellyfin startup state retry", attempts: 20 });
+  }
   if (typeof info?.StartupWizardCompleted !== "boolean") throw new Error("Jellyfin startup state unavailable");
   const post = async (path, body, authenticatedHeaders = headers) => {
     const options = { method: "POST", headers: authenticatedHeaders };
@@ -27,7 +37,7 @@ export async function configureJellyfin(session, io = { request, requestJson }) 
     // Jellyfin 10.11 initializes its first user in GET before POST can update it.
     await io.requestJson(`${base}/Startup/User`, { headers }, { label: "Jellyfin first user initialization" });
     await post("/Startup/User", { Name: username, Password: password });
-    await post("/Startup/RemoteAccess", { EnableRemoteAccess: true });
+    await post("/Startup/RemoteAccess", { EnableRemoteAccess: false });
     await post("/Startup/Complete");
   }
   const login = await io.requestJson(`${base}/Users/AuthenticateByName`, {

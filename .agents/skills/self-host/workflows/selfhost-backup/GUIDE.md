@@ -14,6 +14,9 @@ Design for recovery, then distinguish the plan from direct restore evidence. Tre
 1. Inventory configuration, user data, databases, and caches. Mark caches excluded only when they are explicitly rebuildable.
 2. Read [plan-contract.md](references/plan-contract.md). Record source and target failure domains, consistency methods, owners, RPO/RTO, retention, pruning approval, encryption references, recovery-key custody, and failure routing.
 3. Run `scripts/plan-backup.ts` with bounded, secret-free JSON. The planner performs no filesystem discovery, backup, pruning, notification, or restore.
+   For a CLI-managed four-service household bundle, read
+   [household-bundle.md](references/household-bundle.md) and use
+   `self-host bundle backup plan` to derive its exact owned paths first.
 4. Resolve overlap, failure-domain, database-consistency, custody, destructive-target, and pruning gates before handing a plan to an apply capability.
 5. Keep the result `not-verified` until evidence records a timestamped restore into an isolated target, integrity checks, application acceptance, and RTO compliance.
 6. Present the JSON with a concise explanation of blocked gates and the narrow restore claim. Request separate approval before any later quiesce, snapshot, export, prune, overwrite, or restore action.

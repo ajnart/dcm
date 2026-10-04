@@ -1,0 +1,61 @@
+{
+  "id": "nzbget",
+  "name": "NZBGet",
+  "aliases": [
+    "nzb download client",
+    "usenet download client"
+  ],
+  "categories": [
+    "downloads"
+  ],
+  "roles": [
+    "usenet-download"
+  ],
+  "upstream": {
+    "url": "https://nzbget.com/",
+    "repository": "https://github.com/nzbgetcom/nzbget",
+    "docs": "https://nzbget.com/documentation/"
+  },
+  "image": {
+    "reference": "ghcr.io/nzbgetcom/nzbget:v26.3",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "The nzbgetcom fork released v26.3 on 2026-08-27; use its maintained image, not artifacts from the legacy nzbget organization."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "NZBGet"
+  },
+  "dependencies": [
+    "capability:download-storage",
+    "capability:usenet-provider"
+  ],
+  "alternatives": [
+    "sabnzbd",
+    "deluge"
+  ],
+  "security": [
+    "Keep provider credentials and the control interface on a private network; the RPC control interface uses HTTP Basic authentication unless HTTPS is configured.",
+    "Change the documented default control password before exposing the interface to another device."
+  ],
+  "pitfalls": [
+    "The archived legacy repository and images can be mistaken for the maintained successor.",
+    "The official Docker image documents NZBGET_PASS as a plain environment variable, not a file-backed secret; shared Compose must generate its private environment file before the container starts.",
+    "NZBGet RPC uses username/password pairs and does not document an API key."
+  ],
+  "sources": [
+    "https://github.com/nzbgetcom/nzbget",
+    "https://github.com/nzbgetcom/nzbget/releases/tag/v26.3",
+    "https://github.com/nzbgetcom/nzbget/blob/develop/docker/README.md",
+    "https://nzbget.com/documentation/api/"
+  ]
+}

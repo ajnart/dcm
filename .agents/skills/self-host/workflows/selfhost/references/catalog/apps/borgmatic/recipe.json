@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "borgmatic",
+  "source": "https://github.com/borgmatic-collective/docker-borgmatic",
+  "execution": { "kind": "manual-job", "officialUrl": "https://github.com/borgmatic-collective/docker-borgmatic", "probe": { "argv": ["borgmatic", "--version"], "officialUrl": "https://github.com/borgmatic-collective/docker-borgmatic" } },
+  "services": [{
+    "id": "borgmatic",
+    "purpose": "Prepares a portless Borgmatic CLI with cron disabled; backup execution and isolated restore require separate review.",
+    "imageTag": "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
+    "imageSource": "https://github.com/borgmatic-collective/docker-borgmatic/pkgs/container/borgmatic",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/borgmatic-collective/docker-borgmatic", "reason": "official-image-runtime-contract" },
+    "hostname": "self-host-borgmatic",
+    "restart": "no",
+    "readOnly": false,
+    "command": ["borgmatic", "--version"],
+    "environment": [{ "name": "CRON", "value": "false" }],
+    "hostEnvironment": [],
+    "fileEnvironment": [{ "name": "BORG_PASSPHRASE_FILE", "fileId": "repository-passphrase" }],
+    "mounts": [
+      { "name": "source", "target": "/mnt/source", "kind": "bind", "readOnly": true },
+      { "name": "repository", "target": "/mnt/borg-repository", "kind": "bind", "readOnly": false },
+      { "name": "config", "target": "/etc/borgmatic.d/config.yaml", "kind": "generated-file", "fileId": "config" },
+      { "name": "keys", "target": "/root/.config/borg" },
+      { "name": "cache", "target": "/root/.cache/borg" },
+      { "name": "state", "target": "/root/.local/state/borgmatic" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": null
+  }],
+  "privateFiles": [{ "id": "repository-passphrase", "bytes": 48 }],
+  "configFiles": [{ "id": "config", "content": "source_directories:\n  - /mnt/source\nrepositories:\n  - path: /mnt/borg-repository\narchive_name_format: 'self-host-{now:%Y-%m-%d-%H%M%S}'\n" }],
+  "onboarding": { "kind": "job-credentials", "officialUrl": "https://github.com/borgmatic-collective/docker-borgmatic" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": null, "dataDirectoryName": "borgmatic" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "manual-version", "method": "job", "description": "After separate exact job approval, borgmatic --version exits zero with the pinned version and cron remains disabled. This is not repository or backup acceptance." },
+    { "id": "isolated-restore", "method": "persisted", "description": "Under a separately reviewed backup workflow, extract an exact archive into an isolated target without FUSE privileges and prove integrity, application acceptance, and RTO." }
+  ]
+}

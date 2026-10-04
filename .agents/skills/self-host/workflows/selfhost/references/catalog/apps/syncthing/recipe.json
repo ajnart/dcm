@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "syncthing",
+  "source": "https://github.com/syncthing/syncthing/blob/main/README-Docker.md",
+  "services": [
+    {
+      "id": "syncthing",
+      "purpose": "Synchronizes selected folders with approved devices and serves a private administration GUI.",
+      "imageTag": "syncthing/syncthing:2.1.4",
+      "imageSource": "https://hub.docker.com/r/syncthing/syncthing/tags",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/syncthing/syncthing/blob/main/README-Docker.md",
+        "reason": "official-image-runtime-contract"
+      },
+      "hostIdentityEvidence": "https://github.com/syncthing/syncthing/blob/main/README-Docker.md",
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [
+        { "name": "PUID", "source": "uid" },
+        { "name": "PGID", "source": "gid" }
+      ],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "syncthing-data", "target": "/var/syncthing", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 8384,
+      "additionalPorts": [
+        { "id": "sync-tcp", "targetPort": 22000, "protocol": "tcp", "purpose": "application", "required": false },
+        { "id": "sync-quic", "targetPort": 22000, "protocol": "udp", "purpose": "application", "required": false },
+        { "id": "local-discovery", "targetPort": 21027, "protocol": "udp", "purpose": "application", "required": false }
+      ]
+    }
+  ],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48 }
+  ],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://docs.syncthing.net/rest/config",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8384,
+    "dataDirectoryName": "syncthing"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "admin-login", "method": "api", "description": "Set static GUI username and generated password through an authorized configuration route, then prove that the saved password authenticates and an unauthenticated GUI request is rejected." },
+    { "id": "api-key", "method": "api", "description": "Read the generated key from this exact owned config, save it privately, and verify an authenticated REST read; do not claim setup from the unauthenticated health endpoint." },
+    { "id": "device-sync", "method": "api", "description": "After approving exact device and folder shares, verify a real peer connection and authorized file round-trip; a running GUI alone is insufficient." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned Compose project and recheck saved GUI login, API key, and peer/folder state." }
+  ]
+}

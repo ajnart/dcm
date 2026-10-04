@@ -34,6 +34,6 @@
   },
   "databaseSecret": {
     "ref": "local/immich/database-password",
-    "filePath": "/srv/selfhost-projects/immich/secrets/database-password"
+    "filePath": "/srv/selfhost-projects/immich/secrets/immich-database-password"
   }
 }

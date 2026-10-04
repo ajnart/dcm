@@ -25,7 +25,7 @@
     "acceptance": ["The supported media stage passes its seven-service API, UI, Homarr, and MCP acceptance without choosing an indexer automatically.", "Immich, Nextcloud, Navidrome, Audiobookshelf, and Vaultwarden each pass owner-specific readiness and private-access checks.", "Every selected stateful service has app-consistent backup and isolated restore evidence.", "Homarr contains one reviewed household board with working app links and only supported live integrations.", "Optional home automation remains absent unless explicitly selected and its hardware dependencies are proven."]
   },
   {
-    "id": "personal-media", "name": "Personal media", "aliases": ["personal streaming", "media stack"], "summary": "Request, organize, and play an authorized private movie and TV library.", "categories": ["media", "requests", "downloads", "dashboard"], "automation": "guided",
+    "id": "personal-media", "name": "Personal media", "aliases": ["personal streaming", "media stack", "netflix", "replace netflix", "my own netflix"], "summary": "Request, organize, and play an authorized private movie and TV library.", "categories": ["media", "requests", "downloads", "dashboard"], "automation": "guided",
     "roles": [
       {"id": "playback", "name": "Playback", "required": true, "default": "jellyfin", "choices": ["jellyfin", "plex", "emby"], "reason": "Plays your own movies and shows on approved devices.", "purpose": "The media player streams your own movies and shows to approved devices.", "gates": ["storage", "hardware"]},
       {"id": "requests", "name": "Requests", "required": true, "default": "seerr", "choices": ["seerr"], "reason": "Lets approved users search for and request a movie or show.", "purpose": "Seerr lets approved users search for and request a movie or show.", "gates": ["secrets"]},
@@ -40,7 +40,7 @@
     "acceptance": ["Every selected application is API-ready on service-name DNS.", "Seerr reaches playback plus the selected Arr services.", "Shared paths support the selected import and hardlink policy."]
   },
   {
-    "id": "owned-video-library", "name": "Owned movie and TV library", "aliases": ["netflix", "replace netflix", "my own netflix", "owned movie library", "owned tv library"], "summary": "Stream movies and shows you already own through Jellyfin, with Homarr as the recommended dashboard and no implied content subscription.", "categories": ["media", "dashboard"], "automation": "guided",
+    "id": "owned-video-library", "name": "Owned movie and TV library", "aliases": ["owned movie library", "owned tv library"], "summary": "Stream movies and shows you already own through Jellyfin, with Homarr as the recommended dashboard and no implied content subscription.", "categories": ["media", "dashboard"], "automation": "guided",
     "roles": [
       {"id": "playback", "name": "Owned-library playback", "required": true, "default": "jellyfin", "choices": ["jellyfin"], "reason": "Jellyfin indexes and streams the authorized media files supplied by the owner.", "purpose": "Jellyfin streams your existing movie and TV files; it does not include or sell a catalog of content.", "gates": ["storage", "hardware", "exposure"]}
     ],
@@ -65,7 +65,7 @@
     "acceptance": ["A mobile photo upload appears in Immich.", "A representative general file round-trips through Nextcloud.", "Immich and Nextcloud data plus databases have separately tested restore coverage."]
   },
   {
-    "id": "documents", "name": "Documents, PDF, and OCR", "aliases": ["documents", "pdf", "paperless", "scan documents", "ocr"], "summary": "Ingest, OCR, search, transform, and recover private documents.", "categories": ["documents"], "automation": "guided",
+    "id": "documents", "name": "Documents, PDF, and OCR", "aliases": ["documents", "docs", "pdf", "paperless", "scan documents", "ocr"], "summary": "Ingest, OCR, search, transform, and recover private documents.", "categories": ["documents"], "automation": "guided",
     "roles": [
       {"id": "archive", "name": "Document archive", "required": true, "default": "paperless-ngx", "choices": ["paperless-ngx", "mayan-edms"], "reason": "Own durable ingest, metadata, OCR, search, and export.", "purpose": "The document archive reads scans, makes their text searchable, and keeps the originals.", "gates": ["storage", "backup", "privacy"]},
       {"id": "pdf-tools", "name": "PDF toolbox", "required": false, "default": null, "choices": ["stirling-pdf"], "reason": "Add private PDF transformations without confusing them with archival storage.", "purpose": "Stirling PDF edits, converts, joins, and splits PDFs in a private web tool.", "gates": ["privacy", "exposure"]}
@@ -117,17 +117,17 @@
     "acceptance": ["A redacted sample transaction imports and exports without loss.", "Authentication and private access are verified from an approved client.", "A database and uploads restore proves the finance data is recoverable."]
   },
   {
-    "id": "private-notes", "name": "Private notes and knowledge", "aliases": ["productivity", "private notes", "knowledge workspace", "anytype or obsidian"], "summary": "Choose a local-first knowledge tool and make its sync and backup boundary explicit.", "categories": ["productivity"], "automation": "discovery",
+    "id": "private-notes", "name": "Private notes and knowledge", "aliases": ["productivity", "notes", "private notes", "knowledge workspace", "notion", "replace notion", "notion replacement"], "summary": "Choose a private collaborative notes workspace and make its feature, secret, and backup boundaries explicit.", "categories": ["productivity"], "automation": "guided",
     "roles": [
-      {"id": "notes", "name": "Notes workspace", "required": true, "default": "anytype", "choices": ["anytype", "obsidian"], "reason": "Anytype and Obsidian have different client, synchronization, and server ownership models.", "purpose": "The selected notes workspace stores linked personal notes locally and uses only the synchronization path you approve.", "gates": ["privacy", "backup", "migration", "network"]}
+      {"id": "notes", "name": "Notes workspace", "required": true, "default": "docmost", "choices": ["docmost", "bookstack"], "reason": "Docmost and BookStack are Compose-hosted web workspaces with different editing models.", "purpose": "The workspace stores collaborative pages and attachments privately; Docmost's Notion-style Bases require a commercial edition.", "gates": ["privacy", "backup", "migration", "network", "secrets"]}
     ],
-    "requiredSkills": ["selfhost-host", "selfhost-research", "selfhost-backup", "selfhost-verify"], "gates": ["privacy", "backup", "migration", "network"],
-    "acceptance": ["A representative note remains available offline and synchronizes only through the selected path.", "Export and restore preserve the representative note and its attachment.", "The plan distinguishes a local client workspace from a self-hosted synchronization service."]
+    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-research", "selfhost-backup", "selfhost-verify"], "gates": ["privacy", "backup", "migration", "network", "secrets"],
+    "acceptance": ["The chosen workspace account can create and edit a representative page from an approved client.", "Export and isolated restore preserve the page and an attachment.", "A Docmost plan distinguishes Community pages from commercial Bases and BookStack's different editing model.", "Homarr opens the workspace tile without claiming a dedicated integration or live widget."]
   },
   {
     "id": "remote-access", "name": "Remote access", "aliases": ["remote access", "access online", "access from phone", "make accessible remotely", "private on my phone", "vpn"], "summary": "Expose selected services through a private overlay or separately approved public edge.", "categories": ["remote-access", "ingress", "identity"], "automation": "guided",
     "roles": [
-      {"id": "private-overlay", "name": "Private device network", "required": true, "default": "tailscale", "choices": ["tailscale", "headscale", "netbird", "wireguard"], "reason": "Prefer identity-aware private access for trusted devices.", "purpose": "The private network lets trusted devices reach selected services without making them public.", "gates": ["network", "secrets"]},
+      {"id": "private-overlay", "name": "Private device network", "required": true, "default": "tailscale", "choices": ["tailscale", "headscale", "netbird"], "reason": "Prefer identity-aware private access for trusted devices.", "purpose": "The private network lets trusted devices reach selected services without making them public.", "gates": ["network", "secrets"]},
       {"id": "public-tunnel", "name": "Public tunnel", "required": false, "default": null, "choices": ["cloudflare-tunnel", "pangolin"], "reason": "Add public reachability only when the user needs it and accepts the provider or VPS boundary.", "purpose": "A tunnel carries approved public traffic to one service without opening a direct inbound port.", "gates": ["public-exposure", "identity", "secrets"]},
       {"id": "reverse-proxy", "name": "Web traffic router", "required": false, "default": null, "choices": ["caddy", "traefik", "nginx-proxy-manager"], "reason": "Reuse one existing DNS/TLS/port owner or select one explicitly.", "purpose": "The web traffic router gives selected services HTTPS addresses and sends each request to the right app.", "gates": ["public-exposure", "privilege"]}
     ],
@@ -137,8 +137,7 @@
   {
     "id": "backups", "name": "Backups and restore", "aliases": ["backups", "backup my server", "disaster recovery", "restore plan"], "summary": "Capture app-consistent state into an off-host repository and prove recovery.", "categories": ["backups"], "automation": "guided",
     "roles": [
-      {"id": "backup-engine", "name": "Backup tool", "required": true, "default": "restic", "choices": ["restic", "kopia", "borgmatic"], "reason": "Create encrypted, versioned backups with explicit retention.", "purpose": "The backup tool keeps encrypted versions of important files in a separate location.", "gates": ["storage", "secrets", "destructive"]},
-      {"id": "hypervisor-repository", "name": "Virtual-machine backup", "required": false, "default": null, "choices": ["proxmox-backup-server"], "reason": "Add VM and container coverage when Proxmox owns the host boundary.", "purpose": "Proxmox Backup Server protects virtual machines and system containers managed by Proxmox.", "gates": ["storage", "network"]}
+      {"id": "backup-engine", "name": "Backup tool", "required": true, "default": "restic", "choices": ["restic", "kopia", "borgmatic"], "reason": "Create encrypted, versioned backups with explicit retention.", "purpose": "The backup tool keeps encrypted versions of important files in a separate location.", "gates": ["storage", "secrets", "destructive"]}
     ],
     "requiredSkills": ["selfhost-host", "selfhost-backup", "selfhost-verify"], "gates": ["storage", "secrets", "destructive", "migration"],
     "acceptance": ["Application-native capture succeeds before repository upload.", "At least one copy is in a separate failure domain.", "A fresh bounded restore proves application usability."]
@@ -182,16 +181,5 @@
     ],
     "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-vpn", "selfhost-verify"], "gates": ["vpn", "privilege", "secrets", "network", "legal", "storage"],
     "acceptance": ["Downloader public IP and DNS use the selected VPN while healthy.", "Breaking the tunnel makes downloader egress fail instead of using the host route.", "Restoring the tunnel restores the expected VPN egress.", "Control-plane and management traffic remain outside the downloader namespace."]
-  },
-  {
-    "id": "hosting-platform", "name": "Hosting platform", "aliases": ["deploy on a vps", "vps hosting", "mac mini server", "ubuntu server", "new self hosting server"], "summary": "Prepare a Mac, Ubuntu host, VPS, NAS, or hypervisor for bounded self-hosted projects.", "categories": ["containers", "virtualization", "ingress", "backups"], "automation": "guided",
-    "roles": [
-      {"id": "runtime", "name": "App container runner", "required": true, "default": "docker", "choices": ["docker"], "reason": "Provide isolated Compose projects after the target host is inspected.", "purpose": "Docker runs each selected app in a clearly owned and isolated project.", "gates": ["privilege", "network", "storage"]},
-      {"id": "host-platform", "name": "Server platform", "required": false, "default": null, "choices": ["proxmox", "truenas", "unraid"], "reason": "Select an appliance or hypervisor only when it already owns or should own the machine.", "purpose": "The server platform manages storage, virtual machines, or apps for the whole machine.", "gates": ["destructive", "migration", "storage"]},
-      {"id": "ingress", "name": "Remote web access", "required": false, "default": null, "choices": ["caddy", "traefik", "nginx-proxy-manager"], "reason": "Assign one DNS, TLS, and port owner when remote services require it.", "purpose": "The web access service gives approved apps HTTPS addresses and sends traffic to the right place.", "gates": ["public-exposure", "network", "secrets"]},
-      {"id": "backup-engine", "name": "Backup tool", "required": true, "default": "restic", "choices": ["restic", "kopia", "borgmatic"], "reason": "Protect configuration and application state before workloads accumulate.", "purpose": "The backup tool keeps encrypted copies of configuration and app data away from the live system.", "gates": ["storage", "secrets"]}
-    ],
-    "requiredSkills": ["selfhost-host", "selfhost-compose", "selfhost-ingress", "selfhost-backup", "selfhost-verify"], "gates": ["privilege", "network", "storage", "public-exposure", "secrets", "migration", "destructive"],
-    "acceptance": ["Operating system, architecture, runtime, disks, networks, ports, and existing services are inventoried.", "Project paths and ownership are reviewable before directory creation.", "Ingress has one owner and direct management ports remain private.", "A configuration backup and restore path exists before application deployment."]
   }
 ]

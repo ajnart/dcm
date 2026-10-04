@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "restic",
+  "source": "https://restic.readthedocs.io/en/stable/020_installation.html",
+  "execution": { "kind": "manual-job", "officialUrl": "https://restic.readthedocs.io/en/stable/020_installation.html", "probe": { "argv": ["restic", "version"], "officialUrl": "https://github.com/restic/restic/releases/tag/v0.19.1" } },
+  "services": [{
+    "id": "restic",
+    "purpose": "Prepares an inert backup CLI; only an explicitly approved version probe runs, not a backup or restore.",
+    "imageTag": "ghcr.io/restic/restic:0.19.1",
+    "imageSource": "https://restic.readthedocs.io/en/stable/020_installation.html",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/restic/restic/blob/v0.19.1/docker/Dockerfile", "reason": "official-image-runtime-contract" },
+    "hostname": "self-host-restic",
+    "restart": "no",
+    "readOnly": false,
+    "command": ["version"],
+    "environment": [{ "name": "RESTIC_REPOSITORY", "value": "/repository" }],
+    "hostEnvironment": [],
+    "fileEnvironment": [{ "name": "RESTIC_PASSWORD_FILE", "fileId": "repository-password" }],
+    "mounts": [
+      { "name": "source", "target": "/source", "kind": "bind", "readOnly": true },
+      { "name": "repository", "target": "/repository", "kind": "bind", "readOnly": false }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": null
+  }],
+  "privateFiles": [{ "id": "repository-password", "bytes": 48 }],
+  "onboarding": { "kind": "job-credentials", "officialUrl": "https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": null, "dataDirectoryName": "restic" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "manual-version", "method": "job", "description": "After separate exact job approval, version exits zero and reports the pinned restic version. This does not initialize or verify a repository." },
+    { "id": "isolated-restore", "method": "persisted", "description": "Under a separately reviewed backup workflow, restore an exact snapshot into an isolated target and prove integrity, application acceptance, and RTO. No backup coverage is claimed before this." }
+  ]
+}

@@ -10,8 +10,8 @@ type Input = {
   platform: "linux/amd64";
   project: Record<string, unknown>;
   observed: Record<string, unknown>;
-  network: { id: string; name: string; internal: boolean };
-  integrationNetwork?: { id: string; name: string; owner: string };
+  network: { id: string; name: string; internal: boolean; ownership?: "new" | "verified-existing"; subnet?: string };
+  integrationNetwork?: { id: string; name: string; owner: string; internal?: boolean };
   hostIp: string;
   publishedPort: number;
   allowSetup: boolean;
@@ -90,7 +90,14 @@ export function buildImmichManifest(raw: unknown) {
   }
   const project = object(input.project, "project");
   const network = object(input.network, "network");
-  exact(network, ["id", "name", "internal"], [], "network");
+  exact(network, ["id", "name", "internal"], ["ownership", "subnet"], "network");
+  const networkOwnership = network.ownership ?? "new";
+  if (networkOwnership !== "new" && networkOwnership !== "verified-existing") {
+    fail("network.ownership must be new or verified-existing");
+  }
+  if (Object.hasOwn(network, "subnet") && typeof network.subnet !== "string") {
+    fail("network.subnet must be a string when supplied");
+  }
   const images = object(input.images, "images");
   exact(images, Object.keys(RELEASE), [], "images");
   for (const key of Object.keys(RELEASE) as (keyof typeof RELEASE)[]) {
@@ -106,13 +113,28 @@ export function buildImmichManifest(raw: unknown) {
   const databaseSecret = object(input.databaseSecret, "databaseSecret");
   exact(databaseSecret, ["ref", "filePath"], [], "databaseSecret");
 
-  const networks = [{ id: network.id, name: network.name, driver: "bridge", internal: network.internal, owner: project.owner, ownership: "new" }];
+  const primaryNetwork: Record<string, unknown> = {
+    id: network.id,
+    name: network.name,
+    driver: "bridge",
+    internal: network.internal,
+    owner: project.owner,
+    ownership: networkOwnership
+  };
+  if (networkOwnership === "new" && network.subnet !== undefined) {
+    primaryNetwork.subnet = network.subnet;
+  }
+  const networks = [primaryNetwork];
   const internalNetworks = [network.id];
   const serverNetworks = [network.id];
   if (input.integrationNetwork) {
     const integration = object(input.integrationNetwork, "integrationNetwork");
-    exact(integration, ["id", "name", "owner"], [], "integrationNetwork");
-    networks.push({ id: integration.id, name: integration.name, driver: "bridge", internal: false, owner: integration.owner, ownership: "verified-existing" });
+    exact(integration, ["id", "name", "owner"], ["internal"], "integrationNetwork");
+    if (integration.internal !== undefined && typeof integration.internal !== "boolean") {
+      fail("integrationNetwork.internal must be a boolean when supplied");
+    }
+    networks.push({ id: integration.id, name: integration.name, driver: "bridge",
+      internal: integration.internal ?? false, owner: integration.owner, ownership: "verified-existing" });
     serverNetworks.push(integration.id);
   }
 

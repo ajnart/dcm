@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "tdarr",
+  "source": "https://docs.tdarr.io/docs/installation/docker/run-compose/",
+  "services": [
+    {
+      "id": "tdarr",
+      "purpose": "Runs the Tdarr server and internal node with a private web UI and an owner-selected read-only media mount.",
+      "imageTag": "ghcr.io/haveagitgat/tdarr:2.92.01",
+      "imageSource": "https://github.com/HaveAGitGat/Tdarr/pkgs/container/tdarr",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://docs.tdarr.io/docs/installation/docker/run-compose/",
+        "reason": "official-image-runtime-contract"
+      },
+      "hostIdentityEvidence": "https://docs.tdarr.io/docs/installation/docker/run-compose/",
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "serverIP", "value": "0.0.0.0" },
+        { "name": "serverPort", "value": "8266" },
+        { "name": "webUIPort", "value": "8265" },
+        { "name": "internalNode", "value": "true" },
+        { "name": "inContainer", "value": "true" },
+        { "name": "auth", "value": "true" },
+        { "name": "openBrowser", "value": "false" },
+        { "name": "transcodecpuWorkers", "value": "0" },
+        { "name": "transcodegpuWorkers", "value": "0" },
+        { "name": "healthcheckcpuWorkers", "value": "0" },
+        { "name": "healthcheckgpuWorkers", "value": "0" }
+      ],
+      "hostEnvironment": [
+        { "name": "PUID", "source": "uid" },
+        { "name": "PGID", "source": "gid" },
+        { "name": "TZ", "source": "timezone" }
+      ],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "server", "target": "/app/server", "kind": "volume" },
+        { "name": "configs", "target": "/app/configs", "kind": "volume" },
+        { "name": "logs", "target": "/app/logs", "kind": "volume" },
+        { "name": "media-library", "target": "/media", "kind": "bind", "hostPath": true, "readOnly": true, "shareGroup": "media-data" },
+        { "name": "transcode-cache", "target": "/temp", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 8265
+    }
+  ],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://docs.tdarr.io/docs/other/authentication/",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8265,
+    "dataDirectoryName": "tdarr"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "administrator", "method": "browser", "description": "The pinned headless adapter registers the first admin with the saved password and verifies a fresh login and admin role; independently verify the private web UI." },
+    { "id": "api-key", "method": "browser", "description": "The pinned headless adapter saves and inserts one owned API key, then verifies inventory with that key; independently verify node connectivity before enabling workers." },
+    { "id": "transcode", "method": "browser", "description": "Enable workers only after separate approval of writable library behavior; first test a copied file and preserve its source." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned service and recheck administrator login, API-key access, and saved configuration." }
+  ]
+}

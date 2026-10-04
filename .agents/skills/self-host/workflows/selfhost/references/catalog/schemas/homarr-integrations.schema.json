@@ -4,10 +4,15 @@
   "title": "Homarr integration coverage registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "checkedAt", "officialSources", "standard", "special"],
+  "required": ["schemaVersion", "checkedAt", "externalOnly", "officialSources", "standard", "special"],
   "properties": {
     "schemaVersion": {"const": 1},
     "checkedAt": {"type": "string", "format": "date"},
+    "externalOnly": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9]*$"},
+      "uniqueItems": true
+    },
     "officialSources": {
       "type": "array",
       "items": {"type": "string", "format": "uri", "pattern": "^https://"},
@@ -16,14 +21,11 @@
     },
     "standard": {
       "type": "array",
-      "items": {"$ref": "#/$defs/surface"},
-      "minItems": 54,
-      "maxItems": 54
+      "items": {"$ref": "#/$defs/surface"}
     },
     "special": {
       "type": "array",
       "items": {"$ref": "#/$defs/surface"},
-      "minItems": 2,
       "maxItems": 2
     }
   },

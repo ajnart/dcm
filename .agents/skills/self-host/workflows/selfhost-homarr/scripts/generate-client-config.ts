@@ -4,6 +4,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -39,14 +40,13 @@ function tomlString(value) {
   return JSON.stringify(value);
 }
 
-function render(format, serverName, nodePath, path, profilePath) {
-  const args = [path, profilePath];
+function render(format, serverName, command, args) {
   if (format === "claude-code" || format === "pi") {
     return `${JSON.stringify({
       mcpServers: {
         [serverName]: {
           type: "stdio",
-          command: nodePath,
+          command,
           args,
         },
       },
@@ -55,7 +55,7 @@ function render(format, serverName, nodePath, path, profilePath) {
   if (format === "codex") {
     return [
       `[mcp_servers.${tomlString(serverName)}]`,
-      `command = ${tomlString(nodePath)}`,
+      `command = ${tomlString(command)}`,
       `args = [${args.map((value) => tomlString(value)).join(", ")}]`,
       "",
     ].join("\n");
@@ -64,14 +64,14 @@ function render(format, serverName, nodePath, path, profilePath) {
     return `${JSON.stringify({
       name: serverName,
       transport: "stdio",
-      command: nodePath,
+      command,
       args,
     }, null, 2)}\n`;
   }
   return [
     `name = ${tomlString(serverName)}`,
     'transport = "stdio"',
-    `command = ${tomlString(nodePath)}`,
+    `command = ${tomlString(command)}`,
     `args = [${args.map((value) => tomlString(value)).join(", ")}]`,
     "",
   ].join("\n");
@@ -93,28 +93,26 @@ function fileName(format) {
   return "generic.toml";
 }
 
-function main() {
-  if (Bun.argv.length !== 4) {
-    throw new Error("format and profile path are required");
-  }
-  const format = Bun.argv[2];
+export function generateClientConfig(format, profilePath, launcher, report = (line) => process.stdout.write(line)) {
   if (!FORMATS.has(format)) {
     throw new Error("client format is invalid");
   }
-  const profile = loadProfile(Bun.argv[3]);
+  const profile = loadProfile(profilePath);
   const fragmentsDirectory = join(profile.profilePath, "client-fragments");
   if (!existsSync(fragmentsDirectory)) {
     mkdirSync(fragmentsDirectory, { mode: 0o700 });
   }
   assertRealDirectory(fragmentsDirectory, { mode: 0o700, parent: profile.profilePath });
 
-  const path = bridgePath();
-  const nodePath = realpathSync(process.execPath);
+  const command = launcher?.command ?? realpathSync(process.execPath);
+  const args = launcher ? [...launcher.argsPrefix, profile.profilePath] : [bridgePath(), profile.profilePath];
   let serverName = `homarr-${profile.profile}`;
   if (profile.capabilityPolicy?.mode === "integration-request") {
     serverName = `${serverName}-integration-request`;
+  } else if (profile.capabilityPolicy?.mode === "media-request") {
+    serverName = `${serverName}-media-request`;
   }
-  const content = render(format, serverName, nodePath, path, profile.profilePath);
+  const content = render(format, serverName, command, args);
   if (
     content.includes("ApiKey")
     || content.includes("apiKey")
@@ -128,13 +126,31 @@ function main() {
   if (basename(destination) !== fileName(format)) {
     throw new Error("client fragment path is invalid");
   }
+  if (existsSync(destination)) {
+    const stat = lstatSync(destination);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1
+      || stat.uid !== process.getuid?.() || (stat.mode & 0o7777) !== 0o600
+      || realpathSync(destination) !== destination || stat.size > 64 * 1024
+      || readFileSync(destination, "utf8") !== content) {
+      throw new Error("existing Homarr MCP fragment differs or is unsafe");
+    }
+    report("PASS identical secret-free Homarr MCP client fragment retained\n");
+    return { path: destination, created: false };
+  }
   atomicWritePrivate(destination, content, { maxBytes: 64 * 1024 });
-  process.stdout.write("PASS secret-free Homarr MCP client fragment written\n");
+  report("PASS secret-free Homarr MCP client fragment written\n");
+  return { path: destination, created: true };
 }
 
-try {
-  main();
-} catch {
-  process.stdout.write("FAIL Homarr MCP client fragment\n");
-  process.exitCode = 1;
+const scriptPath = fileURLToPath(import.meta.url);
+if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
+  try {
+    if (process.argv.length !== 4) {
+      throw new Error("format and profile path are required");
+    }
+    generateClientConfig(process.argv[2], process.argv[3]);
+  } catch {
+    process.stdout.write("FAIL Homarr MCP client fragment\n");
+    process.exitCode = 1;
+  }
 }

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "nginx-proxy-manager",
+  "source": "https://nginxproxymanager.com/setup/",
+  "services": [{
+    "id": "nginx-proxy-manager",
+    "purpose": "Provides a private proxy administration UI; public ingress is not enabled by this candidate.",
+    "imageTag": "jc21/nginx-proxy-manager:2.16.0",
+    "imageSource": "https://github.com/NginxProxyManager/nginx-proxy-manager/releases/tag/v2.16.0",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://nginxproxymanager.com/advanced-config/", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [
+      { "name": "data", "target": "/data", "kind": "volume" },
+      { "name": "letsencrypt", "target": "/etc/letsencrypt", "kind": "volume" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": 81
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "manual-first-email",
+    "officialUrl": "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/routes/users.js",
+    "email": "admin@example.test",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8181, "dataDirectoryName": "nginx-proxy-manager" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "admin-login", "method": "api", "description": "Verify the generated saved password with POST /api/tokens on the exact private origin and confirm the administrator identity." },
+    { "id": "api-credential", "method": "api", "description": "Treat the issued bearer token as a short-lived login token, not a durable API key; do not save or claim an API key without a documented contract." },
+    { "id": "ingress-approval", "method": "browser", "description": "Separately approve DNS, TLS, auth, and ownership of public ports 80 and 443 before publishing either proxy listener or configuring hosts." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and verify saved administrator login, proxy database, and certificate storage remain available." }
+  ]
+}

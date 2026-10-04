@@ -1,0 +1,65 @@
+{
+  "id": "tdarr",
+  "name": "Tdarr",
+  "aliases": [
+    "media transcoding automation",
+    "transcode library"
+  ],
+  "categories": [
+    "media"
+  ],
+  "roles": [
+    "media-transcoding"
+  ],
+  "upstream": {
+    "url": "https://home.tdarr.io/",
+    "repository": "https://github.com/HaveAGitGat/Tdarr",
+    "docs": "https://docs.tdarr.io/"
+  },
+  "image": {
+    "reference": "ghcr.io/haveagitgat/tdarr:2.92.01",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "Pinned server/internal-node Compose candidate with a source-backed 2.92.01 first-owner and API-key adapter. Exact frontend request contracts are recorded in bootstrap-source.md; live authentication, node connectivity, and restart acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Tdarr"
+  },
+  "dependencies": [
+    "capability:media-storage",
+    "capability:accelerator"
+  ],
+  "alternatives": [
+    "jellyfin",
+    "emby"
+  ],
+  "security": [
+    "Limit worker access to owner-selected libraries and approve GPU or device access explicitly.",
+    "Keep the first-user setup screen private; auth=true does not pre-create an administrator or close registration."
+  ],
+  "pitfalls": [
+    "A bad transcode policy can replace source media; test on copies and preserve recoverable originals.",
+    "The documented seededApiKey setting creates a key, not a first-admin identity. The headless adapter separately registers the first admin, verifies login, and saves an owned API key before insertion.",
+    "Port 8266 is the server/API listener and is not published by the shared recipe; only the web UI is mapped to loopback.",
+    "The internal node starts with zero configured workers; approve library write behavior and test on copies before enabling transcoding."
+  ],
+  "sources": [
+    "https://docs.tdarr.io/",
+    "https://github.com/HaveAGitGat/Tdarr",
+    "https://docs.tdarr.io/docs/installation/docker/run-compose/",
+    "https://docs.tdarr.io/docs/other/authentication/",
+    "https://docs.tdarr.io/docs/installation/variables/",
+    "https://docs.tdarr.io/docs/api/",
+    "https://github.com/HaveAGitGat/Tdarr/pkgs/container/tdarr"
+  ]
+}

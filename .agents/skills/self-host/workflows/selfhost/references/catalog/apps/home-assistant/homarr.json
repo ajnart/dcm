@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "homeAssistant",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "calendar",
+      "options": {}
+    },
+    {
+      "kind": "smartHome-entityState",
+      "options": {},
+      "prerequisite": "home-assistant-entity"
+    },
+    {
+      "kind": "smartHome-executeAutomation",
+      "options": {},
+      "prerequisite": "home-assistant-automation"
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "entities",
+        "unavailable",
+        "lightsOn",
+        "peopleHome"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "calendar",
+        "procedure": "widget.calendar.findAllEvents",
+        "inputMode": "many",
+        "field": "events",
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": {
+              "title": "string",
+              "startDate": "string",
+              "indicatorColor": "string",
+              "links": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "fields": {
+                    "name": "string",
+                    "isDark": "boolean",
+                    "href": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "input": {
+          "releaseType": [
+            "inCinemas",
+            "digitalRelease"
+          ],
+          "showUnmonitored": false
+        },
+        "dateBindings": {
+          "year": "year",
+          "month": "month"
+        }
+      },
+      {
+        "kind": "smartHome-entityState",
+        "procedure": "widget.smartHome.entityState",
+        "inputMode": "one",
+        "field": null,
+        "shape": "string",
+        "inputBindings": {
+          "entityId": "homeAssistantEntityId"
+        }
+      }
+    ]
+  }
+}

@@ -51,13 +51,17 @@ acceptance succeed.
    paths, port, and project ownership before any mutation. If the server already
    presents login or the library, treat setup as initialized; never attempt a
    second first-user registration.
-3. Immich's supported first-admin path is the browser: open the private URL,
-   choose **Getting Started**, and register the first user. Ask for the user's
-   full name and email only at this step. Immich authenticates this account by
-   email, so retain the selected household username as a display-name preference
-   rather than inventing a matching username. Keep the password at the narrow
-   browser/secret boundary. An undocumented sign-up API is not an automation
-   contract.
+3. Ask for the first admin's full name and email at this step. Immich authenticates
+   by email; the selected household username is only a display-name preference.
+   For v3.2.2, prefer the versioned OpenAPI **Stable** `signUpAdmin` operation:
+   `POST /api/auth/admin-sign-up` with `email`, `name`, and `password`. Send the
+   generated password only in a private request body to the trusted, private
+   server URL; never put it in command arguments or logs. Expect `201`, then
+   verify login before recording success. The route works only while setup is
+   allowed and no admin exists. If the deployed version lacks this contract or
+   the call fails, use the documented **Getting Started** browser flow; do not
+   retry a possibly successful signup blindly. On resume, check whether setup
+   is already complete before any first-admin call.
 4. After the first admin exists, set `IMMICH_ALLOW_SETUP=false` on the next
    approved Compose revision by setting the builder's required `allowSetup` input
    to `false`, then recreate the affected container. Record this as a separate
@@ -89,5 +93,7 @@ acceptance succeed.
 - <https://docs.immich.app/install/environment-variables/>
 - <https://docs.immich.app/install/requirements/>
 - <https://docs.immich.app/administration/user-management/>
+- <https://github.com/immich-app/immich/blob/v3.2.2/open-api/immich-openapi-specs.json>
+- <https://github.com/immich-app/immich/blob/v3.2.2/server/src/controllers/auth.controller.ts>
 - Homarr source: `apps/docs/docs/integrations/immich/index.mdx` and
   `packages/definitions/src/integration.ts` in the deployed Homarr revision.

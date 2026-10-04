@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "valkey",
+  "source": "https://hub.docker.com/r/valkey/valkey/",
+  "services": [{
+    "id": "valkey",
+    "purpose": "Runs a private Valkey cache or queue for trusted peers on the reviewed shared Compose network.",
+    "imageTag": "valkey/valkey:9.1.2",
+    "imageSource": "https://hub.docker.com/r/valkey/valkey/tags?name=9.1.2",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://hub.docker.com/r/valkey/valkey/", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "command": ["valkey-server", "--protected-mode", "no"],
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": 6379
+  }],
+  "privateFiles": [],
+  "onboarding": { "kind": "no-account", "officialUrl": "https://valkey.io/topics/installation/" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 6379, "dataDirectoryName": "valkey" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "private-ping", "method": "api", "description": "valkey-cli PING from the exact running Valkey container returns PONG; this proves only local service readiness, not peer access or authentication." },
+    { "id": "trusted-peer", "method": "api", "description": "From each separately reviewed trusted peer, verify private TCP access and its documented Valkey compatibility; reject unknown or untrusted peers." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and verify a deliberately created probe key remains when persistence is required for the selected workload." },
+    { "id": "isolated-restore", "method": "persisted", "description": "For durable queue use, restore a consistent Valkey backup into an isolated instance and verify the intended key data." }
+  ]
+}

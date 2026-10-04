@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "uptime-kuma",
+  "source": "https://github.com/louislam/uptime-kuma/blob/2.5.5/compose.yaml",
+  "services": [{
+    "id": "uptime-kuma",
+    "purpose": "Runs a private uptime monitor and stores its accounts, monitors, and history.",
+    "imageTag": "louislam/uptime-kuma:2.5.5",
+    "imageSource": "https://github.com/louislam/uptime-kuma/releases/tag/2.5.5",
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "user": "image-default",
+    "imageUserEvidence": {
+      "officialUrl": "https://github.com/louislam/uptime-kuma/blob/2.5.5/compose.yaml",
+      "reason": "official-image-runtime-contract"
+    },
+    "environment": [{ "name": "UPTIME_KUMA_DB_TYPE", "value": "sqlite" }],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [{ "name": "appdata", "target": "/app/data", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": 3001
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48 }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://github.com/louislam/uptime-kuma/blob/2.5.5/server/server.js",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 3001,
+    "dataDirectoryName": "uptime-kuma"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "first-account", "method": "api", "description": "Skip the database wizard with pinned SQLite configuration, create the first owner through Socket.IO polling with exact reviewed application events, and verify login with the saved password. The shared adapter is enabled but still needs fresh-instance acceptance." },
+    { "id": "monitor-check", "method": "api", "description": "Create or select a monitor and confirm its expected state through an owner-authenticated readback." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart this exact project and confirm its account and monitor remain available." }
+  ]
+}

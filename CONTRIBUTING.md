@@ -176,7 +176,7 @@ a Homarr app tile cannot promote support.
 - Essential README and contributing commands, flags, and paths match the
   static repository documentation contract.
 - The exact Homarr image is
-  `ghcr.io/homarr-labs/homarr-test:v2` in source, catalog, and media bundle.
+  `ghcr.io/homarr-labs/homarr:dev` in source, catalog, and media bundle.
 - Media bundle integrity and canonical-source drift pass.
 - Changed Bun TypeScript/Bash files pass syntax and their targeted fixtures.
 - No runtime, secret, session, evidence, or client-install material is staged.

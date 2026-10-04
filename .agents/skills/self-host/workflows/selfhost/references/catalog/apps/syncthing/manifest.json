@@ -1,0 +1,60 @@
+{
+  "id": "syncthing",
+  "name": "Syncthing",
+  "aliases": [
+    "device file sync",
+    "folder sync"
+  ],
+  "categories": [
+    "files"
+  ],
+  "roles": [
+    "device-sync"
+  ],
+  "upstream": {
+    "url": "https://syncthing.net/",
+    "repository": "https://github.com/syncthing/syncthing",
+    "docs": "https://docs.syncthing.net/"
+  },
+  "image": {
+    "reference": "syncthing/syncthing:2.1.4",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Official Docker image and configuration routes checked; shared setup lacks a safe first-GUI-credential/API-key bootstrap and peer-network acceptance."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:file-storage"
+  ],
+  "alternatives": [
+    "nextcloud",
+    "seafile"
+  ],
+  "security": [
+    "Authenticate and restrict the GUI before any non-loopback exposure; the official Docker image listens on all container interfaces by default.",
+    "Protect the device private key and API key; review each device and folder share separately."
+  ],
+  "pitfalls": [
+    "Synchronization propagates deletions and is not a backup.",
+    "An unpublished peer/discovery port or container bridge can leave the GUI running while device sync is unusable.",
+    "The documented offline credential generator and API-key-protected REST configuration need an exact private-file/container-operation primitive before shared setup can claim readiness."
+  ],
+  "sources": [
+    "https://docs.syncthing.net/users/faq.html",
+    "https://github.com/syncthing/syncthing/blob/main/README-Docker.md",
+    "https://docs.syncthing.net/rest/",
+    "https://docs.syncthing.net/users/config.html"
+  ]
+}

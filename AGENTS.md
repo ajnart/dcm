@@ -22,8 +22,13 @@ capability.
 ## Protected invariants
 
 - Inspect -> plan -> approval -> apply -> verify.
-- Private or loopback exposure is the default. Public exposure is a separate
-  approval with one DNS/TLS/80/443/auth owner.
+- Private or loopback exposure is the default outside the explicit media-harness
+  exception. The media harness defaults to short Compose port mappings on all
+  host interfaces, requiring router or Docker-aware firewall scope before apply.
+  Its explicit host-only mode binds all seven ports to 127.0.0.1 and needs a
+  separate private route for other devices. Show the selected mode in the plan.
+  Public ingress remains a separate approval with one
+  DNS/TLS/80/443/auth owner.
 - Facts, choices, derived values, secret references, and evidence keep distinct
   provenance.
 - Preferences contain no secrets. Secret payloads stay at the narrow apply
@@ -43,7 +48,7 @@ capability.
   app's `adapterSkill`, while stack-scoped adapters are invoked directly.
 - App tiles, Homarr integrations, and widgets are separate claims.
 - The media adapter uses exactly
-  `ghcr.io/homarr-labs/homarr-test:v2` and only authorized content.
+  `ghcr.io/homarr-labs/homarr:dev` and only authorized content.
 
 ## Ownership
 

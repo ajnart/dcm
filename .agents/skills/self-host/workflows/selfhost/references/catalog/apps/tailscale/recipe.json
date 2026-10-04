@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "tailscale",
+  "source": "https://tailscale.com/docs/features/containers/docker/docker-params",
+  "execution": { "kind": "private-connector", "frontendSharing": "owner-front", "officialUrl": "https://tailscale.com/docs/concepts/userspace-networking" },
+  "services": [{
+    "id": "tailscale",
+    "purpose": "Starts an unprivileged userspace daemon; separate exact approvals enroll its identity and activate one private Serve route.",
+    "imageTag": "ghcr.io/tailscale/tailscale:v1.102.4",
+    "imageSource": "https://github.com/tailscale/tailscale/releases/tag/v1.102.4",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/tailscale/tailscale/blob/v1.102.4/build_docker.sh", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "entrypoint": ["/usr/local/bin/tailscaled"],
+    "command": ["--tun=userspace-networking", "--state=/var/lib/tailscale/tailscaled.state", "--socket=/tmp/tailscaled.sock"],
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [{ "name": "TS_AUTHKEY", "fileId": "auth-key", "format": "file-uri", "officialUrl": "https://github.com/tailscale/tailscale/blob/v1.102.4/cmd/tailscale/cli/up.go" }],
+    "mounts": [{ "name": "state", "target": "/var/lib/tailscale", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": null
+  }],
+  "privateFiles": [{ "id": "auth-key", "source": "owner", "maxBytes": 4096 }],
+  "onboarding": { "kind": "connector-enrollment", "officialUrl": "https://tailscale.com/docs/features/access-control/auth-keys" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": null, "dataDirectoryName": "tailscale" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "enrolled-node", "method": "connector", "description": "After separate enrollment approval, read Running status, expected tailnet suffix and the stable node identity; reject SSH, subnet and exit routing preferences." },
+    { "id": "private-serve-route", "method": "connector", "description": "After separate Serve approval, read back the exact selected same-owner frontend HTTPS proxy, with no Funnel or additional routes; intended-client ACL allow/deny remains separate." },
+    { "id": "intended-client", "method": "connector", "description": "Verify authorized and denied clients against the intended route and prove it is absent from the ordinary internet; local status alone is not client acceptance." },
+    { "id": "restart-identity", "method": "persisted", "description": "After scoped restart, prove the same stable node identity, saved Serve route and ACL restrictions persist without re-enrollment." }
+  ]
+}

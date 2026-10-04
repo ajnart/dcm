@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "jellyfin",
+  "source": "https://jellyfin.org/docs/general/installation/container/",
+  "services": [
+    {
+      "id": "jellyfin",
+      "purpose": "Streams the owner's media from an approved read-only library mount through a private web interface.",
+      "imageTag": "ghcr.io/jellyfin/jellyfin:12.1.20260915-010956",
+      "imageSource": "https://github.com/jellyfin/jellyfin/pkgs/container/jellyfin",
+      "user": "host-selected",
+      "imageUserEvidence": {
+        "officialUrl": "https://jellyfin.org/docs/general/installation/container/",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "config", "target": "/config", "kind": "volume" },
+        { "name": "cache", "target": "/cache", "kind": "volume" },
+        { "name": "media-library", "target": "/data", "kind": "bind", "hostPath": true, "readOnly": true, "shareGroup": "media-data" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 8096
+    }
+  ],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://raw.githubusercontent.com/jellyfin/jellyfin/v12.1/Jellyfin.Api/Controllers/StartupController.cs",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 8096,
+    "dataDirectoryName": "jellyfin"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    {
+      "id": "administrator",
+      "method": "api",
+      "description": "Complete the v12.1 first-run API with a generated administrator password and verify an authenticated admin session."
+    },
+    {
+      "id": "api-key",
+      "method": "api",
+      "description": "Create or reuse one labeled persistent API key, save it privately, and verify a protected API read."
+    },
+    {
+      "id": "media-library",
+      "method": "api",
+      "description": "Add only owner-selected directories under the approved read-only media mount, then read back the library mapping."
+    },
+    {
+      "id": "restart-persistence",
+      "method": "persisted",
+      "description": "Restart only this owned unit and recheck login, API-key access, and configured library paths."
+    }
+  ]
+}

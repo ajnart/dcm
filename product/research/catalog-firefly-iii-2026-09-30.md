@@ -1,0 +1,9 @@
+# Firefly III first-owner setup boundary — 2026-09-30
+
+The catalog pins `fireflyiii/core:version-6.7.2`. Its [pinned web routes](https://github.com/firefly-iii/firefly-iii/blob/v6.7.2/routes/web.php#L92-L106) define `GET/POST /register` and `GET/POST /login` under the not-logged-in web middleware. [Personal access token creation](https://github.com/firefly-iii/firefly-iii/blob/v6.7.2/routes/web.php#L28-L43) is `POST /oauth/personal-access-tokens` under `user-full-auth`. The `/health` route is separate and does not prove account ownership, login, token issuance, or ledger usability.
+
+The [multi-user guidance](https://docs.firefly-iii.org/how-to/firefly-iii/features/multi-user/) says the first registered user becomes owner and registration closes by default afterward. The login is an email, not a username. The shared recipe now binds fixed `admin@example.test` to its generated private password for headless first registration; Compose start alone still does not create or verify that account.
+
+The [shared setup recheck](catalog-firefly-setup-2026-09-30.md) now records the pinned form/session/CSRF fields, authenticated profile email readback, token response path, and exact-owner checkpoint policy implemented in `apps/firefly-iii/setup.ts`. An ambiguous signup is reconciled only by logging in with the saved password. A lost token response is not replayed: the token-list endpoint cannot recover its plaintext, so setup stops for inspection. The adapter's source-level route is not a live acceptance claim, and `admin@example.test` is not a real recovery inbox.
+
+The remaining acceptance gates are an authenticated owner login, harmless ledger record roundtrip, private cron caller verification if enabled, exact-project restart persistence, and an isolated restore. No Docker or live application check was performed in this source-only pass.

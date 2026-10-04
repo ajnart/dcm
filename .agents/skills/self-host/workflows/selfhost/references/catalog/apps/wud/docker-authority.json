@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "appId": "wud",
+  "modes": ["docker-inventory-mtls", "docker-management-mtls"],
+  "sourceFiles": ["manifest.json", "derived-recipe.ts", "configuration.ts", "remote-watcher.ts", "authority.ts", "setup.ts", "pre-start.ts", "pre-start-adapter.json"],
+  "additionalBoundaries": []
+}

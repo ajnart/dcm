@@ -1,0 +1,60 @@
+{
+  "id": "prometheus",
+  "name": "Prometheus",
+  "aliases": [
+    "metrics server",
+    "time series monitoring"
+  ],
+  "categories": [
+    "observability",
+    "monitoring"
+  ],
+  "roles": [
+    "metrics-store",
+    "scraper"
+  ],
+  "upstream": {
+    "url": "https://prometheus.io/",
+    "repository": "https://github.com/prometheus/prometheus",
+    "docs": "https://prometheus.io/docs/prometheus/latest/installation/"
+  },
+  "image": {
+    "reference": "prom/prometheus:v3.15.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Pinned 3.15.0 candidate uses the image's sample configuration; scrape targets and retention must be planned per host."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Prometheus"
+  },
+  "dependencies": [
+    "capability:exporters",
+    "capability:metrics-storage"
+  ],
+  "alternatives": [
+    "victoria-metrics",
+    "beszel"
+  ],
+  "security": [
+    "Keep scrape targets and management endpoints private."
+  ],
+  "pitfalls": [
+    "Unbounded cardinality and retention can consume storage rapidly."
+  ],
+  "sources": [
+    "https://prometheus.io/docs/prometheus/latest/installation/",
+    "https://github.com/prometheus/prometheus/releases/tag/v3.15.0",
+    "https://prometheus.io/docs/prometheus/latest/management_api/",
+    "https://prometheus.io/docs/prometheus/latest/querying/api/"
+  ]
+}

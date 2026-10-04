@@ -3,6 +3,24 @@
 All notable public changes are documented here. The project uses pack-level
 semantic versioning; individual skills share the pack version.
 
+## 1.1.1 - 2026-10-04
+
+- Add a shared Compose control panel with app selection, scoped lifecycle,
+  saved credentials, deterministic setup and optional Homarr publication.
+- Check private GitHub releases on interactive launch and offer a verified
+  global CLI update with Enter accepting the confirmation.
+- Ship the standalone CLI tarball and its matching checksum privately on GitHub.
+- Keep unverified integrations, external prerequisites and live acceptance
+  gaps explicit; Frigate is omitted from the current acceptance run.
+
+## 1.1.0 - 2026-09-25
+
+- Add a standalone `self-host` CLI with catalog planning, resumable household
+  bundles, private credential handoff, exact approvals, and scoped lifecycle.
+- Add bounded media, Immich, Docmost, Vaultwarden, Homarr attachment, and
+  private Caddy routes with explicit direct-acceptance checkpoints.
+- Clarify composite planning and prepare the first npm CLI publication.
+
 ## 1.0.0 - 2026-09-24
 
 - Make `self-host` explicitly invoked, with a single command route for Pi and

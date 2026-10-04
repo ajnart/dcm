@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "appId": "paperless-ngx",
+  "recipeSha256": "4d159ed010902d86a9b5dc6e3c30ae836bc3119bcc45c22e05f7d6b474961ffd",
+  "dependencies": [
+    { "appId": "postgresql", "serviceId": "db", "officialUrl": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml" },
+    { "appId": "valkey", "serviceId": "broker", "officialUrl": "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml" }
+  ]
+}

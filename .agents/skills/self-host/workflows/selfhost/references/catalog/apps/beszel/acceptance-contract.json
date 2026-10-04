@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "beszel",
+  "dimension": "liveRestart",
+  "inputs": [{ "key": "system-id", "format": "opaque-id", "maximumLength": 15 }],
+  "beginEffect": "Authenticate the saved Hub user through the exact approved users password-login route, then read one reviewed owned UP paired system and recent meaningful stats; retain only IDs and sanitized configuration/history hashes",
+  "finishEffect": "Read fresh paired stats and the same original historical record after the exact Beszel Hub unit restart; require unchanged system configuration and original history",
+  "cleanup": "not-required-existing-paired-system-read-only",
+  "checks": {
+    "application-health": { "appHealthObserved": true, "authenticatedIdentityVerified": true },
+    "core-round-trip": { "pairedSystemStatsReadVerified": true, "workloadScope": "selected-existing-owned-paired-system-stats-history-read" },
+    "restart-persistence": { "restartPersistenceVerified": true, "historicalStatsVerified": true }
+  }
+}

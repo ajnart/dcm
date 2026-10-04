@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "linkwarden",
+  "source": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml",
+  "services": [
+    {
+      "id": "linkwarden",
+      "purpose": "Serves private bookmarks and archives captured pages and files.",
+      "imageTag": "ghcr.io/linkwarden/linkwarden:v2.16.3",
+      "imageSource": "https://github.com/linkwarden/linkwarden/releases/tag/v2.16.3",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [
+        { "name": "MEILI_HOST", "value": "http://meilisearch:7700" },
+        { "name": "NEXT_PUBLIC_DISABLE_REGISTRATION", "value": "false" }
+      ],
+      "derivedEnvironment": [
+        { "name": "NEXTAUTH_URL", "source": "local-origin", "pathSuffix": "/api/v1/auth" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "NEXTAUTH_SECRET", "fileId": "auth-secret" },
+        { "name": "MEILI_MASTER_KEY", "fileId": "search-key" },
+        { "name": "DATABASE_URL", "fileId": "database-password", "format": "postgres-url", "username": "postgres", "host": "postgres", "port": 5432, "database": "postgres" }
+      ],
+      "mounts": [{ "name": "archives", "target": "/data/data", "kind": "volume" }],
+      "dependsOn": ["postgres", "meilisearch"],
+      "publishTargetPort": 3000
+    },
+    {
+      "id": "postgres",
+      "purpose": "Stores Linkwarden accounts, links, and archive metadata privately.",
+      "imageTag": "docker.io/library/postgres:16-alpine",
+      "imageSource": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql/data", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    },
+    {
+      "id": "meilisearch",
+      "purpose": "Indexes bookmarks for Linkwarden's private search features.",
+      "imageTag": "docker.io/getmeili/meilisearch:v1.13.3",
+      "imageSource": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [{ "name": "MEILI_MASTER_KEY", "fileId": "search-key" }],
+      "mounts": [{ "name": "search", "target": "/meili_data", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "auth-secret", "bytes": 48, "format": "alphanumeric" },
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "search-key", "bytes": 48, "format": "alphanumeric" },
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://docs.linkwarden.app/api/create-user",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "postFirstAccountEnvironment": {
+    "serviceId": "linkwarden", "name": "NEXT_PUBLIC_DISABLE_REGISTRATION",
+    "from": "false", "to": "true", "after": "first-admin-created"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 3000, "dataDirectoryName": "linkwarden" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 5368709120 },
+  "acceptance": [
+    { "id": "first-account", "method": "api", "description": "Create the first owner with a saved password and verify an authenticated account read-back." },
+    { "id": "api-key", "method": "api", "description": "Create one owner token, save it privately, and verify a protected bearer-authenticated read." },
+    { "id": "archive-roundtrip", "method": "api", "description": "Save and retrieve one authorized harmless link with preserved content." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and recheck account, token, and archived content." }
+  ]
+}

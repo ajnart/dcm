@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ajnart.dev/selfhost-skills/compose-recipe.schema.json",
+  "title": "Compose application recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "appId", "source", "defaults", "storage", "acceptance"],
+  "oneOf": [
+    {"properties": {"schemaVersion": {"const": 1}, "kind": {"const": "single-service-compose"}}, "required": ["service"], "not": {"anyOf": [{"required": ["services"]}, {"required": ["privateFiles"]}, {"required": ["privateConfigs"]}, {"required": ["configFiles"]}, {"required": ["onboarding"]}, {"required": ["postFirstAccountEnvironment"]}]}},
+    {"properties": {"schemaVersion": {"const": 2}, "kind": {"const": "multi-service-compose"}}, "required": ["services", "privateFiles", "onboarding"], "not": {"required": ["service"]}}
+  ],
+  "allOf": [{
+    "if": {"required": ["execution"], "properties": {"execution": {"properties": {"kind": {"const": "manual-job"}}}}},
+    "then": {"properties": {
+      "schemaVersion": {"const": 2},
+      "defaults": {"properties": {"publishedPort": {"type": "null"}}},
+      "onboarding": {"properties": {"kind": {"const": "job-credentials"}}},
+      "services": {"maxItems": 1, "items": {"required": ["command"], "properties": {
+        "restart": {"const": "no"}, "publishTargetPort": {"type": "null"},
+        "dependsOn": {"maxItems": 0}, "additionalPorts": {"maxItems": 0},
+        "derivedEnvironment": {"maxItems": 0}
+      }, "not": {"required": ["healthcheck"]}}}
+    }, "not": {"required": ["postFirstAccountEnvironment"]}},
+    "else": {"properties": {
+      "onboarding": {"properties": {"kind": {"not": {"const": "job-credentials"}}}},
+      "services": {"items": {"properties": {"restart": {"enum": ["unless-stopped", "always"]}}, "not": {"required": ["hostname"]}}}
+    }}
+  }, {
+    "if": {"required": ["execution"], "properties": {"execution": {"properties": {"kind": {"const": "private-connector"}}}}},
+    "then": {"properties": {
+      "schemaVersion": {"const": 2},
+      "defaults": {"properties": {"publishedPort": {"type": "null"}}},
+      "onboarding": {"properties": {"kind": {"const": "connector-enrollment"}}},
+      "privateFiles": {"items": {"required": ["source"], "properties": {"source": {"const": "owner"}}}},
+      "services": {"maxItems": 1, "items": {"properties": {
+        "publishTargetPort": {"type": "null"}, "dependsOn": {"maxItems": 0},
+        "additionalPorts": {"maxItems": 0}, "derivedEnvironment": {"maxItems": 0}
+      }, "not": {"anyOf": [{"required": ["healthcheck"]}, {"required": ["publishTargetPortSource"]}, {"required": ["publishedPortMustMatchTarget"]}]}}},
+      "acceptance": {"items": {"properties": {"method": {"enum": ["connector", "persisted"]}}}}
+    }, "not": {"required": ["postFirstAccountEnvironment"]}},
+    "else": {"properties": {"onboarding": {"properties": {"kind": {"not": {"const": "connector-enrollment"}}}},
+      "acceptance": {"items": {"properties": {"method": {"enum": ["browser", "persisted", "api", "job"]}}}}
+    }}
+  }, {
+    "if": {"required": ["execution"], "properties": {"execution": {"properties": {"kind": {"const": "private-daemon"}}}}},
+    "then": {"properties": {
+      "schemaVersion": {"const": 2},
+      "defaults": {"properties": {"publishedPort": {"type": "null"}}},
+      "onboarding": {"properties": {"kind": {"const": "generated-api-token"}}},
+      "privateFiles": {"minItems": 1, "maxItems": 1, "items": {"not": {"required": ["source"]}}},
+      "services": {"maxItems": 1, "items": {"properties": {
+        "publishTargetPort": {"type": "null"}, "dependsOn": {"maxItems": 0},
+        "additionalPorts": {"maxItems": 0}, "derivedEnvironment": {"maxItems": 0}
+      }, "not": {"anyOf": [{"required": ["healthcheck"]}, {"required": ["publishTargetPortSource"]}, {"required": ["publishedPortMustMatchTarget"]}]}}},
+      "acceptance": {"items": {"properties": {"method": {"enum": ["api", "persisted"]}}}}
+    }, "not": {"required": ["postFirstAccountEnvironment"]}}
+  }, {
+    "if": {"not": {"required": ["execution"]}},
+    "then": {"properties": {
+      "defaults": {"properties": {"publishedPort": {"type": "integer"}}},
+      "acceptance": {"items": {"properties": {"method": {"enum": ["browser", "persisted", "api"]}}}}
+    }}
+  }],
+  "properties": {
+    "schemaVersion": {"enum": [1, 2]},
+    "kind": {"enum": ["single-service-compose", "multi-service-compose"]},
+    "appId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "source": {"type": "string", "format": "uri"},
+    "imageSources": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "format": "uri", "pattern": "^https://"}},
+    "execution": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl", "probe"], "properties": {"kind": {"const": "manual-job"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}, "probe": {"type": "object", "additionalProperties": false, "required": ["argv", "officialUrl"], "properties": {"argv": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl", "frontendSharing"], "properties": {"kind": {"const": "private-connector"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}, "frontendSharing": {"enum": ["none", "owner-front"]}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl"], "properties": {"kind": {"const": "private-daemon"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}}
+    ]},
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "imageTag", "restart", "readOnly", "user", "imageUserEvidence", "targetPort", "dataTarget", "networkInternal"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "imageTag": {"type": "string", "minLength": 3},
+        "restart": {"const": "unless-stopped"},
+        "readOnly": {"const": false},
+        "user": {"const": "image-default"},
+        "imageUserEvidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["officialUrl", "reason"],
+          "properties": {
+            "officialUrl": {"type": "string", "format": "uri"},
+            "reason": {"const": "official-image-runtime-contract"}
+          }
+        },
+        "targetPort": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "dataTarget": {"type": "string", "pattern": "^/[a-zA-Z0-9/_-]+$"},
+        "networkInternal": {"const": false}
+      }
+    },
+    "services": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "purpose", "imageTag", "imageSource", "user", "imageUserEvidence", "restart", "readOnly", "environment", "hostEnvironment", "fileEnvironment", "mounts", "dependsOn", "publishTargetPort"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "purpose": {"type": "string", "minLength": 12, "maxLength": 140},
+          "imageTag": {"type": "string", "minLength": 3},
+          "imageSource": {"type": "string", "format": "uri"},
+          "user": {"enum": ["image-default", "host-selected"]},
+          "dockerCliTls": {"type":"object","additionalProperties":false,"required":["officialUrl","caFileId","certificateFileId","keyFileId","endpoint"],"properties":{"officialUrl":{"type":"string","pattern":"^https://raw\\.githubusercontent\\.com/docker/cli/(?:[a-f0-9]{40}|v[0-9]+\\.[0-9]+\\.[0-9]+)/cli/flags/options\\.go$"},"caFileId":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"certificateFileId":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"keyFileId":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"endpoint":{"type":"object","additionalProperties":false,"required":["serverName","privateIpv4","port"],"properties":{"serverName":{"type":"string","maxLength":253,"pattern":"^[a-z0-9.-]+$"},"privateIpv4":{"type":"string","format":"ipv4"},"port":{"type":"integer","minimum":1,"maximum":65535}}}}},
+          "imageUserEvidence": {
+            "type": "object", "additionalProperties": false,
+            "required": ["officialUrl", "reason"],
+            "properties": {"officialUrl": {"type": "string", "format": "uri"}, "reason": {"const": "official-image-runtime-contract"}}
+          },
+          "restart": {"enum": ["unless-stopped", "always", "no"]},
+          "hostname": {"type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"},
+          "readOnly": {"type": "boolean"},
+          "capDrop": {"const": ["ALL"]},
+          "memoryLimitBytes": {"type": "integer", "minimum": 67108864, "maximum": 17179869184},
+          "cpuLimit": {"type": "number", "minimum": 0.1, "maximum": 16, "multipleOf": 0.1},
+          "init": {"const": true},
+          "entrypoint": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string", "minLength": 1, "maxLength": 300}},
+          "command": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string", "minLength": 1, "maxLength": 300}},
+          "shmSizeBytes": {"type": "integer", "minimum": 1048576, "maximum": 1073741824},
+          "runtimeResources": {"type": "object", "additionalProperties": false, "required": ["profile", "officialUrl"], "properties": {"profile": {"const": "tun-net-admin"}, "officialUrl": {"type": "string", "format": "uri"}}},
+          "ownerDirectory": {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl"], "properties": {"kind": {"const": "docker-stack-directory"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+          "ulimits": {"type": "object", "additionalProperties": false, "required": ["nofile"], "properties": {
+            "nofile": {"type": "object", "additionalProperties": false, "required": ["soft", "hard"], "properties": {
+              "soft": {"type": "integer", "minimum": 1024, "maximum": 1048576},
+              "hard": {"type": "integer", "minimum": 1024, "maximum": 1048576}
+            }}
+          }},
+          "privateConfigFiles": {"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}},
+          "tmpfs": {"type": "array", "maxItems": 8, "items": {"type": "object", "additionalProperties": false, "required": ["target", "sizeBytes", "mode"], "properties": {
+            "target": {"type": "string", "pattern": "^/[A-Za-z0-9/_.-]+$"},
+            "sizeBytes": {"type": "integer", "minimum": 1048576, "maximum": 1073741824},
+            "mode": {"type": "integer", "minimum": 0, "maximum": 1023}
+          }}},
+          "healthcheck": {
+            "type": "object", "additionalProperties": false,
+            "required": ["test", "intervalSeconds", "timeoutSeconds", "startPeriodSeconds", "retries"],
+            "properties": {
+              "test": {"type": "array", "minItems": 2, "maxItems": 32, "prefixItems": [{"const": "CMD"}], "items": {"type": "string", "minLength": 1, "maxLength": 300}},
+              "intervalSeconds": {"type": "integer", "minimum": 1, "maximum": 3600},
+              "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 300},
+              "startPeriodSeconds": {"type": "integer", "minimum": 0, "maximum": 3600},
+              "retries": {"type": "integer", "minimum": 1, "maximum": 20}
+            }
+          },
+          "environment": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "value"], "properties": {"name": {"type": "string"}, "value": {"type": "string"}}}},
+          "hostEnvironment": {"type": "array", "maxItems": 3, "items": {"type": "object", "additionalProperties": false, "required": ["name", "source"], "properties": {"name": {"enum": ["USERMAP_UID", "USERMAP_GID", "PUID", "PGID", "TZ"]}, "source": {"enum": ["uid", "gid", "timezone"]}}}},
+          "derivedEnvironment": {"type": "array", "maxItems": 4, "items": {"type": "object", "additionalProperties": false, "required": ["name", "source"], "properties": {"name": {"type": "string"}, "source": {"enum": ["local-origin", "local-host-authority", "published-port"]}, "format": {"const": "tcp-port"}, "pathSuffix": {"type": "string", "maxLength": 128, "pattern": "^/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+$"}}, "allOf": [{"if": {"properties": {"source": {"const": "published-port"}}}, "then": {"not": {"required": ["pathSuffix"]}}, "else": {"not": {"required": ["format"]}}}]}},
+          "hostIdentityEvidence": {"type": "string", "format": "uri"},
+          "secretEnvironment": {"type": "array", "minItems": 1, "maxItems": 12, "items": {"oneOf": [
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format", "officialUrl"], "properties": {"name": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$"}, "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "format": {"const": "private-config"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format", "officialUrl", "jsonFields"], "properties": {"name": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$"}, "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "format": {"const": "owner-json"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}, "jsonFields": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"}}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format", "officialUrl"], "properties": {"name": {"type": "string"}, "fileId": {"type": "string"}, "format": {"const": "owner-token"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId"], "properties": {"name": {"type": "string"}, "fileId": {"type": "string"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format", "username", "host", "port", "database"], "properties": {"name": {"type": "string"}, "fileId": {"type": "string"}, "format": {"const": "postgres-url"}, "username": {"type": "string"}, "host": {"type": "string"}, "port": {"type": "integer", "minimum": 1, "maximum": 65535}, "database": {"type": "string"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format"], "properties": {"name": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*_AUTH_HASH$"}, "fileId": {"type": "string"}, "format": {"const": "bcrypt-hash"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format"], "properties": {"name": {"const": "NTFY_AUTH_USERS"}, "fileId": {"const": "admin-password"}, "format": {"const": "ntfy-auth-users"}}}
+          ]}},
+          "fileEnvironment": {"type": "array", "maxItems": 12, "items": {"oneOf": [
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId"], "properties": {"name": {"type": "string", "pattern": "^(?:[A-Z][A-Z0-9_]*_(?:FILE|SECRETFILE)|FILE__[A-Z][A-Z0-9_]*)$"}, "fileId": {"type": "string"}}},
+            {"type": "object", "additionalProperties": false, "required": ["name", "fileId", "format", "officialUrl"], "properties": {"name": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}, "fileId": {"type": "string"}, "format": {"enum": ["file-uri", "file-path", "private-config-path"]}, "officialUrl": {"type": "string", "format": "uri"}}}
+          ]}},
+          "mounts": {
+            "type": "array", "maxItems": 12,
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["name", "target"],
+              "properties": {
+                "name": {"type": "string"},
+                "target": {"type": "string"},
+                "kind": {"enum": ["bind", "volume", "generated-file", "mutable-directory"]},
+                "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+                "hostPath": {"const": true},
+                "readOnly": {"type": "boolean"},
+                "shareGroup": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"kind": {"const": "volume"}}, "required": ["kind"]},
+                  "then": {"not": {"anyOf": [{"required": ["hostPath"]}, {"required": ["readOnly"]}, {"required": ["shareGroup"]}, {"required": ["fileId"]}]}}
+                },
+                {
+                  "if": {"properties": {"kind": {"enum": ["generated-file", "mutable-directory"]}}, "required": ["kind"]},
+                  "then": {"required": ["fileId"], "not": {"anyOf": [{"required": ["hostPath"]}, {"required": ["readOnly"]}, {"required": ["shareGroup"]}]}}
+                },
+                {
+                  "if": {"required": ["hostPath"]},
+                  "then": {"required": ["kind", "readOnly"], "properties": {"kind": {"const": "bind"}}}
+                },
+                {
+                  "if": {"required": ["shareGroup"]},
+                  "then": {"properties": {"kind": {"enum": ["bind"]}}}
+                }
+              ]
+            }
+          },
+          "dependsOn": {"type": "array", "maxItems": 7, "items": {"oneOf": [{"type": "string"}, {"type": "object", "additionalProperties": false, "required": ["service", "condition"], "properties": {"service": {"type": "string"}, "condition": {"enum": ["service_started", "service_healthy"]}}}]}},
+          "publishTargetPort": {"type": ["integer", "null"], "minimum": 1, "maximum": 65535},
+          "publishTargetPortSource": {"const": "published-port"},
+          "publishedPortMustMatchTarget": {"const": true},
+          "additionalPorts": {
+            "type": "array", "maxItems": 8,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["id", "targetPort", "protocol", "purpose", "required"],
+              "properties": {
+                "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+                "targetPort": {"type": "integer", "minimum": 1, "maximum": 65535},
+                "protocol": {"enum": ["tcp", "udp"]},
+                "purpose": {"enum": ["admin", "application", "database", "management", "docker-api"]},
+                "required": {"type": "boolean"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "privateFiles": {
+      "type": "array", "maxItems": 12,
+      "items": {"oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["id", "bytes"], "properties": {"id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "bytes": {"type": "integer", "minimum": 32, "maximum": 128}, "format": {"enum": ["base64url", "alphanumeric", "hex", "base64-prefixed", "base64"]}}},
+        {"type": "object", "additionalProperties": false, "required": ["id", "bytes", "format", "purpose", "officialUrl"], "properties": {"id": {"const": "setup-capability"}, "bytes": {"const": 16}, "format": {"const": "hex"}, "purpose": {"const": "bootstrap-capability"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+        {"type": "object", "additionalProperties": false, "required": ["id", "source", "maxBytes"], "properties": {"id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "source": {"const": "owner"}, "maxBytes": {"type": "integer", "minimum": 1, "maximum": 16384}, "consumer": {"const": "pre-start"}}}
+      ]}
+    },
+    "privateConfigs": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {"type": "object", "additionalProperties": false, "required": ["id", "officialUrl", "parts"], "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "parts": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["literal"], "properties": {"literal": {"type": "string", "minLength": 1, "maxLength": 16384}}},
+          {"type": "object", "additionalProperties": false, "required": ["fileId"], "properties": {"fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}}
+        ]}}
+      }}
+    },
+    "mutableConfigs": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {"type": "object", "additionalProperties": false, "required": ["id", "filename", "officialUrl", "hook", "containerUid", "containerUidEvidence", "sourceFiles"], "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "filename": {"type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"},
+        "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "hook": {"const": "./mutable-config.ts"},
+        "containerUid": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+        "containerUidEvidence": {"type": "object", "additionalProperties": false, "required": ["image", "uid", "officialUrl"], "properties": {"image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$"}, "uid": {"type": "integer", "minimum": 0}, "officialUrl": {"type": "string", "pattern": "^https://"}}},
+        "sourceFiles": {"type": "array", "minItems": 1, "maxItems": 24, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.(?:ts|json)$"}},
+        "inputs": {"type": "object", "maxProperties": 16, "additionalProperties": {"type": ["string", "number", "boolean"]}}
+      }}
+    },
+    "configFiles": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {"type": "object", "additionalProperties": false, "required": ["id", "content"], "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "content": {"type": "string", "minLength": 1, "maxLength": 16384},
+        "readability": {"enum": ["container"]},
+        "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}
+      }, "dependentRequired": {"readability": ["officialUrl"], "officialUrl": ["readability"]}}
+    },
+    "postFirstAccountEnvironment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["serviceId", "name", "from", "to", "after"],
+      "properties": {
+        "serviceId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "name": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$"},
+        "from": {"type": "string", "maxLength": 256},
+        "to": {"type": ["string", "null"], "maxLength": 256},
+        "after": {"const": "first-admin-created"},
+        "proof": {"type": "object", "additionalProperties": false, "required": ["stage", "attemptedActions"], "properties": {
+          "stage": {"const": "account-verified"},
+          "attemptedActions": {"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 128}}
+        }}
+      }
+    },
+    "onboarding": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl", "username", "displayName", "email", "fileId", "configId"], "properties": {"kind": {"const": "initial-admin-from-mutable-config"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}, "username": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"}, "displayName": {"type": "string", "minLength": 1, "maxLength": 200}, "email": {"type": "string", "format": "email", "maxLength": 254}, "fileId": {"const": "admin-password"}, "configId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl"], "properties": {"kind": {"const": "gpg-client-enrollment"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl"], "properties": {"kind": {"const": "connector-enrollment"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl"], "properties": {"kind": {"const": "job-credentials"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl", "fileId"], "properties": {"kind": {"const": "external-secret"}, "officialUrl": {"type": "string", "format": "uri"}, "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "officialUrl", "fileId"], "properties": {"kind": {"const": "generated-api-token"}, "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"}, "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl"],
+          "properties": {
+            "kind": {"const": "no-account"},
+            "officialUrl": {"type": "string", "format": "uri"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "provider", "providerAppId"],
+          "properties": {
+            "kind": {"const": "external-first-admin"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "provider": {"const": "media-server"},
+            "providerAppId": {"const": "jellyfin"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "fileId"],
+          "properties": {
+            "kind": {"const": "manual-first-admin"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "fileId"],
+          "properties": {
+            "kind": {"const": "seeded-admin-rotation"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"const": "admin"},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "fileId"],
+          "properties": {
+            "kind": {"const": "manual-first-password"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "email", "fileId"],
+          "properties": {
+            "kind": {"const": "manual-first-email"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "email": {"type": "string", "maxLength": 254},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "fileId"],
+          "properties": {
+            "kind": {"const": "official-client-first-email"},
+            "officialUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "fileEnvironment", "fileId"],
+          "properties": {
+            "kind": {"const": "initial-password-from-file"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "fileEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*_FILE$"},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "fileEnvironment", "fileId"],
+          "properties": {
+            "kind": {"const": "initial-admin-password-file"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"const": "admin"},
+            "fileEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*_FILE$"},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "usernameEnvironment", "fileEnvironment", "fileId"],
+          "properties": {
+            "kind": {"const": "initial-admin-from-file"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"},
+            "usernameEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+            "fileEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*_FILE$"},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "secretEnvironment", "fileId"],
+          "oneOf": [{"required": ["usernameEnvironment"]}, {"required": ["fixedUsername"]}],
+          "properties": {
+            "kind": {"const": "initial-admin-from-secret-env"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"},
+            "usernameEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+            "fixedUsername": {"const": true},
+            "bootstrapServiceId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+            "secretEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "fileId", "configId"],
+          "properties": {
+            "kind": {"const": "http-basic-from-mutable-config"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+            "fileId": {"const": "admin-password"},
+            "configId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "username", "secretEnvironment", "fileId"],
+          "properties": {
+            "kind": {"const": "initial-admin-from-auth-users"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"const": "admin"},
+            "secretEnvironment": {"const": "NTFY_AUTH_USERS"},
+            "fileId": {"const": "admin-password"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "officialUrl", "email", "emailEnvironment", "secretEnvironment", "fileId"],
+          "properties": {
+            "kind": {"const": "initial-admin-email-from-secret-env"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "email": {"type": "string", "maxLength": 254},
+            "emailEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+            "secretEnvironment": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "adapter", "officialUrl", "username", "email", "name", "fileId", "setupEnvironment"],
+          "properties": {
+            "kind": {"const": "api-first-admin"},
+            "adapter": {"const": "immich-v3.2.2"},
+            "officialUrl": {"type": "string", "format": "uri"},
+            "username": {"const": "admin"},
+            "email": {"type": "string", "maxLength": 254},
+            "name": {"type": "string", "minLength": 1, "maxLength": 128},
+            "fileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+            "setupEnvironment": {"const": "IMMICH_ALLOW_SETUP"}
+          }
+        }
+      ]
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostIp", "publishedPort", "dataDirectoryName"],
+      "properties": {
+        "hostIp": {"enum": ["127.0.0.1", "::1"]},
+        "publishedPort": {"type": ["integer", "null"], "minimum": 1024, "maximum": 65535},
+        "dataDirectoryName": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filesystem", "minimumFreeBytes"],
+      "properties": {
+        "filesystem": {"const": "local-posix-locks"},
+        "minimumFreeBytes": {"type": "integer", "minimum": 1048576, "maximum": 1099511627776}
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "method", "description"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "method": {"enum": ["browser", "persisted", "api", "job", "connector"]},
+          "description": {"type": "string", "minLength": 10, "maxLength": 300}
+        }
+      }
+    }
+  }
+}

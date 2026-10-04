@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "appId": "authentik",
+  "recipeSha256": "a372c84e03a0389fe146951814201524b22324be0184504b865bfaf4e7f1dc14",
+  "dependencies": [
+    { "appId": "postgresql", "serviceId": "postgresql", "officialUrl": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml" }
+  ]
+}

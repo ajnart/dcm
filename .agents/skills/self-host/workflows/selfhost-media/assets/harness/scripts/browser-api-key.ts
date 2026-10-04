@@ -26,10 +26,13 @@ const ARR_GENERAL_PORT_KEYS = new Map([
   ["sonarr", "SONARR_PORT"],
 ]);
 const BROWSER_ENVIRONMENT_KEYS = [
+  "AGENT_BROWSER_SESSION",
   "HOME",
   "LANG",
   "LC_ALL",
   "PATH",
+  "SELFHOST_AGENT_ID",
+  "SELFHOST_RUN_ID",
   "TMPDIR",
   "TZ",
   "XDG_CACHE_HOME",
@@ -185,7 +188,16 @@ function normalizeCapturedValue(raw) {
 
 export function homarrMcpKeyEvalScript() {
   return `(() => {
-    if (window.location.pathname !== "/init") throw new Error("invalid Homarr onboarding location");
+    if (window.location.pathname === "/manage/tools/api") {
+      const fields = document.querySelectorAll('input[aria-label="API token created"]');
+      if (fields.length !== 1) throw new Error("one Homarr API token field is required");
+      const field = fields[0];
+      if (!field.readOnly || !["password", "text"].includes(field.type) || field.getClientRects().length === 0) {
+        throw new Error("Homarr API token field is unavailable");
+      }
+      return field.value;
+    }
+    if (window.location.pathname !== "/init") throw new Error("invalid Homarr key location");
     const buttons = document.querySelectorAll('button[aria-label="Copy API key"]');
     if (buttons.length !== 1) throw new Error("one Homarr MCP key button is required");
     const parent = buttons[0].parentElement;
@@ -207,11 +219,37 @@ export function arrApiKeyEvalScript() {
   })()`;
 }
 
-function validateHomarrInitUrl(session, raw) {
+export function prowlarrApplicationKeyFieldEvalScript(service) {
+  if (service !== "sonarr" && service !== "radarr") {
+    throw new Error("Prowlarr application must be Sonarr or Radarr");
+  }
+  let expectedTitle = "Add Application - Sonarr";
+  if (service === "radarr") {
+    expectedTitle = "Add Application - Radarr";
+  }
+  return `(() => {
+    if (window.location.pathname !== "/settings/applications") throw new Error("invalid Prowlarr applications location");
+    const fields = document.querySelectorAll('input[name="apiKey"]');
+    if (fields.length !== 1) throw new Error("one Prowlarr application API key field is required");
+    const field = fields[0];
+    if (field.type !== "text" || field.disabled || field.readOnly || field.getClientRects().length === 0) {
+      throw new Error("Prowlarr application API key field is unavailable");
+    }
+    const modal = field.closest('[class*="Modal-modal-"]');
+    if (!modal) throw new Error("Prowlarr application modal is missing");
+    const titles = [...modal.querySelectorAll('div[class*="ModalHeader-modalHeader"]')]
+      .filter((element) => element.textContent?.trim() === ${JSON.stringify(expectedTitle)});
+    if (titles.length !== 1) throw new Error("expected Prowlarr application dialog is missing");
+    return "ready";
+  })()`;
+}
+
+function validateHomarrKeyUrl(session, raw) {
   validateBrowserPageUrl(session, raw);
   const url = new URL(raw.trim());
-  if (url.port !== session.manifest.HOMARR_PORT || url.pathname !== "/init") {
-    throw new Error("browser is not on Homarr MCP onboarding");
+  if (url.port !== session.manifest.HOMARR_PORT
+    || !["/init", "/manage/tools/api"].includes(url.pathname)) {
+    throw new Error("browser is not on a Homarr key page");
   }
 }
 
@@ -227,6 +265,14 @@ function validateArrGeneralUrl(session, service, raw) {
   }
 }
 
+function validateSeerrGeneralUrl(session, raw) {
+  validateBrowserPageUrl(session, raw);
+  const url = new URL(raw.trim());
+  if (url.port !== session.manifest.SEERR_PORT || url.pathname !== "/settings") {
+    throw new Error("Seerr API key capture requires General Settings");
+  }
+}
+
 function serviceApiKey(session, service) {
   const secretKey = SERVICE_SECRET_KEYS.get(service);
   if (!secretKey) {
@@ -239,39 +285,65 @@ function serviceApiKey(session, service) {
   return value;
 }
 
-export function keyRefsFromSnapshot(raw) {
+function seerrServiceForm(session, rawUrl) {
+  const url = new URL(rawUrl.trim());
+  return url.port === session.manifest.SEERR_PORT
+    && (url.pathname === "/setup" || url.pathname === "/settings/services");
+}
+
+export function keyRefsFromSnapshot(raw, options = {}) {
   const parsed = JSON.parse(raw);
   if (parsed.success !== true || !parsed.data?.refs) {
     throw new Error("browser snapshot failed");
   }
-  const refs = Object.entries(parsed.data.refs).filter(([ref, field]) => (
-    /^e[1-9][0-9]{0,5}$/.test(ref)
-    && field && field.role === "textbox"
-    && ["api key", "apikey", "key"].includes(String(field.name).trim().toLowerCase())
-  )).map(([ref]) => `@${ref}`);
+  const refs = Object.entries(parsed.data.refs).filter(([ref, field]) => {
+    if (!/^e[1-9][0-9]{0,5}$/.test(ref) || !field || field.role !== "textbox") {
+      return false;
+    }
+    const name = String(field.name).replace(/\s+/g, " ").trim();
+    if (["api key", "apikey", "key"].includes(name.toLowerCase())) {
+      return true;
+    }
+    if (options.seerrServiceForm === true && (options.service === "radarr" || options.service === "sonarr")) {
+      let appName = "Radarr";
+      if (options.service === "sonarr") {
+        appName = "Sonarr";
+      }
+      return name === `API Key* Find it in ${appName}: Settings > General > Security > API Key`;
+    }
+    return false;
+  }).map(([ref]) => `@${ref}`);
   if (refs.length !== 1) {
     throw new Error("one API-key field is required");
   }
   return refs[0];
 }
 
-export async function locateBrowserApiKey(session) {
+export async function locateBrowserApiKey(session, service, options = {}) {
   const browserSession = validateBrowserSession(session);
-  const currentUrl = await invokeBrowser(["--session", browserSession, "get", "url"]);
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(["--session", browserSession, "get", "url"]);
   validateBrowserPageUrl(session, currentUrl);
-  const snapshot = await invokeBrowser(["--session", browserSession, "snapshot", "-i", "--json"]);
-  return keyRefsFromSnapshot(snapshot);
+  if (service === "seerr") {
+    validateSeerrGeneralUrl(session, currentUrl);
+  }
+  const snapshot = await invoke(["--session", browserSession, "snapshot", "-i", "--json"]);
+  return keyRefsFromSnapshot(snapshot, { service, seerrServiceForm: seerrServiceForm(session, currentUrl) });
 }
 
-export async function captureBrowserApiKey(session, service, selector) {
+export async function captureBrowserApiKey(session, service, selector, options = {}) {
   const browserSession = validateBrowserSession(session);
   const safeSelector = validateSelector(selector);
-  const currentUrl = await invokeBrowser(
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(
     ["--session", browserSession, "get", "url"],
     undefined,
   );
   validateBrowserPageUrl(session, currentUrl);
-  const raw = await invokeBrowser(
+  if (service === "seerr") {
+    validateSeerrGeneralUrl(session, currentUrl);
+  }
+  const raw = await invoke(
     ["--session", browserSession, "get", "value", safeSelector],
     undefined,
   );
@@ -294,7 +366,7 @@ export async function captureHomarrMcpKeyCode(session, options = {}) {
     ["--session", browserSession, "get", "url"],
     undefined,
   );
-  validateHomarrInitUrl(session, currentUrl);
+  validateHomarrKeyUrl(session, currentUrl);
   const raw = await invoke(
     ["--session", browserSession, "eval", "--stdin"],
     `${homarrMcpKeyEvalScript()}\n`,
@@ -342,7 +414,7 @@ export async function fillBrowserApiKey(session, service, selector, options = {}
     ["--session", browserSession, "snapshot", "-i", "--json"],
     undefined,
   );
-  if (keyRefsFromSnapshot(snapshot) !== safeSelector) {
+  if (keyRefsFromSnapshot(snapshot, { service, seerrServiceForm: seerrServiceForm(session, currentUrl) }) !== safeSelector) {
     throw new Error("browser API-key selector does not match the fresh form");
   }
   const apiKey = serviceApiKey(session, service);
@@ -353,9 +425,30 @@ export async function fillBrowserApiKey(session, service, selector, options = {}
   );
 }
 
+export async function fillProwlarrApplicationApiKey(session, service, options = {}) {
+  const browserSession = validateBrowserSession(session);
+  const script = prowlarrApplicationKeyFieldEvalScript(service);
+  const invoke = options.invokeBrowserImplementation || invokeBrowser;
+  const currentUrl = await invoke(["--session", browserSession, "get", "url"]);
+  validateBrowserPageUrl(session, currentUrl);
+  const url = new URL(currentUrl.trim());
+  if (url.port !== session.manifest.PROWLARR_PORT || url.pathname !== "/settings/applications") {
+    throw new Error("browser is not on the selected Prowlarr applications page");
+  }
+  const state = await invoke(["--session", browserSession, "eval", "--stdin"], `${script}\n`);
+  if (normalizeCapturedValue(state) !== "ready") {
+    throw new Error("Prowlarr application API key field did not validate");
+  }
+  const apiKey = serviceApiKey(session, service);
+  await invoke(
+    ["--session", browserSession, "batch", "--bail", "--json"],
+    `${JSON.stringify([["fill", 'input[name="apiKey"]', apiKey]])}\n`,
+  );
+}
+
 async function main() {
   const [action, runId, service, selector] = Bun.argv.slice(2);
-  const noSelectorAction = action === "refs" || action === "capture-code" || action === "capture-field";
+  const noSelectorAction = action === "refs" || action === "capture-code" || action === "capture-field" || action === "fill-prowlarr-app";
   if (!action || !runId || !service || (noSelectorAction && selector !== undefined) || (!noSelectorAction && (!selector || Bun.argv.length !== 6))) {
     throw new Error("capture|capture-code|capture-field|fill|refs arguments are invalid");
   }
@@ -365,7 +458,7 @@ async function main() {
   const session = loadSession(runId);
   requireSessionPasswordScheme(session);
   if (action === "refs") {
-    process.stdout.write(`${await locateBrowserApiKey(session)}\n`);
+    process.stdout.write(`${await locateBrowserApiKey(session, service)}\n`);
     return;
   }
   if (action === "capture") {
@@ -386,6 +479,11 @@ async function main() {
     process.stdout.write("PASS browser API key captured\n");
     return;
   }
+  if (action === "fill-prowlarr-app") {
+    await fillProwlarrApplicationApiKey(session, service);
+    process.stdout.write("PASS browser API key filled\n");
+    return;
+  }
   if (action === "fill") {
     await fillBrowserApiKey(session, service, selector);
     process.stdout.write("PASS browser API key filled\n");
@@ -396,8 +494,12 @@ async function main() {
 
 const scriptPath = fileURLToPath(import.meta.url);
 if (Bun.argv[1] && resolve(Bun.argv[1]) === scriptPath) {
-  main().catch(() => {
-    process.stdout.write("FAIL browser API-key action\n");
+  main().catch((error) => {
+    if (error instanceof Error && error.message === "Seerr API key capture requires General Settings") {
+      process.stdout.write("FAIL Seerr API key capture requires General Settings (/settings)\n");
+    } else {
+      process.stdout.write("FAIL browser API-key action\n");
+    }
     process.exitCode = 1;
   });
 }

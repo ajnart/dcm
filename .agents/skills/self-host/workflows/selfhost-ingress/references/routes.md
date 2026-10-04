@@ -6,7 +6,7 @@ Load only the selected branch. Current provider syntax belongs in an apply adapt
 |---|---|---|---|
 | Local | This host only | Loopback backend; no public DNS | Loopback request succeeds; non-local request cannot reach the port |
 | LAN | Chosen private CIDRs | Explicit LAN CIDRs and observed firewall scope | Allowed LAN client succeeds; outside-scope client fails |
-| Private Caddy | LAN/private clients by friendly hostname | Private DNS owner and resolution, Caddy lifecycle owner, runtime-aware upstream, persistent config/data, local CA trust plan | Private DNS resolves; intended client trusts the local CA; certificate identity and route work; backend stays private |
+| Private Caddy | Host-only or LAN clients by friendly hostname | Host-only `.localhost`, or explicitly selected FQDN per-request loopback override; LAN names need owned private DNS. Both need a Caddy lifecycle owner, runtime-aware upstream, persistent config/data, and local CA trust plan. | Exact CA/SNI transport proof; intended-client DNS, trust, and application access remain separate. |
 | Tailscale Serve | Private tailnet | Running node, tailnet ACL owner, selected service only | Tailnet identity works; ordinary internet route is absent |
 | Headscale | Private self-managed tailnet | Running control plane, lifecycle owner, ACL owner, selected route | Enrolled client works; unenrolled client fails; control state is backed up |
 | Existing reverse proxy | Public HTTPS | Compatible Caddy, Traefik, or NPM owner; route/network contract; 80/443, DNS, TLS, and auth owners | DNS and certificate are correct; auth policy works; direct backend remains private |
@@ -18,7 +18,9 @@ Load only the selected branch. Current provider syntax belongs in an apply adapt
 
 - Choose Local when the user has not selected an exposure class.
 - Choose LAN only for clients on named private networks. A wildcard bind is not firewall evidence.
-- Choose Private Caddy when local users want friendly HTTPS names. Container Caddy reaches sibling services by Docker DNS name; host Caddy reaches a loopback-bound backend at `127.0.0.1`. `localhost` inside a Caddy container names Caddy itself.
+- For the media harness, all seven host ports are published on every interface;
+  prove router or Docker-aware firewall scope separately from any proxy route.
+- Choose Private Caddy when local users want friendly HTTPS names. A host-only `.localhost` route needs no private DNS owner; verify loopback resolution on that host. An explicitly selected `.home.arpa` or standard-domain FQDN host-only override changes resolution for individual requests only, not host/router DNS. It grants no domain ownership or public exposure. LAN clients need an owned private DNS record and their own CA trust. Container Caddy reaches sibling services by Docker DNS name; host Caddy reaches a loopback-bound backend at `127.0.0.1`. `localhost` inside a Caddy container names Caddy itself.
 - Private Caddy uses an internal CA. Each intended client must trust that CA root; TLS does not provide user authentication. A host-only route binds loopback; a LAN route binds one explicit private host address. Container Caddy publishes its selected HTTPS port only on that same host address; automatic HTTP redirects are disabled, so port 80 is not assumed. Persist `/config` and `/data`, keep the Docker socket unmounted, and delegate any Compose render/apply to `selfhost-compose`.
 - Choose Tailscale Serve for a private phone or trusted-device request. Choose Headscale only when operating the coordination plane is itself an accepted responsibility.
 - Reuse an existing reverse proxy before proposing another owner for 80/443. Compatibility requires owner, lifecycle owner, route contract, reachable proxy network, accepted change mechanism, and persistent state.

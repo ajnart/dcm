@@ -11,7 +11,7 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/prowlarr:/config
     ports:
-      - "127.0.0.1:${PROWLARR_PORT:-9696}:9696"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${PROWLARR_PORT:-9696}:9696"
     restart: unless-stopped
 
   radarr:
@@ -25,7 +25,7 @@ services:
       - ${SESSION_ROOT}/config/radarr:/config
       - ${SESSION_ROOT}/data:/data
     ports:
-      - "127.0.0.1:${RADARR_PORT:-7878}:7878"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${RADARR_PORT:-7878}:7878"
     restart: unless-stopped
 
   sonarr:
@@ -39,7 +39,7 @@ services:
       - ${SESSION_ROOT}/config/sonarr:/config
       - ${SESSION_ROOT}/data:/data
     ports:
-      - "127.0.0.1:${SONARR_PORT:-8989}:8989"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${SONARR_PORT:-8989}:8989"
     restart: unless-stopped
 
   qbittorrent:
@@ -55,7 +55,7 @@ services:
       - ${SESSION_ROOT}/config/qbittorrent:/config
       - ${SESSION_ROOT}/data/torrents:/data/torrents
     ports:
-      - "127.0.0.1:${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${QBITTORRENT_PORT:-8080}:${QBITTORRENT_PORT:-8080}"
     restart: unless-stopped
 
   jellyfin:
@@ -69,7 +69,10 @@ services:
       - ${SESSION_ROOT}/config/jellyfin:/config
       - ${SESSION_ROOT}/data/media:/data/media
     ports:
-      - "127.0.0.1:${JELLYFIN_PORT:-8096}:8096"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${JELLYFIN_PORT:-8096}:8096"
+    networks:
+      - default
+      - web
     restart: unless-stopped
 
   seerr:
@@ -81,7 +84,10 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/seerr:/app/config
     ports:
-      - "127.0.0.1:${SEERR_PORT:-5055}:5055"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${SEERR_PORT:-5055}:5055"
+    networks:
+      - default
+      - web
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
       start_period: 20s
@@ -91,7 +97,7 @@ services:
     restart: unless-stopped
 
   homarr:
-    image: ghcr.io/homarr-labs/homarr-test:v2
+    image: ghcr.io/homarr-labs/homarr:dev
     pull_policy: always
     environment:
       TZ: ${TZ}
@@ -99,9 +105,15 @@ services:
     volumes:
       - ${SESSION_ROOT}/config/homarr:/appdata
     ports:
-      - "${HOMARR_BIND_ADDRESS:-127.0.0.1}:${HOMARR_PORT:-7575}:7575"
+      - "${MEDIA_PORT_BIND_PREFIX:-}${HOMARR_PORT:-7575}:7575"
+    networks:
+      - default
+      - web
     restart: unless-stopped
 
 networks:
   default:
     name: ${COMPOSE_PROJECT_NAME}_network
+  web:
+    name: ${COMPOSE_PROJECT_NAME}_web
+    internal: true

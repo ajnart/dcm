@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "tracearr",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "tracearr",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "activeStreams",
+        "totalUsers",
+        "recentViolations"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "tracearr",
+        "procedure": "widget.tracearr.getDashboard",
+        "inputMode": "many",
+        "field": "dashboard",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "stats": {
+              "type": "object",
+              "fields": {
+                "activeStreams": "number",
+                "totalUsers": "number",
+                "totalSessions": "number",
+                "recentViolations": "number",
+                "timestamp": "string"
+              }
+            },
+            "streams": {
+              "type": "object",
+              "fields": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": {
+                      "id": "string",
+                      "serverId": "string",
+                      "serverName": "string",
+                      "username": "string",
+                      "mediaTitle": "string",
+                      "mediaType": "string",
+                      "state": "string",
+                      "startedAt": "string",
+                      "progressMs": "number"
+                    }
+                  }
+                },
+                "summary": {
+                  "type": "object",
+                  "fields": {
+                    "total": "number",
+                    "transcodes": "number",
+                    "directStreams": "number",
+                    "directPlays": "number",
+                    "totalBitrate": "string",
+                    "byServer": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "fields": {
+                          "serverId": "string",
+                          "serverName": "string",
+                          "totalBitrate": "string",
+                          "total": "number",
+                          "transcodes": "number",
+                          "directStreams": "number",
+                          "directPlays": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "violations": {
+              "type": "nullable",
+              "value": {
+                "type": "object",
+                "fields": {
+                  "data": {
+                    "type": "array",
+                    "items": "object"
+                  },
+                  "meta": {
+                    "type": "object",
+                    "fields": {
+                      "total": "number",
+                      "page": "number",
+                      "pageSize": "number"
+                    }
+                  }
+                }
+              }
+            },
+            "recentActivity": {
+              "type": "nullable",
+              "value": {
+                "type": "object",
+                "fields": {
+                  "data": {
+                    "type": "array",
+                    "items": "object"
+                  },
+                  "meta": {
+                    "type": "object",
+                    "fields": {
+                      "total": "number",
+                      "page": "number",
+                      "pageSize": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

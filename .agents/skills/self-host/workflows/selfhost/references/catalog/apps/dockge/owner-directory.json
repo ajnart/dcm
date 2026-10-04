@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "kind": "shared-owner-directory",
+  "appId": "dockge",
+  "serviceId": "dockge",
+  "imageTag": "docker.io/louislam/dockge:1.5.0",
+  "officialUrl": "https://github.com/louislam/dockge/blob/1.5.0/compose.yaml"
+}

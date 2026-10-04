@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 
 import {
   appMatchesUpdate,
+  applyMediaAppLinks,
+  planMediaAppLinks,
   repairLegacyStatsItem,
+  serviceDefinitions,
   updateApp,
 } from "./homarr-finalize.ts";
 
@@ -128,23 +131,108 @@ async function runChecks() {
     };
   }
   const repairClient = boardClient();
-  assert.deepEqual(await repairLegacyStatsItem(repairClient, "MyHomelab", integrationIds, appIds), { repaired: true });
+  assert.deepEqual(await repairLegacyStatsItem(repairClient, "MyHomelab", integrationIds, appIds, "i6"), { repaired: true });
   const save = repairClient.calls.find((call) => call.type === "mutation");
   assert.equal(save.input.items.some((item) => item.id === "legacy-stats"), false);
   assert.equal(save.input.items.some((item) => item.id === "preserved"), true);
   const noopClient = boardClient(baseItems.filter((item) => item.kind !== "stats"));
-  assert.deepEqual(await repairLegacyStatsItem(noopClient, "MyHomelab", integrationIds, appIds), { repaired: false });
+  assert.deepEqual(await repairLegacyStatsItem(noopClient, "MyHomelab", integrationIds, appIds, "i6"), { repaired: false });
   assert.equal(noopClient.calls.some((call) => call.type === "mutation"), false);
   for (const items of [
     [...baseItems, { ...baseItems.find((item) => item.kind === "stats"), id: "legacy-duplicate" }],
     baseItems.map((item) => item.kind === "stats" ? { ...item, options: { changed: true } } : item),
     baseItems.filter((item) => item.kind !== "mediaRequests-requestStats"),
     baseItems.filter((item) => item.options?.appId !== "a6"),
+    baseItems.map((item) => item.kind === "stats" ? { ...item, integrationIds: ["i1", "i1", "i2", "i3", "i4", "i5"] } : item),
+    baseItems.map((item) => item.kind === "mediaRequests-requestStats" ? { ...item, integrationIds: ["i5"] } : item),
+    baseItems.map((item) => item.kind === "mediaRequests-requestStats" ? { ...item, options: { unexpected: true } } : item),
   ]) {
-    await assert.rejects(repairLegacyStatsItem(boardClient(items), "MyHomelab", integrationIds, appIds));
+    const rejectedClient = boardClient(items);
+    await assert.rejects(repairLegacyStatsItem(rejectedClient, "MyHomelab", integrationIds, appIds, "i6"));
+    assert.equal(rejectedClient.calls.some((call) => call.type === "mutation"), false);
   }
 
-  process.stdout.write("PASS Homarr update reconciliation and legacy stats compatibility checks\n");
+  const session = { runId: "links-fixture", sessionDir: "/tmp/homarr-links-fixture-no-access", manifest: {
+    HOMARR_BIND_ADDRESS: "127.0.0.1", HOMARR_PORT: "21006", SONARR_PORT: "21002", RADARR_PORT: "21001",
+    PROWLARR_PORT: "21000", QBITTORRENT_PORT: "21003", JELLYFIN_PORT: "21004", SEERR_PORT: "21005",
+  } };
+  const services = serviceDefinitions(session);
+  const managedApps = services.map((service) => ({ id: `onboarding_app_${service.kind}`, name: service.kind,
+    description: "private-description-canary", iconUrl: "https://example.test/private-icon-canary.svg",
+    href: "http://127.0.0.1:9999", pingUrl: service.pingUrl }));
+  const managedIntegrations = services.map((service) => ({ id: `integration_${service.kind}`, kind: service.kind,
+    url: service.pingUrl, permissions: { hasUseAccess: true, hasInteractAccess: true, hasFullAccess: true } }));
+  const ownedBoard = { id: "board-1", name: "MyHomelab", isPublic: false, sections: [], layouts: [],
+    items: managedApps.map((app) => ({ id: `tile-${app.id}`, kind: "app", options: { appId: app.id } })) };
+  ownedBoard.items.push({ id: "keep-legacy-stats", kind: "stats", options: {} });
+  const linkCalls = [];
+  const linkClient = { async callTool(name, args = {}) {
+    linkCalls.push({ name, args: structuredClone(args) });
+    if (name === "app_all") return appResult(structuredClone(managedApps));
+    if (name === "integration_all") return { structuredContent: structuredClone(managedIntegrations) };
+    if (name === "integration_byId") {
+      const integration = managedIntegrations.find((entry) => entry.id === args.id);
+      return { structuredContent: { ...integration, app: { id: `onboarding_app_${integration.kind}`, name: integration.kind } } };
+    }
+    assert.equal(name, "app_update");
+    Object.assign(managedApps.find((app) => app.id === args.id), args);
+    return {};
+  } };
+  const linkBoardClient = { async query(procedure) {
+    if (procedure === "board.getAllBoards") return [{ id: ownedBoard.id, name: ownedBoard.name, isPublic: false }];
+    assert.equal(procedure, "board.getBoardByName");
+    return structuredClone(ownedBoard);
+  }, async mutate() { assert.fail("links mode must never mutate the board"); } };
+  const linkPlan = await planMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab");
+  assert.equal(linkPlan.managedApps.length, 6);
+  assert.equal(linkPlan.updates.length, 6);
+  assert.equal(linkCalls.some((call) => call.name === "app_update"), false);
+  assert.equal(JSON.stringify(linkPlan).includes("private-description-canary"), false);
+  assert.equal(JSON.stringify(linkPlan).includes("private-icon-canary"), false);
+  managedIntegrations[0].lastHealthCheck = "volatile-observation";
+  managedApps[0].updatedAt = "volatile-observation";
+  assert.equal((await planMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab")).approvalDigest, linkPlan.approvalDigest);
+  ownedBoard.items.push({ id: "concurrent-clock", kind: "clock", options: {} });
+  await assert.rejects(applyMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab", linkPlan.approvalDigest), /approval/);
+  assert.equal(linkCalls.some((call) => call.name === "app_update"), false);
+  ownedBoard.items.pop();
+  const result = await applyMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab", linkPlan.approvalDigest);
+  assert.equal(result.mutation, true);
+  assert.equal(linkCalls.filter((call) => call.name === "app_update").length, 6);
+  assert.equal(ownedBoard.items.some((item) => item.id === "keep-legacy-stats"), true);
+  for (const app of managedApps) {
+    assert.equal(app.iconUrl, "https://example.test/private-icon-canary.svg");
+    const service = services.find((entry) => entry.kind === app.name);
+    assert.equal(app.href, service.navigationUrl);
+    assert.equal(app.pingUrl, service.pingUrl);
+    assert.equal(app.description, service.description);
+  }
+  const currentPlan = await planMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab");
+  assert.equal(currentPlan.updates.length, 0);
+  managedApps[0].description = "concurrent-description";
+  await assert.rejects(applyMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab", currentPlan.approvalDigest), /approval/);
+  assert.equal(linkCalls.filter((call) => call.name === "app_update").length, 6);
+
+  const originalCallTool = linkClient.callTool.bind(linkClient);
+  const boardDriftPlan = await planMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab");
+  linkClient.callTool = async (name, args = {}) => {
+    const result = await originalCallTool(name, args);
+    if (name === "app_update") ownedBoard.sections.push({ id: "unapproved-section", kind: "empty" });
+    return result;
+  };
+  await assert.rejects(applyMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab", boardDriftPlan.approvalDigest), /preserve the private board/);
+  ownedBoard.sections.pop();
+  linkClient.callTool = originalCallTool;
+  managedApps[0].description = "another-outdated-description";
+  const linkageDriftPlan = await planMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab");
+  linkClient.callTool = async (name, args = {}) => {
+    const result = await originalCallTool(name, args);
+    if (name === "app_update") managedIntegrations[0].permissions.hasFullAccess = false;
+    return result;
+  };
+  await assert.rejects(applyMediaAppLinks(linkClient, linkBoardClient, session, "MyHomelab", linkageDriftPlan.approvalDigest), /integration is not managed/);
+
+  process.stdout.write("PASS Homarr update reconciliation, bounded links approval and legacy stats compatibility checks\n");
 }
 
 runChecks().catch(() => {

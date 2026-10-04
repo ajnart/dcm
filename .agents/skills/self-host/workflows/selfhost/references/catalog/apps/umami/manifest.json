@@ -1,0 +1,63 @@
+{
+  "id": "umami",
+  "name": "Umami",
+  "aliases": [
+    "privacy web analytics",
+    "google analytics replacement"
+  ],
+  "categories": [
+    "analytics"
+  ],
+  "roles": [
+    "web-analytics"
+  ],
+  "upstream": {
+    "url": "https://umami.is/",
+    "repository": "https://github.com/umami-software/umami",
+    "docs": "https://umami.is/docs/install"
+  },
+  "image": {
+    "reference": "ghcr.io/umami-software/umami:3.4.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Privacy-oriented analytics; consent obligations remain jurisdiction-specific."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Umami"
+  },
+  "dependencies": [
+    "postgresql",
+    "capability:tls-ingress"
+  ],
+  "alternatives": [
+    "grafana",
+    "prometheus"
+  ],
+  "security": [
+    "Keep administration private, change the seeded admin/umami password immediately, generate unique APP_SECRET and TWO_FACTOR_ENCRYPTION_KEY values, and minimize collected visitor data."
+  ],
+  "pitfalls": [
+    "Self-hosting does not remove consent, retention, or data-governance duties.",
+    "The seeded administrator is reachable on the selected loopback origin until the separately approved password-rotation setup completes; never expose it more broadly before rotation is verified."
+  ],
+  "sources": [
+    "https://docs.umami.is/docs/install",
+    "https://docs.umami.is/docs/environment-variables",
+    "https://docs.umami.is/docs/login",
+    "https://docs.umami.is/docs/api/authentication",
+    "https://docs.umami.is/docs/api-reference/update-user",
+    "https://github.com/umami-software/umami/blob/master/docker-compose.yml",
+    "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml",
+    "https://github.com/umami-software/umami/releases/tag/v3.4.0"
+  ]
+}

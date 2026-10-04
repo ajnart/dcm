@@ -31,3 +31,6 @@ The current sequence is:
    authentication-safe evidence capture.
 6. Generation 6 compares a private installed-skill UI baseline with a new
    script-first source path. Runtime headless testing waits for the user's GO.
+7. Generation 7 promotes one independently installed full-Homarr UI survivor,
+   records two non-survivors, and folds browser traps into focused modules.
+   Script-first live testing still waits for the user's GO.

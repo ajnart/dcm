@@ -1,0 +1,66 @@
+{
+  "id": "home-assistant",
+  "name": "Home Assistant",
+  "aliases": [
+    "smart home",
+    "home automation hub"
+  ],
+  "categories": [
+    "home-automation"
+  ],
+  "roles": [
+    "automation-hub"
+  ],
+  "upstream": {
+    "url": "https://www.home-assistant.io/",
+    "repository": "https://github.com/home-assistant/core",
+    "docs": "https://www.home-assistant.io/installation/"
+  },
+  "image": {
+    "reference": "ghcr.io/home-assistant/home-assistant:2026.9.3",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "transitioning",
+    "checkedAt": "2026-09-29",
+    "note": "Home Assistant OS and Container are supported paths; legacy Core/Supervised guidance is retired."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Home Assistant"
+  },
+  "dependencies": [
+    "capability:lan-discovery",
+    "capability:device-access",
+    "capability:voice-hardware",
+    "capability:voice-pipeline"
+  ],
+  "alternatives": [
+    "node-red",
+    "homebridge"
+  ],
+  "security": [
+    "The bounded Compose recipe exposes only the web UI on loopback; approve LAN access, host networking, USB radios, microphones, speakers, and public exposure separately."
+  ],
+  "pitfalls": [
+    "Container mode does not provide the same add-on lifecycle as Home Assistant OS.",
+    "Loopback-only bridge networking does not provide the LAN discovery behavior of the upstream host-network example.",
+    "A smart-speaker experience also needs compatible audio hardware plus chosen wake-word, speech-to-text, and text-to-speech components; Home Assistant alone is not a physical speaker.",
+    "Shared setup verifies the owner and integration token, but reports unfinished core_config, analytics and integration wizard steps separately. Core-config completion starts upstream provider flows; it is not silently approved by account creation or Homarr publication."
+  ],
+  "sources": [
+    "https://www.home-assistant.io/installation/linux/",
+    "https://www.home-assistant.io/voice_control/",
+    "https://www.home-assistant.io/common-tasks/container/",
+    "https://raw.githubusercontent.com/home-assistant/core/2026.9.3/homeassistant/components/onboarding/views.py",
+    "https://raw.githubusercontent.com/home-assistant/core/2026.9.3/homeassistant/components/onboarding/__init__.py",
+    "https://raw.githubusercontent.com/home-assistant/core/2026.9.3/homeassistant/components/auth/login_flow.py",
+    "https://raw.githubusercontent.com/home-assistant/core/2026.9.3/homeassistant/components/auth/__init__.py"
+  ]
+}

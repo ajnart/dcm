@@ -1,0 +1,9 @@
+# Dockge shared-setup decision — 2026-09-30
+
+Dockge remains a discovery-only catalog entry. Do not add a shared `recipe.json` or `setup.ts` yet.
+
+The [official Compose file](https://github.com/louislam/dockge/blob/master/compose.yaml) uses `louislam/dockge:1` (a moving major tag), publishes port 5001, persists `/app/data`, mounts `/var/run/docker.sock`, and mounts a writable stacks directory. Its comments require an absolute stacks path with identical host and container paths, reflected in `DOCKGE_STACKS_DIR`. Omitting the socket would leave a Compose manager unable to manage the host daemon; including it would grant authority beyond this product's one-owned-Compose-project boundary. Docker's [daemon access guidance](https://docs.docker.com/engine/security/protect-access/) treats control of the daemon as a privileged security boundary. A loopback UI does not constrain that authority.
+
+The [README installation path](https://github.com/louislam/dockge/blob/master/README.md#how-to-install) leads to browser onboarding. The [server's Socket.IO handler](https://github.com/louislam/dockge/blob/master/backend/socket-handlers/main-socket-handler.ts) contains first-user setup and login events, but these are internal transport handlers, not a documented stable HTTP or CLI first-admin API. The shared HTTP setup adapter therefore cannot safely claim replay-safe account creation and verification from an upstream-supported interface. HTTP 200 and container liveness would not prove first-admin or stack-management acceptance.
+
+To promote Dockge, first design and approve a genuinely bounded Docker authority and exact stacks-tree ownership/import policy. Then pin and verify an image digest, establish a documented or version-locked checkpointed first-admin contract, and prove fresh install, credential replay, refusal of unowned stacks, restart persistence, and recovery on a disposable host. No live Docker or onboarding validation was performed here.

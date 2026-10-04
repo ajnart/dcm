@@ -1,0 +1,59 @@
+{
+  "id": "actual-budget",
+  "name": "Actual Budget",
+  "aliases": [
+    "ynab replacement",
+    "personal budget"
+  ],
+  "categories": [
+    "productivity"
+  ],
+  "roles": [
+    "personal-finance"
+  ],
+  "upstream": {
+    "url": "https://actualbudget.org/",
+    "repository": "https://github.com/actualbudget/actual",
+    "docs": "https://actualbudget.org/docs/install/docker/"
+  },
+  "image": {
+    "reference": "ghcr.io/actualbudget/actual:26.9.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "The official versioned image persists financial data in /data; password-only first run needs a distinct onboarding contract."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:finance-data-backup",
+    "capability:tls-ingress"
+  ],
+  "alternatives": [
+    "firefly-iii"
+  ],
+  "security": [
+    "Keep financial data private, protect the server password, and verify backups with an isolated restore."
+  ],
+  "pitfalls": [
+    "The server password is not the optional budget end-to-end encryption password; the latter cannot be recovered if lost.",
+    "External bank synchronization can introduce third-party credentials and terms."
+  ],
+  "sources": [
+    "https://actualbudget.org/docs/install/docker/",
+    "https://github.com/actualbudget/actual/pkgs/container/actual",
+    "https://actualbudget.org/docs/config/",
+    "https://actualbudget.org/docs/api/",
+    "https://actualbudget.org/docs/getting-started/sync/"
+  ]
+}

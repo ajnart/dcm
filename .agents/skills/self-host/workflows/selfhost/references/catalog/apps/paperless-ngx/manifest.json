@@ -1,0 +1,61 @@
+{
+  "id": "paperless-ngx",
+  "name": "Paperless-ngx",
+  "aliases": [
+    "paperless office",
+    "document archive",
+    "ocr archive"
+  ],
+  "categories": [
+    "documents"
+  ],
+  "roles": [
+    "document-archive",
+    "ocr"
+  ],
+  "upstream": {
+    "url": "https://docs.paperless-ngx.com/",
+    "repository": "https://github.com/paperless-ngx/paperless-ngx",
+    "docs": "https://docs.paperless-ngx.com/setup/"
+  },
+  "image": {
+    "reference": "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
+    "source": "upstream",
+    "status": "verify"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-28",
+    "note": "Official Compose uses PostgreSQL and Valkey; image and multi-service apply still need a registry and live check."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Paperless-ngx",
+    "iconUrl": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/paperless-ngx.svg"
+  },
+  "dependencies": [
+    "postgresql",
+    "valkey",
+    "capability:document-storage"
+  ],
+  "alternatives": [
+    "mayan-edms",
+    "stirling-pdf"
+  ],
+  "security": [
+    "Treat document contents as sensitive and control ingest paths."
+  ],
+  "pitfalls": [
+    "Network filesystems may require polling; database and archive restore together."
+  ],
+  "sources": [
+    "https://docs.paperless-ngx.com/setup/",
+    "https://docs.paperless-ngx.com/configuration/",
+    "https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docker/compose/docker-compose.postgres.yml"
+  ]
+}

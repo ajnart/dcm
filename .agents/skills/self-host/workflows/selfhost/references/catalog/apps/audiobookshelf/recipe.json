@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "audiobookshelf",
+  "source": "https://github.com/advplyr/audiobookshelf",
+  "services": [
+    {
+      "id": "audiobookshelf",
+      "purpose": "Keeps private audiobook and podcast accounts, progress, and library metadata.",
+      "imageTag": "ghcr.io/advplyr/audiobookshelf:2.37.0",
+      "imageSource": "https://github.com/advplyr/audiobookshelf/pkgs/container/audiobookshelf",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://www.audiobookshelf.org/docs",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [{ "name": "TZ", "source": "timezone" }],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "config", "target": "/config", "kind": "volume" },
+        { "name": "metadata", "target": "/metadata", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 80
+    }
+  ],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48 }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://github.com/advplyr/audiobookshelf/blob/v2.37.0/server/Server.js",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 13378,
+    "dataDirectoryName": "audiobookshelf"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    {
+      "id": "root-login",
+      "method": "api",
+      "description": "Create exactly one root user through the pinned /init route, then independently verify its credentials through /login."
+    },
+    {
+      "id": "media-selection",
+      "method": "browser",
+      "description": "Select owned audiobook or podcast directories separately; this private base recipe creates no media library."
+    },
+    {
+      "id": "restart-persistence",
+      "method": "persisted",
+      "description": "Restart the exact Compose project and verify the root login and library metadata remain available."
+    }
+  ]
+}

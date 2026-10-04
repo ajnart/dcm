@@ -15,7 +15,7 @@ Inspect first, then turn facts into a host plan. Keep observed facts separate fr
 2. Read [inspection-contract.md](references/inspection-contract.md). Run `scripts/inspect-host.sh` without `--output` unless the user asked to persist a report. Pass only candidate paths that are already in scope.
 3. Read [platform-paths.md](references/platform-paths.md) when recommending storage, runtime placement, UID/GID, ACL, timezone, or a Proxmox boundary.
 4. Classify each relevant item as `observed`, `chosen`, or `derived`. Record existing resources as `reuse`, `coexist`, or `conflict`; do not silently take ownership.
-5. Ask only for choices that materially change safety or topology: target host/context, platform hint when it cannot be observed, path roots, numeric service identity or platform ACL owner, backup destination, and whether Proxmox LXC tradeoffs are accepted.
+5. Ask only for choices that materially change safety or topology: target host/context, platform hint when it cannot be observed, path roots, numeric service identity or platform ACL owner, backup destination, and whether Proxmox LXC tradeoffs are accepted. For a private route, first show observed LAN-address and resolver candidates; ask which client devices should use the route and who controls their DNS and CA trust only after this inspection. A resolver address does not prove DNS ownership, and the host cannot discover client trust.
 6. Return the contract below. Stop at a plan unless another explicitly selected skill and the user authorize changes.
 
 ## Run the probe
@@ -26,7 +26,14 @@ Resolve the script relative to this `GUIDE.md`; do not assume the repository is 
 bash <skill-directory>/scripts/inspect-host.sh
 bash <skill-directory>/scripts/inspect-host.sh --platform-hint vps --path /srv/selfhost
 bash <skill-directory>/scripts/inspect-host.sh --path /mnt/user/appdata --path /mnt/user/media
+bash <skill-directory>/scripts/inspect-host.sh --check-tcp-port 2283 --check-tcp-port 3000
 ```
+
+Use repeated `--check-tcp-port` for planned binds when the bounded general
+listener inventory may truncate. A complete selected-port result proves only
+whether those exact TCP ports were listening at inspection time; the apply
+owner still rechecks conflicts. Treat it as local-host evidence, never remote
+Docker-context evidence.
 
 The probe writes JSON to stdout. `--output FILE` creates a new private file atomically and refuses to replace an existing path or symlink. Use `--skip-docker` when daemon access is out of scope. Use `--limit` only to lower or raise collection bounds within the script's hard cap.
 

@@ -11,8 +11,9 @@ Treat every row as unproven until its listed evidence exists.
 | Prowlarr -> Sonarr/Radarr | two passing full-sync apps; indexer downstream |
 | Jellyfin | admin login and two media libraries |
 | Seerr | initialized, Jellyfin connected, default Sonarr/Radarr fully set |
-| Homarr integrations | six passing records; apps use host URL + internal ping |
+| Homarr integrations | six passing records; every generated app tile uses its host URL, internal ping, and a plain-language service description |
 | Homarr auto-generation | board-detail API lists six linked app tiles and integration-backed widgets; live widget queries pass; reload screenshot when requested |
+| Homarr stack recap | Reviewed `homarr-notebook plan` digest, matching `apply` result with `status: applied`, and API read-back of the one private Notebook's content, movie-search instructions, and layout; `board-access.json` identifies the board |
 | Homarr API/MCP | private key capture plus `homarr-finalize`, `mcp-config`, and `mcp-verify` PASS; secret-free `mcp-client.json`; canonical `/api/mcp` and bridge read-only searches find Spider-Man: No Way Home; no request/download or client install |
 | Reusable connections | password-free `connections.env` refreshed; initial setup, or explicitly requested fresh upkeep handoff, returns the access artifact paths without credential values |
 
@@ -25,7 +26,14 @@ upkeep, run `handoff` only when the user explicitly asked for a fresh access
 handoff. Do not copy the password into evidence. Run
 `bun scripts/prove-homarr-widgets-api.ts "$RUN_ID" "$BOARD_NAME"` on the
 saved board before adding the recap. Use the browser widget helper only if the
-API proof fails or a screenshot was requested.
+API proof fails or a screenshot was requested. Run `scripts/session.sh
+homarr-notebook plan "$RUN_ID" "$BOARD_NAME"` after the generated-widget proof,
+review it, then run `scripts/session.sh homarr-notebook apply "$RUN_ID"
+"$BOARD_NAME" --approve 'sha256:...'` with its exact digest. Require
+`status: applied` and exact read-back before marking the recap row complete. In the final
+answer, explain what each installed service does and offer the board URL as
+**View dashboard**; label any required SSH tunnel or private route. A recorded
+URL is not proof that another device can reach it.
 On Homarr, require all onboarding test calls and a
 fixed proof row for each expected generated-widget procedure:
 `widget.indexerManager.getIndexersStatus`,

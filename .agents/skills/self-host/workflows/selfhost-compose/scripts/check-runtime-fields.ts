@@ -37,6 +37,12 @@ function manifest(id, services) {
   };
 }
 
+function rootlessManifest(id, services) {
+  const value = manifest(id, services);
+  value.project.dockerContext = "rootless";
+  return value;
+}
+
 function run(args, input) {
   fs.writeFileSync(manifestPath, `${JSON.stringify(input)}\n`, { mode: 0o600 });
   return Bun.spawnSync([process.execPath, script, ...args, "--input", manifestPath], { stdout: "pipe", stderr: "pipe" });
@@ -85,7 +91,42 @@ const sensitiveArg = manifest("runtime-arg", [{ ...service("app"), command: ["se
 assert.match(run(["validate"], sensitiveArg).stderr.toString(), /secret-bearing or interpolated arguments/);
 
 const rootUser = manifest("runtime-root", [{ ...service("app"), user: "0:0" }]);
-assert.match(run(["validate"], rootUser).stderr.toString(), /must not use the root uid or gid/);
+assert.match(run(["validate"], rootUser).stderr.toString(), /allowed only for the exact rootless Docker context/);
+
+const rootlessEvidence = {
+  officialUrl: "https://docs.docker.com/engine/security/rootless/",
+  reason: "host-user-mapped-container-root"
+};
+const rootlessRoot = rootlessManifest("runtime-rootless-root", [{
+  ...service("app"),
+  user: "0:0",
+  rootlessUserEvidence: rootlessEvidence
+}]);
+const rootlessPlanResult = run(["plan"], rootlessRoot);
+assert.equal(rootlessPlanResult.exitCode, 0);
+const rootlessPlan = JSON.parse(rootlessPlanResult.stdout.toString());
+assert.deepEqual(rootlessPlan.claims.services[0].rootlessUserEvidence, rootlessEvidence);
+assert.equal(rootlessPlan.claims.services[0].user, "0:0");
+const rootlessRenderResult = run(["render", "--output-dir", rootlessRoot.project.directory], rootlessRoot);
+assert.equal(rootlessRenderResult.exitCode, 0);
+const rootlessCompose = fs.readFileSync(JSON.parse(rootlessRenderResult.stdout.toString()).target, "utf8");
+assert.match(rootlessCompose, /user: "0:0"/);
+
+const rootlessWithoutEvidence = rootlessManifest("runtime-rootless-no-evidence", [{ ...service("app"), user: "0:0" }]);
+assert.match(run(["validate"], rootlessWithoutEvidence).stderr.toString(), /requires rootlessUserEvidence/);
+
+const wrongRootlessEvidence = rootlessManifest("runtime-rootless-wrong-evidence", [{
+  ...service("app"),
+  user: "0:0",
+  rootlessUserEvidence: { ...rootlessEvidence, officialUrl: "https://example.test/rootless" }
+}]);
+assert.match(run(["validate"], wrongRootlessEvidence).stderr.toString(), /supported Docker rootless UID mapping contract/);
+
+const misplacedRootlessEvidence = rootlessManifest("runtime-rootless-misplaced-evidence", [{
+  ...service("app"),
+  rootlessUserEvidence: rootlessEvidence
+}]);
+assert.match(run(["validate"], misplacedRootlessEvidence).stderr.toString(), /valid only with user 0:0/);
 
 const unjustifiedDefault = manifest("runtime-default", [{ ...service("app"), user: "image-default" }]);
 assert.match(run(["validate"], unjustifiedDefault).stderr.toString(), /requires official imageUserEvidence/);

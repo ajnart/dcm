@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "bookstack",
+  "source": "https://github.com/linuxserver/docker-bookstack/blob/master/README.md",
+  "services": [
+    {
+      "id": "bookstack",
+      "purpose": "Serves private books, pages, and attachments after replacing the seeded administrator.",
+      "imageTag": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
+      "imageSource": "https://github.com/linuxserver/docker-bookstack/releases/tag/v26.05.3-ls277",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://docs.linuxserver.io/images/docker-bookstack/", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "DB_HOST", "value": "db" },
+        { "name": "DB_PORT", "value": "3306" },
+        { "name": "DB_USERNAME", "value": "bookstack" },
+        { "name": "DB_DATABASE", "value": "bookstack" }
+      ],
+      "hostEnvironment": [
+        { "name": "PUID", "source": "uid" },
+        { "name": "PGID", "source": "gid" },
+        { "name": "TZ", "source": "timezone" }
+      ],
+      "hostIdentityEvidence": "https://docs.linuxserver.io/images/docker-bookstack/",
+      "derivedEnvironment": [{ "name": "APP_URL", "source": "local-origin" }],
+      "fileEnvironment": [
+        { "name": "FILE__APP_KEY", "fileId": "application-key" },
+        { "name": "FILE__DB_PASSWORD", "fileId": "database-password" }
+      ],
+      "mounts": [{ "name": "config", "target": "/config", "kind": "volume" }],
+      "dependsOn": ["db"],
+      "publishTargetPort": 80
+    },
+    {
+      "id": "db",
+      "purpose": "Stores BookStack accounts, pages, and attachment metadata privately.",
+      "imageTag": "docker.io/library/mariadb:12.3.3",
+      "imageSource": "https://hub.docker.com/_/mariadb",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://hub.docker.com/_/mariadb", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "MARIADB_DATABASE", "value": "bookstack" },
+        { "name": "MARIADB_USER", "value": "bookstack" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [
+        { "name": "MARIADB_PASSWORD_FILE", "fileId": "database-password" },
+        { "name": "MARIADB_ROOT_PASSWORD_FILE", "fileId": "database-root-password" }
+      ],
+      "mounts": [{ "name": "database", "target": "/var/lib/mysql", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "application-key", "bytes": 32, "format": "base64-prefixed" },
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "database-root-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "manual-first-email",
+    "officialUrl": "https://www.bookstackapp.com/docs/admin/commands/",
+    "email": "admin@example.test",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8080, "dataDirectoryName": "bookstack" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 5368709120 },
+  "acceptance": [
+    { "id": "first-admin", "method": "api", "description": "Use the pinned CLI to rotate only the default seeded admin or create the sole first admin, privately capture its generated password, and verify fresh email login and administrator access. A separate seeded-login rejection check remains an acceptance gap." },
+    { "id": "page-roundtrip", "method": "browser", "description": "Create and re-read a representative page and attachment with the saved administrator." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and verify the same administrator, page, and attachment persist." },
+    { "id": "isolated-restore", "method": "persisted", "description": "Restore MariaDB and the BookStack config volume together in isolation before claiming backup verification." }
+  ]
+}

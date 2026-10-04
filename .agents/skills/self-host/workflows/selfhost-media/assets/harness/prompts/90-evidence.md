@@ -45,14 +45,18 @@ fixed harness summaries.
 10. benchmark mode (`browser`, `browser-wiring`, or `hybrid`), measured elapsed
     time, and separate navigation, interaction, snapshot, wait, tool-call and
     retry counts from `scripts/browser-benchmark.ts`. Mark unrun paths unmeasured.
+11. the Notebook API read-back PASS, the `board-access.json` path, and the
+    dashboard access method. Link the board in the user recap only when its
+    private identity and Notebook were verified; do not claim off-host reachability.
 
 Never capture the Authentication page while the one-time key is visible.
 Evidence may include only secret-free command summaries and structural results;
 the API key and raw authenticated payloads must never be printed or stored as
 evidence. `connections.env` is a private user handoff, not an artifact; do not
-copy it into `setup-report.md`. The explicit private export is the sole
-secret-bearing artifact: `artifacts/private-handoff.json`, mode 0600. Keep it
-out of screenshots, benchmark inputs, shared archives and ordinary reports.
+copy it into `setup-report.md`. The explicit private export and any
+`setup-fallback-SERVICE.json` takeover artifact contain credentials and are
+mode 0600. Keep both out of screenshots, benchmark inputs, shared archives and
+ordinary reports; report only their paths.
 Return its path separately from the redacted handoff and benchmark reports.
 
 Do not destroy the session. Preserve it for user review of the evidence and live

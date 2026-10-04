@@ -377,6 +377,10 @@ function main(): void {
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
-if (Bun.argv[1] !== undefined && import.meta.url === pathToFileURL(Bun.argv[1]).href) {
+// Bun rewrites import.meta.url to the bundle entry for imported modules. Keep
+// this CLI entrypoint dormant when a different helper bundles this module.
+if (typeof Bun !== "undefined" && Bun.argv[1] !== undefined
+  && basename(Bun.argv[1]) === "household-credentials.ts"
+  && import.meta.url === pathToFileURL(Bun.argv[1]).href) {
   try { main(); } catch { process.stderr.write("FAIL household credential operation\n"); process.exitCode = 1; }
 }

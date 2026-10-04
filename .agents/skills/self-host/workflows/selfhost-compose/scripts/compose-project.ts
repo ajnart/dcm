@@ -1,12 +1,18 @@
 #!/usr/bin/env bun
 
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { isIP } from "node:net";
 import path from "node:path";
+import { checkedManualProbe } from "../../selfhost/references/catalog/types/manual-job.ts";
+import { checkedDockerCliTlsClaim, dockerCliTlsTargets } from "../../selfhost/references/catalog/types/docker-cli-tls.ts";
+import { checkedRuntimeResourceClaim, runtimeResourceEffects, verifyRuntimeResourceDevice } from "../../selfhost/references/catalog/types/runtime-resources.ts";
+import { checkedOwnerDirectoryClaim, assertOwnerDirectoryService, ownerDirectoryFields } from "../../selfhost/references/catalog/types/owner-directory.ts";
+import { isCredentialLoggingPolicy, isDisabledCredentialLoggingPolicy, isPassboltNonSecretIdentity, isPublicOidcEnvironment } from "../../selfhost/references/catalog/types/non-secret-policy.ts";
 
-const MAX_INPUT_BYTES = 256 * 1024;
-const MAX_ITEMS = 100;
+const MAX_INPUT_BYTES = 2 * 1024 * 1024;
+const MAX_ITEMS = 512;
 const MAX_DEPTH = 12;
 const MAX_STRING = 2048;
 const MAX_SECRET_FILE_BYTES = 64 * 1024;
@@ -18,15 +24,21 @@ const OWNERSHIP_MODES = new Set(["new", "verified-existing"]);
 const FORBIDDEN_KEYS = /^(?:privileged|network[_-]?mode|pid|ipc|devices?|cap[_-]?(?:add|drop)|security[_-]?opt|userns[_-]?mode)$/i;
 const SENSITIVE_KEYS = /password|passwd|token|api[-_]?key|private[-_]?key|credential|secret/i;
 const SECRET_REF_KEYS = /^(?:secretrefs?)$/i;
-const SENSITIVE_ENV = /(?:^|_)(?:password|passwd|token|key|auth|credential|secret|cookie|database_url|dsn|connection_string)(?:_|$)/i;
+const SENSITIVE_ENV = /(?:^|_)(?:password|passwd|token|key|auth|authkey|apikey|credentials?|secret|cookie|database_url|dsn|connection_string)(?:_|$)/i;
 const OPAQUE_REF = /^[a-z0-9][a-z0-9._:/-]{2,127}$/i;
 const LABEL = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
 const PROJECT_ID = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/;
 const DOCKER_CONTEXT = /^[a-zA-Z0-9](?:[a-zA-Z0-9_.-]{0,126}[a-zA-Z0-9])?$/;
 const NETWORK_NAME = /^[a-zA-Z0-9](?:[a-zA-Z0-9_.-]{0,126}[a-zA-Z0-9])?$/;
-const ENV_NAME = /^[A-Z_][A-Z0-9_]{0,127}$/;
+const VOLUME_LABEL_PROJECT = "io.selfhost.project";
+const VOLUME_LABEL_MOUNT = "io.selfhost.volume";
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 const DEPENDENCY_CONDITIONS = new Set(["service_started", "service_healthy", "service_completed_successfully"]);
 const IMAGE_USER_REASONS = new Set(["upstream-init-requires-default-user", "image-declares-nonroot-user", "official-image-runtime-contract"]);
+const ROOTLESS_USER_EVIDENCE = {
+  officialUrl: "https://docs.docker.com/engine/security/rootless/",
+  reason: "host-user-mapped-container-root"
+};
 const RUNTIME_ARG_SENSITIVE = /password|passwd|token|api[-_]?key|private[-_]?key|credential|secret|cookie|auth/i;
 const FORBIDDEN_SOURCE_PREFIXES = ["/proc", "/sys", "/dev", "/run", "/var/run", "/var/lib/docker"];
 const FORBIDDEN_ROOTS = new Set(["/", "/bin", "/boot", "/dev", "/etc", "/home", "/lib", "/lib64", "/opt", "/proc", "/root", "/run", "/sbin", "/srv", "/sys", "/tmp", "/usr", "/var"]);
@@ -34,7 +46,7 @@ const FORBIDDEN_ROOTS = new Set(["/", "/bin", "/boot", "/dev", "/etc", "/home", 
 class ValidationError extends Error {}
 
 function usage() {
-  process.stdout.write("Usage: compose-project.ts <validate|plan|render|lifecycle-check> --input FILE [--output-dir DIR] [--context NAME --project ID --file FILE]\n");
+  process.stdout.write("Usage: compose-project.ts <validate|plan|render|automatic-services|lifecycle-check|volume-preflight|selected-plan|selected-check> --input FILE [--output-dir DIR] [--context NAME --project ID --file FILE] [--services IDS --operation start|stop|add|recreate|probe|remove --approval TOKEN] [--allow-new-volumes true]\n");
 }
 
 function reject(message) {
@@ -47,16 +59,18 @@ function parseArguments(argv) {
     process.exit(0);
   }
   const action = argv[0];
-  if (!["validate", "plan", "render", "lifecycle-check"].includes(action)) {
+  if (!["validate", "plan", "render", "automatic-services", "apply-approval", "runtime-preflight", "probe-run", "lifecycle-check", "volume-preflight", "selected-plan", "selected-check"].includes(action)) {
     reject("unsupported action");
   }
-  const options = { action, input: "", outputDir: "", context: "", project: "", file: "" };
-  const allowed = new Set(["--input", "--output-dir", "--context", "--project", "--file"]);
+  const options = { action, input: "", outputDir: "", context: "", project: "", file: "", services: "", operation: "", approval: "", requireExistingVolumes: "", allowNewVolumes: "" };
+  const allowed = new Set(["--input", "--output-dir", "--context", "--project", "--file", "--services", "--operation", "--approval", "--require-existing-volumes", "--allow-new-volumes"]);
+  const seen = new Set();
   for (let index = 1; index < argv.length; index += 1) {
     const flag = argv[index];
-    if (!allowed.has(flag)) {
+    if (!allowed.has(flag) || seen.has(flag)) {
       reject("unsupported option");
     }
+    seen.add(flag);
     index += 1;
     if (index >= argv.length) {
       reject("an option is missing its value");
@@ -77,6 +91,11 @@ function parseArguments(argv) {
     if (flag === "--file") {
       options.file = value;
     }
+    if (flag === "--services") options.services = value;
+    if (flag === "--operation") options.operation = value;
+    if (flag === "--approval") options.approval = value;
+    if (flag === "--require-existing-volumes") options.requireExistingVolumes = value;
+    if (flag === "--allow-new-volumes") options.allowNewVolumes = value;
   }
   if (!options.input) {
     reject("--input is required");
@@ -84,15 +103,28 @@ function parseArguments(argv) {
   if (action === "render" && !options.outputDir) {
     reject("render requires --output-dir");
   }
-  if (action === "lifecycle-check" && (!options.context || !options.project || !options.file)) {
+  if (["lifecycle-check", "runtime-preflight", "volume-preflight", "selected-check", "probe-run"].includes(action) && (!options.context || !options.project || !options.file)) {
     reject("lifecycle-check requires --context, --project, and --file");
   }
   if (action !== "render" && options.outputDir) {
     reject("--output-dir is valid only for render");
   }
-  if (action !== "lifecycle-check" && (options.context || options.project || options.file)) {
+  if (!["lifecycle-check", "runtime-preflight", "volume-preflight", "selected-check", "probe-run"].includes(action) && (options.context || options.project || options.file)) {
     reject("--context, --project, and --file are valid only for lifecycle-check");
   }
+  if (options.requireExistingVolumes && (action !== "volume-preflight" || options.requireExistingVolumes !== "true")) {
+    reject("--require-existing-volumes=true is valid only for volume-preflight");
+  }
+  if (options.allowNewVolumes && (action !== "volume-preflight" || options.allowNewVolumes !== "true"
+    || options.requireExistingVolumes)) {
+    reject("--allow-new-volumes=true is valid only for volume-preflight without existing-only mode");
+  }
+  if (["selected-plan", "selected-check", "probe-run"].includes(action)) {
+    if (!options.services || !["start", "stop", "add", "recreate", "probe", "remove"].includes(options.operation)) reject("selected lifecycle requires services and a supported operation");
+    if (["selected-check", "probe-run"].includes(action) && !options.approval) reject("selected-check requires its exact approval");
+    if (action === "probe-run" && options.operation !== "probe") reject("probe-run only accepts its fixed probe operation");
+    if (action === "selected-plan" && options.approval) reject("selected-plan does not accept approval");
+  } else if (options.services || options.operation || options.approval) reject("selection options require a selected lifecycle action");
   return options;
 }
 
@@ -107,11 +139,11 @@ function readInput(inputPath) {
     reject("input must be a regular non-symlink file");
   }
   if (stat.size > MAX_INPUT_BYTES) {
-    reject("input exceeds 256 KiB");
+    reject("input exceeds 2 MiB");
   }
   const content = fs.readFileSync(inputPath, "utf8");
   if (Buffer.byteLength(content, "utf8") > MAX_INPUT_BYTES) {
-    reject("input exceeds 256 KiB");
+    reject("input exceeds 2 MiB");
   }
   let parsed;
   try {
@@ -133,7 +165,7 @@ function assertBoundedAndSecretFree(value, depth = 0) {
   }
   if (Array.isArray(value)) {
     if (value.length > MAX_ITEMS) {
-      reject("an input collection exceeds 100 items");
+      reject("an input collection exceeds 512 items");
     }
     for (const item of value) {
       assertBoundedAndSecretFree(item, depth + 1);
@@ -143,13 +175,13 @@ function assertBoundedAndSecretFree(value, depth = 0) {
   if (isObject(value)) {
     const entries = Object.entries(value);
     if (entries.length > MAX_ITEMS) {
-      reject("an input object exceeds 100 fields");
+      reject("an input object exceeds 512 fields");
     }
     for (const [key, child] of entries) {
       if (key.length > 128) {
         reject("an input field name exceeds the supported limit");
       }
-      if (FORBIDDEN_KEYS.test(key)) {
+      if (FORBIDDEN_KEYS.test(key) && key !== "capDrop") {
         reject("unsafe privilege or host namespace fields are not accepted");
       }
       if (SENSITIVE_KEYS.test(key) && !SECRET_REF_KEYS.test(key)) {
@@ -277,6 +309,42 @@ function requireNetworkName(value) {
   return value;
 }
 
+function privateSubnetRange(value) {
+  if (typeof value !== "string") {
+    reject("network.subnet must be a canonical RFC1918 IPv4 CIDR from /24 through /28");
+  }
+  const match = value.match(/^((?:0|[1-9]\d{0,2}))\.((?:0|[1-9]\d{0,2}))\.((?:0|[1-9]\d{0,2}))\.((?:0|[1-9]\d{0,2}))\/(2[4-8])$/);
+  if (!match) {
+    reject("network.subnet must be a canonical RFC1918 IPv4 CIDR from /24 through /28");
+  }
+  const octets = match.slice(1, 5).map(Number);
+  if (octets.some((octet) => octet > 255)) {
+    reject("network.subnet must be a canonical RFC1918 IPv4 CIDR from /24 through /28");
+  }
+  const prefix = Number(match[5]);
+  const start = (((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]) >>> 0);
+  const mask = (0xffffffff << (32 - prefix)) >>> 0;
+  if ((start & mask) >>> 0 !== start) {
+    reject("network.subnet must use the canonical network address");
+  }
+  const end = start + (2 ** (32 - prefix)) - 1;
+  const privateRanges = [
+    [0x0a000000, 0x0affffff],
+    [0xac100000, 0xac1fffff],
+    [0xc0a80000, 0xc0a8ffff]
+  ];
+  const isPrivate = privateRanges.some(([privateStart, privateEnd]) => start >= privateStart && end <= privateEnd);
+  if (!isPrivate) {
+    reject("network.subnet must be contained in an RFC1918 private range");
+  }
+  return { start, end };
+}
+
+function requirePrivateSubnet(value) {
+  privateSubnetRange(value);
+  return value;
+}
+
 function requireText(value, context, maximum = 512) {
   if (typeof value !== "string" || value.length === 0 || value.length > maximum) {
     reject(`${context} must be bounded text`);
@@ -383,7 +451,9 @@ function requireImage(value) {
     const tagColon = repositoryAndTag.lastIndexOf(":");
     if (tagColon > tagSlash) {
       const tag = repositoryAndTag.slice(tagColon + 1).toLowerCase();
-      if (FLOATING_TAGS.has(tag)) {
+      // The selected development channel still deploys an immutable digest.
+      // Unpinned dev and the other floating-label policies remain unchanged.
+      if (FLOATING_TAGS.has(tag) && tag !== "dev") {
         reject("floating image tags are not accepted");
       }
     }
@@ -455,22 +525,111 @@ function normalizeProject(value, observedProject) {
   return { dockerContext, id, owner, root, directory, ownership, observedProject };
 }
 
-function normalizeEnvironment(value, secretRefs) {
+function normalizeFileEnvironmentConsumers(value, environment, secretRefs) {
+  const consumers = requireArray(value, "service.fileEnvironmentConsumers");
+  if (consumers.length < 1 || consumers.length > 12) reject("file environment consumers must contain one to twelve entries");
+  const result = consumers.map((entry) => {
+    exactObject(entry, ["name", "target", "format", "officialUrl", "appId", "source"], "file environment consumer");
+    const ownerPath = entry.format === "file-path" && entry.source === "owner";
+    const generatedConfigPath = entry.format === "private-config-path" && entry.source === "generated-config";
+    if ((!ownerPath && !generatedConfigPath)
+      || typeof entry.name !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(entry.name)
+      || typeof entry.appId !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.appId)) {
+      reject("file environment consumer must name an owner-issued input or generated private configuration path");
+    }
+    const target = requireLabel(entry.target, "file environment consumer target");
+    let officialUrl;
+    try { officialUrl = new URL(entry.officialUrl); }
+    catch { reject("file environment consumer requires HTTPS publisher evidence"); }
+    if (officialUrl.protocol !== "https:" || officialUrl.username || officialUrl.password) {
+      reject("file environment consumer requires HTTPS publisher evidence without credentials");
+    }
+    const publisher = new URL(`../../selfhost/references/catalog/apps/${entry.appId}/manifest.json`, import.meta.url);
+    let app;
+    try {
+      const metadata = fs.lstatSync(publisher);
+      if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
+        || metadata.size < 1 || metadata.size > 512 * 1024) reject("file environment publisher record is unsafe");
+      app = JSON.parse(fs.readFileSync(publisher, "utf8"));
+    } catch { reject("file environment consumer requires an installed publisher record"); }
+    if (app.id !== entry.appId || !Array.isArray(app.sources) || !app.sources.includes(entry.officialUrl)) {
+      reject("file environment evidence must exactly match a listed app publisher source");
+    }
+    if (!secretRefs.some((secret) => secret.target === target)
+      || !environment.some((item) => item.name === entry.name && item.value === `/run/secrets/${target}`)) {
+      reject("file environment consumer must match one declared secret target and exact environment path");
+    }
+    return { name: entry.name, target, format: entry.format, officialUrl: entry.officialUrl,
+      appId: entry.appId, source: entry.source };
+  });
+  requireUnique(result.map((entry) => entry.name), "file environment consumer names");
+  result.sort((left, right) => left.name.localeCompare(right.name));
+  return result;
+}
+
+function normalizeEnvironment(value, secretRefs, mounts, fileEnvironmentConsumers = []) {
   const result = [];
   const seen = new Set();
-  for (const entry of requireArray(value, "service.environment")) {
+  const entries = requireArray(value, "service.environment");
+  for (const entry of entries) {
     exactObject(entry, ["name", "value"], "environment entry");
     if (typeof entry.name !== "string" || !ENV_NAME.test(entry.name)) {
       reject("secret-bearing or invalid environment names are not accepted; use secretRefs");
     }
-    const fileVariable = entry.name.endsWith("_FILE");
-    if (SENSITIVE_ENV.test(entry.name) && !fileVariable) {
+    const fileVariable = entry.name.endsWith("_FILE") || entry.name.endsWith("_SECRETFILE")
+      || /^FILE__[A-Z][A-Z0-9_]*$/.test(entry.name);
+    const fileUri = typeof entry.value === "string" && entry.value.startsWith("file:/run/secrets/");
+    const sourcedFilePath = fileEnvironmentConsumers.some((consumer) => consumer.name === entry.name
+      && entry.value === `/run/secrets/${consumer.target}`);
+    if (typeof entry.value === "string" && entry.value.startsWith("/run/secrets/")
+      && !fileVariable && !sourcedFilePath) {
+      reject("non-file environment names require a typed owner-file path consumer");
+    }
+    const enabledAuthFlag = entry.name === "auth" && entry.value === "true";
+    const credentialLoggingDisabled = isDisabledCredentialLoggingPolicy(entry.name, entry.value);
+    if (isCredentialLoggingPolicy(entry.name) && !credentialLoggingDisabled) {
+      reject("credential logging policies accept only the literal false value");
+    }
+    // A deny-all access policy and its mounted auth database are configuration,
+    // not a plaintext credential or a secret-input file. Keep the pair bounded.
+    const authPolicy = /^[A-Z][A-Z0-9_]*_AUTH_DEFAULT_ACCESS$/.test(entry.name)
+      && entry.value === "deny-all";
+    const authStore = /^([A-Z][A-Z0-9_]*)_AUTH_FILE$/.exec(entry.name);
+    let mountedAuthStore = false;
+    if (authStore && typeof entry.value === "string" && !entry.value.startsWith("/run/secrets/")) {
+      const prefix = authStore[1];
+      const deniedByDefault = entries.some((item) => item.name === `${prefix}_AUTH_DEFAULT_ACCESS`
+        && item.value === "deny-all");
+      const filePath = requireAbsolutePath(entry.value, "auth database path", true);
+      mountedAuthStore = deniedByDefault && mounts.some((mount) => !mount.readOnly
+        && filePath.startsWith(`${mount.target}/`));
+    }
+    // A cache beside that same persistent deny-all auth store is also a path,
+    // not a secret-input file. Do not broaden arbitrary *_FILE consumers.
+    const cacheStore = /^([A-Z][A-Z0-9_]*)_CACHE_FILE$/.exec(entry.name);
+    let mountedPrivateCache = false;
+    if (cacheStore && typeof entry.value === "string" && !entry.value.startsWith("/run/secrets/")) {
+      const prefix = cacheStore[1];
+      const authFile = entries.find((item) => item.name === `${prefix}_AUTH_FILE`);
+      const deniedByDefault = entries.some((item) => item.name === `${prefix}_AUTH_DEFAULT_ACCESS`
+        && item.value === "deny-all");
+      const cachePath = requireAbsolutePath(entry.value, "persistent cache path", true);
+      if (deniedByDefault && typeof authFile?.value === "string" && authFile.value !== cachePath
+        && !authFile.value.startsWith("/run/secrets/")) {
+        const authPath = requireAbsolutePath(authFile.value, "auth database path", true);
+        mountedPrivateCache = mounts.some((mount) => !mount.readOnly
+          && cachePath.startsWith(`${mount.target}/`) && authPath.startsWith(`${mount.target}/`));
+      }
+    }
+    if (SENSITIVE_ENV.test(entry.name) && !fileVariable && !fileUri && !sourcedFilePath && !enabledAuthFlag && !authPolicy && !credentialLoggingDisabled && !isPassboltNonSecretIdentity(entry.name, entry.value) && !isPublicOidcEnvironment(entry.name, entry.value)) {
       reject("secret-bearing or invalid environment names are not accepted; use secretRefs");
     }
-    if (fileVariable) {
-      const matchingSecret = secretRefs.find((secret) => entry.value === `/run/secrets/${secret.target}`);
+    if ((fileVariable || fileUri || sourcedFilePath) && !mountedAuthStore && !mountedPrivateCache) {
+      let prefix = "";
+      if (fileUri) prefix = "file:";
+      const matchingSecret = secretRefs.find((secret) => entry.value === `${prefix}/run/secrets/${secret.target}`);
       if (!matchingSecret) {
-        reject("*_FILE environment values must exactly name a declared /run/secrets target");
+        reject("file-backed environment values must exactly name a declared /run/secrets target");
       }
     }
     if (seen.has(entry.name)) {
@@ -511,8 +670,36 @@ function normalizePort(value) {
   return { hostIp, published, target, protocol: value.protocol, purpose: value.purpose, publicApproved };
 }
 
-function normalizeMount(value, projectOwner) {
-  exactObjectWithOptional(value, ["source", "target", "readOnly", "shared", "owner", "ownership"], ["shareGroup"], "mount");
+function volumeMountId(name, projectId) {
+  const prefix = `${projectId}-`;
+  if (typeof name !== "string" || !NETWORK_NAME.test(name) || !name.startsWith(prefix)) {
+    reject("volume name must be scoped to the exact Compose project");
+  }
+  return requireLabel(name.slice(prefix.length), "volume mount id");
+}
+
+function volumeLabels(projectId, name) {
+  return {
+    "com.docker.compose.project": projectId,
+    "com.docker.compose.volume": name,
+    [VOLUME_LABEL_PROJECT]: projectId,
+    [VOLUME_LABEL_MOUNT]: volumeMountId(name, projectId)
+  };
+}
+
+function normalizeMount(value, projectOwner, projectId) {
+  if (value?.kind === "volume") {
+    exactObject(value, ["kind", "name", "target", "readOnly", "owner", "ownership"], "volume mount");
+    volumeMountId(value.name, projectId);
+    const target = requireAbsolutePath(value.target, "mount target", true);
+    const readOnly = requireBoolean(value.readOnly, "mount.readOnly");
+    const owner = requireLabel(value.owner, "mount.owner");
+    const ownership = requireOwnership(value.ownership, "mount.ownership");
+    if (owner !== projectOwner) reject("named volumes must be project-owned");
+    return { kind: "volume", name: value.name, target, readOnly, owner, ownership };
+  }
+  exactObjectWithOptional(value, ["source", "target", "readOnly", "shared", "owner", "ownership"], ["kind", "shareGroup"], "mount");
+  if (Object.hasOwn(value, "kind") && value.kind !== "bind") reject("mount kind is unsupported");
   const source = requireSourcePath(value.source);
   const target = requireAbsolutePath(value.target, "mount target", true);
   const readOnly = requireBoolean(value.readOnly, "mount.readOnly");
@@ -528,8 +715,8 @@ function normalizeMount(value, projectOwner) {
   let shareGroup = null;
   if (Object.hasOwn(value, "shareGroup")) {
     shareGroup = requireLabel(value.shareGroup, "mount.shareGroup");
-    if (!shared || readOnly) {
-      reject("mount.shareGroup is only valid for explicit shared read-write mounts");
+    if (!shared) {
+      reject("mount.shareGroup requires an explicit shared mount");
     }
   }
   if (!readOnly && shared && shareGroup === null) {
@@ -542,11 +729,13 @@ function normalizeMount(value, projectOwner) {
   return result;
 }
 
-function normalizeSecretRef(value, projectDirectory) {
+function normalizeSecretRef(value, projectDirectory, tlsTargets = []) {
   exactObjectWithOptional(value, ["name", "ref", "target"], ["filePath"], "secret reference");
   const name = requireLabel(value.name, "secret reference name");
   const ref = requireOpaqueRef(value.ref, "secret ref");
-  const target = requireLabel(value.target, "secret target");
+  let target;
+  if (tlsTargets.some((binding) => binding.target === value.target && binding.fileId === name)) target = value.target;
+  else target = requireLabel(value.target, "secret target");
   if (!Object.hasOwn(value, "filePath")) {
     return { name, ref, target };
   }
@@ -558,14 +747,23 @@ function normalizeSecretRef(value, projectDirectory) {
   return { name, ref, target, filePath };
 }
 
-function normalizeArgv(value, context) {
+function normalizeArgv(value, context, secretRefs = [], mounts = []) {
   const argv = requireArray(value, context);
   if (argv.length === 0 || argv.length > 32) {
     reject(`${context} must contain 1 to 32 arguments`);
   }
   return argv.map((argument) => {
     const normalized = requireText(argument, `${context} argument`);
-    if (RUNTIME_ARG_SENSITIVE.test(normalized) || normalized.includes("$")) {
+    const configArgument = /^(--[a-z][a-z-]*=)?(\/run\/secrets\/[a-z0-9-]+)$/.exec(normalized);
+    // A documented file option may name a mounted secret; it must never carry
+    // the password itself or point outside this service's declared references.
+    const secretFileOption = configArgument?.[1] === "--admin-password-file=";
+    const declaredConfig = configArgument !== null
+      && (secretFileOption || !RUNTIME_ARG_SENSITIVE.test(configArgument[1] ?? ""))
+      && secretRefs.some((reference) => configArgument[2] === `/run/secrets/${reference.target}`);
+    const generatedFilePath = mounts.some((mount) => mount.kind !== "volume" && mount.readOnly === true
+      && mount.target === normalized && /\/config-files\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(mount.source));
+    if ((RUNTIME_ARG_SENSITIVE.test(normalized) && !declaredConfig && !generatedFilePath) || normalized.includes("$")) {
       reject(`${context} must not contain secret-bearing or interpolated arguments`);
     }
     return normalized;
@@ -619,8 +817,16 @@ function normalizeImageUserEvidence(value) {
   return { officialUrl, reason: value.reason };
 }
 
-function normalizeService(value, projectOwner, projectDirectory) {
-  exactObjectWithOptional(value, ["id", "image", "restart", "readOnly", "user", "environment", "ports", "mounts", "networks", "secretRefs"], ["command", "entrypoint", "healthcheck", "dependsOn", "imageUserEvidence", "shmSizeBytes"], "service");
+function normalizeRootlessUserEvidence(value) {
+  exactObject(value, ["officialUrl", "reason"], "rootlessUserEvidence");
+  if (value.officialUrl !== ROOTLESS_USER_EVIDENCE.officialUrl || value.reason !== ROOTLESS_USER_EVIDENCE.reason) {
+    reject("rootlessUserEvidence must cite the supported Docker rootless UID mapping contract");
+  }
+  return { ...ROOTLESS_USER_EVIDENCE };
+}
+
+function normalizeService(value, projectOwner, projectId, projectDirectory, dockerContext) {
+  exactObjectWithOptional(value, ["id", "image", "restart", "readOnly", "user", "environment", "ports", "mounts", "networks", "secretRefs"], ["command", "entrypoint", "healthcheck", "dependsOn", "imageUserEvidence", "rootlessUserEvidence", "shmSizeBytes", "ulimits", "capDrop", "memoryLimitBytes", "cpuLimit", "tmpfs", "networkAliases", "ownership", "init", "envFilePath", "profiles", "hostname", "manualProbe", "fileEnvironmentConsumers", "runtimeResources", "ownerDirectory", "dockerCliTls"], "service");
   const id = requireLabel(value.id, "service.id");
   const image = requireImage(value.image);
   if (!RESTART_POLICIES.has(value.restart)) {
@@ -628,14 +834,29 @@ function normalizeService(value, projectOwner, projectDirectory) {
   }
   const readOnly = requireBoolean(value.readOnly, "service.readOnly");
   let imageUserEvidence = null;
+  let rootlessUserEvidence = null;
   if (value.user === "image-default") {
     if (!Object.hasOwn(value, "imageUserEvidence")) {
       reject("image-default requires official imageUserEvidence");
     }
     imageUserEvidence = normalizeImageUserEvidence(value.imageUserEvidence);
+    if (Object.hasOwn(value, "rootlessUserEvidence")) {
+      reject("rootlessUserEvidence is valid only with user 0:0");
+    }
+  } else if (value.user === "0:0") {
+    if (dockerContext !== "rootless") {
+      reject("service.user 0:0 is allowed only for the exact rootless Docker context");
+    }
+    if (!Object.hasOwn(value, "rootlessUserEvidence")) {
+      reject("service.user 0:0 requires rootlessUserEvidence");
+    }
+    rootlessUserEvidence = normalizeRootlessUserEvidence(value.rootlessUserEvidence);
+    if (Object.hasOwn(value, "imageUserEvidence")) {
+      reject("imageUserEvidence is valid only with user image-default");
+    }
   } else {
     if (typeof value.user !== "string" || !/^\d{1,10}:\d{1,10}$/.test(value.user)) {
-      reject("service.user must be a numeric uid:gid or image-default");
+      reject("service.user must be a numeric uid:gid, evidenced rootless 0:0, or image-default");
     }
     const userParts = value.user.split(":").map(Number);
     if (userParts[0] === 0 || userParts[1] === 0) {
@@ -644,19 +865,57 @@ function normalizeService(value, projectOwner, projectDirectory) {
     if (Object.hasOwn(value, "imageUserEvidence")) {
       reject("imageUserEvidence is valid only with user image-default");
     }
+    if (Object.hasOwn(value, "rootlessUserEvidence")) {
+      reject("rootlessUserEvidence is valid only with user 0:0");
+    }
   }
-  const secretRefs = requireArray(value.secretRefs, "service.secretRefs").map((secret) => normalizeSecretRef(secret, projectDirectory));
+  let dockerCliTls;
+  let tlsTargets = [];
+  if (value.dockerCliTls !== undefined) {
+    dockerCliTls = checkedDockerCliTlsClaim(new URL("../../selfhost/references/catalog/", import.meta.url), id, image, value.dockerCliTls);
+    const { appId, sourceSha256, ...request } = dockerCliTls;
+    tlsTargets = dockerCliTlsTargets(request);
+  }
+  const secretRefs = requireArray(value.secretRefs, "service.secretRefs").map((secret) => normalizeSecretRef(secret, projectDirectory, tlsTargets));
   secretRefs.sort((left, right) => left.name.localeCompare(right.name));
-  const environment = normalizeEnvironment(value.environment, secretRefs);
   const ports = requireArray(value.ports, "service.ports").map(normalizePort);
   ports.sort(comparePorts);
-  const mounts = requireArray(value.mounts, "service.mounts").map((mount) => normalizeMount(mount, projectOwner));
-  mounts.sort((left, right) => `${left.source}\0${left.target}`.localeCompare(`${right.source}\0${right.target}`));
+  const mounts = requireArray(value.mounts, "service.mounts").map((mount) => normalizeMount(mount, projectOwner, projectId));
+  mounts.sort((left, right) => `${left.source ?? left.name}\0${left.target}`.localeCompare(`${right.source ?? right.name}\0${right.target}`));
   requireUnique(mounts.map((mount) => mount.target), "mount targets per service");
+  let fileEnvironmentConsumers;
+  if (Object.hasOwn(value, "fileEnvironmentConsumers")) {
+    fileEnvironmentConsumers = normalizeFileEnvironmentConsumers(value.fileEnvironmentConsumers,
+      requireArray(value.environment, "service.environment"), secretRefs);
+  }
+  const environment = normalizeEnvironment(value.environment, secretRefs, mounts, fileEnvironmentConsumers);
+  if (dockerCliTls) {
+    if (!tlsTargets.every((binding) => secretRefs.filter((secret) => secret.name === binding.fileId
+      && secret.target === binding.target && typeof secret.filePath === "string").length === 1)
+      || environment.filter((entry) => entry.name === "DOCKER_CERT_PATH" && entry.value === "/run/secrets").length !== 1
+      || environment.filter((entry) => entry.name === "DOCKER_TLS_VERIFY" && entry.value === "1").length !== 1
+      || environment.filter((entry) => entry.name === "DOCKER_HOST"
+        && entry.value === `tcp://${dockerCliTls.endpoint.serverName}:${dockerCliTls.endpoint.port}`).length !== 1
+      || environment.some((entry) => ["DOCKER_TLS", "DOCKER_CONTEXT", "DOCKER_CONFIG"].includes(entry.name))) {
+      reject("Docker CLI TLS requires its exact owner file targets and generated verified-TLS directory environment");
+    }
+  }
   const networks = requireArray(value.networks, "service.networks").map((network) => requireLabel(network, "service network"));
   networks.sort();
   if (networks.length === 0 || new Set(networks).size !== networks.length) {
     reject("each service needs unique explicit networks");
+  }
+  let networkAliases;
+  if (Object.hasOwn(value, "networkAliases")) {
+    networkAliases = requireArray(value.networkAliases, "service.networkAliases").map((entry) => {
+      exactObject(entry, ["network", "alias"], "service network alias");
+      const network = requireLabel(entry.network, "service network alias network");
+      const alias = requireLabel(entry.alias, "service network alias name");
+      if (!networks.includes(network)) reject("service network alias must target an attached network");
+      return { network, alias };
+    });
+    networkAliases.sort((left, right) => `${left.network}\0${left.alias}`.localeCompare(`${right.network}\0${right.alias}`));
+    requireUnique(networkAliases.map((entry) => `${entry.network}\0${entry.alias}`), "network aliases per service");
   }
   const secretNames = new Set();
   const secretTargets = new Set();
@@ -668,11 +927,59 @@ function normalizeService(value, projectOwner, projectDirectory) {
     secretTargets.add(secret.target);
   }
   const result = { id, image, restart: value.restart, readOnly, user: value.user, environment, ports, mounts, networks, secretRefs };
+  if (Object.hasOwn(value, "ownerDirectory")) {
+    try {
+      result.ownerDirectory = checkedOwnerDirectoryClaim(new URL("../../selfhost/references/catalog/", import.meta.url), id, image, value.ownerDirectory);
+      assertOwnerDirectoryService(projectDirectory, value, result.ownerDirectory);
+    } catch { reject("ownerDirectory must match exact reviewed source, image, numeric user and derived same-path bind/environment"); }
+  }
+  if (Object.hasOwn(value, "runtimeResources")) {
+    try { result.runtimeResources = checkedRuntimeResourceClaim(new URL("../../selfhost/references/catalog/", import.meta.url), id, image, value.runtimeResources); }
+    catch { reject("runtimeResources must match exact reviewed installed app source and image"); }
+    if (value.capDrop !== undefined || value.profiles !== undefined) reject("network tunnel resources cannot combine capability dropping or manual execution");
+  }
+  if (fileEnvironmentConsumers !== undefined) result.fileEnvironmentConsumers = fileEnvironmentConsumers;
+  if (Object.hasOwn(value, "profiles")) {
+    if (!Array.isArray(value.profiles) || value.profiles.length !== 1
+      || value.profiles[0] !== "self-host-manual" || value.restart !== "no" || ports.length > 0) {
+      reject("manual jobs require only the self-host-manual profile, restart no, and no published ports");
+    }
+    result.profiles = ["self-host-manual"];
+  }
+  if (Object.hasOwn(value, "hostname")) {
+    if (typeof value.hostname !== "string" || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value.hostname)) {
+      reject("service hostname must be one bounded lowercase DNS label");
+    }
+    result.hostname = value.hostname;
+  }
+  if (Object.hasOwn(value, "manualProbe")) {
+    if (!result.profiles || mounts.some((mount) => mount.kind === "volume")) {
+      reject("manualProbe requires an inert manual job without implicit named-volume creation");
+    }
+    try { result.manualProbe = checkedManualProbe(image, value.manualProbe); }
+    catch { reject("manualProbe must exactly match a fixed catalog version command, image and official source"); }
+  }
+  if (Object.hasOwn(value, "envFilePath")) {
+    const envFilePath = requireAbsolutePath(value.envFilePath, "service.envFilePath");
+    if (!envFilePath.startsWith(`${path.posix.join(projectDirectory, "secrets")}/`)
+      || !envFilePath.endsWith(".env")) reject("envFilePath must be a private project secret env file");
+    result.envFilePath = envFilePath;
+  }
+  if (Object.hasOwn(value, "init")) {
+    if (value.init !== true) reject("service.init must be explicitly true");
+    result.init = true;
+  }
+  if (Object.hasOwn(value, "ownership")) result.ownership = requireOwnership(value.ownership, "service.ownership");
+  if (dockerCliTls) result.dockerCliTls = dockerCliTls;
+  if (networkAliases) result.networkAliases = networkAliases;
   if (imageUserEvidence) {
     result.imageUserEvidence = imageUserEvidence;
   }
+  if (rootlessUserEvidence) {
+    result.rootlessUserEvidence = rootlessUserEvidence;
+  }
   if (Object.hasOwn(value, "command")) {
-    result.command = normalizeArgv(value.command, "service.command");
+    result.command = normalizeArgv(value.command, "service.command", secretRefs, result.mounts);
   }
   if (Object.hasOwn(value, "entrypoint")) {
     result.entrypoint = normalizeArgv(value.entrypoint, "service.entrypoint");
@@ -686,6 +993,53 @@ function normalizeService(value, projectOwner, projectDirectory) {
   if (Object.hasOwn(value, "shmSizeBytes")) {
     result.shmSizeBytes = requireInteger(value.shmSizeBytes, "service.shmSizeBytes", 1024 * 1024, 1024 * 1024 * 1024);
   }
+  if (Object.hasOwn(value, "ulimits")) {
+    exactObject(value.ulimits, ["nofile"], "service ulimits");
+    exactObject(value.ulimits.nofile, ["soft", "hard"], "service nofile limits");
+    const soft = requireInteger(value.ulimits.nofile.soft, "nofile soft", 1024, 1048576);
+    const hard = requireInteger(value.ulimits.nofile.hard, "nofile hard", 1024, 1048576);
+    if (soft > hard) reject("nofile soft limit must not exceed its hard limit");
+    result.ulimits = { nofile: { soft, hard } };
+  }
+  if (Object.hasOwn(value, "capDrop")) {
+    if (!Array.isArray(value.capDrop) || value.capDrop.length !== 1 || value.capDrop[0] !== "ALL") {
+      reject("service capDrop accepts only ALL");
+    }
+    result.capDrop = ["ALL"];
+  }
+  if (Object.hasOwn(value, "memoryLimitBytes")) {
+    result.memoryLimitBytes = requireInteger(value.memoryLimitBytes, "service memory limit", 67108864, 17179869184);
+  }
+  if (Object.hasOwn(value, "cpuLimit")) {
+    if (typeof value.cpuLimit !== "number" || value.cpuLimit < 0.1 || value.cpuLimit > 16
+      || !Number.isInteger(value.cpuLimit * 10)) reject("service CPU limit must be 0.1–16 in tenth increments");
+    result.cpuLimit = value.cpuLimit;
+  }
+  if (Object.hasOwn(value, "tmpfs")) {
+    const entries = requireArray(value.tmpfs, "service.tmpfs");
+    if (entries.length > 8) reject("service.tmpfs supports at most eight paths");
+    const tmpfs = entries.map((entry) => {
+      exactObject(entry, ["target", "sizeBytes", "mode"], "service tmpfs");
+      const target = requireAbsolutePath(entry.target, "tmpfs target", true);
+      if (/[:,\s]/.test(target)) reject("tmpfs target must not contain mount-option delimiters or whitespace");
+      return {
+        target,
+        sizeBytes: requireInteger(entry.sizeBytes, "tmpfs sizeBytes", 1024 * 1024, 1024 * 1024 * 1024),
+        mode: requireInteger(entry.mode, "tmpfs mode", 0, 0o1777)
+      };
+    });
+    tmpfs.sort((left, right) => left.target.localeCompare(right.target));
+    requireUnique(tmpfs.map((entry) => entry.target), "tmpfs targets per service");
+    for (let index = 0; index < tmpfs.length; index += 1) {
+      const entry = tmpfs[index];
+      if (pathsOverlap(entry.target, "/run/secrets")
+        || mounts.some((mount) => pathsOverlap(entry.target, mount.target))
+        || tmpfs.slice(index + 1).some((other) => pathsOverlap(entry.target, other.target))) {
+        reject("tmpfs targets must not overlap persistent mounts, secrets, or other tmpfs paths");
+      }
+    }
+    result.tmpfs = tmpfs;
+  }
   return result;
 }
 
@@ -696,6 +1050,9 @@ function validateDependencyGraph(services) {
       const target = serviceById.get(dependency.service);
       if (!target) {
         reject("a service dependency references an undeclared service");
+      }
+      if (target.profiles && !service.profiles) {
+        reject("automatic services must not depend on manual jobs");
       }
       if (dependency.condition === "service_healthy" && !target.healthcheck) {
         reject("service_healthy requires a healthcheck on the dependency");
@@ -725,7 +1082,7 @@ function validateDependencyGraph(services) {
 }
 
 function normalizeNetwork(value) {
-  exactObject(value, ["id", "name", "driver", "internal", "owner", "ownership"], "network");
+  exactObjectWithOptional(value, ["id", "name", "driver", "internal", "owner", "ownership"], ["subnet"], "network");
   const id = requireLabel(value.id, "network.id");
   const name = requireNetworkName(value.name);
   if (value.driver !== "bridge") {
@@ -734,7 +1091,14 @@ function normalizeNetwork(value) {
   const internal = requireBoolean(value.internal, "network.internal");
   const owner = requireLabel(value.owner, "network.owner");
   const ownership = requireOwnership(value.ownership, "network.ownership");
-  return { id, name, driver: value.driver, internal, owner, ownership };
+  const result = { id, name, driver: value.driver, internal, owner, ownership };
+  if (Object.hasOwn(value, "subnet")) {
+    if (ownership !== "new") {
+      reject("network.subnet is valid only for new project-owned networks");
+    }
+    result.subnet = requirePrivateSubnet(value.subnet);
+  }
+  return result;
 }
 
 function normalizeObservedProject(value) {
@@ -770,11 +1134,29 @@ function normalizeObservedPath(value) {
 
 function normalizeObservedNetwork(value) {
   exactObject(value, ["name", "owner"], "observed network");
-  return { name: requireNetworkName(value.name), owner: requireLabel(value.owner, "observed network owner") };
+  if (typeof value.name !== "string" || !NETWORK_NAME.test(value.name)) {
+    reject("observed network name is invalid or unsafe");
+  }
+  return { name: value.name, owner: requireLabel(value.owner, "observed network owner") };
 }
 
-function normalizeObserved(value) {
-  exactObject(value, ["checkedAt", "project", "ports", "paths", "networks"], "observed");
+function normalizeObservedVolume(value, projectId) {
+  exactObject(value, ["name", "driver", "owner", "labels"], "observed volume");
+  if (typeof value.name !== "string" || !NETWORK_NAME.test(value.name)) reject("observed volume name is invalid");
+  const driver = requireLabel(value.driver, "observed volume driver");
+  const owner = requireLabel(value.owner, "observed volume owner");
+  const labels = volumeLabels(projectId, value.name);
+  exactObject(value.labels, Object.keys(labels), "observed volume labels");
+  for (const key of Object.keys(labels)) {
+    if (value.labels[key] !== null && (typeof value.labels[key] !== "string" || value.labels[key].length > 128)) {
+      reject("observed volume labels are invalid");
+    }
+  }
+  return { name: value.name, driver, owner, labels: { ...value.labels } };
+}
+
+function normalizeObserved(value, projectId) {
+  exactObjectWithOptional(value, ["checkedAt", "project", "ports", "paths", "networks"], ["volumes"], "observed");
   const result = {
     checkedAt: requireTimestamp(value.checkedAt, "observed.checkedAt"),
     project: normalizeObservedProject(value.project),
@@ -785,6 +1167,11 @@ function normalizeObserved(value) {
   result.ports.sort(comparePorts);
   result.paths.sort((left, right) => left.path.localeCompare(right.path));
   result.networks.sort((left, right) => left.name.localeCompare(right.name));
+  if (Object.hasOwn(value, "volumes")) {
+    result.volumes = requireArray(value.volumes, "observed.volumes").map((volume) => normalizeObservedVolume(volume, projectId));
+    result.volumes.sort((left, right) => left.name.localeCompare(right.name));
+    requireUnique(result.volumes.map((volume) => volume.name), "observed volume names");
+  }
   return result;
 }
 
@@ -793,9 +1180,10 @@ function normalizeManifest(input) {
   if (input.schemaVersion !== 1) {
     reject("schemaVersion must be 1");
   }
-  const observed = normalizeObserved(input.observed);
+  const projectId = requireProjectId(input.project?.id);
+  const observed = normalizeObserved(input.observed, projectId);
   const project = normalizeProject(input.project, observed.project);
-  const services = requireArray(input.services, "services").map((service) => normalizeService(service, project.owner, project.directory));
+  const services = requireArray(input.services, "services").map((service) => normalizeService(service, project.owner, project.id, project.directory, project.dockerContext));
   const networks = requireArray(input.networks, "networks").map(normalizeNetwork);
   if (services.length === 0 || networks.length === 0) {
     reject("at least one service and network are required");
@@ -803,15 +1191,59 @@ function normalizeManifest(input) {
   services.sort((left, right) => left.id.localeCompare(right.id));
   networks.sort((left, right) => left.id.localeCompare(right.id));
   requireUnique(services.map((service) => service.id), "service IDs");
+  const volumeOwners = new Map();
+  for (const service of services) {
+    for (const mount of service.mounts) {
+      if (mount.kind !== "volume") continue;
+      const previous = volumeOwners.get(mount.name);
+      if (previous && (previous.service === service.id || previous.target !== mount.target
+        || previous.readOnly !== mount.readOnly || previous.owner !== mount.owner
+        || previous.ownership !== mount.ownership)) {
+        reject("a shared named volume needs identical target, access, and project ownership across distinct services");
+      }
+      if (!previous) volumeOwners.set(mount.name, { ...mount, service: service.id });
+    }
+  }
+  if (volumeOwners.size > 0 && project.owner !== project.id) {
+    reject("named volume owner must equal the Compose project ID recorded by ownership labels");
+  }
+  if (volumeOwners.size > 0 && !Array.isArray(observed.volumes)) {
+    reject("named volumes require explicit observed.volumes evidence");
+  }
   validateDependencyGraph(services);
   requireUnique(networks.map((network) => network.id), "network IDs");
   requireUnique(networks.map((network) => network.name), "network names");
+  const selectedSubnets = networks.filter((network) => network.subnet !== undefined);
+  for (let leftIndex = 0; leftIndex < selectedSubnets.length; leftIndex += 1) {
+    const leftRange = privateSubnetRange(selectedSubnets[leftIndex].subnet);
+    for (let rightIndex = leftIndex + 1; rightIndex < selectedSubnets.length; rightIndex += 1) {
+      const rightRange = privateSubnetRange(selectedSubnets[rightIndex].subnet);
+      if (leftRange.start <= rightRange.end && rightRange.start <= leftRange.end) {
+        reject("selected network subnets must not overlap");
+      }
+    }
+  }
   const networkIds = new Set(networks.map((network) => network.id));
+  const networkNames = new Map();
   for (const service of services) {
     for (const network of service.networks) {
       if (!networkIds.has(network)) {
         reject("a service references an undeclared network");
       }
+      const name = `${network}\0${service.id}`;
+      if (networkNames.has(name) && networkNames.get(name) !== service.id) {
+        reject("a service name conflicts with a network alias");
+      }
+      networkNames.set(name, service.id);
+    }
+  }
+  for (const service of services) {
+    for (const entry of service.networkAliases ?? []) {
+      const name = `${entry.network}\0${entry.alias}`;
+      if (networkNames.has(name) && networkNames.get(name) !== service.id) {
+        reject("network aliases must uniquely identify one service on each network");
+      }
+      networkNames.set(name, service.id);
     }
   }
   return { schemaVersion: 1, project, services, networks, observed };
@@ -876,12 +1308,17 @@ function buildAssessment(manifest) {
 
   const desiredPorts = [];
   const desiredMounts = [];
+  const desiredVolumes = [];
   for (const service of manifest.services) {
     for (const port of service.ports) {
       desiredPorts.push({ ...port, service: service.id });
     }
     for (const mount of service.mounts) {
-      desiredMounts.push({ ...mount, service: service.id });
+      if (mount.kind === "volume") {
+        desiredVolumes.push({ ...mount, service: service.id });
+      } else {
+        desiredMounts.push({ ...mount, service: service.id });
+      }
     }
   }
 
@@ -911,9 +1348,12 @@ function buildAssessment(manifest) {
       if (!pathsOverlap(left.source, right.source)) {
         continue;
       }
-      const sameReadOnlyShare = left.readOnly && right.readOnly;
-      const sameReadWriteGroup = !left.readOnly && !right.readOnly && left.shareGroup && left.shareGroup === right.shareGroup && left.owner === project.owner;
-      const safeShared = left.source === right.source && left.shared && right.shared && left.owner === right.owner && left.ownership === right.ownership && (sameReadOnlyShare || sameReadWriteGroup);
+      const sameReadOnlyShare = left.readOnly && right.readOnly && left.shareGroup === right.shareGroup;
+      const sameOwnedGroup = left.shareGroup && left.shareGroup === right.shareGroup
+        && left.owner === project.owner;
+      const safeShared = left.source === right.source && left.shared && right.shared
+        && left.owner === right.owner && left.ownership === right.ownership
+        && (sameReadOnlyShare || sameOwnedGroup);
       if (!safeShared) {
         conflicts.push({ kind: "path", resource: left.source, reason: "desired-path-overlap" });
       }
@@ -939,6 +1379,24 @@ function buildAssessment(manifest) {
       if (desired.ownership !== "new") {
         conflicts.push({ kind: "path", resource: desired.source, reason: "observed-path-overlap" });
       }
+    }
+  }
+
+  const uniqueDesiredVolumes = [...new Map(desiredVolumes.map((volume) => [volume.name, volume])).values()];
+  for (const desired of uniqueDesiredVolumes) {
+    const current = observed.volumes.find((volume) => volume.name === desired.name);
+    if (desired.ownership === "new") {
+      if (current) conflicts.push({ kind: "volume", resource: desired.name, reason: "volume-already-observed" });
+      continue;
+    }
+    if (!current) {
+      blockers.push({ kind: "volume", resource: desired.name, reason: "ownership-evidence-missing" });
+      continue;
+    }
+    const expectedLabels = volumeLabels(project.id, desired.name);
+    const labelsMatch = Object.entries(expectedLabels).every(([key, value]) => current.labels[key] === value);
+    if (current.driver !== "local" || current.owner !== project.owner || !labelsMatch) {
+      conflicts.push({ kind: "volume", resource: desired.name, reason: "ownership-mismatch" });
     }
   }
 
@@ -996,9 +1454,13 @@ function stableStringify(value) {
   return JSON.stringify(value);
 }
 
-function planIdFor(manifest) {
+function manifestSha256(manifest) {
   const content = stableStringify(canonicalManifest(manifest));
-  return crypto.createHash("sha256").update(content).digest("hex").slice(0, 16);
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+function planIdFor(manifest) {
+  return manifestSha256(manifest).slice(0, 16);
 }
 
 function renderTargetFor(manifest) {
@@ -1011,6 +1473,7 @@ function buildPlan(manifest) {
   const privatePorts = [];
   const services = [];
   const paths = [];
+  const volumes = [];
   const secretRefs = [];
   for (const service of manifest.services) {
     const serviceClaim = {
@@ -1024,9 +1487,36 @@ function buildPlan(manifest) {
       serviceClaim.user = "image-default";
       serviceClaim.imageUserEvidence = service.imageUserEvidence;
     }
+    if (service.user === "0:0") {
+      serviceClaim.user = "0:0";
+      serviceClaim.rootlessUserEvidence = service.rootlessUserEvidence;
+    }
     if (service.shmSizeBytes !== undefined) {
       serviceClaim.shmSizeBytes = service.shmSizeBytes;
     }
+    if (service.tmpfs !== undefined) serviceClaim.tmpfs = service.tmpfs;
+    if (service.ulimits !== undefined) serviceClaim.ulimits = service.ulimits;
+    if (service.capDrop !== undefined) serviceClaim.capDrop = service.capDrop;
+    if (service.runtimeResources !== undefined) serviceClaim.runtimeResources = { ...service.runtimeResources, ...runtimeResourceEffects(service.runtimeResources) };
+    if (service.dockerCliTls !== undefined) {
+      const { appId, sourceSha256, ...request } = service.dockerCliTls;
+      serviceClaim.dockerCliTls = { ...service.dockerCliTls, certificateDirectory: "/run/secrets",
+        fixedTargets: dockerCliTlsTargets(request), endpointMapping: { ...service.dockerCliTls.endpoint } };
+    }
+    if (service.ownerDirectory !== undefined) serviceClaim.ownerDirectory = { ...service.ownerDirectory,
+      path: ownerDirectoryFields(manifest.project.directory, service.ownerDirectory.appId).path,
+      user: service.user, authority: "docker-management-mtls-same-local-daemon", hostWideDockerControl: true };
+    if (service.memoryLimitBytes !== undefined) serviceClaim.memoryLimitBytes = service.memoryLimitBytes;
+    if (service.cpuLimit !== undefined) serviceClaim.cpuLimit = service.cpuLimit;
+    if (service.readOnly) serviceClaim.readOnly = true;
+    if (service.profiles) {
+      serviceClaim.profiles = service.profiles;
+      serviceClaim.execution = "manual-job-prepared-only";
+    }
+    if (service.hostname !== undefined) serviceClaim.hostname = service.hostname;
+    if (service.manualProbe !== undefined) serviceClaim.manualProbe = service.manualProbe;
+    if (service.fileEnvironmentConsumers !== undefined) serviceClaim.fileEnvironmentConsumers = service.fileEnvironmentConsumers;
+    if (service.init === true) serviceClaim.init = true;
     services.push(serviceClaim);
     for (const port of service.ports) {
       const claim = { service: service.id, hostIp: port.hostIp, published: port.published, target: port.target, protocol: port.protocol, purpose: port.purpose };
@@ -1037,7 +1527,11 @@ function buildPlan(manifest) {
       }
     }
     for (const mount of service.mounts) {
-      paths.push({ service: service.id, source: mount.source, target: mount.target, readOnly: mount.readOnly, owner: mount.owner, ownership: mount.ownership });
+      if (mount.kind === "volume") {
+        volumes.push({ service: service.id, name: mount.name, target: mount.target, readOnly: mount.readOnly, owner: mount.owner, ownership: mount.ownership });
+      } else {
+        paths.push({ service: service.id, source: mount.source, target: mount.target, readOnly: mount.readOnly, owner: mount.owner, ownership: mount.ownership });
+      }
     }
     for (const secret of service.secretRefs) {
       if (secret.filePath) {
@@ -1050,11 +1544,25 @@ function buildPlan(manifest) {
   privatePorts.sort(comparePlanPort);
   publicPorts.sort(comparePlanPort);
   paths.sort((left, right) => `${left.source}\0${left.service}`.localeCompare(`${right.source}\0${right.service}`));
+  volumes.sort((left, right) => `${left.name}\0${left.service}`.localeCompare(`${right.name}\0${right.service}`));
   secretRefs.sort((left, right) => `${left.service}\0${left.name}`.localeCompare(`${right.service}\0${right.name}`));
   const ownershipConflict = assessment.conflicts.some((finding) => finding.reason.includes("owner") || finding.reason.includes("ownership") || finding.kind === "project");
   const ownershipBlocked = assessment.blockers.some((finding) => finding.reason.includes("ownership") || finding.kind === "project");
   const resourceConflict = assessment.conflicts.some((finding) => finding.kind !== "project");
   const resourceBlocked = assessment.blockers.some((finding) => finding.kind !== "project");
+  const claims = {
+    services,
+    privatePorts,
+    publicPorts,
+    paths,
+    networks: manifest.networks.map((network) => {
+      const claim = { id: network.id, name: network.name, internal: network.internal, owner: network.owner, ownership: network.ownership };
+      if (network.subnet !== undefined) claim.subnet = network.subnet;
+      return claim;
+    }),
+    secretRefs
+  };
+  if (volumes.length > 0) claims.volumes = volumes;
   return {
     schemaVersion: 1,
     kind: "selfhost-compose-plan",
@@ -1075,18 +1583,11 @@ function buildPlan(manifest) {
       { id: "privilege-boundary", status: "pass" },
       { id: "exposure", status: "pass" }
     ],
-    claims: {
-      services,
-      privatePorts,
-      publicPorts,
-      paths,
-      networks: manifest.networks.map((network) => ({ id: network.id, name: network.name, internal: network.internal, owner: network.owner, ownership: network.ownership })),
-      secretRefs
-    },
+    claims,
     conflicts: assessment.conflicts,
     blockers: assessment.blockers,
     render: { target: renderTargetFor(manifest), format: "compose-yaml", noClobber: true },
-    approvals: { apply: `APPLY:${manifest.project.id}`, stop: `STOP:${manifest.project.id}` },
+    approvals: { apply: applyApproval(manifest), stop: `STOP:${manifest.project.id}` },
     execution: { performed: false, verified: false }
   };
 }
@@ -1107,12 +1608,23 @@ function renderCompose(manifest) {
     lines.push(`  ${yamlString(service.id)}:`);
     lines.push(`    image: ${yamlString(service.image)}`);
     lines.push(`    restart: ${yamlString(service.restart)}`);
+    if (service.profiles) lines.push(`    profiles: ${yamlString(service.profiles)}`);
+    if (service.hostname !== undefined) lines.push(`    hostname: ${yamlString(service.hostname)}`);
     if (service.user !== "image-default") {
       lines.push(`    user: ${yamlString(service.user)}`);
     }
     lines.push(`    read_only: ${String(service.readOnly)}`);
+    if (service.init === true) lines.push("    init: true");
     lines.push("    security_opt:");
     lines.push(`      - ${yamlString("no-new-privileges:true")}`);
+    if (service.capDrop !== undefined) lines.push("    cap_drop:", `      - ${yamlString("ALL")}`);
+    if (service.runtimeResources !== undefined) {
+      const effects = runtimeResourceEffects(service.runtimeResources);
+      lines.push("    cap_add:", ...effects.capabilities.map((cap) => `      - ${yamlString(cap)}`),
+        "    devices:", ...effects.devices.map((device) => `      - ${yamlString(device)}`));
+    }
+    if (service.memoryLimitBytes !== undefined) lines.push(`    mem_limit: ${String(service.memoryLimitBytes)}`);
+    if (service.cpuLimit !== undefined) lines.push(`    cpus: ${String(service.cpuLimit)}`);
     if (service.entrypoint) {
       lines.push(`    entrypoint: ${yamlString(service.entrypoint)}`);
     }
@@ -1121,6 +1633,17 @@ function renderCompose(manifest) {
     }
     if (service.shmSizeBytes !== undefined) {
       lines.push(`    shm_size: ${String(service.shmSizeBytes)}`);
+    }
+    if (service.ulimits !== undefined) {
+      lines.push("    ulimits:", "      nofile:");
+      lines.push(`        soft: ${String(service.ulimits.nofile.soft)}`);
+      lines.push(`        hard: ${String(service.ulimits.nofile.hard)}`);
+    }
+    if (service.tmpfs && service.tmpfs.length > 0) {
+      lines.push("    tmpfs:");
+      for (const entry of service.tmpfs) {
+        lines.push(`      - ${yamlString(`${entry.target}:size=${entry.sizeBytes},mode=${entry.mode.toString(8)}`)}`);
+      }
     }
     if (service.healthcheck) {
       lines.push("    healthcheck:");
@@ -1143,6 +1666,16 @@ function renderCompose(manifest) {
         lines.push(`      ${yamlString(entry.name)}: ${yamlString(entry.value)}`);
       }
     }
+    if (service.envFilePath) {
+      lines.push("    env_file:");
+      lines.push(`      - ${yamlString(service.envFilePath)}`);
+    }
+    if (service.dockerCliTls) {
+      // Only this known source-bound Docker daemon TLS profile can map DNS.
+      const endpoint = service.dockerCliTls.endpoint;
+      lines.push("    extra_hosts:");
+      lines.push(`      - ${yamlString(`${endpoint.serverName}=${endpoint.privateIpv4}`)}`);
+    }
     if (service.ports.length > 0) {
       lines.push("    ports:");
       for (const port of service.ports) {
@@ -1155,15 +1688,27 @@ function renderCompose(manifest) {
     if (service.mounts.length > 0) {
       lines.push("    volumes:");
       for (const mount of service.mounts) {
-        lines.push("      - type: bind");
-        lines.push(`        source: ${yamlString(mount.source)}`);
+        if (mount.kind === "volume") {
+          lines.push("      - type: volume");
+          lines.push(`        source: ${yamlString(mount.name)}`);
+        } else {
+          lines.push("      - type: bind");
+          lines.push(`        source: ${yamlString(mount.source)}`);
+        }
         lines.push(`        target: ${yamlString(mount.target)}`);
         lines.push(`        read_only: ${String(mount.readOnly)}`);
       }
     }
     lines.push("    networks:");
     for (const network of service.networks) {
-      lines.push(`      ${yamlString(network)}: null`);
+      const aliases = (service.networkAliases ?? []).filter((entry) => entry.network === network);
+      if (aliases.length === 0) {
+        lines.push(`      ${yamlString(network)}: null`);
+        continue;
+      }
+      lines.push(`      ${yamlString(network)}:`);
+      lines.push("        aliases:");
+      for (const entry of aliases) lines.push(`          - ${yamlString(entry.alias)}`);
     }
     if (service.secretRefs.length > 0) {
       lines.push("    secrets:");
@@ -1183,6 +1728,25 @@ function renderCompose(manifest) {
     } else {
       lines.push(`    driver: ${yamlString(network.driver)}`);
       lines.push(`    internal: ${String(network.internal)}`);
+      if (network.subnet !== undefined) {
+        lines.push("    ipam:");
+        lines.push("      config:");
+        lines.push(`        - subnet: ${yamlString(network.subnet)}`);
+      }
+    }
+  }
+  const namedVolumes = [...new Map(manifest.services.flatMap((service) => service.mounts.filter((mount) => mount.kind === "volume")
+    .map((mount) => [mount.name, mount]))).values()];
+  namedVolumes.sort((left, right) => left.name.localeCompare(right.name));
+  if (namedVolumes.length > 0) {
+    lines.push("volumes:");
+    for (const volume of namedVolumes) {
+      lines.push(`  ${yamlString(volume.name)}:`);
+      lines.push(`    name: ${yamlString(volume.name)}`);
+      lines.push(`    driver: ${yamlString("local")}`);
+      lines.push("    labels:");
+      lines.push(`      ${yamlString(VOLUME_LABEL_PROJECT)}: ${yamlString(manifest.project.id)}`);
+      lines.push(`      ${yamlString(VOLUME_LABEL_MOUNT)}: ${yamlString(volumeMountId(volume.name, manifest.project.id))}`);
     }
   }
   const allSecrets = [];
@@ -1286,7 +1850,7 @@ function verifyMountSources(manifest) {
   const sources = new Set();
   for (const service of manifest.services) {
     for (const mount of service.mounts) {
-      sources.add(mount.source);
+      if (mount.kind !== "volume") sources.add(mount.source);
     }
   }
   for (const source of [...sources].sort()) {
@@ -1308,6 +1872,7 @@ function verifyMountSources(manifest) {
 function verifySecretFiles(manifest) {
   const files = new Set();
   for (const service of manifest.services) {
+    if (service.envFilePath) files.add(service.envFilePath);
     for (const secret of service.secretRefs) {
       if (!secret.filePath) {
         reject("external secret references are planning-only in the local Compose lifecycle; bind a private filePath or use an external secret platform");
@@ -1421,14 +1986,147 @@ function verifyLifecycleTarget(manifest, context, project, file) {
   return expected;
 }
 
+function dockerVolumeQuery(context, args) {
+  const result = spawnSync("docker", ["--context", context, "volume", ...args], {
+    encoding: "utf8", maxBuffer: 64 * 1024, timeout: 10_000
+  });
+  if (result.error || result.status !== 0 || typeof result.stdout !== "string") {
+    reject("exact Docker volume ownership preflight failed; no Compose mutation was attempted");
+  }
+  return result.stdout.trim();
+}
+
+function verifyNamedVolumes(manifest, requireExisting, allowNew) {
+  const volumes = [...new Map(manifest.services.flatMap((service) => service.mounts.filter((mount) => mount.kind === "volume")
+    .map((mount) => [mount.name, mount]))).values()];
+  let present = 0;
+  let absent = 0;
+  for (const volume of volumes) {
+    const names = dockerVolumeQuery(manifest.project.dockerContext, ["ls", "--filter", `name=${volume.name}`, "--format", "{{.Name}}"]);
+    const exists = names.split("\n").includes(volume.name);
+    if (!exists) {
+      if (requireExisting || volume.ownership === "verified-existing") {
+        reject("a saved named volume is unavailable; refusing to create an empty replacement");
+      }
+      absent += 1;
+      continue;
+    }
+    if (allowNew && volume.ownership === "new") {
+      reject("a selected-add volume already exists; inspect and resume the interrupted addition");
+    }
+    present += 1;
+    const format = '{{.Name}}\t{{.Driver}}\t{{index .Labels "com.docker.compose.project"}}\t{{index .Labels "com.docker.compose.volume"}}\t{{index .Labels "io.selfhost.project"}}\t{{index .Labels "io.selfhost.volume"}}';
+    const observed = dockerVolumeQuery(manifest.project.dockerContext, ["inspect", volume.name, "--format", format]).split("\t");
+    const expected = volumeLabels(manifest.project.id, volume.name);
+    if (observed.length !== 6 || observed[0] !== volume.name || observed[1] !== "local"
+      || observed[2] !== expected["com.docker.compose.project"]
+      || observed[3] !== expected["com.docker.compose.volume"]
+      || observed[4] !== expected[VOLUME_LABEL_PROJECT]
+      || observed[5] !== expected[VOLUME_LABEL_MOUNT]) {
+      reject("named volume ownership or driver mismatch; no Compose mutation was attempted");
+    }
+  }
+  if (present > 0 && absent > 0 && !allowNew) {
+    reject("only some saved named volumes exist; refusing to create empty replacements");
+  }
+}
+
 function writeJson(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function applyApproval(manifest) {
+  if (manifest.services.some((service) => service.runtimeResources || service.ownerDirectory || service.dockerCliTls)) return `APPLY:${manifest.project.id}:${manifestSha256(manifest)}`;
+  return `APPLY:${manifest.project.id}`;
+}
+
+function verifyRuntimeResourceHost(manifest) {
+  if (!manifest.services.some((service) => service.runtimeResources)) return;
+  try { verifyRuntimeResourceDevice(); }
+  catch { reject("runtime resources require existing exact non-symlink Linux TUN device 10:200; no host changes attempted"); }
+  if (process.env.DOCKER_HOST || process.env.DOCKER_TLS_VERIFY || process.env.DOCKER_CERT_PATH) reject("runtime resources require an explicit local context without ambient endpoint overrides");
+  const context = manifest.project.dockerContext;
+  const query = (args) => {
+    const result = spawnSync("docker", ["--context", context, ...args], { encoding: "utf8", timeout: 10000, maxBuffer: 65536 });
+    if (result.error || result.status !== 0) reject("runtime resource Docker locality/security metadata unavailable; no Compose mutation attempted");
+    return result.stdout.trim();
+  };
+  const endpoint = query(["context", "inspect", context, "--format", "{{json .Endpoints.docker.Host}}"]);
+  if (![JSON.stringify("unix:///var/run/docker.sock"), JSON.stringify("unix:///run/docker.sock")].includes(endpoint)) reject("runtime resources require an exact local system Unix Docker socket; remote, proxy and user sockets are unsupported");
+  const security = query(["info", "--format", "{{json .SecurityOptions}}"]);
+  let options;
+  try { options = JSON.parse(security); } catch { reject("runtime resource daemon security metadata is invalid"); }
+  if (!Array.isArray(options) || options.some((value) => typeof value !== "string" || /rootless|userns/i.test(value))) reject("runtime resources cannot use rootless or user-remapped daemon namespaces");
+}
+
+function selectedPlan(manifest, plan, options) {
+  requirePass(manifest);
+  const services = options.services.split(",");
+  if (services.length > MAX_ITEMS || services.some((id) => !LABEL.test(id)
+    || !manifest.services.some((service) => service.id === id)) || new Set(services).size !== services.length) {
+    reject("selected services must be unique exact manifest service IDs");
+  }
+  services.sort();
+  if (options.operation === "probe" && (services.length !== 1
+    || !manifest.services.find((service) => service.id === services[0]).manualProbe)) {
+    reject("selected probe requires exactly one declared fixed manual-job version probe");
+  }
+  if (["start", "recreate"].includes(options.operation)
+    && services.some((id) => manifest.services.find((service) => service.id === id).profiles)) {
+    reject("routine selected start or recreate cannot execute manual jobs; no job-run authority is available");
+  }
+  if (options.operation === "add") {
+    if (manifest.project.ownership !== "verified-existing"
+      || manifest.services.some((service) => !service.ownership)
+      || manifest.services.filter((service) => service.ownership === "new").length !== services.length
+      || services.some((id) => manifest.services.find((service) => service.id === id).ownership !== "new")) {
+      reject("selected add must name every new service in one verified existing project");
+    }
+  }
+  const identity = { project: manifest.project.id, context: manifest.project.dockerContext,
+    planId: plan.planId, manifestSha256: manifestSha256(manifest), file: plan.render.target, operation: options.operation, services };
+  const digest = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
+  return { ...identity, approval: `SELECTED-${options.operation.toUpperCase()}:${manifest.project.id}:${digest}`,
+    mutation: false, dockerInvoked: false, dependenciesStarted: false, fullAcceptance: false };
 }
 
 function main() {
   const options = parseArguments(Bun.argv.slice(2));
   const manifest = normalizeManifest(readInput(options.input));
   const plan = buildPlan(manifest);
+  if (options.action === "apply-approval") {
+    requirePass(manifest);
+    process.stdout.write(`${applyApproval(manifest)}\n`);
+    return;
+  }
+  if (options.action === "automatic-services") {
+    requirePass(manifest);
+    for (const service of manifest.services) {
+      if (!service.profiles) process.stdout.write(`${service.id}\n`);
+    }
+    return;
+  }
+  if (["selected-plan", "selected-check", "probe-run"].includes(options.action)) {
+    const selection = selectedPlan(manifest, plan, options);
+    if (["selected-check", "probe-run"].includes(options.action)) {
+      verifyLifecycleTarget(manifest, options.context, options.project, options.file);
+      if (options.approval !== selection.approval) reject("selected lifecycle approval does not match the exact plan and services");
+    }
+    if (options.action === "probe-run") {
+      const selected = manifest.services.find((service) => service.id === selection.services[0]);
+      const argv = selected.manualProbe.argv;
+      const result = spawnSync("docker", ["--context", options.context, "compose", "--project-name", options.project,
+        "--file", options.file, "run", "--rm", "--no-deps", "--entrypoint", argv[0], selected.id, ...argv.slice(1)], {
+        timeout: 60000, maxBuffer: 1024 * 1024, encoding: "utf8", env: { ...process.env, COMPOSE_PROFILES: "" }
+      });
+      if (result.error || result.status !== 0) reject("fixed version probe failed or its outcome is unknown; raw output withheld; inspect before retrying");
+      writeJson({ project: options.project, service: selected.id, exitCode: 0, probe: "version-only", outputWithheld: true,
+        backupAcceptance: false, remoteScopeVerified: false });
+      return;
+    }
+    writeJson(selection);
+    return;
+  }
   if (options.action === "validate") {
     writeJson({ valid: plan.status === "pass", status: plan.status, planId: plan.planId, renderTarget: plan.render.target, dockerInvoked: false });
     if (plan.status !== "pass") {
@@ -1453,7 +2151,10 @@ function main() {
     return;
   }
   const target = verifyLifecycleTarget(manifest, options.context, options.project, options.file);
-  writeJson({ valid: true, status: "pass", context: manifest.project.dockerContext, project: manifest.project.id, file: target, dockerInvoked: false });
+  if (options.action === "runtime-preflight") verifyRuntimeResourceHost(manifest);
+  if (options.action === "volume-preflight") verifyNamedVolumes(manifest,
+    options.requireExistingVolumes === "true", options.allowNewVolumes === "true");
+  writeJson({ valid: true, status: "pass", context: manifest.project.dockerContext, project: manifest.project.id, file: target, dockerInvoked: (options.action === "volume-preflight" && manifest.services.some((service) => service.mounts.some((mount) => mount.kind === "volume"))) || (options.action === "runtime-preflight" && manifest.services.some((service) => service.runtimeResources)) });
 }
 
 try {

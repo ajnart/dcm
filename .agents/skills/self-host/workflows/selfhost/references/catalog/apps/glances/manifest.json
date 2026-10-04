@@ -1,0 +1,60 @@
+{
+  "id": "glances",
+  "name": "Glances",
+  "aliases": [
+    "system monitor",
+    "host monitoring"
+  ],
+  "categories": [
+    "monitoring",
+    "observability"
+  ],
+  "roles": [
+    "host-metrics",
+    "system-monitoring"
+  ],
+  "upstream": {
+    "url": "https://nicolargo.github.io/glances/",
+    "repository": "https://github.com/nicolargo/glances",
+    "docs": "https://glances.readthedocs.io/en/latest/docker.html"
+  },
+  "image": {
+    "reference": "nicolargo/glances:4.5.6",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Official Docker and API documentation checked; safe shared setup observes this container only. Host-observation and authenticated setup remain guided."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Glances"
+  },
+  "dependencies": [
+    "capability:host-metrics"
+  ],
+  "alternatives": [
+    "beszel",
+    "netdata"
+  ],
+  "security": [
+    "Keep the Web UI and API private; unauthenticated API responses may expose process command lines.",
+    "Treat host PID visibility and the Docker socket as separate explicit privilege decisions."
+  ],
+  "pitfalls": [
+    "The safe shared recipe monitors its own container only; host observation needs a separately approved privilege expansion.",
+    "The documented password-file bootstrap is interactive and cannot be represented by the current shared secret inputs."
+  ],
+  "sources": [
+    "https://glances.readthedocs.io/en/latest/docker.html",
+    "https://glances.readthedocs.io/en/latest/api/restful.html",
+    "https://github.com/nicolargo/glances"
+  ]
+}

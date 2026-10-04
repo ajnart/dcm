@@ -145,7 +145,7 @@ export function renderCaddyfile(input) {
   return `{\n\tauto_https disable_redirects\n}\n\n${blocks.join("\n\n")}\n`;
 }
 
-if (Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
+if (typeof Bun !== "undefined" && Bun.argv[1] && pathToFileURL(Bun.argv[1]).href === import.meta.url) {
   const paths = parseArguments(Bun.argv.slice(2));
   const plans = paths.map(readPlan);
   try {

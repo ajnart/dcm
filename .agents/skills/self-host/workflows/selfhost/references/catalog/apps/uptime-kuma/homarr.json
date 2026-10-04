@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "uptimeKuma",
+  "requiredSecrets": [],
+  "widgets": [
+    {
+      "kind": "uptimeKuma",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "totalMonitors",
+        "upCount",
+        "downCount"
+      ]
+    }
+  ],
+  "alternativeSecrets": [
+    [
+      "slug"
+    ],
+    [
+      "slug",
+      "apiKey"
+    ],
+    [
+      "apiKey"
+    ]
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "uptimeKuma",
+        "procedure": "widget.uptimeKuma.getDashboard",
+        "inputMode": "many",
+        "field": "dashboard",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "totalMonitors": "number",
+            "upCount": "number",
+            "downCount": "number",
+            "pausedCount": "number",
+            "averageUptimePercent": "number",
+            "monitors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": "number",
+                  "name": "string",
+                  "status": "string",
+                  "uptimePercent24h": {
+                    "type": "nullable",
+                    "value": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

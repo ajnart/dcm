@@ -11,9 +11,9 @@ context. Its human summary explains every selected service and states that the
 router neither inspected nor changed the host. It has no apply command or
 mutation authority.
 
-Every plan injects the required Homarr control-plane role. It adds the Homarr
-application adapter, exposure and secret gates, and separate acceptance claims
-for app tiles, integrations, widgets, and the approved MCP profile.
+When Homarr is selected, the plan adds its control-plane role, exposure and
+secret gates, and separate acceptance claims for app tiles, integrations,
+widgets, and the approved MCP profile. App-only plans do not imply Homarr.
 
 ## Composition order
 

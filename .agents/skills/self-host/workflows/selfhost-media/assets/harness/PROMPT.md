@@ -28,10 +28,13 @@ Root-level service guides are historical evidence only.
 The run is not complete until all seven services are fresh and usable;
 Sonarr/Radarr use qBittorrent; Prowlarr full-syncs to both; Seerr is connected to
 Jellyfin, Sonarr, and Radarr; and Homarr onboarding has tested and linked all six
-external integrations. The `ghcr.io/homarr-labs/homarr-test:v2` onboarding must
+external integrations. The `ghcr.io/homarr-labs/homarr:dev` onboarding must
 auto-generate the app tiles and integration widgets. Manual post-onboarding app
 or widget placement does not satisfy setup. Use the run-scoped API scripts to
 configure services, test Homarr integrations, and privately save its API key.
+After proving the generated board, use the Homarr board API to add or update
+the private stack-recap Notebook and read it back. The Notebook is additional
+content, never a substitute for generated apps or widgets.
 Use agent-browser only if a script fails or visual proof is requested. Finalize the six
 generated app URL/ping
 splits through the harness, and verify the canonical `/api/mcp` endpoint with a
@@ -43,6 +46,10 @@ mutation. Finish by refreshing and reporting the password-free
 the explicit `handoff` command and return only its artifact paths.
 During upkeep, run `handoff` only when the user explicitly requested a fresh
 access handoff.
+End with a plain-language service recap, the verified private board as
+`[View dashboard](URL)` when its access artifact exists, the access method
+needed for that URL, and the private handoff path. Never imply a local URL is
+reachable from another device without a tunnel or configured private route.
 
 Keep a step count and recovery log. Report the completed path and any recovery
 that changed it.

@@ -8,6 +8,14 @@
   "properties": {
     "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
     "name": {"type": "string", "minLength": 2},
+    "frontend": {
+      "description": "Presentation protocol only. Omission preserves the legacy web/http default; TCP endpoints never become browser URLs.",
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["kind", "protocol"], "properties": {"kind": {"const": "web"}, "protocol": {"enum": ["http", "https"]}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "protocol"], "properties": {"kind": {"const": "tcp"}, "protocol": {"enum": ["postgresql", "redis"]}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "none"}}}
+      ]
+    },
     "aliases": {"type": "array", "items": {"type": "string", "minLength": 2}, "uniqueItems": true},
     "categories": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
     "roles": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
@@ -27,8 +35,8 @@
       "required": ["reference", "source", "status"],
       "properties": {
         "reference": {"type": ["string", "null"]},
-        "source": {"enum": ["upstream", "vendor", "community", "unknown", "not-applicable"]},
-        "status": {"enum": ["known", "verify", "unknown", "not-applicable"]}
+        "source": {"enum": ["upstream", "vendor", "community", "unknown"]},
+        "status": {"enum": ["known", "verify", "unknown"]}
       }
     },
     "lifecycle": {
@@ -51,17 +59,28 @@
         "adapterSkill": {"type": ["string", "null"]}
       }
     },
+    "cliSetup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "note", "platform"],
+      "properties": {
+        "command": {"enum": ["immich", "docmost", "vaultwarden"]},
+        "note": {"type": "string", "minLength": 3, "maxLength": 300},
+        "platform": {"const": "linux"}
+      }
+    },
     "homarr": {
       "type": "object",
       "additionalProperties": false,
       "required": ["support", "integration"],
       "properties": {
         "support": {"enum": ["supported", "partial", "gap", "not-applicable"]},
-        "integration": {"type": ["string", "null"]}
+        "integration": {"type": ["string", "null"]},
+        "iconUrl": {"type": "string", "pattern": "^https://[^\\s]+$"}
       }
     },
     "dependencies": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "alternatives": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+    "alternatives": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "security": {"type": "array", "items": {"type": "string", "minLength": 3}, "minItems": 1},
     "pitfalls": {"type": "array", "items": {"type": "string", "minLength": 3}, "minItems": 1},
     "sources": {"type": "array", "items": {"type": "string", "format": "uri"}, "minItems": 1, "uniqueItems": true}

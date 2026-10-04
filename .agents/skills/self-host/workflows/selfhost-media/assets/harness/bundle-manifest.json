@@ -5,29 +5,34 @@
     {
       "path": "docs/README.md",
       "id": "portable-agent-browser-skill-path-v1",
-      "sourceSha256": "b51bf09db03b79487d41d15383369493b40919b97337fd12d41be7884caea0c4"
+      "sourceSha256": "a07608dac15087afc4af0508e0ad758c9d4031fa8cfdb4df927fc3d99f9a507e"
     }
   ],
   "files": [
     {
       "path": "PROMPT.md",
       "mode": "0644",
-      "sha256": "98ebaaf6fdc1b6e8e80d98a38a8ea22cc26eeaff95d56c419fa152f2394fd709"
+      "sha256": "f14b4d760e3b6003cb339d94daa5057bfd427eb46fb8fdcc64dfe7674b159ec2"
     },
     {
       "path": "docker-compose.yml",
       "mode": "0644",
-      "sha256": "44590625f5fd768c27a67a053bedb85618a0dc3898c5ade325a3f066756653f6"
+      "sha256": "de6d846e0ed0a7b54d293686196f055708c8c181a50b29bd8f4425c5bf0dbd1f"
     },
     {
       "path": "docs/README.md",
       "mode": "0644",
-      "sha256": "73c427c6e3476aaa0ebaf8ccc67366690413d751a2fa8e2dba415e8c3a8f622e"
+      "sha256": "a905c11b27848e84915a50f13c75ede7d64d87811b83a9b3466d10bb451373f7"
+    },
+    {
+      "path": "docs/app-credentials.md",
+      "mode": "0644",
+      "sha256": "f42d67fafeb0f3043462b23a2d2dfd06d8167a3089cbe69d9ec0973a5e81d970"
     },
     {
       "path": "docs/browser-benchmark.md",
       "mode": "0644",
-      "sha256": "56e3c57ca5a8e846a2bf69e5eb7834c450899732af5d2e68ca067cb4e4a44cfd"
+      "sha256": "2155d32abc8aee24679105fbbeddfcc8acf2941983b4ecb326b10bfab35db4be"
     },
     {
       "path": "docs/browser-paths.json",
@@ -37,22 +42,22 @@
     {
       "path": "docs/headless-access.md",
       "mode": "0644",
-      "sha256": "f7de0a22546c53577b232935670346ad1353b68babfee28d73e746586e905988"
+      "sha256": "84a84d1519a0793f9aa4971d6d9ce7d6aa2a4f1462969d503bb8e2ce7b6b9d59"
     },
     {
       "path": "docs/headless-setup.md",
       "mode": "0644",
-      "sha256": "803a462b0c9d61afe1718e8c045860404ce2e61ad7be4d69adee49a3c636d782"
+      "sha256": "10bff49ebbd06ac4635acd9280331161f6dca37b1985dbea5c297b961d7baf8b"
     },
     {
       "path": "docs/homarr.md",
       "mode": "0644",
-      "sha256": "2dc5a881031ce1eaf34fbcf1bfb06a096e3bb6b2864567af77f142efb29fc2c3"
+      "sha256": "84540860f550b4f52918d8c077c5323623b519f583366208a248d7235bfdd410"
     },
     {
       "path": "docs/jellyfin.md",
       "mode": "0644",
-      "sha256": "722515341be29d2cfa7d11991895f1e1caa59dd4b10a287753a386239ffc573a"
+      "sha256": "0a9758d3cd7afe4200015c5589f703f09e63e3dc7ed8a0c02cfa8173d86884a4"
     },
     {
       "path": "docs/prowlarr.md",
@@ -72,57 +77,67 @@
     {
       "path": "docs/seerr.md",
       "mode": "0644",
-      "sha256": "0059fb0fd3a600fd2099927a753832163caf6640623b7d7746d1f28072d06c5d"
+      "sha256": "5ff9e39f8cb77076a0d252cac268c687f1ae88598ef8075c68ef441cdc31dcc9"
+    },
+    {
+      "path": "docs/setup-routes.md",
+      "mode": "0644",
+      "sha256": "947fb841f6e5985811a4bfba644f76151c0107144b9bc152dd10b8e354922725"
     },
     {
       "path": "docs/sonarr.md",
       "mode": "0644",
-      "sha256": "42f64307cfe551275d6641d6d69cb9b213e20c3292f005c18d5be4deff434297"
+      "sha256": "1f76159a8255e0128efcf9d838893f8f30e71eb7d097bcedbac57ea0d5711e0f"
     },
     {
       "path": "prompts/00-contract.md",
       "mode": "0644",
-      "sha256": "bbf4bcc39826233e37e7d5a0c6c982ddee0feab5171f50b261735f42406ade9d"
+      "sha256": "a99ea35dc57417c964458d118c53381ce8f58f483d5d360a9b8f0b69ba314548"
     },
     {
       "path": "prompts/10-isolation-and-start.md",
       "mode": "0644",
-      "sha256": "21b67fa89f8379556e9bb8cc6b9a94fe523b898c1ccbfa2ff24f748c63eb7a27"
+      "sha256": "88845a58e1d2bf452a5dea7aaa2fbbe4c98557292a97ada122e32445cbe43927"
     },
     {
       "path": "prompts/20-bootstrap.md",
       "mode": "0644",
-      "sha256": "f6c8d544b47fd5092af380654811b25c84872dcdf8b76d5e06cb20404546da15"
+      "sha256": "4a32d7fa59383a55db1d09270aa49e5cb87bb3a72cf1948b7d90e8037574f8e2"
     },
     {
       "path": "prompts/30-connect-arr.md",
       "mode": "0644",
-      "sha256": "3f7979c8faf159b35ab15cf908a111eee42161aba871fbe60c73f27f244cbfad"
+      "sha256": "5bf6f58ff8e086107ca2c7755206940aa058d13c2db6d91f8a26bfae62039928"
     },
     {
       "path": "prompts/40-seerr.md",
       "mode": "0644",
-      "sha256": "e99ee0783fd60723d78446200807955ca9d23107b05d070c67016b268a086c95"
+      "sha256": "8e4039263d7c0f54ab81cac79b367d6c53241c3cbf25f90413f8343a903a955f"
     },
     {
       "path": "prompts/50-homarr.md",
       "mode": "0644",
-      "sha256": "fe331f383c7d01beee10a4592efdfaad50c67f4e471e2c4123e836f9b1b26a3b"
+      "sha256": "bcdd265db2ed076fab5800e108b7ebaa700016d7aa180ed1d6ba0b40bf8eacf9"
     },
     {
       "path": "prompts/60-homarr-api-mcp.md",
       "mode": "0644",
-      "sha256": "01bfdb82d4f04beb696ce07feaeaabefb7a297efa74110f8b0509768550d5b4c"
+      "sha256": "8cf903c07de8b56a5a8648f240c1e16b677eb11bc518e4422f920b39b4fdbb1b"
     },
     {
       "path": "prompts/80-acceptance.md",
       "mode": "0644",
-      "sha256": "3a1cb274e8af8faa3834c583092057a1fdb86b8e945a94d44de4845db9086753"
+      "sha256": "1288f01234a011f68c2f3676b387146b37900d18e68e5f23da00a8544c290ec5"
     },
     {
       "path": "prompts/90-evidence.md",
       "mode": "0644",
-      "sha256": "37f72cdb79832084310c0797dfd00e0ebf31075e372a3579d2af11e8b5291480"
+      "sha256": "9bd63c8214107ac893c6a426cc60bd67c13154823d31b2c161f82e077f481ca1"
+    },
+    {
+      "path": "prompts/95-browser-request-logging.md",
+      "mode": "0644",
+      "sha256": "da206cda60f9a26543f45b24f762d667ef0b8e1094e686d38399b19e0e79699d"
     },
     {
       "path": "prompts/manifest.txt",
@@ -132,22 +147,22 @@
     {
       "path": "scripts/bootstrap-core.ts",
       "mode": "0644",
-      "sha256": "b6dc4e39a68f1f08fab45a729edf054b4186100d4bd663321f04d1619f50581b"
+      "sha256": "29f660966bb356d59db3333d7a6f4d54f7eb99d7397a5df4c3f22947b47c0c8d"
     },
     {
       "path": "scripts/bootstrap-jellyfin.ts",
       "mode": "0644",
-      "sha256": "55901ad20b7eb063b6be1a78cba0530568a51f5d7abc5d9023fc1ef04f2ea270"
+      "sha256": "ca8b8e9154e6043ddcb23a4e23621799a8eb5f0db33acfaaaf5846d62f04870c"
     },
     {
       "path": "scripts/bootstrap-seerr.ts",
       "mode": "0644",
-      "sha256": "e5a0b4519ee0a5ec364246e318459e93cca506fd951251e6a0d1b3a0b271b1a3"
+      "sha256": "8bb0f77d31f00428c317225d08f815bd8a74bad6a6a8e360488e81d52c4d92ee"
     },
     {
       "path": "scripts/browser-api-key.ts",
       "mode": "0644",
-      "sha256": "f535b9cbb88f493b831f06b72e9244a184588b0f3531ca54dd7f4b44f564f9d8"
+      "sha256": "3a3fc5fc530ecf644b0373c922155f57170cf09339a1599e51310b6d0c4bfaa5"
     },
     {
       "path": "scripts/browser-benchmark.ts",
@@ -157,12 +172,12 @@
     {
       "path": "scripts/browser-form.ts",
       "mode": "0644",
-      "sha256": "78823da4ede7787926a23f80f08c5044e3416f1a8bacc3d53d417379726d884d"
+      "sha256": "0b292f6013be762cc5cdba7414db8c29d509a1063d19950ec6477779d8738081"
     },
     {
       "path": "scripts/check-bootstrap-jellyfin.ts",
       "mode": "0644",
-      "sha256": "709e839826b24eb92cf7dba8f5853b896ed9a8ea9efbfa627f222aa6d0c18050"
+      "sha256": "8ac3e0b56a89c8756fe655d24373baf2c812330dbac7a5e3524f85b88231183e"
     },
     {
       "path": "scripts/check-bootstrap-qbittorrent.ts",
@@ -172,12 +187,12 @@
     {
       "path": "scripts/check-bootstrap-seerr.ts",
       "mode": "0644",
-      "sha256": "4ba4a48316b24f5780e529615436223c5b0aa8092e88cf43fdd89d78155895ec"
+      "sha256": "952f5cd02c9c2acdc96eb1fbd0178637179eb939d3177b772acca6d96993e715"
     },
     {
       "path": "scripts/check-browser-api-key.ts",
       "mode": "0644",
-      "sha256": "10ec16ee912453c50d6b80998b729b5df9285f610c5f3ae84b5f1ae10b07d604"
+      "sha256": "ffc1c4808afe91bcd05ed93e6597a583d62eeeda0990fa24cc02d739b42b60e8"
     },
     {
       "path": "scripts/check-browser-benchmark.ts",
@@ -190,9 +205,14 @@
       "sha256": "fb98c10bfd01147801970db216d7cc24d136f64f397df2eed20b78b854f4f7a4"
     },
     {
+      "path": "scripts/check-homarr-board-polish.ts",
+      "mode": "0644",
+      "sha256": "6cecdf85aae8ae7d94304d6d0a590e4d561ce8f2b13ff8cddefadb185b4ae07b"
+    },
+    {
       "path": "scripts/check-homarr-finalize.ts",
       "mode": "0644",
-      "sha256": "e317de44a1dc2e7ece249dc4dc53dc14fce696b4d2d5c3ab72b599b1016844d5"
+      "sha256": "d5f6c7412d1230e54685b553206185a4e031dbb73b253cae22bdad26aeb2f0fb"
     },
     {
       "path": "scripts/check-homarr-mcp-bridge.ts",
@@ -202,17 +222,17 @@
     {
       "path": "scripts/check-homarr-notebook.ts",
       "mode": "0644",
-      "sha256": "5ec23b7be1674c72c59162d23efababdd24864a9194e8decbe2cb23040c00817"
+      "sha256": "9bded11eeda7bb1ae609ffdcb8254d7b6626c3c4d033d8e7929fb10921bb98ed"
     },
     {
       "path": "scripts/check-prove-homarr-widgets.ts",
       "mode": "0644",
-      "sha256": "b73715de19e06e1d75c454f1276249c05f63af7c5853cb84ac7c2097a41f97e6"
+      "sha256": "e3ff14b74eb84d632c9fc51f653dd932c082b5e2ff50850bf91dd1cca54361b3"
     },
     {
       "path": "scripts/check-prowlarr-verifier.ts",
       "mode": "0644",
-      "sha256": "15312cb6720aa1dff8c2d2cec6cab9bea310b08c0be73ff7814425a1037d08ac"
+      "sha256": "67530430d615201dd32ab0b703f1db3aef60d930cb6aa108650bcf2e5a49445c"
     },
     {
       "path": "scripts/check-seerr-verifier.ts",
@@ -222,22 +242,27 @@
     {
       "path": "scripts/check-session-access.ts",
       "mode": "0644",
-      "sha256": "bfaedce742222356990b355fbf002436cab0ff0926d36ef86646377c8762af24"
+      "sha256": "97b8b2e18da638dabbf989ed963e2925f6774d35e7253555c2fc3b24f1706d63"
     },
     {
       "path": "scripts/check-session-password.ts",
       "mode": "0644",
-      "sha256": "b8547d6dd81758f98b05da76ce2c3c6cf4d4bf03218c94724205761503ed3fcf"
+      "sha256": "c9b39ca4e0334532c35e0b956d807f46680bfc817e9f6407407004a32c872009"
     },
     {
       "path": "scripts/fill-browser-password.ts",
       "mode": "0644",
-      "sha256": "8b8b9d9573d0abd3a6f7f1f50efcd9b4e2dd480e0649a3cef433507bd4c885b4"
+      "sha256": "2930dbbe98b4c1de506fa9559f35255d13b9117bc9037975aab5c0839becedbd"
+    },
+    {
+      "path": "scripts/homarr-board-polish.ts",
+      "mode": "0644",
+      "sha256": "ffa28705086a2227f858325bb81423eae55ad253976f508aa5e913adf065eed1"
     },
     {
       "path": "scripts/homarr-finalize.ts",
       "mode": "0644",
-      "sha256": "c572d466631bf314aca95cc0fd071fc9f6939685e8317669cea024ce5243e87b"
+      "sha256": "7b159c8c2539a7181bf456b90a1284378d7cd027e4feb7f3beb9133b3d51993c"
     },
     {
       "path": "scripts/homarr-mcp-bridge.ts",
@@ -247,12 +272,12 @@
     {
       "path": "scripts/homarr-notebook.ts",
       "mode": "0644",
-      "sha256": "f1cbffaba6e981d18304422eecf137f1a28167006688d6115163c134e477fd2b"
+      "sha256": "3a1917373137e635e6fa660745936db7de918113d5a08dcf2cf6dda866f8ca7e"
     },
     {
       "path": "scripts/lib/curl-http.ts",
       "mode": "0644",
-      "sha256": "ac45d1f43e1b4622dea061dfee64c2c4505a09f19ae67a3d2730705f865000a5"
+      "sha256": "c9b51ae89d7e273f92382966a6a4369399bfc0b86b0f9d0bcc29618983ae1ebc"
     },
     {
       "path": "scripts/lib/homarr-mcp.ts",
@@ -260,24 +285,34 @@
       "sha256": "5cda71be2171c0a421fe2c0690b3ac347d1ebc2d3e1ea9f2c627c9e377f8510a"
     },
     {
+      "path": "scripts/lib/homarr-recap-layout.ts",
+      "mode": "0644",
+      "sha256": "2575de0e527e67837402520b29eca0ca52b1319a94f94330dc0b81781cde8c33"
+    },
+    {
       "path": "scripts/lib/session-access.ts",
       "mode": "0644",
-      "sha256": "7ceed85348ddc295647f9a08a1196053cb31b4cf69900c5c5dbd4fb0b7856b71"
+      "sha256": "a4abf47ce508ff83a30540f9c4e299362f11ca17c544139c6408500efc2f535f"
     },
     {
       "path": "scripts/lib/session-context.ts",
       "mode": "0644",
-      "sha256": "7b37e1409671c7f7a2ad3ebaa5cd9d22f83a8e7faf53dadb2167003dda925dbe"
+      "sha256": "38892a579085e28948fff32e6d237a1e32373796e60fbcc4225b82cf057b2b62"
     },
     {
       "path": "scripts/lib/setup-core-cli.ts",
       "mode": "0644",
-      "sha256": "e11d6d08ca05a9b6d7974a42d0c346959fac2d8841001fba5a542a7036a46cc5"
+      "sha256": "62195c502ec972558e8c30605e9f2eec1aba3901ed2e2e111e7c7ed28a5b18cf"
+    },
+    {
+      "path": "scripts/lib/setup-handoff.ts",
+      "mode": "0644",
+      "sha256": "fd06d4bae449c80186bb0a9f803570a5461c2c418c343725d7f3386fafc4e5f0"
     },
     {
       "path": "scripts/prove-homarr-widgets-api.ts",
       "mode": "0644",
-      "sha256": "2749c24bc02e0537f5e017465034905f729f8af803f00347f4a19ec88eba62f7"
+      "sha256": "982fc98cb065cfbd0bd18c4a4d4cbe5e24b92727c360d245662cf58fe723ca85"
     },
     {
       "path": "scripts/prove-homarr-widgets.ts",
@@ -292,17 +327,22 @@
     {
       "path": "scripts/session.sh",
       "mode": "0755",
-      "sha256": "e459002f5e683142ae4aef36bdcdcc48e80ef8890c8f5b77fdd7db189e068576"
+      "sha256": "97ba126f1baa9a03e1eae9a1e681c7c3f89f05974bfef88edcd3fc9df6376e97"
     },
     {
       "path": "scripts/setup-homarr.ts",
       "mode": "0644",
-      "sha256": "69815681b4261c7a83f9ab39782a49f5f6001d3d2fb062b6a0075e6247eeb518"
+      "sha256": "76116c975bbc19146feb263deb3150c348c48b38a7dc6ec641cdf156ec70d5b9"
     },
     {
       "path": "scripts/setup-jellyfin.ts",
       "mode": "0644",
-      "sha256": "6096d0d0d69bfffb3de3078713b84f3e4dfaf6b00e787a9da337ecd4ba854503"
+      "sha256": "691409ea80e15c08e63c0360fe7f8c807c5d7ac46f81ab1308ad5c0e96cbf06c"
+    },
+    {
+      "path": "scripts/setup-media-run.ts",
+      "mode": "0644",
+      "sha256": "d062c7b1435b8d82163850b63e25ba07f0e90099dcf760112a7e23d368965ab6"
     },
     {
       "path": "scripts/setup-prowlarr.ts",
@@ -322,7 +362,7 @@
     {
       "path": "scripts/setup-seerr.ts",
       "mode": "0644",
-      "sha256": "fd21510b16287251ab78afbd160954dc79c4dec0be0c95846c0188ecdd2036db"
+      "sha256": "60a0b1c71e87b7c9716a1db85dd69879b9b9ff606687d3e4da55e9df33c1b8ee"
     },
     {
       "path": "scripts/setup-sonarr.ts",
@@ -337,7 +377,7 @@
     {
       "path": "scripts/verify-core.ts",
       "mode": "0644",
-      "sha256": "6d7d082a7ab07ac36f94287e97c79285b186d6e3976c08cf1a82dd8cee9f1e35"
+      "sha256": "d455b539c750e5c1d88c51fe60c6a8fe2af08fea088c091dc195956598bce7e7"
     },
     {
       "path": "scripts/verify-homarr-mcp.ts",

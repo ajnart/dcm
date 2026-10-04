@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { verifyProwlarrIndexers } from "./verify-core.ts";
+import { runVerificationRows, verifyProwlarrIndexers } from "./verify-core.ts";
 
 const privateIndexer = { id: 7, enable: true, privacy: "private" };
 let tested = 0;
@@ -40,5 +40,21 @@ await assert.rejects(
   }),
   /enabled indexer test failed/,
 );
+
+const pendingOutput: string[] = [];
+const pendingPassed = await runVerificationRows([
+  { label: "Prowlarr selected indexer", pending: true },
+  { label: "Seerr links", verify: async () => {} },
+], (line: string) => pendingOutput.push(line));
+assert.equal(pendingPassed, true);
+assert.deepEqual(pendingOutput, ["PENDING Prowlarr selected indexer", "PASS Seerr links"]);
+
+const failureOutput: string[] = [];
+const unrelatedFailurePassed = await runVerificationRows([
+  { label: "Prowlarr selected indexer", pending: true },
+  { label: "Seerr links", verify: async () => { throw new Error("Seerr unavailable"); } },
+], (line: string) => failureOutput.push(line));
+assert.equal(unrelatedFailurePassed, false);
+assert.deepEqual(failureOutput, ["PENDING Prowlarr selected indexer", "FAIL Seerr links: Seerr unavailable"]);
 
 process.stdout.write("PASS Prowlarr private indexer verification\n");

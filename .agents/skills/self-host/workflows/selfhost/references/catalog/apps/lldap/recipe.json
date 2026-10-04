@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "lldap",
+  "source": "https://github.com/lldap/lldap/blob/main/docs/install.md",
+  "services": [{
+    "id": "lldap",
+    "purpose": "Serves a private user directory and its administration interface.",
+    "imageTag": "lldap/lldap:2026-08-28",
+    "imageSource": "https://hub.docker.com/r/lldap/lldap/tags?name=2026-08-28",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/lldap/lldap/blob/main/docs/install.md", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [
+      { "name": "LLDAP_LDAP_USER_DN", "value": "admin" },
+      { "name": "LLDAP_LDAP_BASE_DN", "value": "dc=example,dc=com" }
+    ],
+    "hostEnvironment": [],
+    "fileEnvironment": [
+      { "name": "LLDAP_LDAP_USER_PASS_FILE", "fileId": "admin-password" },
+      { "name": "LLDAP_JWT_SECRET_FILE", "fileId": "jwt-secret" },
+      { "name": "LLDAP_KEY_SEED_FILE", "fileId": "key-seed" }
+    ],
+    "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": 17170,
+    "additionalPorts": [{ "id": "ldap", "targetPort": 3890, "protocol": "tcp", "purpose": "application", "required": false }]
+  }],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48 },
+    { "id": "jwt-secret", "bytes": 48 },
+    { "id": "key-seed", "bytes": 48 }
+  ],
+  "onboarding": {
+    "kind": "initial-admin-from-file",
+    "officialUrl": "https://github.com/lldap/lldap/blob/main/lldap_config.docker_template.toml",
+    "username": "admin",
+    "usernameEnvironment": "LLDAP_LDAP_USER_DN",
+    "fileEnvironment": "LLDAP_LDAP_USER_PASS_FILE",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 17170, "dataDirectoryName": "lldap" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "admin-login", "method": "api", "description": "Verify the saved administrator credential on the exact private origin through the documented login API." },
+    { "id": "ldap-bind", "method": "api", "description": "From the selected private client network, bind to LDAP with a least-privilege account and read an authorized entry." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart this exact Compose project and confirm administrator login and directory data persist." }
+  ]
+}

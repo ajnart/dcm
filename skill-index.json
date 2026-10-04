@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "packVersion": "1.0.0",
+  "packVersion": "1.1.1",
   "publicSkills": [
     {
       "id": "self-host",
       "displayName": "Self-host",
-      "description": "User-invoked command to plan, install, or maintain self-hosted apps from names or replacement goals, with Homarr and private credential handoff.",
+      "description": "Conversational self-host control panel: turn a goal into one shared Compose project with Homarr, or maintain its saved apps.",
       "compatibility": "Requires Git and Bun 1.4.0 or newer; deployment needs the selected runtime, and browser fallback needs agent-browser.",
       "license": "Apache-2.0",
       "kind": "router",
@@ -100,7 +100,7 @@
     {
       "id": "selfhost-homarr",
       "displayName": "Support · Homarr control plane",
-      "description": "Base control-plane adapter. Set up Homarr v2 as the standard private dashboard and read-only agent gateway for a selected stack. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search that stops before requesting.",
+      "description": "Base control-plane adapter. Set up Homarr v2 as the standard private dashboard and read-only agent gateway for a selected stack, with separately approved scoped capabilities. Use for Homarr onboarding, integration graphs, API-key profiles, `/api/mcp`, client setup, generated-dashboard evidence, or Seerr title search and confirmed requests.",
       "compatibility": "Requires Bun 1.4.0 or newer; live API checks need an explicitly identified private Homarr endpoint and secret reference.",
       "license": "Apache-2.0",
       "kind": "adapter",
@@ -281,7 +281,7 @@
     {
       "id": "selfhost-upkeep",
       "displayName": "Support · Existing stack",
-      "description": "Base upkeep workflow. Intentionally resume, inspect, extend, upgrade, repair, or re-verify a stack recorded by selfhost-setup. Internal workflow for continuing work on an existing `.selfhost/stack.json` project.",
+      "description": "Resume, inspect, extend, repair, or re-verify one saved self-host project.",
       "compatibility": "Requires Bun 1.4.0 or newer plus the setup skill and the runtime recorded by the stack.",
       "license": "Apache-2.0",
       "kind": "workflow",

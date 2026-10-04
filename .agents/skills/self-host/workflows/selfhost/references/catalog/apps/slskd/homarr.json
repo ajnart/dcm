@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "slskd",
+  "requiredSecrets": [
+    "apiKey"
+  ],
+  "widgets": [
+    {
+      "kind": "downloads",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "download",
+        "upload",
+        "paused"
+      ]
+    }
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "downloads",
+        "procedure": "widget.downloads.getJobsAndStatuses",
+        "inputMode": "many",
+        "input": {
+          "limitPerIntegration": 10
+        },
+        "field": "data",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "status": {
+              "type": "object",
+              "fields": {
+                "paused": "boolean",
+                "rates": {
+                  "type": "object",
+                  "fields": {
+                    "down": "number"
+                  }
+                },
+                "types": {
+                  "type": "array",
+                  "items": "string"
+                }
+              }
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": "string",
+                  "index": "number",
+                  "name": "string",
+                  "type": "string",
+                  "size": "number",
+                  "time": "number",
+                  "state": "string",
+                  "progress": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

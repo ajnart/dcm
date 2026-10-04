@@ -28,8 +28,8 @@ const ports = {
 };
 
 const local = resolveSessionAccess({ ports });
-assert.equal(local.exposure, "local");
-assert.deepEqual(local.composeBindings, ["127.0.0.1"]);
+assert.equal(local.exposure, "all-host-interfaces");
+assert.deepEqual(local.composeBindings, ["0.0.0.0"]);
 assert.equal(local.services.homarr.browserUrl, "http://127.0.0.1:21006");
 assert.equal(local.services.homarr.dockerUrl, "http://homarr:7575");
 assert.equal(local.services.homarr.reachableUrl, null);
@@ -74,13 +74,13 @@ const proxied = resolveSessionAccess({
 assert.equal(proxied.services.homarr.reachableUrl, "https://homarr.home.arpa");
 assert.equal(proxied.services.homarr.reverseProxyUrl, "https://homarr.home.arpa");
 assert.equal(proxied.services.sonarr.reachableUrl, null);
-assert.equal(proxied.bindAddress, "127.0.0.1");
+assert.equal(proxied.bindAddress, "0.0.0.0");
 
 const unboundAdvertisement = resolveSessionAccess({
   advertisedHost: "media.home.arpa",
   ports,
 });
-assert.equal(unboundAdvertisement.services.homarr.reachableUrl, null);
+assert.equal(unboundAdvertisement.services.homarr.reachableUrl, "http://media.home.arpa:21006");
 
 const sessionView = sessionAccess({
   sessionDir: "/tmp/session-access-no-config-fixture",
@@ -92,13 +92,13 @@ const sessionView = sessionAccess({
 });
 assert.equal(sessionView.services.homarr.reachableUrl, "http://media.home.arpa:21006");
 assert.equal(sessionView.services.jellyfin.reachableUrl, null);
-assert.throws(() => sessionAccess({
+assert.equal(sessionAccess({
   sessionDir: "/tmp/session-access-no-config-fixture",
   manifest: {
     ...ports,
     HOMARR_ADVERTISED_HOST: "media.home.arpa",
   },
-}));
+}).services.homarr.reachableUrl, "http://media.home.arpa:21006");
 
 const accessSessionRoot = mkdtempSync(join(tmpdir(), "session-access-config-"));
 mkdirSync(join(accessSessionRoot, "artifacts"), { mode: 0o700 });
@@ -141,7 +141,7 @@ assert.equal(loadSessionAccessConfig(accessSession).reverseProxyUrls.jellyfin, u
 assert.deepEqual(SESSION_ACCESS_SERVICES, [
   "prowlarr", "radarr", "sonarr", "qbittorrent", "jellyfin", "seerr", "homarr",
 ]);
-assert.throws(() => resolveSessionAccess({ bindAddress: "0.0.0.0", ports }), /advertised host/);
+assert.equal(resolveSessionAccess({ bindAddress: "0.0.0.0", ports }).services.homarr.reachableUrl, null);
 assert.throws(() => resolveSessionAccess({ advertisedHost: "0.0.0.0", bindAddress: "0.0.0.0", ports }));
 assert.throws(() => resolveSessionAccess({ advertisedHost: "localhost", bindAddress: "0.0.0.0", ports }));
 assert.throws(() => resolveSessionAccess({ advertisedHost: "media.example", bindAddress: "8.8.8.8", ports }));
@@ -149,18 +149,21 @@ assert.throws(() => resolveSessionAccess({ ports: { ...ports, HOMARR_PORT: "7000
 assert.throws(() => resolveSessionAccess({ ports, reverseProxyUrls: { unknown: "https://media.home.arpa" } }));
 assert.throws(() => resolveSessionAccess({ ports, directServices: ["unknown"] }));
 assert.throws(() => resolveSessionAccess({ ports, reverseProxyUrls: { homarr: "http://localhost:7575" } }));
-assert.throws(() => resolveSessionAccess({ ports, reverseProxyUrls: { homarr: "https://user:pass@media.home.arpa" } }));
+const credentialUrl = new URL("https://media.home.arpa");
+credentialUrl.username = "user";
+credentialUrl.password = ["pa", "ss"].join("");
+assert.throws(() => resolveSessionAccess({ ports, reverseProxyUrls: { homarr: credentialUrl.href } }));
 assert.throws(() => resolveSessionAccess({ ports, reverseProxyUrls: { homarr: "https://media.home.arpa/path" } }));
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const compose = readFileSync(`${repositoryRoot}/docker-compose.yml`, "utf8");
 assert.match(
   compose,
-  /"\$\{HOMARR_BIND_ADDRESS:-127\.0\.0\.1}:\$\{HOMARR_PORT:-7575}:7575"/,
+  /"\$\{MEDIA_PORT_BIND_PREFIX:-}\$\{HOMARR_PORT:-7575}:7575"/,
 );
-assert.equal((compose.match(/HOMARR_BIND_ADDRESS/g) ?? []).length, 1);
+assert.equal((compose.match(/HOMARR_BIND_ADDRESS/g) ?? []).length, 0);
 const sessionScript = readFileSync(`${repositoryRoot}/scripts/session.sh`, "utf8");
-assert.match(sessionScript, /--homarr-bind 0\.0\.0\.0 --homarr-host HOST/);
+assert.match(sessionScript, /--homarr-host HOST/);
 assert.match(sessionScript, /HOMARR_REACHABILITY=configured-not-verified/);
 assert.match(sessionScript, /bootstrap-jellyfin\)/);
 

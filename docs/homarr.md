@@ -2,7 +2,7 @@
 
 - Purpose: final dashboard, apps, live integration widgets, API/MCP, and
   acceptance UI.
-- Required image: `ghcr.io/homarr-labs/homarr-test:v2` (never substitute stable).
+- Default image: `ghcr.io/homarr-labs/homarr:dev` (never substitute stable).
 - Internal port: `7575`; host URL comes from `scripts/session.sh urls`.
 - State: `/appdata`; per-run 64-hex `SECRET_ENCRYPTION_KEY` is required.
 - No Docker socket is mounted: each Homarr must see only explicitly configured
@@ -16,13 +16,80 @@ onboarding API, not a manually constructed board: claim, admin creation,
 credentials login, six connection tests, `completeSetup`, then `apiKeys.create`.
 It stores the key in the private run and prints no credential value. Continue
 with `session.sh homarr-finalize`, `mcp-config`, and `mcp-verify`.
-The API path is not yet live-proven in this revision; use the browser fallback
-below when it fails and record the exact failure. Do not call a browser merely
+Verify the API path in each run; use the browser fallback below when it fails
+and record the exact failure. Do not call a browser merely
 to repeat a successful API form.
 Use `bun scripts/prove-homarr-widgets-api.ts RUN_ID personal` for the
 generated-widget API check; screenshots remain separate visual evidence.
+After that proof, run `scripts/session.sh homarr-notebook plan RUN_ID personal`,
+review its actions and `approvalDigest`, then run `scripts/session.sh
+homarr-notebook apply RUN_ID personal --approve 'sha256:...'` with that digest.
+Require `status: applied`; re-plan if the board changes.
+It adds or updates a private stack recap through the board API and verifies
+the saved Notebook before the final **View dashboard** link is offered. The
+helper adds a new Notebook at a readable size and updates existing content
+through the Notebook-only API. For a too-small existing recap it plans a
+guarded `board.saveBoard` resize only when the target space is collision-free;
+otherwise it refuses and requires the browser layout fallback. The
+recap explains Homarr's Seerr-backed search bar (Ctrl+K) and the authorization
+and indexer prerequisites for requesting a movie. Each generated app tile gets
+a short description alongside its browser URL and internal ping target.
+
+An optional board cleanup is available after app-link finalization and the
+first generated-widget proof:
+
+```bash
+scripts/session.sh homarr-board-polish plan RUN_ID personal
+```
+
+The read-only plan cites the exact audited Homarr source snapshot and returns
+an approval digest only when all seven unchanged starter items are present.
+It lists every planned base/mobile y-offset delta for the 13 verified managed
+media items. The digest covers those deltas and the full source board.
+Approve it explicitly as `APPLY-HOMARR-BOARD:<approvalDigest>`, then run:
+
+```bash
+scripts/session.sh homarr-board-polish apply RUN_ID personal --approve 'sha256:...'
+```
+
+This board-only save removes the four upstream resource app tiles plus Clock,
+Weather, and Useful Links, then compacts only the verified managed media items
+upward without changing their x-offsets or sizes. Unrecognized and user-owned
+items, including the recap, are fixed obstacles whose full content and layouts
+must read back exactly. Sections and layout definitions are also unchanged.
+Partial or customized starters, overlaps, extra layouts, or complex sections
+are refused rather than guessed. Re-run
+`prove-homarr-widgets-api.ts` after apply. The digest detects changes between
+plan and apply; keep the board idle during the save because Homarr does not
+offer a board revision precondition. Apply verifies every retained item and
+rejects any base/mobile overlap. A fresh desktop and mobile reload or
+screenshot is still required for visual acceptance.
+
+For a board with added app tiles or recaps, separately opt into layout-only
+packing of **all** items, including user-owned ones:
+
+```bash
+scripts/session.sh homarr-board-polish plan RUN_ID personal --reflow-all
+scripts/session.sh homarr-board-polish apply RUN_ID personal --approve 'sha256:...' --reflow-all
+```
+
+The standalone CLI accepts the same `--reflow-all` switch on
+`self-host install media board-polish plan|apply`. Review every x/y delta and
+approve the new mode-bound digest; a starter-cleanup approval cannot authorize
+reflow. App tiles pack first, other widgets next, and Notebooks last, using
+stable kind/item-ID ordering and top-left free slots in each layout. No item is
+deleted and no content, options, integrations, dimensions, sections, or layout
+definitions change. Without the switch, user layouts remain fixed. Preserved
+sizes may still clip a long recap; packing does not prove readable sizing or
+desktop/mobile visual acceptance.
 
 ### Browser fallback
+
+Before step 1, validate all four managed Arr/Seerr API keys on their service
+settings pages with the private capture helpers below. Then stay on Homarr
+`/init` until Review and Build: navigating back to a source app during Connect
+can reset unsaved integration forms. `browser-key fill` uses the run's managed
+key without revisiting that app.
 
 1. Open `/init` with agent-browser, start from scratch, and create the standard
    local admin username `$ADMIN_USERNAME`. Fill its fresh password and confirmation refs
@@ -34,21 +101,23 @@ generated-widget API check; screenshots remain separate visual evidence.
 4. Use Docker URLs: `http://sonarr:8989`, `http://radarr:7878`,
    `http://prowlarr:9696`, `http://qbittorrent:$QBITTORRENT_PORT`,
    `http://jellyfin:8096`, and `http://seerr:5055`.
-5. Use agent-browser to retrieve each Arr/Seerr key from its current
-   run-scoped settings path, then fill the matching Homarr form with
-   `scripts/session.sh browser-key`; use the exact workflow below. Select the
+5. Fill each matching Homarr form with `scripts/session.sh browser-key` from
+   the already validated run-scoped key; do not leave Connect to revisit the
+   settings pages. Select the
    username/password mode for qBittorrent and Jellyfin. Fill each password ref
    only through `scripts/session.sh browser-password "$RUN_ID" @eN`.
    Keep only one integration panel open while filling a key: the helper refuses
-   ambiguous visible API-key fields. Test, save/collapse, and revisit each
-   panel to confirm its status persisted before selecting another.
+   ambiguous visible API-key fields. Test, use Save if offered, and collapse
+   each panel once; do not reopen it merely to check. A tested credential-mode
+   card may then show `Needs configuration`. Let Review's six-integration/six-app count and the
+   post-Build management pages establish persistence; stop on a short count.
 6. Review must state 6 integrations and 6 app tiles. Build and let `v2` generate
    the dashboard. Do not manually add apps/widgets: generation itself is under
    test.
 7. Stop UI configuration after proving the generated board. In
    `/manage/tools/api`, use the **Authentication** tab to create one API key for
-   this run. After the key appears beside **Copy API key**, capture its one-time
-   code privately through `./scripts/session.sh browser-key capture-code
+   this run. While the **API token created** alert is open, capture its
+   read-only field privately through `./scripts/session.sh browser-key capture-code
    "$RUN_ID" homarr`; do not copy it to the clipboard, expose it, or stage it.
 8. Run `./scripts/session.sh homarr-finalize "$RUN_ID" "$BOARD_NAME"`,
    `./scripts/session.sh mcp-config "$RUN_ID"`, and
@@ -78,7 +147,7 @@ rechecked on 2026-09-07:
 | Seerr | `/settings` | capture the API-key ref, then fill Homarr |
 | qBittorrent | `/#/settings/webui` | reference only; Homarr uses the managed login |
 | Jellyfin | `/web/index.html#!/dashboard/keys` | reference only; Homarr uses the managed login |
-| Homarr | `/init`, then **Extend** → **MCP** | create the key, then use `capture-code` on the one-time code beside **Copy API key** |
+| Homarr | `/manage/tools/api` → **Authentication**, or `/init` → **Extend** → **MCP** | create one key, then use `capture-code` on the exact one-time key field/code |
 
 For Sonarr, Radarr, and Prowlarr, navigate directly to `/settings/general` and
 capture the fixed readonly field without a snapshot or ref:
@@ -87,11 +156,16 @@ capture the fixed readonly field without a snapshot or ref:
 scripts/session.sh browser-key capture-field "$RUN_ID" SERVICE
 ```
 
-For Seerr, navigate directly to settings and obtain a fresh input ref with
+For Seerr, finish onboarding, navigate directly to General Settings at
+`/settings`, and obtain a fresh input ref with
 `scripts/session.sh browser-key refs "$RUN_ID" seerr`.
 This privately snapshots the page and prints only the single API-key field ref. Capture the DOM input
 value through the private helper; do not click Copy (clipboard APIs can fail on
 HTTP). Do not print `get value` directly or inspect full authenticated HTML.
+The `/setup` page is not Seerr General Settings: a generic API-key field there
+must not be captured as Seerr's managed key. If General Settings capture is
+unavailable, the authenticated Seerr verifier row can validate the managed
+`API_KEY` before it is filled into Homarr.
 If the field is absent, check the current page and Show Advanced once, then
 refresh refs instead of retrying a stale selector:
 

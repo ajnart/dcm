@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "adguard-home",
+  "source": "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
+  "services": [
+    {
+      "id": "adguard-home",
+      "purpose": "Hosts the private AdGuard Home administration UI; DNS is not published to the host.",
+      "imageTag": "adguard/adguardhome:v0.107.79",
+      "imageSource": "https://hub.docker.com/r/adguard/adguardhome/tags?name=v0.107.79",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "work", "target": "/opt/adguardhome/work", "kind": "volume" },
+        { "name": "conf", "target": "/opt/adguardhome/conf", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 3000
+    }
+  ],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/v0.107.79/openapi/openapi.yaml",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 3000,
+    "dataDirectoryName": "adguard-home"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "first-admin", "method": "api", "description": "Configure the first administrator through the documented install API and verify authenticated status." },
+    { "id": "dns-cutover", "method": "api", "description": "Only after a separate DNS owner approval, publish TCP and UDP port 53, prove filtering from a LAN client, and verify fallback DNS." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned Compose project and verify administrator login and persisted configuration." }
+  ]
+}

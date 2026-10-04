@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "ollama",
+  "source": "https://github.com/ollama/ollama",
+  "services": [
+    {
+      "id": "ollama",
+      "purpose": "Serves locally selected language models through a loopback-only API.",
+      "imageTag": "ollama/ollama:0.34.1",
+      "imageSource": "https://hub.docker.com/r/ollama/ollama/tags",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://docs.ollama.com/docker",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "OLLAMA_MODELS", "value": "/models" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "models", "target": "/models", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 11434
+    }
+  ],
+  "privateFiles": [],
+  "onboarding": {
+    "kind": "no-account",
+    "officialUrl": "https://github.com/ollama/ollama/blob/main/docs/api.md"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 11434,
+    "dataDirectoryName": "ollama"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "version", "method": "api", "description": "GET /api/version on the exact saved loopback origin returns the pinned Ollama server version." },
+    { "id": "model-inventory", "method": "api", "description": "GET /api/tags returns a model inventory; an empty inventory is valid before the owner selects and downloads a model." },
+    { "id": "model-inference", "method": "api", "description": "After owner-selected model download and license review, run one prompt and verify the returned model and response." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned Compose project and confirm the API and selected model inventory persist." }
+  ]
+}

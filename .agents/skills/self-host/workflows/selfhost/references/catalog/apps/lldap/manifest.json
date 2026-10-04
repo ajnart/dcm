@@ -1,0 +1,56 @@
+{
+  "id": "lldap",
+  "name": "LLDAP",
+  "aliases": [
+    "lightweight ldap"
+  ],
+  "categories": [
+    "identity"
+  ],
+  "roles": [
+    "directory"
+  ],
+  "upstream": {
+    "url": "https://github.com/lldap/lldap",
+    "repository": "https://github.com/lldap/lldap",
+    "docs": "https://github.com/lldap/lldap/blob/main/docs/install.md"
+  },
+  "image": {
+    "reference": "lldap/lldap:2026-08-28",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Official install and image tag checked; client compatibility remains per integration."
+  },
+  "support": {
+    "automation": "discovery",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:directory-backup"
+  ],
+  "alternatives": [
+    "authentik",
+    "keycloak"
+  ],
+  "security": [
+    "Protect directory credentials, administration, and backup exports."
+  ],
+  "pitfalls": [
+    "LDAP support does not imply OIDC or forward-auth support."
+  ],
+  "sources": [
+    "https://github.com/lldap/lldap",
+    "https://github.com/lldap/lldap/blob/main/docs/install.md",
+    "https://hub.docker.com/r/lldap/lldap/tags?name=2026-08-28",
+    "https://github.com/lldap/lldap/blob/main/lldap_config.docker_template.toml"
+  ]
+}

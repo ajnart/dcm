@@ -1,0 +1,62 @@
+{
+  "id": "forgejo",
+  "name": "Forgejo",
+  "aliases": [
+    "self hosted git",
+    "github replacement"
+  ],
+  "categories": [
+    "developer-tools"
+  ],
+  "roles": [
+    "source-control"
+  ],
+  "upstream": {
+    "url": "https://forgejo.org/",
+    "repository": "https://codeberg.org/forgejo/forgejo",
+    "docs": "https://forgejo.org/docs/latest/admin/installation-docker/"
+  },
+  "image": {
+    "reference": "codeberg.org/forgejo/forgejo:16.0.5",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "The upstream download page publishes the fixed 16.0.5 container tag; runner and registry are separate capabilities."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:git-storage",
+    "capability:tls-ingress"
+  ],
+  "alternatives": [
+    "coolify",
+    "bookstack"
+  ],
+  "security": [
+    "Protect SSH/HTTP ingress, signing keys, webhooks, and repository backups."
+  ],
+  "pitfalls": [
+    "Backing up repositories without database and configuration can lose metadata.",
+    "The pinned CLI privately generates the first administrator password. Setup separately creates and privately saves one read:user API token, verifies its owner, ID and exact scopes, and migrates owned administrator-only checkpoints. Missing one-time password/token output forbids replay. This read-only user token does not grant repository access or prove Git operation; Homarr integration remains unsupported. Token inventories beyond the bounded first page require inspection."
+  ],
+  "sources": [
+    "https://forgejo.org/docs/v16.0/admin/installation/docker/",
+    "https://forgejo.org/docs/v16.0/admin/command-line/",
+    "https://forgejo.org/download/",
+    "https://codeberg.org/forgejo/forgejo/src/tag/v16.0.5/routers/api/v1/api.go",
+    "https://codeberg.org/forgejo/forgejo/src/tag/v16.0.5/routers/api/v1/utils/access_token.go",
+    "https://codeberg.org/forgejo/forgejo/src/tag/v16.0.5/modules/structs/user_app.go",
+    "https://codeberg.org/forgejo/forgejo/src/tag/v16.0.5/models/auth/access_token_scope.go"
+  ]
+}

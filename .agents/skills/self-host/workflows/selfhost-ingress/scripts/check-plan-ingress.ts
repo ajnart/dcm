@@ -219,21 +219,47 @@ assert.equal(
 
 const auditInput = structuredClone(privateCaddyInput);
 auditInput.preferences.hostname = "homarr.audit.localhost";
-auditInput.facts.privateDns.hostname = "homarr.audit.localhost";
+delete auditInput.facts.privateDns;
 auditInput.facts.ownership.ports = [{ port: 20443, owner: "home-stack" }];
 auditInput.preferences.caddy.httpsPort = 20443;
 auditInput.preferences.caddy.clientScope = "host-only";
 auditInput.preferences.caddy.hostBindAddress = "127.0.0.1";
 const auditHomarr = buildIngressPlan(auditInput);
+const overrideInput = structuredClone(auditInput);
+overrideInput.preferences.hostname = "homarr.audit.home.arpa";
+overrideInput.preferences.nameResolution = "host-only-override";
+const overridePlan = buildIngressPlan(overrideInput);
+assert.equal(overridePlan.status, "pass");
+assert.ok(overridePlan.verification.some((entry) => entry.includes("DNS and intended-client CA trust remain unverified")));
+const domainOverride = structuredClone(overrideInput);
+domainOverride.preferences.hostname = "homarr.audit.example.com";
+assert.equal(buildIngressPlan(domainOverride).status, "pass");
+delete domainOverride.preferences.nameResolution;
+assert.equal(buildIngressPlan(domainOverride).gates.find((gate) => gate.id === "private-dns").status, "blocked");
+const missingOverride = structuredClone(overrideInput);
+delete missingOverride.preferences.nameResolution;
+assert.equal(buildIngressPlan(missingOverride).gates.find((gate) => gate.id === "private-dns").status, "blocked");
+const lanOverride = structuredClone(overrideInput);
+lanOverride.preferences.caddy.clientScope = "lan";
+lanOverride.preferences.caddy.hostBindAddress = "192.168.1.10";
+assert.equal(buildIngressPlan(lanOverride).gates.find((gate) => gate.id === "private-dns").status, "blocked");
 assert.equal(auditHomarr.status, "pass");
+assert.equal(auditHomarr.gates.find((gate) => gate.id === "private-dns").status, "pass");
+assert.equal(auditHomarr.route.steps.some((step) => step.includes("no private DNS owner")), true);
 assert.equal(auditHomarr.route.caddy.privateUrl, "https://homarr.audit.localhost:20443");
 assert.deepEqual(auditHomarr.route.caddy.resourceOwnership, { httpsPort: 20443, owner: "home-stack", hostBindAddress: "127.0.0.1" });
+
+const invalidLanLocalhost = structuredClone(auditInput);
+invalidLanLocalhost.preferences.caddy.clientScope = "lan";
+invalidLanLocalhost.preferences.caddy.hostBindAddress = "192.168.1.10";
+const blockedLanLocalhost = buildIngressPlan(invalidLanLocalhost);
+assert.equal(blockedLanLocalhost.status, "blocked");
+assert.equal(blockedLanLocalhost.gates.find((gate) => gate.id === "private-dns").status, "blocked");
 
 const auditJellyfinInput = structuredClone(auditInput);
 auditJellyfinInput.service.id = "jellyfin";
 auditJellyfinInput.service.internalPort = 8096;
 auditJellyfinInput.preferences.hostname = "jellyfin.audit.localhost";
-auditJellyfinInput.facts.privateDns.hostname = "jellyfin.audit.localhost";
 auditJellyfinInput.preferences.caddy.upstreamHost = "jellyfin";
 const auditJellyfin = buildIngressPlan(auditJellyfinInput);
 assert.equal(

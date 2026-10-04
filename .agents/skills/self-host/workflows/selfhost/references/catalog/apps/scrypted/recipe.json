@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "scrypted",
+  "source": "https://github.com/koush/scrypted/blob/e9a157a329f91d3849d33444abf9dd03592cc5e5/install/docker/docker-compose.yml",
+  "services": [{
+    "id": "scrypted",
+    "purpose": "Bootstraps the private Scrypted administrator; camera plugins, mDNS, hardware and NVR remain separate approvals.",
+    "imageTag": "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
+    "imageSource": "https://github.com/koush/scrypted/blob/e9a157a329f91d3849d33444abf9dd03592cc5e5/.github/workflows/docker.yml",
+    "user": "image-default",
+    "imageUserEvidence": {
+      "officialUrl": "https://github.com/koush/scrypted/blob/e9a157a329f91d3849d33444abf9dd03592cc5e5/install/docker/Dockerfile",
+      "reason": "official-image-runtime-contract"
+    },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [{ "name": "data", "target": "/server/volume", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": 11080
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://github.com/koush/scrypted/blob/e9a157a329f91d3849d33444abf9dd03592cc5e5/server/src/scrypted-server-main.ts",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 11080, "dataDirectoryName": "scrypted" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "first-admin", "method": "api", "description": "Inspect first-run state, checkpoint creation, verify the saved password, then privately save and read back the durable user token. The first owner's admin role is source-inferred, not independently read back; camera functionality remains unverified." },
+    { "id": "camera-stream", "method": "api", "description": "With separate camera credentials, plugin and network approvals, verify the selected camera stream. HomeKit mDNS, hardware, NVR storage and licensing are not configured by this bridge-only bootstrap." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned project and reverify the saved administrator password, durable token and selected camera state." }
+  ]
+}

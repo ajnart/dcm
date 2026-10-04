@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "appId": "dockge",
+  "source": "https://github.com/louislam/dockge/blob/1.5.0/backend/socket-handlers/main-socket-handler.ts",
+  "events": [
+    { "event": "setup", "action": "dockge-setup", "arguments": "username-password" },
+    { "event": "login", "action": "dockge-login", "arguments": "username-password-object" },
+    { "event": "getSettings", "action": "dockge-get-settings", "arguments": "none" }
+  ]
+}

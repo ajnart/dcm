@@ -7,8 +7,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 SESSIONS_DIR="$REPO_ROOT/.sessions"
 COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
+NETWORK_OVERRIDE_NAME="network-ipam.compose.yml"
 PORT_MIN=20000
 PORT_MAX=44999
+ALLOCATE_PORT_MAX="$PORT_MAX"
 CURRENT_SESSION_PASSWORD_SCHEME="hmac-v1"
 SESSIONS_LOCK="$SESSIONS_DIR/.ports.lock"
 CREATE_STAGING_DIR=""
@@ -22,21 +24,25 @@ DESTROY_SERVICES=(prowlarr radarr sonarr qbittorrent jellyfin seerr homarr)
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/session.sh create [RUN_ID] USERNAME [--homarr-bind 0.0.0.0 --homarr-host HOST]
+  scripts/session.sh create [RUN_ID] USERNAME [--bind-mode all-interfaces|host-only] [--homarr-host HOST] [--port-start PORT] [--network-subnets DEFAULT_CIDR,WEB_CIDR]
   scripts/session.sh up RUN_ID
   scripts/session.sh keys RUN_ID
   scripts/session.sh bootstrap RUN_ID [--identities-only]
   scripts/session.sh bootstrap-jellyfin RUN_ID
   scripts/session.sh bootstrap-seerr RUN_ID
-  scripts/session.sh verify RUN_ID
-  scripts/session.sh browser-password RUN_ID @eN [@eN ...]
+  scripts/session.sh verify RUN_ID [--defer-indexer]
+  scripts/session.sh browser-password RUN_ID @eN [@eN ...] [--browser-bin ABSOLUTE_PATH]
   scripts/session.sh browser-form RUN_ID
   scripts/session.sh browser-key capture|fill RUN_ID SERVICE @eN
   scripts/session.sh browser-key capture-code RUN_ID homarr
   scripts/session.sh browser-key capture-field RUN_ID sonarr|radarr|prowlarr
+  scripts/session.sh browser-key fill-prowlarr-app RUN_ID sonarr|radarr
   scripts/session.sh homarr-key RUN_ID < ONE_TIME_KEY
   scripts/session.sh homarr-finalize RUN_ID [BOARD_NAME]
-  scripts/session.sh homarr-notebook RUN_ID BOARD_NAME
+  scripts/session.sh homarr-board-polish plan RUN_ID BOARD_NAME [--reflow-all]
+  scripts/session.sh homarr-board-polish apply RUN_ID BOARD_NAME --approve DIGEST [--reflow-all]
+  scripts/session.sh homarr-notebook plan RUN_ID BOARD_NAME
+  scripts/session.sh homarr-notebook apply RUN_ID BOARD_NAME --approve DIGEST
   scripts/session.sh homarr-widgets RUN_ID BOARD_NAME
   scripts/session.sh mcp-config RUN_ID
   scripts/session.sh mcp-verify RUN_ID
@@ -56,8 +62,16 @@ RUN_ID must start with a lowercase letter or digit and contain only lowercase
 letters, digits, underscores, and hyphens (maximum 40 characters).
 USERNAME is required for new sessions and must contain only letters, digits,
 periods, underscores, and hyphens (maximum 64 characters).
-Homarr remains loopback-only unless both explicit headless-access options are
-provided. HOST is the private hostname or address users open, never 0.0.0.0.
+The default publishes all seven ports on every host interface; confirm router
+or Docker-aware firewall policy before up. --bind-mode host-only explicitly
+publishes all seven ports on 127.0.0.1 for this host's private proxy or tests.
+HOST is an optional client-reachable private hostname or address for the
+all-interface mode, never 0.0.0.0.
+--port-start reserves exactly seven consecutive ports from 20000 through 44999.
+If any selected port is occupied, create stops without choosing other ports.
+--network-subnets selects two distinct, non-overlapping canonical RFC1918 IPv4
+networks from /24 through /28 for this Compose project only. Omitting it keeps
+Docker's default network allocation.
 
 destroy is intentionally explicit. It only removes the validated run named
 twice on the command line; no command targets all sessions or the legacy stack.
@@ -71,6 +85,71 @@ fail() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+validate_network_subnet() {
+  local value="$1"
+  local address
+  local prefix
+  local first_octet
+  local second_octet
+  local third_octet
+  local fourth_octet
+  local size
+
+  [[ "$value" =~ ^((0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2}))/(2[4-8])$ ]] \
+    || fail "network subnets must be canonical RFC1918 IPv4 CIDRs from /24 through /28"
+  address="${BASH_REMATCH[1]}"
+  prefix="${BASH_REMATCH[6]}"
+  IFS='.' read -r first_octet second_octet third_octet fourth_octet <<< "$address"
+  (( 10#$first_octet <= 255 && 10#$second_octet <= 255 \
+    && 10#$third_octet <= 255 && 10#$fourth_octet <= 255 )) \
+    || fail "network subnets must be canonical RFC1918 IPv4 CIDRs from /24 through /28"
+  if (( 10#$first_octet != 10 \
+    && !(10#$first_octet == 172 && 10#$second_octet >= 16 && 10#$second_octet <= 31) \
+    && !(10#$first_octet == 192 && 10#$second_octet == 168) )); then
+    fail "network subnets must use RFC1918 private address space"
+  fi
+  NETWORK_SUBNET_FIRST=$(( ((10#$first_octet * 256 + 10#$second_octet) * 256 + 10#$third_octet) * 256 + 10#$fourth_octet ))
+  size=$((1 << (32 - 10#$prefix)))
+  (( NETWORK_SUBNET_FIRST % size == 0 )) \
+    || fail "network subnets must use their canonical network address"
+  NETWORK_SUBNET_LAST=$((NETWORK_SUBNET_FIRST + size - 1))
+}
+
+parse_network_subnets() {
+  local value="$1"
+  local default_first
+  local default_last
+  local web_first
+  local web_last
+
+  [[ "$value" == *,* && "${value#*,}" != *,* ]] \
+    || fail "--network-subnets requires DEFAULT_CIDR,WEB_CIDR"
+  PARSED_DEFAULT_SUBNET="${value%%,*}"
+  PARSED_WEB_SUBNET="${value#*,}"
+  validate_network_subnet "$PARSED_DEFAULT_SUBNET"
+  default_first="$NETWORK_SUBNET_FIRST"
+  default_last="$NETWORK_SUBNET_LAST"
+  validate_network_subnet "$PARSED_WEB_SUBNET"
+  web_first="$NETWORK_SUBNET_FIRST"
+  web_last="$NETWORK_SUBNET_LAST"
+  if (( default_first <= web_last && web_first <= default_last )); then
+    fail "media default and web network subnets must be distinct and non-overlapping"
+  fi
+}
+
+validate_network_override() {
+  local file_path="$1"
+  local expected_parent="$2"
+  local default_subnet="$3"
+  local web_subnet="$4"
+
+  validate_private_control_file "$file_path" "$expected_parent" "media network override"
+  if ! printf 'networks:\n  default:\n    ipam:\n      config:\n        - subnet: %s\n  web:\n    ipam:\n      config:\n        - subnet: %s\n' \
+    "$default_subnet" "$web_subnet" | cmp -s - "$file_path"; then
+    fail "media network override differs from its session manifest"
+  fi
 }
 
 ensure_sessions_root() {
@@ -410,6 +489,13 @@ validate_manifest_syntax() {
         [[ "${line#*=}" == "127.0.0.1" || "${line#*=}" == "0.0.0.0" ]] \
           || fail "invalid Homarr bind address"
         ;;
+      MEDIA_PORT_BIND_PREFIX)
+        [[ "${line#*=}" == "127.0.0.1:" ]] \
+          || fail "invalid media port bind prefix"
+        ;;
+      MEDIA_DEFAULT_SUBNET|MEDIA_WEB_SUBNET)
+        validate_network_subnet "${line#*=}"
+        ;;
       HOMARR_ADVERTISED_HOST)
         [[ "${line#*=}" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,251}[A-Za-z0-9]$ ]] \
           || fail "invalid Homarr advertised host"
@@ -480,7 +566,8 @@ load_session() {
   unset PUID PGID TZ PROWLARR_PORT RADARR_PORT SONARR_PORT
   unset QBITTORRENT_PORT JELLYFIN_PORT SEERR_PORT HOMARR_PORT
   unset SESSION_PASSWORD_SCHEME ADMIN_USERNAME
-  unset HOMARR_BIND_ADDRESS HOMARR_ADVERTISED_HOST
+  unset HOMARR_BIND_ADDRESS HOMARR_ADVERTISED_HOST MEDIA_PORT_BIND_PREFIX
+  unset MEDIA_DEFAULT_SUBNET MEDIA_WEB_SUBNET
   unset HOMARR_ENCRYPTION_KEY SONARR_API_KEY RADARR_API_KEY
   unset PROWLARR_API_KEY SEERR_API_KEY
   unset HOMARR_API_KEY
@@ -500,14 +587,32 @@ load_session() {
     ADMIN_USERNAME="admin"
   fi
   if [[ -z "${HOMARR_BIND_ADDRESS+x}" ]]; then
-    HOMARR_BIND_ADDRESS="127.0.0.1"
+    HOMARR_BIND_ADDRESS="0.0.0.0"
   fi
   [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" || "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]] \
     || fail "invalid Homarr bind address"
-  if [[ "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]]; then
-    [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]] || fail "wildcard Homarr bind requires an advertised host"
-  elif [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
+  if [[ "$HOMARR_BIND_ADDRESS" == "0.0.0.0" && -n "${MEDIA_PORT_BIND_PREFIX:-}" ]]; then
+    fail "all-interface media run cannot have a loopback port prefix"
+  fi
+  if [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" && -n "${MEDIA_PORT_BIND_PREFIX:-}" \
+    && "$MEDIA_PORT_BIND_PREFIX" != "127.0.0.1:" ]]; then
+    fail "loopback media port prefix is invalid"
+  fi
+  if [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" && -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
     fail "Homarr advertised host requires a non-loopback bind"
+  fi
+  if [[ -n "${MEDIA_DEFAULT_SUBNET:-}" || -n "${MEDIA_WEB_SUBNET:-}" ]]; then
+    [[ -n "${MEDIA_DEFAULT_SUBNET:-}" && -n "${MEDIA_WEB_SUBNET:-}" ]] \
+      || fail "media network subnets must be selected together"
+    parse_network_subnets "$MEDIA_DEFAULT_SUBNET,$MEDIA_WEB_SUBNET"
+    validate_network_override \
+      "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" \
+      "$resolved_session_dir" \
+      "$MEDIA_DEFAULT_SUBNET" \
+      "$MEDIA_WEB_SUBNET"
+  elif [[ -e "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" \
+    || -L "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" ]]; then
+    fail "media network override exists without selected subnets"
   fi
   [[ "$ADMIN_USERNAME" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] \
     || fail "invalid admin username"
@@ -565,11 +670,15 @@ require_session_password_scheme() {
 }
 
 compose() {
-  docker compose \
+  local -a compose_files=(--file "$COMPOSE_FILE")
+  if [[ -n "${MEDIA_DEFAULT_SUBNET:-}" ]]; then
+    compose_files+=(--file "$SESSION_DIR/$NETWORK_OVERRIDE_NAME")
+  fi
+  MEDIA_PORT_BIND_PREFIX="${MEDIA_PORT_BIND_PREFIX:-}" docker compose \
     --project-name "$COMPOSE_PROJECT_NAME" \
     --env-file "$MANIFEST_FILE" \
     --env-file "$SECRETS_FILE" \
-    --file "$COMPOSE_FILE" \
+    "${compose_files[@]}" \
     "$@"
 }
 
@@ -629,6 +738,8 @@ collect_used_ports_locked() {
   local manifest_session_root
   local manifest_project
   local manifest_browser_session
+  local manifest_default_subnet
+  local manifest_web_subnet
   local line
   local key
   local value
@@ -663,6 +774,8 @@ collect_used_ports_locked() {
     manifest_session_root=""
     manifest_project=""
     manifest_browser_session=""
+    manifest_default_subnet=""
+    manifest_web_subnet=""
     port_count=0
     while IFS= read -r line || [[ -n "$line" ]]; do
       key="${line%%=*}"
@@ -682,6 +795,12 @@ collect_used_ports_locked() {
         AGENT_BROWSER_SESSION)
           manifest_browser_session="$value"
           ;;
+        MEDIA_DEFAULT_SUBNET)
+          manifest_default_subnet="$value"
+          ;;
+        MEDIA_WEB_SUBNET)
+          manifest_web_subnet="$value"
+          ;;
         *_PORT)
           validate_port "existing session port" "$value"
           [[ -z "${used_ports[$value]+present}" ]] || fail "existing sessions reuse a managed port"
@@ -691,7 +810,7 @@ collect_used_ports_locked() {
           ;;
       esac
     done < "$manifest"
-    if (( ${#manifest_keys[@]} < 14 || ${#manifest_keys[@]} > 18 )); then
+    if (( ${#manifest_keys[@]} < 14 || ${#manifest_keys[@]} > 20 )); then
       fail "existing session manifest is incomplete"
     fi
     [[ "$port_count" == "7" ]] || fail "existing session manifest has an invalid port set"
@@ -699,6 +818,19 @@ collect_used_ports_locked() {
     [[ "$manifest_session_root" == "$resolved_session_dir" ]] || fail "existing session manifest root mismatch"
     [[ "$manifest_project" == "autostack-$directory_run_id" ]] || fail "existing session manifest project mismatch"
     [[ "$manifest_browser_session" == "auto-stack-$directory_run_id" ]] || fail "existing session manifest browser mismatch"
+    if [[ -n "$manifest_default_subnet" || -n "$manifest_web_subnet" ]]; then
+      [[ -n "$manifest_default_subnet" && -n "$manifest_web_subnet" ]] \
+        || fail "existing session network subnets must be selected together"
+      parse_network_subnets "$manifest_default_subnet,$manifest_web_subnet"
+      validate_network_override \
+        "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" \
+        "$resolved_session_dir" \
+        "$manifest_default_subnet" \
+        "$manifest_web_subnet"
+    elif [[ -e "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" \
+      || -L "$resolved_session_dir/$NETWORK_OVERRIDE_NAME" ]]; then
+      fail "existing session network override has no selected subnets"
+    fi
   done
 }
 
@@ -741,7 +873,7 @@ allocate_port() {
   local target_name="$1"
   local candidate="$NEXT_PORT"
 
-  while (( candidate <= PORT_MAX )); do
+  while (( candidate <= ALLOCATE_PORT_MAX )); do
     if ! port_is_reserved "$candidate"; then
       RESERVED_PORTS+=("$candidate")
       printf -v "$target_name" '%d' "$candidate"
@@ -751,7 +883,7 @@ allocate_port() {
     candidate=$((candidate + 1))
   done
 
-  fail "no free ports remain in $PORT_MIN-$PORT_MAX"
+  fail "no free ports remain in $NEXT_PORT-$ALLOCATE_PORT_MAX"
 }
 
 rollback_staged_session() {
@@ -783,8 +915,14 @@ create_session() {
   local requested_run_id="${1:-}"
   local admin_username="${2:-}"
   shift 2 || true
-  local homarr_bind_address="127.0.0.1"
+  local homarr_bind_address="0.0.0.0"
+  local media_port_bind_prefix=""
+  local bind_mode="all-interfaces"
   local homarr_advertised_host=""
+  local port_start=""
+  local network_subnets=""
+  local media_default_subnet=""
+  local media_web_subnet=""
   local run_id
   local session_dir
   local tombstone_dir
@@ -804,14 +942,24 @@ create_session() {
 
   while (( "$#" > 0 )); do
     case "$1" in
-      --homarr-bind)
-        [[ "$#" -ge 2 ]] || fail "--homarr-bind requires an address"
-        homarr_bind_address="$2"
-        shift 2
-        ;;
       --homarr-host)
         [[ "$#" -ge 2 ]] || fail "--homarr-host requires a hostname or address"
         homarr_advertised_host="$2"
+        shift 2
+        ;;
+      --bind-mode)
+        [[ "$#" -ge 2 ]] || fail "--bind-mode requires all-interfaces or host-only"
+        bind_mode="$2"
+        shift 2
+        ;;
+      --port-start)
+        [[ "$#" -ge 2 ]] || fail "--port-start requires the first of seven managed ports"
+        port_start="$2"
+        shift 2
+        ;;
+      --network-subnets)
+        [[ "$#" -ge 2 ]] || fail "--network-subnets requires DEFAULT_CIDR,WEB_CIDR"
+        network_subnets="$2"
         shift 2
         ;;
       *)
@@ -820,16 +968,30 @@ create_session() {
     esac
   done
 
-  [[ "$homarr_bind_address" == "127.0.0.1" || "$homarr_bind_address" == "0.0.0.0" ]] \
-    || fail "--homarr-bind accepts only 127.0.0.1 or 0.0.0.0"
-  if [[ "$homarr_bind_address" == "0.0.0.0" ]]; then
+  [[ "$bind_mode" == "all-interfaces" || "$bind_mode" == "host-only" ]] \
+    || fail "--bind-mode requires all-interfaces or host-only"
+  if [[ -n "$port_start" ]]; then
+    [[ "$port_start" =~ ^[0-9]{5}$ ]] || fail "--port-start must be a port from 20000 through 44993"
+    (( 10#$port_start >= PORT_MIN && 10#$port_start <= PORT_MAX - 6 )) \
+      || fail "--port-start must be a port from 20000 through 44993"
+  fi
+  if [[ -n "$network_subnets" ]]; then
+    parse_network_subnets "$network_subnets"
+    media_default_subnet="$PARSED_DEFAULT_SUBNET"
+    media_web_subnet="$PARSED_WEB_SUBNET"
+  fi
+  if [[ "$bind_mode" == "host-only" ]]; then
+    [[ -z "$homarr_advertised_host" ]] || fail "--homarr-host is not available for host-only ports"
+    homarr_bind_address="127.0.0.1"
+    media_port_bind_prefix="127.0.0.1:"
+  fi
+
+  if [[ -n "$homarr_advertised_host" ]]; then
     [[ "$homarr_advertised_host" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,251}[A-Za-z0-9]$ ]] \
-      || fail "wildcard Homarr bind requires a valid --homarr-host"
+      || fail "--homarr-host requires a valid private hostname or address"
     [[ "$homarr_advertised_host" != "localhost" && "$homarr_advertised_host" != "0.0.0.0" \
       && "$homarr_advertised_host" != "127.0.0.1" ]] \
       || fail "--homarr-host must identify a non-loopback client-reachable host"
-  elif [[ -n "$homarr_advertised_host" ]]; then
-    fail "--homarr-host requires --homarr-bind 0.0.0.0"
   fi
 
   require_command flock
@@ -861,7 +1023,13 @@ create_session() {
   collect_listening_ports
   # Spread independent checkouts across the range. A restricted network
   # namespace may hide another checkout's rootless Docker listeners.
-  NEXT_PORT=$((PORT_MIN + (((RANDOM << 15) | RANDOM) % 10000)))
+  if [[ -n "$port_start" ]]; then
+    NEXT_PORT=$((10#$port_start))
+    ALLOCATE_PORT_MAX=$((NEXT_PORT + 6))
+  else
+    NEXT_PORT=$((PORT_MIN + (((RANDOM << 15) | RANDOM) % 10000)))
+    ALLOCATE_PORT_MAX="$PORT_MAX"
+  fi
   allocate_port prowlarr_port
   allocate_port radarr_port
   allocate_port sonarr_port
@@ -925,8 +1093,15 @@ create_session() {
     printf 'ADMIN_USERNAME=%s\n' "$admin_username"
     printf 'SESSION_PASSWORD_SCHEME=%s\n' "$CURRENT_SESSION_PASSWORD_SCHEME"
     printf 'HOMARR_BIND_ADDRESS=%s\n' "$homarr_bind_address"
+    if [[ -n "$media_port_bind_prefix" ]]; then
+      printf 'MEDIA_PORT_BIND_PREFIX=%s\n' "$media_port_bind_prefix"
+    fi
     if [[ -n "$homarr_advertised_host" ]]; then
       printf 'HOMARR_ADVERTISED_HOST=%s\n' "$homarr_advertised_host"
+    fi
+    if [[ -n "$media_default_subnet" ]]; then
+      printf 'MEDIA_DEFAULT_SUBNET=%s\n' "$media_default_subnet"
+      printf 'MEDIA_WEB_SUBNET=%s\n' "$media_web_subnet"
     fi
     printf 'PUID=%s\n' "$(id -u)"
     printf 'PGID=%s\n' "$(id -g)"
@@ -939,6 +1114,17 @@ create_session() {
     printf 'SEERR_PORT=%s\n' "$seerr_port"
     printf 'HOMARR_PORT=%s\n' "$homarr_port"
   } > "$manifest"
+
+  if [[ -n "$media_default_subnet" ]]; then
+    printf 'networks:\n  default:\n    ipam:\n      config:\n        - subnet: %s\n  web:\n    ipam:\n      config:\n        - subnet: %s\n' \
+      "$media_default_subnet" "$media_web_subnet" > "$staging_dir/$NETWORK_OVERRIDE_NAME"
+    chmod 600 -- "$staging_dir/$NETWORK_OVERRIDE_NAME"
+    validate_network_override \
+      "$staging_dir/$NETWORK_OVERRIDE_NAME" \
+      "$staging_dir" \
+      "$media_default_subnet" \
+      "$media_web_subnet"
+  fi
 
   {
     printf 'HOMARR_ENCRYPTION_KEY='
@@ -971,6 +1157,11 @@ create_session() {
 }
 
 print_urls() {
+  if [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" ]]; then
+    printf 'PORT_EXPOSURE=host-only\n'
+  else
+    printf 'PORT_EXPOSURE=all-host-interfaces\n'
+  fi
   printf 'PROWLARR_URL=http://127.0.0.1:%s\n' "$PROWLARR_PORT"
   printf 'RADARR_URL=http://127.0.0.1:%s\n' "$RADARR_PORT"
   printf 'SONARR_URL=http://127.0.0.1:%s\n' "$SONARR_PORT"
@@ -978,7 +1169,7 @@ print_urls() {
   printf 'JELLYFIN_URL=http://127.0.0.1:%s\n' "$JELLYFIN_PORT"
   printf 'SEERR_URL=http://127.0.0.1:%s\n' "$SEERR_PORT"
   printf 'HOMARR_URL=http://127.0.0.1:%s\n' "$HOMARR_PORT"
-  if [[ "$HOMARR_BIND_ADDRESS" == "0.0.0.0" ]]; then
+  if [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
     printf 'HOMARR_REACHABLE_URL=http://%s:%s\n' "$HOMARR_ADVERTISED_HOST" "$HOMARR_PORT"
     printf 'HOMARR_REACHABILITY=configured-not-verified\n'
   else
@@ -994,6 +1185,11 @@ print_env() {
   printf 'export AGENT_BROWSER_SESSION=%q\n' "$AGENT_BROWSER_SESSION"
   printf 'export ADMIN_USERNAME=%q\n' "$ADMIN_USERNAME"
   printf 'export HOMARR_BIND_ADDRESS=%q\n' "$HOMARR_BIND_ADDRESS"
+  printf 'export MEDIA_PORT_BIND_PREFIX=%q\n' "${MEDIA_PORT_BIND_PREFIX:-}"
+  if [[ -n "${MEDIA_DEFAULT_SUBNET:-}" ]]; then
+    printf 'export MEDIA_DEFAULT_SUBNET=%q\n' "$MEDIA_DEFAULT_SUBNET"
+    printf 'export MEDIA_WEB_SUBNET=%q\n' "$MEDIA_WEB_SUBNET"
+  fi
   if [[ -n "${HOMARR_ADVERTISED_HOST:-}" ]]; then
     printf 'export HOMARR_ADVERTISED_HOST=%q\n' "$HOMARR_ADVERTISED_HOST"
   fi
@@ -1299,6 +1495,7 @@ remove_marked_empty_content_roots() {
       ! -path "$SESSION_DIR/homarr-api-key.env" \
       ! -path "$SESSION_DIR/connections.env" \
       ! -path "$SESSION_DIR/credentials.env" \
+      ! -path "$SESSION_DIR/$NETWORK_OVERRIDE_NAME" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$marker_file" \
       ! -path "$config_root" \
@@ -1405,6 +1602,7 @@ finish_destroy_tombstone() {
       ! -path "$tombstone_dir/homarr-api-key.env" \
       ! -path "$tombstone_dir/connections.env" \
       ! -path "$tombstone_dir/credentials.env" \
+      ! -path "$tombstone_dir/$NETWORK_OVERRIDE_NAME" \
       ! -path "$tombstone_dir/destroy-images.env" \
       ! -path "$marker_file" \
       -print -quit
@@ -1425,6 +1623,7 @@ finish_destroy_tombstone() {
     "$tombstone_dir/secrets.env" \
     "$tombstone_dir/homarr-api-key.env" \
     "$tombstone_dir/connections.env" \
+    "$tombstone_dir/$NETWORK_OVERRIDE_NAME" \
     "$tombstone_dir/destroy-images.env"; do
     if [[ -e "$control_file" || -L "$control_file" ]]; then
       validate_private_control_file "$control_file" "$tombstone_dir" "destroy tombstone control file"
@@ -1465,6 +1664,7 @@ publish_destroy_tombstone() {
       ! -path "$SESSION_DIR/homarr-api-key.env" \
       ! -path "$SESSION_DIR/connections.env" \
       ! -path "$SESSION_DIR/credentials.env" \
+      ! -path "$SESSION_DIR/$NETWORK_OVERRIDE_NAME" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$marker_file" \
       -print -quit
@@ -1553,6 +1753,7 @@ destroy_session() {
           ! -path "$SESSION_DIR/homarr-api-key.env" \
           ! -path "$SESSION_DIR/connections.env" \
           ! -path "$SESSION_DIR/credentials.env" \
+          ! -path "$SESSION_DIR/$NETWORK_OVERRIDE_NAME" \
           ! -path "$DESTROY_IMAGE_MANIFEST" \
           -print -quit
       )"
@@ -1603,6 +1804,7 @@ destroy_session() {
       ! -path "$SESSION_DIR/homarr-api-key.env" \
       ! -path "$SESSION_DIR/connections.env" \
       ! -path "$SESSION_DIR/credentials.env" \
+      ! -path "$SESSION_DIR/$NETWORK_OVERRIDE_NAME" \
       ! -path "$DESTROY_IMAGE_MANIFEST" \
       ! -path "$SESSION_DIR/config" \
       ! -path "$SESSION_DIR/data" \
@@ -1642,6 +1844,10 @@ main() {
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
+      if [[ "$HOMARR_BIND_ADDRESS" == "127.0.0.1" ]]; then
+        [[ "${MEDIA_PORT_BIND_PREFIX:-}" == "127.0.0.1:" ]] \
+          || fail "Legacy loopback run needs its original harness; prepare a new host-only run"
+      fi
       compose up -d
       close_run_lock
       ;;
@@ -1682,21 +1888,34 @@ main() {
       exec bun "$SCRIPT_DIR/bootstrap-seerr.ts" "$run_id"
       ;;
     verify)
-      [[ "$#" -eq 2 ]] || fail "verify requires one RUN_ID"
+      [[ "$#" -eq 2 || ( "$#" -eq 3 && "$3" == "--defer-indexer" ) ]] \
+        || fail "verify requires one RUN_ID and optional --defer-indexer"
       require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec bun "$SCRIPT_DIR/verify-core.ts" "$run_id"
+      exec bun "$SCRIPT_DIR/verify-core.ts" "$run_id" "${@:3}"
       ;;
     browser-password)
-      [[ "$#" -ge 3 && "$#" -le 6 ]] \
-        || fail "browser-password requires one RUN_ID and one to four @eN refs"
+      local password_args=("${@:3}")
+      local password_ref_count="${#password_args[@]}"
+      if [[ "$password_ref_count" -ge 2 && "${password_args[password_ref_count-2]}" == "--browser-bin" ]]; then
+        [[ "${password_args[password_ref_count-1]}" == /* ]] \
+          || fail "browser-password --browser-bin requires an absolute executable path"
+        password_ref_count=$((password_ref_count-2))
+      fi
+      [[ "$password_ref_count" -ge 1 && "$password_ref_count" -le 4 ]] \
+        || fail "browser-password requires one RUN_ID and one to four @eN refs, optionally followed by --browser-bin ABSOLUTE_PATH"
+      local password_ref_index
+      for ((password_ref_index=0; password_ref_index<password_ref_count; password_ref_index++)); do
+        [[ "${password_args[password_ref_index]}" =~ ^@e[1-9][0-9]{0,5}$ ]] \
+          || fail "browser-password requires one to four @eN refs"
+      done
       require_command bun
       open_run_lock "$run_id"
       load_session "$run_id"
       require_session_password_scheme
-      exec bun "$SCRIPT_DIR/fill-browser-password.ts" "$run_id" "${@:3}"
+      exec bun "$SCRIPT_DIR/fill-browser-password.ts" "$run_id" "${password_args[@]}"
       ;;
     browser-form)
       [[ "$#" -eq 2 ]] || fail "browser-form requires one RUN_ID"
@@ -1707,8 +1926,8 @@ main() {
       exec bun "$SCRIPT_DIR/browser-form.ts" "$run_id"
       ;;
     browser-key)
-      [[ "$#" -eq 5 || ( "$#" -eq 4 && ( "$2" == "refs" || "$2" == "capture-code" || "$2" == "capture-field" ) ) ]] \
-        || fail "browser-key requires refs RUN_ID SERVICE or capture|fill RUN_ID SERVICE @eN"
+      [[ "$#" -eq 5 || ( "$#" -eq 4 && ( "$2" == "refs" || "$2" == "capture-code" || "$2" == "capture-field" || "$2" == "fill-prowlarr-app" ) ) ]] \
+        || fail "browser-key requires refs|capture-code|capture-field|fill-prowlarr-app RUN_ID SERVICE or capture|fill RUN_ID SERVICE @eN"
       require_command bun
       run_id="$3"
       open_run_lock "$run_id"
@@ -1734,13 +1953,26 @@ main() {
       load_session "$2"
       exec bun "$SCRIPT_DIR/prove-homarr-widgets.ts" "$2" "$3"
       ;;
-    homarr-notebook)
-      [[ "$#" -eq 3 ]] || fail "homarr-notebook requires RUN_ID and BOARD_NAME"
+    homarr-board-polish)
+      [[ ( "${2:-}" == "plan" && ( "$#" -eq 4 || ( "$#" -eq 5 && "${5:-}" == "--reflow-all" ) ) ) \
+        || ( "${2:-}" == "apply" && "${5:-}" == "--approve" && ( "$#" -eq 6 || ( "$#" -eq 7 && "${7:-}" == "--reflow-all" ) ) ) ]] \
+        || fail "homarr-board-polish requires plan RUN_ID BOARD_NAME [--reflow-all] or apply RUN_ID BOARD_NAME --approve DIGEST [--reflow-all]"
       require_command bun
-      open_run_lock "$2"
-      load_session "$2"
+      run_id="$3"
+      open_run_lock "$run_id"
+      load_session "$run_id"
       require_session_password_scheme
-      exec bun "$SCRIPT_DIR/homarr-notebook.ts" "$2" "$3"
+      exec bun "$SCRIPT_DIR/homarr-board-polish.ts" "$2" "$3" "$4" "${@:5}"
+      ;;
+    homarr-notebook)
+      [[ ( "${2:-}" == "plan" && "$#" -eq 4 ) \
+        || ( "${2:-}" == "apply" && "$#" -eq 6 && "${5:-}" == "--approve" && "${6:-}" =~ ^sha256:[0-9a-f]{64}$ ) ]] \
+        || fail "homarr-notebook requires plan RUN_ID BOARD_NAME or apply RUN_ID BOARD_NAME --approve DIGEST"
+      require_command bun
+      open_run_lock "$3"
+      load_session "$3"
+      require_session_password_scheme
+      exec bun "$SCRIPT_DIR/homarr-notebook.ts" "${@:2}"
       ;;
     homarr-finalize)
       [[ "$#" -eq 2 || "$#" -eq 3 ]] || fail "homarr-finalize requires RUN_ID and optional BOARD_NAME"

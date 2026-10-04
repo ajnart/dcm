@@ -1,0 +1,62 @@
+{
+  "id": "navidrome",
+  "name": "Navidrome",
+  "aliases": [
+    "music",
+    "music server",
+    "subsonic music server"
+  ],
+  "categories": [
+    "media"
+  ],
+  "roles": [
+    "music-server",
+    "music-library"
+  ],
+  "upstream": {
+    "url": "https://www.navidrome.org/",
+    "repository": "https://github.com/navidrome/navidrome",
+    "docs": "https://www.navidrome.org/docs/installation/docker/"
+  },
+  "image": {
+    "reference": "deluan/navidrome:0.64.0",
+    "source": "vendor",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Pinned v0.64.0 first-admin and login routes inspected in upstream source; live setup and library playback remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Navidrome"
+  },
+  "dependencies": [
+    "capability:media-storage"
+  ],
+  "alternatives": [
+    "audiobookshelf",
+    "jellyfin"
+  ],
+  "security": [
+    "Protect user accounts, listening data, media paths, and any public streaming route."
+  ],
+  "pitfalls": [
+    "Library scanning and metadata behavior depend on stable paths, tags, and file ownership.",
+    "The native UI authentication routes are version-pinned implementation details, not a stable public API; re-verify before upgrading."
+  ],
+  "sources": [
+    "https://www.navidrome.org/docs/installation/docker/",
+    "https://github.com/navidrome/navidrome",
+    "https://github.com/navidrome/navidrome/blob/v0.64.0/server/auth.go",
+    "https://github.com/navidrome/navidrome/blob/v0.64.0/server/server.go",
+    "https://github.com/navidrome/navidrome/blob/v0.64.0/ui/src/authProvider.js",
+    "https://github.com/navidrome/navidrome/releases/tag/v0.64.0"
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "immich",
+  "source": "https://github.com/immich-app/immich",
+  "services": [
+    {
+      "id": "immich",
+      "purpose": "Stores and serves your private photo and video library.",
+      "imageTag": "ghcr.io/immich-app/immich-server:v3.2.2",
+      "imageSource": "https://github.com/immich-app/immich/releases/tag/v3.2.2",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [
+        { "name": "DB_DATABASE_NAME", "value": "immich" },
+        { "name": "DB_HOSTNAME", "value": "database" },
+        { "name": "DB_USERNAME", "value": "postgres" },
+        { "name": "IMMICH_ALLOW_SETUP", "value": "true" },
+        { "name": "IMMICH_MACHINE_LEARNING_URL", "value": "http://immich-machine-learning:3003" },
+        { "name": "REDIS_HOSTNAME", "value": "redis" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "DB_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "uploads", "target": "/data" }],
+      "dependsOn": ["database", "redis"],
+      "publishTargetPort": 2283,
+      "healthcheck": {
+        "test": ["CMD", "immich-healthcheck"],
+        "intervalSeconds": 30,
+        "timeoutSeconds": 30,
+        "startPeriodSeconds": 0,
+        "retries": 3
+      }
+    },
+    {
+      "id": "immich-machine-learning",
+      "purpose": "Builds private search and recognition models for your photos.",
+      "imageTag": "ghcr.io/immich-app/immich-machine-learning:v3.2.2",
+      "imageSource": "https://github.com/immich-app/immich/releases/tag/v3.2.2",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [{ "name": "model-cache", "target": "/cache" }],
+      "dependsOn": [],
+      "publishTargetPort": null,
+      "healthcheck": {
+        "test": ["CMD", "python3", "healthcheck.py"],
+        "intervalSeconds": 30,
+        "timeoutSeconds": 30,
+        "startPeriodSeconds": 0,
+        "retries": 3
+      }
+    },
+    {
+      "id": "redis",
+      "purpose": "Queues and coordinates Immich background work without a public port.",
+      "imageTag": "docker.io/valkey/valkey:9",
+      "imageSource": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [],
+      "dependsOn": [],
+      "publishTargetPort": null,
+      "healthcheck": {
+        "test": ["CMD", "redis-cli", "ping"],
+        "intervalSeconds": 30,
+        "timeoutSeconds": 10,
+        "startPeriodSeconds": 0,
+        "retries": 3
+      }
+    },
+    {
+      "id": "database",
+      "purpose": "Keeps photo metadata and accounts in a private local PostgreSQL database.",
+      "imageTag": "ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0",
+      "imageSource": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [
+        { "name": "POSTGRES_DB", "value": "immich" },
+        { "name": "POSTGRES_INITDB_ARGS", "value": "--data-checksums" },
+        { "name": "POSTGRES_USER", "value": "postgres" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql/data" }],
+      "dependsOn": [],
+      "publishTargetPort": null,
+      "shmSizeBytes": 134217728,
+      "healthcheck": {
+        "test": ["CMD", "/usr/local/bin/healthcheck.sh"],
+        "intervalSeconds": 300,
+        "timeoutSeconds": 30,
+        "startPeriodSeconds": 300,
+        "retries": 3
+      }
+    }
+  ],
+  "privateFiles": [
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "admin-password", "bytes": 48 }
+  ],
+  "onboarding": {
+    "kind": "api-first-admin",
+    "adapter": "immich-v3.2.2",
+    "officialUrl": "https://docs.immich.app/install/post-install/",
+    "username": "admin",
+    "email": "admin@example.test",
+    "name": "Admin",
+    "fileId": "admin-password",
+    "setupEnvironment": "IMMICH_ALLOW_SETUP"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 2283,
+    "dataDirectoryName": "immich"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 10737418240
+  },
+  "acceptance": [
+    { "id": "first-account", "method": "api", "description": "Bootstrap one administrator through the private Immich API and verify login." },
+    { "id": "close-setup", "method": "api", "description": "Disable Immich setup endpoints after the administrator login is verified." },
+    { "id": "photo-roundtrip", "method": "api", "description": "Upload a harmless image, retrieve it, and compare the original bytes." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart this exact project and confirm the account and image remain available." }
+  ]
+}

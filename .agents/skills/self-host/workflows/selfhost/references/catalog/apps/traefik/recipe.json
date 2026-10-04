@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "traefik",
+  "source": "https://github.com/traefik/traefik",
+  "services": [{
+    "id": "traefik",
+    "purpose": "Runs private ping and authenticated read-only Homarr management APIs, without discovery, application ingress, dashboard, or TLS.",
+    "imageTag": "traefik:v3.6.22",
+    "imageSource": "https://hub.docker.com/_/traefik",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://hub.docker.com/_/traefik", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "command": ["--entryPoints.health.address=:8080", "--ping=true", "--ping.entryPoint=health", "--api=true", "--api.dashboard=false", "--api.insecure=false", "--providers.file.filename=/etc/traefik/dynamic.yml", "--providers.file.watch=false", "--log.level=ERROR"],
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "secretEnvironment": [{ "name": "TRAEFIK_ADMIN_AUTH_HASH", "fileId": "admin-password", "format": "bcrypt-hash" }],
+    "mounts": [{ "name": "management-api", "target": "/etc/traefik/dynamic.yml", "kind": "generated-file", "fileId": "management-api" }],
+    "dependsOn": [],
+    "publishTargetPort": 8080
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "configFiles": [{ "id": "management-api", "content": "http:\n  routers:\n    selfhost-api:\n      entryPoints: [health]\n      rule: 'Method(`GET`) && (Path(`/api/version`) || Path(`/api/entrypoints`) || Path(`/api/http/routers`) || Path(`/api/http/services`) || Path(`/api/http/middlewares`) || Path(`/api/tcp/routers`) || Path(`/api/tcp/services`) || Path(`/api/tcp/middlewares`) || Path(`/api/udp/routers`) || Path(`/api/udp/services`))'\n      service: api@internal\n      middlewares: [selfhost-auth]\n  middlewares:\n    selfhost-auth:\n      basicAuth:\n        users:\n          - 'admin:{{ env \"TRAEFIK_ADMIN_AUTH_HASH\" }}'\n        removeHeader: true\n" }],
+  "onboarding": { "kind": "initial-admin-from-secret-env", "officialUrl": "https://github.com/traefik/traefik/blob/v3.6.22/docs/content/reference/routing-configuration/http/middlewares/basicauth.md", "username": "admin", "fixedUsername": true, "secretEnvironment": "TRAEFIK_ADMIN_AUTH_HASH", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8080, "dataDirectoryName": "traefik" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "private-readiness", "method": "api", "description": "GET /ping on the saved loopback origin returns 200; this proves only the Traefik process responds." },
+    { "id": "management-api", "method": "api", "description": "Verify anonymous denial, saved Basic credentials and the exact GET-only router. Credentials provide control access, not a user account. Old owners need a reviewed recipe transition; no automatic migration." },
+    { "id": "ingress-route", "method": "browser", "description": "Separately approve and verify a real route, DNS/TLS/80/443/auth owner, and Docker API boundary if Docker discovery is chosen; this recipe provides none." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned Compose project and verify the approved route and certificate state after ingress is configured separately." }
+  ]
+}

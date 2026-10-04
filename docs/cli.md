@@ -3,9 +3,10 @@
 ## Selfhost router
 
 ```text
-plan [goal...] --project-root ABSOLUTE [--select role=app] [--json]
+plan [request...] --project-root ABSOLUTE [--goal ID] [--app ID] [--compose] [--select role=app] [--json]
 catalog menu|list|search|show|homarr|validate [--json]
-state init|revise|checkpoint ... --project-root ABSOLUTE [--json]
+state init|revise [request... | --goal ID --app ID ...] --project-root ABSOLUTE [--compose] [--json]
+state checkpoint ... --project-root ABSOLUTE [--json]
 preferences init|show|set|validate ... [--json]
 ```
 
@@ -13,6 +14,13 @@ preferences init|show|set|validate ... [--json]
 non-secret preferences. Without a goal it resumes the exact supplied project
 root. Ambiguity, composition, missing approval, and ownership conflict return
 structured limitations without mutation.
+
+Repeat `--goal` and `--app` for an exact, mixed selection; use `--compose` when
+there is more than one component. IDs come from `catalog menu` and `catalog
+search`. Unknown, duplicate, or retired app IDs block the plan. Positional
+multi-ID requests such as `plan immich docmost --compose` also preserve both
+apps; free-text requests still use the intent router. Do not mix positional
+text with typed selectors. A composite plan is not a combined installer.
 
 JSON commands use:
 
@@ -31,6 +39,62 @@ JSON commands use:
 
 Exit `0` means pass or warning, `1` an unexpected internal failure, `2` invalid
 usage, `3` a safety or evidence block, and `4` an ownership or state conflict.
+
+## Household bundle continuation
+
+Root `self-host status` and `self-host info` discover one saved household
+bundle in the selected project. Root `up` and `down` need its exact `--input`
+and current `--approve` token; they will not silently mutate only media. Pass
+`--local-https-input` and `--local-https-run-id` together when Caddy is part of
+the same lifecycle. Use `--profile media` for the older media-only commands.
+
+```text
+self-host bundle next --project-root ABSOLUTE --input ABSOLUTE [--approve BUNDLE_TOKEN]
+  [--stage-approve ADAPTER_TOKEN]
+  [--firewall-scope router-private|docker-aware-private]
+  [--local-https-input ABSOLUTE --local-https-run-id ID]
+self-host bundle run --project-root ABSOLUTE --input ABSOLUTE [--approve BUNDLE_TOKEN]
+  [--stage-approve ADAPTER_TOKEN]
+  [--firewall-scope router-private|docker-aware-private]
+  [--local-https-input ABSOLUTE --local-https-run-id ID]
+```
+
+`bundle next` is read-only. It fingerprints the exact four-service input,
+queries every adapter status path, validates any supplied current tokens, and
+returns one argv command or one manual checkpoint. It does not persist an
+approval or run the command. Browser, private-HTTPS, first-owner, credential,
+direct-acceptance, Homarr, finalization, and recovery gates remain explicit;
+its output is not a full-install claim.
+For a stopped applied bundle, all four adapter lifecycle checks must pass. An
+exact CLI-managed local-HTTPS selection is also required before `next` returns
+one `bundle up` argv; without it, `next` returns the separate route-owner
+checkpoint instead.
+
+`bundle run` reuses the same ordered decision path and executes only the safe
+CLI checkpoint returned by it when every approval needed by that checkpoint is
+already supplied or recorded. It continues until the first missing exact
+approval or manual gate and returns structured completed steps, the stop
+checkpoint, deferred gates, and a resumable argv command. One adapter token can
+authorize only its matching stage and is discarded before the next adapter is
+considered. First media apply in the default all-interface mode needs
+operator-confirmed private router or Docker-aware firewall scope; the CLI
+records the choice but does not verify the policy. Explicit
+`--media-bind-mode host-only` binds all seven ports to 127.0.0.1 and needs no
+firewall-scope assertion. Browser, private-HTTPS, credential, direct-acceptance, Homarr,
+finalization, and recovery work is never automatic.
+
+After verifying the private route and intended client's CA trust, run the
+`afterVerification` argv returned at `verify-vaultwarden-private-https`.
+`bundle https-ready` records that assertion in the same owner-only bundle and
+returns a new approval; re-plan before continuing. It does not itself probe
+client DNS, CA trust, or Vaultwarden login.
+
+For the host-only household Caddy route, `bundle caddy-inputs plan|apply`
+generates six ingress plans and one shared adapter input from the exact saved
+bundle, fresh host inspection, and verified media web network. Its apply writes
+private files only; `caddy-private plan|apply` keeps a separate Docker approval.
+The generated vault upstream bridge is internal and Caddy-owned; attach only
+Vaultwarden after Caddy creates it.
 
 ## Stack lifecycle
 

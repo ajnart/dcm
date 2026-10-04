@@ -1,0 +1,60 @@
+{
+  "id": "seafile",
+  "name": "Seafile",
+  "aliases": [
+    "file cloud",
+    "file synchronization server"
+  ],
+  "categories": [
+    "files"
+  ],
+  "roles": [
+    "cloud-files",
+    "device-sync"
+  ],
+  "upstream": {
+    "url": "https://www.seafile.com/",
+    "repository": "https://github.com/haiwen/seafile",
+    "docs": "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/"
+  },
+  "image": {
+    "reference": "docker.io/seafileltd/seafile-mc:13.0.28",
+    "source": "vendor",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-30",
+    "note": "The shared recipe targets stable Community Edition 13.0.28; the 14.0 documentation is published, but only 14.0 testing image tags were available at the vendor registry when checked. Professional Edition has a different image and dependencies."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:file-storage"
+  ],
+  "alternatives": [
+    "nextcloud",
+    "syncthing"
+  ],
+  "security": [
+    "Keep the private HTTP bind private; require TLS before exposing the service, and recover database and file data together."
+  ],
+  "pitfalls": [
+    "The official image uses initial-admin, database, and JWT environment secrets; Docker operators can inspect container environment.",
+    "The shared recipe verifies administrator login only; library/file round-trip, client sync, restart persistence, and isolated restore remain separate acceptance gates.",
+    "Seafile's configured hostname and protocol must match the selected access route, including a nondefault host port."
+  ],
+  "sources": [
+    "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/",
+    "https://manual.seafile.com/13.0/repo/docker/ce/seafile-server.yml",
+    "https://seafile-api.readme.io/reference/post_api2-auth-token",
+    "https://seafile-api.readme.io/reference/get_api-v2-1-admin-users"
+  ]
+}

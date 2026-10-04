@@ -1,7 +1,9 @@
 # Media service graph
 
-Use one isolated Compose project and network per run. Published ports bind
-to `127.0.0.1`; discover assigned values through the session helper.
+Use one isolated Compose project and network per run. Default published ports
+bind to all host interfaces; discover assigned values through the session helper
+and approve router or Docker-aware firewall scope before starting that mode.
+Explicit host-only runs bind all seven ports to 127.0.0.1.
 Container-to-container connections use service DNS and internal ports.
 
 ```text
@@ -36,7 +38,7 @@ Homarr --> Sonarr, Radarr, Prowlarr, qBittorrent, Jellyfin, Seerr
 | qBittorrent | `ghcr.io/hotio/qbittorrent:latest` |
 | Jellyfin | `ghcr.io/hotio/jellyfin:latest` |
 | Seerr | `ghcr.io/seerr-team/seerr:latest` |
-| Homarr | `ghcr.io/homarr-labs/homarr-test:v2` |
+| Homarr | `ghcr.io/homarr-labs/homarr:dev` |
 
 The bundle verifier treats this exact seven-image set as an invariant. The six
 non-Homarr `:latest` references are allowed only in this isolated, disposable

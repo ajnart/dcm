@@ -1,0 +1,72 @@
+{
+  "id": "dockge",
+  "name": "Dockge",
+  "aliases": [
+    "compose manager",
+    "compose ui"
+  ],
+  "categories": [
+    "containers"
+  ],
+  "roles": [
+    "compose-management"
+  ],
+  "upstream": {
+    "url": "https://github.com/louislam/dockge",
+    "repository": "https://github.com/louislam/dockge",
+    "docs": "https://github.com/louislam/dockge#how-to-install"
+  },
+  "image": {
+    "reference": "docker.io/louislam/dockge:1.5.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-04",
+    "note": "Pinned 1.5.0 private shared manager recipe uses separately approved remote Docker management mTLS, same-local-Engine identity and exact owner-private same-path stack storage; no socket mount. First-owner Socket.IO setup/login/settings is source-backed. Live stack-management and restart acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:docker-engine",
+    "capability:docker-api-boundary"
+  ],
+  "alternatives": [
+    "portainer",
+    "coolify"
+  ],
+  "security": [
+    "Protect the UI and treat Docker access as host control; do not mount the host Docker socket through a generic app recipe."
+  ],
+  "pitfalls": [
+    "The official Compose mount gives Dockge host Docker control; importing or creating stacks needs explicit ownership and upgrade boundaries.",
+    "The stacks directory must be an absolute bind with identical host and container paths.",
+    "Pinned 1.5.0 setup and login use internal Socket.IO events, not a stable HTTP first-admin or durable API-key contract. A running UI without approved daemon authority does not satisfy Compose-management acceptance."
+  ],
+  "sources": [
+    "https://github.com/louislam/dockge",
+    "https://github.com/louislam/dockge/blob/master/README.md",
+    "https://github.com/louislam/dockge/blob/master/compose.yaml",
+    "https://docs.docker.com/engine/security/protect-access/",
+    "https://github.com/louislam/dockge/blob/1.5.0/compose.yaml",
+    "https://github.com/louislam/dockge/blob/1.5.0/backend/socket-handlers/main-socket-handler.ts",
+    "https://hub.docker.com/v2/repositories/louislam/dockge/tags/1.5.0/",
+    "https://github.com/louislam/dockge/releases/tag/1.5.0",
+    "https://github.com/louislam/dockge/blob/1.5.0/docker/Dockerfile",
+    "https://github.com/louislam/dockge/blob/1.5.0/docker/Base.Dockerfile",
+    "https://github.com/louislam/dockge/blob/1.5.0/backend/index.ts",
+    "https://github.com/louislam/dockge/blob/1.5.0/backend/dockge-server.ts",
+    "https://github.com/louislam/dockge/blob/1.5.0/backend/terminal.ts",
+    "https://github.com/louislam/dockge/blob/1.5.0/backend/stack.ts",
+    "https://raw.githubusercontent.com/docker/cli/v27.3.1/cli/flags/options.go",
+    "https://docs.docker.com/reference/cli/docker/"
+  ]
+}

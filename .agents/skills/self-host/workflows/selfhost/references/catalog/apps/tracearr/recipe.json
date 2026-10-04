@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "tracearr",
+  "source": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/examples/docker-compose.pg18.yml",
+  "services": [
+    {
+      "id": "tracearr",
+      "purpose": "Serves private session analytics; media-server enrollment remains a separate owner-approved step.",
+      "imageTag": "ghcr.io/connorgallopo/tracearr:2.6.0",
+      "imageSource": "https://github.com/connorgallopo/Tracearr/releases/tag/v2.6.0",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/Dockerfile", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "HOST", "value": "0.0.0.0" },
+        { "name": "REDIS_URL", "value": "redis://redis:6379" },
+        { "name": "LOG_LEVEL", "value": "info" }
+      ],
+      "derivedEnvironment": [{ "name": "CORS_ORIGIN", "source": "local-origin" }],
+      "hostEnvironment": [{ "name": "TZ", "source": "timezone" }],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "DATABASE_URL", "fileId": "database-password", "format": "postgres-url", "username": "tracearr", "host": "timescale", "port": 5432, "database": "tracearr" },
+        { "name": "JWT_SECRET", "fileId": "jwt-secret" },
+        { "name": "COOKIE_SECRET", "fileId": "cookie-secret" },
+        { "name": "BETTER_AUTH_SECRET", "fileId": "auth-secret" }
+      ],
+      "mounts": [
+        { "name": "backups", "target": "/data/backup", "kind": "volume" },
+        { "name": "images", "target": "/data/tracearr/image-cache", "kind": "volume" }
+      ],
+      "dependsOn": [{ "service": "timescale", "condition": "service_healthy" }, { "service": "redis", "condition": "service_healthy" }],
+      "publishTargetPort": 3000
+    },
+    {
+      "id": "timescale",
+      "purpose": "Stores private analytics and owner accounts in a fresh TimescaleDB PostgreSQL 18 volume.",
+      "imageTag": "docker.io/timescale/timescaledb-ha:pg18.4-ts2.29.1",
+      "imageSource": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/examples/docker-compose.pg18.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/examples/docker-compose.pg18.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "shmSizeBytes": 536870912,
+      "ulimits": { "nofile": { "soft": 65536, "hard": 65536 } },
+      "command": ["postgres", "-c", "timescaledb.license=timescale", "-c", "timescaledb.max_tuples_decompressed_per_dml_transaction=100000", "-c", "max_locks_per_transaction=4096", "-c", "timescaledb.telemetry_level=off", "-c", "max_connections=150"],
+      "environment": [{ "name": "POSTGRES_USER", "value": "tracearr" }, { "name": "POSTGRES_DB", "value": "tracearr" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [{ "name": "POSTGRES_PASSWORD", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/home/postgres/pgdata/data", "kind": "volume" }],
+      "healthcheck": { "test": ["CMD", "pg_isready", "-U", "tracearr"], "intervalSeconds": 10, "timeoutSeconds": 5, "startPeriodSeconds": 0, "retries": 5 },
+      "dependsOn": [],
+      "publishTargetPort": null
+    },
+    {
+      "id": "redis",
+      "purpose": "Keeps Tracearr sessions and jobs on the private project network with append-only persistence.",
+      "imageTag": "docker.io/library/redis:8-alpine",
+      "imageSource": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/examples/docker-compose.pg18.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/docker/examples/docker-compose.pg18.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "command": ["redis-server", "--appendonly", "yes"],
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [{ "name": "redis", "target": "/data", "kind": "volume" }],
+      "healthcheck": { "test": ["CMD", "redis-cli", "ping"], "intervalSeconds": 10, "timeoutSeconds": 5, "startPeriodSeconds": 0, "retries": 5 },
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "jwt-secret", "bytes": 32, "format": "hex" },
+    { "id": "cookie-secret", "bytes": 32, "format": "hex" },
+    { "id": "auth-secret", "bytes": 32, "format": "hex" },
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": { "kind": "manual-first-admin", "officialUrl": "https://github.com/connorgallopo/Tracearr/blob/v2.6.0/apps/server/src/lib/auth.ts", "username": "admin", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 3000, "dataDirectoryName": "tracearr" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 5368709120 },
+  "acceptance": [
+    { "id": "owner", "method": "api", "description": "Create only the first owner with the reviewed email and generated password; verify a fresh username login and owner identity." },
+    { "id": "api-key", "method": "api", "description": "Generate one durable public API key only when absent, recover by inventory after lost responses, and verify authenticated public API access." },
+    { "id": "media-server", "method": "api", "description": "Connect only a separately approved media-server endpoint and credential; account setup does not enroll or download media." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned project and reverify owner login and API-key access." }
+  ]
+}

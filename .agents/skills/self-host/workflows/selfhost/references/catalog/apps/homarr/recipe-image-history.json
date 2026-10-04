@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "appId": "homarr",
+  "recipes": [
+    {
+      "sha256": "f5bdc6f3bb020244b9e93cf57fb6616f8ce712baddd1e0fb9e10a290f4e8fa17",
+      "services": [
+        {
+          "id": "homarr",
+          "imageTag": "ghcr.io/homarr-labs/homarr-test:v2",
+          "imageSource": "https://github.com/homarr-labs/homarr/pkgs/container/homarr-test"
+        }
+      ]
+    },
+    {
+      "sha256": "b71920a6c0c07eae7859f2dcd5042465fa46a56b157ba2299015d94e7cf50875",
+      "services": [
+        {
+          "id": "homarr",
+          "imageTag": "ghcr.io/homarr-labs/homarr-test:pr-6997",
+          "imageSource": "https://github.com/homarr-labs/homarr/pkgs/container/homarr-test"
+        }
+      ]
+    }
+  ]
+}

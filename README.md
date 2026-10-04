@@ -1,332 +1,343 @@
 # Self-host
 
-Own your photos, media, files, and passwords instead of depending on another
-subscription. Tell your coding agent what you want; it helps choose, install,
-connect, and verify self-hosted apps. **Homarr** is the recommended dashboard
-and agent front door, not a requirement for every goal.
+Own your apps, data, and credentials instead of depending on another
+subscription. `self-host` is a private terminal control panel for choosing,
+installing, and maintaining self-hosted apps. Its optional AI skill helps you
+describe a goal such as “replace Google Photos” and guides the same reviewed
+setup. Neither route requires Homarr.
 
-## Install without cloning this repo
+The control panel reuses the existing catalog, per-app setup routes, and
+project-scoped Compose lifecycle. It inspects first, shows a plan, asks for
+approval, applies only the selected project, and reports what was actually
+verified. Installing the CLI or skill alone does not deploy anything.
 
-From the project that should own your stack, run this one command (Git and Bun
-1.4+ required; authenticate to GitHub first if this repository is private):
+![Inspect, review, approve, apply, and verify](docs/images/selfhost-flow.svg)
+
+## Install the private CLI
+
+The CLI is not on public npm. With access to the private repository, build a
+standalone package and install it globally:
+
+```bash
+gh auth status
+gh repo clone ajnart/selfhost-skills
+cd selfhost-skills
+# Until PR #12 is merged, use its feature branch:
+git switch feat/headless-fallback-handoff
+bun install --frozen-lockfile
+cli_tgz=$(npm pack ./packages/cli --pack-destination . --silent)
+npm install -g "./$cli_tgz"
+self-host
+```
+
+Building requires Bun 1.4+; running this package requires Node.js 20.12+.
+Docker deployment also needs Bun 1.4+ on `PATH` and local Linux Docker/Compose;
+`self-host doctor` reports missing prerequisites before deployment.
+The installed CLI contains its catalog and does not need the checkout or an
+AI account. If an owner gives you a CLI tarball, install it with
+`npm install -g /absolute/path/to/file.tgz`. There is no public `npx` CLI
+package or CLI tarball in the current release. The
+[CLI manual](packages/cli/README.md) covers source execution, checksummed
+native artifacts when available, and all command flags.
+
+## Install the AI skill separately
+
+From the project where you want your agent to work, install just the skill:
 
 ```bash
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --copy --yes
 ```
 
-Then ask Codex: `$self-host photos`, `$self-host Netflix`, or just `$self-host`.
-Add `--global` to install for all projects. For Claude Code, replace
-`--agent codex` with `--agent claude-code` and invoke `/self-host`; other
-clients are listed [below](#skills-cli-alternative). The installed copy
-contains the workflows, catalog, scripts, and media harness. It does not use
-this source checkout at runtime. Installing the skill does not deploy apps.
+This needs Git, Bun 1.4+, and access to the private repository. Then ask
+Codex `$self-host photos` or select it with `/skills`. For Claude Code, use
+`--agent claude-code` and `/self-host photos`. Pi can invoke
+`/skill:self-host photos`; other clients and named-command setup are in the
+[install guide](.agents/install.md). Omit `--copy` for the installer's normal
+symlink layout. Omit `--agent` to choose a client interactively.
 
-![Conversation, approval, and verification flow](docs/images/selfhost-flow.svg)
+There is only
+**one skill** to select. Its internal workflows, catalog, scripts, and media
+harness travel together; they are not separate skills to install. It can
+locate the private CLI, but the skill itself is not a shell executable.
 
-The agent asks only for choices that change your setup. “Defaults” means a
-recommended private setup, username `admin` for the managed media stack, and a
-generated password. You can choose another username or a supported private
-credential source. The agent never asks you to paste a password into chat;
-deployment still waits for your approval of the exact plan.
-
-## Tell it what you want to replace
-
-You don't need to know the software names. Start with a familiar service.
-These examples use the Pi/OpenCode `/self-host` command; see the client table
-below for Codex syntax.
-
-```text
-/self-host I want to replace Google Photos and Google Drive
-/self-host Netflix
-/self-host password manager
-/self-host Google Drive, Microsoft OneDrive, Dropbox
-/self-host smart speaker
-/self-host audio books and music
-```
-
-| Your goal | Suggested apps | What they do |
-| --- | --- | --- |
-| Photos and cloud storage | **Immich + Nextcloud** | Back up and browse photos; sync and share files. |
-| Your own movie library | **Jellyfin** | Watch movies and shows you own on your TV, phone or browser. |
-| Music and audiobooks | **Navidrome + Audiobookshelf** | Stream your own music and audiobook collection, plus podcasts. |
-| A private password manager | **Vaultwarden** | Use compatible Bitwarden apps; set up HTTPS and recovery before importing passwords. |
-| Household budgeting | **Actual Budget** or **Firefly III** | Track budgets, accounts and spending. |
-| Smart-home control, optional voice and cameras | **Home Assistant**, optionally **Scrypted** | Connect compatible devices, automations and camera systems. |
-| Files, office work or notes | **Nextcloud**, with tools chosen for your needs | Share files and add document collaboration when needed; evaluate local note apps separately. |
-
-**Homarr** gives you one place to open apps, see connected services, and use
-its read-only MCP integration from a coding agent. Setup checks the
-available integrations and widgets; a shortcut alone isn't a tested integration.
-Moving existing data and setting up a separate backup are planned before switching.
-The managed seven-service media recipe currently includes Homarr and uses
-`ghcr.io/homarr-labs/homarr-test:v2`. Other plans may omit Homarr when you ask.
-
-Caddy is an optional way to give apps friendly HTTPS addresses. Setup reuses an
-existing proxy where possible and keeps access private unless you choose
-otherwise. Network access settings determine who can reach the apps; HTTPS
-protects traffic; each app still needs appropriate login and
-access controls. Voice assistants need suitable hardware, and media apps need
-your own content: these apps don't include a Netflix or Spotify subscription
-catalog. Savings depend on the subscriptions you can cancel and the cost of
-hardware, hosting, electricity and backups.
-
-The agent explains these choices briefly, then guides setup. See the
-[service selection guide](.agents/skills/self-host/references/choosing-services.md)
-for the replacement boundaries. Catalog coverage remains broader than the
-seven-service tested media harness; other setups retain their stated guided
-or discovery status until verified.
-
-## Install in Pi
-
-Install the rolling package and update it with Pi:
-
-```bash
-pi install git:github.com/ajnart/selfhost-skills
-pi update --extensions
-```
-
-This registers `/self-host` and `/skill:self-host`. Pin a release tag instead
-when stability matters; pinned refs must be advanced explicitly.
-
-## Optional source installer for named commands
-
-Clone this repository, then install into the project where you will invoke it:
-
-```bash
-git clone https://github.com/ajnart/selfhost-skills.git /tmp/selfhost-skills
-bun /tmp/selfhost-skills/scripts/install.ts --agent pi --agent opencode --scope project --project-root /path/to/your/project
-```
-
-This installs the skill and registers `/self-host` for Pi and OpenCode. The
-single Skills CLI command above is enough for normal skill use; clone only if
-you want this command adapter. For Codex, use `--agent codex`; invoke
-`$self-host` or select it with `/skills`. Codex has no supported project slash command. To install globally,
-use `--scope global` and omit `--project-root`. Add `--codex-prompt` only if you
-want Codex's deprecated global `/prompts:self-host` bridge.
-
-The installer copies the complete skill, checks for command name collisions,
-and updates only its own command files. Run it again to update. See
-[installation and migration](.agents/install.md) for removal and other clients.
-
-## Skills CLI alternative
-
-Install Git and Bun 1.4.0 or newer, including `bunx`. From your project:
-
-```bash
-bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
-```
-
-Choose your agent and project/global scope in the installer. There is only
-**one skill** to select. All internal workflows, catalog data, scripts, and
-service recipes travel with it; installing them does not deploy their services.
-
-To install globally for Codex, Claude Code, OpenCode, Pi, OpenClaw, and Hermes:
+For a global copy for the supported clients:
 
 ```bash
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --agent claude-code --agent opencode --agent pi --agent openclaw --agent hermes-agent --global --copy --yes
 ```
 
-If Codex was included in a direct global Skills CLI install, this also
-registers named commands for the selected clients:
+Use only the `--agent` flags you need. The CLI and skill are independent:
+install either or both. The skill handles conversational choices and targeted
+browser repair; deterministic planning and lifecycle actions stay in the CLI.
+
+## Use the control panel
+
+### Optional Homarr dashboard
+
+Homarr starts selected for a new project; deselect it if you don't want a
+dashboard. After your apps' scripted first-run setup, the control
+panel offers a reviewed dashboard operation: app tiles, supported integrations,
+compatible widgets, and a private Notebook explaining the installed services.
+Use **Set up Homarr dashboard** to resume it on an existing shared project.
+This uses Homarr's API, not Docker labels or a Docker socket.
+Use **Check dashboard and recap** to inspect the saved links, integrations,
+widgets, Notebook, and live widget data without changing anything or creating
+another API key. Failed or unavailable data is reported separately from a
+successfully saved board. Known failures include a short next-step explanation;
+an HTTP 500 is not presented as proof of a bad password or a DNS failure.
+
+The saved-project menu also offers **Set up private HTTPS**: add a Caddy proxy
+for selected apps, verify its hostname-bound certificate, and review supported
+app URL settings. This is host-only access; browser/device CA trust and remote
+access are separate. Existing apps and saved credentials are retained.
+
+Each app can declare its mapping in `catalog/apps/<id>/homarr.json`, alongside
+its recipe and setup adapter. Names, descriptions, ports, and internal URLs come
+from the catalog and saved Compose project. Album carousels and individual-system
+widgets require an actual selected album/system; they are not invented.
+
+Approved dashboard setup also writes `.selfhost/shared/<project-id>/connections.json`
+with service URLs, paths, usernames, passwords, and API keys. This is an
+owner-only mode-0600 private file, not normal non-secret preferences. Keep it out
+of Git and do not share it. The original per-app credential files remain canonical.
+See [app credential types](docs/app-credentials.md) for scopes, expiry, and apps
+whose API password or metrics key is not a general management token.
+
+For a saved shared project, the deterministic equivalent is:
 
 ```bash
-bun ~/.codex/skills/self-host/scripts/install-command.ts --agent codex --agent pi --agent opencode --scope global
+self-host app shared homarr-plan --project-root /absolute/project --project-id selfhost \
+  --app homarr --app immich --json
+# Review the returned approval, then repeat the same selection with homarr-apply:
+self-host app shared homarr-apply --project-root /absolute/project --project-id selfhost \
+  --app homarr --app immich --approve SHARED-HOMARR:selfhost:RETURNED_DIGEST --json
+# Read-only dashboard check; no approval needed:
+self-host app shared homarr-status --project-root /absolute/project --project-id selfhost \
+  --app homarr --app immich --live --json
 ```
 
-For a Pi- or OpenCode-only install, run `install-command.ts` from that client's
-installed `self-host` skill directory instead of the Codex path; see
-[installation and migration](.agents/install.md). The repository installer
-above performs command registration automatically.
+Dashboard setup does not wire download clients, subtitle providers, or indexers
+between apps. Missing credentials block integration setup. Resource readback is
+not rendered-widget or restart acceptance; retained integrations are not silently
+reported as freshly connection-tested. Portainer's recipe can initialize its
+administrator and save an API key; a Docker endpoint still needs separate
+approval and verification. Beszel agent pairing remains unsupported in this
+shared flow.
 
-Use only the `--agent` flags you need. Omit `--global` for a project install;
-omit `--copy` for the installer's normal symlink layout. `--all` targets every
-supported agent, which is usually unnecessary. Other Agent Skills clients can
-copy the whole `.agents/skills/self-host/` directory into their own skill folder.
-See [installation and migration](.agents/install.md) for paths and older installs;
-the [OpenCode install guide](docs/opencode-install.md) includes a discovery check.
+Run `self-host` in a project directory. It opens a saved project if one is
+found, shows apps and URLs immediately, and loads Docker health and image
+checks in the background. Unknown health stays **unknown**. With no saved
+project, choose what you want to self-host or select apps directly. A supported
+goal recommends apps for the same shared Compose flow; it does not send you to
+a separate installer. Immich, Paperless-ngx, and Docmost reuse their bundled
+database/cache services instead of adding duplicate containers. You can
+customize the recommendation and opt out of Homarr. Existing shared projects
+are extended, not replaced. Review
+the exact project, ports, paths, images, and approvals before starting any
+container.
 
-For native package routes, the versioned release provides a Claude Code plugin
-marketplace and a Codex marketplace on the `plugin-claude` and `plugin-codex`
-Git refs. Pi can install the source repository as a Git package. OpenCode uses
-its Agent Skills loader; it does not need a JS plugin for this workflow. See
-[the install guide](.agents/install.md) for client commands and
-[the release gate](docs/release.md) for publication checks.
+**Change app selection** is a searchable multi-select:
 
-| Agent | Start a conversation |
+| Key | Action |
 | --- | --- |
-| Codex CLI / IDE | `$self-host photos` or `/skills`; optional deprecated global `/prompts:self-host photos` |
-| Claude Code | `/self-host photos` |
-| Pi | `/self-host photos` after command setup; `/skill:self-host photos` without it |
-| OpenClaw | `/skill self-host photos` |
-| Hermes | `/self-host photos` |
-| OpenCode | `/self-host photos` after command setup |
-| Other clients | Ask to use the `self-host` skill or select it in the client |
+| Type | Filter by app name or ID. |
+| Space | Toggle the highlighted app. |
+| Backspace | Edit the search. |
+| Enter | Review added, retained, image-update-available, and removed apps. |
 
-Use the same entry point to plan, install, resume, add services, update, or
-repair. `/self-host full` selects the supported household recipe; it does not
-install every catalog app. The agent loads only the workflow and app references
-needed for your request. Codex's custom prompts are deprecated and use the
-`/prompts:` prefix; its supported shared entry remains the skill.
+For a new project, the picker compiles selected recipe-backed apps into **one
+shared Compose project**. It shows which apps have a scripted first-run adapter
+and which would still need setup. App-specific install choices are collected
+before review, including derived HAProxy, Headscale and licensed AIStor/MinIO
+recipes. Generated ports and extra application ports are shown together.
+Tailscale is a portless connector: starting it is separate from approving
+enrollment and private Serve. No fake browser link or app API key is generated.
+Its saved-project screen currently shows
+URLs, Docker state and documented health, starts or stops exact app units,
+resumes setup, and offers a deliberate private credential view. Image checks
+load in the background; **Refresh health and image updates** reviews their
+results without pulling or replacing containers. These checks compare the
+saved digest with the registry's current digest for the same recipe tag;
+they do not discover newer version tags. Changed recipes and failed checks
+show **unknown**. **Update app images** performs a fresh, one-app review of
+old/new digest pins before recreating only that app unit. Data, settings, ports
+and saved credentials stay unchanged. Existing login, app function and Homarr
+widgets still need rechecking; uncertain updates are not retried automatically.
+The shared screen also offers the private CLI update check.
+**Change app selection** reviews additions and removes deselected app containers
+from the same owner, keeping data and credentials. Dependencies and configured
+links must remain intact. Removing the final app remains unsupported; stop the
+project when needed. Standard removed apps can be restored through a reviewed
+reinstall that preserves data and credentials; specialized recipes may still
+require a separate recovery path.
+Start/stop preserves volumes, data, and credentials; a
+running container is not proof that an app works.
 
-Example exchange (illustrative, not a deployment log):
+Homarr integration requirements remain explicit. Caddy's managed recipe exposes
+only the read-only statistics routes its provider needs, not its administrative
+API. Frigate needs an owned HTTPS route and its CA trusted by Homarr before
+native publication. Tiles and Notebook descriptions can still be added while
+an integration is pending. Configuration alone is not live acceptance, and the
+CLI does not weaken authentication to make an integration work.
 
-```text
-You: $self-host personal media
-Agent: Jellyfin plays your library; Seerr handles requests. Homarr is the
-       optional dashboard.
-       Recommended: private home-network access, username admin, generated
-       password. Use defaults, or tell me what to change?
-You: Defaults; use /srv/media and username alex.
-Agent: [inspects host] Here is the exact project, storage, access, and
-       verification plan. No host changes yet. Approve this apply?
-You: Approve the proposed apply.
-Agent: [applies and verifies] Reports working links, checks, artifact paths,
-       and remaining gaps. Secrets stay in private files.
-```
+The older separate-project panel saves a completed selection privately and
+reconstructs interrupted work from observed app state. A removed app is stopped
+only after review; its data, state, and credentials remain. Image updates are
+reported, not installed by this screen. Partial or attempted setup is not
+replayed automatically; use **Continue saved setup** or the exact recovery command.
+From a saved project, **Select apps for a new project** asks for a different
+absolute directory without changing the opened project. The panel also has
+scoped Start/Stop and a private CLI update check. The
+updater needs a newer checksummed private release, which is not available in
+the current release.
 
-## What setup does
+Run `self-host catalog recipes --json` for the current installable subset.
+Apps without a static recipe are not offered in the new-project picker.
+HAProxy and Headscale have reviewed, project-derived recipes for adding to an
+existing project; the [CLI manual](packages/cli/README.md) lists their inputs
+and setup limits. Other entries without a recipe remain discovery-only; recipe-backed apps
+without a first-run adapter are clearly marked setup-pending. A Compose start
+or adapter checkpoint does not by itself prove app function or restart persistence.
+The catalog now contains only Compose-provisionable apps or bounded Compose
+workloads; host operating systems, local-only clients, formats, and retired
+products are not app choices.
+Older media, household, Vaultwarden, and Docmost routes remain available
+through their explicit CLI flows; they do not make the whole catalog
+installable. A mixed batch can run independent supported app jobs with
+separate exact approvals, but account setup, functional checks, restart
+checks, and acceptance remain distinct. See the
+[per-app first-run contracts](product/per-app-setup-contract.md).
+[single-project CLI route](packages/cli/README.md) is the new-project picker’s
+deployment route. Most first-run adapters use private HTTP; non-HTTP apps need
+an exact-owned, approval-bound method. Shared-project removal, container-image
+upgrade application, and full functional/restart acceptance remain in progress.
+App-scoped start/stop and source-backed media link adapters are available;
+their presence is not live proof on your host. Seerr's first-admin route requires Jellyfin in that project and
+saves Seerr's own API key. Jellyfin can set up owner-selected Movies and Shows
+libraries; Seerr now syncs, enables, and reads back exactly those libraries.
+qBittorrent now creates and verifies only the categories for selected Sonarr
+and Radarr peers. These links and Seerr initialization need independent
+verification; restart acceptance remains separate.
 
-1. Ask what you want to do, then recommend apps with a one-line purpose for
-   each. Accept `defaults`, or ask one short question when a choice matters:
-   people/devices, storage, access, username, or credential policy.
-2. Inspect the host and show a concrete plan before making changes.
-3. Check prerequisites and install the official `agent-browser` tooling when
-   needed. Apply only the approved Compose projects.
-4. Configure apps with run-scoped API scripts; use the browser only for failed
-   paths or requested visual proof. Save keys privately and let Homarr's
-   onboarding generate connected apps and widgets where supported.
-5. Verify the selected services and return links, what each service does,
-   locations, credential-handoff path, and remaining gaps.
-
-![The composable skill, catalog, capabilities, and bounded scripts](docs/images/selfhost-architecture.svg)
-
-The public [`SKILL.md`](.agents/skills/self-host/SKILL.md) routes the request.
-Focused Markdown guides own setup, upkeep, networking, backups, media, and
-Homarr. Catalog records describe apps and dependencies; scripts perform
-repeatable host inspection, Compose operations, API setup, and verification.
-The agent loads only the guides for your goal. Adding an app usually means a
-catalog record; a special workflow is needed only when its setup cannot be
-described by shared capabilities. See the [workflow index](SKILL_INDEX.md) and
-[contributor guide](CONTRIBUTING.md).
-
-The public entry stays short and routes into focused guides, following the
-composable style of [mattpocock/skills](https://github.com/mattpocock/skills).
-The [media setup reference](.agents/skills/self-host/workflows/selfhost-media/assets/harness/docs/headless-setup.md) lists the exact local API
-sequence and private cookie handling behind the repeatable commands.
-
-For example, in the managed media pack, Jellyfin plays your library, Seerr
-takes requests, Sonarr and Radarr organize shows and movies, Prowlarr connects
-an authorized indexer, and qBittorrent downloads through the configured route.
-Homarr can show those services, but a dashboard tile, a saved integration, and
-a working widget are three different verification claims. The agent reports
-each separately. No media or indexer source is selected for you.
-
-Homarr runs with `ghcr.io/homarr-labs/homarr-test:v2` for now. App shortcuts,
-working integrations, and working widgets are checked separately. The default
-MCP bridge is read-only; explicitly approved `integration_request` policies can
-allow bounded actions for selected integrations, paths, and methods.
-
-The catalog contains 111 apps across 20 goal stacks. Catalog presence is not a
-promise of automatic setup: each app keeps its managed, guided, or discovery
-support level. Household recipes and Caddy configuration still require real
-application and access verification before a run can claim completion.
-
-## Open it from the right device
-
-Setup asks whether you want access on this computer, on your home network, or
-away from home. A localhost link on your laptop cannot open a remote server.
-
-`127.0.0.1` in Compose keeps a published port on the server itself. It is useful
-for local automation and host-based proxies. For normal home-network use, the
-agent plans a reachable LAN or private-tailnet entry point. With containerized
-Caddy, upstream traffic uses Docker service names on a shared network; backend
-ports need not be published for proxy traffic. Removing the bind address makes
-Docker publish on all host interfaces, so it is an access choice, not a cleanup.
-
-Caddy can provide friendly HTTPS names, but DNS, certificate trust, and app
-logins must also work on your device. Read [access choices](.agents/skills/self-host/references/access.md)
-or the [media headless guide](docs/headless-access.md).
-
-## Credentials and resuming
-
-The agent confirms a username (`admin` if you choose defaults) and generates
-passwords through the owning helper. If you prefer a custom password, choose
-a supported private entry method; do not paste it into the chat.
-Existing passwords and API keys stay out of chat, commands, screenshots, and
-ordinary reports. When requested, the private handoff is a mode-0600
-`private-handoff.json` containing available credentials, URLs, and storage paths.
-The separate report contains no credentials. A partial export remains marked
-partial; generating a password does not mean its account has been created.
-
-Return to the same project and invoke `self-host` again. Non-secret choices and
-progress live in `.selfhost/preferences.json`, `.selfhost/project.json`, and
-`.selfhost/stack.json`. The media adapter retains wiring keys in its private,
-password-free `connections.env`. Upkeep checks real host state before resuming
-and re-exports credentials only when requested.
-
-Ask `$self-host status` to see what is actually running, `$self-host verify` to
-recheck connections, or `$self-host repair` to diagnose a failure. For a managed
-media run, the installed harness also exposes scoped `session status RUN_ID`,
-`session doctor RUN_ID`, and `session up RUN_ID` through
-`selfhost-media/scripts/media-runtime.ts`; the agent will resolve the installed
-path and exact run ID from this project. It never needs the source repo.
-
-To restart one already-created media run from the project where you installed
-the skill (replace `RUN_ID` with that run's identifier):
+For a read-only search or plan outside the menu:
 
 ```bash
-bun .agents/skills/self-host/workflows/selfhost-media/scripts/media-runtime.ts exec -- session up RUN_ID
+self-host catalog search photos
+self-host catalog recipes --json
+self-host plan --goal photos --app docmost --compose --project-root /absolute/project --json
 ```
 
-This starts only that run's Compose project; it does not recreate accounts or
-change another stack. Use `session status RUN_ID` through the same runtime to
-check containers and `session doctor RUN_ID` for diagnostics.
+Catalog presence and a successful Compose start do not prove that an app
+works. The [isolated control-panel proof](product/control-panel-proof.md)
+records fresh and resumed two-app Linux trials: Paperless login/document/OCR and
+Uptime login/monitor checks passed, including scoped restart persistence.
+An approved Paperless API-token step also passed managed-admin identity and
+statistics read-back on that existing project; replay did not request another
+token. The token is stored separately from the generated password.
+An isolated Prowlarr trial also passed generated-admin/API-key setup and a
+data-preserving restart; no indexer or downstream app was configured.
+It does not establish acceptance on your host, for the other recipes, or for
+backup and remote access.
 
-## One skill, on-demand workflows
+## Homarr is optional
 
-```text
-.agents/skills/self-host/
-├── SKILL.md             # Small public entry point
-├── commands/            # Optional client slash-command template
-├── scripts/             # Optional command installer
-├── references/          # Service and access explanations
-└── workflows/
-    ├── selfhost/        # Planning and searchable catalog
-    ├── selfhost-setup/  # New installations and continuation metadata
-    ├── selfhost-upkeep/ # Maintenance and recovery
-    └── selfhost-*/      # GUIDE.md, scripts, references, optional assets
-```
+You can run the selected apps without a dashboard. If Homarr is added *after*
+standalone apps, the panel can read back host-local bookmark tiles and a stack
+Notebook; it does not silently change their Docker networks. If Homarr is
+onboarded *before* the apps, their frontends can join its approved private
+bridge. In an isolated Homarr-first project, the CLI saved the admin/key,
+both app tiles, and the Notebook; native Paperless and Uptime integrations
+and widgets then returned live data through Homarr. **Review Homarr dashboard**
+can revisit connected apps and standalone bookmarks. API read-back does not
+show that a browser link opens from your device.
 
-Internal `GUIDE.md` files are documentation, not separately discoverable skills.
-Their stable IDs remain in plans and saved records so existing stacks can
-resume. Scope and approval boundaries still apply when all files are in one
-package. No runtime helper depends on a later repository checkout.
+A tile, a native integration, a working widget, and rendered board access are
+separate claims. Specialized native integration/widget commands exist for
+some apps and require their own approval and verification. A separately
+prepared read-only MCP profile is not installed into your AI client by
+default. Homarr uses `ghcr.io/homarr-labs/homarr:dev`; its API and image
+contracts are version-sensitive. The [proof record](product/control-panel-proof.md)
+establishes native integration/widget data only for the isolated Homarr-first
+Paperless and Uptime project. It does not establish browser rendering,
+external-device reachability, or every catalog app. The synthetic Paperless
+proof document was moved to recoverable trash after read-back. Kuma's
+status-page API is unauthenticated; its loopback host bind and private bridge
+do not prove that an existing proxy or tunnel cannot expose it.
 
-The release ZIP follows [Agent Plugins 1.0](https://agent-plugins.org/specification)
-with one `skills/self-host/SKILL.md`, plus Claude Code compatibility metadata.
-The source repository's `CLAUDE.md` symlink points to `AGENTS.md` for
-contributors. That alias is not part of the release ZIP or needed by the
-installed skill.
+## Status, restart, and credentials
 
-## Develop and inspect
+Use the same absolute project root each time. `status` and `info` summarize
+one saved app or batch; lifecycle changes still target an exact app ID:
 
 ```bash
-bun run stack profiles
-bun run selfhost catalog search photos
-bun scripts/validate-repo.ts --json
-bun scripts/skillpack.ts validate --scope all
+self-host status --project-root /absolute/project
+self-host info --project-root /absolute/project
+self-host app status --id uptime-kuma --project-root /absolute/project --json
+self-host app info --id uptime-kuma --project-root /absolute/project
 ```
 
-Root `PROMPT.md`, `docker-compose.yml`, `prompts/`, and harness scripts are the
-canonical media harness. After changing them, regenerate the bundled copy with
-`bun scripts/refresh-media-bundle.ts`. Never edit only the generated bundle.
+`app status` supplies fresh, action-specific approval tokens. Review the
+owned Compose project, then use those exact tokens to stop and restart it:
 
-- [Workflow index](SKILL_INDEX.md)
-- [Invocation](.agents/invocation.md) and [installation](.agents/install.md)
-- [Seven-repository command comparison](research/skill-command-comparison-2026-09-24.md)
-- [Domain and safety boundaries](.agents/CONTEXT.md)
-- [Contribution rules](CONTRIBUTING.md) and [release checks](docs/release.md)
+```bash
+self-host app down --id uptime-kuma --project-root /absolute/project --approve APP-DOWN:uptime-kuma:REVIEWED_DIGEST --json
+self-host app up --id uptime-kuma --project-root /absolute/project --approve APP-UP:uptime-kuma:REVIEWED_DIGEST --json
+self-host app status --id uptime-kuma --project-root /absolute/project --live --json
+```
 
-Public exposure, destructive work, backup restores, and downloader VPN routing
-have their own plans and evidence requirements. No broad Docker cleanup or
-unowned resource changes are part of setup.
+Replace `REVIEWED_DIGEST` with the current token from status; do not reuse a
+token after the plan changes. `down` stops only that owned Compose project and
+does not delete volumes. `--live` checks owned containers on a Linux Docker
+host; it is not login, functional, or post-restart acceptance. For media or
+household projects, use their owner-specific `session` or `bundle` commands
+in the [CLI manual](packages/cli/README.md), not an app command against a
+different owner.
+
+Passwords and API keys stay in owner-only project files, not chat, commands,
+screenshots, or ordinary reports. Ask for a private handoff only when you
+need it; the default command returns its path, while `--show` deliberately
+prints secret values in your terminal:
+
+```bash
+self-host app handoff --id uptime-kuma --project-root /absolute/project
+```
+
+The project stores private state under `.selfhost/`; older skill-managed
+profiles use `.selfhost/stack.json`. Removing an app from selection keeps
+those records and credentials. Back up the actual durable paths and prove an
+isolated restore before claiming recovery protection.
+
+## Host and access limits
+
+The terminal catalog and planner run with Node.js on Linux, macOS, and
+Windows. Compose apply routes are supported on a local Linux host with Bun,
+Docker Engine, and Compose. From macOS or Windows, the CLI can launch an
+already-provisioned Lima or WSL Linux guest; it does not provision that guest
+or establish host-side port, DNS, TLS, or browser access.
+
+Private or loopback access is the default intent. Some older media Compose
+routes publish ports on all host interfaces; review their firewall scope
+before approval. A `127.0.0.1` link is host-local, not a remote-client
+access check. Public exposure, VPN egress, backups, and HTTPS need separate
+plans and evidence. App health, HTTP 200, a tile, or an API key alone is not
+end-to-end acceptance. Media content and indexer sources are yours to
+provide; the apps do not include a streaming subscription catalog.
+
+## More detail
+
+- [Full CLI manual](packages/cli/README.md): commands, approvals, resume,
+  media/household routes, and private install alternatives.
+- [Reuse map](product/control-panel-reuse-map.md) and
+  [control-panel proof](product/control-panel-proof.md): implementation scope
+  versus host-specific observations.
+- [Skill entry](.agents/skills/self-host/SKILL.md),
+  [workflow index](SKILL_INDEX.md), and [install guide](.agents/install.md).
+- [Research](research/skill-command-comparison-2026-09-24.md),
+  [setup-route audit](docs/setup-routes.md), and
+  [canonical media harness](PROMPT.md). The packaged harness is generated
+  from the root source, not edited independently.
+- [Contributing](CONTRIBUTING.md) and [release checks](docs/release.md).
+
+Contributors can inspect the package with
+`bun scripts/skillpack.ts validate --scope all`. Changes to the canonical
+media harness are regenerated with `bun scripts/refresh-media-bundle.ts`.

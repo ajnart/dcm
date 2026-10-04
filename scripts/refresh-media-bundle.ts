@@ -40,11 +40,15 @@ const RUNTIME_ADDITIONS = [
   "scripts/bootstrap-seerr.ts",
   "scripts/check-bootstrap-seerr.ts",
   "scripts/check-prowlarr-verifier.ts",
+  "scripts/homarr-board-polish.ts",
+  "scripts/check-homarr-board-polish.ts",
   "scripts/homarr-notebook.ts",
+  "scripts/lib/homarr-recap-layout.ts",
   "scripts/check-homarr-notebook.ts",
   "scripts/prove-homarr-widgets.ts",
   "scripts/check-prove-homarr-widgets.ts",
   "scripts/lib/curl-http.ts",
+  "scripts/lib/setup-handoff.ts",
   "scripts/lib/setup-core-cli.ts",
   "scripts/setup-qbittorrent.ts",
   "scripts/setup-sonarr.ts",
@@ -53,8 +57,12 @@ const RUNTIME_ADDITIONS = [
   "scripts/setup-jellyfin.ts",
   "scripts/setup-seerr.ts",
   "scripts/setup-homarr.ts",
+  "scripts/setup-media-run.ts",
   "scripts/prove-homarr-widgets-api.ts",
   "docs/headless-setup.md",
+  "docs/setup-routes.md",
+  "docs/app-credentials.md",
+  "prompts/95-browser-request-logging.md",
 ];
 
 const SOURCE_ROOT = fileURLToPath(new URL("../", import.meta.url));

@@ -1,0 +1,66 @@
+{
+  "id": "nginx-proxy-manager",
+  "name": "Nginx Proxy Manager",
+  "aliases": [
+    "npm proxy",
+    "gui reverse proxy"
+  ],
+  "categories": [
+    "ingress"
+  ],
+  "roles": [
+    "reverse-proxy",
+    "tls-owner"
+  ],
+  "upstream": {
+    "url": "https://nginxproxymanager.com/",
+    "repository": "https://github.com/NginxProxyManager/nginx-proxy-manager",
+    "docs": "https://nginxproxymanager.com/guide/"
+  },
+  "image": {
+    "reference": "jc21/nginx-proxy-manager:2.16.0",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Official 2.16.0 image; use checkpointed first-user HTTP bootstrap because its environment-seeded administrator logs the plaintext password. Database and certificate state both require backup; live login and restart acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:dns",
+    "capability:certificate-storage"
+  ],
+  "alternatives": [
+    "caddy",
+    "traefik"
+  ],
+  "security": [
+    "Keep the admin interface private and protect certificate data.",
+    "Public 80/443, DNS and TLS ownership require a separate ingress approval."
+  ],
+  "pitfalls": [
+    "GUI state can diverge from generated project configuration.",
+    "The login API issues bearer tokens, not a documented durable API key.",
+    "Do not supply INITIAL_ADMIN_PASSWORD to this pinned image: backend/setup.js logs it at INFO during fresh-database bootstrap. The first-user HTTP adapter checks setup mode, checkpoints before creation, and verifies the saved email/password without replaying an uncertain creation."
+  ],
+  "sources": [
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/releases/tag/v2.16.0",
+    "https://nginxproxymanager.com/setup/",
+    "https://nginxproxymanager.com/advanced-config/",
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/schema/swagger.json",
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/setup.js",
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/routes/main.js",
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/routes/users.js",
+    "https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.16.0/backend/schema/paths/users/post.json"
+  ]
+}

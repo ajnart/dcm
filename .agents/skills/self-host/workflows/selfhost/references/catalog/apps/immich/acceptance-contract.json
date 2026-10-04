@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "immich",
+  "dimension": "liveRestart",
+  "inputs": [{ "key": "asset-id", "format": "uuid" }],
+  "beginEffect": "Read one exact reviewed existing administrator-owned image original, bounded to 1 MiB; no upload or new key",
+  "finishEffect": "Read the identical original and authenticated owner after the exact four-service unit restart",
+  "cleanup": "read-only-existing-asset-no-cleanup",
+  "checks": {
+    "application-health": { "appHealthObserved": true },
+    "core-round-trip": { "existingAssetReadVerified": true, "authenticatedOwnerVerified": true, "originalBytesVerified": true },
+    "restart-persistence": { "restartPersistenceVerified": true }
+  }
+}

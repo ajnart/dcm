@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "archiveTeamWarrior",
+  "requiredSecrets": [],
+  "widgets": [
+    {
+      "kind": "archiveTeamWarrior",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "running",
+        "completed",
+        "failed"
+      ]
+    }
+  ],
+  "alternativeSecrets": [
+    [
+      "username",
+      "password"
+    ]
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "archiveTeamWarrior",
+        "procedure": "widget.archiveTeamWarrior.getStatus",
+        "inputMode": "one",
+        "field": "status",
+        "shape": {
+          "type": "object",
+          "fields": {
+            "status": "string",
+            "updatedAt": "string",
+            "counts": {
+              "type": "object",
+              "fields": {
+                "running": "number",
+                "completed": "number",
+                "failed": "number",
+                "canceled": "number"
+              }
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": "string",
+                  "name": "string",
+                  "status": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

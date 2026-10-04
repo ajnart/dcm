@@ -1,0 +1,64 @@
+{
+  "id": "gotify",
+  "name": "Gotify",
+  "aliases": [
+    "self hosted push notifications",
+    "push message server"
+  ],
+  "categories": [
+    "communication"
+  ],
+  "roles": [
+    "push-notifications"
+  ],
+  "upstream": {
+    "url": "https://gotify.net/",
+    "repository": "https://github.com/gotify/server",
+    "docs": "https://gotify.net/docs/install"
+  },
+  "image": {
+    "reference": "gotify/server:3.1.1",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Active upstream with an official Gotify 3.1.1 container and documented environment-based setup."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Gotify"
+  },
+  "dependencies": [
+    "capability:notification-storage",
+    "capability:private-ingress"
+  ],
+  "alternatives": [
+    "ntfy",
+    "stalwart-mail"
+  ],
+  "security": [
+    "Protect application tokens, user accounts, message contents, and WebSocket ingress."
+  ],
+  "pitfalls": [
+    "The default username and password initialize only when Gotify first creates its database; an existing /app/data volume keeps its current account and must be inspected if login fails.",
+    "Gotify 3.x returns application tokens only on creation or rotation; if the one-time create response is lost, stop for inspection instead of retrying.",
+    "Delivery outside the private network needs TLS and a deliberate mobile connectivity path."
+  ],
+  "sources": [
+    "https://gotify.net/docs/install",
+    "https://gotify.net/docs/config",
+    "https://gotify.net/docs/first-login",
+    "https://gotify.net/docs/pushmsg",
+    "https://raw.githubusercontent.com/gotify/server/v3.1.1/docs/spec.json",
+    "https://github.com/gotify/server/releases/tag/v3.1.1",
+    "https://hub.docker.com/r/gotify/server/tags",
+    "https://github.com/gotify/server"
+  ]
+}

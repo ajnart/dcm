@@ -319,11 +319,18 @@ async function publicEntry() {
   const conversationGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost/references/conversation.md"), "utf8");
   const setupGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-setup/GUIDE.md"), "utf8");
   const upkeepGuide = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-upkeep/GUIDE.md"), "utf8");
-  for (const guide of [entryGuide, conversationGuide, setupGuide, upkeepGuide]) {
+  for (const guide of [entryGuide, conversationGuide, setupGuide]) {
     assert.match(guide, /\$HOME\/\.selfhostedskills/);
   }
+  assert.match(upkeepGuide, /Use the user's exact project root, or the selected current project/);
+  assert.match(upkeepGuide, /household-bundle\.json/);
   assert.doesNotMatch(entryGuide, /Confirm the target host and project directory/);
   assert.doesNotMatch(conversationGuide, /ask for one existing absolute directory/);
+  assert.match(entryGuide, /\*\*New\*\* confirms the recommended choices, not host exposure or apply/);
+  assert.match(entryGuide, /Use the user's absolute project root when supplied/);
+  assert.match(conversationGuide, /Do not follow it\s+with defaults, customization/);
+  assert.match(setupGuide, /Complete this bootstrap before prerequisites/);
+  assert.match(setupGuide, /absolute `scripts\/stack\.ts prerequisites`/);
 
   const project = join(temporaryRoot, "public-entry-project");
   const installedSkills = join(project, ".agents", "skills");
@@ -544,7 +551,8 @@ async function media() {
     join(root, ".agents", "skills", "self-host", "workflows", "selfhost-media", "GUIDE.md"),
     "utf8",
   );
-  assert.match(skillContract, /If the user requested saved credentials, run `session\s+handoff RUN_ID`/);
+  assert.match(skillContract, /runner attempts a partial handoff even when a stage fails/);
+  assert.match(skillContract, /Run `session\s+handoff RUN_ID` if that attempt failed/);
   assert.match(skillContract, /Re-export on upkeep only when requested/);
   const harnessContract = readFileSync(join(root, "PROMPT.md"), "utf8");
   assert.match(harnessContract, /For initial setup, also run\s+the explicit `handoff` command/);
@@ -621,11 +629,12 @@ async function research() {
 async function setup() {
   const cli = ".agents/skills/self-host/workflows/selfhost-setup/scripts/stack.ts";
   const setupContract = readFileSync(join(root, ".agents/skills/self-host/workflows/selfhost-setup/GUIDE.md"), "utf8");
-  assert.match(setupContract, /Every initial installation is loopback-only/);
+  assert.match(setupContract, /Use the selected absolute project root/);
+  assert.match(setupContract, /media adapter defaults to short Compose\s+mappings on all host interfaces/);
   assert.match(setupContract, /\*\*New\*\* includes Homarr/);
   assert.match(setupContract, /Do not install a browser for a script-first path/);
   assert.match(setupContract, /checked `agent-browser` fallback/);
-  assert.match(setupContract, /ask separately whether to add\s+Homarr and Vaultwarden/);
+  assert.match(setupContract, /offer Homarr and Vaultwarden\s+separately only when not already selected or installed/);
   assert.match(setupContract, /separate Tailscale plan and approval flow/);
   const profiles = deterministic(() => runBun(cli, ["profiles", "--json"]));
   assertExit(profiles, 0);

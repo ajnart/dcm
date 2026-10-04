@@ -1,0 +1,60 @@
+{
+  "id": "caddy",
+  "name": "Caddy",
+  "aliases": [
+    "automatic https",
+    "reverse proxy"
+  ],
+  "categories": [
+    "ingress"
+  ],
+  "roles": [
+    "reverse-proxy",
+    "tls-owner"
+  ],
+  "upstream": {
+    "url": "https://caddyserver.com/",
+    "repository": "https://github.com/caddyserver/caddy",
+    "docs": "https://caddyserver.com/docs/"
+  },
+  "image": {
+    "reference": "caddy:2.11.4",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Automatic HTTPS requires deliberate DNS, port, and certificate-state ownership."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Caddy"
+  },
+  "dependencies": [
+    "capability:dns",
+    "capability:certificate-storage"
+  ],
+  "alternatives": [
+    "traefik",
+    "nginx-proxy-manager"
+  ],
+  "security": [
+    "Make Caddy the sole approved owner of selected ingress ports."
+  ],
+  "pitfalls": [
+    "ACME challenge modes have different port and DNS-secret requirements.",
+    "The bundled recipe exposes only readiness and exact GET /reverse_proxy/upstreams on private port 2015; writable admin stays on container loopback. Upstream statistics do not prove application ingress, and changing a saved recipe requires an explicitly reviewed transition."
+  ],
+  "sources": [
+    "https://hub.docker.com/_/caddy",
+    "https://caddyserver.com/docs/api",
+    "https://caddyserver.com/docs/automatic-https",
+    "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy"
+  ]
+}

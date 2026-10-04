@@ -47,6 +47,7 @@ try {
   for (const image of [
     `registry.example:5000/team/app:1.2.3@sha256:${digest}`,
     `registry.example:5000/team/app@sha256:${digest}`,
+    `ghcr.io/homarr-labs/homarr:dev@sha256:${digest}`,
     "registry.example:5000/team/app:1.2.3"
   ]) {
     const result = validate(image);
@@ -56,6 +57,7 @@ try {
   for (const image of [
     `registry.example:5000/team/app:latest@sha256:${digest}`,
     `registry.example:5000/team/app:stable@sha256:${digest}`,
+    "ghcr.io/homarr-labs/homarr:dev",
     "registry.example:5000/team/app@sha256:abcd",
     `registry.example:5000/team/app:1.2.3@sha256:${"A".repeat(64)}`,
     "registry.example:5000/team/app"

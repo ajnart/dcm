@@ -1,0 +1,76 @@
+{
+  "id": "netbird",
+  "name": "NetBird",
+  "aliases": [
+    "self hosted mesh vpn"
+  ],
+  "categories": [
+    "remote-access"
+  ],
+  "roles": [
+    "private-overlay",
+    "mesh-control-plane"
+  ],
+  "upstream": {
+    "url": "https://netbird.io/",
+    "repository": "https://github.com/netbirdio/netbird",
+    "docs": "https://docs.netbird.io/selfhosted/selfhosted-quickstart"
+  },
+  "image": {
+    "reference": "docker.io/netbirdio/dashboard:v2.94.0@sha256:70e0fc6dd3b7758148d182fb55ecd8d4f9ce01e9bba56c9389224e0b8354009d",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Shared derived recipe pins server 0.80.0 and dashboard v2.94.0 by OCI digest, derives private server config and reviewed local OIDC metadata, and provides checkpointed local first-owner/password-login plus one-day setup PAT readback. Requires the separately approved protocol-aware shared HTTPS route. Native peer, gRPC/WebSocket, UDP reachability, intended-client access, PAT rotation and restart acceptance remain unverified."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:tls-ingress",
+    "capability:control-plane-backup",
+    "capability:owner-selected-canonical-origin",
+    "capability:protocol-aware-edge-owner",
+    "capability:peer-enrollment-and-route-evidence"
+  ],
+  "alternatives": [
+    "tailscale",
+    "headscale"
+  ],
+  "security": [
+    "Protect owner credentials, setup-time tokens, generated server secrets, and persistent control-plane state.",
+    "Approve a public DNS/TLS/80/443 owner and UDP 3478 reachability separately; do not infer a LAN or subnet route from a running control plane."
+  ],
+  "pitfalls": [
+    "Self-hosting the control plane adds availability and recovery dependencies.",
+    "The first-owner setup endpoint is unauthenticated until setup completes; inspect GET /api/instance first. NB_SETUP_PAT_ENABLED=true and create_pat=true permit POST /api/setup to return a one-time PAT, followed by GET /api/users with Authorization: Token. Keep the response private and never replay setup after an ambiguous response; the PAT defaults to one day and needs a reviewed expiry/rotation policy.",
+    "The pinned installer offers use-ip over HTTP, but that is an explicit different identity/exposure choice, not permission to substitute a loopback HTTP URL for reviewed HTTPS. External-proxy mode keeps HTTP frontends private but still exposes STUN separately and requires path-specific HTTP/WebSocket and h2c/gRPC routing.",
+    "The selectable shared derived recipe binds the explicit canonical origin and exact private proxy address into privateConfigs with standard padded Base64 session/store keys. The protocol-aware HTTPS route is a separate reviewed boundary and does not authorize public exposure or establish peer connectivity.",
+    "A healthy dashboard or server does not prove peer enrollment, remote connectivity, or route access.",
+    "The app-owned setup adapter implements pinned setup JSON, fresh-instance checks, attempted-write replay refusal and private PAT capture followed by authenticated owner/PAT metadata readback. Fresh local password login uses a private retained PKCE attempt, one-use code and temporary Bearer readback. Expired or lost PAT requires explicit reconciliation, never an automatic replacement; external SSO and native peer connectivity are not configured or proven."
+  ],
+  "sources": [
+    "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+    "https://docs.netbird.io/selfhosted/maintenance/configuration-files",
+    "https://docs.netbird.io/selfhosted/automated-setup",
+    "https://docs.netbird.io/selfhosted/external-reverse-proxy",
+    "https://github.com/netbirdio/netbird/releases/tag/v0.80.0",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/infrastructure_files/getting-started.sh",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/management/server/http/handlers/instance/instance_handler.go",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/management/server/instance/setup_service.go",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/util/crypt/crypt.go",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/management/server/idp/embedded.go",
+    "https://hub.docker.com/v2/repositories/netbirdio/netbird-server/tags/0.80.0",
+    "https://hub.docker.com/v2/repositories/netbirdio/dashboard/tags/v2.94.0",
+    "https://raw.githubusercontent.com/netbirdio/netbird/v0.80.0/shared/management/http/api/types.gen.go"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "plex",
+  "source": "https://github.com/plexinc/pms-docker/blob/master/README.md",
+  "services": [
+    {
+      "id": "plex",
+      "purpose": "Streams approved read-only media through a private Plex server claimed with the owner's Plex account token.",
+      "imageTag": "docker.io/plexinc/pms-docker:1.43.4.10903-e5521bd8c",
+      "imageSource": "https://hub.docker.com/r/plexinc/pms-docker/tags/",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://github.com/plexinc/pms-docker/blob/master/Dockerfile",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [{ "name": "DEBUG", "value": "false" }],
+      "hostEnvironment": [{ "name": "TZ", "source": "timezone" }],
+      "derivedEnvironment": [{ "name": "ADVERTISE_IP", "source": "local-origin" }],
+      "fileEnvironment": [{ "name": "PLEX_CLAIM_FILE", "fileId": "claim-token" }],
+      "mounts": [
+        { "name": "config", "target": "/config", "kind": "volume" },
+        { "name": "transcode", "target": "/transcode", "kind": "volume" },
+        { "name": "media-library", "target": "/data", "kind": "bind", "hostPath": true, "readOnly": true, "shareGroup": "media-data" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 32400
+    }
+  ],
+  "privateFiles": [{ "id": "claim-token", "source": "owner", "maxBytes": 512 }],
+  "onboarding": {
+    "kind": "external-secret",
+    "officialUrl": "https://github.com/plexinc/pms-docker/blob/master/root/etc/cont-init.d/40-plex-first-run",
+    "fileId": "claim-token"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 32400, "dataDirectoryName": "plex" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "server-token", "method": "api", "description": "Privately extract the owned server token, match machine identity, and verify a protected library read while anonymous access is denied." },
+    { "id": "account-ownership", "method": "browser", "description": "The owner must verify this exact machine identifier belongs to their intended Plex account; local claimed status does not prove that." },
+    { "id": "media-library", "method": "browser", "description": "Configure only owner-selected libraries under /data and verify authorized playback." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned unit and recheck saved-token access, account ownership, and media libraries." }
+  ]
+}

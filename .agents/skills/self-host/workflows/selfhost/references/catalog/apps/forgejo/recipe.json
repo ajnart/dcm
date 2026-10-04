@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "forgejo",
+  "source": "https://forgejo.org/docs/v16.0/admin/installation/docker/",
+  "services": [
+    {
+      "id": "forgejo",
+      "purpose": "Hosts private Git repositories and their Forgejo account metadata.",
+      "imageTag": "codeberg.org/forgejo/forgejo:16.0.5",
+      "imageSource": "https://forgejo.org/download/",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://forgejo.org/docs/v16.0/admin/installation/docker/",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "FORGEJO__database__DB_TYPE", "value": "sqlite3" },
+        { "name": "FORGEJO__security__INSTALL_LOCK", "value": "true" },
+        { "name": "FORGEJO__service__DISABLE_REGISTRATION", "value": "true" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+      "dependsOn": [],
+      "publishTargetPort": 3000,
+      "additionalPorts": [
+        { "id": "git-ssh", "targetPort": 22, "protocol": "tcp", "purpose": "application", "required": false }
+      ]
+    }
+  ],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "manual-first-admin",
+    "officialUrl": "https://forgejo.org/docs/v16.0/admin/command-line/",
+    "username": "admin",
+    "fileId": "admin-password"
+  },
+  "defaults": {
+    "hostIp": "127.0.0.1",
+    "publishedPort": 3000,
+    "dataDirectoryName": "forgejo"
+  },
+  "storage": {
+    "filesystem": "local-posix-locks",
+    "minimumFreeBytes": 1073741824
+  },
+  "acceptance": [
+    { "id": "first-admin", "method": "api", "description": "Create the administrator with Forgejo 16.0.5's random-password CLI, capture its output privately, then authenticate the saved password against GET /api/v1/user and confirm the account is active and an administrator. An ambiguous write must not be retried blindly." },
+    { "id": "git-round-trip", "method": "api", "description": "With separate approval, create a harmless private repository and prove Git clone, commit, and push through the selected private route." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned Compose project and verify administrator login and repository data remain available." }
+  ]
+}

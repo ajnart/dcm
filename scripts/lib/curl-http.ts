@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   closeSync,
   constants,
+  existsSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -16,6 +17,24 @@ import {
 import { join } from "node:path";
 
 let cookieRoot = "";
+
+function curlPrerequisiteError(error) {
+  const message = error?.code === "ENOENT"
+    ? "Required executable curl is unavailable; install curl before using the media API setup scripts."
+    : "Required executable curl could not be verified; check its installation and PATH.";
+  process.stderr.write(`FAIL ${message}\n`);
+  return new Error(message);
+}
+
+function requireCurl() {
+  const result = spawnSync("curl", ["--version"], {
+    stdio: "ignore",
+    timeout: 5_000,
+  });
+  if (result.error || result.status !== 0) {
+    throw curlPrerequisiteError(result.error);
+  }
+}
 
 function privateDirectory(path) {
   const stat = lstatSync(path);
@@ -65,6 +84,18 @@ function cookieJar(url) {
   return path;
 }
 
+export function existingCurlCookieJar(session, rawUrl) {
+  const url = requestUrl(rawUrl);
+  const root = join(session.sessionDir, "artifacts", "http-cookies");
+  if (!existsSync(root)) return null;
+  privateDirectory(root);
+  const identity = createHash("sha256").update(url.origin).digest("hex").slice(0, 24);
+  const path = join(root, `${identity}.cookies`);
+  if (!existsSync(path)) return null;
+  privateFile(path);
+  return path;
+}
+
 function responseHeaders(raw) {
   const blocks = raw.split(/\r?\n\r?\n/).filter((block) => /^HTTP\//i.test(block));
   const finalBlock = blocks.at(-1) ?? "";
@@ -79,6 +110,7 @@ function responseHeaders(raw) {
 }
 
 export function enableCurlHttp(session) {
+  requireCurl();
   privateDirectory(session.sessionDir);
   const artifacts = join(session.sessionDir, "artifacts");
   privateDirectory(artifacts);
@@ -143,6 +175,7 @@ export async function curlFetch(rawUrl, options = {}) {
       maxBuffer: 1024 * 1024,
     });
     privateFile(jar);
+    if (result.error?.code === "ENOENT") throw curlPrerequisiteError(result.error);
     if (result.error || result.status !== 0) throw new Error("curl request failed");
     const status = Number(result.stdout.trim());
     if (!Number.isInteger(status) || status < 100 || status > 599) throw new Error("curl returned an invalid HTTP status");

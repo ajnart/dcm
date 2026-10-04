@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/beffe794022c22c43dd458999ee2a016bb1df2e6/packages",
+  "integrationKind": null,
+  "requiredSecrets": [],
+  "widgets": [],
+  "tileOnly": true
+}

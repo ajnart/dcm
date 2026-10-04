@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "coolify",
+  "source": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.prod.yml",
+  "services": [
+    {
+      "id": "coolify",
+      "purpose": "Prepares a private root account and read-only API token; host management remains separately approved and unconfigured.",
+      "imageTag": "docker.io/coollabsio/coolify:4.3.23",
+      "imageSource": "https://github.com/coollabsio/coolify/releases/tag/v4.3.23",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker/production/Dockerfile", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "APP_ENV", "value": "production" },
+        { "name": "APP_NAME", "value": "Coolify" },
+        { "name": "DB_HOST", "value": "postgres" },
+        { "name": "DB_USERNAME", "value": "coolify" },
+        { "name": "DB_DATABASE", "value": "coolify" },
+        { "name": "REDIS_HOST", "value": "redis" },
+        { "name": "PUSHER_BACKEND_HOST", "value": "soketi" },
+        { "name": "PUSHER_SCHEME", "value": "http" },
+        { "name": "PUSHER_APP_ID", "value": "coolify" },
+        { "name": "AUTOUPDATE", "value": "false" },
+        { "name": "HORIZON_ENABLED", "value": "false" },
+        { "name": "SCHEDULER_ENABLED", "value": "false" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "APP_KEY", "fileId": "encryption-key", "format": "private-config", "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/config/app.php" },
+        { "name": "DB_PASSWORD", "fileId": "database-password" },
+        { "name": "REDIS_PASSWORD", "fileId": "redis-password" },
+        { "name": "PUSHER_APP_KEY", "fileId": "realtime-key" },
+        { "name": "PUSHER_APP_SECRET", "fileId": "realtime-secret" }
+      ],
+      "mounts": [
+        { "name": "worker-policy", "target": "/var/www/html/.env", "kind": "generated-file", "fileId": "worker-policy" },
+        { "name": "storage", "target": "/var/www/html/storage", "kind": "volume" }
+      ],
+      "dependsOn": [{ "service": "postgres", "condition": "service_healthy" }, "redis", "soketi"],
+      "publishTargetPort": 8080
+    },
+    {
+      "id": "postgres",
+      "purpose": "Stores the private Coolify accounts and instance settings.",
+      "imageTag": "docker.io/library/postgres:15-alpine",
+      "imageSource": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [{ "name": "POSTGRES_USER", "value": "coolify" }, { "name": "POSTGRES_DB", "value": "coolify" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql/data", "kind": "volume" }],
+      "healthcheck": { "test": ["CMD", "pg_isready", "-U", "coolify", "-d", "coolify"], "intervalSeconds": 5, "timeoutSeconds": 2, "startPeriodSeconds": 5, "retries": 10 },
+      "dependsOn": [],
+      "publishTargetPort": null
+    },
+    {
+      "id": "redis",
+      "purpose": "Stores private queue state; workers remain disabled and no Docker hosts are connected.",
+      "imageTag": "docker.io/library/redis:7-alpine",
+      "imageSource": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.yml",
+      "user": "host-selected",
+      "imageUserEvidence": { "officialUrl": "https://github.com/redis/docker-library-redis/blob/master/7.4/alpine/docker-entrypoint.sh", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "command": ["redis-server", "/run/secrets/redis-config"],
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "privateConfigFiles": ["redis-config"],
+      "mounts": [{ "name": "redis", "target": "/data", "kind": "bind" }],
+      "dependsOn": [],
+      "publishTargetPort": null
+    },
+    {
+      "id": "soketi",
+      "purpose": "Provides private server-side realtime transport without publishing websocket or terminal ports.",
+      "imageTag": "docker.io/coollabsio/coolify-realtime:1.0.19",
+      "imageSource": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.prod.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker-compose.prod.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [{ "name": "SOKETI_DEFAULT_APP_ID", "value": "coolify" }, { "name": "SOKETI_DEBUG", "value": "false" }, { "name": "SOKETI_HOST", "value": "0.0.0.0" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [{ "name": "SOKETI_DEFAULT_APP_KEY", "fileId": "realtime-key" }, { "name": "SOKETI_DEFAULT_APP_SECRET", "fileId": "realtime-secret" }],
+      "mounts": [],
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "app-key", "bytes": 32, "format": "base64" },
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "redis-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "realtime-key", "bytes": 48, "format": "alphanumeric" },
+    { "id": "realtime-secret", "bytes": 48, "format": "alphanumeric" },
+    { "id": "admin-password", "bytes": 48, "format": "base64-prefixed" }
+  ],
+  "privateConfigs": [
+    { "id": "encryption-key", "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/config/app.php", "parts": [{ "literal": "base64:" }, { "fileId": "app-key" }] },
+    { "id": "redis-config", "officialUrl": "https://redis.io/docs/latest/operate/oss_and_stack/management/config/", "parts": [{ "literal": "bind 0.0.0.0\nprotected-mode yes\ndir /data\nsave 20 1\nloglevel warning\nrequirepass " }, { "fileId": "redis-password" }, { "literal": "\n" }] }
+  ],
+  "configFiles": [{ "id": "worker-policy", "content": "HORIZON_ENABLED=false\nSCHEDULER_ENABLED=false\nAUTOUPDATE=false\n", "readability": "container", "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/docker/production/etc/s6-overlay/s6-rc.d/horizon/run" }],
+  "onboarding": { "kind": "manual-first-email", "officialUrl": "https://github.com/coollabsio/coolify/blob/v4.3.23/app/Actions/Fortify/CreateNewUser.php", "email": "admin@example.test", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8000, "dataDirectoryName": "coolify" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 2147483648 },
+  "acceptance": [
+    { "id": "administrator-and-key", "method": "api", "description": "Create the actual first root via its CSRF-protected registration form, verify the saved login, save a read-only API key once and verify its root-team identity." },
+    { "id": "host-authority-required", "method": "api", "description": "Administrator preparation is never a functional PaaS. Separately review host SSH/sudo/Docker authority and edge owners before enabling workers or connecting a server." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the shared owner and recheck saved account, key, worker policy and storage; live acceptance remains unverified." }
+  ]
+}

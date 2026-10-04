@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { chmod, link, lstat, mkdir, open, readFile, realpath, rename, unlink } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, posix, win32 } from "node:path";
 import {
   ensureLocalStateIgnore,
   loadPreferences,
@@ -12,7 +12,9 @@ export const DEFAULT_PROJECT_STATE_FILE = "project.json";
 
 const CHECKPOINTS = ["intent-recorded", "inspected", "planned", "applied", "verified"];
 const IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._-]{0,62}$/;
+const SELECTION_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]{0,126}$/;
 const PLAN_ID_PATTERN = /^[a-f0-9]{16}$/;
+const CATALOG_SHA_PATTERN = /^[a-f0-9]{64}$/;
 const EVIDENCE_ID_PATTERN = /^(?:inspection|apply|verify|manifest):[a-z0-9][a-z0-9._-]{0,31}$/;
 const SECRET_LIKE_EVIDENCE_PATTERN = /(?:password|passwd|secret|token|credential|api[-_]?key|private[-_]?key|cookie|session|gh[pousr]_|github_pat_|sk-|tskey-|xox[baprs]-)/i;
 const LONG_UNBROKEN_VALUE_PATTERN = /^[a-z0-9]{24,}$/i;
@@ -90,7 +92,7 @@ function validateSelections(selections, errors) {
     errors.push("Project selections must include at least one role.");
   }
   for (const [role, app] of Object.entries(selections)) {
-    if (!IDENTIFIER_PATTERN.test(role)) {
+    if (!SELECTION_KEY_PATTERN.test(role)) {
       errors.push("Project selection role is invalid.");
     }
     if (app !== null && (typeof app !== "string" || !IDENTIFIER_PATTERN.test(app))) {
@@ -153,12 +155,21 @@ function validateCheckpoint(checkpoint, errors) {
 
 export function validateProjectState(document) {
   const errors = [];
-  const rootKeys = ["schemaVersion", "revision", "createdAt", "updatedAt", "goalId", "selections", "plan", "checkpoint"];
+  if (document === null || typeof document !== "object" || Array.isArray(document)) {
+    return { valid: false, errors: ["Project state contains missing or unsupported fields."] };
+  }
+  let rootKeys = ["schemaVersion", "revision", "createdAt", "updatedAt", "goalId", "selections", "plan", "checkpoint"];
+  if (document.schemaVersion === 2) {
+    rootKeys = [...rootKeys, "componentGoalIds"];
+  }
+  if (document.schemaVersion === 3) {
+    rootKeys = [...rootKeys, "componentGoalIds", "catalogSource"];
+  }
   if (!exactKeys(document, rootKeys)) {
     return { valid: false, errors: ["Project state contains missing or unsupported fields."] };
   }
-  if (document.schemaVersion !== 1) {
-    errors.push("Project state schemaVersion must be 1.");
+  if (document.schemaVersion !== 1 && document.schemaVersion !== 2 && document.schemaVersion !== 3) {
+    errors.push("Project state schemaVersion must be 1, 2, or 3.");
   }
   if (!Number.isInteger(document.revision) || document.revision < 1) {
     errors.push("Project state revision must be a positive integer.");
@@ -168,6 +179,32 @@ export function validateProjectState(document) {
   }
   if (typeof document.goalId !== "string" || !IDENTIFIER_PATTERN.test(document.goalId)) {
     errors.push("Project goalId is invalid.");
+  }
+  if (document.schemaVersion >= 2) {
+    if (!Array.isArray(document.componentGoalIds) || document.componentGoalIds.length === 0) {
+      errors.push("Project componentGoalIds must contain at least one goal ID.");
+    } else {
+      const unique = new Set();
+      for (const goalId of document.componentGoalIds) {
+        if (typeof goalId !== "string" || !IDENTIFIER_PATTERN.test(goalId)) {
+          errors.push("Project component goal ID is invalid.");
+          continue;
+        }
+        if (unique.has(goalId)) {
+          errors.push("Project component goal IDs must be unique.");
+        }
+        unique.add(goalId);
+      }
+      if (document.componentGoalIds.length === 1 && document.goalId !== document.componentGoalIds[0]) {
+        errors.push("A single-goal project must match its component goal ID.");
+      }
+      if (document.componentGoalIds.length > 1 && document.goalId !== "composite") {
+        errors.push("A multi-goal project must use the composite goal ID.");
+      }
+    }
+  }
+  if (document.schemaVersion === 3) {
+    validateCatalogSource(document.catalogSource, errors);
   }
   validateSelections(document.selections, errors);
   if (!exactKeys(document.plan, ["id", "catalogCheckedAt"])) {
@@ -184,6 +221,32 @@ export function validateProjectState(document) {
   return { valid: errors.length === 0, errors };
 }
 
+function validateCatalogSource(source, errors) {
+  if (!exactKeys(source, ["kind", "directory", "sha256", "executionAuthority"])) {
+    errors.push("Project catalog source contains missing or unsupported fields.");
+    return;
+  }
+  if (source.kind !== "bundled" && source.kind !== "external") {
+    errors.push("Project catalog source kind is invalid.");
+  }
+  if (typeof source.sha256 !== "string" || !CATALOG_SHA_PATTERN.test(source.sha256)) {
+    errors.push("Project catalog source SHA-256 is invalid.");
+  }
+  if (source.kind === "bundled") {
+    if (source.directory !== null || source.executionAuthority !== "packaged") {
+      errors.push("Bundled project catalog source must use packaged authority and no directory.");
+    }
+  } else if (source.kind === "external") {
+    const directory = source.directory;
+    const absolute = typeof directory === "string"
+      && (posix.isAbsolute(directory) || win32.isAbsolute(directory));
+    if (!absolute || directory.length > 4096 || directory.includes("\0")
+      || source.executionAuthority !== "read-only-declarative") {
+      errors.push("External project catalog source must name one absolute directory with read-only authority.");
+    }
+  }
+}
+
 function ensureValidProjectState(document) {
   const validation = validateProjectState(document);
   if (!validation.valid) {
@@ -197,6 +260,24 @@ function effectiveSelections(plan) {
     selections[role.id] = role.selected;
   }
   return selections;
+}
+
+export function planGoalIds(plan) {
+  if (Array.isArray(plan.goal.components) && plan.goal.components.length > 0) {
+    return plan.goal.components.map((component) => component.id);
+  }
+  return [plan.goal.id];
+}
+
+export function projectGoalIds(document) {
+  if (document.schemaVersion >= 2) {
+    return [...document.componentGoalIds];
+  }
+  return [document.goalId];
+}
+
+function sameGoalIds(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 export async function projectStatePathForProjectRoot(projectRoot) {
@@ -397,14 +478,17 @@ export async function loadProjectState(path, options = {}) {
   return { path, exists: true, document };
 }
 
-export async function initProjectState(path, plan) {
+export async function initProjectState(path, plan, verifyCatalogSource) {
   const recordedAt = timestamp();
+  const componentGoalIds = planGoalIds(plan);
   const document = {
-    schemaVersion: 1,
+    schemaVersion: 3,
     revision: 1,
     createdAt: recordedAt,
     updatedAt: recordedAt,
     goalId: plan.goal.id,
+    componentGoalIds,
+    catalogSource: structuredClone(plan.catalogSource),
     selections: effectiveSelections(plan),
     plan: { id: plan.planId, catalogCheckedAt: plan.catalogCheckedAt },
     checkpoint: { stage: "intent-recorded", recordedAt, evidenceIds: [] }
@@ -412,30 +496,37 @@ export async function initProjectState(path, plan) {
   ensureValidProjectState(document);
   const locked = await withStateLock(path, true, async () => {
     await ensureCurrentPlanPreferences(path, plan);
+    await verifyCatalogSource();
     await createPrivateFile(path, document);
   });
   return { path, created: true, document, ignoreCreated: locked.ignoreCreated };
 }
 
-export async function reviseProjectState(path, plan, expectedRevision) {
+export async function reviseProjectState(path, plan, expectedRevision, verifyCatalogSource) {
   const locked = await withStateLock(path, false, async () => {
     const loaded = await loadProjectState(path);
     if (loaded.document.revision !== expectedRevision) {
       throw new ProjectStateError("Project state changed during this command. Reload it and try again.");
     }
-    if (loaded.document.goalId !== plan.goal.id) {
+    if (loaded.document.goalId !== plan.goal.id || !sameGoalIds(projectGoalIds(loaded.document), planGoalIds(plan))) {
       throw new ProjectStateError("A project record cannot be reassigned to a different goal. Use a different project root.");
     }
     await ensureCurrentPlanPreferences(path, plan);
+    await verifyCatalogSource();
     const selections = effectiveSelections(plan);
     const sameSelections = JSON.stringify(selections) === JSON.stringify(loaded.document.selections);
-    if (sameSelections && loaded.document.plan.id === plan.planId) {
+    const sameCatalogSource = samePlanCatalogSource(loaded.document, plan);
+    if (loaded.document.schemaVersion === 3 && sameSelections
+      && loaded.document.plan.id === plan.planId && sameCatalogSource) {
       return { path, updated: false, document: loaded.document };
     }
     const recordedAt = timestamp();
     loaded.document.revision += 1;
+    loaded.document.schemaVersion = 3;
+    loaded.document.componentGoalIds = planGoalIds(plan);
     loaded.document.updatedAt = recordedAt;
     loaded.document.selections = selections;
+    loaded.document.catalogSource = structuredClone(plan.catalogSource);
     loaded.document.plan = { id: plan.planId, catalogCheckedAt: plan.catalogCheckedAt };
     loaded.document.checkpoint = { stage: "intent-recorded", recordedAt, evidenceIds: [] };
     ensureValidProjectState(loaded.document);
@@ -445,13 +536,18 @@ export async function reviseProjectState(path, plan, expectedRevision) {
   return { ...locked.value, ignoreCreated: locked.ignoreCreated };
 }
 
-export async function checkpointProjectState(path, stage, evidenceIds, plan, expectedRevision) {
+export async function checkpointProjectState(path, stage, evidenceIds, plan, expectedRevision,
+  verifyCatalogSource) {
   const locked = await withStateLock(path, false, async () => {
     const loaded = await loadProjectState(path);
+    if (loaded.document.schemaVersion < 3) {
+      throw new ProjectStateError("Legacy project state needs state revise before recording a new checkpoint.");
+    }
     if (loaded.document.revision !== expectedRevision) {
       throw new ProjectStateError("Project state changed during this command. Reload it and try again.");
     }
     await ensureCurrentPlanPreferences(path, plan);
+    await verifyCatalogSource();
     if (!CHECKPOINTS.includes(stage) || stage === "intent-recorded") {
       throw new ProjectStateError("Checkpoint stage must be inspected, planned, applied, or verified.");
     }
@@ -460,11 +556,14 @@ export async function checkpointProjectState(path, stage, evidenceIds, plan, exp
     if (requestedRank < currentRank || requestedRank > currentRank + 1) {
       throw new ProjectStateError("Checkpoint stages must advance one step at a time and cannot move backward.");
     }
-    if (plan.goal.id !== loaded.document.goalId) {
+    if (plan.goal.id !== loaded.document.goalId || !sameGoalIds(planGoalIds(plan), projectGoalIds(loaded.document))) {
       throw new ProjectStateError("Current catalog plan does not match the recorded project goal.");
     }
     if (loaded.document.plan.id !== plan.planId || loaded.document.plan.catalogCheckedAt !== plan.catalogCheckedAt) {
       throw new ProjectStateError("The current plan differs from saved project state. Run state revise before recording progress.");
+    }
+    if (!samePlanCatalogSource(loaded.document, plan)) {
+      throw new ProjectStateError("The catalog source changed. Run state revise before recording progress.");
     }
     const selections = effectiveSelections(plan);
     if (JSON.stringify(selections) !== JSON.stringify(loaded.document.selections)) {
@@ -505,11 +604,17 @@ export function projectFreshness(document, plan) {
     savedCheckpoint: document.checkpoint.stage,
     savedAt: document.updatedAt,
     planChanged: document.plan.id !== plan.planId,
-    catalogChanged: document.plan.catalogCheckedAt !== plan.catalogCheckedAt,
+    catalogChanged: document.plan.catalogCheckedAt !== plan.catalogCheckedAt
+      || !samePlanCatalogSource(document, plan),
     freshInspectionRequired: true,
     ownershipRevalidationRequired: true,
     savedEvidenceStatus: "stale-until-rechecked"
   };
+}
+
+function samePlanCatalogSource(document, plan) {
+  if (document.schemaVersion < 3) return false;
+  return JSON.stringify(document.catalogSource) === JSON.stringify(plan.catalogSource);
 }
 
 export function publicProjectState(document) {

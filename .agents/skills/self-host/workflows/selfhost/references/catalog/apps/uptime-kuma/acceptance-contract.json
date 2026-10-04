@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "uptime-kuma",
+  "dimension": "liveRestart",
+  "inputs": [{ "key": "monitor-id", "format": "positive-integer", "maximumDigits": 10 }],
+  "beginEffect": "Authenticate and read one reviewed existing active monitor and its recent UP heartbeat; retain only IDs and sanitized configuration/status hashes",
+  "finishEffect": "Read the same monitor and historical heartbeat after the exact selected unit restarts; require recent UP status and unchanged operating configuration",
+  "cleanup": "not-required-existing-monitor-read-only",
+  "checks": {
+    "application-health": { "appHealthObserved": true, "authenticatedIdentityVerified": true },
+    "core-round-trip": { "monitorStatusReadVerified": true, "workloadScope": "selected-existing-active-monitor-up-heartbeat-read" },
+    "restart-persistence": { "restartPersistenceVerified": true, "historicalHeartbeatVerified": true }
+  }
+}

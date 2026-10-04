@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "umami",
+  "source": "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml",
+  "services": [
+    {
+      "id": "umami",
+      "purpose": "Serves private website analytics after the seeded administrator is rotated.",
+      "imageTag": "ghcr.io/umami-software/umami:3.4.0",
+      "imageSource": "https://github.com/umami-software/umami/releases/tag/v3.4.0",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "init": true,
+      "restart": "always",
+      "readOnly": false,
+      "environment": [],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "DATABASE_URL", "fileId": "database-password", "format": "postgres-url", "username": "umami", "host": "db", "port": 5432, "database": "umami" },
+        { "name": "APP_SECRET", "fileId": "app-secret" },
+        { "name": "TWO_FACTOR_ENCRYPTION_KEY", "fileId": "two-factor-key" }
+      ],
+      "mounts": [],
+      "dependsOn": [{ "service": "db", "condition": "service_healthy" }],
+      "publishTargetPort": 3000
+    },
+    {
+      "id": "db",
+      "purpose": "Stores Umami accounts and analytics data on this private project network.",
+      "imageTag": "docker.io/library/postgres:15-alpine",
+      "imageSource": "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "always",
+      "readOnly": false,
+      "environment": [{ "name": "POSTGRES_DB", "value": "umami" }, { "name": "POSTGRES_USER", "value": "umami" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql/data", "kind": "volume" }],
+      "healthcheck": { "test": ["CMD", "pg_isready", "-U", "umami", "-d", "umami"], "intervalSeconds": 5, "timeoutSeconds": 5, "startPeriodSeconds": 0, "retries": 5 },
+      "dependsOn": [],
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "app-secret", "bytes": 48, "format": "alphanumeric" },
+    { "id": "two-factor-key", "bytes": 32, "format": "hex" },
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": { "kind": "seeded-admin-rotation", "officialUrl": "https://docs.umami.is/docs/install", "username": "admin", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 3000, "dataDirectoryName": "umami" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "admin-rotation", "method": "api", "description": "On the exact private origin, prove the seeded administrator identity, rotate its password once, verify the generated password and rejection of the seed." },
+    { "id": "tracking", "method": "browser", "description": "Configure an approved site and prove a real event is collected; login alone is not analytics acceptance." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart this exact project and verify the rotated administrator and previously collected data remain available." },
+    { "id": "isolated-restore", "method": "persisted", "description": "Restore PostgreSQL in isolation before claiming backup verification." }
+  ]
+}

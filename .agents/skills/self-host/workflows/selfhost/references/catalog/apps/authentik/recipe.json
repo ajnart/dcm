@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "authentik",
+  "source": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml",
+  "services": [
+    {
+      "id": "authentik",
+      "purpose": "Serves the private authentik identity and administrator interface.",
+      "imageTag": "ghcr.io/goauthentik/server:2026.8.3",
+      "imageSource": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "command": ["server"],
+      "shmSizeBytes": 536870912,
+      "environment": [
+        { "name": "AUTHENTIK_POSTGRESQL__HOST", "value": "postgresql" },
+        { "name": "AUTHENTIK_POSTGRESQL__NAME", "value": "authentik" },
+        { "name": "AUTHENTIK_POSTGRESQL__USER", "value": "authentik" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "AUTHENTIK_POSTGRESQL__PASSWORD", "fileId": "database-password" },
+        { "name": "AUTHENTIK_SECRET_KEY", "fileId": "application-key" }
+      ],
+      "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+      "dependsOn": [{ "service": "postgresql", "condition": "service_healthy" }],
+      "publishTargetPort": 9000
+    },
+    {
+      "id": "worker",
+      "purpose": "Runs authentik background tasks without a Docker socket mount.",
+      "imageTag": "ghcr.io/goauthentik/server:2026.8.3",
+      "imageSource": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "command": ["worker"],
+      "shmSizeBytes": 536870912,
+      "environment": [
+        { "name": "AUTHENTIK_POSTGRESQL__HOST", "value": "postgresql" },
+        { "name": "AUTHENTIK_POSTGRESQL__NAME", "value": "authentik" },
+        { "name": "AUTHENTIK_POSTGRESQL__USER", "value": "authentik" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "secretEnvironment": [
+        { "name": "AUTHENTIK_POSTGRESQL__PASSWORD", "fileId": "database-password" },
+        { "name": "AUTHENTIK_SECRET_KEY", "fileId": "application-key" },
+        { "name": "AUTHENTIK_BOOTSTRAP_PASSWORD", "fileId": "admin-password" },
+        { "name": "AUTHENTIK_BOOTSTRAP_TOKEN", "fileId": "authentik-api-key" }
+      ],
+      "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+      "dependsOn": [{ "service": "postgresql", "condition": "service_healthy" }],
+      "publishTargetPort": null
+    },
+    {
+      "id": "postgresql",
+      "purpose": "Persists authentik identities, configuration, and sessions.",
+      "imageTag": "docker.io/library/postgres:16-alpine",
+      "imageSource": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml",
+      "user": "image-default",
+      "imageUserEvidence": { "officialUrl": "https://github.com/goauthentik/authentik/blob/version/2026.8.3/lifecycle/container/compose.yml", "reason": "official-image-runtime-contract" },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "environment": [
+        { "name": "POSTGRES_DB", "value": "authentik" },
+        { "name": "POSTGRES_USER", "value": "authentik" }
+      ],
+      "hostEnvironment": [],
+      "fileEnvironment": [{ "name": "POSTGRES_PASSWORD_FILE", "fileId": "database-password" }],
+      "mounts": [{ "name": "database", "target": "/var/lib/postgresql/data", "kind": "volume" }],
+      "dependsOn": [],
+      "healthcheck": { "test": ["CMD", "pg_isready", "-d", "authentik", "-U", "authentik"], "intervalSeconds": 30, "timeoutSeconds": 5, "startPeriodSeconds": 20, "retries": 5 },
+      "publishTargetPort": null
+    }
+  ],
+  "privateFiles": [
+    { "id": "database-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "application-key", "bytes": 64, "format": "alphanumeric" },
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "authentik-api-key", "bytes": 48, "format": "alphanumeric" }
+  ],
+  "onboarding": {
+    "kind": "initial-admin-from-secret-env",
+    "officialUrl": "https://docs.goauthentik.io/install-config/automated-install/",
+    "username": "akadmin",
+    "fixedUsername": true,
+    "bootstrapServiceId": "worker",
+    "secretEnvironment": "AUTHENTIK_BOOTSTRAP_PASSWORD",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 9000, "dataDirectoryName": "authentik" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 5368709120 },
+  "acceptance": [
+    { "id": "bootstrap-token", "method": "api", "description": "Confirm an anonymous current-user request is not an administrator, then verify the generated bootstrap token identifies the akadmin superuser through the private users/me API." },
+    { "id": "password-login", "method": "api", "description": "Use the documented private Flow Executor identification/password stages and require the resulting session to identify the akadmin superuser; unexpected MFA stages require protected browser completion." },
+    { "id": "break-glass", "method": "browser", "description": "Verify a tested break-glass administrator before placing other applications behind this IdP." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact Compose project and verify administrator access and saved configuration persist." }
+  ]
+}

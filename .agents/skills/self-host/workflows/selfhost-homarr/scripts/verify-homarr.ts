@@ -31,8 +31,7 @@ function bridgePath() {
   return path;
 }
 
-function parseArguments() {
-  const args = Bun.argv.slice(2);
+function parseArguments(args) {
   if (args.length === 1) {
     return { profilePath: args[0], mediaSearch: false, query: DEFAULT_TITLE };
   }
@@ -70,9 +69,11 @@ function childEnvironment() {
   return environment;
 }
 
-function probeBridge(profilePath, options) {
+function probeBridge(profilePath, options, launcher) {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(process.execPath, [bridgePath(), profilePath], {
+    const command = launcher?.command ?? process.execPath;
+    const args = launcher ? [...launcher.argsPrefix, profilePath] : [bridgePath(), profilePath];
+    const child = spawn(command, args, {
       cwd: process.cwd(),
       env: childEnvironment(),
       stdio: ["pipe", "pipe", "ignore"],
@@ -195,6 +196,21 @@ export function identifySeerrIntegration(integrations) {
   return matches[0];
 }
 
+export function identifyConfiguredSeerrIntegration(integrations, integrationId) {
+  if (!Array.isArray(integrations) || !usableIntegrationId(integrationId)) {
+    throw new Error("Homarr integrations are invalid");
+  }
+  const matches = integrations.filter(
+    (integration) => isRecord(integration)
+      && integration.id === integrationId
+      && normalizeName(integration.kind) === "seerr",
+  );
+  if (matches.length !== 1) {
+    throw new Error("Homarr media request policy requires its one live Seerr integration");
+  }
+  return matches[0];
+}
+
 export function mediaSearchArguments(integrationId, query) {
   if (!usableIntegrationId(integrationId)) {
     throw new Error("Seerr integration ID is invalid");
@@ -261,9 +277,12 @@ export function validateStructuredSearchResult(result, query) {
 export function validateBridgeResponses(responses, options) {
   const initialized = responses.get(1);
   const expectedMode = options.capabilityMode ?? "read-only";
-  const expectedInstruction = expectedMode === "read-only"
-    ? "strictly read-only"
-    : "policy-constrained integration_request";
+  let expectedInstruction = "strictly read-only";
+  if (expectedMode === "integration-request-policy") {
+    expectedInstruction = "policy-constrained integration_request tool";
+  } else if (expectedMode === "media-request-policy") {
+    expectedInstruction = "policy-constrained integration_requestMedia tool";
+  }
   if (
     !isRecord(initialized?.result)
     || initialized.result.protocolVersion !== "2025-06-18"
@@ -297,10 +316,16 @@ export function validateBridgeResponses(responses, options) {
       throw new Error("Homarr bridge catalog is incomplete");
     }
   }
+  let expectedMutation = null;
+  if (expectedMode === "integration-request-policy") {
+    expectedMutation = "integration_request";
+  } else if (expectedMode === "media-request-policy") {
+    expectedMutation = "integration_requestMedia";
+  }
   for (const mutatingName of MUTATING_HOMARR_TOOL_NAMES) {
-    if (mutatingName === "integration_request" && expectedMode === "integration-request-policy") {
+    if (mutatingName === expectedMutation) {
       if (!names.has(mutatingName)) {
-        throw new Error("Homarr bridge integration request tool is unavailable");
+        throw new Error("Homarr bridge policy tool is unavailable");
       }
       continue;
     }
@@ -315,7 +340,12 @@ export function validateBridgeResponses(responses, options) {
   }
   const integrations = toolResultArray(integrationCall.result);
   if (options.mediaSearch) {
-    const seerr = identifySeerrIntegration(integrations);
+    let seerr;
+    if (expectedMode === "media-request-policy") {
+      seerr = identifyConfiguredSeerrIntegration(integrations, options.seerrId);
+    } else {
+      seerr = identifySeerrIntegration(integrations);
+    }
     if (seerr.id !== options.seerrId) {
       throw new Error("Homarr bridge Seerr integration changed during verification");
     }
@@ -327,8 +357,8 @@ export function validateBridgeResponses(responses, options) {
   }
 }
 
-export async function main() {
-  const options = parseArguments();
+export async function verifyHomarr(args, launcher, report = (line) => process.stdout.write(line)) {
+  const options = parseArguments(args);
   const profile = loadProfile(options.profilePath, { requireKey: true });
   const client = new NativeHomarrMcpClient({
     baseUrl: profile.baseUrl,
@@ -339,36 +369,49 @@ export async function main() {
   if (client.endpointMode !== "canonical") {
     throw new Error("canonical endpoint verification failed");
   }
-  process.stdout.write("PASS Homarr canonical endpoint authentication\n");
+  report("PASS Homarr canonical endpoint authentication\n");
 
   const catalog = await client.listTools();
   if (catalog.fallback) {
-    process.stdout.write("PASS Homarr tools/list curated Date-schema fallback\n");
+    report("PASS Homarr tools/list curated Date-schema fallback\n");
   } else {
-    process.stdout.write("PASS Homarr tools/list native catalog\n");
+    report("PASS Homarr tools/list native catalog\n");
   }
 
   const verificationOptions = { ...options };
-  verificationOptions.capabilityMode = profile.capabilityPolicy
-    ? "integration-request-policy"
-    : "read-only";
+  verificationOptions.capabilityMode = "read-only";
+  if (profile.capabilityPolicy?.mode === "integration-request") {
+    verificationOptions.capabilityMode = "integration-request-policy";
+  } else if (profile.capabilityPolicy?.mode === "media-request") {
+    verificationOptions.capabilityMode = "media-request-policy";
+  }
   if (options.mediaSearch) {
     const integrations = toolResultArray(await client.callTool("integration_all", {}));
-    const seerr = identifySeerrIntegration(integrations);
+    let seerr;
+    if (profile.capabilityPolicy?.mode === "media-request") {
+      seerr = identifyConfiguredSeerrIntegration(integrations, profile.capabilityPolicy.integrationId);
+    } else {
+      seerr = identifySeerrIntegration(integrations);
+    }
     verificationOptions.seerrId = seerr.id;
   }
 
-  const responses = await probeBridge(profile.profilePath, verificationOptions);
+  const responses = await probeBridge(profile.profilePath, verificationOptions, launcher);
   validateBridgeResponses(responses, verificationOptions);
-  process.stdout.write(`PASS Homarr bridge initialize, tools/list, and ${verificationOptions.capabilityMode} tools/call\n`);
+  report(`PASS Homarr bridge initialize, tools/list, and ${verificationOptions.capabilityMode} tools/call\n`);
   if (options.mediaSearch) {
-    process.stdout.write("PASS Homarr Seerr media search\n");
+    report("PASS Homarr Seerr media search\n");
   }
+  return {
+    catalogMode: catalog.fallback ? "curated-date-schema-fallback" : "native-read-only-projection",
+    capabilityMode: verificationOptions.capabilityMode,
+    mediaSearchVerified: options.mediaSearch,
+  };
 }
 
 const scriptPath = fileURLToPath(import.meta.url);
-if (Bun.argv[1] && resolve(Bun.argv[1]) === scriptPath) {
-  main().catch(() => {
+if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
+  verifyHomarr(process.argv.slice(2)).catch(() => {
     process.stdout.write("FAIL Homarr read-only verification\n");
     process.exitCode = 1;
   });

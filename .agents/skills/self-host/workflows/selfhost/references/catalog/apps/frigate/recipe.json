@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "frigate",
+  "source": "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docs/docs/guides/getting_started.md",
+  "services": [{
+    "id": "frigate",
+    "purpose": "Bootstraps the private authenticated NVR dashboard without cameras, recordings, devices or external telemetry.",
+    "imageTag": "ghcr.io/blakeblackshear/frigate:0.18.0",
+    "imageSource": "https://github.com/blakeblackshear/frigate/releases/tag/v0.18.0",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/blakeblackshear/frigate/blob/v0.18.0/docker/main/Dockerfile", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "shmSizeBytes": 67108864,
+    "tmpfs": [{ "target": "/tmp/cache", "sizeBytes": 1000000000, "mode": 511 }],
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "secretEnvironment": [{ "name": "FRIGATE_JWT_SECRET", "fileId": "jwt-secret" }],
+    "mounts": [
+      { "name": "config", "target": "/config", "kind": "volume" },
+      { "name": "storage", "target": "/media/frigate", "kind": "volume" },
+      { "name": "bootstrap-config", "target": "/config/config.yml", "kind": "generated-file", "fileId": "bootstrap-config" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": 8971
+  }],
+  "configFiles": [{
+    "id": "bootstrap-config",
+    "content": "version: 0.18-0\nmqtt:\n  enabled: false\ncameras: {}\nauth:\n  enabled: true\ntls:\n  enabled: false\nnetworking:\n  listen:\n    internal: 127.0.0.1:5000\n    external: 8971\ntelemetry:\n  version_check: false\n  stats:\n    amd_gpu_stats: false\n    intel_gpu_stats: false\n    network_bandwidth: false\n"
+  }],
+  "privateFiles": [
+    { "id": "admin-password", "bytes": 48, "format": "alphanumeric" },
+    { "id": "jwt-secret", "bytes": 32, "format": "hex" }
+  ],
+  "onboarding": { "kind": "manual-first-admin", "officialUrl": "https://github.com/blakeblackshear/frigate/blob/v0.18.0/frigate/app.py", "username": "admin", "fileId": "admin-password" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8971, "dataDirectoryName": "frigate" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "administrator", "method": "api", "description": "Read only the exact current-start first-user password, rotate once to the saved private password, then prove a fresh admin login and profile." },
+    { "id": "authentication-denial", "method": "api", "description": "Verify anonymous profile access is denied on authenticated 8971; never publish or use internal unauthenticated 5000." },
+    { "id": "owner-camera-config", "method": "browser", "description": "Pending: replace the read-only bootstrap configuration through a separately approved writable owner-camera boundary; no camera or detector acceptance is claimed." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the exact owned service and verify the saved administrator still authenticates; camera persistence remains pending." }
+  ]
+}

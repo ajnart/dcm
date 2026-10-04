@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "kind": "shared-pre-start-adapter",
+  "appId": "wud",
+  "sourceFiles": ["pre-start.ts", "derived-recipe.ts", "configuration.ts", "remote-watcher.ts", "authority.ts", "manifest.json"],
+  "effects": ["Require separately approved exact remote Docker authority and a fresh pinned mutual-TLS connection observation before every start; inventory without verified deny-write policy remains blocked."]
+}

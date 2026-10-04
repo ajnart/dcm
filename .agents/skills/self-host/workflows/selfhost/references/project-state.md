@@ -1,7 +1,7 @@
 # Returning project contract
 
 `.selfhost/project.json` remembers the selected goal, exact role choices, plan
-fingerprint, last recorded workflow checkpoint, and bounded evidence IDs. It is
+fingerprint, catalog source, last recorded workflow checkpoint, and bounded evidence IDs. It is
 private local state, separate from `.selfhost/preferences.json`.
 Its strict schema is
 [`catalog/schemas/project-state.schema.json`](catalog/schemas/project-state.schema.json).
@@ -19,19 +19,32 @@ short-lived shared preference/project update lock are private. A leftover
 exact stale lock.
 
 The record never contains credentials, raw host observations, Compose content,
-container configuration, absolute artifact paths, or evidence payloads. An
+container configuration, absolute artifact paths, or evidence payloads. The
+source path for an external catalog is non-secret project identity, not an
+artifact path. Version 3 records its canonical directory and SHA-256 of parsed
+catalog data plus loaded recipes. A returning run uses that directory without
+requiring `--catalog-dir`; an explicit different source is rejected. Source
+drift is visible in a read-only plan and requires `state revise` before any
+new checkpoint. External-catalog apply and verification checkpoints remain
+unavailable until a source-bound deployment adapter exists. An
 evidence ID names proof held by the owning capability; it does not make that
 proof current.
 
+Older version 1/2 records remain readable. Run `state revise` with the same
+goal before a new checkpoint; that explicit migration records the bundled
+source and resets stale progress. State writes recheck the selected source
+fingerprint while holding the project update lock.
+
 ## Resume order
 
-1. Use only the fixed `$HOME/.selfhostedskills` project root. Do not ask for a
-   directory, use the current working directory, or search elsewhere for
-   project state.
+1. Use the user's exact absolute project root, or the current project when its
+   `.selfhost/stack.json` or `.selfhost/cli.json` identifies this stack. Without
+   either, use the shown default `$HOME/.selfhostedskills`; if another project
+   is intended, ask for its root. Do not search elsewhere for project state.
 2. Load the project record and confirmed non-secret preferences.
-3. Rebuild the plan against the current catalog and report any drift. Required
-   Homarr is injected from the taxonomy; newly added optional roles stay off
-   unless their saved selections explicitly enable them.
+3. Rebuild the plan against the current catalog and report any drift. Preserve
+   the selected Homarr state; newly added optional roles stay off unless their
+   saved selections explicitly enable them.
 4. Run a fresh bounded `selfhost-host` inspection. Treat the saved checkpoint
    and evidence IDs as stale until their owners revalidate them.
 5. Prove ownership before classifying each relevant resource as `reuse`,

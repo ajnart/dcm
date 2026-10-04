@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "glances",
+  "source": "https://glances.readthedocs.io/en/latest/docker.html",
+  "services": [{
+    "id": "glances",
+    "purpose": "Serves a private Glances dashboard for container-local metrics only; no host PID, Docker socket, or host network access.",
+    "imageTag": "nicolargo/glances:4.5.6",
+    "imageSource": "https://hub.docker.com/r/nicolargo/glances/tags",
+    "user": "image-default",
+    "imageUserEvidence": {
+      "officialUrl": "https://glances.readthedocs.io/en/latest/docker.html",
+      "reason": "official-image-runtime-contract"
+    },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [{ "name": "GLANCES_OPT", "value": "-w" }],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [],
+    "dependsOn": [],
+    "publishTargetPort": 61208
+  }],
+  "privateFiles": [],
+  "onboarding": { "kind": "no-account", "officialUrl": "https://glances.readthedocs.io/en/latest/docker.html" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 61208, "dataDirectoryName": "glances" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "local-api", "method": "api", "description": "GET /api/4/status on the exact private origin and require HTTP 200; this proves only local API readiness." },
+    { "id": "container-metrics", "method": "browser", "description": "Inspect changing container-local metrics; do not claim host or sibling-container visibility." },
+    { "id": "restart-readiness", "method": "persisted", "description": "Restart only the owned project and confirm its private API responds again." }
+  ]
+}

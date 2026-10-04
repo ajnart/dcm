@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "vaultwarden",
+  "source": "https://github.com/dani-garcia/vaultwarden/wiki/Starting-a-Container",
+  "services": [{
+    "id": "vaultwarden",
+    "purpose": "Runs a persistent private vault server with registration closed; encrypted first-owner enrollment remains pending.",
+    "imageTag": "docker.io/vaultwarden/server:1.37.3",
+    "imageSource": "https://github.com/dani-garcia/vaultwarden/releases/tag/1.37.3",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/dani-garcia/vaultwarden/wiki/Starting-a-Container", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [
+      { "name": "ROCKET_PORT", "value": "8080" },
+      { "name": "SIGNUPS_ALLOWED", "value": "false" },
+      { "name": "INVITATIONS_ALLOWED", "value": "false" }
+    ],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [{ "name": "data", "target": "/data", "kind": "volume" }],
+    "dependsOn": [],
+    "publishTargetPort": 8080
+  }],
+  "privateFiles": [{ "id": "admin-password", "bytes": 48, "format": "alphanumeric" }],
+  "onboarding": {
+    "kind": "official-client-first-email",
+    "officialUrl": "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/api/core/accounts.rs",
+    "fileId": "admin-password"
+  },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 8088, "dataDirectoryName": "vaultwarden" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "canonical-private-https", "method": "api", "description": "Read the exact owned TLS origin and verify API environment URLs match its approved DOMAIN; separately prove intended-client DNS and CA trust." },
+    { "id": "official-client-enrollment", "method": "browser", "description": "After separate bounded signup approval, create only the selected email account with the compatible official client and the saved generated master password; verify fresh login and decrypted vault unlock." },
+    { "id": "registration-closure", "method": "api", "description": "Read effective registration policy after closure; persisted overrides, whitelist and invitations require separate inspection. Do not infer closure from Compose environment alone." },
+    { "id": "restart-and-recovery", "method": "persisted", "description": "Restart only this owner and verify fresh login and decrypted vault access; encrypted export and isolated restore remain separate recovery gates before real vault migration." }
+  ]
+}

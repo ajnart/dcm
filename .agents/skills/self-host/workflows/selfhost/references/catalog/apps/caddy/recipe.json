@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "caddy",
+  "source": "https://hub.docker.com/_/caddy",
+  "services": [{
+    "id": "caddy",
+    "purpose": "Serves private readiness and read-only upstream stats; admin stays on container loopback. No app ingress is configured.",
+    "imageTag": "caddy:2.11.4",
+    "imageSource": "https://hub.docker.com/_/caddy",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/caddyserver/caddy-docker/blob/master/2.11/alpine/Dockerfile", "reason": "official-image-runtime-contract" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "mounts": [
+      { "name": "caddyfile", "target": "/etc/caddy/Caddyfile", "kind": "generated-file", "fileId": "caddyfile" },
+      { "name": "data", "target": "/data", "kind": "volume" },
+      { "name": "config", "target": "/config", "kind": "volume" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": 2015
+  }],
+  "privateFiles": [],
+  "configFiles": [{
+    "id": "caddyfile",
+    "content": "{\n  admin 127.0.0.1:2019\n}\n\nhttp://:2015 {\n  @upstreams {\n    method GET\n    path /reverse_proxy/upstreams\n  }\n  route {\n    respond /health 200\n    reverse_proxy @upstreams 127.0.0.1:2019 {\n      header_up Host 127.0.0.1:2019\n    }\n    respond 404\n  }\n}\n"
+  }],
+  "onboarding": { "kind": "no-account", "officialUrl": "https://caddyserver.com/docs/caddyfile/directives/respond" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 2015, "dataDirectoryName": "caddy" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "private-readiness", "method": "api", "description": "GET /health on the exact saved loopback origin returns 200; this proves only the private Caddy configuration is serving, not application ingress or Homarr widget acceptance." },
+    { "id": "ingress-route", "method": "browser", "description": "After separate approval for one route and DNS/TLS/80/443/auth ownership, verify the intended backend through that exact route; this recipe does not configure one." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart the exact owned Compose project and verify the reviewed route and certificate state persist after ingress is separately configured." }
+  ]
+}

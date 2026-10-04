@@ -1,0 +1,77 @@
+{
+  "id": "authelia",
+  "name": "Authelia",
+  "aliases": [
+    "forward auth",
+    "authentication gateway"
+  ],
+  "categories": [
+    "identity",
+    "ingress"
+  ],
+  "roles": [
+    "authentication-gateway"
+  ],
+  "upstream": {
+    "url": "https://www.authelia.com/",
+    "repository": "https://github.com/authelia/authelia",
+    "docs": "https://www.authelia.com/integration/deployment/docker/"
+  },
+  "image": {
+    "reference": "docker.io/authelia/authelia:4.39.25@sha256:a039d87fb842f0af4f83c03434f5fb6ec45d4b46e86b8b3ac571cc104bbe6e6d",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Immutable official image and app-owned derived configuration, private writable user-state, Argon2/YAML resume and HTTPS first-factor login are source/fixture-backed. Setup requires eligible owner-selected cookie domains and an applied private standard-domain HTTPS route; portal identity is not protected-target SSO, remote DNS/trust, or restart acceptance. No live deployment was performed."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:reverse-proxy",
+    "capability:identity-store"
+  ],
+  "alternatives": [
+    "authentik",
+    "keycloak"
+  ],
+  "security": [
+    "Protect file-based session, storage, and reset-password secrets and preserve a recovery route.",
+    "Treat proxy trust, session cookie domains, and protected application routes as separately approved ingress decisions."
+  ],
+  "pitfalls": [
+    "Forward-auth headers and application trust boundaries need per-app testing.",
+    "The file authentication backend requires a writable hashed user database. The mutable owner prepares it exclusively and verifies identity/hash on resume; password resets or changed users stop rather than reseed.",
+    "Official Compose examples require configuration.yml and readable secret files. Authelia requires a user-chosen cookie domain and HTTPS Authelia URL; localhost is explicitly invalid. Access rules, notifier, and proxy wiring need approval for the actual deployment. No public route or identity-provider key can be inferred from a loopback Compose port.",
+    "The file backend creates login users, not a separate administrator API token. Generated login credentials need hash verification, authenticated owner readback, and restart persistence before readiness; a running authentication portal is insufficient.",
+    "The non-root numeric host user bypasses the pinned entrypoint's root-only /config chown. Immutable configuration, writable users, and private SQLite/notifier state use separate mount paths. Source evidence is not live image acceptance.",
+    "An applied private HTTPS route alone cannot bootstrap Authelia: an eligible non-localhost cookie domain, matching HTTPS authelia_url, writable hashed user database, and approved protected application target are required. Verify intended-client DNS/trust, login identity, forward-auth denial and allow behavior, and persistence separately; never relax cookie-domain validation to make the portal start."
+  ],
+  "sources": [
+    "https://www.authelia.com/integration/deployment/docker/",
+    "https://github.com/authelia/authelia/releases/tag/v4.39.25",
+    "https://www.authelia.com/configuration/first-factor/file/",
+    "https://www.authelia.com/configuration/methods/secrets/",
+    "https://www.authelia.com/configuration/session/introduction/",
+    "https://www.authelia.com/configuration/notifications/introduction/",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/authentication/file_user_provider.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/authentication/file_user_provider_database.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/configuration/validator/session.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/handlers/handler_firstfactor_password.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/handlers/handler_state.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/handlers/handler_user_info.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/internal/configuration/schema/authentication.go",
+    "https://github.com/authelia/authelia/blob/v4.39.25/Dockerfile",
+    "https://github.com/authelia/authelia/blob/v4.39.25/entrypoint.sh",
+    "https://www.authelia.com/configuration/storage/introduction/"
+  ]
+}

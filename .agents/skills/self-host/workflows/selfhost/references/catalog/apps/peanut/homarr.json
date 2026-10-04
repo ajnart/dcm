@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/homarr-labs/homarr/tree/f50d4ed134eff15689c2642abbbd8a9aec9bf7df/packages",
+  "integrationKind": "peaNut",
+  "requiredSecrets": [
+    "username",
+    "password"
+  ],
+  "widgets": [
+    {
+      "kind": "ups",
+      "options": {}
+    },
+    {
+      "kind": "stats",
+      "options": {},
+      "metrics": [
+        "devices",
+        "onBattery"
+      ]
+    }
+  ],
+  "alternativeSecrets": [
+    []
+  ],
+  "verification": {
+    "sourceCommit": "c8c0a72bb016a2c46aa447d74eeba3e05fa7b070",
+    "widgets": [
+      {
+        "kind": "ups",
+        "procedure": "widget.ups.getSummaries",
+        "inputMode": "many",
+        "field": "summaries",
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": "string",
+              "name": "string",
+              "status": "string",
+              "batteryCharge": {
+                "type": "nullable",
+                "value": "number"
+              },
+              "batteryRuntime": {
+                "type": "nullable",
+                "value": "number"
+              },
+              "load": {
+                "type": "nullable",
+                "value": "number"
+              },
+              "inputVoltage": {
+                "type": "nullable",
+                "value": "number"
+              },
+              "outputVoltage": {
+                "type": "nullable",
+                "value": "number"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

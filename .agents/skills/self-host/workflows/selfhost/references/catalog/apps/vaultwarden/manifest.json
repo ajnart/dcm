@@ -1,0 +1,75 @@
+{
+  "id": "vaultwarden",
+  "name": "Vaultwarden",
+  "aliases": [
+    "password manager",
+    "bitwarden compatible"
+  ],
+  "categories": [
+    "passwords"
+  ],
+  "roles": [
+    "password-vault"
+  ],
+  "upstream": {
+    "url": "https://github.com/dani-garcia/vaultwarden",
+    "repository": "https://github.com/dani-garcia/vaultwarden",
+    "docs": "https://github.com/dani-garcia/vaultwarden/wiki"
+  },
+  "image": {
+    "reference": "docker.io/vaultwarden/server:1.37.3",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Unofficial Bitwarden-compatible server, not the vendor server. The pinned shared recipe installs persistent storage with registration and invitations closed. Canonical HTTPS and encrypted official-client enrollment remain separate gates; the standalone owner is retained for existing installations."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "cliSetup": {
+    "command": "vaultwarden",
+    "platform": "linux",
+    "note": "Existing standalone owners retain their HTTPS/signup/closure route. New shared installation keeps registration closed and requires same-owner canonical HTTPS plus a separately approved official-client enrollment/unlock boundary."
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:tls-ingress",
+    "capability:vault-recovery"
+  ],
+  "alternatives": [
+    "passbolt"
+  ],
+  "security": [
+    "Require a verified private HTTPS origin before account creation or client use; keep administration private, registration closed outside a bounded first-account gate, and recovery material protected.",
+    "Do not treat the shared loopback HTTP origin or a healthy container as web-vault acceptance."
+  ],
+  "pitfalls": [
+    "Compatibility and recovery are higher consequence than an ordinary web app.",
+    "The built-in admin page is disabled without ADMIN_TOKEN; enabling it is separate from creating a vault owner and must not substitute for HTTPS or signup controls.",
+    "SIGNUPS_ALLOWED=false closes ordinary registration, but organization invitations and admin invitations have separate behavior. A nonempty SIGNUPS_DOMAINS_WHITELIST and persisted config.json overrides must also be checked before claiming registration closure.",
+    "The pinned server reads secret settings through documented source-level NAME_FILE support and rejects simultaneous NAME and NAME_FILE inputs. ADMIN_TOKEN may contain an Argon2id PHC hash, but enabling server administration is separate from creating or unlocking a vault account; keep it disabled unless explicitly needed.",
+    "The shared recipe generates one owner-only master-password file but does not bind it into the server or enable ADMIN_TOKEN. Vault account registration requires the Bitwarden client's KDF, authentication hash and wrapped encryption key; a generic email/password POST or an admin login is not a compatible first-owner bootstrap.",
+    "Applied private HTTPS and a stable canonical DOMAIN are prerequisites, not first-owner evidence. Shared setup still needs a separately pinned official-client enrollment and decrypted-unlock boundary. Keep the existing standalone signup/closure/recovery gate until that boundary exists; server health, a password-grant token, or an ADMIN_TOKEN session must never satisfy vault-account readiness."
+  ],
+  "sources": [
+    "https://github.com/dani-garcia/vaultwarden/wiki/Starting-a-Container",
+    "https://github.com/dani-garcia/vaultwarden/wiki/Enabling-HTTPS",
+    "https://github.com/dani-garcia/vaultwarden/wiki/Disable-registration-of-new-users",
+    "https://github.com/dani-garcia/vaultwarden/wiki/Enabling-admin-page",
+    "https://github.com/dani-garcia/vaultwarden/releases/tag/1.37.3",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/.env.template",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/api/core/accounts.rs",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/api/identity.rs",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/util.rs",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/config.rs",
+    "https://github.com/dani-garcia/vaultwarden/blob/1.37.3/src/api/core/mod.rs"
+  ]
+}

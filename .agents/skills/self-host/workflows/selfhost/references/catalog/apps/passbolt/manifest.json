@@ -1,0 +1,79 @@
+{
+  "id": "passbolt",
+  "name": "Passbolt",
+  "aliases": [
+    "team password manager"
+  ],
+  "categories": [
+    "passwords"
+  ],
+  "roles": [
+    "password-vault",
+    "team-secrets"
+  ],
+  "upstream": {
+    "url": "https://www.passbolt.com/",
+    "repository": "https://github.com/passbolt/passbolt_api",
+    "docs": "https://www.passbolt.com/docs/hosting/install/ce/docker/"
+  },
+  "image": {
+    "reference": "docker.io/passbolt/passbolt:5.16.0-1-ce",
+    "source": "vendor",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Official CE Docker Compose requires a stable HTTPS base URL, working SMTP and time sync; the first administrator finishes registration through a one-time browser link."
+  },
+  "support": {
+    "automation": "discovery",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:tls-ingress",
+    "capability:smtp",
+    "capability:vault-recovery",
+    "capability:owner-selected-canonical-origin",
+    "capability:private-registration-link-custody",
+    "capability:official-client-gpg-enrollment"
+  ],
+  "alternatives": [
+    "vaultwarden"
+  ],
+  "security": [
+    "Require an owner-chosen, stable private HTTPS origin with trusted TLS and matching APP_FULL_BASE_URL before registration or client use; do not substitute a loopback HTTP URL or publish 80/443 without separate edge approval.",
+    "Keep database and SMTP credentials, server GPG and JWT keys, first-registration link, recovery kit, and administrative access private; back up the database, GPG keys, and configuration together and prove an isolated restore."
+  ],
+  "pitfalls": [
+    "The derived shared recipe binds explicit SMTP relay, sender, server-key and HTTPS identity choices before start and generates private database passwords. It supports only an owner-approved no-auth STARTTLS relay. Native first-admin enrollment/login is source-implemented; time synchronization, SMTP delivery, client import, encrypted-vault acceptance and recovery remain independently unverified.",
+    "Working SMTP and time sync are installation prerequisites; test delivery of a real registration/recovery email independently of container or HTTP health.",
+    "First-admin creation uses the official register_user command with an owner-selected email, first name, last name, and admin role. It returns a one-time setup URL, not a password; the current headless HTTP onboarding patterns cannot safely claim completion of the browser extension, owner passphrase, and recovery-kit flow.",
+    "Preserve the database, server GPG keys, configuration, and the official Compose JWT volume across recreation. A database-only backup or container restart is not a recovery drill.",
+    "Changing the full base URL after users enroll can unlink browser extensions.",
+    "Native setup captures the pinned www-data register_user invitation privately, saves encrypted client-key/passphrase/recovery custody before activation, and verifies the exact administrator via server-key-verified GPGAuth. It never creates a fake local password or API key; SMTP delivery, official-client key import and encrypted-vault acceptance remain separate.",
+    "Official CE tag 5.16.0-1-ce was verified through publisher metadata on 2026-10-03: index sha256:dc7298c2847e406154beea5c4c82062828e0b1690d1d9869b2dbeae6f6e70bfc with Linux amd64, arm64 and arm images. Re-resolve and bind the selected platform digest before apply; this metadata proves neither a running server nor encrypted-client acceptance.",
+    "Private self-signed HTTPS is documented; public DNS and ACME are not mandatory. Stable private name resolution and intended-client certificate trust still need evidence. A generated application password cannot substitute for the owner's GPG key/passphrase and recovery custody.",
+    "The documented Go CLI requires an already-enrolled private key and passphrase; configure is not enrollment. The upstream Go library's SetupAccount returns the generated private key only after setup completion, so a direct wrapper risks key loss after activation. A reviewed client runtime must persist approved key/recovery custody before setup completion and reconcile the saved user/key after ambiguous outcomes."
+  ],
+  "sources": [
+    "https://www.passbolt.com/docs/hosting/install/ce/docker/",
+    "https://github.com/passbolt/passbolt_docker/blob/master/docker-compose/docker-compose-ce.yaml",
+    "https://www.passbolt.com/docs/hosting/configure/environment-reference/",
+    "https://www.passbolt.com/docs/hosting/tls/ce/docker-manual/",
+    "https://www.passbolt.com/docs/hosting/fqdn/",
+    "https://www.passbolt.com/docs/hosting/maintenance/backup/from-docker/",
+    "https://github.com/passbolt/passbolt_api/releases/tag/v5.16.0",
+    "https://github.com/passbolt/passbolt_api/blob/v5.16.0/src/Command/RegisterUserCommand.php",
+    "https://hub.docker.com/v2/repositories/passbolt/passbolt/tags/5.16.0-1-ce",
+    "https://www.passbolt.com/docs/user/quickstart/browser/first-setup/",
+    "https://www.passbolt.com/docs/hosting/faq/how-to-use-docker-secrets",
+    "https://www.passbolt.com/docs/user/quickstart/go-cli/",
+    "https://github.com/passbolt/go-passbolt/blob/main/helper/setup.go"
+  ]
+}

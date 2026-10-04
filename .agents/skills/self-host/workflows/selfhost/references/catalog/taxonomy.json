@@ -32,7 +32,6 @@
     {"id": "observability", "name": "Observability", "description": "Metrics, dashboards, logs, traces, and retention."},
     {"id": "backups", "name": "Backups", "description": "Consistent capture, off-host repositories, retention, and restore drills."},
     {"id": "containers", "name": "Containers", "description": "Container runtimes, project managers, and lifecycle control."},
-    {"id": "virtualization", "name": "Virtualization and NAS", "description": "Hypervisors, storage appliances, and host platforms."},
     {"id": "developer-tools", "name": "Developer tooling", "description": "Source hosting, delivery, update automation, and platforms."},
     {"id": "productivity", "name": "Productivity", "description": "Knowledge, bookmarks, budgets, feeds, and collaboration."},
     {"id": "communication", "name": "Communication", "description": "Notifications, chat, and mail services."},

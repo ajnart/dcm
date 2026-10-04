@@ -1,0 +1,57 @@
+{
+  "id": "transmission",
+  "name": "Transmission",
+  "aliases": [
+    "transmission torrent",
+    "lightweight torrent client"
+  ],
+  "categories": [
+    "downloads"
+  ],
+  "roles": [
+    "torrent-download"
+  ],
+  "upstream": {
+    "url": "https://transmissionbt.com/",
+    "repository": "https://github.com/transmission/transmission",
+    "docs": "https://github.com/transmission/transmission/tree/main/docs"
+  },
+  "image": {
+    "reference": "linuxserver/transmission:version-4.1.3-r0",
+    "source": "community",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Active upstream client with daemon and RPC deployment options."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T1",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Transmission"
+  },
+  "dependencies": [
+    "capability:download-storage"
+  ],
+  "alternatives": [
+    "qbittorrent",
+    "deluge"
+  ],
+  "security": [
+    "Keep the authenticated RPC/WebUI bound to loopback; separately approve peer-port publication and downloader VPN routing."
+  ],
+  "pitfalls": [
+    "This private recipe does not publish the TCP/UDP peer port or establish a VPN kill switch. Incoming peers and VPN-safe downloading require separately approved work."
+  ],
+  "sources": [
+    "https://github.com/transmission/transmission",
+    "https://github.com/transmission/transmission/tree/main/docs",
+    "https://docs.linuxserver.io/images/docker-transmission/",
+    "https://hub.docker.com/r/linuxserver/transmission/tags"
+  ]
+}

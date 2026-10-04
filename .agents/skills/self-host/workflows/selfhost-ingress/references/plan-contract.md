@@ -52,7 +52,9 @@
 
 Supported routes are `local`, `lan`, `caddy-private`, `tailscale-serve`, `headscale`, `reverse-proxy`, `cloudflare-tunnel`, `pangolin-newt`, and `ngrok`. An absent route becomes `local`.
 
-`caddy-private` plans private HTTPS without granting public exposure. It requires `service.internalPort`, a valid `preferences.hostname`, `preferences.clientTrustPlanned: true`, and:
+`caddy-private` plans private HTTPS without granting public exposure. It requires `service.internalPort`, a valid `preferences.hostname`, and `preferences.clientTrustPlanned: true`. A host-only `.localhost` name with a loopback bind needs no `facts.privateDns`; verify local resolution after apply. An explicitly selected host-only `.home.arpa` or standard-domain FQDN may instead select `preferences.nameResolution: "host-only-override"`: requests use an exact hostname-to-loopback override with the exported CA, preserving TLS hostname verification. This mode changes no DNS or client trust store, acquires no domain ownership, and proves neither client resolution nor application acceptance. Names without that explicit override and LAN routes require an owned, privately resolving DNS record. A `.localhost` name cannot serve LAN clients.
+
+For a LAN route, supply:
 
 ```json
 {

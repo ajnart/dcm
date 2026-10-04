@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "zerotier",
+  "source": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/README.docker.md",
+  "execution": { "kind": "private-daemon", "officialUrl": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/service/README.md" },
+  "services": [{
+    "id": "zerotier",
+    "purpose": "Bootstraps a persistent container-local identity and API token without network enrollment or host routing.",
+    "imageTag": "zerotier/zerotier:1.14.2",
+    "imageSource": "https://hub.docker.com/r/zerotier/zerotier/tags",
+    "user": "image-default",
+    "imageUserEvidence": { "officialUrl": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/Dockerfile.release", "reason": "official-image-runtime-contract" },
+    "runtimeResources": { "profile": "tun-net-admin", "officialUrl": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/README.docker.md" },
+    "restart": "unless-stopped",
+    "readOnly": false,
+    "environment": [],
+    "hostEnvironment": [],
+    "fileEnvironment": [],
+    "secretEnvironment": [{ "name": "ZEROTIER_API_SECRET", "fileId": "service-api-token" }],
+    "mounts": [
+      { "name": "identity", "target": "/var/lib/zerotier-one", "kind": "volume" },
+      { "name": "local-policy", "target": "/var/lib/zerotier-one/local.conf", "kind": "generated-file", "fileId": "local-policy" }
+    ],
+    "dependsOn": [],
+    "publishTargetPort": null
+  }],
+  "privateFiles": [{ "id": "service-api-token", "bytes": 48, "format": "alphanumeric" }],
+  "configFiles": [{ "id": "local-policy", "content": "{\"settings\":{\"portMappingEnabled\":false,\"softwareUpdate\":\"disable\",\"allowManagementFrom\":[\"127.0.0.1/8\",\"::1/128\"]}}\n" }],
+  "onboarding": { "kind": "generated-api-token", "officialUrl": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/entrypoint.sh.release", "fileId": "service-api-token" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": null, "dataDirectoryName": "zerotier" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "native-identity-token", "method": "api", "description": "Inside the exact saved container, reject anonymous service and controller reads, authenticate the saved native token, and checkpoint the stable node address and public identity." },
+    { "id": "no-enrollment", "method": "api", "description": "Require empty local memberships and controller network inventory. Enrollment, controller authorization and route activation need separately reviewed ownership and approval." },
+    { "id": "peer-routes", "method": "api", "description": "After separately approved enrollment, verify assigned addresses and permitted/denied peer reachability; this container-local node does not provide host or sibling-app routing." },
+    { "id": "restart-identity", "method": "persisted", "description": "After a scoped restart, prove the same saved node identity and API token persist; local first-run proof does not establish restart acceptance." }
+  ]
+}

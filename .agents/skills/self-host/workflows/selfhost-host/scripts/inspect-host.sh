@@ -7,13 +7,15 @@ umask 077
 
 SCRIPT_NAME="inspect-host.sh"
 LIMIT=24
-MAX_LIMIT=50
+MAX_LIMIT=512
 MAX_PATHS=8
+MAX_TCP_PORT_CHECKS=512
 COMMAND_TIMEOUT_SECONDS=6
 OUTPUT_FILE=""
 PLATFORM_HINT="auto"
 SKIP_DOCKER=false
 REQUESTED_PATHS=()
+REQUESTED_TCP_PORTS=()
 
 usage() {
   cat <<'USAGE'
@@ -23,9 +25,10 @@ Emit a bounded, redacted JSON profile using read-only host probes.
 
 Options:
   --path PATH              Inspect an explicit candidate path (repeat up to 8 times).
+  --check-tcp-port PORT    Prove whether one TCP port is listening (repeat up to 512 times).
   --platform-hint KIND     auto, macos, linux, vps, unraid, truenas,
                            proxmox-vm, or proxmox-lxc.
-  --limit N                Items per collection, from 1 through 50 (default: 24).
+  --limit N                Items per collection, from 1 through 512 (default: 24).
   --skip-docker            Do not query Docker or Docker Compose.
   --output FILE            Atomically create a new mode-0600 JSON file.
                            Existing paths and symlinks are refused.
@@ -55,6 +58,29 @@ while [ "$#" -gt 0 ]; do
         fail "--path may be supplied at most $MAX_PATHS times"
       fi
       REQUESTED_PATHS+=("$2")
+      shift 2
+      ;;
+    --check-tcp-port)
+      require_value "$@"
+      case "$2" in
+        ''|*[!0-9]*) fail "--check-tcp-port must be an integer from 1 through 65535" ;;
+      esac
+      if [ "$2" -lt 1 ] || [ "$2" -gt 65535 ]; then
+        fail "--check-tcp-port must be an integer from 1 through 65535"
+      fi
+      if [ "${#REQUESTED_TCP_PORTS[@]}" -ge "$MAX_TCP_PORT_CHECKS" ]; then
+        fail "--check-tcp-port may be supplied at most $MAX_TCP_PORT_CHECKS times"
+      fi
+      PORT_PRESENT=false
+      for EXISTING_PORT in "${REQUESTED_TCP_PORTS[@]}"; do
+        if [ "$EXISTING_PORT" = "$2" ]; then
+          PORT_PRESENT=true
+          break
+        fi
+      done
+      if [ "$PORT_PRESENT" = false ]; then
+        REQUESTED_TCP_PORTS+=("$2")
+      fi
       shift 2
       ;;
     --platform-hint)
@@ -376,6 +402,56 @@ fi
 LISTENERS_STATE="not_observable"
 LISTENER_STYLE="colon"
 LISTENERS=""
+LAN_IPV4_STATE="not_observable"
+LAN_IPV4_ROWS=""
+DNS_RESOLVER_STATE="not_observable"
+DNS_RESOLVERS=""
+SELECTED_TCP_PORTS_STATE="not_requested"
+SELECTED_TCP_MATCHES=""
+if [ "$KERNEL_NAME" = "Linux" ] && have_command ip; then
+  if LAN_IPV4_ROWS=$(run_bounded ip -o -4 addr show up scope global | LC_ALL=C awk '
+    function private(address, parts, count) {
+      count = split(address, parts, ".")
+      if (count != 4) return 0
+      for (part = 1; part <= 4; part += 1) {
+        if (parts[part] !~ /^[0-9]+$/ || parts[part] < 0 || parts[part] > 255) return 0
+      }
+      return parts[1] == 10 || (parts[1] == 172 && parts[2] >= 16 && parts[2] <= 31) || (parts[1] == 192 && parts[2] == 168)
+    }
+    $3 == "inet" && $2 !~ /^(docker|br-|veth|virbr|podman|cni|flannel|tailscale|wg)/ {
+      split($4, cidr, "/")
+      if (private(cidr[1]) && cidr[2] ~ /^[0-9]+$/ && cidr[2] >= 1 && cidr[2] <= 32) print $2 "\t" cidr[1] "\t" cidr[2]
+    }
+  ' | LC_ALL=C sed -n "1,${FETCH_LIMIT}p"); then
+    LAN_IPV4_STATE="observed"
+  fi
+elif [ "$KERNEL_NAME" = "Darwin" ] && have_command ifconfig; then
+  if LAN_IPV4_ROWS=$(run_bounded ifconfig -a | LC_ALL=C awk '
+    function private(address, parts, count) {
+      count = split(address, parts, ".")
+      if (count != 4) return 0
+      for (part = 1; part <= 4; part += 1) {
+        if (parts[part] !~ /^[0-9]+$/ || parts[part] < 0 || parts[part] > 255) return 0
+      }
+      return parts[1] == 10 || (parts[1] == 172 && parts[2] >= 16 && parts[2] <= 31) || (parts[1] == 192 && parts[2] == 168)
+    }
+    /^[A-Za-z0-9_.-]+:/ { interface = $1; sub(/:$/, "", interface); up = $0 ~ /<[^>]*UP/ }
+    $1 == "inet" && up && interface !~ /^(bridge[0-9]|docker|veth|utun|wg)/ && private($2) {
+      print interface "\t" $2 "\t" "unknown"
+    }
+  ' | LC_ALL=C sed -n "1,${FETCH_LIMIT}p"); then
+    LAN_IPV4_STATE="observed"
+  fi
+fi
+
+if [ -r /etc/resolv.conf ]; then
+  if DNS_RESOLVERS=$(LC_ALL=C awk '
+    $1 == "nameserver" && $2 ~ /^[0-9A-Fa-f:.]+$/ && length($2) <= 45 && !seen[$2]++ { print $2 }
+  ' /etc/resolv.conf 2>/dev/null | LC_ALL=C sed -n '1,5p'); then
+    DNS_RESOLVER_STATE="observed"
+  fi
+fi
+
 if have_command ss; then
   if LISTENERS=$(run_bounded ss -H -lntu | LC_ALL=C awk 'NF >= 5 { print $1 "\t" $5 }' | LC_ALL=C sed -n "1,${FETCH_LIMIT}p"); then
     LISTENERS_STATE="observed"
@@ -402,6 +478,80 @@ elif have_command netstat; then
     LISTENERS_STATE="observed"
   else
     LISTENERS=""
+  fi
+fi
+
+if [ "${#REQUESTED_TCP_PORTS[@]}" -gt 0 ]; then
+  SELECTED_TCP_PORTS_STATE="not_observable"
+  REQUESTED_TCP_LIST=""
+  for REQUESTED_TCP_PORT in "${REQUESTED_TCP_PORTS[@]}"; do
+    REQUESTED_TCP_LIST="${REQUESTED_TCP_LIST}:${REQUESTED_TCP_PORT}:"
+  done
+  if [ "$KERNEL_NAME" = "Linux" ] && [ -r /proc/net/tcp ] && [ -r /proc/net/tcp6 ]; then
+    REQUESTED_TCP_HEX_MAP=""
+    for REQUESTED_TCP_PORT in "${REQUESTED_TCP_PORTS[@]}"; do
+      REQUESTED_TCP_HEX=$(printf '%04X' "$REQUESTED_TCP_PORT")
+      REQUESTED_TCP_HEX_MAP="${REQUESTED_TCP_HEX_MAP}${REQUESTED_TCP_HEX}=${REQUESTED_TCP_PORT};"
+    done
+    SELECTED_TCP_RESULT=$(LC_ALL=C awk -v requested="$REQUESTED_TCP_HEX_MAP" '
+      BEGIN {
+        count = split(requested, pairs, ";")
+        for (cursor = 1; cursor <= count; cursor += 1) {
+          if (pairs[cursor] == "") continue
+          split(pairs[cursor], pair, "=")
+          wanted[pair[1]] = pair[2]
+        }
+      }
+      FNR == 1 {
+        if ($1 != "sl" || $2 != "local_address") invalid = 1
+        next
+      }
+      {
+        if (NF < 4 || $2 !~ /^[0-9A-Fa-f]+:[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]$/ || $4 !~ /^[0-9A-Fa-f][0-9A-Fa-f]$/) {
+          invalid = 1
+          next
+        }
+        split($2, address, ":")
+        port = toupper(address[2])
+        if ($4 == "0A" && wanted[port] != "" && !seen[port]++) print wanted[port]
+      }
+      END {
+        if (invalid) exit 2
+        print "__SELFHOST_COMPLETE__"
+      }
+    ' /proc/net/tcp /proc/net/tcp6 2>/dev/null || true)
+    case "$SELECTED_TCP_RESULT" in
+      __SELFHOST_COMPLETE__|*$'\n__SELFHOST_COMPLETE__')
+        SELECTED_TCP_PORTS_STATE="observed"
+        SELECTED_TCP_MATCHES=${SELECTED_TCP_RESULT%$'\n__SELFHOST_COMPLETE__'}
+        if [ "$SELECTED_TCP_MATCHES" = "__SELFHOST_COMPLETE__" ]; then
+          SELECTED_TCP_MATCHES=""
+        fi
+        ;;
+      *) SELECTED_TCP_MATCHES="" ;;
+    esac
+  elif [ "$KERNEL_NAME" = "Darwin" ] && have_command netstat; then
+    if SELECTED_TCP_MATCHES=$(
+      run_bounded netstat -an -p tcp | LC_ALL=C awk -v requested="$REQUESTED_TCP_LIST" '
+        $1 ~ /^tcp/ && $NF == "LISTEN" {
+          endpoint = $4
+          sub(/^.*\./, "", endpoint)
+          if (index(requested, ":" endpoint ":") > 0 && !seen[endpoint]++) print endpoint
+        }
+      '
+    ); then
+      SELECTED_TCP_PORTS_STATE="observed"
+    fi
+  elif have_command netstat; then
+    if SELECTED_TCP_MATCHES=$(run_bounded netstat -lntu | LC_ALL=C awk -v requested="$REQUESTED_TCP_LIST" '
+      NR > 2 && $1 ~ /^tcp/ {
+        endpoint = $4
+        sub(/^.*:/, "", endpoint)
+        if (index(requested, ":" endpoint ":") > 0 && !seen[endpoint]++) print endpoint
+      }
+    '); then
+      SELECTED_TCP_PORTS_STATE="observed"
+    fi
   fi
 fi
 
@@ -624,6 +774,63 @@ emit_listeners() {
   done <<EOF
 $LISTENERS
 EOF
+}
+
+emit_lan_ipv4() {
+  local interface address prefix
+  local emitted=0
+  while IFS=$'\t' read -r interface address prefix; do
+    if [ -z "$interface$address$prefix" ] || [ "$emitted" -ge "$LIMIT" ]; then
+      continue
+    fi
+    if [ "$emitted" -gt 0 ]; then
+      printf ',\n'
+    fi
+    printf '      {"interface": '
+    json_quote "$interface" 64
+    printf ', "address": '
+    json_quote "$address" 45
+    printf ', "prefixLength": '
+    if [ "$prefix" = "unknown" ]; then printf 'null'; else printf '%s' "$prefix"; fi
+    printf '}'
+    emitted=$((emitted + 1))
+  done <<EOF
+$LAN_IPV4_ROWS
+EOF
+}
+
+emit_dns_resolvers() {
+  local resolver
+  local emitted=0
+  while IFS= read -r resolver; do
+    if [ -z "$resolver" ] || [ "$emitted" -ge 4 ]; then
+      continue
+    fi
+    if [ "$emitted" -gt 0 ]; then
+      printf ', '
+    fi
+    json_quote "$resolver" 45
+    emitted=$((emitted + 1))
+  done <<EOF
+$DNS_RESOLVERS
+EOF
+}
+
+emit_selected_tcp_ports() {
+  local port
+  local emitted=0
+  local in_use
+  for port in "${REQUESTED_TCP_PORTS[@]}"; do
+    if [ "$emitted" -gt 0 ]; then
+      printf ',\n'
+    fi
+    in_use=false
+    if printf '%s\n' "$SELECTED_TCP_MATCHES" | LC_ALL=C awk -v wanted="$port" '$0 == wanted { found = 1 } END { exit !found }'; then
+      in_use=true
+    fi
+    printf '      {"port": %s, "inUse": %s}' "$port" "$in_use"
+    emitted=$((emitted + 1))
+  done
 }
 
 emit_storage_path() {
@@ -916,11 +1123,28 @@ emit_report() {
   printf '  },\n'
 
   printf '  "network": {\n'
+  printf '    "lanIpv4Candidates": {"state": '
+  json_quote "$LAN_IPV4_STATE" 32
+  printf ', "items": [\n'
+  emit_lan_ipv4
+  printf '\n    ], "truncated": %s},\n' "$(is_truncated "$LAN_IPV4_ROWS")"
+  printf '    "dnsResolverCandidates": {"state": '
+  json_quote "$DNS_RESOLVER_STATE" 32
+  printf ', "items": ['
+  emit_dns_resolvers
+  printf '], "truncated": %s},\n' "$(if [ "$(line_count "$DNS_RESOLVERS")" -gt 4 ]; then printf true; else printf false; fi)"
   printf '    "listeningPorts": {"state": '
   json_quote "$LISTENERS_STATE" 32
   printf ', "items": [\n'
   emit_listeners
-  printf '\n    ], "truncated": %s}\n' "$(is_truncated "$LISTENERS")"
+  printf '\n    ], "truncated": %s},\n' "$(is_truncated "$LISTENERS")"
+  printf '    "selectedTcpPorts": {"state": '
+  json_quote "$SELECTED_TCP_PORTS_STATE" 32
+  printf ', "complete": '
+  if [ "$SELECTED_TCP_PORTS_STATE" = "observed" ]; then printf 'true'; else printf 'false'; fi
+  printf ', "items": [\n'
+  emit_selected_tcp_ports
+  printf '\n    ]}\n'
   printf '  },\n'
 
   printf '  "storage": {\n'

@@ -442,7 +442,25 @@ export function loadProfile(profilePath, options = {}) {
 
 export function validateCapabilityPolicy(value) {
   rejectSecretFields(value);
-  if (value.schemaVersion !== 1 || value.mode !== "integration-request" || !Array.isArray(value.rules)) {
+  if (value.schemaVersion !== 1) {
+    throw new Error("integration policy is invalid");
+  }
+  if (value.mode === "media-request") {
+    const keys = Object.keys(value);
+    const expected = new Set(["schemaVersion", "mode", "integrationId"]);
+    if (keys.length !== expected.size || keys.some((key) => !expected.has(key))) {
+      throw new Error("media request policy fields are invalid");
+    }
+    if (typeof value.integrationId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(value.integrationId)) {
+      throw new Error("media request policy integration is invalid");
+    }
+    return {
+      schemaVersion: 1,
+      mode: "media-request",
+      integrationId: value.integrationId,
+    };
+  }
+  if (value.mode !== "integration-request" || !Array.isArray(value.rules)) {
     throw new Error("integration policy is invalid");
   }
   if (value.rules.length < 1 || value.rules.length > 32) {

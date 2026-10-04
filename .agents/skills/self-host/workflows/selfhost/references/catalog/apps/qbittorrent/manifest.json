@@ -1,0 +1,57 @@
+{
+  "id": "qbittorrent",
+  "name": "qBittorrent",
+  "aliases": [
+    "torrent client",
+    "torrent downloader"
+  ],
+  "categories": [
+    "downloads"
+  ],
+  "roles": [
+    "torrent-download"
+  ],
+  "upstream": {
+    "url": "https://www.qbittorrent.org/",
+    "repository": "https://github.com/qbittorrent/qBittorrent",
+    "docs": "https://github.com/qbittorrent/qBittorrent/wiki"
+  },
+  "image": {
+    "reference": "ghcr.io/hotio/qbittorrent:release-5.2.3",
+    "source": "community",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Active upstream; the checked Hotio release tag is qBittorrent 5.2.3 while upstream 5.2.4 is newer."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "qBittorrent"
+  },
+  "dependencies": [
+    "capability:download-storage"
+  ],
+  "alternatives": [
+    "sabnzbd"
+  ],
+  "security": [
+    "Keep the WebUI private and separately approve downloader VPN routing.",
+    "Verify the selected image's first-run credential mechanism before automating login; do not assume another publisher's temporary-password log format."
+  ],
+  "pitfalls": [
+    "The WebUI and peer-listener ports are separate; do not publish peer ports without an explicit choice.",
+    "VPN status alone does not prove a working kill switch."
+  ],
+  "sources": [
+    "https://github.com/qbittorrent/qBittorrent/releases",
+    "https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-%28qBittorrent-5.0%29",
+    "https://hotio.dev/containers/qbittorrent/"
+  ]
+}

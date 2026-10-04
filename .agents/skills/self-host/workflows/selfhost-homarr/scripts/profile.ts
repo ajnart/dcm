@@ -135,7 +135,7 @@ async function main() {
       throw new Error("profile path is required");
     }
     storeCapabilityPolicy(args[0], await jsonFromStdin());
-    process.stdout.write("PASS Homarr integration-request policy stored\n");
+    process.stdout.write("PASS Homarr capability policy stored\n");
     return;
   }
   throw new Error("unknown profile command");

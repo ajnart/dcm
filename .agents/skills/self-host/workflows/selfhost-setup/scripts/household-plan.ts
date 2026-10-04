@@ -19,7 +19,7 @@ type HouseholdInput = {
   schemaVersion: 1;
   project: Record<string, unknown>;
   observed: Record<string, unknown>;
-  network: { id: string; name: string; internal: boolean };
+  network: { id: string; name: string; internal: boolean; subnet?: string };
   integrationNetwork?: { id: string; name: string; owner: string };
   apps: {
     navidrome?: CommonApp & { storage: { data: Storage; music: Storage } };
@@ -140,14 +140,28 @@ export function buildHouseholdManifest(rawInput: unknown) {
   }
   const project = requireObject(input.project, "project");
   const network = requireObject(input.network, "network");
-  exactKeys(network, ["id", "name", "internal"], [], "network");
+  exactKeys(network, ["id", "name", "internal"], ["subnet"], "network");
+  if (Object.hasOwn(network, "subnet") && typeof network.subnet !== "string") {
+    fail("network.subnet must be a string when supplied");
+  }
   const apps = requireObject(input.apps, "apps");
   exactKeys(apps, [], [...APP_IDS], "apps");
   if (Object.keys(apps).length === 0) {
     fail("apps must select at least one supported application");
   }
 
-  const networks = [{ id: network.id, name: network.name, driver: "bridge", internal: network.internal, owner: project.owner, ownership: "new" }];
+  const primaryNetwork: Record<string, unknown> = {
+    id: network.id,
+    name: network.name,
+    driver: "bridge",
+    internal: network.internal,
+    owner: project.owner,
+    ownership: "new"
+  };
+  if (network.subnet !== undefined) {
+    primaryNetwork.subnet = network.subnet;
+  }
+  const networks = [primaryNetwork];
   const networkIds = [network.id];
   if (input.integrationNetwork) {
     const integration = requireObject(input.integrationNetwork, "integrationNetwork");

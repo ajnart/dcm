@@ -1,0 +1,55 @@
+{
+  "id": "ollama",
+  "name": "Ollama",
+  "aliases": [
+    "local llm",
+    "run ai locally"
+  ],
+  "categories": [
+    "local-ai"
+  ],
+  "roles": [
+    "model-server"
+  ],
+  "upstream": {
+    "url": "https://ollama.com/",
+    "repository": "https://github.com/ollama/ollama",
+    "docs": "https://github.com/ollama/ollama/blob/main/docs/docker.md"
+  },
+  "image": {
+    "reference": "ollama/ollama:0.34.1",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-08-28",
+    "note": "Model server whose hardware and model licenses are separate decisions."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:model-storage",
+    "capability:accelerator"
+  ],
+  "alternatives": [
+    "open-webui",
+    "grafana"
+  ],
+  "security": [
+    "Bind the model API privately and approve GPU device access."
+  ],
+  "pitfalls": [
+    "Model downloads are large and each model has its own license and memory needs."
+  ],
+  "sources": [
+    "https://github.com/ollama/ollama/blob/main/docs/docker.md"
+  ]
+}

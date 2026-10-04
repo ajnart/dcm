@@ -1,15 +1,23 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
+import { writeSync } from "node:fs";
 import {
+  CATALOG_DIRECTORY,
+  availableCatalog,
+  buildCompositePlan,
   buildPlan,
   catalogMenu,
   findApp,
   homarrCoverage,
   listApps,
   loadCatalog,
+  resolveCatalogDirectory,
+  resolveExplicitComponents,
   resolvePlanTarget,
   stackForGoalId,
   searchApps,
+  validateCatalogRecipes,
   validateCatalog
 } from "./catalog.ts";
 import {
@@ -28,6 +36,7 @@ import {
   initProjectState,
   loadProjectState,
   projectFreshness,
+  projectGoalIds,
   projectStatePathForProjectRoot,
   publicProjectState,
   reviseProjectState
@@ -48,19 +57,25 @@ function usage() {
   return `Selfhost router
 
 Plan:
-  plan [goal...] --project-root ABSOLUTE [--select role=app] [--json]
+  plan [request...] --project-root ABSOLUTE [--catalog-dir ABSOLUTE] [--goal ID] [--app ID] [--compose] [--select role=app] [--json]
 
 Catalog:
+  catalog <action> [--catalog-dir ABSOLUTE] [--json]
   catalog menu [--json]
   catalog list [--category NAME] [--support LEVEL] [--tier T0|T1|T2] [--json]
   catalog search <words...> [--json]
   catalog show <app-id> [--json]
+  catalog recipes [--json]
+  catalog recipe <app-id> [--json]
+  catalog workflow --app ID --app ID [--select control-plane=none|homarr] [--json]
   catalog homarr [--status supported|gap] [--json]
   catalog validate [--json]
 
 State:
-  state init <goal...> --project-root ABSOLUTE [--select role=app] [--json]
-  state revise <same-goal...> --project-root ABSOLUTE [--select role=app] [--json]
+  state init <request...> --project-root ABSOLUTE [--catalog-dir ABSOLUTE] [--goal ID] [--app ID] [--compose] [--select role=app] [--json]
+  state revise <same-request...> --project-root ABSOLUTE [--catalog-dir ABSOLUTE] [--goal ID] [--app ID] [--compose] [--select role=app] [--json]
+  state status --project-root ABSOLUTE [--json]
+  state resume --project-root ABSOLUTE [--json]
   state checkpoint <inspected|planned|applied|verified> --project-root ABSOLUTE [--evidence TYPE:ID] [--json]
 
 Non-secret preferences:
@@ -71,7 +86,7 @@ Non-secret preferences:
 }
 
 function parseArguments(input) {
-  const flags = { json: false, selections: [], evidence: [] };
+  const flags = { json: false, compose: false, selections: [], evidence: [], goals: [], apps: [] };
   const positional = [];
   for (let index = 0; index < input.length; index += 1) {
     const value = input[index];
@@ -83,7 +98,11 @@ function parseArguments(input) {
       flags.json = true;
       continue;
     }
-    const supported = new Set(["--path", "--preferences", "--project-root", "--category", "--support", "--status", "--tier", "--select", "--evidence"]);
+    if (value === "--compose") {
+      flags.compose = true;
+      continue;
+    }
+    const supported = new Set(["--path", "--preferences", "--project-root", "--catalog-dir", "--category", "--support", "--status", "--tier", "--select", "--evidence", "--goal", "--app"]);
     if (!supported.has(value)) {
       throw new Error("Unknown option. Run --help for supported flags.");
     }
@@ -100,9 +119,52 @@ function parseArguments(input) {
       flags.evidence.push(optionValue);
       continue;
     }
+    if (value === "--goal") {
+      flags.goals.push(optionValue);
+      continue;
+    }
+    if (value === "--app") {
+      flags.apps.push(optionValue);
+      continue;
+    }
     flags[value.slice(2)] = optionValue;
   }
   return { flags, positional };
+}
+
+function resolveRequestedTarget(catalog, parsed) {
+  const explicit = parsed.flags.goals.length > 0 || parsed.flags.apps.length > 0;
+  if (explicit) {
+    if (parsed.positional.length > 0) {
+      throw new Error("Use either a free-text request or repeat --goal/--app IDs, not both.");
+    }
+    return resolveExplicitComponents(catalog, parsed.flags.goals, parsed.flags.apps);
+  }
+  if (parsed.positional.length > 1) {
+    const goalIds = [];
+    const appIds = [];
+    let allIds = true;
+    for (const id of parsed.positional) {
+      if (catalog.stacks.some((stack) => stack.id === id)) {
+        goalIds.push(id);
+      } else if (catalog.apps.some((app) => app.id === id)) {
+        appIds.push(id);
+      } else {
+        allIds = false;
+        break;
+      }
+    }
+    if (allIds) {
+      return resolveExplicitComponents(catalog, goalIds, appIds);
+    }
+  }
+  return resolvePlanTarget(catalog, parsed.positional.join(" "));
+}
+
+function rejectComponentSelectors(flags) {
+  if (flags.goals.length > 0 || flags.apps.length > 0) {
+    throw new Error("--goal and --app are only accepted by plan, state init, and state revise.");
+  }
 }
 
 function parseSelections(values) {
@@ -122,6 +184,34 @@ function parseSelections(values) {
   return selections;
 }
 
+function resolutionGoalIds(resolution) {
+  if (resolution.resolved && resolution.stack) {
+    return [resolution.stack.id];
+  }
+  if (resolution.kind === "composite" && !resolution.needsClarification) {
+    return resolution.components.map((component) => component.id);
+  }
+  return [];
+}
+
+function sameGoalIds(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function planFromResolution(catalog, resolution, selections, preferences, compose) {
+  if (resolution.resolved) {
+    return buildPlan(catalog, resolution.stack, selections, preferences);
+  }
+  if (!compose || resolution.kind !== "composite" || resolution.needsClarification) {
+    return null;
+  }
+  const stacks = resolution.components.map((component) => stackForGoalId(catalog, component.id));
+  if (stacks.some((stack) => stack === null)) {
+    throw new Error("One or more composition goals are no longer available in the current catalog.");
+  }
+  return buildCompositePlan(catalog, stacks, selections, preferences);
+}
+
 async function preferencePathFromFlags(flags, explicitFlag) {
   const explicitPath = flags[explicitFlag];
   const projectRoot = flags["project-root"];
@@ -137,6 +227,30 @@ async function preferencePathFromFlags(flags, explicitFlag) {
   return null;
 }
 
+function writeJson(value) {
+  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const pause = new Int32Array(new SharedArrayBuffer(4));
+  let offset = 0;
+  let stalls = 0;
+  while (offset < bytes.length) {
+    let written = 0;
+    try {
+      written = writeSync(1, bytes, offset, bytes.length - offset);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EAGAIN" && code !== "EINTR") throw error;
+    }
+    if (written <= 0) {
+      stalls += 1;
+      if (stalls > 5000) throw new Error("catalog JSON output stopped before completion");
+      Atomics.wait(pause, 0, 0, 1);
+      continue;
+    }
+    stalls = 0;
+    offset += written;
+  }
+}
+
 function printJson(value) {
   if (
     value
@@ -144,7 +258,7 @@ function printJson(value) {
     && typeof value.command === "string"
     && typeof value.mutation === "boolean"
   ) {
-    process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+    writeJson(value);
     return;
   }
   let status = activeStatus;
@@ -175,7 +289,7 @@ function printJson(value) {
   if (value && Array.isArray(value.unresolvedIntents)) {
     decisions.push(...value.unresolvedIntents);
   }
-  process.stdout.write(`${JSON.stringify({
+  writeJson({
     schemaVersion: 1,
     status,
     command: activeCommand,
@@ -184,7 +298,7 @@ function printJson(value) {
     decisions,
     limitations,
     summary
-  }, null, 2)}\n`);
+  });
 }
 
 function buildSimpleSummary(options) {
@@ -345,6 +459,22 @@ function catalogAppPurpose(catalog, app) {
   return `${app.name} is a self-hosted application in the ${plainRoleList(app.categories)} catalog.`;
 }
 
+// These IDs have an actual legacy app apply route. A recipe alone is not an installer.
+const legacyAppApplyRoutes = new Set(["homarr", "immich", "nextcloud", "paperless-ngx", "prowlarr", "uptime-kuma"]);
+
+function recipeCapability(catalogSource, recipe) {
+  const packaged = catalogSource.kind === "bundled" && catalogSource.executionAuthority === "packaged";
+  const supportedVersion = recipe.schemaVersion === 1
+    || (recipe.schemaVersion === 2 && ["initial-admin-from-file", "manual-first-admin"].includes(recipe.onboarding?.kind))
+    || (recipe.schemaVersion === 2 && recipe.appId === "immich"
+      && recipe.onboarding?.kind === "api-first-admin"
+      && recipe.onboarding?.adapter === "immich-v3.2.2");
+  return { inspect: true, boundedApply: packaged && supportedVersion && legacyAppApplyRoutes.has(recipe.appId),
+    sharedApply: packaged && recipe.schemaVersion === 2 && recipe.kind === "multi-service-compose",
+    maturity: recipe.schemaVersion === 2 ? "experimental" : "preview",
+    applicationAcceptance: "requires-direct-per-project-checks" };
+}
+
 function printApp(app, purpose) {
   process.stdout.write(`${app.name} (${app.id})\n`);
   process.stdout.write(`  purpose: ${purpose}\n`);
@@ -410,6 +540,10 @@ function looksLikeItemSearch(query, catalog) {
 
 function printResolution(result, query = "", catalog = null) {
   if (!result.resolved) {
+    if (result.kind === "unavailable") {
+      process.stdout.write(`The ${result.matched} feature is unavailable because a required catalog app is missing. Restore its app folder or choose another goal.\n`);
+      return;
+    }
     if (result.needsComposition) {
       process.stdout.write("This request needs composition across these goals:\n");
       for (const component of result.components) {
@@ -423,7 +557,7 @@ function printResolution(result, query = "", catalog = null) {
         process.stdout.write("Choose every unresolved intent before composing or planning the goals.\n");
         return;
       }
-      process.stdout.write("Confirm the combined scope, then plan each component with shared host facts.\n");
+      process.stdout.write("To confirm the combined scope, rerun this plan with --compose.\n");
       return;
     }
     if (result.ambiguous) {
@@ -462,6 +596,10 @@ function buildResolutionSummary(result, query = "", catalog = null) {
     outcome = `Matched the request to ${result.stack.name}.`;
     blocker = "A service plan has not been created yet.";
     next = "Create the read-only stack plan for this goal.";
+  } else if (result.kind === "unavailable") {
+    outcome = `The ${result.matched} goal is unavailable in this catalog installation.`;
+    blocker = "A required application module is missing; no substitute was selected.";
+    next = "Restore the missing app folder or choose another available goal.";
   } else if (result.needsComposition && result.needsClarification) {
     outcome = "The request combines goals but one part is still ambiguous.";
     blocker = "Choose every unresolved intent before planning the combined setup.";
@@ -553,6 +691,9 @@ function printPlainSummary(plan, projectContext = null, options = {}) {
 
 function printPlan(plan, projectContext = null) {
   process.stdout.write(`Read-only plan ${plan.planId}: ${plan.goal.name}\n`);
+  if (plan.catalogSource?.kind === "external") {
+    process.stdout.write(`External catalog: ${plan.catalogSource.directory} (${plan.catalogSource.sha256})\n`);
+  }
   process.stdout.write(`${plan.goal.summary}\n`);
   process.stdout.write(`Stack capability: ${plan.goal.automation}; effective automation: ${plan.effectiveAutomation}.\n`);
   process.stdout.write("\nRoles\n");
@@ -583,18 +724,94 @@ function printPlan(plan, projectContext = null) {
   printPlainSummary(plan, projectContext);
 }
 
-async function ensureCatalog() {
-  const catalog = await loadCatalog();
-  const validation = validateCatalog(catalog);
+async function ensureCatalog(strict = false, requestedDirectory = undefined) {
+  const directory = await resolveCatalogDirectory(requestedDirectory);
+  const packagedDirectory = await resolveCatalogDirectory(CATALOG_DIRECTORY);
+  const source = await loadCatalog(directory);
+  const catalog = strict ? source : availableCatalog(source);
+  const validation = validateCatalog(catalog, { runtime: !strict });
   if (!validation.valid) {
     throw new Error(`Catalog validation failed: ${validation.errors.join(" ")}`);
   }
-  return { catalog, validation };
+  const recipes = await validateCatalogRecipes(catalog, directory);
+  validation.counts.recipes = recipes.count;
+  validation.errors.push(...recipes.errors);
+  validation.valid = validation.errors.length === 0;
+  if (!validation.valid) {
+    throw new Error(`Catalog recipe validation failed: ${validation.errors.join(" ")}`);
+  }
+  const sourceSha256 = createHash("sha256").update(JSON.stringify({
+    catalog: source, recipes: recipes.fingerprints,
+  })).digest("hex");
+  const external = directory !== packagedDirectory;
+  const catalogSource = {
+    kind: external ? "external" : "bundled",
+    directory: external ? directory : null,
+    sha256: sourceSha256,
+    executionAuthority: external ? "read-only-declarative" : "packaged",
+  };
+  return { catalog, validation, directory, catalogSource, loadedRecipes: recipes.loadedRecipes };
+}
+
+function printCatalogSource(source) {
+  if (source.kind !== "external") return;
+  process.stdout.write(`External catalog: ${source.directory} (${source.sha256})\n`);
+  process.stdout.write("Read-only data: project choices can be saved, but this catalog cannot be applied yet.\n");
+}
+
+async function confirmCatalogSnapshot(catalogSource) {
+  const current = await ensureCatalog(false, catalogSource.directory ?? undefined);
+  if (JSON.stringify(current.catalogSource) !== JSON.stringify(catalogSource)) {
+    throw new Error("Catalog data changed before the project write; rebuild the plan and try again.");
+  }
+}
+
+function bindCatalogPlan(plan, catalogSource) {
+  plan.catalogSource = catalogSource;
+  if (catalogSource.kind !== "external") return plan;
+  plan.planId = createHash("sha256").update(JSON.stringify({
+    planId: plan.planId, source: catalogSource,
+  })).digest("hex").slice(0, 16);
+  const caution = "This external catalog is operator-supplied data; its support claims and recipes are not approved for automatic apply.";
+  plan.unresolved.push(caution);
+  if (plan.summary.blockers !== plan.unresolved) plan.summary.blockers.push(caution);
+  return plan;
 }
 
 async function handleCatalog(action, args) {
   const parsed = parseArguments(args);
-  const loaded = await ensureCatalog();
+  if (action === "workflow") {
+    if (parsed.positional.length > 0 || parsed.flags.goals.length > 0
+      || parsed.flags.apps.length < 2 || parsed.flags.apps.length > 8
+      || parsed.flags["catalog-dir"] || parsed.flags["project-root"]
+      || parsed.flags.compose || parsed.flags.evidence.length > 0
+      || Object.keys(parsed.flags).some((key) => ![
+        "json", "compose", "selections", "evidence", "goals", "apps"
+      ].includes(key))
+      || parsed.flags.selections.length !== 1
+      || !["control-plane=none", "control-plane=homarr"].includes(parsed.flags.selections[0])) {
+      throw new Error("catalog workflow needs 2-8 --app IDs and one --select control-plane=none|homarr; it has no project state");
+    }
+    const loaded = await ensureCatalog();
+    const resolution = resolveExplicitComponents(loaded.catalog, [], parsed.flags.apps);
+    const plan = planFromResolution(loaded.catalog, resolution,
+      parseSelections(parsed.flags.selections), null, true);
+    if (!plan || loaded.catalogSource.kind !== "bundled") {
+      throw new Error("catalog workflow needs a bundled, resolvable app selection");
+    }
+    const result = { planId: plan.planId, workflow: plan.workflow,
+      setupStages: plan.setupStages, selectedApps: plan.selectedApps.map((app) => app.id),
+      catalogSource: loaded.catalogSource };
+    if (parsed.flags.json) {
+      printJson(result);
+      return;
+    }
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  rejectComponentSelectors(parsed.flags);
+  const loaded = await ensureCatalog(action === "validate", parsed.flags["catalog-dir"]);
+  if (!parsed.flags.json) printCatalogSource(loaded.catalogSource);
   if (action === "validate") {
     const counts = loaded.validation.counts;
     const summary = buildSimpleSummary({
@@ -604,7 +821,7 @@ async function handleCatalog(action, args) {
       next: "Choose a goal or run the repository validator before publishing catalog changes."
     });
     if (parsed.flags.json) {
-      printJson({ ...loaded.validation, summary });
+      printJson({ ...loaded.validation, catalogSource: loaded.catalogSource, summary });
       return;
     }
     process.stdout.write(`Catalog valid: ${counts.apps} apps, ${counts.stacks} stacks, ${counts.categories} categories, ${counts.skills} skills (${counts.adapters} adapters), ${counts.affiliates} affiliates.\n`);
@@ -619,7 +836,7 @@ async function handleCatalog(action, args) {
     const menu = catalogMenu(loaded.catalog);
     const summary = buildMenuSummary();
     if (parsed.flags.json) {
-      printJson({ ...menu, summary });
+      printJson({ ...menu, catalogSource: loaded.catalogSource, summary });
       return;
     }
     printMenu(menu, summary);
@@ -650,7 +867,7 @@ async function handleCatalog(action, args) {
     }
     const summary = buildSimpleSummary(summaryOptions);
     if (parsed.flags.json) {
-      printJson({ apps, summary });
+      printJson({ apps, catalogSource: loaded.catalogSource, summary });
       return;
     }
     printAppList(apps);
@@ -674,7 +891,7 @@ async function handleCatalog(action, args) {
     }
     const summary = buildSimpleSummary(summaryOptions);
     if (parsed.flags.json) {
-      printJson({ results, summary });
+      printJson({ results, catalogSource: loaded.catalogSource, summary });
       return;
     }
     printAppList(results, true);
@@ -699,10 +916,91 @@ async function handleCatalog(action, args) {
       next: "Compare alternatives or choose a goal before planning host changes."
     });
     if (parsed.flags.json) {
-      printJson({ app: publicApp, summary });
+      printJson({ app: publicApp, catalogSource: loaded.catalogSource, summary });
       return;
     }
     printApp(app, purpose);
+    printSimpleSummary(summary);
+    return;
+  }
+  if (action === "recipes") {
+    if (parsed.positional.length > 0) throw new Error("catalog recipes accepts no app ID; use catalog recipe <app-id>.");
+    const recipes = [...loaded.loadedRecipes.entries()].map(([appId, loadedRecipe]) => {
+      const app = loaded.catalog.apps.find((candidate) => candidate.id === appId);
+      if (!app) throw new Error(`Validated recipe ${appId} has no catalog application.`);
+      const recipe = loadedRecipe.recipe;
+      return { appId, name: app.name, purpose: catalogAppPurpose(loaded.catalog, app),
+        kind: recipe.kind, schemaVersion: recipe.schemaVersion, execution: recipe.execution ?? null,
+        serviceCount: recipe.services?.length ?? 1,
+        defaultPort: recipe.defaults.publishedPort, recipeSha256: loadedRecipe.sha256,
+        bundledDependencies: loadedRecipe.bundledDependencies,
+        recipeCapability: recipeCapability(loaded.catalogSource, recipe) };
+    }).sort((left, right) => left.name.localeCompare(right.name));
+    const summary = buildSimpleSummary({ goal: "Browse deployable application recipes",
+      outcome: `Listed ${recipes.length} validated recipe(s).`,
+      next: "Launch self-host to select apps, or review app shared plan before approving the shared Compose deployment." });
+    if (parsed.flags.json) {
+      printJson({ recipes, catalogSource: loaded.catalogSource, summary });
+      return;
+    }
+    for (const recipe of recipes) {
+      let sharedApply = "unavailable";
+      let legacyApply = "unavailable";
+      if (recipe.recipeCapability.sharedApply) sharedApply = "available after approval";
+      if (recipe.recipeCapability.boundedApply) legacyApply = "available after approval";
+      process.stdout.write(`${recipe.name} (${recipe.appId}): ${recipe.serviceCount} service(s), shared Compose ${sharedApply}, legacy standalone apply ${legacyApply}; application checks separate\n`);
+    }
+    printSimpleSummary(summary);
+    return;
+  }
+  if (action === "recipe") {
+    if (parsed.positional.length !== 1) {
+      throw new Error("catalog recipe requires exactly one app ID.");
+    }
+    const appId = parsed.positional[0];
+    const app = loaded.catalog.apps.find((candidate) => candidate.id === appId);
+    if (!app) throw new Error(`App ${appId} is unavailable in this catalog.`);
+    const loadedRecipe = loaded.loadedRecipes.get(appId);
+    if (!loadedRecipe) throw new Error(`App ${appId} has no catalog recipe yet.`);
+    const capability = recipeCapability(loaded.catalogSource, loadedRecipe.recipe);
+    let next = "Inspect the host, resolve immutable image digests, and review an exact Compose plan before applying.";
+    if (capability.sharedApply) {
+      next = "Launch self-host to select this app, or review app shared plan for one managed Compose project. First-run and application verification remain separate.";
+    } else if (!capability.boundedApply) {
+      next = loaded.catalogSource.kind === "external"
+        ? "Review this recipe as data; an external catalog cannot authorize app apply."
+        : "Review this recipe as data; its API onboarding is not connected to bounded app apply yet.";
+    }
+    const summary = buildSimpleSummary({
+      goal: `Review ${app.name} recipe`,
+      outcome: `Displayed the validated, read-only ${app.name} Compose recipe.`,
+      next
+    });
+    if (parsed.flags.json) {
+      printJson({ appId, app, name: app.name, purpose: catalogAppPurpose(loaded.catalog, app),
+        recipe: loadedRecipe.recipe, recipeSha256: loadedRecipe.sha256, recipeCapability: capability,
+        ...(loadedRecipe.previousRecipes ? { previousRecipes: loadedRecipe.previousRecipes } : {}),
+        catalogSource: loaded.catalogSource, summary });
+      return;
+    }
+    process.stdout.write(`${app.name} recipe (${loadedRecipe.recipe.kind})\n`);
+    process.stdout.write(`Source: ${loadedRecipe.recipe.source}\n`);
+    const images = loadedRecipe.recipe.service
+      ? [loadedRecipe.recipe.service]
+      : loadedRecipe.recipe.services;
+    for (const service of images) {
+      process.stdout.write(`Image tag to resolve (${service.id}): ${service.imageTag}\n`);
+    }
+    let sharedApply = "not available";
+    if (capability.sharedApply) sharedApply = "available after exact approval";
+    process.stdout.write(`Shared Compose apply: ${sharedApply}; first-run and application checks separate\n`);
+    process.stdout.write(`Legacy standalone apply: ${capability.boundedApply ? "available after exact approval" : "not available"} (${capability.maturity}; application checks separate)\n`);
+    if (loadedRecipe.recipe.execution?.kind === "manual-job") {
+      process.stdout.write("Manual job: no frontend; ordinary apply only prepares configuration and never executes it.\n");
+    } else {
+      process.stdout.write(`Default private port: ${loadedRecipe.recipe.defaults.hostIp}:${loadedRecipe.recipe.defaults.publishedPort}\n`);
+    }
+    process.stdout.write("This is catalog data, not an applied service or an approval.\n");
     printSimpleSummary(summary);
     return;
   }
@@ -720,7 +1018,7 @@ async function handleCatalog(action, args) {
       next: "Use a supported integration or research a listed gap before planning it."
     });
     if (parsed.flags.json) {
-      printJson({ ...coverage, summary });
+      printJson({ ...coverage, catalogSource: loaded.catalogSource, summary });
       return;
     }
     printHomarrCoverage(coverage);
@@ -739,27 +1037,26 @@ async function handlePlan(args) {
   if (parsed.flags.evidence.length > 0) {
     throw new Error("plan does not accept evidence IDs");
   }
-  const loaded = await ensureCatalog();
+  const projectCatalog = await loadProjectCatalog(projectRoot, parsed.flags["catalog-dir"]);
+  const { loaded, saved } = projectCatalog;
   const query = parsed.positional.join(" ");
-  if (!query) {
+  if (!query && parsed.flags.goals.length === 0 && parsed.flags.apps.length === 0) {
     if (parsed.flags.selections.length > 0) {
       throw new Error("plan requires a goal before role selections can be applied");
     }
-    const statePath = await projectStatePathForProjectRoot(projectRoot);
-    const saved = await loadProjectState(statePath, { allowMissing: true });
     if (!saved.exists) {
       const menu = catalogMenu(loaded.catalog);
       const summary = buildMenuSummary();
       activeStatus = "blocked";
       if (parsed.flags.json) {
-        printJson({ ...menu, summary });
+        printJson({ ...menu, catalogSource: loaded.catalogSource, summary });
       } else {
         printMenu(menu, summary);
       }
       process.exitCode = 3;
       return;
     }
-    const recorded = await loadRecordedProject(loaded.catalog, projectRoot);
+    const recorded = await loadRecordedProject(loaded.catalog, projectRoot, loaded.catalogSource, saved);
     if (parsed.flags.json) {
       printJson(recorded.plan);
       return;
@@ -768,8 +1065,11 @@ async function handlePlan(args) {
     return;
   }
 
-  const resolution = resolvePlanTarget(loaded.catalog, query);
-  if (!resolution.resolved) {
+  const resolution = resolveRequestedTarget(loaded.catalog, parsed);
+  const canCompose = parsed.flags.compose
+    && resolution.kind === "composite"
+    && !resolution.needsClarification;
+  if (!resolution.resolved && !canCompose) {
     const summary = buildResolutionSummary(resolution, query, loaded.catalog);
     activeStatus = "blocked";
     if (parsed.flags.json) {
@@ -785,22 +1085,25 @@ async function handlePlan(args) {
   const selections = parseSelections(parsed.flags.selections);
   const preferencePath = await preferencesPathForProjectRoot(projectRoot);
   const loadedPreferences = await loadPreferences(preferencePath, { allowMissing: true });
-  const statePath = await projectStatePathForProjectRoot(projectRoot);
-  const saved = await loadProjectState(statePath, { allowMissing: true });
   let effectiveSelections = selections;
   let projectContext = null;
   if (saved.exists) {
-    if (saved.document.goalId !== resolution.stack.id) {
+    if (!sameGoalIds(projectGoalIds(saved.document), resolutionGoalIds(resolution))) {
       throw new Error("Conflict: this project root already records a different goal");
     }
     effectiveSelections = { ...saved.document.selections, ...selections };
   }
-  const plan = buildPlan(
+  const plan = planFromResolution(
     loaded.catalog,
-    resolution.stack,
+    resolution,
     effectiveSelections,
-    loadedPreferences.document
+    loadedPreferences.document,
+    parsed.flags.compose
   );
+  if (plan === null) {
+    throw new Error("Composition requires --compose and every ambiguous intent must be resolved first.");
+  }
+  bindCatalogPlan(plan, loaded.catalogSource);
   if (saved.exists) {
     projectContext = projectFreshness(saved.document, plan);
     plan.projectContext = projectContext;
@@ -822,17 +1125,45 @@ function requireProjectRoot(flags) {
   return flags["project-root"];
 }
 
-async function loadRecordedProject(catalog, projectRoot) {
+async function loadProjectCatalog(projectRoot, requestedDirectory) {
   const statePath = await projectStatePathForProjectRoot(projectRoot);
-  const saved = await loadProjectState(statePath);
-  const stack = stackForGoalId(catalog, saved.document.goalId);
-  if (!stack) {
-    throw new Error("The recorded project goal is no longer available in the current catalog.");
+  const saved = await loadProjectState(statePath, { allowMissing: true });
+  let directory = requestedDirectory;
+  if (saved.exists) {
+    const recorded = saved.document.catalogSource;
+    const packagedDirectory = await resolveCatalogDirectory(CATALOG_DIRECTORY);
+    const expectedDirectory = recorded?.kind === "external" ? recorded.directory : packagedDirectory;
+    if (requestedDirectory && await resolveCatalogDirectory(requestedDirectory) !== expectedDirectory) {
+      throw new Error("This project is bound to a different catalog directory; use its saved source or a new project root.");
+    }
+    directory = recorded?.kind === "external" ? recorded.directory : undefined;
+  }
+  const loaded = await ensureCatalog(false, directory);
+  if (saved.exists && saved.document.catalogSource?.kind === "external"
+    && loaded.catalogSource.kind !== "external") {
+    throw new Error("The saved external catalog now resolves to the packaged catalog; use a new project root for a source change.");
+  }
+  return { statePath, saved, loaded };
+}
+
+async function loadRecordedProject(catalog, projectRoot, catalogSource, savedRecord = null) {
+  const statePath = await projectStatePathForProjectRoot(projectRoot);
+  const saved = savedRecord?.exists ? savedRecord : await loadProjectState(statePath);
+  const goalIds = projectGoalIds(saved.document);
+  const stacks = goalIds.map((goalId) => stackForGoalId(catalog, goalId));
+  if (stacks.some((stack) => stack === null)) {
+    throw new Error("A recorded project goal is no longer available in the current catalog.");
   }
   const preferencePath = await preferencesPathForProjectRoot(projectRoot);
   const loadedPreferences = await loadPreferences(preferencePath, { allowMissing: true });
-  const plan = buildPlan(catalog, stack, saved.document.selections, loadedPreferences.document);
-  plan.summary.outcome = `Rebuilt the read-only plan for ${stack.name} from saved service choices.`;
+  let plan;
+  if (stacks.length === 1) {
+    plan = buildPlan(catalog, stacks[0], saved.document.selections, loadedPreferences.document);
+  } else {
+    plan = buildCompositePlan(catalog, stacks, saved.document.selections, loadedPreferences.document);
+  }
+  bindCatalogPlan(plan, catalogSource);
+  plan.summary.outcome = `Rebuilt the read-only plan for ${plan.goal.name} from saved service choices.`;
   const projectContext = projectFreshness(saved.document, plan);
   plan.projectContext = projectContext;
   return { statePath, saved, plan, projectContext };
@@ -854,17 +1185,21 @@ function checkpointNextStep(stage) {
 async function handleState(action, args) {
   const parsed = parseArguments(args);
   const projectRoot = requireProjectRoot(parsed.flags);
-  const loaded = await ensureCatalog();
+  const projectCatalog = await loadProjectCatalog(projectRoot, parsed.flags["catalog-dir"]);
+  const { loaded } = projectCatalog;
   if (action === "init" || action === "revise") {
     const query = parsed.positional.join(" ");
-    if (!query) {
+    if (!query && parsed.flags.goals.length === 0 && parsed.flags.apps.length === 0) {
       throw new Error(`state ${action} requires a goal or natural-language request.`);
     }
     if (parsed.flags.evidence.length > 0) {
       throw new Error(`state ${action} does not accept evidence IDs.`);
     }
-    const resolution = resolvePlanTarget(loaded.catalog, query);
-    if (!resolution.resolved) {
+    const resolution = resolveRequestedTarget(loaded.catalog, parsed);
+    const canCompose = parsed.flags.compose
+      && resolution.kind === "composite"
+      && !resolution.needsClarification;
+    if (!resolution.resolved && !canCompose) {
       const summary = buildResolutionSummary(resolution, query, loaded.catalog);
       if (parsed.flags.json) {
         printJson({ ...resolution, summary });
@@ -880,7 +1215,7 @@ async function handleState(action, args) {
     let expectedRevision = null;
     if (action === "revise") {
       const existing = await loadProjectState(statePath);
-      if (existing.document.goalId !== resolution.stack.id) {
+      if (!sameGoalIds(projectGoalIds(existing.document), resolutionGoalIds(resolution))) {
         throw new Error("A project record cannot be reassigned to a different goal. Use a different project root.");
       }
       expectedRevision = existing.document.revision;
@@ -888,12 +1223,23 @@ async function handleState(action, args) {
     }
     const preferencePath = await preferencesPathForProjectRoot(projectRoot);
     const loadedPreferences = await loadPreferences(preferencePath, { allowMissing: true });
-    const plan = buildPlan(loaded.catalog, resolution.stack, selections, loadedPreferences.document);
+    const plan = planFromResolution(
+      loaded.catalog,
+      resolution,
+      selections,
+      loadedPreferences.document,
+      parsed.flags.compose
+    );
+    if (plan === null) {
+      throw new Error("Composition requires --compose and every ambiguous intent must be resolved first.");
+    }
+    bindCatalogPlan(plan, loaded.catalogSource);
     let saved;
     if (action === "init") {
-      saved = await initProjectState(statePath, plan);
+      saved = await initProjectState(statePath, plan, () => confirmCatalogSnapshot(loaded.catalogSource));
     } else {
-      saved = await reviseProjectState(statePath, plan, expectedRevision);
+      saved = await reviseProjectState(statePath, plan, expectedRevision,
+        () => confirmCatalogSnapshot(loaded.catalogSource));
     }
     const projectContext = projectFreshness(saved.document, plan);
     plan.projectContext = projectContext;
@@ -948,7 +1294,11 @@ async function handleState(action, args) {
   if (parsed.flags.selections.length > 0) {
     throw new Error("Only state init and state revise accept role selections.");
   }
-  const recorded = await loadRecordedProject(loaded.catalog, projectRoot);
+  rejectComponentSelectors(parsed.flags);
+  if (parsed.flags.compose) {
+    throw new Error("Only state init and state revise accept --compose.");
+  }
+  const recorded = await loadRecordedProject(loaded.catalog, projectRoot, loaded.catalogSource, projectCatalog.saved);
   if (action === "status") {
     if (parsed.positional.length > 0 || parsed.flags.evidence.length > 0) {
       throw new Error("state status accepts no goal, checkpoint, or evidence IDs.");
@@ -988,12 +1338,17 @@ async function handleState(action, args) {
       throw new Error("state checkpoint requires exactly one stage.");
     }
     const stage = parsed.positional[0];
+    if (recorded.plan.catalogSource.kind === "external" && (stage === "applied" || stage === "verified")) {
+      activeMutation = false;
+      throw new Error("External catalog apply and verification checkpoints are unavailable until a source-bound adapter exists.");
+    }
     const updated = await checkpointProjectState(
       recorded.statePath,
       stage,
       parsed.flags.evidence,
       recorded.plan,
-      recorded.saved.document.revision
+      recorded.saved.document.revision,
+      () => confirmCatalogSnapshot(loaded.catalogSource)
     );
     const projectContext = projectFreshness(updated.document, recorded.plan);
     let result = `Recorded the ${stage} checkpoint; this command did not perform that work.`;
@@ -1028,6 +1383,10 @@ async function handleState(action, args) {
 
 async function handlePreferences(action, args) {
   const parsed = parseArguments(args);
+  if (parsed.flags["catalog-dir"]) {
+    throw new Error("Preferences do not accept --catalog-dir; use it only with read-only catalog or plan.");
+  }
+  rejectComponentSelectors(parsed.flags);
   const path = await preferencePathFromFlags(parsed.flags, "path");
   if (path === null) {
     throw new Error("Preferences commands require --project-root ABSOLUTE or --path ABSOLUTE.");
@@ -1156,7 +1515,7 @@ async function handlePreferences(action, args) {
 }
 
 async function main() {
-  const [group, action, ...args] = Bun.argv.slice(2);
+  const [group, action, ...args] = process.argv.slice(2);
   if (!group || group === "help" || group === "--help" || group === "-h") {
     process.stdout.write(`${usage()}\n`);
     return;
@@ -1226,7 +1585,7 @@ main().catch((error) => {
     verification: "not-run-by-router",
     next: "Correct the reported problem, inspect local project state if this was a state update, and retry."
   };
-  if (Bun.argv.includes("--json")) {
+  if (process.argv.includes("--json")) {
     process.stderr.write(`${JSON.stringify({
       schemaVersion: 1,
       status,

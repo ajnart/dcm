@@ -1,0 +1,73 @@
+{
+  "id": "stalwart-mail",
+  "name": "Stalwart Mail Server",
+  "aliases": [
+    "self hosted email",
+    "mail server"
+  ],
+  "categories": [
+    "communication"
+  ],
+  "roles": [
+    "mail-server"
+  ],
+  "upstream": {
+    "url": "https://stalw.art/",
+    "repository": "https://github.com/stalwartlabs/stalwart",
+    "docs": "https://stalw.art/docs/install/platform/docker"
+  },
+  "image": {
+    "reference": "stalwartlabs/stalwart:v0.16.24",
+    "source": "upstream",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-10-03",
+    "note": "Upstream v0.16.24 native listener defaults and recovery behavior were rechecked October 4, 2026; full mail support remains discovery-only. Shared derived-recipe/setup selects administration-only scope: native bootstrap, privately captured permanent administrator and inherited management API key, and scoped activation restart. With an existing approved verified HTTPS owner, setup prepares one HTTP-only native listener and reuses headless administration/recovery-login rejection verification. Separately approved shared transition removes the exact recovery-mode environment entry and recreates only this owned service; resumed setup requires validated closure history, running-container recovery-variable absence and HTTPS administrator/key readback. Missing capture or uncertain writes require inspection, never credential recreation. SMTP/client ports, native mail TLS, DNS, anti-abuse, delivery and live restart acceptance remain pending. Source fixtures are not fresh-instance or mail acceptance."
+  },
+  "support": {
+    "automation": "discovery",
+    "tier": "T2",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "gap",
+    "integration": null
+  },
+  "dependencies": [
+    "capability:public-dns",
+    "capability:mail-reputation",
+    "capability:mail-backup"
+  ],
+  "alternatives": [
+    "ntfy",
+    "nextcloud"
+  ],
+  "security": [
+    "Require anti-abuse controls, TLS, DNS authentication, and account recovery.",
+    "An ordinary app approval does not authorize public SMTP/client ports, DNS changes, or a TLS owner. Review the exact hostname, mail domain, listener ports, outbound policy and anti-abuse scope separately before production deployment."
+  ],
+  "pitfalls": [
+    "Residential IP reputation, blocked outbound ports, and DNS errors can break delivery.",
+    "The first boot exposes only a temporary bootstrap administrator on HTTP port 8080; it does not start mail services until configuration is completed.",
+    "The wizard requires a server hostname and mail domain, writes config.json, and provisions a distinct permanent administrator; the bootstrap password is not the final administrator password. The pinned Bootstrap JMAP handler generates the permanent password and returns it once with the login identity; privately capture that response before another request, and do not replay bootstrap after losing the returned credential.",
+    "Default bootstrap prints its temporary password in container output. A pinned STALWART_RECOVERY_ADMIN avoids generating that temporary password but remains a recovery credential, not the permanent administrator or mail acceptance. Never print startup logs in ordinary setup evidence.",
+    "A production mail deployment needs selected SMTP and client ports, hostname and domain DNS records, working TLS, and external delivery checks; a private loopback WebUI alone is not a mail-server acceptance test.",
+    "STALWART_RECOVERY_ADMIN must be removed after permanent administrator and HTTPS access are verified; leaving it enabled retains a recovery login.",
+    "Community code is AGPL-3.0 licensed; enterprise functionality has a separate owner-issued license. Neither is the server-generated, once-returned management API key, which does not authenticate SMTP or IMAP."
+  ],
+  "sources": [
+    "https://stalw.art/docs/install/platform/docker/",
+    "https://github.com/stalwartlabs/stalwart/releases/tag/v0.16.24",
+    "https://github.com/stalwartlabs/stalwart/blob/v0.16.24/README.md",
+    "https://github.com/stalwartlabs/stalwart/blob/v0.16.24/crates/jmap/src/registry/mapping/bootstrap.rs",
+    "https://stalw.art/docs/configuration/bootstrap-mode/",
+    "https://stalw.art/docs/configuration/declarative-deployments/",
+    "https://stalw.art/docs/auth/authentication/api-key/",
+    "https://stalw.art/docs/ref/object/api-key/",
+    "https://github.com/stalwartlabs/stalwart/blob/v0.16.24/crates/jmap/src/registry/mapping/account.rs",
+    "https://github.com/stalwartlabs/stalwart/blob/v0.16.24/crates/common/src/auth/credential.rs",
+    "https://stalw.art/docs/install/dns/"
+  ]
+}

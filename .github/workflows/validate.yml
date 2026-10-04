@@ -1,12 +1,6 @@
 name: Validate repository
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -64,8 +58,58 @@ jobs:
         if: github.event_name != 'pull_request'
         run: bun scripts/skillpack.ts test --all
 
+      - name: Verify affected Docmost owner and export contracts
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: origin/${{ github.base_ref || 'main' }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]] && git diff --quiet "$BASE_REF...HEAD" -- \
+            packages/cli/src/docmost.ts packages/cli/src/lib/docmost-db-export.ts \
+            packages/cli/src/lib/selfhost-compose.ts packages/cli/tests/docmost-owner-api.test.ts; then
+            echo "Docmost contracts unchanged; focused fixture skipped."
+          else
+            bun packages/cli/tests/docmost-owner-api.test.ts
+          fi
+
+      - name: Verify household bundle contracts
+        run: |
+          bun packages/cli/tests/bundle-begin.test.ts
+          bun packages/cli/tests/bundle-approvals.test.ts
+          bun packages/cli/tests/bundle-init.test.ts
+          bun packages/cli/tests/bundle-lifecycle.test.ts
+          bun packages/cli/tests/bundle-handoff.test.ts
+          bun packages/cli/tests/bundle-backup.test.ts
+          bun packages/cli/tests/bundle-finalize.test.ts
+          bun packages/cli/tests/bundle-benchmark.test.ts
+          bun packages/cli/tests/bundle-journey.test.ts
+          bun packages/cli/tests/bundle-homarr-attach.test.ts
+
       - name: Enforce router latency budget
         run: bun scripts/skillpack.ts benchmark --runs 5
+
+      - name: Check catalog workflow dependencies
+        run: bun packages/cli/tests/workflow-graph.test.ts
+
+      - name: Check generic app checkpoint safety
+        run: bun test packages/cli/tests/app-project.test.ts
+
+      - name: Check multi-service recipe contracts
+        run: |
+          bun .agents/skills/self-host/workflows/selfhost/scripts/check-multi-service-recipe.ts
+          bun packages/cli/tests/app-multi-image.test.ts
+          bun packages/cli/tests/app-multi-manifest.test.ts
+
+      - name: Check terminal media approval boundary
+        run: bun packages/cli/tests/interactive-media-plan.test.ts
+
+      - name: Check catalog-driven terminal actions
+        run: bun packages/cli/tests/interactive-catalog.test.ts
+
+      - name: Check terminal household review boundary
+        run: bun packages/cli/tests/interactive-household.test.ts
+
+      - name: Check cross-platform guest inventory parsing
+        run: bun packages/cli/tests/target.ts
 
   package:
     name: Reproducible plugin package
@@ -81,6 +125,9 @@ jobs:
         with:
           bun-version: 1.4.0
 
+      - name: Install CLI build dependencies
+        run: bun install --frozen-lockfile
+
       - name: Check generated indexes
         run: bun scripts/skillpack.ts index --check
 
@@ -89,6 +136,53 @@ jobs:
 
       - name: Verify ZIP structure
         run: unzip -t dist/selfhost-skills-*.zip
+
+      - name: Pack and smoke-test standalone CLI
+        run: |
+          repository_version=$(node -p 'require("./package.json").version')
+          cd packages/cli
+          npm pack --pack-destination "$RUNNER_TEMP" --silent > "$RUNNER_TEMP/selfhost-cli-pack.log"
+          tarball=$(tail -n 1 "$RUNNER_TEMP/selfhost-cli-pack.log")
+          tar -tzf "$RUNNER_TEMP/$tarball" | grep '^package/dist/LICENSE$'
+          tar -tzf "$RUNNER_TEMP/$tarball" | grep '^package/dist/docs/docmost-cli.md$'
+          tar -tzf "$RUNNER_TEMP/$tarball" | grep '^package/dist/household-browser-credentials.js$'
+          tar -tzf "$RUNNER_TEMP/$tarball" | grep '^package/dist/interactive.js$'
+          npm install --prefix "$RUNNER_TEMP/selfhost-cli-smoke" --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP/$tarball"
+          cd "$RUNNER_TEMP/selfhost-cli-smoke"
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs --help >/dev/null
+          if node node_modules/@ajnart/selfhost/bin/selfhost.mjs --interactive > "$RUNNER_TEMP/selfhost-non-tty.log" 2>&1; then
+            echo "Interactive CLI accepted a non-terminal session"
+            exit 1
+          fi
+          grep -q 'Interactive setup needs a terminal' "$RUNNER_TEMP/selfhost-non-tty.log"
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs bundle --help >/dev/null
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs config preferences --help >/dev/null
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs homarr attach --help >/dev/null
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs browser --help >/dev/null
+          cli_version=$(node node_modules/@ajnart/selfhost/bin/selfhost.mjs --version)
+          package_version=$(node -p 'require("./node_modules/@ajnart/selfhost/package.json").version')
+          test "$cli_version" = "$package_version"
+          test "$cli_version" = "$repository_version"
+          if helper_output=$(bun node_modules/@ajnart/selfhost/dist/household-browser-credentials.js invalid 2>&1); then
+            echo "Browser credential helper accepted an invalid command"
+            exit 1
+          fi
+          test "$helper_output" = "FAIL household browser credential operation at parse-arguments"
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs inspect-host --help >/dev/null
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs catalog search photos --json > catalog.json
+          node -e 'const r=require("./catalog.json"); if (r.status!=="pass" || !r.data.results.some(x=>x.app.id==="immich")) process.exit(1)'
+          disabled_catalog=$(mktemp -d "$RUNNER_TEMP/catalog-disabled.XXXXXX")
+          sonarr_folder=node_modules/@ajnart/selfhost/dist/workflows/selfhost/references/catalog/apps/sonarr
+          mv "$sonarr_folder" "$disabled_catalog/sonarr"
+          node node_modules/@ajnart/selfhost/bin/selfhost.mjs catalog menu --json > disabled-menu.json
+          node -e 'const r=require("./disabled-menu.json"); if (r.status!=="pass" || r.data.goals.some(x=>x.id==="personal-media")) process.exit(1)'
+          if node node_modules/@ajnart/selfhost/bin/selfhost.mjs config init --project-root "$RUNNER_TEMP/disabled-catalog-project" --profile media --run-id disabled --username admin > "$RUNNER_TEMP/disabled-install.log" 2>&1; then
+            echo "Media install accepted a removed catalog app"
+            exit 1
+          fi
+          test ! -e "$RUNNER_TEMP/disabled-catalog-project"
+          mv "$disabled_catalog/sonarr" "$sonarr_folder"
+          bun "$GITHUB_WORKSPACE/packages/cli/tests/catalog-gate-package.test.ts" "$PWD/node_modules/@ajnart/selfhost"
 
       - name: Verify provider marketplace export
         run: |
@@ -99,6 +193,217 @@ jobs:
             --checksums dist/SHA256SUMS \
             --archive-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${version}/selfhost-skills-${version}.zip" \
             --output dist/distribution
+
+  platform-plan:
+    name: CLI plan on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "24"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Build the private standalone CLI
+        run: |
+          bun install --frozen-lockfile
+          bun packages/cli/scripts/build.ts
+
+      - name: Smoke-test planning without Docker
+        run: bun packages/cli/tests/platform-plan-smoke.ts
+
+  native-platform-plan:
+    name: Native ${{ matrix.target }} catalog and plan
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            binary: self-host
+          - os: ubuntu-24.04-arm
+            target: bun-linux-arm64
+            binary: self-host
+          - os: macos-15-intel
+            target: bun-darwin-x64
+            binary: self-host
+          - os: macos-15
+            target: bun-darwin-arm64
+            binary: self-host
+          - os: windows-latest
+            target: bun-windows-x64
+            binary: self-host.exe
+          - os: windows-11-arm
+            target: bun-windows-arm64
+            binary: self-host.exe
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Build the embedded CLI
+        run: |
+          bun install --frozen-lockfile
+          bun packages/cli/scripts/build.ts
+          bun packages/cli/scripts/build-native.ts \
+            --target '${{ matrix.target }}' --outfile "$RUNNER_TEMP/${{ matrix.binary }}" \
+            > "$RUNNER_TEMP/native-build.json"
+
+      - name: Run the binary without Node or Bun on PATH
+        run: |
+          env PATH=/nonexistent "$RUNNER_TEMP/${{ matrix.binary }}" --version > "$RUNNER_TEMP/native-version.txt"
+          env PATH=/nonexistent "$RUNNER_TEMP/${{ matrix.binary }}" catalog recipe uptime-kuma --json \
+            > "$RUNNER_TEMP/native-recipe.json"
+          env PATH=/nonexistent "$RUNNER_TEMP/${{ matrix.binary }}" plan --goal photos \
+            --project-root "$RUNNER_TEMP" --json > "$RUNNER_TEMP/native-plan.json"
+          env PATH=/nonexistent "$RUNNER_TEMP/${{ matrix.binary }}" doctor --scope plan --json \
+            > "$RUNNER_TEMP/native-doctor.json"
+          bun -e '
+            import { readFileSync } from "node:fs";
+            import { createHash } from "node:crypto";
+            import { join } from "node:path";
+            const root = process.env.RUNNER_TEMP;
+            const build = JSON.parse(readFileSync(join(root, "native-build.json"), "utf8"));
+            const digest = createHash("sha256")
+              .update(readFileSync(join(root, "${{ matrix.binary }}"))).digest("hex");
+            const recipe = JSON.parse(readFileSync(join(root, "native-recipe.json"), "utf8"));
+            const plan = JSON.parse(readFileSync(join(root, "native-plan.json"), "utf8"));
+            const doctor = JSON.parse(readFileSync(join(root, "native-doctor.json"), "utf8"));
+            if (build.sha256 !== digest || build.target !== "${{ matrix.target }}"
+              || recipe.status !== "pass" || recipe.data.appId !== "uptime-kuma"
+              || plan.status !== "pass" || doctor.status !== "ready"
+              || !doctor.tools.some((tool) => tool.tool.startsWith("Embedded Bun runtime"))) {
+              throw new Error("Native target smoke did not match the built catalog, plan, and runtime");
+            }
+          '
+
+      - name: Checksum the tested binary
+        run: |
+          cd "$RUNNER_TEMP"
+          sha256sum '${{ matrix.binary }}' > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Upload private native binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: self-host-native-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/${{ matrix.binary }}
+            ${{ runner.temp }}/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+  cli-publish:
+    name: Publish standalone CLI to npm
+    if: startsWith(github.ref, 'refs/tags/v') && vars.ENABLE_PUBLIC_NPM_PUBLISH == 'true'
+    needs:
+      - static
+      - behavior
+      - package
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js for npm trusted publishing
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Set up Bun for CLI prepack
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install CLI build dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check tag and npm publisher versions
+        run: |
+          bun scripts/skillpack.ts release-check --tag "$GITHUB_REF_NAME"
+          node -e 'const p=require("./packages/cli/package.json"); if (process.env.GITHUB_REF_NAME !== `v${p.version}`) throw new Error("CLI version does not match release tag")'
+          node -e 'const [major, minor, patch]=process.argv[1].split(".").map(Number); if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) throw new Error("npm 11.5.1 or newer is required for trusted publishing")' "$(npm --version)"
+
+      - name: Check the exact CLI artifact against npm
+        id: registry
+        working-directory: packages/cli
+        run: |
+          tarball=$(npm pack --pack-destination "$RUNNER_TEMP" --silent | tail -n 1)
+          local_integrity=$(node -e 'const {createHash}=require("node:crypto"); const {readFileSync}=require("node:fs"); const {join}=require("node:path"); process.stdout.write("sha512-"+createHash("sha512").update(readFileSync(join(process.argv[1],process.argv[2]))).digest("base64"))' "$RUNNER_TEMP" "$tarball")
+          package_name=$(node -p 'require("./package.json").name')
+          package_version=$(node -p 'require("./package.json").version')
+          registry_state=$(node --input-type=module -e '
+            const [name, version, expected] = process.argv.slice(1);
+            const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
+            if (response.status === 404) {
+              console.log("package-missing");
+            } else {
+              if (!response.ok) throw new Error(`npm registry returned HTTP ${response.status}`);
+              const metadata = await response.json();
+              const published = metadata.versions?.[version];
+              if (!published) {
+                console.log("version-missing");
+              } else if (published.dist?.integrity === expected) {
+                console.log("matching-version");
+              } else {
+                throw new Error(`Published ${name}@${version} differs from the reviewed CLI tarball`);
+              }
+            }
+          ' "$package_name" "$package_version" "$local_integrity")
+          if [ "$registry_state" = package-missing ]; then
+            echo "First publish @ajnart/selfhost from this reviewed source with npm account 2FA, then configure validate.yml as its trusted publisher and rerun this tag job." >&2
+            exit 1
+          fi
+          echo "state=$registry_state" >> "$GITHUB_OUTPUT"
+          echo "integrity=$local_integrity" >> "$GITHUB_OUTPUT"
+
+      - name: Publish a new CLI version through npm OIDC
+        if: steps.registry.outputs.state == 'version-missing'
+        working-directory: packages/cli
+        run: npm publish --access public --provenance=false
+
+      - name: Verify the registry package and executable
+        working-directory: ${{ runner.temp }}
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual=$(npm view "@ajnart/selfhost@$expected" version --registry=https://registry.npmjs.org)
+          test "$actual" = "$expected"
+          actual_integrity=$(npm view "@ajnart/selfhost@$expected" dist.integrity --registry=https://registry.npmjs.org)
+          test "$actual_integrity" = '${{ steps.registry.outputs.integrity }}'
+          installed=$(npm exec --yes --package="@ajnart/selfhost@$expected" -- self-host --version)
+          test "$installed" = "$expected"
 
   release:
     name: Release artifact
@@ -132,6 +437,13 @@ jobs:
       - name: Build release payload
         run: bun scripts/skillpack.ts package --output dist
 
+      - name: Pack private standalone CLI
+        working-directory: packages/cli
+        run: |
+          tarball=$(npm pack --pack-destination "$GITHUB_WORKSPACE/dist" --silent | tail -n 1)
+          test "$tarball" = "ajnart-selfhost-$(node -p 'require("./package.json").version').tgz"
+          (cd "$GITHUB_WORKSPACE/dist" && sha256sum "$tarball" > CLI-SHA256SUMS)
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -148,7 +460,8 @@ jobs:
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release create "$GITHUB_REF_NAME" \
               "dist/selfhost-skills-${version}.zip" \
-              dist/RELEASE-MANIFEST.json dist/SHA256SUMS \
+              "dist/ajnart-selfhost-${version}.tgz" \
+              dist/RELEASE-MANIFEST.json dist/SHA256SUMS dist/CLI-SHA256SUMS \
               --verify-tag --generate-notes
           fi
           mkdir -p dist/fetched
@@ -156,7 +469,10 @@ jobs:
           cmp "dist/selfhost-skills-${version}.zip" "dist/fetched/selfhost-skills-${version}.zip"
           cmp dist/RELEASE-MANIFEST.json dist/fetched/RELEASE-MANIFEST.json
           cmp dist/SHA256SUMS dist/fetched/SHA256SUMS
+          cmp "dist/ajnart-selfhost-${version}.tgz" "dist/fetched/ajnart-selfhost-${version}.tgz"
+          cmp dist/CLI-SHA256SUMS dist/fetched/CLI-SHA256SUMS
           (cd dist/fetched && sha256sum --check SHA256SUMS)
+          (cd dist/fetched && sha256sum --check CLI-SHA256SUMS)
 
       - name: Publish Claude and Codex marketplace branches
         env:

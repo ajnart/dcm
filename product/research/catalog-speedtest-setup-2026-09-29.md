@@ -1,0 +1,13 @@
+# Speedtest Tracker first-run setup review — 2026-09-29
+
+## Pinned recipe and upstream contract
+
+The existing shared candidate pins the LinuxServer image to `v1.14.7-ls165`, supplies a generated `ADMIN_PASSWORD` with `ADMIN_EMAIL=admin@example.test`, and uses a private `/config` volume. The [official environment reference](https://docs.speedtest-tracker.dev/getting-started/environment-variables) says `ADMIN_EMAIL` and `ADMIN_PASSWORD` affect only initial setup. The [authentication guide](https://docs.speedtest-tracker.dev/security/authentication) says the application creates an admin account on first start, then documents changing or creating users through the Filament UI. Environment seeding is therefore source-backed, but the docs do not provide a stable authenticated endpoint to prove that the saved generated password belongs to an administrator on this exact fresh database. A page response or container health would not establish that fact, and reapplying the environment to an existing database cannot rotate an unknown account.
+
+The [API authorization guide](https://docs.speedtest-tracker.dev/api/authorization) documents bearer tokens with separate `Read Results`, `Run Speedtest`, and `List servers` abilities, and directs token creation to `/admin/api-tokens` in the UI. The [upstream OpenAPI](https://github.com/alexjustesen/speedtest-tracker/blob/1.x/openapi.json) describes bearer-token API consumption, not a documented token-creation or one-time-value extraction route. No stable headless token creation/readback contract was established for the pinned image. Filament/Livewire page internals are not an API contract, and scraping a token or guessing its storage format would be brittle and could leak credentials.
+
+## Decision
+
+No `setup.ts` was added. The shared `SetupContext` can send bounded private HTTP requests and privately save an API key, but those primitives do not supply the missing upstream contract. A first-run adapter must not mark the app ready from environment variables alone or invent a token. Shared setup remains pending. The existing recipe's browser checks—admin sign-in, explicit token creation if needed, one measurement readback, and restart persistence—remain necessary and unverified.
+
+To promote headless setup, obtain version-pinned upstream evidence for an administrator-authenticated identity/role readback and a replay-safe, ability-scoped token creation route with one-time secret handling. Then verify the exact generated account, token API access, failed/replayed setup, and restart persistence against a disposable instance. No Docker, browser, or live service check was run in this review.

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "kind": "shared-runtime-resources",
+  "appId": "gluetun",
+  "serviceId": "gluetun",
+  "profile": "tun-net-admin",
+  "officialUrl": "https://github.com/passteque/gluetun/blob/v3.41.3/README.md",
+  "imageTag": "qmcgaw/gluetun:v3.41.3"
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "kind": "multi-service-compose",
+  "appId": "netdata",
+  "source": "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
+  "services": [
+    {
+      "id": "netdata",
+      "purpose": "Serves a private local dashboard for this container only; it does not observe the host or sibling containers.",
+      "imageTag": "netdata/netdata:v2.11.0",
+      "imageSource": "https://hub.docker.com/r/netdata/netdata/tags",
+      "user": "image-default",
+      "imageUserEvidence": {
+        "officialUrl": "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
+        "reason": "official-image-runtime-contract"
+      },
+      "restart": "unless-stopped",
+      "readOnly": false,
+      "init": true,
+      "environment": [{ "name": "DISABLE_TELEMETRY", "value": "1" }],
+      "hostEnvironment": [],
+      "fileEnvironment": [],
+      "mounts": [
+        { "name": "config", "target": "/etc/netdata", "kind": "volume" },
+        { "name": "lib", "target": "/var/lib/netdata", "kind": "volume" },
+        { "name": "cache", "target": "/var/cache/netdata", "kind": "volume" }
+      ],
+      "dependsOn": [],
+      "publishTargetPort": 19999
+    }
+  ],
+  "privateFiles": [],
+  "onboarding": { "kind": "no-account", "officialUrl": "https://learn.netdata.cloud/docs/netdata-agent/installation/docker" },
+  "defaults": { "hostIp": "127.0.0.1", "publishedPort": 19999, "dataDirectoryName": "netdata" },
+  "storage": { "filesystem": "local-posix-locks", "minimumFreeBytes": 1073741824 },
+  "acceptance": [
+    { "id": "local-api", "method": "api", "description": "GET /api/v1/info on the exact private origin and require HTTP 200; this proves only the local Agent API responds." },
+    { "id": "container-metrics", "method": "browser", "description": "Inspect the dashboard and verify expected container-local charts update; do not claim host monitoring." },
+    { "id": "restart-persistence", "method": "persisted", "description": "Restart only the owned project and verify the local dashboard returns with retained configuration and metrics." }
+  ]
+}

@@ -44,6 +44,8 @@ evidence. API-key fields remain `null` until an application-specific onboarding
 owner captures them through its private boundary.
 
 For browser-only onboarding, use `scripts/household-browser-credentials.ts`.
+The standalone package exposes the same helper as `self-host browser
+fill|capture-api-key|login`; use that route when the Agent Skill is not installed.
 Its `fill` command accepts repeated `--input FIELD=@eN` references for selected
 `username`, `email`, and password fields supported by that service. Its
 `capture-api-key` command supports Immich's `/user-settings` page with an
@@ -51,15 +53,25 @@ enabled, readonly text field identified as an API key or token. It also supports
 Audiobookshelf v2.36.1 at `/config/api-keys`: omit `--selector` while the
 one-time creation dialog is visible, and the helper reads only its fixed
 readonly **API Key** field.
-Both commands derive the fixed
+These commands derive the fixed
 `selfhost-household-<run>` browser session, require the current page to match an
 explicit private loopback, RFC1918/ULA, `.localhost`, or `.home.arpa` origin,
-and pass secret values only through the child process's standard input. They do
-not take snapshots or screenshots. API-key capture atomically updates the
+and pass secret values only through the child process's standard input.
+Fill and API-key capture do not take snapshots or screenshots. Vaultwarden-only
+`login` inspects bounded snapshots privately; its starting form, result, and
+recovery procedure are defined in [the account guide](vaultwarden.md#first-account-and-resume).
+API-key capture atomically updates the
 private handoff to `filled`; this records only that the value was filled into
 the handoff. Status output reports that stored credential state; it does not
 mean that the key works, the service was provisioned, or the application passed
 acceptance.
+
+When multiple `agent-browser` installations exist, pass `--browser-bin
+/absolute/path/to/agent-browser` and use that same executable to open the
+fixed session. The helper's safe failure stage distinguishes a missing URL,
+invalid URL, wrong origin, field inspection, fill, and read-back without
+printing credentials. A `PATH` change can otherwise select a different browser
+session store.
 
 ```text
 bun scripts/household-browser-credentials.ts fill \
