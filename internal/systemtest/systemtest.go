@@ -1,0 +1,127 @@
+// Package systemtest provides fake Deps for tests.
+package systemtest
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ajnart/self-host/internal/system"
+)
+
+type rule struct {
+	prefix string
+	handle func(system.Cmd) system.Result
+}
+
+// Runner is a scripted stand-in for external processes. Rules match on the
+// space-joined command line prefix; the most recently added rule wins.
+type Runner struct {
+	mu    sync.Mutex
+	rules []rule
+	calls []system.Cmd
+	// Logs is written by Stream for `docker compose logs`.
+	Logs string
+}
+
+func (r *Runner) On(prefix string, result system.Result) {
+	r.OnFunc(prefix, func(system.Cmd) system.Result { return result })
+}
+
+func (r *Runner) OnFunc(prefix string, handle func(system.Cmd) system.Result) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rules = append(r.rules, rule{prefix: prefix, handle: handle})
+}
+
+func Line(cmd system.Cmd) string {
+	return strings.TrimSpace(cmd.Name + " " + strings.Join(cmd.Args, " "))
+}
+
+func (r *Runner) Run(_ context.Context, cmd system.Cmd) (system.Result, error) {
+	r.mu.Lock()
+	r.calls = append(r.calls, cmd)
+	rules := append([]rule(nil), r.rules...)
+	r.mu.Unlock()
+	line := Line(cmd)
+	for i := len(rules) - 1; i >= 0; i-- {
+		if strings.HasPrefix(line, rules[i].prefix) {
+			return rules[i].handle(cmd), nil
+		}
+	}
+	return system.Result{}, nil
+}
+
+func (r *Runner) Stream(ctx context.Context, cmd system.Cmd, w io.Writer) error {
+	result, _ := r.Run(ctx, cmd)
+	if len(result.Stdout) > 0 {
+		w.Write(result.Stdout)
+	} else {
+		io.WriteString(w, r.Logs)
+	}
+	if result.ExitCode != 0 {
+		return fmt.Errorf("exit status %d", result.ExitCode)
+	}
+	return nil
+}
+
+// Calls returns every command line run so far.
+func (r *Runner) Calls() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	lines := make([]string, len(r.calls))
+	for i, cmd := range r.calls {
+		lines[i] = Line(cmd)
+	}
+	return lines
+}
+
+// Cmds returns every command run so far.
+func (r *Runner) Cmds() []system.Cmd {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]system.Cmd(nil), r.calls...)
+}
+
+// NewDeps returns Deps for a healthy Linux host with Docker and Compose v2,
+// a home directory under t.TempDir and free ports.
+func NewDeps(t *testing.T) *system.Deps {
+	t.Helper()
+	runner := &Runner{}
+	runner.On("docker version", system.Result{Stdout: []byte("27.3.1\n")})
+	runner.On("docker compose version", system.Result{Stdout: []byte("2.29.7\n")})
+	home := t.TempDir()
+	env := map[string]string{}
+	return &system.Deps{
+		Version:  "test",
+		GOOS:     "linux",
+		Runner:   runner,
+		HTTP:     &http.Client{Timeout: 5 * time.Second},
+		LookPath: func(name string) (string, error) { return "/usr/bin/" + name, nil },
+		Getenv:   func(key string) string { return env[key] },
+		CurrentUser: func() (system.User, error) {
+			return system.User{Name: "alice", Home: home, UID: 1000, GID: 1000}, nil
+		},
+		LookupUser: func(name string) (system.User, error) {
+			return system.User{}, fmt.Errorf("unknown user %s", name)
+		},
+		Now:          func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) },
+		LANIP:        func() (string, error) { return "192.168.1.20", nil },
+		TimeZone:     func() string { return "Europe/Paris" },
+		PortFree:     func(int) bool { return true },
+		ProcessAlive: func(int) bool { return false },
+		PID:          4242,
+		Out:          io.Discard,
+		Err:          io.Discard,
+	}
+}
+
+// SetEnv replaces Getenv with a map lookup.
+func SetEnv(deps *system.Deps, env map[string]string) {
+	deps.Getenv = func(key string) string { return env[key] }
+}

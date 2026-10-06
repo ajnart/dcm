@@ -1,17 +1,19 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"os"
+	"os/signal"
+
+	"github.com/ajnart/self-host/internal/cli"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 var version = "dev"
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		fmt.Println(version)
-		return
-	}
-	fmt.Fprintln(os.Stderr, "self-host: not implemented yet")
-	os.Exit(1)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	code := cli.Run(ctx, system.Real(version), os.Args[1:])
+	stop()
+	os.Exit(code)
 }
