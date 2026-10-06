@@ -70,9 +70,9 @@ type (
 		status service.Status
 		err    error
 	}
-	doctorMsg    struct{ checks []host.Check }
-	tickMsg      time.Time
-	taskDoneMsg  struct {
+	doctorMsg   struct{ checks []host.Check }
+	tickMsg     time.Time
+	taskDoneMsg struct {
 		id    int
 		title string
 		err   error

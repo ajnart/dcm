@@ -4,9 +4,9 @@ import "charm.land/bubbles/v2/key"
 
 type keyMap struct {
 	Up, Down, Filter, Clear, Toggle, Stop, Restart, Update, UpdateAll, Setup, Remove, Purge key.Binding
-	Open, CopyURL, CopyPassword, Sidebar, SidebarTab, Pin, Follow, PageUp, PageDown        key.Binding
-	Refresh, Tasks, Help, Quit, Apps, Catalog, Updates, Doctor, Backups                    key.Binding
-	Confirm, Cancel                                                                        key.Binding
+	Open, CopyURL, CopyPassword, Sidebar, SidebarTab, Pin, Follow, PageUp, PageDown         key.Binding
+	Refresh, Tasks, Help, Quit, Apps, Catalog, Updates, Doctor, Backups                     key.Binding
+	Confirm, Cancel                                                                         key.Binding
 }
 
 func newKeyMap() keyMap {

@@ -28,7 +28,7 @@ type fakeBackend struct {
 }
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, nil }
-func (f *fakeBackend) Doctor(context.Context) []host.Check             { return f.checks }
+func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
 func (f *fakeBackend) Credentials(context.Context) (service.Credentials, error) {
 	var c service.Credentials
 	c.Admin.Username, c.Admin.Password = "admin", "s3cret-pass"
