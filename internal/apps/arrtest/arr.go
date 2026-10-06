@@ -34,6 +34,17 @@ type Arr struct {
 	// AcceptApplication plays the connection test Prowlarr runs when an
 	// application is saved.
 	AcceptApplication func(baseURL, apiKey string) bool
+	// FailDeletes makes every DELETE answer 500, as when the App is broken.
+	FailDeletes bool
+}
+
+// SeedDownloadClient adds a download client the user configured by hand.
+func (a *Arr) SeedDownloadClient(client map[string]any) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	client["id"] = a.nextID
+	a.nextID++
+	a.downloadClients = append(a.downloadClients, client)
 }
 
 // NewArr returns a fake of kind "sonarr", "radarr" or "prowlarr".
@@ -252,6 +263,10 @@ func (a *Arr) downloadClientRoutes(mux *http.ServeMux, api string) {
 		json.NewEncoder(w).Encode(client)
 	}))
 	mux.HandleFunc("DELETE "+api+"/downloadclient/{id}", a.keyed(func(w http.ResponseWriter, r *http.Request) {
+		if a.FailDeletes {
+			http.Error(w, "database is locked", http.StatusInternalServerError)
+			return
+		}
 		a.downloadClients = deleteByID(a.downloadClients, r.PathValue("id"))
 		w.Write([]byte("{}"))
 	}))
@@ -287,6 +302,10 @@ func (a *Arr) applicationRoutes(mux *http.ServeMux, api string) {
 		json.NewEncoder(w).Encode(application)
 	}))
 	mux.HandleFunc("DELETE "+api+"/applications/{id}", a.keyed(func(w http.ResponseWriter, r *http.Request) {
+		if a.FailDeletes {
+			http.Error(w, "database is locked", http.StatusInternalServerError)
+			return
+		}
 		a.applications = deleteByID(a.applications, r.PathValue("id"))
 		w.Write([]byte("{}"))
 	}))

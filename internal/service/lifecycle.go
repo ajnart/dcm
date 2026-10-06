@@ -154,8 +154,9 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 		if err != nil {
 			return err
 		}
+		var unlinkFailed []string
 		for _, id := range targets {
-			ss.unlink(ctx, id)
+			unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
 			services, err := ss.services(id)
 			if err != nil {
 				return err
@@ -179,29 +180,48 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 		if err := ss.p.SaveState(ss.state); err != nil {
 			return err
 		}
-		return ss.p.WriteRoot()
+		if err := ss.p.WriteRoot(); err != nil {
+			return err
+		}
+		if len(unlinkFailed) > 0 {
+			return fmt.Errorf("%w: removed, but %s still point at it; fix them using the hints above, then run: self-host setup %s",
+				ErrIncomplete, strings.Join(unlinkFailed, ", "), strings.Join(unlinkFailed, " "))
+		}
+		return nil
 	})
 }
 
 // unlink runs Remove for Links that point at id from other installed Apps.
-func (ss *session) unlink(ctx context.Context, id string) {
+// A Link that cannot be undone stays recorded as a failed step on the App
+// that declares it, and makes the removal incomplete.
+func (ss *session) unlink(ctx context.Context, id string) []string {
 	target, found := ss.s.Catalog.App(id)
 	if !found || ss.state.Apps[id] == nil {
-		return
+		return nil
 	}
+	var failed []string
 	for _, other := range ss.s.Catalog.Apps() {
 		otherID := other.Info().ID
 		if otherID == id || ss.state.Apps[otherID] == nil {
 			continue
 		}
 		for _, link := range other.Links() {
-			if link.Target == id && link.Remove != nil {
-				// Failures are reported as step.fail by the Link itself.
-				link.Remove(ctx, ss.helpers(other), ss.helpers(target))
-				ss.forgetStep(otherID, link.ID)
+			if link.Target != id || link.Remove == nil {
+				continue
 			}
+			h := ss.helpers(other)
+			err := link.Remove(ctx, h, ss.helpers(target))
+			ss.reportUnexpected(h, "un"+link.ID, err)
+			if err != nil {
+				ss.state.Apps[otherID].Setup = "incomplete"
+				failed = append(failed, otherID)
+				continue
+			}
+			ss.forgetStep(otherID, link.ID)
+			ss.forgetStep(otherID, "un"+link.ID)
 		}
 	}
+	return failed
 }
 
 // forgetStep drops a step record that no longer describes the App, such as

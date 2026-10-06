@@ -130,6 +130,12 @@ func (h *H) fail(id, msg string, spec StepSpec, err error) error {
 	return fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err))
 }
 
+// Skip reports a step that cannot run yet and records it as skipped.
+func (h *H) Skip(id, msg string) {
+	h.Log.Emit(events.Event{Event: events.StepSkip, App: h.App, Step: id, Msg: msg})
+	h.Record(StepResult{ID: id, Status: "skip", Msg: msg})
+}
+
 // Info logs a progress line that is not a step.
 func (h *H) Info(msg string) {
 	h.Log.Emit(events.Event{Event: events.Info, App: h.App, Msg: msg})

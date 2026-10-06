@@ -138,7 +138,7 @@ func TestLinkIsSkippedWhileQBittorrentIsMissing(t *testing.T) {
 
 	r := e.Run("install", "sonarr", "--yes", "--json")
 
-	if r.Code != 0 || len(e.Sonarr.DownloadClients()) != 0 || r.Step("sonarr", "link-qbittorrent") != nil {
+	if r.Code != 0 || len(e.Sonarr.DownloadClients()) != 0 || r.StepEvent("sonarr", "link-qbittorrent") != "step.skip" {
 		t.Fatalf("no Link should run without qBittorrent (exit %d)\n%s", r.Code, r.Out)
 	}
 }

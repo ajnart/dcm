@@ -100,7 +100,12 @@ const (
 	v1 = "/api/v1"
 )
 
-func isQBittorrent(item object) bool { return item["implementation"] == "QBittorrent" }
+// isQBittorrent matches the download client this Link manages: qBittorrent
+// reached by its Compose service name, never a client the user added for
+// another host.
+func isQBittorrent(item object) bool {
+	return item["implementation"] == "QBittorrent" && item.field("host") == "qbittorrent"
+}
 
 // downloadClientLink makes Sonarr or Radarr send downloads to qBittorrent,
 // reached by its Compose service name and the Admin login.

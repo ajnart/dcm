@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/events"
-	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 )
@@ -339,13 +339,20 @@ func (ss *session) allocatePort(info app.Info, requested string, current int) (i
 
 // setupAll runs Setup for each App, continuing past failures.
 func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
-	var failed []string
+	var touched []string
 	for _, a := range apps {
-		if err := ss.runSetup(ctx, a); err != nil {
-			if !errors.Is(err, helpers.ErrStepFailed) {
-				ss.s.Log.Emit(events.Event{Event: events.StepFail, App: a.Info().ID, Step: "setup", Error: err.Error()})
-			}
-			failed = append(failed, a.Info().ID)
+		incomplete, err := ss.runSetup(ctx, a)
+		if err != nil {
+			return err
+		}
+		touched = append(append(touched, a.Info().ID), incomplete...)
+	}
+	// A later App's Setup can complete an earlier consumer's Link, so the
+	// verdict is read once every App has run.
+	var failed []string
+	for _, id := range touched {
+		if st := ss.state.Apps[id]; st != nil && st.Setup == "incomplete" && !slices.Contains(failed, id) {
+			failed = append(failed, id)
 		}
 	}
 	if len(failed) > 0 {
