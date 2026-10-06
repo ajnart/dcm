@@ -339,3 +339,23 @@ func TestLightBackgroundSwitchesPalette(t *testing.T) {
 }
 
 func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
+
+func TestHealthPillCountsFailuresAndDoctorShowsHints(t *testing.T) {
+	m, _ := sample(t, 140, 32)
+	m = update(t, m, doctorMsg{checks: []host.Check{
+		{ID: "docker", Title: "Docker", Level: host.OK},
+		{ID: "binding", App: "jellyfin", Title: "Port", Level: host.Fail, Detail: "port 8096 is bound to 127.0.0.1", Hint: "Recreate it with the current Exposure: self-host start jellyfin"},
+		{ID: "firewall", Title: "Firewall", Level: host.Warn, Detail: "ufw is active", Hint: "sudo ufw allow …"},
+	}})
+
+	if !strings.Contains(screen(m), "1 failing check") {
+		t.Fatalf("health pill should count failures\n%s", screen(m))
+	}
+	m = update(t, m, press("4"))
+	out := screen(m)
+	for _, want := range []string{"jellyfin › Port", "bound to 127.0.0.1", "self-host start jellyfin", "sudo ufw allow"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("doctor screen lacks %q\n%s", want, out)
+		}
+	}
+}

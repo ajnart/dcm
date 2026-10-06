@@ -15,7 +15,7 @@ func (a *program) doctorCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			log := a.logger()
 			log.Emit(events.Event{Event: events.RunStart, Msg: "doctor"})
-			checks := host.Docker(cmd.Context(), a.deps)
+			checks := a.service().Doctor(cmd.Context())
 			emitChecks(log, checks)
 			worst := host.Worst(checks)
 			log.Emit(events.Event{Event: events.RunEnd, Msg: "doctor: " + string(worst)})

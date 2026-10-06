@@ -27,7 +27,8 @@ type Result struct {
 func (r Result) Step(app, step string) map[string]any {
 	var found map[string]any
 	for _, e := range r.Events {
-		if e["app"] == app && e["step"] == step && e["event"] != "step.start" {
+		eventApp, _ := e["app"].(string)
+		if eventApp == app && e["step"] == step && e["event"] != "step.start" {
 			found = e
 		}
 	}

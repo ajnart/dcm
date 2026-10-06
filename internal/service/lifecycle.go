@@ -11,7 +11,6 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/system"
 )
@@ -284,10 +283,6 @@ func (s *Service) Logs(ctx context.Context, id string, w io.Writer, follow bool,
 	return ss.compose.Logs(ctx, w, follow, tail, services...)
 }
 
-// Doctor runs every host and App check.
-func (s *Service) Doctor(ctx context.Context) []host.Check {
-	return host.Docker(ctx, s.Deps)
-}
 
 // OpenURL opens url in the desktop browser.
 func (s *Service) OpenURL(ctx context.Context, url string) error {
