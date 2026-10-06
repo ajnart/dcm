@@ -190,7 +190,7 @@ func plural(n int, one, many string) string {
 func (m Model) updatesAvailable() int {
 	n := 0
 	for _, app := range m.status.Apps {
-		if app.Update == "available" {
+		if app.Update == service.UpdateAvailable {
 			n++
 		}
 	}
@@ -523,7 +523,7 @@ func (m Model) renderDoctor() string {
 
 func (m Model) renderUpdates() string {
 	t := m.theme
-	lines := []string{"", "  " + t.heading().Render("Updates") + t.dim().Render("  U on the Apps screen updates everything · self-host update [app]"), ""}
+	lines := []string{"", "  " + t.heading().Render("Updates") + t.dim().Render("  U updates every App with a newer image · r checks again · self-host update [app]"), ""}
 	for _, app := range m.status.Apps {
 		state := app.Update
 		if state == "" {

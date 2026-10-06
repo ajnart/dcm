@@ -71,7 +71,8 @@ func (a *program) recap(cmd *cobra.Command) {
 }
 
 func (a *program) statusCmd() *cobra.Command {
-	return &cobra.Command{
+	var updates bool
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show Exposure, Host settings and every App's URL, state and Setup",
 		Args:  cobra.NoArgs,
@@ -81,6 +82,9 @@ func (a *program) statusCmd() *cobra.Command {
 			if err != nil {
 				return a.fail(err)
 			}
+			if updates {
+				a.service().CheckUpdates(cmd.Context(), &status)
+			}
 			if a.json {
 				return writeJSON(a.deps.Out, status)
 			}
@@ -88,6 +92,8 @@ func (a *program) statusCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&updates, "updates", false, "also ask registries whether newer images exist")
+	return cmd
 }
 
 func writeJSON(w io.Writer, v any) error {
@@ -111,13 +117,13 @@ func printStatus(w io.Writer, s service.Status) {
 	}
 	fmt.Fprintln(w)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "APP\tURL\tSTATE\tHEALTH\tSETUP")
+	fmt.Fprintln(tw, "APP\tURL\tSTATE\tHEALTH\tSETUP\tUPDATE")
 	for _, app := range s.Apps {
 		health := app.Health
 		if health == "" {
 			health = "-"
 		}
-		fmt.Fprintf(tw, "%s %s\t%s\t%s\t%s\t%s\n", dot(app), app.ID, app.URL, app.State, health, app.Setup)
+		fmt.Fprintf(tw, "%s %s\t%s\t%s\t%s\t%s\t%s\n", dot(app), app.ID, app.URL, app.State, health, app.Setup, app.Update)
 	}
 	tw.Flush()
 	for _, app := range s.Apps {

@@ -62,7 +62,10 @@ const (
 	levelError
 )
 
-const refreshEvery = 5 * time.Second
+const (
+	refreshEvery      = 5 * time.Second
+	checkUpdatesEvery = 30 * time.Minute
+)
 
 // Messages.
 type (
@@ -71,6 +74,8 @@ type (
 		err    error
 	}
 	doctorMsg   struct{ checks []host.Check }
+	updatesMsg  struct{ updates map[string]string }
+	updatesTick struct{}
 	tickMsg     time.Time
 	taskDoneMsg struct {
 		id    int
@@ -134,6 +139,7 @@ type Model struct {
 
 	status    service.Status
 	checks    []host.Check
+	updates   map[string]string
 	loaded    bool
 	statusErr string
 	refreshed time.Time
@@ -182,7 +188,8 @@ func New(backend Backend, opts Options) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.spin.Tick, tick())
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.spin.Tick, tick(),
+		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
 func tick() tea.Cmd {
@@ -196,6 +203,22 @@ func (m Model) loadStatus() tea.Cmd {
 		defer cancel()
 		status, err := backend.Status(ctx)
 		return statusMsg{status: status, err: err}
+	}
+}
+
+func (m Model) loadUpdates() tea.Cmd {
+	backend, status := m.backend, m.status
+	return func() tea.Msg {
+		return updatesMsg{updates: backend.Updates(context.Background(), status)}
+	}
+}
+
+// applyUpdates copies known update states onto the status rows.
+func (m *Model) applyUpdates() {
+	for i := range m.status.Apps {
+		if state, found := m.updates[m.status.Apps[i].ID]; found {
+			m.status.Apps[i].Update = state
+		}
 	}
 }
 
@@ -278,12 +301,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.statusErr = ""
 		m.status = msg.status
+		m.applyUpdates()
 		m.refreshed = m.opts.Now()
 		m.clampCursor()
 		return m, m.syncLogs()
 
 	case doctorMsg:
 		m.checks = msg.checks
+		return m, nil
+
+	case updatesTick:
+		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
+
+	case updatesMsg:
+		m.updates = msg.updates
+		m.applyUpdates()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -298,7 +330,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.setFlash("✓ "+msg.title, levelOK)
 		}
-		return m, tea.Batch(m.loadStatus(), m.loadDoctor())
+		cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
+		if strings.HasPrefix(msg.title, "update") {
+			cmds = append(cmds, m.loadUpdates())
+		}
+		return m, tea.Batch(cmds...)
 
 	case logChunkMsg:
 		if msg.stream != m.stream {
@@ -436,7 +472,19 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.switchScreen(screenBackups)
 	case key.Matches(msg, k.Refresh):
 		m.setFlash("refreshing…", levelInfo)
-		return m, tea.Batch(m.loadStatus(), m.loadDoctor())
+		return m, tea.Batch(m.loadStatus(), m.loadDoctor(), m.loadUpdates())
+	case key.Matches(msg, k.UpdateAll):
+		var ids []string
+		for _, app := range m.status.Apps {
+			if app.Update == service.UpdateAvailable {
+				ids = append(ids, app.ID)
+			}
+		}
+		if len(ids) == 0 {
+			m.setFlash("no updates found (r checks again)", levelInfo)
+			return m, nil
+		}
+		return m.runTask(ActionUpdate, ids, "update "+strings.Join(ids, " "))
 	}
 	if m.screen != screenApps {
 		return m, nil
@@ -487,8 +535,6 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.setFlash("logs pinned to "+app.ID, levelInfo)
 		}
 		return m, m.syncLogs()
-	case key.Matches(msg, k.UpdateAll):
-		return m.runTask(ActionUpdate, nil, "update all")
 	}
 	if !found {
 		return m, nil

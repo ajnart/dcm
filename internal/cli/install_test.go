@@ -23,13 +23,18 @@ import (
 // so tests can observe idempotency and failures without a real service.
 type echoApp struct {
 	id       string
+	image    string
 	required bool
 	done     map[string]bool
 	fail     error
 }
 
 func (e *echoApp) Info() app.Info {
-	return app.Info{ID: e.id, Name: "Echo " + e.id, Description: "test app", Image: "example/echo:latest", Port: 9000, ContainerPort: 80, Service: e.id}
+	image := e.image
+	if image == "" {
+		image = "example/echo:latest"
+	}
+	return app.Info{ID: e.id, Name: "Echo " + e.id, Description: "test app", Image: image, Port: 9000, ContainerPort: 80, Service: e.id}
 }
 
 func (e *echoApp) Inputs() []app.Input {
@@ -40,7 +45,7 @@ func (e *echoApp) Inputs() []app.Input {
 }
 
 func (e *echoApp) Compose(rc app.RenderContext) string {
-	return "services:\n  " + e.id + ":\n    image: example/echo:latest\n    environment:\n      TZ: ${TZ}\n    ports:\n      - ${BIND_IP}:" + strconv.Itoa(rc.Port) + ":80\n"
+	return "services:\n  " + e.id + ":\n    image: " + e.Info().Image + "\n    environment:\n      TZ: ${TZ}\n    ports:\n      - ${BIND_IP}:" + strconv.Itoa(rc.Port) + ":80\n"
 }
 
 func (e *echoApp) Setup(ctx context.Context, h *helpers.H) error {

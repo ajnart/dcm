@@ -27,6 +27,8 @@ const (
 type Backend interface {
 	Status(ctx context.Context) (service.Status, error)
 	Doctor(ctx context.Context) []host.Check
+	// Updates returns App ID → available, current or unknown.
+	Updates(ctx context.Context, status service.Status) map[string]string
 	Credentials(ctx context.Context) (service.Credentials, error)
 	Logs(ctx context.Context, id string, w io.Writer) error
 	OpenURL(url string) error
@@ -51,6 +53,15 @@ func (b ServiceBackend) Status(ctx context.Context) (service.Status, error) {
 
 func (b ServiceBackend) Doctor(ctx context.Context) []host.Check {
 	return b.quiet().Doctor(ctx)
+}
+
+func (b ServiceBackend) Updates(ctx context.Context, status service.Status) map[string]string {
+	b.quiet().CheckUpdates(ctx, &status)
+	out := map[string]string{}
+	for _, app := range status.Apps {
+		out[app.ID] = app.Update
+	}
+	return out
 }
 
 func (b ServiceBackend) Credentials(ctx context.Context) (service.Credentials, error) {

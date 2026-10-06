@@ -29,6 +29,9 @@ type fakeBackend struct {
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, nil }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
+func (f *fakeBackend) Updates(context.Context, service.Status) map[string]string {
+	return map[string]string{}
+}
 func (f *fakeBackend) Credentials(context.Context) (service.Credentials, error) {
 	var c service.Credentials
 	c.Admin.Username, c.Admin.Password = "admin", "s3cret-pass"
@@ -357,5 +360,35 @@ func TestHealthPillCountsFailuresAndDoctorShowsHints(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("doctor screen lacks %q\n%s", want, out)
 		}
+	}
+}
+
+func TestUpdatesBadgeScreenAndUpdateAll(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available", "sonarr": "current", "whoami": "unknown"}})
+
+	if !strings.Contains(screen(m), "⚠ 1 update") {
+		t.Fatalf("no updates badge\n%s", screen(m))
+	}
+	m = update(t, m, press("3"))
+	out := screen(m)
+	if !strings.Contains(out, "available") || !strings.Contains(out, "current") {
+		t.Fatalf("updates screen\n%s", out)
+	}
+	drive(t, m, press("U"))
+	if got := backend.Actions(); len(got) != 1 || got[0] != "update jellyfin" {
+		t.Fatalf("U should update only Apps with updates: %v", got)
+	}
+}
+
+func TestUpdatesSurviveStatusRefresh(t *testing.T) {
+	m, _ := sample(t, 140, 32)
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
+
+	m = update(t, m, statusMsg{status: sampleStatus()})
+
+	if !strings.Contains(screen(m), "⚠ 1 update") {
+		t.Fatal("refresh dropped update information")
 	}
 }

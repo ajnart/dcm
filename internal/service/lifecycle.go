@@ -283,7 +283,6 @@ func (s *Service) Logs(ctx context.Context, id string, w io.Writer, follow bool,
 	return ss.compose.Logs(ctx, w, follow, tail, services...)
 }
 
-
 // OpenURL opens url in the desktop browser.
 func (s *Service) OpenURL(ctx context.Context, url string) error {
 	name := "xdg-open"
