@@ -30,6 +30,7 @@ type fakeBackend struct {
 	catalog *catalog.Catalog
 	install []service.InstallOptions
 	fail    error
+	latest  string
 }
 
 func (f *fakeBackend) Catalog() *catalog.Catalog {
@@ -47,6 +48,8 @@ func (f *fakeBackend) installs() []service.InstallOptions {
 	defer f.mu.Unlock()
 	return append([]service.InstallOptions(nil), f.install...)
 }
+
+func (f *fakeBackend) LatestRelease(context.Context) string { return f.latest }
 
 func (f *fakeBackend) Backups(context.Context) ([]service.BackupFile, error) { return f.backups, nil }
 

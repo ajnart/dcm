@@ -19,6 +19,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -78,6 +79,7 @@ type (
 	defaultsMsg struct{ settings map[string]string }
 	doctorMsg   struct{ checks []host.Check }
 	updatesMsg  struct{ updates map[string]string }
+	releaseMsg  struct{ version string }
 	updatesTick struct{}
 	backupsMsg  struct {
 		files []service.BackupFile
@@ -143,9 +145,11 @@ type Model struct {
 	screen screenID
 	mode   mode
 
-	status    service.Status
-	checks    []host.Check
-	updates   map[string]string
+	status  service.Status
+	checks  []host.Check
+	updates map[string]string
+	// latest is the newest release tag when it is newer than this binary.
+	latest    string
 	loaded    bool
 	statusErr string
 	refreshed time.Time
@@ -212,7 +216,7 @@ func New(backend Backend, opts Options) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.spin.Tick, tick(),
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.spin.Tick, tick(),
 		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
@@ -228,6 +232,21 @@ func (m Model) loadStatus() tea.Cmd {
 		status, err := backend.Status(ctx)
 		return statusMsg{status: status, err: err}
 	}
+}
+
+// loadRelease looks up the newest release in the background; failures are silent.
+func (m Model) loadRelease() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return releaseMsg{version: backend.LatestRelease(ctx)}
+	}
+}
+
+// releaseNotice tells the user how to install the newer release.
+func (m Model) releaseNotice() string {
+	return "v" + strings.TrimPrefix(m.latest, "v") + " is available: run self-host self-update"
 }
 
 func (m Model) loadUpdates() tea.Cmd {
@@ -366,6 +385,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.backups = msg.files
 		m.backupCursor = min(m.backupCursor, max(len(m.backups)-1, 0))
+		return m, nil
+
+	case releaseMsg:
+		if newer, err := release.Newer(m.opts.Version, msg.version); err == nil && newer {
+			m.latest = msg.version
+			if m.flash == "" {
+				m.setFlash(m.releaseNotice(), levelInfo)
+			}
+		}
 		return m, nil
 
 	case updatesMsg:

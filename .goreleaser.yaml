@@ -1,0 +1,35 @@
+version: 2
+
+project_name: self-host
+
+builds:
+  - id: self-host
+    main: ./cmd/self-host
+    binary: self-host
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - id: self-host
+    formats: [tar.gz]
+    name_template: "self-host_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  disable: true

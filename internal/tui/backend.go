@@ -7,6 +7,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
 )
@@ -45,6 +46,9 @@ type Backend interface {
 	OpenURL(url string) error
 	Backups(ctx context.Context) ([]service.BackupFile, error)
 	Catalog() *catalog.Catalog
+	// LatestRelease returns the newest published release tag, or "" when it
+	// cannot be determined.
+	LatestRelease(ctx context.Context) string
 	// Detect returns the Host settings a new Project would get.
 	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
@@ -89,6 +93,15 @@ func (b ServiceBackend) Logs(ctx context.Context, id string, w io.Writer) error 
 
 func (b ServiceBackend) OpenURL(url string) error {
 	return b.quiet().OpenURL(context.Background(), url)
+}
+
+func (b ServiceBackend) LatestRelease(ctx context.Context) string {
+	client := release.NewClient(b.Deps)
+	rel, err := client.Latest(ctx)
+	if err != nil {
+		return ""
+	}
+	return rel.Tag
 }
 
 func (b ServiceBackend) Catalog() *catalog.Catalog { return b.Apps }

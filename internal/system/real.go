@@ -58,9 +58,11 @@ func Real(version string) *Deps {
 	return &Deps{
 		Version:      version,
 		GOOS:         runtime.GOOS,
+		GOARCH:       runtime.GOARCH,
 		Runner:       execRunner{},
 		HTTP:         &http.Client{Timeout: 30 * time.Second},
 		LookPath:     exec.LookPath,
+		Executable:   os.Executable,
 		Getenv:       os.Getenv,
 		CurrentUser:  currentUser,
 		LookupUser:   lookupUser,
