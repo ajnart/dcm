@@ -34,7 +34,9 @@ _Avoid_: onboarding, wizard
 
 **Link**:
 Setup that wires one App to another (e.g. Sonarr to qBittorrent). It belongs
-to the consuming App and runs only once both Apps have completed Setup.
+to the consuming App: it runs once both Apps have finished their own Setup,
+and when it fails it is the consuming App whose Setup is incomplete, never
+the target's.
 _Avoid_: integration (reserved for Homarr's own feature)
 
 **Project**:
@@ -58,10 +60,43 @@ secrets, made only on request. Media libraries are not included.
 **Restore**:
 Putting one App, or every App, back from a Backup.
 
+**Dashboard**:
+The one screen a person sees for an existing Project: every App with its
+Status, what Needs action, and the selected App's details. There are no other
+screens; first run is the install flow, not a screen.
+_Avoid_: screens, pages, control panel
+
+**Status**:
+An App's health at a glance: **ok** (green), **attention** (yellow) or
+**broken** (red), combined from its container, its health check and its Setup.
+_Avoid_: state (the container's state is one input to Status)
+
+**Needs action**:
+The things a person must deal with: a failed Setup step, an available update,
+a failing or warning host check. Each item names the one Action that resolves
+it, or the command to run when no Action exists.
+
+**Action**:
+Something a person triggers often enough to deserve a key: install, start or
+stop, update, retry Setup, backup, copy the Admin password, open an App.
+Everything else (remove, restore, config, credentials listing…) is only a
+command.
+
+**App details**:
+The read-only view of the selected App, in tabs: logs, Setup, info and its
+Compose file.
+_Avoid_: sidebar
+
+**Keybind**:
+One key that triggers one Action or moves the selection. The Dashboard has a
+small fixed set; a key with no frequent Action behind it does not exist.
+
 ## Relationships
 
 - A **Recipe** selects one or more **Apps**; an **App** can belong to many **Recipes**
 - A **Backup** covers one or more **Apps**; a **Restore** can target any single **App** inside it
+- The **Dashboard** shows every **App** with one **Status**; each **Needs action** item points at one **App** (or the host) and one **Action**
+- A failing **Link** makes its consuming **App** need action, not its target
 
 ## Flagged ambiguities
 
