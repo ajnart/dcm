@@ -43,11 +43,14 @@ type User struct {
 }
 
 type Deps struct {
-	Version     string
-	GOOS        string
-	Runner      Runner
-	HTTP        *http.Client
-	LookPath    func(name string) (string, error)
+	Version  string
+	GOOS     string
+	GOARCH   string
+	Runner   Runner
+	HTTP     *http.Client
+	LookPath func(name string) (string, error)
+	// Executable returns the path of the running binary.
+	Executable  func() (string, error)
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)
 	LookupUser  func(name string) (User, error)

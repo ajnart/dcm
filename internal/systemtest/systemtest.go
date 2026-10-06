@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -98,12 +99,14 @@ func NewDeps(t *testing.T) *system.Deps {
 	home := t.TempDir()
 	env := map[string]string{}
 	return &system.Deps{
-		Version:  "test",
-		GOOS:     "linux",
-		Runner:   runner,
-		HTTP:     &http.Client{Timeout: 5 * time.Second},
-		LookPath: func(name string) (string, error) { return "/usr/bin/" + name, nil },
-		Getenv:   func(key string) string { return env[key] },
+		Version:    "test",
+		GOOS:       "linux",
+		GOARCH:     "amd64",
+		Runner:     runner,
+		HTTP:       &http.Client{Timeout: 5 * time.Second},
+		LookPath:   func(name string) (string, error) { return "/usr/bin/" + name, nil },
+		Executable: func() (string, error) { return filepath.Join(home, "bin", "self-host"), nil },
+		Getenv:     func(key string) string { return env[key] },
 		CurrentUser: func() (system.User, error) {
 			return system.User{Name: "alice", Home: home, UID: 1000, GID: 1000}, nil
 		},

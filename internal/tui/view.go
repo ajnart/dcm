@@ -237,6 +237,9 @@ func (m Model) renderHeader() string {
 	if n := m.updatesAvailable(); n > 0 {
 		parts = append(parts, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
 	}
+	if m.latest != "" {
+		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")+" available · self-host self-update"))
+	}
 	if running := m.tasks.running(); running > 0 {
 		parts = append(parts, t.fg(t.accent).Render(m.spin.View()+" "+plural(running, "task", "tasks")))
 	}
