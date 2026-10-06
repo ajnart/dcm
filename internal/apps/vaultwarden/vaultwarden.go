@@ -65,46 +65,56 @@ func (App) Compose(rc app.RenderContext) string {
 
 const sessionCookie = "VW_ADMIN"
 
-var errRejected = errors.New("the admin page rejected the admin token")
+var (
+	errRejected    = errors.New("the admin page rejected the admin token")
+	errRateLimited = errors.New("the admin page is rate-limiting logins (HTTP 429)")
+)
 
 // adminCookie signs in to the admin page with the stored token. Vaultwarden
-// rate-limits admin logins, so callers sign in as rarely as they can.
+// allows 3 logins per 5 minutes, so the session is remembered for the run:
+// Setup and Check together sign in once.
 func adminCookie(ctx context.Context, h *helpers.H) (string, error) {
-	token := h.Secret(h.Key("admin_token"))
-	if token == "" {
-		return "", fmt.Errorf("%s is missing from secrets.env", h.Key("admin_token"))
-	}
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: http.MethodPost, Path: "/admin",
-		Form:       url.Values{"token": {token}},
-		NoRedirect: true,
+	return h.Remember("admin-cookie", func() (string, error) {
+		token := h.Secret(h.Key("admin_token"))
+		if token == "" {
+			return "", fmt.Errorf("%s is missing from secrets.env", h.Key("admin_token"))
+		}
+		resp, err := h.HTTP(ctx, helpers.Request{
+			Method: http.MethodPost, Path: "/admin",
+			Form: url.Values{"token": {token}},
+		})
+		if err != nil {
+			return "", err
+		}
+		if resp.Status == http.StatusTooManyRequests {
+			return "", errRateLimited
+		}
+		cookie := resp.Cookie(sessionCookie)
+		if cookie == "" {
+			return "", fmt.Errorf("%w (HTTP %d)", errRejected, resp.Status)
+		}
+		return sessionCookie + "=" + cookie, nil
 	})
-	if err != nil {
-		return "", err
-	}
-	cookie := resp.Cookie(sessionCookie)
-	if cookie == "" {
-		return "", fmt.Errorf("%w (HTTP %d)", errRejected, resp.Status)
-	}
-	return sessionCookie + "=" + cookie, nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/alive", 2*time.Minute); err != nil {
 		return err
 	}
+	// Sign in once up front so the hint can tell a rate limit from a stale token.
+	_, loginErr := adminCookie(ctx, h)
 	hint := "The admin token is read from the container environment when it starts. " +
 		"Recreate the container so it picks up " + h.Key("admin_token") + " from secrets.env: self-host start vaultwarden"
+	if errors.Is(loginErr, errRateLimited) {
+		hint = "Vaultwarden limits admin logins to 3 per 5 minutes: wait about 5 minutes and rerun self-host setup vaultwarden"
+	}
 	err := h.Step(ctx, "admin-access", "admin page accepts the admin token", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) {
-			_, err := adminCookie(ctx, h)
-			if errors.Is(err, errRejected) {
-				return false, nil
-			}
-			return err == nil, err
-		},
+		Check: func(context.Context) (bool, error) { return loginErr == nil, nil },
 		Do: func(context.Context) error {
-			return errors.New("the admin token cannot be changed while the container runs")
+			if errors.Is(loginErr, errRateLimited) {
+				return loginErr
+			}
+			return fmt.Errorf("the admin token cannot be changed while the container runs: %w", loginErr)
 		},
 		Hint:       hint,
 		Credential: h.Key("admin_token"),
@@ -113,7 +123,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	h.Info("Signups are closed. To create the first account, open " + h.URL + "/admin, sign in with the admin token " +
-		"(show it with: self-host credentials), choose Invite user, then register with that email at " + h.URL + ".")
+		"(show it with: self-host credentials), choose Invite user, then register with that email at " + h.URL + ". " +
+		"The web vault needs HTTPS or localhost for browser cryptography: on a LAN, open it through an SSH tunnel " +
+		"(ssh -L " + strconv.Itoa(h.Port) + ":localhost:" + strconv.Itoa(h.Port) + " <host>, then http://localhost:" + strconv.Itoa(h.Port) +
+		") or put a reverse proxy with TLS in front.")
 	return nil
 }
 
@@ -122,11 +135,12 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return fmt.Errorf("admin login failed: %w", err)
 	}
-	var config map[string]any
-	resp, err := h.Expect(ctx, helpers.Request{Path: "/admin/config", Header: map[string]string{"Cookie": cookie}})
+	// diagnostics/config is Vaultwarden's JSON dump of the effective settings.
+	resp, err := h.Expect(ctx, helpers.Request{Path: "/admin/diagnostics/config", Header: map[string]string{"Cookie": cookie}})
 	if err != nil {
 		return err
 	}
+	var config map[string]any
 	if err := resp.Decode(&config); err != nil {
 		return err
 	}

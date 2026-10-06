@@ -23,7 +23,12 @@ type fakeVaultwarden struct {
 	mu             sync.Mutex
 	token          string
 	signupsAllowed bool
-	logins         int
+	// logins counts attempts in the rate-limit window; the real default is 3
+	// per ADMIN_RATELIMIT_SECONDS=300.
+	logins     int
+	loginLimit int
+	// noConfig makes the diagnostics endpoint answer 404, like a version without it.
+	noConfig bool
 }
 
 func (f *fakeVaultwarden) handler() http.Handler {
@@ -35,6 +40,11 @@ func (f *fakeVaultwarden) handler() http.Handler {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		f.logins++
+		if f.logins > f.loginLimit {
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte("<html>Too many requests</html>"))
+			return
+		}
 		r.ParseForm()
 		if f.token == "" || r.PostForm.Get("token") != f.token {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -42,11 +52,19 @@ func (f *fakeVaultwarden) handler() http.Handler {
 			return
 		}
 		http.SetCookie(w, &http.Cookie{Name: "VW_ADMIN", Value: "jwt-for-" + f.token, Path: "/admin"})
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		if redirect := r.PostForm.Get("redirect"); redirect != "" {
+			http.Redirect(w, r, "/"+redirect, http.StatusSeeOther)
+			return
+		}
+		w.Write([]byte("<html>Admin panel</html>"))
 	})
-	mux.HandleFunc("GET /admin/config", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /admin/diagnostics/config", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
+		if f.noConfig {
+			http.NotFound(w, r)
+			return
+		}
 		cookie, err := r.Cookie("VW_ADMIN")
 		if err != nil || cookie.Value != "jwt-for-"+f.token {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -63,7 +81,7 @@ type upRecord struct {
 }
 
 func setup(t *testing.T) (*system.Deps, *fakeVaultwarden, *upRecord, *httptest.Server, *catalog.Catalog) {
-	fake := &fakeVaultwarden{}
+	fake := &fakeVaultwarden{loginLimit: 3}
 	server := httptest.NewServer(fake.handler())
 	t.Cleanup(server.Close)
 	deps := systemtest.NewDeps(t)
@@ -144,7 +162,8 @@ func TestInstallTellsTheHumanHowToCreateTheFirstAccount(t *testing.T) {
 	found := false
 	for _, e := range r.Events {
 		msg, _ := e["msg"].(string)
-		if e["event"] == "info" && e["app"] == "vaultwarden" && strings.Contains(msg, "/admin") && strings.Contains(msg, "Invite user") && strings.Contains(msg, "self-host credentials") {
+		if e["event"] == "info" && e["app"] == "vaultwarden" && strings.Contains(msg, "/admin") && strings.Contains(msg, "Invite user") && strings.Contains(msg, "self-host credentials") &&
+			strings.Contains(msg, "HTTPS") && strings.Contains(msg, "ssh -L "+clitest.Port(server)+":localhost:"+clitest.Port(server)) {
 			found = true
 		}
 	}
@@ -205,6 +224,59 @@ func TestOpenSignupsFailTheCheck(t *testing.T) {
 	fail := r.Step("vaultwarden", "check")
 	if fail == nil || fail["event"] != "step.fail" || !strings.Contains(fail["error"].(string), "signups") {
 		t.Fatalf("check should fail on open signups:\n%s", r.Out)
+	}
+}
+
+func TestACheckThatCannotReadTheConfigFails(t *testing.T) {
+	deps, fake, _, server, cat := setup(t)
+	fake.noConfig = true
+
+	r := clitest.Run(t, deps, cat, "install", "vaultwarden", "--yes", "--json", "--set", "vaultwarden.port="+clitest.Port(server))
+
+	if r.Code != 2 || r.StepEvent("vaultwarden", "check") != "step.fail" {
+		t.Fatalf("check should fail when the config endpoint answers 404 (exit %d):\n%s", r.Code, r.Out)
+	}
+}
+
+func TestInstallAndSetupRerunsStayUnderTheLoginRateLimit(t *testing.T) {
+	deps, fake, _, server, cat := setup(t)
+
+	runs := []clitest.Result{
+		clitest.Run(t, deps, cat, "install", "vaultwarden", "--yes", "--json", "--set", "vaultwarden.port="+clitest.Port(server)),
+		clitest.Run(t, deps, cat, "setup", "vaultwarden", "--json"),
+		clitest.Run(t, deps, cat, "setup", "vaultwarden", "--json"),
+	}
+
+	for i, r := range runs {
+		if r.Code != 0 {
+			t.Errorf("run %d: exit %d\n%s", i, r.Code, r.Out)
+		}
+	}
+	if fake.logins != 3 {
+		t.Errorf("want one admin login per run, got %d for 3 runs", fake.logins)
+	}
+}
+
+func TestARateLimitedLoginIsNotBlamedOnTheToken(t *testing.T) {
+	deps, fake, _, server, cat := setup(t)
+	clitest.Run(t, deps, cat, "install", "vaultwarden", "--yes", "--set", "vaultwarden.port="+clitest.Port(server))
+	fake.logins = fake.loginLimit
+
+	r := clitest.Run(t, deps, cat, "setup", "vaultwarden", "--json")
+
+	if r.Code != 2 {
+		t.Fatalf("exit %d, want 2\n%s", r.Code, r.Out)
+	}
+	fail := r.Step("vaultwarden", "admin-access")
+	if fail == nil || fail["event"] != "step.fail" {
+		t.Fatalf("admin-access should fail:\n%s", r.Out)
+	}
+	hint, _ := fail["hint"].(string)
+	if !strings.Contains(hint, "wait about 5 minutes") || !strings.Contains(hint, "self-host setup vaultwarden") || strings.Contains(hint, "self-host start") {
+		t.Errorf("hint should say to wait and rerun setup, got %q", hint)
+	}
+	if strings.Contains(fail["error"].(string), "rejected") {
+		t.Errorf("error blames the token: %v", fail["error"])
 	}
 }
 
