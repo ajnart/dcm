@@ -158,7 +158,7 @@ func (h *H) WaitHTTP(ctx context.Context, path string, timeout time.Duration) er
 
 // Poll calls fn until it reports done, ctx ends or timeout passes.
 func (h *H) Poll(ctx context.Context, timeout time.Duration, fn func(context.Context) (bool, error)) error {
-	deadline := time.Now().Add(timeout)
+	deadline := h.Now().Add(timeout)
 	var last error
 	for {
 		done, err := fn(ctx)
@@ -166,16 +166,14 @@ func (h *H) Poll(ctx context.Context, timeout time.Duration, fn func(context.Con
 			return nil
 		}
 		last = err
-		if time.Now().After(deadline) {
+		if h.Now().After(deadline) {
 			if last == nil {
 				return fmt.Errorf("timed out after %s", timeout)
 			}
 			return fmt.Errorf("timed out after %s: %w", timeout, last)
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(h.PollInterval):
+		if err := h.Sleep(ctx, h.PollInterval); err != nil {
+			return err
 		}
 	}
 }

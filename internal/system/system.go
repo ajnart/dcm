@@ -55,6 +55,8 @@ type Deps struct {
 	CurrentUser func() (User, error)
 	LookupUser  func(name string) (User, error)
 	Now         func() time.Time
+	// Sleep waits d or until ctx ends; tests replace it with a fake clock.
+	Sleep func(ctx context.Context, d time.Duration) error
 	// LANIP returns the address of the interface on the default route.
 	LANIP func() (string, error)
 	// TimeZone returns the host's IANA time zone.

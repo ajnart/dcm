@@ -236,6 +236,8 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			return ss.helpers(peer)
 		},
 		PollInterval: ss.s.pollInterval(),
+		Now:          ss.s.Deps.Now,
+		Sleep:        ss.s.Deps.Sleep,
 	})
 }
 
@@ -289,8 +291,10 @@ func (ss *session) services(ids ...string) ([]string, error) {
 	return all, nil
 }
 
-// runSetup runs Setup then Check for one App and records the outcome.
-func (ss *session) runSetup(ctx context.Context, a app.App) error {
+// runSetup runs an App's Setup, its Check and its own Links, then the Links
+// other ready Apps declare towards it. A Link failure is recorded on the App
+// that declares the Link. It returns every App whose Setup is now incomplete.
+func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	id := a.Info().ID
 	st := ss.state.Apps[id]
 	st.Steps, st.StepOrder = nil, nil
@@ -302,46 +306,90 @@ func (ss *session) runSetup(ctx context.Context, a app.App) error {
 			Hint: "Open " + h.URL + " and compare with the failed step above.",
 		})
 	}
+	ss.reportUnexpected(h, "setup", err)
 	if err == nil {
-		err = ss.runLinks(ctx, a)
-	}
-	st.Setup = "ok"
-	if err != nil {
-		st.Setup = "incomplete"
-	}
-	if saveErr := ss.p.SaveState(ss.state); saveErr != nil {
-		return saveErr
-	}
-	return err
-}
-
-// runLinks applies a's Links to installed targets, and Links of installed
-// Apps that point at a.
-func (ss *session) runLinks(ctx context.Context, a app.App) error {
-	id := a.Info().ID
-	var errs []error
-	for _, link := range a.Links() {
-		if to := ss.readyPeer(link.Target); to != nil {
-			errs = append(errs, link.Apply(ctx, ss.helpers(a), to))
+		for _, link := range a.Links() {
+			ss.applyLink(ctx, a, link)
 		}
 	}
-	for _, other := range ss.s.Catalog.Apps() {
-		otherID := other.Info().ID
-		if otherID == id || !ss.ready(otherID) {
-			continue
-		}
-		for _, link := range other.Links() {
-			if link.Target == id {
-				errs = append(errs, link.Apply(ctx, ss.helpers(other), ss.helpers(a)))
+	st.Setup = setupResult(st)
+	var incomplete []string
+	if st.Setup == "incomplete" {
+		incomplete = append(incomplete, id)
+	}
+	if ss.ready(id) {
+		for _, other := range ss.s.Catalog.Apps() {
+			otherID := other.Info().ID
+			if otherID == id || !ss.ready(otherID) {
+				continue
+			}
+			for _, link := range other.Links() {
+				if link.Target != id {
+					continue
+				}
+				ss.applyLink(ctx, other, link)
+				otherState := ss.state.Apps[otherID]
+				otherState.Setup = setupResult(otherState)
+				if otherState.Setup == "incomplete" {
+					incomplete = append(incomplete, otherID)
+				}
 			}
 		}
 	}
-	return errors.Join(errs...)
+	return incomplete, ss.p.SaveState(ss.state)
 }
 
+// applyLink runs one Link of from, or reports that it waits for its target.
+func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link) {
+	h := ss.helpers(from)
+	to := ss.readyPeer(link.Target)
+	if to == nil {
+		h.Skip(link.ID, "waiting for "+link.Target+" (install it, or finish its Setup)")
+		return
+	}
+	ss.reportUnexpected(h, link.ID, link.Apply(ctx, h, to))
+}
+
+// reportUnexpected records an error that did not come from a failed step,
+// so it is visible and counts against the App.
+func (ss *session) reportUnexpected(h *helpers.H, step string, err error) {
+	if err == nil || errors.Is(err, helpers.ErrStepFailed) {
+		return
+	}
+	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: step, Error: err.Error(), URL: h.URL})
+	h.Record(helpers.StepResult{ID: step, Status: "fail", Error: err.Error()})
+}
+
+// setupResult is "incomplete" while any recorded step failed.
+func setupResult(st *project.AppState) string {
+	for _, step := range st.Steps {
+		if step.Status == "fail" {
+			return "incomplete"
+		}
+	}
+	return "ok"
+}
+
+// isLinkStep reports whether a step belongs to a Link rather than to the
+// App's own Setup.
+func isLinkStep(id string) bool {
+	return strings.HasPrefix(id, "link-") || strings.HasPrefix(id, "unlink-")
+}
+
+// ready reports whether an App's own Setup has run without failures, so
+// Links may use it. Failed Links do not count: they belong to their App and
+// must not block or hide other Links.
 func (ss *session) ready(id string) bool {
 	st := ss.state.Apps[id]
-	return st != nil && st.Setup == "ok"
+	if st == nil || st.Setup == "pending" || st.Setup == "" {
+		return false
+	}
+	for stepID, step := range st.Steps {
+		if step.Status == "fail" && !isLinkStep(stepID) {
+			return false
+		}
+	}
+	return true
 }
 
 func (ss *session) readyPeer(id string) *helpers.H {

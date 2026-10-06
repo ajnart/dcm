@@ -67,6 +67,7 @@ func Real(version string) *Deps {
 		CurrentUser:  currentUser,
 		LookupUser:   lookupUser,
 		Now:          time.Now,
+		Sleep:        sleep,
 		LANIP:        lanIP,
 		TimeZone:     timeZone,
 		PortFree:     portFree,
@@ -167,4 +168,13 @@ func ExpandHome(path, home string) string {
 		return filepath.Join(home, path[2:])
 	}
 	return path
+}
+
+func sleep(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
+	}
 }
