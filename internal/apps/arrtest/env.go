@@ -102,6 +102,12 @@ func (e *Env) docker(cmd system.Cmd) system.Result {
 	switch {
 	case strings.HasPrefix(verb, "up -d"):
 		e.start(strings.Fields(strings.TrimPrefix(verb, "up -d")))
+	case strings.HasPrefix(verb, "restart "):
+		for _, service := range strings.Fields(strings.TrimPrefix(verb, "restart ")) {
+			if arr := e.arrs[service]; arr != nil {
+				arr.Restart()
+			}
+		}
 	case strings.HasPrefix(verb, "logs "):
 		return system.Result{Stdout: []byte(e.logs(strings.Fields(verb)))}
 	case strings.HasPrefix(verb, "exec -T "):

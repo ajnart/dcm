@@ -28,6 +28,12 @@ type App struct {
 	links      []app.Link
 }
 
+// The API prefixes: Sonarr and Radarr speak v3, Prowlarr v1.
+const (
+	apiV3 = "/api/v3"
+	apiV1 = "/api/v1"
+)
+
 func Sonarr() App {
 	return App{
 		info: app.Info{
@@ -40,7 +46,7 @@ func Sonarr() App {
 			Service:       "sonarr",
 			UsesMedia:     true,
 		},
-		api:        "/api/v3",
+		api:        apiV3,
 		rootFolder: "/media/tv",
 		links:      []app.Link{downloadClientLink("tvCategory", "tv")},
 	}
@@ -58,7 +64,7 @@ func Radarr() App {
 			Service:       "radarr",
 			UsesMedia:     true,
 		},
-		api:        "/api/v3",
+		api:        apiV3,
 		rootFolder: "/media/movies",
 		links:      []app.Link{downloadClientLink("movieCategory", "movies")},
 	}
@@ -74,9 +80,8 @@ func Prowlarr() App {
 			Port:          9696,
 			ContainerPort: 9696,
 			Service:       "prowlarr",
-			UsesMedia:     true,
 		},
-		api:   "/api/v1",
+		api:   apiV1,
 		links: []app.Link{applicationLink("sonarr"), applicationLink("radarr")},
 	}
 }
@@ -211,12 +216,15 @@ func (a App) setAuth(ctx context.Context, h *helpers.H) error {
 	})); err != nil {
 		return err
 	}
-	// The App may restart to apply authentication.
-	return h.Poll(ctx, time.Minute, loginPoll(h))
-}
-
-func loginPoll(h *helpers.H) func(context.Context) (bool, error) {
-	return func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) }
+	// The App may apply authentication by itself; some versions only pick up
+	// the new method after a restart.
+	if h.Poll(ctx, 30*time.Second, func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) }) == nil {
+		return nil
+	}
+	if err := h.Restart(ctx); err != nil {
+		return err
+	}
+	return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) })
 }
 
 type rootFolder struct {

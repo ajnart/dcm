@@ -98,6 +98,7 @@ func NewDeps(t *testing.T) *system.Deps {
 	runner.On("docker compose version", system.Result{Stdout: []byte("2.29.7\n")})
 	home := t.TempDir()
 	env := map[string]string{}
+	clock := &Clock{now: time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)}
 	return &system.Deps{
 		Version:    "test",
 		GOOS:       "linux",
@@ -113,7 +114,8 @@ func NewDeps(t *testing.T) *system.Deps {
 		LookupUser: func(name string) (system.User, error) {
 			return system.User{}, fmt.Errorf("unknown user %s", name)
 		},
-		Now:          func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) },
+		Now:          clock.Now,
+		Sleep:        clock.Sleep,
 		LANIP:        func() (string, error) { return "192.168.1.20", nil },
 		TimeZone:     func() string { return "Europe/Paris" },
 		PortFree:     func(int) bool { return true },
@@ -127,4 +129,27 @@ func NewDeps(t *testing.T) *system.Deps {
 // SetEnv replaces Getenv with a map lookup.
 func SetEnv(deps *system.Deps, env map[string]string) {
 	deps.Getenv = func(key string) string { return env[key] }
+}
+
+// Clock is a fake clock: Sleep returns at once and moves Now forward, so
+// polling code runs its timeouts instantly in tests.
+type Clock struct {
+	mu  sync.Mutex
+	now time.Time
+}
+
+func (c *Clock) Now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.now
+}
+
+func (c *Clock) Sleep(ctx context.Context, d time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.now = c.now.Add(d)
+	return nil
 }

@@ -36,6 +36,17 @@ type Arr struct {
 	AcceptApplication func(baseURL, apiKey string) bool
 	// FailDeletes makes every DELETE answer 500, as when the App is broken.
 	FailDeletes bool
+	// RequireRestart makes forms login keep failing until the container is
+	// restarted, as when the App caches its authentication method.
+	RequireRestart bool
+	restarted      bool
+}
+
+// Restart plays `docker compose restart` for this App.
+func (a *Arr) Restart() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.restarted = true
 }
 
 // SeedDownloadClient adds a download client the user configured by hand.
@@ -182,7 +193,7 @@ func (a *Arr) Handler() http.Handler {
 func (a *Arr) login(w http.ResponseWriter, r *http.Request) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.host["authenticationMethod"] != "forms" {
+	if a.host["authenticationMethod"] != "forms" || (a.RequireRestart && !a.restarted) {
 		http.NotFound(w, r)
 		return
 	}

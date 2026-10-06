@@ -27,6 +27,7 @@ type Executor interface {
 	Exec(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error)
 	// LogText returns the last lines a service printed.
 	LogText(ctx context.Context, tail int, services ...string) (string, error)
+	Restart(ctx context.Context, services ...string) error
 }
 
 type StepResult struct {
@@ -57,6 +58,9 @@ type Config struct {
 	Peer func(id string) *H
 	// PollInterval is how often waits retry. Zero means one second.
 	PollInterval time.Duration
+	// Now and Sleep drive waits; tests pass a fake clock.
+	Now   func() time.Time
+	Sleep func(ctx context.Context, d time.Duration) error
 }
 
 type H struct {
@@ -79,6 +83,19 @@ func New(cfg Config) *H {
 	}
 	if cfg.PollInterval == 0 {
 		cfg.PollInterval = time.Second
+	}
+	if cfg.Now == nil {
+		cfg.Now = time.Now
+	}
+	if cfg.Sleep == nil {
+		cfg.Sleep = func(ctx context.Context, d time.Duration) error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(d):
+				return nil
+			}
+		}
 	}
 	return &H{Config: cfg}
 }
@@ -185,6 +202,13 @@ func (h *H) AdminPassword() string { return h.Secrets.Get("ADMIN_PASSWORD") }
 // passed through the environment and never appear in logs.
 func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) (system.Result, error) {
 	return h.ExecIn(ctx, h.Service, env, command...)
+}
+
+// Restart restarts the App's main service, e.g. so it rereads settings it
+// caches at startup.
+func (h *H) Restart(ctx context.Context) error {
+	h.Info("restarting " + h.Service + " to apply its new settings")
+	return h.Config.Exec.Restart(ctx, h.Service)
 }
 
 func (h *H) ExecIn(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error) {

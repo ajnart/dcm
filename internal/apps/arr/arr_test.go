@@ -14,6 +14,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/qbittorrent"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 func newEnv(t *testing.T, apps ...app.App) *arrtest.Env {
@@ -292,5 +293,46 @@ func TestRemovingQBittorrentRemovesTheDownloadClients(t *testing.T) {
 
 	if r.Code != 0 || len(e.Sonarr.DownloadClients()) != 0 || len(e.Radarr.DownloadClients()) != 0 {
 		t.Fatalf("exit %d, download clients should be gone\n%s", r.Code, r.Out)
+	}
+}
+
+func TestSonarrIsRestartedOnceWhenFormsLoginNeedsIt(t *testing.T) {
+	e := newEnv(t, arr.Sonarr())
+	e.Sonarr.RequireRestart = true
+
+	r := e.Run("install", "sonarr", "--yes", "--json")
+
+	if r.Code != 0 || r.StepEvent("sonarr", "auth") != "step.ok" {
+		t.Fatalf("exit %d\n%s", r.Code, r.Out)
+	}
+	restarts := 0
+	for _, call := range e.Deps.Runner.(*systemtest.Runner).Calls() {
+		if strings.HasSuffix(call, "restart sonarr") {
+			restarts++
+		}
+	}
+	if restarts != 1 {
+		t.Fatalf("restarts = %d, want exactly one", restarts)
+	}
+}
+
+func TestProwlarrNeedsNoMediaFolders(t *testing.T) {
+	if arr.Prowlarr().Info().UsesMedia {
+		t.Fatal("Prowlarr mounts no media or downloads folder")
+	}
+}
+
+func TestAPIKeysNeverAppearInEvents(t *testing.T) {
+	e := arrtest.New(t, catalog.Default())
+
+	r := e.Run("install", "media", "--yes", "--json", "--verbose")
+
+	for _, key := range []string{e.Sonarr.Key, e.Radarr.Key, e.Prowlarr.Key} {
+		if strings.Contains(r.Out, key) {
+			t.Fatalf("API key %q leaked into events", key)
+		}
+	}
+	if _, pass := adminLogin(t, e); strings.Contains(r.Out, pass) {
+		t.Fatal("Admin password leaked into events")
 	}
 }

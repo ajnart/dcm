@@ -236,6 +236,8 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			return ss.helpers(peer)
 		},
 		PollInterval: ss.s.pollInterval(),
+		Now:          ss.s.Deps.Now,
+		Sleep:        ss.s.Deps.Sleep,
 	})
 }
 

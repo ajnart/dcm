@@ -95,10 +95,12 @@ func exists(ctx context.Context, h *helpers.H, api, path string, match func(obje
 	return false, nil
 }
 
-const (
-	v3 = "/api/v3"
-	v1 = "/api/v1"
-)
+// field is one schema field to set, kept in a slice so errors come out in a
+// stable order.
+type field struct {
+	name  string
+	value any
+}
 
 // isQBittorrent matches the download client this Link manages: qBittorrent
 // reached by its Compose service name, never a client the user added for
@@ -118,24 +120,25 @@ func downloadClientLink(categoryField, category string) app.Link {
 		Apply: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, id, "use qBittorrent as the download client", helpers.StepSpec{
 				Check: func(ctx context.Context) (bool, error) {
-					return exists(ctx, from, v3, "/downloadclient", isQBittorrent)
+					return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
 				},
 				Do: func(ctx context.Context) error {
-					client, err := schemaFor(ctx, from, v3, "/downloadclient", "QBittorrent")
+					client, err := schemaFor(ctx, from, apiV3, "/downloadclient", "QBittorrent")
 					if err != nil {
 						return err
 					}
 					client["name"], client["enable"] = "qBittorrent", true
-					for name, value := range map[string]any{
-						"host": target, "port": to.Port,
-						"username": from.AdminUser(), "password": from.AdminPassword(),
-						categoryField: category,
+					for _, f := range []field{
+						{"host", target}, {"port", to.Port},
+						{"username", from.AdminUser()}, {"password", from.AdminPassword()},
+						{categoryField, category},
 					} {
+						name, value := f.name, f.value
 						if err := client.setField(name, value); err != nil {
 							return err
 						}
 					}
-					return create(ctx, from, v3, "/downloadclient", client)
+					return create(ctx, from, apiV3, "/downloadclient", client)
 				},
 				Hint: "Open " + from.URL + " > Settings > Download Clients > add qBittorrent with host " + target +
 					", port " + strconv.Itoa(to.Port) + " and the Admin login.",
@@ -145,10 +148,10 @@ func downloadClientLink(categoryField, category string) app.Link {
 		Remove: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, "un"+id, "remove the qBittorrent download client", helpers.StepSpec{
 				Check: func(ctx context.Context) (bool, error) {
-					found, err := exists(ctx, from, v3, "/downloadclient", isQBittorrent)
+					found, err := exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
 					return !found, err
 				},
-				Do:         func(ctx context.Context) error { return remove(ctx, from, v3, "/downloadclient", isQBittorrent) },
+				Do:         func(ctx context.Context) error { return remove(ctx, from, apiV3, "/downloadclient", isQBittorrent) },
 				Hint:       "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent.",
 				Credential: "admin",
 			})
@@ -178,21 +181,22 @@ func applicationLink(target string) app.Link {
 		Title:  "sync indexers to " + t.implementation,
 		Apply: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, id, "sync indexers to "+t.implementation, helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) { return exists(ctx, from, v1, "/applications", points) },
+				Check: func(ctx context.Context) (bool, error) { return exists(ctx, from, apiV1, "/applications", points) },
 				Do: func(ctx context.Context) error {
-					application, err := schemaFor(ctx, from, v1, "/applications", t.implementation)
+					application, err := schemaFor(ctx, from, apiV1, "/applications", t.implementation)
 					if err != nil {
 						return err
 					}
 					application["name"], application["syncLevel"] = t.implementation, "fullSync"
-					for name, value := range map[string]any{
-						"prowlarrUrl": prowlarrURL, "baseUrl": t.baseURL, "apiKey": to.Secret(to.Key("api_key")),
+					for _, f := range []field{
+						{"prowlarrUrl", prowlarrURL}, {"baseUrl", t.baseURL}, {"apiKey", to.Secret(to.Key("api_key"))},
 					} {
+						name, value := f.name, f.value
 						if err := application.setField(name, value); err != nil {
 							return err
 						}
 					}
-					return create(ctx, from, v1, "/applications", application)
+					return create(ctx, from, apiV1, "/applications", application)
 				},
 				Hint: "Open " + from.URL + " > Settings > Apps > add " + t.implementation + " with Prowlarr server " +
 					prowlarrURL + ", server " + t.baseURL + " and its API key.",
@@ -202,10 +206,10 @@ func applicationLink(target string) app.Link {
 		Remove: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, "un"+id, "stop syncing indexers to "+t.implementation, helpers.StepSpec{
 				Check: func(ctx context.Context) (bool, error) {
-					found, err := exists(ctx, from, v1, "/applications", points)
+					found, err := exists(ctx, from, apiV1, "/applications", points)
 					return !found, err
 				},
-				Do:         func(ctx context.Context) error { return remove(ctx, from, v1, "/applications", points) },
+				Do:         func(ctx context.Context) error { return remove(ctx, from, apiV1, "/applications", points) },
 				Hint:       "Open " + from.URL + " > Settings > Apps and delete " + t.implementation + ".",
 				Credential: "admin",
 			})
