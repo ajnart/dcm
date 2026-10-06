@@ -23,13 +23,15 @@ const (
 	ActionPurge   Action = "purge"
 	ActionBackup  Action = "backup"
 	ActionRestore Action = "restore"
+	ActionInstall Action = "install"
 )
 
 // Request is one mutating action. File is the archive for backup/restore.
 type Request struct {
-	Action Action
-	IDs    []string
-	File   string
+	Action  Action
+	IDs     []string
+	File    string
+	Install *service.InstallOptions
 }
 
 // Backend is everything the dashboard needs from the Service.
@@ -42,6 +44,9 @@ type Backend interface {
 	Logs(ctx context.Context, id string, w io.Writer) error
 	OpenURL(url string) error
 	Backups(ctx context.Context) ([]service.BackupFile, error)
+	Catalog() *catalog.Catalog
+	// Detect returns the Host settings a new Project would get.
+	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
 	Run(ctx context.Context, req Request, log *events.Logger) error
 }
@@ -49,12 +54,12 @@ type Backend interface {
 // ServiceBackend runs every call on a fresh Service so each task gets its
 // own event stream.
 type ServiceBackend struct {
-	Deps    *system.Deps
-	Catalog *catalog.Catalog
+	Deps *system.Deps
+	Apps *catalog.Catalog
 }
 
 func (b ServiceBackend) quiet() *service.Service {
-	return service.New(b.Deps, events.Discard(), b.Catalog)
+	return service.New(b.Deps, events.Discard(), b.Apps)
 }
 
 func (b ServiceBackend) Status(ctx context.Context) (service.Status, error) {
@@ -86,17 +91,29 @@ func (b ServiceBackend) OpenURL(url string) error {
 	return b.quiet().OpenURL(context.Background(), url)
 }
 
+func (b ServiceBackend) Catalog() *catalog.Catalog { return b.Apps }
+
+func (b ServiceBackend) Detect(context.Context) map[string]string {
+	settings, err := b.quiet().Defaults()
+	if err != nil {
+		return map[string]string{}
+	}
+	return settings
+}
+
 func (b ServiceBackend) Backups(ctx context.Context) ([]service.BackupFile, error) {
 	return b.quiet().Backups(ctx)
 }
 
 func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {
-	s := service.New(b.Deps, log, b.Catalog)
+	s := service.New(b.Deps, log, b.Apps)
 	ids := req.IDs
 	switch req.Action {
 	case ActionBackup:
 		_, err := s.Backup(ctx, ids, req.File, "")
 		return err
+	case ActionInstall:
+		return s.Install(ctx, *req.Install)
 	case ActionRestore:
 		return s.Restore(ctx, req.File, ids, b.Deps.Getenv("SELF_HOST_BACKUP_PASSPHRASE"))
 	case ActionStart:

@@ -120,7 +120,7 @@ func (a *program) root() *cobra.Command {
 		if !a.deps.Interactive {
 			return cmd.Help()
 		}
-		backend := tui.ServiceBackend{Deps: a.deps, Catalog: a.catalog}
+		backend := tui.ServiceBackend{Deps: a.deps, Apps: a.catalog}
 		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version})
 	}
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")

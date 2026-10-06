@@ -4,6 +4,7 @@ import (
 	"context"
 	"image/color"
 	"io"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
@@ -25,7 +27,25 @@ type fakeBackend struct {
 	actions []string
 	opened  []string
 	backups []service.BackupFile
+	catalog *catalog.Catalog
+	install []service.InstallOptions
 	fail    error
+}
+
+func (f *fakeBackend) Catalog() *catalog.Catalog {
+	if f.catalog == nil {
+		return catalog.New(nil, nil)
+	}
+	return f.catalog
+}
+func (f *fakeBackend) Detect(context.Context) map[string]string {
+	return map[string]string{"TZ": "Europe/Paris", "LAN_IP": "192.168.1.20", "PUID": "1000", "PGID": "1000",
+		"MEDIA_ROOT": "/home/alice/media", "DOWNLOADS_ROOT": "/home/alice/downloads"}
+}
+func (f *fakeBackend) installs() []service.InstallOptions {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]service.InstallOptions(nil), f.install...)
 }
 
 func (f *fakeBackend) Backups(context.Context) ([]service.BackupFile, error) { return f.backups, nil }
@@ -57,6 +77,9 @@ func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) er
 		entry += " " + req.File
 	}
 	f.actions = append(f.actions, entry)
+	if req.Install != nil {
+		f.install = append(f.install, *req.Install)
+	}
 	f.mu.Unlock()
 	log.Emit(events.Event{Event: events.StepOK, Step: string(req.Action), Msg: string(req.Action) + " done"})
 	return f.fail
@@ -132,6 +155,14 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 		case tickMsg, tea.QuitMsg, spinner.TickMsg:
 			return nil
 		default:
+			// tea.Sequence yields an unexported []tea.Cmd; run it in order.
+			if v := reflect.ValueOf(msg); v.Kind() == reflect.Slice && v.Type().Elem() == reflect.TypeFor[tea.Cmd]() {
+				var out []tea.Msg
+				for i := 0; i < v.Len(); i++ {
+					out = append(out, runCmd(v.Index(i).Interface().(tea.Cmd))...)
+				}
+				return out
+			}
 			return []tea.Msg{msg}
 		}
 	case <-time.After(200 * time.Millisecond):
@@ -149,6 +180,8 @@ func press(s string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeyTab}
 	case "down":
 		return tea.KeyPressMsg{Code: tea.KeyDown}
+	case "space":
+		return tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
 	}
 	r := []rune(s)[0]
 	return tea.KeyPressMsg{Code: r, Text: s}
@@ -424,3 +457,9 @@ func TestBackupsScreenCreatesAndRestoresBackups(t *testing.T) {
 		t.Fatalf("actions %q", got)
 	}
 }
+
+func statusMsgFor(err error) statusMsg { return statusMsg{err: err} }
+
+func tea_WindowSize(w, h int) tea.WindowSizeMsg { return tea.WindowSizeMsg{Width: w, Height: h} }
+
+func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl} }

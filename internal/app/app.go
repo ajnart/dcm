@@ -22,6 +22,8 @@ type Info struct {
 	Service string
 	// Path is appended to the App URL when users open it (e.g. "/web").
 	Path string
+	// UsesMedia means the App mounts ${MEDIA_ROOT} or ${DOWNLOADS_ROOT}.
+	UsesMedia bool
 }
 
 type Input struct {

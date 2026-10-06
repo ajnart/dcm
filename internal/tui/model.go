@@ -4,6 +4,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -29,6 +30,7 @@ const (
 	screenUpdates
 	screenDoctor
 	screenBackups
+	screenWizard
 )
 
 var screenNames = []string{"Apps", "Catalog", "Updates", "Doctor", "Backups"}
@@ -73,6 +75,7 @@ type (
 		status service.Status
 		err    error
 	}
+	defaultsMsg struct{ settings map[string]string }
 	doctorMsg   struct{ checks []host.Check }
 	updatesMsg  struct{ updates map[string]string }
 	updatesTick struct{}
@@ -161,6 +164,16 @@ type Model struct {
 	backups      []service.BackupFile
 	backupCursor int
 
+	wizard   *wizard
+	defaults map[string]string
+	lastTask int
+
+	catalogCursor   int
+	catalogPicked   map[string]bool
+	catalogFilter   textinput.Model
+	catalogFiltered bool
+	catalogPlan     *plan
+
 	tasks      *taskManager
 	taskCursor int
 	confirm    *confirmation
@@ -176,8 +189,13 @@ func New(backend Backend, opts Options) Model {
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
+	catFilter := textinput.New()
+	catFilter.Prompt = "/ "
+	catFilter.Placeholder = "filter the catalog"
 	m := Model{
 		backend:        backend,
+		catalogFilter:  catFilter,
+		catalogPicked:  map[string]bool{},
 		opts:           opts,
 		dark:           true,
 		theme:          newTheme(true),
@@ -226,6 +244,11 @@ func (m *Model) applyUpdates() {
 			m.status.Apps[i].Update = state
 		}
 	}
+}
+
+func (m Model) loadDefaults() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg { return defaultsMsg{settings: backend.Detect(context.Background())} }
 }
 
 func (m Model) loadDoctor() tea.Cmd {
@@ -299,11 +322,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		return m, tea.Batch(m.loadStatus(), tick())
 
+	case defaultsMsg:
+		m.defaults = msg.settings
+		if m.wizard != nil && m.wizard.stage == stageWelcome {
+			m.wizard = m.newWizard()
+		}
+		return m, nil
+
 	case statusMsg:
 		m.loaded = true
+		if errors.Is(msg.err, service.ErrNoProject) {
+			if m.screen != screenWizard {
+				m.screen = screenWizard
+				m.wizard = m.newWizard()
+				return m, m.loadDefaults()
+			}
+			return m, nil
+		}
 		if msg.err != nil {
 			m.statusErr = msg.err.Error()
 			return m, nil
+		}
+		if m.screen == screenWizard && m.wizard != nil && m.wizard.stage != stageInstalling {
+			m.screen, m.wizard = screenApps, nil
 		}
 		m.statusErr = ""
 		m.status = msg.status
@@ -339,6 +380,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case taskDoneMsg:
 		m.tasks.finish(msg.id, msg.err)
+		if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
+			if msg.err != nil && !strings.Contains(msg.err.Error(), service.ErrIncomplete.Error()) {
+				m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
+				m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
+				return m, nil
+			}
+			m.screen, m.wizard = screenApps, nil
+		}
+		if m.catalogPlan != nil {
+			m.catalogPlan, m.catalogPicked = nil, map[string]bool{}
+		}
 		if msg.err != nil {
 			m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error())+" (t: details)", levelError)
 		} else {
@@ -386,6 +438,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
+	if m.screen == screenWizard && m.wizard != nil && m.wizard.stage == stageForm {
+		return m.updateWizardForm(msg)
+	}
 	return m, nil
 }
 
@@ -395,6 +450,15 @@ func firstLine(s string) string {
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.screen == screenWizard && m.wizard != nil && m.mode == modeNormal {
+		return m.handleWizardKey(msg)
+	}
+	if m.screen == screenCatalog && (m.catalogFiltered || m.catalogPlan != nil) && m.mode == modeNormal {
+		return m.handleCatalogKey(msg)
+	}
+	if m.mode == modeTasks && m.screen == screenWizard {
+		return m.handleTasksKey(msg)
+	}
 	switch m.mode {
 	case modeFilter:
 		return m.handleFilterKey(msg)
@@ -505,6 +569,9 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	if m.screen == screenBackups {
 		return m.handleBackupsKey(msg)
+	}
+	if m.screen == screenCatalog {
+		return m.handleCatalogKey(msg)
 	}
 	if m.screen != screenApps {
 		return m, nil
@@ -690,6 +757,7 @@ func (m Model) runTask(action Action, ids []string, title string) (tea.Model, te
 // run starts a background action and reports it in the tasks overlay.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	t := m.tasks.start(title)
+	m.lastTask = t.id
 	backend := m.backend
 	m.setFlash("… "+title, levelInfo)
 	run := func() tea.Msg {

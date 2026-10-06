@@ -81,7 +81,9 @@ func (m Model) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 	v.ReportFocus = true
 	v.WindowTitle = m.windowTitle()
-	if m.tasks.running() > 0 {
+	if pct, ok := m.installProgress(); ok {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
+	} else if m.tasks.running() > 0 {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
 	}
 	if m.width == 0 {
@@ -91,9 +93,13 @@ func (m Model) View() tea.View {
 
 	layers := []*lipgloss.Layer{}
 	base := []string{m.renderHeader()}
-	tabs, tabLayers := m.renderTabs()
-	base = append(base, tabs)
-	layers = append(layers, tabLayers...)
+	if m.screen == screenWizard {
+		base = append(base, "")
+	} else {
+		tabs, tabLayers := m.renderTabs()
+		base = append(base, tabs)
+		layers = append(layers, tabLayers...)
+	}
 
 	var main string
 	switch {
@@ -112,7 +118,9 @@ func (m Model) View() tea.View {
 		case screenUpdates:
 			main = m.renderUpdates()
 		case screenCatalog:
-			main = m.renderCatalog()
+			main = m.renderCatalogScreen()
+		case screenWizard:
+			main = m.renderWizard()
 		case screenBackups:
 			main = m.renderBackups()
 		}
@@ -208,7 +216,7 @@ func (m Model) renderHeader() string {
 	if m.status.Project != "" {
 		parts = append(parts, t.dim().Render(shortHome(m.status.Project)))
 	}
-	if m.loaded && m.statusErr == "" {
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
 		if m.status.Exposure == service.ExposureLocal {
 			parts = append(parts, t.chip("LOCAL ONLY", t.warn))
 		} else {
@@ -540,12 +548,6 @@ func (m Model) renderUpdates() string {
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderCatalog() string {
-	t := m.theme
-	return strings.Join([]string{"", "  " + t.heading().Render("Catalog"), "",
-		"  " + t.dim().Render("Browse Apps and Recipes: self-host apps list · add one: self-host install <app>")}, "\n")
-}
-
 func (m Model) renderBackups() string {
 	t := m.theme
 	lines := []string{"", "  " + t.heading().Render("Backups") + t.dim().Render("  b backs up every App now · enter restores the selected backup"), ""}
@@ -582,6 +584,9 @@ func (m Model) renderFooter() string {
 	}
 	left := style.Render(flash)
 	right := m.help.ShortHelpView(m.keys.ShortHelp())
+	if m.screen == screenWizard {
+		right = ""
+	}
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 2 {
 		return pad(left, m.width)

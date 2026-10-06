@@ -25,6 +25,8 @@ type InstallOptions struct {
 	DownloadsRoot string
 	AdminUser     string
 	AdminPassword string
+	// Settings overrides detected Host settings for a new Project.
+	Settings map[string]string
 }
 
 // Resolve expands Recipe IDs into App IDs, keeping order and removing duplicates.
@@ -221,6 +223,11 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 
 func (s *Service) createProject(p *project.Project, opts InstallOptions) error {
 	settings := s.DetectSettings(p.Owner, opts.Exposure)
+	for key, value := range opts.Settings {
+		if value != "" && key != "EXPOSURE" && key != "BIND_IP" {
+			settings[key] = value
+		}
+	}
 	if opts.MediaRoot != "" {
 		settings["MEDIA_ROOT"] = opts.MediaRoot
 	}

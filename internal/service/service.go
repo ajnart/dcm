@@ -114,6 +114,15 @@ func (s *Service) DetectSettings(owner system.User, exposure string) map[string]
 	}
 }
 
+// Defaults returns the Host settings a new Project would get.
+func (s *Service) Defaults() (map[string]string, error) {
+	owner, err := s.Owner()
+	if err != nil {
+		return nil, err
+	}
+	return s.DetectSettings(owner, ""), nil
+}
+
 // AppURL is what a person opens: LAN IP for lan exposure, loopback otherwise.
 func AppURL(settings map[string]string, port int, path string) string {
 	hostName := settings["LAN_IP"]
