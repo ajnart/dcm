@@ -2,11 +2,22 @@
   {
     "id": "ntfy",
     "name": "ntfy",
-    "description": "Official v2.28.0 Docker and authentication documentation checked; the experimental deny-all shared recipe verifies the saved admin and checkpoints creation of one non-expiring Homarr administrator token. Fresh-instance, restart and notification-delivery acceptance remain separate.",
+    "aliases": [
+      "push notifications",
+      "self hosted notifications"
+    ],
+    "roles": [
+      "notification-broker"
+    ],
     "categories": [
       "communication",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official v2.28.0 Docker and authentication documentation checked; the experimental deny-all shared recipe verifies the saved admin and checkpoints creation of one non-expiring Homarr administrator token. Fresh-instance, restart and notification-delivery acceptance remain separate."
+    },
     "image": "binwiederhier/ntfy:v2.28.0",
     "container_port": 80,
     "default_published_port": 8080,
@@ -86,11 +97,22 @@
   {
     "id": "sonarr",
     "name": "Sonarr",
-    "description": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe.",
+    "aliases": [
+      "tv automation",
+      "tv manager"
+    ],
+    "roles": [
+      "tv-automation"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe."
+    },
     "image": "lscr.io/linuxserver/sonarr:version-4.0.19.2979",
     "container_port": 8989,
     "default_published_port": 8989,
@@ -164,11 +186,22 @@
   {
     "id": "wud",
     "name": "What's Up Docker",
-    "description": "Pinned 9.1.0 remote TLS watcher recipe requires explicit endpoint/container/mode choices, imported owner-issued CA/certificate/key files and a separately approved fresh remote Docker connection before every start. Management mode explicitly grants host-wide Docker control, not read-only authority; inventory mode remains blocked without verified deny-write policy. Setup verifies the saved Basic administrator, anonymous denial and exact single-container image against the approved Docker engine. Live TLS/ACL acceptance, current scan freshness and restart persistence remain unverified. No socket or registry-only mode is provided.",
+    "aliases": [
+      "wud",
+      "container update monitor"
+    ],
+    "roles": [
+      "container-image-update-monitoring"
+    ],
     "categories": [
       "containers",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned 9.1.0 remote TLS watcher recipe requires explicit endpoint/container/mode choices, imported owner-issued CA/certificate/key files and a separately approved fresh remote Docker connection before every start. Management mode explicitly grants host-wide Docker control, not read-only authority; inventory mode remains blocked without verified deny-write policy. Setup verifies the saved Basic administrator, anonymous denial and exact single-container image against the approved Docker engine. Live TLS/ACL acceptance, current scan freshness and restart persistence remain unverified. No socket or registry-only mode is provided."
+    },
     "image": "getwud/wud:9.1.0",
     "environment": [],
     "mounts": [],

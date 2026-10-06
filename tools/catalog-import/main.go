@@ -51,11 +51,19 @@ type supportFact struct {
 	Automation string `json:"automation"`
 }
 
+type lifecycleFact struct {
+	Status    string `json:"status"`
+	CheckedAt string `json:"checked_at"`
+	Note      string `json:"note"`
+}
+
 type appFact struct {
 	ID               string           `json:"id"`
 	Name             string           `json:"name"`
-	Description      string           `json:"description"`
+	Aliases          []string         `json:"aliases"`
+	Roles            []string         `json:"roles"`
 	Categories       []string         `json:"categories"`
+	Lifecycle        lifecycleFact    `json:"lifecycle"`
 	Image            string           `json:"image"`
 	ContainerPort    *int             `json:"container_port,omitempty"`
 	DefaultPublished *int             `json:"default_published_port,omitempty"`
@@ -76,11 +84,12 @@ type appFact struct {
 
 // manifest is a tolerant decode of resources/catalog/apps/<id>/manifest.json.
 type manifest struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Categories  []string `json:"categories"`
-	Upstream    struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Aliases    []string `json:"aliases"`
+	Roles      []string `json:"roles"`
+	Categories []string `json:"categories"`
+	Upstream   struct {
 		URL  string  `json:"url"`
 		Docs *string `json:"docs"`
 	} `json:"upstream"`
@@ -92,7 +101,9 @@ type manifest struct {
 		Automation string `json:"automation"`
 	} `json:"support"`
 	Lifecycle struct {
-		Note string `json:"note"`
+		Status    string `json:"status"`
+		CheckedAt string `json:"checkedAt"`
+		Note      string `json:"note"`
 	} `json:"lifecycle"`
 	Pitfalls []string `json:"pitfalls"`
 	Security []string `json:"security"`
@@ -199,13 +210,19 @@ func readApp(appDir, id string) (appFact, error) {
 	}
 
 	fact := appFact{
-		ID:          firstNonEmpty(man.ID, id),
-		Name:        man.Name,
-		Description: firstNonEmpty(man.Description, man.Lifecycle.Note),
-		Categories:  nonNilStrings(man.Categories),
-		Image:       derefString(man.Image.Reference),
-		Pitfalls:    nonNilStrings(man.Pitfalls),
-		Security:    nonNilStrings(man.Security),
+		ID:         firstNonEmpty(man.ID, id),
+		Name:       man.Name,
+		Aliases:    nonNilStrings(man.Aliases),
+		Roles:      nonNilStrings(man.Roles),
+		Categories: nonNilStrings(man.Categories),
+		Lifecycle: lifecycleFact{
+			Status:    man.Lifecycle.Status,
+			CheckedAt: man.Lifecycle.CheckedAt,
+			Note:      man.Lifecycle.Note,
+		},
+		Image:    derefString(man.Image.Reference),
+		Pitfalls: nonNilStrings(man.Pitfalls),
+		Security: nonNilStrings(man.Security),
 		Support: supportFact{
 			Tier:       man.Support.Tier,
 			Automation: man.Support.Automation,
@@ -257,6 +274,12 @@ func readApp(appDir, id string) (appFact, error) {
 // finishEmpty normalises nil slices to empty arrays so the JSON output is
 // stable and never emits null for set-like arrays.
 func finishEmpty(f appFact) appFact {
+	if f.Aliases == nil {
+		f.Aliases = []string{}
+	}
+	if f.Roles == nil {
+		f.Roles = []string{}
+	}
 	if f.Categories == nil {
 		f.Categories = []string{}
 	}

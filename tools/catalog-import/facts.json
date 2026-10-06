@@ -2,10 +2,21 @@
   {
     "id": "actual-budget",
     "name": "Actual Budget",
-    "description": "The official versioned image persists financial data in /data; password-only first run needs a distinct onboarding contract.",
+    "aliases": [
+      "ynab replacement",
+      "personal budget"
+    ],
+    "roles": [
+      "personal-finance"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The official versioned image persists financial data in /data; password-only first run needs a distinct onboarding contract."
+    },
     "image": "ghcr.io/actualbudget/actual:26.9.0",
     "container_port": 5006,
     "default_published_port": 5006,
@@ -61,10 +72,21 @@
   {
     "id": "adguard-home",
     "name": "AdGuard Home",
-    "description": "Active DNS filtering service with optional DHCP ownership.",
+    "aliases": [
+      "adguard dns",
+      "dns ad blocker"
+    ],
+    "roles": [
+      "dns-filter"
+    ],
     "categories": [
       "dns"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active DNS filtering service with optional DHCP ownership."
+    },
     "image": "adguard/adguardhome:v0.107.79",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -125,11 +147,22 @@
   {
     "id": "archive-team-warrior",
     "name": "ArchiveTeam Warrior",
-    "description": "Immutable amd64 image and installed seesaw 0.10.3 provenance are SHA-checked against revision bb6673d27a8717e13efe5d7deb3628349cd08585; warrior-code2 records 465aa2223a9d6d863f3e8ff173eaf8bfb5fbd0d5. The shared derived idle recipe binds explicit HQ/outbound/resource selections before start, privately prepares or validates writable config and generated Basic credentials, and reads back authenticated NO_PROJECT. This is guided source coverage, not live deployment, offline operation or archival acceptance.",
+    "aliases": [
+      "archiveteam warrior",
+      "volunteer web archiving"
+    ],
+    "roles": [
+      "volunteer-web-archiving"
+    ],
     "categories": [
       "downloads",
       "developer-tools"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Immutable amd64 image and installed seesaw 0.10.3 provenance are SHA-checked against revision bb6673d27a8717e13efe5d7deb3628349cd08585; warrior-code2 records 465aa2223a9d6d863f3e8ff173eaf8bfb5fbd0d5. The shared derived idle recipe binds explicit HQ/outbound/resource selections before start, privately prepares or validates writable config and generated Basic credentials, and reads back authenticated NO_PROJECT. This is guided source coverage, not live deployment, offline operation or archival acceptance."
+    },
     "image": "atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca",
     "environment": [],
     "mounts": [],
@@ -167,10 +200,21 @@
   {
     "id": "aria2",
     "name": "Aria2",
-    "description": "The third-party 1.37.0-debian image is registry/source verified. Shared setup bypasses its unsafe publisher startup and reads an owner-only token-derived config. Read-only RPC onboarding does not prove transfers, session persistence, or VPN safety; live deployment remains unverified.",
+    "aliases": [
+      "multi protocol downloader",
+      "aria2 rpc"
+    ],
+    "roles": [
+      "direct-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "The third-party 1.37.0-debian image is registry/source verified. Shared setup bypasses its unsafe publisher startup and reads an owner-only token-derived config. Read-only RPC onboarding does not prove transfers, session persistence, or VPN safety; live deployment remains unverified."
+    },
     "image": "snowdreamtech/aria2:1.37.0-debian",
     "container_port": 6800,
     "default_published_port": 6800,
@@ -235,10 +279,25 @@
   {
     "id": "audiobookshelf",
     "name": "Audiobookshelf",
-    "description": "Current audiobook and podcast server with upstream documentation.",
+    "aliases": [
+      "audiobooks",
+      "audio books",
+      "audiobook",
+      "audiobook server",
+      "podcast library"
+    ],
+    "roles": [
+      "audiobook-server",
+      "podcast-library"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Current audiobook and podcast server with upstream documentation."
+    },
     "image": "ghcr.io/advplyr/audiobookshelf:2.37.0",
     "container_port": 80,
     "default_published_port": 13378,
@@ -304,11 +363,22 @@
   {
     "id": "authelia",
     "name": "Authelia",
-    "description": "Immutable official image and app-owned derived configuration, private writable user-state, Argon2/YAML resume and HTTPS first-factor login are source/fixture-backed. Setup requires eligible owner-selected cookie domains and an applied private standard-domain HTTPS route; portal identity is not protected-target SSO, remote DNS/trust, or restart acceptance. No live deployment was performed.",
+    "aliases": [
+      "forward auth",
+      "authentication gateway"
+    ],
+    "roles": [
+      "authentication-gateway"
+    ],
     "categories": [
       "identity",
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Immutable official image and app-owned derived configuration, private writable user-state, Argon2/YAML resume and HTTPS first-factor login are source/fixture-backed. Setup requires eligible owner-selected cookie domains and an applied private standard-domain HTTPS route; portal identity is not protected-target SSO, remote DNS/trust, or restart acceptance. No live deployment was performed."
+    },
     "image": "docker.io/authelia/authelia:4.39.25@sha256:a039d87fb842f0af4f83c03434f5fb6ec45d4b46e86b8b3ac571cc104bbe6e6d",
     "environment": [],
     "mounts": [],
@@ -342,10 +412,22 @@
   {
     "id": "authentik",
     "name": "Authentik",
-    "description": "Pinned 2026.8.3 Compose architecture uses server, worker, and PostgreSQL; Redis is absent. Token and password checks still need live deployment proof.",
+    "aliases": [
+      "single sign on",
+      "identity provider"
+    ],
+    "roles": [
+      "identity-provider",
+      "sso"
+    ],
     "categories": [
       "identity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "Pinned 2026.8.3 Compose architecture uses server, worker, and PostgreSQL; Redis is absent. Token and password checks still need live deployment proof."
+    },
     "image": "ghcr.io/goauthentik/server:2026.8.3",
     "container_port": 9000,
     "default_published_port": 9000,
@@ -463,11 +545,22 @@
   {
     "id": "bazarr",
     "name": "Bazarr",
-    "description": "Pinned v1.6.0 shared first-run adapter narrowly reads the generated key from owned config, configures and verifies private Basic authentication, and preserves uncertain attempts; image/runtime, Arr and provider acceptance remain separate.",
+    "aliases": [
+      "subtitle automation",
+      "subtitle manager"
+    ],
+    "roles": [
+      "subtitle-automation"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned v1.6.0 shared first-run adapter narrowly reads the generated key from owned config, configures and verifies private Basic authentication, and preserves uncertain attempts; image/runtime, Arr and provider acceptance remain separate."
+    },
     "image": "lscr.io/linuxserver/bazarr:version-v1.6.0",
     "container_port": 6767,
     "default_published_port": 6767,
@@ -544,10 +637,22 @@
   {
     "id": "beszel",
     "name": "Beszel",
-    "description": "Official 0.20.0 hub Compose contract checked; the hub-only recipe does not deploy a monitoring agent.",
+    "aliases": [
+      "lightweight server monitoring",
+      "host metrics"
+    ],
+    "roles": [
+      "host-monitoring",
+      "container-monitoring"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official 0.20.0 hub Compose contract checked; the hub-only recipe does not deploy a monitoring agent."
+    },
     "image": "henrygd/beszel:0.20.0",
     "container_port": 8090,
     "default_published_port": 8090,
@@ -609,10 +714,21 @@
   {
     "id": "bookstack",
     "name": "BookStack",
-    "description": "A pinned private Compose recipe and CLI-generated administrator handoff are available; fresh-instance login, content, restart, and restore acceptance remain unverified.",
+    "aliases": [
+      "self hosted wiki",
+      "knowledge base"
+    ],
+    "roles": [
+      "knowledge-base"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "A pinned private Compose recipe and CLI-generated administrator handoff are available; fresh-instance login, content, restart, and restore acceptance remain unverified."
+    },
     "image": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
     "container_port": 80,
     "default_published_port": 8080,
@@ -742,10 +858,21 @@
   {
     "id": "borgmatic",
     "name": "Borgmatic",
-    "description": "The publisher's 2.1.8 tag and digest were read from GHCR. The portless manual recipe disables cron and prepares a passphrase, local config, and empty project-owned source/repository folders. Ordinary apply never executes it; only a separately approved version probe is bundled. Real backup scope, repository initialization, backups, scheduling, and isolated restore remain pending.",
+    "aliases": [
+      "borg backup automation",
+      "scheduled borg"
+    ],
+    "roles": [
+      "backup-orchestrator"
+    ],
     "categories": [
       "backups"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The publisher's 2.1.8 tag and digest were read from GHCR. The portless manual recipe disables cron and prepares a passphrase, local config, and empty project-owned source/repository folders. Ordinary apply never executes it; only a separately approved version probe is bundled. Real backup scope, repository initialization, backups, scheduling, and isolated restore remain pending."
+    },
     "image": "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
     "environment": [
       {
@@ -831,10 +958,22 @@
   {
     "id": "caddy",
     "name": "Caddy",
-    "description": "Automatic HTTPS requires deliberate DNS, port, and certificate-state ownership.",
+    "aliases": [
+      "automatic https",
+      "reverse proxy"
+    ],
+    "roles": [
+      "reverse-proxy",
+      "tls-owner"
+    ],
     "categories": [
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Automatic HTTPS requires deliberate DNS, port, and certificate-state ownership."
+    },
     "image": "caddy:2.11.4",
     "container_port": 2015,
     "default_published_port": 2015,
@@ -897,11 +1036,23 @@
   {
     "id": "cloudflare-tunnel",
     "name": "Cloudflare Tunnel",
-    "description": "Derived shared recipe for one existing locally managed tunnel and selected same-owner HTTP frontend. Fixed provider GETs and separately retained read/public approvals precede every start. The documented TUNNEL_CRED_CONTENTS consumes imported JSON through a private env file with the image's default nonroot user; no credential bind, generated connector credential or UID override. Client DNS/TLS, Access enforcement and origin delivery remain unverified.",
+    "aliases": [
+      "cf tunnel",
+      "cloudflare remote access",
+      "no port forwarding"
+    ],
+    "roles": [
+      "outbound-public-tunnel"
+    ],
     "categories": [
       "remote-access",
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Derived shared recipe for one existing locally managed tunnel and selected same-owner HTTP frontend. Fixed provider GETs and separately retained read/public approvals precede every start. The documented TUNNEL_CRED_CONTENTS consumes imported JSON through a private env file with the image's default nonroot user; no credential bind, generated connector credential or UID override. Client DNS/TLS, Access enforcement and origin delivery remain unverified."
+    },
     "image": "cloudflare/cloudflared:2026.9.1",
     "environment": [],
     "mounts": [],
@@ -937,11 +1088,22 @@
   {
     "id": "coolify",
     "name": "Coolify",
-    "description": "Pinned four-service administration-only candidate with actual first-root HTTP registration and read-only API token handling. Horizon/scheduler workers remain disabled in both the environment and their literal .env policy; no host SSH key, Docker socket or gateway is granted. Live first-run, replay and restart acceptance remain unverified; useful host management requires separate authority.",
+    "aliases": [
+      "self hosted paas",
+      "application platform"
+    ],
+    "roles": [
+      "deployment-platform"
+    ],
     "categories": [
       "containers",
       "developer-tools"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned four-service administration-only candidate with actual first-root HTTP registration and read-only API token handling. Horizon/scheduler workers remain disabled in both the environment and their literal .env policy; no host SSH key, Docker socket or gateway is granted. Live first-run, replay and restart acceptance remain unverified; useful host management requires separate authority."
+    },
     "image": "docker.io/coollabsio/coolify:4.3.23",
     "container_port": 8080,
     "default_published_port": 8000,
@@ -1142,10 +1304,21 @@
   {
     "id": "dashdot",
     "name": "Dash.",
-    "description": "Pinned v6.3.4 has a bounded CPU/RAM shared recipe and no-account API adapter. RUNNING_IN_DOCKER=false avoids host namespace setup; disabling background collection prevents disabled storage/network/GPU collectors from running. CPU/RAM describe the visible Linux kernel, not the service cgroup quota. Full host observation and live acceptance remain separate.",
+    "aliases": [
+      "dashdot",
+      "host dashboard"
+    ],
+    "roles": [
+      "host-metrics-dashboard"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned v6.3.4 has a bounded CPU/RAM shared recipe and no-account API adapter. RUNNING_IN_DOCKER=false avoids host namespace setup; disabling background collection prevents disabled storage/network/GPU collectors from running. CPU/RAM describe the visible Linux kernel, not the service cgroup quota. Full host observation and live acceptance remain separate."
+    },
     "image": "mauricenino/dashdot:6.3.4",
     "container_port": 3001,
     "default_published_port": 3001,
@@ -1230,10 +1403,21 @@
   {
     "id": "deluge",
     "name": "Deluge",
-    "description": "The fixed LinuxServer image documents a shared initial WebUI password; Deluge 2.2.0 has a password-change RPC, but safe pre-exposure bootstrap and live behavior remain unverified.",
+    "aliases": [
+      "deluge torrent",
+      "torrent daemon"
+    ],
+    "roles": [
+      "torrent-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "The fixed LinuxServer image documents a shared initial WebUI password; Deluge 2.2.0 has a password-change RPC, but safe pre-exposure bootstrap and live behavior remain unverified."
+    },
     "image": "lscr.io/linuxserver/deluge:2.2.0-ls381",
     "container_port": 8112,
     "default_published_port": 8112,
@@ -1313,10 +1497,21 @@
   {
     "id": "dockge",
     "name": "Dockge",
-    "description": "Pinned 1.5.0 private shared manager recipe uses separately approved remote Docker management mTLS, same-local-Engine identity and exact owner-private same-path stack storage; no socket mount. First-owner Socket.IO setup/login/settings is source-backed. Live stack-management and restart acceptance remain unverified.",
+    "aliases": [
+      "compose manager",
+      "compose ui"
+    ],
+    "roles": [
+      "compose-management"
+    ],
     "categories": [
       "containers"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-04",
+      "note": "Pinned 1.5.0 private shared manager recipe uses separately approved remote Docker management mTLS, same-local-Engine identity and exact owner-private same-path stack storage; no socket mount. First-owner Socket.IO setup/login/settings is source-backed. Live stack-management and restart acceptance remain unverified."
+    },
     "image": "docker.io/louislam/dockge:1.5.0",
     "environment": [],
     "mounts": [],
@@ -1346,10 +1541,23 @@
   {
     "id": "docmost",
     "name": "Docmost",
-    "description": "Official Docker Compose runs the web app with PostgreSQL and Redis; first workspace creation remains a setup step.",
+    "aliases": [
+      "notion-like docs",
+      "collaborative wiki"
+    ],
+    "roles": [
+      "notes",
+      "knowledge-workspace",
+      "collaborative-documents"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official Docker Compose runs the web app with PostgreSQL and Redis; first workspace creation remains a setup step."
+    },
     "image": "docker.io/docmost/docmost:0.96.0",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -1456,10 +1664,21 @@
   {
     "id": "emby",
     "name": "Emby",
-    "description": "The vendor Docker Hub lists fixed stable tag 4.10.0.40. A private bridge deployment candidate preserves image UID/GID defaults, read-only media, and no GPU/host-network privileges. The app-local adapter verifies a manually completed wizard using the saved admin password, then captures one labeled durable API key with replay-safe checkpoints. Untouched-state discrimination remains unproven, so it never invokes startup routes or creates the first owner automatically. Synthetic checks are not fresh-image acceptance.",
+    "aliases": [
+      "emby server"
+    ],
+    "roles": [
+      "video-playback",
+      "media-library"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The vendor Docker Hub lists fixed stable tag 4.10.0.40. A private bridge deployment candidate preserves image UID/GID defaults, read-only media, and no GPU/host-network privileges. The app-local adapter verifies a manually completed wizard using the saved admin password, then captures one labeled durable API key with replay-safe checkpoints. Untouched-state discrimination remains unproven, so it never invokes startup routes or creates the first owner automatically. Synthetic checks are not fresh-image acceptance."
+    },
     "image": "docker.io/emby/embyserver:4.10.0.40",
     "container_port": 8096,
     "default_published_port": 8096,
@@ -1525,10 +1744,22 @@
   {
     "id": "firefly-iii",
     "name": "Firefly III",
-    "description": "The upstream Docker repository documents a Compose deployment with MariaDB, uploads, and a cron service; the latest release is v6.7.2.",
+    "aliases": [
+      "firefly finance",
+      "personal finance manager",
+      "expense tracker"
+    ],
+    "roles": [
+      "personal-finance"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The upstream Docker repository documents a Compose deployment with MariaDB, uploads, and a cron service; the latest release is v6.7.2."
+    },
     "image": "fireflyiii/core:version-6.7.2",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -1668,10 +1899,21 @@
   {
     "id": "forgejo",
     "name": "Forgejo",
-    "description": "The upstream download page publishes the fixed 16.0.5 container tag; runner and registry are separate capabilities.",
+    "aliases": [
+      "self hosted git",
+      "github replacement"
+    ],
+    "roles": [
+      "source-control"
+    ],
     "categories": [
       "developer-tools"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The upstream download page publishes the fixed 16.0.5 container tag; runner and registry are separate capabilities."
+    },
     "image": "codeberg.org/forgejo/forgejo:16.0.5",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -1744,10 +1986,21 @@
   {
     "id": "freshrss",
     "name": "FreshRSS",
-    "description": "Pinned CLI setup creates one owned SQLite administrator and verifies its privately submitted password hash. Separately approved API enablement and updatePassword use private stdin to configure an independent durable API password, verify its hash/Fever derivation, and authenticate Google Reader user-info. Runtime acceptance remains unverified.",
+    "aliases": [
+      "rss reader",
+      "google reader replacement"
+    ],
+    "roles": [
+      "feed-reader"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Pinned CLI setup creates one owned SQLite administrator and verifies its privately submitted password hash. Separately approved API enablement and updatePassword use private stdin to configure an independent durable API password, verify its hash/Fever derivation, and authenticate Google Reader user-info. Runtime acceptance remains unverified."
+    },
     "image": "ghcr.io/freshrss/freshrss:1.30.0",
     "container_port": 80,
     "default_published_port": 8080,
@@ -1819,11 +2072,23 @@
   {
     "id": "frigate",
     "name": "Frigate",
-    "description": "Pinned 0.18.0 has a source-backed private, camera-free bootstrap recipe and checkpointed administrator-password rotation. Authenticated 8971 uses the documented TLS-off setting; internal 5000 binds container loopback. Exact-start temporary-password capture is shared-engine-owned. Camera configuration, hardware, restart and live-image acceptance remain separate unverified boundaries.",
+    "aliases": [
+      "camera nvr",
+      "local camera detection"
+    ],
+    "roles": [
+      "nvr",
+      "object-detection"
+    ],
     "categories": [
       "cameras",
       "home-automation"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned 0.18.0 has a source-backed private, camera-free bootstrap recipe and checkpointed administrator-password rotation. Authenticated 8971 uses the documented TLS-off setting; internal 5000 binds container loopback. Exact-start temporary-password capture is shared-engine-owned. Camera configuration, hardware, restart and live-image acceptance remain separate unverified boundaries."
+    },
     "image": "ghcr.io/blakeblackshear/frigate:0.18.0",
     "container_port": 8971,
     "default_published_port": 8971,
@@ -1903,10 +2168,22 @@
   {
     "id": "gatus",
     "name": "Gatus",
-    "description": "Pinned v5.37.0 shared recipe has a generated self-check configuration and a no-account private readiness adapter. Monitoring other services and alerts are not configured.",
+    "aliases": [
+      "health dashboard",
+      "synthetic health checks"
+    ],
+    "roles": [
+      "synthetic-monitoring",
+      "status-page"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Pinned v5.37.0 shared recipe has a generated self-check configuration and a no-account private readiness adapter. Monitoring other services and alerts are not configured."
+    },
     "image": "ghcr.io/twin/gatus:v5.37.0",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -1966,11 +2243,23 @@
   {
     "id": "glances",
     "name": "Glances",
-    "description": "Official Docker and API documentation checked; safe shared setup observes this container only. Host-observation and authenticated setup remain guided.",
+    "aliases": [
+      "system monitor",
+      "host monitoring"
+    ],
+    "roles": [
+      "host-metrics",
+      "system-monitoring"
+    ],
     "categories": [
       "monitoring",
       "observability"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official Docker and API documentation checked; safe shared setup observes this container only. Host-observation and authenticated setup remain guided."
+    },
     "image": "nicolargo/glances:4.5.6",
     "container_port": 61208,
     "default_published_port": 61208,
@@ -2024,11 +2313,22 @@
   {
     "id": "gluetun",
     "name": "Gluetun",
-    "description": "Source-backed shared profile pins v3.41.3 with owner-selected ProtonVPN or PureVPN OpenVPN, imported private provider credentials, reviewed NET_ADMIN/tun authority and generated read-only control key. Control setup is not downloader or fail-closed acceptance; no live deployment was performed.",
+    "aliases": [
+      "torrent vpn",
+      "downloader vpn"
+    ],
+    "roles": [
+      "downloader-vpn-gateway"
+    ],
     "categories": [
       "downloads",
       "remote-access"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Source-backed shared profile pins v3.41.3 with owner-selected ProtonVPN or PureVPN OpenVPN, imported private provider credentials, reviewed NET_ADMIN/tun authority and generated read-only control key. Control setup is not downloader or fail-closed acceptance; no live deployment was performed."
+    },
     "image": "qmcgaw/gluetun:v3.41.3",
     "environment": [],
     "mounts": [],
@@ -2068,10 +2368,21 @@
   {
     "id": "gotify",
     "name": "Gotify",
-    "description": "Active upstream with an official Gotify 3.1.1 container and documented environment-based setup.",
+    "aliases": [
+      "self hosted push notifications",
+      "push message server"
+    ],
+    "roles": [
+      "push-notifications"
+    ],
     "categories": [
       "communication"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active upstream with an official Gotify 3.1.1 container and documented environment-based setup."
+    },
     "image": "gotify/server:3.1.1",
     "container_port": 80,
     "default_published_port": 8080,
@@ -2157,11 +2468,23 @@
   {
     "id": "grafana",
     "name": "Grafana",
-    "description": "Open-source and commercial feature boundaries should be recorded.",
+    "aliases": [
+      "metrics dashboards",
+      "observability dashboards"
+    ],
+    "roles": [
+      "visualization",
+      "alerting"
+    ],
     "categories": [
       "observability",
       "dashboard"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Open-source and commercial feature boundaries should be recorded."
+    },
     "image": "grafana/grafana:13.2.2",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -2229,10 +2552,22 @@
   {
     "id": "haproxy",
     "name": "HAProxy",
-    "description": "Rechecked official 3.2.25 configuration and Dockerfile: UID/GID 99. The app-local compiler generates a container-readable non-secret config and private hashed statistics password only for an explicit same-owner frontend. No static recipe or CLI deployment is published until generated target binding is integrated into shared approval/replay. Syntax, authenticated statistics and TCP UP are narrow observations, not forwarded traffic or restart acceptance.",
+    "aliases": [
+      "load balancer",
+      "tcp proxy"
+    ],
+    "roles": [
+      "reverse-proxy",
+      "load-balancer"
+    ],
     "categories": [
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Rechecked official 3.2.25 configuration and Dockerfile: UID/GID 99. The app-local compiler generates a container-readable non-secret config and private hashed statistics password only for an explicit same-owner frontend. No static recipe or CLI deployment is published until generated target binding is integrated into shared approval/replay. Syntax, authenticated statistics and TCP UP are narrow observations, not forwarded traffic or restart acceptance."
+    },
     "image": "haproxy:3.2.25",
     "environment": [],
     "mounts": [],
@@ -2262,10 +2597,21 @@
   {
     "id": "headscale",
     "name": "Headscale",
-    "description": "Pinned v0.29.4 app-owned derived recipe supports reviewed addition to an existing shared owner. Shared first run consumes its exact saved configuration binding, checkpoints one API-key creation, privately saves the key and authenticates API metadata readback. No static fresh-project recipe or password administrator is invented. Canonical HTTPS is a configured identity, not verified ingress; live first run, TLS/client trust, enrollment and restart acceptance remain unverified.",
+    "aliases": [
+      "self hosted tailscale control",
+      "tailnet control server"
+    ],
+    "roles": [
+      "mesh-control-plane"
+    ],
     "categories": [
       "remote-access"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned v0.29.4 app-owned derived recipe supports reviewed addition to an existing shared owner. Shared first run consumes its exact saved configuration binding, checkpoints one API-key creation, privately saves the key and authenticates API metadata readback. No static fresh-project recipe or password administrator is invented. Canonical HTTPS is a configured identity, not verified ingress; live first run, TLS/client trust, enrollment and restart acceptance remain unverified."
+    },
     "image": "",
     "environment": [],
     "mounts": [],
@@ -2299,10 +2645,22 @@
   {
     "id": "homarr",
     "name": "Homarr",
-    "description": "The managed adapter defaults to the requested Homarr development image.",
+    "aliases": [
+      "self hosted dashboard",
+      "app dashboard"
+    ],
+    "roles": [
+      "dashboard",
+      "integration-hub"
+    ],
     "categories": [
       "dashboard"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "The managed adapter defaults to the requested Homarr development image."
+    },
     "image": "ghcr.io/homarr-labs/homarr:dev",
     "container_port": 7575,
     "default_published_port": 7575,
@@ -2368,10 +2726,21 @@
   {
     "id": "home-assistant",
     "name": "Home Assistant",
-    "description": "Home Assistant OS and Container are supported paths; legacy Core/Supervised guidance is retired.",
+    "aliases": [
+      "smart home",
+      "home automation hub"
+    ],
+    "roles": [
+      "automation-hub"
+    ],
     "categories": [
       "home-automation"
     ],
+    "lifecycle": {
+      "status": "transitioning",
+      "checked_at": "2026-09-29",
+      "note": "Home Assistant OS and Container are supported paths; legacy Core/Supervised guidance is retired."
+    },
     "image": "ghcr.io/home-assistant/home-assistant:2026.9.3",
     "container_port": 8123,
     "default_published_port": 8123,
@@ -2435,10 +2804,20 @@
   {
     "id": "homebridge",
     "name": "Homebridge",
-    "description": "Experimental private administration recipe and UI 5.29.0 first-admin API adapter. LAN discovery and HomeKit pairing still require a separately approved networking boundary. Fresh image, replay, and restart acceptance are unverified.",
+    "aliases": [
+      "homekit bridge"
+    ],
+    "roles": [
+      "homekit-bridge"
+    ],
     "categories": [
       "home-automation"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "Experimental private administration recipe and UI 5.29.0 first-admin API adapter. LAN discovery and HomeKit pairing still require a separately approved networking boundary. Fresh image, replay, and restart acceptance are unverified."
+    },
     "image": "docker.io/homebridge/homebridge:2026-09-25",
     "container_port": 8581,
     "default_published_port": 8581,
@@ -2508,10 +2887,22 @@
   {
     "id": "immich",
     "name": "Immich",
-    "description": "v3.2.2 server tag and matching Compose topology were checked against the official release.",
+    "aliases": [
+      "google photos replacement",
+      "phone photo backup"
+    ],
+    "roles": [
+      "photo-library",
+      "mobile-photo-backup"
+    ],
     "categories": [
       "photos"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-28",
+      "note": "v3.2.2 server tag and matching Compose topology were checked against the official release."
+    },
     "image": "ghcr.io/immich-app/immich-server:v3.2.2",
     "container_port": 2283,
     "default_published_port": 2283,
@@ -2639,10 +3030,22 @@
   {
     "id": "jellyfin",
     "name": "Jellyfin",
-    "description": "The official v12.1 multi-architecture image and container guidance were checked; fresh-instance setup remains unverified.",
+    "aliases": [
+      "personal streaming",
+      "media server"
+    ],
+    "roles": [
+      "video-playback",
+      "media-library"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The official v12.1 multi-architecture image and container guidance were checked; fresh-instance setup remains unverified."
+    },
     "image": "ghcr.io/jellyfin/jellyfin:12.1.20260915-010956",
     "container_port": 8096,
     "default_published_port": 8096,
@@ -2712,10 +3115,22 @@
   {
     "id": "keycloak",
     "name": "Keycloak",
-    "description": "The private loopback recipe is an onboarding candidate, not a production identity-provider deployment. Production needs a separately approved TLS, hostname, proxy, and recovery design.",
+    "aliases": [
+      "enterprise identity provider",
+      "openid provider"
+    ],
+    "roles": [
+      "identity-provider",
+      "sso"
+    ],
     "categories": [
       "identity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The private loopback recipe is an onboarding candidate, not a production identity-provider deployment. Production needs a separately approved TLS, hostname, proxy, and recovery design."
+    },
     "image": "quay.io/keycloak/keycloak:26.7.4",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -2807,10 +3222,22 @@
   {
     "id": "kopia",
     "name": "Kopia",
-    "description": "The v2 recipe prepares separate private UI and repository passwords for the official 0.23.1 server. Shared setup verifies Basic-auth UI access and the current-user response only. Its --async-repo-connect flag lets HTTP start while repository opening retries indefinitely; login does not prove a connected repository. No repository or snapshot-source storage is mounted. Full backup setup still requires owner-selected durable storage, credentials, mounts and source paths, plus replay-safe repository creation/connection. Isolated restore remains a separate acceptance gate.",
+    "aliases": [
+      "snapshot backup",
+      "backup repository server"
+    ],
+    "roles": [
+      "backup-client",
+      "repository"
+    ],
     "categories": [
       "backups"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The v2 recipe prepares separate private UI and repository passwords for the official 0.23.1 server. Shared setup verifies Basic-auth UI access and the current-user response only. Its --async-repo-connect flag lets HTTP start while repository opening retries indefinitely; login does not prove a connected repository. No repository or snapshot-source storage is mounted. Full backup setup still requires owner-selected durable storage, credentials, mounts and source paths, plus replay-safe repository creation/connection. Isolated restore remains a separate acceptance gate."
+    },
     "image": "docker.io/kopia/kopia:0.23.1",
     "container_port": 51515,
     "default_published_port": 51515,
@@ -2899,11 +3326,22 @@
   {
     "id": "lidarr",
     "name": "Lidarr",
-    "description": "Pinned upstream v1 host-config and config.xml source support a candidate headless first-run route; fresh-image acceptance remains unverified.",
+    "aliases": [
+      "music automation",
+      "music arr"
+    ],
+    "roles": [
+      "music-automation"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Pinned upstream v1 host-config and config.xml source support a candidate headless first-run route; fresh-image acceptance remains unverified."
+    },
     "image": "lscr.io/linuxserver/lidarr:version-3.1.0.4875",
     "container_port": 8686,
     "default_published_port": 8686,
@@ -2978,10 +3416,22 @@
   {
     "id": "linkwarden",
     "name": "Linkwarden",
-    "description": "Active bookmark and archive service; the official Compose deployment uses PostgreSQL, Meilisearch, and persistent captured-content storage.",
+    "aliases": [
+      "bookmark manager",
+      "web archive"
+    ],
+    "roles": [
+      "bookmarks",
+      "web-archive"
+    ],
     "categories": [
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active bookmark and archive service; the official Compose deployment uses PostgreSQL, Meilisearch, and persistent captured-content storage."
+    },
     "image": "ghcr.io/linkwarden/linkwarden:v2.16.3",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -3084,10 +3534,20 @@
   {
     "id": "lldap",
     "name": "LLDAP",
-    "description": "Official install and image tag checked; client compatibility remains per integration.",
+    "aliases": [
+      "lightweight ldap"
+    ],
+    "roles": [
+      "directory"
+    ],
     "categories": [
       "identity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official install and image tag checked; client compatibility remains per integration."
+    },
     "image": "lldap/lldap:2026-08-28",
     "container_port": 17170,
     "default_published_port": 17170,
@@ -3168,10 +3628,21 @@
   {
     "id": "loki",
     "name": "Loki",
-    "description": "Log labels, retention, and storage backend are deployment decisions.",
+    "aliases": [
+      "log aggregation",
+      "grafana logs"
+    ],
+    "roles": [
+      "log-store"
+    ],
     "categories": [
       "observability"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Log labels, retention, and storage backend are deployment decisions."
+    },
     "image": "grafana/loki:3.7.0",
     "container_port": 3100,
     "default_published_port": 3100,
@@ -3223,10 +3694,21 @@
   {
     "id": "mayan-edms",
     "name": "Mayan EDMS",
-    "description": "Publisher v4.12.2 image metadata and immutable upstream source reviewed. The four-service shared candidate seeds an upstream administrator, verifies owner login and user-view access, clears initial credential disclosure, and saves a verified durable token. Actual administrator authority, document processing, restart, and restore acceptance remain unverified.",
+    "aliases": [
+      "enterprise document management"
+    ],
+    "roles": [
+      "document-archive",
+      "workflow"
+    ],
     "categories": [
       "documents"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Publisher v4.12.2 image metadata and immutable upstream source reviewed. The four-service shared candidate seeds an upstream administrator, verifies owner login and user-view access, clears initial credential disclosure, and saves a verified durable token. Actual administrator authority, document processing, restart, and restore acceptance remain unverified."
+    },
     "image": "docker.io/mayanedms/mayanedms:v4.12.2",
     "container_port": 8000,
     "default_published_port": 8080,
@@ -3388,10 +3870,21 @@
   {
     "id": "minio",
     "name": "MinIO AIStor (licensed)",
-    "description": "The community repository was archived on April 25, 2026 and is no longer maintained. The explicit derived deployment selects separately licensed AIStor, never the discontinued community image. It requires edition=aistor-licensed, a reviewed root identifier and an owner-obtained license even for Free. The pinned official image resolves as of 2026-10-03; actual startup, license validity and writable storage remain unverified.",
+    "aliases": [
+      "self hosted s3",
+      "object storage"
+    ],
+    "roles": [
+      "object-storage"
+    ],
     "categories": [
       "storage"
     ],
+    "lifecycle": {
+      "status": "transitioning",
+      "checked_at": "2026-10-03",
+      "note": "The community repository was archived on April 25, 2026 and is no longer maintained. The explicit derived deployment selects separately licensed AIStor, never the discontinued community image. It requires edition=aistor-licensed, a reviewed root identifier and an owner-obtained license even for Free. The pinned official image resolves as of 2026-10-03; actual startup, license validity and writable storage remain unverified."
+    },
     "image": "quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4ef74f03d6f2",
     "environment": [],
     "mounts": [],
@@ -3424,10 +3917,23 @@
   {
     "id": "navidrome",
     "name": "Navidrome",
-    "description": "Pinned v0.64.0 first-admin and login routes inspected in upstream source; live setup and library playback remain unverified.",
+    "aliases": [
+      "music",
+      "music server",
+      "subsonic music server"
+    ],
+    "roles": [
+      "music-server",
+      "music-library"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Pinned v0.64.0 first-admin and login routes inspected in upstream source; live setup and library playback remain unverified."
+    },
     "image": "deluan/navidrome:0.64.0",
     "container_port": 4533,
     "default_published_port": 4533,
@@ -3489,10 +3995,21 @@
   {
     "id": "netbird",
     "name": "NetBird",
-    "description": "Shared derived recipe pins server 0.80.0 and dashboard v2.94.0 by OCI digest, derives private server config and reviewed local OIDC metadata, and provides checkpointed local first-owner/password-login plus one-day setup PAT readback. Requires the separately approved protocol-aware shared HTTPS route. Native peer, gRPC/WebSocket, UDP reachability, intended-client access, PAT rotation and restart acceptance remain unverified.",
+    "aliases": [
+      "self hosted mesh vpn"
+    ],
+    "roles": [
+      "private-overlay",
+      "mesh-control-plane"
+    ],
     "categories": [
       "remote-access"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Shared derived recipe pins server 0.80.0 and dashboard v2.94.0 by OCI digest, derives private server config and reviewed local OIDC metadata, and provides checkpointed local first-owner/password-login plus one-day setup PAT readback. Requires the separately approved protocol-aware shared HTTPS route. Native peer, gRPC/WebSocket, UDP reachability, intended-client access, PAT rotation and restart acceptance remain unverified."
+    },
     "image": "docker.io/netbirdio/dashboard:v2.94.0@sha256:70e0fc6dd3b7758148d182fb55ecd8d4f9ce01e9bba56c9389224e0b8354009d",
     "environment": [],
     "mounts": [],
@@ -3526,11 +4043,22 @@
   {
     "id": "netdata",
     "name": "Netdata",
-    "description": "The bounded Compose candidate monitors its own container only; full host monitoring needs a separately reviewed privileged deployment. Local dashboard access does not require Netdata Cloud.",
+    "aliases": [
+      "real time host monitoring"
+    ],
+    "roles": [
+      "host-monitoring",
+      "metrics-agent"
+    ],
     "categories": [
       "monitoring",
       "observability"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The bounded Compose candidate monitors its own container only; full host monitoring needs a separately reviewed privileged deployment. Local dashboard access does not require Netdata Cloud."
+    },
     "image": "netdata/netdata:v2.11.0",
     "container_port": 19999,
     "default_published_port": 19999,
@@ -3599,11 +4127,24 @@
   {
     "id": "nextcloud",
     "name": "Nextcloud",
-    "description": "The Docker Official Images Apache variant and vendor-supported AIO remain distinct deployment paths.",
+    "aliases": [
+      "dropbox replacement",
+      "personal cloud",
+      "google drive replacement"
+    ],
+    "roles": [
+      "cloud-files",
+      "collaboration"
+    ],
     "categories": [
       "files",
       "productivity"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The Docker Official Images Apache variant and vendor-supported AIO remain distinct deployment paths."
+    },
     "image": "docker.io/library/nextcloud:35.0.1-apache",
     "container_port": 80,
     "default_published_port": 8080,
@@ -3730,10 +4271,22 @@
   {
     "id": "nginx-proxy-manager",
     "name": "Nginx Proxy Manager",
-    "description": "Official 2.16.0 image; use checkpointed first-user HTTP bootstrap because its environment-seeded administrator logs the plaintext password. Database and certificate state both require backup; live login and restart acceptance remain unverified.",
+    "aliases": [
+      "npm proxy",
+      "gui reverse proxy"
+    ],
+    "roles": [
+      "reverse-proxy",
+      "tls-owner"
+    ],
     "categories": [
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Official 2.16.0 image; use checkpointed first-user HTTP bootstrap because its environment-seeded administrator logs the plaintext password. Database and certificate state both require backup; live login and restart acceptance remain unverified."
+    },
     "image": "jc21/nginx-proxy-manager:2.16.0",
     "container_port": 81,
     "default_published_port": 8181,
@@ -3800,11 +4353,22 @@
   {
     "id": "node-red",
     "name": "Node-RED",
-    "description": "A v2 shared recipe configures bcrypt-backed adminAuth before startup and its adapter verifies the saved administrator against the Admin API. Fresh-image startup, nested settings-file mount behavior, browser editing, and restart persistence remain unverified. Node-RED issues expiring Admin API access tokens, not a persistent API key.",
+    "aliases": [
+      "automation flows",
+      "visual automation"
+    ],
+    "roles": [
+      "automation-flows"
+    ],
     "categories": [
       "home-automation",
       "developer-tools"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "A v2 shared recipe configures bcrypt-backed adminAuth before startup and its adapter verifies the saved administrator against the Admin API. Fresh-image startup, nested settings-file mount behavior, browser editing, and restart persistence remain unverified. Node-RED issues expiring Admin API access tokens, not a persistent API key."
+    },
     "image": "nodered/node-red:5.0.7",
     "container_port": 1880,
     "default_published_port": 1880,
@@ -3878,11 +4442,22 @@
   {
     "id": "ntfy",
     "name": "ntfy",
-    "description": "Official v2.28.0 Docker and authentication documentation checked; the experimental deny-all shared recipe verifies the saved admin and checkpoints creation of one non-expiring Homarr administrator token. Fresh-instance, restart and notification-delivery acceptance remain separate.",
+    "aliases": [
+      "push notifications",
+      "self hosted notifications"
+    ],
+    "roles": [
+      "notification-broker"
+    ],
     "categories": [
       "communication",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official v2.28.0 Docker and authentication documentation checked; the experimental deny-all shared recipe verifies the saved admin and checkpoints creation of one non-expiring Homarr administrator token. Fresh-instance, restart and notification-delivery acceptance remain separate."
+    },
     "image": "binwiederhier/ntfy:v2.28.0",
     "container_port": 80,
     "default_published_port": 8080,
@@ -3962,10 +4537,21 @@
   {
     "id": "nzbget",
     "name": "NZBGet",
-    "description": "The nzbgetcom fork released v26.3 on 2026-08-27; use its maintained image, not artifacts from the legacy nzbget organization.",
+    "aliases": [
+      "nzb download client",
+      "usenet download client"
+    ],
+    "roles": [
+      "usenet-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The nzbgetcom fork released v26.3 on 2026-08-27; use its maintained image, not artifacts from the legacy nzbget organization."
+    },
     "image": "ghcr.io/nzbgetcom/nzbget:v26.3",
     "container_port": 6789,
     "default_published_port": 6789,
@@ -4052,10 +4638,21 @@
   {
     "id": "ollama",
     "name": "Ollama",
-    "description": "Model server whose hardware and model licenses are separate decisions.",
+    "aliases": [
+      "local llm",
+      "run ai locally"
+    ],
+    "roles": [
+      "model-server"
+    ],
     "categories": [
       "local-ai"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Model server whose hardware and model licenses are separate decisions."
+    },
     "image": "ollama/ollama:0.34.1",
     "container_port": 11434,
     "default_published_port": 11434,
@@ -4117,10 +4714,21 @@
   {
     "id": "open-webui",
     "name": "Open WebUI",
-    "description": "Official container supports headless first-admin creation on an empty database; model connections require separate configuration.",
+    "aliases": [
+      "local chatgpt",
+      "ollama web ui"
+    ],
+    "roles": [
+      "ai-chat-interface"
+    ],
     "categories": [
       "local-ai"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official container supports headless first-admin creation on an empty database; model connections require separate configuration."
+    },
     "image": "ghcr.io/open-webui/open-webui:v0.11.4",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -4197,11 +4805,23 @@
   {
     "id": "pangolin",
     "name": "Pangolin",
-    "description": "The selectable 1.24.0 OSS SQLite shared derived recipe installs only private administrative dashboard/API routing, generated setup capability and checkpointed first-admin/root-key preparation. Requires separately approved HTTPS transport. Organizations, key action grants/authentication, local resources, Gerbil/tunnels, public edge and restart acceptance remain unverified.",
+    "aliases": [
+      "self hosted tunnel",
+      "newt tunnel"
+    ],
+    "roles": [
+      "identity-aware-ingress",
+      "outbound-tunnel"
+    ],
     "categories": [
       "remote-access",
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The selectable 1.24.0 OSS SQLite shared derived recipe installs only private administrative dashboard/API routing, generated setup capability and checkpointed first-admin/root-key preparation. Requires separately approved HTTPS transport. Organizations, key action grants/authentication, local resources, Gerbil/tunnels, public edge and restart acceptance remain unverified."
+    },
     "image": "docker.io/traefik:v3.7",
     "environment": [],
     "mounts": [],
@@ -4238,10 +4858,23 @@
   {
     "id": "paperless-ngx",
     "name": "Paperless-ngx",
-    "description": "Official Compose uses PostgreSQL and Valkey; image and multi-service apply still need a registry and live check.",
+    "aliases": [
+      "paperless office",
+      "document archive",
+      "ocr archive"
+    ],
+    "roles": [
+      "document-archive",
+      "ocr"
+    ],
     "categories": [
       "documents"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-28",
+      "note": "Official Compose uses PostgreSQL and Valkey; image and multi-service apply still need a registry and live check."
+    },
     "image": "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
     "container_port": 8000,
     "default_published_port": 8000,
@@ -4381,10 +5014,21 @@
   {
     "id": "passbolt",
     "name": "Passbolt",
-    "description": "Official CE Docker Compose requires a stable HTTPS base URL, working SMTP and time sync; the first administrator finishes registration through a one-time browser link.",
+    "aliases": [
+      "team password manager"
+    ],
+    "roles": [
+      "password-vault",
+      "team-secrets"
+    ],
     "categories": [
       "passwords"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Official CE Docker Compose requires a stable HTTPS base URL, working SMTP and time sync; the first administrator finishes registration through a one-time browser link."
+    },
     "image": "docker.io/passbolt/passbolt:5.16.0-1-ce",
     "environment": [],
     "mounts": [],
@@ -4421,10 +5065,22 @@
   {
     "id": "patchmon",
     "name": "PatchMon",
-    "description": "Pinned v2.1.3 four-service shared candidate and headless administrator setup include optional privately captured Homarr credentials after explicit dual-authority opt-in. Synthetic replay checks pass; fresh image, dashboard, restart and real integration acceptance remain unverified.",
+    "aliases": [
+      "patch monitoring",
+      "server update inventory"
+    ],
+    "roles": [
+      "patch-inventory",
+      "endpoint-monitoring"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned v2.1.3 four-service shared candidate and headless administrator setup include optional privately captured Homarr credentials after explicit dual-authority opt-in. Synthetic replay checks pass; fresh image, dashboard, restart and real integration acceptance remain unverified."
+    },
     "image": "ghcr.io/patchmon/patchmon-server:2.1.3",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -4573,10 +5229,21 @@
   {
     "id": "peanut",
     "name": "PeaNUT",
-    "description": "v6.0.0 documents bootstrap credentials and Basic-authenticated API access. Shared first-run verifies only the generated dashboard login; UPS/NUT monitoring and restart persistence remain pending.",
+    "aliases": [
+      "network ups tools dashboard",
+      "ups monitor"
+    ],
+    "roles": [
+      "ups-monitoring"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "v6.0.0 documents bootstrap credentials and Basic-authenticated API access. Shared first-run verifies only the generated dashboard login; UPS/NUT monitoring and restart persistence remain pending."
+    },
     "image": "brandawg93/peanut:v6.0.0",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -4657,10 +5324,21 @@
   {
     "id": "photoprism",
     "name": "PhotoPrism",
-    "description": "Community Edition Compose path; SQLite is selected for a bounded single-service install.",
+    "aliases": [
+      "photo gallery",
+      "photo organizer"
+    ],
+    "roles": [
+      "photo-library"
+    ],
     "categories": [
       "photos"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Community Edition Compose path; SQLite is selected for a bounded single-service install."
+    },
     "image": "docker.io/photoprism/photoprism:260728",
     "container_port": 2342,
     "default_published_port": 2342,
@@ -4739,10 +5417,21 @@
   {
     "id": "pihole",
     "name": "Pi-hole",
-    "description": "Docker image 2026.09.0 includes Pi-hole FTL v6.7.1; v5 configuration snippets need migration.",
+    "aliases": [
+      "pi hole",
+      "network ad blocker"
+    ],
+    "roles": [
+      "dns-filter"
+    ],
     "categories": [
       "dns"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Docker image 2026.09.0 includes Pi-hole FTL v6.7.1; v5 configuration snippets need migration."
+    },
     "image": "pihole/pihole:2026.09.0",
     "container_port": 80,
     "default_published_port": 8080,
@@ -4803,10 +5492,21 @@
   {
     "id": "plex",
     "name": "Plex",
-    "description": "The pinned vendor image's digest-verified amd64, arm64, and arm/v7 bootstraps support PLEX_CLAIM_FILE. The experimental shared recipe imports an owner-issued claim token privately; its adapter extracts the resulting server token and verifies local authenticated reads. Plex account ownership, media libraries, and restart persistence remain separate acceptance; support stays guided.",
+    "aliases": [
+      "plex media server"
+    ],
+    "roles": [
+      "video-playback",
+      "media-library"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "The pinned vendor image's digest-verified amd64, arm64, and arm/v7 bootstraps support PLEX_CLAIM_FILE. The experimental shared recipe imports an owner-issued claim token privately; its adapter extracts the resulting server token and verifies local authenticated reads. Plex account ownership, media libraries, and restart persistence remain separate acceptance; support stays guided."
+    },
     "image": "docker.io/plexinc/pms-docker:1.43.4.10903-e5521bd8c",
     "container_port": 32400,
     "default_published_port": 32400,
@@ -4895,10 +5595,21 @@
   {
     "id": "portainer",
     "name": "Portainer",
-    "description": "Publisher CE 2.45.1 supports a socket-free disconnected server. Its shared recipe pre-seeds admin through a private CLI password file and prepares a durable administrator API key; setup remains endpoint-required and never ready as a container manager until separately approved Docker-environment authority and functional readback exist. No live image acceptance is claimed.",
+    "aliases": [
+      "docker management ui",
+      "container gui"
+    ],
+    "roles": [
+      "container-management"
+    ],
     "categories": [
       "containers"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Publisher CE 2.45.1 supports a socket-free disconnected server. Its shared recipe pre-seeds admin through a private CLI password file and prepares a durable administrator API key; setup remains endpoint-required and never ready as a container manager until separately approved Docker-environment authority and functional readback exist. No live image acceptance is claimed."
+    },
     "image": "docker.io/portainer/portainer-ce:2.45.1",
     "container_port": 9000,
     "default_published_port": 9000,
@@ -4958,10 +5669,21 @@
   {
     "id": "postgresql",
     "name": "PostgreSQL",
-    "description": "Shared Compose recipe pins PostgreSQL 18.6; consuming applications must choose a compatible major version.",
+    "aliases": [
+      "postgres",
+      "relational database"
+    ],
+    "roles": [
+      "database"
+    ],
     "categories": [
       "databases"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Shared Compose recipe pins PostgreSQL 18.6; consuming applications must choose a compatible major version."
+    },
     "image": "docker.io/library/postgres:18.6",
     "container_port": 5432,
     "default_published_port": 5432,
@@ -5033,11 +5755,23 @@
   {
     "id": "prometheus",
     "name": "Prometheus",
-    "description": "Pinned 3.15.0 candidate uses the image's sample configuration; scrape targets and retention must be planned per host.",
+    "aliases": [
+      "metrics server",
+      "time series monitoring"
+    ],
+    "roles": [
+      "metrics-store",
+      "scraper"
+    ],
     "categories": [
       "observability",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Pinned 3.15.0 candidate uses the image's sample configuration; scrape targets and retention must be planned per host."
+    },
     "image": "prom/prometheus:v3.15.0",
     "container_port": 9090,
     "default_published_port": 9090,
@@ -5089,11 +5823,22 @@
   {
     "id": "prowlarr",
     "name": "Prowlarr",
-    "description": "Active indexer-management application.",
+    "aliases": [
+      "indexer manager",
+      "indexer sync"
+    ],
+    "roles": [
+      "indexer-management"
+    ],
     "categories": [
       "requests",
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active indexer-management application."
+    },
     "image": "lscr.io/linuxserver/prowlarr:version-2.6.5.5623",
     "container_port": 9696,
     "default_published_port": 9696,
@@ -5158,10 +5903,21 @@
   {
     "id": "qbittorrent",
     "name": "qBittorrent",
-    "description": "Active upstream; the checked Hotio release tag is qBittorrent 5.2.3 while upstream 5.2.4 is newer.",
+    "aliases": [
+      "torrent client",
+      "torrent downloader"
+    ],
+    "roles": [
+      "torrent-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active upstream; the checked Hotio release tag is qBittorrent 5.2.3 while upstream 5.2.4 is newer."
+    },
     "image": "ghcr.io/hotio/qbittorrent:release-5.2.3",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -5246,11 +6002,22 @@
   {
     "id": "radarr",
     "name": "Radarr",
-    "description": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe.",
+    "aliases": [
+      "movie automation",
+      "movie manager"
+    ],
+    "roles": [
+      "movie-automation"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe."
+    },
     "image": "lscr.io/linuxserver/radarr:version-6.4.4.10685",
     "container_port": 7878,
     "default_published_port": 7878,
@@ -5324,11 +6091,22 @@
   {
     "id": "renovate",
     "name": "Renovate",
-    "description": "The official 44.132.2 tag and digest were read from GHCR. The portless manual recipe imports an owner-issued Forgejo token into a private environment file and bundles only a separately approved version probe. Ordinary apply never runs it. No forge endpoint, repository scope, update run, scheduler, or remote-token acceptance is implied.",
+    "aliases": [
+      "dependency update bot",
+      "image update prs"
+    ],
+    "roles": [
+      "update-automation"
+    ],
     "categories": [
       "developer-tools",
       "containers"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The official 44.132.2 tag and digest were read from GHCR. The portless manual recipe imports an owner-issued Forgejo token into a private environment file and bundles only a separately approved version probe. Ordinary apply never runs it. No forge endpoint, repository scope, update run, scheduler, or remote-token acceptance is implied."
+    },
     "image": "ghcr.io/renovatebot/renovate:44.132.2",
     "environment": [
       {
@@ -5384,10 +6162,22 @@
   {
     "id": "restic",
     "name": "restic",
-    "description": "The official 0.19.1 image tag and digest were read from GHCR. The portless manual recipe prepares a password file and empty project-owned source/repository folders; ordinary apply does not run it. Only a separately approved version probe is bundled. Real backup scope, repository initialization, backups, scheduling, and isolated restore remain pending.",
+    "aliases": [
+      "encrypted backups",
+      "offsite backup"
+    ],
+    "roles": [
+      "backup-client",
+      "repository"
+    ],
     "categories": [
       "backups"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The official 0.19.1 image tag and digest were read from GHCR. The portless manual recipe prepares a password file and empty project-owned source/repository folders; ordinary apply does not run it. Only a separately approved version probe is bundled. Real backup scope, repository initialization, backups, scheduling, and isolated restore remain pending."
+    },
     "image": "ghcr.io/restic/restic:0.19.1",
     "environment": [
       {
@@ -5454,10 +6244,21 @@
   {
     "id": "sabnzbd",
     "name": "SABnzbd",
-    "description": "Active upstream; Docker Hub's LinuxServer version-5.1.3 tag contains the patched 5.1.3 release. Resolve its platform digest at install time.",
+    "aliases": [
+      "usenet downloader",
+      "nzb downloader"
+    ],
+    "roles": [
+      "usenet-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active upstream; Docker Hub's LinuxServer version-5.1.3 tag contains the patched 5.1.3 release. Resolve its platform digest at install time."
+    },
     "image": "linuxserver/sabnzbd:version-5.1.3",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -5541,11 +6342,24 @@
   {
     "id": "scrypted",
     "name": "Scrypted",
-    "description": "Official 0.147.0 lite image has a source-backed private bridge administrator bootstrap. Full camera/HomeKit/NVR deployment still needs separate network, storage and hardware decisions; live acceptance is unverified.",
+    "aliases": [
+      "smart camera platform",
+      "camera bridge",
+      "scrypted nvr"
+    ],
+    "roles": [
+      "camera-platform",
+      "nvr"
+    ],
     "categories": [
       "cameras",
       "home-automation"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "Official 0.147.0 lite image has a source-backed private bridge administrator bootstrap. Full camera/HomeKit/NVR deployment still needs separate network, storage and hardware decisions; live acceptance is unverified."
+    },
     "image": "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
     "container_port": 11080,
     "default_published_port": 11080,
@@ -5605,10 +6419,22 @@
   {
     "id": "seafile",
     "name": "Seafile",
-    "description": "The shared recipe targets stable Community Edition 13.0.28; the 14.0 documentation is published, but only 14.0 testing image tags were available at the vendor registry when checked. Professional Edition has a different image and dependencies.",
+    "aliases": [
+      "file cloud",
+      "file synchronization server"
+    ],
+    "roles": [
+      "cloud-files",
+      "device-sync"
+    ],
     "categories": [
       "files"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "The shared recipe targets stable Community Edition 13.0.28; the 14.0 documentation is published, but only 14.0 testing image tags were available at the vendor registry when checked. Professional Edition has a different image and dependencies."
+    },
     "image": "docker.io/seafileltd/seafile-mc:13.0.28",
     "container_port": 80,
     "default_published_port": 8080,
@@ -5771,11 +6597,23 @@
   {
     "id": "seerr",
     "name": "Seerr",
-    "description": "Active upstream; v3.5.0 is the current stable release and Seerr remains the successor to Jellyseerr and Overseerr.",
+    "aliases": [
+      "media requests",
+      "request movies",
+      "request tv"
+    ],
+    "roles": [
+      "media-request"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active upstream; v3.5.0 is the current stable release and Seerr remains the successor to Jellyseerr and Overseerr."
+    },
     "image": "ghcr.io/seerr-team/seerr:v3.5.0",
     "container_port": 5055,
     "default_published_port": 5055,
@@ -5837,10 +6675,21 @@
   {
     "id": "slskd",
     "name": "Slskd",
-    "description": "Upstream release 0.26.0 and its versioned container package were current at review; live image and peer behavior remain unverified.",
+    "aliases": [
+      "soulseek daemon",
+      "slskd download client"
+    ],
+    "roles": [
+      "peer-to-peer-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Upstream release 0.26.0 and its versioned container package were current at review; live image and peer behavior remain unverified."
+    },
     "image": "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
     "container_port": 5030,
     "default_published_port": 5030,
@@ -5930,11 +6779,22 @@
   {
     "id": "sonarr",
     "name": "Sonarr",
-    "description": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe.",
+    "aliases": [
+      "tv automation",
+      "tv manager"
+    ],
+    "roles": [
+      "tv-automation"
+    ],
     "categories": [
       "requests",
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe."
+    },
     "image": "lscr.io/linuxserver/sonarr:version-4.0.19.2979",
     "container_port": 8989,
     "default_published_port": 8989,
@@ -6008,10 +6868,21 @@
   {
     "id": "speedtest-tracker",
     "name": "Speedtest Tracker",
-    "description": "The shared recipe seeds ADMIN_EMAIL and a generated ADMIN_PASSWORD on first initialization. Its headless adapter verifies the saved administrator through the pinned Laravel model, creates one scoped Sanctum token through a checkpointed container command, saves it privately, and verifies token ownership and statistics access. Replay verifies the saved token without creating another. Fresh-image behavior, browser login, actual measurements, and restart persistence still require live acceptance.",
+    "aliases": [
+      "internet speed history",
+      "scheduled speedtest"
+    ],
+    "roles": [
+      "network-performance-monitoring"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "The shared recipe seeds ADMIN_EMAIL and a generated ADMIN_PASSWORD on first initialization. Its headless adapter verifies the saved administrator through the pinned Laravel model, creates one scoped Sanctum token through a checkpointed container command, saves it privately, and verifies token ownership and statistics access. Replay verifies the saved token without creating another. Fresh-image behavior, browser login, actual measurements, and restart persistence still require live acceptance."
+    },
     "image": "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
     "container_port": 80,
     "default_published_port": 8080,
@@ -6105,10 +6976,21 @@
   {
     "id": "stalwart-mail",
     "name": "Stalwart Mail Server",
-    "description": "Upstream v0.16.24 native listener defaults and recovery behavior were rechecked October 4, 2026; full mail support remains discovery-only. Shared derived-recipe/setup selects administration-only scope: native bootstrap, privately captured permanent administrator and inherited management API key, and scoped activation restart. With an existing approved verified HTTPS owner, setup prepares one HTTP-only native listener and reuses headless administration/recovery-login rejection verification. Separately approved shared transition removes the exact recovery-mode environment entry and recreates only this owned service; resumed setup requires validated closure history, running-container recovery-variable absence and HTTPS administrator/key readback. Missing capture or uncertain writes require inspection, never credential recreation. SMTP/client ports, native mail TLS, DNS, anti-abuse, delivery and live restart acceptance remain pending. Source fixtures are not fresh-instance or mail acceptance.",
+    "aliases": [
+      "self hosted email",
+      "mail server"
+    ],
+    "roles": [
+      "mail-server"
+    ],
     "categories": [
       "communication"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Upstream v0.16.24 native listener defaults and recovery behavior were rechecked October 4, 2026; full mail support remains discovery-only. Shared derived-recipe/setup selects administration-only scope: native bootstrap, privately captured permanent administrator and inherited management API key, and scoped activation restart. With an existing approved verified HTTPS owner, setup prepares one HTTP-only native listener and reuses headless administration/recovery-login rejection verification. Separately approved shared transition removes the exact recovery-mode environment entry and recreates only this owned service; resumed setup requires validated closure history, running-container recovery-variable absence and HTTPS administrator/key readback. Missing capture or uncertain writes require inspection, never credential recreation. SMTP/client ports, native mail TLS, DNS, anti-abuse, delivery and live restart acceptance remain pending. Source fixtures are not fresh-instance or mail acceptance."
+    },
     "image": "stalwartlabs/stalwart:v0.16.24",
     "environment": [],
     "mounts": [],
@@ -6143,10 +7025,21 @@
   {
     "id": "stirling-pdf",
     "name": "Stirling PDF",
-    "description": "Feature and authentication modes should be checked before exposure.",
+    "aliases": [
+      "pdf tools",
+      "pdf editor"
+    ],
+    "roles": [
+      "pdf-toolbox"
+    ],
     "categories": [
       "documents"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Feature and authentication modes should be checked before exposure."
+    },
     "image": "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -6204,10 +7097,21 @@
   {
     "id": "syncthing",
     "name": "Syncthing",
-    "description": "Official Docker image and configuration routes checked; shared setup lacks a safe first-GUI-credential/API-key bootstrap and peer-network acceptance.",
+    "aliases": [
+      "device file sync",
+      "folder sync"
+    ],
+    "roles": [
+      "device-sync"
+    ],
     "categories": [
       "files"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official Docker image and configuration routes checked; shared setup lacks a safe first-GUI-credential/API-key bootstrap and peer-network acceptance."
+    },
     "image": "syncthing/syncthing:2.1.4",
     "container_port": 8384,
     "default_published_port": 8384,
@@ -6279,10 +7183,23 @@
   {
     "id": "tailscale",
     "name": "Tailscale",
-    "description": "The experimental portless recipe starts only userspace tailscaled with owned persistent state. Enrollment and private Serve activation are separately gated; intended-client ACL and restart acceptance remain unverified.",
+    "aliases": [
+      "tailnet",
+      "private phone access",
+      "mesh vpn"
+    ],
+    "roles": [
+      "private-overlay",
+      "private-ingress"
+    ],
     "categories": [
       "remote-access"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The experimental portless recipe starts only userspace tailscaled with owned persistent state. Enrollment and private Serve activation are separately gated; intended-client ACL and restart acceptance remain unverified."
+    },
     "image": "ghcr.io/tailscale/tailscale:v1.102.4",
     "environment": [
       {
@@ -6349,10 +7266,21 @@
   {
     "id": "tdarr",
     "name": "Tdarr",
-    "description": "Pinned server/internal-node Compose candidate with a source-backed 2.92.01 first-owner and API-key adapter. Exact frontend request contracts are recorded in bootstrap-source.md; live authentication, node connectivity, and restart acceptance remain unverified.",
+    "aliases": [
+      "media transcoding automation",
+      "transcode library"
+    ],
+    "roles": [
+      "media-transcoding"
+    ],
     "categories": [
       "media"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-30",
+      "note": "Pinned server/internal-node Compose candidate with a source-backed 2.92.01 first-owner and API-key adapter. Exact frontend request contracts are recorded in bootstrap-source.md; live authentication, node connectivity, and restart acceptance remain unverified."
+    },
     "image": "ghcr.io/haveagitgat/tdarr:2.92.01",
     "container_port": 8265,
     "default_published_port": 8265,
@@ -6504,10 +7432,22 @@
   {
     "id": "technitium-dns",
     "name": "Technitium DNS Server",
-    "description": "Broader authoritative and recursive DNS feature set than a simple filter.",
+    "aliases": [
+      "technitium",
+      "authoritative dns"
+    ],
+    "roles": [
+      "dns-server",
+      "dns-filter"
+    ],
     "categories": [
       "dns"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Broader authoritative and recursive DNS feature set than a simple filter."
+    },
     "image": "docker.io/technitium/dns-server:15.5.1",
     "container_port": 5380,
     "default_published_port": 5380,
@@ -6579,11 +7519,22 @@
   {
     "id": "tracearr",
     "name": "Tracearr",
-    "description": "Pinned v2.6.0 source supplies a shared three-service recipe and checkpointed Better Auth first-owner/public API-key adapter. Required email is an explicit setup input. PostgreSQL 18 remains experimental and fresh-volume-only. Source/synthetic validation is not fresh-image, restart, media-server, or Homarr acceptance.",
+    "aliases": [
+      "media session monitoring",
+      "media analytics"
+    ],
+    "roles": [
+      "media-session-monitoring"
+    ],
     "categories": [
       "media",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned v2.6.0 source supplies a shared three-service recipe and checkpointed Better Auth first-owner/public API-key adapter. Required email is an explicit setup input. PostgreSQL 18 remains experimental and fresh-volume-only. Source/synthetic validation is not fresh-image, restart, media-server, or Homarr acceptance."
+    },
     "image": "ghcr.io/connorgallopo/tracearr:2.6.0",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -6723,10 +7674,22 @@
   {
     "id": "traefik",
     "name": "Traefik",
-    "description": "Private ping plus Basic-authenticated exact GET-only management paths support the native Homarr source contract. The fixed middleware username is control access, not a created account. No Docker provider/socket, dashboard, application ingress, or TLS is enabled. Existing ping-only owners need a separately supported recipe transition. Source fixtures are not live acceptance.",
+    "aliases": [
+      "docker reverse proxy",
+      "label proxy"
+    ],
+    "roles": [
+      "reverse-proxy",
+      "tls-owner"
+    ],
     "categories": [
       "ingress"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Private ping plus Basic-authenticated exact GET-only management paths support the native Homarr source contract. The fixed middleware username is control access, not a created account. No Docker provider/socket, dashboard, application ingress, or TLS is enabled. Existing ping-only owners need a separately supported recipe transition. Source fixtures are not live acceptance."
+    },
     "image": "traefik:v3.6.22",
     "container_port": 8080,
     "default_published_port": 8080,
@@ -6792,10 +7755,21 @@
   {
     "id": "transmission",
     "name": "Transmission",
-    "description": "Active upstream client with daemon and RPC deployment options.",
+    "aliases": [
+      "transmission torrent",
+      "lightweight torrent client"
+    ],
+    "roles": [
+      "torrent-download"
+    ],
     "categories": [
       "downloads"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Active upstream client with daemon and RPC deployment options."
+    },
     "image": "linuxserver/transmission:version-4.1.3-r0",
     "container_port": 9091,
     "default_published_port": 9091,
@@ -6882,10 +7856,21 @@
   {
     "id": "umami",
     "name": "Umami",
-    "description": "Privacy-oriented analytics; consent obligations remain jurisdiction-specific.",
+    "aliases": [
+      "privacy web analytics",
+      "google analytics replacement"
+    ],
+    "roles": [
+      "web-analytics"
+    ],
     "categories": [
       "analytics"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Privacy-oriented analytics; consent obligations remain jurisdiction-specific."
+    },
     "image": "ghcr.io/umami-software/umami:3.4.0",
     "container_port": 3000,
     "default_published_port": 3000,
@@ -6977,10 +7962,20 @@
   {
     "id": "unbound",
     "name": "Unbound",
-    "description": "Headless DNS component; the cited container is community-maintained, not published by NLnet Labs.",
+    "aliases": [
+      "recursive dns resolver"
+    ],
+    "roles": [
+      "recursive-resolver"
+    ],
     "categories": [
       "dns"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Headless DNS component; the cited container is community-maintained, not published by NLnet Labs."
+    },
     "image": "madnuttah/unbound:1.26.0-0",
     "container_port": 5335,
     "default_published_port": 5335,
@@ -7031,10 +8026,22 @@
   {
     "id": "uptime-kuma",
     "name": "Uptime Kuma",
-    "description": "Pinned v2.5.5 shared first-owner Socket.IO setup saves a nonexpiring metrics-only API key. Key creation globally replaces administrator Basic auth on /metrics with API-key Basic auth; it is not a general management API or MCP token. Workload and restart acceptance remain separate.",
+    "aliases": [
+      "uptime monitor",
+      "status page"
+    ],
+    "roles": [
+      "synthetic-monitoring",
+      "status-page"
+    ],
     "categories": [
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "transitioning",
+      "checked_at": "2026-09-29",
+      "note": "Pinned v2.5.5 shared first-owner Socket.IO setup saves a nonexpiring metrics-only API key. Key creation globally replaces administrator Basic auth on /metrics with API-key Basic auth; it is not a general management API or MCP token. Workload and restart acceptance remain separate."
+    },
     "image": "louislam/uptime-kuma:2.5.5",
     "container_port": 3001,
     "default_published_port": 3001,
@@ -7097,10 +8104,22 @@
   {
     "id": "valkey",
     "name": "Valkey",
-    "description": "Official image identified; private unauthenticated shared Compose readiness is available, but peer compatibility, authenticated access, and live acceptance remain unverified.",
+    "aliases": [
+      "redis compatible",
+      "cache queue"
+    ],
+    "roles": [
+      "cache",
+      "queue"
+    ],
     "categories": [
       "databases"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "Official image identified; private unauthenticated shared Compose readiness is available, but peer compatibility, authenticated access, and live acceptance remain unverified."
+    },
     "image": "valkey/valkey:9.1.2",
     "container_port": 6379,
     "default_published_port": 6379,
@@ -7157,10 +8176,21 @@
   {
     "id": "vaultwarden",
     "name": "Vaultwarden",
-    "description": "Unofficial Bitwarden-compatible server, not the vendor server. The pinned shared recipe installs persistent storage with registration and invitations closed. Canonical HTTPS and encrypted official-client enrollment remain separate gates; the standalone owner is retained for existing installations.",
+    "aliases": [
+      "password manager",
+      "bitwarden compatible"
+    ],
+    "roles": [
+      "password-vault"
+    ],
     "categories": [
       "passwords"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Unofficial Bitwarden-compatible server, not the vendor server. The pinned shared recipe installs persistent storage with registration and invitations closed. Canonical HTTPS and encrypted official-client enrollment remain separate gates; the standalone owner is retained for existing installations."
+    },
     "image": "docker.io/vaultwarden/server:1.37.3",
     "container_port": 8080,
     "default_published_port": 8088,
@@ -7241,10 +8271,22 @@
   {
     "id": "vector",
     "name": "Vector",
-    "description": "The private recipe only routes Vector's own logs to stdout; real telemetry needs a separately reviewed source and sink.",
+    "aliases": [
+      "log collector",
+      "telemetry pipeline"
+    ],
+    "roles": [
+      "log-agent",
+      "telemetry-router"
+    ],
     "categories": [
       "observability"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-09-29",
+      "note": "The private recipe only routes Vector's own logs to stdout; real telemetry needs a separately reviewed source and sink."
+    },
     "image": "ghcr.io/vectordotdev/vector:0.58.0-debian",
     "container_port": 8686,
     "default_published_port": 8686,
@@ -7298,10 +8340,20 @@
   {
     "id": "victoria-metrics",
     "name": "VictoriaMetrics",
-    "description": "Candidate metrics backend; edition and topology need review.",
+    "aliases": [
+      "prometheus compatible metrics"
+    ],
+    "roles": [
+      "metrics-store"
+    ],
     "categories": [
       "observability"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-08-28",
+      "note": "Candidate metrics backend; edition and topology need review."
+    },
     "image": "victoriametrics/victoria-metrics:v1.153.0",
     "container_port": 8428,
     "default_published_port": 8428,
@@ -7353,11 +8405,22 @@
   {
     "id": "wud",
     "name": "What's Up Docker",
-    "description": "Pinned 9.1.0 remote TLS watcher recipe requires explicit endpoint/container/mode choices, imported owner-issued CA/certificate/key files and a separately approved fresh remote Docker connection before every start. Management mode explicitly grants host-wide Docker control, not read-only authority; inventory mode remains blocked without verified deny-write policy. Setup verifies the saved Basic administrator, anonymous denial and exact single-container image against the approved Docker engine. Live TLS/ACL acceptance, current scan freshness and restart persistence remain unverified. No socket or registry-only mode is provided.",
+    "aliases": [
+      "wud",
+      "container update monitor"
+    ],
+    "roles": [
+      "container-image-update-monitoring"
+    ],
     "categories": [
       "containers",
       "monitoring"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "Pinned 9.1.0 remote TLS watcher recipe requires explicit endpoint/container/mode choices, imported owner-issued CA/certificate/key files and a separately approved fresh remote Docker connection before every start. Management mode explicitly grants host-wide Docker control, not read-only authority; inventory mode remains blocked without verified deny-write policy. Setup verifies the saved Basic administrator, anonymous denial and exact single-container image against the approved Docker engine. Live TLS/ACL acceptance, current scan freshness and restart persistence remain unverified. No socket or registry-only mode is provided."
+    },
     "image": "getwud/wud:9.1.0",
     "environment": [],
     "mounts": [],
@@ -7390,10 +8453,21 @@
   {
     "id": "zerotier",
     "name": "ZeroTier",
-    "description": "The official stable container tag is 1.14.2. The shared recipe bootstraps a container-local identity and native API token with separately reviewed NET_ADMIN and tun authority; enrollment remains owner-selected and unverified.",
+    "aliases": [
+      "virtual lan",
+      "mesh network"
+    ],
+    "roles": [
+      "private-overlay"
+    ],
     "categories": [
       "remote-access"
     ],
+    "lifecycle": {
+      "status": "active",
+      "checked_at": "2026-10-03",
+      "note": "The official stable container tag is 1.14.2. The shared recipe bootstraps a container-local identity and native API token with separately reviewed NET_ADMIN and tun authority; enrollment remains owner-selected and unverified."
+    },
     "image": "zerotier/zerotier:1.14.2",
     "environment": [
       {
