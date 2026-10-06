@@ -198,6 +198,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			return err
 		}
 		delete(values, "port")
+		if err := ss.ensureSecrets(a); err != nil {
+			return err
+		}
 		st.Port, st.Inputs = port, values
 		if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
 			return err
@@ -275,6 +278,30 @@ func (ss *session) ensureAdmin(opts InstallOptions) error {
 	if generated {
 		ss.s.Log.Emit(events.Event{Event: events.StepOK, Step: "admin-login",
 			Msg: "generated the Admin login for user " + values["ADMIN_USER"] + " (show it with: self-host credentials)"})
+	}
+	return nil
+}
+
+// ensureSecrets generates the secrets an App declares that secrets.env lacks.
+func (ss *session) ensureSecrets(a app.App) error {
+	declarer, found := a.(app.SecretDeclarer)
+	if !found {
+		return nil
+	}
+	id := a.Info().ID
+	for _, spec := range declarer.Secrets() {
+		key := SecretKey(id, spec.Name)
+		if ss.secrets.values[key] != "" {
+			ss.s.Log.Secret(ss.secrets.values[key])
+			continue
+		}
+		value := GeneratePassword(spec.Length)
+		ss.s.Log.Secret(value)
+		if err := ss.secrets.Set(key, value); err != nil {
+			return err
+		}
+		ss.s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "secret",
+			Msg: "generated " + key + " (show it with: self-host credentials)"})
 	}
 	return nil
 }
