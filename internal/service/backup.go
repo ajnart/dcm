@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/compose"
@@ -301,45 +300,4 @@ func (ss *session) restoreRecords(staging string, targets []string, all bool) er
 		}
 	}
 	return ss.p.SaveState(ss.state)
-}
-
-type BackupFile struct {
-	Path      string    `json:"path"`
-	Name      string    `json:"name"`
-	Size      int64     `json:"size"`
-	Modified  time.Time `json:"modified"`
-	Encrypted bool      `json:"encrypted"`
-}
-
-// HumanSize formats the archive size.
-func (b BackupFile) HumanSize() string { return humanSize(b.Size) }
-
-// Backups lists archives in the default backup folder, newest first.
-func (s *Service) Backups(ctx context.Context) ([]BackupFile, error) {
-	p, err := s.Project()
-	if err != nil {
-		return nil, err
-	}
-	entries, err := os.ReadDir(BackupDir(p))
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var files []BackupFile
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !(strings.HasSuffix(name, ".tar.zst") || strings.HasSuffix(name, ".tar.zst.age")) {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		files = append(files, BackupFile{Path: filepath.Join(BackupDir(p), name), Name: name, Size: info.Size(),
-			Modified: info.ModTime(), Encrypted: strings.HasSuffix(name, ".age")})
-	}
-	slices.SortFunc(files, func(a, b BackupFile) int { return b.Modified.Compare(a.Modified) })
-	return files, nil
 }

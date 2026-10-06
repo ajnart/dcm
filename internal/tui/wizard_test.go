@@ -44,7 +44,7 @@ func freshHost(t *testing.T) (Model, *fakeBackend) {
 	m := New(backend, Options{Version: "1.0.0"})
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	m = update(t, m, tea_WindowSize(120, 40))
+	m = update(t, m, windowSize(120, 40))
 	return m, backend
 }
 
@@ -59,7 +59,7 @@ func TestFreshHostOpensTheWizardWithHostChecks(t *testing.T) {
 	m, _ := freshHost(t)
 
 	out := screen(m)
-	if m.screen != screenWizard || !strings.Contains(out, "Welcome") || !strings.Contains(out, "Docker Compose") {
+	if m.wizard == nil || !strings.Contains(out, "Welcome") || !strings.Contains(out, "Docker Compose") {
 		t.Fatalf("wizard not shown\n%s", out)
 	}
 }
@@ -127,31 +127,7 @@ func TestCancellingTheWizardWritesNothing(t *testing.T) {
 
 	m = drive(t, m, ctrlC())
 
-	if len(backend.Actions()) != 0 || m.screen != screenWizard || !strings.Contains(screen(m), "Welcome") {
+	if len(backend.Actions()) != 0 || m.wizard == nil || !strings.Contains(screen(m), "Welcome") {
 		t.Fatalf("cancel should return to the welcome step without installing\n%s", screen(m))
-	}
-}
-
-func TestCatalogScreenAddsAppsToAnExistingProject(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-	backend.catalog = wizardCatalog()
-
-	m = drive(t, m, press("2"))
-	if !strings.Contains(screen(m), "Media") || !strings.Contains(screen(m), "Notifications") {
-		t.Fatalf("catalog screen\n%s", screen(m))
-	}
-	m = drive(t, m, press("/"))
-	m = typeText(t, m, "ntfy")
-	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("space"))
-	m = drive(t, m, press("enter"))
-	if !strings.Contains(screen(m), "Review") {
-		t.Fatalf("no review\n%s", screen(m))
-	}
-	m = drive(t, m, press("enter"))
-
-	got := backend.installs()
-	if len(got) != 1 || strings.Join(got[0].Targets, ",") != "ntfy" {
-		t.Fatalf("installs %+v", got)
 	}
 }

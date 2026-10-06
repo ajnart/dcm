@@ -1,16 +1,17 @@
 package service
 
-// Level summarises an App's health as ok (green), warn (yellow) or fail (red).
+// Level is an App's Status: ok (green), attention (yellow) or broken (red),
+// combined from its container, its health check and its Setup.
 func Level(a AppStatus) string {
 	switch {
 	case a.State == "unknown":
-		return "warn"
+		return "attention"
 	case a.State != "running":
-		return "fail"
+		return "broken"
 	case a.Health == "unhealthy" || a.Setup == "incomplete":
-		return "fail"
+		return "broken"
 	case a.Health == "starting" || a.Setup == "pending":
-		return "warn"
+		return "attention"
 	default:
 		return "ok"
 	}

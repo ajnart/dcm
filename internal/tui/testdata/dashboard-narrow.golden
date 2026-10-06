@@ -1,12 +1,24 @@
- ◆ self-host  ~/self-host  LAN 192.168.1.20   ● 1 warning
- 1 Apps   2 Catalog   3 Updates   4 Doctor   5 Backups
-  APP                STATE      SETUP
-● Jellyfin           running    ✓ ok
-● Sonarr             running    ✗ incomplete
-● whoami             exited     unmanaged
-
-
-
-
-
-      enter start/stop • S restart • e rerun setup • o open in browser …
+ ◆ self-host   LAN 192.168.1.20   ● 1 warning                  12:00:00 · v1.0.0
+╭─ Apps 3 ─────────────────────────────────────────────────────────────────────╮
+│ ● Jellyfin      http://192.168.1.20:8096   running   ✓                       │
+│ ● Sonarr        http://192.168.1.20:8989   running   ✗                       │
+│ ● whoami        http://192.168.1.20:8099   stopped   –                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Needs action 3 ─────────────────────────────────────────────────────────────╮
+│ ✗ Sonarr: download-client failed                               r retry Setup │
+│ ✗ whoami is stopped                                              enter start │
+│ ! Firewall: ufw is active                                                    │
+│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Jellyfin logs ──────────────────────────────────────────────────────────────╮
+│  logs   setup   info   compose                                               │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ jellyfin-1  | ready on :80                                                   │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+        enter start/stop • o open • c copy password • u update • r retry Setup …

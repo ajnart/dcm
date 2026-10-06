@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -26,7 +27,6 @@ type fakeBackend struct {
 	checks  []host.Check
 	actions []string
 	opened  []string
-	backups []service.BackupFile
 	catalog *catalog.Catalog
 	install []service.InstallOptions
 	fail    error
@@ -51,8 +51,6 @@ func (f *fakeBackend) installs() []service.InstallOptions {
 
 func (f *fakeBackend) LatestRelease(context.Context) string { return f.latest }
 
-func (f *fakeBackend) Backups(context.Context) ([]service.BackupFile, error) { return f.backups, nil }
-
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, nil }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
 func (f *fakeBackend) Updates(context.Context, service.Status) map[string]string {
@@ -62,6 +60,9 @@ func (f *fakeBackend) Credentials(context.Context) (service.Credentials, error) 
 	var c service.Credentials
 	c.Admin.Username, c.Admin.Password = "admin", "s3cret-pass"
 	return c, nil
+}
+func (f *fakeBackend) Compose(_ context.Context, id string) (string, error) {
+	return "services:\n  " + id + ":\n    image: example/" + id + ":latest\n", nil
 }
 func (f *fakeBackend) Logs(_ context.Context, id string, w io.Writer) error {
 	io.WriteString(w, id+"-1  | ready on :80\n")
@@ -75,10 +76,7 @@ func (f *fakeBackend) OpenURL(url string) error {
 }
 func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) error {
 	f.mu.Lock()
-	entry := string(req.Action) + " " + strings.Join(req.IDs, " ")
-	if req.File != "" {
-		entry += " " + req.File
-	}
+	entry := strings.TrimSpace(string(req.Action) + " " + strings.Join(req.IDs, " "))
 	f.actions = append(f.actions, entry)
 	if req.Install != nil {
 		f.install = append(f.install, *req.Install)
@@ -110,11 +108,11 @@ func sample(t *testing.T, width, height int) (Model, *fakeBackend) {
 	t.Helper()
 	backend := &fakeBackend{status: sampleStatus(), checks: []host.Check{
 		{ID: "docker", Title: "Docker", Level: host.OK}, {ID: "compose", Title: "Docker Compose", Level: host.OK},
-		{ID: "firewall", Title: "Firewall", Level: host.Warn, Detail: "ufw is active"},
+		{ID: "firewall", Title: "Firewall", Level: host.Warn, Detail: "ufw is active", Hint: "sudo ufw allow from 192.168.0.0/16 to any port 8096"},
 	}}
 	m := New(backend, Options{Version: "1.0.0", Now: func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) }})
 	m = update(t, m, tea.WindowSizeMsg{Width: width, Height: height})
-	m = update(t, m, statusMsg{status: backend.status})
+	m = drive(t, m, statusMsg{status: backend.status})
 	m = update(t, m, doctorMsg{checks: backend.checks})
 	return m, backend
 }
@@ -155,7 +153,7 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 				out = append(out, runCmd(c)...)
 			}
 			return out
-		case tickMsg, tea.QuitMsg, spinner.TickMsg:
+		case tickMsg, tea.QuitMsg, spinner.TickMsg, updatesTick:
 			return nil
 		default:
 			// tea.Sequence yields an unexported []tea.Cmd; run it in order.
@@ -169,7 +167,7 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 			return []tea.Msg{msg}
 		}
 	case <-time.After(200 * time.Millisecond):
-		return nil // long-lived listeners (log follow, task events) are dropped
+		return nil // long-lived listeners (log follow) are dropped
 	}
 }
 
@@ -192,83 +190,136 @@ func press(s string) tea.KeyPressMsg {
 
 func screen(m Model) string { return ansi.Strip(m.View().Content) }
 
-func TestDashboardShowsProjectHealthAndApps(t *testing.T) {
+func statusMsgFor(err error) statusMsg { return statusMsg{err: err} }
+
+func windowSize(w, h int) tea.WindowSizeMsg { return tea.WindowSizeMsg{Width: w, Height: h} }
+
+func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl} }
+
+func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
+
+func TestDashboardShowsAppsNeedsActionAndDetails(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	out := screen(m)
 
-	for _, want := range []string{"self-host", "LAN 192.168.1.20", "Jellyfin", "http://192.168.1.20:8096", "Sonarr", "incomplete", "whoami", "unmanaged", "1 warning"} {
+	for _, want := range []string{"self-host", "LAN 192.168.1.20", "1 warning",
+		"Apps", "Jellyfin", "http://192.168.1.20:8096", "Sonarr", "whoami",
+		"Needs action", "logs", "setup", "info", "compose"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
 	}
 	v := m.View()
-	if !v.AltScreen || v.MouseMode != tea.MouseModeCellMotion || !v.ReportFocus {
-		t.Fatal("dashboard must use alt screen, mouse and focus reporting")
-	}
-	if !strings.Contains(v.WindowTitle, "self-host") {
-		t.Fatalf("window title %q", v.WindowTitle)
+	if !v.AltScreen || v.MouseMode != tea.MouseModeCellMotion || !v.ReportFocus || !strings.Contains(v.WindowTitle, "self-host") {
+		t.Fatal("dashboard must use alt screen, mouse, focus reporting and a window title")
 	}
 }
 
-func TestDotsReflectAppHealth(t *testing.T) {
-	cases := map[string]string{"jellyfin": "ok", "sonarr": "fail", "whoami": "fail"}
+func TestStatusLevelsAreOkAttentionBroken(t *testing.T) {
+	want := map[string]string{"jellyfin": "ok", "sonarr": "broken", "whoami": "broken"}
 	for _, app := range sampleStatus().Apps {
-		if got := service.Level(app); got != cases[app.ID] {
-			t.Errorf("%s level = %s, want %s", app.ID, got, cases[app.ID])
+		if got := service.Level(app); got != want[app.ID] {
+			t.Errorf("%s Status = %s, want %s", app.ID, got, want[app.ID])
+		}
+	}
+	starting := service.AppStatus{State: "running", Health: "starting", Setup: "ok"}
+	if got := service.Level(starting); got != "attention" {
+		t.Errorf("starting App Status = %s, want attention", got)
+	}
+}
+
+func TestNeedsActionNamesTheActionForEachProblem(t *testing.T) {
+	m, _ := sample(t, 140, 40)
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
+
+	out := screen(m)
+
+	for _, want := range []string{
+		"Sonarr: download-client failed", "r retry Setup",
+		"whoami is stopped", "enter start",
+		"Jellyfin has an update", "u update",
+		"Firewall: ufw is active",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("Needs action lacks %q\n%s", want, out)
 		}
 	}
 }
 
-func TestNavigationAndSetupSidebar(t *testing.T) {
+func TestNothingNeedsActionWhenAllIsWell(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+	backend.status.Apps = backend.status.Apps[:1]
+	m = update(t, m, statusMsg{status: backend.status})
+	m = update(t, m, doctorMsg{checks: []host.Check{{ID: "docker", Title: "Docker", Level: host.OK}}})
+
+	if !strings.Contains(screen(m), "Nothing needs your attention") {
+		t.Fatalf("calm state not shown\n%s", screen(m))
+	}
+}
+
+// The keybind audit: the Dashboard has exactly the keys docs/adr/0002 lists.
+// Adding one means changing the ADR and this test on purpose.
+func TestKeybindAudit(t *testing.T) {
+	want := []string{
+		"select up: up k", "select down: down j", "next tab: tab", "start/stop: enter",
+		"open: o", "copy password: c", "update: u", "retry Setup: r", "install: i",
+		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
+	}
+	var got []string
+	for _, b := range newKeyMap().all() {
+		got = append(got, b.Help().Desc+": "+strings.Join(b.Keys(), " "))
+	}
+	slices.Sort(want)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Fatalf("keybinds changed:\n got %q\nwant %q", got, want)
+	}
+}
+
+func TestRemovedKeysDoNothing(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+	before := screen(m)
+
+	for _, k := range []string{"x", "X", "S", "s", "/", "t", "1", "2", "5", "l", "L", "f", "U", "e"} {
+		m = drive(t, m, press(k))
+	}
+
+	if len(backend.Actions()) != 0 || screen(m) != before {
+		t.Fatalf("removed keys must be inert; actions %v\n%s", backend.Actions(), screen(m))
+	}
+}
+
+func TestTabCyclesDetailsIncludingCompose(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
-	m = update(t, m, press("j"))
-	m = update(t, m, press("tab")) // logs -> setup
-
-	if m.selectedID() != "sonarr" {
-		t.Fatalf("selected %q", m.selectedID())
+	m = drive(t, m, press("tab"))
+	if !strings.Contains(screen(m), "Setup has finished") && !strings.Contains(screen(m), "✓") {
+		t.Errorf("setup tab not shown\n%s", screen(m))
 	}
+	m = drive(t, m, press("tab"))
+	if !strings.Contains(screen(m), "lscr.io/linuxserver/jellyfin:latest") {
+		t.Errorf("info tab not shown\n%s", screen(m))
+	}
+	m = drive(t, m, press("tab"))
+	if !strings.Contains(screen(m), "image: example/jellyfin:latest") {
+		t.Errorf("compose tab does not show the App's Compose file\n%s", screen(m))
+	}
+	m = drive(t, m, press("tab"))
+	if !strings.Contains(screen(m), "ready on :80") {
+		t.Errorf("tab should wrap back to logs\n%s", screen(m))
+	}
+}
+
+func TestSetupTabShowsFailedStepAndHint(t *testing.T) {
+	m, _ := sample(t, 140, 32)
+
+	m = drive(t, m, press("j"))
+	m = drive(t, m, press("tab"))
+
 	out := screen(m)
 	if !strings.Contains(out, "qBittorrent refused login") || !strings.Contains(out, "→ Add qBittorrent") {
-		t.Fatalf("setup sidebar lacks failed step and hint\n%s", out)
-	}
-}
-
-func TestFilterNarrowsRowsAndEscapeClears(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-
-	m = update(t, m, press("/"))
-	for _, r := range "son" {
-		m = update(t, m, press(string(r)))
-	}
-	m = update(t, m, press("enter"))
-
-	if len(m.rows()) != 1 || m.selectedID() != "sonarr" {
-		t.Fatalf("filter rows = %d", len(m.rows()))
-	}
-	m = update(t, m, press("esc"))
-	if len(m.rows()) != 3 {
-		t.Fatalf("escape did not clear filter: %d rows", len(m.rows()))
-	}
-}
-
-func TestRemoveAsksForConfirmationThenRunsTask(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	m = update(t, m, press("x"))
-	if !strings.Contains(screen(m), "Remove Jellyfin?") {
-		t.Fatalf("no confirmation dialog\n%s", screen(m))
-	}
-	m = update(t, m, press("n"))
-	if len(backend.Actions()) != 0 {
-		t.Fatal("cancelled remove still ran")
-	}
-	m = update(t, m, press("x"))
-	m = drive(t, m, press("y"))
-
-	if got := backend.Actions(); len(got) != 1 || got[0] != "remove jellyfin" {
-		t.Fatalf("actions %v", got)
+		t.Fatalf("setup tab lacks failed step and hint\n%s", out)
 	}
 }
 
@@ -276,99 +327,179 @@ func TestEnterStopsARunningAppAndStartsAStoppedOne(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 
 	m = drive(t, m, press("enter"))
-	m = update(t, m, press("j"))
-	m = update(t, m, press("j"))
-	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("j"))
+	m = drive(t, m, press("j"))
+	drive(t, m, press("enter"))
 
-	if got := backend.Actions(); len(got) != 2 || got[0] != "stop jellyfin" || got[1] != "start whoami" {
+	if got := backend.Actions(); !slices.Equal(got, []string{"stop jellyfin", "start whoami"}) {
 		t.Fatalf("actions %v", got)
 	}
 }
 
-func TestTasksOverlayListsFinishedTasks(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-	m = drive(t, m, press("S"))
+func TestUpdateRunsOnlyWhenAnUpdateIsKnown(t *testing.T) {
+	m, backend := sample(t, 140, 32)
 
-	m = update(t, m, press("t"))
+	m = drive(t, m, press("u"))
+	if len(backend.Actions()) != 0 || !strings.Contains(screen(m), "no update known for Jellyfin") {
+		t.Fatalf("u without a known update should only explain\n%s", screen(m))
+	}
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
+	drive(t, m, press("u"))
 
-	out := screen(m)
-	if !strings.Contains(out, "restart jellyfin") || !strings.Contains(out, "restart done") {
-		t.Fatalf("tasks overlay lacks task and its events\n%s", out)
+	if got := backend.Actions(); !slices.Equal(got, []string{"update jellyfin"}) {
+		t.Fatalf("actions %v", got)
 	}
 }
 
-func TestHelpOverlayListsKeybinds(t *testing.T) {
+func TestRetrySetupOnlyForManagedApps(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+
+	m = drive(t, m, press("j"))
+	m = drive(t, m, press("r"))
+	m = drive(t, m, press("j"))
+	m = drive(t, m, press("r"))
+
+	if got := backend.Actions(); !slices.Equal(got, []string{"setup sonarr"}) {
+		t.Fatalf("actions %v", got)
+	}
+	if !strings.Contains(screen(m), "whoami has no automatic Setup") {
+		t.Fatalf("unmanaged App should explain\n%s", screen(m))
+	}
+}
+
+func TestBackupRunsForEveryApp(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+
+	drive(t, m, press("b"))
+
+	if got := backend.Actions(); !slices.Equal(got, []string{"backup"}) {
+		t.Fatalf("actions %v", got)
+	}
+}
+
+func TestOpenUsesTheLANURLAndCopyGetsThePassword(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+
+	m = drive(t, m, press("o"))
+	_, cmd := m.Update(press("c"))
+
+	if !slices.Equal(backend.opened, []string{"http://192.168.1.20:8096"}) {
+		t.Fatalf("opened %v", backend.opened)
+	}
+	if cmd == nil {
+		t.Fatal("c should fetch the Admin password for the clipboard")
+	}
+}
+
+func TestFooterShowsTheRunningActionThenItsResult(t *testing.T) {
+	m, _ := sample(t, 140, 32)
+
+	next, _ := m.Update(press("enter"))
+	m = next.(Model)
+	if !strings.Contains(lastLine(screen(m)), "stop jellyfin") {
+		t.Fatalf("footer should name the running Action\n%s", lastLine(screen(m)))
+	}
+	m = drive(t, m, press("b"))
+	if !strings.Contains(lastLine(screen(m)), "✓ backup") {
+		t.Fatalf("footer should report the result\n%s", lastLine(screen(m)))
+	}
+}
+
+func lastLine(s string) string {
+	lines := strings.Split(s, "\n")
+	return lines[len(lines)-1]
+}
+
+func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+	backend.catalog = wizardCatalog()
+
+	m = drive(t, m, press("i"))
+	if !strings.Contains(screen(m), "Install") || !strings.Contains(screen(m), "Notifications") {
+		t.Fatalf("install picker not shown\n%s", screen(m))
+	}
+	for !strings.Contains(m.renderOverlay(), "> ") || !strings.Contains(currentPick(m), "ntfy") {
+		m = drive(t, m, press("j"))
+		if m.picker == nil || m.picker.cursor > 10 {
+			t.Fatal("ntfy not found in picker")
+		}
+	}
+	m = drive(t, m, press("space"))
+	m = drive(t, m, press("enter"))
+	if !strings.Contains(screen(m), "Review") {
+		t.Fatalf("no review\n%s", screen(m))
+	}
+	drive(t, m, press("enter"))
+
+	got := backend.installs()
+	if len(got) != 1 || strings.Join(got[0].Targets, ",") != "ntfy" {
+		t.Fatalf("installs %+v", got)
+	}
+}
+
+func currentPick(m Model) string {
+	items := m.pickerItems()
+	if m.picker == nil || m.picker.cursor >= len(items) {
+		return ""
+	}
+	return items[m.picker.cursor].key
+}
+
+func TestEscapeClosesTheInstallPickerWithoutInstalling(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+	backend.catalog = wizardCatalog()
+
+	m = drive(t, m, press("i"))
+	m = drive(t, m, press("esc"))
+
+	if m.picker != nil || len(backend.installs()) != 0 {
+		t.Fatal("esc must close the picker and install nothing")
+	}
+}
+
+func TestHelpListsEveryKey(t *testing.T) {
 	m, _ := sample(t, 140, 40)
 
-	m = update(t, m, press("?"))
+	m = drive(t, m, press("?"))
 
-	out := screen(m)
-	for _, want := range []string{"restart", "rerun setup", "open in browser", "copy password"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("help lacks %q\n%s", want, out)
+	help := ansi.Strip(m.renderOverlay())
+	for _, want := range []string{"start/stop", "open", "copy password", "update", "retry Setup", "install", "backup", "quit"} {
+		if !strings.Contains(help, want) {
+			t.Errorf("help lacks %q\n%s", want, help)
 		}
 	}
 }
 
-func TestOpenInBrowserUsesTheLANURL(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	drive(t, m, press("o"))
-
-	if len(backend.opened) != 1 || backend.opened[0] != "http://192.168.1.20:8096" {
-		t.Fatalf("opened %v", backend.opened)
-	}
-}
-
-func TestCopyURLUsesTheClipboard(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-
-	_, cmd := m.Update(press("c"))
-
-	if cmd == nil {
-		t.Fatal("no clipboard command")
-	}
-}
-
-func TestNarrowTerminalHidesSidebarAndHealthColumn(t *testing.T) {
-	m, _ := sample(t, 70, 24)
+func TestNarrowTerminalKeepsAppsAndNeedsAction(t *testing.T) {
+	m, _ := sample(t, 80, 24)
 
 	out := screen(m)
-	if strings.Contains(out, "HEALTH") || strings.Contains(out, "ready on") {
-		t.Fatalf("narrow layout should hide sidebar and HEALTH\n%s", out)
+	for _, want := range []string{"Jellyfin", "Needs action"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("narrow layout lacks %q\n%s", want, out)
+		}
 	}
-	if !strings.Contains(out, "Jellyfin") {
-		t.Fatal("rows missing in narrow layout")
+	for _, line := range strings.Split(out, "\n") {
+		if ansi.StringWidth(line) > 80 {
+			t.Fatalf("line wider than 80 columns: %q", line)
+		}
 	}
 }
 
 func TestMouseClickSelectsRow(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
-	y := m.rowY(2)
 	m = drive(t, m, clickMsg{id: rowLayerID(2)})
 
-	if m.selectedID() != "whoami" || y <= 0 {
-		t.Fatalf("selected %q (row y %d)", m.selectedID(), y)
-	}
-}
-
-func TestNumberKeysSwitchScreens(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-
-	m = update(t, m, press("4"))
-
-	if m.screen != screenDoctor || !strings.Contains(screen(m), "Firewall") {
-		t.Fatalf("doctor screen not shown\n%s", screen(m))
+	if m.selectedID() != "whoami" {
+		t.Fatalf("selected %q", m.selectedID())
 	}
 }
 
 func TestFocusRefreshesStatus(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
-	_, cmd := m.Update(tea.FocusMsg{})
-
-	if cmd == nil {
+	if _, cmd := m.Update(tea.FocusMsg{}); cmd == nil {
 		t.Fatal("focus should trigger a refresh")
 	}
 }
@@ -384,47 +515,6 @@ func TestLightBackgroundSwitchesPalette(t *testing.T) {
 	}
 }
 
-func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
-
-func TestHealthPillCountsFailuresAndDoctorShowsHints(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-	m = update(t, m, doctorMsg{checks: []host.Check{
-		{ID: "docker", Title: "Docker", Level: host.OK},
-		{ID: "binding", App: "jellyfin", Title: "Port", Level: host.Fail, Detail: "port 8096 is bound to 127.0.0.1", Hint: "Recreate it with the current Exposure: self-host start jellyfin"},
-		{ID: "firewall", Title: "Firewall", Level: host.Warn, Detail: "ufw is active", Hint: "sudo ufw allow …"},
-	}})
-
-	if !strings.Contains(screen(m), "1 failing check") {
-		t.Fatalf("health pill should count failures\n%s", screen(m))
-	}
-	m = update(t, m, press("4"))
-	out := screen(m)
-	for _, want := range []string{"jellyfin › Port", "bound to 127.0.0.1", "self-host start jellyfin", "sudo ufw allow"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("doctor screen lacks %q\n%s", want, out)
-		}
-	}
-}
-
-func TestUpdatesBadgeScreenAndUpdateAll(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available", "sonarr": "current", "whoami": "unknown"}})
-
-	if !strings.Contains(screen(m), "⚠ 1 update") {
-		t.Fatalf("no updates badge\n%s", screen(m))
-	}
-	m = update(t, m, press("3"))
-	out := screen(m)
-	if !strings.Contains(out, "available") || !strings.Contains(out, "current") {
-		t.Fatalf("updates screen\n%s", out)
-	}
-	drive(t, m, press("U"))
-	if got := backend.Actions(); len(got) != 1 || got[0] != "update jellyfin" {
-		t.Fatalf("U should update only Apps with updates: %v", got)
-	}
-}
-
 func TestUpdatesSurviveStatusRefresh(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
@@ -435,34 +525,3 @@ func TestUpdatesSurviveStatusRefresh(t *testing.T) {
 		t.Fatal("refresh dropped update information")
 	}
 }
-
-func TestBackupsScreenCreatesAndRestoresBackups(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-	backend.backups = []service.BackupFile{
-		{Path: "/home/alice/self-host/backups/selfhost-20261006-120000.tar.zst", Name: "selfhost-20261006-120000.tar.zst", Size: 2 << 20},
-		{Path: "/home/alice/self-host/backups/old.tar.zst.age", Name: "old.tar.zst.age", Size: 1 << 20, Encrypted: true},
-	}
-
-	m = drive(t, m, press("5"))
-	out := screen(m)
-	if !strings.Contains(out, "selfhost-20261006-120000.tar.zst") || !strings.Contains(out, "2.0 MB") || !strings.Contains(out, "encrypted") {
-		t.Fatalf("backups screen\n%s", out)
-	}
-	m = drive(t, m, press("b"))
-	m = drive(t, m, press("enter"))
-	if !strings.Contains(screen(m), "Restore every App") {
-		t.Fatalf("no restore confirmation\n%s", screen(m))
-	}
-	m = drive(t, m, press("y"))
-
-	got := backend.Actions()
-	if len(got) != 2 || got[0] != "backup " || got[1] != "restore  /home/alice/self-host/backups/selfhost-20261006-120000.tar.zst" {
-		t.Fatalf("actions %q", got)
-	}
-}
-
-func statusMsgFor(err error) statusMsg { return statusMsg{err: err} }
-
-func tea_WindowSize(w, h int) tea.WindowSizeMsg { return tea.WindowSizeMsg{Width: w, Height: h} }
-
-func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl} }

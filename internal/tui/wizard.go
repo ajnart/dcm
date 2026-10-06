@@ -329,9 +329,6 @@ func (m Model) handleWizardKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case stageInstalling:
-		if msg.String() == "t" {
-			m.mode = modeTasks
-		}
 		return m, nil
 	}
 	return m.updateWizardForm(msg)

@@ -1,19 +1,19 @@
-// Package tui is the full-screen dashboard. It owns no logic of its own:
-// every action goes through the Backend, the same Service the CLI uses.
+// Package tui is the Dashboard: one screen showing every App with its
+// Status, what Needs action, and the selected App's details. It owns no
+// logic of its own; every Action goes through the Backend, the same Service
+// the CLI uses.
 package tui
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
-	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
@@ -23,38 +23,17 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-type screenID int
+// detailTab is one tab of App details.
+type detailTab int
 
 const (
-	screenApps screenID = iota
-	screenCatalog
-	screenUpdates
-	screenDoctor
-	screenBackups
-	screenWizard
-)
-
-var screenNames = []string{"Apps", "Catalog", "Updates", "Doctor", "Backups"}
-
-type mode int
-
-const (
-	modeNormal mode = iota
-	modeFilter
-	modeConfirm
-	modeHelp
-	modeTasks
-)
-
-type sidebarTab int
-
-const (
-	tabLogs sidebarTab = iota
+	tabLogs detailTab = iota
 	tabSetup
 	tabInfo
+	tabCompose
 )
 
-var sidebarTabs = []string{"logs", "setup", "info"}
+var detailTabs = []string{"logs", "setup", "info", "compose"}
 
 type level int
 
@@ -79,12 +58,8 @@ type (
 	defaultsMsg struct{ settings map[string]string }
 	doctorMsg   struct{ checks []host.Check }
 	updatesMsg  struct{ updates map[string]string }
-	releaseMsg  struct{ version string }
 	updatesTick struct{}
-	backupsMsg  struct {
-		files []service.BackupFile
-		err   error
-	}
+	releaseMsg  struct{ version string }
 	tickMsg     time.Time
 	taskDoneMsg struct {
 		id    int
@@ -96,6 +71,10 @@ type (
 		text   string
 		done   bool
 	}
+	composeMsg struct {
+		id, text string
+		err      error
+	}
 	clickMsg     struct{ id string }
 	clipboardMsg struct{ text, what string }
 	flashMsg     struct {
@@ -103,13 +82,6 @@ type (
 		level level
 	}
 )
-
-type confirmation struct {
-	question string
-	detail   string
-	req      Request
-	title    string
-}
 
 // logStream follows one App's logs until cancelled.
 type logStream struct {
@@ -142,77 +114,50 @@ type Model struct {
 	help          help.Model
 	spin          spinner.Model
 
-	screen screenID
-	mode   mode
-
-	status  service.Status
-	checks  []host.Check
-	updates map[string]string
-	// latest is the newest release tag when it is newer than this binary.
+	status    service.Status
+	checks    []host.Check
+	updates   map[string]string
 	latest    string
 	loaded    bool
 	statusErr string
 	refreshed time.Time
 
 	cursor int
-	filter textinput.Model
+	tab    detailTab
+	// details scrolls the logs and compose tabs.
+	details  viewport.Model
+	logLines []string
+	stream   *logStream
+	compose  map[string]string
 
-	sidebarVisible bool
-	tab            sidebarTab
-	follow         bool
-	pinned         string
-	logs           viewport.Model
-	logLines       []string
-	stream         *logStream
-
-	backups      []service.BackupFile
-	backupCursor int
-
+	showHelp bool
+	picker   *picker
 	wizard   *wizard
 	defaults map[string]string
+
+	tasks    *taskManager
 	lastTask int
-
-	catalogCursor   int
-	catalogPicked   map[string]bool
-	catalogFilter   textinput.Model
-	catalogFiltered bool
-	catalogPlan     *plan
-
-	tasks      *taskManager
-	taskCursor int
-	confirm    *confirmation
 
 	flash      string
 	flashLevel level
 }
 
 func New(backend Backend, opts Options) Model {
-	filter := textinput.New()
-	filter.Prompt = "/ "
-	filter.Placeholder = "filter apps"
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
-	catFilter := textinput.New()
-	catFilter.Prompt = "/ "
-	catFilter.Placeholder = "filter the catalog"
-	m := Model{
-		backend:        backend,
-		catalogFilter:  catFilter,
-		catalogPicked:  map[string]bool{},
-		opts:           opts,
-		dark:           true,
-		theme:          newTheme(true),
-		keys:           newKeyMap(),
-		help:           help.New(),
-		spin:           spinner.New(spinner.WithSpinner(spinner.MiniDot)),
-		filter:         filter,
-		sidebarVisible: true,
-		follow:         true,
-		logs:           viewport.New(),
-		tasks:          &taskManager{},
+	return Model{
+		backend: backend,
+		opts:    opts,
+		dark:    true,
+		theme:   newTheme(true),
+		keys:    newKeyMap(),
+		help:    help.New(),
+		spin:    spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		details: viewport.New(),
+		compose: map[string]string{},
+		tasks:   &taskManager{},
 	}
-	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -279,21 +224,15 @@ func (m Model) loadDoctor() tea.Cmd {
 	}
 }
 
-// rows returns the Apps shown in the table after filtering.
-func (m Model) rows() []service.AppStatus {
-	query := strings.ToLower(strings.TrimSpace(m.filter.Value()))
-	if query == "" {
-		return m.status.Apps
+func (m Model) loadCompose(id string) tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		text, err := backend.Compose(context.Background(), id)
+		return composeMsg{id: id, text: text, err: err}
 	}
-	var rows []service.AppStatus
-	for _, app := range m.status.Apps {
-		haystack := strings.ToLower(strings.Join([]string{app.ID, app.Name, app.URL, app.State, app.Health, app.Setup, app.Image}, " "))
-		if strings.Contains(haystack, query) {
-			rows = append(rows, app)
-		}
-	}
-	return rows
 }
+
+func (m Model) rows() []service.AppStatus { return m.status.Apps }
 
 func (m Model) selected() (service.AppStatus, bool) {
 	rows := m.rows()
@@ -309,13 +248,7 @@ func (m Model) selectedID() string {
 }
 
 func (m *Model) clampCursor() {
-	n := len(m.rows())
-	if m.cursor >= n {
-		m.cursor = n - 1
-	}
-	if m.cursor < 0 {
-		m.cursor = 0
-	}
+	m.cursor = max(min(m.cursor, len(m.rows())-1), 0)
 }
 
 func (m *Model) setFlash(text string, l level) {
@@ -351,8 +284,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusMsg:
 		m.loaded = true
 		if errors.Is(msg.err, service.ErrNoProject) {
-			if m.screen != screenWizard {
-				m.screen = screenWizard
+			if m.wizard == nil {
 				m.wizard = m.newWizard()
 				return m, m.loadDefaults()
 			}
@@ -362,29 +294,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusErr = msg.err.Error()
 			return m, nil
 		}
-		if m.screen == screenWizard && m.wizard != nil && m.wizard.stage != stageInstalling {
-			m.screen, m.wizard = screenApps, nil
+		if m.wizard != nil && m.wizard.stage != stageInstalling {
+			m.wizard = nil
 		}
 		m.statusErr = ""
 		m.status = msg.status
 		m.applyUpdates()
 		m.refreshed = m.opts.Now()
 		m.clampCursor()
-		return m, m.syncLogs()
+		m.relayout()
+		return m, m.syncDetails()
 
 	case doctorMsg:
 		m.checks = msg.checks
+		m.relayout()
 		return m, nil
 
 	case updatesTick:
 		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
 
-	case backupsMsg:
-		if msg.err != nil {
-			m.setFlash(msg.err.Error(), levelError)
-		}
-		m.backups = msg.files
-		m.backupCursor = min(m.backupCursor, max(len(m.backups)-1, 0))
+	case updatesMsg:
+		m.updates = msg.updates
+		m.applyUpdates()
+		m.relayout()
 		return m, nil
 
 	case releaseMsg:
@@ -396,11 +328,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case updatesMsg:
-		m.updates = msg.updates
-		m.applyUpdates()
-		return m, nil
-
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spin, cmd = m.spin.Update(msg)
@@ -409,39 +336,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case taskDoneMsg:
 		m.tasks.finish(msg.id, msg.err)
 		if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
-			if msg.err != nil && !strings.Contains(msg.err.Error(), service.ErrIncomplete.Error()) {
+			if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) {
 				m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
 				m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
 				return m, nil
 			}
-			m.screen, m.wizard = screenApps, nil
+			m.wizard = nil
 		}
-		if m.catalogPlan != nil {
-			m.catalogPlan, m.catalogPicked = nil, map[string]bool{}
-		}
-		if msg.err != nil {
-			m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error())+" (t: details)", levelError)
-		} else {
+		switch {
+		case errors.Is(msg.err, service.ErrIncomplete):
+			m.setFlash("! "+msg.title+": Setup needs attention (see Needs action)", levelWarn)
+		case msg.err != nil:
+			m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error()), levelError)
+		default:
 			m.setFlash("✓ "+msg.title, levelOK)
 		}
 		cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
 		if strings.HasPrefix(msg.title, "update") {
 			cmds = append(cmds, m.loadUpdates())
 		}
-		if strings.HasPrefix(msg.title, "backup") || strings.HasPrefix(msg.title, "restore") {
-			cmds = append(cmds, m.loadBackups())
-		}
 		return m, tea.Batch(cmds...)
 
 	case logChunkMsg:
-		if msg.stream != m.stream {
-			return m, nil
-		}
-		if msg.done {
+		if msg.stream != m.stream || msg.done {
 			return m, nil
 		}
 		m.appendLogs(msg.text)
 		return m, waitLog(msg.stream)
+
+	case composeMsg:
+		text := msg.text
+		if msg.err != nil {
+			text = "could not read the Compose file: " + msg.err.Error()
+		}
+		m.compose[msg.id] = text
+		m.syncDetailsContent()
+		return m, nil
 
 	case clickMsg:
 		return m.handleClick(msg.id)
@@ -456,17 +386,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseWheelMsg:
 		if msg.Button == tea.MouseWheelUp {
-			m.logs.ScrollUp(3)
-			m.follow = false
+			m.details.ScrollUp(3)
 		} else {
-			m.logs.ScrollDown(3)
+			m.details.ScrollDown(3)
 		}
 		return m, nil
 
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
-	if m.screen == screenWizard && m.wizard != nil && m.wizard.stage == stageForm {
+	if m.wizard != nil && m.wizard.stage == stageForm {
 		return m.updateWizardForm(msg)
 	}
 	return m, nil
@@ -478,84 +407,15 @@ func firstLine(s string) string {
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if m.screen == screenWizard && m.wizard != nil && m.mode == modeNormal {
+	switch {
+	case m.wizard != nil:
 		return m.handleWizardKey(msg)
-	}
-	if m.screen == screenCatalog && (m.catalogFiltered || m.catalogPlan != nil) && m.mode == modeNormal {
-		return m.handleCatalogKey(msg)
-	}
-	if m.mode == modeTasks && m.screen == screenWizard {
-		return m.handleTasksKey(msg)
-	}
-	switch m.mode {
-	case modeFilter:
-		return m.handleFilterKey(msg)
-	case modeConfirm:
-		return m.handleConfirmKey(msg)
-	case modeHelp:
-		if key.Matches(msg, m.keys.Help, m.keys.Clear, m.keys.Quit) {
-			m.mode = modeNormal
-		}
+	case m.picker != nil:
+		return m.handlePickerKey(msg)
+	case m.showHelp:
+		m.showHelp = false
 		return m, nil
-	case modeTasks:
-		return m.handleTasksKey(msg)
 	}
-	return m.handleNormalKey(msg)
-}
-
-func (m Model) handleFilterKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "enter":
-		m.mode = modeNormal
-		m.filter.Blur()
-		return m, m.syncLogs()
-	case "esc":
-		m.mode = modeNormal
-		m.filter.Blur()
-		m.filter.Reset()
-		m.clampCursor()
-		return m, m.syncLogs()
-	}
-	var cmd tea.Cmd
-	m.filter, cmd = m.filter.Update(msg)
-	m.cursor = 0
-	return m, cmd
-}
-
-func (m Model) handleConfirmKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch {
-	case key.Matches(msg, m.keys.Confirm):
-		c := m.confirm
-		m.confirm, m.mode = nil, modeNormal
-		return m.run(c.req, c.title)
-	case key.Matches(msg, m.keys.Cancel):
-		m.confirm, m.mode = nil, modeNormal
-		m.setFlash("cancelled", levelInfo)
-	}
-	return m, nil
-}
-
-func (m Model) handleTasksKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	snaps := m.tasks.snapshots()
-	switch {
-	case key.Matches(msg, m.keys.Tasks, m.keys.Clear, m.keys.Quit):
-		m.mode = modeNormal
-	case key.Matches(msg, m.keys.Up):
-		m.taskCursor = max(m.taskCursor-1, 0)
-	case key.Matches(msg, m.keys.Down):
-		m.taskCursor = min(m.taskCursor+1, max(len(snaps)-1, 0))
-	case key.Matches(msg, m.keys.Remove):
-		if m.taskCursor < len(snaps) {
-			if t := m.tasks.get(snaps[m.taskCursor].id); t != nil {
-				t.cancel()
-				m.setFlash("cancelling "+t.title, levelWarn)
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	k := m.keys
 	switch {
 	case key.Matches(msg, k.Quit):
@@ -563,144 +423,26 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.stopLogs()
 		return m, tea.Quit
 	case key.Matches(msg, k.Help):
-		m.mode = modeHelp
+		m.showHelp = true
 		return m, nil
-	case key.Matches(msg, k.Tasks):
-		m.mode = modeTasks
-		m.taskCursor = max(len(m.tasks.snapshots())-1, 0)
-		return m, nil
-	case key.Matches(msg, k.Apps):
-		return m.switchScreen(screenApps)
-	case key.Matches(msg, k.Catalog):
-		return m.switchScreen(screenCatalog)
-	case key.Matches(msg, k.Updates):
-		return m.switchScreen(screenUpdates)
-	case key.Matches(msg, k.Doctor):
-		return m.switchScreen(screenDoctor)
-	case key.Matches(msg, k.Backups):
-		return m.switchScreen(screenBackups)
-	case key.Matches(msg, k.Refresh):
-		m.setFlash("refreshing…", levelInfo)
-		return m, tea.Batch(m.loadStatus(), m.loadDoctor(), m.loadUpdates())
-	case key.Matches(msg, k.UpdateAll):
-		var ids []string
-		for _, app := range m.status.Apps {
-			if app.Update == service.UpdateAvailable {
-				ids = append(ids, app.ID)
-			}
-		}
-		if len(ids) == 0 {
-			m.setFlash("no updates found (r checks again)", levelInfo)
-			return m, nil
-		}
-		return m.runTask(ActionUpdate, ids, "update "+strings.Join(ids, " "))
-	}
-	if m.screen == screenBackups {
-		return m.handleBackupsKey(msg)
-	}
-	if m.screen == screenCatalog {
-		return m.handleCatalogKey(msg)
-	}
-	if m.screen != screenApps {
-		return m, nil
-	}
-	app, found := m.selected()
-	switch {
 	case key.Matches(msg, k.Up):
 		return m.move(-1)
 	case key.Matches(msg, k.Down):
 		return m.move(1)
-	case key.Matches(msg, k.Filter):
-		m.mode = modeFilter
-		return m, m.filter.Focus()
-	case key.Matches(msg, k.Clear):
-		if m.filter.Value() != "" {
-			m.filter.Reset()
-			m.clampCursor()
-			m.setFlash("filter cleared", levelInfo)
-			return m, m.syncLogs()
-		}
+	case key.Matches(msg, k.Tab):
+		m.tab = (m.tab + 1) % detailTab(len(detailTabs))
+		return m, m.syncDetails()
+	case key.Matches(msg, k.ScrollUp):
+		m.details.PageUp()
 		return m, nil
-	case key.Matches(msg, k.Sidebar):
-		m.sidebarVisible = !m.sidebarVisible
-		m.relayout()
-		return m, m.syncLogs()
-	case key.Matches(msg, k.SidebarTab):
-		m.tab = (m.tab + 1) % sidebarTab(len(sidebarTabs))
-		return m, m.syncLogs()
-	case key.Matches(msg, k.Follow):
-		m.follow = !m.follow
-		if m.follow {
-			m.logs.GotoBottom()
-		}
+	case key.Matches(msg, k.ScrollDown):
+		m.details.PageDown()
 		return m, nil
-	case key.Matches(msg, k.PageUp):
-		m.logs.PageUp()
-		m.follow = false
-		return m, nil
-	case key.Matches(msg, k.PageDown):
-		m.logs.PageDown()
-		return m, nil
-	case key.Matches(msg, k.Pin):
-		if m.pinned != "" {
-			m.pinned = ""
-			m.setFlash("logs follow the selection", levelInfo)
-		} else if found {
-			m.pinned = app.ID
-			m.setFlash("logs pinned to "+app.ID, levelInfo)
-		}
-		return m, m.syncLogs()
-	}
-	if !found {
-		return m, nil
-	}
-	switch {
-	case key.Matches(msg, k.Toggle):
-		if app.State == "running" || app.State == "degraded" {
-			return m.runTask(ActionStop, []string{app.ID}, "stop "+app.ID)
-		}
-		return m.runTask(ActionStart, []string{app.ID}, "start "+app.ID)
-	case key.Matches(msg, k.Stop):
-		return m.runTask(ActionStop, []string{app.ID}, "stop "+app.ID)
-	case key.Matches(msg, k.Restart):
-		return m.runTask(ActionRestart, []string{app.ID}, "restart "+app.ID)
-	case key.Matches(msg, k.Update):
-		return m.runTask(ActionUpdate, []string{app.ID}, "update "+app.ID)
-	case key.Matches(msg, k.Setup):
-		if !app.Managed {
-			m.setFlash(app.ID+" is unmanaged: no automatic Setup", levelWarn)
-			return m, nil
-		}
-		return m.runTask(ActionSetup, []string{app.ID}, "setup "+app.ID)
-	case key.Matches(msg, k.Remove):
-		m.confirm = &confirmation{question: "Remove " + app.Name + "?", detail: "Containers are deleted; data stays in apps/" + app.ID + "/.",
-			req: Request{Action: ActionRemove, IDs: []string{app.ID}}, title: "remove " + app.ID}
-		m.mode = modeConfirm
-		return m, nil
-	case key.Matches(msg, k.Purge):
-		m.confirm = &confirmation{question: "Remove " + app.Name + " and DELETE its data?", detail: "apps/" + app.ID + "/ is deleted. This cannot be undone.",
-			req: Request{Action: ActionPurge, IDs: []string{app.ID}}, title: "purge " + app.ID}
-		m.mode = modeConfirm
-		return m, nil
-	case key.Matches(msg, k.Open):
-		if app.URL == "" {
-			m.setFlash(app.ID+" has no URL", levelWarn)
-			return m, nil
-		}
-		backend, url := m.backend, app.URL
-		return m, func() tea.Msg {
-			if err := backend.OpenURL(url); err != nil {
-				return flashMsg{text: "could not open browser: " + err.Error(), level: levelError}
-			}
-			return flashMsg{text: "opened " + url, level: levelOK}
-		}
-	case key.Matches(msg, k.CopyURL):
-		if app.URL == "" {
-			return m, nil
-		}
-		url := app.URL
-		return m, func() tea.Msg { return clipboardMsg{text: url, what: url} }
-	case key.Matches(msg, k.CopyPassword):
+	case key.Matches(msg, k.Install):
+		return m.openPicker()
+	case key.Matches(msg, k.Backup):
+		return m.run(Request{Action: ActionBackup}, "backup")
+	case key.Matches(msg, k.Copy):
 		backend := m.backend
 		return m, func() tea.Msg {
 			creds, err := backend.Credentials(context.Background())
@@ -710,84 +452,78 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return clipboardMsg{text: creds.Admin.Password, what: "the Admin password for " + creds.Admin.Username}
 		}
 	}
+	app, found := m.selected()
+	if !found {
+		return m, nil
+	}
+	switch {
+	case key.Matches(msg, k.Toggle):
+		if app.State == "running" || app.State == "degraded" {
+			return m.run(Request{Action: ActionStop, IDs: []string{app.ID}}, "stop "+app.ID)
+		}
+		return m.run(Request{Action: ActionStart, IDs: []string{app.ID}}, "start "+app.ID)
+	case key.Matches(msg, k.Update):
+		if app.Update != service.UpdateAvailable {
+			m.setFlash("no update known for "+app.Name+" (checked every 30 minutes)", levelInfo)
+			return m, nil
+		}
+		return m.run(Request{Action: ActionUpdate, IDs: []string{app.ID}}, "update "+app.ID)
+	case key.Matches(msg, k.Retry):
+		if !app.Managed {
+			m.setFlash(app.Name+" has no automatic Setup (it was added by hand)", levelWarn)
+			return m, nil
+		}
+		return m.run(Request{Action: ActionSetup, IDs: []string{app.ID}}, "setup "+app.ID)
+	case key.Matches(msg, k.Open):
+		if app.URL == "" {
+			m.setFlash(app.Name+" has no URL", levelWarn)
+			return m, nil
+		}
+		backend, url := m.backend, app.URL
+		return m, func() tea.Msg {
+			if err := backend.OpenURL(url); err != nil {
+				return flashMsg{text: "could not open a browser: " + err.Error() + " — " + url, level: levelError}
+			}
+			return flashMsg{text: "opened " + url, level: levelOK}
+		}
+	}
 	return m, nil
 }
 
 func (m Model) move(delta int) (tea.Model, tea.Cmd) {
 	m.cursor += delta
 	m.clampCursor()
-	return m, m.syncLogs()
-}
-
-func (m Model) switchScreen(s screenID) (tea.Model, tea.Cmd) {
-	m.screen = s
-	m.relayout()
-	switch s {
-	case screenBackups:
-		return m, m.loadBackups()
-	case screenApps:
-		return m, m.syncLogs()
-	}
-	return m, nil
-}
-
-func (m Model) handleBackupsKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	k := m.keys
-	switch {
-	case key.Matches(msg, k.Up):
-		m.backupCursor = max(m.backupCursor-1, 0)
-	case key.Matches(msg, k.Down):
-		m.backupCursor = min(m.backupCursor+1, max(len(m.backups)-1, 0))
-	case key.Matches(msg, k.Backup):
-		return m.run(Request{Action: ActionBackup}, "backup all Apps")
-	case key.Matches(msg, k.Toggle):
-		if m.backupCursor >= len(m.backups) {
-			return m, nil
-		}
-		file := m.backups[m.backupCursor]
-		if file.Encrypted {
-			m.setFlash("encrypted: restore it with SELF_HOST_BACKUP_PASSPHRASE=… self-host restore "+file.Path, levelWarn)
-			return m, nil
-		}
-		m.confirm = &confirmation{question: "Restore every App from " + file.Name + "?",
-			detail: "Their current data is replaced; Apps not in the backup are untouched.",
-			req:    Request{Action: ActionRestore, File: file.Path}, title: "restore " + file.Name}
-		m.mode = modeConfirm
-	}
-	return m, nil
+	return m, m.syncDetails()
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	var n int
 	switch {
 	case strings.HasPrefix(id, "row:"):
-		var row int
-		fmt.Sscanf(id, "row:%d", &row)
-		m.cursor = row
+		fmt.Sscanf(id, "row:%d", &n)
+		m.cursor = n
 		m.clampCursor()
-		return m, m.syncLogs()
+		return m, m.syncDetails()
 	case strings.HasPrefix(id, "tab:"):
-		var s int
-		fmt.Sscanf(id, "tab:%d", &s)
-		return m.switchScreen(screenID(s))
-	case strings.HasPrefix(id, "side:"):
-		var t int
-		fmt.Sscanf(id, "side:%d", &t)
-		m.tab = sidebarTab(t)
-		return m, m.syncLogs()
+		fmt.Sscanf(id, "tab:%d", &n)
+		m.tab = detailTab(n)
+		return m, m.syncDetails()
+	case strings.HasPrefix(id, "app:"):
+		for i, app := range m.rows() {
+			if app.ID == strings.TrimPrefix(id, "app:") {
+				m.cursor = i
+			}
+		}
+		return m, m.syncDetails()
 	}
 	return m, nil
 }
 
-func (m Model) runTask(action Action, ids []string, title string) (tea.Model, tea.Cmd) {
-	return m.run(Request{Action: action, IDs: ids}, title)
-}
-
-// run starts a background action and reports it in the tasks overlay.
+// run starts a background Action; the footer shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	t := m.tasks.start(title)
 	m.lastTask = t.id
 	backend := m.backend
-	m.setFlash("… "+title, levelInfo)
 	run := func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
 		err := backend.Run(t.ctx, req, log)
@@ -796,21 +532,31 @@ func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(run, m.spin.Tick)
 }
 
-func (m Model) loadBackups() tea.Cmd {
-	backend := m.backend
-	return func() tea.Msg {
-		files, err := backend.Backups(context.Background())
-		return backupsMsg{files: files, err: err}
+// Details
+
+// syncDetails loads what the current tab shows for the selected App.
+func (m *Model) syncDetails() tea.Cmd {
+	m.syncDetailsContent()
+	switch m.tab {
+	case tabLogs:
+		return m.syncLogs()
+	case tabCompose:
+		if id := m.selectedID(); id != "" {
+			return m.loadCompose(id)
+		}
 	}
+	return nil
 }
 
-// Logs
-
-func (m Model) logTarget() string {
-	if m.pinned != "" {
-		return m.pinned
+func (m *Model) syncDetailsContent() {
+	switch m.tab {
+	case tabLogs:
+		m.details.SetContentLines(m.logLines)
+		m.details.GotoBottom()
+	case tabCompose:
+		m.details.SetContent(m.compose[m.selectedID()])
+		m.details.GotoTop()
 	}
-	return m.selectedID()
 }
 
 func (m *Model) stopLogs() {
@@ -820,18 +566,15 @@ func (m *Model) stopLogs() {
 	}
 }
 
-// syncLogs (re)starts the log stream when the target changes.
+// syncLogs (re)starts the log stream when the selected App changes.
 func (m *Model) syncLogs() tea.Cmd {
-	if !m.sidebarShown() || m.tab != tabLogs || m.screen != screenApps {
-		return nil
-	}
-	target := m.logTarget()
+	target := m.selectedID()
 	if target == "" || (m.stream != nil && m.stream.target == target) {
 		return nil
 	}
 	m.stopLogs()
 	m.logLines = nil
-	m.logs.SetContent("")
+	m.details.SetContent("")
 	ctx, cancel := context.WithCancel(context.Background())
 	stream := &logStream{target: target, ch: make(chan string, 64), cancel: cancel}
 	m.stream = stream
@@ -852,7 +595,9 @@ func waitLog(stream *logStream) tea.Cmd {
 
 const maxLogLines = 2000
 
+// appendLogs adds lines and keeps following the end unless scrolled up.
 func (m *Model) appendLogs(text string) {
+	following := m.details.AtBottom()
 	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 		if strings.TrimSpace(line) != "" {
 			m.logLines = append(m.logLines, line)
@@ -861,10 +606,11 @@ func (m *Model) appendLogs(text string) {
 	if len(m.logLines) > maxLogLines {
 		m.logLines = m.logLines[len(m.logLines)-maxLogLines:]
 	}
-	m.logs.SetContentLines(m.logLines)
-	if m.follow {
-		m.logs.GotoBottom()
+	if m.tab != tabLogs {
+		return
+	}
+	m.details.SetContentLines(m.logLines)
+	if following {
+		m.details.GotoBottom()
 	}
 }
-
-var _ io.Writer = chanWriter{}

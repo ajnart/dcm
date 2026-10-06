@@ -21,6 +21,8 @@ Running it with no arguments opens a full-screen terminal dashboard, in the
 spirit of the Homarr developer CLI: a live table of the Project's Apps with
 coloured health dots, a health pill summarising the doctor checks, an
 updates badge, a sidebar with logs and Setup results, and many keybinds.
+(Superseded by docs/adr/0002: one Dashboard with persistent panels and a
+fixed set of keybinds; the screens, sidebar and tasks overlay below are gone.)
 On a fresh host the same TUI walks the user through choosing a Recipe or
 Apps, Host settings and an Admin login, then installs and runs headless
 Setup with live progress.

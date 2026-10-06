@@ -37,7 +37,7 @@ func (t theme) levelColor(level string) color.Color {
 	switch level {
 	case "ok":
 		return t.ok
-	case "warn":
+	case "warn", "attention":
 		return t.warn
 	default:
 		return t.fail
@@ -65,14 +65,18 @@ func (t theme) panel(focused bool) lipgloss.Style {
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(border).Padding(0, 1)
 }
 
-// rule draws a labelled separator.
-func (t theme) rule(label string, width int) string {
-	prefix := "── " + label + " "
-	fill := width - lipgloss.Width(prefix)
-	if fill < 0 {
-		return t.dim().Render(truncate(prefix, width))
+// box draws a rounded panel of exactly width×height cells with title set
+// into its top border.
+func (t theme) box(title, body string, width, height int) string {
+	border := t.fg(t.faint)
+	label := " " + title + " "
+	fill := max(width-3-lipgloss.Width(label), 0)
+	lines := []string{border.Render("╭─") + label + border.Render(strings.Repeat("─", fill)+"╮")}
+	for _, line := range strings.Split(fit(body, max(width-4, 0), max(height-2, 0)), "\n") {
+		lines = append(lines, border.Render("│")+" "+line+" "+border.Render("│"))
 	}
-	return t.dim().Render(prefix + strings.Repeat("─", fill))
+	lines = append(lines, border.Render("╰"+strings.Repeat("─", max(width-2, 0))+"╯"))
+	return strings.Join(lines, "\n")
 }
 
 func truncate(s string, width int) string {
