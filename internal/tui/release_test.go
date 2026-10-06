@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 func releaseModel(t *testing.T, version, latest string) Model {
@@ -15,10 +17,40 @@ func releaseModel(t *testing.T, version, latest string) Model {
 }
 
 func TestHeaderNoticeAppearsWhenANewerReleaseExists(t *testing.T) {
-	out := screen(releaseModel(t, "1.1.0", "v1.2.0"))
+	m := releaseModel(t, "1.1.0", "v1.2.0")
 
-	if want := "↑ v1.2.0 available · self-host self-update"; !strings.Contains(out, want) {
-		t.Errorf("header lacks %q\n%s", want, out)
+	header := strings.Split(screen(m), "\n")[0]
+
+	if !strings.Contains(header, "↑ v1.2.0") {
+		t.Errorf("header lacks the notice\n%s", header)
+	}
+	if strings.Contains(header, "self-update") {
+		t.Errorf("header notice should stay short\n%s", header)
+	}
+}
+
+func TestHeaderNoticeFitsEightyColumns(t *testing.T) {
+	m, backend := sample(t, 80, 24)
+	backend.latest = "v1.2.0"
+	m.opts.Version = "1.1.0"
+	m = drive(t, m, releaseMsg{version: backend.latest})
+
+	if header := strings.Split(screen(m), "\n")[0]; !strings.Contains(header, "↑ v1.2.0") {
+		t.Errorf("notice does not fit 80 columns\n%s", header)
+	}
+}
+
+func TestSelfUpdateHintIsInTheFooterAndHelpOverlay(t *testing.T) {
+	m := releaseModel(t, "1.1.0", "v1.2.0")
+
+	lines := strings.Split(screen(m), "\n")
+	if footer := lines[len(lines)-1]; !strings.Contains(footer, "self-host self-update") {
+		t.Errorf("footer lacks the update hint\n%s", footer)
+	}
+
+	m = drive(t, m, press("?"))
+	if help := ansi.Strip(m.renderOverlay()); !strings.Contains(help, "self-host self-update") {
+		t.Errorf("help overlay lacks the update hint\n%s", help)
 	}
 }
 

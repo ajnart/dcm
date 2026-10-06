@@ -92,7 +92,6 @@ Fields (all but `event` are omitted when empty):
 | `hint` | The next action, in words |
 | `docs` | Upstream documentation |
 | `command` | The shell command run (`command` events) |
-| `ok` | Boolean result where relevant |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.

@@ -19,29 +19,40 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/ajnart/self-host/internal/system"
 )
 
 // DefaultAPI is the GitHub API root of the repository that publishes releases.
 const DefaultAPI = "https://api.github.com/repos/ajnart/self-host"
 
-// EnvAPI overrides DefaultAPI, for tests and mirrors.
-const EnvAPI = "SELF_HOST_RELEASES_URL"
+// DefaultWeb is the github.com root of the same repository. Looking up the
+// latest tag through its redirect is not subject to API rate limits.
+const DefaultWeb = "https://github.com/ajnart/self-host"
+
+// Environment overrides for the two roots, for tests and mirrors.
+const (
+	EnvAPI = "SELF_HOST_RELEASES_URL"
+	EnvWeb = "SELF_HOST_WEB_URL"
+)
+
+// InstallCommand is the one-line installer, for messages that point at it.
+const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/ajnart/self-host/main/install.sh | bash"
 
 const (
 	binaryName    = "self-host"
 	checksumsName = "checksums.txt"
 	maxArchive    = 200 << 20
 	maxChecksums  = 1 << 20
+
+	lookupTimeout   = 15 * time.Second
+	downloadTimeout = 5 * time.Minute
 )
 
-type Asset struct {
-	Name string `json:"name"`
-	URL  string `json:"browser_download_url"`
-}
-
+// Release is one published version.
 type Release struct {
-	Tag    string  `json:"tag_name"`
-	Assets []Asset `json:"assets"`
+	Tag string
 }
 
 // Version is the tag without its leading "v".
@@ -52,39 +63,61 @@ func (r Release) ArchiveName(goos, goarch string) string {
 	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", binaryName, r.Version(), goos, goarch)
 }
 
-func (r Release) asset(name string) (Asset, bool) {
-	for _, a := range r.Assets {
-		if a.Name == name {
-			return a, true
-		}
-	}
-	return Asset{}, false
-}
-
 type Client struct {
+	// HTTP must have no total Timeout: downloads are bounded per request.
 	HTTP *http.Client
-	// BaseURL is the repository API root; empty means DefaultAPI.
-	BaseURL string
+	// APIURL and WebURL default to DefaultAPI and DefaultWeb.
+	APIURL string
+	WebURL string
 }
 
-func (c Client) base() string {
-	if c.BaseURL == "" {
-		return DefaultAPI
+// NewClient builds the Client for a binary's dependencies. The shared HTTP
+// client's total timeout would cut off a slow download, so it is copied
+// without one and every request gets its own deadline instead.
+func NewClient(deps *system.Deps) Client {
+	httpClient := http.Client{}
+	if deps.HTTP != nil {
+		httpClient = *deps.HTTP
 	}
-	return strings.TrimSuffix(c.BaseURL, "/")
+	httpClient.Timeout = 0
+	return Client{HTTP: &httpClient, APIURL: deps.Getenv(EnvAPI), WebURL: deps.Getenv(EnvWeb)}
 }
 
-func (c Client) get(ctx context.Context, url string, limit int64) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func orDefault(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return strings.TrimSuffix(value, "/")
+}
+
+func (c Client) api() string { return orDefault(c.APIURL, DefaultAPI) }
+func (c Client) web() string { return orDefault(c.WebURL, DefaultWeb) }
+
+func (c Client) do(ctx context.Context, method, url, accept string, timeout time.Duration) (*http.Response, context.CancelFunc, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", "self-host")
+	if accept != "" {
+		req.Header.Set("Accept", accept)
+	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		cancel()
+		return nil, nil, err
+	}
+	return resp, cancel, nil
+}
+
+func (c Client) get(ctx context.Context, url, accept string, limit int64, timeout time.Duration) ([]byte, error) {
+	resp, cancel, err := c.do(ctx, http.MethodGet, url, accept, timeout)
+	if err != nil {
 		return nil, err
 	}
+	defer cancel()
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s: %s", url, resp.Status)
@@ -99,17 +132,41 @@ func (c Client) get(ctx context.Context, url string, limit int64) ([]byte, error
 	return body, nil
 }
 
-// Latest returns the newest published release.
+// Latest returns the newest published release. It follows the redirect of
+// github.com/<repo>/releases/latest first, and asks the API only when that
+// fails, because the API is rate limited per IP address.
 func (c Client) Latest(ctx context.Context) (Release, error) {
-	body, err := c.get(ctx, c.base()+"/releases/latest", maxChecksums)
+	if tag, err := c.latestFromRedirect(ctx); err == nil {
+		return Release{Tag: tag}, nil
+	}
+	body, err := c.get(ctx, c.api()+"/releases/latest", "application/vnd.github+json", maxChecksums, lookupTimeout)
 	if err != nil {
 		return Release{}, fmt.Errorf("look up the latest release: %w", err)
 	}
-	var rel Release
+	var rel struct {
+		Tag string `json:"tag_name"`
+	}
 	if err := json.Unmarshal(body, &rel); err != nil || rel.Tag == "" {
 		return Release{}, errors.New("look up the latest release: unexpected response")
 	}
-	return rel, nil
+	return Release{Tag: rel.Tag}, nil
+}
+
+func (c Client) latestFromRedirect(ctx context.Context) (string, error) {
+	resp, cancel, err := c.do(ctx, http.MethodHead, c.web()+"/releases/latest", "", lookupTimeout)
+	if err != nil {
+		return "", err
+	}
+	defer cancel()
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("releases/latest: %s", resp.Status)
+	}
+	dir, tag := path.Split(resp.Request.URL.Path)
+	if tag == "" || path.Base(dir) != "tag" {
+		return "", errors.New("releases/latest did not redirect to a tag")
+	}
+	return tag, nil
 }
 
 // Newer reports whether latest is a higher version than current. It fails when
@@ -161,23 +218,16 @@ func parseVersion(v string) ([3]int, error) {
 // untouched on any failure.
 func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe string) error {
 	name := rel.ArchiveName(goos, goarch)
-	archive, ok := rel.asset(name)
-	if !ok {
-		return fmt.Errorf("release %s has no asset %s for %s/%s", rel.Tag, name, goos, goarch)
-	}
-	sums, ok := rel.asset(checksumsName)
-	if !ok {
-		return fmt.Errorf("release %s has no %s", rel.Tag, checksumsName)
-	}
-	sumsBody, err := c.get(ctx, sums.URL, maxChecksums)
+	base := c.web() + "/releases/download/" + rel.Tag + "/"
+	sumsBody, err := c.get(ctx, base+checksumsName, "", maxChecksums, downloadTimeout)
 	if err != nil {
 		return fmt.Errorf("download %s: %w", checksumsName, err)
 	}
 	want, ok := checksumFor(sumsBody, name)
 	if !ok {
-		return fmt.Errorf("%s does not list %s", checksumsName, name)
+		return fmt.Errorf("%s does not list %s: release %s has no build for %s/%s", checksumsName, name, rel.Tag, goos, goarch)
 	}
-	data, err := c.get(ctx, archive.URL, maxArchive)
+	data, err := c.get(ctx, base+name, "", maxArchive, downloadTimeout)
 	if err != nil {
 		return fmt.Errorf("download %s: %w", name, err)
 	}
@@ -185,7 +235,7 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 	if got := hex.EncodeToString(sum[:]); got != want {
 		return fmt.Errorf("checksum mismatch for %s: expected %s, got %s; nothing was installed", name, want, got)
 	}
-	binary, err := extract(data)
+	binary, err := extract(data, maxArchive)
 	if err != nil {
 		return fmt.Errorf("unpack %s: %w", name, err)
 	}
@@ -202,7 +252,7 @@ func checksumFor(sums []byte, name string) (string, bool) {
 	return "", false
 }
 
-func extract(archive []byte) ([]byte, error) {
+func extract(archive []byte, limit int64) ([]byte, error) {
 	gz, err := gzip.NewReader(bytes.NewReader(archive))
 	if err != nil {
 		return nil, err
@@ -218,7 +268,14 @@ func extract(archive []byte) ([]byte, error) {
 			return nil, err
 		}
 		if header.Typeflag == tar.TypeReg && path.Base(header.Name) == binaryName {
-			return io.ReadAll(io.LimitReader(tr, maxArchive))
+			binary, err := io.ReadAll(io.LimitReader(tr, limit+1))
+			if err != nil {
+				return nil, err
+			}
+			if int64(len(binary)) > limit {
+				return nil, fmt.Errorf("%s is larger than %d bytes", binaryName, limit)
+			}
+			return binary, nil
 		}
 	}
 }

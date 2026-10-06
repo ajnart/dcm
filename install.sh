@@ -7,16 +7,21 @@
 # Environment:
 #   SELF_HOST_VERSION      install this tag (for example v1.2.0) instead of the latest
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
+#   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots
 set -euo pipefail
 
 REPO="ajnart/self-host"
 API_URL="${SELF_HOST_RELEASES_URL:-https://api.github.com/repos/${REPO}}"
-DOWNLOAD_URL="${SELF_HOST_DOWNLOAD_URL:-https://github.com/${REPO}/releases/download}"
+WEB_URL="${SELF_HOST_WEB_URL:-https://github.com/${REPO}}"
 
 tmp=""
+staging=""
 cleanup() {
   if [ -n "$tmp" ]; then
     rm -rf "$tmp"
+  fi
+  if [ -n "$staging" ]; then
+    rm -f "$staging"
   fi
 }
 
@@ -56,10 +61,20 @@ install_dir() {
   fi
 }
 
+# latest_tag follows the redirect of /releases/latest, which is not rate
+# limited, and asks the API only when that fails.
 latest_tag() {
-  local body tag
+  local url tag body
+  if url="$(curl -fsSIL -o /dev/null -w '%{url_effective}' "${WEB_URL}/releases/latest" 2>/dev/null)"; then
+    case "$url" in
+      */releases/tag/*)
+        echo "${url##*/releases/tag/}"
+        return
+        ;;
+    esac
+  fi
   body="$(curl -fsSL -H 'Accept: application/vnd.github+json' "${API_URL}/releases/latest")" ||
-    die "could not look up the latest release at ${API_URL}"
+    die "could not look up the latest release (${WEB_URL}/releases/latest and ${API_URL}/releases/latest both failed); set SELF_HOST_VERSION to install a specific tag"
   tag="$(printf '%s' "$body" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
   [ -n "$tag" ] || die "the release lookup returned no tag"
   echo "$tag"
@@ -98,9 +113,9 @@ main() {
   trap cleanup EXIT
 
   say "Downloading self-host ${version} for ${os}/${arch}"
-  curl -fsSL -o "${tmp}/${archive}" "${DOWNLOAD_URL}/${tag}/${archive}" ||
+  curl -fsSL -o "${tmp}/${archive}" "${WEB_URL}/releases/download/${tag}/${archive}" ||
     die "could not download ${archive}"
-  curl -fsSL -o "${tmp}/checksums.txt" "${DOWNLOAD_URL}/${tag}/checksums.txt" ||
+  curl -fsSL -o "${tmp}/checksums.txt" "${WEB_URL}/releases/download/${tag}/checksums.txt" ||
     die "could not download checksums.txt"
 
   expected="$(awk -v name="$archive" '$2 == name || $2 == "*" name { print $1; exit }' "${tmp}/checksums.txt")"
@@ -115,9 +130,11 @@ main() {
   mkdir -p "$dir" || die "cannot create ${dir}"
   [ -w "$dir" ] || die "cannot write to ${dir}; rerun with sudo or set SELF_HOST_INSTALL_DIR"
   # Install next to the target and rename, so a running self-host is replaced atomically.
-  cp "${tmp}/self-host" "${dir}/.self-host.new"
-  chmod 0755 "${dir}/.self-host.new"
-  mv -f "${dir}/.self-host.new" "${dir}/self-host"
+  staging="${dir}/.self-host.new"
+  cp "${tmp}/self-host" "$staging" || die "cannot write ${staging}"
+  chmod 0755 "$staging" || die "cannot make ${staging} executable"
+  mv -f "$staging" "${dir}/self-host" || die "cannot replace ${dir}/self-host"
+  staging=""
 
   say "Installed ${dir}/self-host (${version}, checksum verified)"
   case ":${PATH}:" in

@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
@@ -21,14 +21,19 @@ import (
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
-// fakeRelease serves the GitHub Releases API and the assets of one release.
+// fakeRelease serves the GitHub Releases API, the github.com "latest"
+// redirect and the downloadable assets of one release.
 type fakeRelease struct {
-	tag      string
-	binary   string
-	checksum string // overrides the real sha256 when set
-	noAsset  bool
-	apiError int
-	archives int // archive downloads served
+	tag            string
+	binary         string
+	checksum       string // overrides the real sha256 when set
+	noAsset        bool
+	apiError       int
+	noRedirect     bool          // github.com/.../releases/latest answers 404
+	archiveDelay   time.Duration // slow link
+	archives       int           // archive downloads served
+	apiCalls       int
+	downloadAccept string // Accept header of the last archive download
 }
 
 func tarGz(t *testing.T, files map[string]string) []byte {
@@ -57,26 +62,34 @@ func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server
 	if f.checksum != "" {
 		digest = f.checksum
 	}
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	download := "/web/releases/download/" + f.tag + "/"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/ajnart/self-host/releases/latest":
+		case "/api/releases/latest":
+			f.apiCalls++
 			if f.apiError != 0 {
 				w.WriteHeader(f.apiError)
 				return
 			}
-			assets := []map[string]string{
-				{"name": "checksums.txt", "browser_download_url": server.URL + "/dl/checksums.txt"},
-				{"name": "self-host_" + version + "_windows_amd64.zip", "browser_download_url": server.URL + "/dl/nope"},
+			fmt.Fprintf(w, `{"tag_name": %q}`, f.tag)
+		case "/web/releases/latest":
+			if f.noRedirect {
+				w.WriteHeader(http.StatusNotFound)
+				return
 			}
-			if !f.noAsset {
-				assets = append(assets, map[string]string{"name": name, "browser_download_url": server.URL + "/dl/" + name})
-			}
-			json.NewEncoder(w).Encode(map[string]any{"tag_name": f.tag, "assets": assets})
-		case "/dl/checksums.txt":
+			http.Redirect(w, r, "/web/releases/tag/"+f.tag, http.StatusFound)
+		case "/web/releases/tag/" + f.tag:
+			w.WriteHeader(http.StatusOK)
+		case download + "checksums.txt":
 			fmt.Fprintf(w, "%s  other_file.tar.gz\n%s  %s\n", strings.Repeat("0", 64), digest, name)
-		case "/dl/" + name:
+		case download + name:
+			if f.noAsset {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 			f.archives++
+			f.downloadAccept = r.Header.Get("Accept")
+			time.Sleep(f.archiveDelay)
 			w.Write(archive)
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -97,7 +110,10 @@ func updateDeps(t *testing.T, version string, server *httptest.Server) (*system.
 		t.Fatal(err)
 	}
 	deps.Executable = func() (string, error) { return exe, nil }
-	systemtest.SetEnv(deps, map[string]string{"SELF_HOST_RELEASES_URL": server.URL + "/repos/ajnart/self-host"})
+	systemtest.SetEnv(deps, map[string]string{
+		"SELF_HOST_RELEASES_URL": server.URL + "/api",
+		"SELF_HOST_WEB_URL":      server.URL + "/web",
+	})
 	return deps, exe
 }
 
@@ -208,12 +224,82 @@ func TestSelfUpdateNamesTheMissingPlatformAsset(t *testing.T) {
 }
 
 func TestSelfUpdateReportsAnUnreachableReleaseServer(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", apiError: http.StatusForbidden}
+	rel := &fakeRelease{tag: "v1.2.0", apiError: http.StatusForbidden, noRedirect: true}
 	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
 
 	if r.Code != 1 || !strings.Contains(r.Out, "403") {
 		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
+	}
+}
+
+func TestSelfUpdateFindsTheLatestTagThroughTheRedirectWithoutTheRateLimitedAPI(t *testing.T) {
+	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", apiError: http.StatusForbidden}
+	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
+
+	r := clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if r.Code != 0 || clitest.Read(t, exe) != "new-binary" {
+		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
+	}
+	if rel.apiCalls != 0 {
+		t.Errorf("the API was called %d times although the redirect worked", rel.apiCalls)
+	}
+}
+
+func TestSelfUpdateFallsBackToTheAPIWhenTheRedirectFails(t *testing.T) {
+	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", noRedirect: true}
+	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
+
+	r := clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if r.Code != 0 || clitest.Read(t, exe) != "new-binary" || rel.apiCalls != 1 {
+		t.Fatalf("exit %d, api calls %d:\n%s", r.Code, rel.apiCalls, r.Out)
+	}
+}
+
+func TestSelfUpdateDownloadsAreNotCutOffByTheShortAPITimeout(t *testing.T) {
+	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", archiveDelay: 300 * time.Millisecond}
+	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
+	deps.HTTP = &http.Client{Timeout: 100 * time.Millisecond}
+
+	r := clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if r.Code != 0 || clitest.Read(t, exe) != "new-binary" {
+		t.Fatalf("slow download failed (exit %d):\n%s", r.Code, r.Out)
+	}
+}
+
+func TestSelfUpdateDoesNotSendTheAPIAcceptHeaderOnDownloads(t *testing.T) {
+	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", downloadAccept: "unset"}
+	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
+
+	clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if strings.Contains(rel.downloadAccept, "json") || rel.downloadAccept == "unset" {
+		t.Errorf("archive download Accept = %q", rel.downloadAccept)
+	}
+}
+
+func TestSelfUpdateExplainsAnUnwritableInstallDirectory(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can write anywhere")
+	}
+	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary"}
+	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
+	dir := filepath.Dir(exe)
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+
+	r := clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if r.Code != 1 || !strings.Contains(r.Out, "rerun with sudo") {
+		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
+	}
+	if got := clitest.Read(t, exe); got != "old-binary" {
+		t.Errorf("binary = %q", got)
 	}
 }

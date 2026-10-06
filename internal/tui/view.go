@@ -238,7 +238,7 @@ func (m Model) renderHeader() string {
 		parts = append(parts, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
 	}
 	if m.latest != "" {
-		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")+" available · self-host self-update"))
+		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
 	}
 	if running := m.tasks.running(); running > 0 {
 		parts = append(parts, t.fg(t.accent).Render(m.spin.View()+" "+plural(running, "task", "tasks")))
@@ -603,7 +603,11 @@ func (m Model) renderOverlay() string {
 	case modeHelp:
 		h := m.help
 		h.SetWidth(min(m.width-6, 110))
-		return t.panel(true).Render(t.title().Render("Keys") + "\n\n" + h.FullHelpView(m.keys.FullHelp()) + "\n\n" + t.dim().Render("esc closes"))
+		body := t.title().Render("Keys") + "\n\n" + h.FullHelpView(m.keys.FullHelp()) + "\n\n"
+		if m.latest != "" {
+			body += t.fg(t.info).Render("↑ "+m.releaseNotice()) + "\n\n"
+		}
+		return t.panel(true).Render(body + t.dim().Render("esc closes"))
 	case modeConfirm:
 		if m.confirm == nil {
 			return ""

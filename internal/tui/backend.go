@@ -96,7 +96,7 @@ func (b ServiceBackend) OpenURL(url string) error {
 }
 
 func (b ServiceBackend) LatestRelease(ctx context.Context) string {
-	client := release.Client{HTTP: b.Deps.HTTP, BaseURL: b.Deps.Getenv(release.EnvAPI)}
+	client := release.NewClient(b.Deps)
 	rel, err := client.Latest(ctx)
 	if err != nil {
 		return ""

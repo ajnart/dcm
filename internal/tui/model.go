@@ -244,6 +244,11 @@ func (m Model) loadRelease() tea.Cmd {
 	}
 }
 
+// releaseNotice tells the user how to install the newer release.
+func (m Model) releaseNotice() string {
+	return "v" + strings.TrimPrefix(m.latest, "v") + " is available: run self-host self-update"
+}
+
 func (m Model) loadUpdates() tea.Cmd {
 	backend, status := m.backend, m.status
 	return func() tea.Msg {
@@ -385,6 +390,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case releaseMsg:
 		if newer, err := release.Newer(m.opts.Version, msg.version); err == nil && newer {
 			m.latest = msg.version
+			if m.flash == "" {
+				m.setFlash(m.releaseNotice(), levelInfo)
+			}
 		}
 		return m, nil
 
