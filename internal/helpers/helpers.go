@@ -59,7 +59,10 @@ type Config struct {
 	PollInterval time.Duration
 }
 
-type H struct{ Config }
+type H struct {
+	Config
+	remembered map[string]string
+}
 
 func New(cfg Config) *H {
 	if cfg.Inputs == nil {
@@ -77,7 +80,7 @@ func New(cfg Config) *H {
 	if cfg.PollInterval == 0 {
 		cfg.PollInterval = time.Second
 	}
-	return &H{cfg}
+	return &H{Config: cfg}
 }
 
 // StepSpec describes one idempotent step. Check reports whether the step's
@@ -144,6 +147,24 @@ func (h *H) SetSecret(key, value string) error {
 // Key namespaces an App secret: Key("api_key") for sonarr is SONARR_API_KEY.
 func (h *H) Key(name string) string {
 	return strings.ToUpper(strings.ReplaceAll(h.App+"_"+name, "-", "_"))
+}
+
+// Remember returns the value fn produced for key earlier in this run (Setup
+// and Check share one H), calling fn only when there is none. Failures are
+// not remembered. Use it for logins that the App rate-limits.
+func (h *H) Remember(key string, fn func() (string, error)) (string, error) {
+	if value, found := h.remembered[key]; found {
+		return value, nil
+	}
+	value, err := fn()
+	if err != nil {
+		return "", err
+	}
+	if h.remembered == nil {
+		h.remembered = map[string]string{}
+	}
+	h.remembered[key] = value
+	return value, nil
 }
 
 // Logs returns the main service's recent output.

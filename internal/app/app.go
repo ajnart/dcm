@@ -54,6 +54,24 @@ type App interface {
 	Links() []Link
 }
 
+// SecretSpec is a secret an App needs before its container first starts.
+type SecretSpec struct {
+	// Name is namespaced with the App ID: "admin_token" for vaultwarden is
+	// VAULTWARDEN_ADMIN_TOKEN in secrets.env.
+	Name string
+	// Length is the size of the generated random value.
+	Length int
+}
+
+// SecretDeclarer is an optional interface for Apps whose Compose fragment
+// refers to a secret by name, e.g. ${VAULTWARDEN_ADMIN_TOKEN}. Install
+// generates each missing secret and saves it to secrets.env before it renders
+// the fragment, so Compose can interpolate it on the first start. Existing
+// values are kept: rerunning Install never rotates a secret.
+type SecretDeclarer interface {
+	Secrets() []SecretSpec
+}
+
 // Link wires the App that declares it to Target. Apply runs only once both
 // Apps finished Setup; Remove runs when Target is removed.
 type Link struct {

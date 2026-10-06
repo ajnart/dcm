@@ -344,3 +344,16 @@ func TestStaleLockIsReplaced(t *testing.T) {
 		t.Fatal("lock not released")
 	}
 }
+
+func TestUsernamesAreNotRedactedInLaterCommands(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}, fail: errors.New("admin page returned 500")})
+	runWith(t, deps, cat, "install", "one", "--yes")
+
+	_, out := runWith(t, deps, cat, "setup", "one", "--json")
+
+	fail := findCheck(decodeEvents(t, out), "configure")
+	if fail == nil || fail["error"] != "admin page returned 500" {
+		t.Fatalf("username was redacted out of messages:\n%s", out)
+	}
+}

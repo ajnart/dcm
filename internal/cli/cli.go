@@ -107,6 +107,12 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	}
 }
 
+// NewRootCommand returns the cobra command tree, for tests that inspect what
+// the binary registers.
+func NewRootCommand(deps *system.Deps, cat *catalog.Catalog) *cobra.Command {
+	return (&program{deps: deps, catalog: cat}).root()
+}
+
 func (a *program) root() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "self-host",
@@ -125,7 +131,7 @@ func (a *program) root() *cobra.Command {
 	}
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
-	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd(), a.appsCmd())
+	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd(), a.appsCmd(), a.skillCmd(), a.selfUpdateCmd())
 	root.AddCommand(a.lifecycleCmds()...)
 	root.AddCommand(a.backupCmds()...)
 	return root

@@ -33,7 +33,6 @@ type Event struct {
 	Hint       string `json:"hint,omitempty"`
 	Docs       string `json:"docs,omitempty"`
 	Command    string `json:"command,omitempty"`
-	OK         *bool  `json:"ok,omitempty"`
 }
 
 type Sink interface{ Emit(Event) }

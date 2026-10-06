@@ -5,12 +5,13 @@ import (
 	"github.com/ajnart/self-host/internal/apps/arr"
 	"github.com/ajnart/self-host/internal/apps/ntfy"
 	"github.com/ajnart/self-host/internal/apps/qbittorrent"
+	"github.com/ajnart/self-host/internal/apps/vaultwarden"
 )
 
 // Default is the catalog shipped in the binary.
 func Default() *Catalog {
 	return New(
-		[]app.App{ntfy.App{}, arr.Prowlarr(), arr.Radarr(), arr.Sonarr(), qbittorrent.App{}},
+		[]app.App{ntfy.App{}, vaultwarden.App{}, arr.Prowlarr(), arr.Radarr(), arr.Sonarr(), qbittorrent.App{}},
 		[]Recipe{{
 			ID:          "media",
 			Name:        "Media",

@@ -194,9 +194,7 @@ func (s *Service) open(ctx context.Context) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, value := range secrets {
-		s.Log.Secret(value)
-	}
+	registerSecrets(s.Log, secrets)
 	state, err := p.LoadState()
 	if err != nil {
 		return nil, err
@@ -352,4 +350,14 @@ func (ss *session) readyPeer(id string) *helpers.H {
 		return nil
 	}
 	return ss.helpers(peer)
+}
+
+// registerSecrets redacts every stored secret except the Admin username,
+// which is not secret and too common a word ("admin") to hide.
+func registerSecrets(log *events.Logger, secrets map[string]string) {
+	for key, value := range secrets {
+		if key != "ADMIN_USER" {
+			log.Secret(value)
+		}
+	}
 }
