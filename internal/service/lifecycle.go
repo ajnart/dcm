@@ -327,3 +327,16 @@ func (s *Service) OpenURL(ctx context.Context, url string) error {
 	}
 	return nil
 }
+
+// Compose returns the Compose file of one installed App.
+func (s *Service) Compose(ctx context.Context, id string) (string, error) {
+	ss, err := s.open(ctx)
+	if err != nil {
+		return "", err
+	}
+	if _, err := ss.targets([]string{id}); err != nil {
+		return "", err
+	}
+	data, err := os.ReadFile(ss.p.FragmentPath(id))
+	return string(data), err
+}

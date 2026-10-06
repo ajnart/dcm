@@ -17,21 +17,16 @@ type Action string
 const (
 	ActionStart   Action = "start"
 	ActionStop    Action = "stop"
-	ActionRestart Action = "restart"
 	ActionUpdate  Action = "update"
 	ActionSetup   Action = "setup"
-	ActionRemove  Action = "remove"
-	ActionPurge   Action = "purge"
 	ActionBackup  Action = "backup"
-	ActionRestore Action = "restore"
 	ActionInstall Action = "install"
 )
 
-// Request is one mutating action. File is the archive for backup/restore.
+// Request is one mutating Action.
 type Request struct {
 	Action  Action
 	IDs     []string
-	File    string
 	Install *service.InstallOptions
 }
 
@@ -44,7 +39,8 @@ type Backend interface {
 	Credentials(ctx context.Context) (service.Credentials, error)
 	Logs(ctx context.Context, id string, w io.Writer) error
 	OpenURL(url string) error
-	Backups(ctx context.Context) ([]service.BackupFile, error)
+	// Compose returns the App's Compose file.
+	Compose(ctx context.Context, id string) (string, error)
 	Catalog() *catalog.Catalog
 	// LatestRelease returns the newest published release tag, or "" when it
 	// cannot be determined.
@@ -114,8 +110,8 @@ func (b ServiceBackend) Detect(context.Context) map[string]string {
 	return settings
 }
 
-func (b ServiceBackend) Backups(ctx context.Context) ([]service.BackupFile, error) {
-	return b.quiet().Backups(ctx)
+func (b ServiceBackend) Compose(ctx context.Context, id string) (string, error) {
+	return b.quiet().Compose(ctx, id)
 }
 
 func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {
@@ -123,26 +119,18 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 	ids := req.IDs
 	switch req.Action {
 	case ActionBackup:
-		_, err := s.Backup(ctx, ids, req.File, "")
+		_, err := s.Backup(ctx, ids, "", "")
 		return err
 	case ActionInstall:
 		return s.Install(ctx, *req.Install)
-	case ActionRestore:
-		return s.Restore(ctx, req.File, ids, b.Deps.Getenv("SELF_HOST_BACKUP_PASSPHRASE"))
 	case ActionStart:
 		return s.Start(ctx, ids)
 	case ActionStop:
 		return s.Stop(ctx, ids)
-	case ActionRestart:
-		return s.Restart(ctx, ids)
 	case ActionUpdate:
 		return s.Update(ctx, ids)
 	case ActionSetup:
 		return s.Setup(ctx, ids)
-	case ActionRemove:
-		return s.Remove(ctx, ids, false)
-	case ActionPurge:
-		return s.Remove(ctx, ids, true)
 	}
 	return nil
 }

@@ -35,15 +35,15 @@ func trimLines(s string) string {
 }
 
 func TestGoldenDashboard(t *testing.T) {
-	m, _ := sample(t, 120, 20)
-	m = update(t, m, press("j"))
-	m = update(t, m, press("tab"))
+	m, _ := sample(t, 120, 30)
+	m = drive(t, m, press("j"))
+	m = drive(t, m, press("tab"))
 
 	golden(t, "dashboard", trimLines(screen(m)))
 }
 
 func TestGoldenNarrowDashboard(t *testing.T) {
-	m, _ := sample(t, 72, 12)
+	m, _ := sample(t, 80, 24)
 
 	golden(t, "dashboard-narrow", trimLines(screen(m)))
 }

@@ -140,7 +140,7 @@ func dot(app service.AppStatus) string {
 	switch service.Level(app) {
 	case "ok":
 		return "\x1b[32m●\x1b[0m"
-	case "warn":
+	case "attention":
 		return "\x1b[33m●\x1b[0m"
 	default:
 		return "\x1b[31m●\x1b[0m"
