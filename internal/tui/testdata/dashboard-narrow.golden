@@ -1,0 +1,12 @@
+ ◆ self-host  ~/self-host  LAN 192.168.1.20   ● 1 warning
+ 1 Apps   2 Catalog   3 Updates   4 Doctor   5 Backups
+  APP                STATE      SETUP
+● Jellyfin           running    ✓ ok
+● Sonarr             running    ✗ incomplete
+● whoami             exited     unmanaged
+
+
+
+
+
+      enter start/stop • S restart • e rerun setup • o open in browser …

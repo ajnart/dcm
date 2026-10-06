@@ -13,6 +13,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/tui"
 )
 
 // Exit codes.
@@ -115,6 +116,13 @@ func (a *program) root() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.SetVersionTemplate("{{.Version}}\n")
+	root.RunE = func(cmd *cobra.Command, args []string) error {
+		if !a.deps.Interactive {
+			return cmd.Help()
+		}
+		backend := tui.ServiceBackend{Deps: a.deps, Catalog: a.catalog}
+		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version})
+	}
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
 	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd(), a.appsCmd())

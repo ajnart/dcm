@@ -11,7 +11,9 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 // mutate opens the Project under the lock, refreshes the root Compose file
@@ -280,4 +282,25 @@ func (s *Service) Logs(ctx context.Context, id string, w io.Writer, follow bool,
 		return err
 	}
 	return ss.compose.Logs(ctx, w, follow, tail, services...)
+}
+
+// Doctor runs every host and App check.
+func (s *Service) Doctor(ctx context.Context) []host.Check {
+	return host.Docker(ctx, s.Deps)
+}
+
+// OpenURL opens url in the desktop browser.
+func (s *Service) OpenURL(ctx context.Context, url string) error {
+	name := "xdg-open"
+	if s.Deps.GOOS == "darwin" {
+		name = "open"
+	}
+	result, err := s.Deps.Runner.Run(ctx, system.Cmd{Name: name, Args: []string{url}})
+	if err != nil {
+		return err
+	}
+	if result.ExitCode != 0 {
+		return fmt.Errorf("%s exited %d", name, result.ExitCode)
+	}
+	return nil
 }

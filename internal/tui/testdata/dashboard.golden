@@ -1,0 +1,20 @@
+ ◆ self-host  ~/self-host  LAN 192.168.1.20   ● 1 warning                                              12:00:00 · v1.0.0
+ 1 Apps   2 Catalog   3 Updates   4 Doctor   5 Backups
+  APP                URL                          STATE      SETUP              ╭──────────────────────────────────────╮
+● Jellyfin           http://192.168.1.20:8096     running    ✓ ok               │  logs   setup   info                 │
+● Sonarr             http://192.168.1.20:8989     running    ✗ incomplete       │ ✗ download-client                    │
+● whoami             http://192.168.1.20:8099     exited     unmanaged          │   qBittorrent refused login          │
+                                                                                │   → Add qBittorrent under Settings › │
+                                                                                │     Download Clients.                │
+                                                                                │                                      │
+                                                                                │ Finish the failed step by hand (or   │
+                                                                                │ let your agent use agent-browser),   │
+                                                                                │ then press e to rerun Setup.         │
+                                                                                │                                      │
+                                                                                │                                      │
+                                                                                │                                      │
+                                                                                │                                      │
+                                                                                │                                      │
+                                                                                │                                      │
+                                                                                ╰──────────────────────────────────────╯
+                 enter start/stop • S restart • e rerun setup • o open in browser • / filter • t tasks • ? help • q quit
