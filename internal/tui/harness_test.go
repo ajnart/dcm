@@ -24,8 +24,11 @@ type fakeBackend struct {
 	checks  []host.Check
 	actions []string
 	opened  []string
+	backups []service.BackupFile
 	fail    error
 }
+
+func (f *fakeBackend) Backups(context.Context) ([]service.BackupFile, error) { return f.backups, nil }
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, nil }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
@@ -47,11 +50,15 @@ func (f *fakeBackend) OpenURL(url string) error {
 	f.opened = append(f.opened, url)
 	return nil
 }
-func (f *fakeBackend) Run(_ context.Context, action Action, ids []string, log *events.Logger) error {
+func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) error {
 	f.mu.Lock()
-	f.actions = append(f.actions, string(action)+" "+strings.Join(ids, " "))
+	entry := string(req.Action) + " " + strings.Join(req.IDs, " ")
+	if req.File != "" {
+		entry += " " + req.File
+	}
+	f.actions = append(f.actions, entry)
 	f.mu.Unlock()
-	log.Emit(events.Event{Event: events.StepOK, Step: string(action), Msg: string(action) + " done"})
+	log.Emit(events.Event{Event: events.StepOK, Step: string(req.Action), Msg: string(req.Action) + " done"})
 	return f.fail
 }
 func (f *fakeBackend) Actions() []string {
@@ -390,5 +397,30 @@ func TestUpdatesSurviveStatusRefresh(t *testing.T) {
 
 	if !strings.Contains(screen(m), "⚠ 1 update") {
 		t.Fatal("refresh dropped update information")
+	}
+}
+
+func TestBackupsScreenCreatesAndRestoresBackups(t *testing.T) {
+	m, backend := sample(t, 140, 32)
+	backend.backups = []service.BackupFile{
+		{Path: "/home/alice/self-host/backups/selfhost-20261006-120000.tar.zst", Name: "selfhost-20261006-120000.tar.zst", Size: 2 << 20},
+		{Path: "/home/alice/self-host/backups/old.tar.zst.age", Name: "old.tar.zst.age", Size: 1 << 20, Encrypted: true},
+	}
+
+	m = drive(t, m, press("5"))
+	out := screen(m)
+	if !strings.Contains(out, "selfhost-20261006-120000.tar.zst") || !strings.Contains(out, "2.0 MB") || !strings.Contains(out, "encrypted") {
+		t.Fatalf("backups screen\n%s", out)
+	}
+	m = drive(t, m, press("b"))
+	m = drive(t, m, press("enter"))
+	if !strings.Contains(screen(m), "Restore every App") {
+		t.Fatalf("no restore confirmation\n%s", screen(m))
+	}
+	m = drive(t, m, press("y"))
+
+	got := backend.Actions()
+	if len(got) != 2 || got[0] != "backup " || got[1] != "restore  /home/alice/self-host/backups/selfhost-20261006-120000.tar.zst" {
+		t.Fatalf("actions %q", got)
 	}
 }

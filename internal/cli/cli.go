@@ -127,5 +127,6 @@ func (a *program) root() *cobra.Command {
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
 	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd(), a.appsCmd())
 	root.AddCommand(a.lifecycleCmds()...)
+	root.AddCommand(a.backupCmds()...)
 	return root
 }

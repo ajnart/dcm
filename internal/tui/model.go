@@ -76,6 +76,10 @@ type (
 	doctorMsg   struct{ checks []host.Check }
 	updatesMsg  struct{ updates map[string]string }
 	updatesTick struct{}
+	backupsMsg  struct {
+		files []service.BackupFile
+		err   error
+	}
 	tickMsg     time.Time
 	taskDoneMsg struct {
 		id    int
@@ -98,8 +102,7 @@ type (
 type confirmation struct {
 	question string
 	detail   string
-	action   Action
-	ids      []string
+	req      Request
 	title    string
 }
 
@@ -154,6 +157,9 @@ type Model struct {
 	logs           viewport.Model
 	logLines       []string
 	stream         *logStream
+
+	backups      []service.BackupFile
+	backupCursor int
 
 	tasks      *taskManager
 	taskCursor int
@@ -313,6 +319,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case updatesTick:
 		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
 
+	case backupsMsg:
+		if msg.err != nil {
+			m.setFlash(msg.err.Error(), levelError)
+		}
+		m.backups = msg.files
+		m.backupCursor = min(m.backupCursor, max(len(m.backups)-1, 0))
+		return m, nil
+
 	case updatesMsg:
 		m.updates = msg.updates
 		m.applyUpdates()
@@ -333,6 +347,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
 		if strings.HasPrefix(msg.title, "update") {
 			cmds = append(cmds, m.loadUpdates())
+		}
+		if strings.HasPrefix(msg.title, "backup") || strings.HasPrefix(msg.title, "restore") {
+			cmds = append(cmds, m.loadBackups())
 		}
 		return m, tea.Batch(cmds...)
 
@@ -418,7 +435,7 @@ func (m Model) handleConfirmKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Confirm):
 		c := m.confirm
 		m.confirm, m.mode = nil, modeNormal
-		return m.runTask(c.action, c.ids, c.title)
+		return m.run(c.req, c.title)
 	case key.Matches(msg, m.keys.Cancel):
 		m.confirm, m.mode = nil, modeNormal
 		m.setFlash("cancelled", levelInfo)
@@ -485,6 +502,9 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m.runTask(ActionUpdate, ids, "update "+strings.Join(ids, " "))
+	}
+	if m.screen == screenBackups {
+		return m.handleBackupsKey(msg)
 	}
 	if m.screen != screenApps {
 		return m, nil
@@ -559,12 +579,12 @@ func (m Model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.runTask(ActionSetup, []string{app.ID}, "setup "+app.ID)
 	case key.Matches(msg, k.Remove):
 		m.confirm = &confirmation{question: "Remove " + app.Name + "?", detail: "Containers are deleted; data stays in apps/" + app.ID + "/.",
-			action: ActionRemove, ids: []string{app.ID}, title: "remove " + app.ID}
+			req: Request{Action: ActionRemove, IDs: []string{app.ID}}, title: "remove " + app.ID}
 		m.mode = modeConfirm
 		return m, nil
 	case key.Matches(msg, k.Purge):
 		m.confirm = &confirmation{question: "Remove " + app.Name + " and DELETE its data?", detail: "apps/" + app.ID + "/ is deleted. This cannot be undone.",
-			action: ActionPurge, ids: []string{app.ID}, title: "purge " + app.ID}
+			req: Request{Action: ActionPurge, IDs: []string{app.ID}}, title: "purge " + app.ID}
 		m.mode = modeConfirm
 		return m, nil
 	case key.Matches(msg, k.Open):
@@ -607,6 +627,38 @@ func (m Model) move(delta int) (tea.Model, tea.Cmd) {
 func (m Model) switchScreen(s screenID) (tea.Model, tea.Cmd) {
 	m.screen = s
 	m.relayout()
+	switch s {
+	case screenBackups:
+		return m, m.loadBackups()
+	case screenApps:
+		return m, m.syncLogs()
+	}
+	return m, nil
+}
+
+func (m Model) handleBackupsKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	k := m.keys
+	switch {
+	case key.Matches(msg, k.Up):
+		m.backupCursor = max(m.backupCursor-1, 0)
+	case key.Matches(msg, k.Down):
+		m.backupCursor = min(m.backupCursor+1, max(len(m.backups)-1, 0))
+	case key.Matches(msg, k.Backup):
+		return m.run(Request{Action: ActionBackup}, "backup all Apps")
+	case key.Matches(msg, k.Toggle):
+		if m.backupCursor >= len(m.backups) {
+			return m, nil
+		}
+		file := m.backups[m.backupCursor]
+		if file.Encrypted {
+			m.setFlash("encrypted: restore it with SELF_HOST_BACKUP_PASSPHRASE=… self-host restore "+file.Path, levelWarn)
+			return m, nil
+		}
+		m.confirm = &confirmation{question: "Restore every App from " + file.Name + "?",
+			detail: "Their current data is replaced; Apps not in the backup are untouched.",
+			req:    Request{Action: ActionRestore, File: file.Path}, title: "restore " + file.Name}
+		m.mode = modeConfirm
+	}
 	return m, nil
 }
 
@@ -631,17 +683,29 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// runTask starts a background action and reports it in the tasks overlay.
 func (m Model) runTask(action Action, ids []string, title string) (tea.Model, tea.Cmd) {
+	return m.run(Request{Action: action, IDs: ids}, title)
+}
+
+// run starts a background action and reports it in the tasks overlay.
+func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	t := m.tasks.start(title)
 	backend := m.backend
 	m.setFlash("… "+title, levelInfo)
 	run := func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
-		err := backend.Run(t.ctx, action, ids, log)
+		err := backend.Run(t.ctx, req, log)
 		return taskDoneMsg{id: t.id, title: title, err: err}
 	}
 	return m, tea.Batch(run, m.spin.Tick)
+}
+
+func (m Model) loadBackups() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		files, err := backend.Backups(context.Background())
+		return backupsMsg{files: files, err: err}
+	}
 }
 
 // Logs

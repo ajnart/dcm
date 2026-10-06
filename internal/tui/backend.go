@@ -21,7 +21,16 @@ const (
 	ActionSetup   Action = "setup"
 	ActionRemove  Action = "remove"
 	ActionPurge   Action = "purge"
+	ActionBackup  Action = "backup"
+	ActionRestore Action = "restore"
 )
+
+// Request is one mutating action. File is the archive for backup/restore.
+type Request struct {
+	Action Action
+	IDs    []string
+	File   string
+}
 
 // Backend is everything the dashboard needs from the Service.
 type Backend interface {
@@ -32,8 +41,9 @@ type Backend interface {
 	Credentials(ctx context.Context) (service.Credentials, error)
 	Logs(ctx context.Context, id string, w io.Writer) error
 	OpenURL(url string) error
+	Backups(ctx context.Context) ([]service.BackupFile, error)
 	// Run performs a mutating action, reporting progress to log.
-	Run(ctx context.Context, action Action, ids []string, log *events.Logger) error
+	Run(ctx context.Context, req Request, log *events.Logger) error
 }
 
 // ServiceBackend runs every call on a fresh Service so each task gets its
@@ -76,9 +86,19 @@ func (b ServiceBackend) OpenURL(url string) error {
 	return b.quiet().OpenURL(context.Background(), url)
 }
 
-func (b ServiceBackend) Run(ctx context.Context, action Action, ids []string, log *events.Logger) error {
+func (b ServiceBackend) Backups(ctx context.Context) ([]service.BackupFile, error) {
+	return b.quiet().Backups(ctx)
+}
+
+func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {
 	s := service.New(b.Deps, log, b.Catalog)
-	switch action {
+	ids := req.IDs
+	switch req.Action {
+	case ActionBackup:
+		_, err := s.Backup(ctx, ids, req.File, "")
+		return err
+	case ActionRestore:
+		return s.Restore(ctx, req.File, ids, b.Deps.Getenv("SELF_HOST_BACKUP_PASSPHRASE"))
 	case ActionStart:
 		return s.Start(ctx, ids)
 	case ActionStop:

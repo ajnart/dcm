@@ -6,7 +6,7 @@ type keyMap struct {
 	Up, Down, Filter, Clear, Toggle, Stop, Restart, Update, UpdateAll, Setup, Remove, Purge key.Binding
 	Open, CopyURL, CopyPassword, Sidebar, SidebarTab, Pin, Follow, PageUp, PageDown         key.Binding
 	Refresh, Tasks, Help, Quit, Apps, Catalog, Updates, Doctor, Backups                     key.Binding
-	Confirm, Cancel                                                                         key.Binding
+	Confirm, Cancel, Backup                                                                 key.Binding
 }
 
 func newKeyMap() keyMap {
@@ -45,6 +45,7 @@ func newKeyMap() keyMap {
 		Doctor:       b([]string{"4"}, "4", "doctor"),
 		Backups:      b([]string{"5"}, "5", "backups"),
 		Confirm:      b([]string{"y", "enter"}, "y", "confirm"),
+		Backup:       b([]string{"b"}, "b", "backup now (Backups screen)"),
 		Cancel:       b([]string{"n", "esc"}, "n", "cancel"),
 	}
 }
@@ -58,6 +59,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Up, k.Down, k.Filter, k.Clear, k.Apps, k.Catalog, k.Updates, k.Doctor, k.Backups},
 		{k.Toggle, k.Stop, k.Restart, k.Update, k.UpdateAll, k.Setup, k.Remove, k.Purge},
 		{k.Open, k.CopyURL, k.CopyPassword, k.Sidebar, k.SidebarTab, k.Pin, k.Follow, k.PageUp, k.PageDown},
-		{k.Refresh, k.Tasks, k.Help, k.Quit},
+		{k.Backup, k.Refresh, k.Tasks, k.Help, k.Quit},
 	}
 }

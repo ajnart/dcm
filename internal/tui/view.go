@@ -548,8 +548,24 @@ func (m Model) renderCatalog() string {
 
 func (m Model) renderBackups() string {
 	t := m.theme
-	return strings.Join([]string{"", "  " + t.heading().Render("Backups"), "",
-		"  " + t.dim().Render("self-host backup -o file.tar.zst · self-host restore file.tar.zst [app]")}, "\n")
+	lines := []string{"", "  " + t.heading().Render("Backups") + t.dim().Render("  b backs up every App now · enter restores the selected backup"), ""}
+	if len(m.backups) == 0 {
+		lines = append(lines, "  "+t.dim().Render("No backups in ~/self-host/backups yet. Press b to make one."))
+	}
+	width := max(m.width-4, 20)
+	for i, f := range m.backups {
+		lock := ""
+		if f.Encrypted {
+			lock = t.fg(t.ok).Render("🔒 encrypted")
+		}
+		line := pad(f.Name, 40) + " " + pad(f.HumanSize(), 10) + " " + pad(f.Modified.Format("2006-01-02 15:04"), 18) + " " + lock
+		if i == m.backupCursor {
+			line = lipgloss.NewStyle().Background(t.selected).Bold(true).Render(pad(stripANSI(line), width))
+		}
+		lines = append(lines, "  "+line)
+	}
+	lines = append(lines, "", "  "+t.dim().Render("Backups contain passwords. For encrypted or scheduled backups use: self-host backup --encrypt -o FILE"))
+	return strings.Join(lines, "\n")
 }
 
 func (m Model) renderFooter() string {
