@@ -1,0 +1,34 @@
+{
+  "dashdot": {
+    "description": "A private dashboard for the CPU and memory your Docker host exposes to the container.",
+    "probe": "/config"
+  },
+  "glances": {
+    "description": "A private web dashboard of the health and resource use of this container.",
+    "probe": "/api/4/status"
+  },
+  "loki": {
+    "description": "A private log store you point your own collector at and search with Grafana.",
+    "probe": "/ready"
+  },
+  "netdata": {
+    "description": "A private real-time dashboard for the health and performance of this container.",
+    "probe": "/api/v1/info"
+  },
+  "ollama": {
+    "description": "Run local language models and query them over a private HTTP API.",
+    "probe": "/api/version"
+  },
+  "prometheus": {
+    "description": "A private time-series database that scrapes and stores metrics.",
+    "probe": "/-/ready"
+  },
+  "stirling-pdf": {
+    "description": "A private toolbox for editing, merging, converting and signing PDF files.",
+    "probe": "/"
+  },
+  "victoria-metrics": {
+    "description": "A private time-series database that stores and queries metrics.",
+    "probe": "/health"
+  }
+}

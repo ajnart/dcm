@@ -12,8 +12,10 @@ import (
 
 // Default is the catalog shipped in the binary.
 func Default() *Catalog {
+	apps := []app.App{ntfy.App{}, vaultwarden.App{}, arr.Prowlarr(), arr.Radarr(), arr.Sonarr(), qbittorrent.App{}, jellyfin.App{}, seerr.App{}}
+	apps = append(apps, generatedApps()...)
 	return New(
-		[]app.App{ntfy.App{}, vaultwarden.App{}, arr.Prowlarr(), arr.Radarr(), arr.Sonarr(), qbittorrent.App{}, jellyfin.App{}, seerr.App{}},
+		apps,
 		[]Recipe{{
 			ID:          "media",
 			Name:        "Media",
