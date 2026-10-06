@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -24,12 +26,14 @@ type Env struct {
 	Catalog *catalog.Catalog
 
 	QBittorrent *QBittorrent
+	Sonarr      *Arr
+	Radarr      *Arr
+	Prowlarr    *Arr
 
 	servers map[string]*httptest.Server
+	arrs    map[string]*Arr
 	mu      sync.Mutex
 	execs   []string
-	// arrKeys maps a started arr service to the API key it wrote.
-	arrKeys map[string]string
 }
 
 // New returns an Env for cat. Servers are added with Serve.
@@ -39,10 +43,21 @@ func New(t *testing.T, cat *catalog.Catalog) *Env {
 		Deps:        systemtest.NewDeps(t),
 		Catalog:     cat,
 		QBittorrent: NewQBittorrent(),
+		Sonarr:      NewArr("sonarr"),
+		Radarr:      NewArr("radarr"),
+		Prowlarr:    NewArr("prowlarr"),
 		servers:     map[string]*httptest.Server{},
-		arrKeys:     map[string]string{},
 	}
+	e.arrs = map[string]*Arr{"sonarr": e.Sonarr, "radarr": e.Radarr, "prowlarr": e.Prowlarr}
 	e.Serve("qbittorrent", e.QBittorrent.Handler())
+	for id, arr := range e.arrs {
+		arr.FolderExists = e.folderExists
+		e.Serve(id, arr.Handler())
+	}
+	for _, arr := range []*Arr{e.Sonarr, e.Radarr} {
+		arr.AcceptDownloadClient = e.acceptDownloadClient
+	}
+	e.Prowlarr.AcceptApplication = e.acceptApplication
 	e.Deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", e.docker)
 	return e
 }
@@ -97,18 +112,37 @@ func (e *Env) docker(cmd system.Cmd) system.Result {
 	return system.Result{}
 }
 
+func (e *Env) folderExists(path string) bool {
+	return slices.Contains(e.Execs(), "sonarr s6-setuidgid abc mkdir -p "+path) ||
+		slices.Contains(e.Execs(), "radarr s6-setuidgid abc mkdir -p "+path)
+}
+
+// acceptDownloadClient plays qBittorrent answering a connection test from
+// Sonarr or Radarr: right container name, port and Admin login.
+func (e *Env) acceptDownloadClient(host string, port int, user, password string) bool {
+	wantUser, wantPass := e.QBittorrent.Credentials()
+	return host == "qbittorrent" && strconv.Itoa(port) == e.Port("qbittorrent") && user == wantUser && password == wantPass
+}
+
+// acceptApplication plays Sonarr or Radarr answering Prowlarr's connection
+// test: right container address and API key.
+func (e *Env) acceptApplication(baseURL, apiKey string) bool {
+	switch baseURL {
+	case "http://sonarr:8989":
+		return apiKey == e.Sonarr.Key
+	case "http://radarr:7878":
+		return apiKey == e.Radarr.Key
+	}
+	return false
+}
+
 func (e *Env) start(services []string) {
 	for _, service := range services {
-		if !isArr(service) {
+		arr := e.arrs[service]
+		if arr == nil {
 			continue
 		}
-		e.mu.Lock()
-		key := e.arrKeys[service]
-		if key == "" {
-			key = "key-" + service
-			e.arrKeys[service] = key
-		}
-		e.mu.Unlock()
+		key := arr.Key
 		dir := filepath.Join(e.AppDir(service), "config")
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			e.T.Fatal(err)
@@ -128,8 +162,4 @@ func (e *Env) logs(fields []string) string {
 		}
 	}
 	return out.String()
-}
-
-func isArr(service string) bool {
-	return service == "sonarr" || service == "radarr" || service == "prowlarr"
 }
