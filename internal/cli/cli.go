@@ -9,7 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -27,13 +29,48 @@ func (e exitError) Error() string { return fmt.Sprintf("exit %d", e.code) }
 
 type app struct {
 	deps    *system.Deps
+	catalog *catalog.Catalog
 	json    bool
 	verbose bool
-	log     *events.Logger
+	// document commands print one result document on stdout, so their
+	// events go to stderr and only when verbose.
+	document bool
+	log      *events.Logger
+	svc      *service.Service
+}
+
+func (a *app) service() *service.Service {
+	if a.svc == nil {
+		a.svc = service.New(a.deps, a.logger(), a.catalog)
+	}
+	return a.svc
+}
+
+// fail turns a Service error into an exit code, printing it as an event.
+func (a *app) fail(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, service.ErrIncomplete) {
+		return exitError{ExitIncomplete}
+	}
+	if a.document {
+		fmt.Fprintln(a.deps.Err, "error:", err)
+		return exitError{ExitError}
+	}
+	a.logger().Emit(events.Event{Event: events.RunEnd, Error: err.Error(), Msg: "failed"})
+	return exitError{ExitError}
 }
 
 func (a *app) logger() *events.Logger {
 	if a.log != nil {
+		return a.log
+	}
+	if a.document {
+		a.log = events.New()
+		if a.verbose {
+			a.log.AddSink(events.Human(a.deps.Err, true))
+		}
 		return a.log
 	}
 	if a.json {
@@ -46,7 +83,12 @@ func (a *app) logger() *events.Logger {
 
 // Run executes the binary with args and returns the exit code.
 func Run(ctx context.Context, deps *system.Deps, args []string) int {
-	a := &app{deps: deps}
+	return RunWith(ctx, deps, catalog.Default(), args)
+}
+
+// RunWith is Run with an explicit catalog.
+func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
+	a := &app{deps: deps, catalog: cat}
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
@@ -75,6 +117,6 @@ func (a *app) root() *cobra.Command {
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
-	root.AddCommand(a.doctorCmd())
+	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd())
 	return root
 }

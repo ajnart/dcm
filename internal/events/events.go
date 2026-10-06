@@ -108,7 +108,11 @@ func Human(w io.Writer, verbose bool) Sink {
 		case RunStart:
 			fmt.Fprintf(w, "▶ %s\n", e.Msg)
 		case RunEnd:
-			fmt.Fprintf(w, "■ %s\n", e.Msg)
+			if e.Error != "" {
+				fmt.Fprintf(w, "✗ %s\n", e.Error)
+			} else {
+				fmt.Fprintf(w, "■ %s\n", e.Msg)
+			}
 		case StepStart:
 			if verbose {
 				fmt.Fprintf(w, "  … %s %s\n", subject, e.Msg)
