@@ -34,6 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
   netdata:
     image: netdata/netdata:v2.11.0
     restart: unless-stopped
+    init: true
     environment:
       DISABLE_TELEMETRY: "1"
     volumes:

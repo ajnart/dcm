@@ -33,6 +33,7 @@ func (App) Compose(rc app.RenderContext) string {
 	return `services:
   victoria-metrics:
     image: victoriametrics/victoria-metrics:v1.153.0
+    command: ["-storageDataPath=/victoria-metrics-data", "-selfScrapeInterval=5s"]
     restart: unless-stopped
     volumes:
       - ./data:/victoria-metrics-data

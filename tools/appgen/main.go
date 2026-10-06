@@ -61,11 +61,13 @@ type recipe struct {
 			Target string `json:"target"`
 			Kind   string `json:"kind"`
 		} `json:"mounts"`
-		PublishTargetPort int    `json:"publishTargetPort"`
-		User              string `json:"user"`
-		ReadOnly          bool   `json:"readOnly"`
-		Restart           string `json:"restart"`
-		ImageTag          string `json:"imageTag"`
+		Command           []string `json:"command"`
+		Init              bool     `json:"init"`
+		PublishTargetPort int      `json:"publishTargetPort"`
+		User              string   `json:"user"`
+		ReadOnly          bool     `json:"readOnly"`
+		Restart           string   `json:"restart"`
+		ImageTag          string   `json:"imageTag"`
 	} `json:"services"`
 }
 
@@ -184,10 +186,22 @@ func build(f fact, rec recipe, man manifest, ov override, pkg string) generated 
 	var b strings.Builder
 	fmt.Fprintf(&b, "services:\n  %s:\n", f.ID)
 	fmt.Fprintf(&b, "    image: %s\n", image)
+	if len(svc.Command) > 0 {
+		quoted := make([]string, len(svc.Command))
+		for i, arg := range svc.Command {
+			quoted[i] = strconv.Quote(arg)
+		}
+		fmt.Fprintf(&b, "    command: [%s]\n", strings.Join(quoted, ", "))
+	}
 	fmt.Fprintf(&b, "    restart: %s\n", restart)
+	if svc.Init {
+		b.WriteString("    init: true\n")
+	}
 	if svc.ReadOnly {
 		b.WriteString("    read_only: true\n")
 	}
+	// The legacy "image-default" user is the image's own user, so no user
+	// line is emitted; only a concrete recipe user would add one.
 	if svc.User != "" && svc.User != "image-default" {
 		fmt.Fprintf(&b, "    user: %s\n", svc.User)
 	}

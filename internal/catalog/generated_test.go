@@ -22,6 +22,12 @@ var hostSettings = map[string]bool{
 
 var composeRef = regexp.MustCompile(`\$\{([^}]+)\}`)
 
+// recipeCommands mirrors the non-null recipe commands the generated Apps ship;
+// each argument must survive into the rendered Compose.
+var recipeCommands = map[string][]string{
+	"victoria-metrics": {"-storageDataPath=/victoria-metrics-data", "-selfScrapeInterval=5s"},
+}
+
 type fakeSecrets map[string]string
 
 func (s fakeSecrets) Get(key string) string       { return s[key] }
@@ -79,6 +85,12 @@ func TestGeneratedAppsCompose(t *testing.T) {
 					continue
 				}
 				t.Errorf("Compose references %q, which is neither a host setting nor a declared secret", name)
+			}
+
+			for _, arg := range recipeCommands[info.ID] {
+				if !strings.Contains(compose, arg) {
+					t.Errorf("Compose is missing recipe command argument %q", arg)
+				}
 			}
 		})
 	}
