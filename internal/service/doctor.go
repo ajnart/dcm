@@ -34,7 +34,7 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 	lan := status.Exposure != ExposureLocal
 	if lan {
 		checks = append(checks, host.Check{ID: "exposure", Title: "Exposure", Level: host.OK,
-			Detail: "local network: other devices connect to " + status.LANIP})
+			Detail: "local network: other devices connect to " + status.LANIP}, s.lanCheck(ss.settings))
 	} else {
 		checks = append(checks, host.Check{ID: "exposure", Title: "Exposure", Level: host.Warn,
 			Detail: "this machine only: other devices cannot connect (TVs, phones, other computers)",

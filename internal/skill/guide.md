@@ -45,7 +45,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 | `self-host restart [app...]` | Restart Apps |
 | `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
 | `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
-| `self-host config set KEY=value...` | Change Host settings and recreate affected Apps |
+| `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
+| `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
 | `self-host logs <app>` | Container logs |
 | `self-host backup [app...]` | Write one compressed archive |
 | `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
@@ -130,6 +131,13 @@ bindings, firewall rules and LAN reachability; its hints name the fix. To
 switch, run `self-host config set EXPOSURE=lan` (or `local`). Never open ports
 to the internet; public access is the user's decision and needs their own
 reverse proxy or VPN.
+
+The LAN IP is detected at first install and stored. When the machine moves to
+another network (office to home), every App URL points at the old address:
+`status --json` then has `"lan_ip_stale": true` with the current `host_ips`,
+and `doctor` warns on `lan-ip`. Fix it with `self-host config set LAN_IP=auto`
+(or `self-host config review --yes`); only Apps that use the address are
+recreated.
 
 ## Unmanaged apps
 

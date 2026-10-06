@@ -36,11 +36,15 @@ type AppStatus struct {
 }
 
 type Status struct {
-	Project  string            `json:"project"`
-	Exposure string            `json:"exposure"`
-	LANIP    string            `json:"lan_ip"`
-	Settings map[string]string `json:"settings"`
-	Apps     []AppStatus       `json:"apps"`
+	Project  string `json:"project"`
+	Exposure string `json:"exposure"`
+	LANIP    string `json:"lan_ip"`
+	// LANIPStale is true when LAN_IP is no longer an address of this
+	// machine; HostIPs then lists the addresses it has now.
+	LANIPStale bool              `json:"lan_ip_stale,omitempty"`
+	HostIPs    []string          `json:"host_ips,omitempty"`
+	Settings   map[string]string `json:"settings"`
+	Apps       []AppStatus       `json:"apps"`
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
 }
@@ -53,6 +57,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], LANIP: ss.settings["LAN_IP"], Settings: ss.settings}
+	if stale, current := s.lanStale(ss.settings); stale {
+		status.LANIPStale, status.HostIPs = true, current
+	}
 	containers, psErr := ss.compose.Ps(ctx)
 	if psErr != nil {
 		status.DockerError = psErr.Error()

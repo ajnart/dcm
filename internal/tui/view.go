@@ -180,9 +180,12 @@ func (m Model) renderHeader() string {
 		parts = append(parts, t.dim().Render(shortHome(m.status.Project)))
 	}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {
-		if m.status.Exposure == service.ExposureLocal {
+		switch {
+		case m.status.Exposure == service.ExposureLocal:
 			parts = append(parts, t.chip("LOCAL ONLY", t.warn))
-		} else {
+		case m.status.LANIPStale:
+			parts = append(parts, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
+		default:
 			parts = append(parts, t.chip("LAN "+m.status.LANIP, t.info))
 		}
 	}
@@ -347,14 +350,17 @@ func (m Model) needsAction() []need {
 			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "enter", desc: "start", app: a.ID})
 		}
 	}
+	if m.status.LANIPStale {
+		items = append(items, need{broken: true, text: "LAN IP " + m.status.LANIP + " is not on this machine", key: "i", desc: "Host settings"})
+	}
 	for _, a := range m.rows() {
 		if a.Update == service.UpdateAvailable {
 			items = append(items, need{text: a.Name + " has an update", key: "u", desc: "update", app: a.ID})
 		}
 	}
 	for _, c := range m.checks {
-		// Stopped containers are already listed above.
-		if c.Level == host.OK || c.ID == "running" {
+		// Stopped containers and a stale LAN IP are already listed above.
+		if c.Level == host.OK || c.ID == "running" || c.ID == "lan-ip" {
 			continue
 		}
 		command := c.Hint

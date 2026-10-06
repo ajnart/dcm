@@ -31,6 +31,11 @@ type fakeBackend struct {
 	install []service.InstallOptions
 	fail    error
 	latest  string
+	review  []service.SettingReview
+}
+
+func (f *fakeBackend) ReviewSettings(context.Context) ([]service.SettingReview, error) {
+	return f.review, nil
 }
 
 func (f *fakeBackend) Catalog() *catalog.Catalog {
@@ -76,7 +81,7 @@ func (f *fakeBackend) OpenURL(url string) error {
 }
 func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) error {
 	f.mu.Lock()
-	entry := strings.TrimSpace(string(req.Action) + " " + strings.Join(req.IDs, " "))
+	entry := strings.TrimSpace(string(req.Action) + " " + strings.Join(append(req.IDs, req.Pairs...), " "))
 	f.actions = append(f.actions, entry)
 	if req.Install != nil {
 		f.install = append(f.install, *req.Install)

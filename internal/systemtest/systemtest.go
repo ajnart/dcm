@@ -99,7 +99,7 @@ func NewDeps(t *testing.T) *system.Deps {
 	home := t.TempDir()
 	env := map[string]string{}
 	clock := &Clock{now: time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)}
-	return &system.Deps{
+	deps := &system.Deps{
 		Version:    "test",
 		GOOS:       "linux",
 		GOARCH:     "amd64",
@@ -124,6 +124,12 @@ func NewDeps(t *testing.T) *system.Deps {
 		Out:          io.Discard,
 		Err:          io.Discard,
 	}
+	// The host's addresses follow LANIP unless a test sets them.
+	deps.HostIPs = func() ([]string, error) {
+		ip, err := deps.LANIP()
+		return []string{ip}, err
+	}
+	return deps
 }
 
 // SetEnv replaces Getenv with a map lookup.

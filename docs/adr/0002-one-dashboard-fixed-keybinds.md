@@ -1,3 +1,5 @@
 # One Dashboard, a fixed set of keybinds; everything else is a command
 
 The first TUI copied a developer tool's shape — five screens, a tasks overlay, about thirty keybinds — and it was too much: people could not tell what mattered. The TUI is now one Dashboard with persistent panels (Apps with their Status, Needs action, App details in tabs) and a fixed keybind budget: select (↑/↓), tabs (tab), start/stop (enter), open (o), copy the Admin password (c), update (u), retry Setup (r), install (i), backup (b), help (?), quit (q), plus pgup/pgdn to scroll the details tab. A new key is added only for an Action people trigger often and only by replacing or justifying against this list; destructive or rare operations (remove, purge, restore, config, credentials listing) stay commands. We chose fewest features that work over coverage, accepting that power users reach for the CLI.
+
+Amendment: re-confirming Host settings (Exposure, LAN IP, time zone) earned no key. It is the first entry of the install picker (`i`), using the picker's own space/enter/esc, and `self-host config review` on the command line.
