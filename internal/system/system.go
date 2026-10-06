@@ -59,6 +59,9 @@ type Deps struct {
 	Sleep func(ctx context.Context, d time.Duration) error
 	// LANIP returns the address of the interface on the default route.
 	LANIP func() (string, error)
+	// HostIPs returns the IPv4 addresses of this machine's active network
+	// interfaces, without loopback and container bridges.
+	HostIPs func() ([]string, error)
 	// TimeZone returns the host's IANA time zone.
 	TimeZone func() string
 	// PortFree reports whether a TCP port can be bound on the host.

@@ -111,6 +111,10 @@ func printStatus(w io.Writer, s service.Status) {
 	}
 	fmt.Fprintf(w, "Exposure  %s\n", exposure)
 	fmt.Fprintf(w, "LAN IP    %s\n", s.LANIP)
+	if s.LANIPStale {
+		fmt.Fprintf(w, "          ⚠ not an address of this machine any more (now %s); App URLs do not work.\n", strings.Join(s.HostIPs, ", "))
+		fmt.Fprintf(w, "          Fix: self-host config set LAN_IP=auto\n")
+	}
 	fmt.Fprintf(w, "Settings  TZ=%s PUID=%s PGID=%s UMASK=%s\n", s.Settings["TZ"], s.Settings["PUID"], s.Settings["PGID"], s.Settings["UMASK"])
 	if s.DockerError != "" {
 		fmt.Fprintf(w, "Docker    unavailable: %s\n", s.DockerError)

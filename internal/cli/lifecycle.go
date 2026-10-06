@@ -3,11 +3,14 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/service"
 )
 
 func (a *program) lifecycleCmds() []*cobra.Command {
@@ -50,9 +53,9 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 	remove.Flags().BoolVarP(&yes, "yes", "y", false, "do not ask for confirmation")
 
 	config := &cobra.Command{Use: "config", Short: "Change Host settings"}
-	config.AddCommand(&cobra.Command{
+	config.AddCommand(a.configReviewCmd(), &cobra.Command{
 		Use:   "set KEY=value...",
-		Short: "Set Host settings and recreate the Apps that use them",
+		Short: "Set Host settings and recreate the Apps that use them (LAN_IP=auto re-detects)",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return a.fail(a.service().ConfigSet(cmd.Context(), args))
@@ -72,6 +75,64 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 	logs.Flags().BoolVarP(&follow, "follow", "f", false, "keep streaming new lines")
 	logs.Flags().IntVar(&tail, "tail", 200, "number of lines to show from the end")
 	return []*cobra.Command{start, stop, restart, update, remove, config, logs}
+}
+
+// configReviewCmd re-runs the onboarding review on an existing Project: it
+// compares Host settings with a fresh detection and offers to fix drift.
+func (a *program) configReviewCmd() *cobra.Command {
+	var yes bool
+	cmd := &cobra.Command{
+		Use:   "review",
+		Short: "Compare Host settings with this machine now and fix what drifted (LAN IP, time zone)",
+		Long: "Re-confirms the onboarding choices of an existing Project. Installed Apps, their data and secrets are kept;\n" +
+			"only the Apps that use a changed setting are recreated. Change Exposure or folders with: self-host config set KEY=value",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			a.document = true
+			review, err := a.service().ReviewSettings(cmd.Context())
+			if err != nil {
+				return a.fail(err)
+			}
+			fixes := service.DriftFixes(review)
+			if a.json {
+				if err := writeJSON(a.deps.Out, map[string]any{"settings": review, "fixes": fixes}); err != nil {
+					return err
+				}
+			} else {
+				printReview(a.deps.Out, review, fixes)
+			}
+			if len(fixes) == 0 || !(yes || a.confirm("Apply "+strings.Join(fixes, " ")+"?")) {
+				return nil
+			}
+			if err := a.service().ConfigSet(cmd.Context(), fixes); err != nil {
+				return a.fail(err)
+			}
+			if !a.json {
+				fmt.Fprintln(a.deps.Out, "Applied "+strings.Join(fixes, " ")+"; the Apps that use them were recreated.")
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply the fixes without asking")
+	return cmd
+}
+
+func printReview(w io.Writer, review []service.SettingReview, fixes []string) {
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "SETTING\tCURRENT\tTHIS MACHINE NOW\t")
+	for _, r := range review {
+		mark := ""
+		if r.Drift {
+			mark = "⚠ " + r.Note
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.Key, r.Current, r.Detected, strings.TrimSpace(mark))
+	}
+	tw.Flush()
+	if len(fixes) == 0 {
+		fmt.Fprintln(w, "\nNothing drifted. Change a choice with: self-host config set KEY=value")
+		return
+	}
+	fmt.Fprintln(w, "\nTo fix: self-host config review --yes   (or: self-host config set "+strings.Join(fixes, " ")+")")
 }
 
 // confirm asks a yes/no question on an interactive terminal.

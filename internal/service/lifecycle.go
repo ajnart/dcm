@@ -241,6 +241,10 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 		if !found || !slices.Contains(project.SettingKeys, key) || key == "BIND_IP" {
 			return fmt.Errorf("%q: settable keys are TZ, PUID, PGID, UMASK, LAN_IP, EXPOSURE, MEDIA_ROOT, DOWNLOADS_ROOT", pair)
 		}
+		value, err := s.resolveAuto(key, strings.TrimSpace(value))
+		if err != nil {
+			return err
+		}
 		if err := project.ValidEnvValue(value); err != nil {
 			return fmt.Errorf("%s: %w", key, err)
 		}
@@ -257,6 +261,9 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 	}
 	return s.mutate(ctx, "config set "+strings.Join(pairs, " "), func(ss *session) error {
 		for key, value := range changes {
+			if old := ss.settings[key]; old != value {
+				s.Log.Emit(events.Event{Event: events.Info, Step: "config", Msg: key + ": " + old + " → " + value})
+			}
 			ss.settings[key] = value
 		}
 		if err := ss.p.SaveSettings(ss.settings); err != nil {

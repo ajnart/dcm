@@ -21,6 +21,7 @@ const (
 	ActionSetup   Action = "setup"
 	ActionBackup  Action = "backup"
 	ActionInstall Action = "install"
+	ActionConfig  Action = "config"
 )
 
 // Request is one mutating Action.
@@ -28,6 +29,8 @@ type Request struct {
 	Action  Action
 	IDs     []string
 	Install *service.InstallOptions
+	// Pairs are the KEY=value Host settings ActionConfig sets.
+	Pairs []string
 }
 
 // Backend is everything the dashboard needs from the Service.
@@ -39,6 +42,8 @@ type Backend interface {
 	Credentials(ctx context.Context) (service.Credentials, error)
 	Logs(ctx context.Context, id string, w io.Writer) error
 	OpenURL(url string) error
+	// ReviewSettings compares Host settings with this machine now.
+	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
 	Compose(ctx context.Context, id string) (string, error)
 	Catalog() *catalog.Catalog
@@ -110,6 +115,10 @@ func (b ServiceBackend) Detect(context.Context) map[string]string {
 	return settings
 }
 
+func (b ServiceBackend) ReviewSettings(ctx context.Context) ([]service.SettingReview, error) {
+	return b.quiet().ReviewSettings(ctx)
+}
+
 func (b ServiceBackend) Compose(ctx context.Context, id string) (string, error) {
 	return b.quiet().Compose(ctx, id)
 }
@@ -123,6 +132,8 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 		return err
 	case ActionInstall:
 		return s.Install(ctx, *req.Install)
+	case ActionConfig:
+		return s.ConfigSet(ctx, req.Pairs)
 	case ActionStart:
 		return s.Start(ctx, ids)
 	case ActionStop:

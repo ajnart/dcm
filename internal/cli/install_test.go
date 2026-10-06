@@ -27,6 +27,8 @@ type echoApp struct {
 	required bool
 	done     map[string]bool
 	fail     error
+	// baseURL makes the Compose file use ${LAN_IP}, like ntfy's base URL.
+	baseURL bool
 }
 
 func (e *echoApp) Info() app.Info {
@@ -45,7 +47,11 @@ func (e *echoApp) Inputs() []app.Input {
 }
 
 func (e *echoApp) Compose(rc app.RenderContext) string {
-	return "services:\n  " + e.id + ":\n    image: " + e.Info().Image + "\n    environment:\n      TZ: ${TZ}\n    ports:\n      - ${BIND_IP}:" + strconv.Itoa(rc.Port) + ":80\n"
+	env := "      TZ: ${TZ}\n"
+	if e.baseURL {
+		env += "      BASE_URL: http://${LAN_IP}:" + strconv.Itoa(rc.Port) + "\n"
+	}
+	return "services:\n  " + e.id + ":\n    image: " + e.Info().Image + "\n    environment:\n" + env + "    ports:\n      - ${BIND_IP}:" + strconv.Itoa(rc.Port) + ":80\n"
 }
 
 func (e *echoApp) Setup(ctx context.Context, h *helpers.H) error {

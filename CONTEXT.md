@@ -17,7 +17,9 @@ _Avoid_: custom app
 
 **Host settings**:
 Values detected once and shared by every App: time zone, user and group IDs,
-umask, media and downloads folders, LAN address and Exposure.
+umask, media and downloads folders, LAN address and Exposure. They can drift
+from the host (a laptop changes network); a review re-confirms them on an
+existing Project without touching installed Apps.
 
 **Recipe**:
 A named, pre-wired bundle of Apps chosen together for one purpose

@@ -352,6 +352,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setFlash("✓ "+msg.title, levelOK)
 		}
 		cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
+		if strings.HasPrefix(msg.title, "config") {
+			// URLs and Compose files may have changed with the settings.
+			clear(m.compose)
+		}
 		if strings.HasPrefix(msg.title, "update") {
 			cmds = append(cmds, m.loadUpdates())
 		}
@@ -371,6 +375,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.compose[msg.id] = text
 		m.syncDetailsContent()
+		return m, nil
+
+	case hostReviewMsg:
+		if msg.err != nil {
+			m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
+			return m, nil
+		}
+		if m.picker != nil {
+			m.picker.host = newHostReview(msg.rows)
+		}
 		return m, nil
 
 	case clickMsg:

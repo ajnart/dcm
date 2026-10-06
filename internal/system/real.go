@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -69,6 +70,7 @@ func Real(version string) *Deps {
 		Now:          time.Now,
 		Sleep:        sleep,
 		LANIP:        lanIP,
+		HostIPs:      hostIPs,
 		TimeZone:     timeZone,
 		PortFree:     portFree,
 		ProcessAlive: processAlive,
@@ -117,6 +119,34 @@ func lanIP() (string, error) {
 	}
 	defer conn.Close()
 	return conn.LocalAddr().(*net.UDPAddr).IP.String(), nil
+}
+
+// Container runtimes add bridges whose addresses other devices cannot reach.
+var bridgePrefixes = []string{"docker", "br-", "veth", "virbr", "cni", "flannel", "cali", "podman", "lxc"}
+
+func hostIPs() ([]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	var ips []string
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 || slices.ContainsFunc(bridgePrefixes, func(p string) bool {
+			return strings.HasPrefix(iface.Name, p)
+		}) {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			if ipNet, ok := addr.(*net.IPNet); ok && ipNet.IP.To4() != nil && !ipNet.IP.IsLinkLocalUnicast() {
+				ips = append(ips, ipNet.IP.String())
+			}
+		}
+	}
+	return ips, nil
 }
 
 func timeZone() string {
