@@ -291,9 +291,7 @@ func (ss *session) restoreRecords(staging string, targets []string, all bool) er
 				Hint: "Run self-host setup " + strings.Join(targets, " ") + " to switch the restored Apps to the current Admin login."})
 		}
 	}
-	for _, value := range ss.secrets.values {
-		ss.s.Log.Secret(value)
-	}
+	registerSecrets(ss.s.Log, ss.secrets.values)
 	if err := ss.p.SaveSecrets(ss.secrets.values); err != nil {
 		return err
 	}
