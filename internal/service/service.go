@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -323,8 +324,14 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 			if otherID == id || !ss.ready(otherID) {
 				continue
 			}
-			for _, link := range other.Links() {
-				if link.Target != id {
+			links := other.Links()
+			if !slices.ContainsFunc(links, func(l app.Link) bool { return l.Target == id }) {
+				continue
+			}
+			// A Link that failed earlier may have been waiting on this App
+			// indirectly (Seerr's servers need its Jellyfin Link), so retry it.
+			for _, link := range links {
+				if link.Target != id && !ss.failed(otherID, link.ID) {
 					continue
 				}
 				ss.applyLink(ctx, other, link)
@@ -358,6 +365,11 @@ func (ss *session) reportUnexpected(h *helpers.H, step string, err error) {
 	}
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: step, Error: err.Error(), URL: h.URL})
 	h.Record(helpers.StepResult{ID: step, Status: "fail", Error: err.Error()})
+}
+
+func (ss *session) failed(id, step string) bool {
+	st := ss.state.Apps[id]
+	return st != nil && st.Steps[step].Status == "fail"
 }
 
 // setupResult is "incomplete" while any recorded step failed.

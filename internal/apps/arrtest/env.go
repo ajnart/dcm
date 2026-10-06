@@ -29,6 +29,8 @@ type Env struct {
 	Sonarr      *Arr
 	Radarr      *Arr
 	Prowlarr    *Arr
+	Jellyfin    *Jellyfin
+	Seerr       *Seerr
 
 	servers map[string]*httptest.Server
 	arrs    map[string]*Arr
@@ -46,6 +48,8 @@ func New(t *testing.T, cat *catalog.Catalog) *Env {
 		Sonarr:      NewArr("sonarr"),
 		Radarr:      NewArr("radarr"),
 		Prowlarr:    NewArr("prowlarr"),
+		Jellyfin:    NewJellyfin(),
+		Seerr:       NewSeerr(),
 		servers:     map[string]*httptest.Server{},
 	}
 	e.arrs = map[string]*Arr{"sonarr": e.Sonarr, "radarr": e.Radarr, "prowlarr": e.Prowlarr}
@@ -58,6 +62,14 @@ func New(t *testing.T, cat *catalog.Catalog) *Env {
 		arr.AcceptDownloadClient = e.acceptDownloadClient
 	}
 	e.Prowlarr.AcceptApplication = e.acceptApplication
+	e.Jellyfin.FolderExists = e.folderExists
+	e.Serve("jellyfin", e.Jellyfin.Handler())
+	e.Seerr.Jellyfin = func(host string, port int, user, password string) bool {
+		return host == "jellyfin" && port == 8096 && e.Jellyfin.SignIn(user, password)
+	}
+	e.Seerr.JellyfinLibraries = e.Jellyfin.Libraries
+	e.Seerr.Servarr = e.servarr
+	e.Serve("seerr", e.Seerr.Handler())
 	e.Deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", e.docker)
 	return e
 }
@@ -119,8 +131,19 @@ func (e *Env) docker(cmd system.Cmd) system.Result {
 }
 
 func (e *Env) folderExists(path string) bool {
-	return slices.Contains(e.Execs(), "sonarr s6-setuidgid abc mkdir -p "+path) ||
-		slices.Contains(e.Execs(), "radarr s6-setuidgid abc mkdir -p "+path)
+	return slices.ContainsFunc([]string{"sonarr", "radarr", "jellyfin"}, func(service string) bool {
+		return slices.Contains(e.Execs(), service+" s6-setuidgid abc mkdir -p "+path)
+	})
+}
+
+// servarr plays Sonarr or Radarr answering Seerr's connection test: right
+// container name, port and API key.
+func (e *Env) servarr(kind, host string, port int, apiKey string) ([]string, bool) {
+	arr, ports := e.arrs[kind], map[string]int{"sonarr": 8989, "radarr": 7878}
+	if arr == nil || host != kind || port != ports[kind] || apiKey != arr.Key {
+		return nil, false
+	}
+	return arr.RootFolders(), true
 }
 
 // acceptDownloadClient plays qBittorrent answering a connection test from
@@ -144,6 +167,11 @@ func (e *Env) acceptApplication(baseURL, apiKey string) bool {
 
 func (e *Env) start(services []string) {
 	for _, service := range services {
+		if service == "seerr" {
+			e.Seerr.mu.Lock()
+			e.Seerr.APIKey = e.secret("SEERR_API_KEY")
+			e.Seerr.mu.Unlock()
+		}
 		arr := e.arrs[service]
 		if arr == nil {
 			continue
@@ -168,4 +196,19 @@ func (e *Env) logs(fields []string) string {
 		}
 	}
 	return out.String()
+}
+
+// secret reads a value the CLI saved to secrets.env, like Compose passing it
+// to a container.
+func (e *Env) secret(key string) string {
+	data, err := os.ReadFile(filepath.Join(clitest.Root(e.T, e.Deps), "secrets.env"))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if value, found := strings.CutPrefix(line, key+"="); found {
+			return strings.Trim(value, `'"`)
+		}
+	}
+	return ""
 }
