@@ -198,9 +198,18 @@ func (ss *session) unlink(ctx context.Context, id string) {
 			if link.Target == id && link.Remove != nil {
 				// Failures are reported as step.fail by the Link itself.
 				link.Remove(ctx, ss.helpers(other), ss.helpers(target))
+				ss.forgetStep(otherID, link.ID)
 			}
 		}
 	}
+}
+
+// forgetStep drops a step record that no longer describes the App, such as
+// a Link whose target was removed.
+func (ss *session) forgetStep(id, step string) {
+	st := ss.state.Apps[id]
+	delete(st.Steps, step)
+	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(s string) bool { return s == step })
 }
 
 // ConfigSet changes Host settings and recreates the Apps that use them.

@@ -116,7 +116,11 @@ func (a App) Compose(rc app.RenderContext) string {
 
 // request adds the API key to req; path is relative to the API prefix.
 func (a App) request(h *helpers.H, req helpers.Request) helpers.Request {
-	req.Path = a.api + req.Path
+	return apiRequest(h, a.api, req)
+}
+
+func apiRequest(h *helpers.H, api string, req helpers.Request) helpers.Request {
+	req.Path = api + req.Path
 	req.Header = map[string]string{"X-Api-Key": h.Secret(h.Key("api_key"))}
 	return req
 }
