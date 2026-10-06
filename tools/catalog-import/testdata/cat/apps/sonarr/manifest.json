@@ -1,0 +1,58 @@
+{
+  "id": "sonarr",
+  "name": "Sonarr",
+  "aliases": [
+    "tv automation",
+    "tv manager"
+  ],
+  "categories": [
+    "requests",
+    "media"
+  ],
+  "roles": [
+    "tv-automation"
+  ],
+  "upstream": {
+    "url": "https://sonarr.tv/",
+    "repository": "https://github.com/Sonarr/Sonarr",
+    "docs": "https://wiki.servarr.com/sonarr"
+  },
+  "image": {
+    "reference": "lscr.io/linuxserver/sonarr:version-4.0.19.2979",
+    "source": "community",
+    "status": "known"
+  },
+  "lifecycle": {
+    "status": "active",
+    "checkedAt": "2026-09-29",
+    "note": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe."
+  },
+  "support": {
+    "automation": "guided",
+    "tier": "T0",
+    "adapterSkill": null
+  },
+  "homarr": {
+    "support": "supported",
+    "integration": "Sonarr"
+  },
+  "dependencies": [
+    "prowlarr",
+    "qbittorrent",
+    "capability:shared-download-path"
+  ],
+  "alternatives": [
+    "radarr"
+  ],
+  "security": [
+    "Treat API keys as secrets and keep the management UI private."
+  ],
+  "pitfalls": [
+    "Mismatched downloader and library paths break imports and hardlinks."
+  ],
+  "sources": [
+    "https://wiki.servarr.com/sonarr",
+    "https://docs.linuxserver.io/images/docker-sonarr/",
+    "https://github.com/linuxserver/docker-sonarr/pkgs/container/sonarr/versions"
+  ]
+}

@@ -1,0 +1,201 @@
+[
+  {
+    "id": "ntfy",
+    "name": "ntfy",
+    "description": "Official v2.28.0 Docker and authentication documentation checked; the experimental deny-all shared recipe verifies the saved admin and checkpoints creation of one non-expiring Homarr administrator token. Fresh-instance, restart and notification-delivery acceptance remain separate.",
+    "categories": [
+      "communication",
+      "monitoring"
+    ],
+    "image": "binwiederhier/ntfy:v2.28.0",
+    "container_port": 80,
+    "default_published_port": 8080,
+    "environment": [
+      {
+        "name": "NTFY_AUTH_FILE",
+        "kind": "plain",
+        "value": "/var/lib/ntfy/user.db"
+      },
+      {
+        "name": "NTFY_CACHE_FILE",
+        "kind": "plain",
+        "value": "/var/lib/ntfy/cache.db"
+      },
+      {
+        "name": "NTFY_AUTH_DEFAULT_ACCESS",
+        "kind": "plain",
+        "value": "deny-all"
+      },
+      {
+        "name": "NTFY_AUTH_USERS",
+        "kind": "secret"
+      }
+    ],
+    "mounts": [
+      {
+        "name": "data",
+        "target": "/var/lib/ntfy",
+        "kind": "volume"
+      }
+    ],
+    "onboarding": {
+      "kind": "initial-admin-from-auth-users",
+      "username": "admin",
+      "secret_environment": "NTFY_AUTH_USERS",
+      "file_id": "admin-password",
+      "official_url": "https://docs.ntfy.sh/config/#users-via-the-config"
+    },
+    "private_files": [
+      "admin-password"
+    ],
+    "multi_service": false,
+    "services": [
+      "ntfy"
+    ],
+    "acceptance": [
+      {
+        "id": "private-auth",
+        "description": "Authenticate the generated administrator on the exact private origin and confirm anonymous topic subscription is denied."
+      },
+      {
+        "id": "notification-delivery",
+        "description": "After a separately approved topic and least-privilege publisher are configured, publish and subscribe one notification and confirm its content and metadata."
+      },
+      {
+        "id": "restart-persistence",
+        "description": "Restart the exact owned project and verify administrator authentication, deny-all access, and notification history remain intact."
+      }
+    ],
+    "support": {
+      "tier": "T1",
+      "automation": "guided"
+    },
+    "docs_url": "https://docs.ntfy.sh/install/",
+    "upstream_url": "https://ntfy.sh/",
+    "pitfalls": [
+      "Guessable or anonymous topics can leak operational alerts when default access is not deny-all.",
+      "The shared recipe seeds an administrator and creates one non-expiring Homarr token with administrator privileges; separate least-privilege publisher credentials, topic ACLs, and notification delivery are not automated.",
+      "An administrator token grants broad account privileges; ntfy access tokens are not individually scoped to topics."
+    ],
+    "security": [
+      "Set auth-file and auth-default-access=deny-all; the documented default is read-write even when authentication is enabled.",
+      "Provision an administrator and separate least-privilege publisher account before enabling notification delivery or public exposure."
+    ],
+    "has_recipe": true
+  },
+  {
+    "id": "sonarr",
+    "name": "Sonarr",
+    "description": "Active Servarr application; LinuxServer stable image tag is pinned in the Compose recipe.",
+    "categories": [
+      "requests",
+      "media"
+    ],
+    "image": "lscr.io/linuxserver/sonarr:version-4.0.19.2979",
+    "container_port": 8989,
+    "default_published_port": 8989,
+    "environment": [
+      {
+        "name": "PUID",
+        "kind": "host"
+      },
+      {
+        "name": "PGID",
+        "kind": "host"
+      },
+      {
+        "name": "TZ",
+        "kind": "host"
+      }
+    ],
+    "mounts": [
+      {
+        "name": "config",
+        "target": "/config",
+        "kind": "volume"
+      },
+      {
+        "name": "media-data",
+        "target": "/data",
+        "kind": "bind"
+      }
+    ],
+    "onboarding": {
+      "kind": "manual-first-admin",
+      "username": "admin",
+      "file_id": "admin-password",
+      "official_url": "https://wiki.servarr.com/sonarr/settings/general#security"
+    },
+    "private_files": [
+      "admin-password"
+    ],
+    "multi_service": false,
+    "services": [
+      "sonarr"
+    ],
+    "acceptance": [
+      {
+        "id": "api-auth-policy",
+        "description": "Read back required Forms authentication and verify the generated administrator password through the pinned private login route."
+      },
+      {
+        "id": "library-and-download-paths",
+        "description": "Configure and verify the television root folder and downloader paths against the selected shared /data mount before importing media."
+      },
+      {
+        "id": "restart-persistence",
+        "description": "Restart this exact project and independently verify administrator login, library paths, and any configured downloader connection."
+      }
+    ],
+    "support": {
+      "tier": "T0",
+      "automation": "guided"
+    },
+    "docs_url": "https://wiki.servarr.com/sonarr",
+    "upstream_url": "https://sonarr.tv/",
+    "pitfalls": [
+      "Mismatched downloader and library paths break imports and hardlinks."
+    ],
+    "security": [
+      "Treat API keys as secrets and keep the management UI private."
+    ],
+    "has_recipe": true
+  },
+  {
+    "id": "wud",
+    "name": "What's Up Docker",
+    "description": "Pinned 9.1.0 remote TLS watcher recipe requires explicit endpoint/container/mode choices, imported owner-issued CA/certificate/key files and a separately approved fresh remote Docker connection before every start. Management mode explicitly grants host-wide Docker control, not read-only authority; inventory mode remains blocked without verified deny-write policy. Setup verifies the saved Basic administrator, anonymous denial and exact single-container image against the approved Docker engine. Live TLS/ACL acceptance, current scan freshness and restart persistence remain unverified. No socket or registry-only mode is provided.",
+    "categories": [
+      "containers",
+      "monitoring"
+    ],
+    "image": "getwud/wud:9.1.0",
+    "environment": [],
+    "mounts": [],
+    "onboarding": {
+      "kind": ""
+    },
+    "private_files": [],
+    "multi_service": false,
+    "services": [],
+    "acceptance": [],
+    "support": {
+      "tier": "T1",
+      "automation": "guided"
+    },
+    "docs_url": "https://getwud.app/docs/",
+    "upstream_url": "https://getwud.app/",
+    "pitfalls": [
+      "An available tag is not proof that an upgrade is compatible, backed up, or reversible.",
+      "Pinned 9.1.0 registerWatchers creates a default local Docker watcher when none is configured. Available watcher providers are Docker, Kubernetes, Nomad, and Swarm; registry providers look up image updates for watcher-supplied inventory and do not offer a standalone registry-only mode. A web-only Compose container without an approved watcher would not perform useful monitoring.",
+      "Do not expose raw Docker TCP port 2375 publicly or treat Docker socket :ro as an API permission boundary."
+    ],
+    "security": [
+      "Do not mount the Docker socket directly; a read-only bind mount does not make Docker API operations read-only. Upstream recommends a Docker socket proxy with CONTAINERS, IMAGES, INFO, VERSION, EVENTS, and PING reads enabled and mutating operations denied. The proxy requires separate exact socket approval and a WUD-only network; never publish its Docker API port by default.",
+      "Keep the web UI private, seed WUD_AUTH_ADMIN_USER and WUD_AUTH_ADMIN_PASSWORD at the narrow apply boundary, and persist WUD state. Do not put the bootstrap password in catalog data or an ordinary report.",
+      "Pinned authenticated POST /api/profile/tokens accepts name and read scopes and returns rawSecret only once; inventory cannot recover it. Any future adapter must checkpoint before creation, save privately, and refuse duplicate creation after an uncertain response. Bearer verification also updates token lastUsedAt and needs an explicit mutation approval.",
+      "WUD_AUTH_ADMIN_USER with PASSWORD or HASH updates the matching user's credentials and administrator role on startup. Plan this as ongoing declarative credential ownership, not an empty-database-only seed. Homarr's pinned native WUD client uses saved Basic username/password on /api/containers; a personal token is not required for that client."
+    ],
+    "has_recipe": false
+  }
+]
