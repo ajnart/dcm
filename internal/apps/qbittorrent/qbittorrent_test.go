@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/qbittorrent"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 func newEnv(t *testing.T) *arrtest.Env {
@@ -90,5 +91,83 @@ func TestSetupRerunSkipsEveryStep(t *testing.T) {
 	}
 	if e.QBittorrent.FailedLogins() != failures {
 		t.Error("a rerun must not trigger failed logins; qBittorrent bans repeat offenders")
+	}
+}
+
+func TestLegacyLoginShapeStillWorks(t *testing.T) {
+	e := newEnv(t)
+	e.QBittorrent.Legacy = true
+
+	r := e.Run("install", "qbittorrent", "--yes", "--json")
+
+	if r.Code != 0 || r.StepEvent("qbittorrent", "admin-login") != "step.ok" {
+		t.Fatalf("≤5.1 login shape (200 Ok. + SID) should still work, exit %d\n%s", r.Code, r.Out)
+	}
+}
+
+func TestCredentialsAreSetInOneValidatedChange(t *testing.T) {
+	e := newEnv(t)
+
+	e.Run("install", "qbittorrent", "--yes")
+
+	if got := e.QBittorrent.CredentialUpdates(); got != 1 {
+		t.Fatalf("credential updates = %d, want exactly one combined change", got)
+	}
+	if e.QBittorrent.FailedLogins() >= 5 {
+		t.Fatal("install must stay below qBittorrent's ban threshold")
+	}
+}
+
+func TestTooShortAdminPasswordFailsBeforeTouchingQBittorrent(t *testing.T) {
+	e := newEnv(t)
+	systemtest.SetEnv(e.Deps, map[string]string{"SELF_HOST_ADMIN_PASSWORD": "abc12"})
+
+	r := e.Run("install", "qbittorrent", "--yes", "--json")
+
+	step := r.Step("qbittorrent", "admin-login")
+	if r.Code != 2 || step == nil || step["event"] != "step.fail" || !strings.Contains(step["error"].(string), "6 characters") {
+		t.Fatalf("short password should fail admin-login, exit %d\n%s", r.Code, r.Out)
+	}
+	if e.QBittorrent.CredentialUpdates() != 0 {
+		t.Fatal("nothing may be changed when the Admin login is invalid for qBittorrent")
+	}
+}
+
+func TestBannedIPIsReportedNotRetried(t *testing.T) {
+	e := newEnv(t)
+	e.Run("install", "qbittorrent", "--yes")
+	e.QBittorrent.Ban()
+
+	r := e.Run("setup", "qbittorrent", "--json")
+
+	step := r.Step("qbittorrent", "admin-login")
+	if r.Code != 2 || step == nil || !strings.Contains(step["error"].(string), "banned") {
+		t.Fatalf("a ban must surface as an error, exit %d\n%s", r.Code, r.Out)
+	}
+}
+
+func TestSecretsNeverAppearInEvents(t *testing.T) {
+	e := newEnv(t)
+
+	r := e.Run("install", "qbittorrent", "--yes", "--json", "--verbose")
+
+	_, pass := adminLogin(t, e)
+	for _, secret := range []string{pass, e.QBittorrent.TempPassword} {
+		if strings.Contains(r.Out, secret) {
+			t.Fatalf("secret %q leaked into events", secret)
+		}
+	}
+}
+
+func TestPeerPortsFollowExposure(t *testing.T) {
+	e := newEnv(t)
+	e.Run("install", "qbittorrent", "--yes")
+
+	fragment := clitest.Read(t, filepath.Join(e.AppDir("qbittorrent"), "compose.yml"))
+
+	for _, want := range []string{"${BIND_IP}:6881:6881\n", "${BIND_IP}:6881:6881/udp"} {
+		if !strings.Contains(fragment, want) {
+			t.Errorf("peer port not bound to ${BIND_IP}: want %q\n%s", want, fragment)
+		}
 	}
 }

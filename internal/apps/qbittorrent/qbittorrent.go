@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -23,10 +25,12 @@ const (
 	downloadsPath = "/downloads"
 	// torrentPort is the peer port, published for TCP and UDP.
 	torrentPort = 6881
-	// legacyPassword is the default before qBittorrent 4.6.1.
-	legacyPassword = "adminadmin"
 )
 
+// App is qBittorrent from the linuxserver.io image (5.2.x at the time of
+// writing). Traps from docs/qbittorrent.md: login answers 204 with a
+// QBT_SID_<port> cookie, every API call needs a matching Referer, and five
+// failed logins ban the caller.
 type App struct{}
 
 func (App) Info() app.Info {
@@ -66,8 +70,8 @@ func (App) Compose(rc app.RenderContext) string {
       - ${DOWNLOADS_ROOT}:` + downloadsPath + `
     ports:
       - ${BIND_IP}:` + port + `:` + port + `
-      - ` + torrent + `:` + torrent + `
-      - ` + torrent + `:` + torrent + `/udp
+      - ${BIND_IP}:` + torrent + `:` + torrent + `
+      - ${BIND_IP}:` + torrent + `:` + torrent + `/udp
     healthcheck:
       test: ["CMD-SHELL", "curl -fs -o /dev/null http://localhost:` + port + `/ || exit 1"]
       interval: 30s
@@ -79,10 +83,14 @@ func (App) Compose(rc app.RenderContext) string {
 
 var temporaryPassword = regexp.MustCompile(`temporary password is provided for this session: (\S+)`)
 
-// session is a signed-in WebUI: the SID cookie qBittorrent hands out.
-type session struct{ sid string }
+// session is a signed-in WebUI: the cookie qBittorrent hands out, named SID
+// up to 5.1 and QBT_SID_<port> since 5.2.
+type session struct{ cookie string }
 
-// login signs in; ok is false when qBittorrent answers "Fails.".
+var errBanned = errors.New("qBittorrent has banned this address after too many failed logins; restart the container (self-host restart qbittorrent) or wait for the ban to expire")
+
+// login signs in. Bad credentials give ok=false and no error, so callers can
+// try the next candidate; a ban is an error.
 func login(ctx context.Context, h *helpers.H, user, password string) (session, bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v2/auth/login",
@@ -92,15 +100,24 @@ func login(ctx context.Context, h *helpers.H, user, password string) (session, b
 	if err != nil {
 		return session{}, false, err
 	}
-	if resp.Status != 200 {
+	switch {
+	case resp.Status == 403:
+		return session{}, false, errBanned
+	case resp.Status == 401, resp.Status == 200 && string(resp.Body) == "Fails.":
+		return session{}, false, nil
+	case resp.Status != 200 && resp.Status != 204:
 		return session{}, false, fmt.Errorf("login returned HTTP %d", resp.Status)
 	}
-	sid := resp.Cookie("SID")
-	return session{sid: sid}, string(resp.Body) == "Ok." && sid != "", nil
+	for _, c := range (&http.Response{Header: resp.Header}).Cookies() {
+		if c.Name == "SID" || strings.HasPrefix(c.Name, "QBT_SID_") {
+			return session{cookie: c.Name + "=" + c.Value}, true, nil
+		}
+	}
+	return session{}, false, errors.New("login succeeded but qBittorrent set no session cookie")
 }
 
 func (s session) request(h *helpers.H, req helpers.Request) helpers.Request {
-	req.Header = map[string]string{"Referer": h.BaseURL, "Cookie": "SID=" + s.sid}
+	req.Header = map[string]string{"Referer": h.BaseURL, "Cookie": s.cookie}
 	return req
 }
 
@@ -151,31 +168,45 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	})
 }
 
-// takeOver signs in with the temporary password (or the pre-4.6.1 default)
-// and sets the Admin login.
+// validCredentials applies qBittorrent's own rules (5.2.4 appcontroller.cpp)
+// before anything is changed, so a rejected value never leaves it half set.
+func validCredentials(user, password string) error {
+	if len(user) < 3 || strings.Contains(user, ":") {
+		return errors.New("qBittorrent needs a username of at least 3 characters without ':'")
+	}
+	if len(password) < 6 {
+		return errors.New("qBittorrent needs a password of at least 6 characters")
+	}
+	return nil
+}
+
+// takeOver signs in as admin with the temporary password from the logs and
+// sets the Admin login in one change.
 func takeOver(ctx context.Context, h *helpers.H) error {
-	var candidates []string
-	if logs, err := h.Logs(ctx, 1000); err == nil {
-		if found := temporaryPassword.FindAllStringSubmatch(logs, -1); len(found) > 0 {
-			candidates = append(candidates, found[len(found)-1][1])
-		}
+	if err := validCredentials(h.AdminUser(), h.AdminPassword()); err != nil {
+		return err
 	}
-	candidates = append(candidates, legacyPassword)
-	for _, candidate := range candidates {
-		h.Log.Secret(candidate)
-		s, ok, err := login(ctx, h, "admin", candidate)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			continue
-		}
-		return setPreferences(ctx, h, s, map[string]string{
-			"web_ui_username": h.AdminUser(),
-			"web_ui_password": h.AdminPassword(),
-		})
+	logs, err := h.Logs(ctx, 1000)
+	if err != nil {
+		return err
 	}
-	return errors.New("neither the temporary password from the logs nor the default password was accepted")
+	found := temporaryPassword.FindAllStringSubmatch(logs, -1)
+	if len(found) == 0 {
+		return errors.New("no temporary password in the qBittorrent logs")
+	}
+	temporary := found[len(found)-1][1]
+	h.Log.Secret(temporary)
+	s, ok, err := login(ctx, h, "admin", temporary)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("the temporary password from the logs was refused")
+	}
+	return setPreferences(ctx, h, s, map[string]string{
+		"web_ui_username": h.AdminUser(),
+		"web_ui_password": h.AdminPassword(),
+	})
 }
 
 func savePath(ctx context.Context, h *helpers.H) (bool, error) {
