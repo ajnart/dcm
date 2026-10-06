@@ -70,6 +70,7 @@ func Real(version string) *Deps {
 		PortFree:     portFree,
 		ProcessAlive: processAlive,
 		PID:          os.Getpid(),
+		In:           os.Stdin,
 		Out:          os.Stdout,
 		Err:          os.Stderr,
 		Interactive:  isTerminal(os.Stdin) && isTerminal(os.Stdout),

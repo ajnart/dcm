@@ -7,7 +7,7 @@ import (
 	"github.com/ajnart/self-host/internal/host"
 )
 
-func (a *app) doctorCmd() *cobra.Command {
+func (a *program) doctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
 		Short: "Check Docker, ports, firewalls and LAN reachability",

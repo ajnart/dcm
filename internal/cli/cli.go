@@ -27,7 +27,7 @@ type exitError struct{ code int }
 
 func (e exitError) Error() string { return fmt.Sprintf("exit %d", e.code) }
 
-type app struct {
+type program struct {
 	deps    *system.Deps
 	catalog *catalog.Catalog
 	json    bool
@@ -39,7 +39,7 @@ type app struct {
 	svc      *service.Service
 }
 
-func (a *app) service() *service.Service {
+func (a *program) service() *service.Service {
 	if a.svc == nil {
 		a.svc = service.New(a.deps, a.logger(), a.catalog)
 	}
@@ -47,7 +47,7 @@ func (a *app) service() *service.Service {
 }
 
 // fail turns a Service error into an exit code, printing it as an event.
-func (a *app) fail(err error) error {
+func (a *program) fail(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -62,7 +62,7 @@ func (a *app) fail(err error) error {
 	return exitError{ExitError}
 }
 
-func (a *app) logger() *events.Logger {
+func (a *program) logger() *events.Logger {
 	if a.log != nil {
 		return a.log
 	}
@@ -88,7 +88,7 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
-	a := &app{deps: deps, catalog: cat}
+	a := &program{deps: deps, catalog: cat}
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
@@ -106,7 +106,7 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	}
 }
 
-func (a *app) root() *cobra.Command {
+func (a *program) root() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "self-host",
 		Short:         "Install and run self-hosted apps with Docker Compose",
@@ -117,6 +117,7 @@ func (a *app) root() *cobra.Command {
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
-	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd())
+	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.credentialsCmd(), a.appsCmd())
+	root.AddCommand(a.lifecycleCmds()...)
 	return root
 }

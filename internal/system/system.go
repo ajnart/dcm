@@ -61,6 +61,7 @@ type Deps struct {
 	// ProcessAlive reports whether a PID belongs to a running process.
 	ProcessAlive func(pid int) bool
 	PID          int
+	In           io.Reader
 	Out          io.Writer
 	Err          io.Writer
 	// Interactive is true when stdin and stdout are terminals.

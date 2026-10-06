@@ -12,7 +12,7 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-func (a *app) installCmd() *cobra.Command {
+func (a *program) installCmd() *cobra.Command {
 	var opts service.InstallOptions
 	var yes bool
 	cmd := &cobra.Command{
@@ -47,7 +47,7 @@ func isIncomplete(err error) bool {
 	return err != nil && strings.Contains(err.Error(), service.ErrIncomplete.Error())
 }
 
-func (a *app) setupCmd() *cobra.Command {
+func (a *program) setupCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "setup [app...]",
 		Short: "Rerun Setup; finished steps are skipped",
@@ -58,7 +58,7 @@ func (a *app) setupCmd() *cobra.Command {
 }
 
 // recap prints status after a change, unless output is JSON events.
-func (a *app) recap(cmd *cobra.Command) {
+func (a *program) recap(cmd *cobra.Command) {
 	if a.json {
 		return
 	}
@@ -70,7 +70,7 @@ func (a *app) recap(cmd *cobra.Command) {
 	printStatus(a.deps.Out, status)
 }
 
-func (a *app) statusCmd() *cobra.Command {
+func (a *program) statusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show Exposure, Host settings and every App's URL, state and Setup",
@@ -141,7 +141,7 @@ func dot(app service.AppStatus) string {
 	}
 }
 
-func (a *app) credentialsCmd() *cobra.Command {
+func (a *program) credentialsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "credentials",
 		Short: "Print the Admin login and per-App API keys",
