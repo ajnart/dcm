@@ -166,3 +166,9 @@ func (c *Compose) Logs(ctx context.Context, w io.Writer, follow bool, tail int, 
 	cmd := system.Cmd{Name: "docker", Args: c.args(append(args, services...)...), Dir: c.root}
 	return c.deps.Runner.Stream(ctx, cmd, w)
 }
+
+// LogText returns the last tail lines of services' logs.
+func (c *Compose) LogText(ctx context.Context, tail int, services ...string) (string, error) {
+	result, err := c.Run(ctx, nil, append([]string{"logs", "--no-color", "--tail", fmt.Sprint(tail)}, services...)...)
+	return string(result.Stdout), err
+}

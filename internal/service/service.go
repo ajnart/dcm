@@ -219,6 +219,7 @@ func (ss *session) helpers(a app.App) *helpers.H {
 	return helpers.New(helpers.Config{
 		App:      info.ID,
 		Service:  info.Service,
+		Dir:      ss.p.Path("apps", info.ID),
 		BaseURL:  fmt.Sprintf("http://127.0.0.1:%d", port),
 		URL:      AppURL(ss.settings, port, info.Path),
 		Port:     port,

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/events"
@@ -24,6 +25,8 @@ type Secrets interface {
 
 type Executor interface {
 	Exec(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error)
+	// LogText returns the last lines a service printed.
+	LogText(ctx context.Context, tail int, services ...string) (string, error)
 }
 
 type StepResult struct {
@@ -35,8 +38,11 @@ type StepResult struct {
 }
 
 type Config struct {
-	App      string
-	Service  string
+	App     string
+	Service string
+	// Dir is the App's folder on the host (apps/<id>), where its config
+	// bind mounts live.
+	Dir      string
 	BaseURL  string
 	URL      string
 	Port     int
@@ -133,6 +139,16 @@ func (h *H) Secret(key string) string { return h.Secrets.Get(key) }
 func (h *H) SetSecret(key, value string) error {
 	h.Log.Secret(value)
 	return h.Secrets.Set(key, value)
+}
+
+// Key namespaces an App secret: Key("api_key") for sonarr is SONARR_API_KEY.
+func (h *H) Key(name string) string {
+	return strings.ToUpper(strings.ReplaceAll(h.App+"_"+name, "-", "_"))
+}
+
+// Logs returns the main service's recent output.
+func (h *H) Logs(ctx context.Context, tail int) (string, error) {
+	return h.Config.Exec.LogText(ctx, tail, h.Service)
 }
 
 func (h *H) AdminUser() string     { return h.Secrets.Get("ADMIN_USER") }

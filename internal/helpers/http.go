@@ -25,6 +25,8 @@ type Request struct {
 	Password string
 	// BaseURL overrides the App's loopback URL (used by Links).
 	BaseURL string
+	// NoRedirect returns 3xx responses instead of following them.
+	NoRedirect bool
 }
 
 type Response struct {
@@ -85,6 +87,11 @@ func (h *H) HTTP(ctx context.Context, req Request) (Response, error) {
 	client := h.Config.HTTP
 	if client == nil {
 		client = http.DefaultClient
+	}
+	if req.NoRedirect {
+		c := *client
+		c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		client = &c
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
@@ -171,4 +178,14 @@ func (h *H) Poll(ctx context.Context, timeout time.Duration, fn func(context.Con
 		case <-time.After(h.PollInterval):
 		}
 	}
+}
+
+// Cookie returns the value of a cookie the response set.
+func (r Response) Cookie(name string) string {
+	for _, c := range (&http.Response{Header: r.Header}).Cookies() {
+		if c.Name == name {
+			return c.Value
+		}
+	}
+	return ""
 }

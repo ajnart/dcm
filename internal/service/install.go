@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -210,6 +211,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	if err := ss.p.SaveState(ss.state); err != nil {
 		return err
 	}
+	if err := ss.ensureMediaFolders(apps); err != nil {
+		return err
+	}
 	services, err := ss.services(names...)
 	if err != nil {
 		return err
@@ -371,4 +375,28 @@ func (s *Service) Setup(ctx context.Context, ids []string) error {
 	}
 	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "setup " + strings.Join(ids, " ")})
 	return s.finish(ss.setupAll(ctx, apps))
+}
+
+// ensureMediaFolders creates the media and downloads folders before Docker
+// would create them owned by root.
+func (ss *session) ensureMediaFolders(apps []app.App) error {
+	for _, a := range apps {
+		if !a.Info().UsesMedia {
+			continue
+		}
+		for _, key := range []string{"MEDIA_ROOT", "DOWNLOADS_ROOT"} {
+			dir := ss.settings[key]
+			if dir == "" {
+				continue
+			}
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return fmt.Errorf("%s %s: %w", key, dir, err)
+			}
+			if os.Geteuid() == 0 {
+				os.Chown(dir, ss.p.Owner.UID, ss.p.Owner.GID)
+			}
+		}
+		return nil
+	}
+	return nil
 }
