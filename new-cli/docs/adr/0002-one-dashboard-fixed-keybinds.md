@@ -5,3 +5,5 @@ The first TUI copied a developer tool's shape — five screens, a tasks overlay,
 Amendment: re-confirming Host settings (Exposure, LAN IP, time zone) earned no key. It is the first entry of the install picker (`i`), using the picker's own space/enter/esc, and `self-host config review` on the command line.
 
 Second amendment: the picker and the Host settings overlay were too small for the work people do there, so they became full-screen views. The Dashboard is home; Install (`i`), Settings (`s`) and Stack (`d`) are full-screen surfaces for tasks that need space, each one key away, with a shared top bar, their own footer hints, scrolling, and `esc` back to the Dashboard. A focused text field consumes `esc` first. `/` searches the catalog in Install, `ctrl+s` applies pending Settings changes, and `u`/`r` work the Stack. Destructive or rare operations (remove, purge, restore) stay commands.
+
+Third amendment: Workflow (`w`) is a full-screen view for the frequent need to see every App's remembered Setup steps, Links and check, with their states and counts, selection via ↑/↓ or k/j, and `esc` back to the Dashboard.

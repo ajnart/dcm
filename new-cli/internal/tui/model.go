@@ -120,6 +120,7 @@ type Model struct {
 	install   *installView
 	settings  *settingsView
 	stack     *stackView
+	workflow  *workflowView
 	helpView  *helpView
 	wizard    *wizard
 }
@@ -470,6 +471,8 @@ func (m Model) activeView() view {
 		return m.settings
 	case surfaceStack:
 		return m.stack
+	case surfaceWorkflow:
+		return m.workflow
 	default:
 		return m.dashboard
 	}
@@ -488,6 +491,10 @@ func (m *Model) setActive(v view) {
 	case surfaceStack:
 		if sv, ok := v.(*stackView); ok {
 			m.stack = sv
+		}
+	case surfaceWorkflow:
+		if wv, ok := v.(*workflowView); ok {
+			m.workflow = wv
 		}
 	default:
 		if dv, ok := v.(*dashboardView); ok {
@@ -570,6 +577,10 @@ func (m Model) gotoView(s surface) (tea.Model, tea.Cmd) {
 		return m.openSettings()
 	case surfaceStack:
 		return m.openStack()
+	case surfaceWorkflow:
+		m.surface = surfaceWorkflow
+		m.workflow = &workflowView{}
+		return m, nil
 	case surfaceHelp:
 		return m.openHelp()
 	default:
@@ -594,6 +605,8 @@ func (m Model) gotoSurface(name string) (tea.Model, tea.Cmd) {
 		return m.openSettings()
 	case "stack":
 		return m.openStack()
+	case "workflow":
+		return m.gotoView(surfaceWorkflow)
 	default:
 		m.surface = surfaceDashboard
 		m.install, m.settings = nil, nil

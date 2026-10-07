@@ -7,6 +7,7 @@ import "charm.land/bubbles/v2/key"
 type keyMap struct {
 	Up, Down, Tab, Toggle, Open, Copy, Update, Retry, Install, Backup, Help, Quit key.Binding
 	ScrollUp, ScrollDown, Settings, Stack, Search, Apply, Back                    key.Binding
+	Workflow                                                                      key.Binding
 }
 
 func newKeyMap() keyMap {
@@ -30,6 +31,7 @@ func newKeyMap() keyMap {
 		ScrollDown: b([]string{"pgdown"}, "pgdn", "scroll down"),
 		Settings:   b([]string{"s"}, "s", "settings"),
 		Stack:      b([]string{"d"}, "d", "stack"),
+		Workflow:   b([]string{"w"}, "w", "workflow"),
 		Search:     b([]string{"/"}, "/", "search"),
 		Apply:      b([]string{"ctrl+s"}, "ctrl+s", "apply"),
 		Back:       b([]string{"esc"}, "esc", "back"),
@@ -38,7 +40,7 @@ func newKeyMap() keyMap {
 
 func (k keyMap) all() []key.Binding {
 	return []key.Binding{k.Up, k.Down, k.Tab, k.Toggle, k.Open, k.Copy, k.Update, k.Retry, k.Install, k.Backup,
-		k.Help, k.Quit, k.ScrollUp, k.ScrollDown, k.Settings, k.Stack, k.Search, k.Apply, k.Back}
+		k.Help, k.Quit, k.ScrollUp, k.ScrollDown, k.Settings, k.Stack, k.Workflow, k.Search, k.Apply, k.Back}
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
@@ -49,6 +51,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Tab, k.ScrollUp, k.ScrollDown},
 		{k.Toggle, k.Open, k.Copy, k.Update, k.Retry},
-		{k.Install, k.Settings, k.Stack, k.Backup, k.Help, k.Quit},
+		{k.Install, k.Settings, k.Stack, k.Workflow, k.Backup, k.Help, k.Quit},
 	}
 }

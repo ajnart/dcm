@@ -292,7 +292,7 @@ func TestKeybindAudit(t *testing.T) {
 		"select up: up k", "select down: down j", "next tab: tab", "start/stop: enter",
 		"open: o", "copy password: c", "update: u", "retry Setup: r", "install: i",
 		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
-		"settings: s", "stack: d", "search: /", "apply: ctrl+s", "back: esc",
+		"settings: s", "stack: d", "workflow: w", "search: /", "apply: ctrl+s", "back: esc",
 		// Install.
 		"pick: space", "review: enter",
 		// Settings.
@@ -301,7 +301,7 @@ func TestKeybindAudit(t *testing.T) {
 		"select: ↑/↓", "re-check: r",
 	}
 	empty := &viewContext{}
-	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, newHelpView()}
+	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, &workflowView{}, newHelpView()}
 	var got []string
 	seen := map[string]bool{}
 	for _, v := range views {
