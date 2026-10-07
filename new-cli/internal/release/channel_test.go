@@ -95,3 +95,33 @@ func TestUpdateRejectsDuplicateChecksumEntriesBeforeReplacement(t *testing.T) {
 		t.Fatalf("changed executable: %q", data)
 	}
 }
+
+func TestInstallSupportsDarwinAMD64Release(t *testing.T) {
+	var archive bytes.Buffer
+	gz := gzip.NewWriter(&archive)
+	tw := tar.NewWriter(gz)
+	tw.WriteHeader(&tar.Header{Name: "self-host", Mode: 0755, Size: 5})
+	tw.Write([]byte("intel"))
+	tw.Close()
+	gz.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/releases/download/new-cli-v1.2.0/checksums.txt":
+			fmt.Fprintf(w, "%x  self-host_1.2.0_darwin_amd64.tar.gz\n", sha256.Sum256(archive.Bytes()))
+		case "/releases/download/new-cli-v1.2.0/self-host_1.2.0_darwin_amd64.tar.gz":
+			w.Write(archive.Bytes())
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	exe := filepath.Join(t.TempDir(), "self-host")
+	os.WriteFile(exe, []byte("old"), 0755)
+	client := release.Client{HTTP: server.Client(), WebURL: server.URL, APIURL: server.URL}
+	if err := client.Install(context.Background(), release.Release{Tag: "new-cli-v1.2.0"}, "darwin", "amd64", exe); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(exe); string(data) != "intel" {
+		t.Fatalf("installed %q", data)
+	}
+}

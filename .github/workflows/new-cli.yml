@@ -2,11 +2,6 @@ name: new-cli
 
 on:
   workflow_dispatch:
-    inputs:
-      intel_macos:
-        description: Run optional Intel macOS binary candidate smoke (release support remains disabled)
-        type: boolean
-        default: false
   pull_request:
     paths:
       - "new-cli/**"
@@ -55,6 +50,9 @@ jobs:
           - runner: ubuntu-24.04-arm
             os: linux
             arch: arm64
+          - runner: macos-15-intel
+            os: darwin
+            arch: amd64
           - runner: macos-15
             os: darwin
             arch: arm64
@@ -154,37 +152,4 @@ jobs:
         with:
           name: native-smoke-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/new-cli-native-smoke
-          if-no-files-found: error
-
-  intel-macos-candidate:
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.intel_macos)
-    name: Intel macOS candidate (no release support)
-    runs-on: macos-15-intel
-    timeout-minutes: 15
-    env:
-      CGO_ENABLED: "0"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: new-cli/go.mod
-          cache-dependency-path: new-cli/go.sum
-      - name: Build and execute native Intel candidate
-        shell: bash
-        run: |
-          test "$(go env GOHOSTOS)" = darwin
-          test "$(go env GOHOSTARCH)" = amd64
-          smoke_root="$RUNNER_TEMP/new-cli-intel-candidate"
-          mkdir -p "$smoke_root"
-          go build -trimpath -ldflags="-s -w -X main.version=0.0.44" -o "$smoke_root/self-host" ./cmd/self-host
-          export SELF_HOST_HOME="$smoke_root/project"
-          test "$("$smoke_root/self-host" --version)" = 0.0.44
-          "$smoke_root/self-host" --help > "$smoke_root/help.txt"
-          "$smoke_root/self-host" apps list --json > "$smoke_root/apps.json"
-          "$smoke_root/self-host" skill > "$smoke_root/skill.md"
-          uname -m > "$smoke_root/host-arch.txt"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: intel-macos-candidate
-          path: ${{ runner.temp }}/new-cli-intel-candidate
           if-no-files-found: error

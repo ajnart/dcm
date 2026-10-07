@@ -21,17 +21,18 @@ The repository is currently private. With repository access, fetch the installer
 using your authenticated GitHub client:
 
 ```bash
+set +x
 gh auth status
 gh api --method GET -H 'Accept: application/vnd.github.raw+json' \
   'repos/ajnart/selfhost-skills/contents/new-cli/install.sh?ref=feat/new-cli' \
   > /tmp/self-host-install.sh
-bash /tmp/self-host-install.sh
+SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash /tmp/self-host-install.sh
 ```
 
-Before running it, provide `SELF_HOST_GITHUB_TOKEN` through your credential
-provider with access to this repository's release assets. GitHub CLI login
-fetches the script; the installer uses this separate environment variable for
-private asset downloads. Keep its value out of commands and reports.
+GitHub CLI must be logged in with access to this repository. The command passes
+its stored credential directly to the installer through `SELF_HOST_GITHUB_TOKEN`
+with shell tracing disabled. You can instead supply that variable through your
+credential provider. Never print or paste its value into commands or reports.
 The command above targets the development branch while release work is pending;
 it cannot install a binary until a stable CLI release is published.
 
@@ -52,7 +53,7 @@ To work from an authenticated checkout before release:
 
 ```bash
 cd new-cli
-go build -o /tmp/self-host ./cmd/self-host
+go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
 /tmp/self-host --help
 ```
 
@@ -69,15 +70,17 @@ Run `self-host doctor` before installation.
 
 | Platform | Binary target | Current validation |
 | --- | --- | --- |
-| Linux amd64 | Yes | Current development host; runtime acceptance remains per App. |
-| Linux arm64 | Yes | Compile and native validation pending. Image support varies by App. |
-| macOS arm64 | Yes | Compile and native validation pending; requires a Linux Docker VM. |
-| Intel macOS | No | Unsupported; no native validation host available. |
+| Linux amd64 | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
+| Linux arm64 | Yes | Same native CLI/install checks passed; image support varies by App. |
+| macOS arm64 | Yes | Same native CLI/install checks passed; deployment requires a Linux Docker VM. |
+| Intel macOS | Candidate | Native CLI execution passed; release packaging and installer validation pending. |
 | WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
 | Native Windows | No | Unsupported. |
 
-Build targets describe packaging, not proof that every App runs on that host.
-See [runtime acceptance boundaries](e2e/acceptance.md).
+[CI run 37587841176](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
+validated source vet/tests and the native checks above at `0c186fa`. Installer
+checks used locally served archives; they do not prove authenticated GitHub
+release delivery or Docker/App acceptance. See [runtime acceptance boundaries](e2e/acceptance.md).
 
 ## First App
 

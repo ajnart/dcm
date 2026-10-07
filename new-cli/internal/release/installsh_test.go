@@ -21,7 +21,7 @@ import (
 // or "" when no release is built for it (the script would refuse too).
 func hostAsset(version string) string {
 	switch runtime.GOOS + "_" + runtime.GOARCH {
-	case "linux_amd64", "linux_arm64", "darwin_arm64":
+	case "linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64":
 		return fmt.Sprintf("self-host_%s_%s_%s.tar.gz", version, runtime.GOOS, runtime.GOARCH)
 	}
 	return ""
@@ -29,6 +29,7 @@ func hostAsset(version string) string {
 
 // installFake serves the redirect, the API and the downloads install.sh uses.
 type installFake struct {
+	platform          string
 	memberType        byte
 	linkName          string
 	tag, binary       string
@@ -44,6 +45,9 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 	t.Helper()
 	version := strings.TrimPrefix(f.tag, "new-cli-v")
 	name := hostAsset(version)
+	if f.platform != "" {
+		name = "self-host_" + version + "_" + f.platform + ".tar.gz"
+	}
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
@@ -317,5 +321,25 @@ func TestInstallScriptRejectsLinkedBinaryAndPreservesExistingInstall(t *testing.
 				t.Fatalf("changed link target: %q", data)
 			}
 		})
+	}
+}
+
+func TestInstallScriptSelectsDarwinAMD64Archive(t *testing.T) {
+	tools := t.TempDir()
+	uname := filepath.Join(tools, "uname")
+	if err := os.WriteFile(uname, []byte("#!/bin/sh\ncase \"$1\" in -s) echo Darwin ;; -m) echo x86_64 ;; esac\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "bin")
+	fake := &installFake{tag: "new-cli-v1.2.0", platform: "darwin_amd64", binary: "intel-binary"}
+	out, err := runInstaller(t, fake.server(t), "SELF_HOST_VERSION=1.2.0", "SELF_HOST_INSTALL_DIR="+dir, "PATH="+tools+":"+os.Getenv("PATH"))
+	if err != nil {
+		t.Fatalf("Intel archive install failed: %v\n%s", err, out)
+	}
+	if data, _ := os.ReadFile(filepath.Join(dir, "self-host")); string(data) != "intel-binary" {
+		t.Fatalf("installed %q", data)
+	}
+	if !strings.Contains(out, "darwin/amd64") {
+		t.Fatalf("wrong platform: %s", out)
 	}
 }

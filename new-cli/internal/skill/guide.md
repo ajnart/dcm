@@ -185,8 +185,8 @@ checksum, and replaces the running binary. It prints the old and new versions
 and refuses on a checksum mismatch. A development build must be replaced with
 a release using the install script instead.
 
-Linux amd64/arm64 and macOS arm64 are build targets. Use the Linux binary
-inside WSL; native Windows and Intel macOS are unsupported. Cross-compilation
+Linux and macOS amd64/arm64 are build targets. Use the Linux binary
+inside WSL; native Windows is unsupported. Cross-compilation
 alone does not prove native platform support.
 
 For private releases, provide `SELF_HOST_GITHUB_TOKEN` through your credential

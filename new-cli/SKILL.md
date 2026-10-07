@@ -13,8 +13,8 @@ curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli
 ```
 
 Releases use `new-cli-vX.Y.Z` tags in `ajnart/selfhost-skills`; plugin/npm
-releases are separate. Linux amd64/arm64 and macOS arm64 are the build targets.
-Use the Linux binary inside WSL. Native Windows and Intel macOS are unsupported.
+releases are separate. Linux and macOS amd64/arm64 are the build targets.
+Use the Linux binary inside WSL. Native Windows is unsupported.
 Native platform and published-asset validation must be recorded before release.
 
 For private repository access, set `SELF_HOST_GITHUB_TOKEN` in the environment

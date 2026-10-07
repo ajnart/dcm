@@ -258,7 +258,7 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 		return errors.New("invalid CLI release tag")
 	}
 	switch goos + "_" + goarch {
-	case "linux_amd64", "linux_arm64", "darwin_arm64":
+	case "linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64":
 	default:
 		return fmt.Errorf("unsupported platform %s/%s", goos, goarch)
 	}

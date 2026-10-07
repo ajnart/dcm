@@ -200,7 +200,7 @@ main() {
   os="$(detect_os)"
   arch="$(detect_arch)"
   case "${os}_${arch}" in
-    linux_amd64 | linux_arm64 | darwin_arm64) ;;
+    linux_amd64 | linux_arm64 | darwin_amd64 | darwin_arm64) ;;
     *) die "no release is built for ${os}/${arch}" ;;
   esac
 
