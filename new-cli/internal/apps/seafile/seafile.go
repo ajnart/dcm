@@ -54,6 +54,9 @@ func (App) Compose(rc app.RenderContext) string {
       SEAFILE_MYSQL_DB_HOST: db
       SEAFILE_MYSQL_DB_PORT: "3306"
       SEAFILE_MYSQL_DB_USER: seafile
+      SEAFILE_MYSQL_DB_CCNET_DB_NAME: ccnet_db
+      SEAFILE_MYSQL_DB_SEAFILE_DB_NAME: seafile_db
+      SEAFILE_MYSQL_DB_SEAHUB_DB_NAME: seahub_db
       INIT_SEAFILE_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       SEAFILE_SERVER_PROTOCOL: http
       SEAFILE_SERVER_HOSTNAME: ${LAN_IP}:` + port + `

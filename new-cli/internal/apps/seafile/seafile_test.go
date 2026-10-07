@@ -156,3 +156,25 @@ func TestComposeConfiguredServiceURLMatchesSelectedPublishedPort(t *testing.T) {
 		})
 	}
 }
+
+// The v13 Docker bootstrap exports each omitted variable as an empty installer
+// value. Unlike an absent installer environment key, that does not select the
+// installer default and causes initialization to stop before Seahub starts.
+func TestComposeSuppliesDatabaseNamesRequiredByDockerBootstrap(t *testing.T) {
+	var deployment struct {
+		Services map[string]struct{ Environment map[string]string }
+	}
+	if err := yaml.Unmarshal([]byte((seafile.App{}).Compose(app.RenderContext{Port: 8080})), &deployment); err != nil {
+		t.Fatal(err)
+	}
+	env := deployment.Services["seafile"].Environment
+	for key, want := range map[string]string{
+		"SEAFILE_MYSQL_DB_CCNET_DB_NAME":   "ccnet_db",
+		"SEAFILE_MYSQL_DB_SEAFILE_DB_NAME": "seafile_db",
+		"SEAFILE_MYSQL_DB_SEAHUB_DB_NAME":  "seahub_db",
+	} {
+		if env[key] != want {
+			t.Errorf("%s = %q; Docker bootstrap needs official database name %q instead of an empty installer parameter", key, env[key], want)
+		}
+	}
+}
