@@ -885,26 +885,70 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 
 // Keep the real board in view so lazy widget rendering and driver crops both
 // cover visible content. Never expand beyond the owned 1440x4096 bound.
+const hfBrowserWidgetDocumentBottom = `(() => {
+const widgets = Array.from(document.querySelectorAll('[data-grid-item-id]'));
+if (!widgets.length) return 0;
+return Math.ceil(Math.max(...widgets.map(widget => widget.getBoundingClientRect().bottom + window.scrollY))); })()`
+
+const hfBrowserCaptureGeometryFits = `(height) => window.scrollX === 0 && window.scrollY === 0 &&
+innerWidth === 1440 && innerHeight === height &&
+Array.from(document.querySelectorAll('[data-grid-item-id]')).every(widget => {
+ const rect = widget.getBoundingClientRect();
+ return rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight;
+})`
+
 func hfBrowserFitCaptureViewport(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error)) error {
-	output, err := run(ctx, `Math.ceil(document.scrollingElement?.scrollHeight ?? 0)`, "eval", "--stdin")
+	// Measure after fixing width: the grid's square cells resize with its width.
+	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
+		return errors.New("browser initial capture width could not be established")
+	}
+	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) {
+		return hfBrowserCaptureGeometryDiagnostic(ctx, run, "browser initial capture origin could not be established")
+	}
+	output, err := run(ctx, hfBrowserWidgetDocumentBottom, "eval", "--stdin")
 	var response struct {
 		Success bool
 		Data    struct{ Result int }
 	}
-	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success || response.Data.Result <= 0 || response.Data.Result > 4096 {
-		return errors.New("browser board height is outside the bounded capture viewport")
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success || response.Data.Result <= 0 || response.Data.Result > 4032 {
+		return hfBrowserCaptureGeometryDiagnostic(ctx, run, "browser widget bounds exceed the bounded capture viewport")
 	}
-	height := response.Data.Result
+	// Padding/min-height may keep document.scrollHeight larger than the viewport.
+	// Fit the actual widget bounds plus a bounded64px margin, not the body floor.
+	height := response.Data.Result + 64
 	if height < 1100 {
 		height = 1100
 	}
 	if _, err := run(ctx, "", "set", "viewport", "1440", strconv.Itoa(height)); err != nil {
 		return errors.New("browser bounded capture viewport could not be applied")
 	}
-	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) || !hfBrowserBoolean(ctx, run, `window.scrollX === 0 && window.scrollY === 0 && innerWidth === 1440 && innerHeight === `+strconv.Itoa(height)+` && document.scrollingElement.scrollHeight <= innerHeight`) {
-		return errors.New("browser board did not fit the applied capture viewport")
+	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) || !hfBrowserBoolean(ctx, run, "("+hfBrowserCaptureGeometryFits+")("+strconv.Itoa(height)+")") {
+		return hfBrowserCaptureGeometryDiagnostic(ctx, run, "browser widgets did not fit the applied capture viewport")
 	}
 	return nil
+}
+
+func hfBrowserCaptureGeometryDiagnostic(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error), reason string) error {
+	script := `(() => { const widgets=Array.from(document.querySelectorAll('[data-grid-item-id]'));
+ return {width:Math.ceil(innerWidth),height:Math.ceil(innerHeight),documentHeight:Math.ceil(document.scrollingElement?.scrollHeight ?? 0),
+ widgetBottom:Math.ceil(Math.max(0,...widgets.map(widget=>widget.getBoundingClientRect().bottom))),scrollX:Math.ceil(window.scrollX),scrollY:Math.ceil(window.scrollY)}; })()`
+	output, err := run(ctx, script, "eval", "--stdin")
+	var response struct {
+		Success bool
+		Data    struct {
+			Result struct{ Width, Height, DocumentHeight, WidgetBottom, ScrollX, ScrollY int }
+		}
+	}
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success {
+		return fmt.Errorf("%s; numeric_geometry_unavailable=true", reason)
+	}
+	g := response.Data.Result
+	for _, n := range []int{g.Width, g.Height, g.DocumentHeight, g.WidgetBottom, g.ScrollX, g.ScrollY} {
+		if n < 0 || n > 100000 {
+			return fmt.Errorf("%s; numeric_geometry_unavailable=true", reason)
+		}
+	}
+	return fmt.Errorf("%s; width=%d, height=%d, document_height=%d, widget_bottom=%d, scroll_x=%d, scroll_y=%d", reason, g.Width, g.Height, g.DocumentHeight, g.WidgetBottom, g.ScrollX, g.ScrollY)
 }
 
 const hfBrowserAppIconsReady = `(selectors) => selectors.length > 0 && selectors.every(selector => {
@@ -956,20 +1000,53 @@ func TestHomarrBrowserCaptureRequiresRenderedContentAfterResize(t *testing.T) {
 	}
 }
 
+func TestHomarrBrowserCaptureFitsWidgetBoundsDespiteBodyFloor(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	bounds, _ := json.Marshal(hfBrowserWidgetDocumentBottom)
+	fits, _ := json.Marshal(hfBrowserCaptureGeometryFits)
+	script := `globalThis.window={scrollX:0,scrollY:0};globalThis.innerWidth=1440;globalThis.innerHeight=2064;
+ let bottom=2000;globalThis.document={scrollingElement:{scrollHeight:9000},querySelectorAll:()=>[{getBoundingClientRect:()=>({width:500,height:800,top:1200,left:20,right:520,bottom})}]};
+ if(eval(` + string(bounds) + `)!==2000) throw Error('body floor used for widget bounds');
+ const fit=eval(` + string(fits) + `);if(!fit(2064)) throw Error('visible widgets rejected because body is taller');
+ bottom=2100;if(fit(2064)) throw Error('cropped widget accepted');bottom=2000;
+ innerWidth=1280;if(fit(2064)) throw Error('wrong responsive width accepted');innerWidth=1440;
+ innerHeight=2164;if(fit(2064)) throw Error('wrong height accepted');innerHeight=2064;
+ window.scrollY=1;if(fit(2064)) throw Error('scrolled crop accepted');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("capture geometry confused document floor with visible widget bounds")
+	}
+}
+
+func TestHomarrBrowserCaptureGeometryDiagnosticExcludesPrivateFields(t *testing.T) {
+	run := func(_ context.Context, _ string, _ ...string) ([]byte, error) {
+		return []byte(`{"success":true,"data":{"result":{"width":1440,"height":2064,"documentHeight":2128,"widgetBottom":2000,"scrollX":0,"scrollY":0,"private":"synthetic-private-value"}},"error":"synthetic-private-error"}`), nil
+	}
+	err := hfBrowserCaptureGeometryDiagnostic(context.Background(), run, "fixed geometry failure")
+	if strings.Contains(err.Error(), "synthetic-private") || !strings.Contains(err.Error(), "widget_bottom=2000") {
+		t.Fatal("geometry diagnostics exposed private fields or lost bounded metrics")
+	}
+}
+
 func TestHomarrBrowserCaptureViewportIsBoundedAndVerified(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		height       int
 		fits, wantOK bool
 	}{
-		{"board fits", 2068, true, true}, {"small board", 800, true, true}, {"maximum", 4096, true, true},
-		{"oversize", 4097, true, false}, {"invalid", 0, true, false}, {"resize ineffective", 2068, false, false},
+		{"board fits", 2068, true, true}, {"small board", 800, true, true}, {"maximum", 4032, true, true},
+		{"oversize", 4033, true, false}, {"invalid", 0, true, false}, {"resize ineffective", 2068, false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			resized := false
+			sets := 0
+			measured := false
 			run := func(_ context.Context, stdin string, args ...string) ([]byte, error) {
 				if args[0] == "set" {
-					resized = true
+					sets++
 					if args[2] != "1440" {
 						t.Fatal("capture changed dashboard width")
 					}
@@ -979,7 +1056,14 @@ func TestHomarrBrowserCaptureViewportIsBoundedAndVerified(t *testing.T) {
 					}
 					return []byte(`{"success":true}`), nil
 				}
-				if !resized {
+				if stdin == hfBrowserCaptureAtOrigin {
+					return []byte(`{"success":true,"data":{"result":true}}`), nil
+				}
+				if !measured {
+					if sets != 1 {
+						t.Fatal("capture measured responsive widget bounds before fixed width was applied")
+					}
+					measured = true
 					return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%d}}`, tc.height)), nil
 				}
 				return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%t}}`, tc.fits)), nil
@@ -988,7 +1072,7 @@ func TestHomarrBrowserCaptureViewportIsBoundedAndVerified(t *testing.T) {
 			if (err == nil) != tc.wantOK {
 				t.Fatal("capture accepted invalid bounds or ineffective viewport change")
 			}
-			if (tc.height <= 0 || tc.height > 4096) && resized {
+			if (tc.height <= 0 || tc.height > 4032) && sets > 1 {
 				t.Fatal("invalid height applied")
 			}
 		})
