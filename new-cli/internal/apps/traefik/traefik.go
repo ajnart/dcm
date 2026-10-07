@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -82,72 +83,101 @@ func (App) Files(_ app.RenderContext, secret func(name string) string) []app.Fil
 	return []app.File{{Path: "management-api", Content: content, Mode: 0o600}}
 }
 
+var errAnonymousAPI = errors.New("management API permits anonymous access; refusing to configure credentials")
+
 // adminWorks proves the management API rejects anonymous access and accepts
 // only the saved credential's bcrypt hash, with the pinned read-only router.
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	anonymous, err := h.HTTP(ctx, helpers.Request{Path: "/api/version"})
+	anonymous, err := h.HTTP(ctx, helpers.Request{Path: "/api/version", NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, managementRequestError(ctx)
+	}
+	if anonymous.Status == http.StatusOK {
+		return false, fmt.Errorf("%w (HTTP 200)", errAnonymousAPI)
 	}
 	if anonymous.Status != http.StatusUnauthorized {
-		return false, nil
+		return false, fmt.Errorf("anonymous management API probe returned HTTP %d; expected HTTP 401", anonymous.Status)
 	}
-	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/version", User: h.AdminUser(), Password: h.AdminPassword()})
+	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/version", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, managementRequestError(ctx)
 	}
 	if version.Status != http.StatusOK {
-		return false, nil
+		return false, fmt.Errorf("saved management API credential probe returned HTTP %d; expected HTTP 200", version.Status)
 	}
 	var info struct {
 		Version string `json:"Version"`
 	}
 	if err := version.Decode(&info); err != nil {
-		return false, err
+		return false, errors.New("authenticated management API returned invalid version JSON")
 	}
 	if info.Version != "3.6.22" {
-		return false, nil
+		return false, errors.New("management API version does not match pinned 3.6.22")
 	}
-	routers, err := h.HTTP(ctx, helpers.Request{Path: "/api/http/routers", User: h.AdminUser(), Password: h.AdminPassword()})
+	routers, err := h.HTTP(ctx, helpers.Request{Path: "/api/http/routers", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, managementRequestError(ctx)
 	}
 	if routers.Status != http.StatusOK {
-		return false, nil
+		return false, fmt.Errorf("authenticated router probe returned HTTP %d; expected HTTP 200", routers.Status)
 	}
 	var list []struct {
 		Name   string `json:"name"`
 		Status string `json:"status"`
 	}
 	if err := routers.Decode(&list); err != nil {
-		return false, err
+		return false, errors.New("authenticated management API returned invalid router JSON")
 	}
 	for _, router := range list {
 		if router.Name == "selfhost-api@file" && router.Status == "enabled" {
 			return true, nil
 		}
 	}
-	return false, nil
+	return false, errors.New("authenticated management API has no enabled selfhost-api file-provider router")
+}
+
+func managementRequestError(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return errors.New("management API request failed before an HTTP response")
+}
+
+func waitAdminAPI(ctx context.Context, h *helpers.H) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	var refused error
+	err := h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) {
+		done, err := adminWorks(ctx, h)
+		if errors.Is(err, errAnonymousAPI) {
+			refused = err
+			return true, nil
+		}
+		return done, err
+	})
+	if err != nil {
+		return err
+	}
+	return refused
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.Ready(ctx, "/ping"); err != nil {
+	if err := h.Ready(ctx, "/ping", helpers.WantStatus(http.StatusOK)); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-api", "verify the "+h.AdminUser()+" control-interface credential", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
-			return errors.New("Traefik reads the file-provider config and its bcrypt hash at start")
-		},
-		Hint: "Regenerate the file-provider config and recreate the container: self-host install traefik, then self-host start traefik. " +
-			"Verify with: curl -u " + h.AdminUser() + ":<password from `self-host credentials`> " + h.URL + "/api/version",
+		Do:    func(ctx context.Context) error { return waitAdminAPI(ctx, h) },
+		Hint: "A responding ping does not prove the file-provider API is ready. HTTP 404 indicates a missing route; " +
+			"HTTP 401 for the saved login indicates a credential/config mismatch. Verify the saved login with self-host credentials " +
+			"and the restored management-api file; keep the existing login and recreate the container after correcting config.",
 		Credential: "control-interface",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the %s control-interface credential is refused by Traefik: %v", h.AdminUser(), err)
+		return fmt.Errorf("Traefik control-interface verification failed: %w", err)
 	}
 	return nil
 }
