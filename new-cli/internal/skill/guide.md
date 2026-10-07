@@ -17,7 +17,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    inputs and Links.
 3. `self-host install <app|recipe>... --yes --json` installs and runs Setup.
    Without `--yes` a non-terminal run refuses. Answer an App's inputs with
-   `--set app.key=value` (repeatable); `--set app.port=N` picks its port.
+   `--set app.key=value` for non-secret fields (repeatable); `--set app.port=N`
+   picks its port. Private inputs use the file references described in Secrets.
    Host choices for a new Project: `--exposure`, `--media-root`,
    `--downloads-root`, `--admin-user`. The Admin password comes from
    `SELF_HOST_ADMIN_PASSWORD` or is generated.
@@ -58,7 +59,7 @@ JSON document), `--verbose` or `-v` (also print every command and step start).
 
 Command flags:
 
-- install: `--yes`, `--set`, `--exposure`, `--media-root`, `--downloads-root`,
+- install: `--yes`, `--set`, `--set-file`, `--exposure`, `--media-root`, `--downloads-root`,
   `--admin-user`
 - status: `--updates`
 - remove: `--purge` (also deletes the App's data folder), `--yes`
@@ -176,6 +177,12 @@ or a file you write. The only way to read them is `self-host credentials`; use
 its output where needed (a login form, an API header) and say only where it
 came from. Secrets live in `~/self-host/secrets.env` with mode 0600; do not
 read that file directly.
+
+For inputs marked `private` by `self-host apps info <app> --json`, pass
+`--set-file app.key=/owned/private/credential-file` during install. Use an
+existing regular, owner-only file belonging to the Project owner; the CLI
+reads it privately and saves its value in the secret store. Interactive private
+inputs are masked. Provider accounts and approvals remain prerequisites.
 
 ## Updating the binary
 
