@@ -1,0 +1,25 @@
+new-cli/internal/apps/homarr/homarr_test.go
+  s_2c51c6ba1a0d6b::t_a4ade77d2f3715 266,588-589,639,651,682-715
+new-cli/internal/apps/ntfy/ntfy.go
+  s_2c51c6ba1a0d6b::t_720680982132ac 7,9,33-38,84-127,134,152-162,177-183
+new-cli/internal/apps/ntfy/ntfy_test.go
+  s_2c51c6ba1a0d6b::t_4de124f2f35cdd 4,9,18-19,28-29,52-64,66-74,77-81,87,136-142,147-170
+new-cli/internal/apps/homarr/links.go
+  s_2c51c6ba1a0d6b::t_32ee3167b5419e 56-64,97-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e4bde8c94723bf9e9f857375e66fcf8637c6ad92",
+  "prompts": {},
+  "sessions": {
+    "s_2c51c6ba1a0d6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114eb-63f2-7270-bfef-a3b2027dec6f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
