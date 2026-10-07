@@ -49,6 +49,8 @@ func (App) Compose(rc app.RenderContext) string {
     image: lldap/lldap:2026-08-28
     restart: unless-stopped
     environment:
+      UID: ${PUID}
+      GID: ${PGID}
       LLDAP_LDAP_USER_DN: ${ADMIN_USER}
       LLDAP_LDAP_BASE_DN: dc=example,dc=com
       LLDAP_LDAP_USER_PASS_FILE: /run/secrets/admin-password
