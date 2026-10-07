@@ -3,6 +3,7 @@ package docmost_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,6 +31,7 @@ type fakeDocmost struct {
 	limited          int
 	retryAfter       string
 	loginAttempts    int
+	identityReads    int
 	loginFailureBody string
 }
 
@@ -99,6 +101,9 @@ func (f *fakeDocmost) handler() http.Handler {
 		json.NewEncoder(w).Encode(map[string]any{"success": true, "status": 200})
 	}))
 	mux.HandleFunc("POST /api/users/me", jsonOnly(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		f.identityReads++
 		if c, err := r.Cookie("authToken"); err != nil || c.Value != "cookie" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -216,6 +221,61 @@ func TestSetupPersistentRateLimitIsBoundedAndDoesNotCreateOwner(t *testing.T) {
 	}
 	if fake.setups != 0 || fake.pass != "pw" || !fake.owner {
 		t.Fatalf("existing owner was touched: setup writes = %d", fake.setups)
+	}
+}
+
+func TestRateLimitWaitCancellationStopsAuthenticationAndSetup(t *testing.T) {
+	for _, operation := range []struct {
+		name string
+		run  func(context.Context, *helpers.H) error
+	}{
+		{name: "Check", run: (docmost.App{}).Check},
+		{name: "Setup", run: (docmost.App{}).Setup},
+	} {
+		t.Run(operation.name, func(t *testing.T) {
+			fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw", owner: true, limited: 1, retryAfter: "2"}
+			srv := httptest.NewServer(fake.handler())
+			defer srv.Close()
+			h := helpers.New(helpers.Config{
+				App: "docmost", Service: "docmost", BaseURL: srv.URL, URL: srv.URL,
+				HTTP: srv.Client(), Log: events.Discard(),
+				Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"},
+			})
+			// Keep the real helper wait; signal its entry so cancellation happens
+			// after the rate-limit response, rather than before the first request.
+			waitStarted := make(chan time.Duration, 1)
+			sleep := h.Sleep
+			h.Sleep = func(ctx context.Context, duration time.Duration) error {
+				waitStarted <- duration
+				return sleep(ctx, duration)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			done := make(chan error, 1)
+			go func() { done <- operation.run(ctx, h) }()
+			select {
+			case duration := <-waitStarted:
+				if duration != 2*time.Second {
+					t.Fatalf("retry wait = %s, want 2s", duration)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("authentication did not enter the retry wait")
+			}
+			cancel()
+			select {
+			case err := <-done:
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("canceled %s returned %v, want context.Canceled", operation.name, err)
+				}
+			case <-time.After(time.Second):
+				t.Fatalf("canceled %s did not promptly interrupt the retry wait", operation.name)
+			}
+			fake.mu.Lock()
+			defer fake.mu.Unlock()
+			if fake.loginAttempts != 1 || fake.identityReads != 0 || fake.setups != 0 || !fake.owner || fake.pass != "pw" {
+				t.Fatalf("cancellation continued authentication or changed the owner: logins=%d, identity reads=%d, setup writes=%d", fake.loginAttempts, fake.identityReads, fake.setups)
+			}
+		})
 	}
 }
 
