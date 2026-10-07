@@ -151,6 +151,9 @@ func (f *passboltRuntimeFixture) close() { f.connect.close() }
 func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
 	if installed.code != 0 && !(installed.code == exitIncomplete && allNoHeadless(installed)) {
+		if installed.termination == nil {
+			installed.events = append(installed.events, f.startupDiagnostic(r))
+		}
 		return installed
 	}
 	// The enclosing install stage can end manual immediately. Preserve a distinct
@@ -246,4 +249,37 @@ func (f *passboltRuntimeFixture) probe(r *runner) result {
 		return passboltPrerequisiteFailure()
 	}
 	return result{}
+}
+
+// This failure-only HTTP observation never retains a response body or keys.
+func (f *passboltRuntimeFixture) startupDiagnostic(r *runner) event {
+	reason := "owned Passbolt verification diagnostic could not be observed"
+	parent := r.commandCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+	defer cancel()
+	trust, err := os.ReadFile(f.files.caFile)
+	roots := x509.NewCertPool()
+	if err == nil && len(trust) <= 16384 && roots.AppendCertsFromPEM(trust) {
+		proxy, err := url.Parse(f.connect.proxyURL)
+		if err == nil {
+			transport := &http.Transport{Proxy: http.ProxyURL(proxy), TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}}
+			defer transport.CloseIdleConnections()
+			client := &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+			request, err := http.NewRequestWithContext(ctx, http.MethodGet, f.files.origin+"/auth/verify.json", nil)
+			if err == nil {
+				response, err := client.Do(request)
+				if err == nil {
+					body, readErr := io.ReadAll(io.LimitReader(response.Body, (16<<10)+1))
+					response.Body.Close()
+					if readErr == nil {
+						reason = passboltReadinessReason(response.StatusCode, body)
+					}
+				}
+			}
+		}
+	}
+	return event{Event: "step.fail", App: "passbolt", Step: "startup-diagnostic", Error: reason, Hint: "inspect only allowlisted startup/configuration and key-file accessibility booleans in the owned Project; no raw logs or key payloads"}
 }
