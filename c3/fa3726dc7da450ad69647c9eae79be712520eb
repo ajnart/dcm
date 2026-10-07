@@ -1,0 +1,31 @@
+new-cli/docs/handoff.md
+  s_fa3d6fdecdb587::t_c84afb22e1418f 1-170
+.claude/agents/selfhost-implementer.md
+  s_fa3d6fdecdb587::t_c3a58ffb6c54de 1-16
+.claude/agents/selfhost-reviewer.md
+  s_fa3d6fdecdb587::t_872bdcca6ca771 1-14
+AGENTS.md
+  s_fa3d6fdecdb587::t_85c31dea65a655 117-133
+docs/agents/domain.md
+  s_fa3d6fdecdb587::t_6ae4c8866913b9 1-29
+docs/agents/issue-tracker.md
+  s_fa3d6fdecdb587::t_1f797096deee38 1-45
+docs/agents/triage-labels.md
+  s_fa3d6fdecdb587::t_089a7e7d88af4a 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3fa3726dc7da450ad69647c9eae79be712520eb",
+  "prompts": {},
+  "sessions": {
+    "s_fa3d6fdecdb587": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11507-2604-72c0-adeb-18c22707a3ed",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
