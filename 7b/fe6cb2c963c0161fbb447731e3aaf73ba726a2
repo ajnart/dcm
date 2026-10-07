@@ -1,0 +1,19 @@
+new-cli/internal/tui/install.go
+  s_a2fd509a765bab::t_6305650ba54498 60,65,69-72,86-114,117-119,174-176,178,180,186,188,194,198-199,204-205,207,210-214,217-218,220,222,224,232,234,237,242,249,256,263,270-271,276,278,281-282,284,290,298-299,311,321,324-325,329,332-333,349,382-383,385,389,393,440-443,445,447,452-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7bfe6cb2c963c0161fbb447731e3aaf73ba726a2",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
