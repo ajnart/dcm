@@ -13,15 +13,15 @@ import (
 // Default is the catalog shipped in the binary.
 func Default() *Catalog {
 	apps := []app.App{ntfy.App{}, vaultwarden.App{}, arr.Prowlarr(), arr.Radarr(), arr.Sonarr(), qbittorrent.App{}, jellyfin.App{}, seerr.App{}}
-	apps = append(apps, generatedApps()...)
+	apps = append(append(apps, generatedApps()...), ported...)
 	return New(
 		apps,
-		[]Recipe{{
+		append([]Recipe{{
 			ID:          "media",
 			Name:        "Media",
 			Description: "Watch, request, download and organize movies and TV",
 			// Seerr comes last: its Links need Jellyfin, Sonarr and Radarr ready.
 			Apps: []string{"qbittorrent", "sonarr", "radarr", "prowlarr", "jellyfin", "seerr"},
-		}},
+		}}, portedRecipes...),
 	)
 }

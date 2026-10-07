@@ -61,6 +61,9 @@ type SecretSpec struct {
 	Name string
 	// Length is the size of the generated random value.
 	Length int
+	// Hex makes it Length hexadecimal digits (e.g. a 256-bit key as 64)
+	// instead of letters and digits.
+	Hex bool
 }
 
 // SecretDeclarer is an optional interface for Apps whose Compose fragment

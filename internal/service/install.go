@@ -296,6 +296,9 @@ func (ss *session) ensureSecrets(a app.App) error {
 			continue
 		}
 		value := GeneratePassword(spec.Length)
+		if spec.Hex {
+			value = GenerateHex(spec.Length)
+		}
 		ss.s.Log.Secret(value)
 		if err := ss.secrets.Set(key, value); err != nil {
 			return err

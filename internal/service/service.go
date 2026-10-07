@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -146,6 +147,15 @@ func GeneratePassword(length int) string {
 		b[i] = passwordAlphabet[n.Int64()]
 	}
 	return string(b)
+}
+
+// GenerateHex returns length random hexadecimal digits.
+func GenerateHex(length int) string {
+	b := make([]byte, (length+1)/2)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)[:length]
 }
 
 // secretStore persists every Set immediately.
