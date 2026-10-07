@@ -57,6 +57,10 @@ func observeOwnedImages(previous []imageEvidence, expected []string, list func(s
 	var unavailable []string
 	for _, service := range expected {
 		ids := strings.Fields(list(service))
+		// Compose may omit the algorithm prefix for a full image digest.
+		if len(ids) == 1 && len(ids[0]) == 64 && immutableImageID("sha256:"+ids[0]) {
+			ids[0] = "sha256:" + ids[0]
+		}
 		if len(ids) == 1 && immutableImageID(ids[0]) {
 			parts := strings.Fields(inspect([]string{"image", "inspect", "--format", "{{.Id}} {{.Os}}/{{.Architecture}}", ids[0]}))
 			if len(parts) == 2 && immutableImageID(parts[0]) && parts[0] == ids[0] && imagePlatform.MatchString(parts[1]) {

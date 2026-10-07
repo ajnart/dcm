@@ -6,9 +6,30 @@ import (
 	"errors"
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestOwnedImageInspectionNormalizesFullComposeImageID(t *testing.T) {
+	// Docker Compose 29 images -q emits the complete digest without its prefix.
+	raw := "c83674e1999044d33d751661371b873539f47e5b5c5ca3320c7e0377acca6238"
+	id := "sha256:" + raw
+	inspected := false
+	images, missing := observeOwnedImages(nil, []string{"homarr"}, func(string) string {
+		return raw + "\n"
+	}, func(args []string) string {
+		inspected = true
+		want := []string{"image", "inspect", "--format", "{{.Id}} {{.Os}}/{{.Architecture}}", id}
+		if !reflect.DeepEqual(args, want) {
+			t.Fatal("full Compose image ID was not inspected with its exact canonical selector")
+		}
+		return id + " linux/amd64"
+	})
+	if !inspected || len(images) != 1 || len(missing) != 0 || images[0].ID != id {
+		t.Fatal("full unprefixed Compose image ID lost owned image proof")
+	}
+}
 
 func TestFailedTargetRetainsAvailableImageEvidence(t *testing.T) {
 	id := "sha256:" + strings.Repeat("a", 64)
@@ -32,7 +53,7 @@ func TestFailedTargetRetainsAvailableImageEvidence(t *testing.T) {
 
 func TestOwnedImageInspectionRejectsUnsafeOutput(t *testing.T) {
 	id := "sha256:" + strings.Repeat("b", 64)
-	for _, output := range []string{"", "--format", id + " extra", "ntfy:latest", "sha256:" + strings.Repeat("z", 64)} {
+	for _, output := range []string{"", "--format", id + " extra", "ntfy:latest", "sha256:" + strings.Repeat("z", 64), strings.Repeat("b", 12), strings.Repeat("b", 63), strings.Repeat("b", 65), strings.Repeat("z", 64), strings.Repeat("b", 64) + "\n" + strings.Repeat("c", 64)} {
 		called := false
 		images, missing := observeOwnedImages(nil, []string{"ntfy"}, func(string) string { return output }, func([]string) string { called = true; return id + " linux/amd64" })
 		if called || len(images) != 0 || len(missing) != 1 {
