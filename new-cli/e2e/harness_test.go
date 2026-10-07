@@ -95,21 +95,23 @@ func moduleRoot() (string, error) {
 }
 
 type runner struct {
-	commandCtx   context.Context
-	netbird      *netBirdFixture
-	netbirdOwner bool
-	teardownOK   bool
-	restored     *runner
-	t            *testing.T
-	root         string
-	project      string
-	name         string
-	target       string
-	env          []string
-	logDir       string
-	evidence     *targetEvidence
-	spec         targetSpec
-	guard        *sweepGuard
+	authelia      *autheliaRoute
+	autheliaOwner bool
+	commandCtx    context.Context
+	netbird       *netBirdFixture
+	netbirdOwner  bool
+	teardownOK    bool
+	restored      *runner
+	t             *testing.T
+	root          string
+	project       string
+	name          string
+	target        string
+	env           []string
+	logDir        string
+	evidence      *targetEvidence
+	spec          targetSpec
+	guard         *sweepGuard
 }
 
 func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
@@ -196,6 +198,9 @@ func decodeEvents(s string) []event {
 }
 
 func (r *runner) cleanup() {
+	if r.autheliaOwner {
+		defer r.authelia.close()
+	}
 	if r.netbirdOwner {
 		defer r.netbird.route.close()
 	}

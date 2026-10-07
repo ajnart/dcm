@@ -99,9 +99,13 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
 	r.prepareNetBirdFixture(reservation)
+	r.prepareAutheliaFixture(reservation)
 	args := installArguments(spec, r.root, reservation.primary)
 	if r.netbird != nil {
 		args = append(args, "--set", "netbird.NETBIRD_CANONICAL_ORIGIN="+r.netbird.route.origin)
+	}
+	if r.authelia != nil {
+		args = append(args, "--set", "authelia.origin="+r.authelia.origin)
 	}
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
@@ -187,6 +191,11 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	restored.target = r.target + "-restore"
 	if r.netbird != nil {
 		restored.attachNetBirdFixture(r.netbird)
+	}
+	if r.authelia != nil {
+		if err := restored.attachAutheliaFixture(r.authelia); err != nil {
+			r.autheliaFixtureFailure()
+		}
 	}
 	r.stage("isolated-restore", []string{"stop", "--json", "then", "restore", archive, "--yes", "--json"}, func() result {
 		res := r.run("stop", "--json")
