@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "peanut", Name: "PeaNUT", Category: "Monitoring",
 		Description:   "Dashboard for the readings of your NUT-monitored UPS",
-		Image:         "brandawg93/peanut:v6.0.0",
+		Image:         "brandawg93/peanut:6.0.0",
 		Docs:          "https://github.com/Brandawg93/PeaNUT#readme",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -36,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   peanut:
-    image: brandawg93/peanut:v6.0.0
+    image: brandawg93/peanut:6.0.0
     restart: unless-stopped
     environment:
       WEB_HOST: 0.0.0.0

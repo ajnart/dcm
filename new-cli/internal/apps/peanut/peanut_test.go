@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/peanut"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -14,6 +15,17 @@ import (
 )
 
 const password = "admin-password-123"
+
+func TestPublishedImagePin(t *testing.T) {
+	a := peanut.App{}
+	const image = "brandawg93/peanut:6.0.0"
+	if got := a.Info().Image; got != image {
+		t.Fatalf("image = %q, want published tag %q", got, image)
+	}
+	if compose := a.Compose(app.RenderContext{Port: 8080}); !strings.Contains(compose, "image: "+image+"\n") {
+		t.Fatalf("Compose does not use the published pinned image %q", image)
+	}
+}
 
 type secrets map[string]string
 
