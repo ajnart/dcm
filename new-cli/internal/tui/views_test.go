@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/service"
@@ -122,10 +124,175 @@ func TestWorkflowViewShowsEveryAppAndRememberedMarks(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = workflowStatus()
 	var v view = &workflowView{}
+	v, _, _ = v.Update(ctx, press("space")) // expand the collapsed Jellyfin
 	out := ansi.Strip(v.View(ctx, 120, 30))
 	for _, want := range []string{"Jellyfin", "Sonarr", "Radarr", "whoami", "1 App fully set up", "1 step failed", "✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "API ready", "no remembered steps", "added by hand, no Setup"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Workflow view lacks %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWorkflowViewExpandsFailedAppsAndCollapsesSetUpApps(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = workflowStatus()
+	var v view = &workflowView{}
+	out := ansi.Strip(v.View(ctx, 120, 30))
+
+	if strings.Contains(out, "✓ ready · API ready") || strings.Contains(out, "↷ account") {
+		t.Fatalf("fully set-up Jellyfin should start collapsed\n%s", out)
+	}
+	for _, want := range []string{"Jellyfin", "✗ link-qbittorrent", "○ check"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("failed Sonarr should start expanded with %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWorkflowViewSpaceTogglesAnApp(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = workflowStatus()
+	var v view = &workflowView{}
+
+	next, cmd, nv := v.Update(ctx, press("space"))
+	v = next
+	if cmd != nil || nv.kind != navNone {
+		t.Fatalf("space should toggle in place, got %+v", nv)
+	}
+	if out := ansi.Strip(v.View(ctx, 120, 30)); !strings.Contains(out, "✓ ready · API ready") {
+		t.Fatalf("space should expand the collapsed Jellyfin\n%s", out)
+	}
+
+	v, _, _ = v.Update(ctx, press("space"))
+	if out := ansi.Strip(v.View(ctx, 120, 30)); strings.Contains(out, "✓ ready · API ready") {
+		t.Fatalf("space should collapse Jellyfin again\n%s", out)
+	}
+}
+
+func workflowFilterStatus() service.Status {
+	return service.Status{Apps: []service.AppStatus{
+		{ID: "jf", Name: "Jellyfin", Managed: true, Setup: "ok"},
+		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "fail"}}},
+		{ID: "radarr", Name: "Radarr", Managed: true, Setup: "pending"},
+	}}
+}
+
+func TestWorkflowViewFiltersAppsByNameOrID(t *testing.T) {
+	for _, tc := range []struct {
+		name, query string
+		want, gone  []string
+	}{
+		{"by name", "jelly", []string{"Jellyfin"}, []string{"Sonarr", "Radarr"}},
+		{"by id", "jf", []string{"Jellyfin"}, []string{"Sonarr", "Radarr"}},
+		{"by id only", "sonarr", []string{"Sonarr"}, []string{"Jellyfin", "Radarr"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := testViewContext(&fakeBackend{})
+			ctx.status = workflowFilterStatus()
+			var v view = &workflowView{}
+			v, _, _ = v.Update(ctx, press("/"))
+			for _, r := range tc.query {
+				v, _, _ = v.Update(ctx, press(string(r)))
+			}
+			out := ansi.Strip(v.View(ctx, 120, 30))
+			for _, want := range tc.want {
+				if !strings.Contains(out, want) {
+					t.Fatalf("filter %q should keep %q\n%s", tc.query, want, out)
+				}
+			}
+			for _, gone := range tc.gone {
+				if strings.Contains(out, gone) {
+					t.Fatalf("filter %q should drop %q\n%s", tc.query, gone, out)
+				}
+			}
+		})
+	}
+}
+
+func TestWorkflowViewEscClearsFilterThenGoesBack(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = workflowFilterStatus()
+
+	var plain view = &workflowView{}
+	if _, cmd, nv := plain.Update(ctx, press("esc")); cmd != nil || nv.kind != navBack {
+		t.Fatalf("esc with no filter should navigate back, got %+v", nv)
+	}
+
+	var v view = &workflowView{}
+	v, _, _ = v.Update(ctx, press("/"))
+	for _, r := range "son" {
+		v, _, _ = v.Update(ctx, press(string(r)))
+	}
+	v, _, _ = v.Update(ctx, press("enter"))
+
+	next, cmd, nv := v.Update(ctx, press("esc"))
+	v = next
+	if cmd != nil || nv.kind != navNone {
+		t.Fatalf("first esc should clear the filter, not navigate, got %+v", nv)
+	}
+	out := ansi.Strip(v.View(ctx, 120, 30))
+	if !strings.Contains(out, "Jellyfin") || strings.Contains(out, "/son") {
+		t.Fatalf("first esc should clear the filter\n%s", out)
+	}
+
+	if _, _, nv := v.Update(ctx, press("esc")); nv.kind != navBack {
+		t.Fatalf("second esc should navigate back, got %+v", nv)
+	}
+}
+
+func workflowMany(n int) service.Status {
+	var apps []service.AppStatus
+	for i := 0; i < n; i++ {
+		apps = append(apps, service.AppStatus{ID: fmt.Sprintf("app%02d", i), Name: fmt.Sprintf("App %02d", i),
+			Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready"}}})
+	}
+	return service.Status{Apps: apps}
+}
+
+func TestWorkflowViewScrollsToTheLastOfFortyApps(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		msg   tea.Msg
+		times int
+	}{
+		{"down keys", press("down"), 200},
+		{"pgdn", pgdownKey(), 100},
+		{"mouse wheel", wheelMsg(true), 100},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := testViewContext(&fakeBackend{})
+			ctx.status = workflowMany(40)
+			v := &workflowView{}
+			for i := 0; i < tc.times; i++ {
+				next, _, _ := v.Update(ctx, tc.msg)
+				v = next.(*workflowView)
+			}
+			rows := v.rows(ctx)
+			if v.cursor != len(rows)-1 {
+				t.Fatalf("cursor %d, want the last of %d rows", v.cursor, len(rows))
+			}
+			out := ansi.Strip(v.View(ctx, 80, 24))
+			if !strings.Contains(out, "App 39") {
+				t.Fatalf("the last App should be on screen\n%s", out)
+			}
+		})
+	}
+}
+
+func TestWorkflowViewFitsEightyColumns(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = service.Status{Apps: []service.AppStatus{
+		{ID: "long", Name: "An App whose name is far too long to ever fit an eighty column terminal",
+			Managed: true, Setup: "incomplete",
+			Steps: []service.StepStatus{{ID: "ready", Status: "fail",
+				Msg: "a step message that also runs on and on well past the width of a narrow terminal"}}},
+		{ID: "other", Name: "Other", Managed: true, Setup: "incomplete",
+			Steps: []service.StepStatus{{ID: "ready"}}},
+	}}
+	var v view = &workflowView{}
+	for _, line := range strings.Split(ansi.Strip(v.View(ctx, 80, 24)), "\n") {
+		if ansi.StringWidth(line) > 80 {
+			t.Fatalf("line wider than 80 columns: %q", line)
 		}
 	}
 }
@@ -135,14 +302,14 @@ func TestWorkflowViewSelectsStepsWithArrowsAndJK(t *testing.T) {
 	ctx.status = workflowStatus()
 	var v view = &workflowView{}
 	for _, tc := range []struct{ key, selected string }{
-		{"up", "> ✓ ready · API ready"},
-		{"down", "> ↷ account"},
-		{"j", "> ✓ check"},
-		{"j", "> ✓ ready\n"},
+		{"up", "> ▸ Jellyfin"},
+		{"down", "> ▾ Sonarr"},
+		{"down", "> ✓ ready\n"},
 		{"down", "> ✗ link-qbittorrent"},
 		{"down", "> ○ check"},
-		{"down", "> ○ check"},
-		{"k", "> ✗ link-qbittorrent"},
+		{"down", "> ▾ Radarr"},
+		{"k", "> ○ check"},
+		{"up", "> ✗ link-qbittorrent"},
 		{"up", "> ✓ ready\n"},
 	} {
 		next, cmd, nv := v.Update(ctx, press(tc.key))
@@ -193,7 +360,7 @@ func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
 	for _, binding := range v.Keys() {
 		keys = append(keys, binding.Keys()...)
 	}
-	if got := strings.Join(keys, " "); got != "up k down j esc" || v.Title() != "Workflow" {
-		t.Fatalf("Workflow should advertise selection and back, got %q (%s)", got, v.Title())
+	if got := strings.Join(keys, " "); got != "up k down j pgup pgdown / space esc" || v.Title() != "Workflow" {
+		t.Fatalf("Workflow should advertise its own keys, got %q (%s)", got, v.Title())
 	}
 }
