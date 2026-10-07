@@ -30,6 +30,7 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 	if stage == nil {
 		r.t.Fatal("unknown lifecycle stage")
 	}
+	r.requireLocalResources()
 	stage.Outcome = "running"
 	stage.Command = safeCommand(args)
 	r.saveEvidence()
@@ -96,6 +97,7 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 
 func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	defer reservation.closeSockets()
+	r.requireLocalResources()
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
 	r.prepareNetBirdFixture(reservation)
@@ -187,6 +189,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	})
 	restored := newRunner(r.t, r.guard, r.logDir)
 	r.restored = restored
+	restored.evidenceOwner = r
 	restored.spec = spec
 	restored.target = r.target + "-restore"
 	if r.netbird != nil {

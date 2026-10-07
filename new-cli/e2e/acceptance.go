@@ -134,6 +134,7 @@ type failureEvidence struct {
 }
 
 type stageEvidence struct {
+	Resources   *resourceEvidence   `json:"resources,omitempty"`
 	Termination *commandTermination `json:"termination,omitempty"`
 	Failures    []failureEvidence   `json:"failures,omitempty"`
 	Name        string              `json:"name"`
@@ -144,24 +145,25 @@ type stageEvidence struct {
 }
 
 type targetEvidence struct {
-	ComposeProject         string          `json:"compose_project,omitempty"`
-	RetainedComposeProject string          `json:"retained_compose_project,omitempty"`
-	Cleanup                string          `json:"cleanup,omitempty"`
-	RetainedProject        string          `json:"retained_project,omitempty"`
-	BinarySHA256           string          `json:"binary_sha256,omitempty"`
-	Version                int             `json:"version"`
-	Target                 targetSpec      `json:"target"`
-	Head                   string          `json:"head"`
-	Platform               string          `json:"platform"`
-	Images                 []imageEvidence `json:"images,omitempty"`
-	UnavailableImages      []string        `json:"unavailable_images,omitempty"`
-	BlockerReason          string          `json:"blocker_reason,omitempty"`
-	Outcome                string          `json:"outcome"`
-	Classification         string          `json:"classification"`
-	Stages                 []stageEvidence `json:"stages"`
-	Started                time.Time       `json:"started"`
-	Finished               *time.Time      `json:"finished,omitempty"`
-	Probe                  string          `json:"probe"`
+	Resources              *resourceEvidence `json:"resources,omitempty"`
+	ComposeProject         string            `json:"compose_project,omitempty"`
+	RetainedComposeProject string            `json:"retained_compose_project,omitempty"`
+	Cleanup                string            `json:"cleanup,omitempty"`
+	RetainedProject        string            `json:"retained_project,omitempty"`
+	BinarySHA256           string            `json:"binary_sha256,omitempty"`
+	Version                int               `json:"version"`
+	Target                 targetSpec        `json:"target"`
+	Head                   string            `json:"head"`
+	Platform               string            `json:"platform"`
+	Images                 []imageEvidence   `json:"images,omitempty"`
+	UnavailableImages      []string          `json:"unavailable_images,omitempty"`
+	BlockerReason          string            `json:"blocker_reason,omitempty"`
+	Outcome                string            `json:"outcome"`
+	Classification         string            `json:"classification"`
+	Stages                 []stageEvidence   `json:"stages"`
+	Started                time.Time         `json:"started"`
+	Finished               *time.Time        `json:"finished,omitempty"`
+	Probe                  string            `json:"probe"`
 }
 
 type imageEvidence struct {

@@ -205,6 +205,7 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 }
 
 type sweepGuard struct {
+	resources       *resourceEvidence
 	blockerMu       sync.Mutex
 	retainedPaths   map[string]bool
 	mu              sync.Mutex
@@ -226,7 +227,7 @@ func (g *sweepGuard) CanRunNext() bool {
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return !g.Blocked
+	return !g.Blocked && g.resources == nil
 }
 
 func (g *sweepGuard) RegisterProject(project, name string) {

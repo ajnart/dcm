@@ -142,6 +142,10 @@ func TestE2E(t *testing.T) {
 				evidence.Outcome = "blocked"
 				evidence.Classification = "capacity-or-teardown-blocked"
 				evidence.BlockerReason = safeBlockerReason(err)
+				if resources := guard.localResourceBlocker(); resources != nil && resources.Reason == evidence.BlockerReason {
+					evidence.Classification = "local-disk-blocked"
+					evidence.Resources = resources
+				}
 				writeInitialEvidence(logDir, evidence)
 				t.Skip(evidence.BlockerReason)
 			}

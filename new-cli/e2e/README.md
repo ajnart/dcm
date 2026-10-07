@@ -14,6 +14,12 @@ E2E_HOMARR_FUNCTIONAL=1 go test -tags e2e -timeout 45m -run '^TestHomarrFunction
 `E2E_TARGETS` is a space separated list of Recipe or App ids (default
 `ntfy vaultwarden media`). Set it to `all` to walk the whole catalog.
 
+Admission checks the filesystem holding the owned temporary Project before
+installation and later mutation/pull/restore commands. It requires 8 GiB and
+100,000 free inodes; `E2E_MIN_FREE_GB` may set a positive integer GiB floor.
+A low or unavailable measurement blocks further mutations and queued targets,
+records sanitized resource evidence, and preserves scoped cleanup.
+
 ## What it touches
 
 Each target gets its own temp folder and Compose project named

@@ -39,6 +39,11 @@ func (g *sweepGuard) acquire(ctx context.Context, weight int, exclusive bool) (*
 			g.mu.Unlock()
 			return nil, blockerError("sweep blocked by owned teardown failure")
 		}
+		if g.resources != nil {
+			reason := g.resources.Reason
+			g.mu.Unlock()
+			return nil, blockerError(reason)
+		}
 		if g.changed == nil {
 			g.changed = make(chan struct{})
 		}

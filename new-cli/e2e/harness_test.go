@@ -95,40 +95,47 @@ func moduleRoot() (string, error) {
 }
 
 type runner struct {
-	authelia      *autheliaRoute
-	autheliaOwner bool
-	commandCtx    context.Context
-	netbird       *netBirdFixture
-	netbirdOwner  bool
-	teardownOK    bool
-	restored      *runner
-	t             *testing.T
-	root          string
-	project       string
-	name          string
-	target        string
-	env           []string
-	logDir        string
-	evidence      *targetEvidence
-	spec          targetSpec
-	guard         *sweepGuard
+	evidenceOwner    *runner
+	minimumDiskBytes uint64
+	authelia         *autheliaRoute
+	autheliaOwner    bool
+	commandCtx       context.Context
+	netbird          *netBirdFixture
+	netbirdOwner     bool
+	teardownOK       bool
+	restored         *runner
+	t                *testing.T
+	root             string
+	project          string
+	name             string
+	target           string
+	env              []string
+	logDir           string
+	evidence         *targetEvidence
+	spec             targetSpec
+	guard            *sweepGuard
 }
 
 func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 	t.Helper()
+	minimumDiskBytes, err := minimumFreeBytes(os.Getenv("E2E_MIN_FREE_GB"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	root, err := os.MkdirTemp("", "selfhost-e2e-")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
 	name := "selfhost-e2e-" + randomHex(8)
 	r := &runner{
-		t:       t,
-		guard:   guard,
-		root:    root,
-		project: filepath.Join(root, "project"),
-		name:    name,
-		target:  "unnamed",
-		logDir:  os.Getenv("E2E_LOG_DIR"),
+		minimumDiskBytes: minimumDiskBytes,
+		t:                t,
+		guard:            guard,
+		root:             root,
+		project:          filepath.Join(root, "project"),
+		name:             name,
+		target:           "unnamed",
+		logDir:           os.Getenv("E2E_LOG_DIR"),
 	}
 	if len(logDirs) > 0 {
 		r.logDir = logDirs[0]
@@ -162,6 +169,9 @@ func (r *runner) run(args ...string) result {
 }
 
 func (r *runner) runWithTimeout(timeout time.Duration, args ...string) result {
+	if diskMutatingCommand(args) {
+		r.requireLocalResources()
+	}
 	parent := r.commandCtx
 	if parent == nil {
 		parent = context.Background()
