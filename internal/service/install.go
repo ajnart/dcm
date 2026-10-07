@@ -293,7 +293,12 @@ func (ss *session) writeFiles(a app.App, rc app.RenderContext) error {
 		return nil
 	}
 	id := a.Info().ID
-	secret := func(name string) string { return ss.secrets.values[SecretKey(id, name)] }
+	secret := func(name string) string {
+		if name == "ADMIN_USER" || name == "ADMIN_PASSWORD" {
+			return ss.secrets.values[name]
+		}
+		return ss.secrets.values[SecretKey(id, name)]
+	}
 	for _, f := range declarer.Files(rc, secret) {
 		clean := path.Clean(f.Path)
 		if path.IsAbs(clean) || clean == "." || strings.HasPrefix(clean, "..") {

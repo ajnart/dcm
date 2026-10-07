@@ -18,6 +18,7 @@ func (fileApp) Secrets() []app.SecretSpec { return []app.SecretSpec{{Name: "toke
 func (fileApp) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{
 		{Path: "config/app.yaml", Content: "token: " + secret("token") + "\n", Mode: 0o600},
+		{Path: "config/admin", Content: secret("ADMIN_USER") + ":" + secret("ADMIN_PASSWORD"), Mode: 0o600},
 		{Path: "data/state.json", Content: "{}\n", Keep: true},
 	}
 }
@@ -32,6 +33,9 @@ func TestInstallWritesDeclaredFilesBeforeStarting(t *testing.T) {
 	config := readFile(t, filepath.Join(dir, "config", "app.yaml"))
 	if !strings.HasPrefix(config, "token: ") || len(strings.TrimSpace(strings.TrimPrefix(config, "token: "))) != 16 {
 		t.Fatalf("config not rendered with the secret: %q", config)
+	}
+	if admin := readFile(t, filepath.Join(dir, "config", "admin")); !strings.HasPrefix(admin, "admin:") || len(admin) < 10 {
+		t.Errorf("Admin login not available to files: %q", admin)
 	}
 	if info, _ := os.Stat(filepath.Join(dir, "config", "app.yaml")); info.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v, want 0600", info.Mode().Perm())

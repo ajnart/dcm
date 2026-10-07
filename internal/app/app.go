@@ -99,7 +99,8 @@ type File struct {
 // FileDeclarer is an optional interface for Apps that need generated config
 // files (a Caddyfile, a gatus config.yaml). Install writes them after the
 // App's secrets exist and before the container starts; secret returns one of
-// the App's declared secrets by its short name.
+// the App's declared secrets by its short name, or the Admin login for
+// "ADMIN_USER" and "ADMIN_PASSWORD".
 type FileDeclarer interface {
 	Files(rc RenderContext, secret func(name string) string) []File
 }
