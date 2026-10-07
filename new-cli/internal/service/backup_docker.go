@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/system"
@@ -169,10 +170,16 @@ func (w *limitedHelperDiagnostics) Write(p []byte) (int, error) {
 }
 
 func (ss *session) archiveDockerTree(ctx context.Context, w *backup.Writer, id string) error {
+	var ephemeralFIFOs []string
+	if adapter, found := ss.s.Catalog.App(id); found {
+		if declarer, ok := adapter.(app.EphemeralFIFODeclarer); ok {
+			ephemeralFIFOs = declarer.EphemeralFIFOs()
+		}
+	}
 	reader, writer := io.Pipe()
 	done := make(chan error, 1)
 	go func() {
-		err := w.AddTar(reader, "apps/"+id)
+		err := w.AddTar(reader, "apps/"+id, ephemeralFIFOs...)
 		if err == nil {
 			_, err = io.Copy(io.Discard, reader)
 		}

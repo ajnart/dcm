@@ -81,6 +81,13 @@ type SecretDeclarer interface {
 	Secrets() []SecretSpec
 }
 
+// EphemeralFIFODeclarer identifies disposable runtime FIFOs recreated by the
+// App. Only an exact FIFO at a canonical App-relative path may be omitted from
+// backup; regular files, other special types and unsafe paths remain checked.
+type EphemeralFIFODeclarer interface {
+	EphemeralFIFOs() []string
+}
+
 // Link wires the App that declares it to Target. Apply runs only once both
 // Apps finished Setup; Remove runs when Target is removed.
 type Link struct {

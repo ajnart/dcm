@@ -150,11 +150,20 @@ func (w *Writer) AddTree(dir, prefix string) error {
 // AddTar imports the stdout-only tar stream of one owned App. Numeric owners
 // remain in the helper's container namespace; callers mark the ManifestApp with
 // OwnershipDocker. On any error the incomplete backup must be discarded.
-func (w *Writer) AddTar(src io.Reader, prefix string) error {
+// Adapter-declared ephemeral FIFOs omit only exact FIFO entries; declarations
+// must be canonical App-relative paths. Other special entries remain invalid.
+func (w *Writer) AddTar(src io.Reader, prefix string, ephemeralFIFOs ...string) error {
 	if err := safeArchivePath(prefix); err != nil || path.Clean(prefix) == "." {
 		return errors.New("unsafe helper archive prefix")
 	}
 	prefix = path.Clean(prefix)
+	omit := map[string]bool{}
+	for _, name := range ephemeralFIFOs {
+		if safeArchivePath(name) != nil || name == "" || name == "." || path.Clean(name) != name {
+			return errors.New("unsafe ephemeral FIFO declaration: require a contained canonical App-relative path")
+		}
+		omit[name] = true
+	}
 	tr := tar.NewReader(src)
 	links := make(map[string]string)
 	previous := make(map[string]EntryMetadata)
@@ -175,13 +184,21 @@ func (w *Writer) AddTar(src io.Reader, prefix string) error {
 			return err
 		}
 		name := path.Clean(h.Name)
-		if err := safeEntryMetadata(h); err != nil {
+		skipFIFO := h.Typeflag == tar.TypeFifo && omit[name] && strings.TrimPrefix(h.Name, "./") == name && h.Size == 0 && h.Linkname == ""
+		if skipFIFO {
+			if err := safeEntryOwnersAndMode(h); err != nil {
+				return err
+			}
+		} else if err := safeEntryMetadata(h); err != nil {
 			return err
 		}
 		for parent := name; parent != "."; parent = path.Dir(parent) {
 			if _, found := links[parent]; found {
 				return errors.New("unsafe helper archive: an entry writes through a symlink")
 			}
+		}
+		if skipFIFO {
+			continue
 		}
 		if h.Typeflag == tar.TypeSymlink {
 			if len(h.Linkname) > 4096 || path.IsAbs(h.Linkname) || filepath.IsAbs(filepath.FromSlash(h.Linkname)) {
@@ -237,8 +254,8 @@ func safeArchivePath(name string) error {
 }
 
 func safeEntryMetadata(h *tar.Header) error {
-	if h.Uid < 0 || h.Gid < 0 || uint64(h.Uid) > 2147483647 || uint64(h.Gid) > 2147483647 || h.Mode < 0 || h.Mode & ^int64(0o777) != 0 {
-		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use ordinary permission bits")
+	if err := safeEntryOwnersAndMode(h); err != nil {
+		return err
 	}
 	switch h.Typeflag {
 	case tar.TypeReg, tar.TypeRegA, tar.TypeDir, tar.TypeSymlink, tar.TypeLink:
@@ -246,6 +263,13 @@ func safeEntryMetadata(h *tar.Header) error {
 	default:
 		return fmt.Errorf("unsupported backup entry type 0x%02x: special files cannot be restored", h.Typeflag)
 	}
+}
+
+func safeEntryOwnersAndMode(h *tar.Header) error {
+	if h.Uid < 0 || h.Gid < 0 || uint64(h.Uid) > 2147483647 || uint64(h.Gid) > 2147483647 || h.Mode < 0 || h.Mode & ^int64(0o777) != 0 {
+		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use ordinary permission bits")
+	}
+	return nil
 }
 
 // hardlinkTarget permits only an earlier ordinary file in the same App. A
