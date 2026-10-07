@@ -15,7 +15,8 @@ import (
 // "Movies2"). Only `Authorization: MediaBrowser` is accepted, as in 12.x.
 type Jellyfin struct {
 	// Booting is how many /System/Info/Public reads answer like the boot
-	// placeholder: no Version and the wizard reported unfinished.
+	// placeholder: a Version but the wizard reported unfinished, and 503 on
+	// every other path, as 12.x does while it starts or migrates.
 	Booting int
 	// FailComplete is how many POST /Startup/Complete calls fail with 500,
 	// like a run interrupted after the admin password was set.
@@ -131,10 +132,23 @@ func (j *Jellyfin) elevated(next func(w http.ResponseWriter, r *http.Request)) h
 
 func (j *Jellyfin) Handler() http.Handler {
 	mux := http.NewServeMux()
+	booting := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			j.mu.Lock()
+			placeholder := j.Booting > 0 && r.URL.Path != "/System/Info/Public"
+			j.mu.Unlock()
+			if placeholder {
+				w.Header().Set("Retry-After", "5")
+				http.Error(w, "<html>Jellyfin is starting</html>", http.StatusServiceUnavailable)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 	mux.HandleFunc("GET /System/Info/Public", j.locked(func(w http.ResponseWriter, r *http.Request) {
 		if j.Booting > 0 {
 			j.Booting--
-			w.Write([]byte(`{"StartupWizardCompleted":false}`))
+			w.Write([]byte(`{"Version":"12.2.0","StartupWizardCompleted":false}`))
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"Version": "12.2.0", "ServerName": "Jellyfin", "StartupWizardCompleted": j.completed})
@@ -231,7 +245,7 @@ func (j *Jellyfin) Handler() http.Handler {
 			ItemID: "item-" + strconv.Itoa(len(j.libraries)+1)})
 		w.WriteHeader(http.StatusNoContent)
 	}))
-	return mux
+	return booting(mux)
 }
 
 func (j *Jellyfin) hasLibrary(name string) bool {
