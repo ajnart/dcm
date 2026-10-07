@@ -1,0 +1,21 @@
+.github/workflows/new-cli-e2e.yml
+  s_a2fd509a765bab::t_9521a2d47676dd 1,8,16-22,30,51
+.github/workflows/new-cli.yml
+  s_a2fd509a765bab::t_477d7073fa4126 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf5121bf0aa4e401e9d589bca5140923b633b853",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
