@@ -50,10 +50,13 @@ func TestHAProxyOwnedBackendIsIncludedBeforeAdmission(t *testing.T) {
 
 func TestLocalRoutingPrerequisitesAreNotExternalCredentials(t *testing.T) {
 	c := catalog.Default()
-	for _, id := range []string{"netbird", "passbolt", "wud"} {
+	for _, id := range []string{"passbolt", "wud"} {
 		if classifyTarget(c, findTarget(acceptanceInventory(c), id)) != "awaiting-local-prerequisites" {
 			t.Fatalf("%s local prerequisite classified as external credentials", id)
 		}
+	}
+	if classifyTarget(c, findTarget(acceptanceInventory(c), "netbird")) != "runnable" {
+		t.Fatal("owned NetBird TLS fixture remains external prerequisite")
 	}
 }
 

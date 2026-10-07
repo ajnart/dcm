@@ -87,12 +87,19 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	defer reservation.closeSockets()
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
+	r.prepareNetBirdFixture(reservation)
 	args := installArguments(spec, r.root, reservation.primary)
+	if r.netbird != nil {
+		args = append(args, "--set", "netbird.NETBIRD_CANONICAL_ORIGIN="+r.netbird.route.origin)
+	}
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
 	reservation.closeSockets()
 	r.stage("install", args, func() result { return r.run(args...) })
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
+	if r.netbird != nil {
+		r.stage("management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, r.netBirdManagementProbe)
+	}
 	if proxyProbe {
 		r.stage("backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return r.haproxyProbe(reservation.primary) })
 	}
@@ -167,6 +174,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	r.restored = restored
 	restored.spec = spec
 	restored.target = r.target + "-restore"
+	if r.netbird != nil {
+		restored.attachNetBirdFixture(r.netbird)
+	}
 	r.stage("isolated-restore", []string{"stop", "--json", "then", "restore", archive, "--yes", "--json"}, func() result {
 		res := r.run("stop", "--json")
 		if res.code != 0 {
@@ -185,6 +195,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		return restored.run("restore", archive, "--yes", "--json")
 	})
 	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
+	if r.netbird != nil {
+		r.stage("restored-management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, restored.netBirdManagementProbe)
+	}
 	if proxyProbe {
 		r.stage("restored-backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return restored.haproxyProbe(reservation.primary) })
 	}

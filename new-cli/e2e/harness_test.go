@@ -100,18 +100,20 @@ type result struct {
 }
 
 type runner struct {
-	teardownOK bool
-	restored   *runner
-	t          *testing.T
-	root       string
-	project    string
-	name       string
-	target     string
-	env        []string
-	logDir     string
-	evidence   *targetEvidence
-	spec       targetSpec
-	guard      *sweepGuard
+	netbird      *netBirdFixture
+	netbirdOwner bool
+	teardownOK   bool
+	restored     *runner
+	t            *testing.T
+	root         string
+	project      string
+	name         string
+	target       string
+	env          []string
+	logDir       string
+	evidence     *targetEvidence
+	spec         targetSpec
+	guard        *sweepGuard
 }
 
 func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
@@ -209,6 +211,9 @@ func decodeEvents(s string) []event {
 }
 
 func (r *runner) cleanup() {
+	if r.netbirdOwner {
+		defer r.netbird.route.close()
+	}
 	if r.t.Failed() {
 		r.dumpDiagnostics()
 	}
@@ -349,5 +354,8 @@ func (r *runner) dockerArgs(args ...string) []string {
 		return args
 	}
 	prefix := []string{"compose", "--project-directory", r.project, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env")}
+	if r.netbird != nil {
+		prefix = append(prefix, "-f", filepath.Join(r.project, "compose.yml"), "-f", filepath.Join(r.root, "netbird-override.yml"))
+	}
 	return append(prefix, args[1:]...)
 }

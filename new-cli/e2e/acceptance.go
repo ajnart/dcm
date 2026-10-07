@@ -72,6 +72,10 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 			return "missing-configuration"
 		}
 		for _, in := range a.Inputs() {
+			if id == "netbird" && in.Key == "NETBIRD_CANONICAL_ORIGIN" {
+				// Reserved loopback TLS origin is supplied by the real runtime fixture.
+				continue
+			}
 			if !in.Required || in.Default != "" || localInputs[id][in.Key] != "" {
 				continue
 			}
