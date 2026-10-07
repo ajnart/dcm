@@ -326,7 +326,14 @@ func (ss *session) services(ids ...string) ([]string, error) {
 func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	id := a.Info().ID
 	st := ss.state.Apps[id]
-	st.Steps, st.StepOrder = nil, nil
+	for step := range st.Steps {
+		if step != "render" && step != "pull" && step != "start" {
+			delete(st.Steps, step)
+		}
+	}
+	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool {
+		return step != "render" && step != "pull" && step != "start"
+	})
 	h := ss.helpers(a)
 	err := a.Setup(ctx, h)
 	if err == nil {

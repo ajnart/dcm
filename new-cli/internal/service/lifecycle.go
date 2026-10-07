@@ -72,20 +72,6 @@ func (s *Service) Update(ctx context.Context, ids []string) error {
 	})
 }
 
-// pull pulls the services' images before Compose starts them, reporting
-// progress and naming the image when a pull fails.
-func (ss *session) pull(ctx context.Context, ids, services []string) error {
-	ss.s.Log.Emit(events.Event{Event: events.StepStart, Step: "pull", Msg: fmt.Sprintf("pull %d images", len(services))})
-	if err := ss.compose.PullProgress(ctx, services...); err != nil {
-		image := pullImageName(ss, ids, err)
-		hint := fmt.Sprintf("Run `docker pull %s`, then check the network and the registry, and retry.", image)
-		ss.s.Log.Emit(events.Event{Event: events.StepFail, Step: "pull", Msg: "could not pull " + image, Error: err.Error(), Hint: hint})
-		return err
-	}
-	ss.s.Log.Emit(events.Event{Event: events.StepOK, Step: "pull", Msg: "pulled " + strings.Join(ids, ", ")})
-	return nil
-}
-
 func pullImageName(ss *session, ids []string, err error) string {
 	var perr *compose.PullError
 	if errors.As(err, &perr) && perr.Image != "" {
