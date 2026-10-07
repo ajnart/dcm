@@ -1,0 +1,84 @@
+new-cli/internal/apps/arr/arr.go
+  h_d6e478ca18e517 140,234
+new-cli/internal/apps/authelia/authelia.go
+  h_d6e478ca18e517 92-95,125
+new-cli/internal/apps/authentik/authentik.go
+  h_d6e478ca18e517 135
+new-cli/internal/apps/bazarr/bazarr.go
+  h_d6e478ca18e517 60
+new-cli/internal/apps/bookstack/bookstack.go
+  h_d6e478ca18e517 84-85,89-90,92,103,105,120,125
+new-cli/internal/apps/docmost/docmost.go
+  h_d6e478ca18e517 127
+new-cli/internal/apps/fireflyiii/fireflyiii.go
+  h_d6e478ca18e517 84,86-87,98,100,114-115,120,122,133,135,147
+new-cli/internal/apps/forgejo/forgejo.go
+  h_d6e478ca18e517 89,92
+new-cli/internal/apps/freshrss/freshrss.go
+  h_d6e478ca18e517 72,88
+new-cli/internal/apps/grafana/grafana.go
+  h_d6e478ca18e517 77
+new-cli/internal/apps/immich/immich.go
+  h_d6e478ca18e517 149
+new-cli/internal/apps/keycloak/keycloak.go
+  h_d6e478ca18e517 124
+new-cli/internal/apps/kopia/kopia.go
+  h_d6e478ca18e517 106
+new-cli/internal/apps/lidarr/lidarr.go
+  h_d6e478ca18e517 80,149
+new-cli/internal/apps/minio/minio.go
+  h_d6e478ca18e517 132
+new-cli/internal/apps/netbird/netbird.go
+  h_d6e478ca18e517 167
+new-cli/internal/apps/nodered/nodered.go
+  h_d6e478ca18e517 56,63,125
+new-cli/internal/apps/ntfy/ntfy.go
+  h_d6e478ca18e517 77
+new-cli/internal/apps/nzbget/nzbget.go
+  h_d6e478ca18e517 91
+new-cli/internal/apps/openwebui/openwebui.go
+  h_d6e478ca18e517 83
+new-cli/internal/apps/pangolin/pangolin.go
+  h_d6e478ca18e517 204
+new-cli/internal/apps/passbolt/passbolt.go
+  h_d6e478ca18e517 160
+new-cli/internal/apps/peanut/peanut.go
+  h_d6e478ca18e517 78
+new-cli/internal/apps/photoprism/photoprism.go
+  h_d6e478ca18e517 108
+new-cli/internal/apps/portainer/portainer.go
+  h_d6e478ca18e517 98
+new-cli/internal/apps/qbittorrent/qbittorrent.go
+  h_d6e478ca18e517 140
+new-cli/internal/apps/sabnzbd/sabnzbd.go
+  h_d6e478ca18e517 58
+new-cli/internal/apps/seerr/seerr.go
+  h_d6e478ca18e517 96
+new-cli/internal/apps/slskd/slskd.go
+  h_d6e478ca18e517 121
+new-cli/internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 99
+new-cli/internal/apps/stalwartmail/stalwartmail.go
+  h_d6e478ca18e517 84
+new-cli/internal/apps/syncthing/syncthing.go
+  h_d6e478ca18e517 60,86-88,90
+new-cli/internal/apps/traefik/traefik.go
+  h_d6e478ca18e517 65,80,134
+new-cli/internal/apps/vaultwarden/vaultwarden.go
+  h_d6e478ca18e517 101
+new-cli/internal/apps/wud/wud.go
+  h_d6e478ca18e517 113
+new-cli/internal/apps/zerotier/zerotier.go
+  h_d6e478ca18e517 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d602ece7a31ceae7c81c2ac7bb89f3bba8ef7f82",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
