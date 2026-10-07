@@ -526,5 +526,8 @@ func (ss *session) restoreRecords(staging string, targets []string, fresh bool) 
 			ss.state.Apps[id] = st
 		}
 	}
+	if err := ss.migratePrivateInputs(); err != nil {
+		return err
+	}
 	return ss.p.SaveState(ss.state)
 }

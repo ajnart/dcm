@@ -239,6 +239,17 @@ func (s *Service) open(ctx context.Context) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Older releases stored private inputs in state. Register them even for
+	// read-only reports; migration itself happens only under the mutation lock.
+	for id, st := range state.Apps {
+		if a, found := s.Catalog.App(id); found && st != nil {
+			for _, input := range a.Inputs() {
+				if input.Private {
+					s.Log.Secret(st.Inputs[input.Key])
+				}
+			}
+		}
+	}
 	return &session{s: s, p: p, settings: settings, secrets: &secretStore{p: p, values: secrets}, state: state, compose: s.compose(p)}, nil
 }
 
@@ -250,9 +261,17 @@ func (ss *session) helpers(a app.App) *helpers.H {
 	info := a.Info()
 	st := ss.state.Apps[info.ID]
 	port := info.Port
-	var inputs map[string]string
+	inputs := map[string]string{}
 	if st != nil {
-		port, inputs = st.Port, st.Inputs
+		port = st.Port
+		for key, value := range st.Inputs {
+			inputs[key] = value
+		}
+	}
+	for _, input := range a.Inputs() {
+		if input.Private {
+			inputs[input.Key] = ss.secrets.Get(SecretKey(info.ID, input.Key))
+		}
 	}
 	return helpers.New(helpers.Config{
 		App:      info.ID,

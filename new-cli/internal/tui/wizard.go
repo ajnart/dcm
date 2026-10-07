@@ -204,8 +204,14 @@ func (m Model) buildWizardForm(w *wizard) *huh.Form {
 		var fields []huh.Field
 		for _, in := range inputs {
 			value := in.Default
+			if in.Private {
+				value = ""
+			}
 			v.inputs[id+"."+in.Key] = &value
 			field := huh.NewInput().Title(in.Prompt).Description(in.Help).Value(&value)
+			if in.Private {
+				field = field.EchoMode(huh.EchoModePassword)
+			}
 			if in.Required {
 				field = field.Validate(func(s string) error {
 					if strings.TrimSpace(s) == "" {
@@ -243,6 +249,10 @@ func (m Model) planFromWizard(v *wizardValues) *plan {
 		needsMedia = needsMedia || a.Info().UsesMedia
 		for _, in := range a.Inputs() {
 			if value := v.inputs[a.Info().ID+"."+in.Key]; value != nil && *value != "" {
+				if in.Private {
+					setPrivateInput(&opts, a.Info().ID, in.Key, *value)
+					continue
+				}
 				opts.Sets = append(opts.Sets, a.Info().ID+"."+in.Key+"="+*value)
 			}
 		}
@@ -255,6 +265,16 @@ func (m Model) planFromWizard(v *wizardValues) *plan {
 		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = v.media, v.downloads
 	}
 	return &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, nil), settings: settings, fresh: true}
+}
+
+func setPrivateInput(opts *service.InstallOptions, id, key, value string) {
+	if opts.PrivateInputs == nil {
+		opts.PrivateInputs = map[string]map[string]string{}
+	}
+	if opts.PrivateInputs[id] == nil {
+		opts.PrivateInputs[id] = map[string]string{}
+	}
+	opts.PrivateInputs[id][key] = value
 }
 
 // linksBetween lists Links that will be made among apps and already installed ones.

@@ -33,8 +33,8 @@ func (App) Inputs() []app.Input {
 	return []app.Input{
 		{Key: "provider", Prompt: "VPN provider", Help: "A supported OpenVPN provider: protonvpn or purevpn", Default: "protonvpn", Required: true},
 		{Key: "server-country", Prompt: "VPN server country", Help: "One provider-supported country name, e.g. Netherlands", Required: true},
-		{Key: "openvpn-user", Prompt: "Provider OpenVPN username", Help: "The OpenVPN username issued by the provider (not your web-account login)", Required: true},
-		{Key: "openvpn-password", Prompt: "Provider OpenVPN password", Help: "The OpenVPN password issued by the provider", Required: true},
+		{Key: "openvpn-user", Prompt: "Provider OpenVPN username", Help: "The OpenVPN username issued by the provider (not your web-account login)", Required: true, Private: true},
+		{Key: "openvpn-password", Prompt: "Provider OpenVPN password", Help: "The OpenVPN password issued by the provider", Required: true, Private: true},
 	}
 }
 
@@ -107,7 +107,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return h.SetSecret(h.Key("openvpn_password"), h.Inputs["openvpn-password"])
 		},
 		Hint: "Use the OpenVPN username and password issued by your VPN provider (not the web-account login), then run: " +
-			"self-host install gluetun --set gluetun.openvpn-user=<user> --set gluetun.openvpn-password=<password>, then restart: self-host start gluetun",
+			"self-host install gluetun --set-file gluetun.openvpn-user=/path/to/username --set-file gluetun.openvpn-password=/path/to/password, then restart: self-host start gluetun",
 		Credential: h.Key("openvpn_user"),
 	}); err != nil {
 		return err

@@ -36,6 +36,7 @@ func (a *program) installCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "install without asking for confirmation")
 	cmd.Flags().StringArrayVar(&opts.Sets, "set", nil, "input as app.key=value or key=value (repeatable); app.port=N picks a port")
+	cmd.Flags().StringArrayVar(&opts.SetFiles, "set-file", nil, "private input as app.key=PATH to an owner-only credential file (repeatable)")
 	cmd.Flags().StringVar(&opts.Exposure, "exposure", "", "lan (default) or local, for a new Project")
 	cmd.Flags().StringVar(&opts.MediaRoot, "media-root", "", "media library folder, for a new Project")
 	cmd.Flags().StringVar(&opts.DownloadsRoot, "downloads-root", "", "downloads folder, for a new Project")

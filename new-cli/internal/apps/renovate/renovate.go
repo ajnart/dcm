@@ -31,6 +31,7 @@ func (App) Inputs() []app.Input {
 		Prompt:   "Forgejo Personal Access Token",
 		Help:     "A dedicated Renovate account's token with repository read and pull-request write scope",
 		Required: true,
+		Private:  true,
 	}}
 }
 
@@ -56,7 +57,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return h.SetSecret(h.Key("token"), h.Inputs["token"])
 		},
 		Hint: "Create a dedicated Renovate account and a Personal Access Token in Forgejo (User settings > Applications) " +
-			"with repository read and pull-request write scope, then pass it with: self-host install renovate --set renovate.token=<token>",
+			"with repository read and pull-request write scope, then pass it with: self-host install renovate --set-file renovate.token=/path/to/credential",
 		Credential: h.Key("token"),
 	}); err != nil {
 		return err
@@ -68,7 +69,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if h.Secret(h.Key("token")) == "" {
-		return errors.New("no Renovate token is saved; provide one with: self-host install renovate --set renovate.token=<token>")
+		return errors.New("no Renovate token is saved; provide one with: self-host install renovate --set-file renovate.token=/path/to/credential")
 	}
 	return nil
 }

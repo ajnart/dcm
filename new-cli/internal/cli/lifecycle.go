@@ -152,6 +152,7 @@ type inputJSON struct {
 	Help     string `json:"help,omitempty"`
 	Default  string `json:"default,omitempty"`
 	Required bool   `json:"required"`
+	Private  bool   `json:"private,omitempty"`
 }
 
 type appJSON struct {
@@ -171,7 +172,11 @@ func describe(a app.App) appJSON {
 	out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category,
 		Image: info.Image, Docs: info.Docs, Port: info.Port, Inputs: []inputJSON{}}
 	for _, in := range a.Inputs() {
-		out.Inputs = append(out.Inputs, inputJSON{Key: in.Key, Prompt: in.Prompt, Help: in.Help, Default: in.Default, Required: in.Required})
+		input := inputJSON{Key: in.Key, Prompt: in.Prompt, Help: in.Help, Default: in.Default, Required: in.Required, Private: in.Private}
+		if in.Private {
+			input.Default = ""
+		}
+		out.Inputs = append(out.Inputs, input)
 	}
 	for _, link := range a.Links() {
 		out.Links = append(out.Links, link.Target)
@@ -235,7 +240,11 @@ func (a *program) appsCmd() *cobra.Command {
 				if in.Required {
 					req = " (required)"
 				}
-				fmt.Fprintf(a.deps.Out, "input  --set %s.%s=…%s  %s\n", info.ID, in.Key, req, in.Prompt)
+				if in.Private {
+					fmt.Fprintf(a.deps.Out, "input  --set-file %s.%s=PATH%s  %s\n", info.ID, in.Key, req, in.Prompt)
+				} else {
+					fmt.Fprintf(a.deps.Out, "input  --set %s.%s=…%s  %s\n", info.ID, in.Key, req, in.Prompt)
+				}
 			}
 			return nil
 		},

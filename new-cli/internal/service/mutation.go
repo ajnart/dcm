@@ -90,6 +90,9 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if err != nil {
 		return err
 	}
+	if err := ss.migratePrivateInputs(); err != nil {
+		return s.finish(err)
+	}
 	if err := ss.p.WriteRoot(); err != nil {
 		return s.finish(err)
 	}

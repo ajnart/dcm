@@ -21,6 +21,10 @@ type InstallOptions struct {
 	Targets []string
 	// Sets are "app.key=value" or "key=value" inputs.
 	Sets []string
+	// SetFiles are private input references in "app.key=PATH" form.
+	SetFiles []string
+	// PrivateInputs carries interactive values only in memory.
+	PrivateInputs map[string]map[string]string
 	// Exposure, MediaRoot and DownloadsRoot apply when the Project is created.
 	Exposure      string
 	MediaRoot     string
@@ -72,7 +76,14 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 	for _, set := range sets {
 		key, value, found := strings.Cut(set, "=")
 		if !found || key == "" {
-			return nil, fmt.Errorf("--set %q: want key=value or app.key=value", set)
+			return nil, fmt.Errorf("--set requires key=value or app.key=value")
+		}
+		for _, a := range apps {
+			for _, input := range a.Inputs() {
+				if input.Private && (key == input.Key || key == a.Info().ID+"."+input.Key) {
+					return nil, fmt.Errorf("private input %s.%s must use --set-file %s.%s=PATH", a.Info().ID, input.Key, a.Info().ID, input.Key)
+				}
+			}
 		}
 		if appID, name, ok := strings.Cut(key, "."); ok {
 			if scoped[appID] == nil {
@@ -95,6 +106,10 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 			values["port"] = port
 		}
 		for _, input := range a.Inputs() {
+			if input.Private {
+				delete(values, input.Key)
+				continue
+			}
 			if value, found := scoped[id][input.Key]; found {
 				values[input.Key] = value
 			} else if value, found := global[input.Key]; found {
@@ -143,6 +158,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	if err != nil {
 		return err
 	}
+	if _, err := privateReferences(apps, opts); err != nil {
+		return err
+	}
 	p, err := s.Project()
 	if err != nil {
 		return err
@@ -185,6 +203,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			if err != nil {
 				return err
 			}
+			if err := ss.applyPrivateInputs(apps, opts, inputs); err != nil {
+				return err
+			}
 			if err := ss.ensureAdmin(opts); err != nil {
 				return err
 			}
@@ -204,7 +225,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 				if err := ss.ensureSecrets(a); err != nil {
 					return err
 				}
-				st.Port, st.Inputs = port, values
+				st.Port, st.Inputs = port, publicInputs(a, values)
 				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: "render", Msg: "render " + info.ID})
 				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))

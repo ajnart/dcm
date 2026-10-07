@@ -136,13 +136,21 @@ self-host install ntfy --exposure local --yes --json
 self-host status --json
 ```
 
-Use repeated `--set app.key=value` for documented inputs and
+Use repeated `--set app.key=value` for documented non-secret inputs and
 `--set app.port=N` to select a port. `--media-root`, `--downloads-root` and
 `--exposure lan|local` set new-Project choices; `--admin-user` defaults to
 `admin`. An Admin password is generated unless `SELF_HOST_ADMIN_PASSWORD` is
 provided through the environment. Forgejo uses `selfhost-admin` for a fresh
 install when the shared username is `admin`; check its App credentials for the
 actual login. Do not pass secrets as command arguments.
+
+Private fields use `--set-file app.key=/owned/mode-0600/path`, for example
+`--set-file gluetun.openvpn-password=/owned/private/openvpn-password` for an
+already-provided credential file. The file must be owned by the Project owner
+and mode 0600. Private values are saved only in the Project's `secrets.env`;
+interactive private fields are masked. Provider accounts, VPN credentials,
+existing tunnel enrollment and software licenses remain prerequisites. The CLI
+does not create provider accounts or establish those external approvals for you.
 
 With `--json`, mutations and `doctor` produce newline-delimited events;
 `status`, `apps list`, `apps info` and `credentials` produce JSON documents.

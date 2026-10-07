@@ -34,6 +34,8 @@ type Input struct {
 	Help     string
 	Default  string
 	Required bool
+	// Private inputs are stored in secrets.env, never in Project state.
+	Private bool
 }
 
 // RenderContext is what an App needs to render its Compose fragment.

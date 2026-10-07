@@ -35,6 +35,7 @@ func (App) Inputs() []app.Input {
 		Prompt:   "Plex claim token",
 		Help:     "Create a claim token at https://www.plex.tv/claim and paste it here.",
 		Required: true,
+		Private:  true,
 	}}
 }
 
@@ -141,7 +142,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Check: func(context.Context) (bool, error) { return h.Inputs["claim_token"] != "", nil },
 		Do:    func(context.Context) error { return errors.New("no Plex claim token was supplied") },
 		Hint: "Create a claim token at https://www.plex.tv/claim and pass it with " +
-			"--set plex.claim_token=TOKEN, then run: self-host install plex",
+			"--set-file plex.claim_token=/path/to/credential, then run: self-host install plex",
 		Credential: "admin",
 	}); err != nil {
 		return err

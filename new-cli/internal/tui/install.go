@@ -31,9 +31,10 @@ type installView struct {
 
 // reviewInput is one Required input with no default, asked on the review.
 type reviewInput struct {
-	key   string
-	label string
-	field textinput.Model
+	key     string
+	label   string
+	field   textinput.Model
+	private bool
 }
 
 // installItem is a list row: a Recipe, an App, or a category header.
@@ -257,12 +258,17 @@ func (v *installView) review(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.C
 	case "enter":
 		var sets []string
 		for _, r := range reqs {
-			value := strings.TrimSpace(r.field.Value())
-			if value == "" {
+			value := r.field.Value()
+			if strings.TrimSpace(value) == "" {
 				v.err = "required: " + r.label
 				return v, nil, nav{}
 			}
-			sets = append(sets, r.key+"="+value)
+			if r.private {
+				id, key, _ := strings.Cut(r.key, ".")
+				setPrivateInput(&v.plan.opts, id, key, value)
+				continue
+			}
+			sets = append(sets, r.key+"="+strings.TrimSpace(value))
 		}
 		if len(sets) > 0 {
 			v.plan.opts.Sets = append(v.plan.opts.Sets, sets...)
@@ -304,16 +310,23 @@ func (v *installView) planPicked(ctx *viewContext) (view, tea.Cmd, nav) {
 		info := a.Info()
 		opts.Targets = append(opts.Targets, info.ID)
 		for _, in := range a.Inputs() {
-			if in.Required && in.Default == "" {
+			defaultValue := in.Default
+			if in.Private {
+				defaultValue = ""
+			}
+			if in.Required && defaultValue == "" {
 				field := textinput.New()
+				if in.Private {
+					field.EchoMode = textinput.EchoPassword
+				}
 				field.Prompt = ""
 				field.Placeholder = in.Prompt
 				field.SetWidth(max(ctx.width-14, 20))
-				reqs = append(reqs, reviewInput{key: info.ID + "." + in.Key, label: info.Name + " · " + in.Prompt, field: field})
+				reqs = append(reqs, reviewInput{key: info.ID + "." + in.Key, label: info.Name + " · " + in.Prompt, field: field, private: in.Private})
 				continue
 			}
-			if in.Default != "" {
-				opts.Sets = append(opts.Sets, info.ID+"."+in.Key+"="+in.Default)
+			if defaultValue != "" {
+				opts.Sets = append(opts.Sets, info.ID+"."+in.Key+"="+defaultValue)
 			}
 		}
 	}
