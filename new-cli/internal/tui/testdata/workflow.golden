@@ -8,7 +8,7 @@
 
   Sonarr
     ✓ ready
-    ✗ link-qbittorrent · download client
+    ✗ link-qbittorrent → qbittorrent · download client
     ○ check
 
   Radarr
@@ -27,4 +27,4 @@
 
 
 
-                                                                              ↑/k select up • ↓/j select down • esc back
+                                           ↑/k select up • ↓/j select down • enter error/hint • r retry Setup • esc back

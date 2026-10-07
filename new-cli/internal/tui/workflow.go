@@ -20,6 +20,7 @@ const (
 
 type WorkflowStep struct {
 	ID, Label        string
+	Target           string
 	State            WorkflowState
 	Msg, Error, Hint string
 }
@@ -47,6 +48,10 @@ func Workflow(status service.Status, _ []events.Event) WorkflowSnapshot {
 			out.Counts.AppsSetUp++
 		}
 		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed}
+		if !app.Managed {
+			out.Apps = append(out.Apps, entry)
+			continue
+		}
 		for _, step := range app.Steps {
 			state := WorkflowNotRun
 			switch step.Status {
@@ -58,10 +63,18 @@ func Workflow(status service.Status, _ []events.Event) WorkflowSnapshot {
 				state = WorkflowFailed
 				out.Counts.StepsFailed++
 			}
-			entry.Steps = append(entry.Steps, WorkflowStep{
+			workflowStep := WorkflowStep{
 				ID: step.ID, Label: step.ID, State: state,
 				Msg: step.Msg, Error: step.Error, Hint: step.Hint,
-			})
+			}
+			if target, link := strings.CutPrefix(step.ID, "link-"); link {
+				workflowStep.Target = target
+				workflowStep.Label += " → " + target
+				if step.Status == "skip" && strings.HasPrefix(step.Msg, "waiting for ") {
+					workflowStep.State = WorkflowNotRun
+				}
+			}
+			entry.Steps = append(entry.Steps, workflowStep)
 		}
 		slices.SortStableFunc(entry.Steps, func(a, b WorkflowStep) int {
 			return cmp.Compare(workflowOrder(a.ID), workflowOrder(b.ID))

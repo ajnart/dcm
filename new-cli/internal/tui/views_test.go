@@ -193,7 +193,7 @@ func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
 	for _, binding := range v.Keys() {
 		keys = append(keys, binding.Keys()...)
 	}
-	if got := strings.Join(keys, " "); got != "up k down j esc" || v.Title() != "Workflow" {
+	if got := strings.Join(keys, " "); got != "up k down j enter r esc" || v.Title() != "Workflow" {
 		t.Fatalf("Workflow should advertise selection and back, got %q (%s)", got, v.Title())
 	}
 }
