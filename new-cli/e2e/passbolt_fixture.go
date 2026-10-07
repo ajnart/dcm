@@ -124,7 +124,7 @@ func writePassboltDockerWrapper(root, project, name, real, override string) (str
 	guard := strings.ReplaceAll(netBirdDockerGuard, "NetBird", "Passbolt")
 	guard = strings.ReplaceAll(guard, "netbird", "passbolt")
 	guard = strings.Replace(guard, "'images','logs')", "'images','logs','exec')", 1)
-	guard = strings.Replace(guard, "    a=['compose']+out+", "    if a[i]=='exec' and a[i:]!=['exec','-T','passbolt','su','-s','/bin/bash','-c',"+fmt.Sprintf("%q", passboltSMTPCommand)+",'www-data']: deny()\n    a=['compose']+out+", 1)
+	guard = strings.Replace(guard, "    a=['compose']+out+", "    if a[i]=='exec' and a[i:] not in (['exec','-T','passbolt','su','-s','/bin/bash','-c',"+fmt.Sprintf("%q", passboltSMTPCommand)+",'www-data'],['exec','-T','passbolt','sh','-c',"+fmt.Sprintf("%q", passboltMetadataCommand)+"]): deny()\n    a=['compose']+out+", 1)
 	script := "#!/usr/bin/env python3\nimport csv,json,os,re,sys\nc=json.loads(" + fmt.Sprintf("%q", string(config)) + ")\n" + guard
 	wrapper := filepath.Join(bin, "docker")
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {

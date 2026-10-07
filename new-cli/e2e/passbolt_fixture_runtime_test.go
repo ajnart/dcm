@@ -152,7 +152,7 @@ func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
 	if installed.code != 0 && !(installed.code == exitIncomplete && allNoHeadless(installed)) {
 		if installed.termination == nil {
-			installed.events = append(installed.events, f.startupDiagnostic(r))
+			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r))
 		}
 		return installed
 	}
@@ -282,4 +282,21 @@ func (f *passboltRuntimeFixture) startupDiagnostic(r *runner) event {
 		}
 	}
 	return event{Event: "step.fail", App: "passbolt", Step: "startup-diagnostic", Error: reason, Hint: "inspect only allowlisted startup/configuration and key-file accessibility booleans in the owned Project; no raw logs or key payloads"}
+}
+
+// No permission changes, payload reads or application config evaluation.
+func (f *passboltRuntimeFixture) metadataDiagnostic(r *runner) event {
+	parent := r.commandCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+	defer cancel()
+	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
+	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "passbolt", "sh", "-c", passboltMetadataCommand}
+	command := exec.CommandContext(ctx, wrapper, args...)
+	command.Dir = r.project
+	command.Env = r.env
+	observation := executeOwnedCommand(ctx, command)
+	return event{Event: "step.fail", App: "passbolt", Step: "startup-metadata", Error: passboltMetadataReason(observation.code, []byte(observation.stdout)), Hint: "read-only fixed public-key path metadata; an unobserved probe proves no missing file or readability failure"}
 }
