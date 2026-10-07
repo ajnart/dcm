@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const wudImageProjection = `{"ImageID":{{json .ID}},"RepoTags":{{json .RepoTags}},"RepoDigests":{{json .RepoDigests}},"Architecture":{{json .Architecture}},"OS":{{json .Os}},"Variant":{{json .Variant}},"Created":{{json .Created}}}`
+
 type wudFixtureFiles struct {
 	dir, observed, binary string
 	material              wudfixture.Material

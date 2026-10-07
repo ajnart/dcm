@@ -191,8 +191,7 @@ func (f *wudRuntimeFixture) observe(r *runner) bool {
 		return false
 	}
 	containerJSON := res.stdout
-	const imageProjection = `{"ImageID":{{json .Id}},"RepoTags":{{json .RepoTags}},"RepoDigests":{{json .RepoDigests}},"Architecture":{{json .Architecture}},"OS":{{json .Os}},"Variant":{{json .Variant}},"Created":{{json .Created}}}`
-	res = run("image", "inspect", "--format", imageProjection, c.ImageID)
+	res = run("image", "inspect", "--format", wudImageProjection, c.ImageID)
 	if res.code != 0 {
 		f.observation = wudInventoryDiagnostic{Phase: "image-projection", Outcome: "command-failed"}
 		return false
