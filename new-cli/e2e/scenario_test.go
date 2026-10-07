@@ -33,7 +33,14 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 	stage.Outcome = "running"
 	stage.Command = safeCommand(args)
 	r.saveEvidence()
-	res := fn()
+	res := result{}
+	if r.commandCtx != nil {
+		res.code, res.termination = commandContextOutcome(r.commandCtx.Err())
+	}
+	if res.termination == nil {
+		res = fn()
+	}
+	stage.Termination = res.termination
 	stage.Failures = redactedFailures(res.events, r.spec.Apps)
 	for _, failure := range stage.Failures {
 		label := failure.Kind
@@ -63,6 +70,10 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 		stage.Reason = "command failed; no recognized redacted CLI failure event"
 		if len(stage.Failures) > 0 {
 			stage.Reason = "redacted CLI failure details retained"
+		}
+		if res.termination != nil {
+			stage.Reason = res.termination.Reason
+			r.t.Logf("%s: %s (exit %d)", name, stage.Reason, res.code)
 		}
 		r.evidence.Outcome = "failed"
 		for _, event := range res.events {
@@ -95,7 +106,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
 	reservation.closeSockets()
-	r.stage("install", args, func() result { return r.run(args...) })
+	r.stage("install", args, func() result { return r.runWithTimeout(installCommandLimit(spec), args...) })
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
 	if r.netbird != nil {
 		r.stage("management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, r.netBirdManagementProbe)
@@ -232,6 +243,11 @@ func (r *runner) setupAndReady(target *runner) result {
 	}
 	if !target.waitRunning(statusWait, r.spec.Apps) {
 		res.code = 1
+		if target.commandCtx != nil {
+			if code, termination := commandContextOutcome(target.commandCtx.Err()); termination != nil {
+				res.code, res.termination = code, termination
+			}
+		}
 	}
 	return res
 }
@@ -251,8 +267,15 @@ func allNoHeadless(res result) bool {
 }
 
 func (r *runner) waitRunning(limit time.Duration, expected []string) bool {
+	ctx := r.commandCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	deadline := time.Now().Add(limit)
 	for {
+		if ctx.Err() != nil {
+			return false
+		}
 		res := r.runWithTimeout(30*time.Second, "status", "--json")
 		var doc statusDoc
 		if res.code == 0 && json.Unmarshal([]byte(res.stdout), &doc) == nil && readyStatus(doc.Apps, expected) && r.containersReady() {
@@ -261,7 +284,11 @@ func (r *runner) waitRunning(limit time.Duration, expected []string) bool {
 		if time.Now().After(deadline) {
 			return false
 		}
-		time.Sleep(statusPoll)
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(statusPoll):
+		}
 	}
 }
 

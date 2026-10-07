@@ -134,12 +134,13 @@ type failureEvidence struct {
 }
 
 type stageEvidence struct {
-	Failures []failureEvidence `json:"failures,omitempty"`
-	Name     string            `json:"name"`
-	Outcome  string            `json:"outcome"`
-	Reason   string            `json:"reason,omitempty"`
-	Command  []string          `json:"command,omitempty"`
-	Apps     map[string]string `json:"apps"`
+	Termination *commandTermination `json:"termination,omitempty"`
+	Failures    []failureEvidence   `json:"failures,omitempty"`
+	Name        string              `json:"name"`
+	Outcome     string              `json:"outcome"`
+	Reason      string              `json:"reason,omitempty"`
+	Command     []string            `json:"command,omitempty"`
+	Apps        map[string]string   `json:"apps"`
 }
 
 type targetEvidence struct {
@@ -257,7 +258,7 @@ type containerEntry struct {
 	Service  string
 	State    string
 	Health   string
-	ExitCode int
+	ExitCode *int
 }
 
 func containersReadyJSON(text string, expected []string) bool {
@@ -282,10 +283,13 @@ func containersReadyJSON(text string, expected []string) bool {
 	}
 	seen := map[string]bool{}
 	for _, row := range rows {
+		if row.Service == "archive-team-warrior-init" && row.State != "exited" {
+			return false
+		}
 		if seen[row.Service] || row.Health == "unhealthy" || row.Health == "starting" {
 			return false
 		}
-		if row.State != "running" && !(row.State == "exited" && row.ExitCode == 0 && (row.Service == "restic" || row.Service == "borgmatic" || row.Service == "renovate")) {
+		if row.State != "running" && !(row.State == "exited" && row.ExitCode != nil && *row.ExitCode == 0 && (row.Service == "restic" || row.Service == "borgmatic" || row.Service == "renovate" || row.Service == "archive-team-warrior-init")) {
 			return false
 		}
 		seen[row.Service] = true

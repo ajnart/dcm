@@ -29,7 +29,7 @@ import (
 
 // This is an opt-in functional scenario, separate from the catalog lifecycle
 // sweep. All credentials stay inside this test's owned Project and HTTP client.
-// E2E_HOMARR_FUNCTIONAL=1 go test -tags e2e -run '^TestHomarrFunctional$' ./e2e
+// E2E_HOMARR_FUNCTIONAL=1 go test -tags e2e -timeout 45m -run '^TestHomarrFunctional$' ./e2e
 func TestHomarrFunctional(t *testing.T) {
 	if os.Getenv("E2E_HOMARR_FUNCTIONAL") != "1" {
 		t.Skip("set E2E_HOMARR_FUNCTIONAL=1 for the bounded Homarr functional scenario")
@@ -37,7 +37,12 @@ func TestHomarrFunctional(t *testing.T) {
 	if !dockerAvailable {
 		t.Skip("Docker unavailable; Homarr functional acceptance remains unverified")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	if err := sweepBudgetError(t.Deadline()); err != nil {
+		t.Fatal(err)
+	}
+	parent, parentCancel := sweepCommandContext(t.Deadline())
+	t.Cleanup(parentCancel)
+	ctx, cancel := context.WithTimeout(parent, 30*time.Minute)
 	t.Cleanup(cancel)
 	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
 	release, err := acquireGlobal(ctx, lockPath)
@@ -58,6 +63,7 @@ func TestHomarrFunctional(t *testing.T) {
 		}
 	}
 	r := newRunner(t, guard)
+	r.commandCtx = ctx
 	r.spec = targetSpec{Kind: "functional", ID: "homarr", Apps: []string{"homarr", "ntfy", "jellyfin"}}
 	r.target = evidenceName(r.spec)
 	if r.logDir == "" {

@@ -4,7 +4,6 @@ package e2e
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -29,6 +28,9 @@ var binarySHA string
 var codeHead string
 
 func TestMain(m *testing.M) {
+	if os.Getenv("SELFHOST_COMMAND_FIXTURE") == "1" {
+		os.Exit(m.Run())
+	}
 	dockerAvailable = dockerOK()
 	head := exec.Command("git", "rev-parse", "HEAD")
 	if out, err := head.Output(); err == nil {
@@ -92,14 +94,8 @@ func moduleRoot() (string, error) {
 	}
 }
 
-type result struct {
-	code   int
-	stdout string
-	stderr string
-	events []event
-}
-
 type runner struct {
+	commandCtx   context.Context
 	netbird      *netBirdFixture
 	netbirdOwner bool
 	teardownOK   bool
@@ -136,6 +132,9 @@ func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 		r.logDir = logDirs[0]
 	}
 	guard.RegisterProject(r.project, r.name)
+	commandCtx, cancelCommands := sweepCommandContext(t.Deadline())
+	r.commandCtx = commandCtx
+	t.Cleanup(cancelCommands)
 	r.env = isolatedEnvironment(os.Environ())
 	r.env = append(r.env,
 		"SELF_HOST_HOME="+r.project,
@@ -161,30 +160,16 @@ func (r *runner) run(args ...string) result {
 }
 
 func (r *runner) runWithTimeout(timeout time.Duration, args ...string) result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	parent := r.commandCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, e2eBinary, args...)
 	cmd.Dir = r.root
 	cmd.Env = r.env
-	var out, errb bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	res := result{stdout: out.String(), stderr: errb.String()}
-	if ctx.Err() != nil {
-		res.code = 124
-	}
-	if err != nil {
-		res.code = 1
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			res.code = exit.ExitCode()
-		} else if ctx.Err() != nil {
-			res.stderr += "\n[error] " + ctx.Err().Error()
-		} else {
-			res.stderr += "\n[error] " + err.Error()
-		}
-	}
+	res := executeOwnedCommand(ctx, cmd)
 	res.events = decodeEvents(res.stdout)
 	return res
 }
@@ -271,8 +256,7 @@ func (r *runner) composeDown() error {
 	cmd := exec.CommandContext(ctx, "docker", r.dockerArgs("compose", "-p", r.name, "down", "--volumes", "--remove-orphans")...)
 	cmd.Dir = r.composeDir()
 	cmd.Env = r.env
-	if out, err := cmd.CombinedOutput(); err != nil {
-		_ = out
+	if res := executeOwnedCommand(ctx, cmd); res.code != 0 {
 		return errors.New("owned Compose cleanup failed")
 	}
 	return nil
@@ -285,8 +269,7 @@ func (r *runner) removeRoot() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", r.root+":/x", "alpine", "sh", "-c", "rm -rf /x/* /x/.[!.]*")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		_ = out
+	if res := executeOwnedCommand(ctx, cmd); res.code != 0 {
 		r.t.Errorf("owned folder cleanup failed")
 	}
 	if err := os.RemoveAll(r.root); err != nil {
@@ -342,11 +325,11 @@ func (r *runner) dockerOutput(timeout time.Duration, args ...string) string {
 	cmd := exec.CommandContext(ctx, "docker", r.dockerArgs(args...)...)
 	cmd.Dir = r.composeDir()
 	cmd.Env = r.env
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return string(out) + "\n[error] " + err.Error()
+	res := executeOwnedCommand(ctx, cmd)
+	if res.code != 0 {
+		return res.stdout + res.stderr + "\n[error] owned Docker observation failed"
 	}
-	return string(out)
+	return res.stdout + res.stderr
 }
 
 func (r *runner) dockerArgs(args ...string) []string {

@@ -84,6 +84,9 @@ func TestE2E(t *testing.T) {
 		}
 		t.Skip("Docker unavailable: selected targets recorded blocked, no runtime pass")
 	}
+	if err := sweepBudgetError(t.Deadline()); err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
@@ -116,12 +119,7 @@ func TestE2E(t *testing.T) {
 			t.Error("failed to persist teardown blocker")
 		}
 	}
-	deadline, hasDeadline := t.Deadline()
-	runCtx := context.Background()
-	runCancel := func() {}
-	if hasDeadline {
-		runCtx, runCancel = context.WithDeadline(runCtx, deadline.Add(-2*time.Minute))
-	}
+	runCtx, runCancel := sweepCommandContext(t.Deadline())
 	t.Cleanup(runCancel)
 	for _, spec := range selected {
 		spec := withOwnedPrerequisites(spec)
