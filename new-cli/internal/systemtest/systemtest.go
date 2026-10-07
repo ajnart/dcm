@@ -130,6 +130,7 @@ func NewDeps(t *testing.T) *system.Deps {
 	t.Helper()
 	runner := &Runner{}
 	runner.On("docker version", system.Result{Stdout: []byte("27.3.1\n")})
+	runner.On("docker info", system.Result{Stdout: []byte(`["name=seccomp,profile=builtin","name=cgroupns"]`)})
 	runner.On("docker compose version", system.Result{Stdout: []byte("2.29.7\n")})
 	home := t.TempDir()
 	env := map[string]string{}

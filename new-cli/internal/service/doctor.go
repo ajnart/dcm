@@ -21,6 +21,11 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 	if err != nil {
 		return checks
 	}
+	if rootless, err := host.Rootless(ctx, s.Deps); err == nil && rootless && (ss.settings["PUID"] != "0" || ss.settings["PGID"] != "0") {
+		checks = append(checks, host.Check{ID: "project-userns", Title: "Project container IDs", Level: host.Warn,
+			Detail: fmt.Sprintf("rootless Docker maps host-user-owned folders to container 0:0, but this Project uses PUID=%s PGID=%s; Apps using these IDs may be unable to write bind mounts", ss.settings["PUID"], ss.settings["PGID"]),
+			Hint:   "Review existing bind-mount ownership first; for host-user-owned folders use: self-host config set PUID=0 PGID=0. Images with fixed nonzero users and their backups need separate ownership/read access."})
+	}
 	status, err := s.Status(ctx)
 	if err != nil {
 		return append(checks, host.Check{ID: "project", Title: "Project", Level: host.Fail, Detail: err.Error()})

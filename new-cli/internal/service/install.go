@@ -114,9 +114,13 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 	return result, nil
 }
 
-// requireDocker fails with the first failing Docker check.
+// requireDocker reports warnings before apply and fails with the first failing check.
 func (s *Service) requireDocker(ctx context.Context) error {
 	for _, check := range host.Docker(ctx, s.Deps) {
+		if check.Level == host.Warn {
+			s.Log.Emit(events.Event{Event: events.StepWarn, Step: check.ID, Msg: check.Title + ": " + check.Detail,
+				Hint: check.Hint, Docs: check.Docs})
+		}
 		if check.Level == host.Fail {
 			msg := check.Title + ": " + check.Detail
 			if check.Hint != "" {
@@ -171,7 +175,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	}
 	return s.run(ctx, change{
 		title:      "install " + strings.Join(names, " "),
-		initialize: func(p *project.Project) error { return s.createProject(p, opts) },
+		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
 			previous := map[string]map[string]string{}
 			for id, st := range ss.state.Apps {
@@ -221,8 +225,8 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	})
 }
 
-func (s *Service) createProject(p *project.Project, opts InstallOptions) error {
-	settings := s.DetectSettings(p.Owner, opts.Exposure)
+func (s *Service) createProject(ctx context.Context, p *project.Project, opts InstallOptions) error {
+	settings := s.detectSettings(ctx, p.Owner, opts.Exposure)
 	for key, value := range opts.Settings {
 		if value != "" && key != "EXPOSURE" && key != "BIND_IP" {
 			settings[key] = value

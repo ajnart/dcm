@@ -25,6 +25,7 @@ import (
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/system"
 )
@@ -114,6 +115,10 @@ func BindIP(exposure string) string {
 
 // DetectSettings returns Host settings for a new Project.
 func (s *Service) DetectSettings(owner system.User, exposure string) map[string]string {
+	return s.detectSettings(context.Background(), owner, exposure)
+}
+
+func (s *Service) detectSettings(ctx context.Context, owner system.User, exposure string) map[string]string {
 	if exposure == "" {
 		exposure = ExposureLAN
 	}
@@ -121,7 +126,7 @@ func (s *Service) DetectSettings(owner system.User, exposure string) map[string]
 	if err != nil || lan == "" {
 		lan = "127.0.0.1"
 	}
-	return map[string]string{
+	settings := map[string]string{
 		"TZ":             s.Deps.TimeZone(),
 		"PUID":           strconv.Itoa(owner.UID),
 		"PGID":           strconv.Itoa(owner.GID),
@@ -132,6 +137,12 @@ func (s *Service) DetectSettings(owner system.User, exposure string) map[string]
 		"MEDIA_ROOT":     filepath.Join(owner.Home, "media"),
 		"DOWNLOADS_ROOT": filepath.Join(owner.Home, "downloads"),
 	}
+	if rootless, err := host.Rootless(ctx, s.Deps); err == nil && rootless {
+		// Container root maps to the rootless daemon's host user, who owns
+		// the Project folders. Project ownership itself stays unchanged.
+		settings["PUID"], settings["PGID"] = "0", "0"
+	}
+	return settings
 }
 
 // Defaults returns the Host settings a new Project would get.
@@ -265,9 +276,9 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			return ss.helpers(peer)
 		},
 		InstalledApps: ss.installedApps,
-		PollInterval: ss.s.pollInterval(),
-		Now:          ss.s.Deps.Now,
-		Sleep:        ss.s.Deps.Sleep,
+		PollInterval:  ss.s.pollInterval(),
+		Now:           ss.s.Deps.Now,
+		Sleep:         ss.s.Deps.Sleep,
 	})
 }
 
