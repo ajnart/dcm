@@ -170,7 +170,7 @@ func (f FirstAdmin) username(ctx context.Context, h *helpers.H) (string, error) 
 
 func (f FirstAdmin) signIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	if f.Login == nil {
-		return false, errors.New("no way to check the Admin login")
+		return false, errors.New("this App has no headless way to verify its administrator login")
 	}
 	return f.Login(ctx, h, user, password)
 }

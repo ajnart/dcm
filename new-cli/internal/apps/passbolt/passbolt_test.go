@@ -49,27 +49,34 @@ func inputs() map[string]string {
 	}
 }
 
-func TestSetupThenCheckThenRerunSkips(t *testing.T) {
+func TestServerKeyReadinessDoesNotCompleteBrowserEnrollment(t *testing.T) {
 	srv := httptest.NewServer(handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, inputs())
 	ctx := context.Background()
 
-	if err := (passbolt.App{}).Setup(ctx, h); err != nil {
-		t.Fatalf("Setup: %v", err)
+	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
+		t.Fatalf("Setup = %v, want manual browser enrollment", err)
 	}
-	if err := (passbolt.App{}).Check(ctx, h); err != nil {
-		t.Fatalf("Check: %v", err)
+	if err := (passbolt.App{}).Check(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
+		t.Fatalf("Check = %v, want manual browser enrollment", err)
 	}
 	records = nil
-	if err := (passbolt.App{}).Setup(ctx, h); err != nil {
-		t.Fatalf("rerun Setup: %v", err)
+	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
+		t.Fatalf("rerun Setup = %v, want manual browser enrollment", err)
 	}
+	manual := false
 	for _, r := range records {
+		if r.ID == "admin" {
+			manual = r.Status == "fail" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "browser extension") && strings.Contains(r.Hint, "recovery kit")
+		}
 		if r.ID == "server-key" && r.Status != "skip" {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if !manual {
+		t.Fatalf("browser enrollment failure/hint missing: %+v", records)
 	}
 }
 

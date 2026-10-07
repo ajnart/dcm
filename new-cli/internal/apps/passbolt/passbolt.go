@@ -168,10 +168,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	h.Info("Create the first administrator by enrolling the browser extension: open " + h.URL +
+	return h.Step(ctx, "admin", "enroll the administrator's browser extension", helpers.StepSpec{
+		Do:   func(context.Context) error { return errors.New(manualAdmin) },
+		Hint: enrollmentHint(h),
+	})
+}
+
+const manualAdmin = "Passbolt has no headless way to verify browser extension enrollment"
+
+func enrollmentHint(h *helpers.H) string {
+	return "Create the first administrator by enrolling the browser extension: open " + h.URL +
 		", register " + adminEmail(h) + " as an admin, and save the private key, passphrase and recovery kit privately. " +
-		"The Admin password is not used: Passbolt enrollment is OpenPGP key-based. Time sync and SMTP delivery are installation prerequisites.")
-	return nil
+		"The Admin password is not used: Passbolt enrollment is OpenPGP key-based. Time sync and SMTP delivery are installation prerequisites."
 }
 
 func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
@@ -184,7 +192,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("Passbolt is not serving its server OpenPGP key at %s", h.BaseURL)
 	}
-	return nil
+	return fmt.Errorf("%s: %s", manualAdmin, enrollmentHint(h))
 }
 
 func (App) Links() []app.Link { return nil }

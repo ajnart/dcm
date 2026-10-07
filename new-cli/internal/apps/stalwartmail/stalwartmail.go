@@ -4,6 +4,7 @@ package stalwartmail
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -84,14 +85,26 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
-	h.Info("Open " + h.URL + " and complete the first-run wizard for " + host + "; set the administrator " +
-		adminEmail(domain) + " with the password from `self-host credentials`. Mail delivery needs separate SMTP " +
-		"ports, DNS, TLS and anti-abuse approval.")
-	return h.Step(ctx, "admin-ui", "the Stalwart admin UI answers", helpers.StepSpec{
+	if err := h.Step(ctx, "admin-ui", "the Stalwart admin UI answers", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return adminUIAvailable(ctx, h) },
 		Hint:       "Read Stalwart's logs for startup errors: self-host logs stalwart-mail",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "admin", "complete the Stalwart administrator setup", helpers.StepSpec{
+		Do:         func(context.Context) error { return errors.New(manualAdmin) },
+		Hint:       adminHint(h),
+		Credential: "admin",
 	})
+}
+
+const manualAdmin = "Stalwart has no headless way to verify its administrator login"
+
+func adminHint(h *helpers.H) string {
+	return "Open " + h.URL + " and complete the first-run wizard for " + h.Inputs["STALWART_HOSTNAME"] + "; set the administrator " +
+		adminEmail(h.Inputs["STALWART_DOMAIN"]) + " with the password from `self-host credentials`. Mail delivery needs separate SMTP " +
+		"ports, DNS, TLS and anti-abuse approval."
 }
 
 func adminEmail(domain string) string {
@@ -117,7 +130,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Stalwart admin UI did not answer at %s", h.BaseURL)
 	}
-	return nil
+	return fmt.Errorf("%s: %s", manualAdmin, adminHint(h))
 }
 
 func (App) Links() []app.Link { return nil }
