@@ -1,0 +1,56 @@
+new-cli/internal/apps/arr/arr_test.go
+  h_d6e478ca18e517 232
+new-cli/internal/apps/grafana/grafana_test.go
+  h_d6e478ca18e517 98
+new-cli/internal/apps/kopia/kopia_test.go
+  h_d6e478ca18e517 80
+new-cli/internal/apps/nodered/nodered_test.go
+  h_d6e478ca18e517 98
+new-cli/internal/apps/nzbget/nzbget_test.go
+  h_d6e478ca18e517 79
+new-cli/internal/apps/openwebui/openwebui_test.go
+  h_d6e478ca18e517 86
+new-cli/internal/apps/peanut/peanut_test.go
+  h_d6e478ca18e517 78
+new-cli/internal/apps/photoprism/photoprism_test.go
+  h_d6e478ca18e517 98
+new-cli/internal/apps/slskd/slskd_test.go
+  h_d6e478ca18e517 93
+new-cli/internal/apps/speedtesttracker/speedtesttracker_test.go
+  h_d6e478ca18e517 87
+new-cli/internal/apps/traefik/traefik_test.go
+  h_d6e478ca18e517 95
+new-cli/internal/helpers/config.go
+  h_d6e478ca18e517 1-137
+new-cli/internal/helpers/config_test.go
+  h_d6e478ca18e517 1-74
+new-cli/internal/helpers/exec_test.go
+  h_d6e478ca18e517 1-34
+new-cli/internal/helpers/hash.go
+  h_d6e478ca18e517 1-58
+new-cli/internal/helpers/hash_test.go
+  h_d6e478ca18e517 1-54
+new-cli/internal/helpers/helpers.go
+  h_d6e478ca18e517 207-213
+new-cli/internal/helpers/http.go
+  h_d6e478ca18e517 140-194,196,198,202-219
+new-cli/internal/helpers/ready_test.go
+  h_d6e478ca18e517 1-156
+new-cli/internal/helpers/session.go
+  h_d6e478ca18e517 1-152
+new-cli/internal/helpers/session_test.go
+  h_d6e478ca18e517 1-149
+new-cli/internal/helpers/support_test.go
+  h_d6e478ca18e517 1-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d24d8671dec6cc24f20130622726a136025a8018",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
