@@ -105,10 +105,11 @@ func (c *Compose) Pull(ctx context.Context, services ...string) error {
 	return err
 }
 
-// PullProgress runs `pull --progress json` and reports per-image, per-layer
+// PullProgress runs `--progress json pull` (--progress is a global Compose
+// flag; `pull` itself has none) and reports per-image, per-layer
 // progress as pull.progress events. Unknown output lines are ignored.
 func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
-	args := append([]string{"pull", "--progress", "json"}, services...)
+	args := append([]string{"--progress", "json", "pull"}, services...)
 	cmd := system.Cmd{Name: "docker", Args: c.args(args...), Dir: c.root}
 	c.log.Emit(events.Event{Event: events.Command, Command: "docker " + strings.Join(cmd.Args, " ")})
 	parser := newPullParser(c.log, c.deps.Now)
@@ -120,7 +121,7 @@ func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
 		if image == "" {
 			image = parser.lastSeen
 		}
-		return &PullError{Image: image, Err: err}
+		return &PullError{Image: image, Err: err, Output: parser.message}
 	}
 	return nil
 }
@@ -129,9 +130,16 @@ func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
 type PullError struct {
 	Image string
 	Err   error
+	// Output is Docker's last message that was not a progress line.
+	Output string
 }
 
-func (e *PullError) Error() string { return e.Err.Error() }
+func (e *PullError) Error() string {
+	if e.Output != "" {
+		return e.Err.Error() + ": " + e.Output
+	}
+	return e.Err.Error()
+}
 func (e *PullError) Unwrap() error { return e.Err }
 
 // pullLine is one line of `docker compose pull --progress json`.
@@ -152,6 +160,8 @@ type pullParser struct {
 	last     map[string]time.Time
 	lastSeen string
 	failed   string
+	// message is the last line that was not progress JSON (an error).
+	message string
 }
 
 func newPullParser(log *events.Logger, now func() time.Time) *pullParser {
@@ -163,11 +173,12 @@ func newPullParser(log *events.Logger, now func() time.Time) *pullParser {
 
 func (p *pullParser) line(raw []byte) {
 	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
+	if len(trimmed) == 0 {
 		return
 	}
 	var line pullLine
-	if err := json.Unmarshal(trimmed, &line); err != nil {
+	if trimmed[0] != '{' || json.Unmarshal(trimmed, &line) != nil {
+		p.message = string(trimmed)
 		return
 	}
 	image, layer := strings.TrimPrefix(line.ParentID, "Image "), line.ID

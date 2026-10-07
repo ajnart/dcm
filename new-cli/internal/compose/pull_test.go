@@ -34,7 +34,7 @@ func TestPullProgressParsesLayersAndCompletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	dep := systemtest.NewDeps(t)
-	dep.Runner.(*systemtest.Runner).OnStream("pull --progress json", string(data))
+	dep.Runner.(*systemtest.Runner).OnStream("--progress json pull", string(data))
 	step := 0
 	dep.Now = func() time.Time { step++; return time.Unix(0, 0).Add(time.Duration(step) * time.Second) }
 
@@ -64,7 +64,7 @@ func TestPullProgressThrottlesButAlwaysCompletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	dep := systemtest.NewDeps(t)
-	dep.Runner.(*systemtest.Runner).OnStream("pull --progress json", string(data))
+	dep.Runner.(*systemtest.Runner).OnStream("--progress json pull", string(data))
 	dep.Now = func() time.Time { return time.Unix(0, 0) }
 
 	got := collectPull(t, dep)
@@ -77,7 +77,7 @@ func TestPullProgressThrottlesButAlwaysCompletes(t *testing.T) {
 func TestPullProgressFailureNamesTheImage(t *testing.T) {
 	dep := systemtest.NewDeps(t)
 	line := `{"id":"Image busybox:1.36.1","status":"Working","text":"Pulling"}` + "\n"
-	dep.Runner.(*systemtest.Runner).OnStreamError("pull --progress json", line, errors.New("exit status 1"))
+	dep.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", line, errors.New("exit status 1"))
 	log := events.New()
 	c := New(dep, log, t.TempDir(), "selfhost")
 
@@ -87,7 +87,7 @@ func TestPullProgressFailureNamesTheImage(t *testing.T) {
 	if !errors.As(err, &perr) || perr.Image != "busybox:1.36.1" {
 		t.Fatalf("error %v (%+v)", err, perr)
 	}
-	if !strings.Contains(dep.Runner.(*systemtest.Runner).Calls()[0], "pull --progress json a") {
+	if !strings.Contains(dep.Runner.(*systemtest.Runner).Calls()[0], "--progress json pull a") {
 		t.Fatal("pull command not recorded")
 	}
 }
