@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -202,6 +203,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			return err
 		}
 		st.Port, st.Inputs = port, values
+		if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
+			return err
+		}
 		if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
 			return err
 		}
@@ -278,6 +282,33 @@ func (ss *session) ensureAdmin(opts InstallOptions) error {
 	if generated {
 		ss.s.Log.Emit(events.Event{Event: events.StepOK, Step: "admin-login",
 			Msg: "generated the Admin login for user " + values["ADMIN_USER"] + " (show it with: self-host credentials)"})
+	}
+	return nil
+}
+
+// writeFiles writes the config files an App declares into its folder.
+func (ss *session) writeFiles(a app.App, rc app.RenderContext) error {
+	declarer, found := a.(app.FileDeclarer)
+	if !found {
+		return nil
+	}
+	id := a.Info().ID
+	secret := func(name string) string { return ss.secrets.values[SecretKey(id, name)] }
+	for _, f := range declarer.Files(rc, secret) {
+		clean := path.Clean(f.Path)
+		if path.IsAbs(clean) || clean == "." || strings.HasPrefix(clean, "..") {
+			return fmt.Errorf("%s: file %q must stay inside apps/%s", id, f.Path, id)
+		}
+		if _, err := os.Stat(ss.p.Path("apps", id, clean)); err == nil && f.Keep {
+			continue
+		}
+		mode := os.FileMode(f.Mode)
+		if mode == 0 {
+			mode = 0o644
+		}
+		if err := ss.p.WriteAppFile(id, clean, []byte(f.Content), mode); err != nil {
+			return err
+		}
 	}
 	return nil
 }

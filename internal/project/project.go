@@ -225,6 +225,15 @@ func (p *Project) WriteFragment(id, content string) error {
 	return p.writeFile(p.FragmentPath(id), []byte(header+content), 0o644)
 }
 
+// WriteAppFile writes a config file at rel inside apps/<id>, owned like the
+// rest of the Project.
+func (p *Project) WriteAppFile(id, rel string, data []byte, mode os.FileMode) error {
+	if err := p.MkdirAll(append([]string{"apps", id}, strings.Split(filepath.Dir(rel), string(filepath.Separator))...)...); err != nil {
+		return err
+	}
+	return p.writeFile(p.Path("apps", id, rel), data, mode)
+}
+
 // AppIDs lists every folder in apps/ that holds a compose.yml, catalog or not.
 func (p *Project) AppIDs() ([]string, error) {
 	entries, err := os.ReadDir(p.Path("apps"))
