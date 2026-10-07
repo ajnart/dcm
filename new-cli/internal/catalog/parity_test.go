@@ -78,6 +78,12 @@ var deviations = map[string]map[string]string{
 	},
 }
 
+// Service aliases preserve individual legacy dependency requirements while
+// avoiding cross-App Compose ownership collisions.
+var compositionServiceAliases = map[string]map[string]string{
+	"immich": {"redis": "immich-redis"},
+}
+
 // excluded are legacy Apps left out on purpose, with the reason.
 var excluded = map[string]string{
 	"coolify": "a host controller: it needs the Docker socket and SSH authority over the host, which the Project never grants",
@@ -193,10 +199,65 @@ func appProblems(cat *Catalog, a app.App, f legacyApp) []string {
 		check("links", linked(cat, f.ID, target), "no Link between %s and %s (legacy links.ts)", f.ID, target)
 	}
 	for _, dep := range f.CompositionServices {
-		_, embedded := services[dep]
-		check("composition", embedded, "Compose() lacks the %s service the legacy composition.json declared", dep)
+		name := dep
+		if alias := compositionServiceAliases[f.ID][dep]; alias != "" {
+			name = alias
+		}
+		_, embedded := services[name]
+		check("composition", embedded, "Compose() lacks the %s service required by the legacy composition.json dependency %s", name, dep)
 	}
 	return problems
+}
+
+type compositionFixtureApp struct {
+	app.App
+	compose string
+}
+
+func (a compositionFixtureApp) Compose(app.RenderContext) string { return a.compose }
+
+func TestCompositionParityKeepsRenamedRedisAndDatabaseRequired(t *testing.T) {
+	cat := Default()
+	a, _ := cat.App("immich")
+	var fact legacyApp
+	for _, candidate := range loadLegacyFacts(t).Apps {
+		if candidate.ID == "immich" {
+			fact = candidate
+			break
+		}
+	}
+	if !slices.Contains(fact.CompositionServices, "redis") || !slices.Contains(fact.CompositionServices, "database") {
+		t.Fatal("fixture must retain both original legacy composition requirements")
+	}
+	if problems := appProblems(cat, a, fact); len(problems) != 0 {
+		t.Fatalf("intentional service rename broke parity: %v", problems)
+	}
+	for _, missing := range []string{"immich-redis", "database"} {
+		t.Run(missing, func(t *testing.T) {
+			services, err := composeServices(render(a))
+			if err != nil {
+				t.Fatal(err)
+			}
+			delete(services, missing)
+			data, err := yaml.Marshal(map[string]any{"services": services})
+			if err != nil {
+				t.Fatal(err)
+			}
+			problems := appProblems(cat, compositionFixtureApp{App: a, compose: string(data)}, fact)
+			if !slices.ContainsFunc(problems, func(problem string) bool {
+				return strings.HasPrefix(problem, "composition:") && strings.Contains(problem, missing)
+			}) {
+				t.Fatal("composition parity accepted a missing required dependency")
+			}
+		})
+	}
+	// An alias belongs to this App; it must not substitute another App's redis.
+	fact.ID = "fixture-app"
+	if !slices.ContainsFunc(appProblems(cat, a, fact), func(problem string) bool {
+		return strings.HasPrefix(problem, "composition:") && strings.Contains(problem, "redis service")
+	}) {
+		t.Fatal("Immich service alias weakened unrelated App parity")
+	}
 }
 
 // TestEveryLegacyAppIsPorted is the porting work queue: every legacy App

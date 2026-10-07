@@ -27,6 +27,18 @@ func (f *passwordFileTransport) RoundTrip(req *http.Request) (*http.Response, er
 	status, body := http.StatusOK, `{}`
 	switch req.URL.Path {
 	case "/api/auth":
+		if req.Method == http.MethodGet {
+			if req.Header.Get("X-FTL-SID") != "fixture-session" {
+				status = http.StatusUnauthorized
+			} else {
+				body = `{"session":{"valid":true,"sid":"fixture-session"}}`
+			}
+			break
+		}
+		if req.Method != http.MethodPost {
+			status = http.StatusMethodNotAllowed
+			break
+		}
 		var login struct {
 			Password string `json:"password"`
 		}
@@ -39,9 +51,13 @@ func (f *passwordFileTransport) RoundTrip(req *http.Request) (*http.Response, er
 			f.logins++
 			body = `{"session":{"valid":true,"sid":"fixture-session"}}`
 		}
-	case "/api/info/version":
-		if req.Header.Get("X-FTL-SID") != "fixture-session" {
+	case "/api/dns/blocking":
+		if req.Method != http.MethodGet {
+			status = http.StatusMethodNotAllowed
+		} else if req.Header.Get("X-FTL-SID") != "fixture-session" {
 			status = http.StatusUnauthorized
+		} else {
+			body = `{"blocking":"enabled","timer":null}`
 		}
 	}
 	return &http.Response{StatusCode: status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
