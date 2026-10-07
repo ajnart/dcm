@@ -1,0 +1,34 @@
+name: new-cli
+
+on:
+  pull_request:
+    paths:
+      - "new-cli/**"
+      - ".github/workflows/new-cli.yml"
+  push:
+    branches: [main]
+    paths:
+      - "new-cli/**"
+      - ".github/workflows/new-cli.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: new-cli
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+          cache-dependency-path: new-cli/go.sum
+      - name: Vet
+        run: go vet ./... && go vet -tags e2e ./e2e/
+      - name: Test
+        run: go test ./...
