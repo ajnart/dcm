@@ -33,6 +33,7 @@ type fakeNPM struct {
 	password      string
 	rootRedirects int
 	adminCreates  int
+	setupBody     string
 }
 
 func (f *fakeNPM) handler() http.Handler {
@@ -48,9 +49,13 @@ func (f *fakeNPM) handler() http.Handler {
 	mux.HandleFunc("GET /api/{$}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
+		if f.setupBody != "" {
+			w.Write([]byte(f.setupBody))
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]any{
 			"status":  "OK",
-			"setup":   f.pending,
+			"setup":   !f.pending,
 			"version": map[string]any{"major": 2, "minor": 16, "revision": 0},
 		})
 	})
@@ -154,7 +159,7 @@ func TestSetupPreservesSelectedOriginThenCheckAndRerunSkips(t *testing.T) {
 }
 
 func TestFailingStepHintNamesTheSetupCommand(t *testing.T) {
-	fake := &fakeNPM{pending: false}
+	fake := &fakeNPM{pending: false, email: "existing@example.test", password: "existing-password"}
 	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
@@ -171,5 +176,25 @@ func TestFailingStepHintNamesTheSetupCommand(t *testing.T) {
 	}
 	if !strings.Contains(hint, "self-host setup nginx-proxy-manager") {
 		t.Errorf("hint should name the setup command, got %q", hint)
+	}
+	if fake.adminCreates != 0 || fake.email != "existing@example.test" || fake.password != "existing-password" {
+		t.Fatal("Setup changed the existing administrator")
+	}
+}
+
+func TestSetupRejectsUnknownSetupStateWithoutCreatingAdmin(t *testing.T) {
+	for _, body := range []string{`{"status":"OK"}`, `{"setup":null}`, `{"setup":"false"}`, `invalid`} {
+		t.Run(body, func(t *testing.T) {
+			fake := &fakeNPM{pending: true, setupBody: body}
+			srv := httptest.NewServer(fake.handler())
+			t.Cleanup(srv.Close)
+			var records []helpers.StepResult
+			if err := (nginxproxymanager.App{}).Setup(context.Background(), newH(t, srv, &records)); err == nil {
+				t.Fatal("Setup accepted an unknown first-owner state")
+			}
+			if fake.adminCreates != 0 {
+				t.Fatal("Setup created an administrator with an unknown setup state")
+			}
+		})
 	}
 }

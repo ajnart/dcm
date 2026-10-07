@@ -53,12 +53,16 @@ func setupPending(ctx context.Context, h *helpers.H) (bool, error) {
 		return false, err
 	}
 	var body struct {
-		Setup bool `json:"setup"`
+		Setup *bool `json:"setup"`
 	}
 	if err := resp.Decode(&body); err != nil {
-		return false, err
+		return false, errors.New("Nginx Proxy Manager returned an invalid setup state")
 	}
-	return body.Setup, nil
+	if body.Setup == nil {
+		return false, errors.New("Nginx Proxy Manager did not report its setup state")
+	}
+	// v2.16.0's setup flag means an active user already exists.
+	return !*body.Setup, nil
 }
 
 func adminSignedIn(ctx context.Context, h *helpers.H) (bool, error) {
