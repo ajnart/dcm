@@ -53,6 +53,15 @@ func apiKeySecret(_, to *helpers.H) []secret {
 	return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("api_key"))}}
 }
 
+// ntfySecret wires Homarr's ntfy integration to the topic and to the
+// administrator access token ntfy issued for Homarr.
+func ntfySecret(_, to *helpers.H) []secret {
+	return []secret{
+		{Kind: "topic", Value: to.Secret(to.Key("topic"))},
+		{Kind: "apiKey", Value: to.Secret(to.Key("homarr_token"))},
+	}
+}
+
 // targets are the Apps Homarr supports here, in the order they are declared.
 // Other Apps are reached by Compose service name, never localhost.
 func targets() []target {
@@ -85,7 +94,8 @@ func targets() []target {
 			},
 			widgets: []widget{plain("downloads"), statWidget("download", "upload", "paused")},
 		},
-		{id: "ntfy", name: "ntfy", internal: fixed("http://ntfy:80")},
+		{id: "ntfy", name: "ntfy", kind: "ntfy", internal: fixed("http://ntfy:80"), secrets: ntfySecret,
+			widgets: []widget{plain("notifications"), statWidget("messages")}},
 		{id: "vaultwarden", name: "Vaultwarden", internal: fixed("http://vaultwarden:80")},
 	}
 }
