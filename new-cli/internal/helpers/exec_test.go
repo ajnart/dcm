@@ -2,8 +2,11 @@ package helpers_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
+
+	"github.com/ajnart/self-host/internal/system"
 )
 
 func TestExecSecretKeepsSecretsOutOfArgv(t *testing.T) {
@@ -30,5 +33,40 @@ func TestExecSecretKeepsSecretsOutOfArgv(t *testing.T) {
 	}
 	if call.service != "demo" {
 		t.Errorf("service = %q, want the App's main service", call.service)
+	}
+}
+
+func TestExecSecretErrorCarriesCommandOutput(t *testing.T) {
+	exec := &fakeExec{
+		result: system.Result{Stderr: []byte("PHP Fatal error: Cannot open input file"), ExitCode: 1},
+		err:    errors.New("docker compose exec: exit 1"),
+	}
+	h := newH(t, nil, exec, nil)
+
+	_, err := h.ExecSecret(context.Background(), map[string]string{"SELFHOST_PW": "top-secret"}, "php cli/do-install.php")
+	if err == nil {
+		t.Fatal("ExecSecret should return the command's error")
+	}
+	if !strings.Contains(err.Error(), "PHP Fatal error: Cannot open input file") {
+		t.Fatalf("error %q should carry the command's stderr", err)
+	}
+	if strings.Contains(err.Error(), "top-secret") {
+		t.Fatal("error leaked a secret")
+	}
+}
+
+func TestExecSecretErrorFallsBackToStdout(t *testing.T) {
+	exec := &fakeExec{
+		result: system.Result{Stdout: []byte("FreshRSS install refused"), ExitCode: 1},
+		err:    errors.New("docker compose exec: exit 1"),
+	}
+	h := newH(t, nil, exec, nil)
+
+	_, err := h.ExecSecret(context.Background(), nil, "php cli/do-install.php")
+	if err == nil {
+		t.Fatal("ExecSecret should return the command's error")
+	}
+	if !strings.Contains(err.Error(), "FreshRSS install refused") {
+		t.Fatalf("error %q should fall back to the command's stdout", err)
 	}
 }
