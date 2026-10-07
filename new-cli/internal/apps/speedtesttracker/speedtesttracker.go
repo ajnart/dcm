@@ -25,6 +25,17 @@ func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" 
 // variables, never argv or a config file.
 const verifyScript = `require '/app/www/vendor/autoload.php'; $app=require '/app/www/bootstrap/app.php'; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $p=getenv('SELFHOST_ADMIN_PASSWORD'); $e=getenv('SELFHOST_ADMIN_EMAIL'); $u=App\Models\User::where('email',$e)->first(); if (!$u || !$u->is_admin || !Illuminate\Support\Facades\Hash::check($p,$u->password)) exit(21); echo $u->id;`
 
+// The v1.14.7-ls165 image's Alpine nginx 3.24 base starts PHP-FPM with -F
+// at /etc/s6-overlay/s6-rc.d/svc-php-fpm/run. Its pool uses abc, whose UID/GID
+// follow PUID/PGID. PHP-FPM requires -R when either pool ID is zero, including
+// the rootless Docker identity mapped to the host's project owner.
+const phpFPMRun = `#!/usr/bin/with-contenv bash
+if [[ "${PUID:-911}" = 0 || "${PGID:-911}" = 0 ]]; then
+    exec /usr/sbin/php-fpm85 -F -R
+fi
+exec /usr/sbin/php-fpm85 -F
+`
+
 // App is Speedtest Tracker. Traps: docs/catalog/traps/speedtest-tracker.md.
 type App struct{}
 
@@ -65,6 +76,7 @@ func (App) Compose(rc app.RenderContext) string {
       FILE__APP_KEY: /config/app.key
     volumes:
       - ./config:/config
+      - ./php-fpm-run:/etc/s6-overlay/s6-rc.d/svc-php-fpm/run:ro
     ports:
       - ${BIND_IP}:` + port + `:80
 `
@@ -72,14 +84,18 @@ func (App) Compose(rc app.RenderContext) string {
 
 // Files writes the Laravel APP_KEY to /config/app.key, the path the
 // LinuxServer image reads through FILE__APP_KEY. The file holds a canonical
-// base64-prefixed 32-byte key and is mode 0600.
+// base64-prefixed 32-byte key and is mode 0600. It also writes the pinned
+// PHP-FPM launcher for container identities that include UID or GID zero.
 func (App) Files(_ app.RenderContext, secret func(name string) string) []app.File {
 	raw, err := hex.DecodeString(secret("app_key"))
 	if err != nil || len(raw) != 32 {
 		return nil
 	}
 	content := "base64:" + base64.StdEncoding.EncodeToString(raw)
-	return []app.File{{Path: "config/app.key", Content: content, Mode: 0o600}}
+	return []app.File{
+		{Path: "config/app.key", Content: content, Mode: 0o600},
+		{Path: "php-fpm-run", Content: phpFPMRun, Mode: 0o755},
+	}
 }
 
 // adminWorks verifies the seeded administrator inside the pinned Laravel
