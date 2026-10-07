@@ -225,6 +225,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	if err != nil {
 		return err
 	}
+	if err := ss.pull(ctx, names, services); err != nil {
+		return err
+	}
 	if err := ss.compose.Up(ctx, services...); err != nil {
 		return err
 	}

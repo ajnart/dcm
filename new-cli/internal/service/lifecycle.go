@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/project"
@@ -105,7 +107,7 @@ func (s *Service) Update(ctx context.Context, ids []string) error {
 		if err != nil {
 			return err
 		}
-		if err := ss.compose.Pull(ctx, services...); err != nil {
+		if err := ss.pull(ctx, targets, services); err != nil {
 			return err
 		}
 		if err := ss.compose.Up(ctx, services...); err != nil {
@@ -123,6 +125,33 @@ func (s *Service) Update(ctx context.Context, ids []string) error {
 		}
 		return nil
 	})
+}
+
+// pull pulls the services' images before Compose starts them, reporting
+// progress and naming the image when a pull fails.
+func (ss *session) pull(ctx context.Context, ids, services []string) error {
+	ss.s.Log.Emit(events.Event{Event: events.StepStart, Step: "pull", Msg: fmt.Sprintf("pull %d images", len(services))})
+	if err := ss.compose.PullProgress(ctx, services...); err != nil {
+		image := pullImageName(ss, ids, err)
+		hint := fmt.Sprintf("Run `docker pull %s`, then check the network and the registry, and retry.", image)
+		ss.s.Log.Emit(events.Event{Event: events.StepFail, Step: "pull", Msg: "could not pull " + image, Error: err.Error(), Hint: hint})
+		return err
+	}
+	ss.s.Log.Emit(events.Event{Event: events.StepOK, Step: "pull", Msg: "pulled " + strings.Join(ids, ", ")})
+	return nil
+}
+
+func pullImageName(ss *session, ids []string, err error) string {
+	var perr *compose.PullError
+	if errors.As(err, &perr) && perr.Image != "" {
+		return perr.Image
+	}
+	for _, id := range ids {
+		if a, found := ss.s.Catalog.App(id); found {
+			return a.Info().Image
+		}
+	}
+	return "the image"
 }
 
 // check reruns a catalog App's Check, waiting for it to come back up.

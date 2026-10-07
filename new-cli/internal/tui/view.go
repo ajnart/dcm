@@ -67,6 +67,8 @@ func (m Model) View() tea.View {
 	v.WindowTitle = m.windowTitle()
 	if pct, ok := m.installProgress(); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
+	} else if pct, ok := m.pullPercent(); ok {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
 	} else if m.tasks.running() > 0 {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
 	}
@@ -561,7 +563,9 @@ func (m Model) footerStatus() string {
 	if task := m.tasks.get(m.lastTask); task != nil {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accent).Render(m.spin.View() + " " + s.title)
-			if n := len(s.events); n > 0 {
+			if n, pct, current, total, ok := pullTotals(s.events); ok {
+				line += t.dim().Render(fmt.Sprintf(" · pulling %d images · %d%% · %s/%s", n, pct, pullMB(current), pullMB(total)))
+			} else if n := len(s.events); n > 0 {
 				line += t.dim().Render(" · ") + formatEvent(t, s.events[n-1])
 			}
 			return truncate(line, m.width)

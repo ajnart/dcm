@@ -84,7 +84,7 @@ Fields (all but `event` are omitted when empty):
 
 | Field | Meaning |
 | --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `command`, `info` |
+| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `command`, `info`, `pull.progress` |
 | `app`, `step` | What the event is about |
 | `msg` | Human summary |
 | `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
@@ -93,6 +93,9 @@ Fields (all but `event` are omitted when empty):
 | `hint` | The next action, in words |
 | `docs` | Upstream documentation |
 | `command` | The shell command run (`command` events) |
+| `image`, `layer` | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events) |
+| `status` | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled` |
+| `current`, `total` | Bytes done and expected for a `pull.progress` event |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
