@@ -152,7 +152,7 @@ func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
 	if installed.code != 0 && !(installed.code == exitIncomplete && allNoHeadless(installed)) {
 		if installed.termination == nil {
-			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r))
+			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r))
 		}
 		return installed
 	}
@@ -299,4 +299,20 @@ func (f *passboltRuntimeFixture) metadataDiagnostic(r *runner) event {
 	command.Env = r.env
 	observation := executeOwnedCommand(ctx, command)
 	return event{Event: "step.fail", App: "passbolt", Step: "startup-metadata", Error: passboltMetadataReason(observation.code, []byte(observation.stdout)), Hint: "read-only fixed public-key path metadata; an unobserved probe proves no missing file or readability failure"}
+}
+
+func (f *passboltRuntimeFixture) applicationMetadataDiagnostic(r *runner) event {
+	parent := r.commandCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+	defer cancel()
+	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
+	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltApplicationMetadataPHP}
+	command := exec.CommandContext(ctx, wrapper, args...)
+	command.Dir = r.project
+	command.Env = r.env
+	observation := executeOwnedCommand(ctx, command)
+	return event{Event: "step.fail", App: "passbolt", Step: "startup-application-metadata", Error: passboltApplicationMetadataReason(observation.code, []byte(observation.stdout)), Hint: "read-only key accessibility and owned-env PDO/schema metadata; does not prove key import or effective Cake/FPM configuration"}
 }
