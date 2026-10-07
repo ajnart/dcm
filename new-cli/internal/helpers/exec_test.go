@@ -70,3 +70,22 @@ func TestExecSecretErrorFallsBackToStdout(t *testing.T) {
 		t.Fatalf("error %q should fall back to the command's stdout", err)
 	}
 }
+
+func TestExecSecretErrorRedactsSecretsInOutput(t *testing.T) {
+	exec := &fakeExec{
+		result: system.Result{Stderr: []byte("login failed for password top-secret"), ExitCode: 1},
+		err:    errors.New("docker compose exec: exit 1"),
+	}
+	h := newH(t, nil, exec, nil)
+
+	_, err := h.ExecSecret(context.Background(), map[string]string{"SELFHOST_PW": "top-secret"}, "login")
+	if err == nil {
+		t.Fatal("ExecSecret should return the command's error")
+	}
+	if strings.Contains(err.Error(), "top-secret") {
+		t.Fatalf("error %q leaked a secret the command printed", err)
+	}
+	if !strings.Contains(err.Error(), "login failed for password") {
+		t.Fatalf("error %q should keep the rest of the output", err)
+	}
+}

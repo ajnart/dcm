@@ -210,7 +210,7 @@ func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) 
 func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script string) (system.Result, error) {
 	res, err := h.Exec(ctx, secrets, "sh", "-c", script)
 	if err != nil {
-		if out := commandOutput(res); out != "" {
+		if out := commandOutput(res, secrets); out != "" {
 			return res, fmt.Errorf("%w: %s", err, out)
 		}
 	}
@@ -218,11 +218,17 @@ func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script st
 }
 
 // commandOutput returns the output a failed container command printed, so the
-// error an App returns names the real cause instead of an empty exit.
-func commandOutput(res system.Result) string {
+// error an App returns names the real cause instead of an empty exit. Secret
+// values the command echoed are masked, since errors reach events and logs.
+func commandOutput(res system.Result, secrets map[string]string) string {
 	out := strings.TrimSpace(string(res.Stderr))
 	if out == "" {
 		out = strings.TrimSpace(string(res.Stdout))
+	}
+	for _, value := range secrets {
+		if value != "" {
+			out = strings.ReplaceAll(out, value, "***")
+		}
 	}
 	return out
 }
