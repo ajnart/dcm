@@ -208,7 +208,23 @@ func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) 
 // secrets only through the environment. The script and argv never carry a
 // secret value.
 func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script string) (system.Result, error) {
-	return h.Exec(ctx, secrets, "sh", "-c", script)
+	res, err := h.Exec(ctx, secrets, "sh", "-c", script)
+	if err != nil {
+		if out := commandOutput(res); out != "" {
+			return res, fmt.Errorf("%w: %s", err, out)
+		}
+	}
+	return res, err
+}
+
+// commandOutput returns the output a failed container command printed, so the
+// error an App returns names the real cause instead of an empty exit.
+func commandOutput(res system.Result) string {
+	out := strings.TrimSpace(string(res.Stderr))
+	if out == "" {
+		out = strings.TrimSpace(string(res.Stdout))
+	}
+	return out
 }
 
 // Restart restarts the App's main service, e.g. so it rereads settings it

@@ -2,6 +2,7 @@ package freshrss_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -37,10 +38,18 @@ func (f *fakeExec) Exec(_ context.Context, _ string, env map[string]string, comm
 	script := command[2]
 	switch {
 	case strings.Contains(script, "test -f"):
+		// Model the container shell: a bare `test -f` exits 1 when the file is
+		// absent, and Compose turns any non-zero exit into an error.
+		if strings.Contains(script, "echo yes") {
+			if f.exists {
+				return system.Result{Stdout: []byte("yes")}, nil
+			}
+			return system.Result{Stdout: []byte("no")}, nil
+		}
 		if f.exists {
 			return system.Result{}, nil
 		}
-		return system.Result{ExitCode: 1}, nil
+		return system.Result{ExitCode: 1}, errors.New("docker compose exec: exit 1")
 	case strings.Contains(script, "do-install"):
 		if f.failCreate {
 			return system.Result{ExitCode: 1}, nil

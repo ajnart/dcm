@@ -28,7 +28,9 @@ type statusApp struct {
 	Setup  string `json:"setup"`
 }
 
-func (r *runner) verify(target string) {
+// verify installs and exercises the App. It returns true when install stops at
+// the documented web-UI-only first administrator, which is manual, not failed.
+func (r *runner) verify(target string) (manual bool) {
 	r.t.Helper()
 	r.target = sanitize(target)
 
@@ -38,6 +40,9 @@ func (r *runner) verify(target string) {
 	install := r.run("install", target, "--yes", "--json", "--media-root", media, "--downloads-root", downloads)
 	switch {
 	case install.code == exitIncomplete:
+		if allNoHeadless(install) {
+			return true
+		}
 		r.t.Fatalf("install %s incomplete (exit 2):%s", target, formatFailures(install))
 	case install.code != 0:
 		r.t.Fatalf("install %s exit %d\nstdout:\n%s\nstderr:\n%s", target, install.code, install.stdout, install.stderr)
@@ -83,6 +88,23 @@ func (r *runner) verify(target string) {
 			r.t.Fatalf("setup after restore failed: app=%s step=%s error=%s hint=%s", e.App, e.Step, e.Error, e.Hint)
 		}
 	}
+	return false
+}
+
+// allNoHeadless reports whether install stopped only because every failing
+// step is the documented "create the first administrator in the web UI" case.
+func allNoHeadless(res result) bool {
+	found := false
+	for _, e := range res.events {
+		if e.Event != "step.fail" {
+			continue
+		}
+		found = true
+		if !strings.Contains(e.Error, "has no headless way") {
+			return false
+		}
+	}
+	return found
 }
 
 func (r *runner) waitRunning(limit time.Duration) {

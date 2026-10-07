@@ -25,15 +25,17 @@ type execCall struct {
 }
 
 type fakeExec struct {
-	mu    sync.Mutex
-	calls []execCall
+	mu     sync.Mutex
+	calls  []execCall
+	result system.Result
+	err    error
 }
 
 func (f *fakeExec) Exec(_ context.Context, service string, env map[string]string, command ...string) (system.Result, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls = append(f.calls, execCall{service: service, env: env, command: append([]string(nil), command...)})
-	return system.Result{}, nil
+	return f.result, f.err
 }
 
 func (*fakeExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
