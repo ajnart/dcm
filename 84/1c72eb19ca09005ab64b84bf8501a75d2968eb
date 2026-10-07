@@ -1,0 +1,23 @@
+new-cli/internal/cli/lifecycle_test.go
+  s_a2fd509a765bab::t_37e60bf29f13b0 148,158
+new-cli/internal/compose/compose.go
+  s_a2fd509a765bab::t_4253be1a25e90a 108-109,112,124,133-134,137-142,163-164,176,180-181
+new-cli/internal/compose/pull_test.go
+  s_a2fd509a765bab::t_71160ab721e0ad 37,67,80,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "841c72eb19ca09005ab64b84bf8501a75d2968eb",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
