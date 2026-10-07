@@ -1,0 +1,19 @@
+new-cli/internal/apps/freshrss/freshrss_test.go
+  s_a2fd509a765bab::t_7cf0efae91301d 5,41-48,52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "151e5fa49cf423bf554caf507675ecfaf7783cad",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
