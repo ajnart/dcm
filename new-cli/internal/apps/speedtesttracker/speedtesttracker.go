@@ -172,11 +172,18 @@ func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	facts := strings.Fields(string(res.Stdout))
-	keys := []string{"key", "readable", "root_pool", "upstream", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category"}
+	keys := []string{"key", "readable", "root_pool", "upstream", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category", "path", "process_root", "target_read", "target_write", "target_owner"}
 	if len(facts) != len(keys) {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	for i, key := range keys {
+		if key == "path" {
+			if !slices.Contains([]string{"path=main_config", "path=base_pool", "path=local_pool", "path=php_log", "path=proc_stderr", "path=unrecognized"}, facts[i]) {
+				return "php_bootstrap_metadata=unobserved"
+			}
+			facts[i] = strings.TrimPrefix(facts[i], "path=")
+			continue
+		}
 		if key == "category" {
 			if !slices.Contains([]string{"category=none", "category=root_identity", "category=identity_lookup", "category=directive", "category=missing_path", "category=permission", "category=log_open", "category=socket", "category=resource", "category=config_open", "category=unrecognized", "category=timeout", "category=unavailable"}, facts[i]) {
 				return "php_bootstrap_metadata=unobserved"
@@ -190,7 +197,7 @@ func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
 		}
 		facts[i] = strings.TrimPrefix(facts[i], key+"=")
 	}
-	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s", facts[0], facts[1], facts[2], facts[3], facts[4], facts[5], facts[6], facts[7], facts[8], facts[9], facts[10], facts[11])
+	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s php_failure_path=%s process_uid_zero=%s failure_path_readable=%s failure_path_writable=%s failure_path_owner_current=%s", facts[0], facts[1], facts[2], facts[3], facts[4], facts[5], facts[6], facts[7], facts[8], facts[9], facts[10], facts[11], facts[12], facts[13], facts[14], facts[15], facts[16])
 }
 
 const phpBootstrapProbe = `set +x
@@ -227,24 +234,32 @@ esac
 # diagnostic, private path, configuration value or pool name leaves the pipe.
 validation=$(
     timeout 3 /usr/sbin/php-fpm85 -t -R 2>&1 | head -c 16384 | awk '
-        BEGIN { category="unrecognized" }
+        BEGIN { category="unrecognized"; path="unrecognized" }
         category == "unrecognized" && /ERROR:|ALERT:/ {
+            path="unrecognized"
+            if (index($0, "\047/etc/php85/php-fpm.conf\047")) path="main_config"
+            else if (index($0, "\047/etc/php85/php-fpm.d/www.conf\047")) path="base_pool"
+            else if (index($0, "\047/config/php/www2.conf\047")) path="local_pool"
+            else if (index($0, "(/config/log/php/error.log)")) path="php_log"
+            else if (index($0, "(/proc/self/fd/2)")) path="proc_stderr"
             if (/please specify user and group other than root|without --allow-to-run-as-root/) category="root_identity"
             else if (/cannot get uid for user|cannot get gid for group|ID .* is out of range/) category="identity_lookup"
             else if (/unknown entry|unable to parse value for entry|Unknown INI syntax|No pool defined|no listen address have been defined|process manager is missing/) category="directive"
             else if (/failed to open error_log/) category="log_open"
             else if (/does not exist or is not a directory/) category="missing_path"
-            else if (/Permission denied|Operation not permitted/) category="permission"
             else if (/failed to open configuration file|failed to include more than 5 files recursively/) category="config_open"
+            else if (/Permission denied|Operation not permitted/) category="permission"
             else if (/unable to bind listening socket|failed to listen to address|already listen on|invalid port value/) category="socket"
             else if (/failed to set rlimit|unable to malloc|failed to create pipe/) category="resource"
         }
-        END { print category }
+        END { print category " " path }
     '
     printf '%s\n' "${PIPESTATUS[0]}"
 )
 config=unknown
-category="${validation%%$'\n'*}"
+classification="${validation%%$'\n'*}"
+category="${classification%% *}"
+path="${classification##* }"
 case "${validation##*$'\n'}" in
     0) config=true; category=none ;;
     124) category=timeout ;;
@@ -253,6 +268,29 @@ case "${validation##*$'\n'}" in
     *) config=false ;;
 esac
 printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\ncategory=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config" "$category"
+
+# Metadata only for fixed public/owned paths. Never traverse an observed path.
+process_root=false; target_read=unknown; target_write=unknown; target_owner=unknown
+test "$(id -u)" = 0 && process_root=true
+target=''
+case "$path" in
+    main_config) target=/etc/php85/php-fpm.conf ;;
+    base_pool) target=/etc/php85/php-fpm.d/www.conf ;;
+    local_pool) target=/config/php/www2.conf ;;
+    php_log) target=/config/log/php/error.log ;;
+    proc_stderr) target=/proc/self/fd/2 ;;
+esac
+if [ -n "$target" ]; then
+    target_read=false; target_write=false
+    test -r "$target" && target_read=true
+    test -w "$target" && target_write=true
+    owner=$(stat -c %u "$target" 2>/dev/null)
+    if [[ "$owner" =~ ^[0-9]+$ ]]; then
+        target_owner=false
+        test "$owner" = "$(id -u)" && target_owner=true
+    fi
+fi
+printf 'path=%s\nprocess_root=%s\ntarget_read=%s\ntarget_write=%s\ntarget_owner=%s\n' "$path" "$process_root" "$target_read" "$target_write" "$target_owner"
 `
 
 // Check verifies the seeded administrator only; the scoped API token and a real

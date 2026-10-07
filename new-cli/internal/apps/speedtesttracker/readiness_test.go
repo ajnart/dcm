@@ -21,7 +21,7 @@ func (p *readinessExecutor) Exec(_ context.Context, _ string, _ map[string]strin
 	if p.output != "" {
 		return system.Result{Stdout: []byte(p.output)}, nil
 	}
-	return system.Result{Stdout: []byte("key=true\nreadable=true\nroot_pool=true\nupstream=false\nsource_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\nconfig=false\ncategory=log_open\n")}, nil
+	return system.Result{Stdout: []byte("key=true\nreadable=true\nroot_pool=true\nupstream=false\nsource_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\nconfig=false\ncategory=log_open\npath=php_log\nprocess_root=true\ntarget_read=false\ntarget_write=false\ntarget_owner=false\n")}, nil
 }
 
 func TestReadiness502WithholdsUnexpectedRuntimeOutput(t *testing.T) {
@@ -65,7 +65,7 @@ func TestReadiness502ReportsOnlyFixedPHPBootstrapFacts(t *testing.T) {
 			failure = r.Error
 		}
 	}
-	if !strings.Contains(failure, "HTTP 502") || !strings.Contains(failure, "app_key_present=true app_key_file_readable=true pool_identity_includes_root=true php_upstream_listening=false launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open") {
+	if !strings.Contains(failure, "HTTP 502") || !strings.Contains(failure, "app_key_present=true app_key_file_readable=true pool_identity_includes_root=true php_upstream_listening=false launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open php_failure_path=php_log process_uid_zero=true failure_path_readable=false failure_path_writable=false failure_path_owner_current=false") {
 		t.Fatalf("fixed bootstrap facts missing: %s", failure)
 	}
 	if strings.Contains(failure, "private-response-value") || strings.Contains(failure, password) {

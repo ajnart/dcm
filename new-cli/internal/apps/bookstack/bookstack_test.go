@@ -188,9 +188,9 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 
 func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	for _, tc := range []struct{ output, want string }{
-		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false category=log_open", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open"},
-		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized", "database_authenticated=false"},
-		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized", "database_authenticated=unknown"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false category=log_open path=php_log process_root=true target_read=false target_write=false target_owner=false", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open php_failure_path=php_log process_uid_zero=true failure_path_readable=false failure_path_writable=false failure_path_owner_current=false"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=false"},
+		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=unknown"},
 		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
 		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=synthetic-private-secret", "bootstrap_metadata=unobserved"},
 		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
@@ -213,7 +213,8 @@ func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	}
 }
 
-func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T) {
+func bootstrapProbeFixture(t *testing.T) (string, string) {
+	t.Helper()
 	executor := &recordingExec{}
 	box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{})
 	_ = (bookstack.App{}).Setup(context.Background(), box.h)
@@ -251,6 +252,11 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 			t.Fatal(err)
 		}
 	}
+	return script, dir
+}
+
+func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T) {
+	script, dir := bootstrapProbeFixture(t)
 	// PHP8.5 source phrases; private pool names, paths and directive values
 	// are deliberately present to prove only fixed categories survive.
 	for _, tc := range []struct{ output, want, fpm, category, code string }{
@@ -280,6 +286,49 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 			}
 			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\n") || !strings.Contains(string(output), "category="+tc.category) {
 				t.Fatal("actual probe lost launcher, supervision or silent checker facts")
+			}
+		})
+	}
+}
+
+func TestPHPConfigPermissionPathsUseOnlyKnownMetadata(t *testing.T) {
+	script, dir := bootstrapProbeFixture(t)
+	marker := filepath.Join(dir, "stat-called")
+	metadata := filepath.Join(dir, "known-public-path")
+	if err := os.WriteFile(metadata, []byte("synthetic public fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "stat"), []byte("#!/bin/sh\nprintf called > \"$FIXTURE_STAT_MARKER\"\nprintf '0\\n'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Redirect only metadata targets, keeping exact upstream error matching.
+	for _, path := range []string{"/etc/php85/php-fpm.conf", "/etc/php85/php-fpm.d/www.conf", "/config/php/www2.conf", "/config/log/php/error.log", "/proc/self/fd/2"} {
+		script = strings.ReplaceAll(script, "target="+path+" ;", "target="+metadata+" ;")
+	}
+	for _, tc := range []struct{ error, path, category string }{
+		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.conf': Permission denied", "main_config", "config_open"},
+		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.d/www.conf': Permission denied", "base_pool", "config_open"},
+		{"ERROR: failed to open configuration file '/config/php/www2.conf': Permission denied", "local_pool", "config_open"},
+		{"ERROR: failed to open error_log (/config/log/php/error.log): Permission denied", "php_log", "log_open"},
+		{"ERROR: failed to open error_log (/proc/self/fd/2): Permission denied", "proc_stderr", "log_open"},
+		{"ERROR: failed to open configuration file '/synthetic-private-secret': Permission denied", "unrecognized", "config_open"},
+		{"ERROR: unfamiliar failure '/etc/php85/php-fpm.conf'\nERROR: unfamiliar failure '/synthetic-private-secret': Permission denied", "unrecognized", "permission"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			_ = os.Remove(marker)
+			command := exec.Command("bash", "-c", script)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "DB_PASSWORD=synthetic-private-secret", "FIXTURE_PHP_OUTPUT=true", "FIXTURE_FPM_OUTPUT="+tc.error, "FIXTURE_FPM_EXIT=78", "FIXTURE_STAT_MARKER="+marker)
+			output, err := command.CombinedOutput()
+			if err != nil || !strings.Contains(string(output), "category="+tc.category+"\npath="+tc.path) || strings.Contains(string(output), "synthetic-private") {
+				t.Fatal("path or permission category was unsafe or missing")
+			}
+			_, statErr := os.Stat(marker)
+			if tc.path == "unrecognized" {
+				if statErr == nil || !strings.Contains(string(output), "target_read=unknown\ntarget_write=unknown\ntarget_owner=unknown") {
+					t.Fatal("unknown observed path was traversed")
+				}
+			} else if statErr != nil || !strings.Contains(string(output), "process_root=true\ntarget_read=true\ntarget_write=true\ntarget_owner=true") {
+				t.Fatal("fixed metadata projection missing")
 			}
 		})
 	}
