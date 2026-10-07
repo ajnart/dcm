@@ -70,6 +70,7 @@ var deviations = map[string]map[string]string{
 	"qbittorrent": {"image": "linuxserver.io image like the other media Apps", "mounts": "downloads at /downloads"},
 	"sonarr":      {"mounts": "media at /media, downloads at /downloads"},
 	"radarr":      {"mounts": "media at /media, downloads at /downloads"},
+	"bazarr":      {"mounts": "media at /media, the paths Sonarr and Radarr report"},
 	"vaultwarden": {
 		"containerPort": "the image's default port 80; ROCKET_PORT is not overridden",
 		"publishedPort": "8222 avoids the 8080/8088 range many Apps use",
