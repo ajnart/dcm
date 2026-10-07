@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -157,7 +158,7 @@ func ready(ctx context.Context, h *helpers.H) error {
 	})
 }
 
-// Only fixed booleans survive this bounded failure-only dependency probe.
+// Only fixed booleans/enums survive this bounded failure-only dependency probe.
 // No private file contents, environment values, PHP config or logs are reported.
 // The official PHP-FPM config checker consumes its own configuration silently.
 func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
@@ -171,18 +172,25 @@ func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	facts := strings.Fields(string(res.Stdout))
-	keys := []string{"key", "readable", "root_pool", "upstream", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config"}
+	keys := []string{"key", "readable", "root_pool", "upstream", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category"}
 	if len(facts) != len(keys) {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	for i, key := range keys {
+		if key == "category" {
+			if !slices.Contains([]string{"category=none", "category=root_identity", "category=identity_lookup", "category=directive", "category=missing_path", "category=permission", "category=log_open", "category=socket", "category=resource", "category=config_open", "category=unrecognized", "category=timeout", "category=unavailable"}, facts[i]) {
+				return "php_bootstrap_metadata=unobserved"
+			}
+			facts[i] = strings.TrimPrefix(facts[i], "category=")
+			continue
+		}
 		unknown := i >= 4 && facts[i] == key+"=unknown"
 		if facts[i] != key+"=true" && facts[i] != key+"=false" && !unknown {
 			return "php_bootstrap_metadata=unobserved"
 		}
 		facts[i] = strings.TrimPrefix(facts[i], key+"=")
 	}
-	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s", facts[0], facts[1], facts[2], facts[3], facts[4], facts[5], facts[6], facts[7], facts[8], facts[9], facts[10])
+	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s", facts[0], facts[1], facts[2], facts[3], facts[4], facts[5], facts[6], facts[7], facts[8], facts[9], facts[10], facts[11])
 }
 
 const phpBootstrapProbe = `set +x
@@ -214,11 +222,37 @@ case "$supervision" in
     'false true') up=false; wanted=true ;;
     'false false') up=false; wanted=false ;;
 esac
-# Official config validation only: discard all config/log/exception output.
+# PHP 8.5 fpm_conf.c/fpm_unix.c/fpm_stdio.c/fpm_sockets.c error phrases.
+# Consume at most 16 KiB in memory and emit only a fixed category; no raw
+# diagnostic, private path, configuration value or pool name leaves the pipe.
+validation=$(
+    timeout 3 /usr/sbin/php-fpm85 -t -R 2>&1 | head -c 16384 | awk '
+        BEGIN { category="unrecognized" }
+        category == "unrecognized" && /ERROR:|ALERT:/ {
+            if (/please specify user and group other than root|without --allow-to-run-as-root/) category="root_identity"
+            else if (/cannot get uid for user|cannot get gid for group|ID .* is out of range/) category="identity_lookup"
+            else if (/unknown entry|unable to parse value for entry|Unknown INI syntax|No pool defined|no listen address have been defined|process manager is missing/) category="directive"
+            else if (/failed to open error_log/) category="log_open"
+            else if (/does not exist or is not a directory/) category="missing_path"
+            else if (/Permission denied|Operation not permitted/) category="permission"
+            else if (/failed to open configuration file|failed to include more than 5 files recursively/) category="config_open"
+            else if (/unable to bind listening socket|failed to listen to address|already listen on|invalid port value/) category="socket"
+            else if (/failed to set rlimit|unable to malloc|failed to create pipe/) category="resource"
+        }
+        END { print category }
+    '
+    printf '%s\n' "${PIPESTATUS[0]}"
+)
 config=unknown
-timeout 3 /usr/sbin/php-fpm85 -t -R >/dev/null 2>&1
-case "$?" in 0) config=true ;; 124|127) : ;; *) config=false ;; esac
-printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config"
+category="${validation%%$'\n'*}"
+case "${validation##*$'\n'}" in
+    0) config=true; category=none ;;
+    124) category=timeout ;;
+    127) category=unavailable ;;
+    141) category=unrecognized ;;
+    *) config=false ;;
+esac
+printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\ncategory=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config" "$category"
 `
 
 // Check verifies the seeded administrator only; the scoped API token and a real

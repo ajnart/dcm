@@ -188,10 +188,11 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 
 func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	for _, tc := range []struct{ output, want string }{
-		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false"},
-		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown", "database_authenticated=false"},
-		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown", "database_authenticated=unknown"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false category=log_open", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized", "database_authenticated=false"},
+		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized", "database_authenticated=unknown"},
 		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=synthetic-private-secret", "bootstrap_metadata=unobserved"},
 		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
 	} {
 		t.Run(tc.want, func(t *testing.T) {
@@ -244,16 +245,32 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 		"timeout":   "#!/bin/sh\nshift\ncase \"$1\" in bash) exit 1;; php|s6-svstat|*/php-fpm85) exec \"$@\";; *) exit 90;; esac\n",
 		"php":       "#!/bin/sh\ncase \"$*\" in *synthetic-private-secret*) exit 90;; esac\nprintf '%s' \"$FIXTURE_PHP_OUTPUT\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
 		"s6-svstat": "#!/bin/sh\n[ \"$1\" = -o ] && [ \"$2\" = up,wantedup ] || exit 90\nprintf 'false true'\n",
-		"php-fpm85": "#!/bin/sh\n[ \"$1\" = -t ] && [ \"$2\" = -R ] || exit 90\nprintf '%s' \"$DB_PASSWORD\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
+		"php-fpm85": "#!/bin/sh\n[ \"$1\" = -t ] && [ \"$2\" = -R ] || exit 90\nprintf '%s\\n' \"$FIXTURE_FPM_OUTPUT\" >&2\nprintf '%s' \"$DB_PASSWORD\" >&2\nexit \"$FIXTURE_FPM_EXIT\"\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, tc := range []struct{ output, want string }{{"true", "true"}, {"false", "false"}, {"synthetic-private-secret", "unknown"}} {
-		t.Run(tc.want, func(t *testing.T) {
+	// PHP8.5 source phrases; private pool names, paths and directive values
+	// are deliberately present to prove only fixed categories survive.
+	for _, tc := range []struct{ output, want, fpm, category, code string }{
+		{"true", "true", "", "none", "0"},
+		{"false", "false", "ERROR: failed to open error_log (synthetic-private-secret)", "log_open", "78"},
+		{"synthetic-private-secret", "unknown", "ERROR: [pool synthetic-private-secret] please specify user and group other than root", "root_identity", "78"},
+		{"true", "true", "ERROR: [pool synthetic-private-secret] cannot get uid for user 'synthetic-private-secret'", "identity_lookup", "78"},
+		{"true", "true", "ERROR: [synthetic-private-secret:1] unknown entry 'synthetic-private-secret'", "directive", "78"},
+		{"true", "true", "ERROR: [pool synthetic-private-secret] the chdir path 'synthetic-private-secret' does not exist or is not a directory", "missing_path", "78"},
+		{"true", "true", "ERROR: synthetic-private-secret: Permission denied", "permission", "78"},
+		{"true", "true", "ERROR: failed to open configuration file 'synthetic-private-secret'", "config_open", "78"},
+		{"true", "true", "ERROR: unable to bind listening socket for address 'synthetic-private-secret'", "socket", "78"},
+		{"true", "true", "ERROR: failed to set rlimit_files for this pool synthetic-private-secret", "resource", "78"},
+		{"true", "true", "synthetic-private-secret", "unrecognized", "78"},
+		{"true", "true", "synthetic-private-secret", "timeout", "124"},
+		{"true", "true", "synthetic-private-secret", "unavailable", "127"},
+	} {
+		t.Run(tc.category, func(t *testing.T) {
 			command := exec.Command("bash", "-c", script)
-			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "APP_KEY=synthetic-private-secret", "DB_PASSWORD=synthetic-private-secret", "PUID=0", "PGID=0", "FIXTURE_PHP_OUTPUT="+tc.output)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "APP_KEY=synthetic-private-secret", "DB_PASSWORD=synthetic-private-secret", "PUID=0", "PGID=0", "FIXTURE_PHP_OUTPUT="+tc.output, "FIXTURE_FPM_OUTPUT="+tc.fpm, "FIXTURE_FPM_EXIT="+tc.code)
 			output, err := command.CombinedOutput()
 			if err != nil || !strings.Contains(string(output), "authenticated="+tc.want) || !strings.Contains(string(output), "launcher_root=true") {
 				t.Fatalf("probe omitted fixed observations: %v", err)
@@ -261,7 +278,7 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 			if strings.Contains(string(output), "synthetic-private") {
 				t.Fatal("credential or exception output escaped bootstrap probe")
 			}
-			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\nconfig=true") {
+			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\n") || !strings.Contains(string(output), "category="+tc.category) {
 				t.Fatal("actual probe lost launcher, supervision or silent checker facts")
 			}
 		})

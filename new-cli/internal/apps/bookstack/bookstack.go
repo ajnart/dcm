@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -178,10 +179,18 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", strings.ReplaceAll(bootstrapProbe, "__SELFHOST_LAUNCHER_SHA__", fmt.Sprintf("%x", sha256.Sum256([]byte(phpFPMRun)))))
 		if err == nil && result.ExitCode == 0 {
 			values := strings.Fields(string(result.Stdout))
-			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config"}
+			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category"}
 			valid := len(values) == len(keys)
 			if valid {
 				for i, key := range keys {
+					if key == "category" {
+						if !slices.Contains([]string{"category=none", "category=root_identity", "category=identity_lookup", "category=directive", "category=missing_path", "category=permission", "category=log_open", "category=socket", "category=resource", "category=config_open", "category=unrecognized", "category=timeout", "category=unavailable"}, values[i]) {
+							valid = false
+							break
+						}
+						values[i] = strings.TrimPrefix(values[i], "category=")
+						continue
+					}
 					unknown := (key == "authenticated" || key == "php_process" || i >= 7) && values[i] == key+"=unknown"
 					if values[i] != key+"=true" && values[i] != key+"=false" && !unknown {
 						valid = false
@@ -191,7 +200,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 				}
 			}
 			if valid {
-				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13])
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13], values[14])
 			}
 		}
 	}
@@ -203,7 +212,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 
 // The pinned Alpine-nginx image uses PHP-FPM TCP 9000; BookStack's public
 // init-bookstack-config script waits for DB_HOST/DB_PORT before migrations.
-// Emit only booleans, never environment values, private files or command output.
+// Emit only fixed booleans/enums, never environment values, private files or raw output.
 const bootstrapProbe = `set +x
 key=false; root_pool=false; launcher_root=false; php_process=unknown; upstream=false; database=false; authenticated=unknown
 [ -n "${APP_KEY:-}" ] && key=true
@@ -242,11 +251,37 @@ case "$supervision" in
     'false true') up=false; wanted=true ;;
     'false false') up=false; wanted=false ;;
 esac
-# Official config validation only: discard all config/log/exception output.
+# PHP 8.5 fpm_conf.c/fpm_unix.c/fpm_stdio.c/fpm_sockets.c error phrases.
+# Consume at most 16 KiB in memory and emit only a fixed category; no raw
+# diagnostic, private path, configuration value or pool name leaves the pipe.
+validation=$(
+    timeout 3 /usr/sbin/php-fpm85 -t -R 2>&1 | head -c 16384 | awk '
+        BEGIN { category="unrecognized" }
+        category == "unrecognized" && /ERROR:|ALERT:/ {
+            if (/please specify user and group other than root|without --allow-to-run-as-root/) category="root_identity"
+            else if (/cannot get uid for user|cannot get gid for group|ID .* is out of range/) category="identity_lookup"
+            else if (/unknown entry|unable to parse value for entry|Unknown INI syntax|No pool defined|no listen address have been defined|process manager is missing/) category="directive"
+            else if (/failed to open error_log/) category="log_open"
+            else if (/does not exist or is not a directory/) category="missing_path"
+            else if (/Permission denied|Operation not permitted/) category="permission"
+            else if (/failed to open configuration file|failed to include more than 5 files recursively/) category="config_open"
+            else if (/unable to bind listening socket|failed to listen to address|already listen on|invalid port value/) category="socket"
+            else if (/failed to set rlimit|unable to malloc|failed to create pipe/) category="resource"
+        }
+        END { print category }
+    '
+    printf '%s\n' "${PIPESTATUS[0]}"
+)
 config=unknown
-timeout 3 /usr/sbin/php-fpm85 -t -R >/dev/null 2>&1
-case "$?" in 0) config=true ;; 124|127) : ;; *) config=false ;; esac
-printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config"
+category="${validation%%$'\n'*}"
+case "${validation##*$'\n'}" in
+    0) config=true; category=none ;;
+    124) category=timeout ;;
+    127) category=unavailable ;;
+    141) category=unrecognized ;;
+    *) config=false ;;
+esac
+printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\ncategory=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config" "$category"
 `
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
