@@ -45,7 +45,9 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	// The pinned image runs as UID/GID 1000 and seeds config before opening
 	// its UI. Docker creates fresh binds as root; restore the hidden image
-	// helpers and prepare only these App directories without replacing data.
+	// helpers as regular executables and prepare only these App directories.
+	// Only the pinned image's known absolute helper link is migrated; custom
+	// paths and saved config are retained, and backup containment stays strict.
 	return `services:
   archive-team-warrior-init:
     image: atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca
@@ -54,7 +56,12 @@ func (App) Compose(rc app.RenderContext) string {
     read_only: true
     entrypoint: ["/bin/sh", "-ec"]
     command:
-      - cp -an /home/warrior/data/. /owned/data/ && chown -Rh 1000:1000 /owned/projects /owned/data
+      - |
+        if [ -L /owned/data/wget-at ] && [ "$(readlink /owned/data/wget-at)" = /usr/local/bin/wget-lua ]; then
+          rm -- /owned/data/wget-at
+        fi
+        cp -aLn /home/warrior/data/. /owned/data/
+        chown -Rh 1000:1000 /owned/projects /owned/data
     volumes:
       - ./projects:/owned/projects
       - ./data:/owned/data
