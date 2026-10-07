@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/system"
@@ -102,6 +103,125 @@ func (c *Compose) Restart(ctx context.Context, services ...string) error {
 func (c *Compose) Pull(ctx context.Context, services ...string) error {
 	_, err := c.Run(ctx, nil, append([]string{"pull"}, services...)...)
 	return err
+}
+
+// PullProgress runs `pull --progress json` and reports per-image, per-layer
+// progress as pull.progress events. Unknown output lines are ignored.
+func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
+	args := append([]string{"pull", "--progress", "json"}, services...)
+	cmd := system.Cmd{Name: "docker", Args: c.args(args...), Dir: c.root}
+	c.log.Emit(events.Event{Event: events.Command, Command: "docker " + strings.Join(cmd.Args, " ")})
+	parser := newPullParser(c.log, c.deps.Now)
+	w := &lineWriter{onLine: parser.line}
+	err := c.deps.Runner.Stream(ctx, cmd, w)
+	w.flush()
+	if err != nil {
+		image := parser.failed
+		if image == "" {
+			image = parser.lastSeen
+		}
+		return &PullError{Image: image, Err: err}
+	}
+	return nil
+}
+
+// PullError names the image involved when a pull fails.
+type PullError struct {
+	Image string
+	Err   error
+}
+
+func (e *PullError) Error() string { return e.Err.Error() }
+func (e *PullError) Unwrap() error { return e.Err }
+
+// pullLine is one line of `docker compose pull --progress json`.
+type pullLine struct {
+	ID       string `json:"id"`
+	ParentID string `json:"parent_id"`
+	Status   string `json:"status"`
+	Text     string `json:"text"`
+	Current  int64  `json:"current"`
+	Total    int64  `json:"total"`
+}
+
+// pullParser turns progress lines into events, throttled to five per second
+// per image, and always emits the image's final event.
+type pullParser struct {
+	log      *events.Logger
+	now      func() time.Time
+	last     map[string]time.Time
+	lastSeen string
+	failed   string
+}
+
+func newPullParser(log *events.Logger, now func() time.Time) *pullParser {
+	if now == nil {
+		now = time.Now
+	}
+	return &pullParser{log: log, now: now, last: map[string]time.Time{}}
+}
+
+func (p *pullParser) line(raw []byte) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return
+	}
+	var line pullLine
+	if err := json.Unmarshal(trimmed, &line); err != nil {
+		return
+	}
+	image, layer := strings.TrimPrefix(line.ParentID, "Image "), line.ID
+	if line.ParentID == "" {
+		image, layer = strings.TrimPrefix(line.ID, "Image "), ""
+	}
+	if image == "" || image == line.ID {
+		return
+	}
+	p.lastSeen = image
+	if line.Status == "Error" || line.Status == "Failed" {
+		p.failed = image
+	}
+	final := layer == "" && line.Status == "Done"
+	if !final && !p.allow(image) {
+		return
+	}
+	p.log.Emit(events.Event{Event: events.PullProgress, Image: image, Layer: layer,
+		Status: line.Text, Current: line.Current, Total: line.Total})
+}
+
+func (p *pullParser) allow(image string) bool {
+	now := p.now()
+	if last, ok := p.last[image]; ok && now.Sub(last) < 200*time.Millisecond {
+		return false
+	}
+	p.last[image] = now
+	return true
+}
+
+// lineWriter calls onLine for every complete line written to it.
+type lineWriter struct {
+	buf    []byte
+	onLine func([]byte)
+}
+
+func (w *lineWriter) Write(p []byte) (int, error) {
+	w.buf = append(w.buf, p...)
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i < 0 {
+			break
+		}
+		w.onLine(w.buf[:i])
+		w.buf = w.buf[i+1:]
+	}
+	return len(p), nil
+}
+
+func (w *lineWriter) flush() {
+	if len(bytes.TrimSpace(w.buf)) > 0 {
+		w.onLine(w.buf)
+	}
+	w.buf = nil
 }
 
 // Remove stops and deletes the containers of services; volumes are kept.

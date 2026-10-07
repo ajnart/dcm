@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
@@ -437,13 +438,21 @@ func (m Model) renderInstall(taskID int) string {
 	}
 	s := task.snapshot()
 	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accent).Render(m.spin.View()), ""}
+	if images := pullImages(s.events); len(images) > 0 {
+		bar := progress.New(progress.WithWidth(24), progress.WithoutPercentage(),
+			progress.WithFillCharacters('█', '░'))
+		for _, img := range images {
+			lines = append(lines, "  "+t.body().Render(pad(img.image, 30))+bar.ViewAs(float64(img.percent())/100))
+		}
+		lines = append(lines, "")
+	}
 	evs := s.events
 	visible := max(m.mainHeight()-6, 5)
 	if len(evs) > visible {
 		evs = evs[len(evs)-visible:]
 	}
 	for _, e := range evs {
-		if e.Event == events.StepStart {
+		if e.Event == events.StepStart || e.Event == events.PullProgress {
 			continue
 		}
 		lines = append(lines, "  "+truncate(formatEvent(t, e), m.width-4))

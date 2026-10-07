@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,11 +145,28 @@ func TestUpdatePullsRecreatesAndChecks(t *testing.T) {
 	code, out := runWith(t, deps, cat, "update", "one", "--json")
 
 	calls := composeCalls(deps)
-	if code != 0 || calls[len(calls)-2] != "pull one" || calls[len(calls)-1] != "up -d one" {
+	if code != 0 || calls[len(calls)-2] != "pull --progress json one" || calls[len(calls)-1] != "up -d one" {
 		t.Fatalf("update: %d %v\n%s", code, calls, out)
 	}
 	if findCheck(decodeEvents(t, out), "check") == nil {
 		t.Fatalf("update did not run Check:\n%s", out)
+	}
+}
+
+func TestUpdatePullFailureNamesTheImage(t *testing.T) {
+	deps, cat := installed(t, "one")
+	deps.Runner.(*systemtest.Runner).OnStreamError("pull --progress json",
+		`{"id":"Image example/echo:latest","status":"Working","text":"Pulling"}`+"\n", errors.New("exit status 125"))
+
+	code, out := runWith(t, deps, cat, "update", "one", "--json")
+
+	if code != 1 {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	for _, want := range []string{"example/echo:latest", "docker pull example/echo:latest"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("pull failure lacks %q:\n%s", want, out)
+		}
 	}
 }
 

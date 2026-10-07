@@ -70,14 +70,14 @@ func (a *program) logger() *events.Logger {
 	if a.document {
 		a.log = events.New()
 		if a.verbose {
-			a.log.AddSink(events.Human(a.deps.Err, true))
+			a.log.AddSink(events.Human(a.deps.Err, true, a.deps.Interactive))
 		}
 		return a.log
 	}
 	if a.json {
 		a.log = events.New(events.JSON(a.deps.Out))
 	} else {
-		a.log = events.New(events.Human(a.deps.Out, a.verbose))
+		a.log = events.New(events.Human(a.deps.Out, a.verbose, a.deps.Interactive))
 	}
 	return a.log
 }

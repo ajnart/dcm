@@ -20,12 +20,19 @@ type rule struct {
 	handle func(system.Cmd) system.Result
 }
 
+type streamRule struct {
+	match  string
+	output string
+	err    error
+}
+
 // Runner is a scripted stand-in for external processes. Rules match on the
 // space-joined command line prefix; the most recently added rule wins.
 type Runner struct {
-	mu    sync.Mutex
-	rules []rule
-	calls []system.Cmd
+	mu      sync.Mutex
+	rules   []rule
+	streams []streamRule
+	calls   []system.Cmd
 	// Logs is written by Stream for `docker compose logs`.
 	Logs string
 }
@@ -58,8 +65,36 @@ func (r *Runner) Run(_ context.Context, cmd system.Cmd) (system.Result, error) {
 	return system.Result{}, nil
 }
 
+// OnStream scripts the output Stream writes for commands whose line contains
+// match. The last matching entry wins.
+func (r *Runner) OnStream(match, output string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.streams = append(r.streams, streamRule{match: match, output: output})
+}
+
+// OnStreamError is OnStream with a failure, so Stream returns err after
+// writing output.
+func (r *Runner) OnStreamError(match, output string, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.streams = append(r.streams, streamRule{match: match, output: output, err: err})
+}
+
 func (r *Runner) Stream(ctx context.Context, cmd system.Cmd, w io.Writer) error {
 	result, _ := r.Run(ctx, cmd)
+	r.mu.Lock()
+	streams := append([]streamRule(nil), r.streams...)
+	r.mu.Unlock()
+	line := Line(cmd)
+	for i := len(streams) - 1; i >= 0; i-- {
+		if strings.Contains(line, streams[i].match) {
+			if streams[i].output != "" {
+				io.WriteString(w, streams[i].output)
+			}
+			return streams[i].err
+		}
+	}
 	if len(result.Stdout) > 0 {
 		w.Write(result.Stdout)
 	} else {
