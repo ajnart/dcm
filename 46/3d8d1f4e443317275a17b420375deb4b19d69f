@@ -1,0 +1,29 @@
+new-cli/internal/apps/adguard/adguard.go
+  s_2c51c6ba1a0d6b::t_765c3a1eba829f 84-87
+new-cli/internal/apps/adguard/adguard_test.go
+  s_a2fd509a765bab::t_a8b79af6fc2766 71-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "463d8d1f4e443317275a17b420375deb4b19d69f",
+  "prompts": {},
+  "sessions": {
+    "s_2c51c6ba1a0d6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114eb-63f2-7270-bfef-a3b2027dec6f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
