@@ -266,12 +266,12 @@ validation=$(
     timeout 3 /usr/sbin/php-fpm85 -t -R 2>&1 | head -c 16384 | awk '
         BEGIN { category="unrecognized"; path="unrecognized" }
         category == "unrecognized" && /ERROR:|ALERT:/ {
-            path="unrecognized"
-            if (index($0, "\047/etc/php85/php-fpm.conf\047")) path="main_config"
-            else if (index($0, "\047/etc/php85/php-fpm.d/www.conf\047")) path="base_pool"
-            else if (index($0, "\047/config/php/www2.conf\047")) path="local_pool"
-            else if (index($0, "(/config/log/php/error.log)")) path="php_log"
-            else if (index($0, "(/proc/self/fd/2)")) path="proc_stderr"
+            candidate_path="unrecognized"
+            if (index($0, "\047/etc/php85/php-fpm.conf\047")) candidate_path="main_config"
+            else if (index($0, "\047/etc/php85/php-fpm.d/www.conf\047")) candidate_path="base_pool"
+            else if (index($0, "\047/config/php/www2.conf\047")) candidate_path="local_pool"
+            else if (index($0, "(/config/log/php/error.log)")) candidate_path="php_log"
+            else if (index($0, "(/proc/self/fd/2)")) candidate_path="proc_stderr"
             if (/please specify user and group other than root|without --allow-to-run-as-root/) category="root_identity"
             else if (/cannot get uid for user|cannot get gid for group|ID .* is out of range/) category="identity_lookup"
             else if (/unknown entry|unable to parse value for entry|Unknown INI syntax|No pool defined|no listen address have been defined|process manager is missing/) category="directive"
@@ -281,6 +281,7 @@ validation=$(
             else if (/Permission denied|Operation not permitted/) category="permission"
             else if (/unable to bind listening socket|failed to listen to address|already listen on|invalid port value/) category="socket"
             else if (/failed to set rlimit|unable to malloc|failed to create pipe/) category="resource"
+            if (category != "unrecognized") path=candidate_path
         }
         END { print category " " path }
     '

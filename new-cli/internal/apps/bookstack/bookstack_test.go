@@ -309,10 +309,13 @@ func TestPHPConfigPermissionPathsUseOnlyKnownMetadata(t *testing.T) {
 		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.conf': Permission denied", "main_config", "config_open"},
 		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.d/www.conf': Permission denied", "base_pool", "config_open"},
 		{"ERROR: failed to open configuration file '/config/php/www2.conf': Permission denied", "local_pool", "config_open"},
+		{"ERROR: failed to open configuration file '/config/php/www2.conf': Permission denied\nERROR: failed to load configuration file '/etc/php85/php-fpm.conf'\nERROR: FPM initialization failed", "local_pool", "config_open"},
 		{"ERROR: failed to open error_log (/config/log/php/error.log): Permission denied", "php_log", "log_open"},
 		{"ERROR: failed to open error_log (/proc/self/fd/2): Permission denied", "proc_stderr", "log_open"},
 		{"ERROR: failed to open configuration file '/synthetic-private-secret': Permission denied", "unrecognized", "config_open"},
+		{"ERROR: failed to open configuration file '/synthetic-private-secret': Permission denied\nERROR: failed to load configuration file '/etc/php85/php-fpm.conf'", "unrecognized", "config_open"},
 		{"ERROR: unfamiliar failure '/etc/php85/php-fpm.conf'\nERROR: unfamiliar failure '/synthetic-private-secret': Permission denied", "unrecognized", "permission"},
+		{"ERROR: failed to load configuration file '/etc/php85/php-fpm.conf'", "unrecognized", "unrecognized"},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
 			_ = os.Remove(marker)
