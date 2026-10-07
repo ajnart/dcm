@@ -1,0 +1,224 @@
+package cli_test
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/systemtest"
+)
+
+func installed(t *testing.T, ids ...string) (*system.Deps, *catalog.Catalog) {
+	t.Helper()
+	deps := systemtest.NewDeps(t)
+	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
+	if code, out := runWith(t, deps, cat, append([]string{"install", "--yes"}, ids...)...); code != 0 {
+		t.Fatalf("install: %d\n%s", code, out)
+	}
+	return deps, cat
+}
+
+func composeCalls(deps *system.Deps) []string {
+	var calls []string
+	for _, line := range deps.Runner.(*systemtest.Runner).Calls() {
+		if _, rest, found := strings.Cut(line, "secrets.env "); found {
+			calls = append(calls, rest)
+		}
+	}
+	return calls
+}
+
+func lastCompose(deps *system.Deps) string {
+	calls := composeCalls(deps)
+	return calls[len(calls)-1]
+}
+
+func TestStopAndStartTargetOnlyTheNamedApp(t *testing.T) {
+	deps, cat := installed(t, "one", "two")
+
+	if code, out := runWith(t, deps, cat, "stop", "one"); code != 0 || lastCompose(deps) != "stop one" {
+		t.Fatalf("stop: %d %q\n%s", code, lastCompose(deps), out)
+	}
+	if code, _ := runWith(t, deps, cat, "start", "one"); code != 0 || lastCompose(deps) != "up -d one" {
+		t.Fatalf("start: %d %q", code, lastCompose(deps))
+	}
+	if code, _ := runWith(t, deps, cat, "restart", "two"); code != 0 || lastCompose(deps) != "restart two" {
+		t.Fatalf("restart: %d %q", code, lastCompose(deps))
+	}
+}
+
+func TestStopWithoutArgumentsStopsEveryApp(t *testing.T) {
+	deps, cat := installed(t, "one", "two")
+
+	runWith(t, deps, cat, "stop")
+
+	if lastCompose(deps) != "stop one two" {
+		t.Fatalf("got %q", lastCompose(deps))
+	}
+}
+
+func TestUnknownAppIsRejected(t *testing.T) {
+	deps, cat := installed(t, "one")
+
+	code, out := runWith(t, deps, cat, "stop", "nope")
+
+	if code != 1 || !strings.Contains(out, "nope") {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+}
+
+func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
+	deps, cat := installed(t, "one")
+	root := projectRoot(t, deps)
+	os.MkdirAll(filepath.Join(root, "apps", "whoami"), 0o755)
+	os.WriteFile(filepath.Join(root, "apps", "whoami", "compose.yml"), []byte("services:\n  whoami:\n    image: traefik/whoami\n    ports:\n      - ${BIND_IP}:8099:80\n"), 0o644)
+
+	code, out := runWith(t, deps, cat, "start", "whoami")
+
+	if code != 0 || lastCompose(deps) != "up -d whoami" {
+		t.Fatalf("start unmanaged: %d %q\n%s", code, lastCompose(deps), out)
+	}
+	if !strings.Contains(readFile(t, filepath.Join(root, "compose.yml")), "apps/whoami/compose.yml") {
+		t.Fatal("root compose does not include the unmanaged app")
+	}
+	_, statusOut := runWith(t, deps, cat, "status", "--json")
+	var status struct {
+		Apps []struct {
+			ID, Setup string
+			Managed   bool
+		}
+	}
+	json.Unmarshal([]byte(statusOut), &status)
+	if len(status.Apps) != 2 || status.Apps[1].ID != "whoami" || status.Apps[1].Setup != "unmanaged" || status.Apps[1].Managed {
+		t.Fatalf("unmanaged app not listed: %+v", status.Apps)
+	}
+	if code, out := runWith(t, deps, cat, "setup", "whoami"); code != 1 || !strings.Contains(out, "not a catalog App") {
+		t.Fatalf("setup on unmanaged app should refuse: %d\n%s", code, out)
+	}
+}
+
+func TestRemoveKeepsDataUnlessPurged(t *testing.T) {
+	deps, cat := installed(t, "one", "two")
+	root := projectRoot(t, deps)
+	os.WriteFile(filepath.Join(root, "apps", "one", "data.db"), []byte("x"), 0o644)
+
+	code, out := runWith(t, deps, cat, "remove", "one", "--yes")
+
+	if code != 0 || lastCompose(deps) != "rm --stop --force one" {
+		t.Fatalf("remove: %d %q\n%s", code, lastCompose(deps), out)
+	}
+	if _, err := os.Stat(filepath.Join(root, "apps", "one", "data.db")); err != nil {
+		t.Fatal("data deleted without --purge")
+	}
+	if strings.Contains(readFile(t, filepath.Join(root, "compose.yml")), "apps/one/") {
+		t.Fatal("removed app still included")
+	}
+	if strings.Contains(readFile(t, filepath.Join(root, "state.json")), `"one"`) {
+		t.Fatal("removed app still in state")
+	}
+
+	runWith(t, deps, cat, "remove", "two", "--purge", "--yes")
+
+	if _, err := os.Stat(filepath.Join(root, "apps", "two")); !os.IsNotExist(err) {
+		t.Fatal("--purge kept the data")
+	}
+}
+
+func TestRemoveNeedsConfirmationWhenNotInteractive(t *testing.T) {
+	deps, cat := installed(t, "one")
+
+	code, out := runWith(t, deps, cat, "remove", "one")
+
+	if code != 1 || !strings.Contains(out, "--yes") {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+}
+
+func TestUpdatePullsRecreatesAndChecks(t *testing.T) {
+	deps, cat := installed(t, "one")
+
+	code, out := runWith(t, deps, cat, "update", "one", "--json")
+
+	calls := composeCalls(deps)
+	if code != 0 || calls[len(calls)-2] != "pull one" || calls[len(calls)-1] != "up -d one" {
+		t.Fatalf("update: %d %v\n%s", code, calls, out)
+	}
+	if findCheck(decodeEvents(t, out), "check") == nil {
+		t.Fatalf("update did not run Check:\n%s", out)
+	}
+}
+
+func TestConfigSetRewritesSettingsAndRecreatesApps(t *testing.T) {
+	deps, cat := installed(t, "one")
+
+	code, out := runWith(t, deps, cat, "config", "set", "EXPOSURE=local", "TZ=UTC")
+
+	if code != 0 {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	env := readFile(t, filepath.Join(projectRoot(t, deps), ".env"))
+	for _, want := range []string{"TZ=UTC\n", "EXPOSURE=local\n", "BIND_IP=127.0.0.1\n"} {
+		if !strings.Contains(env, want) {
+			t.Errorf(".env lacks %q", want)
+		}
+	}
+	if lastCompose(deps) != "up -d one" {
+		t.Fatalf("app not recreated: %q", lastCompose(deps))
+	}
+}
+
+func TestConfigSetRejectsUnknownKeysAndBadExposure(t *testing.T) {
+	deps, cat := installed(t, "one")
+
+	if code, out := runWith(t, deps, cat, "config", "set", "COLOR=blue"); code != 1 || !strings.Contains(out, "COLOR") {
+		t.Fatalf("unknown key accepted: %d\n%s", code, out)
+	}
+	if code, _ := runWith(t, deps, cat, "config", "set", "EXPOSURE=public"); code != 1 {
+		t.Fatal("bad exposure accepted")
+	}
+}
+
+func TestAppsListAndInfo(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	cat := testCatalog(&echoApp{id: "one", required: true, done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
+
+	_, out := runWith(t, deps, cat, "apps", "list", "--json")
+	var list struct {
+		Apps    []struct{ ID string }
+		Recipes []struct {
+			ID   string
+			Apps []string
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &list); err != nil || len(list.Apps) != 2 || list.Recipes[0].ID != "pair" {
+		t.Fatalf("list: %v\n%s", err, out)
+	}
+
+	_, out = runWith(t, deps, cat, "apps", "info", "one", "--json")
+	var info struct {
+		ID     string
+		Port   int
+		Inputs []struct {
+			Key      string
+			Required bool
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &info); err != nil || info.Port != 9000 || len(info.Inputs) != 1 || !info.Inputs[0].Required {
+		t.Fatalf("info: %v\n%s", err, out)
+	}
+}
+
+func TestLogsStreamsTheAppsContainers(t *testing.T) {
+	deps, cat := installed(t, "one")
+	deps.Runner.(*systemtest.Runner).Logs = "one-1  | listening on :80\n"
+
+	code, out := runWith(t, deps, cat, "logs", "one", "--tail", "50")
+
+	if code != 0 || !strings.Contains(out, "listening on :80") || lastCompose(deps) != "logs --no-color --tail 50 one" {
+		t.Fatalf("logs: %d %q\n%s", code, lastCompose(deps), out)
+	}
+}
