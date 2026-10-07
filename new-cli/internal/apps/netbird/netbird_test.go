@@ -131,6 +131,9 @@ func TestMissingManagementURLFailsWithAHint(t *testing.T) {
 	if !strings.Contains(hint, "NETBIRD_CANONICAL_ORIGIN") {
 		t.Errorf("hint should name the required input, got %q", hint)
 	}
+	if !strings.Contains(hint, "self-host install netbird --yes --set netbird.NETBIRD_CANONICAL_ORIGIN=") || strings.Contains(hint, "self-host setup netbird --set") {
+		t.Errorf("hint must use the supported install input transport, got %q", hint)
+	}
 }
 
 func TestSetupAndCheckUseCanonicalManagementOrigin(t *testing.T) {

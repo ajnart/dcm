@@ -153,7 +153,7 @@ func ownerWorks(ctx context.Context, h *helpers.H, email string) (bool, error) {
 	return current.Role == "owner" && current.Email == email, nil
 }
 
-const managementHint = "Set the external management URL with: self-host setup netbird --set netbird.NETBIRD_CANONICAL_ORIGIN=https://netbird.example.com " +
+const managementHint = "Set the external management URL with: self-host install netbird --yes --set netbird.NETBIRD_CANONICAL_ORIGIN=https://netbird.example.com " +
 	"(see https://docs.netbird.io/selfhosted/selfhosted-quickstart)"
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
