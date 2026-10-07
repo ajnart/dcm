@@ -740,8 +740,8 @@ func hfAdminLogin(ctx context.Context, client *http.Client, base string, secrets
 }
 
 type hfApp struct {
-	ID, Name, Href, PingURL string
-	Description, IconURL    *string
+	ID, Name, Href                string
+	PingURL, Description, IconURL *string
 }
 
 func (a hfApp) patch() map[string]any {
@@ -846,8 +846,11 @@ func (inv hfInventory) identitiesFor(id string) []string {
 }
 
 func (inv hfInventory) validate(ports map[string]int, secrets map[string]string, expected []string) error {
-	if inv.Board.ID == "" || inv.Board.Name != "Home" || inv.Board.IsPublic || len(inv.Apps) != len(expected) {
-		return errors.New("private dashboard App inventory differs from the owned selection")
+	if inv.Board.ID == "" || inv.Board.Name != "Home" || inv.Board.IsPublic {
+		return errors.New("private Home board identity or visibility differs from the selected dashboard")
+	}
+	if err := inv.validateAppRecords(expected); err != nil {
+		return err
 	}
 	appIDs := map[string]bool{}
 	for _, id := range expected {
@@ -856,7 +859,7 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 			return errors.New("managed App tile URL is missing, duplicated or not browser-reachable")
 		}
 		appIDs[app.ID] = true
-		if id == "ntfy" && app.PingURL != "http://ntfy:80" || id == "jellyfin" && app.PingURL != "http://jellyfin:8096" {
+		if app.PingURL == nil || id == "ntfy" && *app.PingURL != "http://ntfy:80" || id == "jellyfin" && *app.PingURL != "http://jellyfin:8096" {
 			return errors.New("integration ping URL is not its Docker-internal base URL")
 		}
 	}
@@ -935,6 +938,68 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 		if tiles[id] != 1 {
 			return errors.New("managed App tile is missing or duplicated")
 		}
+	}
+	return nil
+}
+
+// GET /api/apps contains all bookmarks, including these four upstream seeds.
+// Seed records remain separate from the exact installed App/tile selection.
+// Source: Homarr definitions/widget-integration-map.ts defaultBookmarkApps and
+// db/migrations/seed.ts seedDefaultAppsAsync; no arbitrary extras are accepted.
+func (inv hfInventory) validateAppRecords(expected []string) error {
+	seeds := map[string]string{
+		"Homarr Docs":    "https://homarr.dev/docs/getting-started",
+		"Homarr GitHub":  "https://github.com/homarr-labs/homarr",
+		"Help Translate": "https://homarr.dev/docs/community/translations",
+		"Support Homarr": "https://opencollective.com/homarr",
+	}
+	managed := map[string]int{}
+	seedCounts := map[string]int{}
+	identities := map[string]bool{}
+	unknown, invalidSeed, duplicates := 0, 0, 0
+	for _, app := range inv.Apps {
+		if app.ID == "" || identities[app.ID] {
+			duplicates++
+		}
+		identities[app.ID] = true
+		if app.Description != nil && strings.HasPrefix(*app.Description, "self-host tile:") {
+			id := strings.TrimPrefix(*app.Description, "self-host tile:")
+			if !slices.Contains(expected, id) {
+				unknown++
+				continue
+			}
+			managed[id]++
+			continue
+		}
+		href, known := seeds[app.Name]
+		if !known {
+			unknown++
+			continue
+		}
+		if app.Href != href || app.Description != nil || app.PingURL != nil {
+			invalidSeed++
+			continue
+		}
+		seedCounts[app.Name]++
+	}
+	missing := []string{}
+	for _, id := range expected {
+		if managed[id] == 0 {
+			missing = append(missing, id) // Fixed scenario selections, never response names.
+		} else if managed[id] != 1 {
+			duplicates++
+		}
+	}
+	missingSeeds := 0
+	for name := range seeds {
+		if seedCounts[name] == 0 {
+			missingSeeds++
+		} else if seedCounts[name] != 1 {
+			duplicates++
+		}
+	}
+	if len(inv.Apps) != len(expected)+len(seeds) || len(missing) != 0 || missingSeeds != 0 || unknown != 0 || invalidSeed != 0 || duplicates != 0 {
+		return fmt.Errorf("dashboard App inventory mismatch: expected managed=%d and upstream seeds=4, actual total=%d, missing selected=%v, missing seeds=%d, unknown extras=%d, invalid seeds=%d, duplicates=%d", len(expected), len(inv.Apps), missing, missingSeeds, unknown, invalidSeed, duplicates)
 	}
 	return nil
 }
