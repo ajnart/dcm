@@ -1,0 +1,123 @@
+// Package portainer is Portainer CE: a private container-management UI. The
+// owner-admin is preseeded from a generated password file and no Docker socket
+// is mounted, so credential preparation is all this App claims.
+package portainer
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/helpers"
+)
+
+// App is Portainer. Traps: docs/catalog/traps/portainer.md.
+type App struct{}
+
+func (App) Info() app.Info {
+	return app.Info{
+		ID: "portainer", Name: "Portainer", Category: "Containers",
+		Description:   "A web UI for the containers running on this host",
+		Image:         "docker.io/portainer/portainer-ce:2.45.1",
+		Docs:          "https://docs.portainer.io/start/install-ce/server/docker/linux",
+		Port:          9000,
+		ContainerPort: 9000,
+		Service:       "portainer",
+	}
+}
+
+func (App) Inputs() []app.Input { return nil }
+func (App) Links() []app.Link   { return nil }
+
+// Secrets declares the administrator password Portainer reads from
+// /run/secrets/admin-bootstrap at first start.
+func (App) Secrets() []app.SecretSpec {
+	return []app.SecretSpec{{Name: "admin_password", Length: 40}}
+}
+
+func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
+	return []app.File{{Path: "admin-bootstrap", Content: secret("admin_password") + "\n", Mode: 0o600}}
+}
+
+func (App) Compose(rc app.RenderContext) string {
+	port := strconv.Itoa(rc.Port)
+	return `services:
+  portainer:
+    image: docker.io/portainer/portainer-ce:2.45.1
+    command: ["--http-enabled", "--bind", ":9000", "--admin-password-file=/run/secrets/admin-bootstrap"]
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+      - ./admin-bootstrap:/run/secrets/admin-bootstrap:ro
+    ports:
+      - ${BIND_IP}:` + port + `:9000
+`
+}
+
+// loginWorks authenticates the preseeded administrator and reads back the
+// identity through the bearer session.
+func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+	resp, err := h.HTTP(ctx, helpers.Request{
+		Method: "POST", Path: "/api/auth",
+		JSON: map[string]string{"Username": user, "Password": password},
+	})
+	if err != nil {
+		return false, err
+	}
+	if resp.Status == 401 || resp.Status == 403 {
+		return false, nil
+	}
+	if !resp.OK() {
+		return false, fmt.Errorf("sign-in returned HTTP %d", resp.Status)
+	}
+	var login struct {
+		JWT string `json:"jwt"`
+	}
+	if err := resp.Decode(&login); err != nil {
+		return false, err
+	}
+	if login.JWT == "" {
+		return false, nil
+	}
+	me, err := h.HTTP(ctx, helpers.Request{Path: "/api/users/me", Header: map[string]string{"Authorization": "Bearer " + login.JWT}})
+	if err != nil {
+		return false, err
+	}
+	if !me.OK() {
+		return false, nil
+	}
+	var account struct {
+		ID       int    `json:"Id"`
+		Username string `json:"Username"`
+	}
+	if err := me.Decode(&account); err != nil {
+		return false, err
+	}
+	return account.Username == user, nil
+}
+
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := h.WaitHTTP(ctx, "/", 2*time.Minute); err != nil {
+		return err
+	}
+	password := h.Secret(h.Key("admin_password"))
+	return h.Step(ctx, "admin", "the preseeded administrator signs in", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return loginWorks(ctx, h, h.AdminUser(), password) },
+		Do: func(context.Context) error {
+			return errors.New("Portainer seeds its administrator from the password file at first start")
+		},
+		Hint:       "Open " + h.URL + ", sign in as " + h.AdminUser() + " with the password shown by `self-host credentials` (" + h.Key("admin_password") + "), then connect a Docker environment separately.",
+		Credential: "admin",
+	})
+}
+
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	password := h.Secret(h.Key("admin_password"))
+	if ok, err := loginWorks(ctx, h, h.AdminUser(), password); !ok {
+		return fmt.Errorf("the preseeded Portainer administrator cannot sign in: %v", err)
+	}
+	return nil
+}
