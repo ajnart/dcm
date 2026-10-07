@@ -16,7 +16,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const appPassword = "node-red-admin-password"
+const (
+	adminUser = "admin"
+	password  = "node-red-admin-password"
+)
 
 type secrets map[string]string
 
@@ -41,7 +44,7 @@ func handler() http.Handler {
 			Password string `json:"password"`
 		}
 		json.NewDecoder(r.Body).Decode(&body)
-		if body.Username != "admin" || body.Password != appPassword {
+		if body.Username != adminUser || body.Password != password {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -56,7 +59,7 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 	return helpers.New(helpers.Config{
 		App: "node-red", Service: "node-red",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "shared", "NODE_RED_ADMIN_PASSWORD": appPassword},
+		Secrets: secrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": password},
 		Log:     events.Discard(),
 		Record:  func(r helpers.StepResult) { *results = append(*results, r) },
 		Now:     deps.Now, Sleep: deps.Sleep,
@@ -109,7 +112,7 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 	h := helpers.New(helpers.Config{
 		App: "node-red", Service: "node-red",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "shared", "NODE_RED_ADMIN_PASSWORD": "wrong"},
+		Secrets: secrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": "wrong"},
 		Log:     events.Discard(),
 		Record:  func(r helpers.StepResult) { results = append(results, r) },
 		Now:     deps.Now, Sleep: deps.Sleep,
@@ -133,13 +136,19 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 	}
 }
 
-func TestFilesWritesBcryptHashOfTheSecret(t *testing.T) {
-	files := (nodered.App{}).Files(app.RenderContext{}, func(string) string { return appPassword })
+func TestFilesWritesBcryptHashOfTheAdminLogin(t *testing.T) {
+	secret := func(name string) string {
+		return map[string]string{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": password}[name]
+	}
+	files := (nodered.App{}).Files(app.RenderContext{}, secret)
 	if len(files) != 1 || files[0].Mode != 0o600 {
 		t.Fatalf("Files = %+v, want one mode-0600 settings file", files)
 	}
-	if strings.Contains(files[0].Content, appPassword) {
+	if strings.Contains(files[0].Content, password) {
 		t.Fatal("settings.js must not contain the plaintext password")
+	}
+	if !strings.Contains(files[0].Content, "username: '"+adminUser+"'") {
+		t.Fatalf("settings.js lacks the Admin username:\n%s", files[0].Content)
 	}
 	const marker = "password: '"
 	start := strings.Index(files[0].Content, marker)
@@ -148,7 +157,7 @@ func TestFilesWritesBcryptHashOfTheSecret(t *testing.T) {
 	}
 	hash := files[0].Content[start+len(marker):]
 	hash = hash[:strings.Index(hash, "'")]
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(appPassword)); err != nil {
-		t.Fatalf("embedded hash does not match the secret: %v", err)
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
+		t.Fatalf("embedded hash does not match the Admin login: %v", err)
 	}
 }

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	email    = "admin@example.test"
+	email    = "admin@selfhost.local"
 	password = "admin-password-123"
 )
 

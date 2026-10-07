@@ -15,8 +15,8 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-// adminEmail is the first-administrator email the recipe declares.
-const adminEmail = "admin@example.test"
+// adminEmail is the shared Admin login's email form.
+func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
 // App is Open WebUI. Traps: docs/catalog/traps/open-webui.md.
 type App struct{}
@@ -48,7 +48,7 @@ func (App) Compose(rc app.RenderContext) string {
     image: ghcr.io/open-webui/open-webui:v0.11.4
     restart: unless-stopped
     environment:
-      WEBUI_ADMIN_EMAIL: ` + adminEmail + `
+      WEBUI_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       WEBUI_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
     volumes:
@@ -61,7 +61,7 @@ func (App) Compose(rc app.RenderContext) string {
 // adminWorks signs in the seeded administrator and checks its role.
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/api/v1/auths/signin", JSON: map[string]string{
-		"email": adminEmail, "password": h.AdminPassword(),
+		"email": adminEmail(h), "password": h.AdminPassword(),
 	}})
 	if err != nil {
 		return false, err
@@ -77,20 +77,20 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if err := resp.Decode(&account); err != nil {
 		return false, err
 	}
-	return account.Token != "" && account.Email == adminEmail && account.Role == "admin", nil
+	return account.Token != "" && account.Email == adminEmail(h) && account.Role == "admin", nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/health", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail, helpers.StepSpec{
+	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("Open WebUI creates the first administrator from WEBUI_ADMIN_EMAIL/WEBUI_ADMIN_PASSWORD only when the user database is empty")
 		},
 		Hint: "Open WebUI seeds the first administrator only on an empty database. Recreate the container with an empty " +
-			"data volume (self-host start open-webui), then open " + h.URL + " and sign in as " + adminEmail +
+			"data volume (self-host start open-webui), then open " + h.URL + " and sign in as " + adminEmail(h) +
 			" with the password from `self-host credentials`.",
 		Credential: "admin",
 	})
@@ -100,7 +100,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 // access stay separate acceptance steps.
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the administrator %s cannot sign in to Open WebUI: %v", adminEmail, err)
+		return fmt.Errorf("the administrator %s cannot sign in to Open WebUI: %v", adminEmail(h), err)
 	}
 	return nil
 }

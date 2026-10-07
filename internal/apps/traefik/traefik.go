@@ -16,9 +16,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// adminUser is the fixed Basic-auth username the recipe declares.
-const adminUser = "admin"
-
 // apiRule mirrors the recipe's GET-only management paths.
 const apiRule = "Method(`GET`) && (Path(`/api/version`) || Path(`/api/entrypoints`) || Path(`/api/http/routers`) || Path(`/api/http/services`) || Path(`/api/http/middlewares`) || Path(`/api/tcp/routers`) || Path(`/api/tcp/services`) || Path(`/api/tcp/middlewares`) || Path(`/api/udp/routers`) || Path(`/api/udp/services`))"
 
@@ -39,12 +36,6 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
-// Secrets declares the control-interface password whose bcrypt hash is written
-// into the file-provider config. The docker socket is never mounted.
-func (App) Secrets() []app.SecretSpec {
-	return []app.SecretSpec{{Name: "admin_password", Length: 48}}
-}
-
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
@@ -62,7 +53,7 @@ func (App) Compose(rc app.RenderContext) string {
       - --providers.file.watch=false
       - --log.level=ERROR
     environment:
-      TRAEFIK_ADMIN_AUTH_HASH: ${TRAEFIK_ADMIN_PASSWORD}
+      TRAEFIK_ADMIN_AUTH_HASH: ${ADMIN_PASSWORD}
     volumes:
       - ./management-api:/etc/traefik/dynamic.yml
     ports:
@@ -71,9 +62,9 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 // Files writes the file-provider config with a Go-generated bcrypt hash of the
-// declared control-interface password, mounted read-only to the container.
+// shared Admin login, mounted read-only to the container.
 func (App) Files(_ app.RenderContext, secret func(name string) string) []app.File {
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret("admin_password")), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret("ADMIN_PASSWORD")), bcrypt.DefaultCost)
 	if err != nil {
 		return nil
 	}
@@ -88,7 +79,7 @@ func (App) Files(_ app.RenderContext, secret func(name string) string) []app.Fil
 		"    selfhost-auth:\n" +
 		"      basicAuth:\n" +
 		"        users:\n" +
-		"          - '" + adminUser + ":" + string(hash) + "'\n" +
+		"          - '" + secret("ADMIN_USER") + ":" + string(hash) + "'\n" +
 		"        removeHeader: true\n"
 	return []app.File{{Path: "management-api", Content: content, Mode: 0o600}}
 }
@@ -103,7 +94,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if anonymous.Status != http.StatusUnauthorized {
 		return false, nil
 	}
-	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/version", User: adminUser, Password: h.Secret(h.Key("admin_password"))})
+	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/version", User: h.AdminUser(), Password: h.AdminPassword()})
 	if err != nil {
 		return false, err
 	}
@@ -119,7 +110,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if info.Version != "3.6.22" {
 		return false, nil
 	}
-	routers, err := h.HTTP(ctx, helpers.Request{Path: "/api/http/routers", User: adminUser, Password: h.Secret(h.Key("admin_password"))})
+	routers, err := h.HTTP(ctx, helpers.Request{Path: "/api/http/routers", User: h.AdminUser(), Password: h.AdminPassword()})
 	if err != nil {
 		return false, err
 	}
@@ -145,20 +136,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/ping", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-api", "verify the "+adminUser+" control-interface credential", helpers.StepSpec{
+	return h.Step(ctx, "admin-api", "verify the "+h.AdminUser()+" control-interface credential", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("Traefik reads the file-provider config and its bcrypt hash at start")
 		},
 		Hint: "Regenerate the file-provider config and recreate the container: self-host install traefik, then self-host start traefik. " +
-			"Verify with: curl -u " + adminUser + ":<password from `self-host credentials`> " + h.URL + "/api/version",
+			"Verify with: curl -u " + h.AdminUser() + ":<password from `self-host credentials`> " + h.URL + "/api/version",
 		Credential: "control-interface",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the %s control-interface credential is refused by Traefik: %v", adminUser, err)
+		return fmt.Errorf("the %s control-interface credential is refused by Traefik: %v", h.AdminUser(), err)
 	}
 	return nil
 }

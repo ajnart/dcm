@@ -16,9 +16,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// adminUser is the fixed Node-RED editor username the recipe declares.
-const adminUser = "admin"
-
 // App is Node-RED. Traps: docs/catalog/traps/node-red.md.
 type App struct{}
 
@@ -36,14 +33,6 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
-// Secrets declares the admin password whose bcrypt hash is written into
-// settings.js. It cannot be the shared Admin login because the settings file
-// is generated before the container starts and FileDeclarer only sees
-// App-namespaced secrets.
-func (App) Secrets() []app.SecretSpec {
-	return []app.SecretSpec{{Name: "admin_password", Length: 48}}
-}
-
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
@@ -53,7 +42,7 @@ func (App) Compose(rc app.RenderContext) string {
     user: ${PUID}:${PGID}
     environment:
       TZ: ${TZ}
-      NODE_RED_ADMIN_AUTH_HASH: ${NODE_RED_ADMIN_PASSWORD}
+      NODE_RED_ADMIN_AUTH_HASH: ${ADMIN_PASSWORD}
     volumes:
       - ./data:/data
       - ./settings:/data/settings.js
@@ -63,17 +52,17 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 // Files writes the editor authentication settings.js with a Go-generated
-// bcrypt hash of the declared admin password. The file is mode 0600 so the
-// hash never lands in a world-readable config.
+// bcrypt hash of the shared Admin login. The file is mode 0600 so the hash
+// never lands in a world-readable config.
 func (App) Files(_ app.RenderContext, secret func(name string) string) []app.File {
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret("admin_password")), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret("ADMIN_PASSWORD")), bcrypt.DefaultCost)
 	if err != nil {
 		return nil
 	}
 	content := "module.exports = {\n" +
 		"  adminAuth: {\n" +
 		"    type: 'credentials',\n" +
-		"    users: [{ username: '" + adminUser + "', password: '" + string(hash) + "', permissions: '*' }]\n" +
+		"    users: [{ username: '" + secret("ADMIN_USER") + "', password: '" + string(hash) + "', permissions: '*' }]\n" +
 		"  }\n" +
 		"};\n"
 	return []app.File{{Path: "settings", Content: content, Mode: 0o600}}
@@ -108,7 +97,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	issued, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/auth/token", JSON: map[string]string{
 		"client_id": "node-red-admin", "grant_type": "password", "scope": "*",
-		"username": adminUser, "password": h.Secret(h.Key("admin_password")),
+		"username": h.AdminUser(), "password": h.AdminPassword(),
 	}})
 	if err != nil {
 		return false, err
@@ -138,20 +127,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/auth/login", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+adminUser, helpers.StepSpec{
+	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("Node-RED reads /data/settings.js at start; the file is generated before the container starts")
 		},
 		Hint: "Regenerate /data/settings.js and recreate the container: self-host install node-red, then self-host start node-red. " +
-			"Sign in at " + h.URL + " as " + adminUser + " with the password from `self-host credentials`.",
+			"Sign in at " + h.URL + " as " + h.AdminUser() + " with the password from `self-host credentials`.",
 		Credential: "admin",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the administrator %s cannot sign in to Node-RED: %v", adminUser, err)
+		return fmt.Errorf("the administrator %s cannot sign in to Node-RED: %v", h.AdminUser(), err)
 	}
 	return nil
 }

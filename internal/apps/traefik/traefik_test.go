@@ -16,7 +16,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const appPassword = "traefik-control-password"
+const (
+	adminUser = "admin"
+	password  = "traefik-control-password"
+)
 
 type secrets map[string]string
 
@@ -25,7 +28,7 @@ func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 
 func authorized(r *http.Request) bool {
 	user, pass, ok := r.BasicAuth()
-	return ok && user == "admin" && pass == appPassword
+	return ok && user == adminUser && pass == password
 }
 
 func handler() http.Handler {
@@ -53,7 +56,7 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 	return helpers.New(helpers.Config{
 		App: "traefik", Service: "traefik",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "TRAEFIK_ADMIN_PASSWORD": appPassword},
+		Secrets: secrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": password},
 		Log:     events.Discard(),
 		Record:  func(r helpers.StepResult) { *results = append(*results, r) },
 		Now:     deps.Now, Sleep: deps.Sleep,
@@ -106,7 +109,7 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 	h := helpers.New(helpers.Config{
 		App: "traefik", Service: "traefik",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "TRAEFIK_ADMIN_PASSWORD": "wrong"},
+		Secrets: secrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": "wrong"},
 		Log:     events.Discard(),
 		Record:  func(r helpers.StepResult) { results = append(results, r) },
 		Now:     deps.Now, Sleep: deps.Sleep,
@@ -135,18 +138,21 @@ func TestFilesWritesBcryptHashAndNeverMountsTheDockerSocket(t *testing.T) {
 	if strings.Contains(compose, "docker.sock") {
 		t.Fatal("Compose must never mount the docker socket")
 	}
-	files := (traefik.App{}).Files(app.RenderContext{}, func(string) string { return appPassword })
+	secret := func(name string) string {
+		return map[string]string{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": password}[name]
+	}
+	files := (traefik.App{}).Files(app.RenderContext{}, secret)
 	if len(files) != 1 || files[0].Mode != 0o600 {
 		t.Fatalf("Files = %+v, want one mode-0600 dynamic config", files)
 	}
-	const marker = "'admin:"
+	const marker = "'" + adminUser + ":"
 	start := strings.Index(files[0].Content, marker)
 	if start < 0 {
 		t.Fatalf("dynamic config has no basic-auth user:\n%s", files[0].Content)
 	}
 	hash := files[0].Content[start+len(marker):]
 	hash = hash[:strings.Index(hash, "'")]
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(appPassword)); err != nil {
-		t.Fatalf("embedded hash does not match the secret: %v", err)
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
+		t.Fatalf("embedded hash does not match the Admin login: %v", err)
 	}
 }

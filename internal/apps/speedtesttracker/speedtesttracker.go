@@ -18,13 +18,13 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-// adminEmail is the seeded administrator email the recipe declares.
-const adminEmail = "admin@example.test"
+// adminEmail is the shared Admin login's email form.
+func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
 // verifyScript reads the seeded administrator from the exact pinned Laravel
-// container. The password arrives through a private environment variable, never
-// argv or a config file.
-const verifyScript = `require '/app/www/vendor/autoload.php'; $app=require '/app/www/bootstrap/app.php'; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $p=getenv('SELFHOST_ADMIN_PASSWORD'); $u=App\Models\User::where('email',` + "'" + adminEmail + "'" + `)->first(); if (!$u || !$u->is_admin || !Illuminate\Support\Facades\Hash::check($p,$u->password)) exit(21); echo $u->id;`
+// container. The email and password arrive through private environment
+// variables, never argv or a config file.
+const verifyScript = `require '/app/www/vendor/autoload.php'; $app=require '/app/www/bootstrap/app.php'; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $p=getenv('SELFHOST_ADMIN_PASSWORD'); $e=getenv('SELFHOST_ADMIN_EMAIL'); $u=App\Models\User::where('email',$e)->first(); if (!$u || !$u->is_admin || !Illuminate\Support\Facades\Hash::check($p,$u->password)) exit(21); echo $u->id;`
 
 // App is Speedtest Tracker. Traps: docs/catalog/traps/speedtest-tracker.md.
 type App struct{}
@@ -60,7 +60,7 @@ func (App) Compose(rc app.RenderContext) string {
       PGID: ${PGID}
       DB_CONNECTION: sqlite
       APP_URL: http://${LAN_IP}:` + port + `
-      ADMIN_EMAIL: ` + adminEmail + `
+      ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PUBLIC_DASHBOARD: "false"
       FILE__APP_KEY: /config/app.key
@@ -86,7 +86,10 @@ func (App) Files(_ app.RenderContext, secret func(name string) string) []app.Fil
 // adminWorks verifies the seeded administrator inside the pinned Laravel
 // container, where the app has no headless HTTP login endpoint.
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	result, err := h.Exec(ctx, map[string]string{"SELFHOST_ADMIN_PASSWORD": h.AdminPassword()}, "s6-setuidgid", "abc", "php", "-r", verifyScript)
+	result, err := h.Exec(ctx, map[string]string{
+		"SELFHOST_ADMIN_EMAIL":    adminEmail(h),
+		"SELFHOST_ADMIN_PASSWORD": h.AdminPassword(),
+	}, "s6-setuidgid", "abc", "php", "-r", verifyScript)
 	if err != nil {
 		return false, err
 	}
@@ -97,13 +100,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/api/healthcheck", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail, helpers.StepSpec{
+	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("Speedtest Tracker seeds the administrator from ADMIN_EMAIL/ADMIN_PASSWORD only on first start")
 		},
 		Hint: "Speedtest Tracker seeds the admin account on first start. Recreate the container with an empty config volume: " +
-			"self-host start speedtest-tracker, then open " + h.URL + " and sign in as " + adminEmail +
+			"self-host start speedtest-tracker, then open " + h.URL + " and sign in as " + adminEmail(h) +
 			" with the password from `self-host credentials`.",
 		Credential: "admin",
 	})
@@ -113,7 +116,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 // measurement stay separate acceptance steps.
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the administrator %s cannot be verified in Speedtest Tracker: %v", adminEmail, err)
+		return fmt.Errorf("the administrator %s cannot be verified in Speedtest Tracker: %v", adminEmail(h), err)
 	}
 	return nil
 }
