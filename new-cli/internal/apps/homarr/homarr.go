@@ -396,11 +396,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	return h.Step(ctx, "api-key", "create and store a Homarr API key", helpers.StepSpec{
+	err = h.Step(ctx, "api-key", "create and store a Homarr API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return apiKeyWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return s.createAPIKey(ctx, h) },
 		Hint: "Open " + h.URL + "/manage/api, create an API key and save it in secrets.env as " +
 			h.Key("api_key") + ".",
+		Credential: "admin",
+	})
+	if err != nil {
+		return err
+	}
+	return h.Step(ctx, "notebook", "place the Homarr notebook", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return notebookCurrent(ctx, h) },
+		Do:         func(ctx context.Context) error { return ensureNotebook(ctx, h) },
+		Hint:       "Open " + h.URL + " and add a Notebook widget, or rerun this step.",
 		Credential: "admin",
 	})
 }

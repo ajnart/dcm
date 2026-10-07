@@ -36,6 +36,7 @@ type fakeHomarr struct {
 	apps          []map[string]any
 	integrations  []map[string]any
 	items         []map[string]any
+	sections      []any
 	nextID        int
 }
 
@@ -303,8 +304,77 @@ func (f *fakeHomarr) handler() http.Handler {
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
 		body["itemId"] = f.id("item")
+		body["id"] = body["itemId"]
+		if body["integrationIds"] == nil {
+			body["integrationIds"] = []any{}
+		}
 		f.items = append(f.items, body)
 		json.NewEncoder(w).Encode(map[string]any{"itemId": body["itemId"]})
+	})
+	mux.HandleFunc("GET /api/trpc/board.getBoardByName", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !f.keyOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		items := f.items
+		if items == nil {
+			items = []map[string]any{}
+		}
+		sections := f.sections
+		if sections == nil {
+			sections = []any{}
+		}
+		trpc(w, map[string]any{
+			"id": "board-1", "name": "Home", "isPublic": false,
+			"sections": sections, "layouts": []any{}, "items": items,
+		})
+	})
+	mux.HandleFunc("POST /api/trpc/board.saveBoard", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !f.keyOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		input := inputOf(r)
+		var items []map[string]any
+		if raw, ok := input["items"].([]any); ok {
+			for _, value := range raw {
+				if record, ok := value.(map[string]any); ok {
+					items = append(items, record)
+				}
+			}
+		}
+		f.items = items
+		if raw, ok := input["sections"].([]any); ok {
+			f.sections = raw
+		}
+		trpc(w, nil)
+	})
+	mux.HandleFunc("POST /api/trpc/widget.notebook.updateContent", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !f.keyOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		input := inputOf(r)
+		itemID, _ := input["itemId"].(string)
+		content, _ := input["content"].(string)
+		for _, item := range f.items {
+			if item["id"] != itemID {
+				continue
+			}
+			options, _ := item["options"].(map[string]any)
+			if options == nil {
+				options = map[string]any{}
+				item["options"] = options
+			}
+			options["content"] = content
+		}
+		trpc(w, nil)
 	})
 	return mux
 }
@@ -344,7 +414,7 @@ func TestFreshInstallReachesFinishAndStoresAnAPIKey(t *testing.T) {
 			t.Errorf("secrets.env lacks %s:\n%s", want, secrets)
 		}
 	}
-	for _, step := range []string{"admin", "onboarding", "api-key", "check"} {
+	for _, step := range []string{"admin", "onboarding", "api-key", "notebook", "check"} {
 		if r.StepEvent("homarr", step) != "step.ok" {
 			t.Errorf("step %s not ok:\n%s", step, r.Out)
 		}
@@ -361,7 +431,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if r.Code != 0 {
 		t.Fatalf("exit %d\n%s", r.Code, r.Out)
 	}
-	for _, step := range []string{"admin", "onboarding", "api-key"} {
+	for _, step := range []string{"admin", "onboarding", "api-key", "notebook"} {
 		if r.StepEvent("homarr", step) != "step.skip" {
 			t.Errorf("step %s should skip:\n%s", step, r.Out)
 		}
@@ -441,8 +511,8 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 	fake.mu.Lock()
 	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 1 {
-		t.Fatalf("apps=%d integrations=%d items=%d, want 1 each", apps, integrations, items)
+	if apps != 1 || integrations != 1 || items != 5 {
+		t.Fatalf("apps=%d integrations=%d items=%d, want 1/1/5", apps, integrations, items)
 	}
 
 	if err := link.Apply(context.Background(), from, to); err != nil {
@@ -451,7 +521,7 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 	fake.mu.Lock()
 	apps, integrations, items = len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 1 {
+	if apps != 1 || integrations != 1 || items != 5 {
 		t.Fatalf("rerun added duplicates: apps=%d integrations=%d items=%d", apps, integrations, items)
 	}
 }
@@ -471,10 +541,20 @@ func TestLinkRemoveDeletesTheAppAndIntegration(t *testing.T) {
 		t.Fatalf("remove: %v", err)
 	}
 	fake.mu.Lock()
-	apps, integrations := len(fake.apps), len(fake.integrations)
+	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
+	widgets := 0
+	for _, item := range fake.items {
+		switch item["kind"] {
+		case "calendar", "mediaMissing", "stats":
+			widgets++
+		}
+	}
 	fake.mu.Unlock()
 	if apps != 0 || integrations != 0 {
 		t.Fatalf("apps=%d integrations=%d, want them removed", apps, integrations)
+	}
+	if widgets != 0 {
+		t.Fatalf("%d Sonarr widgets survived removal, want 0 (items=%d)", widgets, items)
 	}
 }
 
@@ -513,7 +593,154 @@ func TestTileOnlyTargetSkipsTheIntegration(t *testing.T) {
 	fake.mu.Lock()
 	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || items != 1 || integrations != 0 {
-		t.Fatalf("tile-only: apps=%d items=%d integrations=%d, want 1/1/0", apps, items, integrations)
+	if apps != 1 || items != 2 || integrations != 0 {
+		t.Fatalf("tile-only: apps=%d items=%d integrations=%d, want 1/2/0", apps, items, integrations)
+	}
+}
+
+func widgetCount(items []map[string]any, kind, integrationID string) int {
+	count := 0
+	for _, item := range items {
+		if item["kind"] != kind {
+			continue
+		}
+		ids, _ := item["integrationIds"].([]any)
+		for _, id := range ids {
+			if id == integrationID {
+				count++
+				break
+			}
+		}
+	}
+	return count
+}
+
+func notebooks(items []map[string]any) []map[string]any {
+	var found []map[string]any
+	for _, item := range items {
+		if item["kind"] != "notebook" {
+			continue
+		}
+		options, _ := item["options"].(map[string]any)
+		if content, _ := options["content"].(string); strings.Contains(content, "Your homelab at a glance") {
+			found = append(found, item)
+		}
+	}
+	return found
+}
+
+func allSecrets() fakeSecrets {
+	return fakeSecrets{
+		"HOMARR_API_KEY": "keyid.secret", "ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw",
+		"SONARR_API_KEY": "sonarr-secret", "RADARR_API_KEY": "radarr-secret",
+		"PROWLARR_API_KEY": "prowlarr-secret", "JELLYFIN_API_KEY": "jellyfin-secret",
+		"SEERR_API_KEY": "seerr-secret",
+	}
+}
+
+func TestEachLinkAddsItsWidgetsWiredToItsIntegration(t *testing.T) {
+	cases := map[string][]string{
+		"sonarr":      {"calendar", "mediaMissing", "stats"},
+		"radarr":      {"calendar", "mediaMissing", "stats"},
+		"prowlarr":    {"indexerManager", "stats"},
+		"jellyfin":    {"mediaServer", "mediaReleases", "stats"},
+		"seerr":       {"mediaRequests-requestList", "mediaRequests-requestStats", "stats"},
+		"qbittorrent": {"downloads", "stats"},
+	}
+	for targetID, kinds := range cases {
+		t.Run(targetID, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			srv := serve(t, fake)
+			from := homarrH(t, srv, allSecrets())
+			to := targetH(t, srv, targetID, 1234, allSecrets())
+
+			if err := linkFor(t, targetID).Apply(context.Background(), from, to); err != nil {
+				t.Fatalf("apply: %v", err)
+			}
+			fake.mu.Lock()
+			defer fake.mu.Unlock()
+			if len(fake.integrations) != 1 {
+				t.Fatalf("integrations=%d, want 1", len(fake.integrations))
+			}
+			integrationID, _ := fake.integrations[0]["id"].(string)
+			if integrationID == "" {
+				t.Fatal("the integration has no id")
+			}
+			for _, kind := range kinds {
+				if got := widgetCount(fake.items, kind, integrationID); got != 1 {
+					t.Errorf("widget %q wired to %s: %d, want 1", kind, integrationID, got)
+				}
+			}
+		})
+	}
+}
+
+func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	fake.mu.Lock()
+	before := len(fake.items)
+	fake.mu.Unlock()
+
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatalf("rerun: %v", err)
+	}
+	fake.mu.Lock()
+	after := len(fake.items)
+	fake.mu.Unlock()
+	if after != before {
+		t.Fatalf("rerun changed items from %d to %d", before, after)
+	}
+}
+
+func TestNotebookExistsOnceAndListsAppsWithoutSecrets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+
+	if err := linkFor(t, "sonarr").Apply(context.Background(), from, targetH(t, srv, "sonarr", 8989, allSecrets())); err != nil {
+		t.Fatalf("sonarr: %v", err)
+	}
+	if err := linkFor(t, "qbittorrent").Apply(context.Background(), from, targetH(t, srv, "qbittorrent", 8080, allSecrets())); err != nil {
+		t.Fatalf("qbittorrent: %v", err)
+	}
+
+	fake.mu.Lock()
+	notes := notebooks(fake.items)
+	fake.mu.Unlock()
+	if len(notes) != 1 {
+		t.Fatalf("notebooks=%d, want exactly 1", len(notes))
+	}
+	options, _ := notes[0]["options"].(map[string]any)
+	content, _ := options["content"].(string)
+	for _, want := range []string{"Your homelab at a glance", ">Sonarr</a>", ">qBittorrent</a>", "self-host credentials"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("notebook lacks %q:\n%s", want, content)
+		}
+	}
+	for _, secret := range []string{"pw", "keyid.secret", "sonarr-secret"} {
+		if strings.Contains(content, secret) {
+			t.Errorf("notebook leaked %q:\n%s", secret, content)
+		}
+	}
+
+	if err := linkFor(t, "sonarr").Apply(context.Background(), from, targetH(t, srv, "sonarr", 8989, allSecrets())); err != nil {
+		t.Fatalf("sonarr rerun: %v", err)
+	}
+	fake.mu.Lock()
+	notes = notebooks(fake.items)
+	fake.mu.Unlock()
+	if len(notes) != 1 {
+		t.Fatalf("rerun created a second notebook: %d", len(notes))
 	}
 }
