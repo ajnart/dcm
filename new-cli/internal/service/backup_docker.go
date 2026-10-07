@@ -70,10 +70,7 @@ func (s *Service) runBackupHelper(ctx context.Context, dir string, readOnly, met
 		}
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
-		removed, err := s.Deps.Runner.Run(cleanup, system.Cmd{Name: "docker", Args: []string{"rm", "--force", name}})
-		if err == nil && removed.ExitCode != 0 && !strings.Contains(string(removed.Stderr), "No such container") {
-			err = fmt.Errorf("%s", s.Log.Redact(strings.TrimSpace(string(removed.Stderr))))
-		}
+		err := s.removeBackupHelper(cleanup, name)
 		if err != nil {
 			result = errors.Join(result, fmt.Errorf("backup helper %s cleanup failed; run docker rm --force %s: %w", name, name, err))
 		}
@@ -84,6 +81,49 @@ func (s *Service) runBackupHelper(ctx context.Context, dir string, readOnly, met
 		return fmt.Errorf("backup helper: %w: %s", err, s.Log.Redact(strings.TrimSpace(diagnostics.String())))
 	}
 	return nil
+}
+
+func (s *Service) removeBackupHelper(ctx context.Context, name string) error {
+	removed, err := s.Deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"rm", "--force", name}})
+	if err != nil {
+		return err
+	}
+	if removed.ExitCode == 0 || missingBackupHelper(removed.Stderr) {
+		return nil
+	}
+	detail := strings.ToLower(string(removed.Stderr))
+	if !strings.Contains(detail, "removal") || !strings.Contains(detail, "already in progress") {
+		return errors.New(s.Log.Redact(strings.TrimSpace(string(removed.Stderr))))
+	}
+	// Docker --rm can already be removing this exact helper. Inspect only its
+	// state until it disappears; never mistake an inspect error for absence.
+	deadline := s.Deps.Now().Add(30 * time.Second)
+	for {
+		state, err := s.Deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"container", "inspect", "--format", "{{.State.Status}}", name}})
+		if err != nil {
+			return err
+		}
+		if state.ExitCode != 0 {
+			if missingBackupHelper(state.Stderr) {
+				return nil
+			}
+			return errors.New(s.Log.Redact(strings.TrimSpace(string(state.Stderr))))
+		}
+		if strings.TrimSpace(string(state.Stdout)) == "" {
+			return errors.New("Docker did not report the owned helper's state")
+		}
+		if !s.Deps.Now().Before(deadline) {
+			return fmt.Errorf("timed out confirming helper removal: %w", context.DeadlineExceeded)
+		}
+		if err := s.Deps.Sleep(ctx, 250*time.Millisecond); err != nil {
+			return err
+		}
+	}
+}
+
+func missingBackupHelper(stderr []byte) bool {
+	detail := strings.ToLower(string(stderr))
+	return strings.Contains(detail, "no such container") || strings.Contains(detail, "no such object")
 }
 
 func (s *Service) validateBackupHelperDirectory(dir string) error {
