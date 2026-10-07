@@ -4,6 +4,7 @@ package bookstack
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net/http"
@@ -172,16 +173,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 func startupStatus(ctx context.Context, h *helpers.H) error {
 	facts := "bootstrap_metadata=unobserved"
 	if h.Config.Exec != nil {
-		probeCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+		probeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
-		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", bootstrapProbe)
+		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", strings.ReplaceAll(bootstrapProbe, "__SELFHOST_LAUNCHER_SHA__", fmt.Sprintf("%x", sha256.Sum256([]byte(phpFPMRun)))))
 		if err == nil && result.ExitCode == 0 {
 			values := strings.Fields(string(result.Stdout))
-			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated"}
+			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config"}
 			valid := len(values) == len(keys)
 			if valid {
 				for i, key := range keys {
-					unknown := (key == "authenticated" || key == "php_process") && values[i] == key+"=unknown"
+					unknown := (key == "authenticated" || key == "php_process" || i >= 7) && values[i] == key+"=unknown"
 					if values[i] != key+"=true" && values[i] != key+"=false" && !unknown {
 						valid = false
 						break
@@ -190,7 +191,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 				}
 			}
 			if valid {
-				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6])
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13])
 			}
 		}
 	}
@@ -219,6 +220,33 @@ timeout 2 bash -c 'true > "/dev/tcp/${DB_HOST}/${DB_PORT:-3306}"' >/dev/null 2>&
 auth_result=$(timeout 2 php -r 'try { new PDO("mysql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: "3306").";dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), [PDO::ATTR_TIMEOUT => 2]); echo "true"; } catch (Throwable $e) { echo "false"; }' 2>/dev/null)
 case "$auth_result" in true|false) authenticated="$auth_result" ;; esac
 printf 'key=%s\nroot_pool=%s\nlauncher_root=%s\nphp_process=%s\nupstream=%s\ndatabase=%s\nauthenticated=%s\n' "$key" "$root_pool" "$launcher_root" "$php_process" "$upstream" "$database" "$authenticated"
+
+# Hash only the owned non-secret launcher; expose neither content nor hashes.
+launcher_matches() {
+    local actual
+    actual=$(sha256sum "$1" 2>/dev/null) || { printf unknown; return; }
+    if [[ "$actual" = "__SELFHOST_LAUNCHER_SHA__ "* ]]; then printf true; else printf false; fi
+}
+launcher_executable() {
+    if [ ! -e "$1" ]; then printf unknown; elif [ -x "$1" ]; then printf true; else printf false; fi
+}
+source=/etc/s6-overlay/s6-rc.d/svc-php-fpm/run
+compiled=/run/service/svc-php-fpm/run
+source_match=$(launcher_matches "$source"); source_exec=$(launcher_executable "$source")
+compiled_match=$(launcher_matches "$compiled"); compiled_exec=$(launcher_executable "$compiled")
+wanted=unknown; up=unknown
+supervision=$(timeout 2 s6-svstat -o up,wantedup /run/service/svc-php-fpm 2>/dev/null)
+case "$supervision" in
+    'true true') up=true; wanted=true ;;
+    'true false') up=true; wanted=false ;;
+    'false true') up=false; wanted=true ;;
+    'false false') up=false; wanted=false ;;
+esac
+# Official config validation only: discard all config/log/exception output.
+config=unknown
+timeout 3 /usr/sbin/php-fpm85 -t -R >/dev/null 2>&1
+case "$?" in 0) config=true ;; 124|127) : ;; *) config=false ;; esac
+printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config"
 `
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

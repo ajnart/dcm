@@ -6,6 +6,7 @@ package speedtesttracker
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -157,29 +158,31 @@ func ready(ctx context.Context, h *helpers.H) error {
 }
 
 // Only fixed booleans survive this bounded failure-only dependency probe.
-// No private file contents, environment values, PHP config or logs are read.
+// No private file contents, environment values, PHP config or logs are reported.
+// The official PHP-FPM config checker consumes its own configuration silently.
 func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
 	if h.Config.Exec == nil {
 		return "php_bootstrap_metadata=unobserved"
 	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
-	res, err := h.Exec(ctx, nil, "/usr/bin/with-contenv", "bash", "-c", phpBootstrapProbe)
+	res, err := h.Exec(ctx, nil, "/usr/bin/with-contenv", "bash", "-c", strings.ReplaceAll(phpBootstrapProbe, "__SELFHOST_LAUNCHER_SHA__", fmt.Sprintf("%x", sha256.Sum256([]byte(phpFPMRun)))))
 	if err != nil || res.ExitCode != 0 {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	facts := strings.Fields(string(res.Stdout))
-	keys := []string{"key", "readable", "root_pool", "upstream"}
+	keys := []string{"key", "readable", "root_pool", "upstream", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config"}
 	if len(facts) != len(keys) {
 		return "php_bootstrap_metadata=unobserved"
 	}
 	for i, key := range keys {
-		if facts[i] != key+"=true" && facts[i] != key+"=false" {
+		unknown := i >= 4 && facts[i] == key+"=unknown"
+		if facts[i] != key+"=true" && facts[i] != key+"=false" && !unknown {
 			return "php_bootstrap_metadata=unobserved"
 		}
 		facts[i] = strings.TrimPrefix(facts[i], key+"=")
 	}
-	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s", facts[0], facts[1], facts[2], facts[3])
+	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s", facts[0], facts[1], facts[2], facts[3], facts[4], facts[5], facts[6], facts[7], facts[8], facts[9], facts[10])
 }
 
 const phpBootstrapProbe = `set +x
@@ -189,6 +192,33 @@ key=false; readable=false; root_pool=false; upstream=false
 if [ "$(id -u abc)" = 0 ] || [ "$(id -g abc)" = 0 ]; then root_pool=true; fi
 timeout 2 bash -c 'true > /dev/tcp/127.0.0.1/9000' >/dev/null 2>&1 && upstream=true
 printf 'key=%s\nreadable=%s\nroot_pool=%s\nupstream=%s\n' "$key" "$readable" "$root_pool" "$upstream"
+
+# Hash only the owned non-secret launcher; expose neither content nor hashes.
+launcher_matches() {
+    local actual
+    actual=$(sha256sum "$1" 2>/dev/null) || { printf unknown; return; }
+    if [[ "$actual" = "__SELFHOST_LAUNCHER_SHA__ "* ]]; then printf true; else printf false; fi
+}
+launcher_executable() {
+    if [ ! -e "$1" ]; then printf unknown; elif [ -x "$1" ]; then printf true; else printf false; fi
+}
+source=/etc/s6-overlay/s6-rc.d/svc-php-fpm/run
+compiled=/run/service/svc-php-fpm/run
+source_match=$(launcher_matches "$source"); source_exec=$(launcher_executable "$source")
+compiled_match=$(launcher_matches "$compiled"); compiled_exec=$(launcher_executable "$compiled")
+wanted=unknown; up=unknown
+supervision=$(timeout 2 s6-svstat -o up,wantedup /run/service/svc-php-fpm 2>/dev/null)
+case "$supervision" in
+    'true true') up=true; wanted=true ;;
+    'true false') up=true; wanted=false ;;
+    'false true') up=false; wanted=true ;;
+    'false false') up=false; wanted=false ;;
+esac
+# Official config validation only: discard all config/log/exception output.
+config=unknown
+timeout 3 /usr/sbin/php-fpm85 -t -R >/dev/null 2>&1
+case "$?" in 0) config=true ;; 124|127) : ;; *) config=false ;; esac
+printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config"
 `
 
 // Check verifies the seeded administrator only; the scoped API token and a real

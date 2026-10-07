@@ -188,9 +188,9 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 
 func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	for _, tc := range []struct{ output, want string }{
-		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true"},
-		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false", "database_authenticated=false"},
-		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown", "database_authenticated=unknown"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown", "database_authenticated=false"},
+		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown", "database_authenticated=unknown"},
 		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
 		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
 	} {
@@ -221,11 +221,30 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 	}
 	script := executor.args[0][3]
 	dir := t.TempDir()
+	source := filepath.Join(dir, "source", "run")
+	compiled := filepath.Join(dir, "compiled", "run")
+	for _, path := range []string{source, compiled} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := (bookstack.App{}).Files(app.RenderContext{}, nil)
+	if err := os.WriteFile(source, []byte(files[0].Content), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(compiled, []byte("different launcher"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script = strings.ReplaceAll(script, "/etc/s6-overlay/s6-rc.d/svc-php-fpm/run", source)
+	script = strings.ReplaceAll(script, "/run/service/svc-php-fpm", filepath.Dir(compiled))
+	script = strings.ReplaceAll(script, "/usr/sbin/php-fpm85", filepath.Join(dir, "php-fpm85"))
 	for name, body := range map[string]string{
-		"id":      "#!/bin/sh\nprintf '0\\n'\n",
-		"pgrep":   "#!/bin/sh\nexit 1\n",
-		"timeout": "#!/bin/sh\nshift\ncase \"$1\" in bash) exit 1;; php) exec \"$@\";; *) exit 90;; esac\n",
-		"php":     "#!/bin/sh\ncase \"$*\" in *synthetic-private-secret*) exit 90;; esac\nprintf '%s' \"$FIXTURE_PHP_OUTPUT\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
+		"id":        "#!/bin/sh\nprintf '0\\n'\n",
+		"pgrep":     "#!/bin/sh\nexit 1\n",
+		"timeout":   "#!/bin/sh\nshift\ncase \"$1\" in bash) exit 1;; php|s6-svstat|*/php-fpm85) exec \"$@\";; *) exit 90;; esac\n",
+		"php":       "#!/bin/sh\ncase \"$*\" in *synthetic-private-secret*) exit 90;; esac\nprintf '%s' \"$FIXTURE_PHP_OUTPUT\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
+		"s6-svstat": "#!/bin/sh\n[ \"$1\" = -o ] && [ \"$2\" = up,wantedup ] || exit 90\nprintf 'false true'\n",
+		"php-fpm85": "#!/bin/sh\n[ \"$1\" = -t ] && [ \"$2\" = -R ] || exit 90\nprintf '%s' \"$DB_PASSWORD\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o755); err != nil {
 			t.Fatal(err)
@@ -241,6 +260,9 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 			}
 			if strings.Contains(string(output), "synthetic-private") {
 				t.Fatal("credential or exception output escaped bootstrap probe")
+			}
+			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\nconfig=true") {
+				t.Fatal("actual probe lost launcher, supervision or silent checker facts")
 			}
 		})
 	}
