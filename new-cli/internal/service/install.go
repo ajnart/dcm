@@ -166,73 +166,49 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "install " + strings.Join(names, " ")})
-
 	if !p.Exists() {
 		if err := s.createProject(p, opts); err != nil {
 			return err
 		}
 	}
-	unlock, err := s.lock(p)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if err := ss.ensureAdmin(opts); err != nil {
-		return err
-	}
-
-	for _, a := range apps {
-		info := a.Info()
-		st := ss.state.Apps[info.ID]
-		if st == nil {
-			st = &project.AppState{Setup: "pending"}
-			ss.state.Apps[info.ID] = st
-		}
-		values := inputs[info.ID]
-		port, err := ss.allocatePort(info, values["port"], st.Port)
-		if err != nil {
-			return err
-		}
-		delete(values, "port")
-		if err := ss.ensureSecrets(a); err != nil {
-			return err
-		}
-		st.Port, st.Inputs = port, values
-		if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
-			return err
-		}
-		if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, App: info.ID, Step: "render",
-			Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)})
-	}
-	if err := ss.p.WriteRoot(); err != nil {
-		return err
-	}
-	if err := ss.p.SaveState(ss.state); err != nil {
-		return err
-	}
-	if err := ss.ensureMediaFolders(apps); err != nil {
-		return err
-	}
-	services, err := ss.services(names...)
-	if err != nil {
-		return err
-	}
-	if err := ss.pull(ctx, names, services); err != nil {
-		return err
-	}
-	if err := ss.compose.Up(ctx, services...); err != nil {
-		return err
-	}
-	s.Log.Emit(events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(names, ", ")})
-	return s.finish(ss.setupAll(ctx, apps))
+	return s.run(ctx, change{
+		title: "install " + strings.Join(names, " "),
+		edit: func(ctx context.Context, ss *session) error {
+			if err := ss.ensureAdmin(opts); err != nil {
+				return err
+			}
+			for _, a := range apps {
+				info := a.Info()
+				st := ss.state.Apps[info.ID]
+				if st == nil {
+					st = &project.AppState{Setup: "pending"}
+					ss.state.Apps[info.ID] = st
+				}
+				values := inputs[info.ID]
+				port, err := ss.allocatePort(info, values["port"], st.Port)
+				if err != nil {
+					return err
+				}
+				delete(values, "port")
+				if err := ss.ensureSecrets(a); err != nil {
+					return err
+				}
+				st.Port, st.Inputs = port, values
+				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
+					return err
+				}
+				if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
+					return err
+				}
+				s.Log.Emit(events.Event{Event: events.StepOK, App: info.ID, Step: "render",
+					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)})
+			}
+			return ss.ensureMediaFolders(apps)
+		},
+		targets: func(*session) ([]string, error) { return names, nil },
+		compose: composePullUp,
+		after:   afterSetup,
+	})
 }
 
 func (s *Service) createProject(p *project.Project, opts InstallOptions) error {
@@ -416,41 +392,27 @@ func (s *Service) finish(err error) error {
 
 // Setup reruns Setup for installed catalog Apps (all when ids is empty).
 func (s *Service) Setup(ctx context.Context, ids []string) error {
-	p, err := s.Project()
-	if err != nil {
-		return err
-	}
-	if !p.Exists() {
-		return ErrNoProject
-	}
-	unlock, err := s.lock(p)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if len(ids) == 0 {
-		for id := range ss.state.Apps {
-			ids = append(ids, id)
-		}
-		sortStrings(ids)
-	}
-	var apps []app.App
-	for _, id := range ids {
-		a, found := s.Catalog.App(id)
-		if !found {
-			return fmt.Errorf("%s is not a catalog App; Setup only runs for catalog Apps", id)
-		}
-		if ss.state.Apps[id] == nil {
-			return fmt.Errorf("%s is not installed (run: self-host install %s)", id, id)
-		}
-		apps = append(apps, a)
-	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "setup " + strings.Join(ids, " ")})
-	return s.finish(ss.setupAll(ctx, apps))
+	return s.run(ctx, change{
+		title: "setup " + strings.Join(ids, " "),
+		targets: func(ss *session) ([]string, error) {
+			if len(ids) == 0 {
+				for id := range ss.state.Apps {
+					ids = append(ids, id)
+				}
+				sortStrings(ids)
+			}
+			for _, id := range ids {
+				if _, found := s.Catalog.App(id); !found {
+					return nil, fmt.Errorf("%s is not a catalog App; Setup only runs for catalog Apps", id)
+				}
+				if ss.state.Apps[id] == nil {
+					return nil, fmt.Errorf("%s is not installed (run: self-host install %s)", id, id)
+				}
+			}
+			return ids, nil
+		},
+		after: afterSetup,
+	})
 }
 
 // ensureMediaFolders creates the media and downloads folders before Docker
