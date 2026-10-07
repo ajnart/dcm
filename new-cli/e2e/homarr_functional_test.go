@@ -72,7 +72,7 @@ func TestHomarrFunctional(t *testing.T) {
 	r.evidence = newEvidence(r.spec, codeHead)
 	r.evidence.BinarySHA256 = binarySHA
 	r.evidence.Classification = "runnable"
-	r.evidence.Probe = "Headless administrator/private board, real ntfy message and Homarr notifications/statistics, owned synthetic Jellyfin audio release, duplicate-free reconciliation and targeted failure recovery; browser rendering is separate"
+	r.evidence.Probe = "Headless administrator access to private Home board, anonymous access denial, reversible authenticated edit, real ntfy message and Homarr notifications/statistics, owned synthetic Jellyfin audio release, duplicate-free reconciliation and targeted failure recovery; optional browser rendering is separately recorded"
 	r.evidence.Stages = nil
 	for _, name := range []string{"install", "administrator-board", "notification-roundtrip", "synthetic-media-release", "idempotency-restart", "url-reconciliation", "credential-recovery", "add-remove"} {
 		r.evidence.Stages = append(r.evidence.Stages, stageEvidence{Name: name, Outcome: "not-run", Apps: map[string]string{}})
@@ -138,12 +138,38 @@ func TestHomarrFunctional(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if baseline.Board.IsPublic || baseline.Board.CreatorID != userID {
-			return errors.New("Home is not the administrator-owned private board")
+		if baseline.Board.IsPublic {
+			return errors.New("Home visibility is public instead of private")
+		}
+		if len(baseline.Board.CreatorID) == 0 {
+			return errors.New("Home creatorId field is missing from the full board response")
+		}
+		var creatorID string
+		if bytes.Equal(baseline.Board.CreatorID, []byte("null")) {
+			if baseline.Board.SummaryCreatorID != "" {
+				return errors.New("Home null creatorId conflicts with its REST creator")
+			}
+			// This scenario starts a new isolated Project: upstream seeds a
+			// private dashboard and onboarding adopts it without a creator.
+			for i := range r.evidence.Stages {
+				if r.evidence.Stages[i].Name == "administrator-board" {
+					r.evidence.Stages[i].Reason = "adopted private seeded board; creator not assigned by upstream"
+				}
+			}
+		} else {
+			if json.Unmarshal(baseline.Board.CreatorID, &creatorID) != nil || creatorID == "" {
+				return errors.New("Home creatorId does not match the scalar ownership contract")
+			}
+			if creatorID != userID || baseline.Board.SummaryCreatorID != userID {
+				return errors.New("Home creator differs from the authenticated administrator")
+			}
 		}
 		var home hfBoard
 		if err := hfTRPC(ctx, client, homarrURL, "", "board.getHomeBoard", "GET", nil, &home); err != nil || home.ID != baseline.Board.ID {
 			return errors.New("administrator home board is not the managed Home board")
+		}
+		if err := hfPrivateBoardAccess(ctx, client, homarrURL, baseline.Board); err != nil {
+			return err
 		}
 		return baseline.validate(ports, secrets, []string{"ntfy", "jellyfin"})
 	})
@@ -300,6 +326,65 @@ func TestHomarrFunctional(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func hfPrivateBoardAccess(ctx context.Context, client *http.Client, base string, board hfBoard) error {
+	var authenticated hfBoard
+	if err := hfTRPC(ctx, client, base, "", "board.getBoardByName", "GET", map[string]string{"name": "Home"}, &authenticated); err != nil || authenticated.ID != board.ID || authenticated.IsPublic {
+		return errors.New("administrator could not read private Home without an API key")
+	}
+	original := board.PageTitle
+	changed := "Owned self-host reversible access proof"
+	write := func(writeCtx context.Context, value any) error {
+		return hfTRPC(writeCtx, client, base, "", "board.savePartialBoardSettings", "POST", map[string]any{"id": board.ID, "pageTitle": value}, nil)
+	}
+	if write(ctx, changed) != nil {
+		return errors.New("administrator could not make a benign authenticated board edit")
+	}
+	defer func() {
+		restoreCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = write(restoreCtx, original)
+	}()
+	if err := hfTRPC(ctx, client, base, "", "board.getBoardByName", "GET", map[string]string{"name": "Home"}, &authenticated); err != nil || authenticated.PageTitle == nil || *authenticated.PageTitle != changed {
+		return errors.New("authenticated board edit was not persisted")
+	}
+	if write(ctx, original) != nil {
+		return errors.New("administrator could not revert the benign board edit")
+	}
+	if err := hfTRPC(ctx, client, base, "", "board.getBoardByName", "GET", map[string]string{"name": "Home"}, &authenticated); err != nil || !hfSameTitle(authenticated.PageTitle, original) {
+		return errors.New("authenticated board edit did not restore its previous value")
+	}
+	anonymous := &http.Client{Timeout: 30 * time.Second}
+	input, _ := json.Marshal(map[string]any{"json": map[string]string{"name": "Home"}})
+	status, _, err := hfRequest(ctx, anonymous, "GET", base+"/api/trpc/board.getBoardByName?input="+url.QueryEscape(string(input)), nil, nil)
+	if err != nil || (status != http.StatusUnauthorized && status != http.StatusForbidden && status != http.StatusNotFound) {
+		return errors.New("anonymous caller was not denied the private Home board read")
+	}
+	status, body, err := hfRequest(ctx, anonymous, "GET", base+"/api/boards", nil, nil)
+	if err != nil {
+		return errors.New("anonymous private REST board access could not be checked")
+	}
+	if status == http.StatusUnauthorized || status == http.StatusForbidden {
+		return nil
+	}
+	var summaries []struct{ ID string }
+	if status != http.StatusOK || json.Unmarshal(body, &summaries) != nil {
+		return errors.New("anonymous REST board list did not match its access contract")
+	}
+	for _, summary := range summaries {
+		if summary.ID == board.ID {
+			return errors.New("anonymous REST board list exposed private Home")
+		}
+	}
+	return nil
+}
+
+func hfSameTitle(left, right *string) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
 }
 
 // The actual login form receives credentials only through a private stdin pipe.
@@ -670,9 +755,12 @@ type hfItem struct {
 	IntegrationIDs []string
 }
 type hfBoard struct {
-	ID, Name, CreatorID string
-	IsPublic            bool
-	Items               []hfItem
+	ID, Name         string
+	CreatorID        json.RawMessage `json:"creatorId"`
+	SummaryCreatorID string          `json:"-"`
+	PageTitle        *string
+	IsPublic         bool
+	Items            []hfItem
 }
 type hfInventory struct {
 	Apps         []hfApp
@@ -682,7 +770,11 @@ type hfInventory struct {
 
 func hfReadInventory(ctx context.Context, client *http.Client, base, key string) (hfInventory, error) {
 	var inv hfInventory
-	var boards []struct{ ID, Name string }
+	var boards []struct {
+		ID, Name string
+		IsPublic bool
+		Creator  *struct{ ID string }
+	}
 	if err := hfJSON(ctx, client, "GET", base+"/api/boards", map[string]string{"ApiKey": key}, nil, &boards); err != nil {
 		return inv, err
 	}
@@ -700,6 +792,12 @@ func hfReadInventory(ctx context.Context, client *http.Client, base, key string)
 	}
 	if inv.Board.ID != boards[0].ID {
 		return inv, errors.New("REST and tRPC Home board identities differ")
+	}
+	if inv.Board.IsPublic != boards[0].IsPublic {
+		return inv, errors.New("REST and tRPC Home board visibility differs")
+	}
+	if boards[0].Creator != nil {
+		inv.Board.SummaryCreatorID = boards[0].Creator.ID
 	}
 	return inv, nil
 }

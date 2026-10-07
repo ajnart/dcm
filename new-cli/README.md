@@ -66,7 +66,9 @@ Deployment needs a working Docker engine, the `docker compose` v2 plugin with
 Compose `include` support, write access to the Project and data folders, free
 published ports, and sufficient storage/RAM for the selected Apps. Start with
 one App; photo libraries, AI workloads and multi-App Recipes need more capacity.
-Run `self-host doctor` before installation.
+Run `self-host doctor` before installation. With rootless Docker, compatible
+images may require container `PUID=0 PGID=0`; host filesystem ownership remains
+the invoking user. Images with fixed container UIDs need separate handling.
 
 | Platform | Binary target | Current validation |
 | --- | --- | --- |
@@ -77,9 +79,9 @@ Run `self-host doctor` before installation.
 | WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
 | Native Windows | No | Unsupported. |
 
-[Native CI run 37588901938](https://github.com/ajnart/selfhost-skills/actions/runs/37588901938)
+[Native CI run 37590881662](https://github.com/ajnart/selfhost-skills/actions/runs/37590881662)
 validated CLI execution, local checksummed installation and corruption rejection
-on all four native targets at `2d3a19e`. [Earlier CI](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
+on all four native targets at `d1e7e33`. [Earlier CI](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
 validated source vet/tests at `0c186fa`. Locally served archives do not prove
 authenticated GitHub release delivery or Docker/App acceptance. See
 [runtime acceptance boundaries](e2e/acceptance.md).
@@ -138,7 +140,9 @@ Use repeated `--set app.key=value` for documented inputs and
 `--set app.port=N` to select a port. `--media-root`, `--downloads-root` and
 `--exposure lan|local` set new-Project choices; `--admin-user` defaults to
 `admin`. An Admin password is generated unless `SELF_HOST_ADMIN_PASSWORD` is
-provided through the environment. Do not pass secrets as command arguments.
+provided through the environment. Forgejo uses `selfhost-admin` for a fresh
+install when the shared username is `admin`; check its App credentials for the
+actual login. Do not pass secrets as command arguments.
 
 With `--json`, mutations and `doctor` produce newline-delimited events;
 `status`, `apps list`, `apps info` and `credentials` produce JSON documents.
@@ -147,7 +151,7 @@ error and `2` for incomplete Setup. A failed Setup needs repair and
 `self-host setup <app>`; completed steps are skipped. Verify the App's intended
 function afterward. A running container or HTTP 200 alone is not acceptance.
 
-`self-host credentials` deliberately reveals the Admin login and per-App API
+`self-host credentials` deliberately reveals the Shared Admin login and per-App API
 keys. Use it privately; exclude its output, logs, passwords and API keys from
 chat replies, screenshots and ordinary evidence.
 
@@ -224,6 +228,9 @@ probes; database-content recovery needs App-specific proof.
 
 The compiled Catalog contains **93 Apps and 20 Recipes** (19 legacy Recipes
 plus `media`). These are metadata/implementation counts, not 113 runtime passes.
+Real Linux lifecycle runs for ntfy and Vaultwarden passed, including isolated
+Restore. Full-Catalog, database-content recovery and other platform Docker
+acceptance remain incomplete.
 
 | Capability | Available behavior | Evidence limit |
 | --- | --- | --- |
