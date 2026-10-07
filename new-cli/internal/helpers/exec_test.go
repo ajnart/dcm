@@ -89,3 +89,19 @@ func TestExecSecretErrorRedactsSecretsInOutput(t *testing.T) {
 		t.Fatalf("error %q should keep the rest of the output", err)
 	}
 }
+
+func TestExecSecretRedactsComposeErrorAndKeepsCause(t *testing.T) {
+	cause := errors.New("docker compose exec: exit 1: login refused for top-secret")
+	exec := &fakeExec{
+		result: system.Result{Stderr: []byte("login refused for top-secret"), ExitCode: 1},
+		err:    cause,
+	}
+	h := newH(t, nil, exec, nil)
+	_, err := h.ExecSecret(context.Background(), map[string]string{"PASSWORD": "top-secret"}, "login")
+	if err == nil || strings.Contains(err.Error(), "top-secret") {
+		t.Fatalf("returned diagnostic leaked credential: %v", err)
+	}
+	if !strings.Contains(err.Error(), "login refused") || !errors.Is(err, cause) {
+		t.Fatalf("diagnostic lost useful detail or cause: %v", err)
+	}
+}

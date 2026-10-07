@@ -113,6 +113,7 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 		title:   "remove " + strings.Join(ids, " "),
 		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
 		compose: composeRemove,
+		after:   afterDashboard,
 		purge:   purge,
 	})
 }
@@ -185,6 +186,13 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 	if len(changes) == 0 {
 		return fmt.Errorf("nothing to set; pass KEY=value")
 	}
+	after := afterNone
+	if _, changed := changes["LAN_IP"]; changed {
+		after = afterDashboard
+	}
+	if _, changed := changes["EXPOSURE"]; changed {
+		after = afterDashboard
+	}
 	return s.run(ctx, change{
 		title: "config set " + strings.Join(pairs, " "),
 		edit: func(_ context.Context, ss *session) error {
@@ -221,6 +229,7 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 			return affected, nil
 		},
 		compose: composeUp,
+		after:   after,
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -69,17 +70,46 @@ func (l *Logger) Secret(values ...string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for _, v := range values {
-		if len(v) >= 4 {
+		if v != "" {
 			l.secrets = append(l.secrets, v)
 		}
 	}
+	sort.SliceStable(l.secrets, func(i, j int) bool { return len(l.secrets[i]) > len(l.secrets[j]) })
 }
 
 func (l *Logger) redact(s string) string {
+	var replacements []string
 	for _, secret := range l.secrets {
-		s = strings.ReplaceAll(s, secret, "[redacted]")
+		replacements = append(replacements, secret, "[redacted]")
 	}
-	return s
+	return strings.NewReplacer(replacements...).Replace(s)
+}
+
+// Redact protects diagnostic text outside the event sink, such as saved steps.
+func (l *Logger) Redact(s string) string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.redact(s)
+}
+
+type redactedError struct {
+	text  string
+	cause error
+}
+
+func (e redactedError) Error() string { return e.text }
+func (e redactedError) Unwrap() error { return e.cause }
+
+// RedactError hides credentials in diagnostics while preserving error identity.
+func (l *Logger) RedactError(err error) error {
+	if err == nil {
+		return nil
+	}
+	text := l.Redact(err.Error())
+	if text == err.Error() {
+		return err
+	}
+	return redactedError{text: text, cause: err}
 }
 
 func (l *Logger) Emit(e Event) {

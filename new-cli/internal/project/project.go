@@ -5,15 +5,18 @@ package project
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/ajnart/self-host/internal/system"
 )
@@ -200,6 +203,8 @@ type State struct {
 	Apps    map[string]*AppState `json:"apps"`
 }
 
+// LoadState reads state without modifying any Project files. A damaged tail
+// can be ignored when the first JSON value is complete.
 func (p *Project) LoadState() (*State, error) {
 	state := &State{Version: 1, Apps: map[string]*AppState{}}
 	data, err := os.ReadFile(p.Path("state.json"))
@@ -209,34 +214,55 @@ func (p *Project) LoadState() (*State, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(data, state); err != nil {
-		recovered, rerr := p.recoverState(data)
-		if rerr != nil {
-			return nil, fmt.Errorf("state.json: %w (a copy is kept next to it; run self-host setup to rebuild Setup results)", err)
-		}
-		state = recovered
-	}
-	if state.Apps == nil {
-		state.Apps = map[string]*AppState{}
+	state, _, err = decodeState(data)
+	if err != nil {
+		return nil, stateRecoveryError(err)
 	}
 	return state, nil
 }
 
-// recoverState keeps the first complete JSON value of a damaged state.json
-// (two writers used to interleave and leave a tail behind), saves the damaged
-// file as state.json.corrupt and rewrites a clean one.
-func (p *Project) recoverState(data []byte) (*State, error) {
-	if err := os.WriteFile(p.Path("state.json.corrupt"), data, 0o644); err != nil {
-		return nil, err
-	}
+func decodeState(data []byte) (*State, bool, error) {
 	state := &State{Version: 1, Apps: map[string]*AppState{}}
-	if err := json.NewDecoder(bytes.NewReader(data)).Decode(state); err != nil {
-		return nil, err
+	damaged := false
+	if err := json.Unmarshal(data, state); err != nil {
+		damaged = true
+		state = &State{Version: 1, Apps: map[string]*AppState{}}
+		if decodeErr := json.NewDecoder(bytes.NewReader(data)).Decode(state); decodeErr != nil {
+			return nil, true, err
+		}
 	}
 	if state.Apps == nil {
 		state.Apps = map[string]*AppState{}
 	}
-	return state, p.SaveState(state)
+	return state, damaged, nil
+}
+
+func stateRecoveryError(err error) error {
+	return fmt.Errorf("state.json: %w (restore state.json from a backup or move it aside, then run self-host setup to rebuild Setup results)", err)
+}
+
+// RecoverState repairs a salvageable damaged state.json. The caller must hold
+// the Project mutation lock. Read current bytes after acquiring that lock;
+// never repair a snapshot previously loaded by an unlocked reader.
+func (p *Project) RecoverState() error {
+	data, err := os.ReadFile(p.Path("state.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	state, damaged, decodeErr := decodeState(data)
+	if !damaged {
+		return nil
+	}
+	if err := p.writeFile(p.Path("state.json.corrupt"), data, 0o600); err != nil {
+		return fmt.Errorf("preserve damaged state.json: %w", err)
+	}
+	if decodeErr != nil {
+		return stateRecoveryError(decodeErr)
+	}
+	return p.SaveState(state)
 }
 
 func (p *Project) SaveState(state *State) error {
@@ -316,6 +342,9 @@ func (p *Project) WriteRoot() error {
 type LockedError struct{ PID int }
 
 func (e LockedError) Error() string {
+	if e.PID <= 0 {
+		return "another self-host command is changing this Project; wait for it or stop it"
+	}
 	return fmt.Sprintf("another self-host command (PID %d) is changing this Project; wait for it or stop it", e.PID)
 }
 
@@ -325,19 +354,48 @@ func (e LockedError) Error() string {
 var projectLocks sync.Map
 
 // Lock takes the Project lock for pid, waiting for other mutations of this
-// process. A lock file held by another live process is refused; one held by a
-// dead process is replaced.
+// process. Another process's claim is refused; a dead owner's claim is recovered.
 func (p *Project) Lock(pid int, alive func(int) bool) (func(), error) {
-	mu, _ := projectLocks.LoadOrStore(p.Root, &sync.Mutex{})
-	mu.(*sync.Mutex).Lock()
-	unlockFile, err := p.lockFile(pid, alive)
-	if err != nil {
-		mu.(*sync.Mutex).Unlock()
+	return p.LockContext(context.Background(), pid, alive)
+}
+
+// LockContext waits for this process's current mutation until ctx is canceled.
+// Another process's claim is refused immediately, as in Lock.
+func (p *Project) LockContext(ctx context.Context, pid int, alive func(int) bool) (func(), error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return func() {
+	key, err := filepath.Abs(p.Root)
+	if err != nil {
+		return nil, err
+	}
+	entry, _ := projectLocks.LoadOrStore(key, make(chan struct{}, 1))
+	gate := entry.(chan struct{})
+	select {
+	case gate <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		<-gate
+		return nil, err
+	}
+	unlockFile, err := p.lockFile(pid, alive)
+	if err != nil {
+		<-gate
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		unlockFile()
-		mu.(*sync.Mutex).Unlock()
+		<-gate
+		return nil, err
+	}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			unlockFile()
+			<-gate
+		})
 	}, nil
 }
 
@@ -345,27 +403,66 @@ func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return nil, err
 	}
-	path := p.Path(".lock")
-	for attempt := 0; attempt < 2; attempt++ {
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if err == nil {
-			_, err = f.WriteString(strconv.Itoa(pid))
-			f.Close()
-			if err != nil {
-				return nil, err
-			}
-			return func() { os.Remove(path) }, nil
-		}
-		if !errors.Is(err, os.ErrExist) {
-			return nil, err
-		}
-		data, _ := os.ReadFile(path)
-		holder, convErr := strconv.Atoi(strings.TrimSpace(string(data)))
-		if convErr == nil && holder != pid && alive(holder) {
+	// Keep this inode in place: unlinking even a stale claim can split owners
+	// between an already-open file and its replacement. The kernel releases
+	// ownership when this descriptor closes, including after a process crash.
+	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		f.Close()
+		return nil, errors.New("Project lock (.lock) must be a regular file")
+	}
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	data, readErr := io.ReadAll(f)
+	claim := strings.TrimSpace(string(data))
+	owner, kernelClaim := strings.CutPrefix(claim, "flock:")
+	holder, convErr := strconv.Atoi(owner)
+	if err != nil {
+		f.Close()
+		if errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN) {
 			return nil, LockedError{PID: holder}
 		}
-		// Stale, unreadable or left by this process: replace it.
-		os.Remove(path)
+		return nil, err
 	}
-	return nil, errors.New("could not take the Project lock (.lock)")
+	if readErr != nil {
+		f.Close()
+		return nil, readErr
+	}
+	// Respect live PID-only claims from older binaries, which did not flock.
+	if !kernelClaim && convErr == nil && holder != pid && alive(holder) {
+		f.Close()
+		return nil, LockedError{PID: holder}
+	}
+	// A sudo command must leave the persistent inode writable by its normal
+	// Project owner. Operate on this descriptor, never a replaceable path.
+	if os.Geteuid() == 0 {
+		if err := f.Chown(p.Owner.UID, p.Owner.GID); err != nil {
+			f.Close()
+			return nil, err
+		}
+		if err := f.Chmod(0o644); err != nil {
+			f.Close()
+			return nil, err
+		}
+	}
+	if err := f.Truncate(0); err != nil {
+		f.Close()
+		return nil, err
+	}
+	if _, err := f.WriteAt([]byte("flock:"+strconv.Itoa(pid)), 0); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return func() {
+		// Clear owner metadata while we still own the kernel lock.
+		f.Truncate(0)
+		f.Close()
+	}, nil
 }

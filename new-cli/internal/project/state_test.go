@@ -1,6 +1,7 @@
 package project
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"sync"
@@ -8,6 +9,51 @@ import (
 
 	"github.com/ajnart/self-host/internal/system"
 )
+
+func TestStateRecoveryRereadsCurrentDamageUnderLock(t *testing.T) {
+	p := testProject(t)
+	first := `{"version":1,"apps":{"ntfy":{"setup":"ok","port":2586}}} trailing`
+	if err := os.WriteFile(p.Path("state.json"), []byte(first), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.LoadState(); err != nil {
+		t.Fatal(err)
+	}
+	// A writer replaced the reader's original snapshot before repair acquired
+	// ownership. Repair must preserve and recover this newer snapshot.
+	latest := `{"version":1,"apps":{"ntfy":{"setup":"ok","port":9000},"gatus":{"setup":"pending"}}} latest tail`
+	unlock, err := p.Lock(os.Getpid(), func(int) bool { return false })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	if err := os.WriteFile(p.Path("state.json"), []byte(latest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Existing broad permissions must also be corrected when keeping a copy.
+	if err := os.WriteFile(p.Path("state.json.corrupt"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.RecoverState(); err != nil {
+		t.Fatal(err)
+	}
+	state, err := p.LoadState()
+	if err != nil || state.Apps["ntfy"].Port != 9000 || state.Apps["gatus"] == nil {
+		t.Fatalf("recovery lost the latest writer's state: %+v, %v", state, err)
+	}
+	kept, err := os.ReadFile(p.Path("state.json.corrupt"))
+	if err != nil || string(kept) != latest {
+		t.Fatalf("recovery kept the wrong damaged bytes: %q, %v", kept, err)
+	}
+	info, err := os.Stat(p.Path("state.json.corrupt"))
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("corruption copy must be private: %v, %v", info, err)
+	}
+	current, err := os.ReadFile(p.Path("state.json"))
+	if err != nil || !json.Valid(current) {
+		t.Fatalf("recovery did not persist clean state: %q, %v", current, err)
+	}
+}
 
 func testProject(t *testing.T) *Project {
 	t.Helper()
@@ -40,21 +86,53 @@ func TestConcurrentSavesNeverDamageState(t *testing.T) {
 	}
 }
 
-func TestDamagedStateIsRecoveredFromItsFirstValue(t *testing.T) {
+func TestDamagedStateReadSalvagesWithoutWriting(t *testing.T) {
 	p := testProject(t)
 	damaged := `{"version":1,"apps":{"ntfy":{"setup":"ok","port":2586}}}` + "\n" + `      "steps": {"x": 1}}`
 	os.WriteFile(p.Path("state.json"), []byte(damaged), 0o644)
+	os.WriteFile(p.Path("state.json.corrupt"), []byte("previous corruption"), 0o600)
 
 	state, err := p.LoadState()
 
 	if err != nil || state.Apps["ntfy"] == nil || state.Apps["ntfy"].Port != 2586 {
 		t.Fatalf("state %+v, err %v", state, err)
 	}
-	if kept, _ := os.ReadFile(p.Path("state.json.corrupt")); string(kept) != damaged {
-		t.Fatal("the damaged file must be kept as state.json.corrupt")
+	if current, _ := os.ReadFile(p.Path("state.json")); string(current) != damaged {
+		t.Fatal("reading salvageable state rewrote state.json")
 	}
-	if _, err := p.LoadState(); err != nil {
-		t.Fatalf("state.json was not rewritten clean: %v", err)
+	if kept, _ := os.ReadFile(p.Path("state.json.corrupt")); string(kept) != "previous corruption" {
+		t.Fatal("reading salvageable state replaced the previous corruption copy")
+	}
+}
+
+func TestUnrecoverableStateReadDoesNotClaimOrWriteCopy(t *testing.T) {
+	p := testProject(t)
+	damaged := []byte(`{"version":1,"apps":`)
+	if err := os.WriteFile(p.Path("state.json"), damaged, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := p.LoadState()
+	if err == nil || strings.Contains(err.Error(), "copy") || !strings.Contains(err.Error(), "restore state.json") || !strings.Contains(err.Error(), "self-host setup") {
+		t.Fatalf("reader must provide recovery instructions without claiming a copy: %v", err)
+	}
+	if _, err := os.Stat(p.Path("state.json.corrupt")); !os.IsNotExist(err) {
+		t.Fatalf("read-only error created a corruption copy: %v", err)
+	}
+	unlock, err := p.Lock(os.Getpid(), func(int) bool { return false })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	if err := p.RecoverState(); err == nil {
+		t.Fatal("unrecoverable state must block the mutation")
+	}
+	kept, err := os.ReadFile(p.Path("state.json.corrupt"))
+	if err != nil || string(kept) != string(damaged) {
+		t.Fatalf("failed mutation must preserve the actual corruption: %q, %v", kept, err)
+	}
+	current, err := os.ReadFile(p.Path("state.json"))
+	if err != nil || string(current) != string(damaged) {
+		t.Fatalf("unrecoverable state must not be replaced: %q, %v", current, err)
 	}
 }
 

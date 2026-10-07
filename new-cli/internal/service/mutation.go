@@ -2,13 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/project"
 )
 
 // composeStep is the Compose work a change runs after edit.
@@ -31,11 +34,14 @@ const (
 	afterNone afterStep = iota
 	afterSetup
 	afterCheck
+	afterDashboard
 )
 
 // change is one mutation of the Project, declared by a verb.
 type change struct {
 	title string
+	// initialize creates a missing Project while holding the mutation lock.
+	initialize func(*project.Project) error
 	// edit changes the session before Compose runs: render Apps, settings, fragments, unlink.
 	edit func(ctx context.Context, ss *session) error
 	// targets returns the App ids Compose acts on, after edit.
@@ -51,18 +57,35 @@ type change struct {
 // refreshes the root Compose file, runs the declared edit, saves state,
 // resolves the targets' services, runs Compose, then the after step.
 func (s *Service) run(ctx context.Context, c change) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	p, err := s.Project()
 	if err != nil {
 		return err
 	}
-	if !p.Exists() {
+	if !p.Exists() && c.initialize == nil {
 		return ErrNoProject
 	}
-	unlock, err := s.lock(p)
+	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
 	if err != nil {
 		return err
 	}
 	defer unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !p.Exists() {
+		if c.initialize == nil {
+			return ErrNoProject
+		}
+		if err := c.initialize(p); err != nil {
+			return err
+		}
+	}
+	if err := p.RecoverState(); err != nil {
+		return err
+	}
 	ss, err := s.open(ctx)
 	if err != nil {
 		return err
@@ -121,27 +144,20 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 		}
 	}
 	switch c.compose {
-	case composeUp:
+	case composeUp, composePullUp:
+		ss.emitStage(ids, events.Event{Event: events.StepStart, Step: "start", Msg: "start " + strings.Join(ids, ", ")})
 		if err := ss.compose.Up(ctx, services...); err != nil {
-			ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "start", Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()})
+			return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "start", Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()}))
+		}
+		msg := "started "
+		if c.compose == composePullUp && c.after == afterCheck {
+			msg = "recreated "
+		}
+		if err := ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "start", Msg: msg + strings.Join(ids, ", ")}); err != nil {
 			return err
 		}
-		ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(ids, ", ")})
-	case composePullUp:
-		if err := ss.compose.Up(ctx, services...); err != nil {
-			if c.after == afterSetup {
-				ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "start", Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()})
-			}
-			return err
-		}
-		step, msg := "update", "recreated "
-		if c.after == afterSetup {
-			step, msg = "start", "started "
-		}
-		if step == "start" {
-			ss.recordStage(ids, events.Event{Event: events.StepOK, Step: step, Msg: msg + strings.Join(ids, ", ")})
-		} else {
-			s.Log.Emit(events.Event{Event: events.StepOK, Step: step, Msg: msg + strings.Join(ids, ", ")})
+		if c.compose == composePullUp && c.after == afterCheck {
+			s.Log.Emit(events.Event{Event: events.StepOK, Step: "update", Msg: msg + strings.Join(ids, ", ")})
 		}
 	case composeStop:
 		if err := ss.compose.Stop(ctx, services...); err != nil {
@@ -200,7 +216,11 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 				apps = append(apps, a)
 			}
 		}
-		return ss.setupAll(ctx, apps)
+		err := ss.setupAll(ctx, apps)
+		if !slices.Contains(ids, "homarr") {
+			err = errors.Join(err, ss.refreshDashboard(ctx))
+		}
+		return err
 	case afterCheck:
 		var failed []string
 		for _, id := range ids {
@@ -212,12 +232,33 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 			return fmt.Errorf("%w: check failed after update for %s", ErrIncomplete, strings.Join(failed, ", "))
 		}
 		return nil
+	case afterDashboard:
+		return ss.refreshDashboard(ctx)
 	}
 	return nil
 }
 
-// recordStage keeps mutation stages ahead of the App's existing Setup records.
-func (ss *session) recordStage(ids []string, e events.Event) {
+// refreshDashboard lets its adapter reconcile the final Project inventory and URLs.
+func (ss *session) refreshDashboard(ctx context.Context) error {
+	a, found := ss.s.Catalog.App("homarr")
+	if !found || !ss.ready("homarr") {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	incomplete, err := ss.runSetup(ctx, a)
+	if err != nil {
+		return err
+	}
+	if len(incomplete) > 0 {
+		return fmt.Errorf("%w: dashboard reconciliation failed; follow its hints, then run self-host setup homarr", ErrIncomplete)
+	}
+	return nil
+}
+
+// recordStage saves completed stages before the next external operation.
+func (ss *session) recordStage(ids []string, e events.Event) error {
 	for _, id := range ids {
 		status := "ok"
 		if e.Event == events.StepFail {
@@ -241,19 +282,36 @@ func (ss *session) recordStage(ids []string, e events.Event) {
 		}
 		st.StepOrder = order
 	}
-	ss.s.Log.Emit(e)
+	err := ss.p.SaveState(ss.state)
+	ss.emitStage(ids, e)
+	if err != nil {
+		ss.emitStage(ids, events.Event{Event: events.StepFail, Step: "state", Error: err.Error(),
+			Hint: "Check free disk space and Project directory permissions, then retry the command."})
+		return fmt.Errorf("could not save %s stage; check disk space and Project permissions before retrying: %w", e.Step, err)
+	}
+	return nil
+}
+
+// emitStage names every affected App while keeping the command's summary.
+func (ss *session) emitStage(ids []string, e events.Event) {
+	for _, id := range ids {
+		perApp := e
+		perApp.App = id
+		ss.s.Log.Emit(perApp)
+	}
+	if e.App == "" {
+		ss.s.Log.Emit(e)
+	}
 }
 
 // pull pulls the services' images before Compose starts them, reporting
 // progress and naming the image when a pull fails.
 func (ss *session) pull(ctx context.Context, ids, services []string) error {
-	ss.s.Log.Emit(events.Event{Event: events.StepStart, Step: "pull", Msg: fmt.Sprintf("pull %d images", len(services))})
+	ss.emitStage(ids, events.Event{Event: events.StepStart, Step: "pull", Msg: fmt.Sprintf("pull %d images", len(services))})
 	if err := ss.compose.PullProgress(ctx, services...); err != nil {
 		image := pullImageName(ss, ids, err)
 		hint := fmt.Sprintf("Run `docker pull %s`, then check the network and the registry, and retry.", image)
-		ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "pull", Msg: "could not pull " + image, Error: err.Error(), Hint: hint})
-		return err
+		return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "pull", Msg: "could not pull " + image, Error: err.Error(), Hint: hint}))
 	}
-	ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "pull", Msg: "pulled " + strings.Join(ids, ", ")})
-	return nil
+	return ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "pull", Msg: "pulled " + strings.Join(ids, ", ")})
 }

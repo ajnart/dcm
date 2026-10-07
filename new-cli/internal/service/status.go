@@ -63,7 +63,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	}
 	containers, psErr := ss.compose.Ps(ctx)
 	if psErr != nil {
-		status.DockerError = psErr.Error()
+		status.DockerError = s.Log.Redact(psErr.Error())
 	}
 	byService := map[string]compose.Container{}
 	for _, c := range containers {
@@ -82,11 +82,13 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			info := a.Info()
 			st := ss.state.Apps[id]
 			as.Name, as.Managed, as.Port, as.Image, as.Setup = info.Name, true, st.Port, info.Image, st.Setup
-			as.URL = AppURL(ss.settings, st.Port, info.Path)
+			if !info.NoWebUI && st.Port > 0 && info.ContainerPort > 0 {
+				as.URL = AppURL(ss.settings, st.Port, info.Path)
+			}
 			mainService = info.Service
 			for _, stepID := range st.StepOrder {
 				r := st.Steps[stepID]
-				as.Steps = append(as.Steps, StepStatus{ID: stepID, Status: r.Status, Msg: r.Msg, Error: r.Error, Hint: r.Hint})
+				as.Steps = append(as.Steps, StepStatus{ID: stepID, Status: r.Status, Msg: s.Log.Redact(r.Msg), Error: s.Log.Redact(r.Error), Hint: s.Log.Redact(r.Hint)})
 			}
 		}
 		if psErr != nil {

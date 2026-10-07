@@ -346,8 +346,8 @@ func TestStaleLockIsReplaced(t *testing.T) {
 	if code, out := runWith(t, deps, cat, "setup", "one"); code != 0 {
 		t.Fatalf("stale lock blocked setup: %d\n%s", code, out)
 	}
-	if _, err := os.Stat(filepath.Join(projectRoot(t, deps), ".lock")); !os.IsNotExist(err) {
-		t.Fatal("lock not released")
+	if code, out := runWith(t, deps, cat, "setup", "one"); code != 0 {
+		t.Fatalf("released lock blocked the next mutation: %d\n%s", code, out)
 	}
 }
 

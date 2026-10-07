@@ -25,6 +25,7 @@ func (App) Info() app.Info {
 		Port:          6379,
 		ContainerPort: 6379,
 		Service:       "valkey",
+		NoWebUI:       true,
 	}
 }
 

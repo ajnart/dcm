@@ -2,13 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/compose"
@@ -75,7 +78,11 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 					return err
 				}
 			}
-			containers, _ := ss.compose.Ps(ctx)
+			containers, err := ss.compose.Ps(ctx)
+			if err != nil {
+				f.Close()
+				return fmt.Errorf("cannot determine running Apps before backup: %w", err)
+			}
 			for _, id := range targets {
 				if err := ss.archiveApp(ctx, w, id, containers); err != nil {
 					f.Close()
@@ -102,7 +109,7 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 	return written, err
 }
 
-func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, containers []compose.Container) error {
+func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, containers []compose.Container) (result error) {
 	services, err := ss.services(id)
 	if err != nil {
 		return err
@@ -115,6 +122,18 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	}
 	log := ss.s.Log
 	if len(running) > 0 {
+		// Stop can partially succeed; always recover services that were running,
+		// even when the caller cancelled or the archive failed.
+		defer func() {
+			recovery, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+			defer cancel()
+			if err := ss.compose.Start(recovery, running...); err != nil {
+				log.Emit(events.Event{Event: events.StepFail, App: id, Step: "start", Msg: "could not restart after backup", Error: err.Error()})
+				result = errors.Join(result, fmt.Errorf("restart %s after backup: %w", id, err))
+				return
+			}
+			log.Emit(events.Event{Event: events.StepOK, App: id, Step: "start", Msg: "started again"})
+		}()
 		if err := ss.compose.Stop(ctx, running...); err != nil {
 			return err
 		}
@@ -122,19 +141,20 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	} else {
 		log.Emit(events.Event{Event: events.StepSkip, App: id, Step: "stop", Msg: "not running"})
 	}
-	archiveErr := w.AddTree(ss.p.Path("apps", id), "apps/"+id)
-	if archiveErr == nil {
-		log.Emit(events.Event{Event: events.StepOK, App: id, Step: "archive", Msg: "archived apps/" + id + "/"})
+	if err := ctx.Err(); err != nil {
+		return err
 	}
-	if len(running) > 0 {
-		if err := ss.compose.Start(ctx, running...); err != nil {
-			return err
-		}
-		log.Emit(events.Event{Event: events.StepOK, App: id, Step: "start", Msg: "started again"})
-	} else {
+	if err := w.AddTree(ss.p.Path("apps", id), "apps/"+id); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	log.Emit(events.Event{Event: events.StepOK, App: id, Step: "archive", Msg: "archived apps/" + id + "/"})
+	if len(running) == 0 {
 		log.Emit(events.Event{Event: events.StepSkip, App: id, Step: "start", Msg: "was not running"})
 	}
-	return archiveErr
+	return nil
 }
 
 func humanSize(n int64) string {
@@ -190,12 +210,17 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staging)
+	keepRecovery := false
+	defer func() {
+		if !keepRecovery {
+			os.RemoveAll(staging)
+		}
+	}()
 	var chown func(string, int, int) error
 	if os.Geteuid() == 0 {
 		chown = func(p string, uid, gid int) error { return os.Lchown(p, uid, gid) }
 	}
-	err = r.Extract(func(name string) string {
+	err = r.Extract(staging, func(name string) string {
 		if name == ".env" || name == "secrets.env" || name == "state.json" {
 			return filepath.Join(staging, name)
 		}
@@ -208,35 +233,135 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	if err != nil {
 		return err
 	}
-	if fresh {
-		data, err := os.ReadFile(filepath.Join(staging, ".env"))
-		if err != nil {
-			return err
+	// Reject an incomplete archive before stopping containers or replacing data.
+	for _, id := range targets {
+		if id == "" || filepath.Base(id) != id || id == "." || id == ".." {
+			return fmt.Errorf("invalid App ID in backup: %q", id)
 		}
-		if err := os.WriteFile(p.Path(".env"), data, 0o644); err != nil {
-			return err
+		fragment := filepath.Join(staging, "apps", id, "compose.yml")
+		services, err := fragmentServices(fragment)
+		if err != nil {
+			return fmt.Errorf("backup is missing a valid replacement for %s: %w", id, err)
+		}
+		if len(services) == 0 {
+			return fmt.Errorf("backup replacement for %s declares no services", id)
 		}
 	}
-	return s.run(ctx, change{
+	// Only the initializer, called under the mutation lock, may claim fresh
+	// recovery. Another command may have created the Project during extraction.
+	fresh = false
+	replaced := false
+	err = s.run(ctx, change{
 		title: "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
-		edit: func(ctx context.Context, ss *session) error {
-			if err := ss.restoreRecords(staging, targets, all); err != nil {
+		initialize: func(p *project.Project) error {
+			if !all {
+				return fmt.Errorf("no Project yet; restore the whole backup first (self-host restore %s)", file)
+			}
+			settings, err := (&project.Project{Root: staging}).LoadSettings()
+			if err != nil {
 				return err
 			}
-			existing, _ := ss.p.AppIDs()
+			if err := p.SaveSettings(settings); err != nil {
+				return err
+			}
+			fresh = true
+			return nil
+		},
+		edit: func(ctx context.Context, ss *session) (result error) {
+			var containers []compose.Container
+			if !fresh {
+				var err error
+				containers, err = ss.compose.Ps(ctx)
+				if err != nil {
+					return fmt.Errorf("cannot determine running Apps before restore: %w", err)
+				}
+			}
+			oldApps := maps.Clone(ss.state.Apps)
+			oldSecrets := maps.Clone(ss.secrets.values)
+			original := &project.Project{Root: filepath.Join(staging, "original-records")}
+			if err := original.SaveSecrets(oldSecrets); err != nil {
+				return err
+			}
+			if err := original.SaveState(ss.state); err != nil {
+				return err
+			}
+			if err := original.SaveSettings(ss.settings); err != nil {
+				return err
+			}
+			type replacement struct {
+				id             string
+				old, installed bool
+			}
+			var changed []*replacement
+			var recoverServices, recoverApps []string
+			defer func() {
+				if result == nil {
+					return
+				}
+				var recoveryErrors []error
+				for i := len(changed) - 1; i >= 0; i-- {
+					item := changed[i]
+					dir := ss.p.Path("apps", item.id)
+					if item.installed {
+						if err := os.RemoveAll(dir); err != nil {
+							recoveryErrors = append(recoveryErrors, err)
+							continue
+						}
+					}
+					if item.old {
+						if err := os.Rename(filepath.Join(staging, "replaced-"+item.id), dir); err != nil {
+							recoveryErrors = append(recoveryErrors, err)
+						}
+					}
+				}
+				ss.state.Apps, ss.secrets.values = oldApps, oldSecrets
+				recoveryErrors = append(recoveryErrors, ss.p.SaveSecrets(oldSecrets), ss.p.SaveState(ss.state), ss.p.WriteRoot())
+				if err := errors.Join(recoveryErrors...); err != nil {
+					keepRecovery = true
+					result = errors.Join(result, fmt.Errorf("restore rollback failed; original data retained in %s: %w", staging, err))
+					return
+				}
+				if len(recoverServices) > 0 {
+					recovery, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+					defer cancel()
+					if err := ss.compose.Up(recovery, recoverServices...); err != nil {
+						keepRecovery = true
+						result = errors.Join(result, fmt.Errorf("could not restart original Apps after rollback; records retained in %s; run self-host start %s: %w", staging, strings.Join(recoverApps, " "), err))
+					}
+				}
+			}()
+			existing, err := ss.p.AppIDs()
+			if err != nil {
+				return err
+			}
 			for _, id := range targets {
 				if slices.Contains(existing, id) {
 					services, err := ss.services(id)
 					if err != nil {
 						return err
 					}
+					// rm can partially succeed, so remember running services first.
+					for _, container := range containers {
+						if container.State == "running" && slices.Contains(services, container.Service) && !slices.Contains(recoverServices, container.Service) {
+							recoverServices = append(recoverServices, container.Service)
+							if !slices.Contains(recoverApps, id) {
+								recoverApps = append(recoverApps, id)
+							}
+						}
+					}
 					if err := ss.compose.Remove(ctx, services...); err != nil {
 						return err
 					}
 				}
 				old := filepath.Join(staging, "replaced-"+id)
-				if err := os.Rename(ss.p.Path("apps", id), old); err != nil && !os.IsNotExist(err) {
-					return err
+				item := &replacement{id: id}
+				changed = append(changed, item)
+				if err := os.Rename(ss.p.Path("apps", id), old); err != nil {
+					if !os.IsNotExist(err) {
+						return err
+					}
+				} else {
+					item.old = true
 				}
 				if err := ss.p.MkdirAll("apps"); err != nil {
 					return err
@@ -244,6 +369,13 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				if err := os.Rename(filepath.Join(staging, "apps", id), ss.p.Path("apps", id)); err != nil {
 					return err
 				}
+				item.installed = true
+			}
+			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
+				return err
+			}
+			replaced = true
+			for _, id := range targets {
 				s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "restore", Msg: "restored apps/" + id + "/"})
 			}
 			return nil
@@ -251,10 +383,15 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		targets: func(*session) ([]string, error) { return targets, nil },
 		compose: composeUp,
 	})
+	if err != nil && replaced {
+		keepRecovery = true
+		return fmt.Errorf("restore could not finish; original data and records retained in %s: %w", staging, err)
+	}
+	return err
 }
 
 // restoreRecords merges secrets and state for the restored Apps.
-func (ss *session) restoreRecords(staging string, targets []string, all bool) error {
+func (ss *session) restoreRecords(staging string, targets []string, fresh bool) error {
 	backupProject := &project.Project{Root: staging}
 	secrets, err := backupProject.LoadSecrets()
 	if err != nil {
@@ -264,7 +401,7 @@ func (ss *session) restoreRecords(staging string, targets []string, all bool) er
 	if err != nil {
 		return err
 	}
-	if all {
+	if fresh {
 		ss.secrets.values = secrets
 	} else {
 		for key, value := range secrets {

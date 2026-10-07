@@ -264,6 +264,7 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			}
 			return ss.helpers(peer)
 		},
+		InstalledApps: ss.installedApps,
 		PollInterval: ss.s.pollInterval(),
 		Now:          ss.s.Deps.Now,
 		Sleep:        ss.s.Deps.Sleep,
@@ -284,7 +285,7 @@ func (ss *session) recorder(id string) func(helpers.StepResult) {
 		if _, seen := st.Steps[r.ID]; !seen {
 			st.StepOrder = append(st.StepOrder, r.ID)
 		}
-		st.Steps[r.ID] = project.StepRecord{Status: r.Status, Msg: r.Msg, Error: r.Error, Hint: r.Hint}
+		st.Steps[r.ID] = project.StepRecord{Status: r.Status, Msg: ss.s.Log.Redact(r.Msg), Error: ss.s.Log.Redact(r.Error), Hint: ss.s.Log.Redact(r.Hint)}
 	}
 }
 

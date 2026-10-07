@@ -38,6 +38,12 @@ type StepResult struct {
 	Hint   string
 }
 
+// InstalledApp is the non-secret connection metadata for a Project App.
+type InstalledApp struct {
+	ID, Name, URL, Service string
+	ContainerPort          int
+}
+
 type Config struct {
 	App     string
 	Service string
@@ -55,7 +61,8 @@ type Config struct {
 	Exec     Executor
 	Record   func(StepResult)
 	// Peer returns the helpers of another installed App, or nil.
-	Peer func(id string) *H
+	Peer          func(id string) *H
+	InstalledApps func(context.Context) ([]InstalledApp, error)
 	// PollInterval is how often waits retry. Zero means one second.
 	PollInterval time.Duration
 	// Now and Sleep drive waits; tests pass a fake clock.
@@ -77,6 +84,13 @@ func New(cfg Config) *H {
 	}
 	if cfg.Record == nil {
 		cfg.Record = func(StepResult) {}
+	}
+	record := cfg.Record
+	cfg.Record = func(r StepResult) {
+		r.Msg = cfg.Log.Redact(r.Msg)
+		r.Error = cfg.Log.Redact(r.Error)
+		r.Hint = cfg.Log.Redact(r.Hint)
+		record(r)
 	}
 	if cfg.Peer == nil {
 		cfg.Peer = func(string) *H { return nil }
@@ -144,7 +158,7 @@ func (h *H) fail(id, msg string, spec StepSpec, err error) error {
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: id, Msg: msg, Error: err.Error(),
 		URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
 	h.Record(StepResult{ID: id, Status: "fail", Msg: msg, Error: err.Error(), Hint: spec.Hint})
-	return fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err))
+	return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err)))
 }
 
 // Skip reports a step that cannot run yet and records it as skipped.
@@ -210,25 +224,20 @@ func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) 
 func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script string) (system.Result, error) {
 	res, err := h.Exec(ctx, secrets, "sh", "-c", script)
 	if err != nil {
-		if out := commandOutput(res, secrets); out != "" {
-			return res, fmt.Errorf("%w: %s", err, out)
+		if out := commandOutput(res); out != "" {
+			return res, h.Log.RedactError(fmt.Errorf("%w: %s", err, out))
 		}
 	}
-	return res, err
+	return res, h.Log.RedactError(err)
 }
 
 // commandOutput returns the output a failed container command printed, so the
-// error an App returns names the real cause instead of an empty exit. Secret
-// values the command echoed are masked, since errors reach events and logs.
-func commandOutput(res system.Result, secrets map[string]string) string {
+// error an App returns names the real cause instead of an empty exit.
+// ExecSecret redacts the complete diagnostic, including the wrapped error.
+func commandOutput(res system.Result) string {
 	out := strings.TrimSpace(string(res.Stderr))
 	if out == "" {
 		out = strings.TrimSpace(string(res.Stdout))
-	}
-	for _, value := range secrets {
-		if value != "" {
-			out = strings.ReplaceAll(out, value, "***")
-		}
 	}
 	return out
 }

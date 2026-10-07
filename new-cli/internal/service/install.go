@@ -132,6 +132,9 @@ func (s *Service) requireDocker(ctx context.Context) error {
 }
 
 func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	apps, err := s.Resolve(opts.Targets)
 	if err != nil {
 		return err
@@ -151,7 +154,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			previous[id] = st.Inputs
 		}
 	}
-	inputs, err := resolveInputs(apps, opts.Sets, previous)
+	_, err = resolveInputs(apps, opts.Sets, previous)
 	if err != nil {
 		return err
 	}
@@ -166,14 +169,18 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
-	if !p.Exists() {
-		if err := s.createProject(p, opts); err != nil {
-			return err
-		}
-	}
 	return s.run(ctx, change{
-		title: "install " + strings.Join(names, " "),
+		title:      "install " + strings.Join(names, " "),
+		initialize: func(p *project.Project) error { return s.createProject(p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
+			previous := map[string]map[string]string{}
+			for id, st := range ss.state.Apps {
+				previous[id] = st.Inputs
+			}
+			inputs, err := resolveInputs(apps, opts.Sets, previous)
+			if err != nil {
+				return err
+			}
 			if err := ss.ensureAdmin(opts); err != nil {
 				return err
 			}
@@ -194,14 +201,17 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 				st.Port, st.Inputs = port, values
+				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: "render", Msg: "render " + info.ID})
 				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
-					return err
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
 				}
 				if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
+				}
+				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: "render",
+					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)}); err != nil {
 					return err
 				}
-				ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: "render",
-					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)})
 			}
 			return ss.ensureMediaFolders(apps)
 		},
@@ -387,7 +397,7 @@ func (s *Service) finish(err error) error {
 	case errors.Is(err, ErrIncomplete):
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: err.Error()})
 	}
-	return err
+	return s.Log.RedactError(err)
 }
 
 // Setup reruns Setup for installed catalog Apps (all when ids is empty).
