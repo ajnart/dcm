@@ -114,6 +114,9 @@ func iconURL(id string) string {
 }
 
 func (t target) hint(from *helpers.H) string {
+	if t.id == "ntfy" {
+		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
+	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
 	}
@@ -505,6 +508,14 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	if err != nil {
 		return "", err
 	}
+	// The pinned Homarr ntfy connection test resolves even HTTP401, so it
+	// cannot prove token validity. Verify new/changed tokens directly before
+	// storing them or a fingerprint; unchanged routine Checks publish nothing.
+	if id := match(integrations); t.id == "ntfy" && (id == "" || from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to)) {
+		if err := verifyNTFYToken(ctx, to); err != nil {
+			return "", err
+		}
+	}
 	if id := match(integrations); id != "" {
 		if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
 			return "", err
@@ -554,6 +565,23 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 		return "", err
 	}
 	return id, nil
+}
+
+func verifyNTFYToken(ctx context.Context, to *helpers.H) error {
+	const failure = "ntfy Homarr token did not authenticate the existing administrator account"
+	token := to.Secret(to.Key("homarr_token"))
+	if token == "" {
+		return errors.New(failure)
+	}
+	response, err := to.HTTP(ctx, helpers.Request{Path: "/v1/account", NoRedirect: true, Header: map[string]string{"Authorization": "Bearer " + token}})
+	if err != nil || response.Status != 200 {
+		return errors.New(failure)
+	}
+	var account struct{ Username, Role string }
+	if response.Decode(&account) != nil || account.Username != to.AdminUser() || account.Role != "admin" {
+		return errors.New(failure)
+	}
+	return nil
 }
 
 func integrationFingerprintKey(h *helpers.H, id string) string { return h.Key("integration_" + id) }

@@ -239,14 +239,28 @@ func TestHomarrFunctional(t *testing.T) {
 			return errors.New("could not seed the owned invalid token")
 		}
 		failed := r.run("setup", "homarr", "--json")
-		useful := false
+		useful, targetFailed, hintPresent := false, false, false
+		starts, skips, successes, failures := 0, 0, 0, 0
 		for _, event := range failed.events {
-			if event.App == "homarr" && event.Step == "link-ntfy" && event.Event == "step.fail" && strings.Contains(event.Error+event.Hint, "self-host setup homarr") {
-				useful = true
+			if event.App != "homarr" || event.Step != "link-ntfy" {
+				continue
+			}
+			switch event.Event {
+			case "step.start":
+				starts++
+			case "step.skip":
+				skips++
+			case "step.ok":
+				successes++
+			case "step.fail":
+				failures++
+				targetFailed = true
+				hintPresent = hintPresent || event.Hint != ""
+				useful = useful || strings.Contains(event.Error+event.Hint, "self-host setup homarr")
 			}
 		}
 		if failed.code != exitIncomplete || !useful {
-			return errors.New("invalid integration credential did not produce a targeted retry operation")
+			return fmt.Errorf("invalid integration credential did not produce a targeted retry operation: exit=%d, target_step_fail=%t, hint_present=%t, retry_present=%t, ntfy_start=%d, ntfy_skip=%d, ntfy_ok=%d, ntfy_fail=%d", failed.code, targetFailed, hintPresent, useful, starts, skips, successes, failures)
 		}
 		stored["NTFY_HOMARR_TOKEN"] = original
 		if p.SaveSecrets(stored) != nil {

@@ -89,6 +89,13 @@ func (f *fakeHomarr) keyOK(r *http.Request) bool {
 
 func (f *fakeHomarr) handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/account", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer ntfy-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"username": "admin", "role": "admin"})
+	})
 	mux.HandleFunc("GET /api/health/live", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
@@ -535,7 +542,7 @@ func targetH(t *testing.T, srv *httptest.Server, id string, port int, secrets fa
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: id, Service: id, URL: "http://" + id + ".example", Port: port,
+		App: id, Service: id, BaseURL: srv.URL, URL: "http://" + id + ".example", Port: port,
 		HTTP: srv.Client(), Secrets: secrets, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 	})
 }
@@ -1357,5 +1364,108 @@ func TestNotebookExistsOnceAndListsAppsWithoutSecrets(t *testing.T) {
 	fake.mu.Unlock()
 	if len(notes) != 1 {
 		t.Fatalf("rerun created a second notebook: %d", len(notes))
+	}
+}
+
+// The pinned Homarr ntfy test resolves HTTP401 without checking response.ok.
+// Its accepting update fixture must not be the authority for token validity.
+func TestNTFYCredentialRejectionFailsTargetedStepWithoutChangingIntegration(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "ntfy", 80, secrets)
+	link := linkFor(t, "ntfy")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	other := targetH(t, srv, "jellyfin", 8096, secrets)
+	if err := linkFor(t, "jellyfin").Apply(context.Background(), from, other); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := json.Marshal([]any{fake.apps, fake.integrations, fake.items})
+	var failed helpers.StepResult
+	var failureEvent events.Event
+	from.Log = events.New(events.SinkFunc(func(event events.Event) {
+		if event.Event == events.StepFail {
+			failureEvent = event
+		}
+	}))
+	from.Record = func(result helpers.StepResult) {
+		if result.ID == "link-ntfy" {
+			failed = result
+		}
+	}
+	secrets["NTFY_HOMARR_TOKEN"] = "synthetic-invalid-token"
+	if err := link.Apply(context.Background(), from, to); err == nil {
+		t.Fatal("Homarr's accepting update let an invalid ntfy token through")
+	}
+	if failed.Status != "fail" || failed.Hint != "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr." {
+		t.Fatal("targeted ntfy failure lacks a supported retry hint")
+	}
+	if failureEvent.App != "homarr" || failureEvent.Step != "link-ntfy" || failureEvent.Credential != "admin" || failureEvent.Hint == "" {
+		t.Fatal("public failure event does not identify the targeted recovery operation")
+	}
+	if strings.Contains(failed.Error+failed.Hint, secrets["NTFY_HOMARR_TOKEN"]) {
+		t.Fatal("credential appeared in failure evidence")
+	}
+	after, _ := json.Marshal([]any{fake.apps, fake.integrations, fake.items})
+	if string(before) != string(after) {
+		t.Fatal("credential rejection changed integration or unrelated dashboard resources")
+	}
+	if secrets["NTFY_HOMARR_TOKEN"] != "synthetic-invalid-token" {
+		t.Fatal("failed token was silently replaced")
+	}
+	secrets["NTFY_HOMARR_TOKEN"] = "ntfy-token"
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	if failed.Status != "skip" {
+		t.Fatal("rejection changed the saved credential fingerprint")
+	}
+}
+
+func TestNTFYNewTokenRequiresTheExistingAdministratorAccount(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"unauthorized", 401, `{"username":"admin","role":"admin"}`},
+		{"anonymous", 200, `{"username":"*","role":"anonymous"}`},
+		{"different user", 200, `{"username":"other","role":"admin"}`},
+		{"nonadmin", 200, `{"username":"admin","role":"user"}`},
+		{"empty account", 200, `{}`},
+		{"invalid account", 200, `invalid`},
+		{"redirect", 302, `{"username":"admin","role":"admin"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			srv := serve(t, fake)
+			account := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" || r.URL.Path != "/v1/account" || r.Header.Get("Authorization") != "Bearer ntfy-token" {
+					t.Error("credential probe used the wrong boundary")
+				}
+				w.Header().Set("Location", srv.URL+"/v1/account")
+				w.WriteHeader(tc.status)
+				w.Write([]byte(tc.body))
+			}))
+			defer account.Close()
+			secrets := allSecrets()
+			from := homarrH(t, srv, secrets)
+			to := targetH(t, srv, "ntfy", 80, secrets)
+			to.BaseURL = account.URL
+			if linkFor(t, "ntfy").Apply(context.Background(), from, to) == nil {
+				t.Fatal("unverified administrator token was accepted")
+			}
+			if len(fake.integrations) != 0 {
+				t.Fatal("unverified token was stored in Homarr")
+			}
+			if secrets["NTFY_HOMARR_TOKEN"] != "ntfy-token" {
+				t.Fatal("configured token changed")
+			}
+		})
 	}
 }
