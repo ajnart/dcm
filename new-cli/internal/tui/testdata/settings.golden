@@ -1,0 +1,29 @@
+ ◆ self-host   Dashboard · Stack · Install · Settings                                                             v1.0.0
+
+  Host settings  enter/space edits · ctrl+s applies · esc back
+
+  > EXPOSURE        lan
+    LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an address of this machine any more
+    TZ              Europe/Paris
+    PUID            1000                  detected 1001 ⚠ differs from this machine
+    PGID            1000
+    UMASK           022
+    MEDIA_ROOT      /home/alice/media
+    DOWNLOADS_ROOT  /home/alice/downloads
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

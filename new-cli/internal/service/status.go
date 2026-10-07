@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -177,3 +178,63 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 }
 
 func sortStrings(values []string) { sort.Strings(values) }
+
+// ContainerStatus is one container of the Project: which App owns it, what
+// image it runs, its state and health, its uptime text and its published ports.
+type ContainerStatus struct {
+	App     string   `json:"app,omitempty"`
+	Service string   `json:"service"`
+	Image   string   `json:"image,omitempty"`
+	State   string   `json:"state"`
+	Health  string   `json:"health,omitempty"`
+	Status  string   `json:"status,omitempty"`
+	Ports   []string `json:"ports,omitempty"`
+}
+
+// Containers lists every container in the Project's Compose project.
+func (s *Service) Containers(ctx context.Context) ([]ContainerStatus, error) {
+	ss, err := s.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	containers, err := ss.compose.Ps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byService := map[string]string{}
+	ids, err := ss.p.AppIDs()
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ids {
+		services, _ := fragmentServices(ss.p.FragmentPath(id))
+		for _, service := range services {
+			byService[service] = id
+		}
+	}
+	out := make([]ContainerStatus, 0, len(containers))
+	for _, c := range containers {
+		cs := ContainerStatus{App: byService[c.Service], Service: c.Service, Image: c.Image,
+			State: c.State, Health: c.Health, Status: c.Status}
+		for _, pub := range c.Publishers {
+			cs.Ports = append(cs.Ports, formatPublisher(pub))
+		}
+		out = append(out, cs)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].App != out[j].App {
+			return out[i].App < out[j].App
+		}
+		return out[i].Service < out[j].Service
+	})
+	return out, nil
+}
+
+// formatPublisher renders one published port as "ip:published→target".
+func formatPublisher(p compose.Publisher) string {
+	ip := p.URL
+	if ip == "" {
+		ip = "0.0.0.0"
+	}
+	return fmt.Sprintf("%s:%d→%d", ip, p.PublishedPort, p.TargetPort)
+}

@@ -46,6 +46,8 @@ type Backend interface {
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
 	Compose(ctx context.Context, id string) (string, error)
+	// Containers lists every container in the Project for the Stack view.
+	Containers(ctx context.Context) ([]service.ContainerStatus, error)
 	Catalog() *catalog.Catalog
 	// LatestRelease returns the newest published release tag, or "" when it
 	// cannot be determined.
@@ -121,6 +123,10 @@ func (b ServiceBackend) ReviewSettings(ctx context.Context) ([]service.SettingRe
 
 func (b ServiceBackend) Compose(ctx context.Context, id string) (string, error) {
 	return b.quiet().Compose(ctx, id)
+}
+
+func (b ServiceBackend) Containers(ctx context.Context) ([]service.ContainerStatus, error) {
+	return b.quiet().Containers(ctx)
 }
 
 func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {

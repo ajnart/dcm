@@ -388,7 +388,7 @@ func (m Model) renderWizard() string {
 	case stageReview:
 		return m.renderPlan(w.plan, "enter install · esc start over")
 	case stageInstalling:
-		return m.renderInstall(w.taskID)
+		return m.renderInstalling(w.taskID)
 	}
 	return ""
 }
@@ -429,7 +429,7 @@ func (m Model) renderPlan(p *plan, keys string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderInstall(taskID int) string {
+func (m Model) renderInstalling(taskID int) string {
 	t := m.theme
 	task := m.tasks.get(taskID)
 	if task == nil {
