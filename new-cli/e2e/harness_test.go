@@ -92,15 +92,6 @@ func moduleRoot() (string, error) {
 	}
 }
 
-type event struct {
-	Event string `json:"event"`
-	App   string `json:"app"`
-	Step  string `json:"step"`
-	Msg   string `json:"msg"`
-	Error string `json:"error"`
-	Hint  string `json:"hint"`
-}
-
 type result struct {
 	code   int
 	stdout string

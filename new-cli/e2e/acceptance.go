@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/events"
 )
 
 type targetSpec struct {
@@ -95,12 +96,23 @@ func installArguments(t targetSpec, root string, ports map[string]int) []string 
 
 var stageNames = []string{"install", "setup-check", "idempotency", "restart", "recovery", "update", "backup", "isolated-restore", "restored-check", "sentinel"}
 
+type event = events.Event
+
+type failureEvidence struct {
+	Kind  string `json:"kind"`
+	App   string `json:"app,omitempty"`
+	Step  string `json:"step,omitempty"`
+	Error string `json:"error"`
+	Hint  string `json:"hint,omitempty"`
+}
+
 type stageEvidence struct {
-	Name    string            `json:"name"`
-	Outcome string            `json:"outcome"`
-	Reason  string            `json:"reason,omitempty"`
-	Command []string          `json:"command,omitempty"`
-	Apps    map[string]string `json:"apps"`
+	Failures []failureEvidence `json:"failures,omitempty"`
+	Name     string            `json:"name"`
+	Outcome  string            `json:"outcome"`
+	Reason   string            `json:"reason,omitempty"`
+	Command  []string          `json:"command,omitempty"`
+	Apps     map[string]string `json:"apps"`
 }
 
 type targetEvidence struct {
@@ -299,4 +311,37 @@ func completeImageEvidence(images []imageEvidence, expected []string) bool {
 		}
 	}
 	return len(expected) > 0 && len(seen) == len(expected)
+}
+
+// These are structured CLI Logger events whose Error/Hint have already passed
+// registered-secret redaction. Raw command output is never copied here.
+func redactedFailures(emitted []event, expected []string) []failureEvidence {
+	owned := map[string]bool{}
+	for _, id := range expected {
+		owned[id] = true
+	}
+	var out []failureEvidence
+	for _, e := range emitted {
+		if e.Event == events.StepFail && owned[e.App] && e.Step != "" && e.Error != "" {
+			out = append(out, failureEvidence{Kind: "step.fail", App: e.App, Step: e.Step, Error: e.Error, Hint: e.Hint})
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+	for _, e := range emitted {
+		if (e.Event == events.RunEnd || e.Event == "run.error") && e.Error != "" && (e.App == "" || owned[e.App]) {
+			out = append(out, failureEvidence{Kind: "run.error", Error: e.Error, Hint: e.Hint})
+		}
+	}
+	return out
+}
+
+func compactDiagnostic(text string) string {
+	text = strings.Join(strings.Fields(text), " ")
+	const limit = 600
+	if len(text) > limit {
+		return text[:limit] + "…"
+	}
+	return text
 }

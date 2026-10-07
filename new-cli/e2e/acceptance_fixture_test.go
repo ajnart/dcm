@@ -3,6 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/events"
 	"os"
 	"reflect"
 	"strings"
@@ -130,5 +131,37 @@ func TestImageEvidenceCoversEveryService(t *testing.T) {
 	images[1].Platform = ""
 	if completeImageEvidence(images, []string{"app", "db"}) {
 		t.Fatal("missing platform accepted")
+	}
+}
+
+func TestFailureEvidenceKeepsRedactedStepDiagnostics(t *testing.T) {
+	var emitted []event
+	log := events.New(events.SinkFunc(func(e events.Event) { emitted = append(emitted, e) }))
+	log.Secret("synthetic-private-value")
+	log.Emit(events.Event{Event: events.StepFail, App: "ntfy", Step: "admin", Error: "login synthetic-private-value refused: HTTP 503", Hint: "retry synthetic-private-value after startup"})
+	log.Emit(events.Event{Event: events.StepFail, App: "unowned", Step: "admin", Error: "unrelated"})
+	log.Emit(events.Event{Event: events.RunEnd, Error: "general failure"})
+	failures := redactedFailures(emitted, []string{"ntfy"})
+	data, err := json.Marshal(failures)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(failures) != 1 || failures[0].App != "ntfy" || failures[0].Step != "admin" || !strings.Contains(string(data), "HTTP 503") || !strings.Contains(string(data), "after startup") || strings.Contains(string(data), "synthetic-private-value") || strings.Contains(string(data), "unrelated") {
+		t.Fatal("redacted failure detail missing or unrelated output retained")
+	}
+}
+
+func TestFailureEvidenceUsesOnlyRedactedRunEventFallback(t *testing.T) {
+	var emitted []event
+	log := events.New(events.SinkFunc(func(e events.Event) { emitted = append(emitted, e) }))
+	log.Secret("synthetic-private-value")
+	log.Emit(events.Event{Event: events.Info, Error: "unknown output"})
+	log.Emit(events.Event{Event: events.RunEnd, Error: "Compose validation rejected synthetic-private-value", Hint: "review the owned Compose fragment"})
+	failures := redactedFailures(emitted, []string{"ntfy"})
+	if len(failures) != 1 || failures[0].Kind != "run.error" || failures[0].Error != "Compose validation rejected [redacted]" || failures[0].Hint != "review the owned Compose fragment" || failures[0].App != "" {
+		t.Fatal("structured run failure not retained safely")
+	}
+	if got := redactedFailures([]event{{Event: events.Info, Error: "unknown output"}}, []string{"ntfy"}); len(got) != 0 {
+		t.Fatal("unknown output was trusted")
 	}
 }

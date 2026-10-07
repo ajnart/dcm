@@ -34,6 +34,18 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 	stage.Command = safeCommand(args)
 	r.saveEvidence()
 	res := fn()
+	stage.Failures = redactedFailures(res.events, r.spec.Apps)
+	for _, failure := range stage.Failures {
+		label := failure.Kind
+		if failure.App != "" {
+			label = failure.App + "/" + failure.Step
+		}
+		message := compactDiagnostic(failure.Error)
+		if failure.Hint != "" {
+			message += "; hint: " + compactDiagnostic(failure.Hint)
+		}
+		r.t.Logf("%s %s: %s", name, label, message)
+	}
 	if res.code == exitIncomplete && allNoHeadless(res) {
 		stage.Outcome = "manual"
 		stage.Reason = "first administrator requires web UI"
@@ -48,7 +60,10 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 	}
 	if res.code != 0 {
 		stage.Outcome = "fail"
-		stage.Reason = "command failed; inspect private diagnostics if enabled"
+		stage.Reason = "command failed; no recognized redacted CLI failure event"
+		if len(stage.Failures) > 0 {
+			stage.Reason = "redacted CLI failure details retained"
+		}
 		r.evidence.Outcome = "failed"
 		for _, event := range res.events {
 			if event.Event == "step.fail" {
