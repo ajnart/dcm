@@ -28,12 +28,17 @@ type wudRuntimeFixture struct {
 	mu                   sync.Mutex
 	generation           uint64
 	current              wudfixture.Snapshot
+	observation          wudInventoryDiagnostic
 	cancel               context.CancelFunc
 	done                 chan struct{}
 }
 
-func wudFixtureFailure() result {
-	return result{code: 1, events: []event{{Event: "step.fail", App: "wud", Step: "owned-inventory", Error: "fresh exact owned TLS Docker inventory was not verified", Hint: "retry the isolated ntfy and read-only mTLS facade fixture; no registry-update claim"}}}
+func wudFixtureFailure(diagnostics ...wudInventoryDiagnostic) result {
+	message := "fresh exact owned TLS Docker inventory was not verified"
+	if len(diagnostics) > 0 {
+		message += ": " + diagnostics[0].summary()
+	}
+	return result{code: 1, events: []event{{Event: "step.fail", App: "wud", Step: "owned-inventory", Error: message, Hint: "retry the isolated ntfy and read-only mTLS facade fixture; no registry-update claim"}}}
 }
 func (r *runner) prepareWUDFixture(ports map[string]int) {
 	if !slices.Contains(r.spec.Apps, "wud") {
@@ -161,6 +166,13 @@ func (f *wudRuntimeFixture) observe(r *runner) bool {
 	}
 	res := run("compose", "--project-directory", r.project, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "-f", filepath.Join(r.project, "compose.yml"), "-f", f.override, "-p", r.name, "ps", "-q", "ntfy")
 	id := strings.TrimSpace(res.stdout)
+	f.observation = wudInventoryDiagnostic{Phase: "container-selector", Count: len(strings.Fields(res.stdout)), Outcome: "command-failed"}
+	if res.code == 0 {
+		f.observation.Outcome = "invalid-selector"
+		if id == "" {
+			f.observation.Outcome = "empty"
+		}
+	}
 	if res.code != 0 || !wudOwnedID(id) {
 		return false
 	}
@@ -170,18 +182,28 @@ func (f *wudRuntimeFixture) observe(r *runner) bool {
 		ID, ImageID, Image, Name, Project, Service, Watch, Digest string
 		Running                                                   bool
 	}
-	if res.code != 0 || json.Unmarshal([]byte(res.stdout), &c) != nil || c.ID != id || c.Project != r.name || c.Service != "ntfy" || c.Watch != "true" || c.Digest != "false" || !c.Running || !strings.HasPrefix(c.ImageID, "sha256:") || !wudOwnedID(strings.TrimPrefix(c.ImageID, "sha256:")) {
+	if res.code != 0 {
+		f.observation = wudInventoryDiagnostic{Phase: "container-projection", Outcome: "command-failed"}
+		return false
+	}
+	f.observation = wudSnapshotDiagnostic([]byte(res.stdout), nil, r.name, id)
+	if f.observation.Outcome != "verified" || json.Unmarshal([]byte(res.stdout), &c) != nil {
 		return false
 	}
 	containerJSON := res.stdout
 	const imageProjection = `{"ImageID":{{json .Id}},"RepoTags":{{json .RepoTags}},"RepoDigests":{{json .RepoDigests}},"Architecture":{{json .Architecture}},"OS":{{json .Os}},"Variant":{{json .Variant}},"Created":{{json .Created}}}`
 	res = run("image", "inspect", "--format", imageProjection, c.ImageID)
 	if res.code != 0 {
+		f.observation = wudInventoryDiagnostic{Phase: "image-projection", Outcome: "command-failed"}
 		return false
 	}
+	f.observation = wudSnapshotDiagnostic([]byte(containerJSON), []byte(res.stdout), r.name, id)
 	f.generation++
 	s, err := decodeWUDObservation([]byte(containerJSON), []byte(res.stdout), r.name, id, f.generation, time.Now().UTC())
 	if err != nil {
+		if f.observation.Outcome == "verified" {
+			f.observation.Outcome = "invalid-snapshot"
+		}
 		return false
 	}
 	b, err := json.Marshal(s)
@@ -190,10 +212,16 @@ func (f *wudRuntimeFixture) observe(r *runner) bool {
 	}
 	tmp := filepath.Join(f.files.observed, "snapshot.pending")
 	if os.WriteFile(tmp, b, 0600) != nil || os.Rename(tmp, filepath.Join(f.files.observed, "snapshot.json")) != nil {
+		f.observation = wudInventoryDiagnostic{Phase: "snapshot-write", Outcome: "write-failed"}
 		return false
 	}
 	f.current = s
 	return true
+}
+func (f *wudRuntimeFixture) observationFailure() result {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return wudFixtureFailure(f.observation)
 }
 func (f *wudRuntimeFixture) start(r *runner) {
 	ctx, cancel := context.WithCancel(r.commandCtx)
@@ -228,57 +256,73 @@ func (f *wudRuntimeFixture) install(r *runner, args []string, ports map[string]i
 		return res
 	}
 	if !f.observe(r) {
-		return wudFixtureFailure()
+		return f.observationFailure()
 	}
 	f.start(r)
 	return r.runWithTimeout(installCommandLimit(r.spec), args...)
 }
 func (f *wudRuntimeFixture) check(r *runner) result {
 	if !f.observe(r) {
-		return wudFixtureFailure()
+		return f.observationFailure()
 	}
 	handoff := r.runWithTimeout(30*time.Second, "credentials", "--json")
 	var credentials struct {
 		Admin struct{ Username, Password string }
 	}
 	if handoff.code != 0 || json.Unmarshal([]byte(handoff.stdout), &credentials) != nil || credentials.Admin.Username == "" || credentials.Admin.Password == "" {
-		return wudFixtureFailure()
+		return wudFixtureFailure(wudInventoryDiagnostic{Phase: "credentials", Outcome: "invalid-json"})
 	}
 	ctx, cancel := context.WithTimeout(r.commandCtx, 45*time.Second)
 	defer cancel()
 	client := &http.Client{Timeout: 20 * time.Second, Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	type entry struct {
-		ID, Watcher string
-		Error       any
-		Image       struct{ ID string }
-	}
-	request := func(method, path string, dst any) bool {
+	request := func(phase, method, path string, dst any) wudInventoryDiagnostic {
+		d := wudInventoryDiagnostic{Phase: phase, Outcome: "transport-failed"}
 		req, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("http://127.0.0.1:%d", f.port)+path, nil)
 		if err != nil {
-			return false
+			return d
 		}
 		req.SetBasicAuth(credentials.Admin.Username, credentials.Admin.Password)
 		res, err := client.Do(req)
 		if err != nil {
-			return false
+			return d
 		}
 		defer res.Body.Close()
-		return res.StatusCode == 200 && json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(dst) == nil
+		d.HTTPStatus = res.StatusCode
+		d.Outcome = "http-failed"
+		if res.StatusCode != 200 {
+			return d
+		}
+		d.Outcome = "invalid-json"
+		if json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(dst) != nil {
+			return d
+		}
+		d.Outcome = "verified"
+		return d
 	}
-	var entries []entry
-	if !request("GET", "/api/containers", &entries) || len(entries) != 1 {
-		return wudFixtureFailure()
+	var entries []wudInventoryEntry
+	diagnostic := request("inventory", "GET", "/api/containers", &entries)
+	if diagnostic.Outcome != "verified" {
+		return wudFixtureFailure(diagnostic)
 	}
 	f.mu.Lock()
 	snapshot := f.current
 	f.mu.Unlock()
-	e := entries[0]
-	if e.ID != snapshot.ContainerID || e.Watcher != "approved" || e.Error != nil || e.Image.ID != snapshot.ImageID {
-		return wudFixtureFailure()
+	var e wudInventoryEntry
+	if len(entries) == 1 {
+		e = entries[0]
 	}
-	var fresh entry
-	if !request("POST", "/api/containers/"+url.PathEscape(e.ID)+"/watch", &fresh) || fresh.ID != e.ID || fresh.Image.ID != snapshot.ImageID || fresh.Watcher != "approved" || fresh.Error != nil {
-		return wudFixtureFailure()
+	diagnostic = wudEntryDiagnostic("inventory", len(entries), e, snapshot.ContainerID, snapshot.ImageID)
+	if diagnostic.Outcome != "verified" {
+		return wudFixtureFailure(diagnostic)
+	}
+	var fresh wudInventoryEntry
+	diagnostic = request("fresh-watch", "POST", "/api/containers/"+url.PathEscape(e.ID)+"/watch", &fresh)
+	if diagnostic.Outcome != "verified" {
+		return wudFixtureFailure(diagnostic)
+	}
+	diagnostic = wudEntryDiagnostic("fresh-watch", 1, fresh, snapshot.ContainerID, snapshot.ImageID)
+	if diagnostic.Outcome != "verified" {
+		return wudFixtureFailure(diagnostic)
 	}
 	owner := r
 	if r.evidenceOwner != nil {

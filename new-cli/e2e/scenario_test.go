@@ -301,7 +301,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 
 func (r *runner) setupAndReady(target *runner) result {
 	if target.wud != nil && !target.wud.observe(target) {
-		return wudFixtureFailure()
+		return target.wud.observationFailure()
 	}
 	res := target.run("setup", "--json")
 	if res.code != 0 {
