@@ -476,18 +476,10 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	}, "browser input values did not reach controlled form state"); err != nil {
 		return hfBrowserLoginDiagnostic(ctx, run, "browser input values did not reach controlled form state")
 	}
-	selector := `button[type="submit"][name="provider"][value="credentials"]`
-	clickOutput, clickErr := run(ctx, "", "click", selector)
-	if clickErr != nil || !hfBrowserClickExecuted(clickOutput, selector) {
-		var response struct {
-			Data struct {
-				ConfirmationPending bool `json:"confirmation_required"`
-				DialogOpened        bool
-			}
-		}
-		_ = json.Unmarshal(clickOutput, &response)
-		reason := fmt.Sprintf("administrator browser login click was not executed; confirmation_pending=%t, dialog_opened=%t", response.Data.ConfirmationPending, response.Data.DialogOpened)
-		return hfBrowserLoginDiagnostic(ctx, run, reason)
+	// Native keyboard activation avoids relying on an acknowledged coordinate
+	// click: prove the actual credentials button has focus before sending Enter.
+	if err := hfBrowserSubmitLogin(ctx, run); err != nil {
+		return hfBrowserLoginDiagnostic(ctx, run, err.Error())
 	}
 	if err := hfPoll(ctx, time.Minute, func() bool {
 		return hfBrowserBoolean(ctx, run, `(async () => { const r = await fetch('/api/auth/session'); if (!r.ok) return false; const s = await r.json(); return !!s.user?.id && s.user.permissions?.includes('admin') === true && !location.pathname.includes('/auth/'); })()`)
@@ -557,34 +549,68 @@ func hfBrowserCommandSucceeded(output []byte) bool {
 	return json.Unmarshal(output, &response) == nil && response.Success
 }
 
-func hfBrowserClickExecuted(output []byte, selector string) bool {
+func hfBrowserSubmitLogin(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error)) error {
+	selector := `button[type="submit"][name="provider"][value="credentials"]`
+	if _, err := run(ctx, "", "focus", selector); err != nil {
+		return errors.New("administrator browser login button could not be focused")
+	}
+	if !hfBrowserBoolean(ctx, run, `(() => { const button = document.querySelector('button[type="submit"][name="provider"][value="credentials"]'); return !!button && button.form === document.querySelector('#username')?.form && !button.disabled && document.activeElement === button; })()`) {
+		return errors.New("administrator browser login button focus was not established")
+	}
+	output, err := run(ctx, "", "press", "Enter")
 	var response struct {
 		Success bool
 		Data    struct {
-			Clicked             string
+			Pressed             string
 			ConfirmationPending bool `json:"confirmation_required"`
 			DialogOpened        bool
 		}
 	}
-	return json.Unmarshal(output, &response) == nil && response.Success && !response.Data.ConfirmationPending && !response.Data.DialogOpened && response.Data.Clicked == selector
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success || response.Data.Pressed != "Enter" || response.Data.ConfirmationPending || response.Data.DialogOpened {
+		return errors.New("administrator browser login Enter was not executed")
+	}
+	return nil
 }
 
-func TestHomarrBrowserRequiresExecutedClickAcknowledgement(t *testing.T) {
+func TestHomarrBrowserSubmitRequiresFocusedButtonAndExecutedKey(t *testing.T) {
 	for _, tc := range []struct {
-		body string
-		want bool
+		name            string
+		focused         bool
+		acknowledgement string
+		wantOK          bool
 	}{
-		{`{"success":true,"data":{"clicked":"fixed-selector"}}`, true},
-		{`{"success":false,"error":"synthetic-private-error"}`, false},
-		{`{"success":true,"data":{"confirmation_required":true,"clicked":"fixed-selector"}}`, false},
-		{`{"success":true,"data":{"dialogOpened":true,"clicked":"fixed-selector"}}`, false},
-		{`{"success":true,"data":{"clicked":"other"}}`, false},
-		{`{"success":true,"data":{}}`, false},
-		{`invalid synthetic-private-output`, false},
+		{"executed", true, `{"success":true,"data":{"pressed":"Enter"}}`, true},
+		{"wrong focus", false, `{"success":true,"data":{"pressed":"Enter"}}`, false},
+		{"pending confirmation", true, `{"success":true,"data":{"pressed":"Enter","confirmation_required":true}}`, false},
+		{"wrong key", true, `{"success":true,"data":{"pressed":"Tab"}}`, false},
+		{"missing execution", true, `{"success":true,"data":{}}`, false},
 	} {
-		if hfBrowserClickExecuted([]byte(tc.body), "fixed-selector") != tc.want {
-			t.Fatal("deferred, partial, failed, or malformed click acknowledgement was accepted")
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			pressed := false
+			run := func(_ context.Context, stdin string, args ...string) ([]byte, error) {
+				if args[0] == "focus" {
+					return []byte(`{"success":true}`), nil
+				}
+				if args[0] == "eval" {
+					return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%t}}`, tc.focused)), nil
+				}
+				if args[0] == "press" {
+					pressed = true
+					return []byte(tc.acknowledgement), nil
+				}
+				return nil, errors.New("synthetic-private-command-error")
+			}
+			err := hfBrowserSubmitLogin(context.Background(), run)
+			if (err == nil) != tc.wantOK {
+				t.Fatal("native submit accepted an unexecuted or unfocused action")
+			}
+			if !tc.focused && pressed {
+				t.Fatal("key sent before correct button focus was proved")
+			}
+			if err != nil && strings.Contains(err.Error(), "synthetic-private") {
+				t.Fatal("private driver output disclosed")
+			}
+		})
 	}
 }
 
@@ -601,12 +627,12 @@ const hfBrowserAuthProbe = `(() => {
 const state = { providersCount:0, providersStatus:0, csrfCount:0, csrfStatus:0, callbackCount:0, callbackStatus:0,
  sameOrigin:true, credentialFields:false, transportFailed:false, rejectedCredentials:false, csrfError:false, otherAuthError:false, clickCount:0, trustedClick:false, submitCount:0, credentialsSubmitter:false, submitPrevented:false, invalidCount:0, pageErrorCount:0, rejectionCount:0 };
 window.__selfhostAuthProbe = state; const original = window.fetch.bind(window);
-const form = document.querySelector('#username')?.form;
-if (form) {
- form.addEventListener('click', event => { if (event.target.closest('button[name="provider"][value="credentials"]')) { state.clickCount++; state.trustedClick = state.trustedClick || event.isTrusted; } }, true);
- form.addEventListener('submit', event => { state.submitCount++; state.credentialsSubmitter = event.submitter?.value === 'credentials'; setTimeout(() => { state.submitPrevented = event.defaultPrevented; }, 0); }, true);
- form.addEventListener('invalid', () => { state.invalidCount++; }, true);
-}
+// Observe the current login form through the stable document: filling controlled
+// fields can rerender it after this probe is installed.
+const loginForm = () => document.querySelector('#username')?.form;
+document.addEventListener('click', event => { const button = event.target.closest?.('button[name="provider"][value="credentials"]'); if (button?.form && button.form === loginForm()) { state.clickCount++; state.trustedClick = state.trustedClick || event.isTrusted; } }, true);
+document.addEventListener('submit', event => { if (event.target !== loginForm()) return; state.submitCount++; state.credentialsSubmitter = event.submitter?.value === 'credentials'; setTimeout(() => { state.submitPrevented = event.defaultPrevented; }, 0); }, true);
+document.addEventListener('invalid', event => { if (event.target.form && event.target.form === loginForm()) state.invalidCount++; }, true);
 window.addEventListener('error', () => { state.pageErrorCount++; });
 window.addEventListener('unhandledrejection', () => { state.rejectionCount++; });
 window.fetch = async (input, options) => {
@@ -685,7 +711,7 @@ func TestHomarrBrowserProbePreservesFetchAndExcludesCredentialValues(t *testing.
 	script := `globalThis.location = {href:'http://127.0.0.1:8080/auth/login',origin:'http://127.0.0.1:8080'};
 const originalResponse = {status:401,clone:()=>({json:async()=>({url:'http://127.0.0.1:8080/auth/login?error=CredentialsSignin',private:'synthetic-private-response'})})};
 let receivedInput, receivedOptions;
-globalThis.document = {querySelector:()=>null};
+globalThis.document = {querySelector:()=>null,addEventListener:()=>{}};
 globalThis.window = {addEventListener:()=>{}, fetch:async(input,options)=>{receivedInput=input;receivedOptions=options;return originalResponse;}};
 if (!eval(` + string(probe) + `)) throw Error('probe initialization failed');
 const options={body:new URLSearchParams({name:'synthetic-private-name',password:'synthetic-private-password'}),headers:{private:'synthetic-private-header'}};
@@ -705,6 +731,38 @@ if(eval(` + string(controlled) + `)) throw Error('DOM-only password accepted');`
 	command.Stdin = strings.NewReader(script)
 	if err := command.Run(); err != nil {
 		t.Fatal("static browser probe changed transport, leaked values, or accepted uncommitted controlled inputs")
+	}
+}
+
+func TestHomarrBrowserProbeObservesReplacedLoginForm(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	probe, _ := json.Marshal(hfBrowserAuthProbe)
+	script := `globalThis.location = {href:'http://127.0.0.1/auth/login',origin:'http://127.0.0.1'};
+ const listeners = {};
+ let currentForm = {addEventListener:()=>{}};
+ globalThis.document = {querySelector:()=>({form:currentForm}),addEventListener:(kind,listener)=>{listeners[kind]=listener;}};
+ globalThis.window = {addEventListener:()=>{},fetch:async()=>({status:200})};
+ eval(` + string(probe) + `);
+ currentForm = {};
+ const button = {form:currentForm,value:'credentials'};
+ if (!listeners.click || !listeners.submit || !listeners.invalid) throw Error('observer tied to replaceable form');
+ listeners.click({target:{closest:()=>button},isTrusted:true});
+ const event = {target:currentForm,submitter:button,defaultPrevented:false};
+ listeners.submit(event); event.defaultPrevented=true;
+ listeners.invalid({target:{form:currentForm}});
+ listeners.click({target:{closest:()=>({form:{}})},isTrusted:true});
+ listeners.submit({target:{},defaultPrevented:false});
+ listeners.invalid({target:{form:{}}});
+ await new Promise(resolve=>setTimeout(resolve,10));
+ const state=window.__selfhostAuthProbe;
+ if(state.clickCount!==1 || !state.trustedClick || state.submitCount!==1 || !state.credentialsSubmitter || !state.submitPrevented || state.invalidCount!==1) throw Error('current login form events lost or unrelated form counted');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("browser probe did not follow replaced login form or isolate its events")
 	}
 }
 
