@@ -42,8 +42,22 @@ func (a *privateInputApp) Setup(ctx context.Context, h *helpers.H) error {
 	})
 }
 
-func TestPrivateInputPublicFileTransportAndRerun(t *testing.T) {
+// Private files are created by the test process; retain the fake home but use
+// its actual host identity rather than systemtest's illustrative UID/GID1000.
+func privateFileDeps(t *testing.T) *system.Deps {
+	t.Helper()
 	deps := systemtest.NewDeps(t)
+	owner, err := deps.CurrentUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner.UID, owner.GID = os.Getuid(), os.Getgid()
+	deps.CurrentUser = func() (system.User, error) { return owner, nil }
+	return deps
+}
+
+func TestPrivateInputPublicFileTransportAndRerun(t *testing.T) {
+	deps := privateFileDeps(t)
 	deps.Runner.(*systemtest.Runner).On("docker info", system.Result{Stdout: []byte(`["name=rootless"]`)})
 	a := &privateInputApp{echoApp: echoApp{id: "one"}}
 	cat := testCatalog(a)
@@ -270,7 +284,7 @@ func TestLegacyPrivateInputMigratesWithoutRotatingSavedSecret(t *testing.T) {
 }
 
 func TestPrivateInputFailureDiagnosticsAreRedacted(t *testing.T) {
-	deps := systemtest.NewDeps(t)
+	deps := privateFileDeps(t)
 	a := &privateInputApp{echoApp: echoApp{id: "one"}, fail: true}
 	payload := "synthetic-failure-private-79"
 	file := filepath.Join(t.TempDir(), "token")
@@ -278,7 +292,11 @@ func TestPrivateInputFailureDiagnosticsAreRedacted(t *testing.T) {
 		t.Fatal(err)
 	}
 	code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json", "--set-file", "one.token="+file)
-	if code == 0 || strings.Contains(out+readFile(t, filepath.Join(projectRoot(t, deps), "state.json")), payload) || !strings.Contains(out, "private failure [redacted]") {
+	if code == 0 || a.seen != payload || !strings.Contains(out, "private failure [redacted]") {
+		t.Fatal("install did not reach the expected Setup failure")
+	}
+	state := readFile(t, filepath.Join(projectRoot(t, deps), "state.json"))
+	if strings.Contains(out+state, payload) {
 		t.Fatal("private failure was leaked or lost")
 	}
 }
@@ -286,7 +304,7 @@ func TestPrivateInputFailureDiagnosticsAreRedacted(t *testing.T) {
 func TestPrivateInputRejectsUnsafeFiles(t *testing.T) {
 	for _, kind := range []string{"public", "oversized", "symlink", "directory", "multiline"} {
 		t.Run(kind, func(t *testing.T) {
-			deps := systemtest.NewDeps(t)
+			deps := privateFileDeps(t)
 			a := &privateInputApp{echoApp: echoApp{id: "one"}}
 			file := filepath.Join(t.TempDir(), "token")
 			value := "synthetic-invalid-private-79"
