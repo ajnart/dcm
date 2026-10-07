@@ -8,6 +8,7 @@ import (
 	"go.yaml.in/yaml/v3"
 	"io"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -76,6 +77,10 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 				// Reserved loopback TLS origin is supplied by the real runtime fixture.
 				continue
 			}
+			if id == "renovate" && in.Key == "token" && slices.Contains(t.Apps, "forgejo") {
+				// The owned Forgejo fixture supplies an actual dedicated bot PAT.
+				continue
+			}
 			if !in.Required || in.Default != "" || localInputs[id][in.Key] != "" {
 				continue
 			}
@@ -91,7 +96,7 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 	return status
 }
 
-func installArguments(t targetSpec, root string, ports map[string]int) []string {
+func installArguments(t targetSpec, root string, ports map[string]int, secondary ...map[string]int) []string {
 	args := []string{"install", t.ID}
 	baseApps := map[string]bool{t.ID: true}
 	if recipe, ok := catalog.Default().Recipe(t.ID); ok && t.Kind == "recipe" {
@@ -108,6 +113,9 @@ func installArguments(t targetSpec, root string, ports map[string]int) []string 
 	for _, id := range t.Apps {
 		if port := ports[id]; port > 0 {
 			args = append(args, "--set", fmt.Sprintf("%s.port=%d", id, port))
+		}
+		if len(secondary) > 0 && secondary[0][id] > 0 && isolatedSecondaryInputs[id] != "" {
+			args = append(args, "--set", fmt.Sprintf("%s.%s=%d", id, isolatedSecondaryInputs[id], secondary[0][id]))
 		}
 		keys := []string{}
 		for key := range localInputs[id] {
@@ -225,6 +233,11 @@ func readyStatus(apps []statusEntry, expected []string) bool {
 func safeCommand(args []string) []string {
 	out := append([]string{}, args...)
 	for i := range out {
+		if i > 0 && out[i-1] == "--set-file" {
+			if key, _, ok := strings.Cut(out[i], "="); ok {
+				out[i] = key + "=<owned-credential>"
+			}
+		}
 		if i > 0 && (out[i-1] == "--media-root" || out[i-1] == "--downloads-root" || out[i-1] == "-o") {
 			out[i] = "<owned-path>"
 		}

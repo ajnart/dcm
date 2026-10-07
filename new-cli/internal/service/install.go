@@ -120,6 +120,11 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 			if input.Required && values[input.Key] == "" {
 				missing = append(missing, id+"."+input.Key)
 			}
+			if input.Validate != nil {
+				if err := input.Validate(values[input.Key]); err != nil {
+					return nil, fmt.Errorf("invalid input %s.%s: %w", id, input.Key, err)
+				}
+			}
 		}
 		result[id] = values
 	}
@@ -226,6 +231,11 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 				st.Port, st.Inputs = port, publicInputs(a, values)
+				if preflight, ok := a.(app.PreflightChecker); ok {
+					if err := preflight.Preflight(ctx, ss.helpers(a)); err != nil {
+						return err
+					}
+				}
 				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: "render", Msg: "render " + info.ID})
 				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))

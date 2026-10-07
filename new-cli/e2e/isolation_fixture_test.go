@@ -7,9 +7,57 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestSecondaryPortsAreReservedPerTargetAndPassedToInstall(t *testing.T) {
+	c := catalog.Default()
+	spec := targetSpec{ID: "fixture", Apps: []string{"qbittorrent", "pihole", "technitium-dns"}}
+	pool := &portRegistry{}
+	first, err := reserveTargetPorts(c, spec, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.release()
+	// Closing sockets before Compose starts must retain lifetime ownership.
+	first.closeSockets()
+	second, err := reserveTargetPorts(c, spec, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.release()
+	args := strings.Join(installArguments(spec, t.TempDir(), first.primary, first.secondary), " ")
+	seen := map[int]bool{}
+	for id, key := range map[string]string{"qbittorrent": "torrent-port", "pihole": "dns-port", "technitium-dns": "dns-port"} {
+		port := first.secondary[id]
+		if port < 1024 || port == 6881 || seen[port] || port == second.secondary[id] {
+			t.Fatal("secondary ports are not independently ephemeral and retained")
+		}
+		seen[port] = true
+		for _, protocol := range []string{"tcp", "udp"} {
+			if !pool.owns(first, publishedPort{port, protocol}) {
+				t.Fatal("secondary protocol reservation released before teardown")
+			}
+		}
+		if !strings.Contains(args, "--set "+id+"."+key+"="+fmtPort(port)) {
+			t.Fatal("reserved secondary port was not supplied to the actual install command")
+		}
+	}
+	// Active reservation sockets also protect both protocols until startup.
+	for _, port := range second.secondary {
+		addr := net.JoinHostPort("127.0.0.1", fmtPort(port))
+		if socket, err := net.Listen("tcp4", addr); err == nil {
+			socket.Close()
+			t.Fatal("secondary TCP socket not held")
+		}
+		if socket, err := net.ListenPacket("udp4", addr); err == nil {
+			socket.Close()
+			t.Fatal("secondary UDP socket not held")
+		}
+	}
+}
 
 func TestGlobalLockBoundsConcurrentRuns(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "lock")

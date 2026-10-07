@@ -36,6 +36,8 @@ type Input struct {
 	Required bool
 	// Private inputs are stored in secrets.env, never in Project state.
 	Private bool
+	// Validate rejects an invalid public input before any apply operation.
+	Validate func(string) error `json:"-"`
 }
 
 // RenderContext is what an App needs to render its Compose fragment.
@@ -107,4 +109,11 @@ type File struct {
 // "ADMIN_USER" and "ADMIN_PASSWORD".
 type FileDeclarer interface {
 	Files(rc RenderContext, secret func(name string) string) []File
+}
+
+// PreflightChecker validates an App's owned local prerequisites before rendering
+// or starting containers. It must not mutate files or call the running App.
+// Restore checks safely extracted files using their archived public inputs.
+type PreflightChecker interface {
+	Preflight(context.Context, *helpers.H) error
 }

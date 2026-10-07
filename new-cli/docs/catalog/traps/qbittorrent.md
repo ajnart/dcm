@@ -3,6 +3,7 @@
 ## Pitfalls
 
 - The WebUI and peer-listener ports are separate; do not publish peer ports without an explicit choice.
+- The Go CLI's `--set qbittorrent.torrent-port=PORT` changes both the peer listener and its TCP/UDP publications; the default remains 6881.
 - VPN status alone does not prove a working kill switch.
 
 ## Security

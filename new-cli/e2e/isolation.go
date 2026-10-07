@@ -106,7 +106,13 @@ type portReservation struct {
 	pool      *portRegistry
 	owned     []publishedPort
 	primary   map[string]int
+	secondary map[string]int
 	listeners []io.Closer
+}
+
+// Only these concrete catalog inputs override fixed secondary publications.
+var isolatedSecondaryInputs = map[string]string{
+	"qbittorrent": "torrent-port", "pihole": "dns-port", "technitium-dns": "dns-port",
 }
 
 func (r *portReservation) closeSockets() {
@@ -141,7 +147,7 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 	if pool.used == nil {
 		pool.used = map[publishedPort]*portReservation{}
 	}
-	r := &portReservation{primary: map[string]int{}, pool: pool}
+	r := &portReservation{primary: map[string]int{}, secondary: map[string]int{}, pool: pool}
 	fail := func(err error) (*portReservation, error) { r.releaseLocked(); return nil, err }
 	claim := func(p publishedPort) { pool.used[p] = r; r.owned = append(r.owned, p) }
 	for _, id := range t.Apps {
@@ -172,7 +178,39 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 				return fail(blockerError(id + ": no isolated primary port available"))
 			}
 		}
-		source := a.Compose(app.RenderContext{Port: primary, Inputs: localInputs[id]})
+		inputs := map[string]string{}
+		for key, value := range localInputs[id] {
+			inputs[key] = value
+		}
+		if key := isolatedSecondaryInputs[id]; key != "" {
+			for attempts := 0; attempts < 1024; attempts++ {
+				tcp, err := net.Listen("tcp4", "127.0.0.1:0")
+				if err != nil {
+					return fail(blockerError(id + ": loopback secondary port reservation failed"))
+				}
+				candidate := tcp.Addr().(*net.TCPAddr).Port
+				tcpPort, udpPort := publishedPort{candidate, "tcp"}, publishedPort{candidate, "udp"}
+				if pool.used[tcpPort] != nil || pool.used[udpPort] != nil {
+					tcp.Close()
+					continue
+				}
+				udp, err := net.ListenPacket("udp4", net.JoinHostPort("127.0.0.1", fmtPort(candidate)))
+				if err != nil {
+					tcp.Close()
+					continue
+				}
+				r.secondary[id] = candidate
+				inputs[key] = fmtPort(candidate)
+				r.listeners = append(r.listeners, tcp, udp)
+				claim(tcpPort)
+				claim(udpPort)
+				break
+			}
+			if r.secondary[id] == 0 {
+				return fail(blockerError(id + ": no isolated TCP and UDP secondary port available"))
+			}
+		}
+		source := a.Compose(app.RenderContext{Port: primary, Inputs: inputs})
 		if err := validateComposeIsolation(source); err != nil {
 			return fail(blockerError(id + ": Compose isolation refused: " + err.Error()))
 		}

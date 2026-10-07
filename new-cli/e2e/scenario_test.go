@@ -100,9 +100,13 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	r.requireLocalResources()
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
+	renovate := r.prepareRenovateFixture(reservation.primary)
 	r.prepareNetBirdFixture(reservation)
 	r.prepareAutheliaFixture(reservation)
-	args := installArguments(spec, r.root, reservation.primary)
+	args := installArguments(spec, r.root, reservation.primary, reservation.secondary)
+	if renovate != nil {
+		args = append(args, "--set-file", "renovate.token="+renovate.path)
+	}
 	if r.netbird != nil {
 		args = append(args, "--set", "netbird.NETBIRD_CANONICAL_ORIGIN="+r.netbird.route.origin)
 	}
@@ -112,7 +116,12 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
 	reservation.closeSockets()
-	r.stage("install", args, func() result { return r.runWithTimeout(installCommandLimit(spec), args...) })
+	r.stage("install", args, func() result {
+		if renovate != nil {
+			return renovate.install(r, args, reservation.primary)
+		}
+		return r.runWithTimeout(installCommandLimit(spec), args...)
+	})
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
 	if r.netbird != nil {
 		r.stage("management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, r.netBirdManagementProbe)
@@ -155,6 +164,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		return r.setupAndReady(r)
 	})
 	r.recordImages()
+	if renovate != nil {
+		r.stage("forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return renovate.check(r) })
+	}
 	if !completeImageEvidence(r.evidence.Images, expectedServices(r.spec)) {
 		for i := range r.evidence.Stages {
 			if r.evidence.Stages[i].Name == "update" {
@@ -218,6 +230,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		return restored.run("restore", archive, "--yes", "--json")
 	})
 	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
+	if renovate != nil {
+		r.stage("restored-forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return renovate.check(restored) })
+	}
 	if r.netbird != nil {
 		r.stage("restored-management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, restored.netBirdManagementProbe)
 	}

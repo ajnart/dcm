@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -27,7 +28,15 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{{Key: "dns-port", Prompt: "Published DNS port", Default: "53", Help: "TCP and UDP host port; LAN DNS clients normally require port 53", Validate: func(value string) error {
+		port, err := strconv.Atoi(value)
+		if err != nil || port < 1 || port > 65535 || strings.Trim(value, "0123456789") != "" {
+			return errors.New("must be a decimal port from 1 to 65535")
+		}
+		return nil
+	}}}
+}
 
 // Files writes the Admin password for WEBPASSWORD_FILE; the container reads it
 // on first start and never sees the value in Compose or a command line.
@@ -37,6 +46,10 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	dnsPort := rc.Inputs["dns-port"]
+	if dnsPort == "" {
+		dnsPort = "53"
+	}
 	return `services:
   pihole:
     image: pihole/pihole:2026.09.0
@@ -48,8 +61,8 @@ func (App) Compose(rc app.RenderContext) string {
       - ./config:/etc/pihole
       - ./admin-password:/run/secrets/admin-password:ro
     ports:
-      - ${BIND_IP}:53:53/udp
-      - ${BIND_IP}:53:53/tcp
+      - ${BIND_IP}:` + dnsPort + `:53/udp
+      - ${BIND_IP}:` + dnsPort + `:53/tcp
       - ${BIND_IP}:` + port + `:80
 `
 }

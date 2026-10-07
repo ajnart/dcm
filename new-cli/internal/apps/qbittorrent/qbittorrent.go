@@ -45,7 +45,15 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{{Key: "torrent-port", Prompt: "Torrent peer port", Default: "6881", Help: "TCP and UDP peer port, separate from the private WebUI", Validate: func(value string) error {
+		port, err := strconv.Atoi(value)
+		if err != nil || port < 1 || port > 65535 || strings.Trim(value, "0123456789") != "" {
+			return errors.New("must be a decimal port from 1 to 65535")
+		}
+		return nil
+	}}}
+}
 
 // Compose publishes the WebUI on the same port inside and outside the
 // container, so other Apps reach it as qbittorrent:<port> and the Host header
@@ -53,6 +61,9 @@ func (App) Inputs() []app.Input { return nil }
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	torrent := strconv.Itoa(torrentPort)
+	if selected := rc.Inputs["torrent-port"]; selected != "" {
+		torrent = selected
+	}
 	return `services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
