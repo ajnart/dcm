@@ -1,0 +1,21 @@
+new-cli/internal/apps/frigate/frigate.go
+  s_a2fd509a765bab::t_ab95744f530dd0 42-44,48-49,102-105,107,111-113,115,117
+new-cli/internal/apps/frigate/frigate_test.go
+  s_a2fd509a765bab::t_a8685c7201c835 6,151-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10aee76b47093eb841212f93ad035ccb91fcbb13",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
