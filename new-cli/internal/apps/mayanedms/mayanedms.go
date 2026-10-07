@@ -65,15 +65,18 @@ func (App) Compose(rc app.RenderContext) string {
       MAYAN_CELERY_BROKER_URL: amqp://mayan:${MAYAN_EDMS_BROKER_PASSWORD}@rabbitmq:5672/mayan
       MAYAN_CELERY_RESULT_BACKEND: redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/1
       MAYAN_LOCK_MANAGER_BACKEND_ARGUMENTS: "{'redis_url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/2'}"
-      MAYAN_SERVER_SIDE_EVENTS_BACKEND_ARGUMENTS: "{'redis_url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/3'}"
+      MAYAN_SERVER_SIDE_EVENTS_BACKEND_ARGUMENTS: "{'url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/3'}"
     volumes:
       - ./data:/var/lib/mayan
     ports:
       - ${BIND_IP}:` + port + `:8000
     depends_on:
-      - postgresql
-      - rabbitmq
-      - redis
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   postgresql:
     image: postgres:15.17
     restart: unless-stopped
@@ -107,7 +110,8 @@ func (App) Compose(rc app.RenderContext) string {
   redis:
     image: redis:7.4.8
     user: ${PUID}:${PGID}
-    command: ["redis-server", "/run/secrets/redis-config"]
+    entrypoint: ["sh", "-c", "umask 0077; exec redis-server \"$$@\"", "selfhost-redis"]
+    command: ["/run/secrets/redis-config"]
     restart: unless-stopped
     environment:
       REDISCLI_AUTH: ${MAYAN_EDMS_REDIS_PASSWORD}
