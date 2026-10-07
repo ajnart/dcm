@@ -39,7 +39,8 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 	workflow := ctx.workflow()
 	lines := []string{"  " + t.title().Render("Workflow") + " · " +
 		plural(workflow.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
-		plural(workflow.Counts.StepsFailed, "step failed", "steps failed"), ""}
+		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
+		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}
 	index := 0
 	for _, app := range workflow.Apps {
 		lines = append(lines, "  "+t.title().Render(app.Name))
@@ -57,6 +58,8 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 				mark = t.fg(t.info).Render("↷")
 			case WorkflowFailed:
 				mark = t.fg(t.fail).Render("✗")
+			case WorkflowRunning:
+				mark = t.fg(t.accent).Render("…")
 			}
 			prefix := "    "
 			if index == v.cursor {
