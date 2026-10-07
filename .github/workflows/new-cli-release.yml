@@ -1,0 +1,86 @@
+name: new-cli release
+
+on:
+  push:
+    tags: ["new-cli-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: new-cli-release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: new-cli
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+          cache-dependency-path: new-cli/go.sum
+      - name: Validate CLI channel and version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          test "$GITHUB_REPOSITORY" = ajnart/selfhost-skills
+          [[ "$RELEASE_TAG" =~ ^new-cli-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${RELEASE_TAG#new-cli-v}" >> "$GITHUB_ENV"
+      - name: Check installer and self-update fixtures
+        run: |
+          bash -n install.sh
+          go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdateRejects|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstallScript|TestSelfUpdate)'
+      # OSS snapshot packaging avoids the legacy repository-wide v* tag stream.
+      # The separately validated CLI tag supplies the version; gh owns publication.
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          workdir: new-cli
+          args: release --snapshot --clean
+      - name: Verify exact archive set and native Linux binary
+        run: |
+          version=$SELF_HOST_RELEASE_VERSION
+          expected=$(printf 'self-host_%s_linux_amd64.tar.gz\nself-host_%s_linux_arm64.tar.gz\nself-host_%s_darwin_arm64.tar.gz\n' "$version" "$version" "$version" | sort)
+          actual=$(find dist -maxdepth 1 -name 'self-host_*.tar.gz' -printf '%f\n' | sort)
+          test "$expected" = "$actual"
+          (cd dist && sha256sum --check checksums.txt)
+          mkdir -p "$RUNNER_TEMP/new-cli-release-check"
+          tar -xzf "dist/self-host_${version}_linux_amd64.tar.gz" -C "$RUNNER_TEMP/new-cli-release-check" self-host
+          test "$("$RUNNER_TEMP/new-cli-release-check/self-host" --version)" = "$version"
+          "$RUNNER_TEMP/new-cli-release-check/self-host" apps list --json >/dev/null
+          "$RUNNER_TEMP/new-cli-release-check/self-host" skill >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: new-cli-${{ github.ref_name }}
+          path: |
+            new-cli/dist/self-host_*.tar.gz
+            new-cli/dist/checksums.txt
+          if-no-files-found: error
+      - name: Publish and verify immutable CLI assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version=$SELF_HOST_RELEASE_VERSION
+          assets=("dist/self-host_${version}_linux_amd64.tar.gz" "dist/self-host_${version}_linux_arm64.tar.gz" "dist/self-host_${version}_darwin_arm64.tar.gz" dist/checksums.txt)
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux amd64/arm64 and macOS arm64 CLI. Linux binaries also run inside WSL; native Windows and Intel macOS are unsupported."
+          fi
+          mkdir -p "$RUNNER_TEMP/new-cli-release-download"
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/new-cli-release-download"
+          for asset in "${assets[@]}"; do
+            cmp "$asset" "$RUNNER_TEMP/new-cli-release-download/${asset##*/}"
+          done
+          (cd "$RUNNER_TEMP/new-cli-release-download" && sha256sum --check checksums.txt)
+          gh release edit "$RELEASE_TAG" --draft=false --latest=false

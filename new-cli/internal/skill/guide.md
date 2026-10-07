@@ -179,7 +179,16 @@ read that file directly.
 
 ## Updating the binary
 
-`self-host self-update` downloads the latest release, verifies its sha256
+`self-host self-update` selects the highest stable `new-cli-vX.Y.Z` release
+from `ajnart/selfhost-skills`, verifies its sha256
 checksum, and replaces the running binary. It prints the old and new versions
 and refuses on a checksum mismatch. A development build must be replaced with
 a release using the install script instead.
+
+Linux amd64/arm64 and macOS arm64 are build targets. Use the Linux binary
+inside WSL; native Windows and Intel macOS are unsupported. Cross-compilation
+alone does not prove native platform support.
+
+For private releases, provide `SELF_HOST_GITHUB_TOKEN` through your credential
+provider. It is used for authenticated API downloads and is never printed.
+Never put its value in commands, reports or saved client configuration.

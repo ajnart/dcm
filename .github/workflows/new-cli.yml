@@ -1,6 +1,12 @@
 name: new-cli
 
 on:
+  workflow_dispatch:
+    inputs:
+      intel_macos:
+        description: Run optional Intel macOS binary candidate smoke (release support remains disabled)
+        type: boolean
+        default: false
   pull_request:
     paths:
       - "new-cli/**"
@@ -20,6 +26,7 @@ defaults:
 
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,3 +39,152 @@ jobs:
         run: go vet ./... && go vet -tags e2e ./e2e/
       - name: Test
         run: go test ./...
+
+  native-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    name: Native ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            os: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+          - runner: macos-15
+            os: darwin
+            arch: arm64
+    env:
+      SMOKE_VERSION: "0.0.44"
+      TARGET_OS: ${{ matrix.os }}
+      TARGET_ARCH: ${{ matrix.arch }}
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+          cache-dependency-path: new-cli/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Build and execute native binary
+        shell: bash
+        run: |
+          test "$(go env GOHOSTOS)" = "$TARGET_OS"
+          test "$(go env GOHOSTARCH)" = "$TARGET_ARCH"
+          smoke_root="$RUNNER_TEMP/new-cli-native-smoke"
+          mkdir -p "$smoke_root"
+          go build -trimpath -ldflags="-s -w -X main.version=$SMOKE_VERSION" -o "$smoke_root/self-host" ./cmd/self-host
+          export SELF_HOST_HOME="$smoke_root/project"
+          test "$("$smoke_root/self-host" --version)" = "$SMOKE_VERSION"
+          "$smoke_root/self-host" --help > "$smoke_root/help.txt"
+          "$smoke_root/self-host" apps list --json > "$smoke_root/apps.json"
+          "$smoke_root/self-host" skill > "$smoke_root/skill.md"
+          uname -s > "$smoke_root/host-os.txt"
+          uname -m > "$smoke_root/host-arch.txt"
+          tar -czf "$smoke_root/self-host_${SMOKE_VERSION}_${TARGET_OS}_${TARGET_ARCH}.tar.gz" -C "$smoke_root" self-host
+      - name: Install local checksummed archive and reject corruption
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import http.server
+          import json
+          import os
+          import pathlib
+          import subprocess
+          import threading
+
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "new-cli-native-smoke"
+          version = os.environ["SMOKE_VERSION"]
+          tag = "new-cli-v" + version
+          archive_name = "self-host_{}_{}_{}.tar.gz".format(version, os.environ["TARGET_OS"], os.environ["TARGET_ARCH"])
+          archive = (root / archive_name).read_bytes()
+          checksum = hashlib.sha256(archive).hexdigest()
+          corrupt = False
+
+          class Handler(http.server.BaseHTTPRequestHandler):
+              def do_GET(self):
+                  if self.path == "/api/releases/tags/" + tag:
+                      body = json.dumps({"tag_name": tag, "draft": False, "prerelease": False, "assets": []}).encode()
+                  elif self.path == "/web/releases/download/" + tag + "/checksums.txt":
+                      body = (checksum + "  " + archive_name + "\n").encode()
+                  elif self.path == "/web/releases/download/" + tag + "/" + archive_name:
+                      body = archive
+                      if corrupt:
+                          body = archive + b"corrupt"
+                  else:
+                      self.send_error(404)
+                      return
+                  self.send_response(200)
+                  self.end_headers()
+                  self.wfile.write(body)
+
+              def log_message(self, *args):
+                  pass
+
+          server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+          threading.Thread(target=server.serve_forever, daemon=True).start()
+          base = "http://127.0.0.1:" + str(server.server_port)
+          env = dict(os.environ)
+          env.pop("SELF_HOST_GITHUB_TOKEN", None)
+          env.update({"SELF_HOST_VERSION": version, "SELF_HOST_INSTALL_DIR": str(root / "installed"), "SELF_HOST_RELEASES_URL": base + "/api", "SELF_HOST_WEB_URL": base + "/web", "SELF_HOST_HOME": str(root / "project")})
+          try:
+              result = subprocess.run(["bash", "install.sh"], env=env, capture_output=True, text=True, timeout=60, check=True)
+              (root / "install.txt").write_text(result.stdout + result.stderr)
+              installed = root / "installed" / "self-host"
+              assert subprocess.check_output([str(installed), "--version"], env=env, text=True).strip() == version
+              original = installed.read_bytes()
+              corrupt = True
+              result = subprocess.run(["bash", "install.sh"], env=env, capture_output=True, text=True, timeout=60)
+              assert result.returncode != 0 and "checksum mismatch" in result.stderr, result.stdout + result.stderr
+              assert installed.read_bytes() == original, "corruption replaced existing binary"
+              (root / "checksum.txt").write_text(checksum + "  " + archive_name + "\n")
+              assert json.loads((root / "apps.json").read_text())
+          finally:
+              server.shutdown()
+              server.server_close()
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-smoke-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/new-cli-native-smoke
+          if-no-files-found: error
+
+  intel-macos-candidate:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.intel_macos)
+    name: Intel macOS candidate (no release support)
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    env:
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+          cache-dependency-path: new-cli/go.sum
+      - name: Build and execute native Intel candidate
+        shell: bash
+        run: |
+          test "$(go env GOHOSTOS)" = darwin
+          test "$(go env GOHOSTARCH)" = amd64
+          smoke_root="$RUNNER_TEMP/new-cli-intel-candidate"
+          mkdir -p "$smoke_root"
+          go build -trimpath -ldflags="-s -w -X main.version=0.0.44" -o "$smoke_root/self-host" ./cmd/self-host
+          export SELF_HOST_HOME="$smoke_root/project"
+          test "$("$smoke_root/self-host" --version)" = 0.0.44
+          "$smoke_root/self-host" --help > "$smoke_root/help.txt"
+          "$smoke_root/self-host" apps list --json > "$smoke_root/apps.json"
+          "$smoke_root/self-host" skill > "$smoke_root/skill.md"
+          uname -m > "$smoke_root/host-arch.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: intel-macos-candidate
+          path: ${{ runner.temp }}/new-cli-intel-candidate
+          if-no-files-found: error

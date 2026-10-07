@@ -54,7 +54,7 @@ func tarGz(t *testing.T, files map[string]string) []byte {
 
 func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server {
 	t.Helper()
-	version := strings.TrimPrefix(f.tag, "v")
+	version := strings.TrimPrefix(f.tag, "new-cli-v")
 	name := fmt.Sprintf("self-host_%s_%s_%s.tar.gz", version, goos, goarch)
 	archive := tarGz(t, map[string]string{"LICENSE": "MIT", "self-host": f.binary})
 	sum := sha256.Sum256(archive)
@@ -65,13 +65,13 @@ func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server
 	download := "/web/releases/download/" + f.tag + "/"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/releases/latest":
+		case "/api/releases":
 			f.apiCalls++
 			if f.apiError != 0 {
 				w.WriteHeader(f.apiError)
 				return
 			}
-			fmt.Fprintf(w, `{"tag_name": %q}`, f.tag)
+			fmt.Fprintf(w, `[{"tag_name":"v99.0.0"},{"tag_name":%q}]`, f.tag)
 		case "/web/releases/latest":
 			if f.noRedirect {
 				w.WriteHeader(http.StatusNotFound)
@@ -118,7 +118,7 @@ func updateDeps(t *testing.T, version string, server *httptest.Server) (*system.
 }
 
 func TestSelfUpdateReplacesTheBinaryAndReportsBothVersions(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -143,7 +143,7 @@ func TestSelfUpdateReplacesTheBinaryAndReportsBothVersions(t *testing.T) {
 }
 
 func TestSelfUpdateEmitsJSONEvents(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary"}
 	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update", "--json")
@@ -157,7 +157,7 @@ func TestSelfUpdateEmitsJSONEvents(t *testing.T) {
 }
 
 func TestSelfUpdateRefusesAChecksumMismatch(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", checksum: strings.Repeat("ab", 32)}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary", checksum: strings.Repeat("ab", 32)}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -174,7 +174,7 @@ func TestSelfUpdateRefusesAChecksumMismatch(t *testing.T) {
 }
 
 func TestSelfUpdateDoesNothingWhenAlreadyCurrent(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.10.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.10.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "v1.10.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -188,7 +188,7 @@ func TestSelfUpdateDoesNothingWhenAlreadyCurrent(t *testing.T) {
 }
 
 func TestSelfUpdateComparesVersionsNumerically(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.10.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.10.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "1.9.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -199,7 +199,7 @@ func TestSelfUpdateComparesVersionsNumerically(t *testing.T) {
 }
 
 func TestSelfUpdateTellsADevBuildToInstallARelease(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "dev", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -213,7 +213,7 @@ func TestSelfUpdateTellsADevBuildToInstallARelease(t *testing.T) {
 }
 
 func TestSelfUpdateNamesTheMissingPlatformAsset(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", noAsset: true}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary", noAsset: true}
 	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -224,7 +224,7 @@ func TestSelfUpdateNamesTheMissingPlatformAsset(t *testing.T) {
 }
 
 func TestSelfUpdateReportsAnUnreachableReleaseServer(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", apiError: http.StatusForbidden, noRedirect: true}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", noRedirect: true, apiError: http.StatusForbidden}
 	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -234,8 +234,8 @@ func TestSelfUpdateReportsAnUnreachableReleaseServer(t *testing.T) {
 	}
 }
 
-func TestSelfUpdateFindsTheLatestTagThroughTheRedirectWithoutTheRateLimitedAPI(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", apiError: http.StatusForbidden}
+func TestSelfUpdateSelectsCLIReleaseInsteadOfLegacyPluginLatest(t *testing.T) {
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -243,13 +243,13 @@ func TestSelfUpdateFindsTheLatestTagThroughTheRedirectWithoutTheRateLimitedAPI(t
 	if r.Code != 0 || clitest.Read(t, exe) != "new-binary" {
 		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
 	}
-	if rel.apiCalls != 0 {
-		t.Errorf("the API was called %d times although the redirect worked", rel.apiCalls)
+	if rel.apiCalls != 1 {
+		t.Errorf("the release list was called %d times", rel.apiCalls)
 	}
 }
 
-func TestSelfUpdateFallsBackToTheAPIWhenTheRedirectFails(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", noRedirect: true}
+func TestSelfUpdateUsesCLIReleaseListWhenWebLatestIsUnavailable(t *testing.T) {
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary", noRedirect: true}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -260,7 +260,7 @@ func TestSelfUpdateFallsBackToTheAPIWhenTheRedirectFails(t *testing.T) {
 }
 
 func TestSelfUpdateDownloadsAreNotCutOffByTheShortAPITimeout(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", archiveDelay: 300 * time.Millisecond}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary", archiveDelay: 300 * time.Millisecond}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 	deps.HTTP = &http.Client{Timeout: 100 * time.Millisecond}
 
@@ -272,7 +272,7 @@ func TestSelfUpdateDownloadsAreNotCutOffByTheShortAPITimeout(t *testing.T) {
 }
 
 func TestSelfUpdateDoesNotSendTheAPIAcceptHeaderOnDownloads(t *testing.T) {
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary", downloadAccept: "unset"}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary", downloadAccept: "unset"}
 	deps, _ := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 
 	clitest.Run(t, deps, catalog.Default(), "self-update")
@@ -286,7 +286,7 @@ func TestSelfUpdateExplainsAnUnwritableInstallDirectory(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root can write anywhere")
 	}
-	rel := &fakeRelease{tag: "v1.2.0", binary: "new-binary"}
+	rel := &fakeRelease{tag: "new-cli-v1.2.0", binary: "new-binary"}
 	deps, exe := updateDeps(t, "1.0.0", rel.server(t, "linux", "amd64"))
 	dir := filepath.Dir(exe)
 	if err := os.Chmod(dir, 0o555); err != nil {
