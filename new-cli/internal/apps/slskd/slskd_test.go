@@ -90,7 +90,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range results {
-		if r.ID == "wait" {
+		if r.ID == "ready" {
 			continue
 		}
 		if r.Status != "skip" {

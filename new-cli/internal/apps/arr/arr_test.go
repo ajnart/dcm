@@ -229,7 +229,7 @@ func TestSecondSetupSkipsEveryStepExceptWaitAndCheck(t *testing.T) {
 	steps := 0
 	for _, event := range r.Events {
 		step, _ := event["step"].(string)
-		if event["app"] == nil || event["event"] == "step.start" || step == "wait" || step == "check" {
+		if event["app"] == nil || event["event"] == "step.start" || step == "ready" || step == "check" {
 			continue
 		}
 		steps++

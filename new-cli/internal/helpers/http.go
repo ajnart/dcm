@@ -137,23 +137,84 @@ func snippet(body []byte) string {
 	return s
 }
 
-// WaitHTTP polls path until it answers below 500 or timeout passes.
-func (h *H) WaitHTTP(ctx context.Context, path string, timeout time.Duration) error {
-	return h.Step(ctx, "wait", "wait for the web server", StepSpec{
+// readyConfig holds what a readiness probe accepts and how long it polls.
+type readyConfig struct {
+	want       []int
+	contains   string
+	noRedirect bool
+	timeout    time.Duration
+}
+
+// ReadyOption changes one aspect of a Ready probe.
+type ReadyOption func(*readyConfig)
+
+// WantStatus accepts exactly these HTTP statuses instead of the default
+// "anything below 500".
+func WantStatus(codes ...int) ReadyOption {
+	return func(c *readyConfig) { c.want = codes }
+}
+
+// Contains accepts a response only when its body contains s.
+func Contains(s string) ReadyOption {
+	return func(c *readyConfig) { c.contains = s }
+}
+
+// NoRedirect treats a 3xx as the answer instead of following it.
+func NoRedirect() ReadyOption {
+	return func(c *readyConfig) { c.noRedirect = true }
+}
+
+// Timeout bounds how long Ready polls; the default is three minutes.
+func Timeout(d time.Duration) ReadyOption {
+	return func(c *readyConfig) { c.timeout = d }
+}
+
+// Ready is the one readiness step every App needs: Check is a single probe,
+// Do polls until it passes or the timeout ends. A rerun whose App already
+// answers skips instead of polling again.
+func (h *H) Ready(ctx context.Context, path string, opts ...ReadyOption) error {
+	cfg := readyConfig{timeout: 3 * time.Minute}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	attempt := func(ctx context.Context) (bool, error) {
+		resp, err := h.HTTP(ctx, Request{Path: path, NoRedirect: cfg.noRedirect})
+		if err != nil {
+			return false, err
+		}
+		if !cfg.wanted(resp.Status) {
+			return false, fmt.Errorf("HTTP %d", resp.Status)
+		}
+		if cfg.contains != "" && !strings.Contains(string(resp.Body), cfg.contains) {
+			return false, fmt.Errorf("the response did not contain %q", cfg.contains)
+		}
+		return true, nil
+	}
+	return h.Step(ctx, "ready", "wait for "+h.App+" to answer on "+path, StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return attempt(ctx) },
 		Do: func(ctx context.Context) error {
-			return h.Poll(ctx, timeout, func(ctx context.Context) (bool, error) {
-				resp, err := h.HTTP(ctx, Request{Path: path})
-				if err != nil {
-					return false, err
-				}
-				if resp.Status >= 500 {
-					return false, fmt.Errorf("HTTP %d", resp.Status)
-				}
-				return true, nil
-			})
+			return h.Poll(ctx, cfg.timeout, attempt)
 		},
-		Hint: "Check the App's logs (self-host logs " + h.App + ") for startup errors.",
+		Hint: h.App + " did not answer on " + path + "; read its logs with: self-host logs " + h.App,
 	})
+}
+
+func (c readyConfig) wanted(status int) bool {
+	if len(c.want) == 0 {
+		return status < 500
+	}
+	for _, want := range c.want {
+		if status == want {
+			return true
+		}
+	}
+	return false
+}
+
+// WaitHTTP is deprecated in favour of Ready, which reports skip on a rerun.
+// It stays only while the last caller, owned by a separate change, migrates.
+func (h *H) WaitHTTP(ctx context.Context, path string, timeout time.Duration) error {
+	return h.Ready(ctx, path, Timeout(timeout))
 }
 
 // Poll calls fn until it reports done, ctx ends or timeout passes.
