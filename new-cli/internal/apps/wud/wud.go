@@ -220,13 +220,25 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/auth/user"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "the web UI accepts the Admin login", helpers.StepSpec{
+	if err := h.Step(ctx, "admin", "the web UI accepts the Admin login", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("the administrator is seeded from the environment when the container starts")
 		},
 		Hint:       "Recreate the container so it reads the Admin login from secrets.env: self-host start wud",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	// WUD starts discovery on a deferred timer after registration. A working
+	// login can precede that scan, so observe approved inventory separately.
+	discovery, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	attempt := func(ctx context.Context) (bool, error) { return approvedInventoryReady(ctx, h) }
+	return h.Step(discovery, "inventory", "wait for the approved Docker watcher to discover an image", helpers.StepSpec{
+		Check: attempt,
+		Do:    func(ctx context.Context) error { return h.Poll(ctx, 10*time.Second, attempt) },
+		Hint:  "The approved Docker watcher has not discovered an image; verify endpoint TLS and label an owned container wud.watch=true, then run: self-host setup wud",
 	})
 }
 
@@ -251,11 +263,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if inventory.Status != http.StatusOK {
 		return fmt.Errorf("authenticated watcher inventory returned HTTP %d", inventory.Status)
 	}
-	var containers []struct {
-		ID      string `json:"id"`
-		Watcher string `json:"watcher"`
-		Error   any    `json:"error"`
-	}
+	var containers []watcherContainer
 	if err := inventory.Decode(&containers); err != nil {
 		return err
 	}
@@ -287,6 +295,51 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		}
 		return nil
 	}
+	return missingInventory(ctx, h, containers)
+}
+
+func (App) Links() []app.Link { return nil }
+
+func boundedInventoryCount(count int) int {
+	if count > 1024 {
+		return -1
+	}
+	return count
+}
+
+type watcherContainer struct {
+	ID      string `json:"id"`
+	Watcher string `json:"watcher"`
+	Error   any    `json:"error"`
+	Image   struct {
+		ID string `json:"id"`
+	} `json:"image"`
+}
+
+func approvedInventoryReady(ctx context.Context, h *helpers.H) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return false, errors.New("approved Docker inventory request failed")
+	}
+	if response.Status != http.StatusOK {
+		return false, fmt.Errorf("approved Docker inventory returned HTTP %d", response.Status)
+	}
+	var containers []watcherContainer
+	if response.Decode(&containers) != nil {
+		return false, errors.New("approved Docker inventory returned invalid metadata")
+	}
+	for _, container := range containers {
+		if container.ID != "" && container.Watcher == "approved" && container.Error == nil && container.Image.ID != "" {
+			return true, nil
+		}
+	}
+	return false, missingInventory(ctx, h, containers)
+}
+
+func missingInventory(ctx context.Context, h *helpers.H, containers []watcherContainer) error {
 	nonemptyIDs, approvedCount := 0, 0
 	for _, container := range containers {
 		if container.ID != "" {
@@ -326,13 +379,4 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		dockerWatchers = -1
 	}
 	return fmt.Errorf("the administrator works, but the approved Docker watcher has no verified inventory; inventory_count=%d nonempty_ids=%d approved_count=%d docker_watchers=%d approved_registered=%t watcher_http=%d watcher_metadata_valid=%t; verify the approved TLS endpoint and explicitly label an owned container wud.watch=true", inventoryCount, boundedInventoryCount(nonemptyIDs), boundedInventoryCount(approvedCount), dockerWatchers, approvedRegistered, watcherHTTP, metadataValid)
-}
-
-func (App) Links() []app.Link { return nil }
-
-func boundedInventoryCount(count int) int {
-	if count > 1024 {
-		return -1
-	}
-	return count
 }

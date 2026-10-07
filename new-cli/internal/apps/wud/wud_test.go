@@ -51,7 +51,7 @@ func handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved"}})
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
 	})
 	mux.HandleFunc("POST /api/containers/owned-fixture/watch", func(w http.ResponseWriter, r *http.Request) {
 		if !authOK(r) {
