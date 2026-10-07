@@ -46,8 +46,12 @@ func findTarget(inventory []targetSpec, id string) targetSpec {
 }
 
 var localInputs = map[string]map[string]string{
-	"restic":    {"repository": "/repository"},
-	"borgmatic": {"repository": "/mnt/borg-repository"},
+	"archive-team-warrior": {"nickname": "selfhost-e2e"},
+	"headscale":            {"canonical-origin": "https://headscale.e2e.selfhost.test", "magic-dns-domain": "mesh.e2e.selfhost.test"},
+	"authelia":             {"origin": "https://auth.e2e.selfhost.test"},
+	"pangolin":             {"PANGOLIN_CANONICAL_ORIGIN": "https://pangolin.e2e.selfhost.test", "PANGOLIN_BASE_DOMAIN": "e2e.selfhost.test"},
+	"restic":               {"repository": "/repository"},
+	"borgmatic":            {"repository": "/mnt/borg-repository"},
 }
 
 // Credentials/licenses and externally owned endpoints are never synthesized.

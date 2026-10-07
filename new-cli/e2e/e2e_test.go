@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,17 @@ import (
 const defaultTargets = "ntfy vaultwarden media"
 
 func TestE2E(t *testing.T) {
+	workers := 1
+	if value := os.Getenv("E2E_PARALLEL"); value != "" {
+		var err error
+		workers, err = strconv.Atoi(value)
+		if err != nil || workers < 1 || workers > 4 {
+			t.Fatal("E2E_PARALLEL must be 1 through 4")
+		}
+	}
+	if workers > 1 && os.Getenv("E2E_LOG_DIR") == "" {
+		t.Fatal("parallel acceptance requires explicit E2E_LOG_DIR")
+	}
 	c := catalog.Default()
 	inventory := acceptanceInventory(c)
 	logDir := os.Getenv("E2E_LOG_DIR")
@@ -30,7 +42,6 @@ func TestE2E(t *testing.T) {
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		t.Fatal("create evidence directory")
 	}
-	t.Setenv("E2E_LOG_DIR", logDir)
 	data, _ := json.MarshalIndent(inventory, "", "  ")
 	if err := os.WriteFile(filepath.Join(logDir, "inventory.json"), append(data, '\n'), 0o600); err != nil {
 		t.Fatal("write inventory")
@@ -42,7 +53,7 @@ func TestE2E(t *testing.T) {
 			t.Fatal("initialize evidence")
 		}
 	}
-	t.Logf("Evidence: %s (serial; maximum 12 App environments, global ceiling 20)", logDir)
+	t.Logf("Evidence: %s (workers=%d, global App environment ceiling 20; heavy targets exclusive)", logDir, workers)
 	ids := strings.Fields(os.Getenv("E2E_TARGETS"))
 	if len(ids) == 0 {
 		ids = strings.Fields(defaultTargets)
@@ -79,50 +90,68 @@ func TestE2E(t *testing.T) {
 	if err != nil {
 		t.Fatal("global serial slot unavailable")
 	}
-	defer release()
+	t.Cleanup(release)
 	if _, err := os.Lstat(lockPath + ".blocked"); err == nil {
 		t.Fatal("previous owned teardown failed; recover retained project before another sweep")
 	}
-	guard := &sweepGuard{ProjectNames: map[string]string{}}
+	guard := newSweepGuard(workers)
 	guard.OnBlock = func(project string) {
 		data, _ := json.Marshal(struct {
-			Project        string `json:"project"`
-			ComposeProject string `json:"compose_project"`
-		}{project, guard.ProjectNames[project]})
+			Project          string            `json:"project"`
+			ComposeProject   string            `json:"compose_project"`
+			RetainedProjects []retainedProject `json:"retained_projects"`
+		}{project, guard.ProjectName(project), guard.RetainedProjects()})
 		if err := os.WriteFile(lockPath+".blocked", append(data, '\n'), 0o600); err != nil {
 			t.Error("failed to persist teardown blocker")
 		}
 	}
 	deadline, hasDeadline := t.Deadline()
+	runCtx := context.Background()
+	runCancel := func() {}
+	if hasDeadline {
+		runCtx, runCancel = context.WithDeadline(runCtx, deadline.Add(-2*time.Minute))
+	}
+	t.Cleanup(runCancel)
 	for _, spec := range selected {
-		if !guard.CanRunNext() {
-			t.Error("remaining targets not-run after owned teardown failure")
-			break
-		}
-		if hasDeadline && time.Now().After(deadline.Add(-2*time.Minute)) {
-			t.Error("deadline near; remaining inventory stays not-run")
-			break
-		}
 		spec := spec
 		t.Run(evidenceName(spec), func(t *testing.T) {
-			r := newRunner(t, guard)
+			if workers > 1 {
+				t.Parallel()
+			}
+			evidence := newEvidence(spec, codeHead)
+			evidence.BinarySHA256 = binarySHA
+			evidence.Classification = classifyTarget(c, spec)
+			if evidence.Classification != "runnable" {
+				evidence.Outcome = evidence.Classification
+				if writeInitialEvidence(logDir, evidence) != nil {
+					t.Fatal("write classified evidence")
+				}
+				t.Skip(evidence.Classification)
+			}
+			lease, err := guard.acquire(runCtx, len(spec.Apps), exclusiveTarget(c, spec))
+			if err != nil {
+				evidence.Outcome = "blocked"
+				evidence.Classification = "capacity-or-teardown-blocked"
+				writeInitialEvidence(logDir, evidence)
+				t.Skip("target not started: capacity deadline or owned teardown blocker")
+			}
+			var r *runner
+			var reservation *portReservation
+			// Registered before runner cleanup: LIFO cleanup releases the whole target
+			// only after both source and restore have actually been torn down.
+			t.Cleanup(func() {
+				clean := r == nil || (r.teardownOK && (r.restored == nil || r.restored.teardownOK))
+				if clean && reservation != nil {
+					reservation.release()
+				}
+				lease.finish(clean)
+			})
+			r = newRunner(t, guard, logDir)
 			r.spec = spec
 			r.target = evidenceName(spec)
-			r.evidence = newEvidence(spec, codeHead)
-			r.evidence.BinarySHA256 = binarySHA
-			r.evidence.Classification = classifyTarget(c, spec)
+			r.evidence = evidence
 			r.saveEvidence()
-			if r.evidence.Classification != "runnable" {
-				r.evidence.Outcome = r.evidence.Classification
-				r.saveEvidence()
-				t.Skip(r.evidence.Classification)
-			}
-			if len(spec.Apps) > 20 {
-				r.evidence.Outcome = "blocked"
-				r.saveEvidence()
-				t.Fatal("target exceeds global App environment ceiling")
-			}
-			reservation, err := reserveTargetPorts(c, spec)
+			reservation, err = reserveTargetPorts(c, spec, guard.ports)
 			if err != nil {
 				r.evidence.Outcome = "blocked"
 				r.saveEvidence()
@@ -131,6 +160,7 @@ func TestE2E(t *testing.T) {
 			r.verify(spec, reservation)
 		})
 	}
+
 }
 
 func writeInitialEvidence(dir string, e *targetEvidence) error {

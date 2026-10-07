@@ -14,18 +14,22 @@ GOCACHE=/tmp/selfhost-go-cache GOMODCACHE=/tmp/selfhost-go-modcache \
   go test -tags e2e -run '^TestE2E$' -v -timeout 90m ./e2e/
 ```
 
-The harness serializes all cooperating local processes through an owned,
-mode-0600 OS lock in the system temporary directory. It runs one target at a
-time, including heavy/multiservice targets. The largest current Recipe is 12
-Apps, below the global 20-App environment ceiling. Source containers are
-removed before the isolated restore environment starts. Do not run another
-Docker acceptance harness outside this lock while a sweep is active.
+The harness owns a mode-0600 OS lock in the system temporary directory through
+all child cleanup. It defaults to serial execution; opt in with `E2E_PARALLEL=4`
+and an explicit `E2E_LOG_DIR` to run up to four light single-App targets together.
+The scheduler acquires the entire App count atomically, with a global ceiling
+of 20. Recipes, multiservice Apps, known heavy Apps, and fixed/secondary-port
+targets run exclusively. Source containers are removed before the isolated
+restore environment starts. Capacity and the shared port registry remain owned
+until both environments are successfully removed; teardown failure retains
+that budget and blocks queued starts. CI defaults remain serial. Do not run
+another Docker acceptance harness outside the OS lock during a sweep.
 
 Each target has a distinct temporary directory and Compose project. Primary
 ports are selected with live loopback socket reservations; published secondary
 TCP/UDP ports are checked too. Leases are released immediately before Docker
-binds them, while the global lock remains held through teardown. This excludes
-other harnesses, not unrelated external processes: an external port race is a
+binds them, while the shared registry reserves those ports through teardown. The global OS
+lock excludes other harness processes, not unrelated external processes: an external port race is a
 failed install, never a verified pass. Fixed-port targets remain serial and
 record blocked when their required ports are unavailable. Only loopback source
 port templates are accepted after resolving `${BIND_IP}`. Ambient Compose,
@@ -74,3 +78,10 @@ sidecars; incomplete inspection cannot yield a lifecycle pass. Pre-install
 source validation rejects fixed global resource/container names, external
 networks, host/container namespaces, Docker socket mounts and Compose ownership
 labels.
+
+The local fixture inputs additionally supply an inert Warrior nickname,
+Headscale origin/MagicDNS names, Authelia cookie origin, and Pangolin origin/base
+domain under `e2e.selfhost.test`. These permit the existing local configuration,
+identity and health probes; they do not create DNS records, TLS routes, public
+listeners, peer enrollment or resource/tunnel acceptance. NetBird, external
+providers, SMTP and Docker watcher endpoints are not synthesized.

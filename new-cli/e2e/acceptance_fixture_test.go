@@ -29,7 +29,7 @@ func TestInputClassification(t *testing.T) {
 	for _, tc := range []struct{ id, status string }{
 		{"ntfy", "runnable"}, {"restic", "runnable"}, {"borgmatic", "runnable"},
 		{"cloudflare-tunnel", "awaiting-external-credentials"}, {"minio", "awaiting-external-credentials"},
-		{"headscale", "missing-configuration"}, {"remote-access", "awaiting-external-credentials"},
+		{"headscale", "runnable"}, {"remote-access", "awaiting-external-credentials"},
 	} {
 		target := findTarget(acceptanceInventory(catalog.Default()), tc.id)
 		if got := classifyTarget(catalog.Default(), target); got != tc.status {
@@ -163,5 +163,18 @@ func TestFailureEvidenceUsesOnlyRedactedRunEventFallback(t *testing.T) {
 	}
 	if got := redactedFailures([]event{{Event: events.Info, Error: "unknown output"}}, []string{"ntfy"}); len(got) != 0 {
 		t.Fatal("unknown output was trusted")
+	}
+}
+
+func TestStraightforwardLocalInputsExerciseConfiguration(t *testing.T) {
+	c := catalog.Default()
+	inventory := acceptanceInventory(c)
+	for _, id := range []string{"archive-team-warrior", "headscale", "authelia", "pangolin"} {
+		if got := classifyTarget(c, findTarget(inventory, id)); got != "runnable" {
+			t.Errorf("%s: ordinary local configuration still blocked", id)
+		}
+	}
+	if got := classifyTarget(c, findTarget(inventory, "netbird")); got != "awaiting-external-credentials" {
+		t.Fatal("NetBird route boundary accidentally enabled")
 	}
 }

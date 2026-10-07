@@ -127,3 +127,30 @@ func TestEveryCatalogSourceKeepsProjectIsolation(t *testing.T) {
 		}
 	}
 }
+
+func TestPortRegistrySurvivesSocketReleaseUntilTeardown(t *testing.T) {
+	pool := &portRegistry{used: map[publishedPort]*portReservation{}}
+	spec := findTarget(acceptanceInventory(catalog.Default()), "ntfy")
+	first, err := reserveTargetPorts(catalog.Default(), spec, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.release()
+	port := publishedPort{first.primary["ntfy"], "tcp"}
+	first.closeSockets()
+	if !pool.owns(first, port) {
+		t.Fatal("socket release freed lifetime reservation")
+	}
+	second, err := reserveTargetPorts(catalog.Default(), spec, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.release()
+	if first.primary["ntfy"] == second.primary["ntfy"] {
+		t.Fatal("active target reused a released socket port")
+	}
+	first.release()
+	if pool.owns(first, port) {
+		t.Fatal("successful teardown retained port")
+	}
+}

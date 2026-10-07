@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -96,22 +97,53 @@ func publishedPorts(source string) ([]publishedPort, error) {
 	return ports, nil
 }
 
+type portRegistry struct {
+	mu   sync.Mutex
+	used map[publishedPort]*portReservation
+}
+
 type portReservation struct {
+	pool      *portRegistry
+	owned     []publishedPort
 	primary   map[string]int
 	listeners []io.Closer
 }
 
-func (r *portReservation) release() {
+func (r *portReservation) closeSockets() {
 	for _, l := range r.listeners {
 		l.Close()
 	}
 	r.listeners = nil
 }
+func (r *portReservation) releaseLocked() {
+	r.closeSockets()
+	for _, p := range r.owned {
+		if r.pool.used[p] == r {
+			delete(r.pool.used, p)
+		}
+	}
+	r.owned = nil
+}
+func (r *portReservation) release() { r.pool.mu.Lock(); defer r.pool.mu.Unlock(); r.releaseLocked() }
+func (p *portRegistry) owns(r *portReservation, port publishedPort) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.used[port] == r
+}
 
-func reserveTargetPorts(c *catalog.Catalog, t targetSpec) (*portReservation, error) {
-	r := &portReservation{primary: map[string]int{}}
-	reserved := map[publishedPort]bool{}
-	fail := func(err error) (*portReservation, error) { r.release(); return nil, err }
+func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry) (*portReservation, error) {
+	pool := &portRegistry{used: map[publishedPort]*portReservation{}}
+	if len(pools) > 0 && pools[0] != nil {
+		pool = pools[0]
+	}
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	if pool.used == nil {
+		pool.used = map[publishedPort]*portReservation{}
+	}
+	r := &portReservation{primary: map[string]int{}, pool: pool}
+	fail := func(err error) (*portReservation, error) { r.releaseLocked(); return nil, err }
+	claim := func(p publishedPort) { pool.used[p] = r; r.owned = append(r.owned, p) }
 	for _, id := range t.Apps {
 		a, ok := c.App(id)
 		if !ok {
@@ -119,17 +151,29 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec) (*portReservation, err
 		}
 		primary := 0
 		if a.Info().Port > 0 {
-			listener, err := net.Listen("tcp4", "127.0.0.1:0")
-			if err != nil {
-				return fail(err)
+			for attempts := 0; attempts < 1024; attempts++ {
+				listener, err := net.Listen("tcp4", "127.0.0.1:0")
+				if err != nil {
+					return fail(err)
+				}
+				candidate := listener.Addr().(*net.TCPAddr).Port
+				p := publishedPort{candidate, "tcp"}
+				if pool.used[p] != nil {
+					listener.Close()
+					continue
+				}
+				primary = candidate
+				r.primary[id] = primary
+				r.listeners = append(r.listeners, listener)
+				claim(p)
+				break
 			}
-			primary = listener.Addr().(*net.TCPAddr).Port
-			r.primary[id] = primary
-			r.listeners = append(r.listeners, listener)
-			reserved[publishedPort{primary, "tcp"}] = true
+			if primary == 0 {
+				return fail(errors.New("no isolated primary port available"))
+			}
 		}
 		source := a.Compose(app.RenderContext{Port: primary, Inputs: localInputs[id]})
-		if err := validateComposeIsolation(source); err != nil {
+		if validateComposeIsolation(source) != nil {
 			return fail(fmt.Errorf("%s: Compose resource isolation unavailable", id))
 		}
 		ports, err := publishedPorts(source)
@@ -137,8 +181,11 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec) (*portReservation, err
 			return fail(fmt.Errorf("%s: port isolation unavailable", id))
 		}
 		for _, p := range ports {
-			if reserved[p] {
-				continue
+			if owner := pool.used[p]; owner != nil {
+				if owner == r {
+					continue
+				}
+				return fail(fmt.Errorf("%s: required host port already reserved", id))
 			}
 			addr := net.JoinHostPort("127.0.0.1", fmtPort(p.port))
 			var listener io.Closer
@@ -151,33 +198,124 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec) (*portReservation, err
 				return fail(fmt.Errorf("%s: required %s host port %d is unavailable", id, p.protocol, p.port))
 			}
 			r.listeners = append(r.listeners, listener)
-			reserved[p] = true
+			claim(p)
 		}
 	}
 	return r, nil
 }
 
 type sweepGuard struct {
+	blockerMu       sync.Mutex
+	retainedPaths   map[string]bool
+	mu              sync.Mutex
+	workers         int
+	activeJobs      int
+	activeApps      int
+	exclusive       bool
+	changed         chan struct{}
+	ports           *portRegistry
 	ProjectNames    map[string]string
 	Blocked         bool
 	RetainedProject string
 	OnBlock         func(string)
 }
 
-func (g *sweepGuard) CanRunNext() bool { return g == nil || !g.Blocked }
+func (g *sweepGuard) CanRunNext() bool {
+	if g == nil {
+		return true
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return !g.Blocked
+}
+
+func (g *sweepGuard) RegisterProject(project, name string) {
+	if g == nil {
+		return
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.ProjectNames == nil {
+		g.ProjectNames = map[string]string{}
+	}
+	g.ProjectNames[project] = name
+}
+func (g *sweepGuard) ProjectName(project string) string {
+	if g == nil {
+		return ""
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.ProjectNames[project]
+}
+func (g *sweepGuard) Retained() (string, string) {
+	if g == nil {
+		return "", ""
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.RetainedProject, g.ProjectNames[g.RetainedProject]
+}
+
+type retainedProject struct {
+	Project        string `json:"project"`
+	ComposeProject string `json:"compose_project"`
+}
+
+func (g *sweepGuard) RetainedProjects() []retainedProject {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	keys := []string{}
+	for project := range g.retainedPaths {
+		keys = append(keys, project)
+	}
+	sort.Strings(keys)
+	var out []retainedProject
+	for _, project := range keys {
+		out = append(out, retainedProject{project, g.ProjectNames[project]})
+	}
+	return out
+}
+func (g *sweepGuard) Retains(project string) bool {
+	if g == nil {
+		return false
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.RetainedProject == project || g.retainedPaths[project]
+}
+func (g *sweepGuard) Block(project string) {
+	if g == nil {
+		return
+	}
+	// Serialize persistence callbacks too, so a later failure cannot overwrite
+	// the blocker with an older, incomplete recovery inventory.
+	g.blockerMu.Lock()
+	defer g.blockerMu.Unlock()
+	g.mu.Lock()
+	g.Blocked = true
+	if g.retainedPaths == nil {
+		g.retainedPaths = map[string]bool{}
+	}
+	first := !g.retainedPaths[project]
+	g.retainedPaths[project] = true
+	if g.RetainedProject == "" {
+		g.RetainedProject = project
+	}
+	callback := g.OnBlock
+	g.signalLocked()
+	g.mu.Unlock()
+	if first && callback != nil {
+		callback(project)
+	}
+}
 
 func cleanupOwned(down func() error, remove func(), guard *sweepGuard, project string) error {
-	if guard != nil && guard.Blocked && guard.RetainedProject == project {
+	if guard.Retains(project) {
 		return errors.New("owned Project retained after teardown failure")
 	}
 	if err := down(); err != nil {
-		if guard != nil {
-			guard.Blocked = true
-			guard.RetainedProject = project
-			if guard.OnBlock != nil {
-				guard.OnBlock(project)
-			}
-		}
+		guard.Block(project)
 		return err
 	}
 	remove()

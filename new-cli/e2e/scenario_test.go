@@ -84,11 +84,11 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 }
 
 func (r *runner) verify(spec targetSpec, reservation *portReservation) {
-	defer reservation.release()
+	defer reservation.closeSockets()
 	args := installArguments(spec, r.root, reservation.primary)
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
-	reservation.release()
+	reservation.closeSockets()
 	r.stage("install", args, func() result { return r.run(args...) })
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
 	r.stage("idempotency", []string{"setup", "--json"}, func() result {
@@ -151,7 +151,8 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		}
 		return res
 	})
-	restored := newRunner(r.t, r.guard)
+	restored := newRunner(r.t, r.guard, r.logDir)
+	r.restored = restored
 	restored.spec = spec
 	restored.target = r.target + "-restore"
 	r.stage("isolated-restore", []string{"stop", "--json", "then", "restore", archive, "--yes", "--json"}, func() result {
@@ -160,13 +161,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 			return res
 		}
 		if err := r.composeDown(); err != nil {
-			if r.guard != nil {
-				r.guard.Blocked = true
-				r.guard.RetainedProject = r.project
-				if r.guard.OnBlock != nil {
-					r.guard.OnBlock(r.project)
-				}
-			}
+			r.guard.Block(r.project)
 			r.evidence.Cleanup = "failed"
 			r.evidence.RetainedProject = r.project
 			r.evidence.RetainedComposeProject = r.name

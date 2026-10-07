@@ -100,19 +100,21 @@ type result struct {
 }
 
 type runner struct {
-	t        *testing.T
-	root     string
-	project  string
-	name     string
-	target   string
-	env      []string
-	logDir   string
-	evidence *targetEvidence
-	spec     targetSpec
-	guard    *sweepGuard
+	teardownOK bool
+	restored   *runner
+	t          *testing.T
+	root       string
+	project    string
+	name       string
+	target     string
+	env        []string
+	logDir     string
+	evidence   *targetEvidence
+	spec       targetSpec
+	guard      *sweepGuard
 }
 
-func newRunner(t *testing.T, guard *sweepGuard) *runner {
+func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 	t.Helper()
 	root, err := os.MkdirTemp("", "selfhost-e2e-")
 	if err != nil {
@@ -128,12 +130,10 @@ func newRunner(t *testing.T, guard *sweepGuard) *runner {
 		target:  "unnamed",
 		logDir:  os.Getenv("E2E_LOG_DIR"),
 	}
-	if guard != nil {
-		if guard.ProjectNames == nil {
-			guard.ProjectNames = map[string]string{}
-		}
-		guard.ProjectNames[r.project] = r.name
+	if len(logDirs) > 0 {
+		r.logDir = logDirs[0]
 	}
+	guard.RegisterProject(r.project, r.name)
 	r.env = isolatedEnvironment(os.Environ())
 	r.env = append(r.env,
 		"SELF_HOST_HOME="+r.project,
@@ -219,13 +219,16 @@ func (r *runner) cleanup() {
 			r.evidence.RetainedProject = r.project
 			r.evidence.RetainedComposeProject = r.name
 		}
-	} else if r.evidence != nil {
-		if r.guard != nil && r.guard.Blocked {
-			r.evidence.Cleanup = "failed"
-			r.evidence.RetainedProject = r.guard.RetainedProject
-			r.evidence.RetainedComposeProject = r.guard.ProjectNames[r.guard.RetainedProject]
-		} else {
-			r.evidence.Cleanup = "pass"
+	} else {
+		r.teardownOK = true
+		if r.evidence != nil {
+			if r.restored != nil && !r.restored.teardownOK {
+				r.evidence.Cleanup = "failed"
+				r.evidence.RetainedProject = r.restored.project
+				r.evidence.RetainedComposeProject = r.restored.name
+			} else {
+				r.evidence.Cleanup = "pass"
+			}
 		}
 	}
 	if r.evidence != nil {
