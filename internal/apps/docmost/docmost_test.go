@@ -102,8 +102,8 @@ func (b *harness) step(id string) helpers.StepResult {
 }
 
 func TestSetupCreatesTheFirstOwnerThenCheck(t *testing.T) {
-	fake := &fakeDocmost{email: "admin@example.test", pass: "pw"}
-	box := newHarness(t, fake, secrets{"ADMIN_PASSWORD": "pw"})
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw"}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := docmost.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -117,8 +117,8 @@ func TestSetupCreatesTheFirstOwnerThenCheck(t *testing.T) {
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
-	fake := &fakeDocmost{email: "admin@example.test", pass: "pw"}
-	box := newHarness(t, fake, secrets{"ADMIN_PASSWORD": "pw"})
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw"}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := docmost.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("first Setup: %v", err)
@@ -138,8 +138,8 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 }
 
 func TestWrongPasswordHintNamesThePage(t *testing.T) {
-	fake := &fakeDocmost{email: "admin@example.test", pass: "right", owner: true}
-	box := newHarness(t, fake, secrets{"ADMIN_PASSWORD": "wrong"})
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "right", owner: true}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "wrong"})
 	err := docmost.App{}.Setup(context.Background(), box.h)
 	if err == nil {
 		t.Fatal("Setup should fail with the wrong password")

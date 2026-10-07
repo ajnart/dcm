@@ -20,10 +20,9 @@ import (
 // App is Firefly III. Traps: docs/catalog/traps/firefly-iii.md.
 type App struct{}
 
-const (
-	service = "firefly-iii"
-	email   = "admin@example.test"
-)
+const service = "firefly-iii"
+
+func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -132,7 +131,7 @@ func register(ctx context.Context, h *helpers.H) error {
 	form := url.Values{
 		"_token":                {token},
 		"invite_code":           {""},
-		"email":                 {email},
+		"email":                 {adminEmail(h)},
 		"password":              {h.AdminPassword()},
 		"password_confirmation": {h.AdminPassword()},
 	}
@@ -165,7 +164,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if !found {
 		return false, nil
 	}
-	form := url.Values{"_token": {token}, "email": {email}, "password": {h.AdminPassword()}}
+	form := url.Values{"_token": {token}, "email": {adminEmail(h)}, "password": {h.AdminPassword()}}
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/login", Form: form, NoRedirect: true,
 		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
@@ -190,14 +189,14 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if profile.Status != http.StatusOK {
 		return false, nil
 	}
-	return strings.Contains(string(profile.Body), `value="`+email+`"`), nil
+	return strings.Contains(string(profile.Body), `value="`+adminEmail(h)+`"`), nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/login", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "register the first owner "+email, helpers.StepSpec{
+	return h.Step(ctx, "admin", "register the first owner "+adminEmail(h), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
 		Do: func(ctx context.Context) error {
 			if err := register(ctx, h); err != nil {
@@ -212,7 +211,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "Open " + h.URL + "/register and create the first owner with email " + email + " and the password shown by `self-host credentials`, then run: self-host setup firefly-iii",
+		Hint:       "Open " + h.URL + "/register and create the first owner with email " + adminEmail(h) + " and the password shown by `self-host credentials`, then run: self-host setup firefly-iii",
 		Credential: "admin",
 	})
 }
@@ -223,7 +222,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the owner %s cannot sign in", email)
+		return fmt.Errorf("the owner %s cannot sign in", adminEmail(h))
 	}
 	return nil
 }

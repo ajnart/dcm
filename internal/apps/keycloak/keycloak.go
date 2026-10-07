@@ -43,7 +43,7 @@ func (App) Compose(rc app.RenderContext) string {
 	return `services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
-    command: ["start", "--http-enabled=true", "--hostname=localhost", "--db=postgres", "--db-url-host=db", "--db-username=keycloak"]
+    command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=db", "--db-username=keycloak"]
     restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_USER}

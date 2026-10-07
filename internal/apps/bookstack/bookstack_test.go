@@ -21,19 +21,33 @@ type secrets map[string]string
 func (s secrets) Get(key string) string       { return s[key] }
 func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 
-// execAdapter turns the scripted Runner into the Executor the helpers need.
-type execAdapter struct{ runner *systemtest.Runner }
-
-func (e execAdapter) Exec(_ context.Context, _ string, _ map[string]string, command ...string) (system.Result, error) {
-	return e.runner.Run(context.Background(), system.Cmd{Name: command[0], Args: command[1:]})
+// recordingExec records the argv and env of every command the App runs.
+type recordingExec struct {
+	mu     sync.Mutex
+	args   [][]string
+	envs   []map[string]string
+	stdout []byte
+	onRun  func()
 }
 
-func (execAdapter) LogText(context.Context, int, ...string) (string, error) { return "", nil }
-func (execAdapter) Restart(context.Context, ...string) error                { return nil }
+func (e *recordingExec) Exec(_ context.Context, _ string, env map[string]string, command ...string) (system.Result, error) {
+	e.mu.Lock()
+	e.args = append(e.args, append([]string(nil), command...))
+	e.envs = append(e.envs, env)
+	e.mu.Unlock()
+	if e.onRun != nil {
+		e.onRun()
+	}
+	return system.Result{Stdout: e.stdout}, nil
+}
+
+func (*recordingExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
+func (*recordingExec) Restart(context.Context, ...string) error                { return nil }
 
 type fakeBookstack struct {
-	mu   sync.Mutex
-	pass string
+	mu      sync.Mutex
+	pass    string
+	created bool
 }
 
 func (f *fakeBookstack) handler() http.Handler {
@@ -45,7 +59,7 @@ func (f *fakeBookstack) handler() http.Handler {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		r.ParseForm()
-		if r.PostForm.Get("_token") != "csrftok" || r.PostForm.Get("password") != f.pass {
+		if !f.created || r.PostForm.Get("_token") != "csrftok" || r.PostForm.Get("password") != f.pass {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
@@ -67,7 +81,7 @@ type harness struct {
 	results []helpers.StepResult
 }
 
-func newHarness(t *testing.T, runner *systemtest.Runner, handler http.Handler, sec secrets) *harness {
+func newHarness(t *testing.T, exec *recordingExec, handler http.Handler, sec secrets) *harness {
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
@@ -77,7 +91,7 @@ func newHarness(t *testing.T, runner *systemtest.Runner, handler http.Handler, s
 		App: "bookstack", Service: "bookstack",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: sec, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
-		Exec:   execAdapter{runner: runner},
+		Exec:   exec,
 		Record: func(r helpers.StepResult) { box.results = append(box.results, r) },
 	})
 	return box
@@ -92,11 +106,14 @@ func (b *harness) step(id string) helpers.StepResult {
 	return helpers.StepResult{}
 }
 
-func TestSetupCreatesTheAdminThenCheck(t *testing.T) {
-	fake := &fakeBookstack{pass: "generated-pw"}
-	runner := &systemtest.Runner{}
-	runner.On("php /app/www/artisan", system.Result{Stdout: []byte("generated-pw\n")})
-	box := newHarness(t, runner, fake.handler(), secrets{})
+func TestSetupUsesTheSharedAdminLoginThenCheck(t *testing.T) {
+	fake := &fakeBookstack{pass: "pw"}
+	exec := &recordingExec{onRun: func() {
+		fake.mu.Lock()
+		fake.created = true
+		fake.mu.Unlock()
+	}}
+	box := newHarness(t, exec, fake.handler(), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := bookstack.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -104,16 +121,29 @@ func TestSetupCreatesTheAdminThenCheck(t *testing.T) {
 	if err := app.Check(context.Background(), box.h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if box.h.AdminPassword() != "generated-pw" {
-		t.Fatalf("captured password = %q", box.h.AdminPassword())
+	if box.h.AdminPassword() != "pw" {
+		t.Fatalf("ADMIN_PASSWORD changed to %q", box.h.AdminPassword())
+	}
+	for _, env := range exec.envs {
+		if env["SELFHOST_PW"] != "pw" {
+			t.Fatalf("password was not passed through the env map: %v", env)
+		}
+	}
+	for _, argv := range exec.args {
+		if strings.Contains(strings.Join(argv, " "), "pw") {
+			t.Fatalf("password leaked into argv: %v", argv)
+		}
 	}
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
-	fake := &fakeBookstack{pass: "generated-pw"}
-	runner := &systemtest.Runner{}
-	runner.On("php /app/www/artisan", system.Result{Stdout: []byte("generated-pw\n")})
-	box := newHarness(t, runner, fake.handler(), secrets{})
+	fake := &fakeBookstack{pass: "pw"}
+	exec := &recordingExec{onRun: func() {
+		fake.mu.Lock()
+		fake.created = true
+		fake.mu.Unlock()
+	}}
+	box := newHarness(t, exec, fake.handler(), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := bookstack.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("first Setup: %v", err)
@@ -127,19 +157,18 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}
-	if calls := runner.Calls(); len(calls) != 1 {
-		t.Errorf("artisan ran %d times, want 1: %v", len(calls), calls)
+	if len(exec.args) != 1 {
+		t.Errorf("artisan ran %d times, want 1: %v", len(exec.args), exec.args)
 	}
 }
 
 func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
-	runner := &systemtest.Runner{}
-	runner.On("php /app/www/artisan", system.Result{Stdout: []byte("generated-pw\n")})
+	exec := &recordingExec{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /login", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<p>no form here</p>`)
 	})
-	box := newHarness(t, runner, mux, secrets{})
+	box := newHarness(t, exec, mux, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	err := bookstack.App{}.Setup(context.Background(), box.h)
 	if err == nil {
 		t.Fatal("Setup should fail without a login form")
@@ -147,5 +176,8 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 	hint := box.step("admin").Hint
 	if !strings.Contains(hint, "bookstack:create-admin") {
 		t.Errorf("hint should name the command, got %q", hint)
+	}
+	if !strings.Contains(hint, "admin@selfhost.local") {
+		t.Errorf("hint should name the admin email, got %q", hint)
 	}
 }

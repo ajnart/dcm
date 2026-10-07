@@ -17,10 +17,9 @@ import (
 // App is Docmost. Traps: docs/catalog/traps/docmost.md.
 type App struct{}
 
-const (
-	service = "docmost"
-	email   = "admin@example.test"
-)
+const service = "docmost"
+
+func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -84,7 +83,7 @@ func (App) Compose(rc app.RenderContext) string {
 func login(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/auth/login",
-		JSON: map[string]string{"email": email, "password": h.AdminPassword()},
+		JSON: map[string]string{"email": adminEmail(h), "password": h.AdminPassword()},
 	})
 	if err != nil {
 		return false, err
@@ -122,19 +121,19 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if err := identity.Decode(&envelope); err != nil {
 		return false, err
 	}
-	return envelope.Success && envelope.Data.User.Email == email && envelope.Data.User.Role == "owner", nil
+	return envelope.Success && envelope.Data.User.Email == adminEmail(h) && envelope.Data.User.Role == "owner", nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/api/health", 2*time.Minute); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "create the first workspace owner "+email, helpers.StepSpec{
+	return h.Step(ctx, "admin", "create the first workspace owner "+adminEmail(h), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
 		Do: func(ctx context.Context) error {
 			if _, err := h.Expect(ctx, helpers.Request{
 				Method: http.MethodPost, Path: "/api/auth/setup",
-				JSON: map[string]string{"name": "Admin", "email": email, "password": h.AdminPassword()},
+				JSON: map[string]string{"name": "Admin", "email": adminEmail(h), "password": h.AdminPassword()},
 			}, http.StatusOK, http.StatusCreated); err != nil {
 				return err
 			}
@@ -147,7 +146,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "Open " + h.URL + " and create the first workspace with email " + email + " and the password shown by `self-host credentials`, then run: self-host setup docmost",
+		Hint:       "Open " + h.URL + " and create the first workspace with email " + adminEmail(h) + " and the password shown by `self-host credentials`, then run: self-host setup docmost",
 		Credential: "admin",
 	})
 }
@@ -158,7 +157,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the workspace owner %s cannot sign in", email)
+		return fmt.Errorf("the workspace owner %s cannot sign in", adminEmail(h))
 	}
 	return nil
 }

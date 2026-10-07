@@ -20,7 +20,7 @@ type secrets map[string]string
 func (s secrets) Get(key string) string       { return s[key] }
 func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 
-const email = "admin@example.test"
+const email = "admin@selfhost.local"
 
 type fakeFirefly struct {
 	mu      sync.Mutex
@@ -101,7 +101,7 @@ func (b *harness) step(id string) helpers.StepResult {
 
 func TestSetupRegistersTheFirstOwnerThenCheck(t *testing.T) {
 	fake := &fakeFirefly{pass: "pw"}
-	box := newHarness(t, fake.handler(), secrets{"ADMIN_PASSWORD": "pw"})
+	box := newHarness(t, fake.handler(), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := fireflyiii.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -116,7 +116,7 @@ func TestSetupRegistersTheFirstOwnerThenCheck(t *testing.T) {
 
 func TestRerunSkipsEveryStep(t *testing.T) {
 	fake := &fakeFirefly{pass: "pw"}
-	box := newHarness(t, fake.handler(), secrets{"ADMIN_PASSWORD": "pw"})
+	box := newHarness(t, fake.handler(), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	app := fireflyiii.App{}
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("first Setup: %v", err)
@@ -146,7 +146,7 @@ func TestRegistrationClosedHintNamesThePage(t *testing.T) {
 	mux.HandleFunc("GET /register", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<p>Registration is currently not available</p>`)
 	})
-	box := newHarness(t, mux, secrets{"ADMIN_PASSWORD": "pw"})
+	box := newHarness(t, mux, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
 	err := fireflyiii.App{}.Setup(context.Background(), box.h)
 	if err == nil {
 		t.Fatal("Setup should fail when registration is closed")

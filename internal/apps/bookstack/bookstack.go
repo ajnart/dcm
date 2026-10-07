@@ -20,10 +20,7 @@ import (
 // App is BookStack. Traps: docs/catalog/traps/bookstack.md.
 type App struct{}
 
-const (
-	service = "bookstack"
-	email   = "admin@example.test"
-)
+const service = "bookstack"
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -108,6 +105,7 @@ func (j jar) header() string {
 // login signs in through the pinned email form and proves administrator access
 // by opening the users settings page.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
+	email := h.AdminUser() + "@selfhost.local"
 	page, err := h.HTTP(ctx, helpers.Request{Path: "/login", Header: map[string]string{"Accept": "text/html"}})
 	if err != nil {
 		return false, err
@@ -146,26 +144,22 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	return users.Status == http.StatusOK, nil
 }
 
-// createAdmin replaces the seeded account with the saved email administrator,
-// capturing the generated password before anything else runs.
+// createAdmin replaces the seeded account with the shared Admin login, passing
+// the password only through the environment so it never reaches the argv.
 func createAdmin(ctx context.Context, h *helpers.H) error {
-	result, err := h.Exec(ctx, nil,
-		"php", "/app/www/artisan", "bookstack:create-admin",
-		"--initial", "--email="+email, "--name=Administrator", "--generate-password")
-	if err != nil {
-		return err
-	}
-	password := strings.TrimSpace(string(result.Stdout))
-	if password == "" {
-		return errors.New("bookstack:create-admin returned no password")
-	}
-	return h.SetSecret("ADMIN_PASSWORD", password)
+	user := h.AdminUser()
+	script := fmt.Sprintf(
+		`php /app/www/artisan bookstack:create-admin --initial --email=%s@selfhost.local --name=%s --password="$SELFHOST_PW"`,
+		user, user)
+	_, err := h.Exec(ctx, map[string]string{"SELFHOST_PW": h.AdminPassword()}, "sh", "-c", script)
+	return err
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/login", 2*time.Minute); err != nil {
 		return err
 	}
+	email := h.AdminUser() + "@selfhost.local"
 	return h.Step(ctx, "admin", "create the administrator "+email, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
 		Do: func(ctx context.Context) error {
@@ -181,9 +175,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint: "Open " + h.URL + "/login, or replace the seeded account inside the container with: " +
+		Hint: "Open " + h.URL + "/login and sign in as " + email +
+			" with the password shown by `self-host credentials`, or replace the seeded account inside the container with: " +
 			"php /app/www/artisan bookstack:create-admin --initial --email=" + email +
-			" --name=Administrator --generate-password",
+			" --name=" + h.AdminUser() + ` --password="$SELFHOST_PW"`,
 		Credential: "admin",
 	})
 }
@@ -194,7 +189,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the administrator %s cannot sign in", email)
+		return fmt.Errorf("the administrator %s cannot sign in", h.AdminUser()+"@selfhost.local")
 	}
 	return nil
 }
