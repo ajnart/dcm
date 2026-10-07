@@ -1,0 +1,29 @@
+new-cli/internal/tui/testdata/workflow.golden
+  s_a2fd509a765bab::t_de26338814ee5d 2
+new-cli/internal/tui/view.go
+  s_a2fd509a765bab::t_7625f6a6da95ff 100-108
+new-cli/internal/tui/workflow.go
+  s_a2fd509a765bab::t_b3337778fe535e 5,19,46-47,68-74,77-82,92-184
+new-cli/internal/tui/workflow_live_view_test.go
+  s_a2fd509a765bab::t_545f6a1a924f95 1-43
+new-cli/internal/tui/workflow_test.go
+  s_a2fd509a765bab::t_84aa3b71a1b806 7,11-164,296-313
+new-cli/internal/tui/workflow_view.go
+  s_a2fd509a765bab::t_3ca8ded21ecbeb 197-198,260-261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eeaaeff06a62fdf5cf936fb872eff2bb2dbbbddb",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
