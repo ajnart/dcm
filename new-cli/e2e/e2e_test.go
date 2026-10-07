@@ -25,7 +25,9 @@ func TestE2E(t *testing.T) {
 		target := target
 		t.Run(target, func(t *testing.T) {
 			r := newRunner(t)
-			r.verify(target)
+			if r.verify(target) {
+				t.Skipf("%s needs a web UI to create its first administrator; not a failure", target)
+			}
 		})
 	}
 }
@@ -66,7 +68,7 @@ func runCatalog(t *testing.T) {
 	}
 
 	deadline, hasDeadline := t.Deadline()
-	var passed, failed, skipped []string
+	var passed, failed, manual, skipped []string
 	for _, app := range doc.Apps {
 		if hasDeadline && time.Now().After(deadline.Add(-2*time.Minute)) {
 			t.Errorf("stopping early: test deadline %s is near", deadline)
@@ -77,21 +79,28 @@ func runCatalog(t *testing.T) {
 			t.Logf("skipping %s: required input without default", app.ID)
 			continue
 		}
+		isManual := false
 		ok := t.Run(app.ID, func(t *testing.T) {
 			r := newRunner(t)
-			r.verify(app.ID)
+			isManual = r.verify(app.ID)
+			if isManual {
+				t.Skipf("%s needs a web UI to create its first administrator; not a failure", app.ID)
+			}
 		})
-		if ok {
+		switch {
+		case isManual:
+			manual = append(manual, app.ID)
+		case ok:
 			passed = append(passed, app.ID)
-		} else {
+		default:
 			failed = append(failed, app.ID)
 		}
 	}
 	if len(failed) > 0 {
-		t.Errorf("catalog summary: passed=%d failed=%d skipped=%d failed_ids=%v skipped_ids=%v",
-			len(passed), len(failed), len(skipped), failed, skipped)
+		t.Errorf("catalog summary: passed=%d failed=%d manual=%d skipped=%d failed_ids=%v manual_ids=%v skipped_ids=%v",
+			len(passed), len(failed), len(manual), len(skipped), failed, manual, skipped)
 		return
 	}
-	t.Logf("catalog summary: passed=%d failed=%d skipped=%d skipped_ids=%v",
-		len(passed), len(failed), len(skipped), skipped)
+	t.Logf("catalog summary: passed=%d failed=%d manual=%d skipped=%d manual_ids=%v skipped_ids=%v",
+		len(passed), len(failed), len(manual), len(skipped), manual, skipped)
 }
