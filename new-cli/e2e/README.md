@@ -20,14 +20,22 @@ installation and later mutation/pull/restore commands. It requires 8 GiB and
 A low or unavailable measurement blocks further mutations and queued targets,
 records sanitized resource evidence, and preserves scoped cleanup.
 
+Owned fixtures supply verified private TLS for NetBird and Authelia, private
+TLS/STARTTLS prerequisites for Passbolt, and a read-only mTLS Docker facade for
+WUD's exact owned ntfy container. Passbolt browser/OpenPGP enrollment remains
+manual. These fixtures provide no VPN, public DNS, real SMTP account or mailbox
+delivery, or remote Docker socket acceptance. See [acceptance.md](acceptance.md)
+for the probe and evidence boundaries.
+
 ## What it touches
 
 Each target gets its own temp folder and Compose project named
 `selfhost-e2e-<8 lowercase hex>`, isolated with `SELF_HOST_HOME` and
 `SELF_HOST_COMPOSE_PROJECT`. Cleanup runs
 `docker compose -p <project> down --volumes --remove-orphans` for that project
-only and then deletes the temp folder. No other Compose project, image, or
-volume is touched, and nothing is pruned.
+only and then deletes the temp folder after successful teardown. A failed
+teardown retains the folder and blocks further targets. Cleanup does not remove
+unowned projects or prune images or volumes.
 
 Set `E2E_LOG_DIR` to persist sanitized per-target `<kind>-<target>.json` lifecycle
 evidence. Raw container diagnostics require `E2E_PRIVATE_DIAGNOSTICS=1` and stay
