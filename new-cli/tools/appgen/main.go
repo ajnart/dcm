@@ -79,6 +79,7 @@ type manifest struct {
 type override struct {
 	Description string `json:"description"`
 	Probe       string `json:"probe"`
+	User        string `json:"user"`
 }
 
 type env struct {
@@ -170,6 +171,9 @@ func main() {
 
 func build(f fact, rec recipe, man manifest, ov override, pkg string) generated {
 	svc := rec.Services[0]
+	if ov.User != "" {
+		svc.User = ov.User
+	}
 	restart := svc.Restart
 	if restart == "" {
 		restart = "unless-stopped"

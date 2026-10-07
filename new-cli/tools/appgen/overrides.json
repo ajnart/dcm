@@ -9,7 +9,8 @@
   },
   "loki": {
     "description": "A private log store you point your own collector at and search with Grafana.",
-    "probe": "/ready"
+    "probe": "/ready",
+    "user": "${PUID}:${PGID}"
   },
   "netdata": {
     "description": "A private real-time dashboard for the health and performance of this container.",
@@ -21,11 +22,12 @@
   },
   "prometheus": {
     "description": "A private time-series database that scrapes and stores metrics.",
-    "probe": "/-/ready"
+    "probe": "/-/ready",
+    "user": "${PUID}:${PGID}"
   },
   "stirling-pdf": {
     "description": "A private toolbox for editing, merging, converting and signing PDF files.",
-    "probe": "/"
+    "probe": "/api/v1/info/status"
   },
   "victoria-metrics": {
     "description": "A private time-series database that stores and queries metrics.",

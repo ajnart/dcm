@@ -34,6 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
   prometheus:
     image: prom/prometheus:v3.15.0
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     volumes:
       - ./data:/prometheus
     ports:

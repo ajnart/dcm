@@ -44,11 +44,11 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/"}}.Setup(ctx, h)
+	return onboard.NoAccount{Probe: onboard.Probe{Path: "/api/v1/info/status"}}.Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/"}}.Check(ctx, h)
+	return onboard.NoAccount{Probe: onboard.Probe{Path: "/api/v1/info/status"}}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

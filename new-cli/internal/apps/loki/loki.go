@@ -34,6 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
   loki:
     image: grafana/loki:3.7.0
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     volumes:
       - ./data:/loki
     ports:
