@@ -5,6 +5,7 @@ package pihole
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,12 +70,12 @@ func (App) Compose(rc app.RenderContext) string {
 
 func sessionWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	login, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/api/auth",
-		JSON: map[string]string{"password": h.AdminPassword()}})
+		JSON: map[string]string{"password": h.AdminPassword()}, NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, authFailure(ctx, h, 0, false, "", 0)
 	}
 	if login.Status != http.StatusOK {
-		return false, nil
+		return false, authFailure(ctx, h, login.Status, false, "", 0)
 	}
 	var body struct {
 		Session struct {
@@ -83,18 +84,68 @@ func sessionWorks(ctx context.Context, h *helpers.H) (bool, error) {
 		} `json:"session"`
 	}
 	if err := login.Decode(&body); err != nil {
-		return false, err
+		return false, authFailure(ctx, h, login.Status, false, "", 0)
 	}
 	if !body.Session.Valid || body.Session.SID == "" {
-		return false, nil
+		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, 0)
 	}
 	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/info/version",
-		Header: map[string]string{"X-FTL-SID": body.Session.SID}})
+		Header: map[string]string{"X-FTL-SID": body.Session.SID}, NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, 0)
 	}
-	return version.Status == http.StatusOK, nil
+	if version.Status != http.StatusOK {
+		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, version.Status)
+	}
+	return true, nil
 }
+
+// Failure-only probes retain fixed booleans/statuses, never response text,
+// session values, password contents, hashes or container logs.
+func authFailure(ctx context.Context, h *helpers.H, login int, valid bool, sid string, version int) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	header := map[string]string{}
+	if sid != "" {
+		header["X-FTL-SID"] = sid
+	}
+	auth, err := h.HTTP(ctx, helpers.Request{Path: "/api/auth", Header: header, NoRedirect: true})
+	authStatus := 0
+	authValid := false
+	if err == nil {
+		authStatus = auth.Status
+		var body struct {
+			Session struct {
+				Valid bool `json:"valid"`
+			} `json:"session"`
+		}
+		if auth.Decode(&body) == nil {
+			authValid = body.Session.Valid
+		}
+	}
+	metadata := "bootstrap_metadata=unobserved"
+	if h.Config.Exec != nil {
+		// Docker exec defaults to the image's root bootstrap identity; this
+		// observes readability only, without opening the private file.
+		res, err := h.Exec(ctx, nil, "sh", "-c", bootstrapMetadataProbe)
+		if err == nil && res.ExitCode == 0 {
+			facts := strings.Fields(string(res.Stdout))
+			if len(facts) == 4 && (facts[0] == "root=true" || facts[0] == "root=false") && (facts[1] == "readable=true" || facts[1] == "readable=false") && (facts[2] == "basename=true" || facts[2] == "basename=false") && (facts[3] == "explicit=true" || facts[3] == "explicit=false") {
+				metadata = fmt.Sprintf("exec_%s password_file_%s file_basename_matches=%s explicit_container_password_env=%s", facts[0], facts[1], strings.TrimPrefix(facts[2], "basename="), strings.TrimPrefix(facts[3], "explicit="))
+			}
+		}
+	}
+	return fmt.Errorf("Pi-hole auth probe: login_http=%d session_valid=%t sid_present=%t auth_http=%d auth_valid=%t version_http=%d; %s (zero HTTP status means unobserved)", login, valid, sid != "", authStatus, authValid, version, metadata)
+}
+
+const bootstrapMetadataProbe = `set +x
+root=false; readable=false; basename=false; explicit=false
+[ "$(id -u)" = 0 ] && root=true
+[ -r /run/secrets/admin-password ] && readable=true
+[ "${WEBPASSWORD_FILE:-}" = admin-password ] && basename=true
+[ "${FTLCONF_webserver_api_password+x}" = x ] && explicit=true
+printf 'root=%s\nreadable=%s\nbasename=%s\nexplicit=%s\n' "$root" "$readable" "$basename" "$explicit"
+`
 
 func ready(ctx context.Context, h *helpers.H, path string) error {
 	probe := func(ctx context.Context) (bool, error) {
