@@ -73,14 +73,16 @@ Run `self-host doctor` before installation.
 | Linux amd64 | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
 | Linux arm64 | Yes | Same native CLI/install checks passed; image support varies by App. |
 | macOS arm64 | Yes | Same native CLI/install checks passed; deployment requires a Linux Docker VM. |
-| Intel macOS | Candidate | Native CLI execution passed; release packaging and installer validation pending. |
+| Intel macOS | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
 | WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
 | Native Windows | No | Unsupported. |
 
-[CI run 37587841176](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
-validated source vet/tests and the native checks above at `0c186fa`. Installer
-checks used locally served archives; they do not prove authenticated GitHub
-release delivery or Docker/App acceptance. See [runtime acceptance boundaries](e2e/acceptance.md).
+[Native CI run 37588901938](https://github.com/ajnart/selfhost-skills/actions/runs/37588901938)
+validated CLI execution, local checksummed installation and corruption rejection
+on all four native targets at `2d3a19e`. [Earlier CI](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
+validated source vet/tests at `0c186fa`. Locally served archives do not prove
+authenticated GitHub release delivery or Docker/App acceptance. See
+[runtime acceptance boundaries](e2e/acceptance.md).
 
 ## First App
 
