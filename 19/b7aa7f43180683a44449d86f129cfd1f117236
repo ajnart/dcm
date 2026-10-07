@@ -1,0 +1,33 @@
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_a2fd509a765bab::t_8366f63fcbb4ba 10-11
+new-cli/internal/tui/harness_test.go
+  s_a2fd509a765bab::t_86da37fdd94475 315-316
+new-cli/internal/tui/testdata/workflow.golden
+  s_a2fd509a765bab::t_e72cdcece93415 7,30
+new-cli/internal/tui/views_test.go
+  s_a2fd509a765bab::t_0c741f258e12cd 381
+new-cli/internal/tui/workflow.go
+  s_a2fd509a765bab::t_5bb49f943724c0 23,52-55,67,70-78
+new-cli/internal/tui/workflow_test.go
+  s_a2fd509a765bab::t_edc5715b17fa90 40-94,128
+new-cli/internal/tui/workflow_view.go
+  s_a2fd509a765bab::t_36226ba3ec82b4 16-17,30-33,101-117,170-177,205-209,213,215-217,219-240,242-246,248,250-274
+new-cli/internal/tui/workflow_view_test.go
+  s_a2fd509a765bab::t_8e9a01dd549251 1-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "19b7aa7f43180683a44449d86f129cfd1f117236",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
