@@ -1,0 +1,21 @@
+new-cli/internal/apps/docmost/docmost.go
+  s_2c51c6ba1a0d6b::t_3c9ea7616d86b2 102
+new-cli/internal/apps/docmost/docmost_test.go
+  s_2c51c6ba1a0d6b::t_9d0b0b7deedfd5 31-42,48,61-62,73-74,83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce750daac0521f82ac35e02f828c51d0e6ac47f9",
+  "prompts": {},
+  "sessions": {
+    "s_2c51c6ba1a0d6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114eb-63f2-7270-bfef-a3b2027dec6f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
