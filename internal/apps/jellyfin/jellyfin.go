@@ -114,8 +114,10 @@ func readPublicInfo(ctx context.Context, h *helpers.H) (publicInfo, error) {
 }
 
 // waitReady waits for the real server: while Jellyfin boots or migrates, a
-// placeholder answers /System/Info/Public without a Version and every other
-// path with 503.
+// placeholder answers /System/Info/Public (reporting the wizard unfinished,
+// sometimes without a Version) and every other path with 503. A second path
+// tells the two apart: the real server answers /Startup/Configuration with
+// 200 before the wizard and 401 after it.
 func waitReady(ctx context.Context, h *helpers.H) error {
 	return h.Poll(ctx, 3*time.Minute, func(ctx context.Context) (bool, error) {
 		info, err := readPublicInfo(ctx, h)
@@ -123,6 +125,13 @@ func waitReady(ctx context.Context, h *helpers.H) error {
 			return false, err
 		}
 		if info.Version == "" {
+			return false, errors.New("Jellyfin is still starting")
+		}
+		resp, err := h.HTTP(ctx, helpers.Request{Path: "/Startup/Configuration"})
+		if err != nil {
+			return false, err
+		}
+		if resp.Status == 503 {
 			return false, errors.New("Jellyfin is still starting")
 		}
 		return true, nil

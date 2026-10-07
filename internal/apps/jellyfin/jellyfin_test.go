@@ -143,3 +143,17 @@ func TestFragmentMountsMediaAndPublishesTheLANURL(t *testing.T) {
 		}
 	}
 }
+
+// After a restart (or a restore) the boot placeholder claims the wizard is
+// unfinished; Setup must wait for the real server instead of rerunning it.
+func TestSetupAfterARestartDoesNotRerunTheWizard(t *testing.T) {
+	e := newEnv(t)
+	e.Run("install", "jellyfin", "--yes")
+	e.Jellyfin.Booting = 3
+
+	r := e.Run("setup", "jellyfin", "--json")
+
+	if r.Code != 0 || r.StepEvent("jellyfin", "wizard") != "step.skip" || e.Jellyfin.WizardRuns() != 1 {
+		t.Fatalf("exit %d, wizard runs %d\n%s", r.Code, e.Jellyfin.WizardRuns(), r.Out)
+	}
+}

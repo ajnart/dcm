@@ -166,12 +166,22 @@ func timeZone() string {
 	return "UTC"
 }
 
+// portFree tries IPv4 and IPv6 separately: on macOS a dual-stack ":port"
+// listener succeeds while Docker (OrbStack, Docker Desktop) holds the IPv4
+// port, which made a second Project collide with the first.
 func portFree(port int) bool {
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(port))
-	if err != nil {
-		return false
+	p := strconv.Itoa(port)
+	for _, addr := range [][2]string{{"tcp4", "0.0.0.0:" + p}, {"tcp4", "127.0.0.1:" + p}, {"tcp6", "[::]:" + p}} {
+		listener, err := net.Listen(addr[0], addr[1])
+		if err != nil {
+			// A host without IPv6 cannot listen on [::]; that says nothing about the port.
+			if addr[0] == "tcp6" && !strings.Contains(err.Error(), "address already in use") {
+				continue
+			}
+			return false
+		}
+		listener.Close()
 	}
-	listener.Close()
 	return true
 }
 
