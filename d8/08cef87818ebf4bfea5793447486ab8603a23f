@@ -1,0 +1,20 @@
+new-cli/internal/apps/homarr/homarr.go
+  h_d6e478ca18e517 399,406-414
+new-cli/internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 39,307-310,314-378,417,434,514-515,524,544-551,556-558,596-744
+new-cli/internal/apps/homarr/links.go
+  h_d6e478ca18e517 5-6,24-39,47,60-79,86,110-115,225-228,231,235-390,393-412,417-419,433,436-453,456,461-465,490-495,497-501,505,517-523,533-536
+new-cli/internal/apps/homarr/notebook.go
+  h_d6e478ca18e517 1-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d808cef87818ebf4bfea5793447486ab8603a23f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
