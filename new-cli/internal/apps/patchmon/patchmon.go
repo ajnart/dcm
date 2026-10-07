@@ -94,6 +94,8 @@ func (App) Compose(rc app.RenderContext) string {
   redis:
     image: redis:7.4-alpine
     user: ${PUID}:${PGID}
+    # Keep the selected user: the image entrypoint drops container 0 to redis.
+    entrypoint: ["/bin/sh", "-c", "umask 077; exec \"$$@\"", "--"]
     command: ["redis-server", "/run/secrets/redis-config"]
     restart: unless-stopped
     volumes:
