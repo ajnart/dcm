@@ -38,11 +38,14 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{{Path: "valkey.conf", Content: "protected-mode no\nrequirepass " + secret("password") + "\n", Mode: 0o600}}
 }
 
+// Run the server directly: the image's root entrypoint switches to UID 999,
+// which cannot read the private config owned by the configured Project user.
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   valkey:
     image: valkey/valkey:9.1.2
-    command: ["valkey-server", "/usr/local/etc/valkey/valkey.conf"]
+    entrypoint: ["tini", "--", "sh", "-c", "umask 0077; exec /usr/local/bin/valkey-server \"$$@\"", "selfhost-valkey"]
+    command: ["/usr/local/etc/valkey/valkey.conf"]
     restart: unless-stopped
     user: ${PUID}:${PGID}
     volumes:
