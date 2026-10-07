@@ -122,7 +122,6 @@ func (r *runner) prepareBackupPayload(spec targetSpec, ports map[string]int) *ba
 		return nil
 	}
 	r.evidence.Probe = "App Setup/Check and filesystem backup sentinel; exact application data across isolated restore for " + strings.Join(p.apps, ", ") + " only; other Apps have no workload or database-content assertion"
-	// Preserve the existing update stage index used by immutable image evidence.
 	var stages []stageEvidence
 	for _, stage := range r.evidence.Stages {
 		stages = append(stages, stage)

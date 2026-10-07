@@ -52,13 +52,17 @@ var localInputs = map[string]map[string]string{
 	"pangolin":             {"PANGOLIN_CANONICAL_ORIGIN": "https://pangolin.e2e.selfhost.test", "PANGOLIN_BASE_DOMAIN": "e2e.selfhost.test"},
 	"restic":               {"repository": "/repository"},
 	"borgmatic":            {"repository": "/mnt/borg-repository"},
+	"stalwart-mail":        {"STALWART_HOSTNAME": "mail.e2e.selfhost.test", "STALWART_DOMAIN": "e2e.selfhost.test"},
+	"haproxy":              {"target-app": "ntfy", "target-port": "80"},
 }
 
 // Credentials/licenses and externally owned endpoints are never synthesized.
 var externalApps = map[string]bool{
-	"cloudflare-tunnel": true, "gluetun": true, "minio": true, "netbird": true,
-	"plex": true, "renovate": true, "tailscale": true, "wud": true, "passbolt": true, "stalwart-mail": true,
+	"cloudflare-tunnel": true, "gluetun": true, "minio": true,
+	"plex": true, "renovate": true, "tailscale": true,
 }
+
+var localPrerequisiteApps = map[string]bool{"netbird": true, "passbolt": true, "wud": true}
 
 func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 	status := "runnable"
@@ -74,6 +78,9 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 			if externalApps[id] {
 				return "awaiting-external-credentials"
 			}
+			if localPrerequisiteApps[id] {
+				return "awaiting-local-prerequisites"
+			}
 			status = "missing-configuration"
 		}
 	}
@@ -81,7 +88,19 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 }
 
 func installArguments(t targetSpec, root string, ports map[string]int) []string {
-	args := []string{"install", t.ID, "--yes", "--json", "--exposure", "local", "--media-root", filepath.Join(root, "media"), "--downloads-root", filepath.Join(root, "downloads")}
+	args := []string{"install", t.ID}
+	baseApps := map[string]bool{t.ID: true}
+	if recipe, ok := catalog.Default().Recipe(t.ID); ok && t.Kind == "recipe" {
+		for _, id := range recipe.Apps {
+			baseApps[id] = true
+		}
+	}
+	for _, id := range t.Apps {
+		if !baseApps[id] {
+			args = append(args, id)
+		}
+	}
+	args = append(args, "--yes", "--json", "--exposure", "local", "--media-root", filepath.Join(root, "media"), "--downloads-root", filepath.Join(root, "downloads"))
 	for _, id := range t.Apps {
 		if port := ports[id]; port > 0 {
 			args = append(args, "--set", fmt.Sprintf("%s.port=%d", id, port))

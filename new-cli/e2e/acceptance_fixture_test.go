@@ -174,7 +174,7 @@ func TestStraightforwardLocalInputsExerciseConfiguration(t *testing.T) {
 			t.Errorf("%s: ordinary local configuration still blocked", id)
 		}
 	}
-	if got := classifyTarget(c, findTarget(inventory, "netbird")); got != "awaiting-external-credentials" {
+	if got := classifyTarget(c, findTarget(inventory, "netbird")); got != "awaiting-local-prerequisites" {
 		t.Fatal("NetBird route boundary accidentally enabled")
 	}
 }

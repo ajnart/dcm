@@ -86,12 +86,16 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	defer reservation.closeSockets()
 	payload := r.prepareBackupPayload(spec, reservation.primary)
+	proxyProbe := r.prepareHAProxyProbe()
 	args := installArguments(spec, r.root, reservation.primary)
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
 	reservation.closeSockets()
 	r.stage("install", args, func() result { return r.run(args...) })
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
+	if proxyProbe {
+		r.stage("backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return r.haproxyProbe(reservation.primary) })
+	}
 	r.stage("idempotency", []string{"setup", "--json"}, func() result {
 		res := r.setupAndReady(r)
 		for _, e := range res.events {
@@ -128,8 +132,12 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	})
 	r.recordImages()
 	if !completeImageEvidence(r.evidence.Images, expectedServices(r.spec)) {
-		r.evidence.Stages[5].Outcome = "fail"
-		r.evidence.Stages[5].Reason = "immutable image identities unavailable"
+		for i := range r.evidence.Stages {
+			if r.evidence.Stages[i].Name == "update" {
+				r.evidence.Stages[i].Outcome = "fail"
+				r.evidence.Stages[i].Reason = "immutable image identities unavailable"
+			}
+		}
 		r.evidence.Outcome = "failed"
 		r.saveEvidence()
 		r.t.Fatal("image identities unavailable")
@@ -177,6 +185,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		return restored.run("restore", archive, "--yes", "--json")
 	})
 	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
+	if proxyProbe {
+		r.stage("restored-backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return restored.haproxyProbe(reservation.primary) })
+	}
 	if payload != nil {
 		r.stage("payload-restored", []string{"compare", "exact-application-backup-payload"}, func() result { return payload.check(restored) })
 	}

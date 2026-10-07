@@ -124,7 +124,7 @@ func TestE2E(t *testing.T) {
 	}
 	t.Cleanup(runCancel)
 	for _, spec := range selected {
-		spec := spec
+		spec := withOwnedPrerequisites(spec)
 		t.Run(evidenceName(spec), func(t *testing.T) {
 			if workers > 1 {
 				t.Parallel()
