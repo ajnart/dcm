@@ -313,8 +313,9 @@ func (r *runner) setupAndReady(target *runner) result {
 			return res
 		}
 	}
-	if !target.waitRunning(statusWait, r.spec.Apps) {
+	if ready, diagnostics := target.waitRunningWithDiagnostics(statusWait, r.spec.Apps); !ready {
 		res.code = 1
+		res.events = append(res.events, diagnostics...)
 		if target.commandCtx != nil {
 			if code, termination := commandContextOutcome(target.commandCtx.Err()); termination != nil {
 				res.code, res.termination = code, termination
@@ -339,26 +340,40 @@ func allNoHeadless(res result) bool {
 }
 
 func (r *runner) waitRunning(limit time.Duration, expected []string) bool {
+	ready, _ := r.waitRunningWithDiagnostics(limit, expected)
+	return ready
+}
+
+func (r *runner) waitRunningWithDiagnostics(limit time.Duration, expected []string) (bool, []event) {
 	ctx := r.commandCtx
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	deadline := time.Now().Add(limit)
+	last := statusReadinessDiagnostics("", expected, false)
 	for {
 		if ctx.Err() != nil {
-			return false
+			return false, last
 		}
 		res := r.runWithTimeout(30*time.Second, "status", "--json")
 		var doc statusDoc
-		if res.code == 0 && json.Unmarshal([]byte(res.stdout), &doc) == nil && readyStatus(doc.Apps, expected) && r.containersReady() {
-			return true
+		containersOK := false
+		if res.code == 0 && json.Unmarshal([]byte(res.stdout), &doc) == nil && readyStatus(doc.Apps, expected) {
+			containersOK = r.containersReady()
+			if containersOK {
+				return true, nil
+			}
+		}
+		last = statusReadinessDiagnostics(res.stdout, expected, containersOK)
+		if res.code != 0 && len(redactedFailures(res.events, expected)) > 0 {
+			last = res.events
 		}
 		if time.Now().After(deadline) {
-			return false
+			return false, last
 		}
 		select {
 		case <-ctx.Done():
-			return false
+			return false, last
 		case <-time.After(statusPoll):
 		}
 	}
