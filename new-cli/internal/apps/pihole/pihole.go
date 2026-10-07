@@ -39,7 +39,7 @@ func (App) Inputs() []app.Input {
 }
 
 // Files writes the Admin password for WEBPASSWORD_FILE; the container reads it
-// on first start and never sees the value in Compose or a command line.
+// on startup and never sees the value in Compose or a command line.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{{Path: "admin-password", Content: secret("ADMIN_PASSWORD"), Mode: 0o600}}
 }
@@ -56,7 +56,7 @@ func (App) Compose(rc app.RenderContext) string {
     restart: unless-stopped
     environment:
       TZ: ${TZ}
-      WEBPASSWORD_FILE: /run/secrets/admin-password
+      WEBPASSWORD_FILE: admin-password
     volumes:
       - ./config:/etc/pihole
       - ./admin-password:/run/secrets/admin-password:ro
