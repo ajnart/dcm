@@ -172,16 +172,17 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 func startupStatus(ctx context.Context, h *helpers.H) error {
 	facts := "bootstrap_metadata=unobserved"
 	if h.Config.Exec != nil {
-		probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		probeCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 		defer cancel()
 		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", bootstrapProbe)
 		if err == nil && result.ExitCode == 0 {
 			values := strings.Fields(string(result.Stdout))
-			keys := []string{"key", "root_pool", "upstream", "database"}
+			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated"}
 			valid := len(values) == len(keys)
 			if valid {
 				for i, key := range keys {
-					if values[i] != key+"=true" && values[i] != key+"=false" {
+					unknown := (key == "authenticated" || key == "php_process") && values[i] == key+"=unknown"
+					if values[i] != key+"=true" && values[i] != key+"=false" && !unknown {
 						valid = false
 						break
 					}
@@ -189,7 +190,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 				}
 			}
 			if valid {
-				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s php_upstream_listening=%s database_tcp_listening=%s", values[0], values[1], values[2], values[3])
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6])
 			}
 		}
 	}
@@ -203,12 +204,21 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 // init-bookstack-config script waits for DB_HOST/DB_PORT before migrations.
 // Emit only booleans, never environment values, private files or command output.
 const bootstrapProbe = `set +x
-key=false; root_pool=false; upstream=false; database=false
+key=false; root_pool=false; launcher_root=false; php_process=unknown; upstream=false; database=false; authenticated=unknown
 [ -n "${APP_KEY:-}" ] && key=true
 if [ "$(id -u abc)" = 0 ] || [ "$(id -g abc)" = 0 ]; then root_pool=true; fi
+if [[ "${PUID:-911}" = 0 || "${PGID:-911}" = 0 ]]; then launcher_root=true; fi
+if command -v pgrep >/dev/null 2>&1; then
+    php_process=false
+    pgrep -x php-fpm85 >/dev/null 2>&1 && php_process=true
+fi
 timeout 2 bash -c 'true > /dev/tcp/127.0.0.1/9000' >/dev/null 2>&1 && upstream=true
 timeout 2 bash -c 'true > "/dev/tcp/${DB_HOST}/${DB_PORT:-3306}"' >/dev/null 2>&1 && database=true
-printf 'key=%s\nroot_pool=%s\nupstream=%s\ndatabase=%s\n' "$key" "$root_pool" "$upstream" "$database"
+# PDO receives only the existing application environment inside its container.
+# It neither reads Laravel's private configuration nor prints exception text.
+auth_result=$(timeout 2 php -r 'try { new PDO("mysql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: "3306").";dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), [PDO::ATTR_TIMEOUT => 2]); echo "true"; } catch (Throwable $e) { echo "false"; }' 2>/dev/null)
+case "$auth_result" in true|false) authenticated="$auth_result" ;; esac
+printf 'key=%s\nroot_pool=%s\nlauncher_root=%s\nphp_process=%s\nupstream=%s\ndatabase=%s\nauthenticated=%s\n' "$key" "$root_pool" "$launcher_root" "$php_process" "$upstream" "$database" "$authenticated"
 `
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

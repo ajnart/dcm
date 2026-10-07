@@ -188,9 +188,10 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 
 func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	for _, tc := range []struct{ output, want string }{
-		{"key=true root_pool=true upstream=false database=true", "app_key_present=true pool_identity_includes_root=true php_upstream_listening=false database_tcp_listening=true"},
-		{"key=true root_pool=false upstream=true database=false", "database_tcp_listening=false"},
-		{"key=synthetic-private-secret root_pool=true upstream=false database=true", "bootstrap_metadata=unobserved"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false", "database_authenticated=false"},
+		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown", "database_authenticated=unknown"},
+		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
 		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
 	} {
 		t.Run(tc.want, func(t *testing.T) {
@@ -206,6 +207,40 @@ func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 			}
 			if len(executor.args) != 1 || executor.args[0][0] != "/usr/bin/with-contenv" || box.step("admin").Status != "" {
 				t.Fatal("probe lost image environment or attempted admin creation")
+			}
+		})
+	}
+}
+
+func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T) {
+	executor := &recordingExec{}
+	box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{})
+	_ = (bookstack.App{}).Setup(context.Background(), box.h)
+	if len(executor.args) != 1 {
+		t.Fatal("missing bootstrap probe")
+	}
+	script := executor.args[0][3]
+	dir := t.TempDir()
+	for name, body := range map[string]string{
+		"id":      "#!/bin/sh\nprintf '0\\n'\n",
+		"pgrep":   "#!/bin/sh\nexit 1\n",
+		"timeout": "#!/bin/sh\nshift\ncase \"$1\" in bash) exit 1;; php) exec \"$@\";; *) exit 90;; esac\n",
+		"php":     "#!/bin/sh\ncase \"$*\" in *synthetic-private-secret*) exit 90;; esac\nprintf '%s' \"$FIXTURE_PHP_OUTPUT\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct{ output, want string }{{"true", "true"}, {"false", "false"}, {"synthetic-private-secret", "unknown"}} {
+		t.Run(tc.want, func(t *testing.T) {
+			command := exec.Command("bash", "-c", script)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "APP_KEY=synthetic-private-secret", "DB_PASSWORD=synthetic-private-secret", "PUID=0", "PGID=0", "FIXTURE_PHP_OUTPUT="+tc.output)
+			output, err := command.CombinedOutput()
+			if err != nil || !strings.Contains(string(output), "authenticated="+tc.want) || !strings.Contains(string(output), "launcher_root=true") {
+				t.Fatalf("probe omitted fixed observations: %v", err)
+			}
+			if strings.Contains(string(output), "synthetic-private") {
+				t.Fatal("credential or exception output escaped bootstrap probe")
 			}
 		})
 	}
