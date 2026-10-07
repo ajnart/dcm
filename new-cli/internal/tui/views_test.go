@@ -279,6 +279,24 @@ func TestWorkflowViewScrollsToTheLastOfFortyApps(t *testing.T) {
 	}
 }
 
+func TestWorkflowViewKeepsTheLastUnmanagedAppOnScreen(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	var apps []service.AppStatus
+	for i := 0; i < 40; i++ {
+		apps = append(apps, service.AppStatus{ID: fmt.Sprintf("app%02d", i), Name: fmt.Sprintf("App %02d", i)})
+	}
+	ctx.status = service.Status{Apps: apps}
+	v := &workflowView{}
+	for i := 0; i < 50; i++ {
+		next, _, _ := v.Update(ctx, press("down"))
+		v = next.(*workflowView)
+	}
+	out := ansi.Strip(v.View(ctx, 80, 24))
+	if !strings.Contains(out, "App 39") {
+		t.Fatalf("the selected last App should be on screen\n%s", out)
+	}
+}
+
 func TestWorkflowViewFitsEightyColumns(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{

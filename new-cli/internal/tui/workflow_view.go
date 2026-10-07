@@ -194,14 +194,14 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 			if !v.expanded(row.app) {
 				chevron = t.dim().Render("▸")
 			}
-			lines = append(lines, "  "+cursor+chevron+" "+t.title().Render(row.app.Name))
-			if v.expanded(row.app) {
-				if !row.app.Managed {
-					lines = append(lines, "      "+t.dim().Render("added by hand, no Setup"))
-				} else if len(row.app.Steps) == 0 {
-					lines = append(lines, "      "+t.dim().Render("no remembered steps"))
-				}
+			// The note shares the header line so each row is one screen line.
+			line := "  " + cursor + chevron + " " + t.title().Render(row.app.Name)
+			if !row.app.Managed {
+				line += t.dim().Render(" · added by hand, no Setup")
+			} else if len(row.app.Steps) == 0 {
+				line += t.dim().Render(" · no remembered steps")
 			}
+			lines = append(lines, line)
 			continue
 		}
 		mark := t.dim().Render("○")
