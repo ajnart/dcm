@@ -165,7 +165,7 @@ func (a *program) credentialsCmd() *cobra.Command {
 			if a.json {
 				return writeJSON(a.deps.Out, creds)
 			}
-			fmt.Fprintf(a.deps.Out, "Admin login (every App)\n  user      %s\n  password  %s\n", creds.Admin.Username, creds.Admin.Password)
+			fmt.Fprintf(a.deps.Out, "Shared Admin login\n  user      %s\n  password  %s\n", creds.Admin.Username, creds.Admin.Password)
 			for id, values := range creds.Apps {
 				fmt.Fprintf(a.deps.Out, "\n%s\n", id)
 				for key, value := range values {

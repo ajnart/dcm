@@ -252,6 +252,24 @@ func TestFirstAdminCreatesOnce(t *testing.T) {
 	assertNoSecret(t, adminPassword, err, results)
 }
 
+func TestFirstAdminChecksResolvedUsername(t *testing.T) {
+	srv := okServer()
+	defer srv.Close()
+	var results []helpers.StepResult
+	h := newH(t, srv, &results)
+	st := &adminState{}
+	f := onboard.FirstAdmin{
+		Username: func(context.Context, *helpers.H) (string, error) { return "selfhost-admin", nil },
+		Exists:   st.has, Create: st.make, Login: st.signIn,
+	}
+	if err := f.Setup(context.Background(), h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	if err := f.Check(context.Background(), h); err != nil {
+		t.Fatalf("Check did not use the resolved username: %v", err)
+	}
+}
+
 func TestFirstAdminRerunSkips(t *testing.T) {
 	srv := okServer()
 	defer srv.Close()

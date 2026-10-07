@@ -464,11 +464,11 @@ func (ss *session) readyPeer(id string) *helpers.H {
 	return ss.helpers(peer)
 }
 
-// registerSecrets redacts every stored secret except the Admin username,
-// which is not secret and too common a word ("admin") to hide.
+// registerSecrets redacts stored secrets while keeping the shared username
+// and Forgejo's administrator alias visible in recovery hints.
 func registerSecrets(log *events.Logger, secrets map[string]string) {
 	for key, value := range secrets {
-		if key != "ADMIN_USER" {
+		if key != "ADMIN_USER" && key != "FORGEJO_ADMIN_USER" {
 			log.Secret(value)
 		}
 	}

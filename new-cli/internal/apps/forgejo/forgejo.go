@@ -101,12 +101,45 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 
 func firstAdmin() onboard.FirstAdmin {
 	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
-		Exists: adminExists,
-		Create: createAdmin,
-		Login:  loginWorks,
-		Manual: "open the site administration page and create the first administrator",
+		Username: adminUser,
+		Ready:    onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
+		Exists:   adminExists,
+		Create:   createAdmin,
+		Login:    loginWorks,
+		Manual:   "open the site administration page and create the first administrator",
 	}
+}
+
+// adminUser preserves a saved or working login. Only a fresh reserved default
+// receives an App-local alias, which also appears in per-App credentials.
+func adminUser(ctx context.Context, h *helpers.H) (string, error) {
+	if user := h.Secret(h.Key("admin_user")); user != "" {
+		return user, nil
+	}
+	user := h.AdminUser()
+	if user != "admin" {
+		return user, nil
+	}
+	works, err := loginWorks(ctx, h, user, h.AdminPassword())
+	if err != nil {
+		return "", err
+	}
+	if works {
+		return user, nil
+	}
+	exists, err := adminExists(ctx, h)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return user, nil
+	}
+	user = "selfhost-admin"
+	// A username belongs in credentials, but is not a redacted secret.
+	if err := h.Secrets.Set(h.Key("admin_user"), user); err != nil {
+		return "", err
+	}
+	return user, nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
@@ -114,12 +147,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	ok, err := loginWorks(ctx, h, h.AdminUser(), h.AdminPassword())
+	user, err := adminUser(ctx, h)
+	if err != nil {
+		return err
+	}
+	ok, err := loginWorks(ctx, h, user, h.AdminPassword())
 	if err != nil {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to Forgejo", h.AdminUser())
+		return fmt.Errorf("the Admin login %s cannot sign in to Forgejo", user)
 	}
 	return nil
 }

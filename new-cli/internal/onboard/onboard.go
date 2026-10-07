@@ -105,6 +105,9 @@ func (n NoAccount) Check(ctx context.Context, h *helpers.H) error {
 // where the first visitor normally creates one.
 type FirstAdmin struct {
 	Ready Probe
+	// Username resolves an App-specific administrator name. Setup resolves it
+	// after readiness; nil uses the shared Admin login username.
+	Username func(context.Context, *helpers.H) (string, error)
 	// Exists reports whether the App already has an administrator.
 	Exists func(ctx context.Context, h *helpers.H) (bool, error)
 	// Create makes the first administrator with the Admin login. Nil means the
@@ -126,7 +129,10 @@ func (f FirstAdmin) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (f FirstAdmin) admin(ctx context.Context, h *helpers.H) error {
-	user := h.AdminUser()
+	user, err := f.username(ctx, h)
+	if err != nil {
+		return err
+	}
 	password := h.AdminPassword()
 	return h.Step(ctx, "admin", "create the administrator "+user, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return f.signIn(ctx, h, user, password) },
@@ -155,6 +161,13 @@ func (f FirstAdmin) admin(ctx context.Context, h *helpers.H) error {
 	})
 }
 
+func (f FirstAdmin) username(ctx context.Context, h *helpers.H) (string, error) {
+	if f.Username != nil {
+		return f.Username(ctx, h)
+	}
+	return h.AdminUser(), nil
+}
+
 func (f FirstAdmin) signIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	if f.Login == nil {
 		return false, errors.New("no way to check the Admin login")
@@ -172,7 +185,10 @@ func (f FirstAdmin) hint(h *helpers.H, user string) string {
 }
 
 func (f FirstAdmin) Check(ctx context.Context, h *helpers.H) error {
-	user := h.AdminUser()
+	user, err := f.username(ctx, h)
+	if err != nil {
+		return err
+	}
 	password := h.AdminPassword()
 	ok, err := f.signIn(ctx, h, user, password)
 	if err != nil {
