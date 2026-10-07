@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -19,6 +20,9 @@ type App struct{}
 const (
 	service = "authentik"
 	admin   = "akadmin"
+	// The worker applies AUTHENTIK_BOOTSTRAP_TOKEN through a blueprint after
+	// migrations, so the token is rejected until that asynchronous run finishes.
+	bootstrapTimeout = 5 * time.Minute
 )
 
 func (App) Info() app.Info {
@@ -137,8 +141,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}
 	return h.Step(ctx, "admin", "the bootstrap token identifies the "+admin+" superuser", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return tokenUser(ctx, h) },
-		Do: func(context.Context) error {
-			return errors.New("the bootstrap token is read only while the container starts")
+		Do: func(ctx context.Context) error {
+			if h.Secret(h.Key("bootstrap_token")) == "" {
+				return errors.New("the bootstrap token is missing from secrets.env")
+			}
+			return h.Poll(ctx, bootstrapTimeout, func(ctx context.Context) (bool, error) { return tokenUser(ctx, h) })
 		},
 		Hint:       "Recreate authentik so it reads " + h.Key("bootstrap_token") + " from secrets.env: self-host start authentik",
 		Credential: h.Key("bootstrap_token"),

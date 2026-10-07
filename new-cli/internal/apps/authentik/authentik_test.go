@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/apps/authentik"
@@ -60,6 +61,37 @@ func handler(token string) http.Handler {
 		w.Write([]byte(`{"user":{"username":"akadmin","is_superuser":true}}`))
 	})
 	return mux
+}
+
+// delayedHandler models authentik's worker applying AUTHENTIK_BOOTSTRAP_TOKEN
+// through a blueprint after migrations: the token is rejected for the first
+// reject calls, then accepted.
+func delayedHandler(token string, reject int32) http.Handler {
+	var calls atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /-/health/live/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`"ok"`))
+	})
+	mux.HandleFunc("GET /api/v3/core/users/me/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+token || calls.Add(1) <= reject {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		w.Write([]byte(`{"user":{"username":"akadmin","is_superuser":true}}`))
+	})
+	return mux
+}
+
+func TestSetupWaitsForTheWorkerToApplyTheBootstrapToken(t *testing.T) {
+	box := newHarness(t, delayedHandler("tok", 3), secrets{
+		"AUTHENTIK_BOOTSTRAP_TOKEN": "tok", "ADMIN_USER": "akadmin", "ADMIN_PASSWORD": "pw",
+	})
+	if err := (authentik.App{}).Setup(context.Background(), box.h); err != nil {
+		t.Fatalf("Setup should wait for the worker to apply the token: %v", err)
+	}
+	if got := box.step("admin"); got.Status != "ok" {
+		t.Errorf("admin step = %q, want ok", got.Status)
+	}
 }
 
 func TestSetupThenCheck(t *testing.T) {
