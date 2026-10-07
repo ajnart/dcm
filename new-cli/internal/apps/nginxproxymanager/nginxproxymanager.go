@@ -48,7 +48,7 @@ const emailSuffix = "@selfhost.local"
 func adminEmail(h *helpers.H) string { return h.AdminUser() + emailSuffix }
 
 func setupPending(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.Expect(ctx, helpers.Request{Path: "/api"}, http.StatusOK)
+	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/"}, http.StatusOK)
 	if err != nil {
 		return false, err
 	}
@@ -123,7 +123,7 @@ func ready(ctx context.Context, h *helpers.H, path string) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := ready(ctx, h, "/api"); err != nil {
+	if err := ready(ctx, h, "/api/"); err != nil {
 		return err
 	}
 	user := adminEmail(h)

@@ -3,6 +3,7 @@ package nginxproxymanager_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,15 +27,25 @@ const (
 )
 
 type fakeNPM struct {
-	mu       sync.Mutex
-	pending  bool
-	email    string
-	password string
+	mu            sync.Mutex
+	pending       bool
+	email         string
+	password      string
+	rootRedirects int
+	adminCreates  int
 }
 
 func (f *fakeNPM) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		f.rootRedirects++
+		f.mu.Unlock()
+		// Nginx expands the pinned slash redirect using its internal admin
+		// port, which differs from this fixture's selected host port.
+		http.Redirect(w, r, "http://127.0.0.1:81/api/", http.StatusFound)
+	})
+	mux.HandleFunc("GET /api/{$}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		json.NewEncoder(w).Encode(map[string]any{
@@ -53,6 +64,7 @@ func (f *fakeNPM) handler() http.Handler {
 			} `json:"auth"`
 		}
 		json.NewDecoder(r.Body).Decode(&body)
+		f.adminCreates++
 		f.pending, f.email, f.password = false, body.Email, body.Auth.Secret
 		w.WriteHeader(http.StatusCreated)
 	})
@@ -85,16 +97,28 @@ func (f *fakeNPM) handler() http.Handler {
 func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
+	client := srv.Client()
+	transport := client.Transport
+	client.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Scheme+"://"+req.URL.Host != srv.URL {
+			return nil, errors.New("API request left the selected host origin")
+		}
+		return transport.RoundTrip(req)
+	})
 	return helpers.New(helpers.Config{
 		App: "nginx-proxy-manager", Service: "nginx-proxy-manager",
-		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		BaseURL: srv.URL, URL: srv.URL, HTTP: client,
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { *records = append(*records, r) },
 	})
 }
 
-func TestSetupThenCheckThenRerunSkips(t *testing.T) {
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestSetupPreservesSelectedOriginThenCheckAndRerunSkips(t *testing.T) {
 	fake := &fakeNPM{pending: true}
 	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
@@ -120,6 +144,12 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		if r.Status != "skip" {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if err := (nginxproxymanager.App{}).Check(ctx, h); err != nil {
+		t.Fatalf("Check after rerun: %v", err)
+	}
+	if fake.rootRedirects != 0 || fake.adminCreates != 1 {
+		t.Fatalf("setup must keep the selected origin and create the admin once: redirects=%d creates=%d", fake.rootRedirects, fake.adminCreates)
 	}
 }
 
