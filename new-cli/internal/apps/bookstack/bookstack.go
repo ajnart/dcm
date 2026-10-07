@@ -19,6 +19,21 @@ type App struct{}
 
 const service = "bookstack"
 
+// The pinned image inherits Alpine nginx 3.24's PHP 8.5 pool for abc,
+// whose IDs follow PUID/PGID. PHP-FPM needs -R if either pool ID is zero,
+// including container zero mapped to the rootless project owner.
+const phpFPMRun = `#!/usr/bin/with-contenv bash
+if [[ "${PUID:-911}" = 0 || "${PGID:-911}" = 0 ]]; then
+    exec /usr/sbin/php-fpm85 -F -R
+fi
+exec /usr/sbin/php-fpm85 -F
+`
+
+// Files keeps the pinned PHP-FPM service compatible with the configured IDs.
+func (App) Files(_ app.RenderContext, _ func(string) string) []app.File {
+	return []app.File{{Path: "php-fpm-run", Content: phpFPMRun, Mode: 0o755}}
+}
+
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "bookstack", Name: "BookStack", Category: "Productivity",
@@ -60,6 +75,7 @@ func (App) Compose(rc app.RenderContext) string {
       APP_KEY: ${BOOKSTACK_APP_KEY}
     volumes:
       - ./config:/config
+      - ./php-fpm-run:/etc/s6-overlay/s6-rc.d/svc-php-fpm/run:ro
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:

@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/bookstack"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -179,5 +183,58 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 	}
 	if !strings.Contains(hint, "admin@selfhost.local") {
 		t.Errorf("hint should name the admin email, got %q", hint)
+	}
+}
+
+func TestPHPFPMAllowsOnlyConfiguredRootIdentity(t *testing.T) {
+	provider, ok := any(bookstack.App{}).(app.FileDeclarer)
+	if !ok {
+		t.Fatal("missing executable PHP-FPM launcher provider")
+	}
+	files := provider.Files(app.RenderContext{}, func(string) string { t.Fatal("launcher must not read secrets"); return "" })
+	var launcher app.File
+	for _, file := range files {
+		if file.Path == "php-fpm-run" {
+			launcher = file
+		}
+	}
+	if launcher.Content == "" || launcher.Mode != 0o755 {
+		t.Fatal("missing executable PHP-FPM launcher")
+	}
+	compose := (bookstack.App{}).Compose(app.RenderContext{Port: 8080})
+	if !strings.Contains(compose, "./php-fpm-run:/etc/s6-overlay/s6-rc.d/svc-php-fpm/run:ro") {
+		t.Fatal("launcher is not mounted read-only over the owned PHP-FPM service")
+	}
+	if !strings.HasPrefix(launcher.Content, "#!/usr/bin/with-contenv bash\n") {
+		t.Fatal("launcher must preserve the upstream container environment")
+	}
+	dir := t.TempDir()
+	// Substitute only the container's absolute executable with an argv recorder.
+	php := filepath.Join(dir, "php-fpm85")
+	if err := os.WriteFile(php, []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "run")
+	script := strings.ReplaceAll(launcher.Content, "/usr/sbin/php-fpm85", php)
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		uid, gid, want string
+	}{
+		{"0", "0", "-F\n-R\n"},
+		{"0", "1000", "-F\n-R\n"},
+		{"1000", "0", "-F\n-R\n"},
+		{"1000", "1000", "-F\n"},
+		{"", "", "-F\n"},
+	} {
+		t.Run(tc.uid+"-"+tc.gid, func(t *testing.T) {
+			cmd := exec.Command("bash", path)
+			cmd.Env = append(os.Environ(), "PUID="+tc.uid, "PGID="+tc.gid)
+			out, err := cmd.CombinedOutput()
+			if err != nil || string(out) != tc.want {
+				t.Fatalf("PHP-FPM args = %q, error = %v, want %q", out, err, tc.want)
+			}
+		})
 	}
 }
