@@ -1,0 +1,69 @@
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_2c51c6ba1a0d6b::t_5c8323e6104f22 8-9
+new-cli/internal/tui/views_test.go
+  s_2c51c6ba1a0d6b::t_9f925ae4f1260b 179-184,186-188
+  s_2c51c6ba1a0d6b::t_e1523f34a61eae 161-169
+  s_2c51c6ba1a0d6b::t_e60142ff84e0a1 185
+  s_2c51c6ba1a0d6b::t_baaa3ea44ee378 189-199
+  s_2c51c6ba1a0d6b::t_f97f029c820d42 103-131
+  s_2c51c6ba1a0d6b::t_ddddefe5a2444a 132-160
+  s_2c51c6ba1a0d6b::t_391973d71c2459 170-178
+new-cli/internal/tui/workflow_view.go
+  s_2c51c6ba1a0d6b::t_2f296e02dcc01c 1-9,11,18-19,34-42,44-59,64,66-69,71-75
+  s_2c51c6ba1a0d6b::t_f826915a64492e 10,20,24-33,43,60-63,65,70
+  s_2c51c6ba1a0d6b::t_4de374d289a11b 21-23
+  s_2c51c6ba1a0d6b::t_d7b10a2b523ef0 12-17
+new-cli/internal/tui/golden_test.go
+  s_2c51c6ba1a0d6b::t_17e834baadd4af 93-115
+new-cli/internal/tui/workflow_test.go
+  s_2c51c6ba1a0d6b::t_edbd7d452470bd 1-38
+  s_2c51c6ba1a0d6b::t_3badb8c0005ac7 40-41,44-66
+  s_2c51c6ba1a0d6b::t_4d44d36c4147e1 39,67-85
+  s_2c51c6ba1a0d6b::t_b80ae7e9227627 42-43
+new-cli/internal/tui/view.go
+  s_2c51c6ba1a0d6b::t_388742469e1606 32
+  s_2c51c6ba1a0d6b::t_2f296e02dcc01c 100-101
+  s_2c51c6ba1a0d6b::t_1548b52542cdef 23,283,288
+new-cli/internal/tui/harness_test.go
+  s_2c51c6ba1a0d6b::t_7cb55cccd6b218 295,304
+new-cli/internal/tui/model.go
+  s_2c51c6ba1a0d6b::t_1548b52542cdef 123,474-475,495-498,580-583,608-609
+new-cli/internal/tui/testdata/workflow.golden
+  s_2c51c6ba1a0d6b::t_840e3a34721b61 1-30
+new-cli/CONTEXT.md
+  s_2c51c6ba1a0d6b::t_5c8323e6104f22 92-97
+new-cli/internal/tui/dashboard.go
+  s_2c51c6ba1a0d6b::t_388742469e1606 135-136
+new-cli/internal/tui/workflow.go
+  s_2c51c6ba1a0d6b::t_54b0e125ef2839 34-35,38-41,46-48,59
+  s_2c51c6ba1a0d6b::t_3b576a46b4dcb5 1-11,21,25-28,30-33,36-37,42-45,50,65-89
+  s_2c51c6ba1a0d6b::t_03ef614c58cf9d 12-20,22-24,51-58,60-64
+  s_2c51c6ba1a0d6b::t_2f296e02dcc01c 29,49
+new-cli/internal/tui/keys.go
+  s_2c51c6ba1a0d6b::t_fe4c4452c77cf9 43
+  s_2c51c6ba1a0d6b::t_e60142ff84e0a1 54
+  s_2c51c6ba1a0d6b::t_49c0dfe7eeadaf 10
+  s_2c51c6ba1a0d6b::t_388742469e1606 34
+new-cli/internal/tui/testdata/install.golden
+  s_2c51c6ba1a0d6b::t_9df0ed4b90a205 1
+new-cli/internal/tui/testdata/settings.golden
+  s_2c51c6ba1a0d6b::t_7cace275297a49 1
+new-cli/internal/tui/testdata/stack.golden
+  s_2c51c6ba1a0d6b::t_c6df235632aeba 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c932368f4880899d3ff6de93bfa3e72803bbca03",
+  "prompts": {},
+  "sessions": {
+    "s_2c51c6ba1a0d6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114eb-63f2-7270-bfef-a3b2027dec6f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
