@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/seafile"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
+	"go.yaml.in/yaml/v3"
 )
 
 type fakeSeafile struct {
@@ -115,5 +119,40 @@ func TestFailedLoginHintNamesTheApp(t *testing.T) {
 	}
 	if fail == nil || !strings.Contains(fail.Hint, "self-host logs seafile") {
 		t.Fatalf("failing step hint should name the App command, got %+v", fail)
+	}
+}
+
+func TestComposeConfiguredServiceURLMatchesSelectedPublishedPort(t *testing.T) {
+	for _, port := range []int{8080, 24880, 80} {
+		t.Run(strconv.Itoa(port), func(t *testing.T) {
+			compose := (seafile.App{}).Compose(app.RenderContext{Port: port})
+			var deployment struct {
+				Services map[string]struct {
+					Environment map[string]string
+					Ports       []string
+				}
+			}
+			if err := yaml.Unmarshal([]byte(compose), &deployment); err != nil {
+				t.Fatal(err)
+			}
+			service := deployment.Services["seafile"]
+			host := strings.ReplaceAll(service.Environment["SEAFILE_SERVER_HOSTNAME"], "${LAN_IP}", "192.0.2.44")
+			origin, err := url.Parse(service.Environment["SEAFILE_SERVER_PROTOCOL"] + "://" + host)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(service.Ports) != 1 {
+				t.Fatal("Seafile must publish one owned HTTP endpoint")
+			}
+			mapping := strings.Split(service.Ports[0], ":")
+			published := mapping[len(mapping)-2]
+			configured := origin.Port()
+			if configured == "" && origin.Scheme == "http" {
+				configured = "80"
+			}
+			if configured != published {
+				t.Fatalf("Seafile builds URLs for port %s while owned Compose publishes port %s", configured, published)
+			}
+		})
 	}
 }

@@ -56,7 +56,7 @@ func (App) Compose(rc app.RenderContext) string {
       SEAFILE_MYSQL_DB_USER: seafile
       INIT_SEAFILE_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       SEAFILE_SERVER_PROTOCOL: http
-      SEAFILE_SERVER_HOSTNAME: ${LAN_IP}
+      SEAFILE_SERVER_HOSTNAME: ${LAN_IP}:` + port + `
       CACHE_PROVIDER: redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
