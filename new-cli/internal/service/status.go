@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/compose"
+	"go.yaml.in/yaml/v3"
 )
 
 type StepStatus struct {
@@ -94,7 +96,8 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		if psErr != nil {
 			as.State = "unknown"
 		} else {
-			fillContainer(&as, byService, mainService, services, ss.settings)
+			completed := fragmentCompletionDependencies(ss.p.FragmentPath(id))
+			fillContainer(&as, byService, mainService, services, completed, ss.settings)
 		}
 		status.Apps = append(status.Apps, as)
 	}
@@ -103,9 +106,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 // fillContainer sets state and health from the main service, and the
 // worst state among the App's other services.
-func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, settings map[string]string) {
+func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, settings map[string]string) {
 	c, found := byService[main]
-	if !found && len(services) > 0 {
+	if !found && !as.Managed && len(services) > 0 {
 		c, found = byService[services[0]]
 	}
 	if !found {
@@ -130,6 +133,12 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 			as.State = "degraded"
 			continue
 		}
+		if name != main && completed[name] {
+			if other.State != "exited" || other.ExitCode == nil || *other.ExitCode != 0 {
+				as.State = "degraded"
+			}
+			continue
+		}
 		if other.State != "running" && as.State == "running" {
 			as.State = "degraded"
 		}
@@ -137,6 +146,47 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 			as.Health = "unhealthy"
 		}
 	}
+}
+
+// A dependency may finish instead of remaining running only when every
+// reference to that declared service requires successful completion.
+// Short-form and conflicting dependency conditions retain the running rule.
+func fragmentCompletionDependencies(path string) map[string]bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var doc struct {
+		Services map[string]struct {
+			DependsOn yaml.Node `yaml:"depends_on"`
+		} `yaml:"services"`
+	}
+	if yaml.Unmarshal(data, &doc) != nil {
+		return nil
+	}
+	completed := map[string]bool{}
+	for _, service := range doc.Services {
+		node := service.DependsOn
+		if node.Kind == yaml.SequenceNode {
+			for _, name := range node.Content {
+				completed[name.Value] = false
+			}
+		}
+		if node.Kind != yaml.MappingNode {
+			continue
+		}
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			name := node.Content[i].Value
+			var dependency struct{ Condition string }
+			ok := node.Content[i+1].Decode(&dependency) == nil && dependency.Condition == "service_completed_successfully"
+			if _, declared := doc.Services[name]; !declared {
+				continue
+			}
+			previous, seen := completed[name]
+			completed[name] = ok && (!seen || previous)
+		}
+	}
+	return completed
 }
 
 type Credentials struct {

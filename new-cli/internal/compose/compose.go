@@ -29,6 +29,7 @@ type Container struct {
 	Name       string      `json:"Name"`
 	Service    string      `json:"Service"`
 	State      string      `json:"State"`
+	ExitCode   *int        `json:"ExitCode"`
 	Health     string      `json:"Health"`
 	Image      string      `json:"Image"`
 	Status     string      `json:"Status"`
