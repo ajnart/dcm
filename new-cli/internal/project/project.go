@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ajnart/self-host/internal/system"
 )
@@ -65,17 +66,27 @@ func (p *Project) writeFile(name string, data []byte, mode os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {
 		return err
 	}
-	tmp := name + ".tmp"
-	if err := os.WriteFile(tmp, data, mode); err != nil {
+	// A unique temporary file per write: concurrent writers sharing one used
+	// to interleave their bytes.
+	tmp, err := os.CreateTemp(filepath.Dir(name), "."+filepath.Base(name)+".*.tmp")
+	if err != nil {
 		return err
 	}
-	if err := os.Chmod(tmp, mode); err != nil {
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
 		return err
 	}
-	if err := p.chown(tmp); err != nil {
+	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, name)
+	if err := os.Chmod(tmp.Name(), mode); err != nil {
+		return err
+	}
+	if err := p.chown(tmp.Name()); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), name)
 }
 
 // Env files
@@ -199,12 +210,33 @@ func (p *Project) LoadState() (*State, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(data, state); err != nil {
-		return nil, fmt.Errorf("state.json: %w", err)
+		recovered, rerr := p.recoverState(data)
+		if rerr != nil {
+			return nil, fmt.Errorf("state.json: %w (a copy is kept next to it; run self-host setup to rebuild Setup results)", err)
+		}
+		state = recovered
 	}
 	if state.Apps == nil {
 		state.Apps = map[string]*AppState{}
 	}
 	return state, nil
+}
+
+// recoverState keeps the first complete JSON value of a damaged state.json
+// (two writers used to interleave and leave a tail behind), saves the damaged
+// file as state.json.corrupt and rewrites a clean one.
+func (p *Project) recoverState(data []byte) (*State, error) {
+	if err := os.WriteFile(p.Path("state.json.corrupt"), data, 0o644); err != nil {
+		return nil, err
+	}
+	state := &State{Version: 1, Apps: map[string]*AppState{}}
+	if err := json.NewDecoder(bytes.NewReader(data)).Decode(state); err != nil {
+		return nil, err
+	}
+	if state.Apps == nil {
+		state.Apps = map[string]*AppState{}
+	}
+	return state, p.SaveState(state)
 }
 
 func (p *Project) SaveState(state *State) error {
@@ -287,19 +319,53 @@ func (e LockedError) Error() string {
 	return fmt.Sprintf("another self-host command (PID %d) is changing this Project; wait for it or stop it", e.PID)
 }
 
-// Lock takes the Project lock for pid. A lock held by a dead process is replaced.
+// projectLocks serialises mutations inside one process: the Dashboard runs
+// several tasks at once under the same PID, which the lock file alone cannot
+// tell apart.
+var projectLocks sync.Map
+
+// Lock takes the Project lock for pid, waiting for other mutations of this
+// process. A lock file held by another live process is refused; one held by a
+// dead process is replaced.
 func (p *Project) Lock(pid int, alive func(int) bool) (func(), error) {
-	path := p.Path(".lock")
-	if data, err := os.ReadFile(path); err == nil {
-		if holder, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil && holder != pid && alive(holder) {
-			return nil, LockedError{PID: holder}
-		}
+	mu, _ := projectLocks.LoadOrStore(p.Root, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	unlockFile, err := p.lockFile(pid, alive)
+	if err != nil {
+		mu.(*sync.Mutex).Unlock()
+		return nil, err
 	}
+	return func() {
+		unlockFile()
+		mu.(*sync.Mutex).Unlock()
+	}, nil
+}
+
+func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o644); err != nil {
-		return nil, err
+	path := p.Path(".lock")
+	for attempt := 0; attempt < 2; attempt++ {
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err == nil {
+			_, err = f.WriteString(strconv.Itoa(pid))
+			f.Close()
+			if err != nil {
+				return nil, err
+			}
+			return func() { os.Remove(path) }, nil
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
+		data, _ := os.ReadFile(path)
+		holder, convErr := strconv.Atoi(strings.TrimSpace(string(data)))
+		if convErr == nil && holder != pid && alive(holder) {
+			return nil, LockedError{PID: holder}
+		}
+		// Stale, unreadable or left by this process: replace it.
+		os.Remove(path)
 	}
-	return func() { os.Remove(path) }, nil
+	return nil, errors.New("could not take the Project lock (.lock)")
 }
