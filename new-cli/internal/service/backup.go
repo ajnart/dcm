@@ -16,6 +16,7 @@ import (
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 )
 
@@ -32,6 +33,20 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 			targets, err := ss.targets(ids)
 			if err != nil {
 				return err
+			}
+			rootless, err := host.Rootless(ctx, s.Deps)
+			if err != nil {
+				return err
+			}
+			if rootless {
+				if err := s.prepareBackupHelper(ctx); err != nil {
+					return err
+				}
+				for _, id := range targets {
+					if err := s.validateBackupHelperDirectory(ss.p.Path("apps", id)); err != nil {
+						return err
+					}
+				}
 			}
 			if out == "" {
 				ext := ".tar.zst"
@@ -51,6 +66,9 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 			manifest := backup.Manifest{Version: 1, Created: s.Deps.Now().UTC(), CLIVersion: s.Deps.Version}
 			for _, id := range targets {
 				entry := backup.ManifestApp{ID: id}
+				if rootless {
+					entry.OwnershipNamespace = backup.OwnershipDocker
+				}
 				if a, found := s.Catalog.App(id); found && ss.state.Apps[id] != nil {
 					entry.Name, entry.Image, entry.Managed = a.Info().Name, a.Info().Image, true
 				}
@@ -84,7 +102,7 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 				return fmt.Errorf("cannot determine running Apps before backup: %w", err)
 			}
 			for _, id := range targets {
-				if err := ss.archiveApp(ctx, w, id, containers); err != nil {
+				if err := ss.archiveApp(ctx, w, id, containers, rootless); err != nil {
 					f.Close()
 					return err
 				}
@@ -109,7 +127,7 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 	return written, err
 }
 
-func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, containers []compose.Container) (result error) {
+func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, containers []compose.Container, rootless bool) (result error) {
 	services, err := ss.services(id)
 	if err != nil {
 		return err
@@ -144,7 +162,12 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := w.AddTree(ss.p.Path("apps", id), "apps/"+id); err != nil {
+	if rootless {
+		err = ss.archiveDockerTree(ctx, w, id)
+	} else {
+		err = w.AddTree(ss.p.Path("apps", id), "apps/"+id)
+	}
+	if err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
@@ -171,7 +194,7 @@ func humanSize(n int64) string {
 
 // Restore puts Apps back from a Backup: every App in it when ids is empty.
 // Other Apps are not touched. Restoring onto a new host recreates the Project.
-func (s *Service) Restore(ctx context.Context, file string, ids []string, passphrase string) error {
+func (s *Service) Restore(ctx context.Context, file string, ids []string, passphrase string) (result error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -182,6 +205,18 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		return err
 	}
 	defer r.Close()
+	// Manifest and target IDs enter mount and cleanup paths. Validate them
+	// before preparing helpers, creating staging, or registering cleanup.
+	for _, app := range r.Manifest.Apps {
+		if err := validBackupAppID(app.ID); err != nil {
+			return err
+		}
+	}
+	for _, id := range ids {
+		if err := validBackupAppID(id); err != nil {
+			return err
+		}
+	}
 	targets := ids
 	if len(targets) == 0 {
 		for _, a := range r.Manifest.Apps {
@@ -194,6 +229,17 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		}
 	}
 	all := len(targets) == len(r.Manifest.Apps)
+	dockerApps := map[string]bool{}
+	for _, app := range r.Manifest.Apps {
+		if app.OwnershipNamespace == backup.OwnershipDocker && slices.Contains(targets, app.ID) {
+			dockerApps[app.ID] = true
+		}
+	}
+	if len(dockerApps) > 0 {
+		if err := s.prepareBackupHelper(ctx); err != nil {
+			return err
+		}
+	}
 
 	p, err := s.Project()
 	if err != nil {
@@ -212,13 +258,43 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	}
 	keepRecovery := false
 	defer func() {
-		if !keepRecovery {
-			os.RemoveAll(staging)
+		if keepRecovery {
+			return
+		}
+		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+		defer cancel()
+		var cleanupErrors []error
+		for _, id := range targets {
+			if !dockerApps[id] {
+				continue
+			}
+			for _, dir := range []string{filepath.Join(staging, "apps", id), filepath.Join(staging, "replaced-"+id)} {
+				if err := s.removeDockerAppDirectory(cleanup, dir); err != nil {
+					cleanupErrors = append(cleanupErrors, err)
+				}
+			}
+		}
+		if err := errors.Join(cleanupErrors...); err != nil {
+			result = errors.Join(result, fmt.Errorf("restore cleanup failed; data retained in %s: %w", staging, err))
+			return
+		}
+		if err := os.RemoveAll(staging); err != nil {
+			result = errors.Join(result, fmt.Errorf("restore cleanup failed; data retained in %s: %w", staging, err))
 		}
 	}()
 	var chown func(string, int, int) error
 	if os.Geteuid() == 0 {
-		chown = func(p string, uid, gid int) error { return os.Lchown(p, uid, gid) }
+		chown = func(p string, uid, gid int) error {
+			rel, err := filepath.Rel(staging, p)
+			if err != nil {
+				return err
+			}
+			parts := strings.SplitN(rel, string(filepath.Separator), 3)
+			if len(parts) > 1 && parts[0] == "apps" && dockerApps[parts[1]] {
+				return nil
+			}
+			return os.Lchown(p, uid, gid)
+		}
 	}
 	err = r.Extract(staging, func(name string) string {
 		if name == ".env" || name == "secrets.env" || name == "state.json" {
@@ -235,9 +311,6 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	}
 	// Reject an incomplete archive before stopping containers or replacing data.
 	for _, id := range targets {
-		if id == "" || filepath.Base(id) != id || id == "." || id == ".." {
-			return fmt.Errorf("invalid App ID in backup: %q", id)
-		}
 		fragment := filepath.Join(staging, "apps", id, "compose.yml")
 		services, err := fragmentServices(fragment)
 		if err != nil {
@@ -303,7 +376,15 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					item := changed[i]
 					dir := ss.p.Path("apps", item.id)
 					if item.installed {
-						if err := os.RemoveAll(dir); err != nil {
+						var err error
+						if dockerApps[item.id] {
+							cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+							err = s.removeDockerAppDirectory(cleanup, dir)
+							cancel()
+						} else {
+							err = os.RemoveAll(dir)
+						}
+						if err != nil {
 							recoveryErrors = append(recoveryErrors, err)
 							continue
 						}
@@ -330,6 +411,18 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					}
 				}
 			}()
+			for _, id := range targets {
+				if !dockerApps[id] {
+					continue
+				}
+				entries, err := r.AppMetadata(id)
+				if err != nil {
+					return err
+				}
+				if err := s.applyDockerMetadata(ctx, filepath.Join(staging, "apps", id), entries); err != nil {
+					return err
+				}
+			}
 			existing, err := ss.p.AppIDs()
 			if err != nil {
 				return err
@@ -388,6 +481,13 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		return fmt.Errorf("restore could not finish; original data and records retained in %s: %w", staging, err)
 	}
 	return err
+}
+
+func validBackupAppID(id string) error {
+	if id == "" || id == "." || !filepath.IsLocal(id) || filepath.Base(id) != id || strings.ContainsAny(id, "/\\\x00\r\n") {
+		return fmt.Errorf("invalid App ID in backup: %q", id)
+	}
+	return nil
 }
 
 // restoreRecords merges secrets and state for the restored Apps.

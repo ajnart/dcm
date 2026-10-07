@@ -42,6 +42,22 @@ func (execRunner) Stream(ctx context.Context, cmd Cmd, w io.Writer) error {
 	return c.Run()
 }
 
+func (execRunner) StreamIO(ctx context.Context, cmd Cmd, stdin io.Reader, stdout, stderr io.Writer) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c := command(ctx, cmd)
+	if stdin != nil {
+		c.Stdin = stdin
+	}
+	c.Stdout, c.Stderr = stdout, stderr
+	err := c.Run()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return err
+}
+
 func command(ctx context.Context, cmd Cmd) *exec.Cmd {
 	c := exec.CommandContext(ctx, cmd.Name, cmd.Args...)
 	c.Dir = cmd.Dir
