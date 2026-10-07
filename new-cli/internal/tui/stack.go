@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -21,6 +22,10 @@ var stackHelp = []key.Binding{
 	hint("↑/↓", "select"), hint("u", "update"), hint("r", "re-check"), hint("esc", "back"),
 }
 
+func (v *stackView) Keys() []key.Binding { return stackHelp }
+
+func (v *stackView) Title() string { return "Stack" }
+
 func (v *stackView) scroll(height, dy int) {
 	v.cursor += sign(dy)
 	if v.cursor < 0 {
@@ -28,29 +33,46 @@ func (v *stackView) scroll(height, dy int) {
 	}
 }
 
-func (m Model) handleStackKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch {
-	case msg.String() == "esc":
-		m.surface = surfaceDashboard
-		return m, nil
-	case key.Matches(msg, m.keys.Quit):
-		m.tasks.cancelAll()
-		m.stopLogs()
-		return m, tea.Quit
-	case key.Matches(msg, m.keys.Up):
-		m.stack.cursor = max(m.stack.cursor-1, 0)
-	case key.Matches(msg, m.keys.Down):
-		m.stack.cursor = min(m.stack.cursor+1, max(len(m.containers)-1, 0))
-	case key.Matches(msg, m.keys.Update):
-		return m.updateSelectedContainer()
-	case key.Matches(msg, m.keys.Retry):
-		return m, m.loadUpdates()
+func (v *stackView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		return v.key(ctx, msg)
+	case tea.MouseWheelMsg:
+		dy := 3
+		if msg.Button == tea.MouseWheelUp {
+			dy = -3
+		}
+		v.scroll(ctx.mainHeight(), dy)
+		return v, nil, nav{}
 	}
-	return m, nil
+	return v, nil, nav{}
 }
 
-func (m Model) appStatus(id string) (service.AppStatus, bool) {
-	for _, a := range m.status.Apps {
+func (v *stackView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
+	switch {
+	case msg.String() == "esc":
+		return v, nil, nav{kind: navBack}
+	case key.Matches(msg, ctx.keys.Quit):
+		ctx.tasks.cancelAll()
+		return v, tea.Quit, nav{}
+	case key.Matches(msg, ctx.keys.Up):
+		v.cursor = max(v.cursor-1, 0)
+	case key.Matches(msg, ctx.keys.Down):
+		v.cursor = min(v.cursor+1, max(len(ctx.containers)-1, 0))
+	case key.Matches(msg, ctx.keys.Update):
+		return v, v.updateSelected(ctx), nav{}
+	case key.Matches(msg, ctx.keys.Retry):
+		return v, loadUpdatesCmd(ctx.backend, ctx.status), nav{}
+	}
+	return v, nil, nav{}
+}
+
+func loadUpdatesCmd(backend Backend, status service.Status) tea.Cmd {
+	return func() tea.Msg { return updatesMsg{updates: backend.Updates(context.Background(), status)} }
+}
+
+func appStatus(ctx *viewContext, id string) (service.AppStatus, bool) {
+	for _, a := range ctx.status.Apps {
 		if a.ID == id {
 			return a, true
 		}
@@ -59,44 +81,44 @@ func (m Model) appStatus(id string) (service.AppStatus, bool) {
 }
 
 // appUpdate is the App's update state, from the checks the model has run.
-func (m Model) appUpdate(id string) string {
-	if state, found := m.updates[id]; found && state != "" {
+func appUpdate(ctx *viewContext, id string) string {
+	if state, found := ctx.updates[id]; found && state != "" {
 		return state
 	}
-	if app, found := m.appStatus(id); found && app.Update != "" {
+	if app, found := appStatus(ctx, id); found && app.Update != "" {
 		return app.Update
 	}
 	return service.UpdateUnknown
 }
 
-func (m Model) updateSelectedContainer() (tea.Model, tea.Cmd) {
-	if m.stack.cursor >= len(m.containers) {
-		return m, nil
+func (v *stackView) updateSelected(ctx *viewContext) tea.Cmd {
+	if v.cursor >= len(ctx.containers) {
+		return nil
 	}
-	id := m.containers[m.stack.cursor].App
+	id := ctx.containers[v.cursor].App
 	if id == "" {
-		m.setFlash("this container has no App", levelWarn)
-		return m, nil
+		ctx.setFlash("this container has no App", levelWarn)
+		return nil
 	}
-	app, found := m.appStatus(id)
+	app, found := appStatus(ctx, id)
 	if !found {
-		return m, nil
+		return nil
 	}
-	if m.appUpdate(id) != service.UpdateAvailable {
-		m.setFlash("no update known for "+app.Name+" (press r to re-check)", levelInfo)
-		return m, nil
+	if appUpdate(ctx, id) != service.UpdateAvailable {
+		ctx.setFlash("no update known for "+app.Name+" (press r to re-check)", levelInfo)
+		return nil
 	}
-	return m.run(Request{Action: ActionUpdate, IDs: []string{id}}, "update "+id)
+	return ctx.run(Request{Action: ActionUpdate, IDs: []string{id}}, "update "+id)
 }
 
-func (m Model) renderStack() string {
-	t := m.theme
-	inner := max(m.width-4, 10)
-	showUptime := m.width >= 96
-	showPorts := m.width >= 118
-	showImage := m.width >= 150
+func (v *stackView) View(ctx *viewContext, width, height int) string {
+	t := ctx.theme
+	inner := max(width-4, 10)
+	showUptime := width >= 96
+	showPorts := width >= 118
+	showImage := width >= 150
 	var lines []string
-	lines = append(lines, "  "+m.stackHeader(), "")
+	lines = append(lines, "  "+stackHeader(ctx), "")
 
 	header := "  " + t.dim().Render(pad("APP", 12)+pad("SERVICE", 16)+pad("STATE", 11)+pad("HEALTH", 11)+pad("UPD", 11))
 	if showUptime {
@@ -110,41 +132,40 @@ func (m Model) renderStack() string {
 	}
 	lines = append(lines, truncate(header, inner))
 
-	avail := m.mainHeight() - 5
+	avail := height - 5
 	if avail < 1 {
 		avail = 1
 	}
-	if len(m.containers) == 0 {
+	if len(ctx.containers) == 0 {
 		msg := "No containers. Is the Project started?"
-		if m.containersErr != "" {
-			msg = "Could not read containers: " + m.containersErr
+		if ctx.containersErr != "" {
+			msg = "Could not read containers: " + ctx.containersErr
 		}
 		lines = append(lines, "  "+t.dim().Render(truncate(msg, inner)))
 		return strings.Join(lines, "\n")
 	}
-	v := m.stack
-	v.cursor = max(min(v.cursor, len(m.containers)-1), 0)
+	v.cursor = max(min(v.cursor, len(ctx.containers)-1), 0)
 	if v.cursor < v.offset {
 		v.offset = v.cursor
 	}
 	if v.cursor >= v.offset+avail {
 		v.offset = v.cursor - avail + 1
 	}
-	v.offset = max(min(v.offset, max(len(m.containers)-avail, 0)), 0)
-	for i := v.offset; i < len(m.containers) && i-v.offset < avail; i++ {
-		lines = append(lines, m.renderStackRow(m.containers[i], i, showUptime, showImage, showPorts, inner))
+	v.offset = max(min(v.offset, max(len(ctx.containers)-avail, 0)), 0)
+	for i := v.offset; i < len(ctx.containers) && i-v.offset < avail; i++ {
+		lines = append(lines, v.renderRow(ctx, ctx.containers[i], i, showUptime, showImage, showPorts, inner))
 	}
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderStackRow(c service.ContainerStatus, i int, uptime, image, ports bool, width int) string {
-	t := m.theme
+func (v *stackView) renderRow(ctx *viewContext, c service.ContainerStatus, i int, uptime, image, ports bool, width int) string {
+	t := ctx.theme
 	cursor := "  "
-	if i == m.stack.cursor {
+	if i == v.cursor {
 		cursor = t.fg(t.accent).Bold(true).Render("> ")
 	}
 	line := cursor + t.body().Render(pad(c.App, 12)) + t.dim().Render(pad(c.Service, 16)) +
-		pad(c.State, 11) + t.dim().Render(pad(c.Health, 11)) + pad(m.updateMark(c.App), 11)
+		pad(c.State, 11) + t.dim().Render(pad(c.Health, 11)) + pad(updateMark(ctx, c.App), 11)
 	if uptime {
 		line += t.dim().Render(pad(c.Status, 18))
 	}
@@ -158,9 +179,9 @@ func (m Model) renderStackRow(c service.ContainerStatus, i int, uptime, image, p
 }
 
 // updateMark is one App's update column: an update, current, or unknown.
-func (m Model) updateMark(appID string) string {
-	t := m.theme
-	switch m.appUpdate(appID) {
+func updateMark(ctx *viewContext, appID string) string {
+	t := ctx.theme
+	switch appUpdate(ctx, appID) {
 	case service.UpdateAvailable:
 		return t.fg(t.warn).Render("⚠ update")
 	case service.UpdateCurrent:
@@ -170,22 +191,22 @@ func (m Model) updateMark(appID string) string {
 	}
 }
 
-func (m Model) stackHeader() string {
+func stackHeader(ctx *viewContext) string {
 	running, updates := 0, 0
-	for _, c := range m.containers {
+	for _, c := range ctx.containers {
 		if c.State == "running" {
 			running++
 		}
 	}
-	for _, a := range m.status.Apps {
-		if m.appUpdate(a.ID) == service.UpdateAvailable {
+	for _, a := range ctx.status.Apps {
+		if appUpdate(ctx, a.ID) == service.UpdateAvailable {
 			updates++
 		}
 	}
 	checked := "checking…"
-	if !m.updatesAt.IsZero() {
-		checked = "checked " + m.updatesAt.Format("15:04")
+	if !ctx.updatesAt.IsZero() {
+		checked = "checked " + ctx.updatesAt.Format("15:04")
 	}
 	return fmt.Sprintf("%s · %d running · %s · %s",
-		plural(len(m.containers), "container", "containers"), running, plural(updates, "App with an update", "Apps with updates"), checked)
+		plural(len(ctx.containers), "container", "containers"), running, plural(updates, "App with an update", "Apps with updates"), checked)
 }

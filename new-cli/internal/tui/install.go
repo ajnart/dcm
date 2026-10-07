@@ -57,14 +57,18 @@ func hint(help, desc string) key.Binding {
 	return key.NewBinding(key.WithKeys(help), key.WithHelp(help, desc))
 }
 
-func newInstallView(m Model) *installView {
+func newInstallView(ctx *viewContext) *installView {
 	v := &installView{picked: map[string]bool{}}
 	v.search = textinput.New()
 	v.search.Prompt = "/ "
 	v.search.Placeholder = "filter by name, id, description or category"
-	v.resize(m.width)
+	v.resize(ctx.width)
 	return v
 }
+
+func (v *installView) Keys() []key.Binding { return installHelp }
+
+func (v *installView) Title() string { return "Install" }
 
 func (v *installView) resize(width int) {
 	v.search.SetWidth(max(width*2/5-6, 10))
@@ -79,11 +83,40 @@ func (v *installView) scroll(dy, n int) {
 	v.clamp(n)
 }
 
+func (v *installView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		return v.key(ctx, msg)
+	case tea.MouseWheelMsg:
+		dy := 3
+		if msg.Button == tea.MouseWheelUp {
+			dy = -3
+		}
+		v.scroll(dy, len(v.rows(ctx)))
+		return v, nil, nav{}
+	}
+	return v, nil, nav{}
+}
+
+func (v *installView) View(ctx *viewContext, width, height int) string {
+	if v.plan != nil {
+		return v.renderReview(ctx, width)
+	}
+	left := max(width*2/5, 24)
+	left = min(left, max(width-20, 10))
+	right := width - left - 1
+	if right < 16 {
+		left, right = width*2/3, width-width*2/3-1
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		v.renderList(ctx, left, height), v.renderDetail(ctx, right, height))
+}
+
 // installItems lists Recipes first, then Apps grouped under category headers
 // and sorted by name.
-func (m Model) installItems() []installItem {
-	cat := m.backend.Catalog()
-	installed := m.installedIDs()
+func (v *installView) installItems(ctx *viewContext) []installItem {
+	cat := ctx.backend.Catalog()
+	installed := v.installedIDs(ctx)
 	var items []installItem
 	for _, r := range cat.Recipes() {
 		items = append(items, installItem{key: "recipe:" + r.ID, id: r.ID, name: "📦 " + r.Name, desc: r.Description})
@@ -138,58 +171,57 @@ func (v *installView) filtered(all []installItem) []installItem {
 	return out
 }
 
-func (m Model) installRows() []installItem { return m.install.filtered(m.installItems()) }
+func (v *installView) rows(ctx *viewContext) []installItem {
+	return v.filtered(v.installItems(ctx))
+}
 
-func (m Model) installedIDs() []string {
+func (v *installView) installedIDs(ctx *viewContext) []string {
 	var ids []string
-	for _, a := range m.status.Apps {
+	for _, a := range ctx.status.Apps {
 		ids = append(ids, a.ID)
 	}
 	return ids
 }
 
-func (m Model) handleInstallKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	v := m.install
+func (v *installView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	if v.plan != nil {
-		return m.handleInstallReview(msg)
+		return v.review(ctx, msg)
 	}
 	if v.searching {
 		switch msg.String() {
 		case "enter", "down":
 			v.searching = false
-			return m, nil
+			return v, nil, nav{}
 		case "esc":
 			v.searching, v.filter = false, ""
 			v.search.Reset()
-			v.clamp(len(m.installRows()))
-			return m, nil
+			v.clamp(len(v.rows(ctx)))
+			return v, nil, nav{}
 		}
 		var cmd tea.Cmd
 		v.search, cmd = v.search.Update(msg)
 		v.filter = v.search.Value()
-		v.clamp(len(m.installRows()))
-		return m, cmd
+		v.clamp(len(v.rows(ctx)))
+		return v, cmd, nav{}
 	}
-	items := m.installRows()
+	items := v.rows(ctx)
 	switch {
 	case msg.String() == "esc":
-		m.surface, m.install = surfaceDashboard, nil
-		return m, nil
-	case key.Matches(msg, m.keys.Quit):
-		m.tasks.cancelAll()
-		m.stopLogs()
-		return m, tea.Quit
-	case key.Matches(msg, m.keys.Search):
+		return v, nil, nav{kind: navBack}
+	case key.Matches(msg, ctx.keys.Quit):
+		ctx.tasks.cancelAll()
+		return v, tea.Quit, nav{}
+	case key.Matches(msg, ctx.keys.Search):
 		v.searching = true
 		v.search.Focus()
-		return m, textinput.Blink
-	case key.Matches(msg, m.keys.Up):
+		return v, textinput.Blink, nav{}
+	case key.Matches(msg, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
-	case key.Matches(msg, m.keys.Down):
+	case key.Matches(msg, ctx.keys.Down):
 		v.cursor = min(v.cursor+1, max(len(items)-1, 0))
-	case key.Matches(msg, m.keys.ScrollUp):
+	case key.Matches(msg, ctx.keys.ScrollUp):
 		v.scroll(-5, len(items))
-	case key.Matches(msg, m.keys.ScrollDown):
+	case key.Matches(msg, ctx.keys.ScrollDown):
 		v.scroll(5, len(items))
 	case msg.String() == "space":
 		if v.cursor < len(items) && !items[v.cursor].header && !items[v.cursor].installed {
@@ -197,67 +229,65 @@ func (m Model) handleInstallKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			v.picked[it.key] = !v.picked[it.key]
 		}
 	case msg.String() == "enter":
-		return m.planPicked()
+		return v.planPicked(ctx)
 	}
-	return m, nil
+	return v, nil, nav{}
 }
 
-func (m Model) handleInstallReview(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	v := m.install
+func (v *installView) review(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	reqs := v.reqInputs
 	switch msg.String() {
 	case "esc":
 		v.plan, v.reqInputs, v.err = nil, nil, ""
-		return m, nil
+		return v, nil, nav{}
 	case "tab", "down":
 		if len(reqs) > 0 {
 			reqs[v.field].field.Blur()
 			v.field = (v.field + 1) % len(reqs)
 			reqs[v.field].field.Focus()
 		}
-		return m, nil
+		return v, nil, nav{}
 	case "up":
 		if len(reqs) > 0 {
 			reqs[v.field].field.Blur()
 			v.field = (v.field - 1 + len(reqs)) % len(reqs)
 			reqs[v.field].field.Focus()
 		}
-		return m, nil
+		return v, nil, nav{}
 	case "enter":
 		var sets []string
 		for _, r := range reqs {
 			value := strings.TrimSpace(r.field.Value())
 			if value == "" {
 				v.err = "required: " + r.label
-				return m, nil
+				return v, nil, nav{}
 			}
 			sets = append(sets, r.key+"="+value)
 		}
 		if len(sets) > 0 {
 			v.plan.opts.Sets = append(v.plan.opts.Sets, sets...)
 		}
-		plan := v.plan
-		m.surface, m.install = surfaceDashboard, nil
-		return m.installPlan(plan)
+		opts := v.plan.opts
+		return v, ctx.run(Request{Action: ActionInstall, Install: &opts}, "install "+strings.Join(opts.Targets, " ")), nav{kind: navBack}
 	}
 	if len(reqs) > 0 {
 		var cmd tea.Cmd
 		reqs[v.field].field, cmd = reqs[v.field].field.Update(msg)
-		return m, cmd
+		return v, cmd, nav{}
 	}
-	return m, nil
+	return v, nil, nav{}
 }
 
-func (m Model) planPicked() (tea.Model, tea.Cmd) {
-	cat := m.backend.Catalog()
+func (v *installView) planPicked(ctx *viewContext) (view, tea.Cmd, nav) {
+	cat := ctx.backend.Catalog()
 	var picked []string
-	for k, on := range m.install.picked {
+	for k, on := range v.picked {
 		if on {
 			picked = append(picked, k)
 		}
 	}
 	slices.Sort(picked)
-	installed := m.installedIDs()
+	installed := v.installedIDs(ctx)
 	var apps []app.App
 	for _, a := range expand(cat, picked) {
 		if !slices.Contains(installed, a.Info().ID) {
@@ -265,8 +295,8 @@ func (m Model) planPicked() (tea.Model, tea.Cmd) {
 		}
 	}
 	if len(apps) == 0 {
-		m.setFlash("pick Apps with space first", levelWarn)
-		return m, nil
+		ctx.setFlash("pick Apps with space first", levelWarn)
+		return v, nil, nav{}
 	}
 	opts := service.InstallOptions{}
 	var reqs []reviewInput
@@ -278,7 +308,7 @@ func (m Model) planPicked() (tea.Model, tea.Cmd) {
 				field := textinput.New()
 				field.Prompt = ""
 				field.Placeholder = in.Prompt
-				field.SetWidth(max(m.width-14, 20))
+				field.SetWidth(max(ctx.width-14, 20))
 				reqs = append(reqs, reviewInput{key: info.ID + "." + in.Key, label: info.Name + " · " + in.Prompt, field: field})
 				continue
 			}
@@ -288,34 +318,19 @@ func (m Model) planPicked() (tea.Model, tea.Cmd) {
 		}
 	}
 	settings := map[string]string{}
-	for k, value := range m.status.Settings {
+	for k, value := range ctx.status.Settings {
 		settings[k] = value
 	}
-	m.install.plan = &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, installed), settings: settings}
-	m.install.reqInputs, m.install.err, m.install.field = reqs, "", 0
+	v.plan = &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, installed), settings: settings}
+	v.reqInputs, v.err, v.field = reqs, "", 0
 	if len(reqs) > 0 {
 		reqs[0].field.Focus()
 	}
-	return m, nil
+	return v, nil, nav{}
 }
 
-func (m Model) renderInstall() string {
-	if m.install.plan != nil {
-		return m.renderInstallReview(m.width)
-	}
-	left := max(m.width*2/5, 24)
-	left = min(left, max(m.width-20, 10))
-	right := m.width - left - 1
-	if right < 16 {
-		left, right = m.width*2/3, m.width-m.width*2/3-1
-	}
-	return lipgloss.JoinHorizontal(lipgloss.Top,
-		m.renderInstallList(left, m.mainHeight()), m.renderInstallDetail(right, m.mainHeight()))
-}
-
-func (m Model) renderInstallList(width, height int) string {
-	t := m.theme
-	v := m.install
+func (v *installView) renderList(ctx *viewContext, width, height int) string {
+	t := ctx.theme
 	inner := max(width-4, 1)
 	var lines []string
 	head := ""
@@ -331,7 +346,7 @@ func (m Model) renderInstallList(width, height int) string {
 	if avail < 1 {
 		avail = 1
 	}
-	items := m.installRows()
+	items := v.rows(ctx)
 	v.cursor = max(min(v.cursor, len(items)-1), 0)
 	if v.cursor < v.offset {
 		v.offset = v.cursor
@@ -364,18 +379,18 @@ func (m Model) renderInstallList(width, height int) string {
 	return t.box(title, strings.Join(lines, "\n"), width, height)
 }
 
-func (m Model) renderInstallDetail(width, height int) string {
-	t := m.theme
+func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
+	t := ctx.theme
 	inner := max(width-4, 1)
-	items := m.installRows()
+	items := v.rows(ctx)
 	if len(items) == 0 {
 		return t.box(t.heading().Render("Details"), t.dim().Render("Nothing matches."), width, height)
 	}
-	it := items[min(m.install.cursor, len(items)-1)]
+	it := items[min(v.cursor, len(items)-1)]
 	if it.header {
 		return t.box(t.heading().Render("Details"), t.dim().Render("Pick an App or a Recipe."), width, height)
 	}
-	cat := m.backend.Catalog()
+	cat := ctx.backend.Catalog()
 	row := func(k, val string) string { return t.dim().Render(pad(k, 9)) + t.body().Render(truncate(val, inner-9)) }
 	var title, body string
 	if strings.HasPrefix(it.key, "recipe:") {
@@ -422,20 +437,20 @@ func (m Model) renderInstallDetail(width, height int) string {
 	return t.box(t.heading().Render(title), body, width, height)
 }
 
-func (m Model) renderInstallReview(width int) string {
-	body := m.renderPlan(m.install.plan, "enter install · esc back")
-	if len(m.install.reqInputs) > 0 {
-		t := m.theme
+func (v *installView) renderReview(ctx *viewContext, width int) string {
+	body := renderPlan(ctx.theme, v.plan, "enter install · esc back")
+	if len(v.reqInputs) > 0 {
+		t := ctx.theme
 		fields := []string{"", "  " + t.heading().Render("Required inputs")}
-		for i, r := range m.install.reqInputs {
+		for i, r := range v.reqInputs {
 			cursor := "  "
-			if i == m.install.field {
+			if i == v.field {
 				cursor = t.fg(t.accent).Render("> ")
 			}
 			fields = append(fields, "  "+cursor+t.dim().Render(r.label), "    "+r.field.View())
 		}
-		if m.install.err != "" {
-			fields = append(fields, "  "+t.fg(t.fail).Render(m.install.err))
+		if v.err != "" {
+			fields = append(fields, "  "+t.fg(t.fail).Render(v.err))
 		}
 		body += strings.Join(fields, "\n")
 	}

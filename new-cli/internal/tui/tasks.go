@@ -54,6 +54,7 @@ func (t *task) snapshot() taskSnapshot {
 type taskManager struct {
 	mu     sync.Mutex
 	nextID int
+	lastID int
 	tasks  []*task
 }
 
@@ -64,6 +65,7 @@ func (m *taskManager) start(title string) *task {
 	ctx, cancel := context.WithCancel(context.Background())
 	t := &task{id: m.nextID, title: title, started: time.Now(), ctx: ctx, cancel: cancel}
 	m.tasks = append(m.tasks, t)
+	m.lastID = t.id
 	return t
 }
 
@@ -93,6 +95,14 @@ func (m *taskManager) get(id int) *task {
 		}
 	}
 	return nil
+}
+
+// latest is the most recently started task, the one the footer follows.
+func (m *taskManager) latest() *task {
+	m.mu.Lock()
+	id := m.lastID
+	m.mu.Unlock()
+	return m.get(id)
 }
 
 func (m *taskManager) snapshots() []taskSnapshot {
