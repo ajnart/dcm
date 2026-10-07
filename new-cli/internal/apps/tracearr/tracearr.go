@@ -135,14 +135,12 @@ type authObservation struct {
 
 func observeLogin(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (bool, error) {
 	*observed = authObservation{attempted: true}
-	login, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/api/v1/auth/sign-in/username",
-		JSON: map[string]string{"username": user, "password": password},
-	})
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	login, err := loginAfterRateLimit(ctx, h, user, password, observed)
 	if err != nil {
 		return false, err
 	}
-	observed.loginHTTP = login.Status
 	if login.Status == 401 || login.Status == 403 {
 		return false, nil
 	}
@@ -189,6 +187,42 @@ func observeLogin(ctx context.Context, h *helpers.H, user, password string, obse
 	return observed.username && observed.email && observed.owner && observed.id, nil
 }
 
+// Better Auth 1.6.33 limits sign-in to three requests per ten seconds and
+// returns X-Retry-After in seconds. Bound both waits and requests; never infer
+// successful authentication from a rate-limit response.
+func loginAfterRateLimit(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (helpers.Response, error) {
+	var waited time.Duration
+	for attempt := 0; ; attempt++ {
+		resp, err := h.HTTP(ctx, helpers.Request{
+			Method: "POST", Path: "/api/v1/auth/sign-in/username",
+			JSON: map[string]string{"username": user, "password": password},
+		})
+		if err != nil {
+			return resp, err
+		}
+		observed.loginHTTP = resp.Status
+		if resp.Status != 429 {
+			return resp, nil
+		}
+		value := resp.Header.Get("X-Retry-After")
+		if value == "" {
+			value = resp.Header.Get("Retry-After")
+		}
+		seconds, err := strconv.Atoi(value)
+		if err != nil || seconds <= 0 || seconds > 30 || attempt == 3 {
+			return resp, fmt.Errorf("Tracearr login returned HTTP 429; bounded rate-limit retry unavailable or exhausted")
+		}
+		delay := time.Duration(seconds) * time.Second
+		if waited+delay > 30*time.Second {
+			return resp, fmt.Errorf("Tracearr login returned HTTP 429; bounded rate-limit retry exhausted")
+		}
+		if err := h.Sleep(ctx, delay); err != nil {
+			return resp, fmt.Errorf("Tracearr login returned HTTP 429; rate-limit wait interrupted")
+		}
+		waited += delay
+	}
+}
+
 type setupStatus struct {
 	NeedsSetup bool `json:"needsSetup"`
 }
@@ -219,8 +253,13 @@ func createOwner(ctx context.Context, h *helpers.H, user, password string) error
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	var observed authObservation
 	first := onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
-		Exists: ownerExists,
+		Ready: onboard.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
+		Exists: func(ctx context.Context, h *helpers.H) (bool, error) {
+			if observed.loginHTTP == 429 {
+				return false, fmt.Errorf("Tracearr login returned HTTP 429; retry setup after the authentication rate limit clears")
+			}
+			return ownerExists(ctx, h)
+		},
 		Create: createOwner,
 		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 			return observeLogin(ctx, h, user, password, &observed)

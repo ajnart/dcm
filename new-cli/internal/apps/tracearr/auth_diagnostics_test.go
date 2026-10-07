@@ -29,7 +29,7 @@ func TestExistingOwnerFailureRetainsLoginStatusWithoutRetryOrPrivateBody(t *test
 	defer srv.Close()
 	h, recorded := newH(t, srv)
 	err := (tracearr.App{}).Setup(context.Background(), h)
-	if err == nil || !strings.Contains(err.Error(), "an administrator already exists") || !strings.Contains(err.Error(), "login_http=429 token_present=false me_http=0") || !strings.Contains(err.Error(), "local_login_enabled=true has_password_auth=true needs_setup=false") {
+	if err == nil || !strings.Contains(err.Error(), "HTTP 429") || !strings.Contains(err.Error(), "login_http=429 token_present=false me_http=0") || !strings.Contains(err.Error(), "local_login_enabled=true has_password_auth=true needs_setup=false") {
 		t.Fatalf("missing original failure or bounded auth diagnostic: %v", err)
 	}
 	if logins != 1 || creates != 0 {
