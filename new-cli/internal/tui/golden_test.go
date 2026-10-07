@@ -90,3 +90,26 @@ func TestGoldenStack(t *testing.T) {
 
 	golden(t, "stack", trimLines(screen(m)))
 }
+
+func TestGoldenWorkflow(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+	backend.status = workflowStatus()
+	m = update(t, m, statusMsg{status: backend.status})
+	m = drive(t, m, press("w"))
+	out := screen(m)
+	for _, want := range []string{"Dashboard · Stack · Workflow · Install · Settings", "1 App fully set up", "↑/k select up", "esc back"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("w should render Workflow with its top bar and footer; missing %q\n%s", want, out)
+		}
+	}
+	m = drive(t, m, press("esc"))
+	if !strings.Contains(screen(m), "Needs action") {
+		t.Fatalf("esc should return to Dashboard\n%s", screen(m))
+	}
+	m = drive(t, m, clickMsg{id: "nav:workflow"})
+	if !strings.Contains(screen(m), "1 App fully set up") {
+		t.Fatalf("top bar should open Workflow\n%s", screen(m))
+	}
+	m = drive(t, m, press("j"))
+	golden(t, "workflow", trimLines(screen(m)))
+}

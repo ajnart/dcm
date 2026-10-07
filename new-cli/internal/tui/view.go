@@ -20,7 +20,7 @@ import (
 // Below wideWidth columns the panels stack instead of sitting side by side.
 const wideWidth = 100
 
-// surface is the whole screen the Dashboard, Install, Settings, Stack or Help
+// surface is the whole screen the Dashboard, Install, Settings, Stack, Workflow or Help
 // view fills; the Dashboard is home.
 type surface int
 
@@ -29,6 +29,7 @@ const (
 	surfaceInstall
 	surfaceSettings
 	surfaceStack
+	surfaceWorkflow
 	surfaceHelp
 )
 
@@ -95,6 +96,8 @@ type viewContext struct {
 }
 
 func (ctx *viewContext) mainHeight() int { return max(ctx.height-2, 3) }
+
+func (ctx *viewContext) workflow() WorkflowSnapshot { return Workflow(ctx.status, nil) }
 
 func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
 
@@ -277,11 +280,12 @@ var navItems = []struct {
 }{
 	{"dashboard", "Dashboard", surfaceDashboard},
 	{"stack", "Stack", surfaceStack},
+	{"workflow", "Workflow", surfaceWorkflow},
 	{"install", "Install", surfaceInstall},
 	{"settings", "Settings", surfaceSettings},
 }
 
-// renderNav is the top bar of the full-screen views: the brand, the four
+// renderNav is the top bar of the full-screen views: the brand, the five
 // surfaces with the active one highlighted, and the version on the right.
 func (m Model) renderNav(active surface) (string, []*lipgloss.Layer) {
 	t := m.theme

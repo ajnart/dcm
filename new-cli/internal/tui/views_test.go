@@ -100,3 +100,100 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 		}
 	}
 }
+
+func workflowStatus() service.Status {
+	return service.Status{Apps: []service.AppStatus{
+		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: "ok", Steps: []service.StepStatus{
+			{ID: "ready", Status: "ok", Msg: "API ready"},
+			{ID: "account", Status: "skip", Msg: "already configured"},
+			{ID: "check", Status: "ok"},
+		}},
+		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{
+			{ID: "ready", Status: "ok"},
+			{ID: "link-qbittorrent", Status: "fail", Msg: "download client", Error: "refused login", Hint: "check credentials"},
+			{ID: "check"},
+		}},
+		{ID: "radarr", Name: "Radarr", Managed: true, Setup: "pending"},
+		{ID: "whoami", Name: "whoami", Setup: "unmanaged"},
+	}}
+}
+
+func TestWorkflowViewShowsEveryAppAndRememberedMarks(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = workflowStatus()
+	var v view = &workflowView{}
+	out := ansi.Strip(v.View(ctx, 120, 30))
+	for _, want := range []string{"Jellyfin", "Sonarr", "Radarr", "whoami", "1 App fully set up", "1 step failed", "✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "API ready", "no remembered steps", "added by hand, no Setup"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Workflow view lacks %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWorkflowViewSelectsStepsWithArrowsAndJK(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = workflowStatus()
+	var v view = &workflowView{}
+	for _, tc := range []struct{ key, selected string }{
+		{"up", "> ✓ ready · API ready"},
+		{"down", "> ↷ account"},
+		{"j", "> ✓ check"},
+		{"j", "> ✓ ready\n"},
+		{"down", "> ✗ link-qbittorrent"},
+		{"down", "> ○ check"},
+		{"down", "> ○ check"},
+		{"k", "> ✗ link-qbittorrent"},
+		{"up", "> ✓ ready\n"},
+	} {
+		next, cmd, nv := v.Update(ctx, press(tc.key))
+		v = next
+		out := trimLines(ansi.Strip(v.View(ctx, 120, 30)))
+		if cmd != nil || nv.kind != navNone || !strings.Contains(out, tc.selected) || strings.Count(out, "> ") != 1 {
+			t.Fatalf("%s should select %q\n%s", tc.key, tc.selected, out)
+		}
+	}
+	ctx.status = service.Status{}
+	v, _, _ = v.Update(ctx, press("down"))
+	if out := ansi.Strip(v.View(ctx, 120, 30)); strings.Contains(out, "> ") {
+		t.Fatalf("empty Project has a selected step\n%s", out)
+	}
+}
+
+func TestWorkflowViewEscNavigatesBack(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	var v view = &workflowView{}
+	_, cmd, nv := v.Update(ctx, press("esc"))
+	if cmd != nil || nv.kind != navBack {
+		t.Fatalf("esc should navigate back without an Action, got %+v", nv)
+	}
+}
+
+func TestDashboardWOpensWorkflow(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	v := newDashboardView()
+	_, cmd, nv := v.Update(ctx, press("w"))
+	if cmd != nil || nv.kind != navTo || nv.to != surfaceWorkflow {
+		t.Fatalf("w should open Workflow without an Action, got %+v", nv)
+	}
+}
+
+func TestHelpListsWorkflowKey(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	v := newHelpView()
+	v.open(ctx)
+	out := ansi.Strip(v.View(ctx, 120, 30))
+	if !strings.Contains(strings.Join(strings.Fields(out), " "), "w workflow") {
+		t.Fatalf("help should list w for Workflow\n%s", out)
+	}
+}
+
+func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
+	var v view = &workflowView{}
+	var keys []string
+	for _, binding := range v.Keys() {
+		keys = append(keys, binding.Keys()...)
+	}
+	if got := strings.Join(keys, " "); got != "up k down j esc" || v.Title() != "Workflow" {
+		t.Fatalf("Workflow should advertise selection and back, got %q (%s)", got, v.Title())
+	}
+}

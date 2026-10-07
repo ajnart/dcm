@@ -89,6 +89,12 @@ The read-only view of the selected App, in tabs: logs, Setup, info and its
 Compose file.
 _Avoid_: sidebar
 
+**Workflow view**:
+The step tracker opened with `w`: every App's remembered steps from render,
+pull and start (when recorded), through Setup and Links to check, with each
+step's state. It counts Apps fully set up and failed steps; `esc` returns to
+the Dashboard.
+
 **Keybind**:
 One key that triggers one Action or moves the selection. The Dashboard has a
 small fixed set; a key with no frequent Action behind it does not exist.

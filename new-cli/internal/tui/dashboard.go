@@ -132,6 +132,8 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 		return v, nil, nav{kind: navTo, to: surfaceSettings}
 	case key.Matches(msg, k.Stack):
 		return v, nil, nav{kind: navTo, to: surfaceStack}
+	case key.Matches(msg, k.Workflow):
+		return v, nil, nav{kind: navTo, to: surfaceWorkflow}
 	case key.Matches(msg, k.Backup):
 		return v, ctx.run(Request{Action: ActionBackup}, "backup"), nav{}
 	case key.Matches(msg, k.Copy):
