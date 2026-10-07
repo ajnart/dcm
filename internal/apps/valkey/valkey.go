@@ -1,5 +1,5 @@
-// Package valkey is Valkey: a private cache and queue for trusted peers on the
-// shared Compose network, with no authentication by default.
+// Package valkey is Valkey: a private cache and queue. It is published on the
+// LAN, so it requires a generated password (VALKEY_PASSWORD).
 package valkey
 
 import (
@@ -30,21 +30,32 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
+func (App) Secrets() []app.SecretSpec { return []app.SecretSpec{{Name: "password", Length: 32}} }
+
+// Files keeps the password out of the command line.
+func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
+	return []app.File{{Path: "valkey.conf", Content: "protected-mode no\nrequirepass " + secret("password") + "\n", Mode: 0o600}}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   valkey:
     image: valkey/valkey:9.1.2
-    command: ["valkey-server", "--protected-mode", "no"]
+    command: ["valkey-server", "/usr/local/etc/valkey/valkey.conf"]
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     volumes:
       - ./data:/data
+      - ./valkey.conf:/usr/local/etc/valkey/valkey.conf:ro
     ports:
       - ${BIND_IP}:` + strconv.Itoa(rc.Port) + `:6379
 `
 }
 
 func ping(ctx context.Context, h *helpers.H) (bool, error) {
-	result, err := h.Exec(ctx, nil, "valkey-cli", "-h", "127.0.0.1", "-p", "6379", "PING")
+	password := h.Secret(h.Key("password"))
+	env := map[string]string{"VALKEYCLI_AUTH": password, "REDISCLI_AUTH": password}
+	result, err := h.Exec(ctx, env, "valkey-cli", "-h", "127.0.0.1", "-p", "6379", "PING")
 	if err != nil {
 		return false, err
 	}
