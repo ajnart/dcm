@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -46,7 +48,7 @@ func (App) Inputs() []app.Input {
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
 		{Name: "server_secret", Length: 32},
-		{Name: "setup_token", Length: 16, Hex: true},
+		{Name: "setup_token", Length: 32, Hex: true},
 	}
 }
 
@@ -165,6 +167,8 @@ const managementHint = "Set the external URL with: self-host setup pangolin --se
 
 func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
+var setupTokenPattern = regexp.MustCompile(`^[a-z0-9]{32}$`)
+
 type loginResult struct {
 	Status  int    `json:"status"`
 	Success bool   `json:"success"`
@@ -175,7 +179,8 @@ type loginResult struct {
 func loginWorks(ctx context.Context, h *helpers.H, email string) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/v1/auth/login",
-		JSON: map[string]string{"email": email, "password": h.AdminPassword()},
+		Header: map[string]string{"X-CSRF-Token": "x-csrf-protection"},
+		JSON:   map[string]string{"email": email, "password": h.AdminPassword()},
 	})
 	if err != nil {
 		return false, err
@@ -198,6 +203,23 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return strings.HasPrefix(base, "https://"), nil
 		},
 		Hint: managementHint,
+	}); err != nil {
+		return err
+	}
+	secretPath := "Project secrets.env"
+	if h.Dir != "" {
+		secretPath = filepath.Join(h.Dir, "..", "..", "secrets.env")
+	}
+	if err := h.Step(ctx, "setup-token", "validate the saved Pangolin bootstrap token", helpers.StepSpec{
+		Check: func(context.Context) (bool, error) {
+			if !setupTokenPattern.MatchString(h.Secret(h.Key("setup_token"))) {
+				return false, errors.New("the saved bootstrap token does not match Pangolin's pinned startup contract")
+			}
+			return true, nil
+		},
+		Hint: "Privately replace only " + h.Key("setup_token") + " in " + secretPath +
+			" with a securely generated token of exactly 32 lowercase alphanumeric characters. " +
+			"Leave ADMIN_USER, ADMIN_PASSWORD, all other credentials and existing data unchanged; then rerun self-host install pangolin.",
 	}); err != nil {
 		return err
 	}
@@ -224,6 +246,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			created, err := h.Expect(ctx, helpers.Request{
 				Method: http.MethodPut, Path: "/api/v1/auth/set-server-admin",
+				Header: map[string]string{"X-CSRF-Token": "x-csrf-protection"},
 				JSON: map[string]string{"email": email, "password": h.AdminPassword(),
 					"setupToken": h.Secret(h.Key("setup_token"))},
 			})
@@ -239,7 +262,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "If the first administrator was already created, sign in with the saved Admin login or recreate the server; do not replay creation. " + managementHint,
+		Hint:       "If the first administrator was already created, privately reconcile the saved Admin login with that administrator; preserve its data and do not replay creation. " + managementHint,
 		Credential: "admin",
 	})
 }
