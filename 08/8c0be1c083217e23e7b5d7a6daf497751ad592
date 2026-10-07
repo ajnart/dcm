@@ -1,0 +1,32 @@
+new-cli/internal/service/install.go
+  s_8a4e9f149e422e::t_4f2899b3fb83a5 203
+new-cli/internal/service/mutation.go
+  s_8a4e9f149e422e::t_4f2899b3fb83a5 11,129,141-145,218-221,227-244
+  s_8a4e9f149e422e::t_4e979ae9496d95 222-226,245-259
+  s_8a4e9f149e422e::t_f42622a7c7ce0d 126,132-134
+new-cli/internal/service/service.go
+  s_8a4e9f149e422e::t_4f2899b3fb83a5 329-336
+new-cli/internal/service/mutation_test.go
+  s_8a4e9f149e422e::t_ab5e8277fa8f43 222-226,242
+  s_8a4e9f149e422e::t_7d7c9045414c52 9,213-221,227-241,243-252
+  s_8a4e9f149e422e::t_0e4b0e30ad04cd 253-254
+new-cli/internal/cli/workflow_test.go
+  s_8a4e9f149e422e::t_c73f6483950b50 5,41-74
+  s_8a4e9f149e422e::t_2cf6c053b84337 1-4,6-40,75-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "088c0be1c083217e23e7b5d7a6daf497751ad592",
+  "prompts": {},
+  "sessions": {
+    "s_8a4e9f149e422e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f4-e7d3-7af1-a24a-dadc963c5383",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
