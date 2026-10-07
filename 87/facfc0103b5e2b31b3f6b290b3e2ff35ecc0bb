@@ -1,0 +1,21 @@
+new-cli/e2e/e2e_test.go
+  s_8a4e9f149e422e::t_37a910d608d660 28-30,71,82,85-88,90-93,95,100-101,104-105
+new-cli/e2e/scenario_test.go
+  s_8a4e9f149e422e::t_0d4d5d42468b8e 31-33,43-45,91-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87facfc0103b5e2b31b3f6b290b3e2ff35ecc0bb",
+  "prompts": {},
+  "sessions": {
+    "s_8a4e9f149e422e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f4-e7d3-7af1-a24a-dadc963c5383",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
