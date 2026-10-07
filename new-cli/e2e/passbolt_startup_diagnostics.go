@@ -8,7 +8,7 @@ func passboltReadinessReason(status int, body []byte) string {
 	if status != 500 {
 		return "Passbolt verification returned an unexpected readiness status"
 	}
-	generic := "Passbolt verification returned HTTP 500; cause remains unclassified"
+	generic := "Passbolt verification returned HTTP 500; cause remains unclassified. If server-key and database checks pass, ask the host administrator to verify PHP-FPM access to Passbolt bootstrap and configuration files."
 	if len(body) > 16<<10 {
 		return generic
 	}
