@@ -78,6 +78,11 @@ var deviations = map[string]map[string]string{
 	},
 }
 
+// excluded are legacy Apps left out on purpose, with the reason.
+var excluded = map[string]string{
+	"coolify": "a host controller: it needs the Docker socket and SSH authority over the host, which the Project never grants",
+}
+
 func loadLegacyFacts(t *testing.T) legacyFacts {
 	t.Helper()
 	data, err := os.ReadFile("testdata/legacy-facts.json")
@@ -203,6 +208,9 @@ func TestEveryLegacyAppIsPorted(t *testing.T) {
 	mismatched := 0
 	for _, f := range facts.Apps {
 		a, found := cat.App(f.ID)
+		if _, skip := excluded[f.ID]; skip && !found {
+			continue
+		}
 		if !found {
 			missing = append(missing, f.ID)
 			continue
@@ -219,8 +227,8 @@ func TestEveryLegacyAppIsPorted(t *testing.T) {
 		t.Errorf("not ported (%d): %s", len(missing), strings.Join(missing, " "))
 	}
 	if len(missing) > 0 || mismatched > 0 {
-		t.Errorf("summary: %d/%d legacy Apps ported, %d missing, %d ported with mismatches",
-			len(facts.Apps)-len(missing), len(facts.Apps), len(missing), mismatched)
+		t.Errorf("summary: %d/%d legacy Apps ported (%d excluded on purpose), %d missing, %d ported with mismatches",
+			len(facts.Apps)-len(missing)-len(excluded), len(facts.Apps), len(excluded), len(missing), mismatched)
 	}
 }
 
