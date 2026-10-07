@@ -30,9 +30,6 @@ type fakeLinkwarden struct {
 
 func (f *fakeLinkwarden) handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"message":"ok"}`))
-	})
 	mux.HandleFunc("POST /api/v1/users", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -61,6 +58,7 @@ func (f *fakeLinkwarden) handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/users/me", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" {
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"response":"You must be logged in."}`))
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"response": map[string]any{"id": 1, "username": f.user}})
@@ -135,7 +133,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 
 func TestUnreadyHintNamesTheLogCommand(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/v1/users/me", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	box := newHarness(t, mux, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
@@ -145,5 +143,68 @@ func TestUnreadyHintNamesTheLogCommand(t *testing.T) {
 	}
 	if !strings.Contains(box.step("ready").Hint, "self-host logs linkwarden") {
 		t.Errorf("hint should name the command, got %q", box.step("ready").Hint)
+	}
+}
+
+// v2.16.3 has no health route: readiness must reach its protected current-user
+// route, and success must still verify the saved administrator through a token.
+func TestSetupUsesProtectedAPIRouteAndPreservesExistingAdministrator(t *testing.T) {
+	fake := &fakeLinkwarden{user: "admin", pass: "pw", created: true}
+	box := newHarness(t, fake.handler(), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+	a := linkwarden.App{}
+	if err := a.Setup(context.Background(), box.h); err != nil {
+		t.Fatalf("Setup with pinned API routes: %v", err)
+	}
+	if err := a.Check(context.Background(), box.h); err != nil {
+		t.Fatalf("authenticated Check: %v", err)
+	}
+	if fake.signups != 0 {
+		t.Fatalf("existing administrator was recreated: %d signups", fake.signups)
+	}
+}
+
+func TestReadyRejectsUnrelatedHTTPResponsesBeforeSignup(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"missing-route", http.StatusNotFound, `{"response":"You must be logged in."}`},
+		{"anonymous-success", http.StatusOK, `{"response":"You must be logged in."}`},
+		{"unrelated-auth-gate", http.StatusUnauthorized, `{"response":"proxy authentication required"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeLinkwarden{user: "admin", pass: "pw"}
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet && r.URL.Path == "/api/v1/users/me" {
+					w.WriteHeader(tc.status)
+					w.Write([]byte(tc.body))
+					return
+				}
+				fake.handler().ServeHTTP(w, r)
+			})
+			box := newHarness(t, handler, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+			if err := (linkwarden.App{}).Setup(context.Background(), box.h); err == nil {
+				t.Fatal("unrelated response passed readiness")
+			}
+			if fake.signups != 0 {
+				t.Fatalf("signup happened before API readiness: %d", fake.signups)
+			}
+		})
+	}
+}
+
+func TestCheckRejectsAuthenticatedWrongIdentity(t *testing.T) {
+	fake := &fakeLinkwarden{user: "admin", pass: "pw", created: true}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/users/me" && r.Header.Get("Authorization") == "Bearer tok" {
+			w.Write([]byte(`{"response":{"id":1,"username":"another-user"}}`))
+			return
+		}
+		fake.handler().ServeHTTP(w, r)
+	})
+	box := newHarness(t, handler, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+	if err := (linkwarden.App{}).Check(context.Background(), box.h); err == nil {
+		t.Fatal("wrong authenticated identity passed Check")
 	}
 }

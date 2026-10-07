@@ -128,7 +128,9 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/api/v1/health"},
+		// v2.16.3 has no health route. The protected current-user route proves
+		// API routing before signup; Login separately verifies authenticated identity.
+		Ready:  onboard.Probe{Path: "/api/v1/users/me", Want: []int{http.StatusUnauthorized}, Contains: `"response":"You must be logged in."`},
 		Create: create,
 		Login:  login,
 		Manual: "Linkwarden signs up its first account on the private instance.",
