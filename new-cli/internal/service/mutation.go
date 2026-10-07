@@ -235,7 +235,7 @@ func (ss *session) recordStage(ids []string, e events.Event) {
 			}
 		}
 		for _, step := range st.StepOrder {
-			if step != "render" && step != "pull" && step != "start" {
+			if !IsStage(step) {
 				order = append(order, step)
 			}
 		}

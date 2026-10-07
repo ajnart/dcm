@@ -382,3 +382,14 @@ func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
 		t.Fatalf("Workflow should advertise its own keys, got %q (%s)", got, v.Title())
 	}
 }
+
+func TestNeedsActionOffersStartNotSetupForAFailedStart(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "one", Name: "One", Managed: true, State: "exited", Setup: "ok",
+		Steps: []service.StepStatus{{ID: "start", Status: "fail", Error: "port is already allocated"}}}}}
+	for _, item := range (&dashboardView{}).needsAction(ctx) {
+		if item.desc == "retry Setup" {
+			t.Fatalf("a failed start cannot be fixed by Setup: %+v", item)
+		}
+	}
+}

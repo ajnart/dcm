@@ -416,3 +416,29 @@ func (c *countingRunner) Stream(ctx context.Context, cmd system.Cmd, w io.Writer
 	}
 	return c.Runner.Stream(ctx, cmd, w)
 }
+
+func TestFailedStartDoesNotFailSetup(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one"); err != nil {
+		t.Fatal(err)
+	}
+	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		if strings.Contains(systemtest.Line(cmd), " up -d one") {
+			return system.Result{ExitCode: 1, Stderr: []byte("port is already allocated")}
+		}
+		return system.Result{}
+	})
+	if err := h.svc.Start(context.Background(), []string{"one"}); err == nil {
+		t.Fatal("start succeeded despite Compose failure")
+	}
+	if err := h.svc.Setup(context.Background(), []string{"one"}); err != nil {
+		t.Fatalf("Setup should not fail on a remembered start failure: %v", err)
+	}
+	status, err := h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Apps[0].Setup != "ok" {
+		t.Fatalf("Setup = %q, want ok: a failed start is not a Setup failure", status.Apps[0].Setup)
+	}
+}

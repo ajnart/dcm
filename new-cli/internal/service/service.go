@@ -327,13 +327,11 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	id := a.Info().ID
 	st := ss.state.Apps[id]
 	for step := range st.Steps {
-		if step != "render" && step != "pull" && step != "start" {
+		if !IsStage(step) {
 			delete(st.Steps, step)
 		}
 	}
-	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool {
-		return step != "render" && step != "pull" && step != "start"
-	})
+	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool { return !IsStage(step) })
 	h := ss.helpers(a)
 	err := a.Setup(ctx, h)
 	if err == nil {
@@ -407,14 +405,21 @@ func (ss *session) failed(id, step string) bool {
 	return st != nil && st.Steps[step].Status == "fail"
 }
 
-// setupResult is "incomplete" while any recorded step failed.
+// setupResult is "incomplete" while any recorded Setup step failed. Install
+// stages are Compose work that Setup cannot retry, so they do not count.
 func setupResult(st *project.AppState) string {
-	for _, step := range st.Steps {
-		if step.Status == "fail" {
+	for id, step := range st.Steps {
+		if step.Status == "fail" && !IsStage(id) {
 			return "incomplete"
 		}
 	}
 	return "ok"
+}
+
+// IsStage reports whether a step is an install stage (render, pull, start)
+// recorded by the mutation module rather than by the App's Setup.
+func IsStage(id string) bool {
+	return id == "render" || id == "pull" || id == "start"
 }
 
 // isLinkStep reports whether a step belongs to a Link rather than to the
@@ -432,7 +437,7 @@ func (ss *session) ready(id string) bool {
 		return false
 	}
 	for stepID, step := range st.Steps {
-		if step.Status == "fail" && !isLinkStep(stepID) {
+		if step.Status == "fail" && !isLinkStep(stepID) && !IsStage(stepID) {
 			return false
 		}
 	}

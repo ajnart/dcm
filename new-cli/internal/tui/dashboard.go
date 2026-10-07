@@ -443,7 +443,9 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	var items []need
 	for _, a := range v.rows(ctx) {
 		for _, s := range a.Steps {
-			if s.Status == "fail" {
+			// Setup cannot retry a failed install stage; "is stopped" or an
+			// update below names the Action that can.
+			if s.Status == "fail" && !service.IsStage(s.ID) {
 				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
 			}
 		}
