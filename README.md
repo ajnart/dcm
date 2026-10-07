@@ -1,5 +1,9 @@
 # Self-host
 
+**Go CLI:** [Installation, terminal Dashboard, agent commands and support status](new-cli/README.md).
+The `new-cli/` rewrite has a separate release channel; the instructions below
+describe the older CLI and bundled skill.
+
 Own your apps, data, and credentials instead of depending on another
 subscription. `self-host` is a private terminal control panel for choosing,
 installing, and maintaining self-hosted apps. Its optional AI skill helps you
