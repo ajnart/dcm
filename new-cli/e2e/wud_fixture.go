@@ -49,12 +49,16 @@ func writeWUDDockerWrapper(root, project, name, real, override string) (string, 
 	script := "#!/usr/bin/env python3\nimport csv,json,os,re,sys\nc=json.loads(" + fmt.Sprintf("%q", string(config)) + ")\n" + guard
 	return wrapper, os.WriteFile(wrapper, []byte(script), 0700)
 }
-func (f *wudFixtureFiles) compose(project string) (string, error) {
+func (f *wudFixtureFiles) compose(project string, withWUD bool) (string, error) {
 	document := map[string]any{"services": map[string]any{
 		"ntfy": map[string]any{"labels": map[string]string{"wud.watch": "true", "wud.watch.digest": "false"}},
-		"wud-facade": map[string]any{"image": passboltFixtureImage, "entrypoint": []string{"/fixture/helper"}, "command": []string{"-project", project}, "read_only": true, "user": "0:0", "restart": "unless-stopped", "cap_drop": []string{"ALL"}, "security_opt": []string{"no-new-privileges:true"}, "mem_limit": "64m", "cpus": 0.25, "pids_limit": 32, "volumes": []any{
+		"wud-facade": map[string]any{"image": passboltFixtureImage, "healthcheck": map[string]any{"test": []string{"CMD", "/fixture/helper", "-project", project, "-healthcheck"}, "interval": "2s", "timeout": "3s", "retries": 30, "start_period": "1s"}, "entrypoint": []string{"/fixture/helper"}, "command": []string{"-project", project}, "read_only": true, "user": "0:0", "restart": "unless-stopped", "cap_drop": []string{"ALL"}, "security_opt": []string{"no-new-privileges:true"}, "mem_limit": "64m", "cpus": 0.25, "pids_limit": 32, "volumes": []any{
 			map[string]any{"type": "bind", "source": f.dir, "target": "/fixture", "read_only": true}, map[string]any{"type": "bind", "source": f.observed, "target": "/observed", "read_only": true}}, "networks": map[string]any{"default": map[string]any{"aliases": []string{wudfixture.Host}}}},
 	}}
+	if withWUD {
+		services := document["services"].(map[string]any)
+		services["wud"] = map[string]any{"depends_on": map[string]any{"wud-facade": map[string]any{"condition": "service_healthy"}}}
+	}
 	b, err := yaml.Marshal(document)
 	return string(b), err
 }

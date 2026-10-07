@@ -287,7 +287,52 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		}
 		return nil
 	}
-	return errors.New("the administrator works, but the approved Docker watcher has no verified inventory; verify the approved TLS endpoint and explicitly label an owned container wud.watch=true")
+	nonemptyIDs, approvedCount := 0, 0
+	for _, container := range containers {
+		if container.ID != "" {
+			nonemptyIDs++
+		}
+		if container.Watcher == "approved" {
+			approvedCount++
+		}
+	}
+	// The watcher endpoint includes masked configuration. Decode only identity
+	// fields and report fixed flags/counts; never emit names or configuration.
+	watcherHTTP, dockerWatchers := 0, 0
+	approvedRegistered, metadataValid := false, false
+	watchers, watcherErr := h.HTTP(ctx, helpers.Request{Path: "/api/watchers", User: h.AdminUser(), Password: h.AdminPassword()})
+	if watcherErr == nil {
+		watcherHTTP = watchers.Status
+		if watcherHTTP == http.StatusOK {
+			var registrations []struct{ Type, Name string }
+			if watchers.Decode(&registrations) == nil {
+				metadataValid = true
+				for _, registration := range registrations {
+					if registration.Type == "docker" {
+						dockerWatchers++
+						if registration.Name == "approved" {
+							approvedRegistered = true
+						}
+					}
+				}
+			}
+		}
+	}
+	inventoryCount := len(containers)
+	if inventoryCount > 1024 {
+		inventoryCount = -1
+	}
+	if dockerWatchers > 1024 {
+		dockerWatchers = -1
+	}
+	return fmt.Errorf("the administrator works, but the approved Docker watcher has no verified inventory; inventory_count=%d nonempty_ids=%d approved_count=%d docker_watchers=%d approved_registered=%t watcher_http=%d watcher_metadata_valid=%t; verify the approved TLS endpoint and explicitly label an owned container wud.watch=true", inventoryCount, boundedInventoryCount(nonemptyIDs), boundedInventoryCount(approvedCount), dockerWatchers, approvedRegistered, watcherHTTP, metadataValid)
 }
 
 func (App) Links() []app.Link { return nil }
+
+func boundedInventoryCount(count int) int {
+	if count > 1024 {
+		return -1
+	}
+	return count
+}

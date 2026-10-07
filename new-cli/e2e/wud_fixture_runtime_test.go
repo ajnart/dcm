@@ -79,7 +79,7 @@ func (r *runner) prepareWUDFixture(ports map[string]int) {
 		fail()
 		return
 	}
-	for name, data := range map[string][]byte{"server.pem": material.ServerCertificate, "server.key": material.ServerKey, "ca.pem": material.CA} {
+	for name, data := range map[string][]byte{"server.pem": material.ServerCertificate, "server.key": material.ServerKey, "ca.pem": material.CA, "client-cert.pem": material.ClientCertificate, "client-key.pem": material.ClientKey} {
 		if os.WriteFile(filepath.Join(dir, name), data, 0600) != nil {
 			fail()
 			return
@@ -126,7 +126,10 @@ func (r *runner) attachWUDFixture(source *wudRuntimeFixture) error {
 			return err
 		}
 	}
-	doc, err := f.files.compose(r.name)
+	source.mu.Lock()
+	withWUD := source.generation > 0
+	source.mu.Unlock()
+	doc, err := f.files.compose(r.name, withWUD)
 	if err != nil {
 		return err
 	}
@@ -256,6 +259,10 @@ func (f *wudRuntimeFixture) install(r *runner, args []string, ports map[string]i
 	}
 	if !f.observe(r) {
 		return f.observationFailure()
+	}
+	doc, err := f.files.compose(r.name, true)
+	if err != nil || os.WriteFile(f.override, []byte(doc), 0600) != nil {
+		return wudFixtureFailure(wudInventoryDiagnostic{Phase: "snapshot-write", Outcome: "write-failed"})
 	}
 	f.start(r)
 	return r.runWithTimeout(installCommandLimit(r.spec), args...)

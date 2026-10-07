@@ -24,13 +24,30 @@ func TestWUDOwnedFixtureAdmissionAndPrivateCompose(t *testing.T) {
 		t.Fatal("owned containers omitted from image/readiness proof")
 	}
 	f := &wudFixtureFiles{dir: filepath.Join(t.TempDir(), "tls"), observed: filepath.Join(t.TempDir(), "observed")}
-	doc, err := f.compose("owned-test")
+	doc, err := f.compose("owned-test", true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var parsed struct{ Services map[string]map[string]any }
 	if yaml.Unmarshal([]byte(doc), &parsed) != nil {
 		t.Fatal("invalid compose")
+	}
+	seed, err := f.compose("owned-test", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seedParsed struct{ Services map[string]map[string]any }
+	if yaml.Unmarshal([]byte(seed), &seedParsed) != nil || seedParsed.Services["wud"] != nil {
+		t.Fatal("ntfy seed override introduced an unconfigured WUD service")
+	}
+	dependency := parsed.Services["wud"]["depends_on"].(map[string]any)["wud-facade"].(map[string]any)
+	if dependency["condition"] != "service_healthy" {
+		t.Fatal("WUD starts before its verified mutual TLS inventory is ready")
+	}
+	health := parsed.Services["wud-facade"]["healthcheck"].(map[string]any)
+	encodedHealth, _ := json.Marshal(health)
+	if !strings.Contains(string(encodedHealth), "/fixture/helper") || !strings.Contains(string(encodedHealth), "-healthcheck") || !strings.Contains(string(encodedHealth), "owned-test") {
+		t.Fatal("fixture health does not prove its exact owned mutual TLS inventory")
 	}
 	sidecar := parsed.Services["wud-facade"]
 	if sidecar["ports"] != nil || sidecar["network_mode"] != nil || sidecar["privileged"] != nil || sidecar["read_only"] != true || strings.Contains(doc, "docker.sock") {
