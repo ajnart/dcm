@@ -95,6 +95,7 @@ func moduleRoot() (string, error) {
 }
 
 type runner struct {
+	wud              *wudRuntimeFixture
 	evidenceOwner    *runner
 	minimumDiskBytes uint64
 	authelia         *autheliaRoute
@@ -102,6 +103,8 @@ type runner struct {
 	commandCtx       context.Context
 	netbird          *netBirdFixture
 	netbirdOwner     bool
+	passbolt         *passboltRuntimeFixture
+	passboltOwner    bool
 	teardownOK       bool
 	restored         *runner
 	t                *testing.T
@@ -208,6 +211,12 @@ func decodeEvents(s string) []event {
 }
 
 func (r *runner) cleanup() {
+	if r.wud != nil {
+		r.wud.close()
+	}
+	if r.passboltOwner {
+		defer r.passbolt.close()
+	}
 	if r.autheliaOwner {
 		defer r.authelia.close()
 	}
@@ -354,6 +363,18 @@ func (r *runner) dockerArgs(args ...string) []string {
 	prefix := []string{"compose", "--project-directory", r.project, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env")}
 	if r.netbird != nil {
 		prefix = append(prefix, "-f", filepath.Join(r.project, "compose.yml"), "-f", filepath.Join(r.root, "netbird-override.yml"))
+	}
+	if r.passbolt != nil {
+		if r.netbird == nil {
+			prefix = append(prefix, "-f", filepath.Join(r.project, "compose.yml"))
+		}
+		prefix = append(prefix, "-f", r.passbolt.override)
+	}
+	if r.wud != nil {
+		if r.netbird == nil && r.passbolt == nil {
+			prefix = append(prefix, "-f", filepath.Join(r.project, "compose.yml"))
+		}
+		prefix = append(prefix, "-f", r.wud.override)
 	}
 	return append(prefix, args[1:]...)
 }

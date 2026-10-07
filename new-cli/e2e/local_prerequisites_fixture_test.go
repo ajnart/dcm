@@ -50,7 +50,7 @@ func TestHAProxyOwnedBackendIsIncludedBeforeAdmission(t *testing.T) {
 
 func TestLocalRoutingPrerequisitesAreNotExternalCredentials(t *testing.T) {
 	c := catalog.Default()
-	for _, id := range []string{"passbolt", "wud"} {
+	for _, id := range []string{"wud"} {
 		if classifyTarget(c, findTarget(acceptanceInventory(c), id)) != "awaiting-local-prerequisites" {
 			t.Fatalf("%s local prerequisite classified as external credentials", id)
 		}

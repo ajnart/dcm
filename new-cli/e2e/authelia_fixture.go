@@ -20,7 +20,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
@@ -30,10 +29,7 @@ type autheliaRoute struct {
 	origin    string
 	caFile    string
 	proxyURL  string
-	connect   *http.Server
-	tunnels   map[net.Conn]struct{}
-	mu        sync.Mutex
-	closed    bool
+	connect   *fixtureConnect
 	server    *http.Server
 	transport *http.Transport
 }
@@ -89,77 +85,21 @@ func newAutheliaRoute(root string, listener, connectListener net.Listener, backe
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) { w.WriteHeader(http.StatusBadGateway) }
 	server := &http.Server{Handler: proxy, ReadHeaderTimeout: 10 * time.Second, ErrorLog: log.New(io.Discard, "", 0)}
 	tlsListener := tls.NewListener(listener, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{{Certificate: [][]byte{leafDER, caDER}, PrivateKey: leafKey}}})
-	go server.Serve(tlsListener)
 	authority := net.JoinHostPort("auth.e2e.selfhost.test", fmt.Sprint(addr.Port))
-	route := &autheliaRoute{origin: "https://" + authority, caFile: caFile, server: server, transport: transport, proxyURL: "http://" + connectListener.Addr().String(), tunnels: make(map[net.Conn]struct{})}
-	route.connect = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { route.tunnel(w, r, authority, listener.Addr().String()) }), ReadHeaderTimeout: 10 * time.Second, ErrorLog: log.New(io.Discard, "", 0)}
-	go route.connect.Serve(connectListener)
+	connect, err := newFixtureConnect(connectListener, authority, listener.Addr().String())
+	if err != nil {
+		return fail()
+	}
+	go server.Serve(tlsListener)
+	route := &autheliaRoute{origin: "https://" + authority, caFile: caFile, server: server, transport: transport, proxyURL: connect.proxyURL, connect: connect}
 	return route, nil
 }
 
 func (n *autheliaRoute) close() {
-	n.mu.Lock()
-	n.closed = true
-	for c := range n.tunnels {
-		c.Close()
-	}
-	n.mu.Unlock()
+	n.connect.close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	n.connect.Shutdown(ctx)
-	n.connect.Close()
 	n.server.Shutdown(ctx)
 	n.server.Close()
 	n.transport.CloseIdleConnections()
-}
-
-func (n *autheliaRoute) tunnel(w http.ResponseWriter, r *http.Request, authority, target string) {
-	if r.Method != http.MethodConnect || r.Host != authority || r.URL.Host != authority {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	upstream, err := net.DialTimeout("tcp4", target, 5*time.Second)
-	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		return
-	}
-	defer upstream.Close()
-	n.mu.Lock()
-	if n.closed || len(n.tunnels) >= 16 {
-		n.mu.Unlock()
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		n.mu.Unlock()
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	client, buffer, err := hijacker.Hijack()
-	if err != nil {
-		n.mu.Unlock()
-		return
-	}
-	n.tunnels[client] = struct{}{}
-	n.tunnels[upstream] = struct{}{}
-	n.mu.Unlock()
-	defer func() {
-		client.Close()
-		n.mu.Lock()
-		delete(n.tunnels, client)
-		delete(n.tunnels, upstream)
-		n.mu.Unlock()
-	}()
-	if _, err := buffer.WriteString("HTTP/1.1 200 Connection Established\r\n\r\n"); err != nil {
-		return
-	}
-	if err := buffer.Flush(); err != nil {
-		return
-	}
-	finished := make(chan struct{})
-	go func() { io.Copy(upstream, buffer); upstream.Close(); close(finished) }()
-	io.Copy(client, upstream)
-	client.Close()
-	<-finished
 }

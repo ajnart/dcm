@@ -137,7 +137,7 @@ func TestE2E(t *testing.T) {
 				}
 				t.Skip(evidence.Classification)
 			}
-			lease, err := guard.acquire(runCtx, len(spec.Apps), exclusiveTarget(c, spec))
+			lease, err := guard.acquire(runCtx, targetEnvironmentCount(spec), exclusiveTarget(c, spec))
 			if err != nil {
 				evidence.Outcome = "blocked"
 				evidence.Classification = "capacity-or-teardown-blocked"
