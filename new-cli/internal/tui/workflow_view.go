@@ -194,7 +194,8 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 	v.cursor = max(min(v.cursor, len(rows)-1), 0)
 	lines := []string{"  " + t.title().Render("Workflow") + " · " +
 		plural(workflow.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
-		plural(workflow.Counts.StepsFailed, "step failed", "steps failed"), ""}
+		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
+		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}
 	if v.filter != "" {
 		hint := ""
 		if !v.searching {
@@ -256,6 +257,8 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 		mark = t.fg(t.info).Render("↷")
 	case WorkflowFailed:
 		mark = t.fg(t.fail).Render("✗")
+	case WorkflowRunning:
+		mark = t.fg(t.accent).Render("…")
 	}
 	line := "  " + cursor + mark + " " + step.Label
 	if step.Msg != "" {

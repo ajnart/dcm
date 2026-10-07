@@ -97,7 +97,15 @@ type viewContext struct {
 
 func (ctx *viewContext) mainHeight() int { return max(ctx.height-2, 3) }
 
-func (ctx *viewContext) workflow() WorkflowSnapshot { return Workflow(ctx.status, nil) }
+func (ctx *viewContext) workflow() WorkflowSnapshot {
+	var evs []events.Event
+	if ctx.tasks != nil {
+		for _, task := range ctx.tasks.snapshots() {
+			evs = append(evs, task.events...)
+		}
+	}
+	return Workflow(ctx.status, evs)
+}
 
 func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
 

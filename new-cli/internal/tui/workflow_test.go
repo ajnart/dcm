@@ -4,8 +4,163 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 )
+
+func TestWorkflowStepRunsUntilEnd(t *testing.T) {
+	for _, tc := range []struct{ end, want string }{
+		{"", "running"}, {events.StepOK, "done"}, {events.StepSkip, "skipped"}, {events.StepFail, "failed"},
+	} {
+		t.Run(tc.want, func(t *testing.T) {
+			evs := []events.Event{{Event: events.StepStart, App: "sonarr", Step: "ready", Msg: "waiting for API"}}
+			if tc.end != "" {
+				evs = append(evs, events.Event{Event: tc.end, App: "sonarr", Step: "ready"})
+			}
+			got := Workflow(service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true}}}, evs)
+			if len(got.Apps[0].Steps) != 1 {
+				t.Fatalf("live steps = %d, want 1", len(got.Apps[0].Steps))
+			}
+			if step := got.Apps[0].Steps[0]; string(step.State) != tc.want || step.Label != "ready" {
+				t.Fatalf("live step = %+v, want %s ready", step, tc.want)
+			}
+		})
+	}
+}
+
+func TestWorkflowLiveEventOverridesRememberedFailure(t *testing.T) {
+	for _, tc := range []struct{ event, state string }{
+		{events.StepStart, "running"}, {events.StepOK, "done"}, {events.StepSkip, "skipped"},
+	} {
+		t.Run(tc.state, func(t *testing.T) {
+			status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
+				{ID: "ready", Status: "fail", Msg: "old", Error: "timeout", Hint: "check port"},
+			}}}}
+			got := Workflow(status, []events.Event{{Event: tc.event, App: "sonarr", Step: "ready", Msg: "new"}})
+			step := got.Apps[0].Steps[0]
+			if string(step.State) != tc.state || step.Msg != "new" || step.Error != "" || step.Hint != "" || got.Counts.StepsFailed != 0 {
+				t.Fatalf("live override = %+v, failed = %d; want %s, new message, no stale failure", step, got.Counts.StepsFailed, tc.state)
+			}
+			if status.Apps[0].Steps[0].Status != "fail" {
+				t.Fatal("Workflow mutated remembered status")
+			}
+		})
+	}
+}
+
+func TestWorkflowNewRunResetsOnlyThatAppsLiveSteps(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{
+		{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: "fail", Error: "old failure"}}},
+		{ID: "radarr", Managed: true},
+	}}
+	evs := []events.Event{
+		{Event: events.RunStart},
+		{Event: events.StepOK, App: "sonarr", Step: "ready"},
+		{Event: events.StepFail, App: "sonarr", Step: "account", Error: "refused", Hint: "retry"},
+		{Event: events.StepOK, App: "radarr", Step: "ready"},
+		{Event: events.RunEnd},
+		{Event: events.RunStart},
+		{Event: events.StepStart, App: "sonarr", Step: "ready"},
+	}
+	got := Workflow(status, evs)
+	for _, step := range got.Apps[0].Steps {
+		want := "notRun"
+		if step.ID == "ready" {
+			want = "running"
+		}
+		if string(step.State) != want || step.Error != "" || step.Hint != "" {
+			t.Fatalf("retry step = %+v, want %s without old failure", step, want)
+		}
+	}
+	if step := got.Apps[1].Steps[0]; string(step.State) != "done" {
+		t.Fatalf("unrelated App reset: %+v", step)
+	}
+}
+
+func TestWorkflowPullProgressOnlyOnRunningPull(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Image: "sonarr:latest", Managed: true, Steps: []service.StepStatus{{ID: "pull"}, {ID: "ready"}}}}}
+	evs := []events.Event{
+		{Event: events.StepStart, App: "sonarr", Step: "pull", Msg: "pull image"},
+		{Event: events.PullProgress, Image: "radarr:latest", Layer: "a", Current: 90_000_000, Total: 100_000_000},
+		{Event: events.PullProgress, Image: "sonarr:latest", Layer: "a", Current: 10_000_000, Total: 100_000_000},
+		{Event: events.PullProgress, Image: "sonarr:latest", Layer: "a", Current: 50_000_000, Total: 100_000_000},
+	}
+	for _, tc := range []struct{ name, end, want string }{
+		{"running", "", "pull image · sonarr:latest 50% · 50 MB/100 MB"},
+		{"finished", events.StepOK, "pulled"},
+		{"retry", events.RunStart, "pull again"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := append([]events.Event(nil), evs...)
+			if tc.end == events.RunStart {
+				input = append(input, events.Event{Event: events.RunStart}, events.Event{Event: events.StepStart, App: "sonarr", Step: "pull", Msg: tc.want})
+			} else if tc.end != "" {
+				input = append(input, events.Event{Event: tc.end, App: "sonarr", Step: "pull", Msg: tc.want})
+			}
+			steps := Workflow(status, input).Apps[0].Steps
+			if steps[0].Msg != tc.want || steps[1].Msg != "" {
+				t.Fatalf("pull message = %q, want %q; ready message = %q", steps[0].Msg, tc.want, steps[1].Msg)
+			}
+		})
+	}
+}
+
+func TestWorkflowCountsRunningSteps(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true}, {ID: "radarr", Managed: true}}}
+	evs := []events.Event{
+		{Event: events.StepStart, App: "sonarr", Step: "ready"},
+		{Event: events.StepStart, App: "sonarr", Step: "account"},
+		{Event: events.StepOK, App: "sonarr", Step: "ready"},
+		{Event: events.StepStart, App: "radarr", Step: "pull"},
+		{Event: events.StepStart, App: "outside-project", Step: "ready"},
+	}
+	for _, tc := range []struct {
+		name string
+		end  bool
+		want int
+	}{
+		{"running", false, 2}, {"ended", true, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := append([]events.Event(nil), evs...)
+			if tc.end {
+				input = append(input, events.Event{Event: events.StepFail, App: "sonarr", Step: "account"}, events.Event{Event: events.StepOK, App: "radarr", Step: "pull"})
+			}
+			if got := Workflow(status, input).Counts.StepsRunning; got != tc.want {
+				t.Fatalf("running steps = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWorkflowSharedPullEventsMatchAppsImage(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{
+		{ID: "sonarr", Image: "sonarr:latest", Managed: true},
+		{ID: "radarr", Image: "radarr:latest", Managed: true},
+	}}
+	evs := []events.Event{
+		{Event: events.RunStart},
+		{Event: events.StepStart, Step: "pull", Msg: "pull 1 image"},
+		{Event: events.PullProgress, Image: "sonarr:latest", Layer: "a", Current: 50_000_000, Total: 100_000_000},
+	}
+	for _, tc := range []struct{ name, end, want string }{
+		{"running", "", "running"}, {"finished", events.StepOK, "done"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := append([]events.Event(nil), evs...)
+			if tc.end != "" {
+				input = append(input, events.Event{Event: tc.end, Step: "pull"})
+			}
+			got := Workflow(status, input)
+			if len(got.Apps[0].Steps) != 1 {
+				t.Fatalf("shared pull steps = %d, want 1", len(got.Apps[0].Steps))
+			}
+			if string(got.Apps[0].Steps[0].State) != tc.want || len(got.Apps[1].Steps) != 0 {
+				t.Fatalf("shared pull attribution = %+v, want %s only on Sonarr", got.Apps, tc.want)
+			}
+		})
+	}
+}
 
 func TestWorkflowOrdersRememberedSteps(t *testing.T) {
 	for _, tc := range []struct {
@@ -136,5 +291,23 @@ func TestWorkflowMapsPersistedStates(t *testing.T) {
 				t.Fatalf("remembered step details lost: %+v", step)
 			}
 		})
+	}
+}
+
+func TestWorkflowLiveLinkKeepsItsTargetAndWaitingIsNotRun(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "ok"}}}
+	evs := []events.Event{
+		{Event: events.RunStart},
+		{Event: events.StepSkip, App: "sonarr", Step: "link-qbittorrent", Msg: "waiting for qbittorrent"},
+	}
+	steps := Workflow(status, evs).Apps[0].Steps
+	if len(steps) != 1 {
+		t.Fatalf("steps = %+v, want the live Link", steps)
+	}
+	if steps[0].Target != "qbittorrent" || steps[0].Label != "link-qbittorrent → qbittorrent" {
+		t.Fatalf("live Link lost its target: %+v", steps[0])
+	}
+	if steps[0].State != WorkflowNotRun {
+		t.Fatalf("state = %s, want notRun while waiting for the target", steps[0].State)
 	}
 }
