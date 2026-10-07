@@ -126,6 +126,10 @@ func adminEmail(h *helpers.H) string {
 	return h.AdminUser() + "@selfhost.local"
 }
 
+// A stable, non-secret client identity lets the pinned server reuse the
+// bootstrap session when an immediate check issues the same refresh JWT.
+const clientDeviceID = "self-host-patchmon"
+
 type profile struct {
 	User struct {
 		ID       string `json:"id"`
@@ -139,7 +143,8 @@ type profile struct {
 func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	login, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/login",
-		JSON: map[string]string{"username": user, "password": password},
+		Header: map[string]string{"X-Device-ID": clientDeviceID},
+		JSON:   map[string]string{"username": user, "password": password},
 	})
 	if err != nil {
 		return false, err
@@ -197,6 +202,7 @@ func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
 	_, err := h.Expect(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/setup-admin",
+		Header: map[string]string{"X-Device-ID": clientDeviceID},
 		JSON: map[string]string{
 			"firstName": "Dashboard", "lastName": "Administrator",
 			"username": user, "email": adminEmail(h), "password": password,
