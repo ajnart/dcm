@@ -133,7 +133,7 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 			continue
 		}
 		resp, err := h.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/apps", Header: apiKeyHeader(h), JSON: map[string]any{
-			"name": item.Name, "description": marker, "iconUrl": nil, "href": item.URL, "pingUrl": genericPing(item),
+			"name": item.Name, "description": marker, "iconUrl": iconURL(item.ID), "href": item.URL, "pingUrl": genericPing(item),
 		}})
 		if err != nil {
 			return false, err

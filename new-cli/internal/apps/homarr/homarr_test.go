@@ -218,6 +218,14 @@ func (f *fakeHomarr) handler() http.Handler {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
+		// Pinned eb1d449 appManageSchema requires a nonempty string iconUrl
+		// for POST /api/apps; only create-many permits a nullable icon.
+		icon, ok := body["iconUrl"].(string)
+		if !ok || strings.TrimSpace(icon) == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]any{"message": "Input validation failed", "field": "iconUrl"})
+			return
+		}
 		id := f.id("app")
 		body["appId"] = id
 		body["id"] = id
@@ -935,6 +943,17 @@ func TestSetupReconcilesGenericInstalledAppTilesAndNotebook(t *testing.T) {
 	content, _ := options["content"].(string)
 	if !strings.Contains(content, "Gatus") || !strings.Contains(content, "Valkey") || !strings.Contains(content, "no browser endpoint") {
 		t.Fatalf("incomplete notebook: %s", content)
+	}
+	createdID := fake.apps[0]["id"]
+	fake.apps[0]["iconUrl"] = "https://example.test/custom-gatus.svg"
+	fake.mu.Unlock()
+	installed[0].URL = "http://host.example:8082"
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	if len(fake.apps) != 1 || fake.apps[0]["id"] != createdID || fake.apps[0]["iconUrl"] != "https://example.test/custom-gatus.svg" || fake.apps[0]["href"] != installed[0].URL {
+		t.Fatal("URL reconciliation duplicated the generic tile or replaced its customized icon")
 	}
 	fake.apps = append(fake.apps, map[string]any{"id": "user-app", "name": "My app", "href": "http://private.example", "pingUrl": "http://private.example"})
 	fake.mu.Unlock()
