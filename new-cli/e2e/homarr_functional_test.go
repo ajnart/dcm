@@ -433,6 +433,9 @@ func hfBrowserDashboard(ctx context.Context, r *runner, base, ntfyURL, jellyfinU
 		if err != nil {
 			return nil, errors.New("optional browser acceptance command failed")
 		}
+		if !hfBrowserCommandSucceeded(output) {
+			return nil, errors.New("optional browser acceptance command was not acknowledged")
+		}
 		return output, nil
 	}
 	defer func() {
@@ -473,8 +476,18 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	}, "browser input values did not reach controlled form state"); err != nil {
 		return hfBrowserLoginDiagnostic(ctx, run, "browser input values did not reach controlled form state")
 	}
-	if _, err := run(ctx, "", "click", `button[type="submit"][name="provider"][value="credentials"]`); err != nil {
-		return errors.New("administrator browser login form could not be submitted")
+	selector := `button[type="submit"][name="provider"][value="credentials"]`
+	clickOutput, clickErr := run(ctx, "", "click", selector)
+	if clickErr != nil || !hfBrowserClickExecuted(clickOutput, selector) {
+		var response struct {
+			Data struct {
+				ConfirmationPending bool `json:"confirmation_required"`
+				DialogOpened        bool
+			}
+		}
+		_ = json.Unmarshal(clickOutput, &response)
+		reason := fmt.Sprintf("administrator browser login click was not executed; confirmation_pending=%t, dialog_opened=%t", response.Data.ConfirmationPending, response.Data.DialogOpened)
+		return hfBrowserLoginDiagnostic(ctx, run, reason)
 	}
 	if err := hfPoll(ctx, time.Minute, func() bool {
 		return hfBrowserBoolean(ctx, run, `(async () => { const r = await fetch('/api/auth/session'); if (!r.ok) return false; const s = await r.json(); return !!s.user?.id && s.user.permissions?.includes('admin') === true && !location.pathname.includes('/auth/'); })()`)
@@ -539,6 +552,42 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 	return nil
 }
 
+func hfBrowserCommandSucceeded(output []byte) bool {
+	var response struct{ Success bool }
+	return json.Unmarshal(output, &response) == nil && response.Success
+}
+
+func hfBrowserClickExecuted(output []byte, selector string) bool {
+	var response struct {
+		Success bool
+		Data    struct {
+			Clicked             string
+			ConfirmationPending bool `json:"confirmation_required"`
+			DialogOpened        bool
+		}
+	}
+	return json.Unmarshal(output, &response) == nil && response.Success && !response.Data.ConfirmationPending && !response.Data.DialogOpened && response.Data.Clicked == selector
+}
+
+func TestHomarrBrowserRequiresExecutedClickAcknowledgement(t *testing.T) {
+	for _, tc := range []struct {
+		body string
+		want bool
+	}{
+		{`{"success":true,"data":{"clicked":"fixed-selector"}}`, true},
+		{`{"success":false,"error":"synthetic-private-error"}`, false},
+		{`{"success":true,"data":{"confirmation_required":true,"clicked":"fixed-selector"}}`, false},
+		{`{"success":true,"data":{"dialogOpened":true,"clicked":"fixed-selector"}}`, false},
+		{`{"success":true,"data":{"clicked":"other"}}`, false},
+		{`{"success":true,"data":{}}`, false},
+		{`invalid synthetic-private-output`, false},
+	} {
+		if hfBrowserClickExecuted([]byte(tc.body), "fixed-selector") != tc.want {
+			t.Fatal("deferred, partial, failed, or malformed click acknowledgement was accepted")
+		}
+	}
+}
+
 const hfBrowserLoginHydrated = `(() => { const form = document.querySelector('#username')?.form; return !!form && Object.keys(form).some(key => key.startsWith('__reactProps$')); })()`
 
 const hfBrowserControlledValuesAgree = `(() => {
@@ -550,8 +599,16 @@ return ['#username','#password'].every(selector => { const input = document.quer
 // Bodies/headers/URLs and field values are never retained in probe state.
 const hfBrowserAuthProbe = `(() => {
 const state = { providersCount:0, providersStatus:0, csrfCount:0, csrfStatus:0, callbackCount:0, callbackStatus:0,
- sameOrigin:true, credentialFields:false, transportFailed:false, rejectedCredentials:false, csrfError:false, otherAuthError:false };
+ sameOrigin:true, credentialFields:false, transportFailed:false, rejectedCredentials:false, csrfError:false, otherAuthError:false, clickCount:0, trustedClick:false, submitCount:0, credentialsSubmitter:false, submitPrevented:false, invalidCount:0, pageErrorCount:0, rejectionCount:0 };
 window.__selfhostAuthProbe = state; const original = window.fetch.bind(window);
+const form = document.querySelector('#username')?.form;
+if (form) {
+ form.addEventListener('click', event => { if (event.target.closest('button[name="provider"][value="credentials"]')) { state.clickCount++; state.trustedClick = state.trustedClick || event.isTrusted; } }, true);
+ form.addEventListener('submit', event => { state.submitCount++; state.credentialsSubmitter = event.submitter?.value === 'credentials'; setTimeout(() => { state.submitPrevented = event.defaultPrevented; }, 0); }, true);
+ form.addEventListener('invalid', () => { state.invalidCount++; }, true);
+}
+window.addEventListener('error', () => { state.pageErrorCount++; });
+window.addEventListener('unhandledrejection', () => { state.rejectionCount++; });
 window.fetch = async (input, options) => {
  const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.href);
  const kind = {'/api/auth/providers':'providers','/api/auth/csrf':'csrf','/api/auth/callback/credentials':'callback'}[url.pathname];
@@ -570,10 +627,12 @@ window.fetch = async (input, options) => {
 func hfBrowserLoginDiagnostic(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error), reason string) error {
 	script := `(async () => {
 const user = document.querySelector('#username'), password = document.querySelector('#password'), form = user?.form;
+const button = form?.querySelector('button[name="provider"][value="credentials"]');
 const agrees = input => { const key = input && Object.keys(input).find(key => key.startsWith('__reactProps$')); return !!input?.value && !!key && input[key].value === input.value; };
 const state = { hydrated: !!form && Object.keys(form).some(key => key.startsWith('__reactProps$')),
  usernameFilled: !!user?.value, passwordFilled: !!password?.value,
  usernameStateAgrees: agrees(user), passwordStateAgrees: agrees(password),
+ submitButtonPresent: !!button, submitButtonDisabled: !!button?.disabled || button?.getAttribute('aria-disabled') === 'true', submitButtonLoading: button?.hasAttribute('data-loading') === true, nativeFormValid: form?.matches(':valid') === true,
  formInvalid: !!form?.querySelector('[aria-invalid="true"]'), authRoute: location.pathname.includes('/auth/'),
  dashboardRoute: location.pathname.includes('/boards/'), sessionHTTP: false, sessionUser: false, adminPermission: false };
 try { const response = await fetch('/api/auth/session'); state.sessionHTTP = response.ok;
@@ -590,6 +649,8 @@ func hfBrowserLoginDiagnosticResult(reason string, output []byte, err error) err
 			Result struct {
 				Hydrated, UsernameFilled, PasswordFilled, FormInvalid, AuthRoute, DashboardRoute, SessionHTTP, SessionUser, AdminPermission             bool
 				UsernameStateAgrees, PasswordStateAgrees, SameOrigin, CredentialFields, TransportFailed, RejectedCredentials, CSRFError, OtherAuthError bool
+				TrustedClick, CredentialsSubmitter, SubmitPrevented, SubmitButtonPresent, SubmitButtonDisabled, SubmitButtonLoading, NativeFormValid    bool
+				ClickCount, SubmitCount, InvalidCount, PageErrorCount, RejectionCount                                                                   int
 				ProvidersCount, ProvidersStatus, CSRFCount, CSRFStatus, CallbackCount, CallbackStatus                                                   int
 			}
 		}
@@ -598,7 +659,8 @@ func hfBrowserLoginDiagnosticResult(reason string, output []byte, err error) err
 		return fmt.Errorf("%s; browser state unavailable", reason)
 	}
 	state := response.Data.Result
-	return fmt.Errorf("%s; hydrated=%t, username_filled=%t, password_filled=%t, form_invalid=%t, auth_route=%t, dashboard_route=%t, session_http=%t, session_user=%t, admin_permission=%t, username_state_agrees=%t, password_state_agrees=%t, providers_count=%d, providers_status=%d, csrf_count=%d, csrf_status=%d, callback_count=%d, callback_status=%d, same_origin=%t, credential_fields=%t, transport_failed=%t, rejected_credentials=%t, csrf_error=%t, other_auth_error=%t", reason, state.Hydrated, state.UsernameFilled, state.PasswordFilled, state.FormInvalid, state.AuthRoute, state.DashboardRoute, state.SessionHTTP, state.SessionUser, state.AdminPermission, state.UsernameStateAgrees, state.PasswordStateAgrees, state.ProvidersCount, state.ProvidersStatus, state.CSRFCount, state.CSRFStatus, state.CallbackCount, state.CallbackStatus, state.SameOrigin, state.CredentialFields, state.TransportFailed, state.RejectedCredentials, state.CSRFError, state.OtherAuthError)
+	diagnostic := fmt.Sprintf("%s; hydrated=%t, username_filled=%t, password_filled=%t, form_invalid=%t, auth_route=%t, dashboard_route=%t, session_http=%t, session_user=%t, admin_permission=%t, username_state_agrees=%t, password_state_agrees=%t, providers_count=%d, providers_status=%d, csrf_count=%d, csrf_status=%d, callback_count=%d, callback_status=%d, same_origin=%t, credential_fields=%t, transport_failed=%t, rejected_credentials=%t, csrf_error=%t, other_auth_error=%t", reason, state.Hydrated, state.UsernameFilled, state.PasswordFilled, state.FormInvalid, state.AuthRoute, state.DashboardRoute, state.SessionHTTP, state.SessionUser, state.AdminPermission, state.UsernameStateAgrees, state.PasswordStateAgrees, state.ProvidersCount, state.ProvidersStatus, state.CSRFCount, state.CSRFStatus, state.CallbackCount, state.CallbackStatus, state.SameOrigin, state.CredentialFields, state.TransportFailed, state.RejectedCredentials, state.CSRFError, state.OtherAuthError)
+	return fmt.Errorf("%s; click_count=%d, trusted_click=%t, submit_count=%d, credentials_submitter=%t, submit_prevented=%t, invalid_count=%d, page_error_count=%d, rejection_count=%d, submit_button_present=%t, submit_button_disabled=%t, submit_button_loading=%t, native_form_valid=%t", diagnostic, state.ClickCount, state.TrustedClick, state.SubmitCount, state.CredentialsSubmitter, state.SubmitPrevented, state.InvalidCount, state.PageErrorCount, state.RejectionCount, state.SubmitButtonPresent, state.SubmitButtonDisabled, state.SubmitButtonLoading, state.NativeFormValid)
 }
 
 func TestHomarrBrowserLoginDiagnosticExcludesUntrustedValues(t *testing.T) {
@@ -623,7 +685,8 @@ func TestHomarrBrowserProbePreservesFetchAndExcludesCredentialValues(t *testing.
 	script := `globalThis.location = {href:'http://127.0.0.1:8080/auth/login',origin:'http://127.0.0.1:8080'};
 const originalResponse = {status:401,clone:()=>({json:async()=>({url:'http://127.0.0.1:8080/auth/login?error=CredentialsSignin',private:'synthetic-private-response'})})};
 let receivedInput, receivedOptions;
-globalThis.window = {fetch:async(input,options)=>{receivedInput=input;receivedOptions=options;return originalResponse;}};
+globalThis.document = {querySelector:()=>null};
+globalThis.window = {addEventListener:()=>{}, fetch:async(input,options)=>{receivedInput=input;receivedOptions=options;return originalResponse;}};
 if (!eval(` + string(probe) + `)) throw Error('probe initialization failed');
 const options={body:new URLSearchParams({name:'synthetic-private-name',password:'synthetic-private-password'}),headers:{private:'synthetic-private-header'}};
 const input='/api/auth/callback/credentials';
