@@ -8,11 +8,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/wud"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (wud.App{}).Compose(app.RenderContext{Port: 31003})
+	if !strings.Contains(compose, "${BIND_IP}:31003:3000") || strings.Contains(compose, "${BIND_IP}:18083:3000") {
+		t.Fatalf("selected dashboard port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 

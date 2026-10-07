@@ -85,7 +85,7 @@ func (App) Compose(rc app.RenderContext) string {
     depends_on:
       - server
     ports:
-      - ${BIND_IP}:18086:8080
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:8080
   server:
     image: fosrl/pangolin:1.24.0
     restart: unless-stopped

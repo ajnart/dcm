@@ -74,7 +74,7 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./store:/store
     ports:
-      - ${BIND_IP}:18083:3000
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:3000
 `
 }
 

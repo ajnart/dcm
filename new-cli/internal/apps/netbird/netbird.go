@@ -76,7 +76,7 @@ func (App) Compose(rc app.RenderContext) string {
     depends_on:
       - server
     ports:
-      - ${BIND_IP}:18080:80
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:80
   server:
     image: netbirdio/netbird-server:0.80.0
     restart: unless-stopped
@@ -164,6 +164,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	// The published port serves the dashboard; /api is routed to the server
+	// through the separately configured HTTPS management origin.
+	h.BaseURL = base
 	if err := h.Ready(ctx, "/api/instance"); err != nil {
 		return err
 	}
@@ -212,6 +215,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
+	base := h.Inputs["NETBIRD_CANONICAL_ORIGIN"]
+	if !strings.HasPrefix(base, "https://") {
+		return errors.New(managementHint)
+	}
+	h.BaseURL = base
 	ok, err := ownerWorks(ctx, h, ownerEmail(h))
 	if err != nil {
 		return err

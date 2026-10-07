@@ -9,11 +9,19 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/netbird"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (netbird.App{}).Compose(app.RenderContext{Port: 31004})
+	if !strings.Contains(compose, "${BIND_IP}:31004:80") || strings.Contains(compose, "${BIND_IP}:18080:80") {
+		t.Fatalf("selected dashboard port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 
@@ -23,7 +31,6 @@ func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
 const (
 	adminUser = "admin"
 	adminPass = "correct-horse-battery"
-	origin    = "https://netbird.example.com"
 	email     = adminUser + "@selfhost.local"
 	pat       = "pat-netbird-1"
 )
@@ -80,10 +87,10 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult, inp
 
 func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	fake := &fakeNetbird{}
-	srv := httptest.NewServer(fake.handler())
+	srv := httptest.NewTLSServer(fake.handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
-	h := newH(t, srv, &records, map[string]string{"NETBIRD_CANONICAL_ORIGIN": origin})
+	h := newH(t, srv, &records, map[string]string{"NETBIRD_CANONICAL_ORIGIN": srv.URL})
 	ctx := context.Background()
 
 	if err := (netbird.App{}).Setup(ctx, h); err != nil {
@@ -123,5 +130,25 @@ func TestMissingManagementURLFailsWithAHint(t *testing.T) {
 	}
 	if !strings.Contains(hint, "NETBIRD_CANONICAL_ORIGIN") {
 		t.Errorf("hint should name the required input, got %q", hint)
+	}
+}
+
+func TestSetupAndCheckUseCanonicalManagementOrigin(t *testing.T) {
+	management := httptest.NewTLSServer((&fakeNetbird{}).handler())
+	t.Cleanup(management.Close)
+	dashboard := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "dashboard is not the management API", http.StatusBadGateway)
+	}))
+	t.Cleanup(dashboard.Close)
+	var records []helpers.StepResult
+	h := newH(t, dashboard, &records, map[string]string{"NETBIRD_CANONICAL_ORIGIN": management.URL})
+	h.Config.HTTP = management.Client()
+	if err := (netbird.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatalf("Setup did not reach the management origin: %v", err)
+	}
+	// Check gets fresh helpers in the service; it must resolve the API origin too.
+	h.BaseURL = dashboard.URL
+	if err := (netbird.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("Check did not reach the management origin: %v", err)
 	}
 }

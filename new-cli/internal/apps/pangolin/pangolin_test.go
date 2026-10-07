@@ -9,11 +9,19 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/pangolin"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (pangolin.App{}).Compose(app.RenderContext{Port: 31002})
+	if !strings.Contains(compose, "${BIND_IP}:31002:8080") || strings.Contains(compose, "${BIND_IP}:18086:8080") {
+		t.Fatalf("selected dashboard port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 

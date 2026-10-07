@@ -8,11 +8,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
+
 	"github.com/ajnart/self-host/internal/apps/authelia"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (authelia.App{}).Compose(app.RenderContext{Port: 31001})
+	if !strings.Contains(compose, "${BIND_IP}:31001:9091") || strings.Contains(compose, "${BIND_IP}:9091:9091") {
+		t.Fatalf("selected portal port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 

@@ -45,7 +45,7 @@ func (App) Secrets() []app.SecretSpec {
 	}
 }
 
-func (App) Compose(app.RenderContext) string {
+func (App) Compose(rc app.RenderContext) string {
 	return `services:
   authelia:
     image: docker.io/authelia/authelia:4.39.25
@@ -59,7 +59,7 @@ func (App) Compose(app.RenderContext) string {
     volumes:
       - ./config:/config
     ports:
-      - ${BIND_IP}:9091:9091
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:9091
 `
 }
 
