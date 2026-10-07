@@ -486,6 +486,9 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	}, "actual browser login did not establish an administrator dashboard session"); err != nil {
 		return hfBrowserLoginDiagnostic(ctx, run, "actual browser login did not establish an administrator dashboard session")
 	}
+	if err := hfBrowserDismissTour(ctx, run); err != nil {
+		return err
+	}
 	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
 		return err
 	}
@@ -519,6 +522,8 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 		}
 		encoded, _ := json.Marshal(map[string]any{"selector": selector, "checks": checks, "links": []string{ntfyURL, jellyfinURL}, "notebook": kind == "notebook"})
 		visible := `(() => { const c = ` + string(encoded) + `; const el = document.querySelector(c.selector); if (!el) return false;
+if (document.querySelector('[data-onboarding-tour-overlay], [data-onboarding-tour-focus-reveal-overlay], [aria-modal="true"], [inert]')) return false;
+if (el.closest('[aria-hidden="true"]')) return false;
 const rect = el.getBoundingClientRect(), style = getComputedStyle(el);
 if (!rect.width || !rect.height || rect.bottom <= 0 || rect.top >= innerHeight || style.visibility === 'hidden' || style.display === 'none') return false;
 if (!c.checks.every(text => el.innerText.includes(text))) return false;
@@ -570,6 +575,86 @@ func hfBrowserSubmitLogin(ctx context.Context, run func(context.Context, string,
 		return errors.New("administrator browser login Enter was not executed")
 	}
 	return nil
+}
+
+// Homarr eb1d449 tour-shell.tsx globally intercepts Enter to advance the tour.
+// Space activates the ordinary focused Skip tour button without that handler.
+func hfBrowserDismissTour(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error)) error {
+	focus := `(() => { const buttons = Array.from(document.querySelectorAll('button')).filter(button => button.textContent.trim() === 'Skip tour');
+ if (buttons.length !== 1 || buttons[0].disabled) return false;
+ const button = buttons[0], rect = button.getBoundingClientRect(); if (!rect.width || !rect.height || getComputedStyle(button).visibility === 'hidden') return false;
+ button.focus(); return document.activeElement === button; })()`
+	if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, focus) }, "browser Skip tour control did not become focusable"); err != nil {
+		return err
+	}
+	output, err := run(ctx, "", "press", "Space")
+	var response struct {
+		Success bool
+		Data    struct {
+			Pressed             string
+			ConfirmationPending bool `json:"confirmation_required"`
+			DialogOpened        bool
+		}
+	}
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success || response.Data.Pressed != "Space" || response.Data.ConfirmationPending || response.Data.DialogOpened {
+		return errors.New("browser Skip tour Space activation was not executed")
+	}
+	return hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, hfBrowserDashboardUnobscured) }, "browser dashboard remained obscured after Skip tour")
+}
+
+const hfBrowserDashboardUnobscured = `(() => {
+return !Array.from(document.querySelectorAll('button')).some(button => button.textContent.trim() === 'Skip tour') &&
+ !document.querySelector('[data-onboarding-tour-overlay], [data-onboarding-tour-focus-reveal-overlay], [aria-modal="true"], [inert]'); })()`
+
+func TestHomarrBrowserRejectsGlobalTourOverlayWithoutSkip(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	gate, _ := json.Marshal(hfBrowserDashboardUnobscured)
+	script := `let overlay=true;
+ globalThis.document={querySelectorAll:()=>[],querySelector:selector=>overlay && selector.includes('[data-onboarding-tour-overlay]')?{}:null};
+ if(eval(` + string(gate) + `)) throw Error('global blur overlay accepted without Skip button');
+ overlay=false;
+ if(!eval(` + string(gate) + `)) throw Error('unobscured dashboard rejected');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("dashboard gate ignored pinned global tour blur overlay")
+	}
+}
+
+func TestHomarrBrowserTourRequiresNormalDismissal(t *testing.T) {
+	for _, tc := range []struct {
+		name, ack       string
+		cleared, wantOK bool
+	}{
+		{"normal Space", `{"success":true,"data":{"pressed":"Space"}}`, true, true},
+		{"Enter advances tour", `{"success":true,"data":{"pressed":"Enter"}}`, true, false},
+		{"confirmation pending", `{"success":true,"data":{"pressed":"Space","confirmation_required":true}}`, true, false},
+		{"overlay persists", `{"success":true,"data":{"pressed":"Space"}}`, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+			defer cancel()
+			pressed := false
+			run := func(_ context.Context, stdin string, args ...string) ([]byte, error) {
+				if args[0] == "press" {
+					pressed = true
+					return []byte(tc.ack), nil
+				}
+				result := true
+				if pressed {
+					result = tc.cleared
+				}
+				return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%t}}`, result)), nil
+			}
+			err := hfBrowserDismissTour(ctx, run)
+			if (err == nil) != tc.wantOK {
+				t.Fatal("tour accepted wrong activation or obscured dashboard")
+			}
+		})
+	}
 }
 
 func TestHomarrBrowserSubmitRequiresFocusedButtonAndExecutedKey(t *testing.T) {
