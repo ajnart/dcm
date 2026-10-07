@@ -6,6 +6,7 @@ package tracearr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -70,6 +71,9 @@ func (App) Compose(rc app.RenderContext) string {
       - redis
   timescale:
     image: timescale/timescaledb-ha:pg18.4-ts2.29.1
+    # This pinned image defaults to postgres UID 1000. Enter its official
+    # root ownership preparation for the bind, then it drops to postgres.
+    user: "0:0"
     restart: unless-stopped
     shm_size: 512mb
     ulimits:
@@ -205,7 +209,52 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Login:  signedIn,
 		Manual: "Open " + h.URL + " and create the first owner as " + ownerEmail(h) + ".",
 	}
-	return first.Setup(ctx, h)
+	err := first.Setup(ctx, h)
+	if err == nil {
+		return nil
+	}
+	return errors.Join(err, startupStatus(ctx, h))
+}
+
+// Tracearr 2.6.0 exposes these cached public signals even while its API is
+// gated with 503. Report only fixed enums and booleans, never migration error
+// text, restore details or the raw health body.
+func startupStatus(ctx context.Context, h *helpers.H) error {
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/health"})
+	if err != nil || resp.Status != 200 {
+		return nil
+	}
+	var status struct {
+		Mode  string `json:"mode"`
+		DB    *bool  `json:"db"`
+		Redis *bool  `json:"redis"`
+		Init  string `json:"initStep"`
+	}
+	if resp.Decode(&status) != nil || (status.Mode != "maintenance" && status.Mode != "starting") {
+		return nil
+	}
+	phase := "unrecognized"
+	switch status.Init {
+	case "":
+		phase = "none"
+	case "migrations", "timescale", "services":
+		phase = status.Init
+	}
+	dependency := func(healthy *bool) string {
+		if healthy == nil {
+			return "unknown"
+		}
+		if *healthy {
+			return "ready"
+		}
+		return "unavailable"
+	}
+	return h.Step(ctx, "startup-status", "observe Tracearr startup status", helpers.StepSpec{
+		Do: func(context.Context) error {
+			return fmt.Errorf("Tracearr startup status: mode=%s db=%s redis=%s init=%s", status.Mode, dependency(status.DB), dependency(status.Redis), phase)
+		},
+		Hint: "Check the owned database and Redis health and the reported initialization phase before retrying Tracearr setup.",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

@@ -21,11 +21,16 @@ type fakeTracearr struct {
 	startup     int
 	maintenance bool
 	creates     int
+	health      string
 }
 
 func (f *fakeTracearr) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		if f.health != "" {
+			w.Write([]byte(f.health))
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "mode": "ready"})
 	})
 	mux.HandleFunc("GET /api/v1/setup/status", func(w http.ResponseWriter, r *http.Request) {
@@ -162,6 +167,49 @@ func TestSetupMaintenanceTimeoutHasRecoveryHint(t *testing.T) {
 	}
 	if strings.Contains(err.Error()+fail.Error+fail.Hint, "adminpass") {
 		t.Fatal("readiness diagnostics exposed the password")
+	}
+}
+
+func TestMaintenanceFailureReportsOnlyFixedPublicStartupSignals(t *testing.T) {
+	fake := &fakeTracearr{needsSetup: true, maintenance: true, health: `{"mode":"maintenance","db":false,"redis":true,"initStep":null,"migrationError":"synthetic-private-secret","restore":{"private":"synthetic-private-secret"}}`}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	h, recorded := newH(t, srv)
+	err := (tracearr.App{}).Setup(context.Background(), h)
+	if err == nil || !strings.Contains(err.Error(), "mode=maintenance db=unavailable redis=ready init=none") {
+		t.Fatal("maintenance failure did not explain the public dependency state")
+	}
+	var observed bool
+	for _, step := range *recorded {
+		if step.ID == "startup-status" && step.Status == "fail" && strings.Contains(step.Error, "db=unavailable") {
+			observed = true
+		}
+		if strings.Contains(step.Error+step.Hint, "synthetic-private") {
+			t.Fatal("raw health response entered diagnostics")
+		}
+	}
+	if !observed || strings.Contains(err.Error(), "synthetic-private") || fake.creates != 0 {
+		t.Fatal("public startup observation missing, unsafe, or created an owner")
+	}
+}
+
+func TestMaintenanceStatusAllowListsInitializationPhase(t *testing.T) {
+	for _, tc := range []struct{ phase, want string }{{"migrations", "migrations"}, {"timescale", "timescale"}, {"services", "services"}, {"synthetic-private-secret", "unrecognized"}} {
+		t.Run(tc.want, func(t *testing.T) {
+			fake := &fakeTracearr{needsSetup: true, maintenance: true, health: `{"status":"maintenance","mode":"maintenance","db":true,"redis":true,"initStep":"` + tc.phase + `","migrationError":"synthetic-private-secret"}`}
+			srv := httptest.NewServer(fake.handler())
+			defer srv.Close()
+			h, recorded := newH(t, srv)
+			err := (tracearr.App{}).Setup(context.Background(), h)
+			if err == nil || !strings.Contains(err.Error(), "db=ready redis=ready init="+tc.want) || strings.Contains(err.Error(), "synthetic-private") {
+				t.Fatal("pinned public phase was not reported safely")
+			}
+			for _, step := range *recorded {
+				if strings.Contains(step.Error+step.Hint, "synthetic-private") {
+					t.Fatal("unknown health value entered evidence")
+				}
+			}
+		})
 	}
 }
 
