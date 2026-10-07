@@ -557,7 +557,7 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 		}
 	}
 	path := filepath.Join(dir, "dashboard.png")
-	if _, err := run(ctx, "", "screenshot", path, "--full"); err != nil {
+	if _, err := run(ctx, "", "screenshot", path); err != nil {
 		return errors.New("browser dashboard screenshot could not be captured")
 	}
 	if os.Chmod(path, 0o600) != nil {
