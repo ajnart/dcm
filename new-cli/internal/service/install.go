@@ -303,7 +303,7 @@ func (ss *session) ensureAdmin(opts InstallOptions) error {
 	}
 	generated := values["ADMIN_PASSWORD"] == ""
 	if generated {
-		values["ADMIN_PASSWORD"] = GeneratePassword(20)
+		values["ADMIN_PASSWORD"] = generateAdminPassword()
 	}
 	if err := project.ValidEnvValue(values["ADMIN_PASSWORD"]); err != nil {
 		return fmt.Errorf("admin password: %w", err)

@@ -208,7 +208,7 @@ func TestMissingOriginFailsWithAHint(t *testing.T) {
 			hint = r.Hint
 		}
 	}
-	if !strings.Contains(hint, "PANGOLIN_CANONICAL_ORIGIN") {
-		t.Errorf("hint should name the required input, got %q", hint)
+	if !strings.Contains(hint, "self-host install pangolin --yes --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com") || strings.Contains(hint, "self-host setup pangolin --set") {
+		t.Errorf("hint should use the supported install-time origin command, got %q", hint)
 	}
 }

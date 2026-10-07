@@ -162,7 +162,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	}
 }
 
-const managementHint = "Set the external URL with: self-host setup pangolin --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com " +
+const managementHint = "Set the external URL with: self-host install pangolin --yes --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com " +
 	"(see https://docs.pangolin.net/)"
 
 func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
