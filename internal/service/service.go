@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -74,11 +75,28 @@ func (s *Service) Project() (*project.Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	return project.Open(owner), nil
+	p := project.Open(owner)
+	// Tests and side-by-side installs point at another folder and Compose
+	// project, so they never touch ~/self-host.
+	if root := s.Deps.Getenv("SELF_HOST_HOME"); root != "" {
+		if !filepath.IsAbs(root) {
+			return nil, fmt.Errorf("SELF_HOST_HOME must be an absolute path, got %q", root)
+		}
+		p.Root = root
+	}
+	if name := s.Deps.Getenv("SELF_HOST_COMPOSE_PROJECT"); name != "" {
+		if !composeName.MatchString(name) {
+			return nil, fmt.Errorf("SELF_HOST_COMPOSE_PROJECT %q: use lowercase letters, digits, - and _", name)
+		}
+		p.ComposeName = name
+	}
+	return p, nil
 }
 
+var composeName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
+
 func (s *Service) compose(p *project.Project) *compose.Compose {
-	return compose.New(s.Deps, s.Log, p.Root, project.Name)
+	return compose.New(s.Deps, s.Log, p.Root, p.ComposeName)
 }
 
 // Exposure values.
