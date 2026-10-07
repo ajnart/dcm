@@ -1,0 +1,21 @@
+new-cli/internal/skill/guide.md
+  s_a2fd509a765bab::t_6390f13f87da99 87,96-98
+new-cli/internal/tui/pull.go
+  s_a2fd509a765bab::t_86686f2baf4ff1 1-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c584ba0fa9a26059032aaefbd71d92e9840576b1",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
