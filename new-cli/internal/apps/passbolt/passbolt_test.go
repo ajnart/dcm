@@ -95,7 +95,7 @@ func TestMissingConfigurationFailsWithAHint(t *testing.T) {
 			hint = r.Hint
 		}
 	}
-	if !strings.Contains(hint, "PASSBOLT_CANONICAL_ORIGIN") {
+	if !strings.Contains(hint, "self-host install passbolt --yes --set") || !strings.Contains(hint, "PASSBOLT_CANONICAL_ORIGIN") {
 		t.Errorf("hint should name the required input, got %q", hint)
 	}
 }

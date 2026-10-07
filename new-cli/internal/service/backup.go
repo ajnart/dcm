@@ -13,9 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 )
@@ -318,6 +320,30 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		}
 		if len(services) == 0 {
 			return fmt.Errorf("backup replacement for %s declares no services", id)
+		}
+	}
+	// Validate safely extracted prerequisites before inspecting or removing
+	// original containers. Runtime startup checks them again after replacement.
+	for _, id := range targets {
+		a, found := s.Catalog.App(id)
+		if !found {
+			continue
+		}
+		preflight, ok := a.(app.PreflightChecker)
+		if !ok {
+			continue
+		}
+		archived, err := (&project.Project{Root: staging}).LoadState()
+		if err != nil {
+			return err
+		}
+		record := archived.Apps[id]
+		if record == nil {
+			return fmt.Errorf("backup is missing the configuration record for %s", id)
+		}
+		h := helpers.New(helpers.Config{App: id, Dir: filepath.Join(staging, "apps", id), Inputs: publicInputs(a, record.Inputs), Log: s.Log})
+		if err := preflight.Preflight(ctx, h); err != nil {
+			return fmt.Errorf("backup prerequisites for %s: %w", id, err)
 		}
 	}
 	// Only the initializer, called under the mutation lock, may claim fresh

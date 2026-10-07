@@ -51,7 +51,14 @@ func handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode([]any{})
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved"}})
+	})
+	mux.HandleFunc("POST /api/containers/owned-fixture/watch", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"id": "owned-fixture", "watcher": "approved"})
 	})
 	return mux
 }
@@ -59,8 +66,10 @@ func handler() http.Handler {
 func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult, inputs map[string]string) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
+	dir := t.TempDir()
+	writeTLSFixture(t, dir, false)
 	return helpers.New(helpers.Config{
-		App: "wud", Service: "wud", BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		App: "wud", Service: "wud", Dir: dir, BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Inputs:  inputs,
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,

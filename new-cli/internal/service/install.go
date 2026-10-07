@@ -12,6 +12,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 )
@@ -181,12 +182,20 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			previous[id] = st.Inputs
 		}
 	}
-	_, err = resolveInputs(apps, opts.Sets, previous)
+	preflightInputs, err := resolveInputs(apps, opts.Sets, previous)
 	if err != nil {
 		return err
 	}
 	if opts.Exposure != "" && opts.Exposure != ExposureLAN && opts.Exposure != ExposureLocal {
 		return fmt.Errorf("--exposure must be %s or %s", ExposureLAN, ExposureLocal)
+	}
+	for _, a := range apps {
+		if preflight, ok := a.(app.PreflightChecker); ok {
+			h := helpers.New(helpers.Config{App: a.Info().ID, Dir: p.Path("apps", a.Info().ID), Inputs: publicInputs(a, preflightInputs[a.Info().ID]), Log: s.Log})
+			if err := preflight.Preflight(ctx, h); err != nil {
+				return err
+			}
+		}
 	}
 	if err := s.requireDocker(ctx); err != nil {
 		return err

@@ -137,6 +137,19 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 	if len(ids) == 0 {
 		return nil
 	}
+	if c.compose == composeUp || c.compose == composePullUp || c.compose == composeRestart {
+		for _, id := range ids {
+			a, found := s.Catalog.App(id)
+			if !found {
+				continue
+			}
+			if preflight, ok := a.(app.PreflightChecker); ok {
+				if err := preflight.Preflight(ctx, ss.helpers(a)); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	services, err := ss.services(ids...)
 	if err != nil {
 		return err

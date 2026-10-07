@@ -116,7 +116,7 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-const managementHint = "Set the origin with: self-host setup passbolt --set passbolt.PASSBOLT_CANONICAL_ORIGIN=https://passbolt.selfhost.local " +
+const managementHint = "Set the origin with: self-host install passbolt --yes --set passbolt.PASSBOLT_CANONICAL_ORIGIN=https://passbolt.selfhost.local " +
 	"--set passbolt.PASSBOLT_SMTP_HOST=smtp.example.com (see https://www.passbolt.com/docs/hosting/install/ce/docker/)"
 
 var fingerprint = regexp.MustCompile(`^[0-9A-Fa-f]{40}$`)

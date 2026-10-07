@@ -4,9 +4,17 @@ package wud
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -39,6 +47,7 @@ func (App) Inputs() []app.Input {
 			Required: true,
 		},
 		{Key: "WUD_DOCKER_PORT", Prompt: "Remote Docker TLS port", Default: "2376"},
+		{Key: "WUD_DOCKER_TLS_CLIENT_AUTH", Prompt: "Require Docker TLS client authentication (true or false)", Default: "false", Help: "Prepare tls/ca.pem inside this App directory. When true, also prepare tls/client-cert.pem and private mode-0600 tls/client-key.pem. No external file paths are accepted."},
 	}
 }
 
@@ -57,6 +66,12 @@ func dockerPort(rc app.RenderContext) string {
 }
 
 func (App) Compose(rc app.RenderContext) string {
+	clientEnvironment, clientMounts := "", ""
+	client, _ := strconv.ParseBool(rc.Inputs["WUD_DOCKER_TLS_CLIENT_AUTH"])
+	if client {
+		clientEnvironment = "      WUD_WATCHER_DOCKER_APPROVED_CERTFILE: /tls/client-cert.pem\n      WUD_WATCHER_DOCKER_APPROVED_KEYFILE: /tls/client-key.pem\n"
+		clientMounts = "      - ./tls/client-cert.pem:/tls/client-cert.pem:ro\n      - ./tls/client-key.pem:/tls/client-key.pem:ro\n"
+	}
 	return `services:
   wud:
     image: getwud/wud:9.1.0
@@ -67,19 +82,105 @@ func (App) Compose(rc app.RenderContext) string {
       WUD_AUTH_ADMIN_USER: ${ADMIN_USER}
       WUD_AUTH_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       WUD_SERVER_FEATURE_DELETE: "false"
-      WUD_WATCHER_DOCKER_APPROVED_HOST: ` + dockerHost(rc) + `
-      WUD_WATCHER_DOCKER_APPROVED_PORT: "` + dockerPort(rc) + `"
-      WUD_WATCHER_DOCKER_APPROVED_WATCHBYDEFAULT: "false"
+      WUD_WATCHER_DOCKER_APPROVED_HOST: ` + strconv.Quote(dockerHost(rc)) + `
+      WUD_WATCHER_DOCKER_APPROVED_PORT: ` + strconv.Quote(dockerPort(rc)) + `
+      WUD_WATCHER_DOCKER_APPROVED_CAFILE: /tls/ca.pem
+` + clientEnvironment + `      WUD_WATCHER_DOCKER_APPROVED_WATCHBYDEFAULT: "false"
       WUD_WATCHER_DOCKER_APPROVED_WATCHEVENTS: "false"
     volumes:
       - ./store:/store
-    ports:
+      - ./tls/ca.pem:/tls/ca.pem:ro
+` + clientMounts + `    ports:
       - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:3000
 `
 }
 
-const setupHint = "Set the approved remote Docker endpoint with: self-host setup wud --set wud.WUD_DOCKER_HOST=docker.example.com " +
+const setupHint = "Set the approved remote Docker endpoint with: self-host install wud --yes --set wud.WUD_DOCKER_HOST=docker.example.com " +
 	"--set wud.WUD_DOCKER_PORT=2376 (see https://getwud.app/docs/)"
+
+const tlsHint = "Prepare tls/ca.pem inside apps/wud before installation. For WUD_DOCKER_TLS_CLIENT_AUTH=true, also provide tls/client-cert.pem and mode-0600 tls/client-key.pem. The approved endpoint must verify TLS and deny Docker mutations; UI readiness does not prove watcher inventory."
+
+func (App) Preflight(ctx context.Context, h *helpers.H) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := validateTLS(h); err != nil {
+		return fmt.Errorf("Docker TLS prerequisites: %w; %s", err, tlsHint)
+	}
+	return nil
+}
+
+func validateTLS(h *helpers.H) error {
+	host := h.Inputs["WUD_DOCKER_HOST"]
+	if host == "" || strings.ContainsAny(host, "/\\@?# \t\r\n") {
+		return errors.New("WUD_DOCKER_HOST must name the approved Docker TLS endpoint")
+	}
+	port := h.Inputs["WUD_DOCKER_PORT"]
+	if port == "" {
+		port = "2376"
+	}
+	number, err := strconv.Atoi(port)
+	if err != nil || number < 1 || number > 65535 {
+		return errors.New("WUD_DOCKER_PORT must be a valid TLS port")
+	}
+	client := false
+	if choice := h.Inputs["WUD_DOCKER_TLS_CLIENT_AUTH"]; choice != "" {
+		client, err = strconv.ParseBool(choice)
+		if err != nil {
+			return errors.New("WUD_DOCKER_TLS_CLIENT_AUTH must be true or false")
+		}
+	}
+	for _, dir := range []string{h.Dir, filepath.Dir(h.Dir)} {
+		info, err := os.Lstat(dir)
+		if err != nil || !info.IsDir() {
+			return errors.New("the WUD App and its parent must be real owned directories, without symlink bind ancestors")
+		}
+	}
+	root, err := os.OpenRoot(h.Dir)
+	if err != nil {
+		return fmt.Errorf("open the owned WUD directory: %w", err)
+	}
+	defer root.Close()
+	info, err := root.Lstat("tls")
+	if err != nil || !info.IsDir() {
+		return errors.New("tls must be a real directory inside the WUD App directory")
+	}
+	read := func(name string, private bool) ([]byte, error) {
+		info, err := root.Lstat("tls/" + name)
+		if err != nil || !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("tls/%s must be a regular owned file", name)
+		}
+		if private && info.Mode().Perm()&0o077 != 0 {
+			return nil, fmt.Errorf("tls/%s must have private mode-0600 permissions", name)
+		}
+		data, err := root.ReadFile("tls/" + name)
+		if err != nil {
+			return nil, fmt.Errorf("read owned tls/%s: %w", name, err)
+		}
+		return data, nil
+	}
+	ca, err := read("ca.pem", false)
+	if err != nil {
+		return err
+	}
+	if !x509.NewCertPool().AppendCertsFromPEM(ca) {
+		return errors.New("tls/ca.pem does not contain a valid trusted certificate")
+	}
+	if client {
+		cert, err := read("client-cert.pem", false)
+		if err != nil {
+			return err
+		}
+		key, err := read("client-key.pem", true)
+		if err != nil {
+			return err
+		}
+		if _, err = tls.X509KeyPair(cert, key); err != nil {
+			return errors.New("owned TLS client certificate and private key must form a valid matching pair")
+		}
+	}
+	return nil
+}
 
 type identity struct {
 	Username string `json:"username"`
@@ -110,6 +211,12 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if err := h.Step(ctx, "tls-files", "the owned Docker TLS trust files are valid", helpers.StepSpec{
+		Check: func(context.Context) (bool, error) { err := validateTLS(h); return err == nil, err },
+		Hint:  tlsHint,
+	}); err != nil {
+		return err
+	}
 	if err := h.Ready(ctx, "/auth/user"); err != nil {
 		return err
 	}
@@ -124,6 +231,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
+	if err := validateTLS(h); err != nil {
+		return fmt.Errorf("Docker TLS prerequisites: %w; %s", err, tlsHint)
+	}
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot sign in: %v", h.AdminUser(), err)
 	}
@@ -132,9 +242,52 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if resp.Status != http.StatusUnauthorized {
-		return fmt.Errorf("anonymous users can read the inventory (HTTP %d)", resp.Status)
+		return fmt.Errorf("anonymous inventory access is not denied (HTTP %d)", resp.Status)
 	}
-	return nil
+	inventory, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return err
+	}
+	if inventory.Status != http.StatusOK {
+		return fmt.Errorf("authenticated watcher inventory returned HTTP %d", inventory.Status)
+	}
+	var containers []struct {
+		ID      string `json:"id"`
+		Watcher string `json:"watcher"`
+		Error   any    `json:"error"`
+	}
+	if err := inventory.Decode(&containers); err != nil {
+		return err
+	}
+	for _, container := range containers {
+		if container.ID == "" || container.Watcher != "approved" {
+			continue
+		}
+		// The collection is persisted state. Only this per-container endpoint
+		// re-reads Docker and reports a failed scan instead of returning cache.
+		scan, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		fresh, err := h.HTTP(scan, helpers.Request{Method: http.MethodPost, Path: "/api/containers/" + url.PathEscape(container.ID) + "/watch", User: h.AdminUser(), Password: h.AdminPassword()})
+		if err != nil {
+			return fmt.Errorf("fresh approved Docker watcher scan failed: %w", err)
+		}
+		if fresh.Status != http.StatusOK {
+			return fmt.Errorf("fresh approved Docker watcher scan returned HTTP %d; verify endpoint TLS and the selected owned container", fresh.Status)
+		}
+		var current struct {
+			ID      string `json:"id"`
+			Watcher string `json:"watcher"`
+			Error   any    `json:"error"`
+		}
+		if err := fresh.Decode(&current); err != nil {
+			return err
+		}
+		if current.ID != container.ID || current.Watcher != "approved" || current.Error != nil {
+			return errors.New("fresh scan did not confirm the selected approved container without a watcher error")
+		}
+		return nil
+	}
+	return errors.New("the administrator works, but the approved Docker watcher has no verified inventory; verify the approved TLS endpoint and explicitly label an owned container wud.watch=true")
 }
 
 func (App) Links() []app.Link { return nil }
