@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -165,7 +164,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/api/instance", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/instance"); err != nil {
 		return err
 	}
 	email := ownerEmail(h)

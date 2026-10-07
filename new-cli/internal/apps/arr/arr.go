@@ -6,11 +6,8 @@ package arr
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -130,8 +127,6 @@ func apiRequest(h *helpers.H, api string, req helpers.Request) helpers.Request {
 	return req
 }
 
-var apiKeyElement = regexp.MustCompile(`<ApiKey>\s*([^<\s]+)\s*</ApiKey>`)
-
 func (a App) keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if h.Secret(h.Key("api_key")) == "" {
 		return false, nil
@@ -142,20 +137,7 @@ func (a App) keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
 
 // readAPIKey waits for the key the App writes to config.xml on first start.
 func (a App) readAPIKey(ctx context.Context, h *helpers.H) error {
-	path := filepath.Join(h.Dir, "config", "config.xml")
-	var key string
-	err := h.Poll(ctx, 2*time.Minute, func(context.Context) (bool, error) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return false, err
-		}
-		found := apiKeyElement.FindSubmatch(data)
-		if found == nil {
-			return false, errors.New("no ApiKey in config.xml yet")
-		}
-		key = string(found[1])
-		return true, nil
-	})
+	key, err := h.ConfigValue(ctx, filepath.Join("config", "config.xml"), helpers.XMLElement("ApiKey"), 2*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -249,7 +231,7 @@ func (a App) hasRootFolder(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (a App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/ping", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/ping"); err != nil {
 		return err
 	}
 	name := a.info.Name

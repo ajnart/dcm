@@ -77,7 +77,7 @@ func nativeGet(ctx context.Context, h *helpers.H, path, token string) (int, []by
 		script = `curl --silent --show-error --max-time 8 --noproxy '*' -H "X-ZT1-Auth: $ZT_TOKEN" ` +
 			`--write-out '%{http_code}' http://127.0.0.1:9993` + path
 	}
-	result, err := h.Exec(ctx, env, "sh", "-c", script)
+	result, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return 0, nil, err
 	}

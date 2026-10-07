@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -133,7 +132,7 @@ func tokenUser(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/-/health/live/", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/-/health/live/"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "the bootstrap token identifies the "+admin+" superuser", helpers.StepSpec{

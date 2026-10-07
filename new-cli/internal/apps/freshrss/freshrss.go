@@ -69,7 +69,7 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 		` && h=$(php -r 'echo password_hash(getenv("FRESHRSS_ADMIN_PASSWORD"), PASSWORD_BCRYPT, ["cost"=>9]);')` +
 		` && printf %s "$h" | php ` + root + `/cli/reconfigure-user.php --user ` + user +
 		` --key passwordHash --set --value-stdin`
-	res, err := h.Exec(ctx, env, "sh", "-c", script)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	env := map[string]string{"FRESHRSS_ADMIN_PASSWORD": password}
 	script := `php -r '$u=@include "` + root + `/data/users/` + user + `/config.php";` +
 		` exit(is_array($u) && password_verify(getenv("FRESHRSS_ADMIN_PASSWORD"), $u["passwordHash"] ?? "") ? 0 : 1);'`
-	res, err := h.Exec(ctx, env, "sh", "-c", script)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return false, err
 	}

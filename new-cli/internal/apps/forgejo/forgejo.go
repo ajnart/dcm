@@ -86,10 +86,10 @@ func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
 // enters the logged command line.
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
 	env := map[string]string{"FORGEJO_ADMIN_PASSWORD": password}
-	script := `su-exec git forgejo admin user create --username "$1"` +
+	script := `su-exec git forgejo admin user create --username "` + user + `"` +
 		` --email "admin@forgejo.local" --admin --must-change-password=false` +
 		` --password "$FORGEJO_ADMIN_PASSWORD"`
-	res, err := h.Exec(ctx, env, "sh", "-c", script, "--", user)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return err
 	}

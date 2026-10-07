@@ -7,15 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/onboard"
-	"go.yaml.in/yaml/v3"
 )
 
 // App is Bazarr. Traps: docs/catalog/traps/bazarr.md.
@@ -60,28 +57,7 @@ func (App) Compose(rc app.RenderContext) string {
 
 // apiKey waits for the key Bazarr writes to its config on first start.
 func apiKey(ctx context.Context, h *helpers.H) (string, error) {
-	path := filepath.Join(h.Dir, "config", "config", "config.yaml")
-	var key string
-	err := h.Poll(ctx, 2*time.Minute, func(context.Context) (bool, error) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return false, err
-		}
-		var doc struct {
-			Auth struct {
-				APIKey string `yaml:"apikey"`
-			} `yaml:"auth"`
-		}
-		if err := yaml.Unmarshal(data, &doc); err != nil {
-			return false, err
-		}
-		if doc.Auth.APIKey == "" {
-			return false, errors.New("no auth.apikey in config.yaml yet")
-		}
-		key = doc.Auth.APIKey
-		return true, nil
-	})
-	return key, err
+	return h.ConfigValue(ctx, "config/config/config.yaml", helpers.YAMLPath("auth.apikey"), 2*time.Minute)
 }
 
 // anonymousDenied reports whether Bazarr already refuses anonymous UI access.

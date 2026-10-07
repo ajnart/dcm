@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -83,49 +81,11 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-var csrfPattern = regexp.MustCompile(`name="_token"[^>]*value="([A-Za-z0-9]+)"`)
-
-// jar collects Set-Cookie values so a form flow can send them back.
-type jar map[string]string
-
-func (j jar) add(resp helpers.Response) {
-	for _, line := range resp.Header.Values("Set-Cookie") {
-		pair, _, _ := strings.Cut(line, ";")
-		name, value, ok := strings.Cut(pair, "=")
-		if ok && name != "" {
-			j[name] = value
-		}
-	}
-}
-
-func (j jar) header() string {
-	parts := make([]string, 0, len(j))
-	for name, value := range j {
-		parts = append(parts, name+"="+value)
-	}
-	return strings.Join(parts, "; ")
-}
-
-func csrf(body []byte) (string, bool) {
-	match := csrfPattern.FindSubmatch(body)
-	if match == nil {
-		return "", false
-	}
-	return string(match[1]), true
-}
-
+// register creates the first owner through the registration form.
 func register(ctx context.Context, h *helpers.H) error {
-	page, err := h.HTTP(ctx, helpers.Request{Path: "/register", Header: map[string]string{"Accept": "text/html"}})
+	session := h.Session()
+	token, err := session.FormToken(ctx, "/register", "_token")
 	if err != nil {
-		return err
-	}
-	cookies := jar{}
-	cookies.add(page)
-	if page.Status != http.StatusOK {
-		return fmt.Errorf("the registration page returned HTTP %d", page.Status)
-	}
-	token, found := csrf(page.Body)
-	if !found || !strings.Contains(string(page.Body), `name="password_confirmation"`) {
 		return errors.New("registration is closed or the first owner already exists")
 	}
 	form := url.Values{
@@ -135,9 +95,9 @@ func register(ctx context.Context, h *helpers.H) error {
 		"password":              {h.AdminPassword()},
 		"password_confirmation": {h.AdminPassword()},
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{
+	resp, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/register", Form: form, NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return err
@@ -151,23 +111,15 @@ func register(ctx context.Context, h *helpers.H) error {
 // login signs in through the pinned web form and proves owner access by
 // reopening the owner profile.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
-	page, err := h.HTTP(ctx, helpers.Request{Path: "/login", Header: map[string]string{"Accept": "text/html"}})
+	session := h.Session()
+	token, err := session.FormToken(ctx, "/login", "_token")
 	if err != nil {
-		return false, err
-	}
-	cookies := jar{}
-	cookies.add(page)
-	if page.Status != http.StatusOK {
-		return false, nil
-	}
-	token, found := csrf(page.Body)
-	if !found {
 		return false, nil
 	}
 	form := url.Values{"_token": {token}, "email": {adminEmail(h)}, "password": {h.AdminPassword()}}
-	resp, err := h.HTTP(ctx, helpers.Request{
+	resp, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/login", Form: form, NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -178,10 +130,9 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status != http.StatusFound {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
 	}
-	cookies.add(resp)
-	profile, err := h.HTTP(ctx, helpers.Request{
+	profile, err := session.HTTP(ctx, helpers.Request{
 		Path: "/profile/change-email", NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -193,7 +144,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/login", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/login"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "register the first owner "+adminEmail(h), helpers.StepSpec{

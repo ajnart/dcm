@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -80,49 +77,19 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-var csrfPattern = regexp.MustCompile(`name="_token"[^>]*value="([A-Za-z0-9]+)"`)
-
-type jar map[string]string
-
-func (j jar) add(resp helpers.Response) {
-	for _, line := range resp.Header.Values("Set-Cookie") {
-		pair, _, _ := strings.Cut(line, ";")
-		name, value, ok := strings.Cut(pair, "=")
-		if ok && name != "" {
-			j[name] = value
-		}
-	}
-}
-
-func (j jar) header() string {
-	parts := make([]string, 0, len(j))
-	for name, value := range j {
-		parts = append(parts, name+"="+value)
-	}
-	return strings.Join(parts, "; ")
-}
-
 // login signs in through the pinned email form and proves administrator access
 // by opening the users settings page.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
 	email := h.AdminUser() + "@selfhost.local"
-	page, err := h.HTTP(ctx, helpers.Request{Path: "/login", Header: map[string]string{"Accept": "text/html"}})
+	session := h.Session()
+	token, err := session.FormToken(ctx, "/login", "_token")
 	if err != nil {
-		return false, err
-	}
-	cookies := jar{}
-	cookies.add(page)
-	if page.Status != http.StatusOK {
 		return false, nil
 	}
-	match := csrfPattern.FindSubmatch(page.Body)
-	if match == nil {
-		return false, nil
-	}
-	form := url.Values{"_token": {string(match[1])}, "email": {email}, "password": {h.AdminPassword()}}
-	resp, err := h.HTTP(ctx, helpers.Request{
+	form := url.Values{"_token": {token}, "email": {email}, "password": {h.AdminPassword()}}
+	resp, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/login", Form: form, NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -133,10 +100,9 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status != http.StatusFound {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
 	}
-	cookies.add(resp)
-	users, err := h.HTTP(ctx, helpers.Request{
+	users, err := session.HTTP(ctx, helpers.Request{
 		Path: "/settings/users", NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -151,12 +117,12 @@ func createAdmin(ctx context.Context, h *helpers.H) error {
 	script := fmt.Sprintf(
 		`php /app/www/artisan bookstack:create-admin --initial --email=%s@selfhost.local --name=%s --password="$SELFHOST_PW"`,
 		user, user)
-	_, err := h.Exec(ctx, map[string]string{"SELFHOST_PW": h.AdminPassword()}, "sh", "-c", script)
+	_, err := h.ExecSecret(ctx, map[string]string{"SELFHOST_PW": h.AdminPassword()}, script)
 	return err
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/login", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/login"); err != nil {
 		return err
 	}
 	email := h.AdminUser() + "@selfhost.local"

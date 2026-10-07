@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/jellyfin"
@@ -94,7 +93,7 @@ func readPublic(ctx context.Context, h *helpers.H) (public, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return h.WaitHTTP(ctx, "/api/v1/status", 2*time.Minute)
+	return h.Ready(ctx, "/api/v1/status")
 }
 
 // Check proves Seerr answers; whether it is connected is the Links' job.
