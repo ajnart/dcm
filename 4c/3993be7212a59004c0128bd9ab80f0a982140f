@@ -1,0 +1,37 @@
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_3d3929a96bc9ba::t_f48c848358a373 9
+new-cli/internal/tui/harness_test.go
+  s_81f5ebf276cbf5::t_e2f67a378e1446 216-226,307-308,812
+new-cli/internal/tui/testdata/workflow.golden
+  s_81f5ebf276cbf5::t_a5204789c51814 4-5,9-16,30
+new-cli/internal/tui/views_test.go
+  s_81f5ebf276cbf5::t_5873dae0394bd8 4,10,127,136-299,305-307,310-312,363-364
+new-cli/internal/tui/workflow.go
+  s_81f5ebf276cbf5::t_7081eb937c8ca2 30,50
+new-cli/internal/tui/workflow_view.go
+  s_81f5ebf276cbf5::t_c6265d55572a24 10-22,28-99,103-127,129-132,134-155,163-164,168-171,173-195,197-203,205-218,220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c3993be7212a59004c0128bd9ab80f0a982140f",
+  "prompts": {},
+  "sessions": {
+    "s_3d3929a96bc9ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f5-428e-73a1-9e1d-37d5abf33a4a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_81f5ebf276cbf5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f7-b9d1-7f81-b6a1-a22b4785c79d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
