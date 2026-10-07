@@ -1,0 +1,22 @@
+new-cli/internal/service/backup.go
+  h_d6e478ca18e517 26-31,33-38,40-57,61-63,67-85,89-100,189,220-223,226-247,249-253
+new-cli/internal/service/install.go
+  h_d6e478ca18e517 174-211,395-415
+new-cli/internal/service/lifecycle.go
+  h_d6e478ca18e517 41-45,49-53,57-61,67-71,126-130,202-209,211,214-232,235-237
+new-cli/internal/service/mutation.go
+  h_d6e478ca18e517 1-208
+new-cli/internal/service/mutation_test.go
+  h_d6e478ca18e517 1-375
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "30a96af1ab666fa0399de02d7f5f7f21a0a801b9",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
