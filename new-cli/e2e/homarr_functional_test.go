@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -490,7 +491,7 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	if err := hfBrowserDismissTour(ctx, run); err != nil {
 		return err
 	}
-	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
+	if err := hfBrowserFitCaptureViewport(ctx, run); err != nil {
 		return err
 	}
 	var appSelectors []string
@@ -508,6 +509,7 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	if os.MkdirAll(dir, 0o700) != nil {
 		return errors.New("persistent browser evidence directory unavailable")
 	}
+	var renderedChecks []string
 	for _, kind := range []string{"notifications", "mediaReleases", "notebook"} {
 		id := ""
 		for _, item := range inv.Board.Items {
@@ -522,9 +524,6 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 			return errors.New("browser acceptance widget is missing")
 		}
 		selector := `[data-grid-item-id="` + id + `"]`
-		if _, err := run(ctx, "", "scrollintoview", selector); err != nil {
-			return errors.New("browser acceptance widget could not be brought into view")
-		}
 		checks := []string{"Your homelab at a glance", "Admin login", inv.appFor("ntfy").Name, inv.appFor("jellyfin").Name}
 		if kind == "notifications" {
 			checks = []string{"Owned self-host functional notification"}
@@ -533,18 +532,13 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 			checks = []string{"Selfhost E2E Tone"}
 		}
 		encoded, _ := json.Marshal(map[string]any{"selector": selector, "checks": checks, "links": []string{ntfyURL, jellyfinURL}, "notebook": kind == "notebook"})
-		visible := `(() => { const c = ` + string(encoded) + `; const el = document.querySelector(c.selector); if (!el) return false;
-if (document.querySelector('[data-onboarding-tour-overlay], [data-onboarding-tour-focus-reveal-overlay], [aria-modal="true"], [inert]')) return false;
-if (el.closest('[aria-hidden="true"]')) return false;
-const rect = el.getBoundingClientRect(), style = getComputedStyle(el);
-if (!rect.width || !rect.height || rect.bottom <= 0 || rect.top >= innerHeight || style.visibility === 'hidden' || style.display === 'none') return false;
-if (!c.checks.every(text => el.innerText.includes(text))) return false;
-return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).some(a => a.href === url || a.href === url + '/')); })()`
-		if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, visible) }, "browser widget did not render the expected live notification, media or notebook content"); err != nil {
-			return err
-		}
+		visible := "(" + hfBrowserWidgetVisible + ")(" + string(encoded) + ")"
+		renderedChecks = append(renderedChecks, visible)
 		if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) {
 			return errors.New("browser selector capture could not establish document origin")
+		}
+		if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, visible) }, "browser widget did not render the expected live notification, media or notebook content"); err != nil {
+			return err
 		}
 		path := filepath.Join(dir, kind+".png")
 		if _, err := run(ctx, "", "screenshot", selector, path); err != nil {
@@ -556,6 +550,11 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 	}
 	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) {
 		return errors.New("browser dashboard capture could not establish document origin")
+	}
+	for _, check := range renderedChecks {
+		if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, check) }, "browser dashboard capture lost the rendered live widget content"); err != nil {
+			return err
+		}
 	}
 	path := filepath.Join(dir, "dashboard.png")
 	if _, err := run(ctx, "", "screenshot", path, "--full"); err != nil {
@@ -876,6 +875,38 @@ const hfBrowserCaptureAtOrigin = `(async () => { window.scrollTo(0, 0);
 await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame);
 return window.scrollX === 0 && window.scrollY === 0; })()`
 
+const hfBrowserWidgetVisible = `(c) => { if (window.scrollX !== 0 || window.scrollY !== 0) return false; const el = document.querySelector(c.selector); if (!el) return false;
+if (document.querySelector('[data-onboarding-tour-overlay], [data-onboarding-tour-focus-reveal-overlay], [aria-modal="true"], [inert]')) return false;
+if (el.closest('[aria-hidden="true"]')) return false;
+const rect = el.getBoundingClientRect(), style = getComputedStyle(el);
+if (!rect.width || !rect.height || rect.top < 0 || rect.left < 0 || rect.bottom > innerHeight || rect.right > innerWidth || style.visibility === 'hidden' || style.display === 'none') return false;
+if (!c.checks.every(text => el.innerText.includes(text))) return false;
+return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).some(a => a.href === url || a.href === url + '/')); }`
+
+// Keep the real board in view so lazy widget rendering and driver crops both
+// cover visible content. Never expand beyond the owned 1440x4096 bound.
+func hfBrowserFitCaptureViewport(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error)) error {
+	output, err := run(ctx, `Math.ceil(document.scrollingElement?.scrollHeight ?? 0)`, "eval", "--stdin")
+	var response struct {
+		Success bool
+		Data    struct{ Result int }
+	}
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success || response.Data.Result <= 0 || response.Data.Result > 4096 {
+		return errors.New("browser board height is outside the bounded capture viewport")
+	}
+	height := response.Data.Result
+	if height < 1100 {
+		height = 1100
+	}
+	if _, err := run(ctx, "", "set", "viewport", "1440", strconv.Itoa(height)); err != nil {
+		return errors.New("browser bounded capture viewport could not be applied")
+	}
+	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) || !hfBrowserBoolean(ctx, run, `window.scrollX === 0 && window.scrollY === 0 && innerWidth === 1440 && innerHeight === `+strconv.Itoa(height)+` && document.scrollingElement.scrollHeight <= innerHeight`) {
+		return errors.New("browser board did not fit the applied capture viewport")
+	}
+	return nil
+}
+
 const hfBrowserAppIconsReady = `(selectors) => selectors.length > 0 && selectors.every(selector => {
 const tile = document.querySelector(selector); if (!tile) return false;
 const images = Array.from(tile.querySelectorAll('img'));
@@ -897,6 +928,70 @@ func TestHomarrBrowserAppIconsMustActuallyLoad(t *testing.T) {
 	command.Stdin = strings.NewReader(script)
 	if err := command.Run(); err != nil {
 		t.Fatal("App icon acceptance did not distinguish loaded images from broken or missing images")
+	}
+}
+
+func TestHomarrBrowserCaptureRequiresRenderedContentAfterResize(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	gate, _ := json.Marshal(hfBrowserWidgetVisible)
+	script := `let rendered=false;let bottom=1600;
+ globalThis.innerWidth=1440;globalThis.innerHeight=1100;globalThis.window={scrollX:0,scrollY:0};
+ const tile={closest:()=>null,getBoundingClientRect:()=>({width:568,height:426,top:1200,left:20,right:588,bottom}),get innerText(){return rendered?'Selfhost E2E Tone':''}};
+ globalThis.document={querySelector:selector=>selector==='owned-media'?tile:null};
+ globalThis.getComputedStyle=()=>({visibility:'visible',display:'block'});
+ const check=eval(` + string(gate) + `);const c={selector:'owned-media',checks:['Selfhost E2E Tone'],notebook:false};
+ if(check(c)) throw Error('offscreen widget accepted');
+ innerHeight=2068;if(check(c)) throw Error('unrendered content accepted after resize');
+ rendered=true;if(!check(c)) throw Error('fully visible rendered content rejected');
+ window.scrollY=100;if(check(c)) throw Error('late vertical scroll accepted');window.scrollY=0;
+ window.scrollX=20;if(check(c)) throw Error('late horizontal scroll accepted');window.scrollX=0;
+ bottom=2100;if(check(c)) throw Error('partially offscreen content accepted');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("capture accepted offscreen or unrendered content after viewport resize")
+	}
+}
+
+func TestHomarrBrowserCaptureViewportIsBoundedAndVerified(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		height       int
+		fits, wantOK bool
+	}{
+		{"board fits", 2068, true, true}, {"small board", 800, true, true}, {"maximum", 4096, true, true},
+		{"oversize", 4097, true, false}, {"invalid", 0, true, false}, {"resize ineffective", 2068, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resized := false
+			run := func(_ context.Context, stdin string, args ...string) ([]byte, error) {
+				if args[0] == "set" {
+					resized = true
+					if args[2] != "1440" {
+						t.Fatal("capture changed dashboard width")
+					}
+					n, _ := strconv.Atoi(args[3])
+					if n < 1100 || n > 4096 {
+						t.Fatal("capture size outside owned bound")
+					}
+					return []byte(`{"success":true}`), nil
+				}
+				if !resized {
+					return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%d}}`, tc.height)), nil
+				}
+				return []byte(fmt.Sprintf(`{"success":true,"data":{"result":%t}}`, tc.fits)), nil
+			}
+			err := hfBrowserFitCaptureViewport(context.Background(), run)
+			if (err == nil) != tc.wantOK {
+				t.Fatal("capture accepted invalid bounds or ineffective viewport change")
+			}
+			if (tc.height <= 0 || tc.height > 4096) && resized {
+				t.Fatal("invalid height applied")
+			}
+		})
 	}
 }
 
