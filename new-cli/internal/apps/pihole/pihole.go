@@ -89,20 +89,28 @@ func sessionWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if !body.Session.Valid || body.Session.SID == "" {
 		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, 0)
 	}
-	version, err := h.HTTP(ctx, helpers.Request{Path: "/api/info/version",
+	// This protected local status endpoint avoids the separate update-metadata
+	// file required by /api/info/version. Both owner-selected states are valid.
+	blocking, err := h.HTTP(ctx, helpers.Request{Path: "/api/dns/blocking",
 		Header: map[string]string{"X-FTL-SID": body.Session.SID}, NoRedirect: true})
 	if err != nil {
 		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, 0)
 	}
-	if version.Status != http.StatusOK {
-		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, version.Status)
+	if blocking.Status != http.StatusOK {
+		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, blocking.Status)
+	}
+	var state struct {
+		Blocking string `json:"blocking"`
+	}
+	if blocking.Decode(&state) != nil || (state.Blocking != "enabled" && state.Blocking != "disabled") {
+		return false, fmt.Errorf("%w; blocking_state_valid=false", authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, blocking.Status))
 	}
 	return true, nil
 }
 
 // Failure-only probes retain fixed booleans/statuses, never response text,
 // session values, password contents, hashes or container logs.
-func authFailure(ctx context.Context, h *helpers.H, login int, valid bool, sid string, version int) error {
+func authFailure(ctx context.Context, h *helpers.H, login int, valid bool, sid string, blocking int) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	header := map[string]string{}
@@ -135,7 +143,7 @@ func authFailure(ctx context.Context, h *helpers.H, login int, valid bool, sid s
 			}
 		}
 	}
-	return fmt.Errorf("Pi-hole auth probe: login_http=%d session_valid=%t sid_present=%t auth_http=%d auth_valid=%t version_http=%d; %s (zero HTTP status means unobserved)", login, valid, sid != "", authStatus, authValid, version, metadata)
+	return fmt.Errorf("Pi-hole auth probe: login_http=%d session_valid=%t sid_present=%t auth_http=%d auth_valid=%t blocking_http=%d; %s (zero HTTP status means unobserved)", login, valid, sid != "", authStatus, authValid, blocking, metadata)
 }
 
 const bootstrapMetadataProbe = `set +x

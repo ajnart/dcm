@@ -25,15 +25,15 @@ func (*bootstrapProbe) Restart(context.Context, ...string) error {
 	panic("password changes out of scope")
 }
 
-func TestFailureDiagnosticsSeparateAuthenticationFromVersionAndBootstrap(t *testing.T) {
+func TestFailureDiagnosticsSeparateAuthenticationFromLocalAPIAndBootstrap(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		login   int
-		version int
-		want    string
+		name     string
+		login    int
+		blocking int
+		want     string
 	}{
 		{"password rejected", 401, 0, "login_http=401 session_valid=false sid_present=false auth_http=401 auth_valid=false"},
-		{"version denied", 200, 403, "login_http=200 session_valid=true sid_present=true auth_http=200 auth_valid=true version_http=403"},
+		{"blocking denied", 200, 403, "login_http=200 session_valid=true sid_present=true auth_http=200 auth_valid=true blocking_http=403"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +51,8 @@ func TestFailureDiagnosticsSeparateAuthenticationFromVersionAndBootstrap(t *test
 					} else {
 						w.WriteHeader(401)
 					}
-				case "/api/info/version":
-					w.WriteHeader(tc.version)
+				case "/api/dns/blocking":
+					w.WriteHeader(tc.blocking)
 				default:
 					w.WriteHeader(200)
 				}
