@@ -33,10 +33,10 @@ type App struct{}
 
 func (App) Info() app.Info {
 	return app.Info{
-		ID: "seerr", Name: "Seerr", Category: "Media",
+		ID: "seerr", Name: "Seerr", Category: "Requests",
 		Description:   "Lets your household request movies and shows for the library",
 		Image:         "ghcr.io/seerr-team/seerr:latest",
-		Docs:          "https://docs.seerr.dev/",
+		Docs:          "https://docs.seerr.dev/getting-started/docker/",
 		Port:          5055,
 		ContainerPort: 5055,
 		Service:       "seerr",

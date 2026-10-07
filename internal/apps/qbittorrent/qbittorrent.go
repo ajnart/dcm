@@ -38,7 +38,7 @@ func (App) Info() app.Info {
 		ID: "qbittorrent", Name: "qBittorrent", Category: "Downloads",
 		Description:   "Torrent client with a web interface",
 		Image:         "lscr.io/linuxserver/qbittorrent:latest",
-		Docs:          "https://docs.linuxserver.io/images/docker-qbittorrent/",
+		Docs:          "https://github.com/qbittorrent/qBittorrent/wiki",
 		Port:          8080,
 		ContainerPort: 8080,
 		Service:       "qbittorrent",

@@ -59,7 +59,22 @@ type legacyRecipe struct {
 // deviations are differences from the legacy facts made on purpose; each
 // names the fact and why.
 var deviations = map[string]map[string]string{
-	"ntfy": {"publishedPort": "2586 is ntfy's documented port; 8080 clashes with many Apps"},
+	"ntfy": {
+		"publishedPort": "2586 is ntfy's documented port; 8080 clashes with many Apps",
+		"env":           "Setup creates the admin through the API instead of seeding NTFY_AUTH_USERS",
+	},
+	// The media Apps share linuxserver.io images (PUID/PGID, UMASK) and one
+	// layout: ${MEDIA_ROOT} at /media and ${DOWNLOADS_ROOT} at /downloads in
+	// every container, so imports need no remote path mapping.
+	"jellyfin":    {"image": "linuxserver.io image like the other media Apps", "mounts": "media at /media, cache inside /config"},
+	"qbittorrent": {"image": "linuxserver.io image like the other media Apps", "mounts": "downloads at /downloads"},
+	"sonarr":      {"mounts": "media at /media, downloads at /downloads"},
+	"radarr":      {"mounts": "media at /media, downloads at /downloads"},
+	"vaultwarden": {
+		"containerPort": "the image's default port 80; ROCKET_PORT is not overridden",
+		"publishedPort": "8222 avoids the 8080/8088 range many Apps use",
+		"env":           "ROCKET_PORT is not overridden",
+	},
 }
 
 func loadLegacyFacts(t *testing.T) legacyFacts {
@@ -82,17 +97,23 @@ func repository(image string) string {
 	if i := strings.LastIndex(image, ":"); i > strings.LastIndex(image, "/") {
 		image = image[:i]
 	}
-	return image
+	image = strings.TrimPrefix(image, "docker.io/")
+	return strings.TrimPrefix(image, "library/")
 }
 
 // categoryName turns a taxonomy slug into the Info.Category label:
-// "remote-access" → "Remote access".
+// "remote-access" → "Remote access", "local-ai" → "Local AI", "dns" → "DNS".
 func categoryName(slug string) string {
-	if slug == "" {
-		return ""
+	words := strings.Split(slug, "-")
+	for i, w := range words {
+		switch {
+		case w == "ai" || w == "dns":
+			words[i] = strings.ToUpper(w)
+		case i == 0 && w != "":
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
 	}
-	label := strings.ReplaceAll(slug, "-", " ")
-	return strings.ToUpper(label[:1]) + label[1:]
+	return strings.Join(words, " ")
 }
 
 func render(a app.App) string {
@@ -148,7 +169,7 @@ func appProblems(cat *Catalog, a app.App, f legacyApp) []string {
 	services, err := composeServices(compose)
 	check("compose", err == nil && len(services) > 0, "Compose() is not a YAML file with services: %v", err)
 	if f.Image != "" {
-		check("compose", strings.Contains(compose, repository(f.Image)), "Compose() lacks the image %s", repository(f.Image))
+		check("image", strings.Contains(compose, repository(f.Image)), "Compose() lacks the image %s", repository(f.Image))
 	}
 	if info.ContainerPort != 0 {
 		check("compose", strings.Contains(compose, ":"+strconv.Itoa(info.ContainerPort)), "Compose() does not publish container port %d", info.ContainerPort)

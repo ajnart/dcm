@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 const module = "github.com/ajnart/self-host"
@@ -358,26 +357,22 @@ func yamlScalar(value string) string {
 	return value
 }
 
+// category matches the parity test's label: "remote-access" → "Remote
+// access", "local-ai" → "Local AI".
 func category(f fact) string {
 	if len(f.Categories) == 0 {
 		return ""
 	}
-	var b strings.Builder
-	upper := true
-	for _, r := range f.Categories[0] {
-		if upper && unicode.IsLetter(r) {
-			b.WriteRune(unicode.ToUpper(r))
-			upper = false
-			continue
+	words := strings.Split(f.Categories[0], "-")
+	for i, w := range words {
+		switch {
+		case w == "ai" || w == "dns":
+			words[i] = strings.ToUpper(w)
+		case i == 0 && w != "":
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
 		}
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			upper = true
-			b.WriteRune(r)
-			continue
-		}
-		b.WriteRune(unicode.ToLower(r))
 	}
-	return b.String()
+	return strings.Join(words, " ")
 }
 
 func catalogSource(apps []generated) string {

@@ -17,10 +17,10 @@ type App struct{}
 
 func (App) Info() app.Info {
 	return app.Info{
-		ID: "ntfy", Name: "ntfy", Category: "Notifications",
+		ID: "ntfy", Name: "ntfy", Category: "Communication",
 		Description:   "Push notifications to your phone and desktop from scripts and Apps",
 		Image:         "binwiederhier/ntfy:latest",
-		Docs:          "https://docs.ntfy.sh/",
+		Docs:          "https://docs.ntfy.sh/install/",
 		Port:          2586,
 		ContainerPort: 80,
 		Service:       "ntfy",

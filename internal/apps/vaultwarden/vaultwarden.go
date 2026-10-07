@@ -20,7 +20,7 @@ type App struct{}
 
 func (App) Info() app.Info {
 	return app.Info{
-		ID: "vaultwarden", Name: "Vaultwarden", Category: "Security",
+		ID: "vaultwarden", Name: "Vaultwarden", Category: "Passwords",
 		Description:   "Password manager compatible with the Bitwarden apps and browser extensions",
 		Image:         "vaultwarden/server:latest",
 		Docs:          "https://github.com/dani-garcia/vaultwarden/wiki",
@@ -49,6 +49,7 @@ func (App) Compose(rc app.RenderContext) string {
       TZ: ${TZ}
       DOMAIN: http://${LAN_IP}:` + port + `
       SIGNUPS_ALLOWED: "false"
+      INVITATIONS_ALLOWED: "false"
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
     volumes:
       - ./data:/data

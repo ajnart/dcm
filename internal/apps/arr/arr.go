@@ -37,7 +37,7 @@ const (
 func Sonarr() App {
 	return App{
 		info: app.Info{
-			ID: "sonarr", Name: "Sonarr", Category: "Media",
+			ID: "sonarr", Name: "Sonarr", Category: "Requests",
 			Description:   "Finds, downloads and organizes TV series",
 			Image:         "lscr.io/linuxserver/sonarr:latest",
 			Docs:          "https://wiki.servarr.com/sonarr",
@@ -55,10 +55,10 @@ func Sonarr() App {
 func Radarr() App {
 	return App{
 		info: app.Info{
-			ID: "radarr", Name: "Radarr", Category: "Media",
+			ID: "radarr", Name: "Radarr", Category: "Requests",
 			Description:   "Finds, downloads and organizes movies",
 			Image:         "lscr.io/linuxserver/radarr:latest",
-			Docs:          "https://wiki.servarr.com/radarr",
+			Docs:          "https://radarr.video/docs/",
 			Port:          7878,
 			ContainerPort: 7878,
 			Service:       "radarr",
@@ -73,7 +73,7 @@ func Radarr() App {
 func Prowlarr() App {
 	return App{
 		info: app.Info{
-			ID: "prowlarr", Name: "Prowlarr", Category: "Media",
+			ID: "prowlarr", Name: "Prowlarr", Category: "Requests",
 			Description:   "Indexer manager that feeds Sonarr and Radarr",
 			Image:         "lscr.io/linuxserver/prowlarr:latest",
 			Docs:          "https://wiki.servarr.com/prowlarr",

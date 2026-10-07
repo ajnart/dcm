@@ -35,7 +35,7 @@ func (App) Info() app.Info {
 		ID: "jellyfin", Name: "Jellyfin", Category: "Media",
 		Description:   "Streams your movies, shows and music to every screen",
 		Image:         "lscr.io/linuxserver/jellyfin:latest",
-		Docs:          "https://jellyfin.org/docs/",
+		Docs:          "https://jellyfin.org/docs/general/installation/container/",
 		Port:          8096,
 		ContainerPort: ContainerPort,
 		Service:       "jellyfin",
