@@ -23,78 +23,81 @@ func BackupDir(p *project.Project) string { return p.Path("backups") }
 // into one file. Each running App is stopped only while it is archived.
 func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase string) (string, error) {
 	var written string
-	err := s.mutate(ctx, strings.TrimSpace("backup "+strings.Join(ids, " ")), func(ss *session) error {
-		targets, err := ss.targets(ids)
-		if err != nil {
-			return err
-		}
-		if out == "" {
-			ext := ".tar.zst"
-			if passphrase != "" {
-				ext += ".age"
+	err := s.run(ctx, change{
+		title: strings.TrimSpace("backup " + strings.Join(ids, " ")),
+		edit: func(ctx context.Context, ss *session) error {
+			targets, err := ss.targets(ids)
+			if err != nil {
+				return err
 			}
-			out = filepath.Join(BackupDir(ss.p), "selfhost-"+s.Deps.Now().Format("20060102-150405")+ext)
-		}
-		if err := os.MkdirAll(filepath.Dir(out), 0o700); err != nil {
-			return err
-		}
-		if passphrase == "" {
-			s.Log.Emit(events.Event{Event: events.StepWarn, Step: "unencrypted",
-				Msg:  "this backup is not encrypted and contains your passwords and API keys",
-				Hint: "Keep it private, or use --encrypt with SELF_HOST_BACKUP_PASSPHRASE."})
-		}
-		manifest := backup.Manifest{Version: 1, Created: s.Deps.Now().UTC(), CLIVersion: s.Deps.Version}
-		for _, id := range targets {
-			entry := backup.ManifestApp{ID: id}
-			if a, found := s.Catalog.App(id); found && ss.state.Apps[id] != nil {
-				entry.Name, entry.Image, entry.Managed = a.Info().Name, a.Info().Image, true
+			if out == "" {
+				ext := ".tar.zst"
+				if passphrase != "" {
+					ext += ".age"
+				}
+				out = filepath.Join(BackupDir(ss.p), "selfhost-"+s.Deps.Now().Format("20060102-150405")+ext)
 			}
-			manifest.Apps = append(manifest.Apps, entry)
-		}
-		tmp := out + ".partial"
-		f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
-		if err != nil {
-			return err
-		}
-		defer os.Remove(tmp)
-		w, err := backup.Create(f, passphrase, manifest)
-		if err != nil {
-			f.Close()
-			return err
-		}
-		for _, name := range []string{".env", "secrets.env", "state.json"} {
-			data, err := os.ReadFile(ss.p.Path(name))
+			if err := os.MkdirAll(filepath.Dir(out), 0o700); err != nil {
+				return err
+			}
+			if passphrase == "" {
+				s.Log.Emit(events.Event{Event: events.StepWarn, Step: "unencrypted",
+					Msg:  "this backup is not encrypted and contains your passwords and API keys",
+					Hint: "Keep it private, or use --encrypt with SELF_HOST_BACKUP_PASSPHRASE."})
+			}
+			manifest := backup.Manifest{Version: 1, Created: s.Deps.Now().UTC(), CLIVersion: s.Deps.Version}
+			for _, id := range targets {
+				entry := backup.ManifestApp{ID: id}
+				if a, found := s.Catalog.App(id); found && ss.state.Apps[id] != nil {
+					entry.Name, entry.Image, entry.Managed = a.Info().Name, a.Info().Image, true
+				}
+				manifest.Apps = append(manifest.Apps, entry)
+			}
+			tmp := out + ".partial"
+			f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+			if err != nil {
+				return err
+			}
+			defer os.Remove(tmp)
+			w, err := backup.Create(f, passphrase, manifest)
 			if err != nil {
 				f.Close()
 				return err
 			}
-			if err := w.AddBytes(name, data, 0o600); err != nil {
+			for _, name := range []string{".env", "secrets.env", "state.json"} {
+				data, err := os.ReadFile(ss.p.Path(name))
+				if err != nil {
+					f.Close()
+					return err
+				}
+				if err := w.AddBytes(name, data, 0o600); err != nil {
+					f.Close()
+					return err
+				}
+			}
+			containers, _ := ss.compose.Ps(ctx)
+			for _, id := range targets {
+				if err := ss.archiveApp(ctx, w, id, containers); err != nil {
+					f.Close()
+					return err
+				}
+			}
+			if err := w.Close(); err != nil {
 				f.Close()
 				return err
 			}
-		}
-		containers, _ := ss.compose.Ps(ctx)
-		for _, id := range targets {
-			if err := ss.archiveApp(ctx, w, id, containers); err != nil {
-				f.Close()
+			if err := f.Close(); err != nil {
 				return err
 			}
-		}
-		if err := w.Close(); err != nil {
-			f.Close()
-			return err
-		}
-		if err := f.Close(); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp, out); err != nil {
-			return err
-		}
-		info, _ := os.Stat(out)
-		written = out
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: "backup",
-			Msg: fmt.Sprintf("wrote %s (%s)", out, humanSize(info.Size()))})
-		return nil
+			if err := os.Rename(tmp, out); err != nil {
+				return err
+			}
+			info, _ := os.Stat(out)
+			written = out
+			s.Log.Emit(events.Event{Event: events.StepOK, Step: "backup",
+				Msg: fmt.Sprintf("wrote %s (%s)", out, humanSize(info.Size()))})
+			return nil
+		},
 	})
 	return written, err
 }
@@ -183,15 +186,10 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	if err := p.MkdirAll(); err != nil {
 		return err
 	}
-	unlock, err := s.lock(p)
+	staging, err := os.MkdirTemp(p.Root, ".restore-")
 	if err != nil {
 		return err
 	}
-	defer unlock()
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file)})
-
-	staging := p.Path(".restore-" + strconv.Itoa(s.Deps.PID))
-	os.RemoveAll(staging)
 	defer os.RemoveAll(staging)
 	var chown func(string, int, int) error
 	if os.Geteuid() == 0 {
@@ -219,48 +217,40 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			return err
 		}
 	}
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if err := ss.restoreRecords(staging, targets, all); err != nil {
-		return err
-	}
-	existing, _ := ss.p.AppIDs()
-	for _, id := range targets {
-		if slices.Contains(existing, id) {
-			services, err := ss.services(id)
-			if err != nil {
+	return s.run(ctx, change{
+		title: "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		edit: func(ctx context.Context, ss *session) error {
+			if err := ss.restoreRecords(staging, targets, all); err != nil {
 				return err
 			}
-			if err := ss.compose.Remove(ctx, services...); err != nil {
-				return err
+			existing, _ := ss.p.AppIDs()
+			for _, id := range targets {
+				if slices.Contains(existing, id) {
+					services, err := ss.services(id)
+					if err != nil {
+						return err
+					}
+					if err := ss.compose.Remove(ctx, services...); err != nil {
+						return err
+					}
+				}
+				old := filepath.Join(staging, "replaced-"+id)
+				if err := os.Rename(ss.p.Path("apps", id), old); err != nil && !os.IsNotExist(err) {
+					return err
+				}
+				if err := ss.p.MkdirAll("apps"); err != nil {
+					return err
+				}
+				if err := os.Rename(filepath.Join(staging, "apps", id), ss.p.Path("apps", id)); err != nil {
+					return err
+				}
+				s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "restore", Msg: "restored apps/" + id + "/"})
 			}
-		}
-		old := filepath.Join(staging, "replaced-"+id)
-		if err := os.Rename(ss.p.Path("apps", id), old); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if err := ss.p.MkdirAll("apps"); err != nil {
-			return err
-		}
-		if err := os.Rename(filepath.Join(staging, "apps", id), ss.p.Path("apps", id)); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "restore", Msg: "restored apps/" + id + "/"})
-	}
-	if err := ss.p.WriteRoot(); err != nil {
-		return err
-	}
-	services, err := ss.services(targets...)
-	if err != nil {
-		return err
-	}
-	if err := ss.compose.Up(ctx, services...); err != nil {
-		return err
-	}
-	s.Log.Emit(events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(targets, ", ")})
-	return s.finish(nil)
+			return nil
+		},
+		targets: func(*session) ([]string, error) { return targets, nil },
+		compose: composeUp,
+	})
 }
 
 // restoreRecords merges secrets and state for the restored Apps.
