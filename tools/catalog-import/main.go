@@ -790,7 +790,7 @@ func buildLegacy(catDir string) (legacyOutput, error) {
 			PublishedPort:       derefInt(fact.DefaultPublished),
 			Services:            fact.Services,
 			OnboardingKind:      fact.Onboarding.Kind,
-			Categories:          sortedCopy(fact.Categories),
+			Categories:          fact.Categories,
 			DocsURL:             fact.DocsURL,
 			Pitfalls:            fact.Pitfalls,
 			Security:            fact.Security,

@@ -94,10 +94,10 @@
       "mounts": [],
       "services": [],
       "onboardingKind": "",
-      "category": "developer-tools",
+      "category": "downloads",
       "categories": [
-        "developer-tools",
-        "downloads"
+        "downloads",
+        "developer-tools"
       ],
       "docsURL": "https://wiki.archiveteam.org/index.php/ArchiveTeam_Warrior",
       "pitfalls": [
@@ -359,10 +359,10 @@
         "bazarr"
       ],
       "onboardingKind": "manual-first-admin",
-      "category": "media",
+      "category": "requests",
       "categories": [
-        "media",
-        "requests"
+        "requests",
+        "media"
       ],
       "docsURL": "https://wiki.bazarr.media/",
       "pitfalls": [
@@ -642,10 +642,10 @@
       "mounts": [],
       "services": [],
       "onboardingKind": "",
-      "category": "ingress",
+      "category": "remote-access",
       "categories": [
-        "ingress",
-        "remote-access"
+        "remote-access",
+        "ingress"
       ],
       "docsURL": "https://developers.cloudflare.com/tunnel/",
       "pitfalls": [
@@ -1529,10 +1529,10 @@
         "grafana"
       ],
       "onboardingKind": "initial-admin-from-secret-env",
-      "category": "dashboard",
+      "category": "observability",
       "categories": [
-        "dashboard",
-        "observability"
+        "observability",
+        "dashboard"
       ],
       "docsURL": "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
       "pitfalls": [
@@ -2039,10 +2039,10 @@
         "lidarr"
       ],
       "onboardingKind": "manual-first-admin",
-      "category": "media",
+      "category": "requests",
       "categories": [
-        "media",
-        "requests"
+        "requests",
+        "media"
       ],
       "docsURL": "https://wiki.servarr.com/lidarr",
       "pitfalls": [
@@ -2641,10 +2641,10 @@
         "node-red"
       ],
       "onboardingKind": "initial-admin-from-secret-env",
-      "category": "developer-tools",
+      "category": "home-automation",
       "categories": [
-        "developer-tools",
-        "home-automation"
+        "home-automation",
+        "developer-tools"
       ],
       "docsURL": "https://nodered.org/docs/getting-started/docker",
       "pitfalls": [
@@ -2902,10 +2902,10 @@
       "mounts": [],
       "services": [],
       "onboardingKind": "",
-      "category": "ingress",
+      "category": "remote-access",
       "categories": [
-        "ingress",
-        "remote-access"
+        "remote-access",
+        "ingress"
       ],
       "docsURL": "https://docs.pangolin.net/",
       "pitfalls": [
@@ -3510,10 +3510,10 @@
         "prometheus"
       ],
       "onboardingKind": "no-account",
-      "category": "monitoring",
+      "category": "observability",
       "categories": [
-        "monitoring",
-        "observability"
+        "observability",
+        "monitoring"
       ],
       "docsURL": "https://prometheus.io/docs/prometheus/latest/installation/",
       "pitfalls": [
@@ -3559,10 +3559,10 @@
         "prowlarr"
       ],
       "onboardingKind": "manual-first-admin",
-      "category": "downloads",
+      "category": "requests",
       "categories": [
-        "downloads",
-        "requests"
+        "requests",
+        "downloads"
       ],
       "docsURL": "https://wiki.servarr.com/prowlarr",
       "pitfalls": [
@@ -3683,10 +3683,10 @@
         "radarr"
       ],
       "onboardingKind": "manual-first-admin",
-      "category": "media",
+      "category": "requests",
       "categories": [
-        "media",
-        "requests"
+        "requests",
+        "media"
       ],
       "docsURL": "https://radarr.video/docs/",
       "pitfalls": [
@@ -3728,10 +3728,10 @@
         "renovate"
       ],
       "onboardingKind": "job-credentials",
-      "category": "containers",
+      "category": "developer-tools",
       "categories": [
-        "containers",
-        "developer-tools"
+        "developer-tools",
+        "containers"
       ],
       "docsURL": "https://docs.renovatebot.com/",
       "pitfalls": [
@@ -4045,10 +4045,10 @@
         "seerr"
       ],
       "onboardingKind": "external-first-admin",
-      "category": "media",
+      "category": "requests",
       "categories": [
-        "media",
-        "requests"
+        "requests",
+        "media"
       ],
       "docsURL": "https://docs.seerr.dev/getting-started/docker/",
       "pitfalls": [
@@ -4172,10 +4172,10 @@
         "sonarr"
       ],
       "onboardingKind": "manual-first-admin",
-      "category": "media",
+      "category": "requests",
       "categories": [
-        "media",
-        "requests"
+        "requests",
+        "media"
       ],
       "docsURL": "https://wiki.servarr.com/sonarr",
       "pitfalls": [
