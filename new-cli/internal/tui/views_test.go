@@ -378,7 +378,7 @@ func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
 	for _, binding := range v.Keys() {
 		keys = append(keys, binding.Keys()...)
 	}
-	if got := strings.Join(keys, " "); got != "up k down j pgup pgdown / space esc" || v.Title() != "Workflow" {
+	if got := strings.Join(keys, " "); got != "up k down j enter r space / esc pgup pgdown" || v.Title() != "Workflow" {
 		t.Fatalf("Workflow should advertise its own keys, got %q (%s)", got, v.Title())
 	}
 }

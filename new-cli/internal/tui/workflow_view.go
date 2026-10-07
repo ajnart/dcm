@@ -13,6 +13,8 @@ type workflowView struct {
 	toggled   map[string]bool
 	searching bool
 	filter    string
+	// failures holds the "app/step" failed steps whose error and hint are open.
+	failures map[string]bool
 }
 
 // workflowRow is one navigable line: an App header, or one of its steps.
@@ -25,7 +27,10 @@ func (v *workflowView) Title() string { return "Workflow" }
 
 func (v *workflowView) Keys() []key.Binding {
 	k := newKeyMap()
-	return []key.Binding{k.Up, k.Down, k.ScrollUp, k.ScrollDown, k.Search, hint("space", "collapse"), k.Back}
+	// Frequent keys first: a narrow footer truncates the tail.
+	return []key.Binding{k.Up, k.Down,
+		key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "error/hint")), k.Retry,
+		hint("space", "collapse"), k.Search, k.Back, k.ScrollUp, k.ScrollDown}
 }
 
 // expanded reports whether the App's steps are shown: a set-up App starts
@@ -93,6 +98,23 @@ func (v *workflowView) toggle(ctx *viewContext) {
 	}
 }
 
+// toggleFailure opens or closes the error and hint of the selected failed step.
+func (v *workflowView) toggleFailure(ctx *viewContext) {
+	rows := v.rows(ctx)
+	if v.cursor >= len(rows) {
+		return
+	}
+	row := rows[v.cursor]
+	if row.step == nil || row.step.State != WorkflowFailed {
+		return
+	}
+	if v.failures == nil {
+		v.failures = map[string]bool{}
+	}
+	id := row.app.ID + "/" + row.step.ID
+	v.failures[id] = !v.failures[id]
+}
+
 // scroll moves the selection by dy rows; the View keeps it on screen.
 func (v *workflowView) scroll(ctx *viewContext, dy int) {
 	v.cursor += dy
@@ -145,6 +167,14 @@ func (v *workflowView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.C
 		v.searching = true
 	case press.String() == "space":
 		v.toggle(ctx)
+	case key.Matches(press, ctx.keys.Toggle):
+		v.toggleFailure(ctx)
+	case key.Matches(press, ctx.keys.Retry):
+		rows := v.rows(ctx)
+		if v.cursor < len(rows) && rows[v.cursor].app.Managed {
+			id := rows[v.cursor].app.ID
+			return v, ctx.run(Request{Action: ActionSetup, IDs: []string{id}}, "setup "+id), nav{}
+		}
 	case key.Matches(press, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
 	case key.Matches(press, ctx.keys.Down):
@@ -172,52 +202,74 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 		}
 		lines = append(lines, "  "+t.dim().Render("/"+v.filter+hint), "")
 	}
-	avail := height - len(lines)
-	if avail < 1 {
-		avail = 1
-	}
-	if v.cursor < v.offset {
-		v.offset = v.cursor
-	}
-	if v.cursor >= v.offset+avail {
-		v.offset = v.cursor - avail + 1
-	}
-	v.offset = max(min(v.offset, max(len(rows)-avail, 0)), 0)
-	for i := v.offset; i < len(rows) && i-v.offset < avail; i++ {
-		row := rows[i]
+	// Render every row, then scroll by screen lines so an open failure's
+	// error and hint never push the selection off screen.
+	var body []string
+	first, last := 0, 0
+	for i, row := range rows {
 		cursor := "  "
 		if i == v.cursor {
 			cursor = t.fg(t.accent).Bold(true).Render("> ")
+			first = len(body)
 		}
-		if row.step == nil {
-			chevron := t.dim().Render("▾")
-			if !v.expanded(row.app) {
-				chevron = t.dim().Render("▸")
-			}
-			// The note shares the header line so each row is one screen line.
-			line := "  " + cursor + chevron + " " + t.title().Render(row.app.Name)
-			if !row.app.Managed {
-				line += t.dim().Render(" · added by hand, no Setup")
-			} else if len(row.app.Steps) == 0 {
-				line += t.dim().Render(" · no remembered steps")
-			}
-			lines = append(lines, line)
-			continue
+		body = append(body, v.rowLines(ctx, row, cursor, width)...)
+		if i == v.cursor {
+			last = len(body) - 1
 		}
-		mark := t.dim().Render("○")
-		switch row.step.State {
-		case WorkflowDone:
-			mark = t.fg(t.ok).Render("✓")
-		case WorkflowSkipped:
-			mark = t.fg(t.info).Render("↷")
-		case WorkflowFailed:
-			mark = t.fg(t.fail).Render("✗")
-		}
-		line := "  " + cursor + mark + " " + row.step.Label
-		if row.step.Msg != "" {
-			line += t.dim().Render(" · " + firstLine(row.step.Msg))
-		}
-		lines = append(lines, line)
 	}
+	avail := max(height-len(lines), 1)
+	if first < v.offset {
+		v.offset = first
+	}
+	if last >= v.offset+avail {
+		v.offset = max(last-avail+1, first)
+	}
+	v.offset = max(min(v.offset, len(body)-avail), 0)
+	end := min(v.offset+avail, len(body))
+	lines = append(lines, body[v.offset:end]...)
 	return fit(strings.Join(lines, "\n"), width, height)
+}
+
+// rowLines renders one row: an App header, or a step plus, when opened, its
+// error and hint.
+func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string, width int) []string {
+	t := ctx.theme
+	if row.step == nil {
+		chevron := t.dim().Render("▾")
+		if !v.expanded(row.app) {
+			chevron = t.dim().Render("▸")
+		}
+		line := "  " + cursor + chevron + " " + t.title().Render(row.app.Name)
+		if !row.app.Managed {
+			line += t.dim().Render(" · added by hand, no Setup")
+		} else if len(row.app.Steps) == 0 {
+			line += t.dim().Render(" · no remembered steps")
+		}
+		return []string{line}
+	}
+	step := row.step
+	mark := t.dim().Render("○")
+	switch step.State {
+	case WorkflowDone:
+		mark = t.fg(t.ok).Render("✓")
+	case WorkflowSkipped:
+		mark = t.fg(t.info).Render("↷")
+	case WorkflowFailed:
+		mark = t.fg(t.fail).Render("✗")
+	}
+	line := "  " + cursor + mark + " " + step.Label
+	if step.Msg != "" {
+		line += t.dim().Render(" · " + firstLine(step.Msg))
+	}
+	out := []string{line}
+	if step.State != WorkflowFailed || !v.failures[row.app.ID+"/"+step.ID] {
+		return out
+	}
+	if step.Error != "" {
+		out = append(out, strings.Split(indent("      error: ", t.fg(t.fail).Render(step.Error), width), "\n")...)
+	}
+	if step.Hint != "" {
+		out = append(out, strings.Split(indent("      hint: ", t.dim().Render(step.Hint), width), "\n")...)
+	}
+	return out
 }

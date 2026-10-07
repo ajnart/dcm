@@ -312,6 +312,8 @@ func TestKeybindAudit(t *testing.T) {
 		"edit: enter",
 		// Stack.
 		"select: ↑/↓", "re-check: r",
+		// Workflow.
+		"error/hint: enter",
 	}
 	empty := &viewContext{}
 	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, &workflowView{}, newHelpView()}
