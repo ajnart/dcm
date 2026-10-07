@@ -76,11 +76,13 @@ func input(rc app.RenderContext, key, fallback string) string {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	// A fresh bind hides the image directory's www-data group write access. The official
+	// entrypoint exports its server keys there as www-data before starting nginx.
 	return `services:
   passbolt:
     image: passbolt/passbolt:5.16.0-1-ce
     restart: unless-stopped
-    command: ["/usr/bin/wait-for.sh", "-t", "0", "db:3306", "--", "/docker-entrypoint.sh"]
+    command: ["/bin/sh", "-c", "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 db:3306 -- /docker-entrypoint.sh"]
     environment:
       TZ: ${TZ}
       APP_FULL_BASE_URL: ` + origin(rc) + `
