@@ -30,15 +30,15 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
-// Compose keeps the image user unchanged: Grafana runs as UID 472 and cannot
-// read a host-owner mode-0600 secret mount, so the Admin login travels as an
-// environment variable the image reads on first start.
+// Compose runs Grafana as the configured owner of its persisted data directory.
+// The Admin login is seeded through environment references on first start.
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   grafana:
     image: grafana/grafana:13.2.2
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     environment:
       GF_SECURITY_ADMIN_USER: ${ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
