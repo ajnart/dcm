@@ -592,6 +592,27 @@ func integrationFingerprint(t target, from, to *helpers.H) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// REST item creation defaults to one grid cell, independently of Homarr's UI
+// widgetDefaultSizes. Give integration lists enough space for actual content.
+func widgetInitialSize(kind string) map[string]any {
+	switch kind {
+	case "notifications", "mediaReleases":
+		return map[string]any{"width": 4, "height": 3}
+	case "stats", "mediaServer":
+		return map[string]any{"width": 3, "height": 2}
+	case "downloads":
+		return map[string]any{"width": 4, "height": 2}
+	case "calendar", "mediaMissing", "mediaRequests-requestStats":
+		return map[string]any{"width": 2, "height": 2}
+	case "indexerManager":
+		return map[string]any{"width": 2, "height": 3}
+	case "mediaRequests-requestList":
+		return map[string]any{"width": 3, "height": 2}
+	default:
+		return map[string]any{"width": 3, "height": 2}
+	}
+}
+
 func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrationID string, items []map[string]any) error {
 	owned, err := widgetOwnership(h, integrationID, t.widgets, items)
 	if err != nil {
@@ -622,6 +643,7 @@ func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrati
 		}
 		id, err := addItemID(ctx, h, map[string]any{
 			"boardId": boardID, "kind": w.kind,
+			"size":           widgetInitialSize(w.kind),
 			"options":        widgetOptions(w, integrationID),
 			"integrationIds": []any{integrationID},
 		})

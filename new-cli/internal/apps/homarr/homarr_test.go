@@ -708,6 +708,62 @@ func allSecrets() fakeSecrets {
 	}
 }
 
+func TestIntegrationWidgetsHaveReadableInitialSizes(t *testing.T) {
+	for _, targetID := range []string{"ntfy", "jellyfin"} {
+		t.Run(targetID, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			srv := serve(t, fake)
+			from := homarrH(t, srv, allSecrets())
+			to := targetH(t, srv, targetID, 1234, allSecrets())
+			if err := linkFor(t, targetID).Apply(context.Background(), from, to); err != nil {
+				t.Fatal(err)
+			}
+			fake.mu.Lock()
+			for _, item := range fake.items {
+				kind, _ := item["kind"].(string)
+				if kind == "app" || kind == "notebook" {
+					continue
+				}
+				size, _ := item["size"].(map[string]any)
+				expectedWidth := float64(4)
+				expectedHeight := float64(3)
+				if kind == "stats" || kind == "mediaServer" {
+					expectedWidth = 3
+					expectedHeight = 2
+				}
+				if size["width"] != expectedWidth || size["height"] != expectedHeight {
+					t.Errorf("%s must receive an explicit readable initial size", kind)
+				}
+			}
+			// Subsequent setup preserves the user's resized owned widget.
+			for _, item := range fake.items {
+				if item["kind"] == "stats" {
+					item["size"] = map[string]any{"width": float64(5), "height": float64(4)}
+				}
+			}
+			count := len(fake.items)
+			fake.mu.Unlock()
+			if err := linkFor(t, targetID).Apply(context.Background(), from, to); err != nil {
+				t.Fatal(err)
+			}
+			fake.mu.Lock()
+			defer fake.mu.Unlock()
+			if len(fake.items) != count {
+				t.Fatal("rerun duplicated sized widgets")
+			}
+			for _, item := range fake.items {
+				if item["kind"] == "stats" {
+					size, _ := item["size"].(map[string]any)
+					if size["width"] != float64(5) || size["height"] != float64(4) {
+						t.Fatal("user size replaced on rerun")
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestEachLinkAddsItsWidgetsWiredToItsIntegration(t *testing.T) {
 	cases := map[string][]string{
 		"sonarr":      {"calendar", "mediaMissing", "stats"},

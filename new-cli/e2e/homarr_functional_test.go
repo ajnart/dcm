@@ -445,7 +445,8 @@ func hfBrowserDashboard(ctx context.Context, r *runner, base, ntfyURL, jellyfinU
 			r.t.Error("owned acceptance browser session could not close")
 		}
 	}()
-	if _, err := run(ctx, "", "--args", "--no-sandbox", "--allowed-domains", "127.0.0.1", "open", base+"/auth/login?callbackUrl=%2Fboards%2FHome"); err != nil {
+	// Only the pinned public dashboard-icon CDN accompanies the private API origin.
+	if _, err := run(ctx, "", "--args", "--no-sandbox", "--allowed-domains", "127.0.0.1,cdn.jsdelivr.net", "open", base+"/auth/login?callbackUrl=%2Fboards%2FHome"); err != nil {
 		return err
 	}
 	if _, err := run(ctx, "", "wait", "#username"); err != nil {
@@ -492,6 +493,17 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
 		return err
 	}
+	var appSelectors []string
+	for _, item := range inv.Board.Items {
+		if item.Kind == "app" {
+			appSelectors = append(appSelectors, `[data-grid-item-id="`+item.ID+`"]`)
+		}
+	}
+	encodedApps, _ := json.Marshal(appSelectors)
+	icons := "(" + hfBrowserAppIconsReady + ")(" + string(encodedApps) + ")"
+	if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, icons) }, "browser App icons did not load from their configured public sources"); err != nil {
+		return err
+	}
 	dir := filepath.Join(r.logDir, "browser")
 	if os.MkdirAll(dir, 0o700) != nil {
 		return errors.New("persistent browser evidence directory unavailable")
@@ -531,6 +543,9 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 		if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, visible) }, "browser widget did not render the expected live notification, media or notebook content"); err != nil {
 			return err
 		}
+		if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) {
+			return errors.New("browser selector capture could not establish document origin")
+		}
 		path := filepath.Join(dir, kind+".png")
 		if _, err := run(ctx, "", "screenshot", selector, path); err != nil {
 			return errors.New("browser widget screenshot could not be captured")
@@ -538,6 +553,9 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 		if os.Chmod(path, 0o600) != nil {
 			return errors.New("browser widget screenshot could not be made private")
 		}
+	}
+	if !hfBrowserBoolean(ctx, run, hfBrowserCaptureAtOrigin) {
+		return errors.New("browser dashboard capture could not establish document origin")
 	}
 	path := filepath.Join(dir, "dashboard.png")
 	if _, err := run(ctx, "", "screenshot", path, "--full"); err != nil {
@@ -848,6 +866,57 @@ func TestHomarrBrowserProbeObservesReplacedLoginForm(t *testing.T) {
 	command.Stdin = strings.NewReader(script)
 	if err := command.Run(); err != nil {
 		t.Fatal("browser probe did not follow replaced login form or isolate its events")
+	}
+}
+
+// agent-browser v0.34 selector screenshots pass viewport-relative bounding
+// rect coordinates directly to Page.captureScreenshot's document-space clip.
+// At scroll origin the coordinate spaces agree; wait for two layout frames.
+const hfBrowserCaptureAtOrigin = `(async () => { window.scrollTo(0, 0);
+await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame);
+return window.scrollX === 0 && window.scrollY === 0; })()`
+
+const hfBrowserAppIconsReady = `(selectors) => selectors.length > 0 && selectors.every(selector => {
+const tile = document.querySelector(selector); if (!tile) return false;
+const images = Array.from(tile.querySelectorAll('img'));
+return images.length > 0 && images.every(image => image.complete && image.naturalWidth > 0); })`
+
+func TestHomarrBrowserAppIconsMustActuallyLoad(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	probe, _ := json.Marshal(hfBrowserAppIconsReady)
+	script := `let images=[{complete:true,naturalWidth:32}];
+ globalThis.document={querySelector:()=>({querySelectorAll:()=>images})};
+ if(!eval(` + string(probe) + `)(["owned-public-tile"])) throw Error('loaded App icon rejected');
+ images=[{complete:true,naturalWidth:0}];if(eval(` + string(probe) + `)(["owned-public-tile"])) throw Error('broken App icon accepted');
+ images=[{complete:false,naturalWidth:32}];if(eval(` + string(probe) + `)(["owned-public-tile"])) throw Error('pending App icon accepted');
+ images=[];if(eval(` + string(probe) + `)(["owned-public-tile"])) throw Error('missing App icon accepted');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("App icon acceptance did not distinguish loaded images from broken or missing images")
+	}
+}
+
+func TestHomarrBrowserCaptureUsesDocumentOrigin(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("static browser script fixture requires installed Node")
+	}
+	reset, _ := json.Marshal(hfBrowserCaptureAtOrigin)
+	script := `let frames=0;
+ globalThis.window={scrollX:0,scrollY:240,scrollTo:(x,y)=>{window.scrollX=x;window.scrollY=y;}};
+ globalThis.requestAnimationFrame=callback=>{frames++;setTimeout(callback,0);};
+ const target={documentY:400,getBoundingClientRect(){return {y:this.documentY-window.scrollY}}};
+ if(target.getBoundingClientRect().y===target.documentY) throw Error('fixture did not model offset crop');
+ if(!await eval(` + string(reset) + `)) throw Error('origin not established');
+ if(frames!==2 || target.getBoundingClientRect().y!==target.documentY) throw Error('viewport clip remains at wrong document location');`
+	command := exec.Command(node, "--input-type=module")
+	command.Stdin = strings.NewReader(script)
+	if err := command.Run(); err != nil {
+		t.Fatal("selector capture still uses scrolled viewport coordinates")
 	}
 }
 
