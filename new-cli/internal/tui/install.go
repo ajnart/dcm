@@ -51,8 +51,10 @@ var installHelp = []key.Binding{
 	hint("space", "pick"), hint("enter", "review"), hint("/", "search"), hint("esc", "back"),
 }
 
+// hint is a footer entry; it needs a key, or help treats it as disabled
+// and draws nothing.
 func hint(help, desc string) key.Binding {
-	return key.NewBinding(key.WithHelp(help, desc))
+	return key.NewBinding(key.WithKeys(help), key.WithHelp(help, desc))
 }
 
 func newInstallView(m Model) *installView {

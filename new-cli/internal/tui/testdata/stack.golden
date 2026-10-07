@@ -1,5 +1,5 @@
  ◆ self-host   Dashboard · Stack · Install · Settings                                                             v1.0.0
-  3 containers · 2 running · 1 Apps with updates · checked 12:00
+  3 containers · 2 running · 1 App with an update · checked 12:00
 
   APP         SERVICE         STATE      HEALTH     UPD        UPTIME            PORTS
 > jellyfin    jellyfin        running    healthy    ⚠ update   Up 2 hours        0.0.0.0:8096→8096
@@ -27,3 +27,4 @@
 
 
 
+                                                                           ↑/↓ select • u update • r re-check • esc back

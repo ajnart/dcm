@@ -94,12 +94,16 @@ func (m Model) renderStack() string {
 	inner := max(m.width-4, 10)
 	showUptime := m.width >= 96
 	showPorts := m.width >= 118
+	showImage := m.width >= 150
 	var lines []string
 	lines = append(lines, "  "+m.stackHeader(), "")
 
 	header := "  " + t.dim().Render(pad("APP", 12)+pad("SERVICE", 16)+pad("STATE", 11)+pad("HEALTH", 11)+pad("UPD", 11))
 	if showUptime {
 		header += t.dim().Render(pad("UPTIME", 18))
+	}
+	if showImage {
+		header += t.dim().Render(pad("IMAGE", 36))
 	}
 	if showPorts {
 		header += t.dim().Render("PORTS")
@@ -128,12 +132,12 @@ func (m Model) renderStack() string {
 	}
 	v.offset = max(min(v.offset, max(len(m.containers)-avail, 0)), 0)
 	for i := v.offset; i < len(m.containers) && i-v.offset < avail; i++ {
-		lines = append(lines, m.renderStackRow(m.containers[i], i, showUptime, showPorts, inner))
+		lines = append(lines, m.renderStackRow(m.containers[i], i, showUptime, showImage, showPorts, inner))
 	}
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderStackRow(c service.ContainerStatus, i int, uptime, ports bool, width int) string {
+func (m Model) renderStackRow(c service.ContainerStatus, i int, uptime, image, ports bool, width int) string {
 	t := m.theme
 	cursor := "  "
 	if i == m.stack.cursor {
@@ -143,6 +147,9 @@ func (m Model) renderStackRow(c service.ContainerStatus, i int, uptime, ports bo
 		pad(c.State, 11) + t.dim().Render(pad(c.Health, 11)) + pad(m.updateMark(c.App), 11)
 	if uptime {
 		line += t.dim().Render(pad(c.Status, 18))
+	}
+	if image {
+		line += t.dim().Render(pad(c.Image, 36))
 	}
 	if ports {
 		line += t.dim().Render(strings.Join(c.Ports, " "))
@@ -179,6 +186,6 @@ func (m Model) stackHeader() string {
 	if !m.updatesAt.IsZero() {
 		checked = "checked " + m.updatesAt.Format("15:04")
 	}
-	return fmt.Sprintf("%d containers · %d running · %d Apps with updates · %s",
-		len(m.containers), running, updates, checked)
+	return fmt.Sprintf("%s · %d running · %s · %s",
+		plural(len(m.containers), "container", "containers"), running, plural(updates, "App with an update", "Apps with updates"), checked)
 }

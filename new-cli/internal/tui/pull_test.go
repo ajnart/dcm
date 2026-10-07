@@ -32,7 +32,7 @@ func TestRunningPullShowsFooterAndBars(t *testing.T) {
 	}
 
 	m.wizard = &wizard{stage: stageInstalling, taskID: task.id, plan: &plan{}}
-	out := ansi.Strip(m.renderInstall(task.id))
+	out := ansi.Strip(m.renderInstalling(task.id))
 	for _, want := range []string{"jellyfin:latest", "sonarr:latest", "█"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("install screen lacks %q:\n%s", want, out)

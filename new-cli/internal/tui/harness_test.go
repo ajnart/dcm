@@ -735,7 +735,7 @@ func TestStackHeaderCountsContainersRunningAndUpdates(t *testing.T) {
 	m, _ := stackHost(t)
 
 	out := screen(m)
-	for _, want := range []string{"7 containers", "5 running", "1 Apps with updates", "checked 12:00"} {
+	for _, want := range []string{"7 containers", "5 running", "1 App with an update", "checked 12:00"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("stack header lacks %q\n%s", want, out)
 		}
