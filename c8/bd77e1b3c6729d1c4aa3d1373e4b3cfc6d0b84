@@ -1,0 +1,45 @@
+new-cli/internal/tui/workflow_view_test.go
+  s_81f5ebf276cbf5::t_f92f1fe4f5304d 4,9,44,46-47
+  s_81f5ebf276cbf5::t_654d09c794d921 19-20,22-23
+  s_81f5ebf276cbf5::t_4d7eb6a9381503 1-3,5-7,10-18,21,24-38,68-69
+  s_81f5ebf276cbf5::t_3de002dab7068c 8,39-43,45,48-67
+new-cli/internal/tui/workflow_test.go
+  s_81f5ebf276cbf5::t_7eae659d0f1acb 75-86,88-94
+  s_81f5ebf276cbf5::t_2f60353ca46ff6 128
+  s_81f5ebf276cbf5::t_af45294d5bd29a 40-52
+  s_81f5ebf276cbf5::t_e0293bd3cdf9c0 53-55,57-74
+  s_81f5ebf276cbf5::t_4ebd1b458c4880 56
+  s_81f5ebf276cbf5::t_811dac73777b2a 87
+new-cli/internal/tui/workflow_view.go
+  s_81f5ebf276cbf5::t_7f5482d4606bf1 10,12-13,43-49,51-56,95-102
+  s_81f5ebf276cbf5::t_a1ae13437d0600 11,50
+  s_81f5ebf276cbf5::t_36cd35fc770719 19,35-42
+new-cli/internal/tui/harness_test.go
+  s_81f5ebf276cbf5::t_52d0178144ff82 302-303
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_81f5ebf276cbf5::t_52d0178144ff82 10-11
+new-cli/internal/tui/views_test.go
+  s_81f5ebf276cbf5::t_36cd35fc770719 196
+new-cli/internal/tui/workflow.go
+  s_81f5ebf276cbf5::t_346fd690e570a1 73-75
+  s_81f5ebf276cbf5::t_811dac73777b2a 23,66,69-72,76-77
+  s_81f5ebf276cbf5::t_2f60353ca46ff6 51-54
+new-cli/internal/tui/testdata/workflow.golden
+  s_81f5ebf276cbf5::t_b1817a7297dfae 11,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c8bd77e1b3c6729d1c4aa3d1373e4b3cfc6d0b84",
+  "prompts": {},
+  "sessions": {
+    "s_81f5ebf276cbf5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f7-b9d1-7f81-b6a1-a22b4785c79d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
