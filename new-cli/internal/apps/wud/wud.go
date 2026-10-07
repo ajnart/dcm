@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -111,7 +110,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/auth/user", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/auth/user"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "the web UI accepts the Admin login", helpers.StepSpec{

@@ -8,9 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
-	"path/filepath"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -56,25 +53,9 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
-var apiKeyElement = regexp.MustCompile(`(?m)^\s*api_key\s*=\s*([0-9a-f]{32})\s*$`)
-
 // readAPIKey waits for the key SABnzbd writes to its config on first start.
 func readAPIKey(ctx context.Context, h *helpers.H) (string, error) {
-	path := filepath.Join(h.Dir, "config", "sabnzbd.ini")
-	var key string
-	err := h.Poll(ctx, 2*time.Minute, func(context.Context) (bool, error) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return false, err
-		}
-		found := apiKeyElement.FindSubmatch(data)
-		if found == nil {
-			return false, errors.New("no api_key in sabnzbd.ini yet")
-		}
-		key = string(found[1])
-		return true, nil
-	})
-	return key, err
+	return h.ConfigValue(ctx, "config/sabnzbd.ini", helpers.INIKey("misc", "api_key"), 2*time.Minute)
 }
 
 func apiForm(ctx context.Context, h *helpers.H, fields map[string]string) (map[string]any, error) {

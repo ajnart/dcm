@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -125,7 +124,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/health", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/health"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "create the first workspace owner "+adminEmail(h), helpers.StepSpec{

@@ -204,6 +204,13 @@ func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) 
 	return h.ExecIn(ctx, h.Service, env, command...)
 }
 
+// ExecSecret runs script with `sh -c` in the App's main service, passing
+// secrets only through the environment. The script and argv never carry a
+// secret value.
+func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script string) (system.Result, error) {
+	return h.Exec(ctx, secrets, "sh", "-c", script)
+}
+
 // Restart restarts the App's main service, e.g. so it rereads settings it
 // caches at startup.
 func (h *H) Restart(ctx context.Context) error {

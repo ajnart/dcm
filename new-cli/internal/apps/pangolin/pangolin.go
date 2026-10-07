@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -202,7 +201,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/api/v1/auth/initial-setup-complete", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/v1/auth/initial-setup-complete"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "create the first Pangolin administrator "+email, helpers.StepSpec{

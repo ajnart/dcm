@@ -4,8 +4,6 @@ package authelia
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,7 +11,6 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
-	"golang.org/x/crypto/argon2"
 )
 
 // App is Authelia. Traps: docs/catalog/traps/authelia.md.
@@ -92,6 +89,10 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	if user == "" {
 		user = "admin"
 	}
+	hash, err := helpers.HashPassword(helpers.Argon2id, secret("ADMIN_PASSWORD"))
+	if err != nil {
+		return nil
+	}
 	configuration := `server:
   address: tcp://0.0.0.0:9091/
 log:
@@ -121,7 +122,7 @@ notifier:
   ` + user + `:
     disabled: false
     displayname: Administrator
-    password: ` + fmt.Sprintf("%q", argon2id(secret("ADMIN_PASSWORD"))) + `
+    password: ` + fmt.Sprintf("%q", hash) + `
     email: ` + fmt.Sprintf("%q", user+"@selfhost.local") + `
     groups: []
 `
@@ -193,16 +194,4 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	return body.Status == "OK" && body.Data.Username == h.AdminUser() &&
 		body.Data.AuthenticationLevel == 1 && body.Data.FactorKnowledge, nil
-}
-
-// argon2id builds the PHC digest Authelia's file backend expects.
-func argon2id(password string) string {
-	salt := make([]byte, 16)
-	_, _ = rand.Read(salt)
-	const memory, iterations, parallelism, keyLen = 65536, 3, 1, 32
-	key := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, keyLen)
-	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
-		memory, iterations, parallelism,
-		base64.RawStdEncoding.EncodeToString(salt),
-		base64.RawStdEncoding.EncodeToString(key))
 }

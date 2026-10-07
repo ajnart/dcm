@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -138,7 +137,7 @@ func adminSession(ctx context.Context, h *helpers.H) (session, bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
 	err := h.Step(ctx, "admin-login", "replace the temporary password with the Admin login", helpers.StepSpec{

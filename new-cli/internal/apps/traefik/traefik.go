@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // apiRule mirrors the recipe's GET-only management paths.
@@ -64,7 +62,7 @@ func (App) Compose(rc app.RenderContext) string {
 // Files writes the file-provider config with a Go-generated bcrypt hash of the
 // shared Admin login, mounted read-only to the container.
 func (App) Files(_ app.RenderContext, secret func(name string) string) []app.File {
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret("ADMIN_PASSWORD")), bcrypt.DefaultCost)
+	hash, err := helpers.HashPassword(helpers.Bcrypt, secret("ADMIN_PASSWORD"))
 	if err != nil {
 		return nil
 	}
@@ -79,7 +77,7 @@ func (App) Files(_ app.RenderContext, secret func(name string) string) []app.Fil
 		"    selfhost-auth:\n" +
 		"      basicAuth:\n" +
 		"        users:\n" +
-		"          - '" + secret("ADMIN_USER") + ":" + string(hash) + "'\n" +
+		"          - '" + secret("ADMIN_USER") + ":" + hash + "'\n" +
 		"        removeHeader: true\n"
 	return []app.File{{Path: "management-api", Content: content, Mode: 0o600}}
 }
@@ -133,7 +131,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/ping", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/ping"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-api", "verify the "+h.AdminUser()+" control-interface credential", helpers.StepSpec{

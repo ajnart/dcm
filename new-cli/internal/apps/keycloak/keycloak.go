@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -122,7 +121,7 @@ func adminRealm(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/realms/master", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/realms/master"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "the Admin login reads the master realm", helpers.StepSpec{

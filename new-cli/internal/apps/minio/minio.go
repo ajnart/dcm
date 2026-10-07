@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -130,7 +129,7 @@ func rootWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "root-s3-auth", "the S3 API accepts the saved root credentials", helpers.StepSpec{
