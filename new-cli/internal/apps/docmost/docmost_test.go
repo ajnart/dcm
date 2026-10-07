@@ -22,14 +22,15 @@ func (s secrets) Get(key string) string       { return s[key] }
 func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 
 type fakeDocmost struct {
-	mu            sync.Mutex
-	email         string
-	pass          string
-	owner         bool
-	setups        int
-	limited       int
-	retryAfter    string
-	loginAttempts int
+	mu               sync.Mutex
+	email            string
+	pass             string
+	owner            bool
+	setups           int
+	limited          int
+	retryAfter       string
+	loginAttempts    int
+	loginFailureBody string
 }
 
 // jsonOnly mirrors Docmost's Fastify, which answers 415 when a POST carries a
@@ -79,7 +80,18 @@ func (f *fakeDocmost) handler() http.Handler {
 		}
 		var body struct{ Email, Password string }
 		json.NewDecoder(r.Body).Decode(&body)
-		if !f.owner || body.Email != f.email || body.Password != f.pass {
+		// Pinned v0.96.0's workspace preHandler rejects login before the
+		// first workspace exists; setup is explicitly exempt from that guard.
+		if !f.owner || f.loginFailureBody != "" {
+			w.WriteHeader(http.StatusNotFound)
+			if f.loginFailureBody != "" {
+				w.Write([]byte(f.loginFailureBody))
+			} else {
+				json.NewEncoder(w).Encode(map[string]any{"statusCode": 404, "message": "Workspace not found", "error": "Not Found"})
+			}
+			return
+		}
+		if body.Email != f.email || body.Password != f.pass {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -217,5 +229,18 @@ func TestRateLimitRecoveryStillRejectsWrongCredentials(t *testing.T) {
 	}
 	if fake.loginAttempts != 2 || box.h.Now().Sub(start) != 5*time.Second || fake.setups != 0 {
 		t.Fatalf("unexpected retries or setup writes: login attempts = %d, setup writes = %d", fake.loginAttempts, fake.setups)
+	}
+}
+
+func TestSetupRejectsUnrecognizedLoginNotFoundWithoutCreatingWorkspace(t *testing.T) {
+	for _, body := range []string{`{"statusCode":404,"message":"Cannot POST /api/auth/login","error":"Not Found"}`, `{"statusCode":400,"message":"Workspace not found"}`, `{"message":"Workspace not found"}`, `invalid`} {
+		t.Run(body, func(t *testing.T) {
+			fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw", owner: true, loginFailureBody: body}
+			box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+			err := (docmost.App{}).Setup(context.Background(), box.h)
+			if err == nil || !strings.Contains(err.Error(), "HTTP 404") || fake.setups != 0 || fake.loginAttempts != 1 {
+				t.Fatalf("unrecognized 404 attempted workspace mutation or retry: %v, setups=%d, attempts=%d", err, fake.setups, fake.loginAttempts)
+			}
+		})
 	}
 }

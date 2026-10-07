@@ -120,6 +120,17 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status == http.StatusUnauthorized || resp.Status == http.StatusBadRequest {
 		return false, nil
 	}
+	if resp.Status == http.StatusNotFound {
+		// v0.96.0's workspace preHandler runs before login and returns this
+		// exact response until the first workspace exists. Setup is exempt.
+		var failure struct {
+			StatusCode int    `json:"statusCode"`
+			Message    string `json:"message"`
+		}
+		if resp.Decode(&failure) == nil && failure.StatusCode == http.StatusNotFound && failure.Message == "Workspace not found" {
+			return false, nil
+		}
+	}
 	if resp.Status != http.StatusOK && resp.Status != http.StatusCreated {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
 	}
