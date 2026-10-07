@@ -68,7 +68,17 @@ func (f *fakeAdGuard) handler() http.Handler {
 		f.configured, f.password = true, body.Password
 	})
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-	return mux
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		configured := f.configured
+		f.mu.Unlock()
+		path := r.URL.Path
+		if !configured && path != "/install.html" && !strings.HasPrefix(path, "/control/install/") {
+			http.Redirect(w, r, "install.html", http.StatusFound)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *helpers.H {
