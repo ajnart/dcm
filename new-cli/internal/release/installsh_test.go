@@ -35,6 +35,8 @@ type installFake struct {
 	tag, binary       string
 	token             string
 	malformedMetadata bool
+	releaseList       string
+	metadata          string
 	checksum          string // overrides the real sha256 when set
 	noRedirect        bool   // github.com/.../releases/latest answers 404
 	apiError          int
@@ -81,8 +83,16 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 				w.WriteHeader(f.apiError)
 				return
 			}
+			if f.releaseList != "" {
+				fmt.Fprint(w, f.releaseList)
+				return
+			}
 			fmt.Fprintf(w, `[{"tag_name":"v99.0.0"},{"tag_name":"new-cli-v99.0.0","draft":true},{"tag_name":"new-cli-v98.0.0","prerelease":true},{"tag_name":"new-cli-v01.2.0"},{"tag_name":%q,"assets":[]}]`, f.tag)
 		case "/api/releases/tags/" + f.tag:
+			if f.metadata != "" {
+				fmt.Fprint(w, f.metadata)
+				return
+			}
 			if f.malformedMetadata {
 				fmt.Fprintf(w, `{"tag_name":%q} trailing garbage`, f.tag)
 				return
@@ -134,6 +144,64 @@ func TestInstallScriptSyntax(t *testing.T) {
 	}
 	if out, err := exec.Command("bash", "-n", "../../install.sh").CombinedOutput(); err != nil {
 		t.Fatalf("bash -n: %v\n%s", err, out)
+	}
+}
+
+func TestInstallScriptWithBusyBoxAwk(t *testing.T) {
+	busybox, err := exec.LookPath("busybox")
+	if err != nil {
+		t.Skip("BusyBox not installed")
+	}
+	tools := t.TempDir()
+	// Pass the path as an argument so spaces and shell metacharacters stay literal.
+	shim := "#!/bin/sh\nexec \"$SELF_HOST_TEST_BUSYBOX\" awk \"$@\"\n"
+	if err := os.WriteFile(filepath.Join(tools, "awk"), []byte(shim), 0755); err != nil {
+		t.Fatal(err)
+	}
+	tag := "new-cli-v1.2.0"
+	list := fmt.Sprintf(`[
+		{"tag_name":"new-cli-v99.0.0","draft":true,"prerelease":false},
+		{"tag_name":"new-cli-v98.0.0","draft":false,"prerelease":true},
+		{"tag_name":"v97.0.0","draft":false,"prerelease":false},
+		{"tag_name":%q,"draft":false,"prerelease":false,"assets":[{"tag_name":"new-cli-v96.0.0","size":42,"labels":[true,false,null,3]}]}
+	]`, tag)
+	metadata := fmt.Sprintf(`{"tag_name":%q,"draft":false,"prerelease":false,"assets":[{"id":11,"name":"checksums.txt","size":42},{"id":12,"name":%q,"size":123,"labels":[true,false,null,3]}]}`, tag, hostAsset("1.2.0"))
+	for _, tc := range []struct {
+		name, token, checksum, metadata, failure string
+	}{
+		{name: "public_install"},
+		{name: "asset_id_download", token: "fixture-token"},
+		{name: "checksum_mismatch", checksum: strings.Repeat("0", 64), failure: "checksum mismatch"},
+		{name: "draft_metadata", metadata: strings.Replace(metadata, `"draft":false`, `"draft":true`, 1), failure: "does not match requested stable CLI tag"},
+		{name: "prerelease_metadata", metadata: strings.Replace(metadata, `"prerelease":false`, `"prerelease":true`, 1), failure: "does not match requested stable CLI tag"},
+		{name: "invalid_scalar", metadata: strings.Replace(metadata, `"size":42`, `"size":falsehood`, 1), failure: "does not match requested stable CLI tag"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "bin")
+			fake := &installFake{tag: tag, binary: "busybox-installed", token: tc.token, checksum: tc.checksum, releaseList: list, metadata: metadata}
+			if tc.metadata != "" {
+				fake.metadata = tc.metadata
+			}
+			out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_GITHUB_TOKEN="+tc.token, "SELF_HOST_TEST_BUSYBOX="+busybox, "PATH="+tools+":"+os.Getenv("PATH"))
+			if tc.failure != "" {
+				if err == nil || !strings.Contains(out, tc.failure) {
+					t.Fatalf("expected %q, got %v\n%s", tc.failure, err, out)
+				}
+				if _, err := os.Stat(filepath.Join(dir, "self-host")); !os.IsNotExist(err) {
+					t.Fatalf("failed install wrote a binary: %v", err)
+				}
+				return
+			}
+			if err != nil || fake.apiCalls != 1 {
+				t.Fatalf("install failed (API calls %d): %v\n%s", fake.apiCalls, err, out)
+			}
+			if data, err := os.ReadFile(filepath.Join(dir, "self-host")); err != nil || string(data) != fake.binary {
+				t.Fatalf("installed %q: %v", data, err)
+			}
+			if !strings.Contains(out, "(1.2.0, checksum verified)") {
+				t.Fatalf("missing verified stable version: %s", out)
+			}
+		})
 	}
 }
 

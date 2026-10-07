@@ -131,7 +131,7 @@ json_values() {
       if (c == "[") return array_value()
       if (c == "\"") return string_value()
       value=""
-      while (pos<=length(input) && substr(input,pos,1) !~ /[[:space:],}\]]/) value=value substr(input,pos++,1)
+      while (pos<=length(input) && substr(input,pos,1) !~ /[][:space:],}]/) value=value substr(input,pos++,1)
       if (value !~ /^(true|false|null)$/ && value !~ /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$/) fail()
       return value
     }
