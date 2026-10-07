@@ -2,7 +2,7 @@ package e2e
 
 import "encoding/json"
 
-// Only fixed messages from pinned AuthVerifyController may become evidence.
+// Only fixed messages from pinned AuthVerifyController/base-URL middleware become evidence.
 // Unknown Cake errors, HTML, trace data and arbitrary paths remain private.
 func passboltReadinessReason(status int, body []byte) string {
 	if status != 500 {
@@ -17,6 +17,8 @@ func passboltReadinessReason(status int, body []byte) string {
 		return generic
 	}
 	switch response.Header.Message {
+	case "The `App.fullBaseUrl` configuration must be a valid non-empty string.":
+		return "Passbolt verification reports missing enforced base-URL configuration"
 	case "The OpenPGP public key information was not found in config.":
 		return "Passbolt verification reports missing public-key configuration"
 	case "The OpenPGP public key for this passbolt instance was not found.":

@@ -10,6 +10,7 @@ func TestPassboltReadinessClassificationNeverRetainsResponseText(t *testing.T) {
 		{`{"header":{"message":"The OpenPGP public key information was not found in config."}}`, "Passbolt verification reports missing public-key configuration"},
 		{`{"header":{"message":"The OpenPGP public key for this passbolt instance was not found."}}`, "Passbolt verification reports a missing server public-key file"},
 		{`{"header":{"message":"The OpenPGP public key file '/etc/passbolt/gpg/serverkey.asc' is not readable."}}`, "Passbolt verification reports an unreadable server public-key file"},
+		{`{"header":{"message":"The ` + "`App.fullBaseUrl`" + ` configuration must be a valid non-empty string."}}`, "Passbolt verification reports missing enforced base-URL configuration"},
 		{`{"header":{"message":"SQL error with unknown credential payload"}}`, "Passbolt verification returned HTTP 500; cause remains unclassified"},
 		{`<html>unknown credential payload</html>`, "Passbolt verification returned HTTP 500; cause remains unclassified"},
 	}

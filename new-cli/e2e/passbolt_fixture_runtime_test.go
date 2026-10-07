@@ -152,7 +152,7 @@ func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
 	if installed.code != 0 && !(installed.code == exitIncomplete && allNoHeadless(installed)) {
 		if installed.termination == nil {
-			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r))
+			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r), f.effectiveMetadataDiagnostic(r))
 		}
 		return installed
 	}
@@ -315,4 +315,21 @@ func (f *passboltRuntimeFixture) applicationMetadataDiagnostic(r *runner) event 
 	command.Env = r.env
 	observation := executeOwnedCommand(ctx, command)
 	return event{Event: "step.fail", App: "passbolt", Step: "startup-application-metadata", Error: passboltApplicationMetadataReason(observation.code, []byte(observation.stdout)), Hint: "read-only key accessibility and owned-env PDO/schema metadata; does not prove key import or effective Cake/FPM configuration"}
+}
+
+// CLI application observation; does not establish the FPM worker's configuration.
+func (f *passboltRuntimeFixture) effectiveMetadataDiagnostic(r *runner) event {
+	parent := r.commandCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+	defer cancel()
+	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
+	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltEffectiveMetadataPHP}
+	command := exec.CommandContext(ctx, wrapper, args...)
+	command.Dir = r.project
+	command.Env = r.env
+	observation := executeOwnedCommand(ctx, command)
+	return event{Event: "step.fail", App: "passbolt", Step: "startup-effective-metadata", Error: passboltEffectiveMetadataReason(observation.code, []byte(observation.stdout)), Hint: "normal CLI application bootstrap/configuration booleans only; does not establish FPM configuration or key import"}
 }
