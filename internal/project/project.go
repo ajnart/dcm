@@ -28,10 +28,12 @@ var SettingKeys = []string{"TZ", "PUID", "PGID", "UMASK", "LAN_IP", "EXPOSURE", 
 type Project struct {
 	Root  string
 	Owner system.User
+	// ComposeName is the Compose project name; Name unless overridden.
+	ComposeName string
 }
 
 func Open(owner system.User) *Project {
-	return &Project{Root: filepath.Join(owner.Home, DirName), Owner: owner}
+	return &Project{Root: filepath.Join(owner.Home, DirName), Owner: owner, ComposeName: Name}
 }
 
 func (p *Project) Path(parts ...string) string {
