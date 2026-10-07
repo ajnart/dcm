@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -48,27 +49,48 @@ func (App) Links() []app.Link { return nil }
 // loginWorks posts the saved Admin login; Navidrome only answers 200 with an
 // administrator identity when the credential is right.
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/auth/login",
-		JSON: map[string]string{"username": user, "password": password},
-	})
-	if err != nil {
-		return false, err
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	deadline := h.Now().Add(time.Minute)
+	for {
+		resp, err := h.HTTP(ctx, helpers.Request{
+			Method: "POST", Path: "/auth/login",
+			JSON: map[string]string{"username": user, "password": password},
+		})
+		if err != nil {
+			return false, err
+		}
+		if resp.Status == 429 {
+			wait := 20 * time.Second // The pinned server's default authentication window.
+			if seconds, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && seconds > 0 {
+				if seconds > 60 {
+					return false, fmt.Errorf("Navidrome sign-in is rate limited; wait before retrying Setup")
+				}
+				wait = time.Duration(seconds) * time.Second
+			}
+			if !h.Now().Add(wait).Before(deadline) {
+				return false, fmt.Errorf("Navidrome sign-in is rate limited; wait before retrying Setup")
+			}
+			if err := h.Sleep(ctx, wait); err != nil {
+				return false, err
+			}
+			continue
+		}
+		if resp.Status == 401 {
+			return false, nil
+		}
+		if !resp.OK() {
+			return false, fmt.Errorf("sign-in returned HTTP %d", resp.Status)
+		}
+		var account struct {
+			Username string `json:"username"`
+			IsAdmin  bool   `json:"isAdmin"`
+		}
+		if err := resp.Decode(&account); err != nil {
+			return false, err
+		}
+		return account.Username == user && account.IsAdmin, nil
 	}
-	if resp.Status == 401 {
-		return false, nil
-	}
-	if !resp.OK() {
-		return false, fmt.Errorf("sign-in returned HTTP %d", resp.Status)
-	}
-	var account struct {
-		Username string `json:"username"`
-		IsAdmin  bool   `json:"isAdmin"`
-	}
-	if err := resp.Decode(&account); err != nil {
-		return false, err
-	}
-	return account.Username == user && account.IsAdmin, nil
 }
 
 // createAdmin calls the native first-admin route; the pinned server refuses
@@ -82,11 +104,22 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 }
 
 func setup() onboard.FirstAdmin {
+	var loginErr error
 	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
-		Create: createAdmin,
-		Login:  loginWorks,
-		Manual: "Navidrome creates the first administrator on its sign-in page.",
+		Ready: onboard.Probe{Path: "/"},
+		Create: func(ctx context.Context, h *helpers.H, user, password string) error {
+			// A failed probe is not evidence that the administrator is absent.
+			if loginErr != nil {
+				return loginErr
+			}
+			return createAdmin(ctx, h, user, password)
+		},
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			ok, err := loginWorks(ctx, h, user, password)
+			loginErr = err
+			return ok, err
+		},
+		Manual: "If an administrator already exists, sign in with its existing credentials and review Users; reconcile the saved Admin login with that account. Do not delete Navidrome's data folder or reset its administrator.",
 	}
 }
 
