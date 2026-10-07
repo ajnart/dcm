@@ -69,7 +69,7 @@ func publishedPorts(source string) ([]publishedPort, error) {
 		} `yaml:"services"`
 	}
 	if err := yaml.Unmarshal([]byte(source), &doc); err != nil {
-		return nil, err
+		return nil, errors.New("invalid published port source")
 	}
 	var ports []publishedPort
 	for _, svc := range doc.Services {
@@ -147,14 +147,14 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 	for _, id := range t.Apps {
 		a, ok := c.App(id)
 		if !ok {
-			return fail(errors.New("unknown App"))
+			return fail(blockerError("unknown App"))
 		}
 		primary := 0
 		if a.Info().Port > 0 {
 			for attempts := 0; attempts < 1024; attempts++ {
 				listener, err := net.Listen("tcp4", "127.0.0.1:0")
 				if err != nil {
-					return fail(err)
+					return fail(blockerError(id + ": loopback primary port reservation failed"))
 				}
 				candidate := listener.Addr().(*net.TCPAddr).Port
 				p := publishedPort{candidate, "tcp"}
@@ -169,23 +169,23 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 				break
 			}
 			if primary == 0 {
-				return fail(errors.New("no isolated primary port available"))
+				return fail(blockerError(id + ": no isolated primary port available"))
 			}
 		}
 		source := a.Compose(app.RenderContext{Port: primary, Inputs: localInputs[id]})
-		if validateComposeIsolation(source) != nil {
-			return fail(fmt.Errorf("%s: Compose resource isolation unavailable", id))
+		if err := validateComposeIsolation(source); err != nil {
+			return fail(blockerError(id + ": Compose isolation refused: " + err.Error()))
 		}
 		ports, err := publishedPorts(source)
 		if err != nil {
-			return fail(fmt.Errorf("%s: port isolation unavailable", id))
+			return fail(blockerError(id + ": port isolation refused: " + err.Error()))
 		}
 		for _, p := range ports {
 			if owner := pool.used[p]; owner != nil {
 				if owner == r {
 					continue
 				}
-				return fail(fmt.Errorf("%s: required host port already reserved", id))
+				return fail(blockerError(fmt.Sprintf("%s: required %s host port %d already reserved", id, p.protocol, p.port)))
 			}
 			addr := net.JoinHostPort("127.0.0.1", fmtPort(p.port))
 			var listener io.Closer
@@ -195,7 +195,7 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 				listener, err = net.Listen("tcp4", addr)
 			}
 			if err != nil {
-				return fail(fmt.Errorf("%s: required %s host port %d is unavailable", id, p.protocol, p.port))
+				return fail(blockerError(fmt.Sprintf("%s: required %s host port %d is unavailable", id, p.protocol, p.port)))
 			}
 			r.listeners = append(r.listeners, listener)
 			claim(p)

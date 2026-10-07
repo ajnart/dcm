@@ -247,25 +247,30 @@ func (r *runner) containersReady() bool {
 }
 
 func (r *runner) recordImages() {
-	for _, service := range expectedServices(r.spec) {
-		ids := strings.Fields(r.dockerOutput(30*time.Second, "compose", "-p", r.name, "images", "-q", service))
-		if len(ids) != 1 {
-			return
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		cmd := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{.Id}} {{.Os}}/{{.Architecture}}", ids[0])
-		out, err := cmd.Output()
-		cancel()
-		if err != nil {
-			return
-		}
-		parts := strings.Fields(string(out))
-		if len(parts) != 2 {
-			return
-		}
-		r.evidence.Images = append(r.evidence.Images, imageEvidence{Service: service, ID: parts[0], Platform: parts[1]})
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	if _, err := os.Stat(filepath.Join(r.project, "compose.yml")); err != nil {
+		r.evidence.Images, r.evidence.UnavailableImages = observeOwnedImages(r.evidence.Images, expectedServices(r.spec), func(string) string { return "" }, func([]string) string { return "" })
+		return
 	}
-	r.saveEvidence()
+	r.evidence.Images, r.evidence.UnavailableImages = observeOwnedImages(r.evidence.Images, expectedServices(r.spec), func(service string) string {
+		deadline, _ := ctx.Deadline()
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return ""
+		}
+		return r.dockerOutput(min(30*time.Second, remaining), "compose", "-p", r.name, "images", "-q", service)
+	}, func(args []string) string {
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "docker", args...)
+		cmd.Env = r.env
+		out, err := cmd.Output()
+		if err != nil {
+			return ""
+		}
+		return string(out)
+	})
 }
 
 func isIdempotentStep(step string) bool {

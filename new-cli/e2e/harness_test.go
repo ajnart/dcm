@@ -212,32 +212,38 @@ func (r *runner) cleanup() {
 	if r.t.Failed() {
 		r.dumpDiagnostics()
 	}
-	if err := cleanupOwned(r.composeDown, r.removeRoot, r.guard, r.project); err != nil {
-		r.t.Errorf("owned Compose teardown failed; project retained and sweep stopped")
+	cleanupErr, publicationErr := cleanupObservedOwned(func() {
 		if r.evidence != nil {
+			r.recordImages()
+		}
+	}, r.composeDown, r.removeRoot, r.guard, r.project, func(cleanupErr error) error {
+		r.teardownOK = cleanupErr == nil
+		if r.evidence == nil {
+			return nil
+		}
+		if cleanupErr != nil {
 			r.evidence.Cleanup = "failed"
 			r.evidence.RetainedProject = r.project
 			r.evidence.RetainedComposeProject = r.name
+		} else if r.restored != nil && !r.restored.teardownOK {
+			r.evidence.Cleanup = "failed"
+			r.evidence.RetainedProject = r.restored.project
+			r.evidence.RetainedComposeProject = r.restored.name
+		} else {
+			r.evidence.Cleanup = "pass"
 		}
-	} else {
-		r.teardownOK = true
-		if r.evidence != nil {
-			if r.restored != nil && !r.restored.teardownOK {
-				r.evidence.Cleanup = "failed"
-				r.evidence.RetainedProject = r.restored.project
-				r.evidence.RetainedComposeProject = r.restored.name
-			} else {
-				r.evidence.Cleanup = "pass"
-			}
-		}
-	}
-	if r.evidence != nil {
-		if r.t.Failed() {
+		if r.t.Failed() || r.evidence.Cleanup == "failed" {
 			r.evidence.Outcome = "failed"
 		}
 		now := time.Now().UTC()
 		r.evidence.Finished = &now
-		r.saveEvidence()
+		return r.writeEvidence()
+	})
+	if cleanupErr != nil {
+		r.t.Error("owned Compose teardown failed; project retained and sweep stopped")
+	}
+	if publicationErr != nil {
+		r.t.Error("cleanup completed; sanitized evidence publication failed")
 	}
 }
 
@@ -299,22 +305,30 @@ func (r *runner) dumpDiagnostics() {
 }
 
 func (r *runner) saveEvidence() {
+	if err := r.writeEvidence(); err != nil {
+		r.t.Fatal(err)
+	}
+}
+
+func (r *runner) writeEvidence() error {
 	if r.evidence == nil {
-		return
+		return nil
 	}
 	r.evidence.ComposeProject = r.name
 	r.evidence.Platform = runtime.GOOS + "/" + runtime.GOARCH
 	data, err := json.MarshalIndent(r.evidence, "", "  ")
 	if err != nil {
-		r.t.Fatal("encode evidence")
+		return errors.New("encode evidence")
 	}
 	path := filepath.Join(r.logDir, evidenceName(r.spec)+".json")
 	if err := os.WriteFile(path+".partial", append(data, '\n'), 0o600); err != nil {
-		r.t.Fatal("write evidence")
+		return errors.New("write evidence")
 	}
 	if err := os.Rename(path+".partial", path); err != nil {
-		r.t.Fatal("publish evidence")
+		return errors.New("publish evidence")
 	}
+
+	return nil
 }
 
 func (r *runner) dockerOutput(timeout time.Duration, args ...string) string {

@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -29,7 +28,7 @@ func (g *sweepGuard) signalLocked() {
 
 func (g *sweepGuard) acquire(ctx context.Context, weight int, exclusive bool) (*targetLease, error) {
 	if weight < 1 || weight > 20 {
-		return nil, errors.New("target exceeds App environment budget")
+		return nil, blockerError("target exceeds App environment budget")
 	}
 	for {
 		if err := ctx.Err(); err != nil {
@@ -38,7 +37,7 @@ func (g *sweepGuard) acquire(ctx context.Context, weight int, exclusive bool) (*
 		g.mu.Lock()
 		if g.Blocked {
 			g.mu.Unlock()
-			return nil, errors.New("sweep blocked by owned teardown failure")
+			return nil, blockerError("sweep blocked by owned teardown failure")
 		}
 		if g.changed == nil {
 			g.changed = make(chan struct{})

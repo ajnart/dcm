@@ -79,6 +79,7 @@ func TestE2E(t *testing.T) {
 			e := newEvidence(spec, codeHead)
 			e.Outcome = "blocked"
 			e.Classification = "docker-unavailable"
+			e.BlockerReason = "Docker unavailable"
 			writeInitialEvidence(logDir, e)
 		}
 		t.Skip("Docker unavailable: selected targets recorded blocked, no runtime pass")
@@ -88,10 +89,20 @@ func TestE2E(t *testing.T) {
 	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
 	release, err := acquireGlobal(ctx, lockPath)
 	if err != nil {
+		for _, spec := range selected {
+			e := newEvidence(spec, codeHead)
+			e.Outcome, e.BlockerReason = "blocked", "global harness lock unavailable"
+			writeInitialEvidence(logDir, e)
+		}
 		t.Fatal("global serial slot unavailable")
 	}
 	t.Cleanup(release)
 	if _, err := os.Lstat(lockPath + ".blocked"); err == nil {
+		for _, spec := range selected {
+			e := newEvidence(spec, codeHead)
+			e.Outcome, e.BlockerReason = "blocked", "previous owned teardown failure requires scoped recovery"
+			writeInitialEvidence(logDir, e)
+		}
 		t.Fatal("previous owned teardown failed; recover retained project before another sweep")
 	}
 	guard := newSweepGuard(workers)
@@ -132,8 +143,9 @@ func TestE2E(t *testing.T) {
 			if err != nil {
 				evidence.Outcome = "blocked"
 				evidence.Classification = "capacity-or-teardown-blocked"
+				evidence.BlockerReason = safeBlockerReason(err)
 				writeInitialEvidence(logDir, evidence)
-				t.Skip("target not started: capacity deadline or owned teardown blocker")
+				t.Skip(evidence.BlockerReason)
 			}
 			var r *runner
 			var reservation *portReservation
@@ -154,8 +166,9 @@ func TestE2E(t *testing.T) {
 			reservation, err = reserveTargetPorts(c, spec, guard.ports)
 			if err != nil {
 				r.evidence.Outcome = "blocked"
+				r.evidence.BlockerReason = safeBlockerReason(err)
 				r.saveEvidence()
-				t.Skip("required published ports unavailable or isolation unsupported")
+				t.Skip(r.evidence.BlockerReason)
 			}
 			r.verify(spec, reservation)
 		})
