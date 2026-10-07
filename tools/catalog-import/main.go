@@ -121,6 +121,8 @@ type recipe struct {
 
 type service struct {
 	ID                string      `json:"id"`
+	ImageSource       string      `json:"imageSource"`
+	ImageTag          string      `json:"imageTag"`
 	PublishTargetPort *int        `json:"publishTargetPort"`
 	Environment       []env       `json:"environment"`
 	HostEnvironment   []hostEnv   `json:"hostEnvironment"`
@@ -521,9 +523,354 @@ func sortedCounts(m map[string]int) []count {
 	return out
 }
 
+type legacyEnv struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
+type legacyMount struct {
+	Name   string `json:"name"`
+	Target string `json:"target"`
+	Kind   string `json:"kind"`
+}
+
+type legacySupport struct {
+	Tier       string `json:"tier"`
+	Automation string `json:"automation"`
+}
+
+// legacyApp is the parity projection consumed by the new repo's catalog test.
+// It is intentionally narrower than appFact and never carries a secret value.
+type legacyApp struct {
+	ID                  string        `json:"id"`
+	Name                string        `json:"name"`
+	Image               string        `json:"image"`
+	ContainerPort       int           `json:"containerPort"`
+	PublishedPort       int           `json:"publishedPort"`
+	Env                 []legacyEnv   `json:"env"`
+	Mounts              []legacyMount `json:"mounts"`
+	Services            []string      `json:"services"`
+	OnboardingKind      string        `json:"onboardingKind"`
+	Category            string        `json:"category"`
+	Categories          []string      `json:"categories"`
+	DocsURL             string        `json:"docsURL"`
+	Pitfalls            []string      `json:"pitfalls"`
+	Security            []string      `json:"security"`
+	Support             legacySupport `json:"support"`
+	HasRecipe           bool          `json:"hasRecipe"`
+	HasLinks            bool          `json:"hasLinks"`
+	LinkTargets         []string      `json:"linkTargets"`
+	HasComposition      bool          `json:"hasComposition"`
+	CompositionServices []string      `json:"compositionServices"`
+}
+
+type legacyRole struct {
+	Role string   `json:"role"`
+	Apps []string `json:"apps"`
+}
+
+type legacyRecipe struct {
+	ID      string       `json:"id"`
+	Name    string       `json:"name"`
+	Summary string       `json:"summary"`
+	Roles   []legacyRole `json:"roles"`
+	Apps    []string     `json:"apps"`
+}
+
+type legacyOutput struct {
+	Apps    []legacyApp    `json:"apps"`
+	Recipes []legacyRecipe `json:"recipes"`
+}
+
+type composition struct {
+	Dependencies []struct {
+		ServiceID string `json:"serviceId"`
+	} `json:"dependencies"`
+}
+
+type goalRole struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Choices []string `json:"choices"`
+}
+
+type goal struct {
+	ID      string     `json:"id"`
+	Name    string     `json:"name"`
+	Summary string     `json:"summary"`
+	Roles   []goalRole `json:"roles"`
+}
+
+var linkTargetRe = regexp.MustCompile(`(?:target|targetApp|appId)[A-Za-z]*\s*:\s*"([a-z0-9-]+)"`)
+var quotedIDRe = regexp.MustCompile(`"([a-z0-9-]+)"`)
+
+func derefInt(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func sortedCopy(in []string) []string {
+	out := append([]string{}, in...)
+	sort.Strings(out)
+	return out
+}
+
+func sortedKeys(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func legacyEnvs(svc service) []legacyEnv {
+	out := []legacyEnv{}
+	seen := map[string]bool{}
+	add := func(name, kind string) {
+		if name == "" {
+			return
+		}
+		key := kind + "\x00" + name
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		out = append(out, legacyEnv{Name: name, Kind: kind})
+	}
+	for _, e := range svc.Environment {
+		add(e.Name, "plain")
+	}
+	for _, e := range svc.HostEnvironment {
+		add(e.Name, "host")
+	}
+	for _, e := range svc.FileEnvironment {
+		add(e.Name, "file")
+	}
+	for _, e := range svc.SecretEnvironment {
+		add(e.Name, "secret")
+	}
+	return out
+}
+
+func legacyMounts(mounts []mount) []legacyMount {
+	out := []legacyMount{}
+	seen := map[string]bool{}
+	for _, m := range mounts {
+		key := m.Name + "\x00" + m.Target
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, legacyMount{Name: m.Name, Target: m.Target, Kind: m.Kind})
+	}
+	return out
+}
+
+// linkTargets greps a links.ts for the App ids it wires to, excluding the App
+// itself. If the structured target pattern finds nothing it falls back to any
+// quoted id that names another catalog App.
+func linkTargets(path, self string, appIDs map[string]bool) ([]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	body := string(raw)
+	found := map[string]bool{}
+	for _, m := range linkTargetRe.FindAllStringSubmatch(body, -1) {
+		if m[1] != self {
+			found[m[1]] = true
+		}
+	}
+	if len(found) == 0 {
+		for _, m := range quotedIDRe.FindAllStringSubmatch(body, -1) {
+			if m[1] != self && appIDs[m[1]] {
+				found[m[1]] = true
+			}
+		}
+	}
+	return sortedKeys(found), nil
+}
+
+func compositionServices(path string) ([]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var comp composition
+	if err := json.Unmarshal(raw, &comp); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(comp.Dependencies))
+	for _, dep := range comp.Dependencies {
+		out = append(out, dep.ServiceID)
+	}
+	return out, nil
+}
+
+// buildRecipes turns each stack goal into one recipe. roles[].apps keeps the
+// source order of the role's choices; the recipe's apps is the union of each
+// role's first candidate, in role order.
+func buildRecipes(catDir string) ([]legacyRecipe, error) {
+	raw, err := os.ReadFile(filepath.Join(catDir, "stacks", "goals.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []legacyRecipe{}, nil
+		}
+		return nil, err
+	}
+	var goals []goal
+	if err := json.Unmarshal(raw, &goals); err != nil {
+		return nil, fmt.Errorf("goals: %w", err)
+	}
+	recipes := make([]legacyRecipe, 0, len(goals))
+	for _, g := range goals {
+		r := legacyRecipe{
+			ID:      g.ID,
+			Name:    g.Name,
+			Summary: g.Summary,
+			Roles:   []legacyRole{},
+			Apps:    []string{},
+		}
+		seen := map[string]bool{}
+		for _, role := range g.Roles {
+			apps := role.Choices
+			if apps == nil {
+				apps = []string{}
+			}
+			r.Roles = append(r.Roles, legacyRole{Role: role.ID, Apps: apps})
+			if len(role.Choices) > 0 && !seen[role.Choices[0]] {
+				seen[role.Choices[0]] = true
+				r.Apps = append(r.Apps, role.Choices[0])
+			}
+		}
+		recipes = append(recipes, r)
+	}
+	sort.Slice(recipes, func(i, j int) bool { return recipes[i].ID < recipes[j].ID })
+	return recipes, nil
+}
+
+// buildLegacy projects the facts table plus the App-link, composition, and goal
+// files into the deterministic legacy-facts.json parity file.
+func buildLegacy(catDir string) (legacyOutput, error) {
+	entries, err := os.ReadDir(filepath.Join(catDir, "apps"))
+	if err != nil {
+		return legacyOutput{}, err
+	}
+	appIDs := map[string]bool{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			appIDs[entry.Name()] = true
+		}
+	}
+
+	apps := make([]legacyApp, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		id := entry.Name()
+		appDir := filepath.Join(catDir, "apps", id)
+		fact, err := readApp(appDir, id)
+		if err != nil {
+			return legacyOutput{}, fmt.Errorf("%s: %w", id, err)
+		}
+		app := legacyApp{
+			ID:                  fact.ID,
+			Name:                fact.Name,
+			Image:               fact.Image,
+			ContainerPort:       derefInt(fact.ContainerPort),
+			PublishedPort:       derefInt(fact.DefaultPublished),
+			Services:            fact.Services,
+			OnboardingKind:      fact.Onboarding.Kind,
+			Categories:          sortedCopy(fact.Categories),
+			DocsURL:             fact.DocsURL,
+			Pitfalls:            fact.Pitfalls,
+			Security:            fact.Security,
+			Support:             legacySupport{Tier: fact.Support.Tier, Automation: fact.Support.Automation},
+			HasRecipe:           fact.HasRecipe,
+			Env:                 []legacyEnv{},
+			Mounts:              []legacyMount{},
+			LinkTargets:         []string{},
+			CompositionServices: []string{},
+		}
+		if len(app.Categories) > 0 {
+			app.Category = app.Categories[0]
+		}
+		if fact.HasRecipe {
+			raw, err := os.ReadFile(filepath.Join(appDir, "recipe.json"))
+			if err != nil {
+				return legacyOutput{}, err
+			}
+			var rec recipe
+			if err := json.Unmarshal(raw, &rec); err != nil {
+				return legacyOutput{}, fmt.Errorf("%s recipe: %w", id, err)
+			}
+			if len(rec.Services) > 0 {
+				main := rec.Services[0]
+				app.Env = legacyEnvs(main)
+				app.Mounts = legacyMounts(main.Mounts)
+				if app.Image == "" {
+					app.Image = main.ImageTag
+				}
+			}
+		}
+		if fileExists(filepath.Join(appDir, "links.ts")) {
+			app.HasLinks = true
+			targets, err := linkTargets(filepath.Join(appDir, "links.ts"), id, appIDs)
+			if err != nil {
+				return legacyOutput{}, err
+			}
+			app.LinkTargets = targets
+		}
+		if fileExists(filepath.Join(appDir, "composition.json")) {
+			app.HasComposition = true
+			svcs, err := compositionServices(filepath.Join(appDir, "composition.json"))
+			if err != nil {
+				return legacyOutput{}, err
+			}
+			app.CompositionServices = svcs
+		}
+		apps = append(apps, app)
+	}
+	sort.Slice(apps, func(i, j int) bool { return apps[i].ID < apps[j].ID })
+
+	recipes, err := buildRecipes(catDir)
+	if err != nil {
+		return legacyOutput{}, err
+	}
+	return legacyOutput{Apps: apps, Recipes: recipes}, nil
+}
+
+func writeLegacy(path, catDir string) error {
+	out, err := buildLegacy(catDir)
+	if err != nil {
+		return err
+	}
+	if dir := filepath.Dir(path); dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+	data, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(path, data, 0o644)
+}
+
 func main() {
 	cat := flag.String("cat", "", "catalog directory containing apps/ and schemas/ (required)")
 	out := flag.String("out", "tools/catalog-import/facts.json", "output facts JSON file")
+	legacy := flag.String("legacy", "", "when set, write the legacy catalog parity JSON to this file")
 	traps := flag.String("traps", "", "when set, write the per-App traps digest to this directory")
 	docs := flag.String("docs", "", "directory containing <id>.md prose")
 	flag.Parse()
@@ -541,6 +888,12 @@ func main() {
 	if err := writeFacts(*out, facts); err != nil {
 		fmt.Fprintf(os.Stderr, "catalog-import: %v\n", err)
 		os.Exit(1)
+	}
+	if *legacy != "" {
+		if err := writeLegacy(*legacy, *cat); err != nil {
+			fmt.Fprintf(os.Stderr, "catalog-import: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	if *traps != "" {
 		if err := writeTraps(*traps, *docs, facts); err != nil {
