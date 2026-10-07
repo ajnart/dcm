@@ -1,0 +1,62 @@
+name: new-cli e2e
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    tags:
+      - "new-cli-v*"
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: Space separated Recipe or App ids
+        required: false
+        default: "ntfy vaultwarden media"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: new-cli
+
+jobs:
+  recipes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+      - name: Test
+        env:
+          E2E_TARGETS: ${{ github.event.inputs.targets || 'ntfy vaultwarden media' }}
+          E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
+        run: go test -tags e2e -v -timeout 90m ./e2e/
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-recipes
+          path: ${{ runner.temp }}/e2e-logs
+          if-no-files-found: ignore
+
+  catalog:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: new-cli/go.mod
+      - name: Test
+        env:
+          E2E_TARGETS: all
+          E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
+        run: go test -tags e2e -v -timeout 340m ./e2e/
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-catalog
+          path: ${{ runner.temp }}/e2e-logs
+          if-no-files-found: ignore
