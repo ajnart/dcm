@@ -37,7 +37,7 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
-// Compose mounts the shared media root at /data, the same subtree Sonarr and
+// Compose mounts the shared media root at /media, the path Sonarr and
 // Radarr file into, so subtitles need no remote path mapping.
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
@@ -52,7 +52,7 @@ func (App) Compose(rc app.RenderContext) string {
       UMASK: ${UMASK}
     volumes:
       - ./config:/config
-      - ${MEDIA_ROOT}:/data
+      - ${MEDIA_ROOT}:/media
     ports:
       - ${BIND_IP}:` + port + `:6767
 `
