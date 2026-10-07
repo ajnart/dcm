@@ -40,6 +40,7 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 	return helpers.New(helpers.Config{
 		App: "authelia", Service: "authelia",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		Inputs:  map[string]string{"origin": srv.URL},
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { *records = append(*records, r) },
@@ -73,7 +74,7 @@ func handler(accept bool) http.Handler {
 }
 
 func TestSetupThenCheckThenRerunSkips(t *testing.T) {
-	srv := httptest.NewServer(handler(true))
+	srv := httptest.NewTLSServer(handler(true))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
@@ -98,7 +99,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 }
 
 func TestFailingStepHintNamesTheApp(t *testing.T) {
-	srv := httptest.NewServer(handler(false))
+	srv := httptest.NewTLSServer(handler(false))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
