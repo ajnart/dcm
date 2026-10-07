@@ -890,6 +890,9 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 			count := 0
 			for _, item := range inv.Board.Items {
 				if item.Kind == widget && slices.Contains(item.IntegrationIDs, id) {
+					if widget == "stats" && !hfGeneratedStatsMatches(item, kind, id) {
+						return errors.New("generated stats entries differ from the selected integration metrics")
+					}
 					count++
 				}
 			}
@@ -898,9 +901,29 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 			}
 		}
 	}
+	// App records have already passed the strict upstream bookmark contract.
+	seedIDs := map[string]bool{}
+	for _, app := range inv.Apps {
+		if app.Description == nil {
+			seedIDs[app.ID] = true
+		}
+	}
+	defaultWidgets := map[string]int{}
+	itemIDs := map[string]bool{}
 	notebooks := 0
 	tiles := map[string]int{}
 	for _, item := range inv.Board.Items {
+		if item.ID == "" || itemIDs[item.ID] {
+			return errors.New("board item identity is missing or duplicated")
+		}
+		itemIDs[item.ID] = true
+		if item.Kind == "clock" || item.Kind == "weather" || item.Kind == "bookmarks" {
+			if !hfSeedWidgetMatches(item, seedIDs) {
+				return fmt.Errorf("upstream default widget shape differs from the source seed: kind=%s, option count=%d, integration count=%d", item.Kind, len(item.Options), len(item.IntegrationIDs))
+			}
+			defaultWidgets[item.Kind]++
+			continue
+		}
 		for _, id := range item.IntegrationIDs {
 			if !integrationIDs[id] {
 				return errors.New("orphan integration widget survived reconciliation")
@@ -908,13 +931,38 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 		}
 		if item.Kind == "app" {
 			id, _ := item.Options["appId"].(string)
-			if !appIDs[id] {
+			if !appIDs[id] && !seedIDs[id] {
 				return errors.New("orphan App tile survived reconciliation")
 			}
+			if len(item.IntegrationIDs) != 0 {
+				return errors.New("App tile has an unexpected integration")
+			}
+			if seedIDs[id] && (len(item.Options) != 3 || item.Options["openInNewTab"] != true || item.Options["showTitle"] != true) {
+				return errors.New("upstream bookmark tile shape differs from the source seed")
+			}
+			if appIDs[id] && (len(item.Options) != 3 || item.Options["openInNewTab"] != true || item.Options["showTitle"] != true) {
+				return errors.New("managed App tile flags differ from the generated configuration")
+			}
 			tiles[id]++
+			continue
 		}
 		if item.Kind != "notebook" {
+			if len(item.IntegrationIDs) != 1 {
+				return errors.New("unexpected board widget survived reconciliation")
+			}
+			kind := ""
+			for _, integration := range inv.Integrations {
+				if integration.ID == item.IntegrationIDs[0] {
+					kind = integration.Kind
+				}
+			}
+			if !slices.Contains(expectedIntegrations[kind], item.Kind) {
+				return errors.New("unexpected board widget survived reconciliation")
+			}
 			continue
+		}
+		if len(item.IntegrationIDs) != 0 {
+			return errors.New("notebook has an unexpected integration")
 		}
 		content, _ := item.Options["content"].(string)
 		if !strings.Contains(content, "Your homelab at a glance") {
@@ -940,12 +988,79 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 	if notebooks != 1 {
 		return errors.New("managed notebook is missing or duplicated")
 	}
+	for _, kind := range []string{"clock", "weather", "bookmarks"} {
+		if defaultWidgets[kind] != 1 {
+			return fmt.Errorf("upstream default widget is missing or duplicated: clock=%d, weather=%d, bookmarks=%d", defaultWidgets["clock"], defaultWidgets["weather"], defaultWidgets["bookmarks"])
+		}
+	}
+	for id := range seedIDs {
+		if tiles[id] != 1 {
+			return errors.New("upstream bookmark tile is missing or duplicated")
+		}
+	}
 	for id := range appIDs {
 		if tiles[id] != 1 {
 			return errors.New("managed App tile is missing or duplicated")
 		}
 	}
 	return nil
+}
+
+// The owning Homarr links.go targets declare one visible, noncompact metric:
+// ntfy messages and Jellyfin sessions. Entry IDs are auto-stack- followed by
+// the first 32 hex characters of SHA256(metric), as statsEntryID specifies.
+func hfGeneratedStatsMatches(item hfItem, kind, integrationID string) bool {
+	metric, entryID := "", ""
+	switch kind {
+	case "ntfy":
+		metric, entryID = "messages", "auto-stack-f5cccfb737512bedd4f2e39e7d72425a"
+	case "jellyfin":
+		metric, entryID = "sessions", "auto-stack-1225ae6c1ae69dcb4ee4781b703e1220"
+	default:
+		return false
+	}
+	entries, ok := item.Options["entries"].([]any)
+	if !ok || len(item.Options) != 1 || len(entries) != 1 {
+		return false
+	}
+	entry, ok := entries[0].(map[string]any)
+	return ok && len(entry) == 6 && entry["id"] == entryID && entry["metric"] == metric && entry["integrationId"] == integrationID && entry["label"] == "" && entry["hidden"] == false && entry["compact"] == false
+}
+
+// seedBoardWidgetsAsync/placeAllWidgetsAsync retain four bookmark App tiles
+// and exactly the three general defaultWidgetConfigs. board.getBoardByName
+// returns their persisted options without injecting schema defaults.
+// Ordinary seeding adds no notebook; the CLI owns its recap notebook.
+// Verified at image revision eb1d449dca35991013843683bee5aafd53a99cc0
+// (image sha256:4c446d8ebadc1756a54cf8c575aa547504a1760abb56738ae30426321e7accaa).
+func hfSeedWidgetMatches(item hfItem, seedIDs map[string]bool) bool {
+	if len(item.IntegrationIDs) != 0 {
+		return false
+	}
+	switch item.Kind {
+	case "clock":
+		return len(item.Options) == 0
+	case "weather":
+		return len(item.Options) == 3 && item.Options["showHumidity"] == false && item.Options["showCity"] == false && item.Options["hasForecast"] == false
+	case "bookmarks":
+		if len(item.Options) != 4 || item.Options["title"] != "Useful Links" || item.Options["layout"] != "grid" || item.Options["openNewTab"] != true {
+			return false
+		}
+		ids, ok := item.Options["items"].([]any)
+		if !ok || len(ids) != len(seedIDs) {
+			return false
+		}
+		seen := map[string]bool{}
+		for _, value := range ids {
+			id, ok := value.(string)
+			if !ok || !seedIDs[id] || seen[id] {
+				return false
+			}
+			seen[id] = true
+		}
+		return true
+	}
+	return false
 }
 
 // GET /api/apps contains all bookmarks, including these four upstream seeds.
