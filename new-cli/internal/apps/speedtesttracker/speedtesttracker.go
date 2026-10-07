@@ -150,7 +150,11 @@ func ready(ctx context.Context, h *helpers.H) error {
 		Do: func(ctx context.Context) error {
 			err := h.Poll(ctx, 3*time.Minute, probe)
 			if err != nil && status == http.StatusBadGateway {
-				return fmt.Errorf("%w; %s", err, phpBootstrapFacts(ctx, h))
+				facts := phpBootstrapFacts(ctx, h)
+				if strings.Contains(facts, "php_config_error=config_open php_failure_path=main_config") && strings.Contains(facts, "failure_path_readable=true") {
+					facts += "; ask the host administrator to review PHP-FPM confinement compatibility: its configuration appears readable but PHP-FPM cannot open it"
+				}
+				return fmt.Errorf("%w; %s", err, facts)
 			}
 			return err
 		},

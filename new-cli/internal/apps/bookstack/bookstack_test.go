@@ -389,3 +389,25 @@ func TestPHPFPMAllowsOnlyConfiguredRootIdentity(t *testing.T) {
 		})
 	}
 }
+
+func TestReadablePHPMainConfigFailureSuggestsHostReview(t *testing.T) {
+	for _, tc := range []struct {
+		category, path, readable string
+		want                     bool
+	}{
+		{"config_open", "main_config", "true", true},
+		{"config_open", "unrecognized", "true", false},
+		{"directive", "main_config", "true", false},
+		{"config_open", "main_config", "false", false},
+	} {
+
+		output := "key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=" + tc.category + " path=" + tc.path + " process_root=true target_read=" + tc.readable + " target_write=true target_owner=true"
+		box := newHarness(t, &recordingExec{stdout: []byte(output)}, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{})
+		_ = (bookstack.App{}).Setup(context.Background(), box.h)
+		hint := box.step("startup-status").Hint
+		if strings.Contains(hint, "host administrator") != tc.want {
+			t.Fatalf("unexpected host review recommendation for %s/%s/%s", tc.category, tc.path, tc.readable)
+		}
+
+	}
+}

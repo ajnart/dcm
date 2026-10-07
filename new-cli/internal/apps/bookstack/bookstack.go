@@ -173,6 +173,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 // PHP upstream. Database TCP availability does not claim authenticated access.
 func startupStatus(ctx context.Context, h *helpers.H) error {
 	facts := "bootstrap_metadata=unobserved"
+	hint := "Check owned image initialization, PHP-FPM readiness and database health before retrying; a database TCP listener does not prove authenticated database access."
 	if h.Config.Exec != nil {
 		probeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
@@ -208,13 +209,16 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 				}
 			}
 			if valid {
+				if values[14] == "config_open" && values[15] == "main_config" && values[17] == "true" {
+					hint += " Ask the host administrator to review PHP-FPM confinement compatibility: its configuration appears readable but PHP-FPM cannot open it."
+				}
 				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s php_failure_path=%s process_uid_zero=%s failure_path_readable=%s failure_path_writable=%s failure_path_owner_current=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[16], values[17], values[18], values[19])
 			}
 		}
 	}
 	return h.Step(ctx, "startup-status", "observe BookStack bootstrap dependencies", helpers.StepSpec{
 		Do:   func(context.Context) error { return errors.New("BookStack startup status: " + facts) },
-		Hint: "Check owned image initialization, PHP-FPM readiness and database health before retrying; a database TCP listener does not prove authenticated database access.",
+		Hint: hint,
 	})
 }
 
