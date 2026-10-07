@@ -3,6 +3,7 @@ package frigate_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/ajnart/self-host/internal/app"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -145,5 +146,12 @@ func TestFailingStepHintNamesTheContainerLogs(t *testing.T) {
 	}
 	if !strings.Contains(hint, "self-host logs frigate") {
 		t.Errorf("hint should name the logs command, got %q", hint)
+	}
+}
+
+func TestBootstrapConfigServesPlainHTTPOn8971(t *testing.T) {
+	files := frigate.App{}.Files(app.RenderContext{}, func(string) string { return "" })
+	if len(files) != 1 || !strings.Contains(files[0].Content, "tls:\n  enabled: false") {
+		t.Fatalf("8971 must not serve TLS, or every HTTP probe gets 400: %+v", files)
 	}
 }

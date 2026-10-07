@@ -39,10 +39,14 @@ func (App) Secrets() []app.SecretSpec {
 }
 
 // bootstrapConfig is the read-only, camera-free starter config; only the
-// authenticated 8971 listener is published.
+// authenticated 8971 listener is published. 8971 serves TLS with a
+// self-signed certificate by default, which answers plain HTTP with 400, so
+// TLS is off on this private, authenticated listener (as the trap says).
 const bootstrapConfig = `version: 0.18
 auth:
   enabled: true
+tls:
+  enabled: false
 cameras: {}
 `
 
@@ -95,19 +99,22 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 
 var temporaryPassword = regexp.MustCompile(`\*\*\*\s+Password:\s+([0-9a-f]{32})\s+\*\*\*`)
 
-// firstUserPassword reads the generated password from the exact current-start
-// fresh-user block; reset blocks are refused.
+// firstUserPassword reads the generated password from the latest fresh-user
+// block in the container's whole log: Frigate logs every request, so the
+// block scrolls far out of a short tail. A password reset after that block
+// is refused.
 func firstUserPassword(ctx context.Context, h *helpers.H) (string, error) {
-	logs, err := h.Logs(ctx, 200)
+	logs, err := h.Logs(ctx, 1_000_000)
 	if err != nil {
 		return "", err
 	}
-	if !strings.Contains(logs, "Auth is enabled, but no users exist") || strings.Contains(logs, "Reset admin password") {
-		return "", errors.New("no fresh Frigate first-user password block in the current logs")
+	start := strings.LastIndex(logs, "Auth is enabled, but no users exist")
+	if start < 0 || strings.Contains(logs[start:], "Reset admin password") {
+		return "", errors.New("no fresh Frigate first-user password block in the logs")
 	}
-	found := temporaryPassword.FindStringSubmatch(logs)
+	found := temporaryPassword.FindStringSubmatch(logs[start:])
 	if found == nil {
-		return "", errors.New("no generated administrator password in the current Frigate logs")
+		return "", errors.New("no generated administrator password in the Frigate logs")
 	}
 	return found[1], nil
 }
