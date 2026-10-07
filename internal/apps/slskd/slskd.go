@@ -1,0 +1,145 @@
+// Package slskd is the slskd Soulseek client. Its Web UI takes the Admin login
+// and a generated primary API key as environment variables.
+package slskd
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/helpers"
+)
+
+// App is slskd. Traps: docs/catalog/traps/slskd.md.
+type App struct{}
+
+func (App) Info() app.Info {
+	return app.Info{
+		ID: "slskd", Name: "Slskd", Category: "Downloads",
+		Description:   "Web interface for the Soulseek peer-to-peer network",
+		Image:         "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
+		Docs:          "https://github.com/slskd/slskd/tree/master/docs",
+		Port:          5030,
+		ContainerPort: 5030,
+		Service:       "slskd",
+		UsesMedia:     true,
+	}
+}
+
+func (App) Inputs() []app.Input { return nil }
+
+// Secrets declares the primary API key the image documents, so the documented
+// slskd/slskd defaults are never retained.
+func (App) Secrets() []app.SecretSpec {
+	return []app.SecretSpec{{Name: "api_key", Length: 48}}
+}
+
+func (App) Compose(rc app.RenderContext) string {
+	port := strconv.Itoa(rc.Port)
+	return `services:
+  slskd:
+    image: ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      SLSKD_USERNAME: ${ADMIN_USER}
+      SLSKD_PASSWORD: ${ADMIN_PASSWORD}
+      SLSKD_API_KEY: ${SLSKD_API_KEY}
+      SLSKD_DOWNLOADS_DIR: /downloads
+    volumes:
+      - ./app:/app
+      - ${DOWNLOADS_ROOT}:/downloads
+    ports:
+      - ${BIND_IP}:` + port + `:5030
+`
+}
+
+func isJWT(token string) bool {
+	parts := strings.Split(token, ".")
+	return len(parts) == 3 && parts[0] != "" && parts[1] != "" && parts[2] != ""
+}
+
+// adminWorks proves authentication is enabled, the saved password returns an
+// administrator bearer token, and the generated primary API key is accepted.
+func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
+	enabled, err := h.HTTP(ctx, helpers.Request{Path: "/api/v0/session/enabled"})
+	if err != nil {
+		return false, err
+	}
+	if enabled.Status != http.StatusOK {
+		return false, nil
+	}
+	var isEnabled bool
+	if err := enabled.Decode(&isEnabled); err != nil {
+		return false, err
+	}
+	if !isEnabled {
+		return false, nil
+	}
+	login, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/api/v0/session", JSON: map[string]string{
+		"username": h.AdminUser(), "password": h.AdminPassword(),
+	}})
+	if err != nil {
+		return false, err
+	}
+	if login.Status != http.StatusOK {
+		return false, nil
+	}
+	var session struct {
+		Name  string `json:"name"`
+		Token string `json:"token"`
+	}
+	if err := login.Decode(&session); err != nil {
+		return false, err
+	}
+	if session.Name != h.AdminUser() || !isJWT(session.Token) {
+		return false, nil
+	}
+	readback, err := h.HTTP(ctx, helpers.Request{Path: "/api/v0/session", Header: map[string]string{"Authorization": "Bearer " + session.Token}})
+	if err != nil {
+		return false, err
+	}
+	if readback.Status != http.StatusOK {
+		return false, nil
+	}
+	key := h.Secret(h.Key("api_key"))
+	if key == "" {
+		return false, fmt.Errorf("%s is missing from secrets.env", h.Key("api_key"))
+	}
+	keyed, err := h.HTTP(ctx, helpers.Request{Path: "/api/v0/session", Header: map[string]string{"X-API-Key": key}})
+	if err != nil {
+		return false, err
+	}
+	return keyed.Status == http.StatusOK, nil
+}
+
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := h.WaitHTTP(ctx, "/api/v0/session/enabled", 2*time.Minute); err != nil {
+		return err
+	}
+	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
+		Do: func(context.Context) error {
+			return errors.New("slskd reads SLSKD_USERNAME/SLSKD_PASSWORD/SLSKD_API_KEY only when the container starts")
+		},
+		Hint: "slskd applies the Web UI login and API key on first start. Recreate the container: self-host start slskd, " +
+			"then open " + h.URL + " and sign in with the password from `self-host credentials`.",
+		Credential: "admin",
+	})
+}
+
+// Check verifies the Web UI login and the generated primary API key. It does
+// not create a Soulseek protocol account, which needs owner credentials.
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if ok, err := adminWorks(ctx, h); !ok {
+		return fmt.Errorf("the Admin login %s cannot sign in to slskd: %v", h.AdminUser(), err)
+	}
+	return nil
+}
+
+func (App) Links() []app.Link { return nil }

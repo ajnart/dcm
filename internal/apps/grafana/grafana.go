@@ -1,0 +1,99 @@
+// Package grafana is the Grafana dashboarding and alerting server. The
+// administrator is seeded by the image on first start from the Admin login.
+package grafana
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/helpers"
+)
+
+// App is Grafana. Traps: docs/catalog/traps/grafana.md.
+type App struct{}
+
+func (App) Info() app.Info {
+	return app.Info{
+		ID: "grafana", Name: "Grafana", Category: "Observability",
+		Description:   "Dashboards and alerts for your metrics, logs and other sources",
+		Image:         "grafana/grafana:13.2.2",
+		Docs:          "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
+		Port:          3000,
+		ContainerPort: 3000,
+		Service:       "grafana",
+	}
+}
+
+func (App) Inputs() []app.Input { return nil }
+
+// Compose keeps the image user unchanged: Grafana runs as UID 472 and cannot
+// read a host-owner mode-0600 secret mount, so the Admin login travels as an
+// environment variable the image reads on first start.
+func (App) Compose(rc app.RenderContext) string {
+	port := strconv.Itoa(rc.Port)
+	return `services:
+  grafana:
+    image: grafana/grafana:13.2.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - ./data:/var/lib/grafana
+    ports:
+      - ${BIND_IP}:` + port + `:3000
+`
+}
+
+type adminUser struct {
+	Login          string `json:"login"`
+	IsGrafanaAdmin bool   `json:"isGrafanaAdmin"`
+	IsDisabled     bool   `json:"isDisabled"`
+}
+
+func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/user", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return false, err
+	}
+	if resp.Status == http.StatusUnauthorized {
+		return false, nil
+	}
+	if resp.Status != http.StatusOK {
+		return false, fmt.Errorf("GET /api/user returned HTTP %d", resp.Status)
+	}
+	var user adminUser
+	if err := resp.Decode(&user); err != nil {
+		return false, err
+	}
+	return user.Login == h.AdminUser() && user.IsGrafanaAdmin && !user.IsDisabled, nil
+}
+
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := h.WaitHTTP(ctx, "/api/health", 2*time.Minute); err != nil {
+		return err
+	}
+	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
+		Do: func(context.Context) error {
+			return errors.New("Grafana reads GF_SECURITY_ADMIN_USER and GF_SECURITY_ADMIN_PASSWORD only on first start")
+		},
+		Hint: "Grafana applies the Admin login on first start. Recreate the container so it reads secrets.env: " +
+			"self-host start grafana, then sign in at " + h.URL + " with the password from `self-host credentials`.",
+		Credential: "admin",
+	})
+}
+
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if ok, err := adminWorks(ctx, h); !ok {
+		return fmt.Errorf("the Admin login %s cannot sign in to Grafana: %v", h.AdminUser(), err)
+	}
+	return nil
+}
+
+func (App) Links() []app.Link { return nil }
