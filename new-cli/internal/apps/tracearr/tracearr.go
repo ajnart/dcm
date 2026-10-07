@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -126,7 +127,14 @@ func ownerEmail(h *helpers.H) string {
 	return defaultEmail
 }
 
-func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+type authObservation struct {
+	attempted                         bool
+	loginHTTP, meHTTP                 int
+	token, username, email, owner, id bool
+}
+
+func observeLogin(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (bool, error) {
+	*observed = authObservation{attempted: true}
 	login, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/sign-in/username",
 		JSON: map[string]string{"username": user, "password": password},
@@ -134,6 +142,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err != nil {
 		return false, err
 	}
+	observed.loginHTTP = login.Status
 	if login.Status == 401 || login.Status == 403 {
 		return false, nil
 	}
@@ -146,6 +155,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err := login.Decode(&token); err != nil {
 		return false, err
 	}
+	observed.token = token.Token != ""
 	if token.Token == "" {
 		return false, nil
 	}
@@ -156,6 +166,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err != nil {
 		return false, err
 	}
+	observed.meHTTP = resp.Status
 	if resp.Status == 401 || resp.Status == 403 {
 		return false, nil
 	}
@@ -171,7 +182,11 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err := resp.Decode(&me); err != nil {
 		return false, err
 	}
-	return me.Username == user && me.Email == ownerEmail(h) && me.Role == "owner" && me.UserID != "", nil
+	observed.username = me.Username == user
+	observed.email = me.Email == ownerEmail(h)
+	observed.owner = me.Role == "owner"
+	observed.id = me.UserID != ""
+	return observed.username && observed.email && observed.owner && observed.id, nil
 }
 
 type setupStatus struct {
@@ -202,18 +217,57 @@ func createOwner(ctx context.Context, h *helpers.H, user, password string) error
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
+	var observed authObservation
 	first := onboard.FirstAdmin{
 		Ready:  onboard.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
 		Exists: ownerExists,
 		Create: createOwner,
-		Login:  signedIn,
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			return observeLogin(ctx, h, user, password, &observed)
+		},
 		Manual: "Open " + h.URL + " and create the first owner as " + ownerEmail(h) + ".",
 	}
 	err := first.Setup(ctx, h)
 	if err == nil {
 		return nil
 	}
-	return errors.Join(err, startupStatus(ctx, h))
+	return errors.Join(err, startupStatus(ctx, h), authStatus(ctx, h, observed))
+}
+
+// Keep the failed attempt instead of signing in again: retries can hide a
+// rate-limit response. Public setup metadata is the only additional request.
+func authStatus(ctx context.Context, h *helpers.H, observed authObservation) error {
+	if !observed.attempted {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	local, password, needs := "unknown", "unknown", "unknown"
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/v1/setup/status", NoRedirect: true})
+	if err == nil && resp.Status == 200 {
+		var status struct {
+			NeedsSetup      *bool `json:"needsSetup"`
+			HasPasswordAuth *bool `json:"hasPasswordAuth"`
+			AuthMethods     struct {
+				Local *bool `json:"local"`
+			} `json:"authMethods"`
+		}
+		if resp.Decode(&status) == nil {
+			flag := func(value *bool) string {
+				if value == nil {
+					return "unknown"
+				}
+				return strconv.FormatBool(*value)
+			}
+			local, password, needs = flag(status.AuthMethods.Local), flag(status.HasPasswordAuth), flag(status.NeedsSetup)
+		}
+	}
+	return h.Step(ctx, "auth-status", "observe Tracearr failed authentication", helpers.StepSpec{
+		Do: func(context.Context) error {
+			return fmt.Errorf("Tracearr authentication status: login_http=%d token_present=%t me_http=%d username_match=%t email_match=%t owner_match=%t owner_id_present=%t local_login_enabled=%s has_password_auth=%s needs_setup=%s", observed.loginHTTP, observed.token, observed.meHTTP, observed.username, observed.email, observed.owner, observed.id, local, password, needs)
+		},
+		Hint: "Open " + h.URL + " and check the reported authentication stage and local-login policy; preserve the existing owner and saved credentials.",
+	})
 }
 
 // Tracearr 2.6.0 exposes these cached public signals even while its API is
@@ -258,7 +312,14 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{Login: signedIn}).Check(ctx, h)
+	var observed authObservation
+	err := (onboard.FirstAdmin{Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+		return observeLogin(ctx, h, user, password, &observed)
+	}}).Check(ctx, h)
+	if err == nil {
+		return nil
+	}
+	return errors.Join(err, authStatus(ctx, h, observed))
 }
 
 func (App) Links() []app.Link { return nil }
