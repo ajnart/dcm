@@ -47,7 +47,7 @@ func TestThePreseededAdministratorSignsIn(t *testing.T) {
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "portainer", Service: "portainer",
-		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "unused", "PORTAINER_ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
+		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
 
 	if err := (portainer.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -65,7 +65,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "portainer", Service: "portainer",
-		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "PORTAINER_ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
+		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
 
 	if err := (portainer.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -80,7 +80,7 @@ func TestTheHintNamesTheAppWhenTheSeedIsStale(t *testing.T) {
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "portainer", Service: "portainer",
-		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "PORTAINER_ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
+		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "portainer-secret"}}, server, rec)
 
 	if err := (portainer.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the preseeded password is refused")

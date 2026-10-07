@@ -32,14 +32,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
-// Secrets declares the administrator password Portainer reads from
-// /run/secrets/admin-bootstrap at first start.
-func (App) Secrets() []app.SecretSpec {
-	return []app.SecretSpec{{Name: "admin_password", Length: 40}}
-}
-
+// Files writes the shared Admin password to the bootstrap file Portainer
+// reads with --admin-password-file at first start.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
-	return []app.File{{Path: "admin-bootstrap", Content: secret("admin_password") + "\n", Mode: 0o600}}
+	return []app.File{{Path: "admin-bootstrap", Content: secret("ADMIN_PASSWORD") + "\n", Mode: 0o600}}
 }
 
 func (App) Compose(rc app.RenderContext) string {
@@ -103,20 +99,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.WaitHTTP(ctx, "/", 2*time.Minute); err != nil {
 		return err
 	}
-	password := h.Secret(h.Key("admin_password"))
 	return h.Step(ctx, "admin", "the preseeded administrator signs in", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return loginWorks(ctx, h, h.AdminUser(), password) },
+		Check: func(ctx context.Context) (bool, error) { return loginWorks(ctx, h, h.AdminUser(), h.AdminPassword()) },
 		Do: func(context.Context) error {
 			return errors.New("Portainer seeds its administrator from the password file at first start")
 		},
-		Hint:       "Open " + h.URL + ", sign in as " + h.AdminUser() + " with the password shown by `self-host credentials` (" + h.Key("admin_password") + "), then connect a Docker environment separately.",
+		Hint:       "Open " + h.URL + ", sign in as " + h.AdminUser() + " with the password shown by `self-host credentials`, then connect a Docker environment separately.",
 		Credential: "admin",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	password := h.Secret(h.Key("admin_password"))
-	if ok, err := loginWorks(ctx, h, h.AdminUser(), password); !ok {
+	if ok, err := loginWorks(ctx, h, h.AdminUser(), h.AdminPassword()); !ok {
 		return fmt.Errorf("the preseeded Portainer administrator cannot sign in: %v", err)
 	}
 	return nil
