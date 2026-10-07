@@ -81,7 +81,10 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 
 func firstAdmin() onboard.FirstAdmin {
 	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/control/status", Want: []int{http.StatusOK, http.StatusUnauthorized}},
+		Ready: onboard.Probe{
+			Path: "/control/install/get_addresses",
+			Want: []int{http.StatusOK, http.StatusForbidden, http.StatusNotFound},
+		},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,
