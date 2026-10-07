@@ -37,6 +37,9 @@ type fakeHomarr struct {
 	integrations  []map[string]any
 	items         []map[string]any
 	sections      []any
+	boards        []map[string]any
+	readBoard     string
+	rejectUpdates bool
 	nextID        int
 }
 
@@ -214,6 +217,24 @@ func (f *fakeHomarr) handler() http.Handler {
 		f.apps = append(f.apps, body)
 		json.NewEncoder(w).Encode(map[string]any{"appId": id, "id": id})
 	})
+	mux.HandleFunc("PATCH /api/apps/{id}", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !f.keyOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		for _, item := range f.apps {
+			if appID, _ := item["id"].(string); appID == r.PathValue("id") {
+				for key, value := range body {
+					item[key] = value
+				}
+			}
+		}
+		json.NewEncoder(w).Encode(map[string]any{})
+	})
 	mux.HandleFunc("DELETE /api/apps/{id}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -268,6 +289,27 @@ func (f *fakeHomarr) handler() http.Handler {
 		f.integrations = append(f.integrations, integration)
 		trpc(w, map[string]any{"integration": integration})
 	})
+	mux.HandleFunc("POST /api/trpc/integration.update", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !f.keyOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		input := inputOf(r)
+		if f.rejectUpdates {
+			trpcError(w)
+			return
+		}
+		for _, item := range f.integrations {
+			if item["id"] == input["id"] {
+				for key, value := range input {
+					item[key] = value
+				}
+			}
+		}
+		trpc(w, nil)
+	})
 	mux.HandleFunc("POST /api/trpc/integration.delete", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -291,6 +333,10 @@ func (f *fakeHomarr) handler() http.Handler {
 		defer f.mu.Unlock()
 		if !f.keyOK(r) {
 			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if f.boards != nil {
+			json.NewEncoder(w).Encode(f.boards)
 			return
 		}
 		json.NewEncoder(w).Encode([]any{map[string]any{"id": "board-1", "name": "Home"}})
@@ -319,6 +365,13 @@ func (f *fakeHomarr) handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		var input struct {
+			JSON struct {
+				Name string `json:"name"`
+			} `json:"json"`
+		}
+		json.Unmarshal([]byte(r.URL.Query().Get("input")), &input)
+		f.readBoard = input.JSON.Name
 		items := f.items
 		if items == nil {
 			items = []map[string]any{}
@@ -737,6 +790,531 @@ func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
 	if after != before {
 		t.Fatalf("rerun changed items from %d to %d", before, after)
 	}
+}
+
+func TestLinkRerunRepairsMissingTileAndChangedBrowserURL(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	kept := fake.items[:0]
+	for _, item := range fake.items {
+		if item["kind"] != "app" {
+			kept = append(kept, item)
+		}
+	}
+	fake.items = kept
+	fake.mu.Unlock()
+	to.URL = "http://new-host.example:18989"
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	tiles := 0
+	for _, item := range fake.items {
+		if item["kind"] == "app" {
+			tiles++
+		}
+	}
+	if tiles != 1 || len(fake.apps) != 1 || fake.apps[0]["href"] != to.URL {
+		t.Fatalf("tile or browser URL not repaired: tiles=%d apps=%v", tiles, fake.apps)
+	}
+}
+
+func TestRemovalReconcilesPartiallyMissingWidgets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	kept := fake.items[:0]
+	for _, item := range fake.items {
+		if item["kind"] != "calendar" {
+			kept = append(kept, item)
+		}
+	}
+	fake.items = kept
+	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 0 || len(fake.integrations) != 0 {
+		t.Fatalf("partial removal left Apps/integrations: %v/%v", fake.apps, fake.integrations)
+	}
+	for _, item := range fake.items {
+		if item["kind"] != "notebook" {
+			t.Fatalf("partial removal left widget: %v", item)
+		}
+	}
+}
+
+func TestLinkReconcilesRotatedIntegrationCredential(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "sonarr", 8989, secrets)
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	secrets["SONARR_API_KEY"] = "rotated-key"
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.integrations) != 1 {
+		t.Fatalf("rotation duplicated integration: %v", fake.integrations)
+	}
+	values, _ := fake.integrations[0]["secrets"].([]any)
+	value, _ := values[0].(map[string]any)
+	if value["value"] != "rotated-key" {
+		t.Fatalf("rotation not reconciled: %v", value)
+	}
+}
+
+func TestLinkUsesHomeBoardWhenAnotherBoardIsListedFirst(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.boards = []map[string]any{{"id": "other", "name": "Other"}, {"id": "board-1", "name": "Home"}}
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	if err := linkFor(t, "sonarr").Apply(context.Background(), from, targetH(t, srv, "sonarr", 8989, allSecrets())); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if fake.readBoard != "Home" {
+		t.Fatalf("published to %q, want owned Home", fake.readBoard)
+	}
+}
+
+func TestSetupReconcilesGenericInstalledAppTilesAndNotebook(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists = true
+	fake.adminName = "admin"
+	fake.adminPassword = "pw"
+	fake.step = "finish"
+	srv := serve(t, fake)
+	h := homarrH(t, srv, allSecrets())
+	installed := []helpers.InstalledApp{{ID: "gatus", Name: "Gatus", URL: "http://host.example:8081", Service: "gatus", ContainerPort: 8080}, {ID: "valkey", Name: "Valkey"}}
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) { return installed, nil }
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	if len(fake.apps) != 1 || fake.apps[0]["href"] != "http://host.example:8081" {
+		t.Fatalf("generic App missing: %v", fake.apps)
+	}
+	notes := notebooks(fake.items)
+	options, _ := notes[0]["options"].(map[string]any)
+	content, _ := options["content"].(string)
+	if !strings.Contains(content, "Gatus") || !strings.Contains(content, "Valkey") || !strings.Contains(content, "no browser endpoint") {
+		t.Fatalf("incomplete notebook: %s", content)
+	}
+	fake.apps = append(fake.apps, map[string]any{"id": "user-app", "name": "My app", "href": "http://private.example", "pingUrl": "http://private.example"})
+	fake.mu.Unlock()
+	installed = []helpers.InstalledApp{{ID: "forgejo", Name: "Forgejo", URL: "http://host.example:3001", Service: "forgejo", ContainerPort: 3000}}
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 2 {
+		t.Fatalf("generic reconciliation lost unrelated App or duplicated: %v", fake.apps)
+	}
+	for _, item := range fake.apps {
+		if item["name"] == "Gatus" {
+			t.Fatalf("removed App survived: %v", item)
+		}
+	}
+}
+
+func TestRemovalPreservesUserWidgetOnManagedIntegration(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.items = append(fake.items, map[string]any{"id": "user-widget", "kind": "calendar", "integrationIds": []any{fake.integrations[0]["id"]}, "options": map[string]any{}})
+	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["id"] == "user-widget" {
+			return
+		}
+	}
+	t.Fatal("removal deleted user-owned widget")
+}
+
+func TestRemovalCleansWidgetsAfterIntegrationWasDeleted(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.integrations = nil
+	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["kind"] != "notebook" {
+			t.Fatalf("orphan survived removal: %v", item)
+		}
+	}
+}
+
+func TestLinkRepairsManagedStatsOptionsWithoutDuplicatingWidget(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	for _, item := range fake.items {
+		if item["kind"] == "stats" {
+			item["options"] = map[string]any{"entries": []any{}}
+		}
+	}
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	count := 0
+	for _, item := range fake.items {
+		if item["kind"] == "stats" {
+			count++
+			options, _ := item["options"].(map[string]any)
+			entries, _ := options["entries"].([]any)
+			if len(entries) != 4 {
+				t.Fatalf("stats options not repaired: %v", options)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("stats widgets=%d, want one", count)
+	}
+}
+
+func TestInstalledSupportedAppGetsTileBeforeItsIntegrationIsReady(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists = true
+	fake.adminName = "admin"
+	fake.adminPassword = "pw"
+	fake.step = "finish"
+	srv := serve(t, fake)
+	h := homarrH(t, srv, allSecrets())
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) {
+		return []helpers.InstalledApp{{ID: "ntfy", Name: "ntfy", URL: "http://ntfy.example", Service: "ntfy", ContainerPort: 80}}, nil
+	}
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	if len(fake.apps) != 1 || len(fake.integrations) != 0 {
+		t.Fatalf("tile-only publication wrong: apps=%v integrations=%v", fake.apps, fake.integrations)
+	}
+	fake.mu.Unlock()
+	if err := linkFor(t, "ntfy").Apply(context.Background(), h, targetH(t, srv, "ntfy", 2586, allSecrets())); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 1 || len(fake.integrations) != 1 {
+		t.Fatalf("Link duplicated tile: apps=%v integrations=%v", fake.apps, fake.integrations)
+	}
+}
+
+func TestLinkRepairsStatsAndMissingTileTogether(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	kept := fake.items[:0]
+	for _, item := range fake.items {
+		if item["kind"] == "app" {
+			continue
+		}
+		if item["kind"] == "stats" {
+			item["options"] = map[string]any{"entries": []any{}}
+		}
+		kept = append(kept, item)
+	}
+	fake.items = kept
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLinkRerunReplacesDeletedIntegrationWithoutOrphanWidgets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.integrations = nil
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.integrations) != 1 || len(fake.items) != 5 {
+		t.Fatalf("replacement kept orphan widgets: integrations=%d items=%d", len(fake.integrations), len(fake.items))
+	}
+}
+
+func TestRejectedCredentialUpdateFailsAndRemainsRetryable(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "sonarr", 8989, secrets)
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	secrets["SONARR_API_KEY"] = "rotated-key"
+	fake.mu.Lock()
+	fake.rejectUpdates = true
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err == nil {
+		t.Fatal("HTTP 200 rejected update was reported as success")
+	}
+	fake.mu.Lock()
+	fake.rejectUpdates = false
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	values, _ := fake.integrations[0]["secrets"].([]any)
+	value, _ := values[0].(map[string]any)
+	if value["value"] != "rotated-key" {
+		t.Fatalf("rejected update was marked done: %v", value)
+	}
+}
+
+func TestRemovalDeletesTilesWhenAppRecordAlreadyMissing(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.apps = nil
+	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["kind"] != "notebook" {
+			t.Fatalf("orphan tile survived: %v", item)
+		}
+	}
+}
+
+func TestSetupAdoptsLegacySupportedAppWithoutDuplicateTile(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists = true
+	fake.adminName = "admin"
+	fake.adminPassword = "pw"
+	fake.step = "finish"
+	fake.apps = []map[string]any{{"id": "legacy-app", "name": "Sonarr", "description": nil, "iconUrl": "https://example.test/icon.svg", "href": "http://old-host.example:8989", "pingUrl": "http://sonarr:8989"}}
+	fake.items = []map[string]any{{"id": "legacy-tile", "kind": "app", "options": map[string]any{"appId": "legacy-app", "openInNewTab": true, "showTitle": true}, "integrationIds": []any{}}}
+	srv := serve(t, fake)
+	h := homarrH(t, srv, allSecrets())
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) {
+		return []helpers.InstalledApp{{ID: "sonarr", Name: "Sonarr", URL: "http://new-host.example:8989", Service: "sonarr", ContainerPort: 8989}}, nil
+	}
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 1 || fake.apps[0]["id"] != "legacy-app" || fake.apps[0]["href"] != "http://new-host.example:8989" {
+		t.Fatalf("legacy App duplicated or stale: %v", fake.apps)
+	}
+	tiles := 0
+	for _, item := range fake.items {
+		if item["kind"] == "app" {
+			tiles++
+		}
+	}
+	if tiles != 1 {
+		t.Fatalf("legacy tiles=%d, want one", tiles)
+	}
+}
+
+func TestRemovalMigratesUniqueLegacyGeneratedWidgets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "sonarr", 8989, secrets)
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	for key := range secrets {
+		if strings.HasPrefix(key, "HOMARR_WIDGETS_") {
+			delete(secrets, key)
+		}
+	}
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["kind"] != "notebook" {
+			t.Fatalf("legacy managed item survived: %v", item)
+		}
+	}
+}
+
+func TestSetupCleansGenericTileWhoseAppRecordIsGone(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists = true
+	fake.adminName = "admin"
+	fake.adminPassword = "pw"
+	fake.step = "finish"
+	srv := serve(t, fake)
+	h := homarrH(t, srv, allSecrets())
+	installed := []helpers.InstalledApp{{ID: "gatus", Name: "Gatus", URL: "http://gatus.example", Service: "gatus", ContainerPort: 8080}}
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) { return installed, nil }
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.apps = nil
+	fake.mu.Unlock()
+	installed = nil
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["kind"] == "app" {
+			t.Fatalf("generic orphan tile survived: %v", item)
+		}
+	}
+}
+
+func TestInvalidWidgetOwnershipFailsWithoutDeletingUserWidgets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "sonarr", 8989, secrets)
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	fake.items = append(fake.items, map[string]any{"id": "user-calendar", "kind": "calendar", "integrationIds": []any{fake.integrations[0]["id"]}, "options": map[string]any{}})
+	before := len(fake.items)
+	fake.mu.Unlock()
+	key := ""
+	for name := range secrets {
+		if strings.HasPrefix(name, "HOMARR_WIDGETS_") {
+			key = name
+			secrets[name] = "invalid-json"
+		}
+	}
+	if err := link.Apply(context.Background(), from, to); err == nil || !strings.Contains(err.Error(), "ownership") {
+		t.Fatalf("invalid ownership reported as success: %v", err)
+	}
+	fake.mu.Lock()
+	if len(fake.items) != before {
+		t.Fatal("invalid ownership mutated widgets")
+	}
+	fake.mu.Unlock()
+	delete(secrets, key)
+	if err := link.Remove(context.Background(), from, to); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("ambiguous legacy widgets were not protected: %v", err)
+	}
+	secrets[key] = "{}"
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["id"] == "user-calendar" {
+			return
+		}
+	}
+	t.Fatal("manual preserve-all recovery deleted user widget")
 }
 
 func TestNotebookExistsOnceAndListsAppsWithoutSecrets(t *testing.T) {

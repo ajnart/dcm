@@ -25,6 +25,10 @@ func notebookContent(services []notebookService) string {
 	sort.Slice(services, func(i, j int) bool { return services[i].name < services[j].name })
 	rows := make([]string, 0, len(services))
 	for _, service := range services {
+		if service.href == "" {
+			rows = append(rows, "<li><strong>"+html.EscapeString(service.name)+"</strong> (no browser endpoint)</li>")
+			continue
+		}
 		rows = append(rows, `<li><strong><a href="`+html.EscapeString(service.href)+`">`+
 			html.EscapeString(service.name)+`</a></strong></li>`)
 	}
@@ -40,6 +44,19 @@ func notebookContent(services []notebookService) string {
 // notebookServices lists the Apps Homarr knows, plus Homarr itself, so the
 // notebook gains a line whenever a Link adds an App and loses it on removal.
 func notebookServices(ctx context.Context, h *helpers.H) ([]notebookService, error) {
+	if h.InstalledApps != nil {
+		installed, err := h.InstalledApps(ctx)
+		if err != nil {
+			return nil, err
+		}
+		services := []notebookService{{name: "Homarr", href: h.URL}}
+		for _, item := range installed {
+			if item.ID != "homarr" {
+				services = append(services, notebookService{name: item.Name, href: item.URL})
+			}
+		}
+		return services, nil
+	}
 	apps, err := listApps(ctx, h)
 	if err != nil {
 		return nil, err

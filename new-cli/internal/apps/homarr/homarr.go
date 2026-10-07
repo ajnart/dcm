@@ -406,6 +406,15 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
+	if h.InstalledApps != nil {
+		if err := h.Step(ctx, "app-tiles", "reconcile installed App tiles", helpers.StepSpec{
+			Check: func(ctx context.Context) (bool, error) { return installedTiles(ctx, h, false) },
+			Do:    func(ctx context.Context) error { _, err := installedTiles(ctx, h, true); return err },
+			Hint:  "Run self-host setup homarr to reconcile installed App tiles; tiles prove navigation only.",
+		}); err != nil {
+			return err
+		}
+	}
 	return h.Step(ctx, "notebook", "place the Homarr notebook", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return notebookCurrent(ctx, h) },
 		Do:         func(ctx context.Context) error { return ensureNotebook(ctx, h) },

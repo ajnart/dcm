@@ -244,10 +244,17 @@ func board(ctx context.Context, h *helpers.H) (map[string]any, error) {
 	if err := resp.Decode(&boards); err != nil {
 		return nil, err
 	}
-	if len(boards) == 0 || stringField(boards[0], "name") == "" {
-		return nil, errors.New("Homarr has no board to place items on")
+	name := ""
+	for _, candidate := range boards {
+		if stringField(candidate, "name") == "Home" {
+			name = "Home"
+			break
+		}
 	}
-	value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": stringField(boards[0], "name")})
+	if name == "" {
+		return nil, errors.New("Homarr Home board is missing; restore or rename the managed board to Home, then run self-host setup homarr")
+	}
+	value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": name})
 	if err != nil {
 		return nil, err
 	}
@@ -325,9 +332,114 @@ func widgetOptions(w widget, integrationID string) map[string]any {
 	return map[string]any{"entries": entries}
 }
 
+func widgetCurrent(item map[string]any, w widget, integrationID string) bool {
+	if w.kind != "stats" {
+		return true
+	}
+	options, _ := item["options"].(map[string]any)
+	entries, _ := options["entries"].([]any)
+	if len(entries) != len(w.metrics) {
+		return false
+	}
+	for _, metric := range w.metrics {
+		found := false
+		for _, raw := range entries {
+			entry, _ := raw.(map[string]any)
+			if stringField(entry, "metric") == metric && stringField(entry, "integrationId") == integrationID && stringField(entry, "id") == statsEntryID(metric) {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func addItem(ctx context.Context, h *helpers.H, body map[string]any) error {
-	_, err := h.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h), JSON: body})
+	_, err := addItemID(ctx, h, body)
 	return err
+}
+
+func addItemID(ctx context.Context, h *helpers.H, body map[string]any) (string, error) {
+	resp, err := h.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h), JSON: body})
+	if err != nil {
+		return "", err
+	}
+	var created map[string]any
+	if err := resp.Decode(&created); err != nil {
+		return "", err
+	}
+	id := stringField(created, "itemId")
+	if id == "" {
+		return "", errors.New("Homarr did not return the board item ID; run self-host setup homarr")
+	}
+	return id, nil
+}
+
+func ownedWidgets(h *helpers.H, integrationID string) map[string]bool {
+	ids := map[string]bool{}
+	json.Unmarshal([]byte(h.Secret(h.Key("widgets_"+integrationID))), &ids)
+	return ids
+}
+
+// The old CLI emitted one widget per kind, empty plain options, and
+// deterministic stats entries. Only that complete, unique shape is adopted.
+// Anything ambiguous requires an explicit ownership decision before mutation.
+func widgetOwnership(h *helpers.H, integrationID string, widgets []widget, items []map[string]any) (map[string]bool, error) {
+	key := h.Key("widgets_" + integrationID)
+	if raw := h.Secret(key); raw != "" {
+		ids := map[string]bool{}
+		if err := json.Unmarshal([]byte(raw), &ids); err != nil || ids == nil {
+			return nil, fmt.Errorf("invalid Homarr widget ownership; review %s as a JSON object of owned widget IDs, then run self-host setup homarr", key)
+		}
+		return ids, nil
+	}
+	owned := map[string]bool{}
+	matching := false
+	complete := true
+	stats := false
+	for _, w := range widgets {
+		candidates := []map[string]any{}
+		for _, item := range items {
+			if wiredTo(item, w.kind, integrationID) {
+				candidates = append(candidates, item)
+			}
+		}
+		if len(candidates) > 0 {
+			matching = true
+		}
+		if len(candidates) != 1 {
+			complete = false
+			continue
+		}
+		item := candidates[0]
+		ids, _ := item["integrationIds"].([]any)
+		options, _ := item["options"].(map[string]any)
+		if len(ids) != 1 || stringField(item, "id") == "" {
+			complete = false
+			continue
+		}
+		if w.kind == "stats" {
+			if !widgetCurrent(item, w, integrationID) {
+				complete = false
+				continue
+			}
+			stats = true
+		} else if len(options) != 0 {
+			complete = false
+			continue
+		}
+		owned[stringField(item, "id")] = true
+	}
+	if matching && (!complete || !stats) {
+		return nil, fmt.Errorf("legacy Homarr widget ownership is ambiguous; review Home widgets and save confirmed owned widget IDs as a JSON object in %s (use {} to preserve all existing widgets), then run self-host setup homarr", key)
+	}
+	raw, _ := json.Marshal(owned)
+	if err := h.SetSecret(key, string(raw)); err != nil {
+		return nil, err
+	}
+	return owned, nil
 }
 
 func addTile(ctx context.Context, h *helpers.H, boardID, appID string) error {
@@ -338,6 +450,43 @@ func addTile(ctx context.Context, h *helpers.H, boardID, appID string) error {
 		"size":           map[string]any{"width": 1, "height": 1},
 		"integrationIds": []any{},
 	})
+}
+
+func managedAppIDs(h *helpers.H) map[string]string {
+	ids := map[string]string{}
+	json.Unmarshal([]byte(h.Secret(h.Key("app_ids"))), &ids)
+	return ids
+}
+
+func rememberAppID(h *helpers.H, targetID, appID string) error {
+	ids := managedAppIDs(h)
+	ids[targetID] = appID
+	raw, _ := json.Marshal(ids)
+	return h.SetSecret(h.Key("app_ids"), string(raw))
+}
+
+func removeAppTiles(ctx context.Context, h *helpers.H, appID string) error {
+	if appID == "" {
+		return nil
+	}
+	current, err := board(ctx, h)
+	if err != nil {
+		return err
+	}
+	items := itemsOf(current)
+	kept := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		options, _ := item["options"].(map[string]any)
+		if stringField(item, "kind") == "app" && stringField(options, "appId") == appID {
+			continue
+		}
+		kept = append(kept, item)
+	}
+	if len(kept) == len(items) {
+		return nil
+	}
+	_, err = apiKeyWrite(ctx, h, "board.saveBoard", map[string]any{"id": stringField(current, "id"), "sections": current["sections"], "items": kept})
+	return err
 }
 
 // ensureIntegration returns the integration id, creating it only when the
@@ -357,7 +506,31 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 		return "", err
 	}
 	if id := match(integrations); id != "" {
+		if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
+			return "", err
+		}
+		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) {
+			value, err := apiKeyWrite(ctx, from, "integration.update", map[string]any{
+				"id": id, "name": t.name, "url": internal, "secrets": t.secrets(from, to), "appId": appID,
+			})
+			if err != nil {
+				return "", err
+			}
+			if record, ok := value.(map[string]any); ok {
+				if failure, found := record["error"]; found && failure != nil {
+					return "", fmt.Errorf("Homarr rejected the %s integration update: %v; correct its connection or credentials, then run self-host setup homarr", t.name, failure)
+				}
+			}
+			if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
+				return "", err
+			}
+		}
 		return id, nil
+	}
+	if previous := from.Secret(from.Key("linked_" + t.id)); previous != "" {
+		if err := removeWidgets(ctx, from, previous, t.widgets); err != nil {
+			return "", err
+		}
 	}
 	if err := createIntegration(ctx, from, map[string]any{
 		"name": t.name, "url": internal, "kind": t.kind,
@@ -374,19 +547,62 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	if id == "" {
 		return "", errors.New("Homarr did not keep the " + t.name + " integration")
 	}
+	if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
+		return "", err
+	}
+	if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
+		return "", err
+	}
 	return id, nil
 }
 
+func integrationFingerprintKey(h *helpers.H, id string) string { return h.Key("integration_" + id) }
+
+func integrationFingerprint(t target, from, to *helpers.H) string {
+	raw, _ := json.Marshal(t.secrets(from, to))
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
+
 func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrationID string, items []map[string]any) error {
+	owned, err := widgetOwnership(h, integrationID, t.widgets, items)
+	if err != nil {
+		return err
+	}
 	for _, w := range t.widgets {
 		if hasWidget(items, w.kind, integrationID) {
+			for _, item := range items {
+				if !owned[stringField(item, "id")] || !wiredTo(item, w.kind, integrationID) || widgetCurrent(item, w, integrationID) {
+					continue
+				}
+				current, err := board(ctx, h)
+				if err != nil {
+					return err
+				}
+				latest := itemsOf(current)
+				for _, candidate := range latest {
+					if stringField(candidate, "id") == stringField(item, "id") {
+						candidate["options"] = widgetOptions(w, integrationID)
+					}
+				}
+				_, err = apiKeyWrite(ctx, h, "board.saveBoard", map[string]any{"id": boardID, "sections": current["sections"], "items": latest})
+				if err != nil {
+					return err
+				}
+			}
 			continue
 		}
-		if err := addItem(ctx, h, map[string]any{
+		id, err := addItemID(ctx, h, map[string]any{
 			"boardId": boardID, "kind": w.kind,
 			"options":        widgetOptions(w, integrationID),
 			"integrationIds": []any{integrationID},
-		}); err != nil {
+		})
+		if err != nil {
+			return err
+		}
+		owned[id] = true
+		raw, _ := json.Marshal(owned)
+		if err := h.SetSecret(h.Key("widgets_"+integrationID), string(raw)); err != nil {
 			return err
 		}
 	}
@@ -400,16 +616,15 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 	if err != nil {
 		return err
 	}
-	kinds := make(map[string]bool, len(widgets))
-	for _, w := range widgets {
-		kinds[w.kind] = true
-	}
 	items := itemsOf(current)
+	owned, err := widgetOwnership(h, integrationID, widgets, items)
+	if err != nil {
+		return err
+	}
 	kept := make([]map[string]any, 0, len(items))
 	removed := false
 	for _, item := range items {
-		kind := stringField(item, "kind")
-		if kinds[kind] && wiredTo(item, kind, integrationID) {
+		if owned[stringField(item, "id")] {
 			removed = true
 			continue
 		}
@@ -429,9 +644,25 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	internal := t.internal(to)
-	_, found, err := findApp(ctx, from, internal)
+	id, found, err := findApp(ctx, from, internal)
 	if err != nil || !found {
 		return false, err
+	}
+	apps, err := listApps(ctx, from)
+	if err != nil {
+		return false, err
+	}
+	for _, item := range apps {
+		if appID(item) == id && stringField(item, "href") != to.URL {
+			return false, nil
+		}
+	}
+	current, err := board(ctx, from)
+	if err != nil {
+		return false, err
+	}
+	if !hasTile(itemsOf(current), id) {
+		return false, nil
 	}
 	if t.kind == "" {
 		return true, nil
@@ -450,17 +681,30 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	if integrationID == "" {
 		return false, nil
 	}
+	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
+		return false, nil
+	}
 	if len(t.widgets) == 0 {
 		return true, nil
 	}
-	current, err := board(ctx, from)
-	if err != nil {
-		return false, err
+	rawOwnership := from.Secret(from.Key("widgets_" + integrationID))
+	if rawOwnership == "" {
+		return false, nil
+	}
+	var ownership map[string]bool
+	if err := json.Unmarshal([]byte(rawOwnership), &ownership); err != nil || ownership == nil {
+		return false, errors.New("Homarr widget ownership must be reviewed; run self-host setup homarr for the recovery operation")
 	}
 	items := itemsOf(current)
 	for _, w := range t.widgets {
 		if !hasWidget(items, w.kind, integrationID) {
 			return false, nil
+		}
+		owned := ownedWidgets(from, integrationID)
+		for _, item := range items {
+			if owned[stringField(item, "id")] && wiredTo(item, w.kind, integrationID) && !widgetCurrent(item, w, integrationID) {
+				return false, nil
+			}
 		}
 	}
 	return true, nil
@@ -478,10 +722,13 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	if !found {
+		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+			return err
+		}
 		resp, err := from.Expect(ctx, helpers.Request{
 			Method: "POST", Path: "/api/apps", Header: apiKeyHeader(from),
 			JSON: map[string]any{
-				"name": t.name, "description": nil, "iconUrl": iconURL(t.id),
+				"name": t.name, "description": installedTileMarker + t.id, "iconUrl": iconURL(t.id),
 				"href": to.URL, "pingUrl": internal,
 			},
 		})
@@ -496,6 +743,25 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if id == "" {
 			return errors.New("Homarr did not return an app id")
 		}
+	} else {
+		apps, err := listApps(ctx, from)
+		if err != nil {
+			return err
+		}
+		for _, item := range apps {
+			if appID(item) != id || stringField(item, "href") == to.URL {
+				continue
+			}
+			_, err := from.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(from), JSON: map[string]any{
+				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": to.URL, "pingUrl": internal,
+			}})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if err := rememberAppID(from, t.id, id); err != nil {
+		return err
 	}
 	items := itemsOf(current)
 	if !hasTile(items, id) {
@@ -518,6 +784,11 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 	internal := t.internal(to)
 	if t.kind != "" {
+		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
+			if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
+				return err
+			}
+		}
 		integrations, err := listIntegrations(ctx, from)
 		if err != nil {
 			return err
@@ -537,13 +808,63 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 		}
 	}
 	id, found, err := findApp(ctx, from, internal)
-	if err != nil || !found {
+	if err != nil {
+		return err
+	}
+	if !found {
+		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+			return err
+		}
+		return ensureNotebook(ctx, from)
+	}
+	if err := removeAppTiles(ctx, from, id); err != nil {
 		return err
 	}
 	if _, err = from.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(from)}); err != nil {
 		return err
 	}
 	return ensureNotebook(ctx, from)
+}
+
+func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
+	internal := t.internal(to)
+	_, found, err := findApp(ctx, from, internal)
+	if err != nil || found {
+		return false, err
+	}
+	if id := managedAppIDs(from)[t.id]; id != "" {
+		current, err := board(ctx, from)
+		if err != nil {
+			return false, err
+		}
+		if hasTile(itemsOf(current), id) {
+			return false, nil
+		}
+	}
+	if t.kind != "" {
+		integrations, err := listIntegrations(ctx, from)
+		if err != nil {
+			return false, err
+		}
+		for _, item := range integrations {
+			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+				return false, nil
+			}
+		}
+		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
+			current, err := board(ctx, from)
+			if err != nil {
+				return false, err
+			}
+			owned := ownedWidgets(from, id)
+			for _, item := range itemsOf(current) {
+				if owned[stringField(item, "id")] {
+					return false, nil
+				}
+			}
+		}
+	}
+	return true, nil
 }
 
 // link wires Homarr to one target. The framework runs Apply only once the
@@ -569,8 +890,7 @@ func (t target) link() app.Link {
 		Remove: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, "un"+id, "remove "+t.name+" from Homarr", helpers.StepSpec{
 				Check: func(ctx context.Context) (bool, error) {
-					found, err := t.linked(ctx, from, to)
-					return !found, err
+					return t.absent(ctx, from, to)
 				},
 				Do:         func(ctx context.Context) error { return t.remove(ctx, from, to) },
 				Hint:       t.hint(from),
