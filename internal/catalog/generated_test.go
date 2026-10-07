@@ -18,6 +18,8 @@ import (
 var hostSettings = map[string]bool{
 	"TZ": true, "PUID": true, "PGID": true, "UMASK": true, "BIND_IP": true,
 	"LAN_IP": true, "MEDIA_ROOT": true, "DOWNLOADS_ROOT": true,
+	// The Admin login is in secrets.env for Apps that take it as env.
+	"ADMIN_USER": true, "ADMIN_PASSWORD": true,
 }
 
 var composeRef = regexp.MustCompile(`\$\{([^}]+)\}`)

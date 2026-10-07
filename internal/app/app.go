@@ -61,6 +61,9 @@ type SecretSpec struct {
 	Name string
 	// Length is the size of the generated random value.
 	Length int
+	// Hex makes it Length hexadecimal digits (e.g. a 256-bit key as 64)
+	// instead of letters and digits.
+	Hex bool
 }
 
 // SecretDeclarer is an optional interface for Apps whose Compose fragment
@@ -80,4 +83,23 @@ type Link struct {
 	Title  string
 	Apply  func(ctx context.Context, from, to *helpers.H) error
 	Remove func(ctx context.Context, from, to *helpers.H) error
+}
+
+// File is a configuration file an App needs before its container first
+// starts, written to apps/<id>/<Path> (Path is relative to the App folder).
+type File struct {
+	Path    string
+	Content string
+	// Mode defaults to 0644; use 0600 when Content holds a secret.
+	Mode uint32
+	// Keep leaves an existing file alone, e.g. one the App rewrites itself.
+	Keep bool
+}
+
+// FileDeclarer is an optional interface for Apps that need generated config
+// files (a Caddyfile, a gatus config.yaml). Install writes them after the
+// App's secrets exist and before the container starts; secret returns one of
+// the App's declared secrets by its short name.
+type FileDeclarer interface {
+	Files(rc RenderContext, secret func(name string) string) []File
 }
