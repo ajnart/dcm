@@ -99,7 +99,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	identity, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/users/me",
-		Body:   []byte("{}"),
+		JSON:   map[string]any{},
 		Header: map[string]string{"Cookie": "authToken=" + cookie},
 	})
 	if err != nil {

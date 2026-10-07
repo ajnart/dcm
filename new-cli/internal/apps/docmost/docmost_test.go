@@ -28,12 +28,24 @@ type fakeDocmost struct {
 	setups int
 }
 
+// jsonOnly mirrors Docmost's Fastify, which answers 415 when a POST carries a
+// body that has no application/json media type.
+func jsonOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.ContentLength != 0 && !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func (f *fakeDocmost) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	mux.HandleFunc("POST /api/auth/setup", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/auth/setup", jsonOnly(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		f.setups++
@@ -46,8 +58,8 @@ func (f *fakeDocmost) handler() http.Handler {
 		f.owner = true
 		http.SetCookie(w, &http.Cookie{Name: "authToken", Value: "cookie"})
 		json.NewEncoder(w).Encode(map[string]any{"success": true, "status": 200, "data": map[string]string{"id": "w1"}})
-	})
-	mux.HandleFunc("POST /api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("POST /api/auth/login", jsonOnly(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		var body struct{ Email, Password string }
@@ -58,8 +70,8 @@ func (f *fakeDocmost) handler() http.Handler {
 		}
 		http.SetCookie(w, &http.Cookie{Name: "authToken", Value: "cookie"})
 		json.NewEncoder(w).Encode(map[string]any{"success": true, "status": 200})
-	})
-	mux.HandleFunc("POST /api/users/me", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("POST /api/users/me", jsonOnly(func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("authToken"); err != nil || c.Value != "cookie" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -68,7 +80,7 @@ func (f *fakeDocmost) handler() http.Handler {
 			"success": true, "status": 200,
 			"data": map[string]any{"user": map[string]string{"email": f.email, "role": "owner"}},
 		})
-	})
+	}))
 	return mux
 }
 
