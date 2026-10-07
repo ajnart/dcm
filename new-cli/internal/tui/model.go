@@ -35,6 +35,17 @@ const (
 
 var detailTabs = []string{"logs", "setup", "info", "compose"}
 
+// surface is the whole screen the Dashboard, Install, Settings or Stack view
+// fills; the Dashboard is home.
+type surface int
+
+const (
+	surfaceDashboard surface = iota
+	surfaceInstall
+	surfaceSettings
+	surfaceStack
+)
+
 type level int
 
 const (
@@ -60,6 +71,14 @@ type (
 	updatesMsg  struct{ updates map[string]string }
 	updatesTick struct{}
 	releaseMsg  struct{ version string }
+	reviewMsg   struct {
+		rows []service.SettingReview
+		err  error
+	}
+	containersMsg struct {
+		containers []service.ContainerStatus
+		err        error
+	}
 	tickMsg     time.Time
 	taskDoneMsg struct {
 		id    int
@@ -117,6 +136,7 @@ type Model struct {
 	status    service.Status
 	checks    []host.Check
 	updates   map[string]string
+	updatesAt time.Time
 	latest    string
 	loaded    bool
 	statusErr string
@@ -131,9 +151,16 @@ type Model struct {
 	compose  map[string]string
 
 	showHelp bool
-	picker   *picker
+	surface  surface
+	install  *installView
+	settings *settingsView
+	stack    *stackView
 	wizard   *wizard
 	defaults map[string]string
+	helpVP   viewport.Model
+
+	containers    []service.ContainerStatus
+	containersErr string
 
 	tasks    *taskManager
 	lastTask int
@@ -155,6 +182,7 @@ func New(backend Backend, opts Options) Model {
 		help:    help.New(),
 		spin:    spinner.New(spinner.WithSpinner(spinner.MiniDot)),
 		details: viewport.New(),
+		helpVP:  viewport.New(),
 		compose: map[string]string{},
 		tasks:   &taskManager{},
 	}
@@ -315,6 +343,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case updatesMsg:
 		m.updates = msg.updates
+		m.updatesAt = m.opts.Now()
 		m.applyUpdates()
 		m.relayout()
 		return m, nil
@@ -377,13 +406,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.syncDetailsContent()
 		return m, nil
 
-	case hostReviewMsg:
-		if msg.err != nil {
-			m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
-			return m, nil
+	case reviewMsg:
+		if m.settings != nil {
+			m.settings.apply(msg.rows, msg.err)
 		}
-		if m.picker != nil {
-			m.picker.host = newHostReview(msg.rows)
+		return m, nil
+
+	case containersMsg:
+		m.containers, m.containersErr = msg.containers, ""
+		if msg.err != nil {
+			m.containersErr = msg.err.Error()
 		}
 		return m, nil
 
@@ -399,10 +431,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseWheelMsg:
+		dy := 3
 		if msg.Button == tea.MouseWheelUp {
-			m.details.ScrollUp(3)
-		} else {
-			m.details.ScrollDown(3)
+			dy = -3
+		}
+		switch m.surface {
+		case surfaceInstall:
+			m.install.scroll(dy, len(m.installRows()))
+		case surfaceStack:
+			m.stack.scroll(m.mainHeight(), dy)
+		case surfaceSettings:
+			m.settings.cursor += sign(dy)
+			m.settings.clamp()
+		default:
+			if dy < 0 {
+				m.details.ScrollUp(3)
+			} else {
+				m.details.ScrollDown(3)
+			}
 		}
 		return m, nil
 
@@ -420,15 +466,106 @@ func firstLine(s string) string {
 	return line
 }
 
+func sign(n int) int {
+	if n < 0 {
+		return -1
+	}
+	if n > 0 {
+		return 1
+	}
+	return 0
+}
+
+func (m Model) loadContainers() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		containers, err := backend.Containers(ctx)
+		return containersMsg{containers: containers, err: err}
+	}
+}
+
+func (m Model) loadReview() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		rows, err := backend.ReviewSettings(context.Background())
+		return reviewMsg{rows: rows, err: err}
+	}
+}
+
+// openInstall switches to the Install view.
+func (m Model) openInstall() (tea.Model, tea.Cmd) {
+	m.surface = surfaceInstall
+	m.install = newInstallView(m)
+	m.install.cursor = firstSelectable(m.installItems())
+	return m, nil
+}
+
+// firstSelectable skips category headers when the view opens.
+func firstSelectable(items []installItem) int {
+	for i, it := range items {
+		if !it.header {
+			return i
+		}
+	}
+	return 0
+}
+
+// openSettings switches to the Settings view and loads the host review.
+func (m Model) openSettings() (tea.Model, tea.Cmd) {
+	m.surface = surfaceSettings
+	m.settings = newSettingsView(m)
+	return m, m.loadReview()
+}
+
+// openStack switches to the Stack view and refreshes containers and updates.
+func (m Model) openStack() (tea.Model, tea.Cmd) {
+	m.surface = surfaceStack
+	if m.stack == nil {
+		m.stack = &stackView{}
+	}
+	return m, tea.Batch(m.loadContainers(), m.loadUpdates())
+}
+
+// openHelp shows the key reference, scrolled into a viewport.
+func (m Model) openHelp() (tea.Model, tea.Cmd) {
+	m.showHelp = true
+	m.helpVP.SetWidth(max(min(m.width-10, 92), 20))
+	m.helpVP.SetHeight(max(min(m.height-8, 30), 5))
+	m.helpVP.SetContent(m.helpBody())
+	m.helpVP.GotoTop()
+	return m, nil
+}
+
+func (m Model) handleHelpKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Up):
+		m.helpVP.ScrollUp(1)
+	case key.Matches(msg, m.keys.Down):
+		m.helpVP.ScrollDown(1)
+	case key.Matches(msg, m.keys.ScrollUp):
+		m.helpVP.PageUp()
+	case key.Matches(msg, m.keys.ScrollDown):
+		m.helpVP.PageDown()
+	default:
+		m.showHelp = false
+	}
+	return m, nil
+}
+
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.wizard != nil:
 		return m.handleWizardKey(msg)
-	case m.picker != nil:
-		return m.handlePickerKey(msg)
 	case m.showHelp:
-		m.showHelp = false
-		return m, nil
+		return m.handleHelpKey(msg)
+	case m.surface == surfaceInstall:
+		return m.handleInstallKey(msg)
+	case m.surface == surfaceSettings:
+		return m.handleSettingsKey(msg)
+	case m.surface == surfaceStack:
+		return m.handleStackKey(msg)
 	}
 	k := m.keys
 	switch {
@@ -437,8 +574,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.stopLogs()
 		return m, tea.Quit
 	case key.Matches(msg, k.Help):
-		m.showHelp = true
-		return m, nil
+		return m.openHelp()
 	case key.Matches(msg, k.Up):
 		return m.move(-1)
 	case key.Matches(msg, k.Down):
@@ -453,7 +589,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.details.PageDown()
 		return m, nil
 	case key.Matches(msg, k.Install):
-		return m.openPicker()
+		return m.openInstall()
+	case key.Matches(msg, k.Settings):
+		return m.openSettings()
+	case key.Matches(msg, k.Stack):
+		return m.openStack()
 	case key.Matches(msg, k.Backup):
 		return m.run(Request{Action: ActionBackup}, "backup")
 	case key.Matches(msg, k.Copy):
@@ -513,7 +653,15 @@ func (m Model) move(delta int) (tea.Model, tea.Cmd) {
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 	var n int
 	switch {
+	case strings.HasPrefix(id, "nav:"):
+		return m.gotoSurface(strings.TrimPrefix(id, "nav:"))
 	case strings.HasPrefix(id, "row:"):
+		if m.surface == surfaceInstall {
+			fmt.Sscanf(id, "row:%d", &n)
+			m.install.cursor = n
+			m.install.clamp(len(m.installRows()))
+			return m, nil
+		}
 		fmt.Sscanf(id, "row:%d", &n)
 		m.cursor = n
 		m.clampCursor()
@@ -531,6 +679,22 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 		return m, m.syncDetails()
 	}
 	return m, nil
+}
+
+// gotoSurface switches screens from a mouse click on the top bar.
+func (m Model) gotoSurface(name string) (tea.Model, tea.Cmd) {
+	switch name {
+	case "install":
+		return m.openInstall()
+	case "settings":
+		return m.openSettings()
+	case "stack":
+		return m.openStack()
+	default:
+		m.surface = surfaceDashboard
+		m.install, m.settings = nil, nil
+		return m, nil
+	}
 }
 
 // run starts a background Action; the footer shows its progress.

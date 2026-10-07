@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -55,6 +56,9 @@ func (m *Model) relayout() {
 	m.details.SetWidth(max(l.rightW-4, 1))
 	m.details.SetHeight(max(l.detailsH-4, 1))
 	m.help.SetWidth(m.width)
+	if m.install != nil {
+		m.install.resize(m.width)
+	}
 }
 
 func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }
@@ -79,6 +83,8 @@ func (m Model) View() tea.View {
 
 	var main string
 	var layers []*lipgloss.Layer
+	header := m.renderHeader()
+	footer := m.renderFooter()
 	switch {
 	case m.wizard != nil:
 		main = m.renderWizard()
@@ -86,10 +92,22 @@ func (m Model) View() tea.View {
 		main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
 	case m.statusErr != "":
 		main = m.renderStatusError()
+	case m.surface == surfaceInstall:
+		header, layers = m.renderNav(surfaceInstall)
+		main = m.renderInstall()
+		footer = m.footerWith(installHelp)
+	case m.surface == surfaceSettings:
+		header, layers = m.renderNav(surfaceSettings)
+		main = m.renderSettings()
+		footer = m.footerWith(settingsHelp)
+	case m.surface == surfaceStack:
+		header, layers = m.renderNav(surfaceStack)
+		main = m.renderStack()
+		footer = m.footerWith(stackHelp)
 	default:
 		main, layers = m.renderDashboard()
 	}
-	content := m.renderHeader() + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + m.renderFooter()
+	content := header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + footer
 
 	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
 	if overlay := m.renderOverlay(); overlay != "" {
@@ -225,6 +243,47 @@ func shortHome(path string) string {
 		return "~/self-host"
 	}
 	return path
+}
+
+var navItems = []struct {
+	name    string
+	label   string
+	surface surface
+}{
+	{"dashboard", "Dashboard", surfaceDashboard},
+	{"stack", "Stack", surfaceStack},
+	{"install", "Install", surfaceInstall},
+	{"settings", "Settings", surfaceSettings},
+}
+
+// renderNav is the top bar of the full-screen views: the brand, the four
+// surfaces with the active one highlighted, and the version on the right.
+func (m Model) renderNav(active surface) (string, []*lipgloss.Layer) {
+	t := m.theme
+	left := t.chip("◆ self-host", t.accent) + "  "
+	x := lipgloss.Width(left)
+	var layers []*lipgloss.Layer
+	for i, item := range navItems {
+		if i > 0 {
+			sep := t.dim().Render(" · ")
+			left += sep
+			x += lipgloss.Width(sep)
+		}
+		style := t.dim()
+		if item.surface == active {
+			style = lipgloss.NewStyle().Bold(true).Foreground(t.bright).Background(t.selected)
+		}
+		rendered := style.Render(item.label)
+		left += rendered
+		layers = append(layers, lipgloss.NewLayer(rendered).X(x).Y(0).ID("nav:"+item.name))
+		x += lipgloss.Width(rendered)
+	}
+	right := t.dim().Render("v" + strings.TrimPrefix(m.opts.Version, "v"))
+	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 2 {
+		return truncate(left, m.width), layers
+	}
+	return left + strings.Repeat(" ", gap) + right, layers
 }
 
 func (m Model) renderStatusError() string {
@@ -543,6 +602,12 @@ func wrap(s string, width int) string {
 // renderFooter shows the running Action's latest event, else the last
 // result, with the key hints on the right.
 func (m Model) renderFooter() string {
+	return m.footerWith(m.keys.ShortHelp())
+}
+
+// footerWith is renderFooter with the given key hints, used by each view's
+// own footer.
+func (m Model) footerWith(bindings []key.Binding) string {
 	t := m.theme
 	left := m.footerStatus()
 	if m.wizard != nil {
@@ -550,7 +615,7 @@ func (m Model) renderFooter() string {
 	}
 	h := m.help
 	h.SetWidth(max(m.width-lipgloss.Width(left)-2, 0))
-	right := h.ShortHelpView(m.keys.ShortHelp())
+	right := h.ShortHelpView(bindings)
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 2 {
 		return pad(left, m.width)
@@ -586,20 +651,24 @@ func (m Model) footerStatus() string {
 func (m Model) renderOverlay() string {
 	t := m.theme
 	width := max(min(m.width-6, 100), 20)
-	switch {
-	case m.picker != nil:
-		return t.panel(true).Render(clip(m.renderPicker(width, max(m.height-8, 5)), width))
-	case m.showHelp:
-		h := m.help
-		h.SetWidth(width)
-		body := t.title().Render("Keys") + "\n\n" + h.FullHelpView(m.keys.FullHelp()) + "\n\n" +
-			t.dim().Render("More: self-host --help (remove, restore, config, credentials…)")
-		if m.latest != "" {
-			body += "\n\n" + t.fg(t.info).Render("↑ "+m.releaseNotice())
-		}
-		return t.panel(true).Render(clip(body+"\n\n"+t.dim().Render("any key closes"), width))
+	if m.showHelp {
+		body := t.title().Render("Keys") + "\n\n" + m.helpVP.View() + "\n\n" +
+			t.dim().Render("↑/↓ scroll · any other key closes")
+		return t.panel(true).Render(clip(body, width))
 	}
 	return ""
+}
+
+// helpBody is the key reference, wrapped to the help viewport's width.
+func (m Model) helpBody() string {
+	h := m.help
+	h.SetWidth(max(m.helpVP.Width(), 20))
+	body := h.FullHelpView(m.keys.FullHelp()) + "\n\n" +
+		"More: self-host --help (remove, restore, config, credentials…)"
+	if m.latest != "" {
+		body += "\n\n" + m.releaseNotice()
+	}
+	return body
 }
 
 // clip cuts every line of s to width cells.
