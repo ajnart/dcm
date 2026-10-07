@@ -29,6 +29,18 @@ func writeWUDDockerWrapper(root, project, name, real, override string) (string, 
 	guard := strings.ReplaceAll(netBirdDockerGuard, "NetBird", "WUD")
 	guard = strings.Replace(guard, "if val!=c['project']+'/compose.yml': deny()", "if val not in (c['project']+'/compose.yml',c['override']): deny()", 1)
 	guard = strings.ReplaceAll(guard, "netbird", "wud")
+	guard = strings.Replace(guard, "'images','logs')", "'images','exec')", 1)
+	// The isolated fixture uses the CLI's default administrator, admin. The
+	// password travels only through Compose's -e KEY form and the child env.
+	guard = strings.Replace(guard, "    a=['compose']+out+", `    if a[i]=='exec':
+        command=a[i:]
+        password_commands=(
+            ['exec','-T','-e','NTFY_PASSWORD','ntfy','ntfy','user','add','--role=admin','admin'],
+            ['exec','-T','-e','NTFY_PASSWORD','ntfy','ntfy','user','change-pass','admin'])
+        role_command=['exec','-T','ntfy','ntfy','user','change-role','admin','admin']
+        if command not in password_commands and command!=role_command: deny()
+        if command in password_commands and not os.environ.get('NTFY_PASSWORD'): deny()
+    a=['compose']+out+`, 1)
 	guard = strings.Replace(guard, "relative!='apps/wud'", "relative not in ('apps/wud','apps/ntfy')", 1)
 	guard = strings.Replace(guard, "(apps/wud|replaced-wud)", "(apps/(wud|ntfy)|replaced-(wud|ntfy))", 1)
 	wrapper := filepath.Join(bin, "docker")

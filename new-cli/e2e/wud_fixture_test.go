@@ -100,3 +100,63 @@ func TestWUDWrapperPreservesOnlyExactOwnedOverride(t *testing.T) {
 		}
 	}
 }
+
+func TestWUDWrapperAllowsOnlyPublicNtfyAdminSetup(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "project")
+	override := filepath.Join(root, "owned.yml")
+	real := filepath.Join(root, "fake-docker")
+	// The executor reports only whether the benign fixture value traveled in the
+	// child environment. The password is never printed or included in arguments.
+	script := "#!/usr/bin/env python3\nimport json,os,sys\nprint(json.dumps({'Args':sys.argv[1:],'PasswordInEnvironment':os.environ.get('NTFY_PASSWORD')=='synthetic-fixture-password'}))\n"
+	if os.WriteFile(real, []byte(script), 0700) != nil {
+		t.Fatal("prepare fake executor")
+	}
+	wrapper, err := writeWUDDockerWrapper(root, project, "owned-test", real, override)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix := []string{"compose", "--project-directory", project, "-p", "owned-test", "--env-file", filepath.Join(project, ".env"), "--env-file", filepath.Join(project, "secrets.env"), "-f", filepath.Join(project, "compose.yml")}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for _, suffix := range [][]string{
+		{"exec", "-T", "-e", "NTFY_PASSWORD", "ntfy", "ntfy", "user", "add", "--role=admin", "admin"},
+		{"exec", "-T", "-e", "NTFY_PASSWORD", "ntfy", "ntfy", "user", "change-pass", "admin"},
+		{"exec", "-T", "ntfy", "ntfy", "user", "change-role", "admin", "admin"},
+	} {
+		cmd := exec.CommandContext(ctx, wrapper, append(slices.Clone(prefix), suffix...)...)
+		cmd.Env = append(os.Environ(), "NTFY_PASSWORD=synthetic-fixture-password")
+		output, err := cmd.Output()
+		if err != nil {
+			t.Fatal("public ntfy administrator setup refused")
+		}
+		var got struct {
+			Args                  []string
+			PasswordInEnvironment bool
+		}
+		if json.Unmarshal(output, &got) != nil || !got.PasswordInEnvironment || !slices.Equal(got.Args[len(got.Args)-len(suffix):], suffix) || strings.Contains(string(output), "synthetic-fixture-password") {
+			t.Fatal("administrator/password transport changed")
+		}
+	}
+	for _, suffix := range [][]string{
+		{"exec", "-T", "ntfy", "sh", "-c", "anything"},
+		{"exec", "-T", "-e", "NTFY_PASSWORD=synthetic-fixture-password", "ntfy", "ntfy", "user", "add", "--role=admin", "admin"},
+		{"exec", "-T", "-e", "OTHER_ENV", "ntfy", "ntfy", "user", "add", "--role=admin", "admin"},
+		{"exec", "-T", "-e", "NTFY_PASSWORD", "wud", "ntfy", "user", "add", "--role=admin", "admin"},
+		{"exec", "-T", "-e", "NTFY_PASSWORD", "ntfy", "ntfy", "user", "add", "--role=user", "admin"},
+		{"exec", "-T", "-e", "NTFY_PASSWORD", "ntfy", "ntfy", "user", "add", "--role=admin", "other-user"},
+		{"exec", "-T", "ntfy", "ntfy", "user", "change-role", "admin", "user"},
+		{"logs", "ntfy"},
+	} {
+		cmd := exec.CommandContext(ctx, wrapper, append(slices.Clone(prefix), suffix...)...)
+		cmd.Env = append(os.Environ(), "NTFY_PASSWORD=synthetic-fixture-password")
+		if cmd.Run() == nil {
+			t.Fatal("unapproved ntfy operation allowed")
+		}
+	}
+	cmd := exec.CommandContext(ctx, wrapper, append(slices.Clone(prefix), "exec", "-T", "-e", "NTFY_PASSWORD", "ntfy", "ntfy", "user", "change-pass", "admin")...)
+	cmd.Env = append(os.Environ(), "NTFY_PASSWORD=")
+	if cmd.Run() == nil {
+		t.Fatal("missing password environment accepted")
+	}
+}
