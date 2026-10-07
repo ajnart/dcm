@@ -283,18 +283,36 @@ func TestNothingNeedsActionWhenAllIsWell(t *testing.T) {
 	}
 }
 
-// The keybind audit: the Dashboard has exactly the keys docs/adr/0002 lists.
-// Adding one means changing the ADR and this test on purpose.
+// The keybind audit: every view's Keys() together are exactly the keybinds
+// docs/adr/0002 lists, plus each view's own footer hints. Adding one means
+// changing the ADR and this test on purpose.
 func TestKeybindAudit(t *testing.T) {
 	want := []string{
+		// Dashboard (docs/adr/0002's fixed budget).
 		"select up: up k", "select down: down j", "next tab: tab", "start/stop: enter",
 		"open: o", "copy password: c", "update: u", "retry Setup: r", "install: i",
 		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
 		"settings: s", "stack: d", "search: /", "apply: ctrl+s", "back: esc",
+		// Install.
+		"pick: space", "review: enter",
+		// Settings.
+		"edit: enter",
+		// Stack.
+		"select: ↑/↓", "re-check: r",
 	}
+	empty := &viewContext{}
+	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, newHelpView()}
 	var got []string
-	for _, b := range newKeyMap().all() {
-		got = append(got, b.Help().Desc+": "+strings.Join(b.Keys(), " "))
+	seen := map[string]bool{}
+	for _, v := range views {
+		for _, b := range v.Keys() {
+			s := b.Help().Desc + ": " + strings.Join(b.Keys(), " ")
+			if seen[s] {
+				continue
+			}
+			seen[s] = true
+			got = append(got, s)
+		}
 	}
 	slices.Sort(want)
 	slices.Sort(got)

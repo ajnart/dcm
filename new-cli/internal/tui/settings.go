@@ -41,22 +41,26 @@ var settingsHelp = []key.Binding{
 	hint("enter", "edit"), hint("ctrl+s", "apply"), hint("esc", "back"),
 }
 
-func newSettingsView(m Model) *settingsView {
+func newSettingsView(ctx *viewContext) *settingsView {
 	v := &settingsView{edits: map[string]string{}}
 	for _, key := range settingsKeys {
-		v.rows = append(v.rows, service.SettingReview{Key: key, Current: m.settingCurrent(key)})
+		v.rows = append(v.rows, service.SettingReview{Key: key, Current: settingCurrent(ctx, key)})
 	}
 	return v
 }
 
-func (m Model) settingCurrent(key string) string {
+func (v *settingsView) Keys() []key.Binding { return settingsHelp }
+
+func (v *settingsView) Title() string { return "Settings" }
+
+func settingCurrent(ctx *viewContext, key string) string {
 	switch key {
 	case "EXPOSURE":
-		return m.status.Exposure
+		return ctx.status.Exposure
 	case "LAN_IP":
-		return m.status.LANIP
+		return ctx.status.LANIP
 	default:
-		return m.status.Settings[key]
+		return ctx.status.Settings[key]
 	}
 }
 
@@ -150,71 +154,82 @@ func validateSetting(key, value string) error {
 	return nil
 }
 
-func (m Model) handleSettingsKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	v := m.settings
+func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		return v.handleKey(ctx, msg)
+	case tea.MouseWheelMsg:
+		dy := 1
+		if msg.Button == tea.MouseWheelUp {
+			dy = -1
+		}
+		v.cursor += dy
+		v.clamp()
+		return v, nil, nav{}
+	}
+	return v, nil, nav{}
+}
+
+func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	if v.confirmDiscard {
 		switch msg.String() {
 		case "y", "Y":
-			m.surface, m.settings = surfaceDashboard, nil
+			return v, nil, nav{kind: navBack}
 		case "n", "N", "esc":
 			v.confirmDiscard = false
 		}
-		return m, nil
+		return v, nil, nav{}
 	}
 	if v.editing {
 		switch msg.String() {
 		case "esc":
 			v.editing, v.err = false, ""
-			return m, nil
+			return v, nil, nav{}
 		case "tab":
 			v.cycleChoice()
-			return m, nil
+			return v, nil, nav{}
 		case "enter":
 			value := strings.TrimSpace(v.input.Value())
 			if err := validateSetting(v.key, value); err != nil {
 				v.err = v.key + ": " + err.Error()
-				return m, nil
+				return v, nil, nav{}
 			}
 			v.edits[v.key] = value
 			v.editing, v.err = false, ""
-			return m, nil
+			return v, nil, nav{}
 		}
 		var cmd tea.Cmd
 		v.input, cmd = v.input.Update(msg)
-		return m, cmd
+		return v, cmd, nav{}
 	}
 	switch {
 	case msg.String() == "esc":
 		if len(v.pairs()) > 0 {
 			v.confirmDiscard = true
-			return m, nil
+			return v, nil, nav{}
 		}
-		m.surface, m.settings = surfaceDashboard, nil
-		return m, nil
-	case key.Matches(msg, m.keys.Quit):
-		m.tasks.cancelAll()
-		m.stopLogs()
-		return m, tea.Quit
-	case key.Matches(msg, m.keys.Apply):
+		return v, nil, nav{kind: navBack}
+	case key.Matches(msg, ctx.keys.Quit):
+		ctx.tasks.cancelAll()
+		return v, tea.Quit, nav{}
+	case key.Matches(msg, ctx.keys.Apply):
 		pairs := v.pairs()
 		if len(pairs) == 0 {
-			m.setFlash("no pending changes", levelInfo)
-			return m, nil
+			ctx.setFlash("no pending changes", levelInfo)
+			return v, nil, nav{}
 		}
-		m.surface, m.settings = surfaceDashboard, nil
-		return m.run(Request{Action: ActionConfig, Pairs: pairs}, "config "+strings.Join(pairs, " "))
-	case key.Matches(msg, m.keys.Up):
+		return v, ctx.run(Request{Action: ActionConfig, Pairs: pairs}, "config "+strings.Join(pairs, " ")), nav{kind: navBack}
+	case key.Matches(msg, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
-	case key.Matches(msg, m.keys.Down):
+	case key.Matches(msg, ctx.keys.Down):
 		v.cursor = min(v.cursor+1, len(v.rows)-1)
 	case msg.String() == "enter", msg.String() == "space":
-		return m.beginSettingEdit()
+		return v.beginEdit(ctx)
 	}
-	return m, nil
+	return v, nil, nav{}
 }
 
-func (m Model) beginSettingEdit() (tea.Model, tea.Cmd) {
-	v := m.settings
+func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
 	row := v.rows[v.cursor]
 	if row.Key == "EXPOSURE" {
 		value := service.ExposureLAN
@@ -222,7 +237,7 @@ func (m Model) beginSettingEdit() (tea.Model, tea.Cmd) {
 			value = service.ExposureLocal
 		}
 		v.edits[row.Key] = value
-		return m, nil
+		return v, nil, nav{}
 	}
 	v.editing, v.key, v.err = true, row.Key, ""
 	if row.Key == "LAN_IP" && len(row.Choices) > 1 {
@@ -235,9 +250,9 @@ func (m Model) beginSettingEdit() (tea.Model, tea.Cmd) {
 	v.input.Prompt = ""
 	v.input.SetValue(v.value(v.cursor))
 	v.input.CursorEnd()
-	v.input.SetWidth(max(m.width-24, 20))
+	v.input.SetWidth(max(ctx.width-24, 20))
 	v.input.Focus()
-	return m, textinput.Blink
+	return v, textinput.Blink, nav{}
 }
 
 func (v *settingsView) cycleChoice() {
@@ -249,10 +264,9 @@ func (v *settingsView) cycleChoice() {
 	v.input.CursorEnd()
 }
 
-func (m Model) renderSettings() string {
-	t := m.theme
-	v := m.settings
-	width := max(m.width-4, 12)
+func (v *settingsView) View(ctx *viewContext, width, height int) string {
+	t := ctx.theme
+	inner := max(width-4, 12)
 	var lines []string
 	lines = append(lines, "", "  "+t.title().Render("Host settings")+t.dim().Render("  enter/space edits · ctrl+s applies · esc back"))
 	if v.err != "" {
@@ -260,7 +274,7 @@ func (m Model) renderSettings() string {
 	}
 	lines = append(lines, "")
 	for i := range v.rows {
-		lines = append(lines, "  "+m.renderSettingRow(i, width))
+		lines = append(lines, "  "+v.renderRow(ctx, i, inner))
 	}
 	if pairs := len(v.pairs()); pairs > 0 {
 		lines = append(lines, "", "  "+t.heading().Render("Pending changes")+t.dim().Render(" "+strconv.Itoa(pairs)))
@@ -282,9 +296,8 @@ func (m Model) renderSettings() string {
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderSettingRow(i, width int) string {
-	t := m.theme
-	v := m.settings
+func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
+	t := ctx.theme
 	row := v.rows[i]
 	cursor := "  "
 	if i == v.cursor {

@@ -12,7 +12,6 @@ import (
 func TestRunningPullShowsFooterAndBars(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 	task := m.tasks.start("update one")
-	m.lastTask = task.id
 	for _, e := range []events.Event{
 		{Event: events.PullProgress, Image: "jellyfin:latest", Layer: "l1", Status: "Downloading", Current: 120_000_000, Total: 220_000_000},
 		{Event: events.PullProgress, Image: "jellyfin:latest", Layer: "l2", Status: "Extracting", Current: 60_000_000, Total: 80_000_000},

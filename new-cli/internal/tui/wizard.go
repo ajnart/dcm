@@ -321,7 +321,7 @@ func (m Model) handleWizardKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		case "enter", "y":
 			w.stage = stageInstalling
 			next, cmd := m.installPlan(w.plan)
-			next.wizard.taskID = next.lastTask
+			next.wizard.taskID = next.tasks.lastID
 			return next, cmd
 		case "esc", "n":
 			w.stage = stageWelcome
@@ -394,8 +394,12 @@ func (m Model) renderWizard() string {
 	return ""
 }
 
+// renderPlan is shared by the wizard's review and the Install view.
 func (m Model) renderPlan(p *plan, keys string) string {
-	t := m.theme
+	return renderPlan(m.theme, p, keys)
+}
+
+func renderPlan(t theme, p *plan, keys string) string {
 	lines := []string{"", "  " + t.title().Render("Review") + t.dim().Render("  nothing has been written yet"), ""}
 	lines = append(lines, "  "+t.dim().Bold(true).Render(pad("APP", 20)+pad("IMAGE", 46)+"PORT"))
 	for _, a := range p.apps {

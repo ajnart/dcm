@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -17,119 +20,94 @@ import (
 // Below wideWidth columns the panels stack instead of sitting side by side.
 const wideWidth = 100
 
-// layout places the three panels: Apps above Needs action, App details on
-// the right (wide) or underneath when there is room (narrow).
-type layout struct {
-	wide                    bool
-	leftW, rightW           int
-	appsH, needsH, detailsH int
-	detailsX, detailsY      int
+// surface is the whole screen the Dashboard, Install, Settings, Stack or Help
+// view fills; the Dashboard is home.
+type surface int
+
+const (
+	surfaceDashboard surface = iota
+	surfaceInstall
+	surfaceSettings
+	surfaceStack
+	surfaceHelp
+)
+
+// navKind is what a view asks the Model to do after it handled a message.
+type navKind int
+
+const (
+	navNone navKind = iota
+	navBack
+	navTo
+)
+
+// nav is the result of a view's Update: stay, go back to the Dashboard, or
+// switch to another view.
+type nav struct {
+	kind navKind
+	to   surface
 }
 
-func (m Model) mainHeight() int { return max(m.height-2, 3) }
-
-func (m Model) layout() layout {
-	h := m.mainHeight()
-	appsWant := max(len(m.rows()), 1) + 2
-	if m.width >= wideWidth {
-		left := max(58, m.width*2/5)
-		appsH := min(appsWant, max(h-5, 3))
-		return layout{wide: true, leftW: left, rightW: m.width - left, appsH: appsH, needsH: h - appsH,
-			detailsH: h, detailsX: left, detailsY: 1}
-	}
-	l := layout{leftW: m.width, rightW: m.width}
-	l.appsH = min(appsWant, max(h/2, 3))
-	needs, _ := m.needsLines(m.width - 4)
-	l.needsH = min(len(needs)+2, h-l.appsH)
-	l.detailsH = h - l.appsH - l.needsH
-	if l.detailsH < 6 {
-		l.needsH += l.detailsH
-		l.detailsH = 0
-	}
-	l.detailsY = 1 + l.appsH + l.needsH
-	return l
+// view is one full-screen surface of the Dashboard.
+type view interface {
+	// Update handles a message; nav asks the Model to switch views (navNone, navBack, navTo(kind)).
+	Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav)
+	View(ctx *viewContext, width, height int) string
+	// Keys are the view's own bindings: its footer, its help, and the keybind audit.
+	Keys() []key.Binding
+	Title() string
 }
 
-// relayout sizes the details viewport; call it whenever the layout can move.
-func (m *Model) relayout() {
-	l := m.layout()
-	m.details.SetWidth(max(l.rightW-4, 1))
-	m.details.SetHeight(max(l.detailsH-4, 1))
-	m.help.SetWidth(m.width)
-	if m.install != nil {
-		m.install.resize(m.width)
-	}
+// viewContext is what every view may read or ask for: theme, status, updates,
+// checks, containers, the Backend, run(Request, title) for Actions, and flash.
+type viewContext struct {
+	width, height int
+	dark          bool
+	theme         theme
+	keys          keyMap
+	help          help.Model
+	spin          spinner.Model
+
+	status    service.Status
+	checks    []host.Check
+	updates   map[string]string
+	updatesAt time.Time
+	latest    string
+	loaded    bool
+	statusErr string
+	refreshed time.Time
+
+	containers    []service.ContainerStatus
+	containersErr string
+
+	defaults map[string]string
+
+	backend Backend
+	tasks   *taskManager
+	opts    Options
+
+	flash      string
+	flashLevel level
+
+	// layers are the clickable regions a view produced in View; the Model
+	// composites them so rows and tabs stay mouse targets.
+	layers []*lipgloss.Layer
 }
 
-func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }
+func (ctx *viewContext) mainHeight() int { return max(ctx.height-2, 3) }
 
-func (m Model) View() tea.View {
-	var v tea.View
-	v.AltScreen = true
-	v.MouseMode = tea.MouseModeCellMotion
-	v.ReportFocus = true
-	v.WindowTitle = m.windowTitle()
-	if pct, ok := m.installProgress(); ok {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
-	} else if pct, ok := m.pullPercent(); ok {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
-	} else if m.tasks.running() > 0 {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
-	}
-	if m.width == 0 {
-		v.SetContent("")
-		return v
-	}
+func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
 
-	var main string
-	var layers []*lipgloss.Layer
-	header := m.renderHeader()
-	footer := m.renderFooter()
-	switch {
-	case m.wizard != nil:
-		main = m.renderWizard()
-	case !m.loaded:
-		main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
-	case m.statusErr != "":
-		main = m.renderStatusError()
-	case m.surface == surfaceInstall:
-		header, layers = m.renderNav(surfaceInstall)
-		main = m.renderInstall()
-		footer = m.footerWith(installHelp)
-	case m.surface == surfaceSettings:
-		header, layers = m.renderNav(surfaceSettings)
-		main = m.renderSettings()
-		footer = m.footerWith(settingsHelp)
-	case m.surface == surfaceStack:
-		header, layers = m.renderNav(surfaceStack)
-		main = m.renderStack()
-		footer = m.footerWith(stackHelp)
-	default:
-		main, layers = m.renderDashboard()
+// run starts a background Action; the footer shows its progress.
+func (ctx *viewContext) run(req Request, title string) tea.Cmd {
+	t := ctx.tasks.start(title)
+	backend := ctx.backend
+	run := func() tea.Msg {
+		log := events.New(events.SinkFunc(t.append))
+		err := backend.Run(t.ctx, req, log)
+		return taskDoneMsg{id: t.id, title: title, err: err}
 	}
-	content := header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + footer
-
-	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
-	if overlay := m.renderOverlay(); overlay != "" {
-		w, h := lipgloss.Width(overlay), lipgloss.Height(overlay)
-		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
-		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
-	}
-	comp := lipgloss.NewCompositor(all...)
-	v.SetContent(comp.Render())
-	v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {
-		click, ok := msg.(tea.MouseClickMsg)
-		if !ok {
-			return nil
-		}
-		hit := comp.Hit(click.X, click.Y)
-		if hit.Empty() || hit.ID() == "overlay" {
-			return nil
-		}
-		id := hit.ID()
-		return func() tea.Msg { return clickMsg{id: id} }
-	}
-	return v
+	return tea.Batch(run, ctx.spin.Tick)
 }
 
 // fit pads or cuts s to exactly width×height cells.
@@ -145,6 +123,52 @@ func fit(s string, width, height int) string {
 		lines[i] = pad(line, width)
 	}
 	return strings.Join(lines, "\n")
+}
+
+// clip cuts every line of s to width cells.
+func clip(s string, width int) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = truncate(line, width)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func wrap(s string, width int) string {
+	if width < 10 {
+		return s
+	}
+	return lipgloss.NewStyle().Width(width).Render(s)
+}
+
+// indent wraps s with a hanging indent under prefix.
+func indent(prefix, s string, width int) string {
+	inner := width - lipgloss.Width(prefix)
+	lines := strings.Split(wrap(s, inner), "\n")
+	hang := strings.Repeat(" ", lipgloss.Width(prefix))
+	for i := range lines {
+		if i == 0 {
+			lines[i] = prefix + lines[i]
+		} else {
+			lines[i] = hang + lines[i]
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func sign(n int) int {
+	if n < 0 {
+		return -1
+	}
+	if n > 0 {
+		return 1
+	}
+	return 0
+}
+
+func firstLine(s string) string {
+	line, _, _ := strings.Cut(s, "\n")
+	return line
 }
 
 // Header
@@ -246,8 +270,9 @@ func shortHome(path string) string {
 }
 
 var navItems = []struct {
-	name    string
-	label   string
+	name  string
+	label string
+	// Help is a view too but it opens as an overlay, not a top-bar tab.
 	surface surface
 }{
 	{"dashboard", "Dashboard", surfaceDashboard},
@@ -286,6 +311,72 @@ func (m Model) renderNav(active surface) (string, []*lipgloss.Layer) {
 	return left + strings.Repeat(" ", gap) + right, layers
 }
 
+// View composes the top bar, the active view and the footer, then the Help
+// overlay when it is open.
+func (m Model) View() tea.View {
+	var v tea.View
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	v.ReportFocus = true
+	v.WindowTitle = m.windowTitle()
+	if pct, ok := m.installProgress(); ok {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
+	} else if pct, ok := m.pullPercent(); ok {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
+	} else if m.tasks.running() > 0 {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
+	}
+	if m.width == 0 {
+		v.SetContent("")
+		return v
+	}
+
+	ctxView := m.ctx()
+	var main string
+	var layers []*lipgloss.Layer
+	header := m.renderHeader()
+	footer := m.renderFooter()
+	switch {
+	case m.wizard != nil:
+		main = m.renderWizard()
+	case !m.loaded:
+		main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
+	case m.statusErr != "":
+		main = m.renderStatusError()
+	default:
+		active := m.activeView()
+		if m.surface != surfaceDashboard {
+			header, layers = m.renderNav(m.surface)
+			footer = m.footerWith(active.Keys())
+		}
+		main = active.View(ctxView, m.width, m.mainHeight())
+		layers = append(layers, ctxView.layers...)
+	}
+	content := header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + footer
+
+	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
+	if overlay := m.renderOverlay(); overlay != "" {
+		w, h := lipgloss.Width(overlay), lipgloss.Height(overlay)
+		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
+		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
+	}
+	comp := lipgloss.NewCompositor(all...)
+	v.SetContent(comp.Render())
+	v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {
+		click, ok := msg.(tea.MouseClickMsg)
+		if !ok {
+			return nil
+		}
+		hit := comp.Hit(click.X, click.Y)
+		if hit.Empty() || hit.ID() == "overlay" {
+			return nil
+		}
+		id := hit.ID()
+		return func() tea.Msg { return clickMsg{id: id} }
+	}
+	return v
+}
+
 func (m Model) renderStatusError() string {
 	t := m.theme
 	return strings.Join([]string{
@@ -298,306 +389,7 @@ func (m Model) renderStatusError() string {
 	}, "\n")
 }
 
-// Panels
-
-func (m Model) renderDashboard() (string, []*lipgloss.Layer) {
-	l := m.layout()
-	apps, layers := m.renderApps(l.leftW, l.appsH)
-	needs, needLayers := m.renderNeeds(l.leftW, l.needsH, 1+l.appsH)
-	layers = append(layers, needLayers...)
-	if l.detailsH == 0 {
-		return apps + "\n" + needs, layers
-	}
-	details, tabLayers := m.renderDetails(l.rightW, l.detailsH, l.detailsX, l.detailsY)
-	layers = append(layers, tabLayers...)
-	if l.wide {
-		return lipgloss.JoinHorizontal(lipgloss.Top, apps+"\n"+needs, details), layers
-	}
-	return apps + "\n" + needs + "\n" + details, layers
-}
-
-func (m Model) renderApps(width, height int) (string, []*lipgloss.Layer) {
-	t := m.theme
-	inner := width - 4
-	visible := max(height-2, 1)
-	offset := max(m.cursor-visible+1, 0)
-	rows := m.rows()
-	var lines []string
-	var layers []*lipgloss.Layer
-	if len(rows) == 0 {
-		lines = append(lines, t.dim().Render("No Apps yet. Press i to install one."))
-	}
-	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		line := m.appRow(rows[i], inner)
-		if i == m.cursor {
-			line = lipgloss.NewStyle().Background(t.selected).Bold(true).Render(pad(keepDot(line), inner))
-		}
-		lines = append(lines, line)
-		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
-	}
-	title := t.heading().Render("Apps") + t.dim().Render(" "+strconv.Itoa(len(rows)))
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
-}
-
-// appRow is one App: Status dot, name, URL, state, Setup and update marks.
-func (m Model) appRow(a service.AppStatus, width int) string {
-	t := m.theme
-	update := " "
-	if a.Update == service.UpdateAvailable {
-		update = t.fg(t.warn).Render("↑")
-	}
-	urlWidth := min(width-29, 26)
-	url := ""
-	if urlWidth >= 12 {
-		url = t.dim().Render(pad(a.URL, urlWidth)) + " "
-	}
-	return t.dot(service.Level(a)) + " " + t.body().Render(pad(a.Name, 13)) + " " + url +
-		pad(stateLabel(a), 9) + " " + m.setupMark(a) + update
-}
-
-func stateLabel(a service.AppStatus) string {
-	switch {
-	case a.State == "running" && a.Health != "" && a.Health != "healthy":
-		return a.Health
-	case a.State == "exited" || a.State == "created":
-		return "stopped"
-	}
-	return a.State
-}
-
-func (m Model) setupMark(a service.AppStatus) string {
-	t := m.theme
-	switch a.Setup {
-	case "ok":
-		return t.fg(t.ok).Render("✓")
-	case "incomplete":
-		return t.fg(t.fail).Render("✗")
-	case "pending":
-		return t.fg(t.warn).Render("…")
-	}
-	return t.dim().Render("–")
-}
-
-// The selected row is redrawn on one background so per-cell colours do not
-// punch holes in the highlight; the dot keeps its colour.
-func keepDot(line string) string {
-	dot, rest, found := strings.Cut(line, "● ")
-	if !found {
-		return line
-	}
-	return dot + "● " + stripANSI(rest)
-}
-
-// need is one Needs action item and the Action that resolves it.
-type need struct {
-	broken bool
-	text   string
-	// key and desc name the Action; command is used when no key exists.
-	key, desc, command string
-	app                string
-}
-
-func (m Model) needsAction() []need {
-	var items []need
-	for _, a := range m.rows() {
-		for _, s := range a.Steps {
-			if s.Status == "fail" {
-				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
-			}
-		}
-	}
-	for _, a := range m.rows() {
-		if a.State != "running" && a.State != "degraded" && a.State != "unknown" {
-			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "enter", desc: "start", app: a.ID})
-		}
-	}
-	if m.status.LANIPStale {
-		items = append(items, need{broken: true, text: "LAN IP " + m.status.LANIP + " is not on this machine", key: "i", desc: "Host settings"})
-	}
-	for _, a := range m.rows() {
-		if a.Update == service.UpdateAvailable {
-			items = append(items, need{text: a.Name + " has an update", key: "u", desc: "update", app: a.ID})
-		}
-	}
-	for _, c := range m.checks {
-		// Stopped containers and a stale LAN IP are already listed above.
-		if c.Level == host.OK || c.ID == "running" || c.ID == "lan-ip" {
-			continue
-		}
-		command := c.Hint
-		if command == "" {
-			command = "self-host doctor"
-		}
-		items = append(items, need{broken: c.Level == host.Fail, text: c.Title + ": " + c.Detail, command: command, app: c.App})
-	}
-	return items
-}
-
-// needsLines renders Needs action and returns the App each line points at.
-func (m Model) needsLines(width int) ([]string, []string) {
-	t := m.theme
-	items := m.needsAction()
-	if len(items) == 0 {
-		return []string{t.fg(t.ok).Render("✓ Nothing needs your attention")}, []string{""}
-	}
-	var lines, apps []string
-	for _, it := range items {
-		icon := t.fg(t.warn).Render("!")
-		if it.broken {
-			icon = t.fg(t.fail).Render("✗")
-		}
-		head := icon + " " + t.body().Render(it.text)
-		if it.key != "" {
-			action := t.fg(t.accent).Bold(true).Render(it.key) + t.dim().Render(" "+it.desc)
-			if gap := width - lipgloss.Width(head) - lipgloss.Width(action); gap >= 2 {
-				lines, apps = append(lines, head+strings.Repeat(" ", gap)+action), append(apps, it.app)
-				continue
-			}
-			lines, apps = append(lines, truncate(head, width), "  "+action), append(apps, it.app, it.app)
-			continue
-		}
-		lines = append(lines, truncate(head, width), t.dim().Render(truncate("  → "+it.command, width)))
-		apps = append(apps, it.app, it.app)
-	}
-	return lines, apps
-}
-
-func (m Model) renderNeeds(width, height, y int) (string, []*lipgloss.Layer) {
-	t := m.theme
-	lines, apps := m.needsLines(width - 4)
-	var layers []*lipgloss.Layer
-	for i, app := range apps {
-		if app != "" && i < height-2 {
-			layers = append(layers, lipgloss.NewLayer(lines[i]).X(2).Y(y+1+i).ID("app:"+app))
-		}
-	}
-	title := t.heading().Render("Needs action")
-	if n := len(m.needsAction()); n > 0 {
-		title += t.dim().Render(" " + strconv.Itoa(n))
-	}
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
-}
-
-func (m Model) renderDetails(width, height, x, y int) (string, []*lipgloss.Layer) {
-	t := m.theme
-	inner := width - 4
-	var tabs []string
-	var layers []*lipgloss.Layer
-	tx := x + 2
-	for i, name := range detailTabs {
-		style := t.dim()
-		if detailTab(i) == m.tab {
-			style = lipgloss.NewStyle().Bold(true).Foreground(t.bright).Background(t.selected)
-		}
-		rendered := style.Render(" " + name + " ")
-		layers = append(layers, lipgloss.NewLayer(rendered).X(tx).Y(y+1).ID("tab:"+strconv.Itoa(i)))
-		tabs = append(tabs, rendered)
-		tx += lipgloss.Width(rendered) + 1
-	}
-	app, found := m.selected()
-	title := t.heading().Render("Details")
-	var body string
-	switch {
-	case !found:
-		body = t.dim().Render("Select an App.")
-	case m.tab == tabSetup:
-		title = t.heading().Render(app.Name)
-		body = m.renderSetup(app, inner)
-	case m.tab == tabInfo:
-		title = t.heading().Render(app.Name)
-		body = m.renderInfo(app, inner)
-	case m.tab == tabCompose:
-		title = t.heading().Render(app.Name) + t.dim().Render(" apps/"+app.ID+"/compose.yml")
-		body = m.details.View()
-		if m.compose[app.ID] == "" {
-			body = t.dim().Render("reading the Compose file…")
-		}
-	default:
-		title = t.heading().Render(app.Name) + t.dim().Render(" logs")
-		body = m.details.View()
-		if len(m.logLines) == 0 {
-			body = t.dim().Render("waiting for logs…")
-		}
-	}
-	content := strings.Join(tabs, " ") + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
-	return t.box(title, content, width, height), layers
-}
-
-func (m Model) renderSetup(app service.AppStatus, width int) string {
-	t := m.theme
-	if !app.Managed {
-		return t.dim().Render(wrap(app.Name+" was added by hand (Unmanaged app). self-host starts, stops, updates and backs it up, but runs no Setup for it.", width))
-	}
-	if len(app.Steps) == 0 {
-		if app.Setup == "ok" {
-			return t.fg(t.ok).Render("✓ ") + t.body().Render("Setup has finished.")
-		}
-		return t.dim().Render("Setup has not run yet. Press r to run it.")
-	}
-	var lines []string
-	for _, step := range app.Steps {
-		mark := t.fg(t.ok).Render("✓")
-		switch step.Status {
-		case "skip":
-			mark = t.dim().Render("↷")
-		case "fail":
-			mark = t.fg(t.fail).Render("✗")
-		}
-		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status == "fail" {
-			lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
-			if step.Hint != "" {
-				lines = append(lines, t.fg(t.warn).Render(indent("  → ", step.Hint, width)))
-			}
-		}
-	}
-	if app.Setup == "incomplete" {
-		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press r to retry Setup.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-func (m Model) renderInfo(app service.AppStatus, width int) string {
-	t := m.theme
-	row := func(k, v string) string { return t.dim().Render(pad(k, 10)) + t.body().Render(truncate(v, width-10)) }
-	lines := []string{
-		row("url", app.URL),
-		row("port", strconv.Itoa(app.Port)),
-		row("image", app.Image),
-		row("services", strings.Join(app.Services, ", ")),
-		row("state", strings.TrimSpace(app.State+" "+app.Health)),
-		row("setup", app.Setup),
-		row("data", "apps/"+app.ID+"/"),
-	}
-	if app.Managed {
-		lines = append(lines, "", t.dim().Render(wrap("Sign in with the Admin login: c copies the password, self-host credentials shows API keys.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-// indent wraps s with a hanging indent under prefix.
-func indent(prefix, s string, width int) string {
-	inner := width - lipgloss.Width(prefix)
-	lines := strings.Split(wrap(s, inner), "\n")
-	hang := strings.Repeat(" ", lipgloss.Width(prefix))
-	for i := range lines {
-		if i == 0 {
-			lines[i] = prefix + lines[i]
-		} else {
-			lines[i] = hang + lines[i]
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
-func wrap(s string, width int) string {
-	if width < 10 {
-		return s
-	}
-	return lipgloss.NewStyle().Width(width).Render(s)
-}
-
-// Footer and overlays
+// Footer
 
 // renderFooter shows the running Action's latest event, else the last
 // result, with the key hints on the right.
@@ -625,7 +417,7 @@ func (m Model) footerWith(bindings []key.Binding) string {
 
 func (m Model) footerStatus() string {
 	t := m.theme
-	if task := m.tasks.get(m.lastTask); task != nil {
+	if task := m.tasks.latest(); task != nil {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accent).Render(m.spin.View() + " " + s.title)
 			if n, pct, current, total, ok := pullTotals(s.events); ok {
@@ -646,38 +438,6 @@ func (m Model) footerStatus() string {
 		style = t.fg(t.fail)
 	}
 	return truncate(style.Render(m.flash), m.width)
-}
-
-func (m Model) renderOverlay() string {
-	t := m.theme
-	width := max(min(m.width-6, 100), 20)
-	if m.showHelp {
-		body := t.title().Render("Keys") + "\n\n" + m.helpVP.View() + "\n\n" +
-			t.dim().Render("↑/↓ scroll · any other key closes")
-		return t.panel(true).Render(clip(body, width))
-	}
-	return ""
-}
-
-// helpBody is the key reference, wrapped to the help viewport's width.
-func (m Model) helpBody() string {
-	h := m.help
-	h.SetWidth(max(m.helpVP.Width(), 20))
-	body := h.FullHelpView(m.keys.FullHelp()) + "\n\n" +
-		"More: self-host --help (remove, restore, config, credentials…)"
-	if m.latest != "" {
-		body += "\n\n" + m.releaseNotice()
-	}
-	return body
-}
-
-// clip cuts every line of s to width cells.
-func clip(s string, width int) string {
-	lines := strings.Split(s, "\n")
-	for i, line := range lines {
-		lines[i] = truncate(line, width)
-	}
-	return strings.Join(lines, "\n")
 }
 
 func formatEvent(t theme, e events.Event) string {

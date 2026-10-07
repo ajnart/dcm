@@ -92,7 +92,7 @@ func pullMB(n int64) string { return fmt.Sprintf("%d MB", n/1_000_000) }
 
 // pullPercent is the running task's overall pull percentage.
 func (m Model) pullPercent() (int, bool) {
-	task := m.tasks.get(m.lastTask)
+	task := m.tasks.latest()
 	if task == nil {
 		return 0, false
 	}

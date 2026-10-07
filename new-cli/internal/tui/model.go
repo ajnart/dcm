@@ -7,43 +7,17 @@ package tui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
-	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
-	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
-)
-
-// detailTab is one tab of App details.
-type detailTab int
-
-const (
-	tabLogs detailTab = iota
-	tabSetup
-	tabInfo
-	tabCompose
-)
-
-var detailTabs = []string{"logs", "setup", "info", "compose"}
-
-// surface is the whole screen the Dashboard, Install, Settings or Stack view
-// fills; the Dashboard is home.
-type surface int
-
-const (
-	surfaceDashboard surface = iota
-	surfaceInstall
-	surfaceSettings
-	surfaceStack
 )
 
 type level int
@@ -102,26 +76,14 @@ type (
 	}
 )
 
-// logStream follows one App's logs until cancelled.
-type logStream struct {
-	target string
-	ch     chan string
-	cancel context.CancelFunc
-}
-
-type chanWriter struct{ ch chan string }
-
-func (w chanWriter) Write(p []byte) (int, error) {
-	w.ch <- string(p)
-	return len(p), nil
-}
-
 type Options struct {
 	Version string
 	// Now is the clock shown in the header; tests pin it.
 	Now func() time.Time
 }
 
+// Model keeps the state every view shares and the active view. Each view
+// owns its own state and its own key handling.
 type Model struct {
 	backend Backend
 	opts    Options
@@ -142,31 +104,24 @@ type Model struct {
 	statusErr string
 	refreshed time.Time
 
-	cursor int
-	tab    detailTab
-	// details scrolls the logs and compose tabs.
-	details  viewport.Model
-	logLines []string
-	stream   *logStream
-	compose  map[string]string
-
-	showHelp bool
-	surface  surface
-	install  *installView
-	settings *settingsView
-	stack    *stackView
-	wizard   *wizard
-	defaults map[string]string
-	helpVP   viewport.Model
-
 	containers    []service.ContainerStatus
 	containersErr string
 
-	tasks    *taskManager
-	lastTask int
+	defaults map[string]string
+
+	tasks *taskManager
 
 	flash      string
 	flashLevel level
+
+	surface   surface
+	showHelp  bool
+	dashboard *dashboardView
+	install   *installView
+	settings  *settingsView
+	stack     *stackView
+	helpView  *helpView
+	wizard    *wizard
 }
 
 func New(backend Backend, opts Options) Model {
@@ -174,17 +129,16 @@ func New(backend Backend, opts Options) Model {
 		opts.Now = time.Now
 	}
 	return Model{
-		backend: backend,
-		opts:    opts,
-		dark:    true,
-		theme:   newTheme(true),
-		keys:    newKeyMap(),
-		help:    help.New(),
-		spin:    spinner.New(spinner.WithSpinner(spinner.MiniDot)),
-		details: viewport.New(),
-		helpVP:  viewport.New(),
-		compose: map[string]string{},
-		tasks:   &taskManager{},
+		backend:   backend,
+		opts:      opts,
+		dark:      true,
+		theme:     newTheme(true),
+		keys:      newKeyMap(),
+		help:      help.New(),
+		spin:      spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		tasks:     &taskManager{},
+		dashboard: newDashboardView(),
+		helpView:  newHelpView(),
 	}
 }
 
@@ -219,7 +173,7 @@ func (m Model) loadRelease() tea.Cmd {
 
 // releaseNotice tells the user how to install the newer release.
 func (m Model) releaseNotice() string {
-	return "v" + strings.TrimPrefix(m.latest, "v") + " is available: run self-host self-update"
+	return releaseNotice(m.latest)
 }
 
 func (m Model) loadUpdates() tea.Cmd {
@@ -252,35 +206,50 @@ func (m Model) loadDoctor() tea.Cmd {
 	}
 }
 
-func (m Model) loadCompose(id string) tea.Cmd {
+func (m Model) loadContainers() tea.Cmd {
 	backend := m.backend
 	return func() tea.Msg {
-		text, err := backend.Compose(context.Background(), id)
-		return composeMsg{id: id, text: text, err: err}
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		containers, err := backend.Containers(ctx)
+		return containersMsg{containers: containers, err: err}
 	}
 }
 
-func (m Model) rows() []service.AppStatus { return m.status.Apps }
-
-func (m Model) selected() (service.AppStatus, bool) {
-	rows := m.rows()
-	if m.cursor < 0 || m.cursor >= len(rows) {
-		return service.AppStatus{}, false
+func (m Model) loadReview() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg {
+		rows, err := backend.ReviewSettings(context.Background())
+		return reviewMsg{rows: rows, err: err}
 	}
-	return rows[m.cursor], true
-}
-
-func (m Model) selectedID() string {
-	app, _ := m.selected()
-	return app.ID
-}
-
-func (m *Model) clampCursor() {
-	m.cursor = max(min(m.cursor, len(m.rows())-1), 0)
 }
 
 func (m *Model) setFlash(text string, l level) {
 	m.flash, m.flashLevel = text, l
+}
+
+func (m Model) mainHeight() int { return max(m.height-2, 3) }
+
+// ctx is the read/ask view of the Model handed to the active view.
+func (m Model) ctx() *viewContext {
+	return &viewContext{
+		width: m.width, height: m.height, dark: m.dark, theme: m.theme,
+		keys: m.keys, help: m.help, spin: m.spin,
+		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt,
+		latest: m.latest, loaded: m.loaded, statusErr: m.statusErr, refreshed: m.refreshed,
+		containers: m.containers, containersErr: m.containersErr,
+		defaults: m.defaults, backend: m.backend, tasks: m.tasks, opts: m.opts,
+		flash: m.flash, flashLevel: m.flashLevel,
+	}
+}
+
+// absorb copies the shared fields a view may have changed back onto the Model.
+func (m *Model) absorb(ctx *viewContext) {
+	m.width, m.height = ctx.width, ctx.height
+	m.containers, m.containersErr = ctx.containers, ctx.containersErr
+	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
+	m.help, m.spin = ctx.help, ctx.spin
+	m.defaults = ctx.defaults
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -310,28 +279,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case statusMsg:
-		m.loaded = true
-		if errors.Is(msg.err, service.ErrNoProject) {
-			if m.wizard == nil {
-				m.wizard = m.newWizard()
-				return m, m.loadDefaults()
-			}
-			return m, nil
-		}
-		if msg.err != nil {
-			m.statusErr = msg.err.Error()
-			return m, nil
-		}
-		if m.wizard != nil && m.wizard.stage != stageInstalling {
-			m.wizard = nil
-		}
-		m.statusErr = ""
-		m.status = msg.status
-		m.applyUpdates()
-		m.refreshed = m.opts.Now()
-		m.clampCursor()
-		m.relayout()
-		return m, m.syncDetails()
+		return m.handleStatus(msg)
 
 	case doctorMsg:
 		m.checks = msg.checks
@@ -363,48 +311,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case taskDoneMsg:
-		m.tasks.finish(msg.id, msg.err)
-		if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
-			if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) {
-				m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
-				m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
-				return m, nil
-			}
-			m.wizard = nil
-		}
-		switch {
-		case errors.Is(msg.err, service.ErrIncomplete):
-			m.setFlash("! "+msg.title+": Setup needs attention (see Needs action)", levelWarn)
-		case msg.err != nil:
-			m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error()), levelError)
-		default:
-			m.setFlash("✓ "+msg.title, levelOK)
-		}
-		cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
-		if strings.HasPrefix(msg.title, "config") {
-			// URLs and Compose files may have changed with the settings.
-			clear(m.compose)
-		}
-		if strings.HasPrefix(msg.title, "update") {
-			cmds = append(cmds, m.loadUpdates())
-		}
-		return m, tea.Batch(cmds...)
+		return m.handleTaskDone(msg)
 
-	case logChunkMsg:
-		if msg.stream != m.stream || msg.done {
-			return m, nil
-		}
-		m.appendLogs(msg.text)
-		return m, waitLog(msg.stream)
-
-	case composeMsg:
-		text := msg.text
-		if msg.err != nil {
-			text = "could not read the Compose file: " + msg.err.Error()
-		}
-		m.compose[msg.id] = text
-		m.syncDetailsContent()
-		return m, nil
+	case logChunkMsg, composeMsg:
+		return m.dispatchDashboard(msg)
 
 	case reviewMsg:
 		if m.settings != nil {
@@ -431,26 +341,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseWheelMsg:
-		dy := 3
-		if msg.Button == tea.MouseWheelUp {
-			dy = -3
-		}
-		switch m.surface {
-		case surfaceInstall:
-			m.install.scroll(dy, len(m.installRows()))
-		case surfaceStack:
-			m.stack.scroll(m.mainHeight(), dy)
-		case surfaceSettings:
-			m.settings.cursor += sign(dy)
-			m.settings.clamp()
-		default:
-			if dy < 0 {
-				m.details.ScrollUp(3)
-			} else {
-				m.details.ScrollDown(3)
-			}
-		}
-		return m, nil
+		return m.dispatchActive(msg)
 
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
@@ -461,44 +352,78 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func firstLine(s string) string {
-	line, _, _ := strings.Cut(s, "\n")
-	return line
+func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
+	m.loaded = true
+	if errors.Is(msg.err, service.ErrNoProject) {
+		if m.wizard == nil {
+			m.wizard = m.newWizard()
+			return m, m.loadDefaults()
+		}
+		return m, nil
+	}
+	if msg.err != nil {
+		m.statusErr = msg.err.Error()
+		return m, nil
+	}
+	if m.wizard != nil && m.wizard.stage != stageInstalling {
+		m.wizard = nil
+	}
+	m.statusErr = ""
+	m.status = msg.status
+	m.applyUpdates()
+	m.refreshed = m.opts.Now()
+	ctxView := m.ctx()
+	m.dashboard.clampCursor(ctxView)
+	m.relayout()
+	cmd := m.dashboard.syncDetails(ctxView)
+	m.absorb(ctxView)
+	return m, cmd
 }
 
-func sign(n int) int {
-	if n < 0 {
-		return -1
+func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
+	m.tasks.finish(msg.id, msg.err)
+	if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
+		if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) {
+			m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
+			m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
+			return m, nil
+		}
+		m.wizard = nil
 	}
-	if n > 0 {
-		return 1
+	switch {
+	case errors.Is(msg.err, service.ErrIncomplete):
+		m.setFlash("! "+msg.title+": Setup needs attention (see Needs action)", levelWarn)
+	case msg.err != nil:
+		m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error()), levelError)
+	default:
+		m.setFlash("✓ "+msg.title, levelOK)
 	}
-	return 0
+	cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
+	if strings.HasPrefix(msg.title, "config") {
+		// URLs and Compose files may have changed with the settings.
+		clear(m.dashboard.compose)
+	}
+	if strings.HasPrefix(msg.title, "update") {
+		cmds = append(cmds, m.loadUpdates())
+	}
+	return m, tea.Batch(cmds...)
 }
 
-func (m Model) loadContainers() tea.Cmd {
-	backend := m.backend
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		containers, err := backend.Containers(ctx)
-		return containersMsg{containers: containers, err: err}
-	}
-}
-
-func (m Model) loadReview() tea.Cmd {
-	backend := m.backend
-	return func() tea.Msg {
-		rows, err := backend.ReviewSettings(context.Background())
-		return reviewMsg{rows: rows, err: err}
+// relayout sizes the dashboard viewport; call it whenever the layout can move.
+func (m *Model) relayout() {
+	ctxView := m.ctx()
+	m.dashboard.relayout(ctxView)
+	m.help.SetWidth(m.width)
+	if m.install != nil {
+		m.install.resize(m.width)
 	}
 }
 
 // openInstall switches to the Install view.
 func (m Model) openInstall() (tea.Model, tea.Cmd) {
 	m.surface = surfaceInstall
-	m.install = newInstallView(m)
-	m.install.cursor = firstSelectable(m.installItems())
+	m.install = newInstallView(m.ctx())
+	m.install.cursor = firstSelectable(m.install.installItems(m.ctx()))
 	return m, nil
 }
 
@@ -515,7 +440,7 @@ func firstSelectable(items []installItem) int {
 // openSettings switches to the Settings view and loads the host review.
 func (m Model) openSettings() (tea.Model, tea.Cmd) {
 	m.surface = surfaceSettings
-	m.settings = newSettingsView(m)
+	m.settings = newSettingsView(m.ctx())
 	return m, m.loadReview()
 }
 
@@ -531,27 +456,44 @@ func (m Model) openStack() (tea.Model, tea.Cmd) {
 // openHelp shows the key reference, scrolled into a viewport.
 func (m Model) openHelp() (tea.Model, tea.Cmd) {
 	m.showHelp = true
-	m.helpVP.SetWidth(max(min(m.width-10, 92), 20))
-	m.helpVP.SetHeight(max(min(m.height-8, 30), 5))
-	m.helpVP.SetContent(m.helpBody())
-	m.helpVP.GotoTop()
+	m.helpView.open(m.ctx())
 	return m, nil
 }
 
-func (m Model) handleHelpKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch {
-	case key.Matches(msg, m.keys.Up):
-		m.helpVP.ScrollUp(1)
-	case key.Matches(msg, m.keys.Down):
-		m.helpVP.ScrollDown(1)
-	case key.Matches(msg, m.keys.ScrollUp):
-		m.helpVP.PageUp()
-	case key.Matches(msg, m.keys.ScrollDown):
-		m.helpVP.PageDown()
+// activeView is the view keys, the mouse and View go to; Help is the overlay
+// when it is open.
+func (m Model) activeView() view {
+	switch m.surface {
+	case surfaceInstall:
+		return m.install
+	case surfaceSettings:
+		return m.settings
+	case surfaceStack:
+		return m.stack
 	default:
-		m.showHelp = false
+		return m.dashboard
 	}
-	return m, nil
+}
+
+func (m *Model) setActive(v view) {
+	switch m.surface {
+	case surfaceInstall:
+		if iv, ok := v.(*installView); ok {
+			m.install = iv
+		}
+	case surfaceSettings:
+		if sv, ok := v.(*settingsView); ok {
+			m.settings = sv
+		}
+	case surfaceStack:
+		if sv, ok := v.(*stackView); ok {
+			m.stack = sv
+		}
+	default:
+		if dv, ok := v.(*dashboardView); ok {
+			m.dashboard = dv
+		}
+	}
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -559,126 +501,88 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case m.wizard != nil:
 		return m.handleWizardKey(msg)
 	case m.showHelp:
-		return m.handleHelpKey(msg)
-	case m.surface == surfaceInstall:
-		return m.handleInstallKey(msg)
-	case m.surface == surfaceSettings:
-		return m.handleSettingsKey(msg)
-	case m.surface == surfaceStack:
-		return m.handleStackKey(msg)
+		return m.dispatchHelp(msg)
 	}
-	k := m.keys
-	switch {
-	case key.Matches(msg, k.Quit):
-		m.tasks.cancelAll()
-		m.stopLogs()
-		return m, tea.Quit
-	case key.Matches(msg, k.Help):
-		return m.openHelp()
-	case key.Matches(msg, k.Up):
-		return m.move(-1)
-	case key.Matches(msg, k.Down):
-		return m.move(1)
-	case key.Matches(msg, k.Tab):
-		m.tab = (m.tab + 1) % detailTab(len(detailTabs))
-		return m, m.syncDetails()
-	case key.Matches(msg, k.ScrollUp):
-		m.details.PageUp()
-		return m, nil
-	case key.Matches(msg, k.ScrollDown):
-		m.details.PageDown()
-		return m, nil
-	case key.Matches(msg, k.Install):
-		return m.openInstall()
-	case key.Matches(msg, k.Settings):
-		return m.openSettings()
-	case key.Matches(msg, k.Stack):
-		return m.openStack()
-	case key.Matches(msg, k.Backup):
-		return m.run(Request{Action: ActionBackup}, "backup")
-	case key.Matches(msg, k.Copy):
-		backend := m.backend
-		return m, func() tea.Msg {
-			creds, err := backend.Credentials(context.Background())
-			if err != nil {
-				return flashMsg{text: err.Error(), level: levelError}
-			}
-			return clipboardMsg{text: creds.Admin.Password, what: "the Admin password for " + creds.Admin.Username}
-		}
-	}
-	app, found := m.selected()
-	if !found {
-		return m, nil
-	}
-	switch {
-	case key.Matches(msg, k.Toggle):
-		if app.State == "running" || app.State == "degraded" {
-			return m.run(Request{Action: ActionStop, IDs: []string{app.ID}}, "stop "+app.ID)
-		}
-		return m.run(Request{Action: ActionStart, IDs: []string{app.ID}}, "start "+app.ID)
-	case key.Matches(msg, k.Update):
-		if app.Update != service.UpdateAvailable {
-			m.setFlash("no update known for "+app.Name+" (checked every 30 minutes)", levelInfo)
-			return m, nil
-		}
-		return m.run(Request{Action: ActionUpdate, IDs: []string{app.ID}}, "update "+app.ID)
-	case key.Matches(msg, k.Retry):
-		if !app.Managed {
-			m.setFlash(app.Name+" has no automatic Setup (it was added by hand)", levelWarn)
-			return m, nil
-		}
-		return m.run(Request{Action: ActionSetup, IDs: []string{app.ID}}, "setup "+app.ID)
-	case key.Matches(msg, k.Open):
-		if app.URL == "" {
-			m.setFlash(app.Name+" has no URL", levelWarn)
-			return m, nil
-		}
-		backend, url := m.backend, app.URL
-		return m, func() tea.Msg {
-			if err := backend.OpenURL(url); err != nil {
-				return flashMsg{text: "could not open a browser: " + err.Error() + " — " + url, level: levelError}
-			}
-			return flashMsg{text: "opened " + url, level: levelOK}
-		}
-	}
-	return m, nil
+	return m.dispatchActive(msg)
 }
 
-func (m Model) move(delta int) (tea.Model, tea.Cmd) {
-	m.cursor += delta
-	m.clampCursor()
-	return m, m.syncDetails()
+// dispatchActive hands a message to the active view and applies its nav.
+func (m Model) dispatchActive(msg tea.Msg) (tea.Model, tea.Cmd) {
+	v := m.activeView()
+	if v == nil {
+		return m, nil
+	}
+	ctxView := m.ctx()
+	next, cmd, nv := v.Update(ctxView, msg)
+	m.setActive(next)
+	m.absorb(ctxView)
+	return m.applyNav(nv, cmd)
+}
+
+// dispatchDashboard delivers an asynchronous dashboard message (logs, Compose)
+// even when another view is on screen, so its state keeps updating.
+func (m Model) dispatchDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
+	ctxView := m.ctx()
+	next, cmd, _ := m.dashboard.Update(ctxView, msg)
+	if dv, ok := next.(*dashboardView); ok {
+		m.dashboard = dv
+	}
+	m.absorb(ctxView)
+	return m, cmd
+}
+
+func (m Model) dispatchHelp(msg tea.Msg) (tea.Model, tea.Cmd) {
+	ctxView := m.ctx()
+	_, cmd, nv := m.helpView.Update(ctxView, msg)
+	m.absorb(ctxView)
+	if nv.kind == navBack {
+		m.showHelp = false
+	}
+	return m, cmd
+}
+
+func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	switch nv.kind {
+	case navBack:
+		return m.goBack(), cmd
+	case navTo:
+		return m.gotoView(nv.to)
+	}
+	return m, cmd
+}
+
+func (m Model) goBack() Model {
+	switch m.surface {
+	case surfaceInstall:
+		m.install = nil
+	case surfaceSettings:
+		m.settings = nil
+	}
+	m.surface = surfaceDashboard
+	return m
+}
+
+func (m Model) gotoView(s surface) (tea.Model, tea.Cmd) {
+	switch s {
+	case surfaceInstall:
+		return m.openInstall()
+	case surfaceSettings:
+		return m.openSettings()
+	case surfaceStack:
+		return m.openStack()
+	case surfaceHelp:
+		return m.openHelp()
+	default:
+		m.surface = surfaceDashboard
+		return m, nil
+	}
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
-	var n int
-	switch {
-	case strings.HasPrefix(id, "nav:"):
-		return m.gotoSurface(strings.TrimPrefix(id, "nav:"))
-	case strings.HasPrefix(id, "row:"):
-		if m.surface == surfaceInstall {
-			fmt.Sscanf(id, "row:%d", &n)
-			m.install.cursor = n
-			m.install.clamp(len(m.installRows()))
-			return m, nil
-		}
-		fmt.Sscanf(id, "row:%d", &n)
-		m.cursor = n
-		m.clampCursor()
-		return m, m.syncDetails()
-	case strings.HasPrefix(id, "tab:"):
-		fmt.Sscanf(id, "tab:%d", &n)
-		m.tab = detailTab(n)
-		return m, m.syncDetails()
-	case strings.HasPrefix(id, "app:"):
-		for i, app := range m.rows() {
-			if app.ID == strings.TrimPrefix(id, "app:") {
-				m.cursor = i
-			}
-		}
-		return m, m.syncDetails()
+	if name, ok := strings.CutPrefix(id, "nav:"); ok {
+		return m.gotoSurface(name)
 	}
-	return m, nil
+	return m.dispatchActive(clickMsg{id: id})
 }
 
 // gotoSurface switches screens from a mouse click on the top bar.
@@ -700,7 +604,6 @@ func (m Model) gotoSurface(name string) (tea.Model, tea.Cmd) {
 // run starts a background Action; the footer shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	t := m.tasks.start(title)
-	m.lastTask = t.id
 	backend := m.backend
 	run := func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
@@ -710,85 +613,23 @@ func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(run, m.spin.Tick)
 }
 
-// Details
+// Test-facing accessors kept on the Model.
 
-// syncDetails loads what the current tab shows for the selected App.
-func (m *Model) syncDetails() tea.Cmd {
-	m.syncDetailsContent()
-	switch m.tab {
-	case tabLogs:
-		return m.syncLogs()
-	case tabCompose:
-		if id := m.selectedID(); id != "" {
-			return m.loadCompose(id)
-		}
-	}
-	return nil
+func (m Model) selectedID() string {
+	return m.dashboard.selectedID(m.ctx())
 }
 
-func (m *Model) syncDetailsContent() {
-	switch m.tab {
-	case tabLogs:
-		m.details.SetContentLines(m.logLines)
-		m.details.GotoBottom()
-	case tabCompose:
-		m.details.SetContent(m.compose[m.selectedID()])
-		m.details.GotoTop()
-	}
-}
-
-func (m *Model) stopLogs() {
-	if m.stream != nil {
-		m.stream.cancel()
-		m.stream = nil
-	}
-}
-
-// syncLogs (re)starts the log stream when the selected App changes.
-func (m *Model) syncLogs() tea.Cmd {
-	target := m.selectedID()
-	if target == "" || (m.stream != nil && m.stream.target == target) {
+func (m Model) installRows() []installItem {
+	if m.install == nil {
 		return nil
 	}
-	m.stopLogs()
-	m.logLines = nil
-	m.details.SetContent("")
-	ctx, cancel := context.WithCancel(context.Background())
-	stream := &logStream{target: target, ch: make(chan string, 64), cancel: cancel}
-	m.stream = stream
-	backend := m.backend
-	go func() {
-		backend.Logs(ctx, target, chanWriter{stream.ch})
-		close(stream.ch)
-	}()
-	return waitLog(stream)
+	return m.install.rows(m.ctx())
 }
 
-func waitLog(stream *logStream) tea.Cmd {
-	return func() tea.Msg {
-		text, ok := <-stream.ch
-		return logChunkMsg{stream: stream, text: text, done: !ok}
+// renderOverlay is the Help overlay, empty unless it is open.
+func (m Model) renderOverlay() string {
+	if !m.showHelp {
+		return ""
 	}
-}
-
-const maxLogLines = 2000
-
-// appendLogs adds lines and keeps following the end unless scrolled up.
-func (m *Model) appendLogs(text string) {
-	following := m.details.AtBottom()
-	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		if strings.TrimSpace(line) != "" {
-			m.logLines = append(m.logLines, line)
-		}
-	}
-	if len(m.logLines) > maxLogLines {
-		m.logLines = m.logLines[len(m.logLines)-maxLogLines:]
-	}
-	if m.tab != tabLogs {
-		return
-	}
-	m.details.SetContentLines(m.logLines)
-	if following {
-		m.details.GotoBottom()
-	}
+	return m.helpView.View(m.ctx(), m.width, m.mainHeight())
 }
