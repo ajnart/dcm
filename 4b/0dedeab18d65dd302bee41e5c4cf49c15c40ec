@@ -1,0 +1,49 @@
+new-cli/internal/tui/workflow.go
+  s_3d3929a96bc9ba::t_4a8970e7929228 70-71,74,76-92
+  s_3d3929a96bc9ba::t_8645bee4822f23 67-68,72-73,75,93,116-123,125,130
+  s_3d3929a96bc9ba::t_3d3fdd23928b66 5,69,94-100,124,127-129,139-144
+  s_3d3929a96bc9ba::t_78d3b4e91bde69 19,44-45,101-115,126,131-136,147
+  s_3d3929a96bc9ba::t_0b729e9523ce70 137-138,145-146,151
+  s_3d3929a96bc9ba::t_4272f8a00906c1 148-150
+new-cli/internal/tui/view.go
+  s_3d3929a96bc9ba::t_c039828db07b40 100-108
+new-cli/internal/tui/testdata/workflow.golden
+  s_3d3929a96bc9ba::t_80d8fb7523b239 2
+new-cli/internal/tui/workflow_live_view_test.go
+  s_3d3929a96bc9ba::t_7ea7f19c6d1f19 1-43
+new-cli/internal/tui/workflow_view.go
+  s_3d3929a96bc9ba::t_c039828db07b40 42-43,61-62
+new-cli/internal/tui/workflow_test.go
+  s_3d3929a96bc9ba::t_1935eb0608ce9a 117-121
+  s_3d3929a96bc9ba::t_a79a9eaf1e2c77 7,11-29
+  s_3d3929a96bc9ba::t_a0acdeddab7708 51-79
+  s_3d3929a96bc9ba::t_8b706299dca97f 80-107
+  s_3d3929a96bc9ba::t_7b37d75deea784 31-50
+  s_3d3929a96bc9ba::t_c5199d43cda972 108-116,122-135
+  s_3d3929a96bc9ba::t_e07fd26804da03 136-164
+  s_a2fd509a765bab::t_fbd2ad6269112c 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b0dedeab18d65dd302bee41e5c4cf49c15c40ec",
+  "prompts": {},
+  "sessions": {
+    "s_3d3929a96bc9ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f5-428e-73a1-9e1d-37d5abf33a4a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
