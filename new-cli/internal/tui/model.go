@@ -37,8 +37,9 @@ const (
 // Messages.
 type (
 	statusMsg struct {
-		status service.Status
-		err    error
+		status        service.Status
+		err           error
+		finishedTasks []int
 	}
 	defaultsMsg struct{ settings map[string]string }
 	doctorMsg   struct{ checks []host.Check }
@@ -154,11 +155,13 @@ func tick() tea.Cmd {
 
 func (m Model) loadStatus() tea.Cmd {
 	backend := m.backend
+	tasks := m.tasks
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
+		finished := tasks.terminalIDs()
 		status, err := backend.Status(ctx)
-		return statusMsg{status: status, err: err}
+		return statusMsg{status: status, err: err, finishedTasks: finished}
 	}
 }
 
@@ -371,6 +374,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	}
 	m.statusErr = ""
 	m.status = msg.status
+	m.tasks.acknowledge(msg.finishedTasks)
 	m.applyUpdates()
 	m.refreshed = m.opts.Now()
 	ctxView := m.ctx()

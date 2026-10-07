@@ -101,6 +101,9 @@ func (ctx *viewContext) workflow() WorkflowSnapshot {
 	var evs []events.Event
 	if ctx.tasks != nil {
 		for _, task := range ctx.tasks.snapshots() {
+			if task.persisted {
+				continue
+			}
 			evs = append(evs, task.events...)
 		}
 	}

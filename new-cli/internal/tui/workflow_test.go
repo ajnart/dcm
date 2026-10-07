@@ -311,3 +311,73 @@ func TestWorkflowLiveLinkKeepsItsTargetAndWaitingIsNotRun(t *testing.T) {
 		t.Fatalf("state = %s, want notRun while waiting for the target", steps[0].State)
 	}
 }
+
+func TestWorkflowConsumerLinkRefreshPreservesSetupResults(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true}}}
+	evs := []events.Event{
+		{Event: events.RunStart},
+		{Event: events.StepOK, App: "sonarr", Step: "ready"},
+		{Event: events.StepOK, App: "sonarr", Step: "account"},
+		{Event: events.StepOK, App: "sonarr", Step: "check"},
+		{Event: events.StepSkip, App: "sonarr", Step: "link-qbittorrent", Msg: "waiting for qbittorrent"},
+		{Event: events.RunEnd},
+		{Event: events.RunStart},
+		{Event: events.StepStart, App: "sonarr", Step: "link-qbittorrent"},
+	}
+	got := Workflow(status, evs)
+	for _, step := range got.Apps[0].Steps {
+		if step.ID == "link-qbittorrent" {
+			if step.State != WorkflowRunning || step.Target != "qbittorrent" {
+				t.Fatalf("Link = %+v", step)
+			}
+		} else if step.State != WorkflowDone {
+			t.Fatalf("consumer Setup result lost: %+v", step)
+		}
+	}
+}
+
+func TestWorkflowRetryAfterConsumerLinkRefreshResetsOwnResults(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true}}}
+	evs := []events.Event{
+		{Event: events.RunStart, App: "sonarr"},
+		{Event: events.StepOK, App: "sonarr", Step: "ready"},
+		{Event: events.StepFail, App: "sonarr", Step: "account", Error: "old error"},
+		{Event: events.RunEnd},
+		{Event: events.RunStart},
+		{Event: events.StepOK, App: "sonarr", Step: "link-qbittorrent"},
+		{Event: events.RunEnd},
+		{Event: events.RunStart, App: "sonarr"},
+		{Event: events.StepStart, App: "sonarr", Step: "ready"},
+	}
+	for _, step := range Workflow(status, evs).Apps[0].Steps {
+		if step.ID == "account" && (step.State != WorkflowNotRun || step.Error != "") {
+			t.Fatalf("own retry retained earlier failure: %+v", step)
+		}
+	}
+}
+
+func TestWorkflowSetupRetryResetsRememberedSetupButKeepsStages(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
+		{ID: "render", Status: "ok"}, {ID: "pull", Status: "ok"}, {ID: "start", Status: "ok"},
+		{ID: "ready", Status: "ok"}, {ID: "account", Status: "fail", Error: "old failure"},
+	}}}}
+	evs := []events.Event{{Event: events.RunStart, App: "sonarr"}, {Event: events.StepStart, App: "sonarr", Step: "ready"}}
+	for _, step := range Workflow(status, evs).Apps[0].Steps {
+		if step.ID == "account" && (step.State != WorkflowNotRun || step.Error != "") {
+			t.Fatalf("remembered failure retained during retry: %+v", step)
+		}
+		if service.IsStage(step.ID) && step.State != WorkflowDone {
+			t.Fatalf("Setup retry reset install stage: %+v", step)
+		}
+	}
+}
+
+func TestWorkflowCheckRefreshPreservesRememberedSetup(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: "ok"}, {ID: "check", Status: "ok"}}}}}
+	evs := []events.Event{{Event: events.RunStart}, {Event: events.StepStart, App: "sonarr", Step: "check"}}
+	for _, step := range Workflow(status, evs).Apps[0].Steps {
+		if step.ID == "account" && step.State != WorkflowDone {
+			t.Fatalf("check refresh erased Setup: %+v", step)
+		}
+	}
+}

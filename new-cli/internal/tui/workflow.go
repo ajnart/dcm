@@ -47,9 +47,6 @@ type WorkflowCounts struct {
 func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 	var out WorkflowSnapshot
 	for _, app := range status.Apps {
-		if app.Managed && app.Setup == "ok" {
-			out.Counts.AppsSetUp++
-		}
 		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed, SetUp: app.Managed && app.Setup == "ok"}
 		if !app.Managed {
 			out.Apps = append(out.Apps, entry)
@@ -75,11 +72,16 @@ func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 				}
 			}
 			if step.State == WorkflowFailed {
+				entry.SetUp = false
 				out.Counts.StepsFailed++
 			}
 			if step.State == WorkflowRunning {
+				entry.SetUp = false
 				out.Counts.StepsRunning++
 			}
+		}
+		if entry.SetUp {
+			out.Counts.AppsSetUp++
 		}
 		slices.SortStableFunc(entry.Steps, func(a, b WorkflowStep) int {
 			return cmp.Compare(workflowOrder(a.ID), workflowOrder(b.ID))
@@ -144,13 +146,20 @@ func applyEvents(entry *WorkflowApp, app service.AppStatus, evs []events.Event) 
 			continue
 		}
 		if newRun {
-			for i, step := range entry.Steps {
-				if live[step.ID] {
-					entry.Steps[i] = workflowStep(step.ID, WorkflowNotRun, "", "", "")
+			// Link-only and check-only refreshes keep the App's own Setup.
+			if !strings.HasPrefix(e.Step, "link-") && e.Step != "check" {
+				for i, step := range entry.Steps {
+					reset := live[step.ID]
+					if !service.IsStage(e.Step) {
+						reset = !service.IsStage(step.ID)
+					}
+					if reset {
+						entry.Steps[i] = workflowStep(step.ID, WorkflowNotRun, "", "", "")
+					}
 				}
+				clear(live)
+				progress = nil
 			}
-			clear(live)
-			progress = nil
 			newRun = false
 		}
 		if e.Step == "pull" && e.Event == events.StepStart {
