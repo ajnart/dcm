@@ -85,6 +85,7 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 
 func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	defer reservation.closeSockets()
+	payload := r.prepareBackupPayload(spec, reservation.primary)
 	args := installArguments(spec, r.root, reservation.primary)
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
@@ -134,6 +135,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		r.t.Fatal("image identities unavailable")
 	}
 	marker := "selfhost-e2e-backup-sentinel-" + randomHex(32)
+	if payload != nil {
+		r.stage("payload-seed", []string{"seed", "owned-application-backup-payload"}, func() result { return payload.seed(r) })
+	}
 	for _, id := range spec.Apps {
 		if err := os.WriteFile(filepath.Join(r.project, "apps", id, ".e2e-backup-sentinel"), []byte(marker), 0o600); err != nil {
 			r.t.Fatal("write owned backup sentinel")
@@ -173,6 +177,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		return restored.run("restore", archive, "--yes", "--json")
 	})
 	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
+	if payload != nil {
+		r.stage("payload-restored", []string{"compare", "exact-application-backup-payload"}, func() result { return payload.check(restored) })
+	}
 	r.stage("sentinel", []string{"compare", "owned-backup-sentinels"}, func() result {
 		for _, id := range spec.Apps {
 			data, err := os.ReadFile(filepath.Join(restored.project, "apps", id, ".e2e-backup-sentinel"))
