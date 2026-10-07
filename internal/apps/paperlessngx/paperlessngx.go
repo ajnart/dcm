@@ -35,7 +35,6 @@ func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
 		{Name: "db_password", Length: 48},
 		{Name: "app_key", Length: 64},
-		{Name: "admin_password", Length: 48},
 	}
 }
 
@@ -43,7 +42,7 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{
 		{Path: "secrets/db_password", Content: secret("db_password") + "\n", Mode: 0o600},
 		{Path: "secrets/app_key", Content: secret("app_key") + "\n", Mode: 0o600},
-		{Path: "secrets/admin_password", Content: secret("admin_password") + "\n", Mode: 0o600},
+		{Path: "secrets/admin_password", Content: secret("ADMIN_PASSWORD") + "\n", Mode: 0o600},
 	}
 }
 
@@ -100,7 +99,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Path:     usersPath,
 		User:     h.AdminUser(),
-		Password: h.Secret(h.Key("admin_password")),
+		Password: h.AdminPassword(),
 	})
 	if err != nil {
 		return false, err

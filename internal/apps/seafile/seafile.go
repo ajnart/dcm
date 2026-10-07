@@ -16,8 +16,9 @@ import (
 	"github.com/ajnart/self-host/internal/onboard"
 )
 
-// adminEmail is the first administrator's login, fixed by the recipe.
-const adminEmail = "admin@example.test"
+// adminEmail is the first administrator's login, built from the shared Admin
+// user so it matches the recipe's email convention.
+func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
 
 type App struct{}
 
@@ -53,7 +54,7 @@ func (App) Compose(rc app.RenderContext) string {
       SEAFILE_MYSQL_DB_HOST: db
       SEAFILE_MYSQL_DB_PORT: "3306"
       SEAFILE_MYSQL_DB_USER: seafile
-      INIT_SEAFILE_ADMIN_EMAIL: admin@example.test
+      INIT_SEAFILE_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       SEAFILE_SERVER_PROTOCOL: http
       SEAFILE_SERVER_HOSTNAME: ${LAN_IP}
       CACHE_PROVIDER: redis
@@ -100,7 +101,7 @@ func (App) Compose(rc app.RenderContext) string {
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	login, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api2/auth-token/",
-		Form: url.Values{"username": {adminEmail}, "password": {h.AdminPassword()}},
+		Form: url.Values{"username": {adminEmail(h)}, "password": {h.AdminPassword()}},
 	})
 	if err != nil {
 		return false, err
@@ -141,12 +142,12 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "administrator "+adminEmail+" signs in", helpers.StepSpec{
+	return h.Step(ctx, "admin-login", "administrator "+adminEmail(h)+" signs in", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
 			return h.Poll(ctx, 10*time.Minute, func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) })
 		},
-		Hint: "Open " + h.URL + " and sign in as " + adminEmail +
+		Hint: "Open " + h.URL + " and sign in as " + adminEmail(h) +
 			" with the password shown by `self-host credentials`; read the logs with: self-host logs seafile",
 		Credential: "admin",
 	})
@@ -158,7 +159,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the administrator %s cannot sign in to Seafile", adminEmail)
+		return fmt.Errorf("the administrator %s cannot sign in to Seafile", adminEmail(h))
 	}
 	return nil
 }

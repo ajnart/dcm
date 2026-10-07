@@ -25,7 +25,7 @@ func (f *fakeSeafile) handler() http.Handler {
 	})
 	mux.HandleFunc("POST /api2/auth-token/", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
-		if f.reject || r.PostForm.Get("username") != "admin@example.test" || r.PostForm.Get("password") != "adminpass" {
+		if f.reject || r.PostForm.Get("username") != "admin@selfhost.local" || r.PostForm.Get("password") != "adminpass" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

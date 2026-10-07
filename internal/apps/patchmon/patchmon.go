@@ -15,8 +15,6 @@ import (
 	"github.com/ajnart/self-host/internal/onboard"
 )
 
-const defaultEmail = "admin@selfhost.local"
-
 type App struct{}
 
 func (App) Info() app.Info {
@@ -33,7 +31,7 @@ func (App) Info() app.Info {
 
 // Inputs asks for the administrator email the first-owner API requires.
 func (App) Inputs() []app.Input {
-	return []app.Input{{Key: "admin_email", Prompt: "Administrator email", Default: defaultEmail}}
+	return []app.Input{{Key: "admin_email", Prompt: "Administrator email"}}
 }
 
 func (App) Secrets() []app.SecretSpec {
@@ -123,7 +121,7 @@ func adminEmail(h *helpers.H) string {
 	if email := h.Inputs["admin_email"]; email != "" {
 		return email
 	}
-	return defaultEmail
+	return h.AdminUser() + "@selfhost.local"
 }
 
 type profile struct {

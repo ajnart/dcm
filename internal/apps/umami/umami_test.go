@@ -81,7 +81,7 @@ func newH(t *testing.T, srv *httptest.Server) (*helpers.H, *[]helpers.StepResult
 	h := helpers.New(helpers.Config{
 		App: "umami", Service: "umami",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: fakeSecrets{"UMAMI_ADMIN_PASSWORD": "generated-admin"},
+		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass"},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { recorded = append(recorded, r) },
 	})

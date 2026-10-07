@@ -31,13 +31,12 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
-// Secrets backs the database and the first administrator. The files are
-// written by Files before the container first starts.
+// Secrets backs the database. The administrator is the shared Admin login,
+// written to a file by Files before the container first starts.
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
 		{Name: "db_password", Length: 48},
 		{Name: "db_root_password", Length: 48},
-		{Name: "admin_password", Length: 48},
 	}
 }
 
@@ -45,7 +44,7 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{
 		{Path: "secrets/db_password", Content: secret("db_password") + "\n", Mode: 0o600},
 		{Path: "secrets/db_root_password", Content: secret("db_root_password") + "\n", Mode: 0o600},
-		{Path: "secrets/admin_password", Content: secret("admin_password") + "\n", Mode: 0o600},
+		{Path: "secrets/admin_password", Content: secret("ADMIN_PASSWORD") + "\n", Mode: 0o600},
 	}
 }
 
@@ -119,7 +118,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 			"Accept":         "application/json",
 		},
 		User:     h.AdminUser(),
-		Password: h.Secret(h.Key("admin_password")),
+		Password: h.AdminPassword(),
 	})
 	if err != nil {
 		return false, err

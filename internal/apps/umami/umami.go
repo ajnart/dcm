@@ -41,7 +41,6 @@ func (App) Secrets() []app.SecretSpec {
 		{Name: "db_password", Length: 48},
 		{Name: "app_secret", Length: 48},
 		{Name: "two_factor_key", Length: 32, Hex: true},
-		{Name: "admin_password", Length: 48},
 	}
 }
 
@@ -118,7 +117,7 @@ func signInAs(ctx context.Context, h *helpers.H, password string) (signIn, bool,
 }
 
 func generatedWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	_, ok, err := signInAs(ctx, h, h.Secret(h.Key("admin_password")))
+	_, ok, err := signInAs(ctx, h, h.AdminPassword())
 	return ok, err
 }
 
@@ -133,7 +132,7 @@ func rotate(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		_, generated, err := signInAs(ctx, h, h.Secret(h.Key("admin_password")))
+		_, generated, err := signInAs(ctx, h, h.AdminPassword())
 		if err != nil {
 			return err
 		}
@@ -145,7 +144,7 @@ func rotate(ctx context.Context, h *helpers.H) error {
 	_, err = h.Expect(ctx, helpers.Request{
 		Method: "POST", Path: "/api/users/" + seed.ID,
 		Header: map[string]string{"Authorization": "Bearer " + seed.Token},
-		JSON:   map[string]string{"password": h.Secret(h.Key("admin_password"))},
+		JSON:   map[string]string{"password": h.AdminPassword()},
 	})
 	return err
 }

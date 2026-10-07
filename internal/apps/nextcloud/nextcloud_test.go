@@ -25,7 +25,7 @@ func (f *fakeNextcloud) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /ocs/v1.php/cloud/users", func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		if f.reject || !ok || user != "admin" || pass != "secret-admin" {
+		if f.reject || !ok || user != "admin" || pass != "adminpass" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -51,7 +51,7 @@ func newH(t *testing.T, srv *httptest.Server) (*helpers.H, *[]helpers.StepResult
 	h := helpers.New(helpers.Config{
 		App: "nextcloud", Service: "nextcloud",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: fakeSecrets{"ADMIN_USER": "admin", "NEXTCLOUD_ADMIN_PASSWORD": "secret-admin"},
+		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass"},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { recorded = append(recorded, r) },
 	})
