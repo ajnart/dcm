@@ -199,7 +199,7 @@ func createOwner(ctx context.Context, h *helpers.H, user, password string) error
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	first := onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/health", Want: []int{200}},
+		Ready:  onboard.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
 		Exists: ownerExists,
 		Create: createOwner,
 		Login:  signedIn,

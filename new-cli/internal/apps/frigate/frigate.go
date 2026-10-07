@@ -126,7 +126,7 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 		return err
 	}
 	if denied.Status != http.StatusUnauthorized && denied.Status != http.StatusForbidden {
-		return errors.New("Frigate anonymous profile access was not denied")
+		return fmt.Errorf("Frigate anonymous profile access was not denied (HTTP %d)", denied.Status)
 	}
 	temporary, err := firstUserPassword(ctx, h)
 	if err != nil {
@@ -149,7 +149,9 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 
 func firstAdmin() onboard.FirstAdmin {
 	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusUnauthorized}},
+		// The static frontend can answer before the authenticated API starts.
+		// Wait for the API to deny anonymous access before checking credentials.
+		Ready:  onboard.Probe{Path: "/api/profile", Want: []int{http.StatusUnauthorized, http.StatusForbidden}},
 		Create: createAdmin,
 		Login:  loginWorks,
 		Manual: "sign in with the temporary password printed by the container (`self-host logs frigate`) and change it to the password from `self-host credentials`",

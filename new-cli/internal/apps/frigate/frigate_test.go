@@ -35,21 +35,39 @@ const (
 )
 
 type fakeFrigate struct {
-	mu       sync.Mutex
-	password string
-	token    string
-	failPut  bool
+	mu              sync.Mutex
+	password        string
+	token           string
+	failPut         bool
+	startup         int
+	passwordUpdates int
+	profileStatus   int
 }
 
 func (f *fakeFrigate) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 	mux.HandleFunc("GET /api/profile", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.startup > 0 {
+			f.startup--
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		if f.profileStatus != 0 {
+			w.WriteHeader(f.profileStatus)
+			return
+		}
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
+		if f.startup > 0 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		var body struct{ User, Password string }
 		json.NewDecoder(r.Body).Decode(&body)
 		if body.User != adminUser || body.Password != f.password || f.password == "" {
@@ -74,9 +92,42 @@ func (f *fakeFrigate) handler() http.Handler {
 		var body struct{ Password string }
 		json.NewDecoder(r.Body).Decode(&body)
 		f.password = body.Password
+		f.passwordUpdates++
 		json.NewEncoder(w).Encode(map[string]any{"success": true})
 	})
 	return mux
+}
+
+func TestRestartWaitsForAuthenticatedAPIWithoutRotatingExistingAdmin(t *testing.T) {
+	fake := &fakeFrigate{password: adminPass, startup: 3}
+	srv := httptest.NewServer(fake.handler())
+	t.Cleanup(srv.Close)
+	var records []helpers.StepResult
+	h := newH(t, srv, &records)
+	if err := (frigate.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatalf("Setup should wait for the API after the frontend answers: %v", err)
+	}
+	if err := (frigate.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("Check after restart: %v", err)
+	}
+	if fake.password != adminPass || fake.passwordUpdates != 0 {
+		t.Fatal("restart recovery rotated an existing administrator")
+	}
+}
+
+func TestAnonymousProfileSuccessRemainsRejected(t *testing.T) {
+	fake := &fakeFrigate{password: adminPass, profileStatus: http.StatusOK}
+	srv := httptest.NewServer(fake.handler())
+	t.Cleanup(srv.Close)
+	var records []helpers.StepResult
+	h := newH(t, srv, &records)
+	err := (frigate.App{}).Setup(context.Background(), h)
+	if err == nil {
+		t.Fatal("a working admin login must not hide anonymous profile access")
+	}
+	if !strings.Contains(err.Error(), "HTTP 200") || fake.password != adminPass || fake.passwordUpdates != 0 {
+		t.Fatalf("anonymous success must report its status without resetting the existing administrator: %v", err)
+	}
 }
 
 type fakeExec struct{}
