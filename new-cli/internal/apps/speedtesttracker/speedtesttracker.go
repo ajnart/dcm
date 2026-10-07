@@ -10,8 +10,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -112,7 +114,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.Ready(ctx, "/api/healthcheck"); err != nil {
+	if err := ready(ctx, h); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
@@ -126,6 +128,68 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Credential: "admin",
 	})
 }
+
+func ready(ctx context.Context, h *helpers.H) error {
+	status := 0
+	probe := func(ctx context.Context) (bool, error) {
+		response, err := h.HTTP(ctx, helpers.Request{Path: "/api/healthcheck"})
+		if err != nil {
+			status = 0
+			return false, errors.New("healthcheck transport failed")
+		}
+		status = response.Status
+		if status >= 500 {
+			return false, fmt.Errorf("HTTP %d", status)
+		}
+		return true, nil
+	}
+	return h.Step(ctx, "ready", "wait for speedtest-tracker to answer on /api/healthcheck", helpers.StepSpec{
+		Check: probe,
+		Do: func(ctx context.Context) error {
+			err := h.Poll(ctx, 3*time.Minute, probe)
+			if err != nil && status == http.StatusBadGateway {
+				return fmt.Errorf("%w; %s", err, phpBootstrapFacts(ctx, h))
+			}
+			return err
+		},
+		Hint: "A persistent HTTP 502 means nginx did not obtain a response from its pinned PHP-FPM upstream; verify owned application initialization and PHP-FPM readiness before changing the healthcheck route.",
+	})
+}
+
+// Only fixed booleans survive this bounded failure-only dependency probe.
+// No private file contents, environment values, PHP config or logs are read.
+func phpBootstrapFacts(ctx context.Context, h *helpers.H) string {
+	if h.Config.Exec == nil {
+		return "php_bootstrap_metadata=unobserved"
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	res, err := h.Exec(ctx, nil, "/usr/bin/with-contenv", "bash", "-c", phpBootstrapProbe)
+	if err != nil || res.ExitCode != 0 {
+		return "php_bootstrap_metadata=unobserved"
+	}
+	facts := strings.Fields(string(res.Stdout))
+	keys := []string{"key", "readable", "root_pool", "upstream"}
+	if len(facts) != len(keys) {
+		return "php_bootstrap_metadata=unobserved"
+	}
+	for i, key := range keys {
+		if facts[i] != key+"=true" && facts[i] != key+"=false" {
+			return "php_bootstrap_metadata=unobserved"
+		}
+		facts[i] = strings.TrimPrefix(facts[i], key+"=")
+	}
+	return fmt.Sprintf("app_key_present=%s app_key_file_readable=%s pool_identity_includes_root=%s php_upstream_listening=%s", facts[0], facts[1], facts[2], facts[3])
+}
+
+const phpBootstrapProbe = `set +x
+key=false; readable=false; root_pool=false; upstream=false
+[ -n "${APP_KEY:-}" ] && key=true
+[ -r /config/app.key ] && readable=true
+if [ "$(id -u abc)" = 0 ] || [ "$(id -g abc)" = 0 ]; then root_pool=true; fi
+timeout 2 bash -c 'true > /dev/tcp/127.0.0.1/9000' >/dev/null 2>&1 && upstream=true
+printf 'key=%s\nreadable=%s\nroot_pool=%s\nupstream=%s\n' "$key" "$readable" "$root_pool" "$upstream"
+`
 
 // Check verifies the seeded administrator only; the scoped API token and a real
 // measurement stay separate acceptance steps.
