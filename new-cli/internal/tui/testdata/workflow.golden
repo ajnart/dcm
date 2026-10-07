@@ -1,21 +1,15 @@
  ◆ self-host   Dashboard · Stack · Workflow · Install · Settings                                                  v1.0.0
   Workflow · 1 App fully set up · 1 step failed
 
-  Jellyfin
-    ✓ ready · API ready
-  > ↷ account · already configured
-    ✓ check
-
-  Sonarr
+    ▸ Jellyfin
+  > ▾ Sonarr
     ✓ ready
     ✗ link-qbittorrent · download client
     ○ check
-
-  Radarr
-    no remembered steps
-
-  whoami
-    added by hand, no Setup
+    ▾ Radarr
+      no remembered steps
+    ▾ whoami
+      added by hand, no Setup
 
 
 
@@ -27,4 +21,10 @@
 
 
 
-                                                                              ↑/k select up • ↓/j select down • esc back
+
+
+
+
+
+
+              ↑/k select up • ↓/j select down • pgup scroll up • pgdn scroll down • / search • space collapse • esc back

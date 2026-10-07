@@ -27,6 +27,7 @@ type WorkflowStep struct {
 type WorkflowApp struct {
 	ID, Name string
 	Managed  bool
+	SetUp    bool
 	Steps    []WorkflowStep
 }
 
@@ -46,7 +47,7 @@ func Workflow(status service.Status, _ []events.Event) WorkflowSnapshot {
 		if app.Managed && app.Setup == "ok" {
 			out.Counts.AppsSetUp++
 		}
-		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed}
+		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed, SetUp: app.Managed && app.Setup == "ok"}
 		for _, step := range app.Steps {
 			state := WorkflowNotRun
 			switch step.Status {

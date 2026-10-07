@@ -213,6 +213,17 @@ func press(s string) tea.KeyPressMsg {
 
 func ctrlS() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl} }
 
+func pgupKey() tea.KeyPressMsg   { return tea.KeyPressMsg{Code: tea.KeyPgUp} }
+func pgdownKey() tea.KeyPressMsg { return tea.KeyPressMsg{Code: tea.KeyPgDown} }
+
+func wheelMsg(down bool) tea.MouseWheelMsg {
+	button := tea.MouseWheelUp
+	if down {
+		button = tea.MouseWheelDown
+	}
+	return tea.MouseWheelMsg{Button: button}
+}
+
 func screen(m Model) string { return ansi.Strip(m.View().Content) }
 
 func statusMsgFor(err error) statusMsg { return statusMsg{err: err} }
@@ -293,6 +304,8 @@ func TestKeybindAudit(t *testing.T) {
 		"open: o", "copy password: c", "update: u", "retry Setup: r", "install: i",
 		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
 		"settings: s", "stack: d", "workflow: w", "search: /", "apply: ctrl+s", "back: esc",
+		// Workflow.
+		"collapse: space",
 		// Install.
 		"pick: space", "review: enter",
 		// Settings.
@@ -796,4 +809,5 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	check("install", drive(t, m, press("i")))
 	check("settings", drive(t, m, press("s")))
 	check("stack", drive(t, m, press("d")))
+	check("workflow", drive(t, m, press("w")))
 }
