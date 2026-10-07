@@ -126,7 +126,7 @@ func TestWorkflowViewShowsEveryAppAndRememberedMarks(t *testing.T) {
 	var v view = &workflowView{}
 	v, _, _ = v.Update(ctx, press("space")) // expand the collapsed Jellyfin
 	out := ansi.Strip(v.View(ctx, 120, 30))
-	for _, want := range []string{"Jellyfin", "Sonarr", "Radarr", "whoami", "1 App fully set up", "1 step failed", "✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "API ready", "no remembered steps", "added by hand, no Setup"} {
+	for _, want := range []string{"Jellyfin", "Sonarr", "Radarr", "whoami", "1 App fully set up", "1 step failed", "✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "API ready", "Setup has no recorded steps yet", "added by hand, no Setup"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Workflow view lacks %q\n%s", want, out)
 		}

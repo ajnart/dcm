@@ -244,7 +244,7 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 		if !row.app.Managed {
 			line += t.dim().Render(" · added by hand, no Setup")
 		} else if len(row.app.Steps) == 0 {
-			line += t.dim().Render(" · no remembered steps")
+			line += t.dim().Render(" · Setup has no recorded steps yet")
 		}
 		return []string{line}
 	}
