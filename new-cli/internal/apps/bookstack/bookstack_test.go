@@ -186,6 +186,31 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 	}
 }
 
+func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
+	for _, tc := range []struct{ output, want string }{
+		{"key=true root_pool=true upstream=false database=true", "app_key_present=true pool_identity_includes_root=true php_upstream_listening=false database_tcp_listening=true"},
+		{"key=true root_pool=false upstream=true database=false", "database_tcp_listening=false"},
+		{"key=synthetic-private-secret root_pool=true upstream=false database=true", "bootstrap_metadata=unobserved"},
+		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
+	} {
+		t.Run(tc.want, func(t *testing.T) {
+			executor := &recordingExec{stdout: []byte(tc.output)}
+			box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{"ADMIN_PASSWORD": "synthetic-private-secret"})
+			err := (bookstack.App{}).Setup(context.Background(), box.h)
+			step := box.step("startup-status")
+			if err == nil || !strings.Contains(err.Error(), tc.want) || step.Status != "fail" || !strings.Contains(step.Error, tc.want) {
+				t.Fatal("failed readiness omitted fixed dependency facts")
+			}
+			if strings.Contains(err.Error()+step.Error+step.Hint, "synthetic-private") {
+				t.Fatal("raw bootstrap output entered diagnostics")
+			}
+			if len(executor.args) != 1 || executor.args[0][0] != "/usr/bin/with-contenv" || box.step("admin").Status != "" {
+				t.Fatal("probe lost image environment or attempted admin creation")
+			}
+		})
+	}
+}
+
 func TestPHPFPMAllowsOnlyConfiguredRootIdentity(t *testing.T) {
 	provider, ok := any(bookstack.App{}).(app.FileDeclarer)
 	if !ok {

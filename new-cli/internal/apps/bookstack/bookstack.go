@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -139,7 +141,7 @@ func createAdmin(ctx context.Context, h *helpers.H) error {
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/login"); err != nil {
-		return err
+		return errors.Join(err, startupStatus(ctx, h))
 	}
 	email := h.AdminUser() + "@selfhost.local"
 	return h.Step(ctx, "admin", "create the administrator "+email, helpers.StepSpec{
@@ -164,6 +166,50 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Credential: "admin",
 	})
 }
+
+// Failure-only observations distinguish image initialization from an absent
+// PHP upstream. Database TCP availability does not claim authenticated access.
+func startupStatus(ctx context.Context, h *helpers.H) error {
+	facts := "bootstrap_metadata=unobserved"
+	if h.Config.Exec != nil {
+		probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", bootstrapProbe)
+		if err == nil && result.ExitCode == 0 {
+			values := strings.Fields(string(result.Stdout))
+			keys := []string{"key", "root_pool", "upstream", "database"}
+			valid := len(values) == len(keys)
+			if valid {
+				for i, key := range keys {
+					if values[i] != key+"=true" && values[i] != key+"=false" {
+						valid = false
+						break
+					}
+					values[i] = strings.TrimPrefix(values[i], key+"=")
+				}
+			}
+			if valid {
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s php_upstream_listening=%s database_tcp_listening=%s", values[0], values[1], values[2], values[3])
+			}
+		}
+	}
+	return h.Step(ctx, "startup-status", "observe BookStack bootstrap dependencies", helpers.StepSpec{
+		Do:   func(context.Context) error { return errors.New("BookStack startup status: " + facts) },
+		Hint: "Check owned image initialization, PHP-FPM readiness and database health before retrying; a database TCP listener does not prove authenticated database access.",
+	})
+}
+
+// The pinned Alpine-nginx image uses PHP-FPM TCP 9000; BookStack's public
+// init-bookstack-config script waits for DB_HOST/DB_PORT before migrations.
+// Emit only booleans, never environment values, private files or command output.
+const bootstrapProbe = `set +x
+key=false; root_pool=false; upstream=false; database=false
+[ -n "${APP_KEY:-}" ] && key=true
+if [ "$(id -u abc)" = 0 ] || [ "$(id -g abc)" = 0 ]; then root_pool=true; fi
+timeout 2 bash -c 'true > /dev/tcp/127.0.0.1/9000' >/dev/null 2>&1 && upstream=true
+timeout 2 bash -c 'true > "/dev/tcp/${DB_HOST}/${DB_PORT:-3306}"' >/dev/null 2>&1 && database=true
+printf 'key=%s\nroot_pool=%s\nupstream=%s\ndatabase=%s\n' "$key" "$root_pool" "$upstream" "$database"
+`
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	ok, err := login(ctx, h)
