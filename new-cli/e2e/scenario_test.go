@@ -358,13 +358,17 @@ func (r *runner) waitRunningWithDiagnostics(limit time.Duration, expected []stri
 		res := r.runWithTimeout(30*time.Second, "status", "--json")
 		var doc statusDoc
 		containersOK := false
+		var inventoryDiagnostics []event
 		if res.code == 0 && json.Unmarshal([]byte(res.stdout), &doc) == nil && readyStatus(doc.Apps, expected) {
-			containersOK = r.containersReady()
+			containersOK, inventoryDiagnostics = r.containersReadyWithDiagnostics()
 			if containersOK {
 				return true, nil
 			}
 		}
 		last = statusReadinessDiagnostics(res.stdout, expected, containersOK)
+		if len(inventoryDiagnostics) != 0 {
+			last = inventoryDiagnostics
+		}
 		if res.code != 0 && len(redactedFailures(res.events, expected)) > 0 {
 			last = res.events
 		}
@@ -380,8 +384,14 @@ func (r *runner) waitRunningWithDiagnostics(limit time.Duration, expected []stri
 }
 
 func (r *runner) containersReady() bool {
+	ready, _ := r.containersReadyWithDiagnostics()
+	return ready
+}
+
+func (r *runner) containersReadyWithDiagnostics() (bool, []event) {
 	output := r.dockerOutput(30*time.Second, "compose", "-p", r.name, "ps", "-a", "--format", "json")
-	return containersReadyJSON(output, expectedServices(r.spec))
+	expected := expectedServices(r.spec)
+	return containersReadyJSON(output, expected), composeReadinessDiagnostics(output, expected)
 }
 
 func (r *runner) recordImages() {

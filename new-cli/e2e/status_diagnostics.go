@@ -3,6 +3,9 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
@@ -69,4 +72,69 @@ func safeStatusValue(value string) string {
 	default:
 		return "unrecognized"
 	}
+}
+
+func composeReadinessDiagnostics(document string, expected []string) []event {
+	fallback := func(message string) []event { return []event{{Event: "run.error", Error: message}} }
+	if containersReadyJSON(document, expected) {
+		return nil
+	}
+	var rows []containerEntry
+	if strings.HasPrefix(strings.TrimSpace(document), "[") {
+		if json.Unmarshal([]byte(document), &rows) != nil {
+			return fallback("owned Compose service inventory unavailable or invalid")
+		}
+	} else {
+		decoder := json.NewDecoder(strings.NewReader(document))
+		for {
+			var row containerEntry
+			if err := decoder.Decode(&row); err == io.EOF {
+				break
+			} else if err != nil {
+				return fallback("owned Compose service inventory unavailable or invalid")
+			}
+			rows = append(rows, row)
+		}
+	}
+	owned := map[string][]containerEntry{}
+	for _, name := range expected {
+		owned[name] = nil
+	}
+	unexpected := false
+	for _, row := range rows {
+		if _, allowed := owned[row.Service]; allowed {
+			owned[row.Service] = append(owned[row.Service], row)
+		} else {
+			unexpected = true
+		}
+	}
+	var out []event
+	for _, name := range expected {
+		entries := owned[name]
+		if len(entries) == 0 {
+			out = append(out, event{Event: "run.error", Error: fmt.Sprintf("owned Compose service readiness: service=%s state=missing health=none exit_code=unknown", name)})
+			continue
+		}
+		row := entries[0]
+		data, _ := json.Marshal([]containerEntry{row})
+		if len(entries) == 1 && containersReadyJSON(string(data), []string{name}) {
+			continue
+		}
+		exit := "unknown"
+		if row.ExitCode != nil {
+			exit = strconv.Itoa(*row.ExitCode)
+		}
+		prefix := "owned Compose service readiness"
+		if len(entries) > 1 {
+			prefix = "owned Compose service has duplicate inventory entries"
+		}
+		out = append(out, event{Event: "run.error", Error: fmt.Sprintf("%s: service=%s state=%s health=%s exit_code=%s", prefix, name, safeStatusValue(row.State), safeStatusValue(row.Health), exit)})
+	}
+	if unexpected {
+		out = append(out, event{Event: "run.error", Error: "owned Compose service inventory contains an unexpected service"})
+	}
+	if len(out) == 0 {
+		return fallback("owned Compose service inventory did not contain the expected service set")
+	}
+	return out
 }
