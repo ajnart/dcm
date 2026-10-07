@@ -211,12 +211,6 @@ func (c readyConfig) wanted(status int) bool {
 	return false
 }
 
-// WaitHTTP is deprecated in favour of Ready, which reports skip on a rerun.
-// It stays only while the last caller, owned by a separate change, migrates.
-func (h *H) WaitHTTP(ctx context.Context, path string, timeout time.Duration) error {
-	return h.Ready(ctx, path, Timeout(timeout))
-}
-
 // Poll calls fn until it reports done, ctx ends or timeout passes.
 func (h *H) Poll(ctx context.Context, timeout time.Duration, fn func(context.Context) (bool, error)) error {
 	deadline := h.Now().Add(timeout)

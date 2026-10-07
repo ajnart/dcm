@@ -372,7 +372,7 @@ func (s *session) createAPIKey(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/health/live", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/health/live", helpers.Timeout(2*time.Minute)); err != nil {
 		return err
 	}
 	s := newSession()
