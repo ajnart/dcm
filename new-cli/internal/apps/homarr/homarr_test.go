@@ -263,6 +263,7 @@ func (f *fakeHomarr) handler() http.Handler {
 		id := f.id("integration")
 		integration := map[string]any{
 			"id": id, "name": input["name"], "url": input["url"], "kind": input["kind"],
+			"secrets": input["secrets"],
 		}
 		f.integrations = append(f.integrations, integration)
 		trpc(w, map[string]any{"integration": integration})
@@ -584,8 +585,8 @@ func TestTileOnlyTargetSkipsTheIntegration(t *testing.T) {
 	fake.apiKey = "keyid.secret"
 	srv := serve(t, fake)
 	from := homarrH(t, srv, fakeSecrets{"HOMARR_API_KEY": "keyid.secret", "ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
-	to := targetH(t, srv, "ntfy", 2586, fakeSecrets{})
-	link := linkFor(t, "ntfy")
+	to := targetH(t, srv, "vaultwarden", 80, fakeSecrets{})
+	link := linkFor(t, "vaultwarden")
 
 	if err := link.Apply(context.Background(), from, to); err != nil {
 		t.Fatalf("apply: %v", err)
@@ -635,6 +636,7 @@ func allSecrets() fakeSecrets {
 		"SONARR_API_KEY": "sonarr-secret", "RADARR_API_KEY": "radarr-secret",
 		"PROWLARR_API_KEY": "prowlarr-secret", "JELLYFIN_API_KEY": "jellyfin-secret",
 		"SEERR_API_KEY": "seerr-secret",
+		"NTFY_TOPIC":    "ntfy-topic", "NTFY_HOMARR_TOKEN": "ntfy-token",
 	}
 }
 
@@ -646,6 +648,7 @@ func TestEachLinkAddsItsWidgetsWiredToItsIntegration(t *testing.T) {
 		"jellyfin":    {"mediaServer", "mediaReleases", "stats"},
 		"seerr":       {"mediaRequests-requestList", "mediaRequests-requestStats", "stats"},
 		"qbittorrent": {"downloads", "stats"},
+		"ntfy":        {"notifications", "stats"},
 	}
 	for targetID, kinds := range cases {
 		t.Run(targetID, func(t *testing.T) {
@@ -673,6 +676,40 @@ func TestEachLinkAddsItsWidgetsWiredToItsIntegration(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNtfyIntegrationCarriesTopicAndAPIKey(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "ntfy", 2586, allSecrets())
+
+	if err := linkFor(t, "ntfy").Apply(context.Background(), from, to); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.integrations) != 1 {
+		t.Fatalf("integrations=%d, want 1", len(fake.integrations))
+	}
+	if kind, _ := fake.integrations[0]["kind"].(string); kind != "ntfy" {
+		t.Fatalf("integration kind=%q, want ntfy", kind)
+	}
+	if url, _ := fake.integrations[0]["url"].(string); url != "http://ntfy:80" {
+		t.Fatalf("integration url=%q, want http://ntfy:80", url)
+	}
+	secrets, _ := fake.integrations[0]["secrets"].([]any)
+	got := map[string]string{}
+	for _, raw := range secrets {
+		record, _ := raw.(map[string]any)
+		kind, _ := record["kind"].(string)
+		value, _ := record["value"].(string)
+		got[kind] = value
+	}
+	if got["topic"] != "ntfy-topic" || got["apiKey"] != "ntfy-token" {
+		t.Fatalf("secrets=%v, want topic+apiKey from NTFY_TOPIC/NTFY_HOMARR_TOKEN", got)
 	}
 }
 
