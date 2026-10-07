@@ -271,6 +271,17 @@ func TestEveryCatalogAppRenders(t *testing.T) {
 		if strings.Contains(compose, "ports:") && !strings.Contains(compose, "${BIND_IP}:") {
 			t.Errorf("%s: published ports must bind ${BIND_IP}", info.ID)
 		}
+		// Every administrator uses the one shared Admin login.
+		if declarer, ok := a.(app.SecretDeclarer); ok {
+			for _, spec := range declarer.Secrets() {
+				if name := strings.ToLower(spec.Name); strings.Contains(name, "admin") && strings.Contains(name, "pass") {
+					t.Errorf("%s: declares its own admin password %q; use the shared Admin login", info.ID, spec.Name)
+				}
+			}
+		}
+		if strings.Contains(compose, "example.test") {
+			t.Errorf("%s: Compose() uses an example.test address; email logins are ${ADMIN_USER}@selfhost.local", info.ID)
+		}
 		prefix := strings.ToUpper(strings.ReplaceAll(info.ID, "-", "_")) + "_"
 		for _, ref := range composeRef.FindAllStringSubmatch(compose, -1) {
 			name, _, _ := strings.Cut(ref[1], ":")
