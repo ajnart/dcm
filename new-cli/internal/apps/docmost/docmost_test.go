@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/apps/docmost"
 	"github.com/ajnart/self-host/internal/events"
@@ -21,11 +22,14 @@ func (s secrets) Get(key string) string       { return s[key] }
 func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 
 type fakeDocmost struct {
-	mu     sync.Mutex
-	email  string
-	pass   string
-	owner  bool
-	setups int
+	mu            sync.Mutex
+	email         string
+	pass          string
+	owner         bool
+	setups        int
+	limited       int
+	retryAfter    string
+	loginAttempts int
 }
 
 // jsonOnly mirrors Docmost's Fastify, which answers 415 when a POST carries a
@@ -62,6 +66,17 @@ func (f *fakeDocmost) handler() http.Handler {
 	mux.HandleFunc("POST /api/auth/login", jsonOnly(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
+		f.loginAttempts++
+		if f.limited != 0 {
+			if f.limited > 0 {
+				f.limited--
+			}
+			if f.retryAfter != "" {
+				w.Header().Set("Retry-After-auth", f.retryAfter)
+			}
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
 		var body struct{ Email, Password string }
 		json.NewDecoder(r.Body).Decode(&body)
 		if !f.owner || body.Email != f.email || body.Password != f.pass {
@@ -158,5 +173,49 @@ func TestWrongPasswordHintNamesThePage(t *testing.T) {
 	}
 	if !strings.Contains(box.step("admin").Hint, box.h.URL) {
 		t.Errorf("hint should name the App page, got %q", box.step("admin").Hint)
+	}
+}
+
+func TestCheckWaitsForNamedAuthRateLimitThenVerifiesOwner(t *testing.T) {
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw", owner: true, limited: 1, retryAfter: "60"}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+	start := box.h.Now()
+	if err := (docmost.App{}).Check(context.Background(), box.h); err != nil {
+		t.Fatalf("Check after the auth rate limit expires: %v", err)
+	}
+	if got := box.h.Now().Sub(start); got != time.Minute {
+		t.Fatalf("waited %s, want the named auth Retry-After of one minute", got)
+	}
+	if fake.loginAttempts != 2 || fake.setups != 0 {
+		t.Fatalf("login attempts = %d, setup writes = %d", fake.loginAttempts, fake.setups)
+	}
+}
+
+func TestSetupPersistentRateLimitIsBoundedAndDoesNotCreateOwner(t *testing.T) {
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "pw", owner: true, limited: -1}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+	start := box.h.Now()
+	err := (docmost.App{}).Setup(context.Background(), box.h)
+	if err == nil || !strings.Contains(err.Error(), "HTTP 429") || !strings.Contains(err.Error(), "self-host setup docmost") {
+		t.Fatalf("missing bounded rate-limit recovery diagnostic: %v", err)
+	}
+	if box.h.Now().Sub(start) != 2*time.Minute || fake.loginAttempts != 3 {
+		t.Fatalf("wait = %s, login attempts = %d", box.h.Now().Sub(start), fake.loginAttempts)
+	}
+	if fake.setups != 0 || fake.pass != "pw" || !fake.owner {
+		t.Fatalf("existing owner was touched: setup writes = %d", fake.setups)
+	}
+}
+
+func TestRateLimitRecoveryStillRejectsWrongCredentials(t *testing.T) {
+	fake := &fakeDocmost{email: "admin@selfhost.local", pass: "right", owner: true, limited: 1, retryAfter: "5"}
+	box := newHarness(t, fake, secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "wrong"})
+	start := box.h.Now()
+	err := (docmost.App{}).Check(context.Background(), box.h)
+	if err == nil || !strings.Contains(err.Error(), "cannot sign in") {
+		t.Fatalf("wrong credentials should still fail after the rate limit, got %v", err)
+	}
+	if fake.loginAttempts != 2 || box.h.Now().Sub(start) != 5*time.Second || fake.setups != 0 {
+		t.Fatalf("unexpected retries or setup writes: login attempts = %d, setup writes = %d", fake.loginAttempts, fake.setups)
 	}
 }

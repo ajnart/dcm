@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -80,12 +81,41 @@ func (App) Compose(rc app.RenderContext) string {
 // login signs in with the saved owner credentials and reads the owner role
 // back through the pinned users/me endpoint.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
+	req := helpers.Request{
 		Method: http.MethodPost, Path: "/api/auth/login",
 		JSON: map[string]string{"email": adminEmail(h), "password": h.AdminPassword()},
-	})
-	if err != nil {
-		return false, err
+	}
+	deadline := h.Now().Add(2 * time.Minute)
+	var resp helpers.Response
+	for {
+		var err error
+		resp, err = h.HTTP(ctx, req)
+		if err != nil {
+			return false, err
+		}
+		if resp.Status != http.StatusTooManyRequests {
+			break
+		}
+		// Docmost 0.96.0 uses a named auth throttler: ten requests per
+		// minute, Redis-backed, with Retry-After-auth in seconds.
+		wait := time.Minute
+		header := resp.Header.Get("Retry-After-auth")
+		if header == "" {
+			header = resp.Header.Get("Retry-After")
+		}
+		if seconds, err := strconv.ParseInt(header, 10, 64); err == nil && seconds > 0 {
+			if seconds > 120 {
+				wait = 2*time.Minute + time.Second
+			} else {
+				wait = time.Duration(seconds) * time.Second
+			}
+		}
+		if wait > deadline.Sub(h.Now()) {
+			return false, errors.New("Docmost login remained rate-limited (HTTP 429); wait and retry: self-host setup docmost")
+		}
+		if err := h.Sleep(ctx, wait); err != nil {
+			return false, err
+		}
 	}
 	if resp.Status == http.StatusUnauthorized || resp.Status == http.StatusBadRequest {
 		return false, nil
@@ -127,9 +157,17 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/health"); err != nil {
 		return err
 	}
+	var loginErr error
 	return h.Step(ctx, "admin", "create the first workspace owner "+adminEmail(h), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
+		Check: func(ctx context.Context) (bool, error) {
+			var ok bool
+			ok, loginErr = login(ctx, h)
+			return ok, loginErr
+		},
 		Do: func(ctx context.Context) error {
+			if loginErr != nil {
+				return loginErr
+			}
 			if _, err := h.Expect(ctx, helpers.Request{
 				Method: http.MethodPost, Path: "/api/auth/setup",
 				JSON: map[string]string{"name": "Admin", "email": adminEmail(h), "password": h.AdminPassword()},
