@@ -1,0 +1,21 @@
+new-cli/internal/apps/authentik/authentik.go
+  s_a2fd509a765bab::t_7c83d0e363bc4c 11,23-25,144-148
+new-cli/internal/apps/authentik/authentik_test.go
+  s_a2fd509a765bab::t_b8043fc2c54c81 8,66-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f6e87a16ae51f4f7d8fb9fe6169c35bfeadfdcf6",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
