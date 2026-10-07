@@ -6,11 +6,11 @@ Inventory: 93 Apps and 20 Recipes (19 legacy Recipes plus `media`), 113 targets.
 
 Outcomes: **awaiting-external-credentials: 8**, **failed: 3**, **manual: 5**, **pass: 97**.
 
-Full per-App stage results, source hashes, binary hashes, image IDs and cleanup: [runtime-matrix.json](runtime-matrix.json).
+Full per-App/Recipe stage results, source hashes, binary hashes, image IDs and cleanup: [runtime-matrix.json](runtime-matrix.json).
 
 Heads are per target; results are not upgraded to the current source head.
 
-Stage legend: `P` pass, `F` fail, `F` failed, `B` blocked, `M` manual, `NR` not-run, `MC` missing-configuration, `EC` awaiting-external-credentials, `LP` awaiting-local-prerequisites, `R` running.
+Stage legend: `P` pass, `F` failed, `B` blocked, `M` manual, `NR` not-run, `MC` missing-configuration, `EC` awaiting-external-credentials, `LP` awaiting-local-prerequisites, `R` running.
 
 Base stage order: install, Setup/Check, idempotency, restart, recovery, update, payload seed, backup, isolated Restore, restored Check, payload restored, sentinel. Specialized probes are named separately; the JSON records each result.
 

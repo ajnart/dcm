@@ -10,10 +10,19 @@ Apps share one Docker Compose Project, normally in `~/self-host`. The Catalog,
 Setup code and agent guide ship inside the binary; running it needs no Node.js,
 Bun, checkout, or AI account.
 
-**Release status:** the Go CLI is being prepared for distribution. Published
-`new-cli-vX.Y.Z` assets and an authenticated first install have not yet been
-verified. The older npm CLI and agent-plugin releases are separate products;
-do not use their versions to select this binary.
+**Private release:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
+is published. Linux amd64 host installation, self-update and a clean Alpine
+bootstrap/update passed using the 0.1.2 installer; [release proof](docs/release-proof.md)
+records the scope. The older npm CLI and agent-plugin releases use separate versions.
+
+![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
+
+Actual 120×30 terminal session with an isolated, loopback-only Homarr/Jellyfin/ntfy
+Project at `374bd1c`, captured after all nine Homarr API/browser stages passed.
+[Workflow steps](docs/images/workflow.png),
+[Install search](docs/images/install-search.png), [terminal recording](docs/demos/self-host.cast)
+(asciicast v2) and [capture provenance](docs/demos/capture.json) come from the same
+real binary and fixture. This demonstrates these three Apps, not the full Catalog.
 
 ## Install
 
@@ -24,32 +33,30 @@ using your authenticated GitHub client:
 set +x
 gh auth status
 gh api --method GET -H 'Accept: application/vnd.github.raw+json' \
-  'repos/ajnart/selfhost-skills/contents/new-cli/install.sh?ref=feat/new-cli' \
+  'repos/ajnart/selfhost-skills/contents/new-cli/install.sh?ref=new-cli-v0.1.2' \
   > /tmp/self-host-install.sh
-SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash /tmp/self-host-install.sh
+SELF_HOST_VERSION=0.1.2 SELF_HOST_GITHUB_TOKEN="$(gh auth token)" \
+  bash /tmp/self-host-install.sh
+export PATH="$HOME/.local/bin:$PATH"
+self-host --version
 ```
 
 GitHub CLI must be logged in with access to this repository. The command passes
 its stored credential directly to the installer through `SELF_HOST_GITHUB_TOKEN`
 with shell tracing disabled. You can instead supply that variable through your
 credential provider. Never print or paste its value into commands or reports.
-The command above targets the development branch while release work is pending;
-it cannot install a binary until a stable CLI release is published.
-
-For public access after publication, the intended install command is:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
-```
+This exact bootstrap passed with the published 0.1.2 installer and binary on
+Linux amd64. The repository remains private; an unauthenticated `curl` download
+cannot install this release.
 
 The installer selects the highest stable `new-cli-vX.Y.Z` release, verifies the
 archive against `checksums.txt`, and installs `self-host` in `~/.local/bin`
 (`/usr/local/bin` when run as root). Put the selected directory on `PATH`.
 `SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts
-an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. No specific release
-version is promised here.
+an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. Omit the version override
+to select the highest stable CLI release.
 
-To work from an authenticated checkout before release:
+To build the current development source from an authenticated checkout:
 
 ```bash
 cd new-cli
@@ -72,19 +79,19 @@ the invoking user. Images with fixed container UIDs need separate handling.
 
 | Platform | Binary target | Current validation |
 | --- | --- | --- |
-| Linux amd64 | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
-| Linux arm64 | Yes | Same native CLI/install checks passed; image support varies by App. |
-| macOS arm64 | Yes | Same native CLI/install checks passed; deployment requires a Linux Docker VM. |
+| Linux amd64 | Yes | Published host install/update and clean Alpine bootstrap/update passed. |
+| Linux arm64 | Yes | Native CLI/local archive checks passed; image support varies by App. |
+| macOS arm64 | Yes | Native CLI/local archive checks passed; deployment requires a Linux Docker VM. |
 | Intel macOS | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
 | WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
 | Native Windows | No | Unsupported. |
 
-[Native CI run 37590881662](https://github.com/ajnart/selfhost-skills/actions/runs/37590881662)
-validated CLI execution, local checksummed installation and corruption rejection
-on all four native targets at `d1e7e33`. [Earlier CI](https://github.com/ajnart/selfhost-skills/actions/runs/37587841176)
-validated source vet/tests at `0c186fa`. Locally served archives do not prove
-authenticated GitHub release delivery or Docker/App acceptance. See
-[runtime acceptance boundaries](e2e/acceptance.md).
+[Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
+and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
+passed at `d908cb6`. All four native targets passed CLI execution, local
+checksummed installation and corruption rejection. Published-asset install/update
+proof covers Linux amd64; the other platforms and WSL remain unverified for that
+path. Docker/App evidence is the separate Linux runtime matrix below.
 
 ## First App
 
@@ -186,6 +193,12 @@ For an isolated Project, set both `SELF_HOST_HOME` to an absolute directory and
 consistent for subsequent commands. Do not point this CLI at an older CLI's
 Project as an assumed migration path.
 
+Current source rejects duplicate Compose service names across App fragments
+before apply. When older installed fragments shared a cache service name,
+reinstall both affected Apps to regenerate their separate cache definitions.
+This is not an automatic data migration: old Redis containers/data are not
+retired without established ownership and approval.
+
 ## Cannot reach an App from another device
 
 Start with `self-host status` and `self-host doctor`. Check the recorded
@@ -229,30 +242,45 @@ a different machine and verify logins, data and the App's actual workload.
 
 Keep another private copy off the host. A written archive is not a verified
 recovery plan: perform a restore into an isolated Project and check the data.
-The generic acceptance harness checks archive extraction and existing Setup/Check
-probes; database-content recovery needs App-specific proof.
+Generic acceptance checks archive extraction and Setup/Check. Selected Apps
+also seed and recover real API/database payloads; those probes establish only
+the workload they exercise. Check the per-target evidence for recovery coverage.
 
 ## What is supported
 
-The compiled Catalog contains **93 Apps and 20 Recipes** (19 legacy Recipes
-plus `media`). These are metadata/implementation counts, not 113 runtime passes.
-Real Linux lifecycle runs for ntfy and Vaultwarden passed, including isolated
-Restore. Full-Catalog, database-content recovery and other platform Docker
-acceptance remain incomplete.
+The Catalog contains **93 Apps and 20 Recipes** (19 legacy Recipes plus
+`media`). The final [runtime matrix](docs/runtime-matrix.md) and
+[JSON evidence](docs/runtime-matrix.json) record **97 passes, 3 failures,
+8 awaiting external credentials and 5 manual** across all 113 targets.
+Each result belongs to its recorded head, binary, image IDs and platform;
+these mixed-head passes do not verify every App on the current binary.
+
+BookStack, Speedtest Tracker and Passbolt failed on this host.
+[PHP-FPM confinement evidence](docs/php-fpm-host-limit.md) documents the host
+access limits; Passbolt's HTTP 500 is not fully explained by that reproduction.
+Have the host administrator review PHP-FPM bootstrap/configuration access before
+retrying Setup.
+External credentials/licenses remain owner-supplied. Dockge, Emby, Stalwart,
+Uptime Kuma and the monitoring Recipe need manual setup.
+
+Homarr has [real API/browser and visual proof](docs/homarr-proof.md): nine
+machine checks, owned cleanup and reviewed dashboard/panel screenshots passed
+at one immutable head. The terminal screenshots above use that same fixture
+and binary. API payload checks, archive sentinels, browser review and full
+workload recovery remain distinct claims.
 
 | Capability | Available behavior | Evidence limit |
 | --- | --- | --- |
 | Catalog install | Compiled Compose definitions and App inputs. | All-catalog runtime acceptance is incomplete. |
 | Setup and Links | Per-App API/configuration routines; retry unfinished steps. | Browser-only tasks, external credentials and remote enrollment may need you. |
-| Dashboard/Workflow | TUI, persisted stages, retry hints and live progress. | Real terminal/UI evidence must accompany release claims. |
+| Dashboard/Workflow | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
 | Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
-| Backup/Restore | Compressed archives, optional encryption, selected-App restore. | Archive sentinels do not prove database or workload recovery. |
+| Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
 | Unmanaged Apps | Lifecycle/Backup for manually added Compose App folders. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
 | VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,
 per-target outcomes and the limits of generic checks. Manual, blocked,
 missing-configuration, awaiting-external-credentials and not-run targets are
-reported separately from passes. [The handoff](docs/handoff.md) records older
-local results whose temporary artifacts are unavailable in a fresh checkout;
-those results do not validate this build or your installed binary.
+reported separately from passes. External provider enrollment, VPN fail-closed,
+version-to-version migration and full workload recovery require their own proof.

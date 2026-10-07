@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "repository": {
+    "name": "ajnart/selfhost-skills",
+    "visibility": "private"
+  },
+  "current_version": "0.1.2",
+  "releases": [
+    {
+      "tag": "new-cli-v0.1.0",
+      "commit": "dcf8728e78dbfaf482bff37db6d753ff32d4f1af",
+      "run": "37618897107",
+      "assets": {
+        "checksums.txt": "4269bfd0e84352e934abb3a0636bce4494e1a4ef8e58e8abb60e453f89419f1a",
+        "self-host_0.1.0_darwin_amd64.tar.gz": "4fa1b15c776b0788093608d0d4e0416d18e2f96a8147d260c44c5dbf0d1941d6",
+        "self-host_0.1.0_darwin_arm64.tar.gz": "790dd500cfd6fb878746da455591f3f919f0c125fe51df43aa2a226068df8c99",
+        "self-host_0.1.0_linux_amd64.tar.gz": "7cc55c07627ded50dfcc0d76f6eed6376d72a4b03308e5c1246fc96a2433910f",
+        "self-host_0.1.0_linux_arm64.tar.gz": "65e7dbab0d475f4ea591c3e7b32607d7a08a4a1aa2d9e4a7342450620b807565"
+      },
+      "version": "0.1.0",
+      "release_url": "https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.0",
+      "workflow_url": "https://github.com/ajnart/selfhost-skills/actions/runs/37618897107",
+      "published": true,
+      "workflow_result": "success"
+    },
+    {
+      "tag": "new-cli-v0.1.1",
+      "commit": "b54733427f9c9ed44628073356a957a43bc4e8bb",
+      "run": "37659252222",
+      "assets": {
+        "checksums.txt": "8a4afa05dfafcbce17c2d1597258b32ffd82a3ac2a6b38165872d4a7aa1f9fc5",
+        "self-host_0.1.1_darwin_amd64.tar.gz": "02f736ced5614dc0244ac7b8d55d4ac8a905234b6b355fa507fa83396951126e",
+        "self-host_0.1.1_darwin_arm64.tar.gz": "12b7cfb5b861ca04c033afda2a3cfbc273fd10d1043e5d605c2b898c74d77f33",
+        "self-host_0.1.1_linux_amd64.tar.gz": "3db94159c2960e70e29105d418c3165bf3eadda2bbc64b9c21c5bc986f94425d",
+        "self-host_0.1.1_linux_arm64.tar.gz": "412570080e18a8c691bc69984274cb867b629e511595cf0c6e3ba42d95f8a05e"
+      },
+      "version": "0.1.1",
+      "release_url": "https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.1",
+      "workflow_url": "https://github.com/ajnart/selfhost-skills/actions/runs/37659252222",
+      "published": true,
+      "workflow_result": "success"
+    },
+    {
+      "tag": "new-cli-v0.1.2",
+      "commit": "d908cb6727ed6956cfbc7c6d5bf52ce1b8e3adbd",
+      "run": "37663197041",
+      "assets": {
+        "checksums.txt": "bd9b3d8b8d3d3495fd0427bda89237bfafe532e9b7e9419f7acd5d491e851861",
+        "self-host_0.1.2_darwin_amd64.tar.gz": "2f345790c5584bd869dd2017f8d6d196c1297cdeffaee340d08c005a6dbc9d73",
+        "self-host_0.1.2_darwin_arm64.tar.gz": "2bcd012b6b4c2d51c2b3a9c147e9c9be0e83c1daf32ccb66e6b83ad74595623b",
+        "self-host_0.1.2_linux_amd64.tar.gz": "f73d5ea76ffb38dc202816c3c4078f915fac9c8b4d19ae830938ad9f12cfb7e5",
+        "self-host_0.1.2_linux_arm64.tar.gz": "e4451f0d54dcbe4f318fdef3a6657267d94d7e11e9d51571e9c5e154f9dc8a3f"
+      },
+      "version": "0.1.2",
+      "release_url": "https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2",
+      "workflow_url": "https://github.com/ajnart/selfhost-skills/actions/runs/37663197041",
+      "published": true,
+      "workflow_result": "success"
+    }
+  ],
+  "native_ci": {
+    "commit": "d908cb6727ed6956cfbc7c6d5bf52ce1b8e3adbd",
+    "run": "37662562771",
+    "url": "https://github.com/ajnart/selfhost-skills/actions/runs/37662562771",
+    "source_tests": "pass",
+    "platforms": {
+      "linux/amd64": "pass",
+      "linux/arm64": "pass",
+      "darwin/amd64": "pass",
+      "darwin/arm64": "pass"
+    },
+    "scope": "Native CLI execution and local checksum installer/corruption smoke; application Docker acceptance excluded."
+  },
+  "host_updates": [
+    {
+      "from": "0.1.0",
+      "to": "0.1.1",
+      "result": "pass",
+      "platform": "linux/amd64",
+      "marker": {
+        "phase": "update-second",
+        "version": "0.1.1",
+        "commit": "b54733427f9c9ed44628073356a957a43bc4e8bb",
+        "run": "37659252222",
+        "result": "pass"
+      },
+      "github_assets_match_workflow_bytes": true,
+      "all_four_archive_checksums_verified": true,
+      "cli_checks": [
+        "version",
+        "help",
+        "apps-list",
+        "version-matched-skill"
+      ],
+      "corrupt_checksum_install_refused": true,
+      "corrupt_checksum_update_refused": true,
+      "existing_binary_preserved_on_refusal": true
+    },
+    {
+      "from": "0.1.1",
+      "to": "0.1.2",
+      "result": "pass",
+      "platform": "linux/amd64",
+      "marker": {
+        "phase": "update-current",
+        "version": "0.1.2",
+        "commit": "d908cb6727ed6956cfbc7c6d5bf52ce1b8e3adbd",
+        "run": "37663197041",
+        "result": "pass",
+        "from_version": "0.1.1"
+      },
+      "github_assets_match_workflow_bytes": true,
+      "all_four_archive_checksums_verified": true,
+      "cli_checks": [
+        "version",
+        "help",
+        "apps-list",
+        "version-matched-skill"
+      ],
+      "corrupt_checksum_install_refused": true,
+      "corrupt_checksum_update_refused": true,
+      "existing_binary_preserved_on_refusal": true
+    }
+  ],
+  "pinned_host_installs": [
+    {
+      "result": "pass",
+      "version": "0.1.1",
+      "tag": "new-cli-v0.1.1",
+      "release_commit": "b54733427f9c9ed44628073356a957a43bc4e8bb",
+      "release_run": "37659252222",
+      "installer_source_sha256": "978e0bce826411cee98def387327a29972384b339f95fcbf90ef1924ae3f273d",
+      "binary_sha256": "1512985a9d9403602df3c7c27729c7aaefaca1b2e75df5e36b54e529928fa9fe",
+      "platform": "linux/amd64",
+      "fresh_owned_destination": true,
+      "command": "authenticated GitHub content API at new-cli-v0.1.1; pinned installer",
+      "cli_checks": [
+        "version",
+        "help",
+        "apps-list-json",
+        "version-matched-skill"
+      ],
+      "github_archive_binary_match": true
+    },
+    {
+      "result": "pass",
+      "version": "0.1.2",
+      "tag": "new-cli-v0.1.2",
+      "release_commit": "d908cb6727ed6956cfbc7c6d5bf52ce1b8e3adbd",
+      "release_run": "37663197041",
+      "installer_source_sha256": "9f266e4cda3007f594d4fa818e73cbf67fe76e46b76a82e08b9066b4ae7d483e",
+      "binary_sha256": "9fb8532fd49bd778b3176676956326094d20eece918034d50ad863eb3c9a496c",
+      "platform": "linux/amd64",
+      "fresh_owned_destination": true,
+      "command": "authenticated GitHub content API at new-cli-v0.1.2; pinned installer",
+      "cli_checks": [
+        "version",
+        "help",
+        "apps-list-json",
+        "version-matched-skill"
+      ],
+      "github_archive_binary_match": true
+    }
+  ],
+  "clean_machine": {
+    "result": "pass",
+    "installer_tag": "new-cli-v0.1.2",
+    "base_image": "docker.io/library/alpine@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+    "platform": "linux/amd64",
+    "mounts": [],
+    "language_runtimes": [],
+    "binary_sha256": {
+      "0.1.0": "2e988c19330085e5d40765db05bd9092d8c9dca59eaaf01018c2ba830e21994a",
+      "0.1.2": "9fb8532fd49bd778b3176676956326094d20eece918034d50ad863eb3c9a496c"
+    },
+    "clean_install": "0.1.0",
+    "private_self_update": "0.1.2",
+    "cleanup": "pass",
+    "scope": "Minimal Linux container distribution smoke; no VM or application deployment.",
+    "no_host_project_data_or_socket_mounts": true,
+    "no_go_bun_or_node": true,
+    "github_archive_binary_matches": true
+  },
+  "installer_portability": {
+    "issue": "https://github.com/ajnart/selfhost-skills/issues/109",
+    "old_tag_installer_busybox_failure": {
+      "result": "failed",
+      "stage": "install-first",
+      "exit_code": 22,
+      "installer_failure": "metadata-validation"
+    },
+    "cause": "Release metadata parser was incompatible with BusyBox awk.",
+    "fixed_installer_tag": "new-cli-v0.1.2",
+    "focused_public_metadata_fixture": "pass",
+    "actual_alpine_install_and_update_rerun": "pass",
+    "old_tags_unchanged": true
+  },
+  "limits": {
+    "published_install_update_platforms": [
+      "linux/amd64"
+    ],
+    "other_platform_private_release_install_update": "not verified",
+    "wsl": "not verified",
+    "native_windows": "unsupported",
+    "application_docker_acceptance": "not established by this proof"
+  }
+}
