@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -50,12 +51,14 @@ func (App) Compose(rc app.RenderContext) string {
 const root = "/var/www/FreshRSS"
 
 // adminExists checks the exact owned user configuration inside the container.
+// The probe always exits 0: Compose treats a bare `test -f` miss as an error.
 func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
-	res, err := h.Exec(ctx, nil, "sh", "-c", "test -f "+root+"/data/users/"+h.AdminUser()+"/config.php")
+	res, err := h.Exec(ctx, nil, "sh", "-c",
+		"test -f "+root+"/data/users/"+h.AdminUser()+"/config.php && echo yes || echo no")
 	if err != nil {
 		return false, err
 	}
-	return res.ExitCode == 0, nil
+	return strings.TrimSpace(string(res.Stdout)) == "yes", nil
 }
 
 // createAdmin installs FreshRSS, creates the first user and sets its password
