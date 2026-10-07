@@ -15,6 +15,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -51,7 +52,7 @@ func TestHomarrFunctional(t *testing.T) {
 	}
 	guard := &sweepGuard{ProjectNames: map[string]string{}}
 	guard.OnBlock = func(owned string) {
-		data, _ := json.Marshal(map[string]string{"project": owned, "compose_project": guard.ProjectNames[owned]})
+		data, _ := json.Marshal(map[string]string{"project": owned, "compose_project": guard.ProjectName(owned)})
 		if os.WriteFile(lockPath+".blocked", append(data, '\n'), 0o600) != nil {
 			t.Error("could not persist the owned teardown blocker")
 		}
@@ -75,6 +76,9 @@ func TestHomarrFunctional(t *testing.T) {
 	r.evidence.Stages = nil
 	for _, name := range []string{"install", "administrator-board", "notification-roundtrip", "synthetic-media-release", "idempotency-restart", "url-reconciliation", "credential-recovery", "add-remove"} {
 		r.evidence.Stages = append(r.evidence.Stages, stageEvidence{Name: name, Outcome: "not-run", Apps: map[string]string{}})
+	}
+	if os.Getenv("E2E_HOMARR_BROWSER") == "1" {
+		r.evidence.Stages = append(r.evidence.Stages, stageEvidence{Name: "browser-dashboard", Outcome: "not-run", Apps: map[string]string{}})
 	}
 	r.saveEvidence()
 	t.Logf("Homarr functional evidence: %s", r.logDir)
@@ -278,6 +282,15 @@ func TestHomarrFunctional(t *testing.T) {
 		}
 		return hfNotifications(ctx, client, homarrURL, ntfyURL, secrets, current.integrationID("ntfy"))
 	})
+	if os.Getenv("E2E_HOMARR_BROWSER") == "1" {
+		hfStage(r, "browser-dashboard", func() error {
+			current, err := hfReadInventory(ctx, client, homarrURL, secrets["HOMARR_API_KEY"])
+			if err != nil {
+				return err
+			}
+			return hfBrowserDashboard(ctx, r, homarrURL, ntfyURL, jellyfinURL, secrets, current)
+		})
+	}
 	if r.evidence.complete() {
 		r.evidence.Outcome = "pass"
 	}
@@ -287,6 +300,128 @@ func TestHomarrFunctional(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// The actual login form receives credentials only through a private stdin pipe.
+// Browser command output is never copied into evidence or failure messages.
+func hfBrowserDashboard(ctx context.Context, r *runner, base, ntfyURL, jellyfinURL string, secrets map[string]string, inv hfInventory) error {
+	browser, err := exec.LookPath("agent-browser")
+	if err != nil {
+		return errors.New("optional browser acceptance requires installed agent-browser")
+	}
+	session := "selfhost-functional-" + r.name
+	run := func(commandCtx context.Context, stdin string, args ...string) ([]byte, error) {
+		commandCtx, cancel := context.WithTimeout(commandCtx, 30*time.Second)
+		defer cancel()
+		command := exec.CommandContext(commandCtx, browser, append([]string{"--session", session, "--json"}, args...)...)
+		for _, variable := range os.Environ() {
+			if !strings.HasPrefix(variable, "AGENT_BROWSER_") {
+				command.Env = append(command.Env, variable)
+			}
+		}
+		command.Stdin = strings.NewReader(stdin)
+		output, err := command.Output()
+		if err != nil {
+			return nil, errors.New("optional browser acceptance command failed")
+		}
+		return output, nil
+	}
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if _, err := run(closeCtx, "", "close"); err != nil {
+			r.t.Error("owned acceptance browser session could not close")
+		}
+	}()
+	if _, err := run(ctx, "", "--args", "--no-sandbox", "--allowed-domains", "127.0.0.1", "open", base+"/auth/login?callbackUrl=%2Fboards%2FHome"); err != nil {
+		return err
+	}
+	if _, err := run(ctx, "", "wait", "#username"); err != nil {
+		return errors.New("administrator browser login form did not appear")
+	}
+	credentials, _ := json.Marshal(map[string]string{"name": secrets["ADMIN_USER"], "password": secrets["ADMIN_PASSWORD"]})
+	script := `(() => { const credentials = ` + string(credentials) + `;
+const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+for (const [selector, value] of [['#username', credentials.name], ['#password', credentials.password]]) {
+ const input = document.querySelector(selector); if (!input) return false;
+ setter.call(input, value); input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new Event('change', {bubbles:true}));
+} return true; })()`
+	if !hfBrowserBoolean(ctx, run, script) {
+		return errors.New("administrator browser login form could not be filled")
+	}
+	if _, err := run(ctx, "", "click", `button[type="submit"][name="provider"][value="credentials"]`); err != nil {
+		return errors.New("administrator browser login form could not be submitted")
+	}
+	if err := hfPoll(ctx, time.Minute, func() bool {
+		return hfBrowserBoolean(ctx, run, `(async () => { const r = await fetch('/api/auth/session'); if (!r.ok) return false; const s = await r.json(); return !!s.user?.id && s.user.permissions?.includes('admin') === true && !location.pathname.includes('/auth/'); })()`)
+	}, "actual browser login did not establish an administrator dashboard session"); err != nil {
+		return err
+	}
+	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
+		return err
+	}
+	dir := filepath.Join(r.logDir, "browser")
+	if os.MkdirAll(dir, 0o700) != nil {
+		return errors.New("persistent browser evidence directory unavailable")
+	}
+	for _, kind := range []string{"notifications", "mediaReleases", "notebook"} {
+		id := ""
+		for _, item := range inv.Board.Items {
+			if item.Kind == kind {
+				if id != "" {
+					return errors.New("browser acceptance widget ownership is ambiguous")
+				}
+				id = item.ID
+			}
+		}
+		if id == "" {
+			return errors.New("browser acceptance widget is missing")
+		}
+		selector := `[data-grid-item-id="` + id + `"]`
+		if _, err := run(ctx, "", "scrollintoview", selector); err != nil {
+			return errors.New("browser acceptance widget could not be brought into view")
+		}
+		checks := []string{"Your homelab at a glance", "Admin login", inv.appFor("ntfy").Name, inv.appFor("jellyfin").Name}
+		if kind == "notifications" {
+			checks = []string{"Owned self-host functional notification"}
+		}
+		if kind == "mediaReleases" {
+			checks = []string{"Selfhost E2E Tone"}
+		}
+		encoded, _ := json.Marshal(map[string]any{"selector": selector, "checks": checks, "links": []string{ntfyURL, jellyfinURL}, "notebook": kind == "notebook"})
+		visible := `(() => { const c = ` + string(encoded) + `; const el = document.querySelector(c.selector); if (!el) return false;
+const rect = el.getBoundingClientRect(), style = getComputedStyle(el);
+if (!rect.width || !rect.height || rect.bottom <= 0 || rect.top >= innerHeight || style.visibility === 'hidden' || style.display === 'none') return false;
+if (!c.checks.every(text => el.innerText.includes(text))) return false;
+return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).some(a => a.href === url || a.href === url + '/')); })()`
+		if err := hfPoll(ctx, time.Minute, func() bool { return hfBrowserBoolean(ctx, run, visible) }, "browser widget did not render the expected live notification, media or notebook content"); err != nil {
+			return err
+		}
+		path := filepath.Join(dir, kind+".png")
+		if _, err := run(ctx, "", "screenshot", selector, path); err != nil {
+			return errors.New("browser widget screenshot could not be captured")
+		}
+		if os.Chmod(path, 0o600) != nil {
+			return errors.New("browser widget screenshot could not be made private")
+		}
+	}
+	path := filepath.Join(dir, "dashboard.png")
+	if _, err := run(ctx, "", "screenshot", path, "--full"); err != nil {
+		return errors.New("browser dashboard screenshot could not be captured")
+	}
+	if os.Chmod(path, 0o600) != nil {
+		return errors.New("browser dashboard screenshot could not be made private")
+	}
+	return nil
+}
+
+func hfBrowserBoolean(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error), script string) bool {
+	output, err := run(ctx, script, "eval", "--stdin")
+	var response struct {
+		Success bool
+		Data    struct{ Result bool }
+	}
+	return err == nil && json.Unmarshal(output, &response) == nil && response.Success && response.Data.Result
 }
 
 // Capture is opt-in and starts only once acceptance has passed. Its directory
