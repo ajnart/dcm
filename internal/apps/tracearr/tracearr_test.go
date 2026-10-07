@@ -1,0 +1,147 @@
+package tracearr_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/ajnart/self-host/internal/apps/tracearr"
+	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/systemtest"
+)
+
+type fakeTracearr struct {
+	needsSetup  bool
+	password    string
+	rejectOwner bool
+}
+
+func (f *fakeTracearr) handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "mode": "ready"})
+	})
+	mux.HandleFunc("GET /api/v1/setup/status", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"needsSetup": f.needsSetup, "requiresClaimCode": false,
+			"authMethods": map[string]bool{"local": true},
+		})
+	})
+	mux.HandleFunc("POST /api/v1/auth/sign-up/email", func(w http.ResponseWriter, r *http.Request) {
+		if f.rejectOwner {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		var body struct {
+			Password string `json:"password"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		f.password = body.Password
+		f.needsSetup = false
+		json.NewEncoder(w).Encode(map[string]string{"userId": "a1b2c3d4-0000-4000-8000-000000000000"})
+	})
+	mux.HandleFunc("POST /api/v1/auth/sign-in/username", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		if f.needsSetup || body.Username != "admin" || body.Password != f.password {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"token": "bearer-for-admin"})
+	})
+	mux.HandleFunc("GET /api/v1/auth/me", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer bearer-for-admin" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"username": "admin", "email": "admin@selfhost.local", "role": "owner",
+			"userId": "a1b2c3d4-0000-4000-8000-000000000000",
+		})
+	})
+	return mux
+}
+
+type fakeSecrets map[string]string
+
+func (s fakeSecrets) Get(key string) string       { return s[key] }
+func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
+
+func newH(t *testing.T, srv *httptest.Server) (*helpers.H, *[]helpers.StepResult) {
+	t.Helper()
+	deps := systemtest.NewDeps(t)
+	var recorded []helpers.StepResult
+	h := helpers.New(helpers.Config{
+		App: "tracearr", Service: "tracearr",
+		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass"},
+		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
+		Record: func(r helpers.StepResult) { recorded = append(recorded, r) },
+	})
+	return h, &recorded
+}
+
+func TestSetupThenCheckPass(t *testing.T) {
+	srv := httptest.NewServer((&fakeTracearr{needsSetup: true}).handler())
+	defer srv.Close()
+	h, recorded := newH(t, srv)
+	ctx := context.Background()
+
+	if err := (tracearr.App{}).Setup(ctx, h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	if err := (tracearr.App{}).Check(ctx, h); err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	for _, r := range *recorded {
+		if r.Status == "fail" {
+			t.Errorf("step %s failed: %s", r.ID, r.Error)
+		}
+	}
+}
+
+func TestRerunSkipsEveryStep(t *testing.T) {
+	srv := httptest.NewServer((&fakeTracearr{needsSetup: true}).handler())
+	defer srv.Close()
+	h, recorded := newH(t, srv)
+	ctx := context.Background()
+	if err := (tracearr.App{}).Setup(ctx, h); err != nil {
+		t.Fatalf("first Setup: %v", err)
+	}
+
+	*recorded = nil
+	if err := (tracearr.App{}).Setup(ctx, h); err != nil {
+		t.Fatalf("second Setup: %v", err)
+	}
+	for _, r := range *recorded {
+		if r.Status != "skip" {
+			t.Errorf("step %s = %s on rerun, want skip", r.ID, r.Status)
+		}
+	}
+}
+
+func TestFailedCreateHintNamesTheApp(t *testing.T) {
+	srv := httptest.NewServer((&fakeTracearr{needsSetup: true, rejectOwner: true}).handler())
+	defer srv.Close()
+	h, recorded := newH(t, srv)
+
+	if err := (tracearr.App{}).Setup(context.Background(), h); err == nil {
+		t.Fatal("Setup should fail when the first-owner write fails")
+	}
+	var fail *helpers.StepResult
+	for i := range *recorded {
+		if (*recorded)[i].Status == "fail" {
+			fail = &(*recorded)[i]
+		}
+	}
+	if fail == nil || !strings.Contains(fail.Hint, srv.URL) {
+		t.Fatalf("failing step hint should name the App page, got %+v", fail)
+	}
+}
