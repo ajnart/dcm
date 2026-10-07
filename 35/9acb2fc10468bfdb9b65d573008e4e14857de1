@@ -1,0 +1,25 @@
+new-cli/internal/tui/harness_test.go
+  s_a2fd509a765bab::t_653172fa5ed0e1 5,19,27-39,66-68,70-76,205-208,214-215,293,310,444-445,447-451,458,464-465,469,476-477,549-781
+new-cli/internal/tui/host_test.go
+  s_a2fd509a765bab::t_188812224adfaa 42-44,46-50,58-60,66,68-74,76,78
+new-cli/internal/tui/view.go
+  s_a2fd509a765bab::t_d549e0de9d62cc 8,59-61,84-85,93-104,108,246-286,603-608,616,650-653,658-669
+new-cli/internal/tui/wizard.go
+  s_a2fd509a765bab::t_f0e804c318d9be 391,432
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "359acb2fc10468bfdb9b65d573008e4e14857de1",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
