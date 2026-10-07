@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,9 +15,10 @@ import (
 // collected and stores every Set-Cookie it sees, including on redirects, so
 // form logins and CSRF flows keep their state across requests.
 type Session struct {
-	h   *H
-	mu  sync.Mutex
-	jar map[string]string
+	h      *H
+	mu     sync.Mutex
+	jar    map[string]string
+	origin *url.URL
 }
 
 // Session starts a fresh cookie jar for one login flow.
@@ -25,13 +27,36 @@ func (h *H) Session() *Session {
 }
 
 // HTTP sends req with the jar's cookies and stores the response's cookies.
-// With NoRedirect it returns the first 3xx; otherwise it follows relative and
-// absolute redirects itself so cookies set mid-chain are still captured.
+// With NoRedirect it returns the first 3xx; otherwise it follows same-origin
+// redirects itself so cookies set mid-chain are still captured.
 func (s *Session) HTTP(ctx context.Context, req Request) (Response, error) {
 	noRedirect := req.NoRedirect
+	var via []*http.Request
 	for hop := 0; ; hop++ {
+		base := req.BaseURL
+		if base == "" {
+			base = s.h.BaseURL
+		}
+		current, err := http.NewRequestWithContext(ctx, orGet(req.Method), strings.TrimRight(base, "/")+req.Path, nil)
+		if err != nil {
+			return Response{}, errors.New("invalid session request URL")
+		}
+		s.mu.Lock()
+		if s.origin == nil {
+			origin := *current.URL
+			s.origin = &origin
+		}
+		origin := *s.origin
+		allowed := sameHTTPOrigin(&origin, current.URL)
+		s.mu.Unlock()
+		if !allowed {
+			return Response{}, errors.New("session request is outside its original origin")
+		}
 		req.NoRedirect = true
 		req.Header = s.withCookie(req.Header)
+		for key, value := range req.Header {
+			current.Header.Set(key, value)
+		}
 		resp, err := s.h.HTTP(ctx, req)
 		if err != nil {
 			return resp, err
@@ -44,10 +69,42 @@ func (s *Session) HTTP(ctx context.Context, req Request) (Response, error) {
 		if location == "" {
 			return resp, nil
 		}
-		if hop >= 10 {
+		target, err := current.URL.Parse(location)
+		if err != nil {
+			return resp, errors.New("invalid session redirect URL")
+		}
+		if !sameHTTPOrigin(&origin, target) {
+			return resp, nil
+		}
+		if hop >= 9 {
 			return resp, fmt.Errorf("too many redirects from %s", req.Path)
 		}
-		req = redirectRequest(req, location)
+		via = append(via, current)
+		next, err := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
+		if err != nil {
+			return resp, errors.New("invalid session redirect request")
+		}
+		next.Header.Set("Accept", "text/html")
+		client := s.h.Config.HTTP
+		if client == nil {
+			client = http.DefaultClient
+		}
+		if client.CheckRedirect != nil {
+			if err := client.CheckRedirect(next, via); err != nil {
+				if errors.Is(err, http.ErrUseLastResponse) {
+					return resp, nil
+				}
+				return resp, err
+			}
+		}
+		if !sameHTTPOrigin(&origin, next.URL) {
+			return resp, nil
+		}
+		// Login redirects become GETs without the submitted credentials.
+		req = Request{Method: next.Method, BaseURL: next.URL.Scheme + "://" + next.URL.Host, Path: next.URL.RequestURI(), Header: map[string]string{}}
+		for key, values := range next.Header {
+			req.Header[key] = strings.Join(values, ", ")
+		}
 	}
 }
 
@@ -105,20 +162,6 @@ func isRedirect(status int) bool {
 	return status == http.StatusMovedPermanently || status == http.StatusFound ||
 		status == http.StatusSeeOther || status == http.StatusTemporaryRedirect ||
 		status == http.StatusPermanentRedirect
-}
-
-// redirectRequest turns a redirect Location into the next GET. Credentials are
-// dropped: a login redirect lands after authentication, not on another one.
-func redirectRequest(from Request, location string) Request {
-	next := Request{Method: http.MethodGet, Header: map[string]string{"Accept": "text/html"}}
-	if target, err := url.Parse(location); err == nil && target.IsAbs() {
-		next.BaseURL = target.Scheme + "://" + target.Host
-		next.Path = target.RequestURI()
-		return next
-	}
-	next.BaseURL = from.BaseURL
-	next.Path = location
-	return next
 }
 
 var (

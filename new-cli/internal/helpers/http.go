@@ -88,11 +88,33 @@ func (h *H) HTTP(ctx context.Context, req Request) (Response, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	if req.NoRedirect {
-		c := *client
-		c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-		client = &c
+	c := *client
+	previousRedirect := c.CheckRedirect
+	origin := *httpReq.URL
+	c.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+		// App credentials belong to the original origin, including its port.
+		// Return its redirect response so callers can inspect the status safely.
+		sameOrigin := func() bool {
+			return sameHTTPOrigin(next.URL, &origin)
+		}
+		if req.NoRedirect || !sameOrigin() {
+			return http.ErrUseLastResponse
+		}
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if previousRedirect != nil {
+			if err := previousRedirect(next, via); err != nil {
+				return err
+			}
+		}
+		// A configured redirect policy may have changed the destination.
+		if !sameOrigin() {
+			return http.ErrUseLastResponse
+		}
+		return nil
 	}
+	client = &c
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return Response{}, err
@@ -103,6 +125,19 @@ func (h *H) HTTP(ctx context.Context, req Request) (Response, error) {
 		return Response{}, err
 	}
 	return Response{Status: resp.StatusCode, Header: resp.Header, Body: data}, nil
+}
+
+func sameHTTPOrigin(a, b *url.URL) bool {
+	port := func(u *url.URL) string {
+		if value := u.Port(); value != "" {
+			return value
+		}
+		if strings.EqualFold(u.Scheme, "https") {
+			return "443"
+		}
+		return "80"
+	}
+	return strings.EqualFold(a.Scheme, b.Scheme) && strings.EqualFold(a.Hostname(), b.Hostname()) && port(a) == port(b)
 }
 
 // Expect sends req and fails unless the status is one of want (2xx if empty).
