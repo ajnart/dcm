@@ -157,6 +157,7 @@ func (w *Writer) AddTar(src io.Reader, prefix string) error {
 	prefix = path.Clean(prefix)
 	tr := tar.NewReader(src)
 	links := make(map[string]string)
+	previous := make(map[string]EntryMetadata)
 	for {
 		h, err := tr.Next()
 		if err == io.EOF {
@@ -197,6 +198,21 @@ func (w *Writer) AddTar(src io.Reader, prefix string) error {
 		}
 		copyHeader := *h
 		copyHeader.Name = path.Join(prefix, name)
+		if h.Typeflag == tar.TypeLink {
+			if err := safeArchivePath(h.Linkname); err != nil {
+				return errors.New("unsafe helper hardlink target (type 0x31)")
+			}
+			link := path.Clean(h.Linkname)
+			for parent := link; parent != "."; parent = path.Dir(parent) {
+				if _, found := links[parent]; found {
+					return errors.New("unsafe helper hardlink target (type 0x31): symlink in target path")
+				}
+			}
+			copyHeader.Linkname = path.Join(prefix, link)
+			if _, err := hardlinkTarget(copyHeader.Name, &copyHeader, previous); err != nil {
+				return err
+			}
+		}
 		// Extended headers must not override our validated names and owners.
 		copyHeader.PAXRecords = nil
 		copyHeader.Uname, copyHeader.Gname = "", ""
@@ -208,6 +224,7 @@ func (w *Writer) AddTar(src io.Reader, prefix string) error {
 				return err
 			}
 		}
+		previous[copyHeader.Name] = EntryMetadata{Path: copyHeader.Name, UID: h.Uid, GID: h.Gid, Mode: uint32(h.Mode), Type: h.Typeflag}
 	}
 }
 
@@ -224,11 +241,32 @@ func safeEntryMetadata(h *tar.Header) error {
 		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use ordinary permission bits")
 	}
 	switch h.Typeflag {
-	case tar.TypeReg, tar.TypeRegA, tar.TypeDir, tar.TypeSymlink:
+	case tar.TypeReg, tar.TypeRegA, tar.TypeDir, tar.TypeSymlink, tar.TypeLink:
 		return nil
 	default:
-		return errors.New("unsupported backup entry: hard links and special files cannot be restored")
+		return fmt.Errorf("unsupported backup entry type 0x%02x: special files cannot be restored", h.Typeflag)
 	}
+}
+
+// hardlinkTarget permits only an earlier ordinary file in the same App. A
+// hardlink must not alter its shared inode's owners or permissions.
+func hardlinkTarget(name string, h *tar.Header, previous map[string]EntryMetadata) (string, error) {
+	if err := safeArchivePath(h.Linkname); err != nil || h.Size != 0 {
+		return "", errors.New("unsafe hardlink target (type 0x31)")
+	}
+	link := path.Clean(h.Linkname)
+	parts, targetParts := strings.SplitN(name, "/", 3), strings.SplitN(link, "/", 3)
+	if len(parts) != 3 || len(targetParts) != 3 || parts[0] != "apps" || targetParts[0] != "apps" || parts[1] != targetParts[1] || name == link {
+		return "", errors.New("unsafe hardlink target (type 0x31): target must be another file in the same selected App")
+	}
+	entry, found := previous[link]
+	if !found || (entry.Type != tar.TypeReg && entry.Type != tar.TypeRegA) {
+		return "", errors.New("unsafe hardlink target (type 0x31): target must be an earlier selected regular file")
+	}
+	if entry.UID != h.Uid || entry.GID != h.Gid || entry.Mode != uint32(h.Mode) {
+		return "", errors.New("unsafe hardlink metadata (type 0x31): owners and mode must match the earlier regular file")
+	}
+	return link, nil
 }
 
 // validateLinkGraph resolves archive-relative links component by component, so
@@ -333,7 +371,8 @@ func (r *Reader) Close() { r.closer() }
 // Extract writes selected entries beneath root, which must be a private staging
 // directory. Relative symlinks are retained only when their lexical destination
 // is also selected by dest. Entries never write through symlink ancestors or
-// destinations; hard links and special files are rejected. chown must not follow
+// destinations. Hard links may target an earlier regular file in the same
+// selected App with identical metadata; special files are rejected. chown must not follow
 // symlinks (use os.Lchown). The caller must discard staging on any error.
 func (r *Reader) Extract(root string, dest func(name string) string, chown func(path string, uid, gid int) error) error {
 	r.extracted = false
@@ -348,6 +387,7 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 	}
 	defer staging.Close()
 	var links []string
+	locations := make(map[string]string)
 	for {
 		h, err := r.tr.Next()
 		if err == io.EOF {
@@ -380,7 +420,7 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 			return fmt.Errorf("unsafe backup destination for %q: select a path inside staging", clean)
 		}
 		if err := safeEntryMetadata(h); err != nil {
-			return fmt.Errorf("backup entry %q: %w", clean, err)
+			return err
 		}
 		if err := rejectSymlinkPath(staging, rel); err != nil {
 			return fmt.Errorf("unsafe backup entry %q: %w", clean, err)
@@ -409,6 +449,29 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 				return err
 			}
 			links = append(links, rel)
+		case tar.TypeLink:
+			link, err := hardlinkTarget(clean, h, r.metadata)
+			if err != nil {
+				return err
+			}
+			selected := dest(link)
+			linkRel, present := locations[link]
+			if selected == "" || !present || filepath.Clean(selected) != filepath.Join(root, linkRel) {
+				return errors.New("unsafe hardlink target (type 0x31): target is not selected for extraction")
+			}
+			if err := rejectSymlinkPath(staging, linkRel); err != nil {
+				return fmt.Errorf("unsafe hardlink target (type 0x31): %w", err)
+			}
+			info, err := staging.Lstat(linkRel)
+			if err != nil || !info.Mode().IsRegular() {
+				return errors.New("unsafe hardlink target (type 0x31): target is not a regular staged file")
+			}
+			if err := staging.Remove(rel); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+			if err := staging.Link(linkRel, rel); err != nil {
+				return err
+			}
 		case tar.TypeReg, tar.TypeRegA:
 			// Replace the inode rather than truncating a possible existing hard link.
 			if err := staging.Remove(rel); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -426,9 +489,10 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 				return err
 			}
 		default:
-			return fmt.Errorf("unsupported backup entry %q: hard links and special files cannot be restored", clean)
+			return fmt.Errorf("unsupported backup entry type 0x%02x: special files cannot be restored", h.Typeflag)
 		}
 		r.metadata[clean] = EntryMetadata{Path: clean, UID: h.Uid, GID: h.Gid, Mode: uint32(h.Mode), Type: h.Typeflag}
+		locations[clean] = rel
 		if chown != nil {
 			if err := chown(filepath.Join(root, rel), h.Uid, h.Gid); err != nil {
 				return err

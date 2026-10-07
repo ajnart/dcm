@@ -79,7 +79,7 @@ func TestRootlessTarImportRejectsUnsafeEntries(t *testing.T) {
 		{"link-escape", []*tar.Header{{Name: "link", Linkname: "../outside", Mode: 0777, Typeflag: tar.TypeSymlink}}},
 		{"link-write", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "link/file", Mode: 0600, Typeflag: tar.TypeReg}}},
 		{"link-overwrite", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "link", Mode: 0600, Typeflag: tar.TypeReg}}},
-		{"hardlink", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0600, Typeflag: tar.TypeLink}}},
+		{"forward-hardlink", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0600, Typeflag: tar.TypeLink}}},
 		{"setuid", []*tar.Header{{Name: "config", Mode: 04755, Typeflag: tar.TypeReg}}},
 		{"negative-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: -1, Typeflag: tar.TypeReg}}},
 		{"large-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: 2147483648, Typeflag: tar.TypeReg}}},
