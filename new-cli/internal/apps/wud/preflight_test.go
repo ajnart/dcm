@@ -110,10 +110,10 @@ func installHandler() http.Handler {
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/watch") {
-			w.Write([]byte(`{"id":"owned-fixture","watcher":"approved"}`))
+			w.Write([]byte(`{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}`))
 			return
 		}
-		w.Write([]byte(`[{"id":"owned-fixture","watcher":"approved"}]`))
+		w.Write([]byte(`[{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
 	})
 }
 
