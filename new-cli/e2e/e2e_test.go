@@ -3,104 +3,157 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ajnart/self-host/internal/catalog"
 )
 
 const defaultTargets = "ntfy vaultwarden media"
 
 func TestE2E(t *testing.T) {
-	targets := strings.Fields(os.Getenv("E2E_TARGETS"))
-	if len(targets) == 0 {
-		targets = strings.Fields(defaultTargets)
-	}
-	if len(targets) == 1 && targets[0] == "all" {
-		runCatalog(t)
-		return
-	}
-	for _, target := range targets {
-		target := target
-		t.Run(target, func(t *testing.T) {
-			r := newRunner(t)
-			if r.verify(target) {
-				t.Skipf("%s needs a web UI to create its first administrator; not a failure", target)
-			}
-		})
-	}
-}
-
-type appsDoc struct {
-	Apps []appJSON `json:"apps"`
-}
-
-type appJSON struct {
-	ID     string      `json:"id"`
-	Inputs []inputJSON `json:"inputs"`
-}
-
-type inputJSON struct {
-	Key      string `json:"key"`
-	Default  string `json:"default"`
-	Required bool   `json:"required"`
-}
-
-func needsInput(app appJSON) bool {
-	for _, in := range app.Inputs {
-		if in.Required && in.Default == "" {
-			return true
+	c := catalog.Default()
+	inventory := acceptanceInventory(c)
+	logDir := os.Getenv("E2E_LOG_DIR")
+	if logDir == "" {
+		var err error
+		logDir, err = os.MkdirTemp("", "selfhost-e2e-evidence-")
+		if err != nil {
+			t.Fatal("create evidence directory")
 		}
 	}
-	return false
-}
-
-func runCatalog(t *testing.T) {
-	discover := newRunner(t)
-	res := discover.run("apps", "list", "--json")
-	if res.code != 0 {
-		t.Fatalf("apps list exit %d\n%s", res.code, res.stderr)
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
+		t.Fatal("create evidence directory")
 	}
-	var doc appsDoc
-	if err := json.Unmarshal([]byte(res.stdout), &doc); err != nil {
-		t.Fatalf("apps list json: %v\n%s", err, res.stdout)
+	t.Setenv("E2E_LOG_DIR", logDir)
+	data, _ := json.MarshalIndent(inventory, "", "  ")
+	if err := os.WriteFile(filepath.Join(logDir, "inventory.json"), append(data, '\n'), 0o600); err != nil {
+		t.Fatal("write inventory")
 	}
-
+	for _, spec := range inventory {
+		e := newEvidence(spec, codeHead)
+		e.Classification = classifyTarget(c, spec)
+		if err := initializeEvidence(logDir, e); err != nil {
+			t.Fatal("initialize evidence")
+		}
+	}
+	t.Logf("Evidence: %s (serial; maximum 12 App environments, global ceiling 20)", logDir)
+	ids := strings.Fields(os.Getenv("E2E_TARGETS"))
+	if len(ids) == 0 {
+		ids = strings.Fields(defaultTargets)
+	}
+	var selected []targetSpec
+	if len(ids) == 1 && ids[0] == "all" {
+		selected = inventory
+	} else {
+		seen := map[string]bool{}
+		for _, id := range ids {
+			spec := findTarget(inventory, id)
+			if spec.ID == "" {
+				t.Fatalf("unknown catalog target %q", id)
+			}
+			if !seen[evidenceName(spec)] {
+				selected = append(selected, spec)
+				seen[evidenceName(spec)] = true
+			}
+		}
+	}
+	if !dockerAvailable {
+		for _, spec := range selected {
+			e := newEvidence(spec, codeHead)
+			e.Outcome = "blocked"
+			e.Classification = "docker-unavailable"
+			writeInitialEvidence(logDir, e)
+		}
+		t.Skip("Docker unavailable: selected targets recorded blocked, no runtime pass")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
+	release, err := acquireGlobal(ctx, lockPath)
+	if err != nil {
+		t.Fatal("global serial slot unavailable")
+	}
+	defer release()
+	if _, err := os.Lstat(lockPath + ".blocked"); err == nil {
+		t.Fatal("previous owned teardown failed; recover retained project before another sweep")
+	}
+	guard := &sweepGuard{ProjectNames: map[string]string{}}
+	guard.OnBlock = func(project string) {
+		data, _ := json.Marshal(struct {
+			Project        string `json:"project"`
+			ComposeProject string `json:"compose_project"`
+		}{project, guard.ProjectNames[project]})
+		if err := os.WriteFile(lockPath+".blocked", append(data, '\n'), 0o600); err != nil {
+			t.Error("failed to persist teardown blocker")
+		}
+	}
 	deadline, hasDeadline := t.Deadline()
-	var passed, failed, manual, skipped []string
-	for _, app := range doc.Apps {
-		if hasDeadline && time.Now().After(deadline.Add(-2*time.Minute)) {
-			t.Errorf("stopping early: test deadline %s is near", deadline)
+	for _, spec := range selected {
+		if !guard.CanRunNext() {
+			t.Error("remaining targets not-run after owned teardown failure")
 			break
 		}
-		if needsInput(app) {
-			skipped = append(skipped, app.ID)
-			t.Logf("skipping %s: required input without default", app.ID)
-			continue
+		if hasDeadline && time.Now().After(deadline.Add(-2*time.Minute)) {
+			t.Error("deadline near; remaining inventory stays not-run")
+			break
 		}
-		isManual := false
-		ok := t.Run(app.ID, func(t *testing.T) {
-			r := newRunner(t)
-			isManual = r.verify(app.ID)
-			if isManual {
-				t.Skipf("%s needs a web UI to create its first administrator; not a failure", app.ID)
+		spec := spec
+		t.Run(evidenceName(spec), func(t *testing.T) {
+			r := newRunner(t, guard)
+			r.spec = spec
+			r.target = evidenceName(spec)
+			r.evidence = newEvidence(spec, codeHead)
+			r.evidence.BinarySHA256 = binarySHA
+			r.evidence.Classification = classifyTarget(c, spec)
+			r.saveEvidence()
+			if r.evidence.Classification != "runnable" {
+				r.evidence.Outcome = r.evidence.Classification
+				r.saveEvidence()
+				t.Skip(r.evidence.Classification)
 			}
+			if len(spec.Apps) > 20 {
+				r.evidence.Outcome = "blocked"
+				r.saveEvidence()
+				t.Fatal("target exceeds global App environment ceiling")
+			}
+			reservation, err := reserveTargetPorts(c, spec)
+			if err != nil {
+				r.evidence.Outcome = "blocked"
+				r.saveEvidence()
+				t.Skip("required published ports unavailable or isolation unsupported")
+			}
+			r.verify(spec, reservation)
 		})
-		switch {
-		case isManual:
-			manual = append(manual, app.ID)
-		case ok:
-			passed = append(passed, app.ID)
-		default:
-			failed = append(failed, app.ID)
-		}
 	}
-	if len(failed) > 0 {
-		t.Errorf("catalog summary: passed=%d failed=%d manual=%d skipped=%d failed_ids=%v manual_ids=%v skipped_ids=%v",
-			len(passed), len(failed), len(manual), len(skipped), failed, manual, skipped)
-		return
+}
+
+func writeInitialEvidence(dir string, e *targetEvidence) error {
+	data, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		return err
 	}
-	t.Logf("catalog summary: passed=%d failed=%d manual=%d skipped=%d manual_ids=%v skipped_ids=%v",
-		len(passed), len(failed), len(manual), len(skipped), manual, skipped)
+	return os.WriteFile(filepath.Join(dir, evidenceName(e.Target)+".json"), append(data, '\n'), 0o600)
+}
+
+func initializeEvidence(dir string, e *targetEvidence) error {
+	data, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(filepath.Join(dir, evidenceName(e.Target)+".json"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(append(data, '\n'))
+	return err
 }

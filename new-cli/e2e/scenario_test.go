@@ -3,96 +3,198 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-const (
-	statusWait = 3 * time.Minute
-	statusPoll = 5 * time.Second
-)
+const statusWait = 3 * time.Minute
+const statusPoll = 5 * time.Second
 
 type statusDoc struct {
-	Project string      `json:"project"`
-	Apps    []statusApp `json:"apps"`
+	Apps []statusEntry `json:"apps"`
 }
 
-type statusApp struct {
-	ID     string `json:"id"`
-	State  string `json:"state"`
-	Health string `json:"health"`
-	Setup  string `json:"setup"`
+func (r *runner) stage(name string, args []string, fn func() result) bool {
+	var stage *stageEvidence
+	for i := range r.evidence.Stages {
+		if r.evidence.Stages[i].Name == name {
+			stage = &r.evidence.Stages[i]
+			break
+		}
+	}
+	if stage == nil {
+		r.t.Fatal("unknown lifecycle stage")
+	}
+	stage.Outcome = "running"
+	stage.Command = safeCommand(args)
+	r.saveEvidence()
+	res := fn()
+	if res.code == exitIncomplete && allNoHeadless(res) {
+		stage.Outcome = "manual"
+		stage.Reason = "first administrator requires web UI"
+		r.evidence.Outcome = "manual"
+		for _, event := range res.events {
+			if event.Event == "step.fail" && strings.Contains(event.Error, "has no headless way") {
+				stage.Apps[event.App] = "manual"
+			}
+		}
+		r.saveEvidence()
+		r.t.Skip("manual first administrator; remaining lifecycle stages stay not-run")
+	}
+	if res.code != 0 {
+		stage.Outcome = "fail"
+		stage.Reason = "command failed; inspect private diagnostics if enabled"
+		r.evidence.Outcome = "failed"
+		for _, event := range res.events {
+			if event.Event == "step.fail" {
+				if _, ok := stage.Apps[event.App]; ok {
+					stage.Apps[event.App] = "fail"
+				}
+			}
+		}
+		r.saveEvidence()
+		r.t.Fatalf("%s failed (exit %d); sanitized evidence saved", name, res.code)
+	}
+	stage.Outcome = "pass"
+	for id := range stage.Apps {
+		stage.Apps[id] = "pass"
+	}
+	r.saveEvidence()
+	return true
 }
 
-// verify installs and exercises the App. It returns true when install stops at
-// the documented web-UI-only first administrator, which is manual, not failed.
-func (r *runner) verify(target string) (manual bool) {
-	r.t.Helper()
-	r.target = sanitize(target)
-
-	media := filepath.Join(r.root, "media")
-	downloads := filepath.Join(r.root, "downloads")
-
-	install := r.run("install", target, "--yes", "--json", "--media-root", media, "--downloads-root", downloads)
-	switch {
-	case install.code == exitIncomplete:
-		if allNoHeadless(install) {
-			return true
+func (r *runner) verify(spec targetSpec, reservation *portReservation) {
+	defer reservation.release()
+	args := installArguments(spec, r.root, reservation.primary)
+	// Release socket leases immediately before Docker binds. The process-wide
+	// lock is held until teardown, so another harness cannot reuse these ports.
+	reservation.release()
+	r.stage("install", args, func() result { return r.run(args...) })
+	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
+	r.stage("idempotency", []string{"setup", "--json"}, func() result {
+		res := r.setupAndReady(r)
+		for _, e := range res.events {
+			if e.Event == "step.ok" && !isIdempotentStep(e.Step) {
+				res.code = 1
+			}
 		}
-		r.t.Fatalf("install %s incomplete (exit 2):%s", target, formatFailures(install))
-	case install.code != 0:
-		r.t.Fatalf("install %s exit %d\nstdout:\n%s\nstderr:\n%s", target, install.code, install.stdout, install.stderr)
+		return res
+	})
+	r.stage("restart", []string{"restart", "--json"}, func() result {
+		res := r.run("restart", "--json")
+		if res.code != 0 {
+			return res
+		}
+		return r.setupAndReady(r)
+	})
+	r.stage("recovery", []string{"stop", "--json", "then", "start", "--json"}, func() result {
+		res := r.run("stop", "--json")
+		if res.code != 0 {
+			return res
+		}
+		res = r.run("start", "--json")
+		if res.code != 0 {
+			return res
+		}
+		return r.setupAndReady(r)
+	})
+	r.stage("update", []string{"update", "--json"}, func() result {
+		res := r.run("update", "--json")
+		if res.code != 0 {
+			return res
+		}
+		return r.setupAndReady(r)
+	})
+	r.recordImages()
+	if !completeImageEvidence(r.evidence.Images, expectedServices(r.spec)) {
+		r.evidence.Stages[5].Outcome = "fail"
+		r.evidence.Stages[5].Reason = "immutable image identities unavailable"
+		r.evidence.Outcome = "failed"
+		r.saveEvidence()
+		r.t.Fatal("image identities unavailable")
 	}
-
-	r.waitRunning(statusWait)
-
-	setup := r.run("setup", "--json")
-	if setup.code != 0 {
-		r.t.Fatalf("setup run 2 exit %d%s", setup.code, formatFailures(setup))
-	}
-	for _, e := range setup.events {
-		if e.Event == "step.fail" {
-			r.t.Fatalf("setup run 2 failed: app=%s step=%s error=%s hint=%s", e.App, e.Step, e.Error, e.Hint)
+	marker := "selfhost-e2e-backup-sentinel-" + randomHex(32)
+	for _, id := range spec.Apps {
+		if err := os.WriteFile(filepath.Join(r.project, "apps", id, ".e2e-backup-sentinel"), []byte(marker), 0o600); err != nil {
+			r.t.Fatal("write owned backup sentinel")
 		}
 	}
-	for _, e := range setup.events {
-		if e.Event == "step.ok" && !isIdempotentStep(e.Step) {
-			r.t.Errorf("non-idempotent step.ok during second setup: app=%s step=%s", e.App, e.Step)
-		}
-	}
-
 	archive := filepath.Join(r.root, "b.tar.zst")
-	backup := r.run("backup", "-o", archive, "--json")
-	if backup.code != 0 {
-		r.t.Fatalf("backup exit %d\nstdout:\n%s\nstderr:\n%s", backup.code, backup.stdout, backup.stderr)
-	}
-	if _, err := os.Stat(archive); err != nil {
-		r.t.Fatalf("backup archive missing: %v", err)
-	}
-
-	restore := r.run("restore", archive, "--yes", "--json")
-	if restore.code != 0 {
-		r.t.Fatalf("restore exit %d\nstdout:\n%s\nstderr:\n%s", restore.code, restore.stdout, restore.stderr)
-	}
-
-	after := r.run("setup", "--json")
-	if after.code != 0 {
-		r.t.Fatalf("setup after restore exit %d%s", after.code, formatFailures(after))
-	}
-	for _, e := range after.events {
-		if e.Event == "step.fail" {
-			r.t.Fatalf("setup after restore failed: app=%s step=%s error=%s hint=%s", e.App, e.Step, e.Error, e.Hint)
+	r.stage("backup", []string{"backup", "-o", archive, "--json"}, func() result {
+		res := r.run("backup", "-o", archive, "--json")
+		if res.code != 0 {
+			return res
 		}
+		info, err := os.Stat(archive)
+		if err != nil || info.Size() == 0 {
+			res.code = 1
+		}
+		return res
+	})
+	restored := newRunner(r.t, r.guard)
+	restored.spec = spec
+	restored.target = r.target + "-restore"
+	r.stage("isolated-restore", []string{"stop", "--json", "then", "restore", archive, "--yes", "--json"}, func() result {
+		res := r.run("stop", "--json")
+		if res.code != 0 {
+			return res
+		}
+		if err := r.composeDown(); err != nil {
+			if r.guard != nil {
+				r.guard.Blocked = true
+				r.guard.RetainedProject = r.project
+				if r.guard.OnBlock != nil {
+					r.guard.OnBlock(r.project)
+				}
+			}
+			r.evidence.Cleanup = "failed"
+			r.evidence.RetainedProject = r.project
+			r.evidence.RetainedComposeProject = r.name
+			return result{code: 1}
+		}
+		if r.t.Failed() {
+			return result{code: 1}
+		}
+		return restored.run("restore", archive, "--yes", "--json")
+	})
+	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
+	r.stage("sentinel", []string{"compare", "owned-backup-sentinels"}, func() result {
+		for _, id := range spec.Apps {
+			data, err := os.ReadFile(filepath.Join(restored.project, "apps", id, ".e2e-backup-sentinel"))
+			if err != nil || string(data) != marker {
+				return result{code: 1}
+			}
+		}
+		return result{}
+	})
+	if r.evidence.complete() {
+		r.evidence.Outcome = "pass"
 	}
-	return false
+	r.saveEvidence()
 }
 
-// allNoHeadless reports whether install stopped only because every failing
-// step is the documented "create the first administrator in the web UI" case.
+func (r *runner) setupAndReady(target *runner) result {
+	res := target.run("setup", "--json")
+	if res.code != 0 {
+		return res
+	}
+	for _, e := range res.events {
+		if e.Event == "step.fail" {
+			res.code = 1
+			return res
+		}
+	}
+	if !target.waitRunning(statusWait, r.spec.Apps) {
+		res.code = 1
+	}
+	return res
+}
+
 func allNoHeadless(res result) bool {
 	found := false
 	for _, e := range res.events {
@@ -107,47 +209,46 @@ func allNoHeadless(res result) bool {
 	return found
 }
 
-func (r *runner) waitRunning(limit time.Duration) {
-	r.t.Helper()
+func (r *runner) waitRunning(limit time.Duration, expected []string) bool {
 	deadline := time.Now().Add(limit)
-	last := ""
 	for {
-		res := r.run("status", "--json")
-		last = res.stdout + res.stderr
-		if res.code == 0 {
-			var doc statusDoc
-			if json.Unmarshal([]byte(res.stdout), &doc) == nil && len(doc.Apps) > 0 && allReady(doc) {
-				return
-			}
+		res := r.runWithTimeout(30*time.Second, "status", "--json")
+		var doc statusDoc
+		if res.code == 0 && json.Unmarshal([]byte(res.stdout), &doc) == nil && readyStatus(doc.Apps, expected) && r.containersReady() {
+			return true
 		}
 		if time.Now().After(deadline) {
-			r.t.Fatalf("apps not running/setup after %s:\n%s", limit, last)
+			return false
 		}
 		time.Sleep(statusPoll)
 	}
 }
 
-func allReady(doc statusDoc) bool {
-	for _, app := range doc.Apps {
-		if app.State != "running" || app.Setup != "ok" {
-			return false
-		}
-	}
-	return true
+func (r *runner) containersReady() bool {
+	output := r.dockerOutput(30*time.Second, "compose", "-p", r.name, "ps", "-a", "--format", "json")
+	return containersReadyJSON(output, expectedServices(r.spec))
 }
 
-func formatFailures(res result) string {
-	var b strings.Builder
-	for _, e := range res.events {
-		if e.Event != "step.fail" {
-			continue
+func (r *runner) recordImages() {
+	for _, service := range expectedServices(r.spec) {
+		ids := strings.Fields(r.dockerOutput(30*time.Second, "compose", "-p", r.name, "images", "-q", service))
+		if len(ids) != 1 {
+			return
 		}
-		fmt.Fprintf(&b, "\n  %s › %s: %s", e.App, e.Step, e.Error)
-		if e.Hint != "" {
-			fmt.Fprintf(&b, " (hint: %s)", e.Hint)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		cmd := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{.Id}} {{.Os}}/{{.Architecture}}", ids[0])
+		out, err := cmd.Output()
+		cancel()
+		if err != nil {
+			return
 		}
+		parts := strings.Fields(string(out))
+		if len(parts) != 2 {
+			return
+		}
+		r.evidence.Images = append(r.evidence.Images, imageEvidence{Service: service, ID: parts[0], Platform: parts[1]})
 	}
-	return b.String()
+	r.saveEvidence()
 }
 
 func isIdempotentStep(step string) bool {
@@ -156,14 +257,4 @@ func isIdempotentStep(step string) bool {
 		return true
 	}
 	return false
-}
-
-func sanitize(s string) string {
-	return strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
-			return r
-		}
-		return '_'
-	}, s)
 }

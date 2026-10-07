@@ -1,0 +1,831 @@
+[
+  {
+    "kind": "app",
+    "id": "actual-budget",
+    "apps": [
+      "actual-budget"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "adguard-home",
+    "apps": [
+      "adguard-home"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "archive-team-warrior",
+    "apps": [
+      "archive-team-warrior"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "aria2",
+    "apps": [
+      "aria2"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "audiobookshelf",
+    "apps": [
+      "audiobookshelf"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "authelia",
+    "apps": [
+      "authelia"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "authentik",
+    "apps": [
+      "authentik"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "bazarr",
+    "apps": [
+      "bazarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "beszel",
+    "apps": [
+      "beszel"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "bookstack",
+    "apps": [
+      "bookstack"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "borgmatic",
+    "apps": [
+      "borgmatic"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "caddy",
+    "apps": [
+      "caddy"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "cloudflare-tunnel",
+    "apps": [
+      "cloudflare-tunnel"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "dashdot",
+    "apps": [
+      "dashdot"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "deluge",
+    "apps": [
+      "deluge"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "dockge",
+    "apps": [
+      "dockge"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "docmost",
+    "apps": [
+      "docmost"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "emby",
+    "apps": [
+      "emby"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "firefly-iii",
+    "apps": [
+      "firefly-iii"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "forgejo",
+    "apps": [
+      "forgejo"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "freshrss",
+    "apps": [
+      "freshrss"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "frigate",
+    "apps": [
+      "frigate"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "gatus",
+    "apps": [
+      "gatus"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "glances",
+    "apps": [
+      "glances"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "gluetun",
+    "apps": [
+      "gluetun"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "gotify",
+    "apps": [
+      "gotify"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "grafana",
+    "apps": [
+      "grafana"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "haproxy",
+    "apps": [
+      "haproxy"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "headscale",
+    "apps": [
+      "headscale"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "homarr",
+    "apps": [
+      "homarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "home-assistant",
+    "apps": [
+      "home-assistant"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "homebridge",
+    "apps": [
+      "homebridge"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "immich",
+    "apps": [
+      "immich"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "jellyfin",
+    "apps": [
+      "jellyfin"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "keycloak",
+    "apps": [
+      "keycloak"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "kopia",
+    "apps": [
+      "kopia"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "lidarr",
+    "apps": [
+      "lidarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "linkwarden",
+    "apps": [
+      "linkwarden"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "lldap",
+    "apps": [
+      "lldap"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "loki",
+    "apps": [
+      "loki"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "mayan-edms",
+    "apps": [
+      "mayan-edms"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "minio",
+    "apps": [
+      "minio"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "navidrome",
+    "apps": [
+      "navidrome"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "netbird",
+    "apps": [
+      "netbird"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "netdata",
+    "apps": [
+      "netdata"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "nextcloud",
+    "apps": [
+      "nextcloud"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "nginx-proxy-manager",
+    "apps": [
+      "nginx-proxy-manager"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "node-red",
+    "apps": [
+      "node-red"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "ntfy",
+    "apps": [
+      "ntfy"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "nzbget",
+    "apps": [
+      "nzbget"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "ollama",
+    "apps": [
+      "ollama"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "open-webui",
+    "apps": [
+      "open-webui"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "pangolin",
+    "apps": [
+      "pangolin"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "paperless-ngx",
+    "apps": [
+      "paperless-ngx"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "passbolt",
+    "apps": [
+      "passbolt"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "patchmon",
+    "apps": [
+      "patchmon"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "peanut",
+    "apps": [
+      "peanut"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "photoprism",
+    "apps": [
+      "photoprism"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "pihole",
+    "apps": [
+      "pihole"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "plex",
+    "apps": [
+      "plex"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "portainer",
+    "apps": [
+      "portainer"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "postgresql",
+    "apps": [
+      "postgresql"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "prometheus",
+    "apps": [
+      "prometheus"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "prowlarr",
+    "apps": [
+      "prowlarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "qbittorrent",
+    "apps": [
+      "qbittorrent"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "radarr",
+    "apps": [
+      "radarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "renovate",
+    "apps": [
+      "renovate"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "restic",
+    "apps": [
+      "restic"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "sabnzbd",
+    "apps": [
+      "sabnzbd"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "scrypted",
+    "apps": [
+      "scrypted"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "seafile",
+    "apps": [
+      "seafile"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "seerr",
+    "apps": [
+      "seerr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "slskd",
+    "apps": [
+      "slskd"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "sonarr",
+    "apps": [
+      "sonarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "speedtest-tracker",
+    "apps": [
+      "speedtest-tracker"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "stalwart-mail",
+    "apps": [
+      "stalwart-mail"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "stirling-pdf",
+    "apps": [
+      "stirling-pdf"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "syncthing",
+    "apps": [
+      "syncthing"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "tailscale",
+    "apps": [
+      "tailscale"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "tdarr",
+    "apps": [
+      "tdarr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "technitium-dns",
+    "apps": [
+      "technitium-dns"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "tracearr",
+    "apps": [
+      "tracearr"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "traefik",
+    "apps": [
+      "traefik"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "transmission",
+    "apps": [
+      "transmission"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "umami",
+    "apps": [
+      "umami"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "unbound",
+    "apps": [
+      "unbound"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "uptime-kuma",
+    "apps": [
+      "uptime-kuma"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "valkey",
+    "apps": [
+      "valkey"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "vaultwarden",
+    "apps": [
+      "vaultwarden"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "vector",
+    "apps": [
+      "vector"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "victoria-metrics",
+    "apps": [
+      "victoria-metrics"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "wud",
+    "apps": [
+      "wud"
+    ]
+  },
+  {
+    "kind": "app",
+    "id": "zerotier",
+    "apps": [
+      "zerotier"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "audio-library",
+    "apps": [
+      "audiobookshelf",
+      "navidrome"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "backups",
+    "apps": [
+      "restic"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "dns",
+    "apps": [
+      "unbound",
+      "adguard-home"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "documents",
+    "apps": [
+      "paperless-ngx",
+      "stirling-pdf"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "download-privacy",
+    "apps": [
+      "gluetun",
+      "qbittorrent"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "files",
+    "apps": [
+      "nextcloud"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "full",
+    "apps": [
+      "qbittorrent",
+      "prowlarr",
+      "sonarr",
+      "radarr",
+      "jellyfin",
+      "seerr",
+      "immich",
+      "nextcloud",
+      "navidrome",
+      "audiobookshelf",
+      "vaultwarden",
+      "home-assistant"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "homarr-control-plane",
+    "apps": [
+      "homarr"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "home-automation",
+    "apps": [
+      "home-assistant",
+      "node-red",
+      "frigate"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "local-ai",
+    "apps": [
+      "ollama",
+      "open-webui",
+      "beszel"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "media",
+    "apps": [
+      "qbittorrent",
+      "sonarr",
+      "radarr",
+      "prowlarr",
+      "jellyfin",
+      "seerr"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "monitoring",
+    "apps": [
+      "prometheus",
+      "loki",
+      "beszel",
+      "uptime-kuma",
+      "grafana"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "owned-video-library",
+    "apps": [
+      "jellyfin"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "passwords",
+    "apps": [
+      "vaultwarden"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "personal-finance",
+    "apps": [
+      "actual-budget"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "personal-media",
+    "apps": [
+      "qbittorrent",
+      "gluetun",
+      "sonarr",
+      "radarr",
+      "prowlarr",
+      "bazarr",
+      "jellyfin",
+      "seerr"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "photos",
+    "apps": [
+      "immich"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "photos-and-files",
+    "apps": [
+      "immich",
+      "nextcloud"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "private-notes",
+    "apps": [
+      "docmost"
+    ]
+  },
+  {
+    "kind": "recipe",
+    "id": "remote-access",
+    "apps": [
+      "tailscale",
+      "cloudflare-tunnel",
+      "caddy"
+    ]
+  }
+]

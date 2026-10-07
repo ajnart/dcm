@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -22,11 +24,18 @@ import (
 const exitIncomplete = 2
 
 var e2eBinary string
+var dockerAvailable bool
+var binarySHA string
+var codeHead string
 
 func TestMain(m *testing.M) {
-	if !dockerOK() {
-		fmt.Println("e2e: docker is not available; skipping")
-		os.Exit(0)
+	dockerAvailable = dockerOK()
+	head := exec.Command("git", "rev-parse", "HEAD")
+	if out, err := head.Output(); err == nil {
+		codeHead = strings.TrimSpace(string(out))
+	}
+	if !dockerAvailable {
+		os.Exit(m.Run())
 	}
 	root, err := moduleRoot()
 	if err != nil {
@@ -48,13 +57,21 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(binDir)
 		os.Exit(1)
 	}
+	data, err := os.ReadFile(e2eBinary)
+	if err != nil {
+		os.RemoveAll(binDir)
+		os.Exit(1)
+	}
+	binarySHA = fmt.Sprintf("%x", sha256.Sum256(data))
 	code := m.Run()
 	os.RemoveAll(binDir)
 	os.Exit(code)
 }
 
 func dockerOK() bool {
-	cmd := exec.Command("docker", "info")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", "info")
 	return cmd.Run() == nil
 }
 
@@ -92,16 +109,19 @@ type result struct {
 }
 
 type runner struct {
-	t       *testing.T
-	root    string
-	project string
-	name    string
-	target  string
-	env     []string
-	logDir  string
+	t        *testing.T
+	root     string
+	project  string
+	name     string
+	target   string
+	env      []string
+	logDir   string
+	evidence *targetEvidence
+	spec     targetSpec
+	guard    *sweepGuard
 }
 
-func newRunner(t *testing.T) *runner {
+func newRunner(t *testing.T, guard *sweepGuard) *runner {
 	t.Helper()
 	root, err := os.MkdirTemp("", "selfhost-e2e-")
 	if err != nil {
@@ -110,18 +130,26 @@ func newRunner(t *testing.T) *runner {
 	name := "selfhost-e2e-" + randomHex(8)
 	r := &runner{
 		t:       t,
+		guard:   guard,
 		root:    root,
 		project: filepath.Join(root, "project"),
 		name:    name,
 		target:  "unnamed",
 		logDir:  os.Getenv("E2E_LOG_DIR"),
 	}
-	r.env = append(os.Environ(),
+	if guard != nil {
+		if guard.ProjectNames == nil {
+			guard.ProjectNames = map[string]string{}
+		}
+		guard.ProjectNames[r.project] = r.name
+	}
+	r.env = isolatedEnvironment(os.Environ())
+	r.env = append(r.env,
 		"SELF_HOST_HOME="+r.project,
 		"SELF_HOST_COMPOSE_PROJECT="+name,
 	)
 	if r.logDir != "" {
-		os.MkdirAll(r.logDir, 0o755)
+		os.MkdirAll(r.logDir, 0o700)
 	}
 	t.Cleanup(r.cleanup)
 	return r
@@ -136,25 +164,7 @@ func randomHex(n int) string {
 }
 
 func (r *runner) run(args ...string) result {
-	r.t.Helper()
-	cmd := exec.Command(e2eBinary, args...)
-	cmd.Dir = r.root
-	cmd.Env = r.env
-	var out, errb bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	res := result{stdout: out.String(), stderr: errb.String()}
-	if err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			res.code = exit.ExitCode()
-		} else {
-			r.t.Fatalf("self-host %s: %v", strings.Join(args, " "), err)
-		}
-	}
-	res.events = decodeEvents(res.stdout)
-	return res
+	return r.runWithTimeout(10*time.Minute, args...)
 }
 
 func (r *runner) runWithTimeout(timeout time.Duration, args ...string) result {
@@ -168,7 +178,11 @@ func (r *runner) runWithTimeout(timeout time.Duration, args ...string) result {
 	cmd.Stderr = &errb
 	err := cmd.Run()
 	res := result{stdout: out.String(), stderr: errb.String()}
+	if ctx.Err() != nil {
+		res.code = 124
+	}
 	if err != nil {
+		res.code = 1
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
 			res.code = exit.ExitCode()
@@ -207,8 +221,30 @@ func (r *runner) cleanup() {
 	if r.t.Failed() {
 		r.dumpDiagnostics()
 	}
-	r.composeDown()
-	r.removeRoot()
+	if err := cleanupOwned(r.composeDown, r.removeRoot, r.guard, r.project); err != nil {
+		r.t.Errorf("owned Compose teardown failed; project retained and sweep stopped")
+		if r.evidence != nil {
+			r.evidence.Cleanup = "failed"
+			r.evidence.RetainedProject = r.project
+			r.evidence.RetainedComposeProject = r.name
+		}
+	} else if r.evidence != nil {
+		if r.guard != nil && r.guard.Blocked {
+			r.evidence.Cleanup = "failed"
+			r.evidence.RetainedProject = r.guard.RetainedProject
+			r.evidence.RetainedComposeProject = r.guard.ProjectNames[r.guard.RetainedProject]
+		} else {
+			r.evidence.Cleanup = "pass"
+		}
+	}
+	if r.evidence != nil {
+		if r.t.Failed() {
+			r.evidence.Outcome = "failed"
+		}
+		now := time.Now().UTC()
+		r.evidence.Finished = &now
+		r.saveEvidence()
+	}
 }
 
 func (r *runner) composeDir() string {
@@ -218,15 +254,23 @@ func (r *runner) composeDir() string {
 	return r.root
 }
 
-func (r *runner) composeDown() {
+func (r *runner) composeDown() error {
+	if _, err := os.Stat(filepath.Join(r.project, "compose.yml")); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.New("owned Compose path unavailable")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "compose", "-p", r.name, "down", "--volumes", "--remove-orphans")
+	cmd := exec.CommandContext(ctx, "docker", r.dockerArgs("compose", "-p", r.name, "down", "--volumes", "--remove-orphans")...)
 	cmd.Dir = r.composeDir()
 	cmd.Env = r.env
 	if out, err := cmd.CombinedOutput(); err != nil {
-		r.t.Logf("docker compose -p %s down: %v\n%s", r.name, err, out)
+		_ = out
+		return errors.New("owned Compose cleanup failed")
 	}
+	return nil
 }
 
 func (r *runner) removeRoot() {
@@ -237,7 +281,8 @@ func (r *runner) removeRoot() {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", r.root+":/x", "alpine", "sh", "-c", "rm -rf /x/* /x/.[!.]*")
 	if out, err := cmd.CombinedOutput(); err != nil {
-		r.t.Logf("cleaning %s via docker: %v\n%s", r.root, err, out)
+		_ = out
+		r.t.Errorf("owned folder cleanup failed")
 	}
 	if err := os.RemoveAll(r.root); err != nil {
 		r.t.Logf("removing %s: %v", r.root, err)
@@ -245,24 +290,43 @@ func (r *runner) removeRoot() {
 }
 
 func (r *runner) dumpDiagnostics() {
-	ps := r.dockerOutput(30*time.Second, "compose", "-p", r.name, "ps", "-a")
-	logs := r.dockerOutput(60*time.Second, "compose", "-p", r.name, "logs", "--no-color", "--tail", "200")
-	r.t.Logf("docker compose -p %s ps -a:\n%s", r.name, ps)
-	r.t.Logf("docker compose -p %s logs --tail 200:\n%s", r.name, logs)
-	if r.logDir == "" {
+	if r.logDir == "" || os.Getenv("E2E_PRIVATE_DIAGNOSTICS") != "1" {
 		return
 	}
-	prefix := filepath.Join(r.logDir, sanitize(r.target))
-	status := r.runWithTimeout(60*time.Second, "status", "--json")
-	os.WriteFile(prefix+".status.json", []byte(status.stdout+status.stderr), 0o644)
-	os.WriteFile(prefix+".ps.txt", []byte(ps), 0o644)
-	os.WriteFile(prefix+".logs.txt", []byte(logs), 0o644)
+	private := filepath.Join(r.logDir, "private")
+	if os.MkdirAll(private, 0o700) != nil {
+		return
+	}
+	prefix := filepath.Join(private, r.target)
+	ps := r.dockerOutput(30*time.Second, "compose", "-p", r.name, "ps", "-a")
+	logs := r.dockerOutput(60*time.Second, "compose", "-p", r.name, "logs", "--no-color", "--tail", "200")
+	os.WriteFile(prefix+".ps.txt", []byte(ps), 0o600)
+	os.WriteFile(prefix+".logs.txt", []byte(logs), 0o600)
+}
+
+func (r *runner) saveEvidence() {
+	if r.evidence == nil {
+		return
+	}
+	r.evidence.ComposeProject = r.name
+	r.evidence.Platform = runtime.GOOS + "/" + runtime.GOARCH
+	data, err := json.MarshalIndent(r.evidence, "", "  ")
+	if err != nil {
+		r.t.Fatal("encode evidence")
+	}
+	path := filepath.Join(r.logDir, evidenceName(r.spec)+".json")
+	if err := os.WriteFile(path+".partial", append(data, '\n'), 0o600); err != nil {
+		r.t.Fatal("write evidence")
+	}
+	if err := os.Rename(path+".partial", path); err != nil {
+		r.t.Fatal("publish evidence")
+	}
 }
 
 func (r *runner) dockerOutput(timeout time.Duration, args ...string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", args...)
+	cmd := exec.CommandContext(ctx, "docker", r.dockerArgs(args...)...)
 	cmd.Dir = r.composeDir()
 	cmd.Env = r.env
 	out, err := cmd.CombinedOutput()
@@ -270,4 +334,12 @@ func (r *runner) dockerOutput(timeout time.Duration, args ...string) string {
 		return string(out) + "\n[error] " + err.Error()
 	}
 	return string(out)
+}
+
+func (r *runner) dockerArgs(args ...string) []string {
+	if len(args) == 0 || args[0] != "compose" {
+		return args
+	}
+	prefix := []string{"compose", "--project-directory", r.project, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env")}
+	return append(prefix, args[1:]...)
 }
