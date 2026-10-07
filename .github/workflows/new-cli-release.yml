@@ -75,7 +75,7 @@ jobs:
           version=$SELF_HOST_RELEASE_VERSION
           assets=("dist/self-host_${version}_linux_amd64.tar.gz" "dist/self-host_${version}_linux_arm64.tar.gz" "dist/self-host_${version}_darwin_amd64.tar.gz" "dist/self-host_${version}_darwin_arm64.tar.gz" dist/checksums.txt)
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux and macOS amd64/arm64 CLI. Linux binaries also run inside WSL; native Windows is unsupported."
+            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries; native WSL validation is pending. Native Windows is unsupported."
           fi
           mkdir -p "$RUNNER_TEMP/new-cli-release-download"
           gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/new-cli-release-download"
