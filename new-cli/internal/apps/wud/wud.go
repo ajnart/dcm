@@ -237,8 +237,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	attempt := func(ctx context.Context) (bool, error) { return approvedInventoryReady(ctx, h) }
 	return h.Step(discovery, "inventory", "wait for the approved Docker watcher to discover an image", helpers.StepSpec{
 		Check: attempt,
-		Do:    func(ctx context.Context) error { return h.Poll(ctx, 10*time.Second, attempt) },
-		Hint:  "The approved Docker watcher has not discovered an image; verify endpoint TLS and label an owned container wud.watch=true, then run: self-host setup wud",
+		Do: func(ctx context.Context) error {
+			if err := refreshSoleApprovedWatcher(ctx, h); err != nil {
+				return err
+			}
+			return h.Poll(ctx, 10*time.Second, attempt)
+		},
+		Hint: "The approved Docker watcher has not discovered an image; verify endpoint TLS and label an owned container wud.watch=true, then run: self-host setup wud",
 	})
 }
 
@@ -333,6 +338,22 @@ func approvedInventoryReady(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	for _, container := range containers {
 		if container.ID != "" && container.Watcher == "approved" && container.Error == nil && container.Image.ID != "" {
+			// A restored store may still name a removed container. This scoped
+			// watch re-reads Docker; neither cached presence nor 404 is readiness.
+			fresh, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/api/containers/" + url.PathEscape(container.ID) + "/watch", User: h.AdminUser(), Password: h.AdminPassword()})
+			if err != nil {
+				return false, errors.New("fresh approved Docker inventory request failed")
+			}
+			if fresh.Status != http.StatusOK {
+				return false, fmt.Errorf("fresh approved Docker inventory returned HTTP %d", fresh.Status)
+			}
+			var current watcherContainer
+			if fresh.Decode(&current) != nil {
+				return false, errors.New("fresh approved Docker inventory returned invalid metadata")
+			}
+			if current.ID != container.ID || current.Image.ID != container.Image.ID || current.Watcher != "approved" || current.Error != nil {
+				return false, errors.New("fresh approved Docker inventory did not confirm the selected container and image")
+			}
 			return true, nil
 		}
 	}
@@ -379,4 +400,30 @@ func missingInventory(ctx context.Context, h *helpers.H, containers []watcherCon
 		dockerWatchers = -1
 	}
 	return fmt.Errorf("the administrator works, but the approved Docker watcher has no verified inventory; inventory_count=%d nonempty_ids=%d approved_count=%d docker_watchers=%d approved_registered=%t watcher_http=%d watcher_metadata_valid=%t; verify the approved TLS endpoint and explicitly label an owned container wud.watch=true", inventoryCount, boundedInventoryCount(nonemptyIDs), boundedInventoryCount(approvedCount), dockerWatchers, approvedRegistered, watcherHTTP, metadataValid)
+}
+
+// WUD's registered-watcher API is read-only: registrations come from startup
+// configuration. Its all-watch API is confined to the approved boundary only
+// when this exact single registration exists; ambiguous scopes need an owner.
+func refreshSoleApprovedWatcher(ctx context.Context, h *helpers.H) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	refusal := errors.New("automatic inventory refresh requires exactly one registered docker.approved watcher; manually refresh only the approved watcher and rerun: self-host setup wud")
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/watchers", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil || response.Status != http.StatusOK {
+		return refusal
+	}
+	var watchers []struct{ ID, Type, Name string }
+	if response.Decode(&watchers) != nil || len(watchers) != 1 || watchers[0].ID != "docker.approved" || watchers[0].Type != "docker" || watchers[0].Name != "approved" {
+		return refusal
+	}
+	refreshed, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/api/containers/watch", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return errors.New("approved Docker watcher refresh request failed")
+	}
+	if refreshed.Status != http.StatusOK {
+		return fmt.Errorf("approved Docker watcher refresh returned HTTP %d", refreshed.Status)
+	}
+	return nil
 }

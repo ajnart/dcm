@@ -53,12 +53,26 @@ func handler() http.Handler {
 		}
 		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
 	})
+	mux.HandleFunc("GET /api/watchers", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]string{{"id": "docker.approved", "type": "docker", "name": "approved"}})
+	})
+	mux.HandleFunc("POST /api/containers/watch", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
+	})
 	mux.HandleFunc("POST /api/containers/owned-fixture/watch", func(w http.ResponseWriter, r *http.Request) {
 		if !authOK(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"id": "owned-fixture", "watcher": "approved"})
+		json.NewEncoder(w).Encode(map[string]any{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}})
 	})
 	return mux
 }

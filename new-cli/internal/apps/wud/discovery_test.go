@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,10 +17,14 @@ func TestSetupWaitsForApprovedDiscoveryInsteadOfAuthenticationAlone(t *testing.T
 	elapsed := time.Duration(0)
 	requests := 0
 	posts := 0
+	bulkPosts := 0
 	base := handler()
 	transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			posts++
+			if r.URL.Path == "/api/containers/watch" {
+				bulkPosts++
+			}
 		}
 		if r.URL.Path == "/api/containers" && authOK(r) {
 			requests++
@@ -38,8 +43,8 @@ func TestSetupWaitsForApprovedDiscoveryInsteadOfAuthenticationAlone(t *testing.T
 	if err := (wud.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatal(err)
 	}
-	if elapsed < time.Second || requests < 2 || posts != 0 {
-		t.Fatal("Setup accepted authentication before approved discovery or forced a watcher scan")
+	if elapsed < time.Second || requests < 2 || posts == 0 || bulkPosts != 1 {
+		t.Fatal("Setup accepted authentication before approved discovery or refreshed beyond the sole approved watcher")
 	}
 }
 
@@ -111,5 +116,158 @@ func TestSetupDiscoveryStopsOnCancellationAndDeadline(t *testing.T) {
 				t.Fatal("discovery ignored cancellation or deadline")
 			}
 		})
+	}
+}
+
+func TestSetupWaitsForFreshIdentityAfterRestoredInventoryCache(t *testing.T) {
+	dir := t.TempDir()
+	writeTLSFixture(t, dir, false)
+	refreshed := false
+	oldScans, newScans, refreshes := 0, 0, 0
+	base := handler()
+	transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			base.ServeHTTP(w, r)
+			return
+		}
+		switch r.Method + " " + r.URL.Path {
+		case "GET /api/containers":
+			id := "restored-old"
+			if refreshed {
+				id = "restored-new"
+			}
+			w.Write([]byte(`[{"id":"` + id + `","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
+			return
+		case "POST /api/containers/restored-old/watch":
+			oldScans++
+			w.WriteHeader(404)
+			return
+		case "POST /api/containers/restored-new/watch":
+			newScans++
+			w.Write([]byte(`{"id":"restored-new","watcher":"approved","image":{"id":"sha256:owned-image"}}`))
+			return
+		case "POST /api/containers/watch":
+			refreshes++
+			refreshed = true
+			w.Write([]byte(`[{"id":"restored-new","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
+			return
+		}
+		base.ServeHTTP(w, r)
+	})}
+	h := tlsH(t, dir, map[string]string{"WUD_DOCKER_HOST": "docker.internal"}, transport)
+	if err := (wud.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	if oldScans == 0 || newScans == 0 || refreshes != 1 {
+		t.Fatal("Setup accepted restored cached identity without approved refresh and current per-container proof")
+	}
+}
+
+func TestSetupDiscoveryRejectsPersistentOrMismatchedFreshIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		status     int
+	}{
+		{"persistent stale cache", ``, 404},
+		{"foreign container", `{"id":"foreign","watcher":"approved","image":{"id":"sha256:owned-image"}}`, 200},
+		{"foreign watcher", `{"id":"owned-fixture","watcher":"other","image":{"id":"sha256:owned-image"}}`, 200},
+		{"different image", `{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:other"}}`, 200},
+		{"malformed fresh response", `synthetic-private-response`, 200},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeTLSFixture(t, dir, false)
+			base := handler()
+			scans := 0
+			transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "POST" && r.URL.Path == "/api/containers/owned-fixture/watch" && authOK(r) {
+					scans++
+					w.WriteHeader(tc.status)
+					w.Write([]byte(tc.body))
+					return
+				}
+				base.ServeHTTP(w, r)
+			})}
+			h := tlsH(t, dir, map[string]string{"WUD_DOCKER_HOST": "docker.internal"}, transport)
+			if err := (wud.App{}).Setup(context.Background(), h); err == nil || scans == 0 || scans > 15 {
+				t.Fatal("invalid fresh identity was accepted or retried without a bound")
+			}
+		})
+	}
+}
+
+func TestSetupRefusesRefreshUnlessOnlyExactApprovedWatcherExists(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		status     int
+	}{
+		{"none", `[]`, 200},
+		{"foreign", `[{"id":"docker.other","type":"docker","name":"synthetic-private-value"}]`, 200},
+		{"non Docker", `[{"id":"kubernetes.approved","type":"kubernetes","name":"approved"}]`, 200},
+		{"duplicate", `[{"id":"docker.approved","type":"docker","name":"approved"},{"id":"docker.approved","type":"docker","name":"approved"}]`, 200},
+		{"other watcher also registered", `[{"id":"docker.approved","type":"docker","name":"approved"},{"id":"docker.other","type":"docker","name":"other"}]`, 200},
+		{"missing identity", `[{"type":"docker","name":"approved"}]`, 200},
+		{"malformed", `synthetic-private-value`, 200},
+		{"refused", `synthetic-private-value`, 403},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeTLSFixture(t, dir, false)
+			base := handler()
+			refreshes := 0
+			transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if authOK(r) {
+					if r.Method == "GET" && r.URL.Path == "/api/containers" {
+						w.Write([]byte(`[]`))
+						return
+					}
+					if r.Method == "GET" && r.URL.Path == "/api/watchers" {
+						w.WriteHeader(tc.status)
+						w.Write([]byte(tc.body))
+						return
+					}
+					if r.Method == "POST" && r.URL.Path == "/api/containers/watch" {
+						refreshes++
+						w.WriteHeader(200)
+						return
+					}
+				}
+				base.ServeHTTP(w, r)
+			})}
+			h := tlsH(t, dir, map[string]string{"WUD_DOCKER_HOST": "docker.internal"}, transport)
+			err := (wud.App{}).Setup(context.Background(), h)
+			if err == nil || refreshes != 0 || strings.Contains(err.Error(), "synthetic-private-value") {
+				t.Fatal("ambiguous or foreign watcher registration received an automatic refresh")
+			}
+		})
+	}
+}
+
+func TestSetupFreshApprovedInventorySkipsAutomaticRefresh(t *testing.T) {
+	dir := t.TempDir()
+	writeTLSFixture(t, dir, false)
+	base := handler()
+	registrations, refreshes := 0, 0
+	transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/watchers" {
+			registrations++
+			w.WriteHeader(403)
+			return
+		}
+		if r.Method == "POST" && r.URL.Path == "/api/containers/watch" {
+			refreshes++
+			w.WriteHeader(500)
+			return
+		}
+		base.ServeHTTP(w, r)
+	})}
+	h := tlsH(t, dir, map[string]string{"WUD_DOCKER_HOST": "docker.internal"}, transport)
+	for range 2 {
+		if err := (wud.App{}).Setup(context.Background(), h); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if registrations != 0 || refreshes != 0 || h.AdminUser() != adminUser || h.AdminPassword() != adminPass {
+		t.Fatal("already fresh approved inventory triggered a refresh or changed administrator credentials")
 	}
 }
