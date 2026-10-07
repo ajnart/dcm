@@ -118,7 +118,13 @@ func NewHandler(load func() (Snapshot, error), project string) http.Handler {
 		case "/containers/" + s.ContainerID + "/json":
 			response = map[string]any{"Id": s.ContainerID, "Name": s.Name, "Image": s.ImageID, "State": map[string]any{"Running": true, "Status": "running"}, "Config": map[string]any{"Image": s.Image, "Labels": labels}}
 		case "/images/" + s.ImageID + "/json", "/images/" + s.Image + "/json":
-			response = map[string]any{"Id": s.ImageID, "RepoTags": s.RepoTags, "RepoDigests": s.RepoDigests, "Architecture": s.Architecture, "Os": s.OS, "Variant": s.Variant, "Created": s.Created}
+			image := map[string]any{"Id": s.ImageID, "RepoTags": s.RepoTags, "RepoDigests": s.RepoDigests, "Architecture": s.Architecture, "Os": s.OS, "Created": s.Created}
+			// Docker omits an empty variant; WUD rejects an explicitly empty
+			// optional string while normalizing its container image inventory.
+			if s.Variant != "" {
+				image["Variant"] = s.Variant
+			}
+			response = image
 		default:
 			deny(403)
 			return

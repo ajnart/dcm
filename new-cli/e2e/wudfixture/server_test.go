@@ -76,3 +76,44 @@ func TestSnapshotFileRejectsPrivateFieldsAndOversizedInput(t *testing.T) {
 		t.Fatal("bounded snapshot rejected")
 	}
 }
+
+func TestImageInspectMatchesDockerOptionalVariantContract(t *testing.T) {
+	// Docker omits an empty architecture variant. WUD 9.1.0 copies this field
+	// into its optional Joi string; an explicitly empty value rejects inventory.
+	for _, variant := range []string{"", "v8"} {
+		t.Run("variant="+variant, func(t *testing.T) {
+			snapshot := sample()
+			snapshot.Variant = variant
+			if variant != "" {
+				snapshot.Architecture = "arm64"
+			}
+			handler := NewHandler(func() (Snapshot, error) { return snapshot, nil }, "owned-test")
+			for _, selector := range []string{snapshot.ImageID, snapshot.Image} {
+				response := httptest.NewRecorder()
+				handler.ServeHTTP(response, httptest.NewRequest("GET", "/images/"+selector+"/json", nil))
+				if response.Code != 200 {
+					t.Fatal("owned image inspect was rejected")
+				}
+				var image map[string]json.RawMessage
+				if err := json.Unmarshal(response.Body.Bytes(), &image); err != nil {
+					t.Fatal(err)
+				}
+				value, present := image["Variant"]
+				if variant == "" {
+					if present {
+						t.Fatal("empty optional variant must be omitted to match Docker and WUD's accepted inventory contract")
+					}
+				} else {
+					var actual string
+					if !present || json.Unmarshal(value, &actual) != nil || actual != variant {
+						t.Fatal("real architecture variant was lost")
+					}
+				}
+				var imageID string
+				if json.Unmarshal(image["Id"], &imageID) != nil || imageID != snapshot.ImageID {
+					t.Fatal("exact owned image identity changed")
+				}
+			}
+		})
+	}
+}
