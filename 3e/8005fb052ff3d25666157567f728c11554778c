@@ -1,0 +1,31 @@
+new-cli/internal/tui/harness_test.go
+  s_a2fd509a765bab::t_4c2174a1eb0096 738
+new-cli/internal/tui/install.go
+  s_a2fd509a765bab::t_5160fdc70640b7 54-55,57
+new-cli/internal/tui/pull_test.go
+  s_a2fd509a765bab::t_1846e90df118bf 35
+new-cli/internal/tui/stack.go
+  s_a2fd509a765bab::t_ac6a3dcbba4dc8 97,105-107,135,140,151-153,189-190
+new-cli/internal/tui/testdata/install.golden
+  s_a2fd509a765bab::t_76b868a3623db1 30
+new-cli/internal/tui/testdata/settings.golden
+  s_a2fd509a765bab::t_d26bba77683de0 30
+new-cli/internal/tui/testdata/stack.golden
+  s_a2fd509a765bab::t_ec9374723dbfef 2,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e8005fb052ff3d25666157567f728c11554778c",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
