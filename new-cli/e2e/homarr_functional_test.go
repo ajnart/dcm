@@ -444,6 +444,13 @@ func hfBrowserDashboard(ctx context.Context, r *runner, base, ntfyURL, jellyfinU
 	if _, err := run(ctx, "", "wait", "#username"); err != nil {
 		return errors.New("administrator browser login form did not appear")
 	}
+	// The pinned image's e2e/shared/login.ts waits for the form's React props
+	// before filling: SSR input existence alone does not prove hydration.
+	if err := hfPoll(ctx, time.Minute, func() bool {
+		return hfBrowserBoolean(ctx, run, hfBrowserLoginHydrated)
+	}, "administrator browser login form did not hydrate"); err != nil {
+		return hfBrowserLoginDiagnostic(ctx, run, "administrator browser login form did not hydrate")
+	}
 	credentials, _ := json.Marshal(map[string]string{"name": secrets["ADMIN_USER"], "password": secrets["ADMIN_PASSWORD"]})
 	script := `(() => { const credentials = ` + string(credentials) + `;
 const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -460,7 +467,7 @@ for (const [selector, value] of [['#username', credentials.name], ['#password', 
 	if err := hfPoll(ctx, time.Minute, func() bool {
 		return hfBrowserBoolean(ctx, run, `(async () => { const r = await fetch('/api/auth/session'); if (!r.ok) return false; const s = await r.json(); return !!s.user?.id && s.user.permissions?.includes('admin') === true && !location.pathname.includes('/auth/'); })()`)
 	}, "actual browser login did not establish an administrator dashboard session"); err != nil {
-		return err
+		return hfBrowserLoginDiagnostic(ctx, run, "actual browser login did not establish an administrator dashboard session")
 	}
 	if _, err := run(ctx, "", "set", "viewport", "1440", "1100"); err != nil {
 		return err
@@ -518,6 +525,52 @@ return !c.notebook || c.links.every(url => Array.from(el.querySelectorAll('a')).
 		return errors.New("browser dashboard screenshot could not be made private")
 	}
 	return nil
+}
+
+const hfBrowserLoginHydrated = `(() => { const form = document.querySelector('#username')?.form; return !!form && Object.keys(form).some(key => key.startsWith('__reactProps$')); })()`
+
+// Read only fixed flags: never expose field values, response bodies, page text,
+// browser errors, URL/query values, profiles or cookie/session contents.
+func hfBrowserLoginDiagnostic(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error), reason string) error {
+	script := `(async () => {
+const user = document.querySelector('#username'), password = document.querySelector('#password'), form = user?.form;
+const state = { hydrated: !!form && Object.keys(form).some(key => key.startsWith('__reactProps$')),
+ usernameFilled: !!user?.value, passwordFilled: !!password?.value,
+ formInvalid: !!form?.querySelector('[aria-invalid="true"]'), authRoute: location.pathname.includes('/auth/'),
+ dashboardRoute: location.pathname.includes('/boards/'), sessionHTTP: false, sessionUser: false, adminPermission: false };
+try { const response = await fetch('/api/auth/session'); state.sessionHTTP = response.ok;
+ if (response.ok) { const session = await response.json(); state.sessionUser = !!session.user?.id; state.adminPermission = session.user?.permissions?.includes('admin') === true; }
+} catch {} return state; })()`
+	output, err := run(ctx, script, "eval", "--stdin")
+	return hfBrowserLoginDiagnosticResult(reason, output, err)
+}
+
+func hfBrowserLoginDiagnosticResult(reason string, output []byte, err error) error {
+	var response struct {
+		Success bool
+		Data    struct {
+			Result struct {
+				Hydrated, UsernameFilled, PasswordFilled, FormInvalid, AuthRoute, DashboardRoute, SessionHTTP, SessionUser, AdminPermission bool
+			}
+		}
+	}
+	if err != nil || json.Unmarshal(output, &response) != nil || !response.Success {
+		return fmt.Errorf("%s; browser state unavailable", reason)
+	}
+	state := response.Data.Result
+	return fmt.Errorf("%s; hydrated=%t, username_filled=%t, password_filled=%t, form_invalid=%t, auth_route=%t, dashboard_route=%t, session_http=%t, session_user=%t, admin_permission=%t", reason, state.Hydrated, state.UsernameFilled, state.PasswordFilled, state.FormInvalid, state.AuthRoute, state.DashboardRoute, state.SessionHTTP, state.SessionUser, state.AdminPermission)
+}
+
+func TestHomarrBrowserLoginDiagnosticExcludesUntrustedValues(t *testing.T) {
+	output := []byte(`{"success":true,"data":{"result":{"hydrated":true,"usernameFilled":true,"passwordFilled":true,"authRoute":true,"private":"synthetic-private-browser-state"},"private":"synthetic-private-browser-response"},"error":"synthetic-private-browser-error"}`)
+	err := hfBrowserLoginDiagnosticResult("fixed login failure", output, nil)
+	if strings.Contains(err.Error(), "synthetic-private") || !strings.Contains(err.Error(), "hydrated=true") || !strings.Contains(err.Error(), "session_user=false") {
+		t.Fatal("browser diagnostics leaked private data or lost the fixed state flags")
+	}
+	err = hfBrowserLoginDiagnosticResult("fixed login failure", nil, errors.New("synthetic-private-command-error"))
+	if strings.Contains(err.Error(), "synthetic-private") || !strings.Contains(err.Error(), "state unavailable") {
+		t.Fatal("browser command errors entered public evidence")
+	}
 }
 
 func hfBrowserBoolean(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error), script string) bool {
