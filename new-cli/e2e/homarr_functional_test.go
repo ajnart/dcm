@@ -642,9 +642,71 @@ func hfStage(r *runner, name string, run func() error) {
 func hfCommand(r *runner, args ...string) error {
 	res := r.run(args...)
 	if res.code != 0 {
-		return errors.New("owned functional CLI operation failed; inspect its private Workflow state")
+		return hfCommandFailure(r, res, args)
 	}
 	return nil
+}
+
+// Retain only structured Logger failures. Raw streams and command arguments
+// are private; the operation label comes from this scenario's fixed commands.
+func hfCommandFailure(r *runner, res result, args []string) error {
+	operation := "owned-operation"
+	if len(args) > 0 {
+		switch args[0] {
+		case "install", "remove":
+			if len(args) > 1 {
+				for _, id := range []string{"homarr", "ntfy", "jellyfin", "gatus"} {
+					if args[1] == id {
+						operation = args[0] + "-" + id
+					}
+				}
+			}
+		case "setup":
+			operation = "setup-selection"
+			if len(args) > 1 && args[1] == "homarr" {
+				operation = "setup-homarr"
+			}
+		case "restart":
+			operation = "restart-selection"
+		case "config":
+			operation = "update-selected-lan-metadata"
+		}
+	}
+	owned := append(slices.Clone(r.spec.Apps), "gatus")
+	failures := redactedFailures(res.events, owned)
+	for i := range r.evidence.Stages {
+		stage := &r.evidence.Stages[i]
+		if stage.Outcome != "running" {
+			continue
+		}
+		stage.Command = []string{operation}
+		stage.Termination = res.termination
+		stage.Failures = append(stage.Failures, failures...)
+		break
+	}
+	return fmt.Errorf("owned functional CLI operation %s failed: exit=%d; redacted failures=%d", operation, res.code, len(failures))
+}
+
+func TestHomarrCommandFailureRetainsOwnedEventsWithoutRawStreams(t *testing.T) {
+	r := &runner{spec: targetSpec{Apps: []string{"homarr", "ntfy", "jellyfin"}}, evidence: &targetEvidence{}}
+	r.evidence.Stages = []stageEvidence{{Name: "add-remove", Outcome: "running"}}
+	res := result{code: 2, stdout: "synthetic-private-stdout", stderr: "synthetic-private-stderr", events: []event{
+		{Event: "step.fail", App: "gatus", Step: "check", Error: "fixed redacted failure", Hint: "supported retry"},
+		{Event: "step.fail", App: "unowned", Step: "check", Error: "synthetic-private-unowned"},
+	}}
+	err := hfCommandFailure(r, res, []string{"install", "gatus", "--set", "private=synthetic-private-argument"})
+	raw, marshalErr := json.Marshal(r.evidence.Stages)
+	if marshalErr != nil {
+		t.Fatal(marshalErr)
+	}
+	output := string(raw) + err.Error()
+	if strings.Contains(output, "synthetic-private") {
+		t.Fatal("raw streams, private arguments or unowned failures entered public evidence")
+	}
+	stage := r.evidence.Stages[0]
+	if len(stage.Failures) != 1 || stage.Failures[0].App != "gatus" || stage.Failures[0].Hint != "supported retry" || !strings.Contains(err.Error(), "install-gatus") || !strings.Contains(err.Error(), "exit=2") {
+		t.Fatal("owned failure lost its precise operation or supported recovery evidence")
+	}
 }
 
 func hfRequest(ctx context.Context, client *http.Client, method, endpoint string, headers map[string]string, body []byte) (int, []byte, error) {
