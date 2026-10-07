@@ -200,7 +200,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 				if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
 					return err
 				}
-				s.Log.Emit(events.Event{Event: events.StepOK, App: info.ID, Step: "render",
+				ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: "render",
 					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)})
 			}
 			return ss.ensureMediaFolders(apps)

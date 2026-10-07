@@ -8,6 +8,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 )
 
 // composeStep is the Compose work a change runs after edit.
@@ -122,18 +123,26 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 	switch c.compose {
 	case composeUp:
 		if err := ss.compose.Up(ctx, services...); err != nil {
+			ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "start", Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()})
 			return err
 		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(ids, ", ")})
+		ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(ids, ", ")})
 	case composePullUp:
 		if err := ss.compose.Up(ctx, services...); err != nil {
+			if c.after == afterSetup {
+				ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "start", Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()})
+			}
 			return err
 		}
 		step, msg := "update", "recreated "
 		if c.after == afterSetup {
 			step, msg = "start", "started "
 		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: step, Msg: msg + strings.Join(ids, ", ")})
+		if step == "start" {
+			ss.recordStage(ids, events.Event{Event: events.StepOK, Step: step, Msg: msg + strings.Join(ids, ", ")})
+		} else {
+			s.Log.Emit(events.Event{Event: events.StepOK, Step: step, Msg: msg + strings.Join(ids, ", ")})
+		}
 	case composeStop:
 		if err := ss.compose.Stop(ctx, services...); err != nil {
 			return err
@@ -204,5 +213,47 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 		}
 		return nil
 	}
+	return nil
+}
+
+// recordStage keeps mutation stages ahead of the App's existing Setup records.
+func (ss *session) recordStage(ids []string, e events.Event) {
+	for _, id := range ids {
+		status := "ok"
+		if e.Event == events.StepFail {
+			status = "fail"
+		}
+		ss.recorder(id)(helpers.StepResult{ID: e.Step, Status: status, Msg: e.Msg, Error: e.Error, Hint: e.Hint})
+		st := ss.state.Apps[id]
+		if st == nil {
+			continue
+		}
+		var order []string
+		for _, stage := range []string{"render", "pull", "start"} {
+			if _, found := st.Steps[stage]; found {
+				order = append(order, stage)
+			}
+		}
+		for _, step := range st.StepOrder {
+			if step != "render" && step != "pull" && step != "start" {
+				order = append(order, step)
+			}
+		}
+		st.StepOrder = order
+	}
+	ss.s.Log.Emit(e)
+}
+
+// pull pulls the services' images before Compose starts them, reporting
+// progress and naming the image when a pull fails.
+func (ss *session) pull(ctx context.Context, ids, services []string) error {
+	ss.s.Log.Emit(events.Event{Event: events.StepStart, Step: "pull", Msg: fmt.Sprintf("pull %d images", len(services))})
+	if err := ss.compose.PullProgress(ctx, services...); err != nil {
+		image := pullImageName(ss, ids, err)
+		hint := fmt.Sprintf("Run `docker pull %s`, then check the network and the registry, and retry.", image)
+		ss.recordStage(ids, events.Event{Event: events.StepFail, Step: "pull", Msg: "could not pull " + image, Error: err.Error(), Hint: hint})
+		return err
+	}
+	ss.recordStage(ids, events.Event{Event: events.StepOK, Step: "pull", Msg: "pulled " + strings.Join(ids, ", ")})
 	return nil
 }

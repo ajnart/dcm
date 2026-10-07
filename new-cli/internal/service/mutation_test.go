@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -206,6 +207,48 @@ func TestStartUsesUpOnly(t *testing.T) {
 	assertCalls(t, h.composeCalls()[2:], []string{"up -d one"})
 	if again := strings.Count(strings.Join(h.composeCalls(), "\n"), "--progress json pull"); again != pulls {
 		t.Fatalf("start pulled: %d pulls, want %d", again, pulls)
+	}
+}
+
+func TestStartRemembersFailureAndRetryWithoutChangingSetupSteps(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one"); err != nil {
+		t.Fatal(err)
+	}
+	before, err := h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		if strings.Contains(systemtest.Line(cmd), " up -d one") {
+			return system.Result{ExitCode: 1, Stderr: []byte("port is already allocated")}
+		}
+		return system.Result{}
+	})
+	if err := h.svc.Start(context.Background(), []string{"one"}); err == nil {
+		t.Fatal("start succeeded despite Compose failure")
+	}
+	status, err := h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps := status.Apps[0].Steps
+	if len(steps) != 5 || steps[2].ID != "start" || steps[2].Status != "fail" || !strings.Contains(steps[2].Error, "port is already allocated") {
+		t.Fatalf("start failure not remembered: %+v", steps)
+	}
+	if !reflect.DeepEqual(steps[3:], before.Apps[0].Steps[3:]) {
+		t.Fatalf("start changed Setup steps: %+v", steps[3:])
+	}
+	h.runner.OnFunc("docker compose --project-directory", func(system.Cmd) system.Result { return system.Result{} })
+	if err := h.svc.Start(context.Background(), []string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	status, err = h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(status.Apps[0].Steps, before.Apps[0].Steps) {
+		t.Fatalf("retry steps = %+v, want %+v", status.Apps[0].Steps, before.Apps[0].Steps)
 	}
 }
 
