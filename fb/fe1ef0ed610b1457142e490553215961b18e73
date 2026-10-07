@@ -1,0 +1,21 @@
+new-cli/internal/helpers/exec_test.go
+  s_2c51c6ba1a0d6b::t_fbd4cbff52f24f 5,8-9,38-72
+new-cli/internal/helpers/support_test.go
+  s_2c51c6ba1a0d6b::t_bcc5dd0ea467c7 28-31,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbfe1ef0ed610b1457142e490553215961b18e73",
+  "prompts": {},
+  "sessions": {
+    "s_2c51c6ba1a0d6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114eb-63f2-7270-bfef-a3b2027dec6f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
