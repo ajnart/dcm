@@ -1,0 +1,30 @@
+new-cli/internal/helpers/helpers.go
+  s_a2fd509a765bab::t_afd2acd1c21730 213,221-223,228-231
+  s_3d3929a96bc9ba::t_85dd6749b66488 232
+new-cli/internal/helpers/exec_test.go
+  s_a2fd509a765bab::t_666babdb3c6701 73-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bdd17643ef1ac3d7284229166cc78d8b1f73f24a",
+  "prompts": {},
+  "sessions": {
+    "s_3d3929a96bc9ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114f5-428e-73a1-9e1d-37d5abf33a4a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
