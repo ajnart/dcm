@@ -367,6 +367,17 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			return nil
 		},
 		edit: func(ctx context.Context, ss *session) (result error) {
+			replacements := map[string]string{}
+			for _, id := range targets {
+				content, err := os.ReadFile(filepath.Join(staging, "apps", id, "compose.yml"))
+				if err != nil {
+					return err
+				}
+				replacements[id] = string(content)
+			}
+			if err := ss.p.ValidateServiceOwnership(replacements); err != nil {
+				return err
+			}
 			var containers []compose.Container
 			if !fresh {
 				var err error

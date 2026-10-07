@@ -52,14 +52,14 @@ func (App) Compose(rc app.RenderContext) string {
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       IMMICH_ALLOW_SETUP: "true"
       IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
-      REDIS_HOSTNAME: redis
+      REDIS_HOSTNAME: immich-redis
     volumes:
       - ./uploads:/data
     ports:
       - ${BIND_IP}:` + port + `:2283
     depends_on:
       - database
-      - redis
+      - immich-redis
     healthcheck:
       test: ["CMD", "immich-healthcheck"]
       interval: 30s
@@ -75,7 +75,7 @@ func (App) Compose(rc app.RenderContext) string {
       interval: 30s
       timeout: 30s
       retries: 3
-  redis:
+  immich-redis:
     image: docker.io/valkey/valkey:9
     restart: unless-stopped
     healthcheck:

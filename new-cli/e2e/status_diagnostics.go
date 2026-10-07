@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -97,7 +98,11 @@ func composeReadinessDiagnostics(document string, expected []string) []event {
 		}
 	}
 	owned := map[string][]containerEntry{}
+	duplicateExpected := map[string]bool{}
 	for _, name := range expected {
+		if _, exists := owned[name]; exists {
+			duplicateExpected[name] = true
+		}
 		owned[name] = nil
 	}
 	unexpected := false
@@ -134,7 +139,12 @@ func composeReadinessDiagnostics(document string, expected []string) []event {
 		out = append(out, event{Event: "run.error", Error: "owned Compose service inventory contains an unexpected service"})
 	}
 	if len(out) == 0 {
-		return fallback("owned Compose service inventory did not contain the expected service set")
+		duplicates := make([]string, 0, len(duplicateExpected))
+		for name := range duplicateExpected {
+			duplicates = append(duplicates, name)
+		}
+		sort.Strings(duplicates)
+		return fallback(fmt.Sprintf("owned Compose service inventory did not contain the expected service set: expected_total=%d expected_unique=%d observed_total=%d duplicate_expected=%s", len(expected), len(owned), len(rows), strings.Join(duplicates, ",")))
 	}
 	return out
 }

@@ -239,6 +239,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 				if err := ss.ensureSecrets(a); err != nil {
 					return err
 				}
+				previousPort, previousInputs := st.Port, st.Inputs
 				st.Port, st.Inputs = port, publicInputs(a, values)
 				if preflight, ok := a.(app.PreflightChecker); ok {
 					if err := preflight.Preflight(ctx, ss.helpers(a)); err != nil {
@@ -246,10 +247,15 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					}
 				}
 				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: "render", Msg: "render " + info.ID})
+				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values})
+				if err := ss.p.ValidateFragment(info.ID, fragment); err != nil {
+					st.Port, st.Inputs = previousPort, previousInputs
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
+				}
 				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
 				}
-				if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
+				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
 				}
 				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: "render",

@@ -40,3 +40,14 @@ func TestComposeDiagnosticsHandleMissingDuplicateAndUnsafeValues(t *testing.T) {
 		t.Fatal("successful one-shot service produced a failure")
 	}
 }
+
+func TestComposeDiagnosticsIdentifyDuplicateExpectedNamesWithoutUnownedNames(t *testing.T) {
+	document := `[{"Service":"redis","State":"running"}]`
+	if containersReadyJSON(document, []string{"redis", "redis"}) {
+		t.Fatal("duplicate expectation must not weaken exact inventory acceptance")
+	}
+	data, _ := json.Marshal(composeReadinessDiagnostics(document, []string{"redis", "redis"}))
+	if !strings.Contains(string(data), "expected_total=2 expected_unique=1 observed_total=1 duplicate_expected=redis") {
+		t.Fatal("expected-name collision disappeared behind generic cardinality failure")
+	}
+}

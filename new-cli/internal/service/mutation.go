@@ -138,6 +138,9 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 		return nil
 	}
 	if c.compose == composeUp || c.compose == composePullUp || c.compose == composeRestart {
+		if err := ss.p.ValidateServiceOwnership(nil); err != nil {
+			return err
+		}
 		for _, id := range ids {
 			a, found := s.Catalog.App(id)
 			if !found {

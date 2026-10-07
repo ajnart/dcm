@@ -60,7 +60,7 @@ func (App) Compose(rc app.RenderContext) string {
       MYSQL_USER: nextcloud
       NEXTCLOUD_ADMIN_USER: ${ADMIN_USER}
       NEXTCLOUD_TRUSTED_DOMAINS: 127.0.0.1
-      REDIS_HOST: redis
+      REDIS_HOST: nextcloud-redis
       MYSQL_PASSWORD_FILE: /run/secrets/db_password
       NEXTCLOUD_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
     volumes:
@@ -71,7 +71,7 @@ func (App) Compose(rc app.RenderContext) string {
       - ${BIND_IP}:` + port + `:80
     depends_on:
       - db
-      - redis
+      - nextcloud-redis
   db:
     image: mariadb:12.3.3
     restart: unless-stopped
@@ -85,7 +85,7 @@ func (App) Compose(rc app.RenderContext) string {
       - ./db:/var/lib/mysql
       - ./secrets/db_password:/run/secrets/db_password:ro
       - ./secrets/db_root_password:/run/secrets/db_root_password:ro
-  redis:
+  nextcloud-redis:
     image: redis:8.10.2-alpine3.23
     restart: unless-stopped
   cron:
@@ -96,7 +96,7 @@ func (App) Compose(rc app.RenderContext) string {
       MYSQL_HOST: db
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud
-      REDIS_HOST: redis
+      REDIS_HOST: nextcloud-redis
       MYSQL_PASSWORD_FILE: /run/secrets/db_password
     volumes:
       - ./html:/var/www/html

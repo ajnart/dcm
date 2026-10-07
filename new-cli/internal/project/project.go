@@ -278,6 +278,9 @@ func (p *Project) SaveState(state *State) error {
 func (p *Project) FragmentPath(id string) string { return p.Path("apps", id, "compose.yml") }
 
 func (p *Project) WriteFragment(id, content string) error {
+	if err := p.ValidateFragment(id, content); err != nil {
+		return err
+	}
 	if err := p.MkdirAll("apps", id); err != nil {
 		return err
 	}
