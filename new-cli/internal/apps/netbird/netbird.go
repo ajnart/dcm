@@ -4,6 +4,7 @@ package netbird
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -94,6 +95,13 @@ func (App) Compose(rc app.RenderContext) string {
 // declared secrets, supplied through secret() rather than Compose.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	base := origin(rc)
+	storeKey := secret("store_key")
+	// Generated keys are 32 raw bytes; the pinned datastore expects Base64.
+	// Preserve existing encoded keys and unsupported values rather than rotate
+	// encryption material that may already protect persistent state.
+	if len(storeKey) == 32 {
+		storeKey = base64.StdEncoding.EncodeToString([]byte(storeKey))
+	}
 	proxy := rc.Inputs["NETBIRD_TRUSTED_PROXY"]
 	if proxy == "" {
 		proxy = "127.0.0.1"
@@ -121,7 +129,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 		"    trustedPeers: [\"" + proxy + "/32\"]\n" +
 		"  store:\n" +
 		"    engine: \"sqlite\"\n" +
-		"    encryptionKey: " + secret("store_key") + "\n"
+		"    encryptionKey: " + storeKey + "\n"
 	return []app.File{{Path: "server-config", Content: config, Mode: 0600}}
 }
 
