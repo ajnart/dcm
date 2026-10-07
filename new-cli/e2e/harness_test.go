@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	e2eBinary = filepath.Join(binDir, "self-host")
-	build := exec.Command("go", "build", "-o", e2eBinary, "./cmd/self-host")
+	build := exec.Command("go", "build", "-buildvcs=false", "-o", e2eBinary, "./cmd/self-host")
 	build.Dir = root
 	build.Stdout = os.Stdout
 	build.Stderr = os.Stderr
