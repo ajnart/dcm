@@ -328,7 +328,7 @@ func widgetOptions(w widget, integrationID string) map[string]any {
 	entries := make([]any, 0, len(w.metrics))
 	for _, metric := range w.metrics {
 		entries = append(entries, map[string]any{
-			"id": statsEntryID(metric), "integrationId": integrationID,
+			"id": statsEntryID(integrationID + ":" + metric), "integrationId": integrationID,
 			"metric": metric, "label": "", "hidden": false, "compact": false,
 		})
 	}
@@ -341,14 +341,12 @@ func widgetCurrent(item map[string]any, w widget, integrationID string) bool {
 	}
 	options, _ := item["options"].(map[string]any)
 	entries, _ := options["entries"].([]any)
-	if len(entries) != len(w.metrics) {
-		return false
-	}
 	for _, metric := range w.metrics {
 		found := false
 		for _, raw := range entries {
 			entry, _ := raw.(map[string]any)
-			if stringField(entry, "metric") == metric && stringField(entry, "integrationId") == integrationID && stringField(entry, "id") == statsEntryID(metric) {
+			id := stringField(entry, "id")
+			if stringField(entry, "metric") == metric && stringField(entry, "integrationId") == integrationID && id != "" {
 				found = true
 			}
 		}
@@ -424,7 +422,21 @@ func widgetOwnership(h *helpers.H, integrationID string, widgets []widget, items
 			continue
 		}
 		if w.kind == "stats" {
-			if !widgetCurrent(item, w, integrationID) {
+			entries, _ := options["entries"].([]any)
+			if len(entries) != len(w.metrics) || !widgetCurrent(item, w, integrationID) {
+				complete = false
+				continue
+			}
+			generated := true
+			for _, raw := range entries {
+				entry, _ := raw.(map[string]any)
+				metric := stringField(entry, "metric")
+				id := stringField(entry, "id")
+				if id != statsEntryID(metric) && id != statsEntryID(integrationID+":"+metric) {
+					generated = false
+				}
+			}
+			if !generated {
 				complete = false
 				continue
 			}
@@ -598,11 +610,13 @@ func widgetInitialSize(kind string) map[string]any {
 	switch kind {
 	case "notifications", "mediaReleases":
 		return map[string]any{"width": 4, "height": 3}
-	case "stats", "mediaServer":
+	case "stats", "calendar":
+		return map[string]any{"width": 4, "height": 3}
+	case "mediaServer":
 		return map[string]any{"width": 3, "height": 2}
 	case "downloads":
 		return map[string]any{"width": 4, "height": 2}
-	case "calendar", "mediaMissing", "mediaRequests-requestStats":
+	case "mediaMissing", "mediaRequests-requestStats":
 		return map[string]any{"width": 2, "height": 2}
 	case "indexerManager":
 		return map[string]any{"width": 2, "height": 3}
@@ -619,26 +633,13 @@ func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrati
 		return err
 	}
 	for _, w := range t.widgets {
-		if hasWidget(items, w.kind, integrationID) {
-			for _, item := range items {
-				if !owned[stringField(item, "id")] || !wiredTo(item, w.kind, integrationID) || widgetCurrent(item, w, integrationID) {
-					continue
-				}
-				current, err := board(ctx, h)
-				if err != nil {
-					return err
-				}
-				latest := itemsOf(current)
-				for _, candidate := range latest {
-					if stringField(candidate, "id") == stringField(item, "id") {
-						candidate["options"] = widgetOptions(w, integrationID)
-					}
-				}
-				_, err = apiKeyWrite(ctx, h, "board.saveBoard", map[string]any{"id": boardID, "sections": current["sections"], "items": latest})
-				if err != nil {
-					return err
-				}
+		if sharedWidget(w.kind) {
+			if err := ensureSharedWidget(ctx, h, w, integrationID, owned); err != nil {
+				return err
 			}
+			continue
+		}
+		if hasWidget(items, w.kind, integrationID) {
 			continue
 		}
 		id, err := addItemID(ctx, h, map[string]any{
@@ -675,6 +676,15 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 	removed := false
 	for _, item := range items {
 		if owned[stringField(item, "id")] {
+			if sharedWidget(stringField(item, "kind")) {
+				removeWidgetIntegration(item, integrationID)
+				ids, _ := item["integrationIds"].([]any)
+				if len(ids) > 0 {
+					kept = append(kept, item)
+				}
+				removed = true
+				continue
+			}
 			removed = true
 			continue
 		}
@@ -747,6 +757,9 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	}
 	items := itemsOf(current)
 	for _, w := range t.widgets {
+		if sharedWidget(w.kind) && !sharedWidgetCurrent(from, current, w, integrationID) {
+			return false, nil
+		}
 		if !hasWidget(items, w.kind, integrationID) {
 			return false, nil
 		}
@@ -909,6 +922,9 @@ func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
 			owned := ownedWidgets(from, id)
 			for _, item := range itemsOf(current) {
 				if owned[stringField(item, "id")] {
+					if sharedWidget(stringField(item, "kind")) && !wiredTo(item, stringField(item, "kind"), id) {
+						continue
+					}
 					return false, nil
 				}
 			}

@@ -580,8 +580,8 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 	fake.mu.Lock()
 	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 5 {
-		t.Fatalf("apps=%d integrations=%d items=%d, want 1/1/5", apps, integrations, items)
+	if apps != 1 || integrations != 1 || items != 6 {
+		t.Fatalf("apps=%d integrations=%d items=%d, want 1/1/6", apps, integrations, items)
 	}
 
 	if err := link.Apply(context.Background(), from, to); err != nil {
@@ -590,7 +590,7 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 	fake.mu.Lock()
 	apps, integrations, items = len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 5 {
+	if apps != 1 || integrations != 1 || items != 6 {
 		t.Fatalf("rerun added duplicates: apps=%d integrations=%d items=%d", apps, integrations, items)
 	}
 }
@@ -662,8 +662,8 @@ func TestTileOnlyTargetSkipsTheIntegration(t *testing.T) {
 	fake.mu.Lock()
 	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
 	fake.mu.Unlock()
-	if apps != 1 || items != 2 || integrations != 0 {
-		t.Fatalf("tile-only: apps=%d items=%d integrations=%d, want 1/2/0", apps, items, integrations)
+	if apps != 1 || items != 3 || integrations != 0 {
+		t.Fatalf("tile-only: apps=%d items=%d integrations=%d, want 1/3/0", apps, items, integrations)
 	}
 }
 
@@ -722,13 +722,13 @@ func TestIntegrationWidgetsHaveReadableInitialSizes(t *testing.T) {
 			fake.mu.Lock()
 			for _, item := range fake.items {
 				kind, _ := item["kind"].(string)
-				if kind == "app" || kind == "notebook" {
+				if kind == "app" || kind == "notebook" || kind == "assistant" {
 					continue
 				}
 				size, _ := item["size"].(map[string]any)
 				expectedWidth := float64(4)
 				expectedHeight := float64(3)
-				if kind == "stats" || kind == "mediaServer" {
+				if kind == "mediaServer" {
 					expectedWidth = 3
 					expectedHeight = 2
 				}
@@ -848,6 +848,11 @@ func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
 	if err := link.Apply(context.Background(), from, to); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
+	radarr := linkFor(t, "radarr")
+	radarrH := targetH(t, srv, "radarr", 7878, allSecrets())
+	if err := radarr.Apply(context.Background(), from, radarrH); err != nil {
+		t.Fatal(err)
+	}
 	fake.mu.Lock()
 	before := len(fake.items)
 	fake.mu.Unlock()
@@ -855,9 +860,44 @@ func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
 	if err := link.Apply(context.Background(), from, to); err != nil {
 		t.Fatalf("rerun: %v", err)
 	}
+	if err := radarr.Apply(context.Background(), from, radarrH); err != nil {
+		t.Fatal(err)
+	}
 	fake.mu.Lock()
 	after := len(fake.items)
+	for _, kind := range []string{"stats", "calendar"} {
+		count := 0
+		for _, item := range fake.items {
+			if item["kind"] == kind {
+				count++
+				ids, _ := item["integrationIds"].([]any)
+				if len(ids) != 2 {
+					t.Errorf("%s integrations=%d, want 2", kind, len(ids))
+				}
+			}
+		}
+		if count != 1 {
+			t.Errorf("%s widgets=%d, want one shared widget", kind, count)
+		}
+	}
 	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	for _, item := range fake.items {
+		if item["kind"] != "stats" && item["kind"] != "calendar" {
+			continue
+		}
+		ids, _ := item["integrationIds"].([]any)
+		if len(ids) != 1 || ids[0] != fake.integrations[0]["id"] {
+			t.Errorf("removal broke remaining shared widget: %v", item)
+		}
+	}
+	fake.mu.Unlock()
+	if err := radarr.Apply(context.Background(), from, radarrH); err != nil {
+		t.Fatal(err)
+	}
 	if after != before {
 		t.Fatalf("rerun changed items from %d to %d", before, after)
 	}
@@ -927,7 +967,7 @@ func TestRemovalReconcilesPartiallyMissingWidgets(t *testing.T) {
 		t.Fatalf("partial removal left Apps/integrations: %v/%v", fake.apps, fake.integrations)
 	}
 	for _, item := range fake.items {
-		if item["kind"] != "notebook" {
+		if item["kind"] != "notebook" && item["kind"] != "assistant" {
 			t.Fatalf("partial removal left widget: %v", item)
 		}
 	}
@@ -997,7 +1037,7 @@ func TestSetupReconcilesGenericInstalledAppTilesAndNotebook(t *testing.T) {
 	notes := notebooks(fake.items)
 	options, _ := notes[0]["options"].(map[string]any)
 	content, _ := options["content"].(string)
-	if !strings.Contains(content, "Gatus") || !strings.Contains(content, "Valkey") || !strings.Contains(content, "no browser endpoint") {
+	if !strings.Contains(content, "Gatus") || !strings.Contains(content, "Valkey") || !strings.Contains(content, "No browser endpoint") {
 		t.Fatalf("incomplete notebook: %s", content)
 	}
 	createdID := fake.apps[0]["id"]
@@ -1077,7 +1117,7 @@ func TestRemovalCleansWidgetsAfterIntegrationWasDeleted(t *testing.T) {
 	fake.mu.Lock()
 	defer fake.mu.Unlock()
 	for _, item := range fake.items {
-		if item["kind"] != "notebook" {
+		if item["kind"] != "notebook" && item["kind"] != "assistant" {
 			t.Fatalf("orphan survived removal: %v", item)
 		}
 	}
@@ -1197,7 +1237,7 @@ func TestLinkRerunReplacesDeletedIntegrationWithoutOrphanWidgets(t *testing.T) {
 	}
 	fake.mu.Lock()
 	defer fake.mu.Unlock()
-	if len(fake.integrations) != 1 || len(fake.items) != 5 {
+	if len(fake.integrations) != 1 || len(fake.items) != 6 {
 		t.Fatalf("replacement kept orphan widgets: integrations=%d items=%d", len(fake.integrations), len(fake.items))
 	}
 }
@@ -1254,7 +1294,7 @@ func TestRemovalDeletesTilesWhenAppRecordAlreadyMissing(t *testing.T) {
 	fake.mu.Lock()
 	defer fake.mu.Unlock()
 	for _, item := range fake.items {
-		if item["kind"] != "notebook" {
+		if item["kind"] != "notebook" && item["kind"] != "assistant" {
 			t.Fatalf("orphan tile survived: %v", item)
 		}
 	}
@@ -1315,7 +1355,7 @@ func TestRemovalMigratesUniqueLegacyGeneratedWidgets(t *testing.T) {
 	fake.mu.Lock()
 	defer fake.mu.Unlock()
 	for _, item := range fake.items {
-		if item["kind"] != "notebook" {
+		if item["kind"] != "notebook" && item["kind"] != "assistant" {
 			t.Fatalf("legacy managed item survived: %v", item)
 		}
 	}
@@ -1420,7 +1460,7 @@ func TestNotebookExistsOnceAndListsAppsWithoutSecrets(t *testing.T) {
 	}
 	options, _ := notes[0]["options"].(map[string]any)
 	content, _ := options["content"].(string)
-	for _, want := range []string{"Your homelab at a glance", ">Sonarr</a>", ">qBittorrent</a>", "self-host credentials"} {
+	for _, want := range []string{"Your homelab at a glance", ">Sonarr</a>", ">qBittorrent</a>", "self-host credentials", "<table>", "<th><p>Service</p></th>", "Homarr assistant"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("notebook lacks %q:\n%s", want, content)
 		}
