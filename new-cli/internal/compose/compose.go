@@ -86,6 +86,12 @@ func (c *Compose) Up(ctx context.Context, services ...string) error {
 	return err
 }
 
+// Down removes this Project's containers and networks without deleting volumes.
+func (c *Compose) Down(ctx context.Context) error {
+	_, err := c.Run(ctx, nil, "down")
+	return err
+}
+
 func (c *Compose) Stop(ctx context.Context, services ...string) error {
 	_, err := c.Run(ctx, nil, append([]string{"stop"}, services...)...)
 	return err

@@ -96,7 +96,7 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 	v.open(ctx)
 
 	out := ansi.Strip(v.View(ctx, 120, 30))
-	for _, want := range []string{"Keys", "start/stop", "copy password"} {
+	for _, want := range []string{"Keys", "start/stop", "copy"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("help view lacks %q\n%s", want, out)
 		}

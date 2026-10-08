@@ -339,6 +339,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clipboardMsg:
 		m.setFlash("copied "+msg.what, levelOK)
 		return m, tea.SetClipboard(msg.text)
+	case copyOptionsMsg:
+		return m.dispatchDashboard(msg)
 
 	case flashMsg:
 		m.setFlash(msg.text, msg.level)

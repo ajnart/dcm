@@ -364,6 +364,9 @@ func (m Model) View() tea.View {
 			header, layers = m.renderNav(m.surface)
 			footer = m.footerWith(active.Keys())
 		}
+		if m.surface == surfaceDashboard && m.dashboard.copy != nil {
+			footer = m.footerWith(active.Keys())
+		}
 		main = active.View(ctxView, m.width, m.mainHeight())
 		layers = append(layers, ctxView.layers...)
 	}

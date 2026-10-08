@@ -78,6 +78,7 @@ func (f *fakeBackend) Updates(context.Context, service.Status) map[string]string
 func (f *fakeBackend) Credentials(context.Context) (service.Credentials, error) {
 	var c service.Credentials
 	c.Admin.Username, c.Admin.Password = "admin", "s3cret-pass"
+	c.Apps = map[string]map[string]string{"jellyfin": {"JELLYFIN_API_KEY": "synthetic-api-key"}}
 	return c, nil
 }
 func (f *fakeBackend) Compose(_ context.Context, id string) (string, error) {
@@ -301,7 +302,7 @@ func TestKeybindAudit(t *testing.T) {
 	want := []string{
 		// Dashboard (docs/adr/0002's fixed budget).
 		"select up: up k", "select down: down j", "next tab: tab", "start/stop: enter",
-		"open: o", "copy password: c", "update: u", "retry Setup: r", "install: i",
+		"open: o", "copy: c", "update: u", "retry Setup: r", "install: i",
 		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
 		"settings: s", "stack: d", "workflow: w", "search: /", "apply: ctrl+s", "back: esc",
 		// Workflow.
@@ -311,12 +312,12 @@ func TestKeybindAudit(t *testing.T) {
 		// Settings.
 		"edit: enter",
 		// Stack.
-		"select: ↑/↓", "re-check: r",
+		"select: ↑/↓", "re-check: r", "UP: 1", "DOWN: 2", "restart all: 3", "copy: enter",
 		// Workflow.
 		"error/hint: enter",
 	}
 	empty := &viewContext{}
-	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, &workflowView{}, newHelpView()}
+	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, &workflowView{}, newHelpView(), &dashboardView{copy: &copyPicker{}}}
 	var got []string
 	seen := map[string]bool{}
 	for _, v := range views {
@@ -438,15 +439,37 @@ func TestBackupRunsForEveryApp(t *testing.T) {
 
 func TestOpenUsesTheLANURLAndCopyGetsThePassword(t *testing.T) {
 	m, backend := sample(t, 140, 32)
-
 	m = drive(t, m, press("o"))
-	_, cmd := m.Update(press("c"))
-
+	m = drive(t, m, press("c"))
 	if !slices.Equal(backend.opened, []string{"http://192.168.1.20:8096"}) {
 		t.Fatalf("opened %v", backend.opened)
 	}
-	if cmd == nil {
-		t.Fatal("c should fetch the Admin password for the clipboard")
+	if !strings.Contains(screen(m), "Admin password") || !strings.Contains(screen(m), "Jellyfin API key") {
+		t.Fatal("copy picker must offer password and selected App API key")
+	}
+	for _, value := range []string{"s3cret-pass", "synthetic-api-key"} {
+		if strings.Contains(screen(m), value) {
+			t.Fatal("copy picker displayed a credential value")
+		}
+	}
+	next, cmd := m.Update(press("enter"))
+	m = next.(Model)
+	copied, ok := cmd().(clipboardMsg)
+	if !ok || copied.text != "s3cret-pass" {
+		t.Fatal("password choice must copy the Admin password")
+	}
+	m = drive(t, m, press("c"))
+	m = drive(t, m, press("down"))
+	next, cmd = m.Update(press("enter"))
+	m = next.(Model)
+	copied, ok = cmd().(clipboardMsg)
+	if !ok || copied.text != "synthetic-api-key" {
+		t.Fatal("API key choice must copy the selected App API key")
+	}
+	m = drive(t, m, press("c"))
+	m = drive(t, m, press("esc"))
+	if m.dashboard.copy != nil {
+		t.Fatal("esc must close the copy picker")
 	}
 }
 
@@ -517,7 +540,7 @@ func TestHelpListsEveryKey(t *testing.T) {
 	m = drive(t, m, press("?"))
 
 	help := ansi.Strip(m.renderOverlay())
-	for _, want := range []string{"start/stop", "open", "copy password", "update", "retry Setup", "install", "backup", "quit"} {
+	for _, want := range []string{"start/stop", "open", "copy", "update", "retry Setup", "install", "backup", "quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}
@@ -789,6 +812,12 @@ func TestStackUpdateAndRecheck(t *testing.T) {
 	m = drive(t, m, press("r"))
 	if backend.updateCalls <= before {
 		t.Fatalf("r should re-check updates (%d → %d)", before, backend.updateCalls)
+	}
+	for _, control := range []struct{ key, action string }{{"1", "up"}, {"2", "down"}, {"3", "restart"}} {
+		m = drive(t, m, press(control.key))
+		if !slices.Contains(backend.Actions(), control.action) {
+			t.Fatalf("%s must control the whole Project", control.key)
+		}
 	}
 }
 

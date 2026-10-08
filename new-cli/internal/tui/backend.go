@@ -17,6 +17,9 @@ type Action string
 const (
 	ActionStart   Action = "start"
 	ActionStop    Action = "stop"
+	ActionUp      Action = "up"
+	ActionDown    Action = "down"
+	ActionRestart Action = "restart"
 	ActionUpdate  Action = "update"
 	ActionSetup   Action = "setup"
 	ActionBackup  Action = "backup"
@@ -144,6 +147,12 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 		return s.Start(ctx, ids)
 	case ActionStop:
 		return s.Stop(ctx, ids)
+	case ActionUp:
+		return s.Start(ctx, nil)
+	case ActionDown:
+		return s.Down(ctx)
+	case ActionRestart:
+		return s.Restart(ctx, ids)
 	case ActionUpdate:
 		return s.Update(ctx, ids)
 	case ActionSetup:

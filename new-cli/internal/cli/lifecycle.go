@@ -24,6 +24,10 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 	stop := simple("stop", "Stop Apps (all when none named)", func(cmd *cobra.Command, ids []string) error {
 		return a.service().Stop(cmd.Context(), ids)
 	})
+	up := &cobra.Command{Use: "up", Short: "Start every App in the Project", Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error { return a.fail(a.service().Start(cmd.Context(), nil)) }}
+	down := &cobra.Command{Use: "down", Short: "Take down the Project's containers and networks; keep volumes", Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error { return a.fail(a.service().Down(cmd.Context())) }}
 	restart := simple("restart", "Restart Apps (all when none named)", func(cmd *cobra.Command, ids []string) error {
 		return a.service().Restart(cmd.Context(), ids)
 	})
@@ -74,7 +78,7 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 	}
 	logs.Flags().BoolVarP(&follow, "follow", "f", false, "keep streaming new lines")
 	logs.Flags().IntVar(&tail, "tail", 200, "number of lines to show from the end")
-	return []*cobra.Command{start, stop, restart, update, remove, config, logs}
+	return []*cobra.Command{start, stop, up, down, restart, update, remove, config, logs}
 }
 
 // configReviewCmd re-runs the onboarding review on an existing Project: it

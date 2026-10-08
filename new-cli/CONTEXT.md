@@ -80,7 +80,7 @@ it, or the command to run when no Action exists.
 
 **Action**:
 Something a person triggers often enough to deserve a key: install, start or
-stop, update, retry Setup, backup, copy the Admin password, open an App.
+stop, update, retry Setup, backup, copy a password or API key, open an App.
 Everything else (remove, restore, config, credentials listing…) is only a
 command.
 

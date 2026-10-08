@@ -37,13 +37,19 @@ type dashboardView struct {
 	logLines []string
 	stream   *logStream
 	compose  map[string]string
+	copy     *copyPicker
 }
 
 func newDashboardView() *dashboardView {
 	return &dashboardView{details: viewport.New(), compose: map[string]string{}}
 }
 
-func (v *dashboardView) Keys() []key.Binding { return newKeyMap().all() }
+func (v *dashboardView) Keys() []key.Binding {
+	if v.copy != nil {
+		return copyHelp
+	}
+	return newKeyMap().all()
+}
 
 func (v *dashboardView) Title() string { return "Dashboard" }
 
@@ -69,7 +75,21 @@ func (v *dashboardView) clampCursor(ctx *viewContext) {
 func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if v.copy != nil {
+			return v, v.copyKey(ctx, msg), nav{}
+		}
 		return v.key(ctx, msg)
+	case copyOptionsMsg:
+		if v.copy != msg.picker {
+			return v, nil, nav{}
+		}
+		v.copy.loading = false
+		v.copy.rows = msg.rows
+		if msg.err != nil {
+			v.copy = nil
+			ctx.setFlash("could not read credentials", levelError)
+		}
+		return v, nil, nav{}
 	case tea.MouseWheelMsg:
 		if msg.Button == tea.MouseWheelUp {
 			v.details.ScrollUp(3)
@@ -99,6 +119,9 @@ func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, na
 }
 
 func (v *dashboardView) View(ctx *viewContext, width, height int) string {
+	if v.copy != nil {
+		return v.copy.view(ctx, width, height)
+	}
 	main, layers := v.render(ctx)
 	ctx.layers = append(ctx.layers, layers...)
 	return main
@@ -137,7 +160,7 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 	case key.Matches(msg, k.Backup):
 		return v, ctx.run(Request{Action: ActionBackup}, "backup"), nav{}
 	case key.Matches(msg, k.Copy):
-		return v, v.copyPassword(ctx), nav{}
+		return v, v.openCopy(ctx), nav{}
 	}
 	app, found := v.selected(ctx)
 	if !found {
@@ -175,17 +198,6 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 		}, nav{}
 	}
 	return v, nil, nav{}
-}
-
-func (v *dashboardView) copyPassword(ctx *viewContext) tea.Cmd {
-	backend := ctx.backend
-	return func() tea.Msg {
-		creds, err := backend.Credentials(context.Background())
-		if err != nil {
-			return flashMsg{text: err.Error(), level: levelError}
-		}
-		return clipboardMsg{text: creds.Admin.Password, what: "the Admin password for " + creds.Admin.Username}
-	}
 }
 
 func (v *dashboardView) move(ctx *viewContext, delta int) tea.Cmd {

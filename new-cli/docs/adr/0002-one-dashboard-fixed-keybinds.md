@@ -9,3 +9,11 @@ Second amendment: the picker and the Host settings overlay were too small for th
 Third amendment: Workflow (`w`) is a full-screen view for the frequent need to see every App's remembered Setup steps, Links and check, with their states and counts, selection via ↑/↓ or k/j, space to collapse or expand an App (set-up Apps start collapsed, the rest expanded), `/` to filter Apps by name or id, pgup/pgdn and the mouse wheel to scroll, and `esc` to clear the filter then return to the Dashboard.
 
 Within Workflow, `enter` expands or collapses a failed step's error and hint; `r` retries the selected App's Setup.
+
+Fourth amendment: `c` opens a credential picker for the Admin password and the
+selected App's saved API keys. It shows names, then fetches the chosen value
+only for copying. Stack (`d`) also owns Project-wide controls: `1` Up, `2` Down,
+`3` Restart all, plus enter to start/stop the selected App. These keys stay in
+Stack because operating the whole Compose Project is distinct from operating
+one App on the Dashboard. Down removes only that Project's containers and
+networks; it keeps volumes, App files and remembered Setup.

@@ -20,7 +20,7 @@ func newKeyMap() keyMap {
 		Tab:        b([]string{"tab"}, "tab", "next tab"),
 		Toggle:     b([]string{"enter"}, "enter", "start/stop"),
 		Open:       b([]string{"o"}, "o", "open"),
-		Copy:       b([]string{"c"}, "c", "copy password"),
+		Copy:       b([]string{"c"}, "c", "copy"),
 		Update:     b([]string{"u"}, "u", "update"),
 		Retry:      b([]string{"r"}, "r", "retry Setup"),
 		Install:    b([]string{"i"}, "i", "install"),

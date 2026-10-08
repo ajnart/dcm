@@ -23,6 +23,7 @@ const (
 	composePullUp
 	composeUp
 	composeStop
+	composeDown
 	composeRestart
 	composeRemove
 )
@@ -46,7 +47,7 @@ type change struct {
 	edit func(ctx context.Context, ss *session) error
 	// targets returns the App ids Compose acts on, after edit.
 	targets func(ss *session) ([]string, error)
-	compose composeStep // none, pullUp, up, stop, restart, remove
+	compose composeStep // none, pullUp, up, stop, down, restart, remove
 	// after runs once Compose succeeded: Setup (with Links), or only Check.
 	after afterStep // none, setup, check
 	// purge deletes the App's data folder when compose is remove.
@@ -135,6 +136,16 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 		return s.removeApps(ctx, ss, ids, c.purge)
 	}
 	if len(ids) == 0 {
+		return nil
+	}
+	if c.compose == composeDown {
+		if err := ss.p.ValidateServiceOwnership(nil); err != nil {
+			return err
+		}
+		if err := ss.compose.Down(ctx); err != nil {
+			return err
+		}
+		s.Log.Emit(events.Event{Event: events.StepOK, Step: "down", Msg: "Project containers and networks removed; volumes kept"})
 		return nil
 	}
 	if c.compose == composeUp || c.compose == composePullUp || c.compose == composeRestart {

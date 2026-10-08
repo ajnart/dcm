@@ -120,11 +120,18 @@ remain explicit prerequisites.
 | enter, o | Start/stop the selected App; open its URL. |
 | r, u, b | Retry Setup; update images; make a Backup. |
 | i, s, d, w | Install picker; Settings; Stack; Workflow. |
-| c, ?, q | Copy Admin password; help; quit. |
+| c, ?, q | Choose a password or the selected App's API key to copy; help; quit. |
 
 Settings applies edits with `ctrl+s`; `esc` returns to the Dashboard. Workflow
 shows remembered render/pull/start, Setup, Links and checks. Space expands an
 App, `/` filters, and enter expands a failed step's error and recovery hint.
+Stack (`d`) controls the whole Project with `1` Up, `2` Down and `3` Restart all;
+enter starts/stops the selected App. The buttons also work with the mouse.
+Down removes the Project's containers and networks while keeping volumes,
+App files and Setup records. Use named volumes or bind mounts for persistent
+data: anonymous volumes are not automatically reattached after Down/Up.
+The equivalent commands are `self-host up`, `self-host down` and
+`self-host restart`.
 
 ## Agents and automation
 

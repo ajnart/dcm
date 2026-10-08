@@ -53,6 +53,17 @@ func (s *Service) Stop(ctx context.Context, ids []string) error {
 	})
 }
 
+// Down takes down only the selected Project; App files, state and volumes stay.
+func (s *Service) Down(ctx context.Context) error {
+	return s.run(ctx, change{
+		title: "down Project",
+		targets: func(ss *session) ([]string, error) {
+			return ss.targets(nil)
+		},
+		compose: composeDown,
+	})
+}
+
 func (s *Service) Restart(ctx context.Context, ids []string) error {
 	return s.run(ctx, change{
 		title:   strings.TrimSpace("restart " + strings.Join(ids, " ")),

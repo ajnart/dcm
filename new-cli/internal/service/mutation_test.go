@@ -208,6 +208,21 @@ func TestStartUsesUpOnly(t *testing.T) {
 	if again := strings.Count(strings.Join(h.composeCalls(), "\n"), "--progress json pull"); again != pulls {
 		t.Fatalf("start pulled: %d pulls, want %d", again, pulls)
 	}
+	if err := h.svc.Down(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	assertCalls(t, h.composeCalls()[3:], []string{"down"})
+	if err := h.svc.Start(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	assertCalls(t, h.composeCalls()[4:], []string{"up -d one"})
+	p, err := h.svc.Project()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(p.FragmentPath("one")); err != nil {
+		t.Fatal("Down removed the App's Compose file")
+	}
 }
 
 func TestStartRemembersFailureAndRetryWithoutChangingSetupSteps(t *testing.T) {
