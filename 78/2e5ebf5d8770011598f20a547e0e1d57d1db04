@@ -1,0 +1,95 @@
+new-cli/CONTEXT.md
+  s_a2fd509a765bab::t_2f70aee4ab0a5c 35-42
+new-cli/internal/apps/adguard/adguard.go
+  s_a2fd509a765bab::t_5c74a30c086024 13,82-84
+new-cli/internal/apps/audiobookshelf/audiobookshelf.go
+  s_a2fd509a765bab::t_4c456e5bef6c65 11,105-107
+new-cli/internal/apps/bazarr/bazarr.go
+  s_a2fd509a765bab::t_727f6179b417b9 14,108-110
+new-cli/internal/apps/caddy/caddy.go
+  s_a2fd509a765bab::t_c7e1cb47bf7a78 10,68
+new-cli/internal/apps/dashdot/dashdot.go
+  s_a2fd509a765bab::t_256f8cc6172726 10,52,56
+new-cli/internal/apps/dockge/dockge.go
+  s_a2fd509a765bab::t_0e8aa983799b28 10,49-50,56-57
+new-cli/internal/apps/emby/emby.go
+  s_a2fd509a765bab::t_7c51fa48507368 12,88-90
+new-cli/internal/apps/forgejo/forgejo.go
+  s_a2fd509a765bab::t_7139ebe9a62c4a 12,102-103,105
+new-cli/internal/apps/freshrss/freshrss.go
+  s_a2fd509a765bab::t_3e12dcf7e4066d 12,98-100
+new-cli/internal/apps/frigate/frigate.go
+  s_a2fd509a765bab::t_77a7fc26523114 14,150-151,154
+new-cli/internal/apps/gatus/gatus.go
+  s_a2fd509a765bab::t_68abaf702f7aee 10,60
+new-cli/internal/apps/glances/glances.go
+  s_a2fd509a765bab::t_6a7eeb17b1037e 10,45,49
+new-cli/internal/apps/homeassistant/homeassistant.go
+  s_a2fd509a765bab::t_dd6e80c2e9c9bd 12,140-142
+new-cli/internal/apps/homebridge/homebridge.go
+  s_a2fd509a765bab::t_5ba8019e399830 11,126-128
+new-cli/internal/apps/linkwarden/linkwarden.go
+  s_a2fd509a765bab::t_445889aae105d5 12,130,133,149
+new-cli/internal/apps/loki/loki.go
+  s_a2fd509a765bab::t_33f7ceb5171c4c 10,46,50
+new-cli/internal/apps/mayanedms/mayanedms.go
+  s_a2fd509a765bab::t_5de1d69ca2d294 15,179
+new-cli/internal/apps/navidrome/navidrome.go
+  s_a2fd509a765bab::t_5aa9ce04768d5c 12,93,95-96
+new-cli/internal/apps/netdata/netdata.go
+  s_a2fd509a765bab::t_9a6c4017369d6a 9,51,55
+new-cli/internal/apps/nextcloud/nextcloud.go
+  s_a2fd509a765bab::t_5ea4b6fff50750 14,157
+new-cli/internal/apps/ollama/ollama.go
+  s_a2fd509a765bab::t_ccac16ebaf7232 10,47,51
+new-cli/internal/apps/paperlessngx/paperlessngx.go
+  s_a2fd509a765bab::t_1ae6afe5c6df8b 14,134
+new-cli/internal/apps/patchmon/patchmon.go
+  s_a2fd509a765bab::t_903b00da2d9068 14,215-216,226
+new-cli/internal/apps/prometheus/prometheus.go
+  s_a2fd509a765bab::t_3b102534d84b24 10,46,50
+new-cli/internal/apps/sabnzbd/sabnzbd.go
+  s_a2fd509a765bab::t_009d15698275e9 15,150-152
+new-cli/internal/apps/scrypted/scrypted.go
+  s_a2fd509a765bab::t_d3a0e598d08c49 11,111-113
+new-cli/internal/apps/seafile/seafile.go
+  s_a2fd509a765bab::t_d7914c02f2b991 15,144
+new-cli/internal/apps/stirlingpdf/stirlingpdf.go
+  s_a2fd509a765bab::t_278406bd4a6ed9 10,47,51
+new-cli/internal/apps/syncthing/syncthing.go
+  s_a2fd509a765bab::t_f184628c3f6935 15,141-143
+new-cli/internal/apps/tdarr/tdarr.go
+  s_a2fd509a765bab::t_33fac7b2c42562 12,155-157
+new-cli/internal/apps/tracearr/tracearr.go
+  s_a2fd509a765bab::t_9ecec60f40b87b 15,239-240,339
+new-cli/internal/apps/transmission/transmission.go
+  s_a2fd509a765bab::t_2886bea7155cf6 12,100-102
+new-cli/internal/apps/umami/umami.go
+  s_a2fd509a765bab::t_9d3c7c20dfe750 14,153
+new-cli/internal/apps/uptimekuma/uptimekuma.go
+  s_a2fd509a765bab::t_c11a6af5c2b728 13,67-69
+new-cli/internal/apps/vector/vector.go
+  s_a2fd509a765bab::t_12b31389780bff 10,63
+new-cli/internal/apps/victoriametrics/victoriametrics.go
+  s_a2fd509a765bab::t_42ece3f0d26579 10,46,50
+new-cli/internal/firstadmin/firstadmin.go
+  s_a2fd509a765bab::t_acef36aa811273 1,4
+new-cli/internal/firstadmin/firstadmin_test.go
+  s_a2fd509a765bab::t_b5a3d7c81adf1e 1,15,77,104,107-110,114,132,144,179,235,262,280,305,329,354-355,376,384,394
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "782e5ebf5d8770011598f20a547e0e1d57d1db04",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
