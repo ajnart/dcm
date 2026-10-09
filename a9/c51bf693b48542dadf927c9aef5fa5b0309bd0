@@ -1,0 +1,33 @@
+new-cli/internal/cli/doctor_apps_test.go
+  s_683718c6d3553a::t_20b8e775af6e97 6-7,121-146
+new-cli/internal/service/doctor.go
+  s_95f2547e24b970::t_322ea7a4b657ff 24-26
+new-cli/internal/project/lock_test.go
+  s_683718c6d3553a::t_af2fd913d477de 101-129
+new-cli/internal/project/project.go
+  s_683718c6d3553a::t_b75acbb5b64081 405-433,443
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a9c51bf693b48542dadf927c9aef5fa5b0309bd0",
+  "prompts": {},
+  "sessions": {
+    "s_683718c6d3553a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-c7af-73f3-a7fd-514e042c687f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
