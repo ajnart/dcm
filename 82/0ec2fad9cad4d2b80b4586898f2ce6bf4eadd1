@@ -1,0 +1,31 @@
+new-cli/internal/backup/backup.go
+  s_720a00d9bb6c72::t_6070ca45dabe31 122-124,207,210-212,254-261,513-516
+new-cli/internal/backup/backup_test.go
+  s_95f2547e24b970::t_401bfcbe0c91d2 164-218
+new-cli/docs/adr/0003-backup-helper-container.md
+  s_720a00d9bb6c72::t_54e620d738fc3d 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "820ec2fad9cad4d2b80b4586898f2ce6bf4eadd1",
+  "prompts": {},
+  "sessions": {
+    "s_720a00d9bb6c72": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-b69f-7a61-90e9-31aa486da678",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
