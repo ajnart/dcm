@@ -1,0 +1,141 @@
+video/showreel/.gitignore
+  s_89de24d4c07963::t_166afd88989fe5 1-4
+video/showreel/package.json
+  s_89de24d4c07963::t_166afd88989fe5 1-16
+video/showreel/assets/icons/1password.svg
+  s_f68e4be669a792::t_c8a173ab7fdfeb 1
+video/showreel/assets/icons/actual-budget.svg
+  s_f68e4be669a792::t_b443f25240fef5 1
+video/showreel/assets/icons/adguard-home.svg
+  s_f68e4be669a792::t_9f8774c7cf331c 1
+video/showreel/assets/icons/alexa.svg
+  s_f68e4be669a792::t_d2eb6d97ea548a 1-41
+video/showreel/assets/icons/audiobookshelf.svg
+  s_f68e4be669a792::t_b544cb9acb6c13 1
+video/showreel/assets/icons/bazarr.svg
+  s_f68e4be669a792::t_7457146d51418a 1
+video/showreel/assets/icons/beszel-light.svg
+  s_f68e4be669a792::t_29783f978f4f67 1-9
+video/showreel/assets/icons/beszel.svg
+  s_f68e4be669a792::t_c5f73c6e702a6e 1-9
+video/showreel/assets/icons/caddy.svg
+  s_f68e4be669a792::t_34d8160f7fe192 1
+video/showreel/assets/icons/chatgpt.svg
+  s_f68e4be669a792::t_486449e7b0fd9d 1-10
+video/showreel/assets/icons/docker.svg
+  s_f68e4be669a792::t_fa821783758017 1
+video/showreel/assets/icons/dropbox.svg
+  s_f68e4be669a792::t_a1e257bc94d7c3 1
+video/showreel/assets/icons/forgejo.svg
+  s_f68e4be669a792::t_bd873170819f41 1
+video/showreel/assets/icons/freshrss.svg
+  s_f68e4be669a792::t_bb83a4e4bf65e8 1
+video/showreel/assets/icons/frigate.svg
+  s_f68e4be669a792::t_090f21949817b9 1
+video/showreel/assets/icons/gluetun.svg
+  s_f68e4be669a792::t_54370a55d88d92 1
+video/showreel/assets/icons/google-drive.svg
+  s_f68e4be669a792::t_8e0492001d11c0 1
+video/showreel/assets/icons/google-photos.svg
+  s_f68e4be669a792::t_09df3bba0a6538 1
+video/showreel/assets/icons/grafana.svg
+  s_f68e4be669a792::t_0a5f42125c531d 1
+video/showreel/assets/icons/homarr.svg
+  s_f68e4be669a792::t_b66d43a1fa8145 1
+video/showreel/assets/icons/home-assistant.svg
+  s_f68e4be669a792::t_abe89b230871fb 1
+video/showreel/assets/icons/immich.svg
+  s_f68e4be669a792::t_5f74aeeb02e9f4 1
+video/showreel/assets/icons/jellyfin.svg
+  s_f68e4be669a792::t_a841acd96a153d 1
+video/showreel/assets/icons/lidarr.svg
+  s_f68e4be669a792::t_d8f34f2e4205bf 1
+video/showreel/assets/icons/navidrome-light.svg
+  s_f68e4be669a792::t_afb6adfb75fa62 1
+video/showreel/assets/icons/navidrome.svg
+  s_f68e4be669a792::t_8389ec10b43642 1-38
+video/showreel/assets/icons/netflix.svg
+  s_f68e4be669a792::t_3787c725f2a452 1
+video/showreel/assets/icons/nextcloud.svg
+  s_f68e4be669a792::t_7c00d74310911c 1
+video/showreel/assets/icons/notion-light.svg
+  s_f68e4be669a792::t_dbbce1dffb1cd3 1
+video/showreel/assets/icons/notion.svg
+  s_f68e4be669a792::t_8b140cb960a7d8 1
+video/showreel/assets/icons/ollama.svg
+  s_f68e4be669a792::t_67098a767c64c2 1-20
+video/showreel/assets/icons/open-webui-light.svg
+  s_f68e4be669a792::t_8f8ed65fff5e22 1-5
+video/showreel/assets/icons/open-webui.svg
+  s_f68e4be669a792::t_402d5b7de567b4 1-5
+video/showreel/assets/icons/paperless-ngx.svg
+  s_f68e4be669a792::t_03de830fd6ce9b 1
+video/showreel/assets/icons/pi-hole.svg
+  s_f68e4be669a792::t_2b7d44facc0b67 1
+video/showreel/assets/icons/portainer.svg
+  s_f68e4be669a792::t_16ca9fd9195e79 1-11
+video/showreel/assets/icons/prowlarr.svg
+  s_f68e4be669a792::t_4f39edd76f9427 1
+video/showreel/assets/icons/qbittorrent.svg
+  s_f68e4be669a792::t_6432a2e92236f1 1
+video/showreel/assets/icons/radarr.svg
+  s_f68e4be669a792::t_5afb8ea4263687 1
+video/showreel/assets/icons/seerr.svg
+  s_f68e4be669a792::t_af439a458c8b26 1-40
+video/showreel/assets/icons/sonarr.svg
+  s_f68e4be669a792::t_3adebefd2dde66 1
+video/showreel/assets/icons/spotify-light.svg
+  s_f68e4be669a792::t_5538324eb425b8 1-3
+video/showreel/assets/icons/spotify.svg
+  s_f68e4be669a792::t_44450ac579dcbb 1-3
+video/showreel/assets/icons/stirling-pdf.svg
+  s_f68e4be669a792::t_96064949515da4 1
+video/showreel/assets/icons/syncthing.svg
+  s_f68e4be669a792::t_0528f7f2feb856 1
+video/showreel/assets/icons/tailscale.svg
+  s_f68e4be669a792::t_67e7938cebb21a 1
+video/showreel/assets/icons/uptime-kuma.svg
+  s_f68e4be669a792::t_9bef1fee160739 1
+video/showreel/assets/icons/vaultwarden-light.svg
+  s_f68e4be669a792::t_e7323dc807da71 1
+video/showreel/assets/icons/vaultwarden.svg
+  s_f68e4be669a792::t_702593d8f6ac86 1
+video/showreel/audio.js
+  s_f68e4be669a792::t_122f2fa566cce6 1-409
+video/showreel/bun.lock
+  s_f68e4be669a792::t_cc64241449c112 1-32
+video/showreel/cues.js
+  s_f68e4be669a792::t_34a413c9165d7d 1-107
+video/showreel/index.html
+  s_f68e4be669a792::t_00007d491c5fbe 1-198
+video/showreel/main.js
+  s_f68e4be669a792::t_714dc73a016150 1-807
+video/showreel/render.mjs
+  s_f68e4be669a792::t_ccd3fd8af907a7 1-197
+video/showreel/styles.css
+  s_f68e4be669a792::t_ee1032f21f67cd 1-384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "54b99103df07d2008870bb3c462af36002956d5e",
+  "prompts": {},
+  "sessions": {
+    "s_89de24d4c07963": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "143caaee-f0ea-4af0-807b-02c3cf416ba1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_f68e4be669a792": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "17604a16-9bee-478d-ab55-f3d9b8bd4599",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
