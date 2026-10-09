@@ -506,9 +506,20 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 	see("What", m)
 	m = drive(t, m, press("enter"))
 	see("Where", m)
-	for range 2 {
-		m = drive(t, m, press("enter"))
-	}
+	m = drive(t, m, press("enter"))
+	see("Where exposure", m)
+	m = drive(t, m, press("down"))
+	see("Where exposure local", m)
+	m = drive(t, m, press("down"))
+	see("Where exposure coming soon", m)
+	m = drive(t, m, press("enter"))
+	see("Where exposure coming soon note", m)
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("?"))
+	see("Where help", m)
+	m = drive(t, m, press("?"))
+	m = drive(t, m, press("enter"))
 	see("Where host settings", m)
 	for range 3 {
 		m = drive(t, m, press("enter"))
@@ -543,7 +554,7 @@ func TestGoldenOnboarding(t *testing.T) {
 		t.Run("steps"+size.suffix, func(t *testing.T) {
 			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
 				switch name {
-				case "What", "Where", "Where host settings", "Who", "Look":
+				case "What", "Where", "Where exposure", "Where exposure local", "Where exposure coming soon", "Where exposure coming soon note", "Where help", "Where host settings", "Who", "Look":
 					golden(t, "onboarding-"+strings.ReplaceAll(strings.ToLower(name), " ", "-")+size.suffix, trimLines(screen(m)))
 				}
 			})
@@ -655,22 +666,64 @@ func TestWhatAsksOnlyTheChosenAppsInputs(t *testing.T) {
 	}
 }
 
+// flat is the screen with every run of whitespace as one space, so a
+// sentence wrapped over several lines can be looked for whole.
+func flat(s string) string { return strings.Join(strings.Fields(s), " ") }
+
+const (
+	lanExplanation   = "Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at 192.168.1.20. Nobody on the internet can."
+	localExplanation = "Your Apps open only in a browser on this computer. Other devices can't reach them."
+)
+
+// atExposure is Where with the Exposure choice focused.
+func atExposure(t *testing.T, m Model) Model {
+	t.Helper()
+	return drive(t, atStep(t, m, "Where"), press("enter"))
+}
+
 func TestWhereExplainsExposureWithTheDetectedLANAddress(t *testing.T) {
 	m, _ := freshHost(t)
 
 	m = atStep(t, m, "Where")
-
-	out := screen(m)
-	for _, want := range []string{"Other devices on your network can open these at 192.168.1.20", "LAN address", "Only this computer"} {
-		if !strings.Contains(out, want) {
+	for _, want := range []string{"LAN address", "Which devices can open your Apps?", "Only this computer"} {
+		if out := screen(m); !strings.Contains(out, want) {
 			t.Fatalf("Where lacks %q\n%s", want, out)
 		}
 	}
-	m = drive(t, drive(t, m, press("enter")), press("enter"))
-	out = screen(m)
-	for _, want := range []string{"Time zone", "Detected from this machine", "own the files"} {
+	m = drive(t, m, press("enter"))
+	if out := flat(screen(m)); !strings.Contains(out, lanExplanation) {
+		t.Fatalf("the highlighted Exposure choice should be explained with the detected address\n%s", screen(m))
+	}
+	m = drive(t, m, press("enter"))
+	out := screen(m)
+	for _, want := range []string{"Time zone", "Detected from this machine"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Host settings lack %q\n%s", want, out)
+		}
+	}
+}
+
+func TestMovingTheExposureHighlightChangesTheExplanationAndTheDiagram(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+	lan := screen(m)
+	if !strings.Contains(flat(lan), lanExplanation) || !strings.Contains(lan, "phones · TVs · laptops ──── router ──── this computer 192.168.1.20") ||
+		!strings.Contains(lan, "internet ✗") {
+		t.Fatalf("the network choice shows its explanation and its diagram\n%s", lan)
+	}
+
+	m = drive(t, m, press("down"))
+
+	local := screen(m)
+	if !strings.Contains(flat(local), localExplanation) || strings.Contains(flat(local), "can open your Apps at") {
+		t.Fatalf("the this-computer-only choice shows its own explanation\n%s", local)
+	}
+	if !strings.Contains(local, "router ──✗── this computer") || !strings.Contains(local, "internet ✗") || strings.Contains(local, "this computer 192.168.1.20") {
+		t.Fatalf("the diagram follows the highlight and shows the way to this computer closed\n%s", local)
+	}
+	for name, out := range map[string]string{"lan": lan, "local": local} {
+		if strings.Contains(out, "0.0.0.0") || strings.Contains(out, "127.0.0.1") {
+			t.Fatalf("%s: the live explanation is plain words, with no bind address\n%s", name, out)
 		}
 	}
 }
@@ -684,19 +737,178 @@ func TestWhereExposureNamesTheLANAddressThatWillBeUsed(t *testing.T) {
 	}
 	m = typeText(t, m, "10.0.0.7")
 
-	out := screen(m)
-	if !strings.Contains(out, "can open these at 10.0.0.7") || strings.Contains(out, "192.168.1.20") {
-		t.Fatalf("the Exposure explanation must follow the edited LAN address\n%s", out)
-	}
-
 	m = drive(t, m, press("enter"))
+	out := screen(m)
+	if !strings.Contains(flat(out), "can open your Apps at 10.0.0.7. Nobody") || strings.Contains(out, "192.168.1.20") {
+		t.Fatalf("the Exposure explanation names the address that will be used\n%s", out)
+	}
 	m = drive(t, m, press("down"))
-	if out = screen(m); !strings.Contains(out, "Only this computer can open your Apps") || strings.Contains(out, "can open these at") {
-		t.Fatalf("choosing this computer only changes the explanation\n%s", out)
+	if out = screen(m); !strings.Contains(flat(out), localExplanation) || strings.Contains(flat(out), "this computer 10.0.0.7") {
+		t.Fatalf("choosing this computer only drops the LAN address from the explanation\n%s", out)
 	}
 	m = drive(t, m, press("up"))
-	if out = screen(m); !strings.Contains(out, "can open these at 10.0.0.7") {
+	if out = screen(m); !strings.Contains(flat(out), "can open your Apps at 10.0.0.7") {
 		t.Fatalf("choosing the network again names the address again\n%s", out)
+	}
+}
+
+func TestEveryWhereFieldExplainsItselfWhileFocused(t *testing.T) {
+	m, _ := freshHost(t)
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("x")) // Jellyfin
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter")) // its server name
+	fields := []struct{ name, explanation string }{
+		{"LAN address", "App links use this address, so TVs and phones can open them."},
+		{"Exposure", lanExplanation},
+		{"Time zone", "The clock your Apps use for schedules and logs, for example Europe/Paris."},
+		{"User ID", "The user ID that owns the files your Apps write, so you can open them."},
+		{"Group ID", "The group ID that owns those files."},
+		{"Media folder", "Where movies, shows and music live. The folder must exist or sit inside one that does."},
+		{"Downloads folder", "Where downloads land before they move to media. The folder must exist or sit inside one that does."},
+	}
+
+	for i, field := range fields {
+		out := flat(screen(m))
+		if !strings.Contains(out, field.explanation) {
+			t.Fatalf("%s should explain itself while focused\n%s", field.name, screen(m))
+		}
+		for j, other := range fields {
+			if j != i && strings.Contains(out, other.explanation) {
+				t.Fatalf("%s is focused, but %s is explained too\n%s", field.name, other.name, screen(m))
+			}
+		}
+		m = drive(t, m, press("enter"))
+	}
+}
+
+func TestQuestionMarkOpensAndClosesTheExposureHelpPage(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+
+	m = drive(t, m, press("?"))
+
+	page := flat(screen(m))
+	for _, want := range []string{"What is a LAN address?", "Nobody on the internet can open your Apps unless your router forwards ports",
+		"firewall", "changed later in Settings", "╭", "internet ✗"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("the help page lacks %q\n%s", want, screen(m))
+		}
+	}
+	m = drive(t, m, press("enter"))
+	if !strings.Contains(flat(screen(m)), "What is a LAN address?") || m.onboarding.step != stepWhere {
+		t.Fatalf("keys other than esc and ? must not leave the page or answer the form behind it\n%s", screen(m))
+	}
+	m = drive(t, m, press("esc"))
+	if out := screen(m); strings.Contains(out, "What is a LAN address?") || m.onboarding.step != stepWhere || !strings.Contains(flat(out), lanExplanation) {
+		t.Fatalf("esc closes the page and stays on the Exposure choice\n%s", out)
+	}
+	m = drive(t, m, press("?"))
+	m = drive(t, m, press("?"))
+	if strings.Contains(screen(m), "What is a LAN address?") {
+		t.Fatalf("? closes the page too\n%s", screen(m))
+	}
+}
+
+func TestTheHelpPageFollowsTheHighlightedExposureChoice(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+	m = drive(t, m, press("down"))
+
+	m = drive(t, m, press("?"))
+
+	if page := flat(screen(m)); !strings.Contains(page, "127.0.0.1") || !strings.Contains(page, localExplanation) {
+		t.Fatalf("the page explains the highlighted choice\n%s", screen(m))
+	}
+}
+
+func TestQuestionMarkTypesInTextInputsOfTheWizard(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "Where")
+	m = drive(t, m, press("?"))
+	if got := m.onboarding.answers.lan; got != "192.168.1.20?" || m.showHelp {
+		t.Fatalf("? in the LAN address types a question mark, LAN %q, help %v", got, m.showHelp)
+	}
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("?"))
+	if got := m.onboarding.answers.tz; !strings.HasSuffix(got, "?") || m.showHelp {
+		t.Fatalf("? in the time zone types a question mark, TZ %q", got)
+	}
+
+	m, _ = freshHost(t)
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("x")) // Jellyfin
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter")) // its server name
+	for range 5 {
+		m = drive(t, m, press("enter"))
+	}
+	m = drive(t, m, press("?"))
+	if got := m.onboarding.answers.media; got != "/home/alice/media?" || m.showHelp {
+		t.Fatalf("? in the media folder types a question mark, folder %q", got)
+	}
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("?"))
+	if got := m.onboarding.answers.downloads; got != "/home/alice/downloads?" || m.showHelp {
+		t.Fatalf("? in the downloads folder types a question mark, folder %q", got)
+	}
+
+	m, _ = freshHost(t)
+	m = atStep(t, m, "Who")
+	m = drive(t, m, press("enter")) // admin user
+	m = drive(t, m, press("?"))
+	if got := m.onboarding.answers.adminPassword; got != "?" || m.showHelp {
+		t.Fatalf("? in the password types a question mark, password %q", got)
+	}
+}
+
+func TestTheMoreChipShowsOnlyWhereQuestionMarkOpensAHelpPage(t *testing.T) {
+	m, _ := freshHost(t)
+	more := func(m Model) bool {
+		return strings.Contains(strings.Join(strings.Fields(lastLine(screen(m))), " "), "? more")
+	}
+
+	m = atStep(t, m, "Where")
+	if more(m) {
+		t.Fatalf("the LAN address is a text input, so no ? more\n%s", lastLine(screen(m)))
+	}
+	m = drive(t, m, press("enter"))
+	if !more(m) {
+		t.Fatalf("the Exposure choice offers ? more\n%s", lastLine(screen(m)))
+	}
+	for _, field := range []string{"Time zone", "User ID", "Group ID"} {
+		m = drive(t, m, press("enter"))
+		if more(m) {
+			t.Fatalf("%s is a text input, so no ? more\n%s", field, lastLine(screen(m)))
+		}
+	}
+	m = drive(t, m, press("enter")) // Who
+	m = drive(t, m, press("enter"))
+	if more(m) {
+		t.Fatalf("Who has no help page, so no ? more\n%s", lastLine(screen(m)))
+	}
+}
+
+func TestExposureHelpPageScrollsAtEightyByTwentyFourAndNothingIsCut(t *testing.T) {
+	m, _ := onboardingHost(t, 80, 24, readyChecks...)
+	m = drive(t, frames(t, m, 60), press("enter"))
+	m = atExposure(t, m)
+	if lines := strings.Split(screen(m), "\n"); len(lines) > 24 || !strings.Contains(flat(screen(m)), "internet ✗") || !strings.Contains(flat(lines[23]), "? more") {
+		t.Fatalf("Where's Exposure choice with its explanation and diagram fits 80x24 with its bar, %d lines\n%s", len(lines), screen(m))
+	}
+
+	m = drive(t, m, press("?"))
+	if lines := strings.Split(screen(m), "\n"); len(lines) > 24 {
+		t.Fatalf("the help page fits 80x24, %d lines\n%s", len(lines), screen(m))
+	}
+	for range 10 {
+		m = drive(t, m, pgdownKey())
+	}
+	if out := flat(screen(m)); !strings.Contains(out, "changed later in Settings") {
+		t.Fatalf("scrolling reaches the end of the help page\n%s", screen(m))
 	}
 }
 
@@ -904,5 +1116,74 @@ func TestResizingKeepsTheFormInsideTheWindow(t *testing.T) {
 		if ansi.StringWidth(line) > 80 {
 			t.Fatalf("line wider than 80 columns after the resize: %q", line)
 		}
+	}
+}
+
+func TestWhereListsTheComingSoonOptionsAfterTheTwoChoices(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+
+	out := ansi.Strip(screen(m))
+	last := -1
+	for _, want := range []string{"Other devices on your network", "Only this computer", "Tailscale: your devices, from anywhere · coming soon",
+		"Cloudflare Tunnel: a public address · coming soon", "HTTPS with a reverse proxy: Caddy · coming soon"} {
+		at := strings.Index(out, want)
+		if at <= last {
+			t.Fatalf("%q should follow the entries before it\n%s", want, out)
+		}
+		last = at
+	}
+}
+
+func TestHighlightingAComingSoonOptionExplainsItAndEnterKeepsTheChoice(t *testing.T) {
+	for _, tc := range []struct {
+		downs         int
+		will, stays   string
+		diagramMarker string
+	}{
+		{2, "Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are", "your Apps stay on this computer", "router ──✗── this computer"},
+		{3, "Cloudflare Tunnel will give your Apps a public address on the internet, without opening any port on your router", "your Apps stay on this computer", "internet ✗"},
+		{4, "A reverse proxy will put your Apps behind secure https:// addresses. Caddy", "your Apps stay on this computer", "internet ✗"},
+	} {
+		m, backend := freshHost(t)
+		m = atExposure(t, m)
+		m = drive(t, m, press("down")) // this computer only
+		for range tc.downs - 1 {
+			m = drive(t, m, press("down"))
+		}
+
+		out := flat(screen(m))
+		if !strings.Contains(out, tc.will) || !strings.Contains(out, "It isn't available yet: "+tc.stays) || !strings.Contains(out, tc.diagramMarker) {
+			t.Fatalf("the highlighted entry says what it will do and that it isn't available yet\n%s", screen(m))
+		}
+		m = drive(t, m, press("enter"))
+		if m.onboarding.step != stepWhere || m.onboarding.answers.exposure != service.ExposureLocal {
+			t.Fatalf("enter keeps Where and the current choice, step %v exposure %q", m.onboarding.step, m.onboarding.answers.exposure)
+		}
+		if note := flat(screen(m)); !strings.Contains(note, " is coming soon; your Apps stay on this computer") {
+			t.Fatalf("enter says it is coming soon\n%s", screen(m))
+		}
+		if len(backend.Actions()) != 0 || len(backend.installs()) != 0 {
+			t.Fatalf("nothing is dispatched, actions %v", backend.Actions())
+		}
+	}
+}
+
+func TestTabAndEnterOnAComingSoonOptionStayOnTheCurrentChoice(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+	for range 2 {
+		m = drive(t, m, press("down"))
+	}
+	m = drive(t, m, press("tab"))
+	m = drive(t, m, press("enter"))
+	if m.onboarding.step != stepWhere || m.onboarding.focusedKey() != whereExposure || m.onboarding.answers.exposure != service.ExposureLocal {
+		t.Fatalf("tab and enter on a coming-soon entry keep the last real choice at the Exposure choice, exposure %q focus %q", m.onboarding.answers.exposure, m.onboarding.focusedKey())
+	}
+
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("enter"))
+	if m.onboarding.focusedKey() == whereExposure || m.onboarding.answers.exposure != service.ExposureLocal {
+		t.Fatalf("enter on this computer only moves on with it, exposure %q focus %q", m.onboarding.answers.exposure, m.onboarding.focusedKey())
 	}
 }

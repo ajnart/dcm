@@ -472,8 +472,12 @@ func (m Model) renderBar(mode string, chips []key.Binding) string {
 	if left == "" {
 		k := m.keys
 		left = barKey(t, k.Tabs.Help().Key, k.Tabs.Help().Desc) + "  " + t.title().Render("←/→") + "  " +
-			barKey(t, k.ProjectMenu.Help().Key, k.ProjectMenu.Help().Desc) + "  " +
-			barKey(t, k.Help.Help().Key, k.Help.Help().Desc) + "  " + barKey(t, k.Quit.Help().Key, k.Quit.Help().Desc)
+			barKey(t, k.ProjectMenu.Help().Key, k.ProjectMenu.Help().Desc) + "  "
+		// A chip on ? says what it opens here, so ? is not listed twice.
+		if !slices.ContainsFunc(chips, func(b key.Binding) bool { return slices.Contains(b.Keys(), k.Help.Keys()[0]) }) {
+			left += barKey(t, k.Help.Help().Key, k.Help.Help().Desc) + "  "
+		}
+		left += barKey(t, k.Quit.Help().Key, k.Quit.Help().Desc)
 	}
 	left = " " + left
 	var rendered []string
@@ -545,7 +549,14 @@ func (m Model) View() tea.View {
 	var content string
 	if m.onboardingShown() {
 		mode, chips := m.onboardingBar()
-		content = header + "\n" + fit(m.renderOnboarding(), m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
+		if m.showHelp {
+			mode, chips = m.helpBar()
+		}
+		main := m.renderOnboarding()
+		if m.showHelp && m.helpView.page != nil {
+			main = m.helpView.pageView(ctxView)
+		}
+		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	} else {
 		var main, mode string
 		var chips []key.Binding
@@ -559,6 +570,9 @@ func (m Model) View() tea.View {
 			active := m.activeView()
 			main = active.View(ctxView, m.width, m.mainHeight())
 			layers = append(layers, ctxView.layers...)
+			if m.showHelp && m.helpView.page != nil {
+				main, layers = m.helpView.pageView(ctxView), nil
+			}
 			chips = active.Keys()
 			if active.Capturing() {
 				mode = m.theme.fg(m.theme.accentText).Bold(true).Render("typing") + m.theme.dim().Render(" · keys go to the input")
@@ -568,8 +582,7 @@ func (m Model) View() tea.View {
 			}
 		}
 		if m.showHelp {
-			mode = m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(" · any other key closes")
-			chips = m.helpView.Keys()
+			mode, chips = m.helpBar()
 		}
 		if m.menu != nil {
 			mode, chips = m.menuBarMode(), m.menuBarKeys()
@@ -601,6 +614,16 @@ func (m Model) View() tea.View {
 		return func() tea.Msg { return clickMsg{id: id} }
 	}
 	return v
+}
+
+// helpBar is the bar while Help is open: the key reference closes on any
+// other key, a help page only on esc or ?.
+func (m Model) helpBar() (string, []key.Binding) {
+	closing := " · any other key closes"
+	if m.helpView.page != nil {
+		closing = " · esc or ? closes"
+	}
+	return m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(closing), m.helpView.Keys()
 }
 
 func (m Model) renderStatusError() string {

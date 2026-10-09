@@ -3,19 +3,19 @@
   ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Who › ○ Look › ○ Review
 
   Where your Apps keep their files, and which devices can open them.
-  Other devices on your network can open these at 192.168.1.20
 
   ┃ LAN address
-  ┃ What App links use, so other devices can open them
   ┃ > 192.168.1.20
 
     Which devices can open your Apps?
-    TVs, phones and other computers use the LAN address. You can change this later in Settings.
     > Other devices on your network
       Only this computer
+      Tailscale: your devices, from anywhere · coming soon
+      Cloudflare Tunnel: a public address · coming soon
+      HTTPS with a reverse proxy: Caddy · coming soon
 
-
-
+  App links use this address, so TVs and phones can open them. It only builds links: the choice
+  below decides who can connect.
 
 
 

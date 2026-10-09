@@ -74,7 +74,14 @@ _Avoid_: stack, deployment
 **Exposure**:
 Who can reach the Apps: **local network** (default) or **this machine only**.
 Always shown in the recap, since it explains most "can't reach it from my TV"
-reports.
+reports. **local network** publishes the Apps' ports on `0.0.0.0`; **this
+machine only** publishes them on `127.0.0.1`. Onboarding's Where and Settings
+explain the highlighted choice live, with a diagram and a help page on `?`.
+
+**LAN address**:
+The address of this machine on the local network, such as `192.168.1.20`,
+detected when the Project is made and kept as a Host setting. It only builds
+the Links and URLs people open; Exposure alone decides who can connect.
 
 **Admin login**:
 The one username and password shared by every App's administrator account.

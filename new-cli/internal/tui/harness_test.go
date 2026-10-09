@@ -458,6 +458,8 @@ func TestKeybindAudit(t *testing.T) {
 		"coffee: c", "sponsor: s", "skip: enter",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
+		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
+		"more: ?", "close: esc/?",
 		// Settings' Backups sub-tab.
 		"back up: b", "restore: enter",
 	}
@@ -901,7 +903,7 @@ func TestSettingsRejectsAnInvalidValueInline(t *testing.T) {
 func TestSettingsEscapeWithPendingChangesAsksToDiscard(t *testing.T) {
 	m, backend := settingsHost(t)
 
-	m = drive(t, m, press("space")) // EXPOSURE: lan → local
+	m = pickLocalExposure(t, m) // EXPOSURE: lan → local
 	m = drive(t, m, press("esc"))
 
 	if !m.settings.confirmDiscard || !strings.Contains(screen(m), "discard 1 changes? y/n") {
@@ -964,6 +966,17 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
 		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))
 		check(string(set)+" help", drive(t, m, press("?")))
+		exposure := drive(t, m, press("5"))
+		check(string(set)+" Settings Exposure", exposure)
+		check(string(set)+" Settings Exposure help", drive(t, exposure, press("?")))
+		list := drive(t, exposure, press("enter"))
+		check(string(set)+" Settings Exposure list", list)
+		check(string(set)+" Settings Exposure coming soon", drive(t, drive(t, list, press("down")), press("down")))
+		soon := drive(t, drive(t, drive(t, list, press("down")), press("down")), press("enter"))
+		check(string(set)+" Settings Exposure coming soon note", soon)
+		local := pickLocalExposure(t, exposure)
+		check(string(set)+" Settings Exposure local", local)
+		check(string(set)+" Settings Exposure local help", drive(t, local, press("?")))
 	}
 	task := m.tasks.start("update every App in a Project with a long name")
 	t.Cleanup(m.tasks.cancelAll)
@@ -989,4 +1002,13 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		pre = frames(t, pre, step)
 		check("pre-boot exit", pre)
 	}
+}
+
+// pickLocalExposure opens Settings' EXPOSURE choice list on its row and takes
+// "Only this computer".
+func pickLocalExposure(t *testing.T, m Model) Model {
+	t.Helper()
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	return drive(t, m, press("enter"))
 }

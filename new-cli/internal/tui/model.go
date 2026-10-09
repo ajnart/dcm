@@ -466,6 +466,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.preboot != nil {
 			return m, nil
 		}
+		if m.showHelp && m.helpView.page != nil {
+			return m.dispatchHelp(msg)
+		}
 		return m.dispatchActive(msg)
 
 	case tea.KeyPressMsg:
@@ -542,6 +545,9 @@ func (m *Model) relayout() {
 	if m.install != nil {
 		m.install.resize(m.width)
 	}
+	if m.showHelp && m.helpView.page != nil {
+		m.helpView.layoutPage(ctxView)
+	}
 }
 
 // openTab switches to a tab. Every tab keeps its state while another is on
@@ -586,11 +592,31 @@ func firstSelectable(items []installItem) int {
 	return 0
 }
 
-// openHelp shows the key reference, scrolled into a viewport.
+// openHelp shows help scrolled into a viewport: the help page of what is
+// focused when it has one, else the key reference. The page is the more
+// specific help, and the key reference stays one move away: off that row, or
+// on any other tab.
 func (m Model) openHelp() (tea.Model, tea.Cmd) {
 	m.showHelp = true
+	if page, found := m.contextHelp(); found {
+		m.helpView.openPage(m.ctx(), page)
+		return m, nil
+	}
 	m.helpView.open(m.ctx(), m.helpGroups())
 	return m, nil
+}
+
+// contextHelp is the help page of what has the focus, where there is one and
+// the focus is not a text input: Exposure, in Onboarding's Where and in
+// Settings' Host.
+func (m Model) contextHelp() (helpPage, bool) {
+	if m.onboardingShown() {
+		return m.onboarding.helpPage()
+	}
+	if m.surface == surfaceSettings && m.settings != nil {
+		return m.settings.helpPage()
+	}
+	return helpPage{}, false
 }
 
 // helpGroups are the global keys, then every pane of every tab in tab order.
@@ -652,17 +678,17 @@ func (m *Model) setActive(v view) {
 	}
 }
 
-// handleKey routes a key: pre-boot, Onboarding and Help take every key; a view that
+// handleKey routes a key: pre-boot, Help and Onboarding take every key; a view that
 // is capturing text takes every key but ctrl+c; otherwise the global keys
 // act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
-	case m.onboardingShown():
-		return m.handleOnboardingKey(msg)
 	case m.showHelp:
 		return m.dispatchHelp(msg)
+	case m.onboardingShown():
+		return m.handleOnboardingKey(msg)
 	case msg.String() == "ctrl+c":
 		return m.quit()
 	case m.menu != nil:
@@ -788,6 +814,9 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	if m.showHelp && m.helpView.page != nil {
+		return m, nil
+	}
 	if m.menu != nil {
 		if strings.HasPrefix(id, "menu:") {
 			return m.menuClick(id)
@@ -827,7 +856,7 @@ func (m Model) installRows() []installItem {
 
 // renderOverlay is the Help overlay, empty unless it is open.
 func (m Model) renderOverlay() string {
-	if !m.showHelp {
+	if !m.showHelp || m.helpView.page != nil {
 		return ""
 	}
 	return m.helpView.View(m.ctx(), m.width, m.mainHeight())

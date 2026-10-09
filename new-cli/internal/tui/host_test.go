@@ -64,8 +64,8 @@ func TestHostSettingsReviewCanChangeExposureAndGoBack(t *testing.T) {
 	m, backend := movedHost(t)
 
 	m = drive(t, m, press("5"))
-	m = drive(t, m, press("space")) // EXPOSURE: lan → local
-	m = drive(t, m, press("esc"))   // pending changes: ask to discard
+	m = pickLocalExposure(t, m)   // EXPOSURE: lan → local
+	m = drive(t, m, press("esc")) // pending changes: ask to discard
 	if !m.settings.confirmDiscard || len(backend.Actions()) != 0 {
 		t.Fatal("esc with pending changes should ask before discarding")
 	}
