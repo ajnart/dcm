@@ -45,7 +45,7 @@ func TestOverviewAppsShowTheirCategory(t *testing.T) {
 
 	out := screen(drive(t, m, statusMsg{status: backend.status}))
 
-	for app, category := range map[string]string{"● Jellyfin  ": "Media", "✗ Sonarr  ": "Downloads"} {
+	for app, category := range map[string]string{"● ▶ Jellyfin  ": "Media", "✗ ↓ Sonarr  ": "Downloads"} {
 		if line := lineWith(t, out, app); !strings.Contains(line, category) {
 			t.Errorf("%s's row lacks its category %q: %q", app, category, line)
 		}

@@ -1,6 +1,6 @@
 ── frame 30 ──
 ✗ install qbittorrent sonarr radarr
-  ✓ Pull   ✓ Start   ✗ Setup   ✓ Check
+  ✓ ▣ Pull   ✓ ▣ Start   ✗ Setup   ✓ Check
 ╭─ Apps 2/3 set up ────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ ● qBittorrent     ready                                                                                              │
 │ ✗ Sonarr          failed                                                                                             │

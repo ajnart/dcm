@@ -112,7 +112,7 @@ func TestRenderActionGoldens(t *testing.T) {
 				s := Build(sceneStatus, scene.evs)
 				var out []string
 				for _, f := range scene.frames {
-					lines := Render(s, Motion{Frame: f.frame, Changed: f.changed}, width, fullPalette)
+					lines := Render(s, Motion{Frame: f.frame, Changed: f.changed}, width, Simple, fullPalette)
 					for _, line := range lines {
 						if w := ansi.StringWidth(line); w > width {
 							t.Fatalf("frame %d: line is %d cells, wider than %d: %q", f.frame, w, width, ansi.Strip(line))
@@ -130,11 +130,11 @@ func TestRenderActionWithoutColourKeepsEveryGlyph(t *testing.T) {
 	for _, scene := range actionScenes {
 		s := Build(sceneStatus, scene.evs)
 		f := scene.frames[0]
-		plain := strings.Join(Render(s, Motion{Frame: f.frame, Changed: f.changed}, 120, Palette{}), "\n")
+		plain := strings.Join(Render(s, Motion{Frame: f.frame, Changed: f.changed}, 120, Simple, Palette{}), "\n")
 		if strings.Contains(plain, "\x1b[38") || strings.Contains(plain, "\x1b[48") {
 			t.Fatalf("%s: colour without a palette: %q", scene.name, plain)
 		}
-		coloured := ansi.Strip(strings.Join(Render(s, Motion{Frame: f.frame, Changed: f.changed}, 120, fullPalette), "\n"))
+		coloured := ansi.Strip(strings.Join(Render(s, Motion{Frame: f.frame, Changed: f.changed}, 120, Simple, fullPalette), "\n"))
 		if ansi.Strip(plain) != coloured {
 			t.Fatalf("%s: glyphs differ without colour:\n%s\nwant\n%s", scene.name, ansi.Strip(plain), coloured)
 		}
@@ -162,7 +162,7 @@ func TestRenderActionColourRoles(t *testing.T) {
 				continue
 			}
 			s := Build(sceneStatus, scene.evs)
-			out := strings.Join(Render(s, Motion{Frame: tc.frame, Changed: scene.frames[0].changed}, 120, fullPalette), "\n")
+			out := strings.Join(Render(s, Motion{Frame: tc.frame, Changed: scene.frames[0].changed}, 120, Simple, fullPalette), "\n")
 			if !strings.Contains(out, tc.want) {
 				t.Fatalf("%s lacks %q:\n%q", tc.scene, tc.want, out)
 			}
@@ -174,7 +174,7 @@ func TestRenderActionNeverShowsASecret(t *testing.T) {
 	const secret = "hunter2-correct-horse"
 	evs := seq(setupMidRun[:len(setupMidRun)-1],
 		events.Event{Event: events.StepOK, App: "sonarr", Step: "api-key", Msg: "read the Sonarr API key", Credential: secret})
-	out := ansi.Strip(strings.Join(Render(Build(sceneStatus, evs), Motion{}, 120, Palette{}), "\n"))
+	out := ansi.Strip(strings.Join(Render(Build(sceneStatus, evs), Motion{}, 120, Simple, Palette{}), "\n"))
 	if strings.Contains(out, secret) || !strings.Contains(out, "••••••") {
 		t.Fatalf("credential not masked:\n%s", out)
 	}

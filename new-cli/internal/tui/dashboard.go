@@ -210,7 +210,7 @@ func (v *dashboardView) render(ctx *viewContext, width, height int) (string, []*
 func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	t := ctx.theme
 	inner := width - 4
-	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, t.palette())
+	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, ctx.glyphs, t.palette())
 	if len(lines) == 0 {
 		lines = []string{t.dim().Render("No Action yet")}
 	}
@@ -251,20 +251,20 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (stri
 	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.needsFocused), layers
 }
 
-// appRow is one App after its Status dot: its name, category, address when
-// it fits, state, Setup mark and update mark. The name cell is built in one
-// place.
+// appRow is one App after its Status dot: its category icon and name, category,
+// address when it fits, state, Setup mark and update mark. The name cell is
+// built in one place.
 func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) string {
 	t := ctx.theme
 	update := " "
 	if a.Update == service.UpdateAvailable {
 		update = t.fg(t.warn).Render("↑")
 	}
-	name := t.body().Render(pad(a.Name, 13)) + " "
+	name := t.dim().Render(categoryIcon(ctx, a.ID)) + " " + t.body().Render(pad(a.Name, 13)) + " "
 	category := t.dim().Render(pad(appCategory(ctx, a.ID), 10)) + " "
 	// The address without its scheme: o opens it.
 	address := strings.TrimPrefix(strings.TrimPrefix(a.URL, "http://"), "https://")
-	urlWidth := min(width-38, 22)
+	urlWidth := min(width-40, 22)
 	url := ""
 	if urlWidth >= 12 {
 		url = t.dim().Render(pad(address, urlWidth)) + " "
@@ -281,6 +281,12 @@ func appCategory(ctx *viewContext, id string) string {
 		return a.Info().Category
 	}
 	return ""
+}
+
+// categoryIcon is the App's category icon in the chosen glyph set; an App
+// outside the Catalog gets the set's fallback.
+func categoryIcon(ctx *viewContext, id string) string {
+	return ctx.glyphs.Category(appCategory(ctx, id))
 }
 
 func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string {

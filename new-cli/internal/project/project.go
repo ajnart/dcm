@@ -181,6 +181,41 @@ func (p *Project) SaveSecrets(secrets map[string]string) error {
 	return p.writeFile(p.Path("secrets.env"), formatEnv(header, secrets, []string{"ADMIN_USER", "ADMIN_PASSWORD"}), 0o600)
 }
 
+// Appearance is how the Dashboard and the interactive terminal draw. It is
+// a non-secret choice kept in appearance.json, apart from the Host settings,
+// so status and config never see it.
+type Appearance struct {
+	// Glyphs is the glyph set: nerd-font or simple.
+	Glyphs string `json:"glyphs"`
+}
+
+// LoadAppearance reads the appearance; the zero Appearance when none was
+// chosen.
+func (p *Project) LoadAppearance() (Appearance, error) {
+	var a Appearance
+	data, err := os.ReadFile(p.Path("appearance.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return a, nil
+	}
+	if err != nil {
+		return a, err
+	}
+	return a, json.Unmarshal(data, &a)
+}
+
+// SaveAppearance writes the appearance, creating the Project folder when an
+// install has not created it yet.
+func (p *Project) SaveAppearance(a Appearance) error {
+	if err := p.MkdirAll(); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		return err
+	}
+	return p.writeFile(p.Path("appearance.json"), append(data, '\n'), 0o644)
+}
+
 // State
 
 type StepRecord struct {

@@ -34,7 +34,7 @@ func TestStripIsTheActionInThreeLines(t *testing.T) {
 		}},
 		{"running stages", setupMidRun, []string{
 			"⠙ install qbittorrent sonarr radarr",
-			"✓ Pull   ✓ Start   ⠙ Setup",
+			"✓ ▣ Pull   ✓ ▣ Start   ⠙ Setup",
 			"Setting up Sonarr: add the root folder /media/tv",
 		}},
 		{"finished", finished, []string{
@@ -47,7 +47,7 @@ func TestStripIsTheActionInThreeLines(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			lines := Strip(Build(sceneStatus, tc.evs), Motion{Frame: 1}, 80, Palette{})
+			lines := Strip(Build(sceneStatus, tc.evs), Motion{Frame: 1}, 80, Simple, Palette{})
 			out := ansi.Strip(strings.Join(lines, "\n"))
 			if len(lines) > 3 {
 				t.Fatalf("the strip should be at most three lines, got %d\n%s", len(lines), out)
@@ -67,7 +67,19 @@ func TestStripIsTheActionInThreeLines(t *testing.T) {
 }
 
 func TestStripIsEmptyWithoutAnAction(t *testing.T) {
-	if lines := Strip(Build(sceneStatus, nil), Motion{}, 80, Palette{}); len(lines) != 0 {
+	if lines := Strip(Build(sceneStatus, nil), Motion{}, 80, Simple, Palette{}); len(lines) != 0 {
 		t.Fatalf("no Action, no strip: %q", lines)
+	}
+}
+
+func TestStripStagesCarryTheIconsOfTheGlyphSet(t *testing.T) {
+	for set, want := range map[Glyphs]string{
+		NerdFont: "✓ \U000F0868 Pull   ✓ \U000F0868 Start   ⠙ Setup",
+		Simple:   "✓ ▣ Pull   ✓ ▣ Start   ⠙ Setup",
+	} {
+		out := ansi.Strip(strings.Join(Strip(Build(sceneStatus, setupMidRun), Motion{Frame: 1}, 80, set, Palette{}), "\n"))
+		if !strings.Contains(out, want) {
+			t.Errorf("%s: the stage strip lacks %q\n%s", set, want, out)
+		}
 	}
 }

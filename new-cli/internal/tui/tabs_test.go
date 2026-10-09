@@ -38,7 +38,7 @@ func TestNumberKeysSwitchTabs(t *testing.T) {
 
 	for _, tc := range []struct{ key, tab, shows string }{
 		{"4", "4 Catalog", "Watch your movies"},
-		{"2", "2 Apps", "● Jellyfin           running"},
+		{"2", "2 Apps", "● ◇ Jellyfin         running"},
 		{"3", "3 Activity", "fully set up"},
 		{"5", "5 Settings", "Host settings"},
 		{"1", "1 Overview", "Needs attention"},

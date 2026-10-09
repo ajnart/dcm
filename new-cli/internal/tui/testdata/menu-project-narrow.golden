@@ -6,9 +6,9 @@
 │     │ Project · Actions                                                │     │
 ╰─────│                                                                  │─────╯
 ╭─ App│ > Up all                                                         │─────╮
-│ ● Je│   Down all                                                       │     │
-│ ✗ So│   Restart all                                                    │     │
-│ ✗ wh│   Update all    no update known (checked every 30 minutes)       │     │
+│ ● ▶ │   Down all                                                       │     │
+│ ✗ ↓ │   Restart all                                                    │     │
+│ ✗ ◇ │   Update all    no update known (checked every 30 minutes)       │     │
 ╰─────│   Backup                                                         │─────╯
 ╭─ Nee│                                                                  │─────╮
 │ ✗ So│ ──────────────────────────────────────────────────────────────── │etup │

@@ -260,7 +260,7 @@ func (v *appsView) View(ctx *viewContext, width, height int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, list, details)
 }
 
-// renderList is the compact App list: Status glyph, name and state.
+// renderList is the compact App list: Status glyph, category icon, name and state.
 func (v *appsView) renderList(ctx *viewContext, width, height int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
 	inner := width - 4
@@ -274,7 +274,7 @@ func (v *appsView) renderList(ctx *viewContext, width, height int) (string, []*l
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
 		level := service.Level(rows[i])
-		row := t.body().Render(pad(rows[i].Name, inner-12)) + " " + t.dim().Render(pad(stateLabel(rows[i]), 9))
+		row := t.dim().Render(categoryIcon(ctx, rows[i].ID)) + " " + t.body().Render(pad(rows[i].Name, inner-14)) + " " + t.dim().Render(pad(stateLabel(rows[i]), 9))
 		line := t.dot(level) + " " + row
 		if i == v.cursor {
 			glyph, c := t.status(level)

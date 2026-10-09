@@ -117,6 +117,13 @@ The Dashboard tab that shows the running or most recent Action as it unfolds
 remembered steps with their state. It takes focus when an Action starts.
 _Avoid_: workflow view, task overlay
 
+**Appearance**:
+The non-secret choice of glyph set saved with the Project: **Nerd Font**
+icons, or **Simple** Unicode symbols (the default). Icons appear only where
+they carry meaning (an App's category, the Docker, key and link stages, the
+brand mark); bars, spinners and state dots are the same in both.
+_Avoid_: theme (that is the colours), Host setting (Appearance is not one)
+
 **Keybind**:
 A key that switches tabs, moves the selection or focus, opens a read-only view
 (open in browser, copy a credential, search), or opens the Action menu. No

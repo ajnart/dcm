@@ -36,10 +36,10 @@ func TestDashboardStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 	out := screen(m)
 
 	for _, tc := range []struct{ app, status, setup string }{
-		{"Jellyfin", "● Jellyfin", "✓"},
-		{"Radarr", "◐ Radarr", "…"},
-		{"Sonarr", "✗ Sonarr", "✗"},
-		{"whoami", "✗ whoami", "–"},
+		{"Jellyfin", "● ◇ Jellyfin", "✓"},
+		{"Radarr", "◐ ◇ Radarr", "…"},
+		{"Sonarr", "✗ ◇ Sonarr", "✗"},
+		{"whoami", "✗ ◇ whoami", "–"},
 	} {
 		line := lineWith(t, out, tc.app+"  ")
 		if !strings.Contains(line, tc.status) {

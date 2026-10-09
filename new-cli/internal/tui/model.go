@@ -74,7 +74,9 @@ type (
 	}
 	clickMsg     struct{ id string }
 	clipboardMsg struct{ text, what string }
-	flashMsg     struct {
+	// appearanceMsg carries the Project's glyph set.
+	appearanceMsg struct{ glyphs activity.Glyphs }
+	flashMsg      struct {
 		text  string
 		level level
 	}
@@ -96,6 +98,7 @@ type Model struct {
 	width, height int
 	dark          bool
 	theme         theme
+	glyphs        activity.Glyphs
 	keys          keyMap
 	help          help.Model
 
@@ -149,6 +152,7 @@ func New(backend Backend, opts Options) Model {
 		opts:      opts,
 		dark:      true,
 		theme:     newTheme(true),
+		glyphs:    activity.Simple,
 		keys:      newKeyMap(),
 		help:      help.New(),
 		ticking:   true,
@@ -161,7 +165,7 @@ func New(backend Backend, opts Options) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), frameTick(), tick(),
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.loadGlyphs(), frameTick(), tick(),
 		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
@@ -224,6 +228,11 @@ func (m Model) releaseNotice() string {
 	return releaseNotice(m.latest)
 }
 
+func (m Model) loadGlyphs() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg { return appearanceMsg{glyphs: backend.Glyphs(context.Background())} }
+}
+
 func (m Model) loadUpdates() tea.Cmd {
 	backend, status := m.backend, m.status
 	return func() tea.Msg {
@@ -281,7 +290,7 @@ func (m Model) mainHeight() int { return max(m.height-3, 3) }
 // ctx is the read/ask view of the Model handed to the active view.
 func (m Model) ctx() *viewContext {
 	return &viewContext{
-		width: m.width, height: m.height, dark: m.dark, theme: m.theme,
+		width: m.width, height: m.height, dark: m.dark, theme: m.theme, glyphs: m.glyphs,
 		keys: m.keys, help: m.help, frame: m.frame, motion: m.tracker.Motion(m.frame),
 		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt,
 		latest: m.latest, loaded: m.loaded, statusErr: m.statusErr, refreshed: m.refreshed,
@@ -294,6 +303,7 @@ func (m Model) ctx() *viewContext {
 // absorb copies the shared fields a view may have changed back onto the Model.
 func (m *Model) absorb(ctx *viewContext) {
 	m.width, m.height = ctx.width, ctx.height
+	m.glyphs = ctx.glyphs
 	m.containers, m.containersErr = ctx.containers, ctx.containersErr
 	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
 	m.help = ctx.help
@@ -379,6 +389,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case clickMsg:
 		return m.handleClick(msg.id)
+
+	case appearanceMsg:
+		m.glyphs = msg.glyphs
+		return m, nil
 
 	case clipboardMsg:
 		m.setFlash("copied "+msg.what, levelOK)

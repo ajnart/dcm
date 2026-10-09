@@ -6,9 +6,9 @@
 │                         ╭──────────────────────────────────────────────────────────────────╮                         │
 ╰─────────────────────────│ Jellyfin · Actions                                               │─────────────────────────╯
 ╭─ Apps 3 ────────────────│                                                                  │─────────────────────────╮
-│ ● Jellyfin      Media   │ > Stop                                                           │failed   a r retry Setup │
-│ ✗ Sonarr        Download│   Restart                                                        │               a s start │
-│ ✗ whoami                │   Update        no update known (checked every 30 minutes)       │                         │
+│ ● ▶ Jellyfin      Media │ > Stop                                                           │failed   a r retry Setup │
+│ ✗ ↓ Sonarr        Downlo│   Restart                                                        │               a s start │
+│ ✗ ◇ whoami              │   Update        no update known (checked every 30 minutes)       │                         │
 │                         │   Retry Setup                                                    │2.168.0.0/16 to any por… │
 │                         │   Backup                                                         │                         │
 │                         │   Remove                                                         │                         │
