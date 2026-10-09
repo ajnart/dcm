@@ -1,0 +1,18 @@
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 193-196,227-228
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 549,650-653,656-658
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 77-78,81,155,162-164,518-536
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "911cd35cd8601bc722a1d141f76b785f06a7fecf",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
