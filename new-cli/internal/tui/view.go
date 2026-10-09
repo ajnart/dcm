@@ -100,6 +100,9 @@ type viewContext struct {
 	updates   map[string]string
 	updatesAt time.Time
 	latest    string
+	// releaseChecked is whether the release check found the newest release.
+	releaseChecked bool
+	version        string
 
 	containers    []service.ContainerStatus
 	containersErr string

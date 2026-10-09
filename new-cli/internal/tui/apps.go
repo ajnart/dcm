@@ -191,7 +191,7 @@ func (v *appsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		return v, nil, nav{}
 	case clickMsg:
 		return v, v.click(ctx, msg.id), nav{}
-	case logChunkMsg, composeMsg:
+	case logChunkMsg, composeMsg, usageMsg:
 		app, found := v.selected(ctx)
 		return v, v.details.update(ctx, app, found, msg), nav{}
 	case copyOptionsMsg:
@@ -360,7 +360,7 @@ func (v *appsView) renderList(ctx *viewContext, width, height int) (string, []*l
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
 		row := t.dim().Render(categoryIcon(ctx, rows[i].ID)) + " " + t.body().Render(pad(rows[i].Name, inner-14)) + " " + t.dim().Render(pad(stateLabel(rows[i]), 9))
-		line := appListRow(t, service.Level(rows[i]), row, i == v.cursor, inner)
+		line := appListRow(t, service.Level(rows[i]), row, "", "", i == v.cursor, inner)
 		lines = append(lines, line)
 		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+top+i-offset).ID(rowLayerID(i)))
 	}
@@ -371,13 +371,18 @@ func (v *appsView) renderList(ctx *viewContext, width, height int) (string, []*l
 // list and the Overview's Apps pane. The selected row has one background
 // under its whole width so per-cell colours do not punch holes in it; the
 // Status glyph keeps its colour.
-func appListRow(t theme, level, row string, selected bool, inner int) string {
+func appListRow(t theme, level, row, address, url string, selected bool, inner int) string {
 	if !selected {
 		return t.dot(level) + " " + row
 	}
 	glyph, c := t.status(level)
 	dot := t.fg(c).Background(t.selected).Bold(true).Render(glyph + " ")
-	return dot + t.selection().Render(pad(stripANSI(row), inner-2))
+	text := pad(stripANSI(row), inner-2)
+	before, after, found := strings.Cut(text, address)
+	if address == "" || url == "" || !found {
+		return dot + t.selection().Render(text)
+	}
+	return dot + t.selection().Render(before) + hyperlink(url, t.selection().Render(address)) + t.selection().Render(after)
 }
 
 func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }

@@ -47,6 +47,9 @@ type Backend interface {
 	Updates(ctx context.Context, status service.Status) map[string]string
 	Credentials(ctx context.Context) (service.Credentials, error)
 	Logs(ctx context.Context, id string, w io.Writer) error
+	// Usage reports the load of the Project's running containers to emit until
+	// ctx ends.
+	Usage(ctx context.Context, emit func([]service.ContainerUsage)) error
 	OpenURL(url string) error
 	// ReviewSettings compares Host settings with this machine now.
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
@@ -104,6 +107,10 @@ func (b ServiceBackend) Credentials(ctx context.Context) (service.Credentials, e
 
 func (b ServiceBackend) Logs(ctx context.Context, id string, w io.Writer) error {
 	return b.quiet().Logs(ctx, id, w, true, 300)
+}
+
+func (b ServiceBackend) Usage(ctx context.Context, emit func([]service.ContainerUsage)) error {
+	return b.quiet().Usage(ctx, emit)
 }
 
 func (b ServiceBackend) OpenURL(url string) error {

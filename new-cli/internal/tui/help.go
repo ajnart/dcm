@@ -6,12 +6,18 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // helpView is the key reference, opened as an overlay over the active tab.
 type helpView struct {
 	vp viewport.Model
 }
+
+const (
+	koFiURL     = "https://ko-fi.com/ajnart"
+	sponsorsURL = "https://github.com/sponsors/ajnart"
+)
 
 var helpKeys = []key.Binding{hint("↑/↓", "scroll"), hint("pgup/pgdn", "page")}
 
@@ -45,6 +51,8 @@ func (v *helpView) open(ctx *viewContext, groups []pane) {
 		lines = append(lines, "")
 	}
 	lines = append(lines,
+		t.body().Render(link(t, koFiURL, "Buy us a coffee")),
+		t.body().Render(link(t, sponsorsURL, "Sponsor on GitHub")), "",
 		t.dim().Render("More: self-host --help (remove, restore, config, credentials…)"))
 	v.vp.SetContent(strings.Join(lines, "\n"))
 	v.vp.GotoTop()
@@ -81,4 +89,17 @@ func (v *helpView) View(ctx *viewContext, width, height int) string {
 
 func releaseNotice(latest string) string {
 	return "v" + strings.TrimPrefix(latest, "v") + " is available: run self-host self-update"
+}
+
+func link(t theme, url, label string) string {
+	return hyperlink(url, t.fg(t.info).Render(label))
+}
+
+// hyperlink wraps already styled, already truncated text in an OSC 8 link,
+// which adds no visible width. An empty url leaves the text as it is.
+func hyperlink(url, text string) string {
+	if url == "" {
+		return text
+	}
+	return ansi.SetHyperlink(url) + text + ansi.ResetHyperlink()
 }

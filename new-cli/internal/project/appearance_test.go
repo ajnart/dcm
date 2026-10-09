@@ -41,7 +41,7 @@ func TestAppearanceRoundTripsBesideTheHostSettings(t *testing.T) {
 // Project is still starting.
 func TestAppearanceSavesBeforeTheProjectFolderExists(t *testing.T) {
 	p := testProject(t)
-	p.Root = filepath.Join(p.Root, "self-host")
+	p.Root = filepath.Join(p.Root, ".self-host")
 
 	if err := p.SaveAppearance(Appearance{Glyphs: "simple"}); err != nil {
 		t.Fatal(err)

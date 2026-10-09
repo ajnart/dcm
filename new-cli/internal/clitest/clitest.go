@@ -65,7 +65,7 @@ func Root(t *testing.T, deps *system.Deps) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(u.Home, "self-host")
+	return filepath.Join(u.Home, ".self-host")
 }
 
 func Read(t *testing.T, path string) string {

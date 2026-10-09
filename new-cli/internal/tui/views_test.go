@@ -103,6 +103,31 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 	}
 }
 
+func TestHelpViewShowsBothDonationLinksAsHyperlinks(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.width, ctx.height = 80, 24
+	v := newHelpView()
+	v.open(ctx, []pane{{"Global", ctx.keys.global()}})
+
+	styled := v.View(ctx, 80, 30)
+	out := ansi.Strip(styled)
+	for _, want := range []string{"Buy us a coffee", "Sponsor on GitHub"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("help view lacks %q\n%s", want, out)
+		}
+	}
+	for _, url := range []string{"https://ko-fi.com/ajnart", "https://github.com/sponsors/ajnart"} {
+		if !strings.Contains(styled, ansi.SetHyperlink(url)) {
+			t.Fatalf("help view has no OSC 8 link to %s: %q", url, styled)
+		}
+	}
+	for i, line := range strings.Split(out, "\n") {
+		if w := ansi.StringWidth(line); w > 80 {
+			t.Fatalf("help line %d is %d columns wide: %q", i, w, line)
+		}
+	}
+}
+
 func activityStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
 		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{
@@ -415,5 +440,59 @@ func TestManualInstallReturnsToDashboardWithAttention(t *testing.T) {
 	}
 	if m.flashLevel != levelWarn {
 		t.Fatalf("manual install flash = %+v, want warning", m.flash)
+	}
+}
+
+func TestDashboardAddressesAreHyperlinksToTheFullURL(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	v := newDashboardView(newAppsView())
+
+	styled := v.View(ctx, 120, 30)
+	if !strings.Contains(ansi.Strip(styled), "192.168.1.20:8096") || strings.Contains(ansi.Strip(styled), "http://192.168.1.20:8096") {
+		t.Fatalf("visible address changed:\n%s", ansi.Strip(styled))
+	}
+	for _, url := range []string{"http://192.168.1.20:8096", "http://192.168.1.20:8989", "http://192.168.1.20:8099"} {
+		want := ansi.SetHyperlink(url)
+		i := strings.Index(styled, want)
+		if i < 0 {
+			t.Fatalf("no OSC 8 link to %s: %q", url, styled)
+		}
+		rest := styled[i+len(want):]
+		if got := ansi.Strip(rest[:strings.Index(rest, ansi.ResetHyperlink())]); got != strings.TrimPrefix(url, "http://") {
+			t.Fatalf("link around %q, want the visible address of %s", got, url)
+		}
+	}
+}
+
+func TestDashboardSelectedRowKeepsItsAddressHyperlink(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	v := newDashboardView(newAppsView())
+
+	styled := v.View(ctx, 120, 30)
+	if !strings.Contains(styled, ansi.SetHyperlink("http://192.168.1.20:8096")) {
+		t.Fatalf("selected row lost its link: %q", styled)
+	}
+	for _, line := range strings.Split(styled, "\n") {
+		if strings.Contains(ansi.Strip(line), "Jellyfin") {
+			if !strings.Contains(line, ansi.SetHyperlink("http://192.168.1.20:8096")) || !strings.Contains(line, ansi.ResetHyperlink()) {
+				t.Fatalf("selected row has no closed link: %q", line)
+			}
+			if w := ansi.StringWidth(line); w > 120 {
+				t.Fatalf("row is %d columns wide", w)
+			}
+		}
+	}
+}
+
+func TestAppDetailsInfoURLIsAHyperlink(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	app := ctx.status.Apps[0]
+
+	out := renderInfo(ctx.theme, app, 60)
+	if !strings.Contains(out, ansi.SetHyperlink(app.URL)+ctx.theme.body().Render(app.URL)+ansi.ResetHyperlink()) {
+		t.Fatalf("info url is not a hyperlink: %q", out)
+	}
+	if got := ansi.Strip(strings.Split(out, "\n")[0]); got != "url       http://192.168.1.20:8096" {
+		t.Fatalf("visible url row = %q", got)
 	}
 }

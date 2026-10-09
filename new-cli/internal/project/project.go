@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	DirName = "self-host"
+	DirName = ".self-host"
 	Name    = "selfhost"
 )
 

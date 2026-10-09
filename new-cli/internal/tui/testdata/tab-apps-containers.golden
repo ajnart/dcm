@@ -1,4 +1,4 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
 ╭─ Apps 3 ───────────────────────╮╭─ Jellyfin ─────────────────────────────────────────────────────────────────────────╮
 │ ● ♫ Jellyfin         running   ││  logs   setup   info   compose   containers                                        │
 │ ✗ ↓ Sonarr           running   ││ ────────────────────────────────────────────────────────────────────────────────── │
@@ -6,8 +6,8 @@
 │                                ││                                                                                    │
 │                                ││ SERVICE               STATE     HEALTH    UPTIME                PORTS              │
 │                                ││ jellyfin              running   healthy   Up 2 hours            0.0.0.0:8096→8096  │
+│                                ││   cpu ━━──────────  mem ━━━╸────────  2540 MiB                                     │
 │                                ││   image lscr.io/linuxserver/jellyfin:latest                                        │
-│                                ││                                                                                    │
 │                                ││                                                                                    │
 │                                ││                                                                                    │
 │                                ││                                                                                    │

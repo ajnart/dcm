@@ -120,7 +120,7 @@ func (h *harness) root() string {
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	return filepath.Join(user.Home, "self-host")
+	return filepath.Join(user.Home, ".self-host")
 }
 
 func (h *harness) install(ids ...string) error {
