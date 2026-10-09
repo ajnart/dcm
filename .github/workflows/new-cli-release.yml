@@ -2,7 +2,7 @@ name: new-cli release
 
 on:
   push:
-    tags: ["new-cli-v*"]
+    tags: ["v*", "new-cli-v*"]
 
 permissions:
   contents: read
@@ -33,15 +33,16 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          test "$GITHUB_REPOSITORY" = ajnart/selfhost-skills
-          [[ "$RELEASE_TAG" =~ ^new-cli-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${RELEASE_TAG#new-cli-v}" >> "$GITHUB_ENV"
+          [[ "$GITHUB_REPOSITORY" == ajnart/selfhost-skills || "$GITHUB_REPOSITORY" == ajnart/selfhost ]]
+          [[ "$RELEASE_TAG" =~ ^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          version=${RELEASE_TAG#new-cli-}
+          printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${version#v}" >> "$GITHUB_ENV"
       - name: Check installer and self-update fixtures
         run: |
           bash -n install.sh
-          go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdateRejects|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstallScript|TestInstallSupports|TestSelfUpdate)'
-      # OSS snapshot packaging avoids the legacy repository-wide v* tag stream.
-      # The separately validated CLI tag supplies the version; gh owns publication.
+          go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdate|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstall|TestRepository|TestAnInvalid|TestSelfUpdate)'
+      # OSS snapshot packaging never publishes from goreleaser itself.
+      # The validated tag (vX.Y.Z or new-cli-vX.Y.Z) supplies the version; gh owns publication.
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser

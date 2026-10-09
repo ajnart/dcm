@@ -5,6 +5,7 @@ on:
     - cron: "17 3 * * *"
   push:
     tags:
+      - "v*"
       - "new-cli-v*"
   workflow_dispatch:
     inputs:
