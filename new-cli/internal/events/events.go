@@ -131,34 +131,14 @@ func JSON(w io.Writer) Sink {
 	return SinkFunc(func(e Event) { enc.Encode(e) })
 }
 
-// Human writes readable lines. Verbose adds commands and step starts. On a
-// terminal pull progress is redrawn in place; otherwise only the final line
-// per image is printed.
-func Human(w io.Writer, verbose, interactive bool) Sink {
-	var lastWidth int
+// Human writes readable lines. Verbose adds commands and step starts. Pull
+// progress prints only the final line per image.
+func Human(w io.Writer, verbose bool) Sink {
 	return SinkFunc(func(e Event) {
 		if e.Event == PullProgress {
 			if e.Status == "Pulled" {
-				if interactive {
-					fmt.Fprintf(w, "\r%s\r", strings.Repeat(" ", lastWidth))
-					lastWidth = 0
-				}
 				fmt.Fprintf(w, "✓ pulled %s\n", e.Image)
-				return
 			}
-			if !interactive || e.Total <= 0 {
-				return
-			}
-			pct := int(e.Current * 100 / e.Total)
-			if pct > 100 {
-				pct = 100
-			}
-			line := fmt.Sprintf("pulling %s  %s %d%%  %s / %s", e.Image, pullBar(pct), pct, formatBytes(e.Current), formatBytes(e.Total))
-			if len(line) < lastWidth {
-				line += strings.Repeat(" ", lastWidth-len(line))
-			}
-			lastWidth = len(line)
-			fmt.Fprintf(w, "\r%s", line)
 			return
 		}
 		subject := e.Step
@@ -213,24 +193,4 @@ func Human(w io.Writer, verbose, interactive bool) Sink {
 			}
 		}
 	})
-}
-
-// pullBar is a ten-cell bar for a percentage.
-func pullBar(pct int) string {
-	filled := min(pct/10, 10)
-	return "▕" + strings.Repeat("█", filled) + strings.Repeat("░", 10-filled) + "▏"
-}
-
-// formatBytes renders a byte count in decimal units, like Docker does.
-func formatBytes(n int64) string {
-	switch {
-	case n >= 1_000_000_000:
-		return fmt.Sprintf("%.1f GB", float64(n)/1_000_000_000)
-	case n >= 1_000_000:
-		return fmt.Sprintf("%d MB", n/1_000_000)
-	case n >= 1_000:
-		return fmt.Sprintf("%d KB", n/1_000)
-	default:
-		return fmt.Sprintf("%d B", n)
-	}
 }

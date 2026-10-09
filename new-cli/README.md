@@ -128,9 +128,12 @@ The bar on the last row shows the global keys and the focused pane's keys.
 While a search or an edit takes text, every key goes to it. Settings applies
 edits with `ctrl+s`; `esc` returns to the Overview. Activity shows remembered
 render/pull/start, Setup, Links and checks. Space expands an App, `/` filters,
-and enter expands a failed step's error and recovery hint. The Apps tab
-controls the whole Project with the UP, DOWN and RESTART buttons (click them);
-enter starts/stops the selected App.
+and enter expands a failed step's error and recovery hint.
+While an Action pulls images, Activity, the status line and the CLI in a
+terminal show one overall bar, a slim bar per image and "N of M images"; piped
+output keeps one `✓ pulled` line per image.
+The Apps tab controls the whole Project with the UP, DOWN and RESTART buttons
+(click them); enter starts/stops the selected App.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.

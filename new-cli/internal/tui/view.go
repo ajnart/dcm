@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
@@ -119,7 +120,7 @@ type viewContext struct {
 // mainHeight leaves the header row above and the status line and bar below.
 func (ctx *viewContext) mainHeight() int { return max(ctx.height-3, 3) }
 
-func (ctx *viewContext) workflow() WorkflowSnapshot {
+func (ctx *viewContext) workflow() activity.Snapshot {
 	var evs []events.Event
 	if ctx.tasks != nil {
 		for _, task := range ctx.tasks.snapshots() {
@@ -129,7 +130,25 @@ func (ctx *viewContext) workflow() WorkflowSnapshot {
 			evs = append(evs, task.events...)
 		}
 	}
-	return Workflow(ctx.status, evs)
+	return activity.Build(ctx.status, evs)
+}
+
+// pullProgress is the running Action's overall pull, as a whole number out
+// of 100 for the terminal's own progress indicator.
+func (m Model) pullProgress() (int, bool) {
+	task := m.tasks.latest()
+	if task == nil {
+		return 0, false
+	}
+	s := task.snapshot()
+	if s.state != taskRunning {
+		return 0, false
+	}
+	pull := activity.Build(m.status, s.events).Pull
+	if !pull.Pulling || pull.Total == 0 {
+		return 0, false
+	}
+	return int(pull.Fraction * 100), true
 }
 
 func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
@@ -415,7 +434,7 @@ func (m Model) View() tea.View {
 	v.WindowTitle = m.windowTitle()
 	if pct, ok := m.installProgress(); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
-	} else if pct, ok := m.pullPercent(); ok {
+	} else if pct, ok := m.pullProgress(); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
 	} else if m.tasks.running() > 0 {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
@@ -497,8 +516,9 @@ func (m Model) footerStatus() string {
 	if task := m.tasks.latest(); task != nil {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(m.spin.View() + " " + s.title)
-			if n, pct, current, total, ok := pullTotals(s.events); ok {
-				line += t.dim().Render(fmt.Sprintf(" · pulling %d images · %d%% · %s/%s", n, pct, pullMB(current), pullMB(total)))
+			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
+				line += t.dim().Render(" · ")
+				line += activity.Compact(snapshot, m.width-lipgloss.Width(line), t.palette())
 			} else if n := len(s.events); n > 0 {
 				line += t.dim().Render(" · ") + formatEvent(t, s.events[n-1])
 			}

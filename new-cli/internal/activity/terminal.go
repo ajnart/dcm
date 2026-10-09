@@ -1,0 +1,68 @@
+package activity
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"slices"
+	"strings"
+
+	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/service"
+)
+
+// Terminal is the events sink for an interactive terminal. It prints every
+// event as events.Human does and redraws the pull block in place below those
+// lines while a pull runs; when the pull ends its final block stays. Width is
+// read for every redraw, so the block follows a resized terminal.
+func Terminal(w io.Writer, verbose bool, width func() int, p Palette) events.Sink {
+	t := &terminal{w: w, width: width, palette: p}
+	t.human = events.Human(&t.buf, verbose)
+	return t
+}
+
+type terminal struct {
+	w       io.Writer
+	width   func() int
+	palette Palette
+	human   events.Sink
+	buf     bytes.Buffer
+	evs     []events.Event
+	// shown is the block on screen that the next redraw replaces.
+	shown []string
+}
+
+func (t *terminal) Emit(e events.Event) {
+	if e.Event == events.RunStart {
+		t.evs = t.evs[:0]
+	}
+	t.evs = append(t.evs, e)
+	s := Build(service.Status{}, t.evs)
+	block := Render(s, t.width(), t.palette)
+	if e.Event == events.PullProgress && s.Pull.Pulling && slices.Equal(block, t.shown) {
+		return
+	}
+	if len(t.shown) > 0 && len(block) == 0 {
+		t.shown = nil
+	}
+	if len(t.shown) > 0 {
+		fmt.Fprintf(&t.buf, "\r\x1b[%dA\x1b[J", len(t.shown))
+		t.shown = nil
+		if !s.Pull.Pulling {
+			t.writeBlock(block)
+		}
+	}
+	if e.Event != events.PullProgress {
+		t.human.Emit(e)
+	}
+	if s.Pull.Pulling && len(block) > 0 {
+		t.writeBlock(block)
+		t.shown = block
+	}
+	t.w.Write(t.buf.Bytes())
+	t.buf.Reset()
+}
+
+func (t *terminal) writeBlock(block []string) {
+	t.buf.WriteString(strings.Join(block, "\n") + "\n")
+}
