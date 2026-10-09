@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
+	"github.com/ajnart/self-host/internal/service"
 )
 
 func withGlyphs(t *testing.T, m Model, g activity.Glyphs) Model {
@@ -145,4 +146,72 @@ func TestSettingsAppearanceGoldens(t *testing.T) {
 			golden(t, "settings-appearance"+size.suffix, trimLines(screen(m)))
 		})
 	}
+}
+
+func narrowSettings(t *testing.T) Model {
+	t.Helper()
+	m, backend := sample(t, 80, 24)
+	backend.review = []service.SettingReview{
+		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
+		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.1.20", Choices: []string{"192.168.1.20"}},
+		{Key: "TZ", Current: "Europe/Paris", Detected: "Europe/Paris"},
+		{Key: "PUID", Current: "1000", Detected: "1000"},
+		{Key: "PGID", Current: "1000", Detected: "1000"},
+		{Key: "UMASK", Current: "022"},
+		{Key: "MEDIA_ROOT", Current: "/home/alice/media"},
+		{Key: "DOWNLOADS_ROOT", Current: "/home/alice/downloads"},
+	}
+	m = drive(t, m, press("5"))
+	m = drive(t, m, press("space"))
+	for i := 0; i < 3; i++ {
+		m = drive(t, m, press("down"))
+	}
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("ctrl+u"))
+	m = typeText(t, m, "1001")
+	m = drive(t, m, press("enter"))
+	for i := 0; i < 4; i++ {
+		m = drive(t, m, press("down"))
+	}
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("ctrl+u"))
+	m = typeText(t, m, "/srv/downloads")
+	return drive(t, m, press("enter"))
+}
+
+func TestSettingsKeepsAppearanceAndTheCursorOnScreenWithPendingChanges(t *testing.T) {
+	m := narrowSettings(t)
+
+	out := screen(m)
+
+	for _, want := range []string{"Pending changes", "EXPOSURE", "PUID", "1000 → 1001", "PUID/PGID changes",
+		"> DOWNLOADS_ROOT", "(pending)", "Appearance", "○ Nerd Font", "● Simple", "Learn about Nerd Fonts: https://www.nerdfonts.com"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("Settings lacks %q at 80×24 with pending changes\n%s", want, out)
+		}
+	}
+	if lines := strings.Split(out, "\n"); len(lines) != 24 {
+		t.Fatalf("screen is %d rows, want 24", len(lines))
+	}
+
+	for i := 0; i < 8; i++ {
+		m = drive(t, m, press("up"))
+	}
+	if out := screen(m); !strings.Contains(out, "> EXPOSURE") || !strings.Contains(out, "Learn about Nerd Fonts") || !strings.Contains(out, "● Simple") {
+		t.Fatalf("scrolling back up must keep the cursor and Appearance on screen\n%s", out)
+	}
+}
+
+func TestSettingsConfirmDiscardStaysOnScreenAt80x24(t *testing.T) {
+	m := narrowSettings(t)
+
+	m = drive(t, m, press("esc"))
+
+	if out := screen(m); !strings.Contains(out, "discard 3 changes? y/n") || !strings.Contains(out, "Learn about Nerd Fonts") {
+		t.Fatalf("the prompt and the Appearance section must both fit\n%s", out)
+	}
+}
+
+func TestSettingsPendingChangesGoldenAtEightyColumns(t *testing.T) {
+	golden(t, "settings-pending-narrow", trimLines(screen(narrowSettings(t))))
 }

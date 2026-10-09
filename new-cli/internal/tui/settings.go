@@ -27,6 +27,8 @@ var settingsKeys = []string{"EXPOSURE", "LAN_IP", "TZ", "PUID", "PGID", "UMASK",
 // Appearance pane chooses the glyph set, saved as soon as it is chosen.
 type settingsView struct {
 	cursor int
+	// offset is the first Host setting row on screen.
+	offset int
 	// appearance gives the keys to the Appearance pane; glyphCursor is its
 	// highlighted choice, an index into glyphChoices.
 	appearance  bool
@@ -349,6 +351,12 @@ func (v *settingsView) cycleChoice() {
 	v.input.CursorEnd()
 }
 
+// minRows is the fewest Host setting rows the pane keeps on screen.
+const minRows = 3
+
+// View lays the Host settings pane above the Appearance pane. The
+// Appearance pane is always whole; the Host settings rows scroll to keep the
+// cursor in view, and the pending changes shrink before the rows do.
 func (v *settingsView) View(ctx *viewContext, width, height int) string {
 	t := ctx.theme
 	inner := max(width-4, 12)
@@ -356,34 +364,73 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 	if v.appearance {
 		heading = t.inactive()
 	}
-	var lines []string
-	lines = append(lines, "", "  "+heading.Render("Host settings")+t.dim().Render("  enter/space edits · ctrl+s applies · tab Appearance"))
+	appearance := v.appearanceLines(ctx, inner)
+	header := []string{"", "  " + heading.Render("Host settings") + t.dim().Render("  enter/space edits · ctrl+s applies · tab Appearance")}
 	if v.err != "" {
-		lines = append(lines, "  "+t.fg(t.fail).Render(v.err))
+		header = append(header, "  "+t.fg(t.fail).Render(v.err))
 	}
-	lines = append(lines, "")
-	for i := range v.rows {
+	header = append(header, "")
+	var confirm []string
+	if v.confirmDiscard {
+		confirm = []string{"", "  " + t.fg(t.warn).Render("discard "+strconv.Itoa(len(v.pairs()))+" changes? y/n")}
+	}
+	avail := height - len(appearance) - len(header) - len(confirm)
+	window := min(len(v.rows), max(minRows, avail-len(v.pendingLines(ctx, 1<<20))))
+	pending := v.pendingLines(ctx, max(avail-window, 0))
+	window = min(len(v.rows), max(avail-len(pending), 1))
+	v.scrollTo(window)
+
+	lines := header
+	for i := v.offset; i < v.offset+window && i < len(v.rows); i++ {
 		lines = append(lines, "  "+v.renderRow(ctx, i, inner))
 	}
-	if pairs := len(v.pairs()); pairs > 0 {
-		lines = append(lines, "", "  "+t.heading().Render("Pending changes")+t.dim().Render(" "+strconv.Itoa(pairs)))
-		for i := range v.rows {
-			if !v.changed(i) {
-				continue
-			}
-			lines = append(lines, "  "+t.body().Render(pad(v.rows[i].Key, 16))+
+	lines = append(lines, pending...)
+	lines = append(lines, confirm...)
+	lines = append(lines, appearance...)
+	return strings.Join(lines, "\n")
+}
+
+// scrollTo keeps the cursor inside a window of rows.
+func (v *settingsView) scrollTo(window int) {
+	if v.cursor < v.offset {
+		v.offset = v.cursor
+	}
+	if v.cursor >= v.offset+window {
+		v.offset = v.cursor - window + 1
+	}
+	v.offset = max(min(v.offset, len(v.rows)-window), 0)
+}
+
+// pendingLines are the pending changes in at most limit lines: the heading
+// and as many changes as fit, then "…" for the rest, with the notes only
+// when there is room for everything.
+func (v *settingsView) pendingLines(ctx *viewContext, limit int) []string {
+	t := ctx.theme
+	pairs := len(v.pairs())
+	if pairs == 0 || limit < 3 {
+		return nil
+	}
+	lines := []string{"", "  " + t.heading().Render("Pending changes") + t.dim().Render(" "+strconv.Itoa(pairs))}
+	var changes []string
+	for i := range v.rows {
+		if v.changed(i) {
+			changes = append(changes, "  "+t.body().Render(pad(v.rows[i].Key, 16))+
 				t.dim().Render(v.rows[i].Current+" → ")+t.fg(t.accentText).Render(v.value(i)))
 		}
-		if v.hasKey("PUID") || v.hasKey("PGID") {
-			lines = append(lines, "  "+t.fg(t.warn).Render("! PUID/PGID changes who owns the installed Apps' files"))
-		}
-		lines = append(lines, "  "+t.dim().Render("Apps that use a changed setting are recreated."))
 	}
-	if v.confirmDiscard {
-		lines = append(lines, "", "  "+t.fg(t.warn).Render("discard "+strconv.Itoa(len(v.pairs()))+" changes? y/n"))
+	var notes []string
+	if v.hasKey("PUID") || v.hasKey("PGID") {
+		notes = append(notes, "  "+t.fg(t.warn).Render("! PUID/PGID changes who owns the installed Apps' files"))
 	}
-	lines = append(lines, v.appearanceLines(ctx, inner)...)
-	return strings.Join(lines, "\n")
+	notes = append(notes, "  "+t.dim().Render("Apps that use a changed setting are recreated."))
+	if len(lines)+len(changes)+len(notes) <= limit {
+		return append(append(lines, changes...), notes...)
+	}
+	room := limit - len(lines)
+	if len(changes) > room {
+		changes = append(changes[:room-1], "  "+t.dim().Render("…"))
+	}
+	return append(lines, changes...)
 }
 
 // appearanceLines are the Appearance pane: a sample line of the icons in

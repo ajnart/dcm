@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+
+  Host settings  enter/space edits · ctrl+s applies · tab Appearance
+
+    UMASK           022
+    MEDIA_ROOT      /home/alice/media
+  > DOWNLOADS_ROOT  /srv/downloads         (pending)
+
+  Pending changes 3
+  EXPOSURE        lan → local
+  PUID            1000 → 1001
+  DOWNLOADS_ROOT  /home/alice/downloads → /srv/downloads
+  ! PUID/PGID changes who owns the installed Apps' files
+  Apps that use a changed setting are recreated.
+
+  Appearance  icons in the Dashboard and the terminal · saved at once
+
+    Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ▶ Media  ↓ Downloads  …
+    ○ Nerd Font  richer icons, drawn by a Nerd Font installed in your terminal
+    ● Simple     plain Unicode symbols that every terminal font can draw
+
+  Learn about Nerd Fonts: https://www.nerdfonts.com
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit           ↑/↓  select   enter  edit …
