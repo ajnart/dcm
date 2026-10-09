@@ -1,0 +1,27 @@
+new-cli/internal/apps/docmost/docmost.go
+  s_a51bb9ba059db6::t_621c7391f21b41 84-98,151,154-157
+new-cli/internal/apps/navidrome/navidrome.go
+  s_a51bb9ba059db6::t_a3496d40f35ca2 54-59,63-65,67-80
+new-cli/internal/apps/tracearr/tracearr.go
+  s_a51bb9ba059db6::t_1429425675390a 194-198,203-204,206-207
+new-cli/internal/helpers/ratelimit.go
+  s_a51bb9ba059db6::t_59016d0ef5555d 1-76
+new-cli/internal/helpers/ratelimit_test.go
+  s_a51bb9ba059db6::t_c1fd040515fa9f 1-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ffdad74c4be3ed0230663392c083863c07d53545",
+  "prompts": {},
+  "sessions": {
+    "s_a51bb9ba059db6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fb0-5f05-7792-9180-d15e2386445d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
