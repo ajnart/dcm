@@ -1,0 +1,85 @@
+new-cli/internal/tui/actionmenu.go
+  s_59ffa5bfdcd3ba::t_1b5b1f5b874bba 139-144,168-179
+new-cli/internal/tui/actionmenu_test.go
+  s_59ffa5bfdcd3ba::t_a21c86c11708ce 235
+new-cli/internal/tui/apps_test.go
+  s_59ffa5bfdcd3ba::t_06e1dac074d64b 158,160
+new-cli/internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_7b2711cd83fc97 4,12,18-22,24-26,32-35,42-43,49,58-59,61-86,97,106,113-117,119-128,133-134,143-153,155-166,169-178,181-187,189-190,195-198,200-201,203-204,207-226,249,251,254-256,263-267,270,272-283,299-301,305-306,311-314,322,325,331,339,356-358,362,364-366,371-378,381-383,385-389,392,395,397-404,406-408,415
+new-cli/internal/tui/golden_test.go
+  s_59ffa5bfdcd3ba::t_b64dd28aeefba1 11-13,43-53,59,124-158
+new-cli/internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_b7e79cc8192f09 126-128,452
+new-cli/internal/tui/overview_test.go
+  s_59ffa5bfdcd3ba::t_336e2b4802a20a 1-191
+new-cli/internal/tui/pull_test.go
+  s_59ffa5bfdcd3ba::t_52fdaa54544a9e 21-22,55-56,73-74
+new-cli/internal/tui/tabs_test.go
+  s_59ffa5bfdcd3ba::t_6987fcffad4b1e 103,124-125,274
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  s_59ffa5bfdcd3ba::t_7912b4baba5743 1
+new-cli/internal/tui/testdata/activity-finished.golden
+  s_59ffa5bfdcd3ba::t_1356d70f1e0728 1
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  s_59ffa5bfdcd3ba::t_c2a817f12ce581 1
+new-cli/internal/tui/testdata/activity-running.golden
+  s_59ffa5bfdcd3ba::t_9420e7f5e024bc 1
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  s_59ffa5bfdcd3ba::t_3e05e996cb7374 1-11,13-17
+new-cli/internal/tui/testdata/menu-app.golden
+  s_59ffa5bfdcd3ba::t_6441329d693ca4 1-12,19-28
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  s_59ffa5bfdcd3ba::t_df5b72fc00f64c 1-11,13-17
+new-cli/internal/tui/testdata/menu-project.golden
+  s_59ffa5bfdcd3ba::t_d6a475b8dfed97 1-12,19-28
+new-cli/internal/tui/testdata/overview-idle-narrow.golden
+  s_59ffa5bfdcd3ba::t_9d9f95eaeb30bc 1-24
+new-cli/internal/tui/testdata/overview-idle.golden
+  s_59ffa5bfdcd3ba::t_cf5ec314292378 1-30
+new-cli/internal/tui/testdata/overview-running-narrow.golden
+  s_59ffa5bfdcd3ba::t_364bc247d0e4bb 1-24
+new-cli/internal/tui/testdata/overview-running.golden
+  s_59ffa5bfdcd3ba::t_3a65c997eb3d4d 1-30
+new-cli/internal/tui/testdata/tab-activity-narrow.golden
+  s_59ffa5bfdcd3ba::t_e1f0cb56cfdade 1
+new-cli/internal/tui/testdata/tab-activity.golden
+  s_59ffa5bfdcd3ba::t_fba08c60876e3b 1
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  s_59ffa5bfdcd3ba::t_eafb1af4e34160 1
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_402636dcf6ed4f 1
+new-cli/internal/tui/testdata/tab-apps.golden
+  s_59ffa5bfdcd3ba::t_b4a811ec75f9a7 1
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  s_59ffa5bfdcd3ba::t_30393ecc173dfa 1,4,6-10
+new-cli/internal/tui/testdata/tab-catalog.golden
+  s_59ffa5bfdcd3ba::t_3180229442cac5 1,4,6-10
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_fae041bb80d8e7 1-7,9-11,24
+new-cli/internal/tui/testdata/tab-overview.golden
+  s_59ffa5bfdcd3ba::t_165011780979e7 1-28,30
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  s_59ffa5bfdcd3ba::t_cef5e2820964ea 1
+new-cli/internal/tui/testdata/tab-settings.golden
+  s_59ffa5bfdcd3ba::t_b946f601b1ca63 1
+new-cli/internal/tui/theme_test.go
+  s_59ffa5bfdcd3ba::t_0d714af56da014 140-145,148-149,151-152,154-158
+new-cli/internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_9c9f60687e686d 5-6,272-274,276-277,281,381-388,390-391,414-415,420-422,572-574,577-581
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9e1c1e6627400ebda30aa550dec65d086074ae7",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
