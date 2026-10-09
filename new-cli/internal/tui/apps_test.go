@@ -155,8 +155,9 @@ func TestTheOverviewFollowsTheAppsTabSelection(t *testing.T) {
 
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("1"))
+	m = drive(t, m, press("a"))
 
-	if !strings.Contains(screen(m), "Sonarr logs") {
+	if !strings.Contains(screen(m), "Sonarr · Actions") {
 		t.Fatalf("the Overview should show the App selected on the Apps tab\n%s", screen(m))
 	}
 }

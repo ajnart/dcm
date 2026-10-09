@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -267,14 +269,16 @@ func firstLine(s string) string {
 
 // Header
 
-// health sums up the host checks: a label and its Status level, or no
+func (m Model) health() (label, level string) { return hostHealth(m.checks) }
+
+// hostHealth sums up the host checks: a label and its Status level, or no
 // level while the checks are still running.
-func (m Model) health() (label, level string) {
-	if len(m.checks) == 0 {
+func hostHealth(checks []host.Check) (label, level string) {
+	if len(checks) == 0 {
 		return "checking", ""
 	}
 	warn, fail := 0, 0
-	for _, c := range m.checks {
+	for _, c := range checks {
 		switch c.Level {
 		case host.Warn:
 			warn++
@@ -374,9 +378,17 @@ func fitContext(pieces []string, width int) string {
 	return right
 }
 
+// projectLabel names the Project in the header: its folder, short.
+func projectLabel(path string) string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" && strings.HasPrefix(path, home+"/") {
+		return "~/" + strings.TrimPrefix(path, home+"/")
+	}
+	return filepath.Base(path)
+}
+
 // headerContext is the right side of the header, most important first: the
-// essential host health, LAN address and newer release, then the extra
-// known updates, last refresh and version.
+// essential host health, LAN address, newer release and Project, then the
+// extra last refresh, known updates and version.
 func (m Model) headerContext() (essential, extra []string) {
 	t := m.theme
 	label, level := m.health()
@@ -399,11 +411,14 @@ func (m Model) headerContext() (essential, extra []string) {
 	if m.latest != "" {
 		essential = append(essential, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
 	}
-	if n := m.updatesAvailable(); n > 0 {
-		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		essential = append(essential, t.dim().Render(projectLabel(m.status.Project)))
 	}
 	if !m.refreshed.IsZero() {
 		extra = append(extra, t.dim().Render(m.refreshed.Format("15:04:05")))
+	}
+	if n := m.updatesAvailable(); n > 0 {
+		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
 	}
 	return essential, append(extra, t.dim().Render("v"+strings.TrimPrefix(m.opts.Version, "v")))
 }
@@ -554,10 +569,16 @@ func (m Model) renderStatusError() string {
 }
 
 // footerStatus is the status line above the bar: the running Action's
-// latest event, else the last result or flash message.
+// latest event, else the last result or flash message. On the Overview the
+// Now strip shows the Action and its result, so the line keeps only the
+// other messages.
 func (m Model) footerStatus() string {
 	t := m.theme
-	if task := m.tasks.latest(); task != nil {
+	overview := m.wizard == nil && m.surface == surfaceDashboard
+	if overview && m.flash == m.resultFlash {
+		return ""
+	}
+	if task := m.tasks.latest(); task != nil && !overview {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
 			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
