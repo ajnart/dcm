@@ -74,9 +74,11 @@ func frames(t *testing.T, m Model, n int) Model {
 	return m
 }
 
+// typeText types into the focused input; a typed character needs no
+// follow-up message, so the cursor blink it asks for is not waited for.
 func typeText(t *testing.T, m Model, text string) Model {
 	for _, r := range text {
-		m = drive(t, m, press(string(r)))
+		m = update(t, m, press(string(r)))
 	}
 	return m
 }
@@ -150,12 +152,15 @@ func TestHostChecksRevealOneAtATime(t *testing.T) {
 		t.Fatalf("Docker should be done and the daemon checking\n%s", out)
 	}
 
-	m = idle(t, m)
+	m = frames(t, m, 60)
 	out = screen(m)
 	for _, want := range []string{"✓ Docker daemon", "✓ Docker Compose", "This machine is ready"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("after the reveal the screen lacks %q\n%s", want, out)
 		}
+	}
+	if _, cmd := m.Update(frameMsg{}); yieldsFrame(cmd) {
+		t.Fatal("frames must stop once the checks are revealed")
 	}
 }
 
@@ -508,5 +513,24 @@ func TestGoldenOnboarding(t *testing.T) {
 			golden(t, "onboarding-welcome"+size.suffix, trimLines(screen(m)))
 			golden(t, "onboarding-review"+size.suffix, trimLines(screen(toReview(t, m))))
 		})
+	}
+}
+
+func TestOnboardingDrawsTheBrandThroughTheGlyphSet(t *testing.T) {
+	for _, set := range []activity.Glyphs{activity.Simple, activity.NerdFont} {
+		walkOnboarding(t, 120, 30, set, func(name string, m Model) {
+			if name != "loading" && name != "Welcome" {
+				return
+			}
+			lines := strings.Split(screen(m), "\n")
+			body := strings.Join(lines[1:], "\n")
+			if !strings.Contains(lines[0], set.Brand()) || !strings.Contains(body, "self-host") && name == "loading" ||
+				name == "loading" && !strings.Contains(body, set.Brand()) {
+				t.Fatalf("%s at %s should draw the brand %q\n%s", set, name, set.Brand(), screen(m))
+			}
+		})
+	}
+	if activity.Simple.Brand() == activity.NerdFont.Brand() {
+		t.Fatal("the two glyph sets should draw different brands")
 	}
 }

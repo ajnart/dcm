@@ -546,7 +546,7 @@ func (m Model) renderOnboarding() string {
 	case stepWelcome:
 		lines = append(lines, renderWelcome(m.theme)...)
 	case stepLook:
-		lines = append(lines, renderLook(m.theme)...)
+		lines = append(lines, renderLook(m.theme, m.glyphs)...)
 	case stepReview:
 		lines = append(lines, m.renderReview()...)
 	default:
@@ -647,10 +647,15 @@ func renderWelcome(t theme) []string {
 	}
 }
 
-func renderLook(t theme) []string {
+func renderLook(t theme, g activity.Glyphs) []string {
+	icon := func(glyph, label string) string {
+		return t.fg(t.accentText).Render(glyph) + " " + t.body().Render(label)
+	}
 	return []string{
 		"  " + t.title().Render("How self-host looks"), "",
-		"  " + t.body().Render("self-host draws its screens with symbols every terminal shows:"), "",
+		"  " + t.body().Render("self-host draws its screens with these icons:"), "",
+		"  " + strings.Join([]string{icon(g.Brand(), "self-host"), icon(g.Docker(), "Docker"), icon(g.Key(), "key"),
+			icon(g.Link(), "link"), icon(g.Category("Media"), "Media")}, "  "), "",
 		"  " + t.fg(t.ok).Render("✓ done") + "   " + t.fg(t.warn).Render("! needs you") + "   " + t.fg(t.fail).Render("✗ failed") +
 			"   " + t.fg(t.accentText).Render("⠋ working"),
 	}

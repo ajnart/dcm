@@ -190,6 +190,10 @@ func drive(t *testing.T, m Model, msg tea.Msg) Model {
 	return m
 }
 
+// cmdWait is how long drive waits for a command before it takes it for a
+// listener or a timer. The Backend fake answers at once, so it is short.
+const cmdWait = 40 * time.Millisecond
+
 func runCmd(cmd tea.Cmd) []tea.Msg {
 	if cmd == nil {
 		return nil
@@ -220,8 +224,8 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 			}
 			return []tea.Msg{msg}
 		}
-	case <-time.After(200 * time.Millisecond):
-		return nil // long-lived listeners (log follow) are dropped
+	case <-time.After(cmdWait):
+		return nil // long-lived listeners (log follow) and cursor blinks are dropped
 	}
 }
 
