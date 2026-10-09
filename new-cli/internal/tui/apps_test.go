@@ -1,6 +1,7 @@
 package tui
 
 import (
+	tea "charm.land/bubbletea/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -256,4 +257,83 @@ func TestTheLogStreamStopsWhenLogsLeaveTheScreen(t *testing.T) {
 	m = drive(t, m, press("3"))
 	running(0)
 	_ = m
+}
+
+func TestContainersSubTabShowsCPUAndMemoryBars(t *testing.T) {
+	m, backend := appsHost(t)
+	backend.usage = []service.ContainerUsage{
+		{Service: "jellyfin", CPU: 0.5, Mem: 0.25, MemBytes: 512 << 20},
+		{Service: "sonarr", CPU: 1, Mem: 1, MemBytes: 2048 << 20},
+	}
+
+	m = drive(t, m, press("["))
+
+	out := screen(m)
+	if want := "  cpu ━━━━━━──────  mem ━━━─────────  512 MiB"; !strings.Contains(out, want) {
+		t.Fatalf("Jellyfin's row lacks %q\n%s", want, out)
+	}
+	if strings.Contains(out, "%") {
+		t.Fatalf("usage is shown as bars, not percentages\n%s", out)
+	}
+	m = drive(t, m, press("down"))
+	if want := "  cpu ━━━━━━━━━━━━  mem ━━━━━━━━━━━━  2048 MiB"; !strings.Contains(screen(m), want) {
+		t.Fatalf("Sonarr's row lacks %q\n%s", want, screen(m))
+	}
+}
+
+func TestContainersWithoutUsageShowNoBars(t *testing.T) {
+	m, _ := appsHost(t)
+
+	m = drive(t, m, press("["))
+
+	if out := screen(m); strings.Contains(out, "cpu ") || strings.Contains(out, "MiB") {
+		t.Fatalf("no stats arrived, so no bars\n%s", out)
+	}
+}
+
+func TestTheUsageStreamRunsOnlyOnTheContainersSubTab(t *testing.T) {
+	m, backend := appsHost(t)
+	backend.usage = []service.ContainerUsage{{Service: "jellyfin", CPU: 0.5, Mem: 0.25, MemBytes: 512 << 20}}
+	running := func(want int) {
+		t.Helper()
+		for range 100 {
+			if _, n := backend.usageStreams(); n == want {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		_, n := backend.usageStreams()
+		t.Fatalf("want %d running usage stream(s), have %d", want, n)
+	}
+
+	running(0)
+	m = drive(t, m, press("]")) // setup
+	running(0)
+	m = drive(t, m, press("[")) // logs
+	m = drive(t, m, press("[")) // containers
+	running(1)
+	m = drive(t, m, press("down")) // another App keeps the one stream
+	if started, _ := backend.usageStreams(); started != 1 {
+		t.Fatalf("moving between Apps restarted the usage stream: %d started", started)
+	}
+	m = drive(t, m, press("]"))
+	running(0)
+	m = drive(t, m, press("["))
+	running(1)
+	m = drive(t, m, press("3"))
+	running(0)
+	_ = m
+}
+
+func TestWhenTheBarsCannotFitOnlyTheMemoryInUseRemains(t *testing.T) {
+	m, backend := appsHost(t)
+	backend.usage = []service.ContainerUsage{{Service: "jellyfin", CPU: 0.5, Mem: 0.25, MemBytes: 512 << 20}}
+	m = drive(t, m, tea.WindowSizeMsg{Width: 60, Height: 24})
+
+	m = drive(t, m, press("["))
+
+	out := screen(m)
+	if !strings.Contains(out, "│   512 MiB ") || strings.Contains(out, "cpu") || strings.Contains(out, "━") {
+		t.Fatalf("too narrow for bars: expected only the MiB under the row\n%s", out)
+	}
 }

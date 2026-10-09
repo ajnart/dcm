@@ -37,6 +37,9 @@ type appDetails struct {
 	logLines []string
 	stream   *logStream
 	compose  map[string]string
+	// usage is the latest load per Compose service while the usage stream runs.
+	usage       map[string]service.ContainerUsage
+	usageStream *usageStream
 }
 
 func newAppDetails() *appDetails {
@@ -104,7 +107,7 @@ func (d *appDetails) content(ctx *viewContext, app service.AppStatus, found bool
 	case d.tab == tabInfo:
 		d.vp.SetContent(renderInfo(t, app, d.vp.Width()))
 	case d.tab == tabContainers:
-		d.vp.SetContent(renderContainers(ctx, app, d.vp.Width()))
+		d.vp.SetContent(renderContainers(ctx, app, d.usage, d.vp.Width()))
 	}
 }
 
@@ -159,6 +162,36 @@ func (d *appDetails) syncLogs(ctx *viewContext, target string) tea.Cmd {
 	return waitLog(stream)
 }
 
+func (d *appDetails) stopUsage() {
+	if d.usageStream != nil {
+		d.usageStream.cancel()
+		d.usageStream = nil
+		d.usage = nil
+	}
+}
+
+// syncUsage follows the Project's containers' load; one stream serves every
+// App, so it starts once and keeps running while the sub-tab is shown.
+func (d *appDetails) syncUsage(ctx *viewContext) tea.Cmd {
+	if d.usageStream != nil {
+		return nil
+	}
+	streamCtx, cancel := context.WithCancel(context.Background())
+	stream := &usageStream{ch: make(chan []service.ContainerUsage, 1), cancel: cancel}
+	d.usageStream = stream
+	backend := ctx.backend
+	go func() {
+		backend.Usage(streamCtx, func(usage []service.ContainerUsage) {
+			select {
+			case stream.ch <- usage:
+			case <-streamCtx.Done():
+			}
+		})
+		close(stream.ch)
+	}()
+	return waitUsage(stream)
+}
+
 const maxLogLines = 2000
 
 // appendLogs adds lines and keeps following the end unless scrolled up.
@@ -190,6 +223,18 @@ func (d *appDetails) update(ctx *viewContext, app service.AppStatus, found bool,
 		}
 		d.appendLogs(msg.text)
 		return waitLog(msg.stream)
+	case usageMsg:
+		if msg.stream != d.usageStream || msg.done {
+			return nil
+		}
+		d.usage = make(map[string]service.ContainerUsage, len(msg.usage))
+		for _, u := range msg.usage {
+			d.usage[u.Service] = u
+		}
+		if d.tab == tabContainers {
+			d.content(ctx, app, found)
+		}
+		return waitUsage(msg.stream)
 	case composeMsg:
 		text := msg.text
 		if msg.err != nil {
@@ -304,7 +349,7 @@ func renderInfo(t theme, app service.AppStatus, width int) string {
 // renderContainers is the App's containers and images: a summary with the
 // update state, then per container its service, state, health and, when
 // they fit, uptime and ports, with its image on the line below.
-func renderContainers(ctx *viewContext, app service.AppStatus, width int) string {
+func renderContainers(ctx *viewContext, app service.AppStatus, usage map[string]service.ContainerUsage, width int) string {
 	t := ctx.theme
 	var mine []service.ContainerStatus
 	running := 0
@@ -349,6 +394,9 @@ func renderContainers(ctx *viewContext, app service.AppStatus, width int) string
 			line += t.dim().Render(strings.Join(c.Ports, " "))
 		}
 		lines = append(lines, truncate(line, width))
+		if u, ok := usage[c.Service]; ok && c.State == "running" {
+			lines = append(lines, usageLine(ctx, u, width))
+		}
 		image := c.Image
 		if image == "" {
 			image = app.Image
@@ -358,6 +406,28 @@ func renderContainers(ctx *viewContext, app service.AppStatus, width int) string
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+const (
+	usageBarMax = 12
+	usageBarMin = 4
+)
+
+// usageLine is a container's CPU and memory bars under its row, then the
+// MiB in use. The bars share the width left after their labels and the MiB,
+// at most usageBarMax cells each; when they would be narrower than
+// usageBarMin they are dropped and only the MiB stay, so the row's own
+// columns are never cut for them.
+func usageLine(ctx *viewContext, u service.ContainerUsage, width int) string {
+	t := ctx.theme
+	mib := fmt.Sprintf("%d MiB", u.MemBytes>>20)
+	cells := min((width-len("  cpu ")-len("  mem ")-len("  ")-len(mib))/2, usageBarMax)
+	if cells < usageBarMin {
+		return truncate(t.dim().Render("  "+mib), width)
+	}
+	p := t.palette()
+	return t.dim().Render("  cpu ") + activity.SlimBar(u.CPU, cells, p) +
+		t.dim().Render("  mem ") + activity.SlimBar(u.Mem, cells, p) + t.dim().Render("  "+mib)
 }
 
 // updateMark is one App's update state.
@@ -392,6 +462,20 @@ func (w chanWriter) Write(p []byte) (int, error) {
 		return len(p), nil
 	case <-w.ctx.Done():
 		return 0, w.ctx.Err()
+	}
+}
+
+// usageStream carries one Usage run's samples; the channel closes when the
+// run ends.
+type usageStream struct {
+	ch     chan []service.ContainerUsage
+	cancel context.CancelFunc
+}
+
+func waitUsage(stream *usageStream) tea.Cmd {
+	return func() tea.Msg {
+		usage, ok := <-stream.ch
+		return usageMsg{stream: stream, usage: usage, done: !ok}
 	}
 }
 

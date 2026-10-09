@@ -55,6 +55,33 @@ type fakeBackend struct {
 	holdLogs    bool
 	logStarts   int
 	logsRunning int
+	// usage is what the Usage stream reports; usageStarts counts the streams
+	// opened and usageRunning those still open.
+	usage        []service.ContainerUsage
+	usageStarts  int
+	usageRunning int
+}
+
+func (f *fakeBackend) usageStreams() (started, running int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.usageStarts, f.usageRunning
+}
+
+func (f *fakeBackend) Usage(ctx context.Context, emit func([]service.ContainerUsage)) error {
+	f.mu.Lock()
+	f.usageStarts++
+	f.usageRunning++
+	usage := f.usage
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		f.usageRunning--
+		f.mu.Unlock()
+	}()
+	emit(usage)
+	<-ctx.Done()
+	return ctx.Err()
 }
 
 func (f *fakeBackend) logStreams() (started, running int) {
@@ -879,6 +906,7 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	backend.containers = []service.ContainerStatus{
 		{App: "jellyfin", Service: "jellyfin", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
 	}
+	backend.usage = []service.ContainerUsage{{Service: "jellyfin", CPU: 0.18, Mem: 0.31, MemBytes: 2540 << 20}}
 
 	check := func(name string, m Model) {
 		t.Helper()

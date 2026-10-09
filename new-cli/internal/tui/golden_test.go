@@ -62,6 +62,10 @@ func goldenModel(t *testing.T, width, height int) Model {
 		{App: "sonarr", Service: "sonarr", State: "running", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8989→8989"}},
 		{App: "whoami", Service: "whoami", State: "exited", Status: "Exited (0) 1 hour ago"},
 	}
+	backend.usage = []service.ContainerUsage{
+		{Service: "jellyfin", CPU: 0.18, Mem: 0.31, MemBytes: 2540 << 20},
+		{Service: "sonarr", CPU: 0.02, Mem: 0.06, MemBytes: 480 << 20},
+	}
 	backend.updates = map[string]string{"jellyfin": "available"}
 	backend.review = []service.SettingReview{
 		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
@@ -114,12 +118,19 @@ func TestGoldenActionMenus(t *testing.T) {
 }
 
 func TestGoldenAppsContainers(t *testing.T) {
-	m := goldenModel(t, 120, 30)
-	m = drive(t, m, press("2"))
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		t.Run("containers"+size.suffix, func(t *testing.T) {
+			m := goldenModel(t, size.width, size.height)
+			m = drive(t, m, press("2"))
 
-	m = drive(t, m, press("[")) // logs → containers
+			m = drive(t, m, press("[")) // logs → containers
 
-	golden(t, "tab-apps-containers", trimLines(screen(m)))
+			golden(t, "tab-apps-containers"+size.suffix, trimLines(screen(m)))
+		})
+	}
 }
 
 // TestGoldenOverview is the Overview idle after an Action, with its result

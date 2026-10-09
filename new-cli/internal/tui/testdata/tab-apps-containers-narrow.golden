@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Apps 3 ───────────────────╮╭─ Jellyfin ─────────────────────────────────────╮
+│ ● ♫ Jellyfin     running   ││  logs   setup   info   compose   containers    │
+│ ✗ ↓ Sonarr       running   ││ ────────────────────────────────────────────── │
+│ ✗ ◇ whoami       stopped   ││ 1 container · 1 running · ⚠ update available · │
+│                            ││                                                │
+│                            ││ SERVICE               STATE     HEALTH         │
+│                            ││ jellyfin              running   healthy        │
+│                            ││   cpu ━━──────────  mem ━━━╸────────  2540 MiB │
+│                            ││   image lscr.io/linuxserver/jellyfin:latest    │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+╰────────────────────────────╯╰────────────────────────────────────────────────╯
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   a  actions …
