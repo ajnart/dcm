@@ -191,7 +191,7 @@ func (v *appsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		return v, nil, nav{}
 	case clickMsg:
 		return v, v.click(ctx, msg.id), nav{}
-	case logChunkMsg, composeMsg:
+	case logChunkMsg, composeMsg, usageMsg:
 		app, found := v.selected(ctx)
 		return v, v.details.update(ctx, app, found, msg), nav{}
 	case copyOptionsMsg:

@@ -46,7 +46,7 @@ func PullBlock(s Snapshot, width int, p Palette) []string {
 	lines := []string{ansi.Truncate(header, width, "…")}
 	for _, img := range pull.Images {
 		label := ansi.Truncate(img.Label, labelWidth-1, "…")
-		line := "  " + style(p.Text).Render(pad(label, labelWidth)) + slimBar(img.Fraction, bar, p)
+		line := "  " + style(p.Text).Render(pad(label, labelWidth)) + SlimBar(img.Fraction, bar, p)
 		if img.Done {
 			line += "  " + style(p.OK).Render("✓")
 		} else if pull.Failed {
@@ -90,8 +90,8 @@ func heavyBar(fraction float64, cells int, p Palette) string {
 	return style(p.Accent).Render(fill) + style(p.Faint).Render(strings.Repeat("░", rest))
 }
 
-// slimBar fills cells in halves of a cell over a thin line.
-func slimBar(fraction float64, cells int, p Palette) string {
+// SlimBar fills cells in halves of a cell over a thin line.
+func SlimBar(fraction float64, cells int, p Palette) string {
 	halves := int(clamp(fraction) * float64(cells*2))
 	full := halves / 2
 	fill := strings.Repeat("━", full)

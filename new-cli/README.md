@@ -183,8 +183,10 @@ stay plain.
 
 The Apps tab holds everything about one App: the App list on the left and
 App details on the right, including its containers and images with their
-state, health, uptime, ports and update state. `r` there reloads the
-containers and checks for updates again.
+state, health, uptime, ports and update state. While the containers sub-tab
+is open, each running container also shows CPU (of the whole machine) and
+memory (of its limit, or the machine's memory) bars with the MiB in use.
+`r` there reloads the containers and checks for updates again.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.
