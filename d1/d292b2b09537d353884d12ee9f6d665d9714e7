@@ -1,0 +1,18 @@
+.github/workflows/new-cli-e2e.yml
+  h_d6e478ca18e517 8
+.github/workflows/new-cli-release.yml
+  h_d6e478ca18e517 5,36-39,43-45
+new-cli/.goreleaser.yaml
+  h_d6e478ca18e517 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d1d292b2b09537d353884d12ee9f6d665d9714e7",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
