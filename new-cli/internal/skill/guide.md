@@ -43,6 +43,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 | `self-host apps info <app>` | One App's image, port, inputs, Links |
 | `self-host start [app...]` | Start Apps (all when none named) |
 | `self-host stop [app...]` | Stop Apps |
+| `self-host up` | Start every App in the Project |
+| `self-host down` | Take down the Project's containers and networks; App files, state and volumes stay |
 | `self-host restart [app...]` | Restart Apps |
 | `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
 | `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
