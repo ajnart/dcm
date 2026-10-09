@@ -1,0 +1,21 @@
+new-cli/internal/tui/glyphs_test.go
+  s_59ffa5bfdcd3ba::t_bc15288c048702 242-269
+new-cli/internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_6579f8642928b1 15,256,297,353-356,358-364,367,369,372,374-377,380,382,386-390,404-427,437,445-446,455-457,459-461,473,475-476
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d0c2d101701a736465ae323ce8cbd33df87b5176",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
