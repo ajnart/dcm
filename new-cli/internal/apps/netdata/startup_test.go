@@ -56,6 +56,20 @@ func TestStartupRemovesOnlyProvenStockShortcutAndPreservesArguments(t *testing.T
 					t.Fatal(err)
 				}
 			}
+			for _, dir := range []string{filepath.Join(stock, "conf.d"), filepath.Join(config, "conf.d")} {
+				if err := os.Mkdir(dir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.WriteFile(filepath.Join(stock, "conf.d", "kept"), []byte("stock nested kept"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(stock, "conf.d", "missing"), []byte("stock nested missing"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(config, "conf.d", "kept"), []byte("custom nested kept"), 0o600); err != nil {
+				t.Fatal(err)
+			}
 			if err := os.Symlink("//usr/lib/netdata/conf.d", filepath.Join(stock, "orig")); err != nil {
 				t.Fatal(err)
 			}
@@ -90,11 +104,17 @@ func TestStartupRemovesOnlyProvenStockShortcutAndPreservesArguments(t *testing.T
 			// existing ones, and still exits zero when a destination is
 			// present. BSD cp -n reports a skip as exit status 1.
 			body := "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$@\" > '" + argsFile + "'\n" +
-				"for src in '" + stock + "'/*; do\n" +
-				"  name=${src##*/}\n" +
-				"  if [ -e \"" + config + "/$name\" ] || [ -L \"" + config + "/$name\" ]; then continue; fi\n" +
-				"  cp -P \"$src\" '" + config + "/'\n" +
-				"done\n"
+				"(\n" +
+				"  cd '" + stock + "'\n" +
+				"  find . -mindepth 1 | while IFS= read -r rel; do\n" +
+				"    rel=${rel#./}\n" +
+				"    dest='" + config + "'/$rel\n" +
+				"    if [ -e \"$dest\" ] || [ -L \"$dest\" ]; then continue; fi\n" +
+				"    if [ -d \"$rel\" ] && [ ! -L \"$rel\" ]; then mkdir -p \"$dest\"; continue; fi\n" +
+				"    mkdir -p \"${dest%/*}\"\n" +
+				"    cp -P \"$rel\" \"$dest\"\n" +
+				"  done\n" +
+				")\n"
 			if err := os.WriteFile(official, []byte(body), 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -118,6 +138,12 @@ func TestStartupRemovesOnlyProvenStockShortcutAndPreservesArguments(t *testing.T
 			}
 			if _, err := os.Lstat(filepath.Join(stock, "orig")); !os.IsNotExist(err) {
 				t.Fatal("image shortcut can be reseeded into config")
+			}
+			if data, err := os.ReadFile(filepath.Join(config, "conf.d", "kept")); err != nil || string(data) != "custom nested kept" {
+				t.Fatal("existing nested file changed")
+			}
+			if data, err := os.ReadFile(filepath.Join(config, "conf.d", "missing")); err != nil || string(data) != "stock nested missing" {
+				t.Fatal("missing nested file not copied")
 			}
 			switch state {
 			case "fresh", "known-link":
