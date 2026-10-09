@@ -1,0 +1,43 @@
+new-cli/internal/tui/backend.go
+  s_765ccb2ae3482a::t_29fe6b514807e8 5-6,9,21,82-91,114-116,171-218
+new-cli/internal/tui/backend_update_test.go
+  s_4f5c3f12c60544::t_8739fb6594a28c 1-45
+new-cli/internal/tui/harness_test.go
+  s_4f5c3f12c60544::t_a0145c9f01e3ed 77-86,159-184
+new-cli/internal/tui/model.go
+  s_765ccb2ae3482a::t_ed3965626b5e7e 47,93-95,129-137,251,344,426-428,431,492,713-714,846-848,891-893
+new-cli/internal/tui/release_test.go
+  s_765ccb2ae3482a::t_1ecedbb1618f58 15,17,37
+new-cli/internal/tui/run.go
+  s_765ccb2ae3482a::t_38a40c2bc72f62 11-19
+new-cli/internal/tui/updateprompt.go
+  s_765ccb2ae3482a::t_5f92f2316effcf 1-162
+new-cli/internal/tui/updateprompt_test.go
+  s_765ccb2ae3482a::t_6739b3c9f88263 1-220
+new-cli/internal/tui/view.go
+  s_765ccb2ae3482a::t_e9f8271db0f644 618-620
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af4a212f8b3936cc5ba80569e3bd578232153016",
+  "prompts": {},
+  "sessions": {
+    "s_4f5c3f12c60544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bd20071-f191-45b1-a8aa-b87b0f7aa7bf",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_765ccb2ae3482a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "141b18b3-5f99-4461-b795-5223059869e0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
