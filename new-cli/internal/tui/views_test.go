@@ -103,6 +103,31 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 	}
 }
 
+func TestHelpViewShowsBothDonationLinksAsHyperlinks(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.width, ctx.height = 80, 24
+	v := newHelpView()
+	v.open(ctx, []pane{{"Global", ctx.keys.global()}})
+
+	styled := v.View(ctx, 80, 30)
+	out := ansi.Strip(styled)
+	for _, want := range []string{"Buy us a coffee", "Sponsor on GitHub"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("help view lacks %q\n%s", want, out)
+		}
+	}
+	for _, url := range []string{"https://ko-fi.com/ajnart", "https://github.com/sponsors/ajnart"} {
+		if !strings.Contains(styled, ansi.SetHyperlink(url)) {
+			t.Fatalf("help view has no OSC 8 link to %s: %q", url, styled)
+		}
+	}
+	for i, line := range strings.Split(out, "\n") {
+		if w := ansi.StringWidth(line); w > 80 {
+			t.Fatalf("help line %d is %d columns wide: %q", i, w, line)
+		}
+	}
+}
+
 func activityStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
 		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{

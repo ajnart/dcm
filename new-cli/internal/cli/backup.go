@@ -38,7 +38,7 @@ func (a *program) backupCmds() []*cobra.Command {
 			return a.fail(err)
 		},
 	}
-	backupCmd.Flags().StringVarP(&out, "output", "o", "", "archive path (default ~/self-host/backups/selfhost-DATE.tar.zst)")
+	backupCmd.Flags().StringVarP(&out, "output", "o", "", "archive path (default ~/.self-host/backups/selfhost-DATE.tar.zst)")
 	backupCmd.Flags().BoolVar(&encrypt, "encrypt", false, "encrypt with an age passphrase (SELF_HOST_BACKUP_PASSPHRASE)")
 
 	var yes bool

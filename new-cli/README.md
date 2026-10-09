@@ -6,7 +6,7 @@ in your Project. Come back to the terminal Dashboard to open Apps, check health,
 retry Setup, update images, or make a Backup.
 
 One Go binary runs both the terminal interface and plain commands for agents.
-Apps share one Docker Compose Project, normally in `~/self-host`. The Catalog,
+Apps share one Docker Compose Project, normally in `~/.self-host`. The Catalog,
 Setup code and agent guide ship inside the binary; running it needs no Node.js,
 Bun, checkout, or AI account.
 
@@ -301,7 +301,7 @@ those services again. It includes App folders, Host settings, state and secrets;
 external media/download libraries and data stored outside App folders are not
 included. Even a single-App Backup contains Project credential metadata.
 
-The default destination is `~/self-host/backups/selfhost-DATE.tar.zst`, with
+The default destination is `~/.self-host/backups/selfhost-DATE.tar.zst`, with
 `.age` added for encryption. Restore replaces the selected Apps' current data
 and asks for confirmation; `--yes` skips it. A fresh Project requires a full
 Backup restore before selective restores are possible. Review Host settings on
