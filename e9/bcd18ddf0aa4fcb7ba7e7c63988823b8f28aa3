@@ -1,0 +1,44 @@
+new-cli/internal/tui/activity_live_view_test.go
+  h_d6e478ca18e517 17,56,72,83,93,113
+new-cli/internal/tui/activity_tab_test.go
+  h_d6e478ca18e517 1-207
+new-cli/internal/tui/activity_view.go
+  h_d6e478ca18e517 12,22-23,28,38,45,49,53,60,68-69,83-84,86,91,97,101,117,134,139,154,205,207,211-219,261
+new-cli/internal/tui/activity_view_test.go
+  h_d6e478ca18e517 16,18-19,63
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 184,343,398,428,514,557-558,772-773,852,867
+new-cli/internal/tui/host_test.go
+  h_d6e478ca18e517 58-59
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 17,58-60,101-106,133,149-150,158,166-193,279,293,351-352,477-479,516,539-540,560-562,614,620,625-640,702
+new-cli/internal/tui/tasks.go
+  h_d6e478ca18e517 102-108
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/theme_test.go
+  h_d6e478ca18e517 79
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 5,25,32,42,92-95,126-130,138-167,169,201,492,552
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 210,223,239,276,300,305,349,352,373,376,394,405,433,441,483
+new-cli/internal/tui/wizard.go
+  h_d6e478ca18e517 389,464
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e9bcd18ddf0aa4fcb7ba7e7c63988823b8f28aa3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
