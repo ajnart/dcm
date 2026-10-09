@@ -1,0 +1,40 @@
+new-cli/README.md
+  h_d6e478ca18e517 117-131
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 50-51,65
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 475-477
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 4,66-67,158,161,169,207-220,225,233-235,243,245-248,250-251,253-254,257-261,264-266,269,281-375,413,536-543,583-585,589,602-604,611-621,642-643,657-658,684,688-691,695-698,793-814,816
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 6,106-124,530-537,565-832
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 445,461-476,478
+new-cli/internal/tui/testdata/onboarding-look-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-look.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-what-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-what.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-who-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-who.golden
+  h_d6e478ca18e517 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5081ba20696ff6b6350ecd3312a2c514663c1488",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
