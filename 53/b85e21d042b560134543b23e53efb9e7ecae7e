@@ -1,0 +1,33 @@
+new-cli/e2e/authelia_fixture_test.go
+  s_a2fd509a765bab::t_2dd74e5748382e 75
+new-cli/e2e/fixture_tls_client_test.go
+  s_a2fd509a765bab::t_8d9b58cf4539bd 1-32
+new-cli/e2e/netbird_fixture_test.go
+  s_a2fd509a765bab::t_6121d675039a3f 71,108-113
+new-cli/internal/apps/netdata/startup_test.go
+  s_95f2547e24b970::t_9dcc93b8b1df44 89-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53b85e21d042b560134543b23e53efb9e7ecae7e",
+  "prompts": {},
+  "sessions": {
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
