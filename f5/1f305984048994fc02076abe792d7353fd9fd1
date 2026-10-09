@@ -1,0 +1,20 @@
+new-cli/internal/cli/selfupdate_test.go
+  h_d6e478ca18e517 57,74,306-316
+new-cli/internal/release/channel_test.go
+  h_d6e478ca18e517 19-28,31,34,38-44,50-108,202-236
+new-cli/internal/release/release.go
+  h_d6e478ca18e517 20,28-31,33-34,36,44,70-102,115-117,129,139-151,209-211,213-215,227,237,246,249,308-310
+new-cli/internal/release/release_test.go
+  h_d6e478ca18e517 3-10,46-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f51f305984048994fc02076abe792d7353fd9fd1",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
