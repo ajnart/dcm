@@ -383,30 +383,36 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 		lines = append(lines, t.dim().Render("No Apps yet. Press i to install one."))
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		line := v.appRow(ctx, rows[i], inner)
+		level := service.Level(rows[i])
+		row := v.appRow(ctx, rows[i], inner-2)
+		line := t.dot(level) + " " + row
 		if i == v.cursor {
-			line = lipgloss.NewStyle().Background(t.selected).Bold(true).Render(pad(keepDot(line), inner))
+			// One background under the whole row so per-cell colours do not
+			// punch holes in it; the Status glyph keeps its colour.
+			dot := t.fg(t.levelColor(level)).Background(t.selected).Bold(true).Render(t.glyph(level) + " ")
+			line = dot + t.selection().Render(pad(stripANSI(row), inner-2))
 		}
 		lines = append(lines, line)
 		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
 	}
-	title := t.heading().Render("Apps") + t.dim().Render(" "+strconv.Itoa(len(rows)))
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
+	// Until panes take focus, the Apps list holding the cursor is the focused one.
+	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, true), layers
 }
 
-// appRow is one App: Status dot, name, URL, state, Setup and update marks.
+// appRow is one App after its Status dot: name, URL, state, Setup and
+// update marks.
 func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) string {
 	t := ctx.theme
 	update := " "
 	if a.Update == service.UpdateAvailable {
 		update = t.fg(t.warn).Render("↑")
 	}
-	urlWidth := min(width-29, 26)
+	urlWidth := min(width-27, 26)
 	url := ""
 	if urlWidth >= 12 {
 		url = t.dim().Render(pad(a.URL, urlWidth)) + " "
 	}
-	return t.dot(service.Level(a)) + " " + t.body().Render(pad(a.Name, 13)) + " " + url +
+	return t.body().Render(pad(a.Name, 13)) + " " + url +
 		pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
 }
 
@@ -430,17 +436,7 @@ func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string 
 	case stepstatus.SetupPending:
 		return t.fg(t.warn).Render("…")
 	}
-	return t.dim().Render("–")
-}
-
-// The selected row is redrawn on one background so per-cell colours do not
-// punch holes in the highlight; the dot keeps its colour.
-func keepDot(line string) string {
-	dot, rest, found := strings.Cut(line, "● ")
-	if !found {
-		return line
-	}
-	return dot + "● " + stripANSI(rest)
+	return t.disabled().Render("–")
 }
 
 // need is one Needs action item and the Action that resolves it.
@@ -508,7 +504,7 @@ func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []str
 		}
 		head := icon + " " + t.body().Render(it.text)
 		if it.key != "" {
-			action := t.fg(t.accent).Bold(true).Render(it.key) + t.dim().Render(" "+it.desc)
+			action := t.title().Render(it.key) + t.dim().Render(" "+it.desc)
 			if gap := width - lipgloss.Width(head) - lipgloss.Width(action); gap >= 2 {
 				lines, apps = append(lines, head+strings.Repeat(" ", gap)+action), append(apps, it.app)
 				continue
@@ -531,11 +527,11 @@ func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, y int) (str
 			layers = append(layers, lipgloss.NewLayer(lines[i]).X(2).Y(y+1+i).ID("app:"+app))
 		}
 	}
-	title := t.heading().Render("Needs action")
+	note := ""
 	if n := len(v.needsAction(ctx)); n > 0 {
-		title += t.dim().Render(" " + strconv.Itoa(n))
+		note = strconv.Itoa(n)
 	}
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
+	return t.box("Needs action", note, strings.Join(lines, "\n"), width, height, false), layers
 }
 
 func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int) (string, []*lipgloss.Layer) {
@@ -545,42 +541,42 @@ func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int)
 	var layers []*lipgloss.Layer
 	tx := x + 2
 	for i, name := range detailTabs {
-		style := t.dim()
+		style := t.inactive()
 		if detailTab(i) == v.tab {
-			style = lipgloss.NewStyle().Bold(true).Foreground(t.bright).Background(t.selected)
+			style = t.current()
 		}
-		rendered := style.Render(" " + name + " ")
+		rendered := " " + style.Render(name) + " "
 		layers = append(layers, lipgloss.NewLayer(rendered).X(tx).Y(y+1).ID("tab:"+strconv.Itoa(i)))
 		tabs = append(tabs, rendered)
 		tx += lipgloss.Width(rendered) + 1
 	}
 	app, found := v.selected(ctx)
-	title := t.heading().Render("Details")
+	title, note := "Details", ""
 	var body string
 	switch {
 	case !found:
 		body = t.dim().Render("Select an App.")
 	case v.tab == tabSetup:
-		title = t.heading().Render(app.Name)
+		title = app.Name
 		body = renderSetup(t, app, inner)
 	case v.tab == tabInfo:
-		title = t.heading().Render(app.Name)
+		title = app.Name
 		body = renderInfo(t, app, inner)
 	case v.tab == tabCompose:
-		title = t.heading().Render(app.Name) + t.dim().Render(" apps/"+app.ID+"/compose.yml")
+		title, note = app.Name, "apps/"+app.ID+"/compose.yml"
 		body = v.details.View()
 		if v.compose[app.ID] == "" {
 			body = t.dim().Render("reading the Compose file…")
 		}
 	default:
-		title = t.heading().Render(app.Name) + t.dim().Render(" logs")
+		title, note = app.Name, "logs"
 		body = v.details.View()
 		if len(v.logLines) == 0 {
 			body = t.dim().Render("waiting for logs…")
 		}
 	}
 	content := strings.Join(tabs, " ") + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
-	return t.box(title, content, width, height), layers
+	return t.box(title, note, content, width, height, false), layers
 }
 
 func renderSetup(t theme, app service.AppStatus, width int) string {

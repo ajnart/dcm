@@ -123,7 +123,7 @@ func (p *copyPicker) view(ctx *viewContext, width, height int) string {
 		for i := start; i < len(p.rows) && i-start < visible; i++ {
 			line := "  " + p.rows[i].label
 			if i == p.cursor {
-				line = t.fg(t.accent).Bold(true).Render("> " + p.rows[i].label)
+				line = t.title().Render("> " + p.rows[i].label)
 			}
 			lines = append(lines, "  "+truncate(line, max(width-4, 1)))
 		}
