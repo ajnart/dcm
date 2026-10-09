@@ -1,0 +1,26 @@
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 441-442
+new-cli/internal/tui/install.go
+  h_d6e478ca18e517 427
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 2
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 2
+new-cli/internal/tui/theme.go
+  h_d6e478ca18e517 9-10,46-48,51-53,55,59-71,73
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 231-233,235,248,250,252,343,345-347
+new-cli/internal/tui/wizard.go
+  h_d6e478ca18e517 392
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "390032912f5baf4894a0d2c6e701456fbfcee51e",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
