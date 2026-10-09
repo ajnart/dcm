@@ -79,9 +79,9 @@ secrets, made only on request. Media libraries are not included.
 Putting one App, or every App, back from a Backup.
 
 **Dashboard**:
-The one screen a person sees for an existing Project: every App with its
-Status, what Needs action, and the selected App's details. There are no other
-screens; first run is the install flow, not a screen.
+The tabbed command center a person sees for an existing Project: Overview
+(every App with its Status, what Needs attention, and the Action running now),
+Apps, Activity, Catalog and Settings. Onboarding hands over to it.
 _Avoid_: screens, pages, control panel
 
 **Status**:
@@ -89,38 +89,45 @@ An App's health at a glance: **ok** (green), **attention** (yellow) or
 **broken** (red), combined from its container, its health check and its Setup.
 _Avoid_: state (the container's state is one input to Status)
 
-**Needs action**:
+**Needs attention**:
 The things a person must deal with: a failed Setup step, a Manual step, an
 available update, a failing or warning host check. Each item names the one Action that resolves
 it, or the command to run when no Action exists.
+_Avoid_: needs action
 
 **Action**:
-Something a person triggers often enough to deserve a key: install, start or
-stop, update, retry Setup, backup, copy a password or API key, open an App.
-Everything else (remove, restore, config, credentials listing…) is only a
-command.
+A change a person triggers on one App or on the whole Project: install, start
+or stop, restart, update, retry Setup, backup, remove. In the Dashboard every
+Action goes through the Action menu; restore and config stay commands.
+
+**Action menu**:
+The menu that `a` opens for the selected App (`A` for the Project). It lists
+only the Actions valid in the current state, previews what the highlighted one
+will do, and runs it only on `enter`; destructive ones need a second `enter`.
+_Avoid_: context menu, shortcut
 
 **App details**:
-The read-only view of the selected App, in tabs: logs, Setup, info and its
-Compose file.
+The read-only view of the selected App on the Apps tab, in sub-tabs: logs,
+Setup, info and its Compose file.
 _Avoid_: sidebar
 
-**Workflow view**:
-The step tracker opened with `w`: every App's remembered steps from render,
-pull and start (when recorded), through Setup and Links to check, with each
-step's state. It counts Apps fully set up and failed steps; `esc` returns to
-the Dashboard.
+**Activity**:
+The Dashboard tab that shows the running or most recent Action as it unfolds
+(pull, start, Setup steps, credentials, Links, check), then every App's
+remembered steps with their state. It takes focus when an Action starts.
+_Avoid_: workflow view, task overlay
 
 **Keybind**:
-One key that triggers one Action or moves the selection. The Dashboard has a
-small fixed set; a key with no frequent Action behind it does not exist.
+A key that switches tabs, moves the selection or focus, opens a read-only view
+(open in browser, copy a credential, search), or opens the Action menu. No
+single key changes an App or the Project.
 
 ## Relationships
 
 - A **Recipe** selects one or more **Apps**; an **App** can belong to many **Recipes**
 - A **Backup** covers one or more **Apps**; a **Restore** can target any single **App** inside it
-- The **Dashboard** shows every **App** with one **Status**; each **Needs action** item points at one **App** (or the host) and one **Action**
-- A failing **Link** makes its consuming **App** need action, not its target
+- The **Dashboard** shows every **App** with one **Status**; each **Needs attention** item points at one **App** (or the host) and one **Action**
+- A failing **Link** makes its consuming **App** need attention, not its target
 
 ## Flagged ambiguities
 
