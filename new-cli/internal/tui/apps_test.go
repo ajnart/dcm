@@ -168,3 +168,23 @@ func TestNoStackWordingRemains(t *testing.T) {
 		t.Fatalf("help should describe the Apps tab without Stack\n%s", help)
 	}
 }
+
+func TestAnActionFromTheAppsTabLandsOnActivity(t *testing.T) {
+	m, backend := appsHost(t)
+	m = drive(t, m, press("down")) // Sonarr
+
+	m = drive(t, m, press("a"))
+	m = drive(t, m, press("t")) // Restart
+	m = drive(t, m, press("enter"))
+
+	if got := backend.Actions(); !slices.Equal(got, []string{"restart sonarr"}) {
+		t.Fatalf("actions %v", got)
+	}
+	if got := activeTab(t, m); got != "3 Activity" {
+		t.Fatalf("a started Action should show Activity, got %q", got)
+	}
+	m = drive(t, m, press("2"))
+	if m.selectedID() != "sonarr" || !strings.Contains(screen(m), "Sonarr logs") {
+		t.Fatalf("returning to Apps should keep Sonarr selected\n%s", screen(m))
+	}
+}
