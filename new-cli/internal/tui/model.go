@@ -442,6 +442,14 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case copyOptionsMsg:
 		return m.dispatchApps(msg)
 
+	case toolDoneMsg:
+		if msg.err != nil {
+			m.setFlash(msg.name+" exited with an error: "+msg.err.Error(), levelError)
+		} else {
+			m.setFlash("back from "+msg.name, levelInfo)
+		}
+		return m, nil
+
 	case flashMsg:
 		m.setFlash(msg.text, msg.level)
 		return m, nil
