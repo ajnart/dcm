@@ -105,3 +105,33 @@ func TestExecSecretRedactsComposeErrorAndKeepsCause(t *testing.T) {
 		t.Fatalf("diagnostic lost useful detail or cause: %v", err)
 	}
 }
+
+type startingExec struct {
+	fakeExec
+	started [][]string
+}
+
+func (s *startingExec) Up(_ context.Context, services ...string) error {
+	s.started = append(s.started, services)
+	return nil
+}
+
+func TestUpStartsTheNamedServices(t *testing.T) {
+	exec := &startingExec{}
+	h := newH(t, nil, exec, nil)
+
+	if err := h.Up(context.Background(), "demo-agent"); err != nil {
+		t.Fatalf("Up: %v", err)
+	}
+	if len(exec.started) != 1 || len(exec.started[0]) != 1 || exec.started[0][0] != "demo-agent" {
+		t.Errorf("started = %v, want demo-agent", exec.started)
+	}
+}
+
+func TestUpReportsAnExecutorThatCannotStartServices(t *testing.T) {
+	h := newH(t, nil, &fakeExec{}, nil)
+
+	if err := h.Up(context.Background(), "demo-agent"); err == nil {
+		t.Fatal("Up should fail when the executor cannot start services")
+	}
+}

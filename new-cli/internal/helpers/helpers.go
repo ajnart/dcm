@@ -34,6 +34,12 @@ type Executor interface {
 	Restart(ctx context.Context, services ...string) error
 }
 
+// Starter is implemented by an Executor that can create and start services,
+// which a plain restart does not do for a service whose settings changed.
+type Starter interface {
+	Up(ctx context.Context, services ...string) error
+}
+
 type StepResult struct {
 	ID     string
 	Status status.Step
@@ -258,6 +264,17 @@ func commandOutput(res system.Result) string {
 func (h *H) Restart(ctx context.Context) error {
 	h.Info("restarting " + h.Service + " to apply its new settings")
 	return h.Config.Exec.Restart(ctx, h.Service)
+}
+
+// Up creates or recreates the named services of this App so they start with
+// the current Compose settings and secrets.
+func (h *H) Up(ctx context.Context, services ...string) error {
+	starter, ok := h.Config.Exec.(Starter)
+	if !ok {
+		return errors.New("this environment cannot start services")
+	}
+	h.Info("starting " + strings.Join(services, ", "))
+	return starter.Up(ctx, services...)
 }
 
 func (h *H) ExecIn(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error) {

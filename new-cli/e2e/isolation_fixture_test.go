@@ -164,6 +164,35 @@ func TestComposeIsolationRejectsGlobalResources(t *testing.T) {
 	}
 }
 
+func TestComposeIsolationNamesTheBeszelExceptionsAndNothingElse(t *testing.T) {
+	const proxyMount = "/var/run/docker.sock:/var/run/docker.sock:ro"
+	for _, tc := range []struct {
+		name, source string
+		accepted     bool
+	}{
+		{"the named proxy with its read-only socket", "services:\n  beszel-socket-proxy:\n    volumes: [" + proxyMount + "]\n", true},
+		{"the named agent on the host network", "services:\n  beszel-agent:\n    network_mode: host\n", true},
+		{"the agent mounting the socket", "services:\n  beszel-agent:\n    volumes: [" + proxyMount + "]\n", false},
+		{"another service mounting the socket read-only", "services:\n  app:\n    volumes: [" + proxyMount + "]\n", false},
+		{"the hub mounting the socket", "services:\n  beszel:\n    volumes: [" + proxyMount + "]\n", false},
+		{"the proxy with a writable socket", "services:\n  beszel-socket-proxy:\n    volumes: [/var/run/docker.sock:/var/run/docker.sock]\n", false},
+		{"the proxy with another socket path", "services:\n  beszel-socket-proxy:\n    volumes: [/run/docker.sock:/var/run/docker.sock:ro]\n", false},
+		{"the proxy on the host network", "services:\n  beszel-socket-proxy:\n    network_mode: host\n", false},
+		{"another service on the host network", "services:\n  app:\n    network_mode: host\n", false},
+		{"the hub on the host network", "services:\n  beszel:\n    network_mode: host\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateComposeIsolation(tc.source)
+			if tc.accepted && err != nil {
+				t.Errorf("rejected: %v", err)
+			}
+			if !tc.accepted && err == nil {
+				t.Error("accepted")
+			}
+		})
+	}
+}
+
 func TestEveryCatalogSourceKeepsProjectIsolation(t *testing.T) {
 	for _, a := range catalog.Default().Apps() {
 		source := a.Compose(app.RenderContext{Port: 30001, Inputs: appInputTable[a.Info().ID].local})
