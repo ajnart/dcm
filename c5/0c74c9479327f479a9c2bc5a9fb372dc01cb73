@@ -1,0 +1,16 @@
+new-cli/tools/appgen/main.go
+  h_d6e478ca18e517 21-23
+new-cli/tools/appgen/main_test.go
+  h_d6e478ca18e517 5,7-8,62-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c50c74c9479327f479a9c2bc5a9fb372dc01cb73",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
