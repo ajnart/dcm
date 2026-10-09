@@ -50,7 +50,7 @@ type Backend interface {
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
 	Compose(ctx context.Context, id string) (string, error)
-	// Containers lists every container in the Project for the Stack view.
+	// Containers lists every container in the Project for App details.
 	Containers(ctx context.Context) ([]service.ContainerStatus, error)
 	Catalog() *catalog.Catalog
 	// LatestRelease returns the newest published release tag, or "" when it

@@ -121,9 +121,9 @@ The bar on the last row shows the global keys and the focused pane's keys.
 | --- | --- |
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the App details sub-tab (logs, setup, info, compose). |
+| [ and ] | Switch the App details sub-tab (logs, setup, info, compose, containers). |
 | a, A | Open the Action menu for the selected App, or for the whole Project. |
-| enter, o, c | Go into the selected App; open its URL; choose a password or API key to copy. |
+| enter, o, c | Open the selected App in the Apps tab; open its URL; choose a password or API key to copy. |
 | ?, q | Help; quit. |
 
 No single key changes an App or the Project. The Action menu lists only the
@@ -145,7 +145,12 @@ While an Action pulls images, Activity, the status line and the CLI in a
 terminal show one overall bar, a slim bar per image and "N of M images"; piped
 output keeps one `✓ pulled` line per image. In a terminal the CLI prints its
 usual lines and draws the same Action below them; piped and `--json` output
-stay plain. On the Apps tab, `r` checks for updates again.
+stay plain.
+
+The Apps tab holds everything about one App: the App list on the left and
+App details on the right, including its containers and images with their
+state, health, uptime, ports and update state. `r` there reloads the
+containers and checks for updates again.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.
