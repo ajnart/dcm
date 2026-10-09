@@ -33,7 +33,7 @@ func sharedWidgetCurrent(h *helpers.H, current map[string]any, w widget, integra
 		}
 		count++
 		if wiredTo(item, w.kind, integrationID) {
-			found = widgetCurrent(item, w, integrationID) && !smallSharedWidget(item)
+			found = widgetCurrent(item, w, integrationID) && !smallSharedWidget(current, item)
 		}
 	}
 	// An explicitly unowned widget is left alone.
@@ -43,20 +43,18 @@ func sharedWidgetCurrent(h *helpers.H, current map[string]any, w widget, integra
 	return count == 1 && found
 }
 
-func smallSharedWidget(item map[string]any) bool {
+func smallSharedWidget(current, item map[string]any) bool {
 	if size, ok := item["size"].(map[string]any); ok {
 		return gridNumber(size, "width") < 4 || gridNumber(size, "height") < 3
 	}
 	layouts, _ := item["layouts"].([]any)
 	for _, raw := range layouts {
 		layout, _ := raw.(map[string]any)
-		if gridNumber(layout, "width") == 1 && gridNumber(layout, "height") == 1 {
-			return true
+		width := 4
+		if columns := placementColumns(current, layout); columns > 0 {
+			width = min(width, columns)
 		}
-		if gridNumber(layout, "width") == 3 && gridNumber(layout, "height") == 2 {
-			return true
-		}
-		if gridNumber(layout, "width") == 2 && gridNumber(layout, "height") == 2 {
+		if gridNumber(layout, "width") < width || gridNumber(layout, "height") < 3 {
 			return true
 		}
 	}
@@ -166,7 +164,7 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 			options["entries"] = entries
 			shared["options"] = options
 		}
-		if smallSharedWidget(shared) {
+		if smallSharedWidget(current, shared) {
 			resizeItem(current, shared, kept, 4, 3, true)
 		}
 		if err := saveItems(ctx, h, current, kept); err != nil {
