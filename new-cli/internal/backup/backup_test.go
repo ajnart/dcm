@@ -216,6 +216,62 @@ func TestAddTreeRefusesAbsoluteSymlinkWithPolicy(t *testing.T) {
 	}
 }
 
+func TestAddTreeRefusesEscapingRelativeSymlinkWithPolicy(t *testing.T) {
+	source := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(source, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../../outside", filepath.Join(source, "sub", "link")); err != nil {
+		t.Fatal(err)
+	}
+	var compressed bytes.Buffer
+	w, err := Create(&compressed, "", Manifest{Apps: []ManifestApp{{ID: "one"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	err = w.AddTree(source, "apps/one")
+	if err == nil {
+		t.Fatal("escaping relative symlink archived")
+	}
+	if !strings.Contains(err.Error(), "apps/one/sub/link") || !strings.Contains(err.Error(), "docs/adr/0003") {
+		t.Fatalf("escaping symlink error must name the link and the policy: %v", err)
+	}
+}
+
+func TestAddTreeKeepsContainedRelativeSymlink(t *testing.T) {
+	source := t.TempDir()
+	if err := os.WriteFile(filepath.Join(source, "config"), []byte("data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("config", filepath.Join(source, "current")); err != nil {
+		t.Fatal(err)
+	}
+	var compressed bytes.Buffer
+	w, err := Create(&compressed, "", Manifest{Apps: []ManifestApp{{ID: "one"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.AddTree(source, "apps/one"); err != nil {
+		t.Fatalf("contained relative symlink refused: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r, err := Open(bytes.NewReader(compressed.Bytes()), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	staging := t.TempDir()
+	if err := r.Extract(staging, selectedDestination(staging), nil); err != nil {
+		t.Fatal(err)
+	}
+	if link, err := os.Readlink(filepath.Join(staging, "apps/one/current")); err != nil || link != "config" {
+		t.Fatalf("contained link not archived: %q, %v", link, err)
+	}
+}
+
 func TestExtractRejectsPreexistingSymlinks(t *testing.T) {
 	for _, ancestor := range []bool{false, true} {
 		name := "destination"

@@ -122,6 +122,9 @@ func (w *Writer) AddTree(dir, prefix string) error {
 			if filepath.IsAbs(link) {
 				return absoluteSymlinkError(path.Join(prefix, filepath.ToSlash(rel)), link)
 			}
+			if !filepath.IsLocal(filepath.Clean(filepath.Join(filepath.Dir(rel), link))) {
+				return escapingSymlinkError(path.Join(prefix, filepath.ToSlash(rel)), link)
+			}
 		}
 		h, err := tar.FileInfoHeader(info, link)
 		if err != nil {
@@ -256,7 +259,16 @@ const linkPolicyRef = "see docs/adr/0003-backup-helper-container.md"
 
 // absoluteSymlinkError names the refused link and its absolute target.
 func absoluteSymlinkError(name, target string) error {
-	return fmt.Errorf("refusing absolute symlink %q -> %q: a Backup keeps links only inside the selected App; a Restore must not follow links outside it (%s)", name, target, linkPolicyRef)
+	return symlinkPolicyError("absolute", name, target)
+}
+
+// escapingSymlinkError names a relative link whose lexical target leaves the App.
+func escapingSymlinkError(name, target string) error {
+	return symlinkPolicyError("escaping relative", name, target)
+}
+
+func symlinkPolicyError(kind, name, target string) error {
+	return fmt.Errorf("refusing %s symlink %q -> %q: a Backup keeps links only inside the selected App; a Restore must not follow links outside it (%s)", kind, name, target, linkPolicyRef)
 }
 
 func safeArchivePath(name string) error {
