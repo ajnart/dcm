@@ -1,0 +1,29 @@
+new-cli/internal/backup/backup.go
+  s_9d4ddbf7316ac3::t_413e107f3c3546 125-127,262-271
+new-cli/internal/backup/backup_test.go
+  s_a2fd509a765bab::t_eafd373ce4f0c5 219-274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a666a5eccea432d5523d7df9a8f70887b27181bf",
+  "prompts": {},
+  "sessions": {
+    "s_9d4ddbf7316ac3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fc5-96e4-76a0-b025-5fe7385e80e1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
