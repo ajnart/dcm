@@ -1,4 +1,4 @@
- ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
 ╭─ Apps 3 ───────────────────╮╭─ Jellyfin ─────────────────────────────────────╮
 │ ● ♫ Jellyfin     running   ││  logs   setup   info   compose   containers    │
 │ ✗ ↓ Sonarr       running   ││ ────────────────────────────────────────────── │
