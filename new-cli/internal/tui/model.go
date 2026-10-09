@@ -57,9 +57,10 @@ type (
 	// frameMsg advances the animation by one frame.
 	frameMsg    struct{}
 	taskDoneMsg struct {
-		id    int
-		title string
-		err   error
+		id     int
+		title  string
+		action Action
+		err    error
 	}
 	logChunkMsg struct {
 		stream *logStream
@@ -134,6 +135,9 @@ type Model struct {
 	// resultFlash is the flash that reports the last Action's result, which
 	// the Overview's Now strip shows instead of the status line.
 	resultFlash string
+	// flashHeld keeps a flash a key just set on the status line over the
+	// running Action's progress until the next key.
+	flashHeld bool
 
 	surface   surface
 	showHelp  bool
@@ -198,9 +202,14 @@ func (m *Model) startTicking() tea.Cmd {
 // is still being read, Onboarding reveals the host checks, pre-boot plays, an
 // Action runs or a transition still plays.
 func (m Model) nextFrame() (tea.Model, tea.Cmd) {
-	m.frame++
+	activityFrame := m.preboot == nil || m.preboot.frame%prebootFramesPerActivity == 0
+	if activityFrame {
+		m.frame++
+	}
 	s := m.ctx().snapshot()
-	m.tracker.Observe(s, m.frame)
+	if activityFrame {
+		m.tracker.Observe(s, m.frame)
+	}
 	m = m.advancePreboot(s)
 	if m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, m.frameTick()
@@ -314,6 +323,7 @@ func (m Model) ctx() *viewContext {
 // set it chose and the flash it set.
 func (m *Model) absorb(ctx *viewContext) {
 	m.glyphs = ctx.glyphs
+	m.flashHeld = m.flashHeld || ctx.flashed
 	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
 }
 
@@ -520,16 +530,16 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	default:
 		m.setFlash("✓ "+msg.title, levelOK)
 	}
-	m.resultFlash = m.flash
+	m.resultFlash, m.flashHeld = m.flash, false
 	cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
-	if strings.HasPrefix(msg.title, "config") {
+	if msg.action == ActionConfig {
 		// URLs and Compose files may have changed with the settings.
 		clear(m.apps.details.compose)
 	}
-	if strings.HasPrefix(msg.title, "backup") || strings.HasPrefix(msg.title, "restore") {
+	if msg.action == ActionBackup || msg.action == ActionRestore {
 		cmds = append(cmds, loadBackups(m.backend))
 	}
-	if strings.HasPrefix(msg.title, "update") {
+	if msg.action == ActionUpdate {
 		cmds = append(cmds, m.loadUpdates())
 	}
 	return m, tea.Batch(cmds...)
@@ -682,6 +692,7 @@ func (m *Model) setActive(v view) {
 // is capturing text takes every key but ctrl+c; otherwise the global keys
 // act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	m.flashHeld = false
 	switch {
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)

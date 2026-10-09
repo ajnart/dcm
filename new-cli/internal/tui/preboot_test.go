@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/preboot"
 	"github.com/ajnart/self-host/internal/service"
@@ -303,6 +304,21 @@ func TestFramesTickOnlyWhileSomethingAnimates(t *testing.T) {
 	}
 	if m.framePeriod() != time.Second/12 {
 		t.Fatalf("other frames tick at 12 fps, period %v", m.framePeriod())
+	}
+}
+
+func TestActivityMotionKeepsItsOwnRateWhilePrebootPlays(t *testing.T) {
+	m, _, _ := approved(t, 120, 30)
+	play(m, pullStart("2"), downloading("ghcr.io/homarr-labs/homarr:latest"))
+	start := m.frame
+
+	m = frames(t, m, preboot.FPS)
+
+	if m.preboot == nil {
+		t.Fatal("pre-boot should still play after one second")
+	}
+	if got := m.frame - start; got != activity.FPS {
+		t.Fatalf("one second of pre-boot should advance Activity by %d frames, got %d", activity.FPS, got)
 	}
 }
 

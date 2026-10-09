@@ -586,7 +586,7 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	window := min(len(v.rows), max(minRows, space-v.pendingHeight()))
 	pending := v.pendingLines(ctx, max(space-window, 0))
 	window = min(len(v.rows), max(space-len(pending), 1))
-	v.scrollTo(window)
+	v.offset = scrolled(v.cursor, v.offset, window, len(v.rows))
 
 	lines := head
 	for i := v.offset; i < v.offset+window && i < len(v.rows); i++ {
@@ -614,29 +614,14 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 func (v *settingsView) exposureList(t theme) []string {
 	lines := []string{""}
 	for i, c := range exposureChoices {
-		cursor := "  "
-		if i == v.highlight {
-			cursor = t.cursor()
-		}
-		mark := t.dim().Render("○")
+		selected := c.id == v.valueOf("EXPOSURE")
 		label := exposureLabel(t, c)
-		if c.id == v.valueOf("EXPOSURE") {
-			mark, label = t.fg(t.accentText).Render("●"), t.active().Render(c.label)
+		if selected {
+			label = c.label
 		}
-		lines = append(lines, cursor+mark+" "+label)
+		lines = append(lines, radioRow(t, i == v.highlight, selected, label))
 	}
 	return lines
-}
-
-// scrollTo keeps the cursor inside a window of rows.
-func (v *settingsView) scrollTo(window int) {
-	if v.cursor < v.offset {
-		v.offset = v.cursor
-	}
-	if v.cursor >= v.offset+window {
-		v.offset = v.cursor - window + 1
-	}
-	v.offset = max(min(v.offset, len(v.rows)-window), 0)
 }
 
 // pendingNotes are the lines that follow the pending changes: a warning when
@@ -698,17 +683,8 @@ func (v *settingsView) appearanceBox(ctx *viewContext, width int) string {
 	g := ctx.glyphs
 	lines := []string{truncate("  "+t.dim().Render(pad("Sample", 13))+glyphSample(t, g), inner)}
 	for i, choice := range glyphChoices {
-		cursor := "  "
-		if i == v.glyphCursor {
-			cursor = t.cursor()
-		}
-		mark := t.dim().Render("○")
-		name := t.body().Render(pad(choice.glyphs.Label(), 11))
-		if choice.glyphs == g {
-			mark = t.fg(t.accentText).Render("●")
-			name = t.active().Render(pad(choice.glyphs.Label(), 11))
-		}
-		lines = append(lines, truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), inner))
+		row := radioRow(t, i == v.glyphCursor, choice.glyphs == g, pad(choice.glyphs.Label(), 11))
+		lines = append(lines, truncate(row+t.dim().Render(choice.explain), inner))
 	}
 	lines = append(lines, "", nerdFontsLine(t))
 	return t.box("Appearance", "saved at once", strings.Join(lines, "\n"), width, len(lines)+2, true)

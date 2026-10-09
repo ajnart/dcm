@@ -83,6 +83,8 @@ type backupsPane struct {
 	promptErr   string
 }
 
+const waitToBackUp = reasonBusy + " before backing up or restoring"
+
 var (
 	backupsKeys = []key.Binding{
 		hint("↑/↓", "select"), hint("b", "back up"), hint("enter", "restore"), hint("[/]", "sub-tab"), hint("esc", "back"),
@@ -148,12 +150,14 @@ func (b *backupsPane) key(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 		b.cursor = max(min(b.cursor+1, len(b.list)-1), 0)
 	case msg.String() == "b":
 		if ctx.tasks.running() > 0 {
+			ctx.setFlash(waitToBackUp, levelWarn)
 			return nil
 		}
 		b.mode = backupAsk
 		return b.askPassphrase(ctx)
 	case msg.String() == "enter" && len(b.list) > 0:
 		if ctx.tasks.running() > 0 {
+			ctx.setFlash(waitToBackUp, levelWarn)
 			return nil
 		}
 		b.file, b.armed = b.list[b.cursor], false
@@ -240,6 +244,7 @@ func (b *backupsPane) previewKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd 
 		}
 		if ctx.tasks.running() > 0 {
 			b.reset()
+			ctx.setFlash(waitToBackUp, levelWarn)
 			return nil
 		}
 		req := Request{Action: ActionRestore, File: b.file.Path, Passphrase: b.pass}
@@ -260,17 +265,6 @@ func (b *backupsPane) scopeName(scope int) string {
 		return "Whole Project"
 	}
 	return b.apps[scope-1]
-}
-
-// scrolled keeps cursor inside a window of size rows starting at offset.
-func scrolled(cursor, offset, size, total int) int {
-	if cursor < offset {
-		offset = cursor
-	}
-	if cursor >= offset+size {
-		offset = cursor - size + 1
-	}
-	return max(min(offset, total-size), 0)
 }
 
 func (b *backupsPane) box(ctx *viewContext, width, height int) string {
@@ -310,7 +304,7 @@ func (b *backupsPane) listBox(ctx *viewContext, width, avail int) string {
 	}
 	foot := t.dim().Render("A backup holds configuration, databases and secrets, not media.")
 	if ctx.tasks.running() > 0 {
-		foot = t.fg(t.warn).Render(reasonBusy + " before backing up or restoring.")
+		foot = t.fg(t.warn).Render(waitToBackUp + ".")
 	}
 	lines = append(lines, "", "  "+foot)
 	return t.box("Backups", note, strings.Join(lines, "\n"), width, len(lines)+2, true)
@@ -386,11 +380,7 @@ func (b *backupsPane) previewBox(ctx *viewContext, width, avail int) string {
 	window := max(min(choices, avail-7), 1)
 	b.scopeOffset = scrolled(b.scope, b.scopeOffset, window, choices)
 	for i := b.scopeOffset; i < b.scopeOffset+window && i < choices; i++ {
-		cursor, mark, name := "  ", t.dim().Render("○"), t.body()
-		if i == b.scope {
-			cursor, mark, name = t.cursor(), t.fg(t.accentText).Render("●"), t.active()
-		}
-		line := cursor + mark + " " + name.Render(b.scopeName(i))
+		line := radioRow(t, i == b.scope, i == b.scope, b.scopeName(i))
 		if i == 0 {
 			line += t.dim().Render("  " + strings.Join(b.apps, ", "))
 		}

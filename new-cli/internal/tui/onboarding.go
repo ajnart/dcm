@@ -774,7 +774,7 @@ func (m Model) renderOnboarding() string {
 			form := lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View())
 			lines = append(lines, form)
 			if o.step == stepWhere {
-				lines = append(lines, m.whereExplanation(m.mainHeight()-len(lines)-strings.Count(form, "\n")-1)...)
+				lines = append(lines, m.whereExplanation(m.mainHeight()-len(lines)-strings.Count(form, "\n"))...)
 			}
 		}
 		if o.list != nil {
@@ -889,15 +889,7 @@ func (m Model) renderLook() []string {
 		"  "+t.heading().Render("Do these icons look right?"))
 	answers := []string{"Yes, they look right: use Nerd Font icons", "No, I see boxes or gaps: use Simple symbols"}
 	for i, choice := range glyphChoices {
-		cursor := "  "
-		if i == o.look {
-			cursor = t.cursor()
-		}
-		mark, label := t.dim().Render("○"), t.body().Render(answers[i])
-		if choice.glyphs == m.glyphs {
-			mark, label = t.fg(t.accentText).Render("●"), t.active().Render(answers[i])
-		}
-		lines = append(lines, "  "+truncate(cursor+mark+" "+label, m.width-2))
+		lines = append(lines, "  "+truncate(radioRow(t, i == o.look, choice.glyphs == m.glyphs, answers[i]), m.width-2))
 	}
 	return append(lines, "", "  "+nerdFontsLine(t))
 }

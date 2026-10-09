@@ -412,6 +412,32 @@ func TestBackupAndRestoreWaitForARunningAction(t *testing.T) {
 	}
 }
 
+func TestBackupKeysSayWhyWhileAnActionRuns(t *testing.T) {
+	const wait = "wait for the running Action before backing up or restoring"
+
+	m, _ := backupsHost(t, 120, 30)
+	m.tasks.start("update jellyfin")
+	t.Cleanup(m.tasks.cancelAll)
+	for _, k := range []string{"b", "enter"} {
+		next := drive(t, m, press(k))
+		next = drive(t, next, press(k))
+		if status := statusLine(screen(next)); !strings.Contains(status, wait) {
+			t.Fatalf("%s should flash why nothing happened, status %q", k, status)
+		}
+	}
+
+	m, _ = backupsHost(t, 120, 30)
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter"))
+	m.tasks.start("update jellyfin")
+	t.Cleanup(m.tasks.cancelAll)
+	m = drive(t, m, press("enter"))
+	if status := statusLine(screen(m)); !strings.Contains(status, wait) {
+		t.Fatalf("the restore key should flash why nothing ran, status %q", status)
+	}
+}
+
 func TestTheListRefreshesWhenABackupFinishes(t *testing.T) {
 	m, backend := backupsHost(t, 120, 30)
 	before := backend.listCalls()
