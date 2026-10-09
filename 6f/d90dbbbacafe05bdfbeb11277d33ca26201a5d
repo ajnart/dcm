@@ -1,0 +1,130 @@
+new-cli/internal/apps/authentik/authentik.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 74,76,86,88
+  s_720a00d9bb6c72::t_7a1ebd6c606169 54
+new-cli/internal/compose/compose.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 85
+new-cli/internal/apps/mayanedms/install_test.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 39,58,120
+new-cli/internal/cli/backup_safety_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 123,199,300,353
+new-cli/internal/cli/install_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 134
+new-cli/internal/cli/lan_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 79
+new-cli/internal/catalog/ownership_test.go
+  s_720a00d9bb6c72::t_7399045e21604a 107
+  s_720a00d9bb6c72::t_5ad857c8e4e5ec 1-51
+  s_720a00d9bb6c72::t_011db39fd2bb54 52-106,108-119
+new-cli/internal/apps/patchmon/patchmon.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 66
+  s_720a00d9bb6c72::t_e2c19bab64a191 63,68,76-79,94,104
+new-cli/internal/apps/tracearr/bootstrap_test.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 140
+new-cli/internal/apps/immich/immich.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 50,61,86
+new-cli/internal/apps/docmost/docmost.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 52,55,61-63,72
+new-cli/internal/apps/paperlessngx/paperlessngx.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 56-57,76-78,83
+new-cli/internal/catalog/parity_test.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 84-100
+  s_720a00d9bb6c72::t_d4461ef975307d 251
+new-cli/internal/apps/pangolin/pangolin.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 88,91,121,125,142
+new-cli/internal/apps/fireflyiii/fireflyiii.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 58,71-72
+new-cli/internal/apps/nextcloud/nextcloud.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 58,73,75,91,96
+new-cli/internal/apps/umami/umami.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 55,61-62
+new-cli/internal/cli/lifecycle_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 47,83,148,187
+new-cli/internal/apps/netbird/netbird.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 78,81
+new-cli/internal/apps/keycloak/keycloak.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 45,54,56
+new-cli/internal/apps/bookstack/bookstack.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 74,86-87
+new-cli/internal/service/stages_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 20
+new-cli/e2e/netbird_fixture_test.go
+  s_720a00d9bb6c72::t_3bd47779d68c65 199-213
+new-cli/internal/service/mutation_test.go
+  s_720a00d9bb6c72::t_b5d4fab77f46a3 169,191,207,218,238,301,372-373,441
+new-cli/e2e/netbird_fixture.go
+  s_720a00d9bb6c72::t_03996389a9e939 109
+new-cli/internal/apps/patchmon/patchmon_test.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 33
+new-cli/internal/apps/linkwarden/linkwarden.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 55
+  s_720a00d9bb6c72::t_e2c19bab64a191 50,61-63,70
+new-cli/internal/apps/seafile/seafile.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 54,64,79-81,96
+new-cli/internal/apps/passbolt/passbolt.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 85,97,105,108
+new-cli/internal/apps/passbolt/startup_test.go
+  s_720a00d9bb6c72::t_7a1ebd6c606169 31,67
+new-cli/internal/service/service_names_test.go
+  s_720a00d9bb6c72::t_bf512432f5e3db 1-39,41-137
+  s_720a00d9bb6c72::t_05792fb81757fe 40
+new-cli/internal/apps/tracearr/tracearr.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 57,61,71-73,108
+new-cli/internal/apps/mayanedms/mayanedms.go
+  s_720a00d9bb6c72::t_e2c19bab64a191 64-68,74,76,78,80,95,110
+new-cli/docs/catalog/traps/authentik.md
+  s_720a00d9bb6c72::t_265160a9ca94ff 5
+new-cli/docs/catalog/traps/bookstack.md
+  s_720a00d9bb6c72::t_ac65a51890a6db 5
+new-cli/docs/catalog/traps/docmost.md
+  s_720a00d9bb6c72::t_44dbdf83dd2672 5
+new-cli/docs/catalog/traps/firefly-iii.md
+  s_720a00d9bb6c72::t_4fdc99383a68ff 5
+new-cli/docs/catalog/traps/immich.md
+  s_720a00d9bb6c72::t_02444c643d3ab3 5-6
+new-cli/docs/catalog/traps/keycloak.md
+  s_720a00d9bb6c72::t_63c7402f84a9f8 5
+new-cli/docs/catalog/traps/linkwarden.md
+  s_720a00d9bb6c72::t_da6e369d35bbb4 5
+new-cli/docs/catalog/traps/mayan-edms.md
+  s_720a00d9bb6c72::t_6fd827eed743e2 5
+new-cli/docs/catalog/traps/netbird.md
+  s_720a00d9bb6c72::t_45ff347a65e599 5
+new-cli/docs/catalog/traps/nextcloud.md
+  s_720a00d9bb6c72::t_8216b7836f6614 5-6
+new-cli/docs/catalog/traps/pangolin.md
+  s_720a00d9bb6c72::t_b3dc4405db3337 5
+new-cli/docs/catalog/traps/paperless-ngx.md
+  s_720a00d9bb6c72::t_55b9c4f4ff0b50 5
+new-cli/docs/catalog/traps/passbolt.md
+  s_720a00d9bb6c72::t_ebd44add1601a8 5
+new-cli/docs/catalog/traps/patchmon.md
+  s_720a00d9bb6c72::t_5e4741ced7ad53 5
+new-cli/docs/catalog/traps/seafile.md
+  s_720a00d9bb6c72::t_10a6fadfd27bef 5
+new-cli/docs/catalog/traps/tracearr.md
+  s_720a00d9bb6c72::t_90aaa4a2714b72 5
+new-cli/docs/catalog/traps/umami.md
+  s_720a00d9bb6c72::t_02cfdeed0e9769 5
+new-cli/docs/legacy-catalog.md
+  s_720a00d9bb6c72::t_c68025f0084b68 233-234
+new-cli/e2e/passbolt_application_metadata.go
+  s_720a00d9bb6c72::t_0bfdadd3618ae7 21
+new-cli/e2e/recipe_services_fixture_test.go
+  s_720a00d9bb6c72::t_7dbda46276d3aa 55,58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6fd90dbbbacafe05bdfbeb11277d33ca26201a5d",
+  "prompts": {},
+  "sessions": {
+    "s_720a00d9bb6c72": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-b69f-7a61-90e9-31aa486da678",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
