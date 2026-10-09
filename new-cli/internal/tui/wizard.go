@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
@@ -462,11 +462,9 @@ func (m Model) renderInstalling(taskID int) string {
 	}
 	s := task.snapshot()
 	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accent).Render(m.spin.View()), ""}
-	if images := pullImages(s.events); len(images) > 0 {
-		bar := progress.New(progress.WithWidth(24), progress.WithoutPercentage(),
-			progress.WithFillCharacters('█', '░'))
-		for _, img := range images {
-			lines = append(lines, "  "+t.body().Render(pad(img.image, 30))+bar.ViewAs(float64(img.percent())/100))
+	if block := activity.Render(activity.Build(m.status, s.events), m.width-4, t.palette()); len(block) > 0 {
+		for _, line := range block {
+			lines = append(lines, "  "+line)
 		}
 		lines = append(lines, "")
 	}

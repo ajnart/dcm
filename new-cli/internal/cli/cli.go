@@ -6,9 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
@@ -74,16 +78,35 @@ func (a *program) logger() *events.Logger {
 	if a.document {
 		a.log = events.New()
 		if a.verbose {
-			a.log.AddSink(events.Human(a.deps.Err, true, a.deps.Interactive))
+			a.log.AddSink(a.human(a.deps.Err, true))
 		}
 		return a.log
 	}
 	if a.json {
 		a.log = events.New(events.JSON(a.deps.Out))
 	} else {
-		a.log = events.New(events.Human(a.deps.Out, a.verbose, a.deps.Interactive))
+		a.log = events.New(a.human(a.deps.Out, a.verbose))
 	}
 	return a.log
+}
+
+// human prints events as plain lines, or on an interactive terminal with the
+// pull drawn as bars that redraw in place.
+func (a *program) human(w io.Writer, verbose bool) events.Sink {
+	if !a.deps.Interactive {
+		return events.Human(w, verbose)
+	}
+	palette := tui.Palette(true)
+	if a.deps.Getenv != nil && a.deps.Getenv("NO_COLOR") != "" {
+		palette = activity.Palette{}
+	}
+	width := 80
+	if f, ok := w.(*os.File); ok {
+		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
+			width = cols
+		}
+	}
+	return activity.Terminal(w, verbose, width, palette)
 }
 
 // Run executes the binary with args and returns the exit code.

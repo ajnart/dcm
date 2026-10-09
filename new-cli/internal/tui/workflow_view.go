@@ -5,6 +5,8 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/ajnart/self-host/internal/activity"
 )
 
 type workflowView struct {
@@ -19,8 +21,8 @@ type workflowView struct {
 
 // workflowRow is one navigable line: an App header, or one of its steps.
 type workflowRow struct {
-	app  WorkflowApp
-	step *WorkflowStep
+	app  activity.App
+	step *activity.Step
 }
 
 func (v *workflowView) Title() string { return "Workflow" }
@@ -35,7 +37,7 @@ func (v *workflowView) Keys() []key.Binding {
 
 // expanded reports whether the App's steps are shown: a set-up App starts
 // collapsed, everything else starts expanded, and space overrides that.
-func (v *workflowView) expanded(app WorkflowApp) bool {
+func (v *workflowView) expanded(app activity.App) bool {
 	if on, ok := v.toggled[app.ID]; ok {
 		return on
 	}
@@ -50,13 +52,13 @@ func (v *workflowView) setExpanded(id string, on bool) {
 }
 
 // apps narrows the Project to the Apps matching the filter on name or id.
-func (v *workflowView) apps(ctx *viewContext) []WorkflowApp {
+func (v *workflowView) apps(ctx *viewContext) []activity.App {
 	all := ctx.workflow().Apps
 	if v.filter == "" {
 		return all
 	}
 	q := strings.ToLower(v.filter)
-	var out []WorkflowApp
+	var out []activity.App
 	for _, app := range all {
 		if strings.Contains(strings.ToLower(app.Name), q) || strings.Contains(strings.ToLower(app.ID), q) {
 			out = append(out, app)
@@ -105,7 +107,7 @@ func (v *workflowView) toggleFailure(ctx *viewContext) {
 		return
 	}
 	row := rows[v.cursor]
-	if row.step == nil || row.step.State != WorkflowFailed {
+	if row.step == nil || row.step.State != activity.Failed {
 		return
 	}
 	if v.failures == nil {
@@ -196,6 +198,12 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 		plural(workflow.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
 		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
 		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}
+	if workflow.Pull.Pulling {
+		for _, line := range activity.Render(workflow, width-2, t.palette()) {
+			lines = append(lines, "  "+line)
+		}
+		lines = append(lines, "")
+	}
 	if v.filter != "" {
 		hint := ""
 		if !v.searching {
@@ -251,15 +259,15 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 	step := row.step
 	mark := t.dim().Render("○")
 	switch step.State {
-	case WorkflowDone:
+	case activity.Done:
 		mark = t.fg(t.ok).Render("✓")
-	case WorkflowSkipped:
+	case activity.Skipped:
 		mark = t.fg(t.info).Render("↷")
-	case WorkflowManual:
+	case activity.Manual:
 		mark = t.fg(t.warn).Render("! manual")
-	case WorkflowFailed:
+	case activity.Failed:
 		mark = t.fg(t.fail).Render("✗")
-	case WorkflowRunning:
+	case activity.Running:
 		mark = t.fg(t.accent).Render("…")
 	}
 	line := "  " + cursor + mark + " " + step.Label
@@ -267,7 +275,7 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 		line += t.dim().Render(" · " + firstLine(step.Msg))
 	}
 	out := []string{line}
-	if step.State != WorkflowManual && (step.State != WorkflowFailed || !v.failures[row.app.ID+"/"+step.ID]) {
+	if step.State != activity.Manual && (step.State != activity.Failed || !v.failures[row.app.ID+"/"+step.ID]) {
 		return out
 	}
 	if step.Error != "" {
