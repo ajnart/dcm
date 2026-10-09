@@ -1,0 +1,36 @@
+new-cli/internal/activity/action.go
+  h_d6e478ca18e517 4,387,393,476
+new-cli/internal/activity/glyphs.go
+  h_d6e478ca18e517 4-6,36,56-57,66,104
+new-cli/internal/activity/glyphs_test.go
+  h_d6e478ca18e517 101,111
+new-cli/internal/activity/render_action.go
+  h_d6e478ca18e517 4,61-64,89,102-120,242-243,254,257,267,290,336,341-345,352,357,359,365-370,372
+new-cli/internal/activity/render_action_test.go
+  h_d6e478ca18e517 129-138
+new-cli/internal/activity/strip.go
+  h_d6e478ca18e517 23
+new-cli/internal/activity/terminal.go
+  h_d6e478ca18e517 16-18,36,48-50,57,136-137
+new-cli/internal/activity/terminal_test.go
+  h_d6e478ca18e517 64-65,68,74,82-83,85-96,102,121-122,128,133-134,184,219
+new-cli/internal/activity/testdata/action-finish-wave-120.golden
+  h_d6e478ca18e517 5-6,14-15,23-24,32-33
+new-cli/internal/activity/testdata/action-links-120.golden
+  h_d6e478ca18e517 5-10,17-22,29-34
+new-cli/internal/activity/testdata/glyphs-nerd-font-120.golden
+  h_d6e478ca18e517 4-9
+new-cli/internal/activity/testdata/glyphs-simple-120.golden
+  h_d6e478ca18e517 4-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44c593638724c3f01691498b1c9247784905a532",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
