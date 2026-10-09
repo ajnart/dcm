@@ -52,10 +52,10 @@ func TestPhotoAndFileRedisReferencesUseTheirOwnedSidecar(t *testing.T) {
 			if doc.Services[tc.cache].Image != tc.image || doc.Services[tc.id].Environment[tc.env] != tc.cache || !slices.Contains(doc.Services[tc.id].DependsOn, tc.cache) {
 				t.Fatal("App does not connect to its distinct original Redis sidecar image")
 			}
-			if tc.id == "nextcloud" && (doc.Services["cron"].Environment[tc.env] != tc.cache || !slices.Contains(doc.Services["nextcloud"].Volumes, "./html:/var/www/html") || !slices.Contains(doc.Services["db"].Volumes, "./db:/var/lib/mysql")) {
+			if tc.id == "nextcloud" && (doc.Services["nextcloud-cron"].Environment[tc.env] != tc.cache || !slices.Contains(doc.Services["nextcloud"].Volumes, "./html:/var/www/html") || !slices.Contains(doc.Services["nextcloud-db"].Volumes, "./db:/var/lib/mysql")) {
 				t.Fatal("Nextcloud cron or persistent paths changed")
 			}
-			if tc.id == "immich" && (!slices.Contains(doc.Services["immich"].Volumes, "./uploads:/data") || !slices.Contains(doc.Services["database"].Volumes, "./database:/var/lib/postgresql/data")) {
+			if tc.id == "immich" && (!slices.Contains(doc.Services["immich"].Volumes, "./uploads:/data") || !slices.Contains(doc.Services["immich-database"].Volumes, "./database:/var/lib/postgresql/data")) {
 				t.Fatal("Immich persistent paths changed")
 			}
 		})

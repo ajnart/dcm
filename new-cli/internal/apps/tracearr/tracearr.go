@@ -54,11 +54,11 @@ func (App) Compose(rc app.RenderContext) string {
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://tracearr-redis:6379
       LOG_LEVEL: info
       TZ: ${TZ}
       CORS_ORIGIN: http://127.0.0.1:` + port + `
-      DATABASE_URL: postgresql://tracearr:${TRACEARR_DB_PASSWORD}@timescale:5432/tracearr
+      DATABASE_URL: postgresql://tracearr:${TRACEARR_DB_PASSWORD}@tracearr-timescale:5432/tracearr
       JWT_SECRET: ${TRACEARR_JWT_SECRET}
       COOKIE_SECRET: ${TRACEARR_COOKIE_SECRET}
       BETTER_AUTH_SECRET: ${TRACEARR_AUTH_SECRET}
@@ -68,9 +68,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - timescale
-      - redis
-  timescale:
+      - tracearr-timescale
+      - tracearr-redis
+  tracearr-timescale:
     image: timescale/timescaledb-ha:pg18.4-ts2.29.1
     # This pinned image defaults to postgres UID 1000. Enter its official
     # root ownership preparation for the bind, then it drops to postgres.
@@ -105,7 +105,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 0s
       retries: 5
-  redis:
+  tracearr-redis:
     image: redis:8-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]

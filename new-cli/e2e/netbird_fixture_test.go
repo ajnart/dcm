@@ -196,3 +196,18 @@ func TestNetBirdDockerWrapperRestrictsOwnedSelectors(t *testing.T) {
 		t.Fatal("owned-looking symlink helper mount accepted")
 	}
 }
+
+func TestNetBirdFixtureOverrideTargetsOwnedServer(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "project")
+	if _, err := writeNetBirdDockerWrapper(root, project, "selfhost-e2e-fixture", "/unused/docker", 32123); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "netbird-override.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "  netbird-server:\n") || strings.Contains(string(data), "  server:\n") {
+		t.Fatal("fixture override targets the old unowned server service")
+	}
+}

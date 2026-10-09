@@ -52,14 +52,14 @@ func (App) Compose(rc app.RenderContext) string {
     init: true
     restart: always
     environment:
-      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@db:5432/umami
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET}
       TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_KEY}
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - db
-  db:
+      - umami-db
+  umami-db:
     image: postgres:15-alpine
     restart: always
     environment:

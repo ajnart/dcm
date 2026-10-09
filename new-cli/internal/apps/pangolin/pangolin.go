@@ -85,10 +85,10 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
     depends_on:
-      - server
+      - pangolin-server
     ports:
       - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:8080
-  server:
+  pangolin-server:
     image: fosrl/pangolin:1.24.0
     restart: unless-stopped
     environment:
@@ -118,11 +118,11 @@ const dynamicConfig = "http:\n" +
 	"    dashboard:\n" +
 	"      loadBalancer:\n" +
 	"        servers:\n" +
-	"          - url: \"http://server:3002\"\n" +
+	"          - url: \"http://pangolin-server:3002\"\n" +
 	"    api:\n" +
 	"      loadBalancer:\n" +
 	"        servers:\n" +
-	"          - url: \"http://server:3000\"\n"
+	"          - url: \"http://pangolin-server:3000\"\n"
 
 // Files writes the Traefik router, the server config and its secret file.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
@@ -139,7 +139,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 		"  domain1:\n" +
 		"    base_domain: \"" + baseDomain(rc) + "\"\n" +
 		"server:\n" +
-		"  internal_hostname: \"server\"\n" +
+		"  internal_hostname: \"pangolin-server\"\n" +
 		"  secret: \"" + secret("server_secret") + "\"\n" +
 		"  cors:\n" +
 		"    origins: [\"" + base + "\"]\n" +

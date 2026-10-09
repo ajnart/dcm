@@ -53,8 +53,8 @@ func (App) Compose(rc app.RenderContext) string {
     image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
     restart: unless-stopped
     environment:
-      PAPERLESS_REDIS: redis://broker:6379
-      PAPERLESS_DBHOST: db
+      PAPERLESS_REDIS: redis://paperless-ngx-broker:6379
+      PAPERLESS_DBHOST: paperless-ngx-db
       PAPERLESS_DBENGINE: postgresql
       PAPERLESS_ADMIN_USER: ${ADMIN_USER}
       USERMAP_UID: ${PUID}
@@ -73,14 +73,14 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8000
     depends_on:
-      - broker
-      - db
-  broker:
+      - paperless-ngx-broker
+      - paperless-ngx-db
+  paperless-ngx-broker:
     image: valkey/valkey:9-alpine
     restart: unless-stopped
     volumes:
       - ./broker:/data
-  db:
+  paperless-ngx-db:
     image: postgres:18
     restart: unless-stopped
     environment:

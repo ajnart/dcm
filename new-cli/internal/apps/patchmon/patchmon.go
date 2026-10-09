@@ -60,12 +60,12 @@ func (App) Compose(rc app.RenderContext) string {
       APP_ENV: production
       PORT: "3000"
       POD_ID: patchmon-server
-      REDIS_HOST: redis
+      REDIS_HOST: patchmon-redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"
-      GUACD_ADDRESS: guacd:4822
+      GUACD_ADDRESS: patchmon-guacd:4822
       CORS_ORIGIN: http://127.0.0.1:` + port + `
-      DATABASE_URL: postgresql://patchmon_user:${PATCHMON_DB_PASSWORD}@database:5432/patchmon_db
+      DATABASE_URL: postgresql://patchmon_user:${PATCHMON_DB_PASSWORD}@patchmon-database:5432/patchmon_db
       REDIS_PASSWORD: ${PATCHMON_REDIS_PASSWORD}
       JWT_SECRET: ${PATCHMON_JWT_SECRET}
       SESSION_SECRET: ${PATCHMON_SESSION_SECRET}
@@ -73,10 +73,10 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - database
-      - redis
-      - guacd
-  database:
+      - patchmon-database
+      - patchmon-redis
+      - patchmon-guacd
+  patchmon-database:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -91,7 +91,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 0s
       retries: 7
-  redis:
+  patchmon-redis:
     image: redis:7.4-alpine
     user: ${PUID}:${PGID}
     # Keep the selected user: the image entrypoint drops container 0 to redis.
@@ -101,7 +101,7 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./redis:/data
       - ./redis-config:/run/secrets/redis-config:ro
-  guacd:
+  patchmon-guacd:
     image: guacamole/guacd:1.6.0
     restart: unless-stopped
     read_only: true

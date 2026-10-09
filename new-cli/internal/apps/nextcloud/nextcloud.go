@@ -55,7 +55,7 @@ func (App) Compose(rc app.RenderContext) string {
     image: nextcloud:35.0.1-apache
     restart: unless-stopped
     environment:
-      MYSQL_HOST: db
+      MYSQL_HOST: nextcloud-db
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud
       NEXTCLOUD_ADMIN_USER: ${ADMIN_USER}
@@ -70,9 +70,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:
-      - db
+      - nextcloud-db
       - nextcloud-redis
-  db:
+  nextcloud-db:
     image: mariadb:12.3.3
     restart: unless-stopped
     command: ["--transaction-isolation=READ-COMMITTED"]
@@ -88,12 +88,12 @@ func (App) Compose(rc app.RenderContext) string {
   nextcloud-redis:
     image: redis:8.10.2-alpine3.23
     restart: unless-stopped
-  cron:
+  nextcloud-cron:
     image: nextcloud:35.0.1-apache
     restart: unless-stopped
     entrypoint: ["/cron.sh"]
     environment:
-      MYSQL_HOST: db
+      MYSQL_HOST: nextcloud-db
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud
       REDIS_HOST: nextcloud-redis

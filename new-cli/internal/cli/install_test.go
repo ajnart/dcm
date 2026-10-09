@@ -131,7 +131,7 @@ func TestInstallCreatesProjectAndStartsApp(t *testing.T) {
 		t.Fatal("root compose does not include the app fragment")
 	}
 	calls := strings.Join(deps.Runner.(*systemtest.Runner).Calls(), "\n")
-	if !strings.Contains(calls, "docker compose --project-directory "+root+" -p selfhost --env-file "+root+"/.env --env-file "+root+"/secrets.env up -d one") {
+	if !strings.Contains(calls, "docker compose --project-directory "+root+" -p selfhost --env-file "+root+"/.env --env-file "+root+"/secrets.env up -d --remove-orphans one") {
 		t.Fatalf("compose up not run:\n%s", calls)
 	}
 	if !strings.Contains(out, `"command":"docker compose --project-directory `+root) {

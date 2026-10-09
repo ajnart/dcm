@@ -81,7 +81,23 @@ var deviations = map[string]map[string]string{
 // Service aliases preserve individual legacy dependency requirements while
 // avoiding cross-App Compose ownership collisions.
 var compositionServiceAliases = map[string]map[string]string{
-	"immich": {"redis": "immich-redis"},
+	"authentik":     {"worker": "authentik-worker", "postgresql": "authentik-postgresql"},
+	"bookstack":     {"db": "bookstack-db"},
+	"docmost":       {"db": "docmost-db", "redis": "docmost-redis"},
+	"firefly-iii":   {"db": "firefly-iii-db"},
+	"immich":        {"database": "immich-database", "redis": "immich-redis"},
+	"keycloak":      {"db": "keycloak-db"},
+	"linkwarden":    {"postgres": "linkwarden-postgres", "meilisearch": "linkwarden-meilisearch"},
+	"mayan-edms":    {"postgresql": "mayan-edms-postgresql", "rabbitmq": "mayan-edms-rabbitmq", "redis": "mayan-edms-redis"},
+	"netbird":       {"server": "netbird-server"},
+	"nextcloud":     {"db": "nextcloud-db", "cron": "nextcloud-cron", "redis": "nextcloud-redis"},
+	"pangolin":      {"server": "pangolin-server"},
+	"paperless-ngx": {"db": "paperless-ngx-db", "broker": "paperless-ngx-broker"},
+	"passbolt":      {"db": "passbolt-db"},
+	"patchmon":      {"database": "patchmon-database", "redis": "patchmon-redis", "guacd": "patchmon-guacd"},
+	"seafile":       {"db": "seafile-db", "redis": "seafile-redis"},
+	"tracearr":      {"timescale": "tracearr-timescale", "redis": "tracearr-redis"},
+	"umami":         {"db": "umami-db"},
 }
 
 // excluded are legacy Apps left out on purpose, with the reason.
@@ -232,7 +248,7 @@ func TestCompositionParityKeepsRenamedRedisAndDatabaseRequired(t *testing.T) {
 	if problems := appProblems(cat, a, fact); len(problems) != 0 {
 		t.Fatalf("intentional service rename broke parity: %v", problems)
 	}
-	for _, missing := range []string{"immich-redis", "database"} {
+	for _, missing := range []string{"immich-redis", "immich-database"} {
 		t.Run(missing, func(t *testing.T) {
 			services, err := composeServices(render(a))
 			if err != nil {

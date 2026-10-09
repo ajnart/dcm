@@ -51,7 +51,7 @@ func (App) Compose(rc app.RenderContext) string {
     image: seafileltd/seafile-mc:13.0.28
     restart: unless-stopped
     environment:
-      SEAFILE_MYSQL_DB_HOST: db
+      SEAFILE_MYSQL_DB_HOST: seafile-db
       SEAFILE_MYSQL_DB_PORT: "3306"
       SEAFILE_MYSQL_DB_USER: seafile
       SEAFILE_MYSQL_DB_CCNET_DB_NAME: ccnet_db
@@ -61,7 +61,7 @@ func (App) Compose(rc app.RenderContext) string {
       SEAFILE_SERVER_PROTOCOL: http
       SEAFILE_SERVER_HOSTNAME: ${LAN_IP}:` + port + `
       CACHE_PROVIDER: redis
-      REDIS_HOST: redis
+      REDIS_HOST: seafile-redis
       REDIS_PORT: "6379"
       ENABLE_SEADOC: "false"
       ENABLE_NOTIFICATION_SERVER: "false"
@@ -76,9 +76,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:
-      - db
-      - redis
-  db:
+      - seafile-db
+      - seafile-redis
+  seafile-db:
     image: mariadb:10.11.19
     restart: unless-stopped
     environment:
@@ -93,7 +93,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 30s
       retries: 10
-  redis:
+  seafile-redis:
     image: redis:8.2.9-alpine3.22
     restart: unless-stopped
 `

@@ -137,7 +137,7 @@ func renderedTimescale(t *testing.T) timescaleService {
 	if err := yaml.Unmarshal([]byte((tracearr.App{}).Compose(app.RenderContext{Port: 18321})), &compose); err != nil {
 		t.Fatal(err)
 	}
-	return compose.Services["timescale"]
+	return compose.Services["tracearr-timescale"]
 }
 
 func TestTimescaleUsesOfficialRootOwnershipBootstrap(t *testing.T) {

@@ -75,10 +75,10 @@ func (App) Compose(rc app.RenderContext) string {
       NGINX_SSL_PORT: "443"
       LETSENCRYPT_DOMAIN: none
     depends_on:
-      - server
+      - netbird-server
     ports:
       - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:80
-  server:
+  netbird-server:
     image: netbirdio/netbird-server:0.80.0
     restart: unless-stopped
     command: ["--config", "/run/secrets/server-config"]

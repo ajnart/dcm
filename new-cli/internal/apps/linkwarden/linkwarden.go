@@ -47,27 +47,27 @@ func (App) Compose(rc app.RenderContext) string {
     image: ghcr.io/linkwarden/linkwarden:v2.16.3
     restart: unless-stopped
     environment:
-      MEILI_HOST: http://meilisearch:7700
+      MEILI_HOST: http://linkwarden-meilisearch:7700
       NEXT_PUBLIC_DISABLE_REGISTRATION: "false"
       NEXTAUTH_URL: http://${LAN_IP}:` + port + `/api/v1/auth
       NEXTAUTH_SECRET: ${LINKWARDEN_AUTH_SECRET}
       MEILI_MASTER_KEY: ${LINKWARDEN_SEARCH_KEY}
-      DATABASE_URL: postgresql://postgres:${LINKWARDEN_DB_PASSWORD}@postgres:5432/postgres
+      DATABASE_URL: postgresql://postgres:${LINKWARDEN_DB_PASSWORD}@linkwarden-postgres:5432/postgres
     volumes:
       - ./archives:/data/data
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - postgres
-      - meilisearch
-  postgres:
+      - linkwarden-postgres
+      - linkwarden-meilisearch
+  linkwarden-postgres:
     image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${LINKWARDEN_DB_PASSWORD}
     volumes:
       - ./database:/var/lib/postgresql/data
-  meilisearch:
+  linkwarden-meilisearch:
     image: docker.io/getmeili/meilisearch:v1.13.3
     restart: unless-stopped
     environment:

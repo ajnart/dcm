@@ -82,7 +82,7 @@ func (App) Compose(rc app.RenderContext) string {
   passbolt:
     image: passbolt/passbolt:5.16.0-1-ce
     restart: unless-stopped
-    command: ["/bin/sh", "-c", "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 db:3306 -- /docker-entrypoint.sh"]
+    command: ["/bin/sh", "-c", "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 passbolt-db:3306 -- /docker-entrypoint.sh"]
     environment:
       TZ: ${TZ}
       APP_FULL_BASE_URL: ` + origin(rc) + `
@@ -94,7 +94,7 @@ func (App) Compose(rc app.RenderContext) string {
       EMAIL_TRANSPORT_DEFAULT_TLS: "true"
       PASSBOLT_KEY_EMAIL: ` + input(rc, "PASSBOLT_SERVER_KEY_EMAIL", "passbolt@selfhost.local") + `
       PASSBOLT_KEY_NAME: ` + input(rc, "PASSBOLT_SERVER_KEY_NAME", "Passbolt") + `
-      DATASOURCES_DEFAULT_HOST: db
+      DATASOURCES_DEFAULT_HOST: passbolt-db
       DATASOURCES_DEFAULT_USERNAME: passbolt
       DATASOURCES_DEFAULT_DATABASE: passbolt
       DATASOURCES_DEFAULT_PASSWORD: ${PASSBOLT_DATABASE_PASSWORD}
@@ -102,10 +102,10 @@ func (App) Compose(rc app.RenderContext) string {
       - ./gpg:/etc/passbolt/gpg
       - ./jwt:/etc/passbolt/jwt
     depends_on:
-      - db
+      - passbolt-db
     ports:
       - ${BIND_IP}:` + port + `:80
-  db:
+  passbolt-db:
     image: mariadb:10.11
     restart: unless-stopped
     environment:

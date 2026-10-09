@@ -28,7 +28,7 @@ func TestFreshGPGMountIsWritableBeforeOfficialEntrypoint(t *testing.T) {
 	if !slices.Equal(service.Command[:min(2, len(service.Command))], []string{"/bin/sh", "-c"}) || len(service.Command) != 3 {
 		t.Fatal("fresh bind ownership is not prepared before startup")
 	}
-	want := "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 db:3306 -- /docker-entrypoint.sh"
+	want := "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 passbolt-db:3306 -- /docker-entrypoint.sh"
 	if service.Command[2] != want {
 		t.Fatal("GPG ownership must be scoped to the mounted directory before unchanged official startup")
 	}
@@ -64,7 +64,7 @@ touch "$OWNERSHIP_MARKER"
 `
 	wait := `#!/bin/sh
 set -eu
-[ "$*" = '-t 0 db:3306 -- /docker-entrypoint.sh' ]
+[ "$*" = '-t 0 passbolt-db:3306 -- /docker-entrypoint.sh' ]
 [ -f "$OWNERSHIP_MARKER" ]
 [ -w "$GPG_DIR" ]
 printf 'benign generated fixture payload' > "$GPG_DIR/generated-fixture"

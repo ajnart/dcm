@@ -166,7 +166,7 @@ func TestInstallRendersPullsUpAndSetup(t *testing.T) {
 	if err := h.install("one"); err != nil {
 		t.Fatalf("install: %v", err)
 	}
-	assertCalls(t, h.composeCalls(), []string{"--progress json pull one", "up -d one"})
+	assertCalls(t, h.composeCalls(), []string{"--progress json pull one", "up -d --remove-orphans one"})
 	if e := h.rec.find("one", "render"); e == nil || e.Event != events.StepOK {
 		t.Fatalf("render step missing: %+v", e)
 	}
@@ -188,7 +188,7 @@ func TestUpdatePullsBeforeUpThenCheck(t *testing.T) {
 	if err := h.svc.Update(context.Background(), []string{"one"}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	assertCalls(t, h.composeCalls()[before:], []string{"--progress json pull one", "up -d one"})
+	assertCalls(t, h.composeCalls()[before:], []string{"--progress json pull one", "up -d --remove-orphans one"})
 	if e := h.rec.find("one", "check"); e == nil || e.Event != events.StepOK {
 		t.Fatalf("update did not run Check: %+v", e)
 	}
@@ -204,7 +204,7 @@ func TestStartUsesUpOnly(t *testing.T) {
 	if err := h.svc.Start(context.Background(), []string{"one"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	assertCalls(t, h.composeCalls()[2:], []string{"up -d one"})
+	assertCalls(t, h.composeCalls()[2:], []string{"up -d --remove-orphans one"})
 	if again := strings.Count(strings.Join(h.composeCalls(), "\n"), "--progress json pull"); again != pulls {
 		t.Fatalf("start pulled: %d pulls, want %d", again, pulls)
 	}
@@ -215,7 +215,7 @@ func TestStartUsesUpOnly(t *testing.T) {
 	if err := h.svc.Start(context.Background(), nil); err != nil {
 		t.Fatal(err)
 	}
-	assertCalls(t, h.composeCalls()[4:], []string{"up -d one"})
+	assertCalls(t, h.composeCalls()[4:], []string{"up -d --remove-orphans one"})
 	p, err := h.svc.Project()
 	if err != nil {
 		t.Fatal(err)
@@ -235,7 +235,7 @@ func TestStartRemembersFailureAndRetryWithoutChangingSetupSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
-		if strings.Contains(systemtest.Line(cmd), " up -d one") {
+		if strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("port is already allocated")}
 		}
 		return system.Result{}
@@ -298,7 +298,7 @@ func TestConfigSetRecreatesOnlyAffectedApps(t *testing.T) {
 	if err := h.svc.ConfigSet(context.Background(), []string{"LAN_IP=10.9.9.9"}); err != nil {
 		t.Fatalf("config: %v", err)
 	}
-	assertCalls(t, h.composeCalls()[before:], []string{"up -d one"})
+	assertCalls(t, h.composeCalls()[before:], []string{"up -d --remove-orphans one"})
 }
 
 func TestRemoveDeletesComposeFragment(t *testing.T) {
@@ -369,8 +369,8 @@ func TestConcurrentInstallsSerialise(t *testing.T) {
 		t.Fatalf("%d Compose commands overlapped in one process", counting.max)
 	}
 	assertCalls(t, h.composeCalls()[before:], []string{
-		"--progress json pull one", "up -d one",
-		"--progress json pull one", "up -d one",
+		"--progress json pull one", "up -d --remove-orphans one",
+		"--progress json pull one", "up -d --remove-orphans one",
 	})
 }
 
@@ -438,7 +438,7 @@ func TestFailedStartDoesNotFailSetup(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
-		if strings.Contains(systemtest.Line(cmd), " up -d one") {
+		if strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("port is already allocated")}
 		}
 		return system.Result{}

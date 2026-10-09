@@ -30,7 +30,7 @@ func TestRedisPreservesSelectedUserForPrivateConfig(t *testing.T) {
 	if err := yaml.Unmarshal([]byte((patchmon.App{}).Compose(app.RenderContext{Port: 31003})), &compose); err != nil {
 		t.Fatal(err)
 	}
-	redis := compose.Services["redis"]
+	redis := compose.Services["patchmon-redis"]
 	if redis.User != "${PUID}:${PGID}" {
 		t.Fatal("Redis must preserve the Project's explicit selected user")
 	}

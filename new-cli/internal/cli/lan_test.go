@@ -76,7 +76,7 @@ func TestConfigSetLANIPAutoRedetectsAndRecreatesTheAppsThatUseIt(t *testing.T) {
 	if env := readFile(t, filepath.Join(projectRoot(t, deps), ".env")); !strings.Contains(env, "LAN_IP="+home+"\n") {
 		t.Fatalf(".env not re-detected:\n%s", env)
 	}
-	if lastCompose(deps) != "up -d one" {
+	if lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("only the App using LAN_IP should be recreated, last call %q", lastCompose(deps))
 	}
 	if _, out := runWith(t, deps, cat, "status", "--json"); strings.Contains(out, "lan_ip_stale") {

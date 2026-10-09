@@ -44,7 +44,7 @@ func TestStopAndStartTargetOnlyTheNamedApp(t *testing.T) {
 	if code, out := runWith(t, deps, cat, "stop", "one"); code != 0 || lastCompose(deps) != "stop one" {
 		t.Fatalf("stop: %d %q\n%s", code, lastCompose(deps), out)
 	}
-	if code, _ := runWith(t, deps, cat, "start", "one"); code != 0 || lastCompose(deps) != "up -d one" {
+	if code, _ := runWith(t, deps, cat, "start", "one"); code != 0 || lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("start: %d %q", code, lastCompose(deps))
 	}
 	if code, _ := runWith(t, deps, cat, "restart", "two"); code != 0 || lastCompose(deps) != "restart two" {
@@ -80,7 +80,7 @@ func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
 
 	code, out := runWith(t, deps, cat, "start", "whoami")
 
-	if code != 0 || lastCompose(deps) != "up -d whoami" {
+	if code != 0 || lastCompose(deps) != "up -d --remove-orphans whoami" {
 		t.Fatalf("start unmanaged: %d %q\n%s", code, lastCompose(deps), out)
 	}
 	if !strings.Contains(readFile(t, filepath.Join(root, "compose.yml")), "apps/whoami/compose.yml") {
@@ -145,7 +145,7 @@ func TestUpdatePullsRecreatesAndChecks(t *testing.T) {
 	code, out := runWith(t, deps, cat, "update", "one", "--json")
 
 	calls := composeCalls(deps)
-	if code != 0 || calls[len(calls)-2] != "--progress json pull one" || calls[len(calls)-1] != "up -d one" {
+	if code != 0 || calls[len(calls)-2] != "--progress json pull one" || calls[len(calls)-1] != "up -d --remove-orphans one" {
 		t.Fatalf("update: %d %v\n%s", code, calls, out)
 	}
 	if findCheck(decodeEvents(t, out), "check") == nil {
@@ -184,7 +184,7 @@ func TestConfigSetRewritesSettingsAndRecreatesApps(t *testing.T) {
 			t.Errorf(".env lacks %q", want)
 		}
 	}
-	if lastCompose(deps) != "up -d one" {
+	if lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("app not recreated: %q", lastCompose(deps))
 	}
 }
