@@ -2,13 +2,13 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -22,14 +22,14 @@ import (
 const wideWidth = 100
 
 // surface is the Dashboard tab a view fills, in tab order: Overview
-// (dashboardView), Apps (appsView), Activity (workflowView), Catalog
+// (dashboardView), Apps (appsView), Activity (activityView), Catalog
 // (installView) and Settings.
 type surface int
 
 const (
 	surfaceDashboard surface = iota
 	surfaceApps
-	surfaceWorkflow
+	surfaceActivity
 	surfaceInstall
 	surfaceSettings
 )
@@ -39,7 +39,7 @@ var tabs = []struct {
 }{
 	surfaceDashboard: {"dashboard", "Overview"},
 	surfaceApps:      {"apps", "Apps"},
-	surfaceWorkflow:  {"workflow", "Activity"},
+	surfaceActivity:  {"activity", "Activity"},
 	surfaceInstall:   {"install", "Catalog"},
 	surfaceSettings:  {"settings", "Settings"},
 }
@@ -92,7 +92,10 @@ type viewContext struct {
 	theme         theme
 	keys          keyMap
 	help          help.Model
-	spin          spinner.Model
+	// frame and motion are the animation's current frame and the frame at
+	// which each row of the Action last changed.
+	frame  int
+	motion activity.Motion
 
 	status    service.Status
 	checks    []host.Check
@@ -123,8 +126,11 @@ type viewContext struct {
 // mainHeight leaves the header row above and the status line and bar below.
 func (ctx *viewContext) mainHeight() int { return max(ctx.height-3, 3) }
 
-func (ctx *viewContext) workflow() activity.Snapshot {
-	var evs []events.Event
+// snapshot is every App's remembered steps overlaid with the events of the
+// tasks a status refresh has not read yet, and the Action of the latest
+// task, which stays until the next one starts.
+func (ctx *viewContext) snapshot() activity.Snapshot {
+	var evs, latest []events.Event
 	if ctx.tasks != nil {
 		for _, task := range ctx.tasks.snapshots() {
 			if task.persisted {
@@ -132,8 +138,38 @@ func (ctx *viewContext) workflow() activity.Snapshot {
 			}
 			evs = append(evs, task.events...)
 		}
+		if task := ctx.tasks.latest(); task != nil {
+			latest = actionEvents(task.snapshot())
+		}
 	}
-	return activity.Build(ctx.status, evs)
+	s := activity.Build(ctx.status, evs)
+	action := activity.Build(ctx.status, latest)
+	s.Action, s.Pull = action.Action, action.Pull
+	return s
+}
+
+// actionEvents are a task's events as one Action: opened with a run.start
+// named after the task when the Service has not sent one yet, and closed
+// with a run.end when the task ended without one, as an Action that fails
+// outside the Service's own finish does.
+func actionEvents(t taskSnapshot) []events.Event {
+	evs := t.events
+	if !slices.ContainsFunc(evs, func(e events.Event) bool { return e.Event == events.RunStart }) {
+		evs = append([]events.Event{{Event: events.RunStart, Msg: t.title}}, evs...)
+	}
+	if t.state == taskRunning {
+		return evs
+	}
+	for i := len(evs) - 1; i >= 0 && evs[i].Event != events.RunStart; i-- {
+		if evs[i].Event == events.RunEnd {
+			return evs
+		}
+	}
+	end := events.Event{Event: events.RunEnd, Error: t.err}
+	if t.state == taskCancelled {
+		end.Error = "cancelled"
+	}
+	return append(evs, end)
 }
 
 // pullProgress is the running Action's overall pull, as a whole number out
@@ -165,7 +201,7 @@ func (ctx *viewContext) run(req Request, title string) tea.Cmd {
 		err := backend.Run(t.ctx, req, log)
 		return taskDoneMsg{id: t.id, title: title, err: err}
 	}
-	return tea.Batch(run, ctx.spin.Tick)
+	return run
 }
 
 // fit pads or cuts s to exactly width×height cells.
@@ -457,7 +493,7 @@ func (m Model) View() tea.View {
 		var chips []key.Binding
 		switch {
 		case !m.loaded:
-			main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
+			main = m.theme.dim().Render("  " + activity.Spinner(m.frame) + " reading the Project…")
 		case m.statusErr != "":
 			main = m.renderStatusError()
 		default:
@@ -523,7 +559,7 @@ func (m Model) footerStatus() string {
 	t := m.theme
 	if task := m.tasks.latest(); task != nil {
 		if s := task.snapshot(); s.state == taskRunning {
-			line := t.fg(t.accentText).Render(m.spin.View() + " " + s.title)
+			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
 			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
 				line += t.dim().Render(" · ")
 				line += activity.Compact(snapshot, m.width-lipgloss.Width(line), t.palette())

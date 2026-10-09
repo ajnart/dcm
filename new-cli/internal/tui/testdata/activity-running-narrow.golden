@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Activity · 1 App fully set up · 1 step failed · 1 step running
+
+  ⠧ install jellyfin sonarr
+    ✓ Start   ⠧ Setup   ○ Credentials   ○ Check
+  ╭─ Apps 1/2 set up ──────────────────────────────────────────────────────────╮
+  │ ● Jellyfin        ready                                                    │
+  │ ⠧ Sonarr          setting up                                               │
+  │   ✓ wait for the Sonarr API                                                │
+  │   ✓ read the Sonarr API key  ••••••  saved                                 │
+  │   ⠧ add the root folder /media/tv                                          │
+  ╰────────────────────────────────────────────────────────────────────────────╯
+    Setting up Sonarr: add the root folder /media/tv
+
+  > ▸ Jellyfin
+    ▾ Sonarr
+    ✓ start · started
+    ✗ download-client
+    ✓ ready · wait for the Sonarr API
+    ✓ api-key · read the Sonarr API key
+    … root-folder · add the root folder /media/tv
+    ▾ whoami · added by hand, no Setup
+⠧ install jellyfin sonarr · … sonarr › root-folder add the root folder /media/tv
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   a  actions …

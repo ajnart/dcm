@@ -76,7 +76,7 @@ func TestWorkflowStepStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 	task := ctx.tasks.start("setup radarr")
 	t.Cleanup(ctx.tasks.cancelAll)
 	task.append(events.Event{Event: events.StepStart, App: "radarr", Step: "ready"})
-	var v view = &workflowView{}
+	var v view = &activityView{}
 	v, _, _ = v.Update(ctx, press("space"))
 
 	out := ansi.Strip(v.View(ctx, 120, 30))

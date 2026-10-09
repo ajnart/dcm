@@ -28,6 +28,11 @@ type Step struct {
 	Target           string
 	State            State
 	Msg, Error, Hint string
+	// Key identifies the step's row in an Action.
+	Key string
+	// Credential names the credential an Action's step creates or saves,
+	// such as "API key"; it never holds a value.
+	Credential string
 }
 
 type App struct {
@@ -40,8 +45,9 @@ type App struct {
 type Snapshot struct {
 	Apps   []App
 	Counts Counts
-	// Pull is the image pull of the running or most recent Action.
-	Pull Pull
+	// Action is the running or most recent Action, and Pull its image pull.
+	Action Action
+	Pull   Pull
 }
 
 type Counts struct {
@@ -51,6 +57,7 @@ type Counts struct {
 // Build merges remembered steps with task events in run order.
 func Build(status service.Status, evs []events.Event) Snapshot {
 	out := Snapshot{Pull: buildPull(status, evs)}
+	out.Action = buildAction(status, evs, out.Pull)
 	for _, app := range status.Apps {
 		entry := App{ID: app.ID, Name: app.Name, Managed: app.Managed, SetUp: app.Managed && app.Setup == stepstatus.SetupOK}
 		if !app.Managed {

@@ -1,0 +1,12 @@
+── frame 7 ──
+⠧ install qbittorrent sonarr radarr
+  ✓ Pull   ✓ Start   ⠧ Setup   ○ Credentials   ○ Check
+╭─ Apps 1/3 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                                      │
+│ ⠧ Sonarr          setting up                                                 │
+│   ✓ wait for the Sonarr API                                                  │
+│   ✓ read the Sonarr API key  ••••••  saved                                   │
+│   ⠧ add the root folder /media/tv                                            │
+│ ● Radarr          started                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Setting up Sonarr: add the root folder /media/tv
