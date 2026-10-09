@@ -8,7 +8,9 @@ retry Setup, update images, or make a Backup.
 One Go binary runs both the terminal interface and plain commands for agents.
 Apps share one Docker Compose Project, normally in `~/.self-host`. The Catalog,
 Setup code and agent guide ship inside the binary; running it needs no Node.js,
-Bun, checkout, or AI account.
+Bun, checkout, or AI account. A Project made by a pre-release build in
+`~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
+at one.
 
 **Private release:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
 is published. Linux amd64 host installation, self-update and a clean Alpine
