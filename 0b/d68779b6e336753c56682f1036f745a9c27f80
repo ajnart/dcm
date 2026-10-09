@@ -1,0 +1,36 @@
+new-cli/internal/tui/install.go
+  h_d6e478ca18e517 154
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 158,161,233,248-256,310-329
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 500-504,537-538,655,660,669-731
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 7-8
+new-cli/internal/tui/testdata/onboarding-what-narrow.golden
+  h_d6e478ca18e517 9
+new-cli/internal/tui/testdata/onboarding-what.golden
+  h_d6e478ca18e517 9
+new-cli/internal/tui/testdata/onboarding-where-host-settings-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-host-settings.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-narrow.golden
+  h_d6e478ca18e517 6,8-10,12-16
+new-cli/internal/tui/testdata/onboarding-where.golden
+  h_d6e478ca18e517 6,8-10,12-15
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 3
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0bd68779b6e336753c56682f1036f745a9c27f80",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
