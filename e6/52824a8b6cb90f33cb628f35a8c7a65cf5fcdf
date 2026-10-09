@@ -1,0 +1,19 @@
+new-cli/internal/apps/netdata/startup_test.go
+  s_a2fd509a765bab::t_a6ba8b931788ff 59-72,107-117,142-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e652824a8b6cb90f33cb628f35a8c7a65cf5fcdf",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
