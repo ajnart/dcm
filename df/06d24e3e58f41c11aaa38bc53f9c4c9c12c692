@@ -1,0 +1,16 @@
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 481-483
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 343-359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df06d24e3e58f41c11aaa38bc53f9c4c9c12c692",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
