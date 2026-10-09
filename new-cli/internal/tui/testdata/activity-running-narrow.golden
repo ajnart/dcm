@@ -2,7 +2,7 @@
   Activity · 1 App fully set up · 1 step failed · 1 step running
 
   ⠧ install jellyfin sonarr
-    ✓ Start   ⠧ Setup   ✓ Credentials   ✓ Check
+    ✓ Start   ⠧ Setup   ○ Credentials   ○ Check
   ╭─ Apps 1/2 set up ──────────────────────────────────────────────────────────╮
   │ ● Jellyfin        ready                                                    │
   │ ⠧ Sonarr          setting up                                               │

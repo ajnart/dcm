@@ -93,6 +93,8 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 	}
 	var out Action
 	stages := map[string]*stageSteps{}
+	// reached is, per App, the stages it has a step in.
+	reached := map[string]map[string]bool{}
 	var apps []*ActionApp
 	byApp := map[string]*ActionApp{}
 	started := map[string]State{}
@@ -123,6 +125,10 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 		if e.App == "" {
 			continue
 		}
+		if reached[e.App] == nil {
+			reached[e.App] = map[string]bool{}
+		}
+		reached[e.App][stage] = true
 		app := byApp[e.App]
 		if app == nil {
 			app = &ActionApp{Key: "app:" + e.App, ID: e.App, Name: name(e.App)}
@@ -154,11 +160,6 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 			app.Steps = append(app.Steps, step)
 		}
 	}
-	for _, stage := range stageOrder {
-		if steps := stages[stage]; steps != nil {
-			out.Stages = append(out.Stages, Stage{Name: stage, State: steps.overall()})
-		}
-	}
 	for _, app := range apps {
 		app.State = appState(*app, started[app.ID], app.ID == current && out.Running, out.Finished)
 		app.Ready = app.State == Done && (out.Finished || slices.ContainsFunc(app.Steps, func(s Step) bool {
@@ -176,6 +177,11 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 		}
 		out.Counts.LinksTotal++
 		out.Links = append(out.Links, *link)
+	}
+	for _, stage := range stageOrder {
+		if steps := stages[stage]; steps != nil {
+			out.Stages = append(out.Stages, Stage{Name: stage, State: stageState(out, stage, steps, reached)})
+		}
 	}
 	out.Counts.ImagesPulled, out.Counts.ImagesTotal = pull.Done, pull.Total
 	out.Narrative = narrative(out, lastRunning, pull, name)
@@ -225,18 +231,31 @@ func stageOf(step string) string {
 	return StageSetup
 }
 
+// credentialSteps mirror the Apps' step IDs that create or save a
+// credential, in order: a step ID containing the pattern, or starting with
+// it for a prefix, names that credential.
+var credentialSteps = []struct {
+	pattern, name string
+	prefix        bool
+}{
+	{"api-key", "API key", false},
+	{"auth-key", "API key", false},
+	{"server-key", "API key", false},
+	{"token", "token", false},
+	{"password", "password", false},
+	{"admin", "Admin login", true},
+	{"rotate-admin", "Admin login", false},
+	{"owner", "Admin login", false},
+	{"credentials", "Admin login", false},
+}
+
 // credentialName names the credential a Setup step creates or saves, from
 // the step's ID alone: the snapshot never carries a value.
 func credentialName(step string) string {
-	switch {
-	case strings.Contains(step, "api-key"), step == "auth-key", step == "server-key":
-		return "API key"
-	case strings.Contains(step, "token"):
-		return "token"
-	case strings.Contains(step, "password"):
-		return "password"
-	case strings.HasPrefix(step, "admin"), step == "owner", step == "credentials", step == "rotate-admin":
-		return "Admin login"
+	for _, c := range credentialSteps {
+		if c.prefix && strings.HasPrefix(step, c.pattern) || !c.prefix && strings.Contains(step, c.pattern) {
+			return c.name
+		}
 	}
 	return ""
 }
@@ -248,6 +267,15 @@ type stageSteps struct {
 	states map[string]State
 }
 
+// latest is the latest state of every step of the stage.
+func (s *stageSteps) latest() []State {
+	var states []State
+	for _, key := range s.keys {
+		states = append(states, s.states[key])
+	}
+	return states
+}
+
 func (s *stageSteps) set(key string, state State) {
 	if _, seen := s.states[key]; !seen {
 		s.keys = append(s.keys, key)
@@ -255,21 +283,59 @@ func (s *stageSteps) set(key string, state State) {
 	s.states[key] = state
 }
 
-// overall folds a stage's steps into one state: running wins, then failed,
-// then manual; a stage whose steps all ended is done, or skipped when none
-// of them did anything.
-func (s *stageSteps) overall() State {
-	var states []State
-	for _, key := range s.keys {
-		states = append(states, s.states[key])
+// stageRank is the order in which an App goes through the stages: Setup
+// and its credentials interleave, and Links follow the check.
+var stageRank = map[string]int{StagePull: 0, StageStart: 1, StageSetup: 2, StageCredentials: 2, StageCheck: 3, StageLinks: 4}
+
+// stageState is a stage's state for the whole Action: running while any App
+// is in it, failed or manual when one App ended there, done only once every
+// App of the Action is past it, and not run otherwise.
+func stageState(a Action, stage string, steps *stageSteps, reached map[string]map[string]bool) State {
+	states := steps.latest()
+	if slices.Contains(states, Running) {
+		return Running
 	}
-	for _, want := range []State{Running, Failed, Manual, Done} {
+	if stage == StageSetup && slices.ContainsFunc(a.Apps, func(app ActionApp) bool {
+		setup := reached[app.ID][StageSetup] || reached[app.ID][StageCredentials]
+		return app.State == Running && setup && !reached[app.ID][StageCheck]
+	}) {
+		return Running
+	}
+	for _, want := range []State{Failed, Manual} {
 		if slices.Contains(states, want) {
 			return want
 		}
 	}
+	for _, app := range a.Apps {
+		if !past(a, app, stage, steps, reached[app.ID]) {
+			return NotRun
+		}
+	}
+	if slices.Contains(states, Done) {
+		return Done
+	}
 	return Skipped
 }
+
+// past reports that the App is through a stage: the Action finished, the
+// App is ready or reached a later stage, or its one pull or start step ended.
+func past(a Action, app ActionApp, stage string, steps *stageSteps, reached map[string]bool) bool {
+	if a.Finished || app.Ready {
+		return true
+	}
+	for other := range reached {
+		if stageRank[other] > stageRank[stage] {
+			return true
+		}
+	}
+	if stage != StagePull && stage != StageStart {
+		return false
+	}
+	state, ok := steps.states[stepKey(app.ID, stageStep[stage])]
+	return ok && state != Running
+}
+
+var stageStep = map[string]string{StagePull: service.StagePull, StageStart: service.StageStart}
 
 func appState(app ActionApp, started State, current, finished bool) State {
 	ready := started == Done
