@@ -32,7 +32,7 @@ func TestRunningPullShowsFooterAndBars(t *testing.T) {
 		task.append(e)
 	}
 
-	footer := ansi.Strip(m.footerStatus())
+	footer := ansi.Strip(m.footerStatus(m.ctx()))
 	for _, want := range []string{"update one", "█", "░", "1 of 2 images"} {
 		if !strings.Contains(footer, want) {
 			t.Fatalf("footer lacks %q:\n%s", want, footer)
@@ -53,7 +53,7 @@ func TestFooterShowsLatestEventOnceThePullEnds(t *testing.T) {
 	} {
 		task.append(e)
 	}
-	footer := ansi.Strip(m.footerStatus())
+	footer := ansi.Strip(m.footerStatus(m.ctx()))
 	if !strings.Contains(footer, "✓ pull pulled sonarr") || strings.Contains(footer, "of 1 image") {
 		t.Fatalf("footer still shows the ended pull:\n%s", footer)
 	}
@@ -71,7 +71,7 @@ func TestNarrowFooterKeepsTheImagesFact(t *testing.T) {
 	} {
 		task.append(e)
 	}
-	footer := ansi.Strip(m.footerStatus())
+	footer := ansi.Strip(m.footerStatus(m.ctx()))
 	if !strings.Contains(footer, "█") || !strings.Contains(footer, "1 of 2 images") || ansi.StringWidth(footer) > 36 {
 		t.Fatalf("narrow footer lost the bar or the images fact:\n%s", footer)
 	}

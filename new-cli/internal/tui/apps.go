@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,10 +16,15 @@ import (
 )
 
 // appsView is the Apps tab: the App list and the selected App's details in
-// sub-tabs, which take focus in turn. It owns the App selection, App details
-// and the credential picker; the Overview shares them until #135 reshapes it.
+// sub-tabs, which take focus in turn. It owns the App selection, the list
+// search, App details and the credential picker; the Overview's Apps pane
+// shares them.
 type appsView struct {
+	// cursor is the selected row of the visible Apps.
 	cursor int
+	// searching is `/` typing into filter, which narrows the list on name or id.
+	searching bool
+	filter    string
 	// detailsFocused gives ↑/↓ to the details instead of the App selection.
 	detailsFocused bool
 	details        *appDetails
@@ -28,18 +34,21 @@ type appsView struct {
 func newAppsView() *appsView { return &appsView{details: newAppDetails()} }
 
 var (
-	appsListKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("tab", "next pane"),
-		hint("[/]", "sub-tab"), hint("o", "open"), hint("c", "copy"), hint("r", "refresh"), hint("esc", "back"),
-		hint("shift+tab", "previous pane")}
+	appsListKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "details"), hint("/", "search"),
+		hint("[/]", "sub-tab"), hint("tab", "next pane"), hint("o", "open"), hint("c", "copy"), hint("r", "refresh"),
+		hint("esc", "back"), hint("shift+tab", "previous pane")}
 	appsDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("a", "actions"), hint("tab", "next pane"),
 		hint("[/]", "sub-tab"), hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"),
 		hint("shift+tab", "previous pane")}
+	appsSearchKeys = []key.Binding{hint("enter", "done"), hint("esc", "clear")}
 )
 
 func (v *appsView) Keys() []key.Binding {
 	switch {
 	case v.copy != nil:
 		return copyHelp
+	case v.searching:
+		return appsSearchKeys
 	case v.detailsFocused:
 		return appsDetailsKeys
 	}
@@ -47,18 +56,35 @@ func (v *appsView) Keys() []key.Binding {
 }
 
 func (v *appsView) Panes() []pane {
-	return []pane{{"List", appsListKeys}, {"Details", appsDetailsKeys}, {"Copy picker", copyHelp}}
+	return []pane{{"List", appsListKeys}, {"Details", appsDetailsKeys}, {"Search", appsSearchKeys}, {"Copy picker", copyHelp}}
 }
 
-func (v *appsView) Capturing() bool { return false }
+func (v *appsView) Capturing() bool { return v.searching }
 
 func (v *appsView) Title() string { return "Apps" }
 
+// visible narrows the Project's Apps to the ones matching the search on
+// name or id.
+func (v *appsView) visible(ctx *viewContext) []service.AppStatus {
+	if v.filter == "" {
+		return ctx.status.Apps
+	}
+	q := strings.ToLower(v.filter)
+	var out []service.AppStatus
+	for _, app := range ctx.status.Apps {
+		if strings.Contains(strings.ToLower(app.Name), q) || strings.Contains(strings.ToLower(app.ID), q) {
+			out = append(out, app)
+		}
+	}
+	return out
+}
+
 func (v *appsView) selected(ctx *viewContext) (service.AppStatus, bool) {
-	if v.cursor < 0 || v.cursor >= len(ctx.status.Apps) {
+	apps := v.visible(ctx)
+	if v.cursor < 0 || v.cursor >= len(apps) {
 		return service.AppStatus{}, false
 	}
-	return ctx.status.Apps[v.cursor], true
+	return apps[v.cursor], true
 }
 
 // selectedApp is the App the Action menu opens for; none while the copy
@@ -76,7 +102,57 @@ func (v *appsView) selectedID(ctx *viewContext) string {
 }
 
 func (v *appsView) clampCursor(ctx *viewContext) {
-	v.cursor = max(min(v.cursor, len(ctx.status.Apps)-1), 0)
+	v.cursor = max(min(v.cursor, len(v.visible(ctx))-1), 0)
+}
+
+// searchLine is the search shown above the list while one is active.
+func (v *appsView) searchLine(t theme) (string, bool) {
+	switch {
+	case v.searching:
+		return t.dim().Render("/" + v.filter + "▏"), true
+	case v.filter != "":
+		return t.dim().Render("/" + v.filter + "  (esc clears)"), true
+	}
+	return "", false
+}
+
+// searchKey types into the search: enter keeps the filter and stops typing,
+// esc clears it. The App selected before stays selected while it still
+// matches; otherwise the first match is.
+func (v *appsView) searchKey(ctx *viewContext, press tea.KeyPressMsg) tea.Cmd {
+	keep := v.selectedID(ctx)
+	switch press.String() {
+	case "enter":
+		v.searching = false
+		return nil
+	case "esc":
+		v.searching, v.filter = false, ""
+	case "backspace":
+		if runes := []rune(v.filter); len(runes) > 0 {
+			v.filter = string(runes[:len(runes)-1])
+		}
+	default:
+		v.filter += press.Text
+	}
+	return v.reselect(ctx, keep)
+}
+
+// clearFilter drops a kept filter, as the first esc after enter does.
+func (v *appsView) clearFilter(ctx *viewContext) tea.Cmd {
+	keep := v.selectedID(ctx)
+	v.filter = ""
+	return v.reselect(ctx, keep)
+}
+
+// reselect keeps the App id selected in the list as it is now filtered; the
+// details reload only when the selection moved to another App.
+func (v *appsView) reselect(ctx *viewContext, id string) tea.Cmd {
+	v.cursor = max(slices.IndexFunc(v.visible(ctx), func(a service.AppStatus) bool { return a.ID == id }), 0)
+	if v.selectedID(ctx) == id {
+		return nil
+	}
+	app, found := v.selected(ctx)
+	return v.details.show(ctx, app, found)
 }
 
 // selectApp moves the selection and shows the new App's details.
@@ -132,10 +208,13 @@ func (v *appsView) wheel(msg tea.MouseWheelMsg) {
 	}
 }
 
-// key handles the keys every App pane shares: selection or scrolling by
-// focus, sub-tabs, open and copy. The Overview reuses it for its Apps pane.
+// key handles the Apps tab's keys: selection or scrolling by focus, search,
+// sub-tabs, open and copy.
 func (v *appsView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	k := ctx.keys
+	if v.searching {
+		return v, v.searchKey(ctx, msg), nav{}
+	}
 	switch {
 	case key.Matches(msg, k.Up) && v.detailsFocused:
 		v.details.vp.ScrollUp(1)
@@ -147,6 +226,10 @@ func (v *appsView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, na
 		return v, v.selectApp(ctx, v.cursor+1), nav{}
 	case key.Matches(msg, k.NextPane), key.Matches(msg, k.PrevPane):
 		v.detailsFocused = !v.detailsFocused
+	case key.Matches(msg, k.Search) && !v.detailsFocused:
+		v.searching = true
+	case msg.String() == "enter" && !v.detailsFocused:
+		v.detailsFocused = true
 	case key.Matches(msg, k.NextSub):
 		return v, v.stepSubTab(ctx, 1), nav{}
 	case key.Matches(msg, k.PrevSub):
@@ -161,6 +244,8 @@ func (v *appsView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, na
 		return v, v.open(ctx), nav{}
 	case msg.String() == "r":
 		return v, tea.Batch(loadUpdatesCmd(ctx.backend, ctx.status), loadContainersCmd(ctx.backend)), nav{}
+	case msg.String() == "esc" && v.filter != "":
+		return v, v.clearFilter(ctx), nav{}
 	case msg.String() == "esc":
 		return v, nil, nav{kind: navBack}
 	}
@@ -197,12 +282,6 @@ func (v *appsView) click(ctx *viewContext, id string) tea.Cmd {
 		fmt.Sscanf(id, "tab:%d", &n)
 		app, found := v.selected(ctx)
 		return v.details.setTab(ctx, app, found, detailTab(n))
-	case strings.HasPrefix(id, "app:"):
-		for i, app := range ctx.status.Apps {
-			if app.ID == strings.TrimPrefix(id, "app:") {
-				return v.selectApp(ctx, i)
-			}
-		}
 	}
 	return nil
 }
@@ -264,27 +343,41 @@ func (v *appsView) View(ctx *viewContext, width, height int) string {
 func (v *appsView) renderList(ctx *viewContext, width, height int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
 	inner := width - 4
-	visible := max(height-2, 1)
-	offset := max(v.cursor-visible+1, 0)
-	rows := ctx.status.Apps
+	rows := v.visible(ctx)
 	var lines []string
+	if line, ok := v.searchLine(t); ok {
+		lines = append(lines, line)
+	}
+	top := len(lines)
+	visible := max(height-2-top, 1)
+	offset := max(v.cursor-visible+1, 0)
 	var layers []*lipgloss.Layer
-	if len(rows) == 0 {
+	switch {
+	case len(ctx.status.Apps) == 0:
 		lines = append(lines, t.dim().Render(wrap("No Apps yet. Press 4 to open the Catalog.", inner)))
+	case len(rows) == 0:
+		lines = append(lines, t.dim().Render("No Apps match."))
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		level := service.Level(rows[i])
 		row := t.dim().Render(categoryIcon(ctx, rows[i].ID)) + " " + t.body().Render(pad(rows[i].Name, inner-14)) + " " + t.dim().Render(pad(stateLabel(rows[i]), 9))
-		line := t.dot(level) + " " + row
-		if i == v.cursor {
-			glyph, c := t.status(level)
-			dot := t.fg(c).Background(t.selected).Bold(true).Render(glyph + " ")
-			line = dot + t.selection().Render(pad(stripANSI(row), inner-2))
-		}
+		line := appListRow(t, service.Level(rows[i]), row, i == v.cursor, inner)
 		lines = append(lines, line)
-		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
+		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+top+i-offset).ID(rowLayerID(i)))
 	}
 	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.detailsFocused), layers
+}
+
+// appListRow is one App row after its Status dot, shared by the Apps tab's
+// list and the Overview's Apps pane. The selected row has one background
+// under its whole width so per-cell colours do not punch holes in it; the
+// Status glyph keeps its colour.
+func appListRow(t theme, level, row string, selected bool, inner int) string {
+	if !selected {
+		return t.dot(level) + " " + row
+	}
+	glyph, c := t.status(level)
+	dot := t.fg(c).Background(t.selected).Bold(true).Render(glyph + " ")
+	return dot + t.selection().Render(pad(stripANSI(row), inner-2))
 }
 
 func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }

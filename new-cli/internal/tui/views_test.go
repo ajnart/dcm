@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"charm.land/bubbles/v2/help"
 	tea "charm.land/bubbletea/v2"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -18,8 +18,8 @@ func testViewContext(backend Backend) *viewContext {
 	return &viewContext{
 		width: 120, height: 30,
 		theme:   newTheme(true),
+		glyphs:  activity.Simple,
 		keys:    newKeyMap(),
-		help:    help.New(),
 		backend: backend,
 		tasks:   &taskManager{},
 		status:  sampleStatus(),
@@ -103,7 +103,7 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 	}
 }
 
-func workflowStatus() service.Status {
+func activityStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
 		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{
 			{ID: "ready", Status: stepstatus.StepOK, Msg: "API ready"},
@@ -120,22 +120,22 @@ func workflowStatus() service.Status {
 	}}
 }
 
-func TestWorkflowViewShowsEveryAppAndRememberedMarks(t *testing.T) {
+func TestActivityViewShowsEveryAppAndRememberedMarks(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 	v, _, _ = v.Update(ctx, press("space")) // expand the collapsed Jellyfin
 	out := ansi.Strip(v.View(ctx, 120, 30))
 	for _, want := range []string{"Jellyfin", "Sonarr", "Radarr", "whoami", "1 App fully set up", "1 step failed", "✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "API ready", "Setup has no recorded steps yet", "added by hand, no Setup"} {
 		if !strings.Contains(out, want) {
-			t.Fatalf("Workflow view lacks %q\n%s", want, out)
+			t.Fatalf("Activity view lacks %q\n%s", want, out)
 		}
 	}
 }
 
-func TestWorkflowViewExpandsFailedAppsAndCollapsesSetUpApps(t *testing.T) {
+func TestActivityViewExpandsFailedAppsAndCollapsesSetUpApps(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 	out := ansi.Strip(v.View(ctx, 120, 30))
 
@@ -149,9 +149,9 @@ func TestWorkflowViewExpandsFailedAppsAndCollapsesSetUpApps(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewSpaceTogglesAnApp(t *testing.T) {
+func TestActivityViewSpaceTogglesAnApp(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 
 	next, cmd, nv := v.Update(ctx, press("space"))
@@ -169,7 +169,7 @@ func TestWorkflowViewSpaceTogglesAnApp(t *testing.T) {
 	}
 }
 
-func workflowFilterStatus() service.Status {
+func activityFilterStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
 		{ID: "jf", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK},
 		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}}},
@@ -177,7 +177,7 @@ func workflowFilterStatus() service.Status {
 	}}
 }
 
-func TestWorkflowViewFiltersAppsByNameOrID(t *testing.T) {
+func TestActivityViewFiltersAppsByNameOrID(t *testing.T) {
 	for _, tc := range []struct {
 		name, query string
 		want, gone  []string
@@ -188,7 +188,7 @@ func TestWorkflowViewFiltersAppsByNameOrID(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := testViewContext(&fakeBackend{})
-			ctx.status = workflowFilterStatus()
+			ctx.status = activityFilterStatus()
 			var v view = &activityView{}
 			v, _, _ = v.Update(ctx, press("/"))
 			for _, r := range tc.query {
@@ -209,9 +209,9 @@ func TestWorkflowViewFiltersAppsByNameOrID(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewEscClearsFilterThenGoesBack(t *testing.T) {
+func TestActivityViewEscClearsFilterThenGoesBack(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowFilterStatus()
+	ctx.status = activityFilterStatus()
 
 	var plain view = &activityView{}
 	if _, cmd, nv := plain.Update(ctx, press("esc")); cmd != nil || nv.kind != navBack {
@@ -240,7 +240,7 @@ func TestWorkflowViewEscClearsFilterThenGoesBack(t *testing.T) {
 	}
 }
 
-func workflowMany(n int) service.Status {
+func activityMany(n int) service.Status {
 	var apps []service.AppStatus
 	for i := 0; i < n; i++ {
 		apps = append(apps, service.AppStatus{ID: fmt.Sprintf("app%02d", i), Name: fmt.Sprintf("App %02d", i),
@@ -249,7 +249,7 @@ func workflowMany(n int) service.Status {
 	return service.Status{Apps: apps}
 }
 
-func TestWorkflowViewScrollsToTheLastOfFortyApps(t *testing.T) {
+func TestActivityViewScrollsToTheLastOfFortyApps(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		msg   tea.Msg
@@ -261,7 +261,7 @@ func TestWorkflowViewScrollsToTheLastOfFortyApps(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := testViewContext(&fakeBackend{})
-			ctx.status = workflowMany(40)
+			ctx.status = activityMany(40)
 			v := &activityView{}
 			for i := 0; i < tc.times; i++ {
 				next, _, _ := v.Update(ctx, tc.msg)
@@ -279,7 +279,7 @@ func TestWorkflowViewScrollsToTheLastOfFortyApps(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewKeepsTheLastUnmanagedAppOnScreen(t *testing.T) {
+func TestActivityViewKeepsTheLastUnmanagedAppOnScreen(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	var apps []service.AppStatus
 	for i := 0; i < 40; i++ {
@@ -297,7 +297,7 @@ func TestWorkflowViewKeepsTheLastUnmanagedAppOnScreen(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewFitsEightyColumns(t *testing.T) {
+func TestActivityViewFitsEightyColumns(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{
 		{ID: "long", Name: "An App whose name is far too long to ever fit an eighty column terminal",
@@ -315,9 +315,9 @@ func TestWorkflowViewFitsEightyColumns(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewSelectsStepsWithArrowsAndJK(t *testing.T) {
+func TestActivityViewSelectsStepsWithArrowsAndJK(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 	for _, tc := range []struct{ key, selected string }{
 		{"up", "> ▸ Jellyfin"},
@@ -344,7 +344,7 @@ func TestWorkflowViewSelectsStepsWithArrowsAndJK(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewEscNavigatesBack(t *testing.T) {
+func TestActivityViewEscNavigatesBack(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	var v view = &activityView{}
 	_, cmd, nv := v.Update(ctx, press("esc"))
@@ -369,7 +369,7 @@ func TestNeedsActionOffersStartNotSetupForAFailedStart(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "one", Name: "One", Managed: true, State: "exited", Setup: stepstatus.SetupOK,
 		Steps: []service.StepStatus{{ID: "start", Status: stepstatus.StepFail, Error: "port is already allocated"}}}}}
-	for _, item := range (&dashboardView{}).needsAction(ctx) {
+	for _, item := range (&dashboardView{}).needsAttention(ctx) {
 		if item.desc == "retry Setup" {
 			t.Fatalf("a failed start cannot be fixed by Setup: %+v", item)
 		}
@@ -380,7 +380,7 @@ func TestDashboardManualNeedsAction(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, State: "running", Setup: stepstatus.SetupManual, Steps: []service.StepStatus{{ID: "admin", Status: stepstatus.StepManual, Hint: "Open the browser and create the administrator"}}}}}
 	v := &dashboardView{}
-	needs := v.needsAction(ctx)
+	needs := v.needsAttention(ctx)
 	if len(needs) != 1 || needs[0].broken || needs[0].key != "a r" || !strings.Contains(needs[0].text, "Open the browser") {
 		t.Fatalf("manual Needs action = %+v", needs)
 	}
@@ -393,14 +393,14 @@ func TestDashboardManualNeedsAction(t *testing.T) {
 	}
 }
 
-func TestWorkflowManualShowsHintWithoutFailures(t *testing.T) {
+func TestActivityManualShowsHintWithoutFailures(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, Setup: stepstatus.SetupManual, Steps: []service.StepStatus{{ID: "admin", Status: stepstatus.StepManual, Hint: "Open the browser and create the administrator"}}}}}
 	v := &activityView{}
 	out := ansi.Strip(v.View(ctx, 120, 30))
 	for _, want := range []string{"manual", "Open the browser", "0 steps failed", "0 Apps fully set up"} {
 		if !strings.Contains(out, want) {
-			t.Fatalf("Workflow lacks %q: %s", want, out)
+			t.Fatalf("Activity lacks %q: %s", want, out)
 		}
 	}
 }

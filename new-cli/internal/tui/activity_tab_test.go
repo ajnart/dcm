@@ -68,7 +68,7 @@ func TestFramesTickOnlyWhileAnActionRunsOrATransitionPlays(t *testing.T) {
 		t.Fatal("frames must keep ticking while the Action runs")
 	}
 
-	m = drive(t, m, taskDoneMsg{id: m.tasks.lastStarted(), title: "start whoami"})
+	m = drive(t, m, taskDoneMsg{id: m.tasks.latest().id, title: "start whoami"})
 	next, cmd = m.Update(frameMsg{})
 	m = next.(Model)
 	if !yieldsFrame(cmd) {

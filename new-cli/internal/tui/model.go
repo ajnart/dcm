@@ -10,12 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/activity"
-	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
@@ -96,11 +94,9 @@ type Model struct {
 	opts    Options
 
 	width, height int
-	dark          bool
 	theme         theme
 	glyphs        activity.Glyphs
 	keys          keyMap
-	help          help.Model
 
 	// frame is the animation frame; it advances only while ticking, which
 	// lasts while something runs or a transition still plays.
@@ -132,6 +128,7 @@ type Model struct {
 
 	surface   surface
 	showHelp  bool
+	quitting  bool
 	dashboard *dashboardView
 	install   *installView
 	settings  *settingsView
@@ -152,11 +149,9 @@ func New(backend Backend, opts Options) Model {
 	return Model{
 		backend:   backend,
 		opts:      opts,
-		dark:      true,
 		theme:     newTheme(true),
 		glyphs:    activity.Simple,
 		keys:      newKeyMap(),
-		help:      help.New(),
 		ticking:   true,
 		tracker:   &activity.Tracker{},
 		tasks:     &taskManager{},
@@ -288,30 +283,52 @@ func (m *Model) setFlash(text string, l level) {
 
 func (m Model) mainHeight() int { return max(m.height-3, 3) }
 
-// ctx is the read/ask view of the Model handed to the active view.
+// ctx is the read/ask view of the Model handed to the active view. It builds
+// the Activity snapshot once, for everything that reads it.
 func (m Model) ctx() *viewContext {
 	return &viewContext{
-		width: m.width, height: m.height, dark: m.dark, theme: m.theme, glyphs: m.glyphs,
-		keys: m.keys, help: m.help, frame: m.frame, motion: m.tracker.Motion(m.frame),
-		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt,
-		latest: m.latest, loaded: m.loaded, statusErr: m.statusErr, refreshed: m.refreshed,
+		width: m.width, height: m.height, theme: m.theme, glyphs: m.glyphs,
+		keys: m.keys, motion: m.tracker.Motion(m.frame),
+		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt, latest: m.latest,
 		containers: m.containers, containersErr: m.containersErr,
-		defaults: m.defaults, backend: m.backend, tasks: m.tasks, opts: m.opts,
+		backend: m.backend, tasks: m.tasks,
 		flash: m.flash, flashLevel: m.flashLevel,
+		shared: true,
 	}
 }
 
-// absorb copies the shared fields a view may have changed back onto the Model.
+// absorb copies what a view may have changed back onto the Model: the glyph
+// set it chose and the flash it set.
 func (m *Model) absorb(ctx *viewContext) {
-	m.width, m.height = ctx.width, ctx.height
 	m.glyphs = ctx.glyphs
-	m.containers, m.containersErr = ctx.containers, ctx.containersErr
 	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
-	m.help = ctx.help
-	m.defaults = ctx.defaults
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	next, cmd := m.update(msg)
+	m = next.(Model)
+	return m, tea.Batch(cmd, m.syncLogs())
+}
+
+// syncLogs follows the selected App's logs while the Apps tab shows them and
+// stops following as soon as they leave the screen.
+func (m Model) syncLogs() tea.Cmd {
+	details := m.apps.details
+	shown := m.surface == surfaceApps && details.tab == tabLogs && m.loaded && m.statusErr == "" && !m.onboardingShown() && !m.quitting
+	if !shown {
+		details.stopLogs()
+		return nil
+	}
+	ctxView := m.ctx()
+	app, found := m.apps.selected(ctxView)
+	if !found {
+		details.stopLogs()
+		return nil
+	}
+	return details.syncLogs(ctxView, app.ID)
+}
+
+func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -319,9 +336,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.BackgroundColorMsg:
-		m.dark = msg.IsDark()
-		m.theme = newTheme(m.dark)
-		m.help.Styles = help.DefaultStyles(m.dark)
+		m.theme = newTheme(msg.IsDark())
 		m.relayout()
 		return m, nil
 
@@ -344,7 +359,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case doctorMsg:
 		m.checks = msg.checks
 		m.relayout()
-		return m, m.checksArrived()
+		cmd := m.checksArrived()
+		return m, cmd
 
 	case updatesTick:
 		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
@@ -422,7 +438,8 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	if errors.Is(msg.err, service.ErrNoProject) {
 		if m.onboarding == nil {
 			m.onboarding = m.newOnboarding()
-			return m, tea.Batch(m.loadDefaults(), m.startTicking())
+			tick := m.startTicking()
+			return m, tea.Batch(m.loadDefaults(), tick)
 		}
 		m.installEnded(msg.finishedTasks)
 		return m, nil
@@ -440,9 +457,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	ctxView := m.ctx()
 	m.apps.clampCursor(ctxView)
 	m.relayout()
-	cmd := m.apps.syncDetails(ctxView)
-	m.absorb(ctxView)
-	return m, cmd
+	return m, m.apps.syncDetails(ctxView)
 }
 
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
@@ -471,7 +486,6 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 func (m *Model) relayout() {
 	ctxView := m.ctx()
 	m.apps.refreshDetails(ctxView)
-	m.help.SetWidth(m.width)
 	if m.onboardingShown() && m.onboarding.form != nil {
 		m.onboarding.form.WithWidth(m.formWidth())
 	}
@@ -626,6 +640,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) quit() (tea.Model, tea.Cmd) {
+	m.quitting = true
 	m.tasks.cancelAll()
 	m.apps.details.stopLogs()
 	return m, tea.Quit
@@ -638,14 +653,14 @@ func (m Model) dispatchActive(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if v == nil {
 		return m, nil
 	}
-	started := m.tasks.lastStarted()
+	started := m.tasks.latest()
 	ctxView := m.ctx()
 	next, cmd, nv := v.Update(ctxView, msg)
 	m.setActive(next)
 	m.absorb(ctxView)
 	model, cmd := m.applyNav(nv, cmd)
 	m = model.(Model)
-	if m.tasks.lastStarted() != started {
+	if m.tasks.latest() != started {
 		return m.focusActivity(cmd)
 	}
 	return m, cmd
@@ -658,7 +673,8 @@ func (m Model) focusActivity(cmd tea.Cmd) (tea.Model, tea.Cmd) {
 	if m.activity == nil {
 		m.activity = &activityView{}
 	}
-	return m, tea.Batch(cmd, m.startTicking())
+	tick := m.startTicking()
+	return m, tea.Batch(cmd, tick)
 }
 
 // dispatchApps delivers an asynchronous App details message (logs, Compose,
@@ -720,14 +736,9 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 
 // run starts a background Action; the status line shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
-	t := m.tasks.start(title)
-	backend := m.backend
-	run := func() tea.Msg {
-		log := events.New(events.SinkFunc(t.append))
-		err := backend.Run(t.ctx, req, log)
-		return taskDoneMsg{id: t.id, title: title, err: err}
-	}
-	return m, tea.Batch(run, m.startTicking())
+	cmd := m.ctx().run(req, title)
+	tick := m.startTicking()
+	return m, tea.Batch(cmd, tick)
 }
 
 // Test-facing accessors kept on the Model.

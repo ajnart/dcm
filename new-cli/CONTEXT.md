@@ -108,7 +108,7 @@ _Avoid_: context menu, shortcut
 
 **App details**:
 The read-only view of the selected App on the Apps tab, in sub-tabs: logs,
-Setup, info and its Compose file.
+Setup, info, its Compose file, and its containers and images.
 _Avoid_: sidebar
 
 **Activity**:

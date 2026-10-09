@@ -217,14 +217,48 @@ func TestOpenMenuCapturesGlobalKeys(t *testing.T) {
 	}
 }
 
-func TestMenuEntriesAreClickable(t *testing.T) {
+func TestClickingAMenuEntryOnlyHighlightsItSoItsPreviewShows(t *testing.T) {
 	m, backend := sample(t, 120, 30)
 	m = drive(t, m, press("a"))
 
 	m = drive(t, m, clickMsg{id: "menu:1"})
 
+	if got := backend.Actions(); len(got) != 0 {
+		t.Fatalf("the first click must only highlight Restart, actions %v", got)
+	}
+	if out := screen(m); !strings.Contains(out, "Restarts Jellyfin's containers.") {
+		t.Fatalf("the clicked entry's preview should show\n%s", out)
+	}
+}
+
+func TestClickingTheHighlightedMenuEntryRunsIt(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+	m = drive(t, m, press("a"))
+	m = drive(t, m, clickMsg{id: "menu:1"})
+
+	m = drive(t, m, clickMsg{id: "menu:1"})
+
 	if got := backend.Actions(); !slices.Equal(got, []string{"restart jellyfin"}) {
-		t.Fatalf("clicking Restart should run it, actions %v", got)
+		t.Fatalf("clicking the highlighted Restart should run it, actions %v", got)
+	}
+}
+
+func TestClickingADestructiveMenuEntryKeepsItsSecondConfirmation(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+	m = drive(t, m, press("a"))
+	m = drive(t, m, clickMsg{id: "menu:0"}) // Stop is already highlighted
+
+	if got := backend.Actions(); len(got) != 0 {
+		t.Fatalf("the first click on a highlighted destructive entry must only arm it, actions %v", got)
+	}
+	if out := screen(m); !strings.Contains(out, "Press enter again to stop Jellyfin") {
+		t.Fatalf("an armed entry should ask for confirmation\n%s", out)
+	}
+
+	m = drive(t, m, clickMsg{id: "menu:0"})
+
+	if got := backend.Actions(); !slices.Equal(got, []string{"stop jellyfin"}) {
+		t.Fatalf("the second click should stop Jellyfin, actions %v", got)
 	}
 }
 

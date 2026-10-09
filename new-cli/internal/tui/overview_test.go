@@ -189,3 +189,32 @@ func TestHeaderShowsProjectLANHealthAndTime(t *testing.T) {
 		}
 	}
 }
+
+func TestEightyColumnOverviewKeepsTheLANAddressAndTimeInTheNowStrip(t *testing.T) {
+	m, _ := sample(t, 80, 24)
+
+	out := screen(m)
+
+	host := lineWith(t, out, "Host: 1 warning")
+	for _, want := range []string{"LAN 192.168.1.20", "12:00:00"} {
+		if !strings.Contains(host, want) {
+			t.Errorf("the Now strip's host line should carry %q when the header has no room: %q", want, host)
+		}
+	}
+	if header := strings.Split(out, "\n")[0]; strings.Contains(header, "LAN") || strings.Contains(header, "12:00:00") {
+		t.Errorf("the header has no room for them at 80 columns: %q", header)
+	}
+}
+
+func TestWideOverviewShowsTheLANAddressAndTimeOnlyInTheHeader(t *testing.T) {
+	m, _ := sample(t, 140, 30)
+
+	out := screen(m)
+
+	if n := strings.Count(out, "LAN 192.168.1.20"); n != 1 {
+		t.Errorf("the LAN address belongs to the header alone, shown %d times\n%s", n, out)
+	}
+	if n := strings.Count(out, "12:00:00"); n != 1 {
+		t.Errorf("the time belongs to the header alone, shown %d times\n%s", n, out)
+	}
+}

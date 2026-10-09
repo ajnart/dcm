@@ -112,6 +112,24 @@ func (t theme) selection() lipgloss.Style { return t.active().Background(t.selec
 
 func (t theme) cursor() string { return t.title().Render("> ") }
 
+// stepMark is the mark of a Setup step's state: a glyph, so it reads without
+// colour, and the state's colour.
+func (t theme) stepMark(state activity.State) string {
+	switch state {
+	case activity.Done:
+		return t.fg(t.ok).Render("✓")
+	case activity.Skipped:
+		return t.dim().Render("↷")
+	case activity.Manual:
+		return t.fg(t.warn).Render("! manual")
+	case activity.Failed:
+		return t.fg(t.fail).Render("✗")
+	case activity.Running:
+		return t.fg(t.accentText).Render("…")
+	}
+	return t.dim().Render("○")
+}
+
 func (t theme) panel(focused bool) lipgloss.Style {
 	border := t.faint
 	if focused {

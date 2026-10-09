@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func TestWorkflowViewEnterExpandsAndCollapsesFailure(t *testing.T) {
+func TestActivityViewEnterExpandsAndCollapsesFailure(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 	for range 20 {
 		rows := v.(*activityView).rows(ctx)
@@ -45,7 +45,7 @@ func TestWorkflowViewEnterExpandsAndCollapsesFailure(t *testing.T) {
 func TestActivityRDoesNotRetrySetup(t *testing.T) {
 	backend := &fakeBackend{}
 	ctx := testViewContext(backend)
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	var v view = &activityView{}
 
 	_, cmd, _ := v.Update(ctx, press("r"))
