@@ -67,7 +67,7 @@ type onboarding struct {
 	checksFrom int
 	// look is the highlighted choice of the Look step, an index into glyphChoices.
 	look int
-	// task is the approved install; while it is set the Dashboard is on screen.
+	// task is the approved install; while it is set Pre-boot or the Dashboard is on screen.
 	task int
 	err  string
 }
@@ -462,7 +462,7 @@ func (m Model) installPlan(p *plan) (Model, tea.Cmd) {
 
 // installEnded returns to Review, answers kept and the error shown, when
 // the approved install ended before it created the Project.
-func (m Model) installEnded(finished []int) {
+func (m *Model) installEnded(finished []int) {
 	o := m.onboarding
 	if o == nil || o.task == 0 || !slices.Contains(finished, o.task) {
 		return
@@ -472,6 +472,7 @@ func (m Model) installEnded(finished []int) {
 		o.err = task.snapshot().err
 	}
 	o.task, o.step, o.form = 0, stepReview, nil
+	m.preboot = nil
 }
 
 func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -547,6 +548,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		m.glyphs = glyphChoices[o.look].glyphs
 		return m.openStep(stepReview)
 	case stepReview:
+		m.preboot = newPrebootScreen()
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
 		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs)))

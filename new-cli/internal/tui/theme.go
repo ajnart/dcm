@@ -21,11 +21,14 @@ type theme struct {
 	accentText color.Color
 	// surface is the near-black ground of status chips.
 	surface color.Color
+	// dark is whether the terminal's background is dark.
+	dark bool
 }
 
 func newTheme(dark bool) theme {
 	ld := lipgloss.LightDark(dark)
 	return theme{
+		dark:       dark,
 		accent:     ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#7A57D3")),
 		accentText: ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#A88DF2")),
 		ok:         ld(lipgloss.Color("#1A7F37"), lipgloss.Color("#00D787")),

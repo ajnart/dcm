@@ -366,6 +366,10 @@ func TestApprovingHandsOverToActivity(t *testing.T) {
 
 	next, cmd := m.Update(press("enter"))
 	m = next.(Model)
+	if m.preboot == nil {
+		t.Fatalf("approving should show pre-boot first\n%s", screen(m))
+	}
+	m = drive(t, m, press("enter"))
 
 	out := screen(m)
 	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Review") {
@@ -392,6 +396,11 @@ func TestNoProjectYetDuringTheInstallKeepsTheDashboard(t *testing.T) {
 	m = next.(Model)
 	t.Cleanup(m.tasks.cancelAll)
 
+	m = drive(t, m, statusMsgFor(service.ErrNoProject))
+	if m.preboot == nil || strings.Contains(screen(m), "Welcome") {
+		t.Fatalf("a refresh before the Project exists must keep pre-boot\n%s", screen(m))
+	}
+	m = drive(t, m, press("enter"))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 
 	out := screen(m)
