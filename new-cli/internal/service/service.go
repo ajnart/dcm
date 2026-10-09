@@ -81,7 +81,7 @@ func (s *Service) Project() (*project.Project, error) {
 	}
 	p := project.Open(owner)
 	// Tests and side-by-side installs point at another folder and Compose
-	// project, so they never touch ~/self-host.
+	// project, so they never touch ~/.self-host.
 	if root := s.Deps.Getenv("SELF_HOST_HOME"); root != "" {
 		if !filepath.IsAbs(root) {
 			return nil, fmt.Errorf("SELF_HOST_HOME must be an absolute path, got %q", root)

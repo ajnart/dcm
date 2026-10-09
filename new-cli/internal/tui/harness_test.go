@@ -180,7 +180,7 @@ func (f *fakeBackend) Actions() []string {
 
 func sampleStatus() service.Status {
 	return service.Status{
-		Project: "/home/alice/self-host", Exposure: "lan", LANIP: "192.168.1.20",
+		Project: "/home/alice/.self-host", Exposure: "lan", LANIP: "192.168.1.20",
 		Settings: map[string]string{"TZ": "Europe/Paris", "PUID": "1000", "PGID": "1000", "UMASK": "022"},
 		Apps: []service.AppStatus{
 			{ID: "jellyfin", Name: "Jellyfin", Managed: true, URL: "http://192.168.1.20:8096", Port: 8096, State: "running", Health: "healthy", Setup: stepstatus.SetupOK, Image: "lscr.io/linuxserver/jellyfin:latest"},
