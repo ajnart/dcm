@@ -39,6 +39,7 @@ func (f fakeExecutor) Exec(context.Context, string, map[string]string, ...string
 }
 func (fakeExecutor) LogText(context.Context, int, ...string) (string, error) { return "", nil }
 func (fakeExecutor) Restart(context.Context, ...string) error                { return nil }
+func (fakeExecutor) Up(context.Context, ...string) error                     { return nil }
 
 func serve(t *testing.T) *httptest.Server {
 	t.Helper()

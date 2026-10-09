@@ -118,6 +118,13 @@ type FileDeclarer interface {
 	Files(rc RenderContext, secret func(name string) string) []File
 }
 
+// DeferredStarter is implemented by an App with services that only its Setup
+// may start, because they need settings Setup obtains from the running App.
+// Every Compose up of the Project leaves them out while Deferred lists them.
+type DeferredStarter interface {
+	Deferred(*helpers.H) []string
+}
+
 // PreflightChecker validates an App's owned local prerequisites before rendering
 // or starting containers. It must not mutate files or call the running App.
 // Restore checks safely extracted files using their archived public inputs.

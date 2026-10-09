@@ -138,6 +138,7 @@ func (fakeExec) Exec(context.Context, string, map[string]string, ...string) (sys
 }
 func (fakeExec) LogText(context.Context, int, ...string) (string, error) { return frigateLog, nil }
 func (fakeExec) Restart(context.Context, ...string) error                { return nil }
+func (fakeExec) Up(context.Context, ...string) error                     { return nil }
 
 func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *helpers.H {
 	t.Helper()

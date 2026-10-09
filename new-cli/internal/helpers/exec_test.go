@@ -127,11 +127,3 @@ func TestUpStartsTheNamedServices(t *testing.T) {
 		t.Errorf("started = %v, want demo-agent", exec.started)
 	}
 }
-
-func TestUpReportsAnExecutorThatCannotStartServices(t *testing.T) {
-	h := newH(t, nil, &fakeExec{}, nil)
-
-	if err := h.Up(context.Background(), "demo-agent"); err == nil {
-		t.Fatal("Up should fail when the executor cannot start services")
-	}
-}

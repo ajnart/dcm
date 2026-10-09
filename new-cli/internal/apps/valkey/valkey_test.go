@@ -25,6 +25,7 @@ func (f *fakeExec) Exec(context.Context, string, map[string]string, ...string) (
 }
 func (f *fakeExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
 func (f *fakeExec) Restart(context.Context, ...string) error                { return nil }
+func (f *fakeExec) Up(context.Context, ...string) error                     { return nil }
 
 func newH(t *testing.T, stdout string, results *[]helpers.StepResult) *helpers.H {
 	t.Helper()

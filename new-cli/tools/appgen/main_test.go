@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
+
+	"github.com/ajnart/self-host/internal/apps/beszel"
 )
 
 func recipeWith(t *testing.T, services string) recipe {
@@ -56,8 +59,11 @@ func TestOrdinaryMountsStayAllowed(t *testing.T) {
 	}
 }
 
-func TestTheExceptionIsNamedAfterTheBeszelProxyService(t *testing.T) {
-	if socketProxyException != "beszel-socket-proxy" {
-		t.Errorf("exception = %q, want beszel-socket-proxy", socketProxyException)
+func TestTheExceptionMatchesTheBeszelApp(t *testing.T) {
+	if socketProxyException != beszel.SocketProxyService {
+		t.Errorf("exception = %q, but the Beszel App names its proxy %q", socketProxyException, beszel.SocketProxyService)
+	}
+	if !strings.HasPrefix(beszel.DockerSocketMount, dockerSocket+":") {
+		t.Errorf("the Beszel App mounts %q, not %s", beszel.DockerSocketMount, dockerSocket)
 	}
 }

@@ -48,6 +48,7 @@ func (e *recordingExec) Exec(_ context.Context, _ string, env map[string]string,
 
 func (*recordingExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
 func (*recordingExec) Restart(context.Context, ...string) error                { return nil }
+func (*recordingExec) Up(context.Context, ...string) error                     { return nil }
 
 type fakeBookstack struct {
 	mu      sync.Mutex
