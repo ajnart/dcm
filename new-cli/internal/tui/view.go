@@ -458,7 +458,8 @@ func (m Model) footerStatus() string {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(m.spin.View() + " " + s.title)
 			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
-				line += t.dim().Render(" · ") + activity.Compact(snapshot, m.width, t.palette())
+				line += t.dim().Render(" · ")
+				line += activity.Compact(snapshot, m.width-lipgloss.Width(line), t.palette())
 			} else if n := len(s.events); n > 0 {
 				line += t.dim().Render(" · ") + formatEvent(t, s.events[n-1])
 			}

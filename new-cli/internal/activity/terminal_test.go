@@ -59,16 +59,16 @@ func screen(t *testing.T, out string) string {
 
 func TestTerminalRedrawsThePullBlockInPlace(t *testing.T) {
 	var out bytes.Buffer
-	sink := Terminal(&out, false, 60, Palette{})
+	sink := Terminal(&out, false, func() int { return 60 }, Palette{})
 	for _, e := range []events.Event{
 		{Event: events.RunStart, Msg: "install sonarr"},
 		{Event: events.StepStart, App: "sonarr", Step: "pull", Msg: "pull 2 images"},
 		{Event: events.StepStart, Step: "pull", Msg: "pull 2 images"},
-		{Event: events.PullProgress, Image: "lscr.io/linuxserver/sonarr:latest", Layer: "a", Current: 50, Total: 100},
-		{Event: events.PullProgress, Image: "redis:7", Layer: "b", Current: 10, Total: 0},
+		{Event: events.PullProgress, Image: "lscr.io/linuxserver/sonarr:latest", Layer: "a", Status: "Downloading", Current: 50, Total: 100},
+		{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 10, Total: 0},
 		{Event: events.Info, Msg: "registry is slow"},
 		{Event: events.PullProgress, Image: "redis:7", Status: "Pulled"},
-		{Event: events.PullProgress, Image: "lscr.io/linuxserver/sonarr:latest", Layer: "a", Current: 100, Total: 100},
+		{Event: events.PullProgress, Image: "lscr.io/linuxserver/sonarr:latest", Layer: "a", Status: "Extracting", Current: 100, Total: 100},
 		{Event: events.PullProgress, Image: "lscr.io/linuxserver/sonarr:latest", Status: "Pulled"},
 		{Event: events.StepOK, App: "sonarr", Step: "pull", Msg: "pulled sonarr"},
 		{Event: events.StepOK, Step: "pull", Msg: "pulled sonarr"},
@@ -104,10 +104,10 @@ func TestTerminalRedrawsThePullBlockInPlace(t *testing.T) {
 
 func TestTerminalLeavesTheLastBlockWhenANewRunStarts(t *testing.T) {
 	var out bytes.Buffer
-	sink := Terminal(&out, false, 60, Palette{})
+	sink := Terminal(&out, false, func() int { return 60 }, Palette{})
 	for _, e := range []events.Event{
 		{Event: events.StepStart, Step: "pull"},
-		{Event: events.PullProgress, Image: "redis:7", Layer: "b", Current: 25, Total: 100},
+		{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 50, Total: 100},
 		{Event: events.RunStart, Msg: "setup redis"},
 	} {
 		sink.Emit(e)
@@ -116,6 +116,36 @@ func TestTerminalLeavesTheLastBlockWhenANewRunStarts(t *testing.T) {
 		"Pulling               ██████░░░░░░░░░░░░░░░░░░  0 of 1 image",
 		"  redis:7             ━━━━━━──────────────────",
 		"▶ setup redis",
+		"",
+	}, "\n")
+	if got := screen(t, out.String()); got != want {
+		t.Fatalf("visible output =\n%s\nwant\n%s", got, want)
+	}
+}
+
+func TestTerminalWritesNothingWhenTheBlockIsUnchanged(t *testing.T) {
+	var out bytes.Buffer
+	sink := Terminal(&out, false, func() int { return 60 }, Palette{})
+	sink.Emit(events.Event{Event: events.StepStart, Step: "pull"})
+	sink.Emit(events.Event{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 50, Total: 100})
+	out.Reset()
+	sink.Emit(events.Event{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 51, Total: 100})
+	if out.Len() != 0 {
+		t.Fatalf("unchanged block was redrawn: %q", out.String())
+	}
+}
+
+func TestTerminalRedrawsAtTheNewWidth(t *testing.T) {
+	var out bytes.Buffer
+	width := 60
+	sink := Terminal(&out, false, func() int { return width }, Palette{})
+	sink.Emit(events.Event{Event: events.StepStart, Step: "pull"})
+	sink.Emit(events.Event{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 50, Total: 100})
+	width = 50
+	sink.Emit(events.Event{Event: events.PullProgress, Image: "redis:7", Layer: "b", Status: "Downloading", Current: 51, Total: 100})
+	want := strings.Join([]string{
+		"Pulling               ███▌░░░░░░░░░░  0 of 1 image",
+		"  redis:7             ━━━╸──────────",
 		"",
 	}, "\n")
 	if got := screen(t, out.String()); got != want {

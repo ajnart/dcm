@@ -63,3 +63,19 @@ func TestFooterShowsLatestEventOnceThePullEnds(t *testing.T) {
 		t.Fatalf("footer still shows the ended pull:\n%s", footer)
 	}
 }
+
+func TestNarrowFooterKeepsTheImagesFact(t *testing.T) {
+	m, _ := sample(t, 36, 24)
+	task := m.tasks.start("update one")
+	for _, e := range []events.Event{
+		{Event: events.StepStart, Step: "pull", Msg: "pull 2 images"},
+		{Event: events.PullProgress, Image: "jellyfin:latest", Layer: "l1", Status: "Downloading", Current: 50, Total: 100},
+		{Event: events.PullProgress, Image: "sonarr:latest", Status: "Pulled"},
+	} {
+		task.append(e)
+	}
+	footer := ansi.Strip(m.footerStatus())
+	if !strings.Contains(footer, "█") || !strings.Contains(footer, "1 of 2 images") || ansi.StringWidth(footer) > 36 {
+		t.Fatalf("narrow footer lost the bar or the images fact:\n%s", footer)
+	}
+}

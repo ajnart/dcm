@@ -23,7 +23,7 @@ func TestWorkflowViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
 	}{
 		{events.Event{}, []string{"○ pull", "0 steps running"}},
 		{events.Event{Event: events.StepStart, App: "sonarr", Step: "pull"}, []string{"… pull", "1 step running"}},
-		{events.Event{Event: events.PullProgress, Image: "sonarr:latest", Layer: "a", Current: 50_000_000, Total: 100_000_000}, []string{"Pulling", "Sonarr", "━─", "0 of 1 image", "… pull", "1 step running"}},
+		{events.Event{Event: events.PullProgress, Image: "sonarr:latest", Layer: "a", Status: "Downloading", Current: 50_000_000, Total: 100_000_000}, []string{"Pulling", "Sonarr", "━─", "0 of 1 image", "… pull", "1 step running"}},
 		{events.Event{Event: events.StepOK, App: "sonarr", Step: "pull"}, []string{"✓ pull", "0 steps running"}},
 	} {
 		if tc.event.Event != "" {

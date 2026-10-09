@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/events"
@@ -12,8 +13,9 @@ import (
 
 // Terminal is the events sink for an interactive terminal. It prints every
 // event as events.Human does and redraws the pull block in place below those
-// lines while a pull runs; when the pull ends its final block stays.
-func Terminal(w io.Writer, verbose bool, width int, p Palette) events.Sink {
+// lines while a pull runs; when the pull ends its final block stays. Width is
+// read for every redraw, so the block follows a resized terminal.
+func Terminal(w io.Writer, verbose bool, width func() int, p Palette) events.Sink {
 	t := &terminal{w: w, width: width, palette: p}
 	t.human = events.Human(&t.buf, verbose)
 	return t
@@ -21,26 +23,31 @@ func Terminal(w io.Writer, verbose bool, width int, p Palette) events.Sink {
 
 type terminal struct {
 	w       io.Writer
-	width   int
+	width   func() int
 	palette Palette
 	human   events.Sink
 	buf     bytes.Buffer
 	evs     []events.Event
-	// drawn is the number of lines of the block on screen that the next
-	// redraw replaces.
-	drawn int
+	// shown is the block on screen that the next redraw replaces.
+	shown []string
 }
 
 func (t *terminal) Emit(e events.Event) {
+	if e.Event == events.RunStart {
+		t.evs = t.evs[:0]
+	}
 	t.evs = append(t.evs, e)
 	s := Build(service.Status{}, t.evs)
-	block := Render(s, t.width, t.palette)
-	if t.drawn > 0 && len(block) == 0 {
-		t.drawn = 0
+	block := Render(s, t.width(), t.palette)
+	if e.Event == events.PullProgress && s.Pull.Pulling && slices.Equal(block, t.shown) {
+		return
 	}
-	if t.drawn > 0 {
-		fmt.Fprintf(&t.buf, "\r\x1b[%dA\x1b[J", t.drawn)
-		t.drawn = 0
+	if len(t.shown) > 0 && len(block) == 0 {
+		t.shown = nil
+	}
+	if len(t.shown) > 0 {
+		fmt.Fprintf(&t.buf, "\r\x1b[%dA\x1b[J", len(t.shown))
+		t.shown = nil
 		if !s.Pull.Pulling {
 			t.writeBlock(block)
 		}
@@ -50,7 +57,7 @@ func (t *terminal) Emit(e events.Event) {
 	}
 	if s.Pull.Pulling && len(block) > 0 {
 		t.writeBlock(block)
-		t.drawn = len(block)
+		t.shown = block
 	}
 	t.w.Write(t.buf.Bytes())
 	t.buf.Reset()

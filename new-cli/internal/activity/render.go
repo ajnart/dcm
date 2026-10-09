@@ -10,9 +10,9 @@ import (
 )
 
 // Palette is the colour of each role the renderer draws with. A nil colour
-// draws without colour, so the zero Palette honours NO_COLOR.
+// draws without colour.
 type Palette struct {
-	Accent, OK, Text, Muted, Faint color.Color
+	Accent, OK, Fail, Text, Muted, Faint color.Color
 }
 
 const (
@@ -22,7 +22,8 @@ const (
 )
 
 // Render draws the pull block of the snapshot within width cells: a header
-// with the overall bar and the images done, then one slim bar per image.
+// with the overall bar and the images done, then one slim bar per image. A
+// failed pull marks its unfinished images with ✗.
 func Render(s Snapshot, width int, p Palette) []string {
 	pull := s.Pull
 	if len(pull.Images) == 0 {
@@ -37,14 +38,19 @@ func Render(s Snapshot, width int, p Palette) []string {
 	} else if pull.Done == pull.Total {
 		title = "Pulled"
 	}
-	header := style(p.Text).Bold(true).Render(pad(title, labelWidth+2)) +
-		heavyBar(pull.Fraction, bar, p) + "  " + style(p.Muted).Render(fact)
+	head := style(p.Text).Bold(true).Render(pad(title, labelWidth+2))
+	if pull.Failed {
+		head = style(p.Fail).Render("✗") + " " + style(p.Text).Bold(true).Render(pad("Pull failed", labelWidth))
+	}
+	header := head + heavyBar(pull.Fraction, bar, p) + "  " + style(p.Muted).Render(fact)
 	lines := []string{ansi.Truncate(header, width, "…")}
 	for _, img := range pull.Images {
 		label := ansi.Truncate(img.Label, labelWidth-1, "…")
 		line := "  " + style(p.Text).Render(pad(label, labelWidth)) + slimBar(img.Fraction, bar, p)
 		if img.Done {
 			line += "  " + style(p.OK).Render("✓")
+		} else if pull.Failed {
+			line += "  " + style(p.Fail).Render("✗")
 		}
 		lines = append(lines, ansi.Truncate(line, width, "…"))
 	}

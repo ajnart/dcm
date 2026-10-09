@@ -93,29 +93,25 @@ func (a *program) logger() *events.Logger {
 }
 
 // human prints events as plain lines, or on an interactive terminal with the
-// pull drawn as bars that redraw in place. A dumb terminal cannot move the
-// cursor, so it gets the plain lines.
+// pull drawn as bars that redraw in place. Anything that is not a terminal,
+// and a dumb terminal that cannot move the cursor, gets the plain lines.
 func (a *program) human(w io.Writer, verbose bool) events.Sink {
-	if !a.deps.Interactive {
+	f, ok := w.(*os.File)
+	if !a.deps.Interactive || !ok || !term.IsTerminal(f.Fd()) {
 		return events.Human(w, verbose)
 	}
-	dark, width := true, 80
-	if f, ok := w.(*os.File); ok && term.IsTerminal(f.Fd()) {
+	profiled := colorprofile.NewWriter(f, os.Environ())
+	if profiled.Profile <= colorprofile.NoTTY {
+		return events.Human(w, verbose)
+	}
+	width := func() int {
 		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
-			width = cols
+			return cols
 		}
-		profiled := colorprofile.NewWriter(f, os.Environ())
-		if profiled.Profile <= colorprofile.NoTTY {
-			return events.Human(w, verbose)
-		}
-		dark = lipgloss.HasDarkBackground(os.Stdin, f)
-		w = profiled
+		return 80
 	}
-	palette := tui.Palette(dark)
-	if a.deps.Getenv != nil && a.deps.Getenv("NO_COLOR") != "" {
-		palette = activity.Palette{}
-	}
-	return activity.Terminal(w, verbose, width, palette)
+	palette := tui.Palette(lipgloss.HasDarkBackground(os.Stdin, f))
+	return activity.Terminal(profiled, verbose, width, palette)
 }
 
 // Run executes the binary with args and returns the exit code.

@@ -9,5 +9,5 @@ func Palette(dark bool) activity.Palette {
 }
 
 func (t theme) palette() activity.Palette {
-	return activity.Palette{Accent: t.accent, OK: t.ok, Text: t.text, Muted: t.muted, Faint: t.faint}
+	return activity.Palette{Accent: t.accent, OK: t.ok, Fail: t.fail, Text: t.text, Muted: t.muted, Faint: t.faint}
 }

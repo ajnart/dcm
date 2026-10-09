@@ -33,6 +33,7 @@ func golden(t *testing.T, name, got string) {
 var testPalette = Palette{
 	Accent: lipgloss.Color("#7A57D3"),
 	OK:     lipgloss.Color("#00D787"),
+	Fail:   lipgloss.Color("#FF5F5F"),
 	Text:   lipgloss.Color("252"),
 	Muted:  lipgloss.Color("245"),
 	Faint:  lipgloss.Color("238"),
@@ -55,6 +56,12 @@ var pullFrames = []struct {
 	}}},
 	{"unknown-size", Pull{Pulling: true, Fraction: 0.25, Done: 0, Total: 2, Images: []Image{
 		{Label: "radarr"}, {Label: "sonarr:latest", Fraction: 0.5},
+	}}},
+	{"failed", Pull{Failed: true, Fraction: 0.5, Done: 1, Total: 3, Images: []Image{
+		{Label: "Jellyfin", Fraction: 1, Done: true}, {Label: "sonarr:latest", Fraction: 0.4}, {Label: longLabel, Fraction: 0.1},
+	}}},
+	{"interrupted", Pull{Fraction: 0.5, Done: 1, Total: 2, Images: []Image{
+		{Label: "Jellyfin", Fraction: 1, Done: true}, {Label: "sonarr:latest", Fraction: 0.25},
 	}}},
 	{"out-of-order", Pull{Pulling: true, Fraction: 0.625, Done: 1, Total: 2, Images: []Image{
 		{Label: "Jellyfin", Fraction: 0.25}, {Label: "sonarr:latest", Fraction: 1, Done: true},
@@ -92,6 +99,18 @@ func TestRenderPullFillUsesAccent(t *testing.T) {
 	}
 	if compact := Compact(s, 80, testPalette); !strings.Contains(compact, accent+"█") {
 		t.Fatalf("compact fill is not drawn in the accent colour: %q", compact)
+	}
+}
+
+func TestRenderFailedPullUsesFailRole(t *testing.T) {
+	s := Snapshot{Pull: Pull{Failed: true, Fraction: 0.25, Total: 1, Images: []Image{{Label: "sonarr", Fraction: 0.25}}}}
+	fail := "\x1b[38;2;255;95;95m"
+	block := Render(s, 80, testPalette)
+	if !strings.Contains(block[0], fail+"✗") || !strings.Contains(ansi.Strip(block[0]), "Pull failed") {
+		t.Fatalf("failed header lacks ✗ in the fail colour and \"Pull failed\": %q", block[0])
+	}
+	if !strings.Contains(block[1], fail+"✗") {
+		t.Fatalf("unfinished image lacks ✗ in the fail colour: %q", block[1])
 	}
 }
 

@@ -12,22 +12,49 @@ import (
 type Pull struct {
 	// Images are in first-seen order.
 	Images []Image
-	// Fraction is the mean of the image fractions, so every image weighs the
-	// same whatever its size: an image without known layer sizes counts 0
-	// until it is done, and a done image counts 1.
+	// Fraction weighs each image by its known size. An image whose size is
+	// not known yet weighs as much as the average known image, or 1 when no
+	// size is known, and a done image counts whole.
 	Fraction    float64
 	Done, Total int
 	// Pulling is true while the Action's pull stage has started and not ended.
 	Pulling bool
+	// Failed is true when the pull stage ended with step.fail.
+	Failed bool
 }
 
-// Image is one image of a pull. Current and Size are the known bytes, kept
-// for details and logs.
+// Image is one image of a pull.
 type Image struct {
-	Ref, Label    string
-	Fraction      float64
-	Done          bool
-	Current, Size int64
+	Label    string
+	Fraction float64
+	Done     bool
+}
+
+// pullLayer is one layer's known size and progress. Downloading covers the
+// first half and Extracting the second, as Extracting restarts at 0.
+type pullLayer struct {
+	size     int64
+	fraction float64
+}
+
+func (l *pullLayer) apply(e events.Event) {
+	if e.Total > 0 {
+		l.size = e.Total
+	}
+	share := 0.0
+	if e.Total > 0 {
+		share = min(float64(e.Current)/float64(e.Total), 1) / 2
+	}
+	switch e.Status {
+	case "Downloading":
+		l.fraction = max(l.fraction, share)
+	case "Download complete", "Verifying Checksum":
+		l.fraction = max(l.fraction, 0.5)
+	case "Extracting":
+		l.fraction = max(l.fraction, 0.5+share)
+	case "Pull complete", "Already exists":
+		l.fraction = 1
+	}
 }
 
 func buildPull(status service.Status, evs []events.Event) Pull {
@@ -39,14 +66,16 @@ func buildPull(status service.Status, evs []events.Event) Pull {
 	}
 	var out Pull
 	var refs []string
-	byRef := map[string]*Image{}
-	layers := map[string]map[string]events.Event{}
+	done := map[string]bool{}
+	layers := map[string]map[string]*pullLayer{}
 	for _, e := range evs {
 		if e.Step == service.StagePull {
 			switch e.Event {
 			case events.StepStart:
-				out.Pulling = true
-			case events.StepOK, events.StepFail, events.StepSkip:
+				out.Pulling, out.Failed = true, false
+			case events.StepFail:
+				out.Pulling, out.Failed = false, true
+			case events.StepOK, events.StepSkip:
 				out.Pulling = false
 			}
 		}
@@ -56,43 +85,60 @@ func buildPull(status service.Status, evs []events.Event) Pull {
 		if e.Event != events.PullProgress || e.Image == "" {
 			continue
 		}
-		img, ok := byRef[e.Image]
-		if !ok {
-			img = &Image{Ref: e.Image, Label: imageLabel(status, e.Image)}
-			byRef[e.Image] = img
-			layers[e.Image] = map[string]events.Event{}
+		if _, ok := layers[e.Image]; !ok {
+			layers[e.Image] = map[string]*pullLayer{}
 			refs = append(refs, e.Image)
 		}
 		if e.Layer == "" {
 			if e.Status == "Pulled" {
-				img.Done = true
+				done[e.Image] = true
 			}
 			continue
 		}
-		if e.Total > 0 {
-			layers[e.Image][e.Layer] = e
+		l, ok := layers[e.Image][e.Layer]
+		if !ok {
+			l = &pullLayer{}
+			layers[e.Image][e.Layer] = l
 		}
+		l.apply(e)
 	}
-	var sum float64
-	for _, ref := range refs {
-		img := byRef[ref]
-		for _, e := range layers[ref] {
-			img.Current += e.Current
-			img.Size += e.Total
+	sizes := make([]float64, len(refs))
+	var known, knownSum float64
+	for i, ref := range refs {
+		img := Image{Label: imageLabel(status, ref), Done: done[ref]}
+		var size, progress float64
+		for _, l := range layers[ref] {
+			size += float64(l.size)
+			progress += float64(l.size) * l.fraction
+		}
+		if size > 0 {
+			img.Fraction = progress / size
+			known++
+			knownSum += size
 		}
 		if img.Done {
-			img.Current = img.Size
 			img.Fraction = 1
 			out.Done++
-		} else if img.Size > 0 {
-			img.Fraction = min(float64(img.Current)/float64(img.Size), 1)
 		}
-		sum += img.Fraction
-		out.Images = append(out.Images, *img)
+		sizes[i] = size
+		out.Images = append(out.Images, img)
+	}
+	unknownWeight := 1.0
+	if known > 0 {
+		unknownWeight = knownSum / known
+	}
+	var weighted, total float64
+	for i, img := range out.Images {
+		weight := sizes[i]
+		if weight == 0 {
+			weight = unknownWeight
+		}
+		weighted += weight * img.Fraction
+		total += weight
 	}
 	out.Total = len(out.Images)
-	if out.Total > 0 {
-		out.Fraction = sum / float64(out.Total)
+	if total > 0 {
+		out.Fraction = weighted / total
 	}
 	return out
 }
