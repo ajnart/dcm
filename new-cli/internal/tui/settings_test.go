@@ -133,7 +133,7 @@ func TestAboutShowsTheVersionProjectFolderAndUpdateStatus(t *testing.T) {
 
 		out := screen(m)
 
-		for _, want := range []string{"Version", "v1.0.0", "Project folder", "/home/alice/self-host", "Updates", tc.want} {
+		for _, want := range []string{"Version", "v1.0.0", "Project folder", "/home/alice/.self-host", "Updates", tc.want} {
 			if !strings.Contains(out, want) {
 				t.Errorf("%s: About lacks %q\n%s", tc.name, want, out)
 			}
@@ -198,7 +198,7 @@ func TestSettingsViewWithoutAModelShowsAbout(t *testing.T) {
 		v, _, _ = v.Update(ctx, press("]"))
 	}
 	out := ansi.Strip(v.View(ctx, 120, 30))
-	for _, want := range []string{"v1.4.0", "/home/alice/self-host", "↑ v1.5.0 is available"} {
+	for _, want := range []string{"v1.4.0", "/home/alice/.self-host", "↑ v1.5.0 is available"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("About lacks %q\n%s", want, out)
 		}

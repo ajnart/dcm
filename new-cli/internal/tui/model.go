@@ -66,6 +66,11 @@ type (
 		text   string
 		done   bool
 	}
+	usageMsg struct {
+		stream *usageStream
+		usage  []service.ContainerUsage
+		done   bool
+	}
 	composeMsg struct {
 		id, text string
 		err      error
@@ -310,7 +315,7 @@ func (m *Model) absorb(ctx *viewContext) {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	m = next.(Model)
-	return m, tea.Batch(cmd, m.syncLogs())
+	return m, tea.Batch(cmd, m.syncLogs(), m.syncUsage())
 }
 
 // syncLogs follows the selected App's logs while the Apps tab shows them and
@@ -329,6 +334,22 @@ func (m Model) syncLogs() tea.Cmd {
 		return nil
 	}
 	return details.syncLogs(ctxView, app.ID)
+}
+
+// syncUsage follows the containers' load while the Apps tab shows its
+// containers sub-tab and stops as soon as it leaves the screen.
+func (m Model) syncUsage() tea.Cmd {
+	details := m.apps.details
+	shown := m.surface == surfaceApps && details.tab == tabContainers && m.loaded && m.statusErr == "" && !m.onboardingShown() && !m.quitting
+	if !shown {
+		details.stopUsage()
+		return nil
+	}
+	if _, found := m.apps.selected(m.ctx()); !found {
+		details.stopUsage()
+		return nil
+	}
+	return details.syncUsage(m.ctx())
 }
 
 func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -391,7 +412,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case taskDoneMsg:
 		return m.handleTaskDone(msg)
 
-	case logChunkMsg, composeMsg:
+	case logChunkMsg, composeMsg, usageMsg:
 		return m.dispatchApps(msg)
 
 	case reviewMsg:
@@ -653,6 +674,7 @@ func (m Model) quit() (tea.Model, tea.Cmd) {
 	m.quitting = true
 	m.tasks.cancelAll()
 	m.apps.details.stopLogs()
+	m.apps.details.stopUsage()
 	return m, tea.Quit
 }
 

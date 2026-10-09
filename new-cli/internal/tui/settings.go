@@ -118,11 +118,7 @@ var glyphChoices = []glyphChoice{
 	{activity.Simple, "plain Unicode symbols that every terminal font can draw"},
 }
 
-const (
-	nerdFontsURL = "https://www.nerdfonts.com"
-	kofiURL      = "https://ko-fi.com/ajnart"
-	sponsorsURL  = "https://github.com/sponsors/ajnart"
-)
+const nerdFontsURL = "https://www.nerdfonts.com"
 
 func (v *settingsView) Capturing() bool { return v.editing }
 
@@ -342,7 +338,7 @@ func (v *settingsView) hostKey(ctx *viewContext, msg tea.KeyPressMsg) (view, tea
 func (v *settingsView) aboutKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
 	case "c":
-		return openLink(ctx.backend, kofiURL)
+		return openLink(ctx.backend, koFiURL)
 	case "s":
 		return openLink(ctx.backend, sponsorsURL)
 	}
@@ -458,7 +454,7 @@ func aboutBox(ctx *viewContext, width int) string {
 	row := func(name, value string) string {
 		return truncate("  "+t.dim().Render(pad(name, 16))+value, inner)
 	}
-	link := func(key, label, url string) string {
+	entry := func(key, label, url string) string {
 		return "  " + t.title().Render(key) + "  " + t.body().Render(pad(label, 20)) +
 			ansi.SetHyperlink(url) + t.fg(t.info).Render(url) + ansi.ResetHyperlink()
 	}
@@ -468,8 +464,8 @@ func aboutBox(ctx *viewContext, width int) string {
 		row("Updates", updateStatus(ctx)),
 		"",
 		"  " + t.dim().Render("Like self-host? Help keep it going."),
-		link("c", "buy us a coffee", kofiURL),
-		link("s", "sponsor on GitHub", sponsorsURL),
+		entry("c", "buy us a coffee", koFiURL),
+		entry("s", "sponsor on GitHub", sponsorsURL),
 	}
 	return t.box("About", "", strings.Join(lines, "\n"), width, len(lines)+2, true)
 }
