@@ -1,0 +1,54 @@
+new-cli/README.md
+  h_d6e478ca18e517 124,126,142-147
+new-cli/internal/tui/actionmenu_test.go
+  h_d6e478ca18e517 295,297,300
+new-cli/internal/tui/apps.go
+  h_d6e478ca18e517 6,8,12,17-20,22-25,28-46,49-51,53,55,57-62,64-68,70-87,90-106,109-111,114,116-122,127-138,140-163,170-209,214-219,243-246,248-249,251-253,255-260,263-264,266-273,275-285,287,290,292-297,299
+new-cli/internal/tui/apps_test.go
+  h_d6e478ca18e517 1-170
+new-cli/internal/tui/backend.go
+  h_d6e478ca18e517 53
+new-cli/internal/tui/copy.go
+  h_d6e478ca18e517 35,70-83
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 18-20,22,27,30,38,47,57,63-64,68,70,76-77,86,89,91,93,95,101-103,106,108,110,112,114,116,152,154,169-170,182,193
+new-cli/internal/tui/details.go
+  h_d6e478ca18e517 1-390
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 102-110
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 319-320,329,336,342,385,443,486-502,563-564,794,830
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 125,136,146-147,327,340,350,390,392,418,430,443,484,505-506,524-526,584,601-604,606,633-635,673
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 41,145,147,171,328-329
+new-cli/internal/tui/testdata/menu-app.golden
+  h_d6e478ca18e517 3
+new-cli/internal/tui/testdata/menu-project.golden
+  h_d6e478ca18e517 3
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  h_d6e478ca18e517 2-22
+new-cli/internal/tui/testdata/tab-apps.golden
+  h_d6e478ca18e517 2-30
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  h_d6e478ca18e517 14
+new-cli/internal/tui/testdata/tab-overview.golden
+  h_d6e478ca18e517 3,30
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 25,31,41,58-59,64
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 32,44,79-80,82-83,85-88,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0135c41ee7054c798434bdf25adef1fc4bdf4907",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
