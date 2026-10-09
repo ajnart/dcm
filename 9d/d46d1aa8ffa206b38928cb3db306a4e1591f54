@@ -1,0 +1,19 @@
+README.md
+  s_4f5c3f12c60544::t_d40dac6994a176 43,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9dd46d1aa8ffa206b38928cb3db306a4e1591f54",
+  "prompts": {},
+  "sessions": {
+    "s_4f5c3f12c60544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bd20071-f191-45b1-a8aa-b87b0f7aa7bf",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
