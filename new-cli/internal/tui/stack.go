@@ -15,8 +15,9 @@ import (
 // stackView is the full-screen Stack surface: every container in the
 // Project's Compose project, at a glance.
 type stackView struct {
-	cursor int
-	offset int
+	cursor      int
+	offset      int
+	confirmDown bool
 }
 
 var stackHelp = []key.Binding{
@@ -50,9 +51,17 @@ func (v *stackView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		return v.key(ctx, msg)
 	case clickMsg:
 		for _, control := range stackControls {
-			if msg.id == "stack:"+string(control.action) {
-				return v, v.controlProject(ctx, control.action), nav{}
+			if msg.id != "stack:"+string(control.action) {
+				continue
 			}
+			if v.confirmDown && control.action != ActionDown {
+				v.confirmDown = false
+				return v, nil, nav{}
+			}
+			return v, v.controlProject(ctx, control.action), nav{}
+		}
+		if v.confirmDown {
+			v.confirmDown = false
 		}
 	case tea.MouseWheelMsg:
 		dy := 3
@@ -66,6 +75,13 @@ func (v *stackView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 }
 
 func (v *stackView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
+	if v.confirmDown {
+		if msg.String() == "y" {
+			return v, v.controlProject(ctx, ActionDown), nav{}
+		}
+		v.confirmDown = false
+		return v, nil, nav{}
+	}
 	for _, control := range stackControls {
 		if msg.String() == control.key {
 			return v, v.controlProject(ctx, control.action), nav{}
@@ -100,6 +116,11 @@ func (v *stackView) controlProject(ctx *viewContext, action Action) tea.Cmd {
 		ctx.setFlash("wait for the running action to finish", levelInfo)
 		return nil
 	}
+	if action == ActionDown && !v.confirmDown {
+		v.confirmDown = true
+		return nil
+	}
+	v.confirmDown = false
 	return ctx.run(Request{Action: action}, string(action)+" Project")
 }
 
@@ -211,6 +232,9 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	v.offset = max(min(v.offset, max(len(ctx.containers)-avail, 0)), 0)
 	for i := v.offset; i < len(ctx.containers) && i-v.offset < avail; i++ {
 		lines = append(lines, v.renderRow(ctx, ctx.containers[i], i, showUptime, showImage, showPorts, inner))
+	}
+	if v.confirmDown {
+		lines = append(lines, "", "  "+t.fg(t.warn).Render(truncate("Down removes the Project's containers and networks; volumes, App files and Setup stay. y confirms, any other key cancels.", inner)))
 	}
 	return strings.Join(lines, "\n")
 }

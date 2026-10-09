@@ -90,6 +90,91 @@ func TestStackViewWithoutAModel(t *testing.T) {
 	}
 }
 
+func stackDownContext(t *testing.T) (*fakeBackend, *viewContext) {
+	t.Helper()
+	backend := &fakeBackend{}
+	ctx := testViewContext(backend)
+	ctx.containers = []service.ContainerStatus{{App: "jellyfin", Service: "jellyfin", State: "running"}}
+	return backend, ctx
+}
+
+func TestStackDownAsksBeforeTakingTheProjectDown(t *testing.T) {
+	backend, ctx := stackDownContext(t)
+	v := &stackView{}
+
+	next, cmd, nv := v.Update(ctx, press("2"))
+	v = next.(*stackView)
+	if cmd != nil || nv.kind != navNone {
+		t.Fatalf("2 should ask first, got cmd %v nav %+v", cmd, nv)
+	}
+	out := ansi.Strip(v.View(ctx, 120, 30))
+	for _, want := range []string{"containers and networks", "volumes", "App files", "Setup"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("confirmation lacks %q\n%s", want, out)
+		}
+	}
+	if got := backend.Actions(); len(got) != 0 {
+		t.Fatalf("2 must not take the Project down before confirmation: %v", got)
+	}
+}
+
+func TestStackDownConfirmsWithYAndCancelsOtherwise(t *testing.T) {
+	arm := func(t *testing.T) (*stackView, *fakeBackend, *viewContext) {
+		t.Helper()
+		backend, ctx := stackDownContext(t)
+		next, _, _ := (&stackView{}).Update(ctx, press("2"))
+		return next.(*stackView), backend, ctx
+	}
+
+	t.Run("y runs Down", func(t *testing.T) {
+		v, backend, ctx := arm(t)
+		next, cmd, _ := v.Update(ctx, press("y"))
+		v = next.(*stackView)
+		runCmd(cmd)
+		if got := backend.Actions(); len(got) != 1 || got[0] != "down" {
+			t.Fatalf("y should run Down, actions %v", got)
+		}
+		if strings.Contains(ansi.Strip(v.View(ctx, 120, 30)), "containers and networks") {
+			t.Fatal("confirmation should clear after confirming")
+		}
+	})
+
+	for _, key := range []string{"n", "esc", "2"} {
+		t.Run(key+" cancels", func(t *testing.T) {
+			v, backend, ctx := arm(t)
+			next, cmd, _ := v.Update(ctx, press(key))
+			v = next.(*stackView)
+			if cmd != nil || len(backend.Actions()) != 0 {
+				t.Fatalf("%s should cancel without an Action, cmd %v actions %v", key, cmd, backend.Actions())
+			}
+			if strings.Contains(ansi.Strip(v.View(ctx, 120, 30)), "containers and networks") {
+				t.Fatalf("%s should clear the confirmation", key)
+			}
+		})
+	}
+}
+
+func TestStackDownMouseConfirmsTheSameWay(t *testing.T) {
+	backend, ctx := stackDownContext(t)
+	v := &stackView{}
+
+	next, cmd, _ := v.Update(ctx, clickMsg{id: "stack:down"})
+	v = next.(*stackView)
+	if cmd != nil || len(backend.Actions()) != 0 {
+		t.Fatalf("a click should ask first, cmd %v actions %v", cmd, backend.Actions())
+	}
+	if !strings.Contains(ansi.Strip(v.View(ctx, 120, 30)), "containers and networks") {
+		t.Fatal("a click should show the confirmation")
+	}
+
+	next, cmd, _ = v.Update(ctx, clickMsg{id: "stack:down"})
+	v = next.(*stackView)
+	runCmd(cmd)
+	if got := backend.Actions(); len(got) != 1 || got[0] != "down" {
+		t.Fatalf("clicking Down again should run Down, actions %v", got)
+	}
+}
+
 func TestHelpViewWithoutAModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	v := newHelpView()
