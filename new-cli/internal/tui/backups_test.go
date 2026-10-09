@@ -125,6 +125,11 @@ func TestBackUpNowWithAPassphraseDispatchesABackupCarryingIt(t *testing.T) {
 	}
 	m = typeText(t, m, archivePhrase)
 	m = drive(t, m, press("enter"))
+	if out := screen(m); !strings.Contains(out, "Type it again:") || backend.requestCount() != 0 {
+		t.Fatalf("a non-empty passphrase is asked for twice before anything runs\n%s", out)
+	}
+	m = typeText(t, m, archivePhrase)
+	m = drive(t, m, press("enter"))
 
 	got := backend.lastRequest(t)
 	if got.Action != ActionBackup || got.Passphrase != archivePhrase || len(got.IDs) != 0 {
@@ -141,9 +146,43 @@ func TestBackUpNowWithNoPassphraseDispatchesAnUnencryptedBackup(t *testing.T) {
 	m = drive(t, m, press("b"))
 	m = drive(t, m, press("enter"))
 
+	if strings.Contains(screen(m), "Type it again") {
+		t.Fatal("an empty passphrase has no second prompt")
+	}
 	got := backend.lastRequest(t)
 	if got.Action != ActionBackup || got.Passphrase != "" {
 		t.Fatalf("want an unencrypted backup, got %+v", got)
+	}
+}
+
+func TestADifferentSecondEntryDispatchesNothingAndAsksAgainFromTheFirst(t *testing.T) {
+	m, backend := backupsHost(t, 120, 30)
+	const typo = "quartz-A1?-hoarse"
+
+	m = drive(t, m, press("b"))
+	m = typeText(t, m, archivePhrase)
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, typo)
+	m = drive(t, m, press("enter"))
+
+	out := screen(m)
+	if backend.requestCount() != 0 {
+		t.Fatalf("a mismatch must dispatch nothing, got %+v", backend.requests)
+	}
+	if !strings.Contains(out, "The two entries differ") || !strings.Contains(out, "Passphrase (optional") || strings.Contains(out, "Type it again:") {
+		t.Fatalf("a mismatch is reported and the first entry is asked again\n%s", out)
+	}
+	for _, phrase := range []string{archivePhrase, typo} {
+		if strings.Contains(out, phrase) {
+			t.Fatalf("the screen shows %q\n%s", phrase, out)
+		}
+	}
+	m = typeText(t, m, archivePhrase)
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, archivePhrase)
+	m = drive(t, m, press("enter"))
+	if got := backend.lastRequest(t); got.Action != ActionBackup || got.Passphrase != archivePhrase || backend.requestCount() != 1 {
+		t.Fatalf("matching entries after a retry dispatch once, got %+v", backend.requests)
 	}
 }
 
@@ -204,6 +243,14 @@ func TestThePassphraseNeverReachesTheScreenStatusLineOrTaskEvents(t *testing.T) 
 
 	m = drive(t, m, press("b"))
 	m = typeText(t, m, archivePhrase)
+	m = drive(t, m, press("enter"))
+	if out := screen(m); strings.Contains(out, archivePhrase) || strings.Contains(statusLine(out), "quartz") {
+		t.Fatalf("the first entry leaked onto the screen\n%s", out)
+	}
+	m = typeText(t, m, archivePhrase)
+	if out := screen(m); strings.Contains(out, archivePhrase) || !strings.Contains(out, strings.Repeat("•", len(archivePhrase))) {
+		t.Fatalf("the second entry must be masked\n%s", out)
+	}
 	m = drive(t, m, press("enter"))
 	if got := backend.lastRequest(t); got.Passphrase != archivePhrase {
 		t.Fatalf("the Service must receive the passphrase, got %+v", got)
@@ -384,6 +431,7 @@ func TestEveryBackupsStateFitsEightyColumns(t *testing.T) {
 	}{
 		{"list", nil},
 		{"passphrase", []string{"b"}},
+		{"passphrase mismatch", []string{"b", "x", "enter", "y", "enter"}},
 		{"restore passphrase", []string{"enter"}},
 		{"restore preview", []string{"down", "enter"}},
 		{"restore armed", []string{"down", "enter", "enter"}},
@@ -434,6 +482,19 @@ func TestGoldenBackups(t *testing.T) {
 			{"passphrase", func(t *testing.T, m Model) Model {
 				m = drive(t, m, press("b"))
 				return typeText(t, m, "hunter2")
+			}},
+			{"passphrase-again", func(t *testing.T, m Model) Model {
+				m = drive(t, m, press("b"))
+				m = typeText(t, m, "hunter2")
+				m = drive(t, m, press("enter"))
+				return typeText(t, m, "hunter")
+			}},
+			{"passphrase-mismatch", func(t *testing.T, m Model) Model {
+				m = drive(t, m, press("b"))
+				m = typeText(t, m, "hunter2")
+				m = drive(t, m, press("enter"))
+				m = typeText(t, m, "hunter")
+				return drive(t, m, press("enter"))
 			}},
 			{"restore", func(t *testing.T, m Model) Model {
 				m = drive(t, m, press("down"))

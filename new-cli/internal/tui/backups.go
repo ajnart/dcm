@@ -49,6 +49,8 @@ const (
 	backupList backupMode = iota
 	// backupAsk asks for the passphrase of a new backup.
 	backupAsk
+	// backupConfirm asks for a new backup's passphrase a second time.
+	backupConfirm
 	// restoreAsk asks for the passphrase of an encrypted archive, to read
 	// which Apps it holds.
 	restoreAsk
@@ -94,7 +96,7 @@ func (b *backupsPane) modal() bool { return b.mode != backupList }
 
 func (b *backupsPane) keys() []key.Binding {
 	switch b.mode {
-	case backupAsk, restoreAsk:
+	case backupAsk, backupConfirm, restoreAsk:
 		return backupAskKeys
 	case restorePreview:
 		if b.armed {
@@ -184,7 +186,22 @@ func (b *backupsPane) modalKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 	switch b.mode {
 	case backupAsk:
 		if msg.String() == "enter" {
-			req := Request{Action: ActionBackup, Passphrase: b.input.Value()}
+			if b.input.Value() == "" {
+				b.reset()
+				return ctx.run(Request{Action: ActionBackup}, "backup")
+			}
+			b.pass, b.mode, b.promptErr = b.input.Value(), backupConfirm, ""
+			b.input.SetValue("")
+			return nil
+		}
+	case backupConfirm:
+		if msg.String() == "enter" {
+			if b.input.Value() != b.pass {
+				b.pass, b.mode, b.promptErr = "", backupAsk, "The two entries differ, so nothing was backed up. Start again."
+				b.input.SetValue("")
+				return nil
+			}
+			req := Request{Action: ActionBackup, Passphrase: b.pass}
 			b.reset()
 			return ctx.run(req, "backup")
 		}
@@ -259,7 +276,7 @@ func scrolled(cursor, offset, size, total int) int {
 func (b *backupsPane) box(ctx *viewContext, width, height int) string {
 	avail := max(height-3, 3)
 	switch b.mode {
-	case backupAsk, restoreAsk:
+	case backupAsk, backupConfirm, restoreAsk:
 		return b.promptBox(ctx, width)
 	case restorePreview:
 		return b.previewBox(ctx, width, avail)
@@ -323,12 +340,18 @@ func (b *backupsPane) row(ctx *viewContext, i, width int) string {
 func (b *backupsPane) promptBox(ctx *viewContext, width int) string {
 	t := ctx.theme
 	var lines []string
-	if b.mode == backupAsk {
+	switch b.mode {
+	case backupAsk:
 		lines = []string{
 			"  " + t.heading().Render("Back up now"),
 			"  " + t.body().Render("Passphrase (optional; leave empty for no encryption)"),
 		}
-	} else {
+	case backupConfirm:
+		lines = []string{
+			"  " + t.heading().Render("Back up now"),
+			"  " + t.body().Render("Type it again:"),
+		}
+	default:
 		lines = []string{
 			"  " + t.heading().Render("Restore from "+b.file.Name),
 			"  " + t.body().Render("This backup is encrypted. Passphrase:"),
