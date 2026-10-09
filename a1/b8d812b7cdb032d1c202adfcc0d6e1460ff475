@@ -1,0 +1,21 @@
+new-cli/CONTEXT.md
+  s_59ffa5bfdcd3ba::t_c05bbbe11f40ed 111
+new-cli/README.md
+  s_59ffa5bfdcd3ba::t_a953e7e5f008e7 22-23,80-87,134-135,153-154,162-163,165-166,240-250,337-345
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1b8d812b7cdb032d1c202adfcc0d6e1460ff475",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
