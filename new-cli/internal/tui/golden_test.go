@@ -96,6 +96,28 @@ func TestGoldenTabs(t *testing.T) {
 	}
 }
 
+// TestGoldenSettingsSubTabs is the Settings sub-tabs after Host and
+// Appearance: the two placeholders and About.
+func TestGoldenSettingsSubTabs(t *testing.T) {
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		for i, name := range []string{"backups", "tools", "about"} {
+			t.Run(name+size.suffix, func(t *testing.T) {
+				m := goldenModel(t, size.width, size.height)
+				m = drive(t, m, press("5"))
+
+				for range i + 2 {
+					m = drive(t, m, press("]"))
+				}
+
+				golden(t, "settings-"+name+size.suffix, trimLines(screen(m)))
+			})
+		}
+	}
+}
+
 func TestGoldenActionMenus(t *testing.T) {
 	for _, size := range []struct {
 		suffix        string

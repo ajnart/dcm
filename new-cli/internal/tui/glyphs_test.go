@@ -92,6 +92,7 @@ func TestGoldenGlyphSets(t *testing.T) {
 
 func TestSettingsShowsTheAppearanceSampleChoiceAndLink(t *testing.T) {
 	m, _ := settingsHost(t)
+	m = drive(t, m, press("]"))
 
 	out := screen(m)
 
@@ -110,7 +111,7 @@ func TestSettingsShowsTheAppearanceSampleChoiceAndLink(t *testing.T) {
 func TestChoosingAGlyphSetSavesAndRedrawsAtOnce(t *testing.T) {
 	m, backend := settingsHost(t)
 
-	m = drive(t, m, press("tab"))
+	m = drive(t, m, press("]"))
 	m = drive(t, m, press("up"))
 	m = drive(t, m, press("enter"))
 
@@ -142,7 +143,7 @@ func TestSettingsAppearanceGoldens(t *testing.T) {
 			m := goldenModel(t, size.width, size.height)
 			m = drive(t, m, press("5"))
 
-			m = drive(t, m, press("tab"))
+			m = drive(t, m, press("]"))
 
 			golden(t, "settings-appearance"+size.suffix, trimLines(screen(m)))
 		})
@@ -180,13 +181,13 @@ func narrowSettings(t *testing.T) Model {
 	return drive(t, m, press("enter"))
 }
 
-func TestSettingsKeepsAppearanceAndTheCursorOnScreenWithPendingChanges(t *testing.T) {
+func TestSettingsKeepsTheCursorOnScreenWithPendingChanges(t *testing.T) {
 	m := narrowSettings(t)
 
 	out := screen(m)
 
 	for _, want := range []string{"Pending changes", "EXPOSURE", "PUID", "1000 → 1001", "PUID/PGID changes",
-		"> DOWNLOADS_ROOT", "(pending)", "Appearance", "○ Nerd Font", "● Simple", "Learn about Nerd Fonts: https://www.nerdfonts.com"} {
+		"> DOWNLOADS_ROOT", "(pending)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("Settings lacks %q at 80×24 with pending changes\n%s", want, out)
 		}
@@ -198,8 +199,8 @@ func TestSettingsKeepsAppearanceAndTheCursorOnScreenWithPendingChanges(t *testin
 	for i := 0; i < 8; i++ {
 		m = drive(t, m, press("up"))
 	}
-	if out := screen(m); !strings.Contains(out, "> EXPOSURE") || !strings.Contains(out, "Learn about Nerd Fonts") || !strings.Contains(out, "● Simple") {
-		t.Fatalf("scrolling back up must keep the cursor and Appearance on screen\n%s", out)
+	if out := screen(m); !strings.Contains(out, "> EXPOSURE") || !strings.Contains(out, "(pending)") {
+		t.Fatalf("scrolling back up must keep the cursor on screen\n%s", out)
 	}
 }
 
@@ -208,8 +209,8 @@ func TestSettingsConfirmDiscardStaysOnScreenAt80x24(t *testing.T) {
 
 	m = drive(t, m, press("esc"))
 
-	if out := screen(m); !strings.Contains(out, "discard 3 changes? y/n") || !strings.Contains(out, "Learn about Nerd Fonts") {
-		t.Fatalf("the prompt and the Appearance section must both fit\n%s", out)
+	if out := screen(m); !strings.Contains(out, "discard 3 changes? y/n") || !strings.Contains(out, "> DOWNLOADS_ROOT") {
+		t.Fatalf("the prompt and the cursor row must both fit\n%s", out)
 	}
 }
 
@@ -240,30 +241,24 @@ func TestNowStripStagesCarryTheIconsOfTheGlyphSet(t *testing.T) {
 	}
 }
 
-func TestSettingsPanesAreBoxesAndTheFocusedOneHasTheBoldTitle(t *testing.T) {
+func TestEachSettingsSubTabIsAFocusedBoxWithABoldTitle(t *testing.T) {
 	for _, size := range []struct{ width, height int }{{120, 30}, {80, 24}} {
 		m, _ := sample(t, size.width, size.height)
 		m = drive(t, m, press("5"))
-		titleRow := func(title string) int {
+		for _, title := range []string{"Host settings", "Appearance", "Backups", "Tools", "About"} {
+			row := -1
 			for i, line := range strings.Split(screen(m), "\n") {
 				if strings.Contains(line, "╭─ "+title) {
-					return i
+					row = i
 				}
 			}
-			t.Fatalf("%dx%d: no box titled %q\n%s", size.width, size.height, title, screen(m))
-			return -1
-		}
-
-		bold := boldText(m.View().Content)
-		if host, look := titleRow("Host settings"), titleRow("Appearance"); !strings.Contains(bold[host], "Host settings") || strings.Contains(bold[look], "Appearance") {
-			t.Errorf("%dx%d: Host settings has the focus, so only its title is bold: %q %q", size.width, size.height, bold[host], bold[look])
-		}
-
-		m = drive(t, m, press("tab"))
-
-		bold = boldText(m.View().Content)
-		if host, look := titleRow("Host settings"), titleRow("Appearance"); strings.Contains(bold[host], "Host settings") || !strings.Contains(bold[look], "Appearance") {
-			t.Errorf("%dx%d: tab moves the bold title to Appearance: %q %q", size.width, size.height, bold[host], bold[look])
+			if row < 0 {
+				t.Fatalf("%dx%d: no box titled %q\n%s", size.width, size.height, title, screen(m))
+			}
+			if bold := boldText(m.View().Content); !strings.Contains(bold[row], title) {
+				t.Errorf("%dx%d: the box of the open sub-tab has the focus, so its title is bold: %q", size.width, size.height, bold[row])
+			}
+			m = drive(t, m, press("]"))
 		}
 	}
 }

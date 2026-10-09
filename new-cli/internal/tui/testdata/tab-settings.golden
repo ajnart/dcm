@@ -1,4 +1,5 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
+  Host   Appearance   Backups   Tools   About
 ╭─ Host settings ──────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ > EXPOSURE        lan                                                                                                │
 │   LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an address of this machine any more              │
@@ -9,13 +10,6 @@
 │   MEDIA_ROOT      /home/alice/media                                                                                  │
 │   DOWNLOADS_ROOT  /home/alice/downloads                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Appearance saved at once ───────────────────────────────────────────────────────────────────────────────────────────╮
-│   Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  ♥ Monitoring                              │
-│   ○ Nerd Font  richer icons, drawn by a Nerd Font installed in your terminal                                         │
-│   ● Simple     plain Unicode symbols that every terminal font can draw                                               │
-│                                                                                                                      │
-│ Learn about Nerd Fonts: https://www.nerdfonts.com                                                                    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 
 
@@ -27,4 +21,10 @@
 
 
 
- 1-5 tabs  ←/→  A Project  ? help  q quit        ↑/↓  select   enter  edit   ctrl+s  apply   tab  next pane   esc  back
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit          ↑/↓  select   enter  edit   ctrl+s  apply   [/]  sub-tab   esc  back

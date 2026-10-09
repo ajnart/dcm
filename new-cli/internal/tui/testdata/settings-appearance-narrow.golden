@@ -1,14 +1,5 @@
  ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
-╭─ Host settings ──────────────────────────────────────────────────────────────╮
-│   EXPOSURE        lan                                                        │
-│   LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an addr… │
-│   TZ              Europe/Paris                                               │
-│   PUID            1000                  detected 1001 ⚠ differs from this m… │
-│   PGID            1000                                                       │
-│   UMASK           022                                                        │
-│   MEDIA_ROOT      /home/alice/media                                          │
-│   DOWNLOADS_ROOT  /home/alice/downloads                                      │
-╰──────────────────────────────────────────────────────────────────────────────╯
+  Host   Appearance   Backups   Tools   About
 ╭─ Appearance saved at once ───────────────────────────────────────────────────╮
 │   Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  … │
 │   ○ Nerd Font  richer icons, drawn by a Nerd Font installed in your terminal │
@@ -16,6 +7,15 @@
 │                                                                              │
 │ Learn about Nerd Fonts: https://www.nerdfonts.com                            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
 
 
 

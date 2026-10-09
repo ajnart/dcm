@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"path/filepath"
 	"slices"
@@ -12,7 +13,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
@@ -23,16 +23,30 @@ import (
 // ConfigSet receives them.
 var settingsKeys = []string{"EXPOSURE", "LAN_IP", "TZ", "PUID", "PGID", "UMASK", "MEDIA_ROOT", "DOWNLOADS_ROOT"}
 
-// settingsView is the Settings tab. Its Host settings pane edits every Host
-// setting, with drift shown and pending changes applied at once; its
-// Appearance pane chooses the glyph set, saved as soon as it is chosen.
+// settingsTab is one sub-tab of Settings.
+type settingsTab int
+
+const (
+	tabHost settingsTab = iota
+	tabAppearance
+	tabBackups
+	tabTools
+	tabAbout
+)
+
+var settingsTabs = []string{"Host", "Appearance", "Backups", "Tools", "About"}
+
+// settingsView is the Settings tab, in sub-tabs. Host edits every Host
+// setting, with drift shown and pending changes applied at once; Appearance
+// chooses the glyph set, saved as soon as it is chosen; About says what runs
+// and where to support it. Backups and Tools are placeholders.
 type settingsView struct {
+	tab    settingsTab
 	cursor int
 	// offset is the first Host setting row on screen.
 	offset int
-	// appearance gives the keys to the Appearance pane; glyphCursor is its
-	// highlighted choice, an index into glyphChoices.
-	appearance  bool
+	// glyphCursor is Appearance's highlighted choice, an index into
+	// glyphChoices.
 	glyphCursor int
 	rows        []service.SettingReview
 	edits       map[string]string
@@ -50,11 +64,15 @@ type settingsView struct {
 
 var (
 	settingsHelp = []key.Binding{
-		hint("↑/↓", "select"), hint("enter", "edit"), hint("ctrl+s", "apply"), hint("tab", "next pane"), hint("esc", "back"),
+		hint("↑/↓", "select"), hint("enter", "edit"), hint("ctrl+s", "apply"), hint("[/]", "sub-tab"), hint("esc", "back"),
 	}
 	appearanceKeys = []key.Binding{
-		hint("↑/↓", "select"), hint("enter", "choose"), hint("tab", "next pane"), hint("esc", "back"),
+		hint("↑/↓", "select"), hint("enter", "choose"), hint("[/]", "sub-tab"), hint("esc", "back"),
 	}
+	aboutKeys = []key.Binding{
+		hint("c", "coffee"), hint("s", "sponsor"), hint("[/]", "sub-tab"), hint("esc", "back"),
+	}
+	placeholderKeys   = []key.Binding{hint("[/]", "sub-tab"), hint("esc", "back")}
 	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
 	settingsChoiceKey = hint("tab", "next choice")
 )
@@ -73,14 +91,18 @@ func (v *settingsView) Keys() []key.Binding {
 		return append(slices.Clone(settingsEditKeys), settingsChoiceKey)
 	case v.editing:
 		return settingsEditKeys
-	case v.appearance:
+	case v.tab == tabAppearance:
 		return appearanceKeys
+	case v.tab == tabAbout:
+		return aboutKeys
+	case v.tab != tabHost:
+		return placeholderKeys
 	}
 	return settingsHelp
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
 
@@ -96,7 +118,11 @@ var glyphChoices = []glyphChoice{
 	{activity.Simple, "plain Unicode symbols that every terminal font can draw"},
 }
 
-const nerdFontsURL = "https://www.nerdfonts.com"
+const (
+	nerdFontsURL = "https://www.nerdfonts.com"
+	kofiURL      = "https://ko-fi.com/ajnart"
+	sponsorsURL  = "https://github.com/sponsors/ajnart"
+)
 
 func (v *settingsView) Capturing() bool { return v.editing }
 
@@ -207,7 +233,16 @@ func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		return v.handleKey(ctx, msg)
+	case clickMsg:
+		var n int
+		if _, err := fmt.Sscanf(msg.id, "tab:%d", &n); err == nil && n >= 0 && n < len(settingsTabs) {
+			v.show(ctx, settingsTab(n))
+		}
+		return v, nil, nav{}
 	case tea.MouseWheelMsg:
+		if v.tab != tabHost {
+			return v, nil, nav{}
+		}
 		dy := 1
 		if msg.Button == tea.MouseWheelUp {
 			dy = -1
@@ -251,21 +286,41 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		v.input, cmd = v.input.Update(msg)
 		return v, cmd, nav{}
 	}
-	if key.Matches(msg, ctx.keys.NextPane) || key.Matches(msg, ctx.keys.PrevPane) {
-		v.appearance = !v.appearance
-		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
-		return v, nil, nav{}
-	}
-	if v.appearance && msg.String() != "esc" {
-		return v, v.appearanceKey(ctx, msg), nav{}
-	}
 	switch {
+	case key.Matches(msg, ctx.keys.NextSub):
+		v.show(ctx, (v.tab+1)%settingsTab(len(settingsTabs)))
+		return v, nil, nav{}
+	case key.Matches(msg, ctx.keys.PrevSub):
+		v.show(ctx, (v.tab+settingsTab(len(settingsTabs))-1)%settingsTab(len(settingsTabs)))
+		return v, nil, nav{}
 	case msg.String() == "esc":
 		if len(v.pairs()) > 0 {
-			v.confirmDiscard = true
+			v.tab, v.confirmDiscard = tabHost, true
 			return v, nil, nav{}
 		}
 		return v, nil, nav{kind: navBack}
+	}
+	switch v.tab {
+	case tabHost:
+		return v.hostKey(ctx, msg)
+	case tabAppearance:
+		return v, v.appearanceKey(ctx, msg), nav{}
+	case tabAbout:
+		return v, v.aboutKey(ctx, msg), nav{}
+	}
+	return v, nil, nav{}
+}
+
+// show opens a sub-tab; Appearance starts on the glyph set in use.
+func (v *settingsView) show(ctx *viewContext, tab settingsTab) {
+	v.tab = tab
+	if tab == tabAppearance {
+		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
+	}
+}
+
+func (v *settingsView) hostKey(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
+	switch {
 	case key.Matches(msg, ctx.keys.Apply):
 		pairs := v.pairs()
 		if len(pairs) == 0 {
@@ -281,6 +336,26 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		return v.beginEdit(ctx)
 	}
 	return v, nil, nav{}
+}
+
+// aboutKey opens a donation page: c Ko-fi, s GitHub Sponsors.
+func (v *settingsView) aboutKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
+	switch msg.String() {
+	case "c":
+		return openLink(ctx.backend, kofiURL)
+	case "s":
+		return openLink(ctx.backend, sponsorsURL)
+	}
+	return nil
+}
+
+func openLink(backend Backend, url string) tea.Cmd {
+	return func() tea.Msg {
+		if err := backend.OpenURL(url); err != nil {
+			return flashMsg{text: "could not open a browser: " + err.Error() + " — " + url, level: levelError}
+		}
+		return flashMsg{text: "opened " + url, level: levelOK}
+	}
 }
 
 // appearanceKey moves the highlight between the glyph sets, and enter or
@@ -350,14 +425,66 @@ func (v *settingsView) cycleChoice() {
 // minRows is the fewest Host setting rows the pane keeps on screen.
 const minRows = 3
 
-// View stacks the Host settings box above the Appearance box; the focused
-// one has the accent border and the bold title. The Appearance box is always
-// whole; the Host settings rows scroll to keep the cursor in view, and the
-// pending changes shrink before the rows do.
+// View draws the sub-tab strip above the open sub-tab's box. The Host
+// settings rows scroll to keep the cursor in view, and the pending changes
+// shrink before the rows do.
 func (v *settingsView) View(ctx *viewContext, width, height int) string {
-	appearance := v.appearanceBox(ctx, width)
-	avail := max(height-lipgloss.Height(appearance)-2, 3)
-	return v.hostBox(ctx, width, avail) + "\n" + appearance
+	strip, layers := subTabStrip(ctx.theme, settingsTabs, int(v.tab), 1, 1)
+	ctx.layers = append(ctx.layers, layers...)
+	var body string
+	switch v.tab {
+	case tabHost:
+		body = v.hostBox(ctx, width, max(height-3, 3))
+	case tabAppearance:
+		body = v.appearanceBox(ctx, width)
+	case tabAbout:
+		body = aboutBox(ctx, width)
+	default:
+		body = placeholderBox(ctx.theme, settingsTabs[v.tab], width)
+	}
+	return truncate(strip, width) + "\n" + body
+}
+
+// placeholderBox stands in for a sub-tab that is not built yet.
+func placeholderBox(t theme, title string, width int) string {
+	return t.box(title, "", "  "+t.dim().Render("Coming in the next update."), width, 3, true)
+}
+
+// aboutBox is the version, the Project folder, the update status and the two
+// ways to support self-host, each as a key and as a terminal link.
+func aboutBox(ctx *viewContext, width int) string {
+	t := ctx.theme
+	inner := max(width-4, 12)
+	row := func(name, value string) string {
+		return truncate("  "+t.dim().Render(pad(name, 16))+value, inner)
+	}
+	link := func(key, label, url string) string {
+		return "  " + t.title().Render(key) + "  " + t.body().Render(pad(label, 20)) +
+			ansi.SetHyperlink(url) + t.fg(t.info).Render(url) + ansi.ResetHyperlink()
+	}
+	lines := []string{
+		row("Version", t.body().Render("v"+strings.TrimPrefix(ctx.version, "v"))),
+		row("Project folder", t.body().Render(ctx.status.Project)),
+		row("Updates", updateStatus(ctx)),
+		"",
+		"  " + t.dim().Render("Like self-host? Help keep it going."),
+		link("c", "buy us a coffee", kofiURL),
+		link("s", "sponsor on GitHub", sponsorsURL),
+	}
+	return t.box("About", "", strings.Join(lines, "\n"), width, len(lines)+2, true)
+}
+
+// updateStatus is what the release check found: a newer release, none, or
+// nothing yet.
+func updateStatus(ctx *viewContext) string {
+	t := ctx.theme
+	switch {
+	case ctx.latest != "":
+		return t.fg(t.info).Render("↑ " + releaseNotice(ctx.latest))
+	case ctx.releaseChecked:
+		return t.fg(t.ok).Render("✓ up to date")
+	}
+	return t.dim().Render("? not checked")
 }
 
 // hostBox draws the Host settings, sized to its content within avail lines.
@@ -387,7 +514,7 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	if n := len(v.pairs()); n > 0 {
 		note = strconv.Itoa(n) + " pending"
 	}
-	return t.box("Host settings", note, strings.Join(lines, "\n"), width, len(lines)+2, !v.appearance)
+	return t.box("Host settings", note, strings.Join(lines, "\n"), width, len(lines)+2, true)
 }
 
 // scrollTo keeps the cursor inside a window of rows.
@@ -461,7 +588,7 @@ func (v *settingsView) appearanceBox(ctx *viewContext, width int) string {
 	lines := []string{truncate("  "+t.dim().Render(pad("Sample", 13))+glyphSample(t, g), inner)}
 	for i, choice := range glyphChoices {
 		cursor := "  "
-		if v.appearance && i == v.glyphCursor {
+		if i == v.glyphCursor {
 			cursor = t.cursor()
 		}
 		mark := t.dim().Render("○")
@@ -473,7 +600,7 @@ func (v *settingsView) appearanceBox(ctx *viewContext, width int) string {
 		lines = append(lines, truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), inner))
 	}
 	lines = append(lines, "", nerdFontsLine(t))
-	return t.box("Appearance", "saved at once", strings.Join(lines, "\n"), width, len(lines)+2, v.appearance)
+	return t.box("Appearance", "saved at once", strings.Join(lines, "\n"), width, len(lines)+2, true)
 }
 
 // glyphSample is a line of the icons of a glyph set, each with its meaning.
@@ -497,7 +624,7 @@ func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
 	t := ctx.theme
 	row := v.rows[i]
 	cursor := "  "
-	if i == v.cursor && !v.appearance {
+	if i == v.cursor {
 		cursor = t.cursor()
 	}
 	line := cursor + t.body().Render(pad(row.Key, 16))
