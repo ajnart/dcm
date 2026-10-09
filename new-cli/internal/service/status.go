@@ -227,7 +227,9 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 		}
 		// The reserved-username alias is part of the Admin login, not an App secret.
 		if strings.HasSuffix(key, "_ADMIN_USER") {
-			creds.Admin.Aliases[owner] = value
+			if value != creds.Admin.Username {
+				creds.Admin.Aliases[owner] = value
+			}
 			continue
 		}
 		if creds.Apps[owner] == nil {
