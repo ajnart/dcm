@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
@@ -91,20 +93,27 @@ func (a *program) logger() *events.Logger {
 }
 
 // human prints events as plain lines, or on an interactive terminal with the
-// pull drawn as bars that redraw in place.
+// pull drawn as bars that redraw in place. A dumb terminal cannot move the
+// cursor, so it gets the plain lines.
 func (a *program) human(w io.Writer, verbose bool) events.Sink {
 	if !a.deps.Interactive {
 		return events.Human(w, verbose)
 	}
-	palette := tui.Palette(true)
-	if a.deps.Getenv != nil && a.deps.Getenv("NO_COLOR") != "" {
-		palette = activity.Palette{}
-	}
-	width := 80
-	if f, ok := w.(*os.File); ok {
+	dark, width := true, 80
+	if f, ok := w.(*os.File); ok && term.IsTerminal(f.Fd()) {
 		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
 			width = cols
 		}
+		profiled := colorprofile.NewWriter(f, os.Environ())
+		if profiled.Profile <= colorprofile.NoTTY {
+			return events.Human(w, verbose)
+		}
+		dark = lipgloss.HasDarkBackground(os.Stdin, f)
+		w = profiled
+	}
+	palette := tui.Palette(dark)
+	if a.deps.Getenv != nil && a.deps.Getenv("NO_COLOR") != "" {
+		palette = activity.Palette{}
 	}
 	return activity.Terminal(w, verbose, width, palette)
 }
