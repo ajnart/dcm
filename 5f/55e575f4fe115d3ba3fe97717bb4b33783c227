@@ -1,0 +1,42 @@
+new-cli/internal/apps/bookstack/bookstack_test.go
+  h_d6e478ca18e517 51
+new-cli/internal/apps/forgejo/forgejo_test.go
+  h_d6e478ca18e517 90
+new-cli/internal/apps/freshrss/freshrss_test.go
+  h_d6e478ca18e517 71
+new-cli/internal/apps/frigate/frigate_test.go
+  h_d6e478ca18e517 141
+new-cli/internal/apps/pihole/diagnostics_test.go
+  h_d6e478ca18e517 28-31
+new-cli/internal/apps/plex/plex_test.go
+  h_d6e478ca18e517 72
+new-cli/internal/apps/postgresql/postgresql_test.go
+  h_d6e478ca18e517 37
+new-cli/internal/apps/speedtesttracker/readiness_test.go
+  h_d6e478ca18e517 50
+new-cli/internal/apps/speedtesttracker/speedtesttracker_test.go
+  h_d6e478ca18e517 42
+new-cli/internal/apps/tailscale/tailscale_test.go
+  h_d6e478ca18e517 55
+new-cli/internal/apps/unbound/unbound_test.go
+  h_d6e478ca18e517 31
+new-cli/internal/apps/valkey/valkey_test.go
+  h_d6e478ca18e517 28
+new-cli/internal/apps/zerotier/zerotier_test.go
+  h_d6e478ca18e517 51
+new-cli/internal/helpers/helpers.go
+  h_d6e478ca18e517 35-36,270
+new-cli/internal/helpers/support_test.go
+  h_d6e478ca18e517 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5f55e575f4fe115d3ba3fe97717bb4b33783c227",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
