@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -62,6 +63,8 @@ type onboarding struct {
 	// the frame they started revealing at.
 	checking   bool
 	checksFrom int
+	// look is the highlighted choice of the Look step, an index into glyphChoices.
+	look int
 	// task is the approved install; while it is set the Dashboard is on screen.
 	task int
 	err  string
@@ -152,10 +155,10 @@ func expand(cat *catalog.Catalog, selected []string) []app.App {
 	return apps
 }
 
-func catalogOptions(cat *catalog.Catalog, installed map[string]bool) []huh.Option[string] {
+func catalogOptions(cat *catalog.Catalog) []huh.Option[string] {
 	var options []huh.Option[string]
 	for _, r := range cat.Recipes() {
-		options = append(options, huh.NewOption("📦 "+r.Name+" — "+r.Description+" ("+strings.Join(r.Apps, ", ")+")", "recipe:"+r.ID))
+		options = append(options, huh.NewOption("📦 "+r.Name+" (Recipe)", "recipe:"+r.ID))
 	}
 	apps := cat.Apps()
 	slices.SortFunc(apps, func(a, b app.App) int {
@@ -163,10 +166,7 @@ func catalogOptions(cat *catalog.Catalog, installed map[string]bool) []huh.Optio
 	})
 	for _, a := range apps {
 		info := a.Info()
-		if installed[info.ID] {
-			continue
-		}
-		options = append(options, huh.NewOption(info.Name+" — "+info.Description, "app:"+info.ID))
+		options = append(options, huh.NewOption(info.Name, "app:"+info.ID))
 	}
 	return options
 }
@@ -204,19 +204,25 @@ func validPassword(s string) error {
 	return nil
 }
 
-// buildForm is the form of the What, Where or Who step over the answers so far.
+// mediaApps are the chosen Apps that keep files in the media and downloads folders.
+func mediaApps(cat *catalog.Catalog, selected []string) []string {
+	var names []string
+	for _, a := range expand(cat, selected) {
+		if a.Info().UsesMedia {
+			names = append(names, a.Info().Name)
+		}
+	}
+	return names
+}
+
+// buildForm is the form of the What, Where or Who step over the answers so
+// far. Each step's own explanation sits above it; the fields explain
+// themselves in one line each.
 func (m Model) buildForm(s step) *huh.Form {
 	v := m.onboarding.answers
 	cat := m.backend.Catalog()
-	needsMedia := func() bool {
-		for _, a := range expand(cat, v.selected) {
-			if a.Info().UsesMedia {
-				return true
-			}
-		}
-		return false
-	}
 	var groups []*huh.Group
+	height := m.formHeight(s)
 	switch s {
 	case stepWhat:
 		if v.selected == nil {
@@ -224,9 +230,9 @@ func (m Model) buildForm(s step) *huh.Form {
 				v.selected = []string{"app:homarr"}
 			}
 		}
-		groups = append(groups, huh.NewGroup(huh.NewMultiSelect[string]().Title("What do you want to self-host?").
-			Description("space or x toggles · / filters · enter continues").
-			Value(&v.selected).Options(catalogOptions(cat, nil)...).Filterable(true).Height(14).
+		options := catalogOptions(cat)
+		groups = append(groups, huh.NewGroup(huh.NewMultiSelect[string]().Title("Apps and Recipes").
+			Value(&v.selected).Options(options...).Filterable(true).Height(min(len(options)+1, height-3)).
 			Validate(func(s []string) error {
 				if len(s) == 0 {
 					return errors.New("pick at least one Recipe or App")
@@ -234,27 +240,33 @@ func (m Model) buildForm(s step) *huh.Form {
 				return nil
 			})))
 		groups = append(groups, m.inputGroups(cat)...)
+		height = min(height, max(len(options)+3, 7))
 	case stepWhere:
+		address := v.lan
+		if address == "" {
+			address = "this computer's address"
+		}
 		groups = append(groups,
-			huh.NewGroup(huh.NewSelect[string]().Title("Who should reach your Apps?").
-				Description("You can change this later with: self-host config set EXPOSURE=…").
+			huh.NewGroup(huh.NewSelect[string]().Title("Which devices can open your Apps?").
+				Description("TVs, phones and other computers use that address. You can change this later in Settings.").
 				Options(
-					huh.NewOption("My local network — TVs, phones and other computers can connect", service.ExposureLAN),
-					huh.NewOption("This machine only — nothing else on the network can connect", service.ExposureLocal),
+					huh.NewOption("Other devices on your network can open these at "+address, service.ExposureLAN),
+					huh.NewOption("Only this computer can open them", service.ExposureLocal),
 				).Value(&v.exposure)),
 			huh.NewGroup(
-				huh.NewInput().Title("Time zone").Value(&v.tz),
-				huh.NewInput().Title("LAN address").Description("Shown in App URLs").Value(&v.lan),
-				huh.NewInput().Title("User ID (PUID)").Description("Files are owned by this user").Value(&v.puid).Validate(numeric),
-				huh.NewInput().Title("Group ID (PGID)").Value(&v.pgid).Validate(numeric),
-			).Title("Host settings").Description("Detected from this machine; every App uses them."),
+				huh.NewInput().Title("Time zone").Description("The clock Apps use for schedules and logs").Value(&v.tz),
+				huh.NewInput().Title("LAN address").Description("What App links use, so other devices can open them").Value(&v.lan),
+				huh.NewInput().Title("User ID (PUID)").Description("The user that owns the files Apps write").Value(&v.puid).Validate(numeric),
+				huh.NewInput().Title("Group ID (PGID)").Description("The group that owns them").Value(&v.pgid).Validate(numeric),
+			).Title("Host settings").Description("Detected from this machine. User and group IDs decide who will own the files Apps write, so you can open them."),
 			huh.NewGroup(
 				huh.NewInput().Title("Media folder").Description("Movies, shows and music live here").Value(&v.media).Validate(validFolder),
-				huh.NewInput().Title("Downloads folder").Value(&v.downloads).Validate(validFolder),
-			).WithHideFunc(func() bool { return !needsMedia() }))
+				huh.NewInput().Title("Downloads folder").Description("Downloads land here before they move to media").Value(&v.downloads).Validate(validFolder),
+			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.selected)) == 0 }))
+		groups[2].Description("Used by " + strings.Join(mediaApps(cat, v.selected), ", ") + ". The folder must exist or sit in a folder that does.")
 	case stepWho:
 		groups = append(groups, huh.NewGroup(
-			huh.NewInput().Title("Admin username").Description("One login for every App").Value(&v.adminUser).
+			huh.NewInput().Title("Admin username").Value(&v.adminUser).
 				Validate(func(s string) error {
 					if strings.TrimSpace(s) == "" {
 						return errors.New("required")
@@ -266,7 +278,101 @@ func (m Model) buildForm(s step) *huh.Form {
 		).Title("Admin login"))
 	}
 	return huh.NewForm(groups...).WithTheme(huh.ThemeFunc(huh.ThemeCharm)).WithShowHelp(true).
-		WithWidth(min(max(m.width-8, 40), 100))
+		WithWidth(m.formWidth()).WithHeight(height)
+}
+
+func (m Model) formWidth() int { return min(max(m.width-8, 40), 100) }
+
+// formHeight is what a form step has left under the step indicator and its
+// explanation, and above the hovered App's description on What.
+func (m Model) formHeight(s step) int {
+	height := m.mainHeight() - 3 - len(m.stepIntro(s)) - 1
+	if s == stepWhat {
+		height -= whatDetailLines + 1
+	}
+	return max(height, 6)
+}
+
+// stepIntro is why a step asks, in one or two calm sentences.
+func (m Model) stepIntro(s step) []string {
+	text := ""
+	switch s {
+	case stepWhat:
+		text = "Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that work together. You can add more later from the Catalog."
+	case stepWhere:
+		text = "Where your Apps keep their files, and which devices can open them."
+	case stepWho:
+		text = "One Admin login signs in to every App, so there is only one to remember. Choose a password, or leave it empty: " +
+			"self-host generates a strong one, keeps it in your Project and shows it with self-host credentials. " +
+			"The password is hidden as you type and never shown again."
+	case stepLook:
+		text = "self-host can draw its icons with a Nerd Font, a terminal font with extra symbols, or with plain symbols every font has. " +
+			"Bars and spinners look the same either way."
+	}
+	return strings.Split(wrap(text, min(max(m.width-4, 20), 96)), "\n")
+}
+
+// whatDetailLines is the room for the hovered item's description on What:
+// its name, then its words and, for a Recipe, its Apps.
+const whatDetailLines = 5
+
+// whatDetail describes the item under the highlight of the What list.
+func (m Model) whatDetail() []string {
+	form := m.onboarding.form
+	if form == nil {
+		return nil
+	}
+	list, ok := form.GetFocusedField().(*huh.MultiSelect[string])
+	if !ok {
+		return nil
+	}
+	hovered, ok := list.Hovered()
+	if !ok {
+		return nil
+	}
+	t := m.theme
+	kind, id, _ := strings.Cut(hovered, ":")
+	cat := m.backend.Catalog()
+	var name, text, extra string
+	if kind == "recipe" {
+		r, found := cat.Recipe(id)
+		if !found {
+			return nil
+		}
+		var names []string
+		for _, appID := range r.Apps {
+			names = append(names, targetName(cat, appID))
+		}
+		name, text, extra = r.Name+" (Recipe)", r.Description, "Includes "+strings.Join(names, ", ")
+	} else {
+		a, found := cat.App(id)
+		if !found {
+			return nil
+		}
+		info := a.Info()
+		name, text = info.Name, info.Description
+		if info.Category != "" {
+			extra = info.Category
+		}
+	}
+	width := max(m.width-4, 20)
+	body := strings.Split(wrap(text, width), "\n")
+	if extra != "" {
+		body = append(body, strings.Split(wrap(extra, width), "\n")...)
+	}
+	if len(body) > whatDetailLines-1 {
+		body = body[:whatDetailLines-1]
+		body[len(body)-1] = truncate(body[len(body)-1]+"…", width)
+	}
+	lines := []string{"  " + t.heading().Render(name)}
+	for i, line := range body {
+		style := t.body()
+		if extra != "" && i == len(body)-1 {
+			style = t.dim()
+		}
+		lines = append(lines, "  "+style.Render(line))
+	}
+	return lines
 }
 
 // inputGroups ask each chosen App's own inputs; an answer survives the
@@ -304,7 +410,7 @@ func (m Model) inputGroups(cat *catalog.Catalog) []*huh.Group {
 			}
 			fields = append(fields, field)
 		}
-		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).WithHideFunc(func() bool {
+		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own.").WithHideFunc(func() bool {
 			return !slices.ContainsFunc(expand(cat, v.selected), func(x app.App) bool { return x.Info().ID == id })
 		}))
 	}
@@ -427,6 +533,14 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if o.step > stepInitializing {
 			return m.openStep(o.step - 1)
 		}
+	case "up", "k":
+		if o.step == stepLook {
+			o.look = max(o.look-1, 0)
+		}
+	case "down", "j":
+		if o.step == stepLook {
+			o.look = min(o.look+1, len(glyphChoices)-1)
+		}
 	case "r":
 		if o.step == stepInitializing && !o.checking {
 			o.checking = true
@@ -466,10 +580,13 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			return m.openStep(stepWelcome)
 		}
 		return m, nil
+	case stepLook:
+		m.glyphs = glyphChoices[o.look].glyphs
+		return m.openStep(stepReview)
 	case stepReview:
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.lastStarted(), ""
-		return next.focusActivity(cmd)
+		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs)))
 	}
 	return m.openStep(o.step + 1)
 }
@@ -482,10 +599,24 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	case stepWhat, stepWhere, stepWho:
 		o.form = m.buildForm(s)
 		return m, o.form.Init()
+	case stepLook:
+		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == m.glyphs })
+		o.look = max(o.look, 0)
 	case stepReview:
 		o.plan, o.err = m.planFromAnswers(o.answers), ""
 	}
 	return m, nil
+}
+
+// saveGlyphsWithInstall saves the glyph set with the Project in step with
+// the install that creates it. A failure only warns, and the install goes on.
+func saveGlyphsWithInstall(backend Backend, g activity.Glyphs) tea.Cmd {
+	return func() tea.Msg {
+		if err := backend.SetGlyphs(context.Background(), g); err != nil {
+			return flashMsg{text: "! could not save the icons choice (" + firstLine(err.Error()) + "); change it later in Settings", level: levelWarn}
+		}
+		return nil
+	}
 }
 
 func (m Model) updateOnboardingForm(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -508,6 +639,8 @@ var (
 	onboardingNextKey  = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "next"))
 	onboardingApprove  = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "approve"))
 	onboardingBack     = key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back"))
+	onboardingChoose   = key.NewBinding(key.WithKeys("up", "down"), key.WithHelp("↑/↓", "choose"))
+	onboardingUse      = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "use"))
 	onboardingRecheck  = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recheck"))
 )
 
@@ -521,6 +654,8 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 	case stepWhat, stepWhere, stepWho:
 		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"),
 			[]key.Binding{onboardingNextKey, onboardingBack}
+	case stepLook:
+		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack}
 	case stepReview:
 		return quit, []key.Binding{onboardingApprove, onboardingBack}
 	}
@@ -546,12 +681,20 @@ func (m Model) renderOnboarding() string {
 	case stepWelcome:
 		lines = append(lines, renderWelcome(m.theme)...)
 	case stepLook:
-		lines = append(lines, renderLook(m.theme, m.glyphs)...)
+		lines = append(lines, m.renderLook()...)
 	case stepReview:
 		lines = append(lines, m.renderReview()...)
 	default:
+		for _, line := range m.stepIntro(o.step) {
+			lines = append(lines, "  "+m.theme.body().Render(line))
+		}
+		lines = append(lines, "")
 		if o.form != nil {
 			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
+		}
+		if o.step == stepWhat {
+			lines = append(lines, "")
+			lines = append(lines, m.whatDetail()...)
 		}
 	}
 	return strings.Join(lines, "\n")
@@ -647,18 +790,30 @@ func renderWelcome(t theme) []string {
 	}
 }
 
-func renderLook(t theme, g activity.Glyphs) []string {
-	icon := func(glyph, label string) string {
-		return t.fg(t.accentText).Render(glyph) + " " + t.body().Render(label)
+// renderLook shows a sample of the Nerd Font icons, so the person can tell
+// whether their terminal draws them, and asks which set to use.
+func (m Model) renderLook() []string {
+	t := m.theme
+	o := m.onboarding
+	lines := []string{"  " + t.title().Render("How self-host looks")}
+	for _, line := range m.stepIntro(stepLook) {
+		lines = append(lines, "  "+t.body().Render(line))
 	}
-	return []string{
-		"  " + t.title().Render("How self-host looks"), "",
-		"  " + t.body().Render("self-host draws its screens with these icons:"), "",
-		"  " + strings.Join([]string{icon(g.Brand(), "self-host"), icon(g.Docker(), "Docker"), icon(g.Key(), "key"),
-			icon(g.Link(), "link"), icon(g.Category("Media"), "Media")}, "  "), "",
-		"  " + t.fg(t.ok).Render("✓ done") + "   " + t.fg(t.warn).Render("! needs you") + "   " + t.fg(t.fail).Render("✗ failed") +
-			"   " + t.fg(t.accentText).Render("⠋ working"),
+	lines = append(lines, "", truncate("  "+glyphSample(t, activity.NerdFont), m.width), "",
+		"  "+t.heading().Render("Do these icons look right?"))
+	answers := []string{"Yes, they look right: use Nerd Font icons", "No, I see boxes or gaps: use Simple symbols"}
+	for i, choice := range glyphChoices {
+		cursor := "  "
+		if i == o.look {
+			cursor = t.cursor()
+		}
+		mark, label := t.dim().Render("○"), t.body().Render(answers[i])
+		if choice.glyphs == m.glyphs {
+			mark, label = t.fg(t.accentText).Render("●"), t.active().Render(answers[i])
+		}
+		lines = append(lines, "  "+truncate(cursor+mark+" "+label, m.width-2))
 	}
+	return append(lines, "", "  "+nerdFontsLine(t))
 }
 
 func (m Model) renderReview() []string {

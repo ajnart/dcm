@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ● Who › ○ Look › ○ Review
+
+  One Admin login signs in to every App, so there is only one to remember.
+  Choose a password, or leave it empty: self-host generates a strong one,
+  keeps it in your Project and shows it with self-host credentials. The
+  password is hidden as you type and never shown again.
+
+  Admin login
+  ┃ Admin username
+  ┃ > admin
+
+    Admin password
+    Leave empty to generate a strong one
+    >
+
+
+
+
+
+
+
+ answering · keys go to the form                        enter  next   esc  back
