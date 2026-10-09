@@ -331,8 +331,9 @@ func renderInfo(t theme, app service.AppStatus, width int) string {
 	row := func(k, val string) string {
 		return t.dim().Render(pad(k, 10)) + t.body().Render(truncate(val, width-10))
 	}
+	address := t.dim().Render(pad("url", 10)) + hyperlink(app.URL, t.body().Render(truncate(app.URL, width-10)))
 	lines := []string{
-		row("url", app.URL),
+		address,
 		row("port", strconv.Itoa(app.Port)),
 		row("image", app.Image),
 		row("services", strings.Join(app.Services, ", ")),
