@@ -1,0 +1,20 @@
+new-cli/internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 95-96,116,133,206-213,215,218,221-229,232,240-254,332
+new-cli/internal/apps/beszel/beszel_test.go
+  h_d6e478ca18e517 166,345-361
+new-cli/internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 859-1043
+new-cli/internal/apps/homarr/links.go
+  h_d6e478ca18e517 14,26-28,33,42-57,117-123,654-655,669,684-689,693,885
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "81aceaf3bb8c24d60d9fb6645958bd8388c53bb8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
