@@ -48,13 +48,11 @@ func newDashboardView() *dashboardView {
 	return &dashboardView{details: viewport.New(), compose: map[string]string{}}
 }
 
-// The legacy enter, u, r and b keys act until #133's Action menu replaces them.
 var (
-	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("tab", "next pane"), hint("[/]", "sub-tab"),
-		hint("o", "open"), hint("c", "copy"), hint("enter", "start/stop"), hint("u", "update"),
-		hint("r", "retry Setup"), hint("b", "backup"), hint("shift+tab", "previous pane")}
-	overviewDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("tab", "next pane"), hint("[/]", "sub-tab"),
-		hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
+	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "details"),
+		hint("tab", "next pane"), hint("[/]", "sub-tab"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
+	overviewDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("a", "actions"), hint("tab", "next pane"),
+		hint("[/]", "sub-tab"), hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
 )
 
 func (v *dashboardView) Keys() []key.Binding {
@@ -83,6 +81,15 @@ func (v *dashboardView) selected(ctx *viewContext) (service.AppStatus, bool) {
 		return service.AppStatus{}, false
 	}
 	return rows[v.cursor], true
+}
+
+// selectedApp is the App the Action menu opens for; none while the copy
+// picker is open.
+func (v *dashboardView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
+	if v.copy != nil {
+		return service.AppStatus{}, false
+	}
+	return v.selected(ctx)
 }
 
 func (v *dashboardView) selectedID(ctx *viewContext) string {
@@ -167,6 +174,12 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 			v.detailsFocused = !v.detailsFocused
 		}
 		return v, nil, nav{}
+	case msg.String() == "enter" && !v.detailsFocused:
+		// Going into the App; #135 makes this the jump to the Apps tab.
+		if v.layout(ctx).detailsH > 0 {
+			v.detailsFocused = true
+		}
+		return v, nil, nav{}
 	case key.Matches(msg, k.NextSub):
 		return v, v.showTab(ctx, (v.tab+1)%detailTab(len(detailTabs))), nav{}
 	case key.Matches(msg, k.PrevSub):
@@ -177,8 +190,6 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 	case key.Matches(msg, k.ScrollDown):
 		v.details.PageDown()
 		return v, nil, nav{}
-	case key.Matches(msg, k.Backup):
-		return v, ctx.run(Request{Action: ActionBackup}, "backup"), nav{}
 	case key.Matches(msg, k.Copy):
 		return v, v.openCopy(ctx), nav{}
 	}
@@ -187,23 +198,6 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 		return v, nil, nav{}
 	}
 	switch {
-	case key.Matches(msg, k.Toggle):
-		if app.State == "running" || app.State == "degraded" {
-			return v, ctx.run(Request{Action: ActionStop, IDs: []string{app.ID}}, "stop "+app.ID), nav{}
-		}
-		return v, ctx.run(Request{Action: ActionStart, IDs: []string{app.ID}}, "start "+app.ID), nav{}
-	case key.Matches(msg, k.Update):
-		if app.Update != service.UpdateAvailable {
-			ctx.setFlash("no update known for "+app.Name+" (checked every 30 minutes)", levelInfo)
-			return v, nil, nav{}
-		}
-		return v, ctx.run(Request{Action: ActionUpdate, IDs: []string{app.ID}}, "update "+app.ID), nav{}
-	case key.Matches(msg, k.Retry):
-		if !app.Managed {
-			ctx.setFlash(app.Name+" has no automatic Setup (it was added by hand)", levelWarn)
-			return v, nil, nav{}
-		}
-		return v, ctx.run(Request{Action: ActionSetup, IDs: []string{app.ID}}, "setup "+app.ID), nav{}
 	case key.Matches(msg, k.Open):
 		if app.URL == "" {
 			ctx.setFlash(app.Name+" has no URL", levelWarn)
@@ -504,16 +498,16 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 			// Setup cannot retry a failed install stage; "is stopped" or an
 			// update below names the Action that can.
 			if s.Status == stepstatus.StepManual && !service.IsStage(s.ID) {
-				items = append(items, need{text: a.Name + ": " + s.ID + " manual · " + s.Hint, key: "r", desc: "retry Setup", app: a.ID})
+				items = append(items, need{text: a.Name + ": " + s.ID + " manual · " + s.Hint, key: "a r", desc: "retry Setup", app: a.ID})
 			}
 			if s.Status == stepstatus.StepFail && !service.IsStage(s.ID) {
-				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
+				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "a r", desc: "retry Setup", app: a.ID})
 			}
 		}
 	}
 	for _, a := range v.rows(ctx) {
 		if a.State != "running" && a.State != "degraded" && a.State != "unknown" {
-			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "enter", desc: "start", app: a.ID})
+			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "a s", desc: "start", app: a.ID})
 		}
 	}
 	if ctx.status.LANIPStale {
@@ -521,7 +515,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	}
 	for _, a := range v.rows(ctx) {
 		if a.Update == service.UpdateAvailable {
-			items = append(items, need{text: a.Name + " has an update", key: "u", desc: "update", app: a.ID})
+			items = append(items, need{text: a.Name + " has an update", key: "a u", desc: "update", app: a.ID})
 		}
 	}
 	for _, c := range ctx.checks {
@@ -633,7 +627,7 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		if app.Setup == stepstatus.SetupOK {
 			return t.fg(t.ok).Render("✓ ") + t.body().Render("Setup has finished.")
 		}
-		return t.dim().Render("Setup has not run yet. Press r to run it.")
+		return t.dim().Render("Setup has not run yet. Press a, then r, to run it.")
 	}
 	var lines []string
 	for _, step := range app.Steps {
@@ -657,7 +651,7 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		}
 	}
 	if app.Setup == stepstatus.SetupIncomplete {
-		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press r to retry Setup.", width)))
+		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press a r to retry Setup.", width)))
 	}
 	return strings.Join(lines, "\n")
 }

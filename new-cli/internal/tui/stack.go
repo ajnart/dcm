@@ -7,7 +7,6 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 
 	"github.com/ajnart/self-host/internal/service"
 )
@@ -15,24 +14,14 @@ import (
 // stackView is the Apps tab for now: every container in the Project's
 // Compose project, at a glance. It is a single pane.
 type stackView struct {
-	cursor      int
-	offset      int
-	confirmDown bool
+	cursor int
+	offset int
 }
 
-// The digits belong to the tabs now, so the Project controls are buttons
-// for the mouse until #133's A menu replaces them; enter and u act until then.
+// Project-wide controls live in the A menu; a opens the selected
+// container's App menu.
 var stackHelp = []key.Binding{
-	hint("↑/↓", "select"), hint("enter", "start/stop"), hint("u", "update"), hint("r", "re-check"), hint("esc", "back"),
-}
-
-var stackControls = []struct {
-	label  string
-	action Action
-}{
-	{"UP", ActionUp},
-	{"DOWN", ActionDown},
-	{"RESTART", ActionRestart},
+	hint("↑/↓", "select"), hint("a", "actions"), hint("r", "check updates"), hint("esc", "back"),
 }
 
 func (v *stackView) Keys() []key.Binding { return stackHelp }
@@ -54,20 +43,6 @@ func (v *stackView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		return v.key(ctx, msg)
-	case clickMsg:
-		for _, control := range stackControls {
-			if msg.id != "stack:"+string(control.action) {
-				continue
-			}
-			if v.confirmDown && control.action != ActionDown {
-				v.confirmDown = false
-				return v, nil, nav{}
-			}
-			return v, v.controlProject(ctx, control.action), nav{}
-		}
-		if v.confirmDown {
-			v.confirmDown = false
-		}
 	case tea.MouseWheelMsg:
 		dy := 3
 		if msg.Button == tea.MouseWheelUp {
@@ -80,13 +55,6 @@ func (v *stackView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 }
 
 func (v *stackView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
-	if v.confirmDown {
-		if msg.String() == "y" {
-			return v, v.controlProject(ctx, ActionDown), nav{}
-		}
-		v.confirmDown = false
-		return v, nil, nav{}
-	}
 	switch {
 	case msg.String() == "esc":
 		return v, nil, nav{kind: navBack}
@@ -94,49 +62,22 @@ func (v *stackView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, n
 		v.cursor = max(v.cursor-1, 0)
 	case key.Matches(msg, ctx.keys.Down):
 		v.cursor = min(v.cursor+1, max(len(ctx.containers)-1, 0))
-	case key.Matches(msg, ctx.keys.Toggle):
-		return v, v.toggleSelected(ctx), nav{}
-	case key.Matches(msg, ctx.keys.Update):
-		return v, v.updateSelected(ctx), nav{}
-	case key.Matches(msg, ctx.keys.Retry):
+	case msg.String() == "r":
 		return v, loadUpdatesCmd(ctx.backend, ctx.status), nav{}
 	}
 	return v, nil, nav{}
 }
 
-func (v *stackView) controlProject(ctx *viewContext, action Action) tea.Cmd {
-	if ctx.status.Project == "" || len(ctx.status.Apps) == 0 {
-		ctx.setFlash("the Project has no Apps", levelWarn)
-		return nil
-	}
-	if ctx.tasks.running() > 0 {
-		ctx.setFlash("wait for the running action to finish", levelInfo)
-		return nil
-	}
-	if action == ActionDown && !v.confirmDown {
-		v.confirmDown = true
-		return nil
-	}
-	v.confirmDown = false
-	return ctx.run(Request{Action: action}, string(action)+" Project")
-}
-
-func (v *stackView) toggleSelected(ctx *viewContext) tea.Cmd {
-	if v.cursor < 0 || v.cursor >= len(ctx.containers) {
-		return nil
-	}
-	app, found := appStatus(ctx, ctx.containers[v.cursor].App)
-	if !found {
-		return nil
-	}
-	if app.State == "running" || app.State == "degraded" {
-		return ctx.run(Request{Action: ActionStop, IDs: []string{app.ID}}, "stop "+app.ID)
-	}
-	return ctx.run(Request{Action: ActionStart, IDs: []string{app.ID}}, "start "+app.ID)
-}
-
 func loadUpdatesCmd(backend Backend, status service.Status) tea.Cmd {
 	return func() tea.Msg { return updatesMsg{updates: backend.Updates(context.Background(), status)} }
+}
+
+// selectedApp is the selected container's App, which a opens the menu for.
+func (v *stackView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
+	if v.cursor < 0 || v.cursor >= len(ctx.containers) {
+		return service.AppStatus{}, false
+	}
+	return appStatus(ctx, ctx.containers[v.cursor].App)
 }
 
 func appStatus(ctx *viewContext, id string) (service.AppStatus, bool) {
@@ -159,26 +100,6 @@ func appUpdate(ctx *viewContext, id string) string {
 	return service.UpdateUnknown
 }
 
-func (v *stackView) updateSelected(ctx *viewContext) tea.Cmd {
-	if v.cursor >= len(ctx.containers) {
-		return nil
-	}
-	id := ctx.containers[v.cursor].App
-	if id == "" {
-		ctx.setFlash("this container has no App", levelWarn)
-		return nil
-	}
-	app, found := appStatus(ctx, id)
-	if !found {
-		return nil
-	}
-	if appUpdate(ctx, id) != service.UpdateAvailable {
-		ctx.setFlash("no update known for "+app.Name+" (press r to re-check)", levelInfo)
-		return nil
-	}
-	return ctx.run(Request{Action: ActionUpdate, IDs: []string{id}}, "update "+id)
-}
-
 func (v *stackView) View(ctx *viewContext, width, height int) string {
 	t := ctx.theme
 	inner := max(width-4, 10)
@@ -187,13 +108,6 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	showImage := width >= 150
 	var lines []string
 	lines = append(lines, "  "+stackHeader(ctx), "")
-	controls := "  "
-	for _, control := range stackControls {
-		button := t.button(control.label)
-		ctx.layers = append(ctx.layers, lipgloss.NewLayer(button).X(lipgloss.Width(controls)).Y(3).ID("stack:"+string(control.action)))
-		controls += button + "  "
-	}
-	lines = append(lines, truncate(controls+t.dim().Render("click to run for every App"), inner), "")
 
 	header := "  " + t.dim().Render(pad("APP", 12)+pad("SERVICE", 16)+pad("STATE", 11)+pad("HEALTH", 11)+pad("UPD", 11))
 	if showUptime {
@@ -207,7 +121,7 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	}
 	lines = append(lines, truncate(header, inner))
 
-	avail := height - 7
+	avail := height - 3
 	if avail < 1 {
 		avail = 1
 	}
@@ -229,9 +143,6 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	v.offset = max(min(v.offset, max(len(ctx.containers)-avail, 0)), 0)
 	for i := v.offset; i < len(ctx.containers) && i-v.offset < avail; i++ {
 		lines = append(lines, v.renderRow(ctx, ctx.containers[i], i, showUptime, showImage, showPorts, inner))
-	}
-	if v.confirmDown {
-		lines = append(lines, "", "  "+t.fg(t.warn).Render(truncate("Down removes the Project's containers and networks; volumes, App files and Setup stay. y confirms, any other key cancels.", inner)))
 	}
 	return strings.Join(lines, "\n")
 }

@@ -82,3 +82,20 @@ func TestGoldenTabs(t *testing.T) {
 		}
 	}
 }
+
+func TestGoldenActionMenus(t *testing.T) {
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		for _, tc := range []struct{ name, key string }{{"menu-app", "a"}, {"menu-project", "A"}} {
+			t.Run(tc.name+size.suffix, func(t *testing.T) {
+				m := goldenModel(t, size.width, size.height)
+
+				m = drive(t, m, press(tc.key))
+
+				golden(t, tc.name+size.suffix, trimLines(screen(m)))
+			})
+		}
+	}
+}

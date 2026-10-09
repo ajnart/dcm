@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/activity"
+	"github.com/ajnart/self-host/internal/service"
 )
 
 type workflowView struct {
@@ -27,10 +28,9 @@ type workflowRow struct {
 
 func (v *workflowView) Title() string { return "Activity" }
 
-// The r key acts until #133's Action menu replaces it.
 var (
-	activityKeys = []key.Binding{hint("↑/↓", "select"), hint("enter", "error/hint"), hint("space", "collapse"),
-		hint("/", "search"), hint("r", "retry Setup"), hint("pgup/pgdn", "page"), hint("esc", "back")}
+	activityKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "error/hint"),
+		hint("space", "collapse"), hint("/", "search"), hint("pgup/pgdn", "page"), hint("esc", "back")}
 	activitySearchKeys = []key.Binding{hint("enter", "done"), hint("esc", "clear")}
 )
 
@@ -47,6 +47,15 @@ func (v *workflowView) Panes() []pane {
 }
 
 func (v *workflowView) Capturing() bool { return v.searching }
+
+// selectedApp is the App of the selected row, which a opens the menu for.
+func (v *workflowView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
+	rows := v.rows(ctx)
+	if v.cursor >= len(rows) {
+		return service.AppStatus{}, false
+	}
+	return appStatus(ctx, rows[v.cursor].app.ID)
+}
 
 // expanded reports whether the App's steps are shown: a set-up App starts
 // collapsed, everything else starts expanded, and space overrides that.
@@ -182,14 +191,8 @@ func (v *workflowView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.C
 		v.searching = true
 	case press.String() == "space":
 		v.toggle(ctx)
-	case key.Matches(press, ctx.keys.Toggle):
+	case press.String() == "enter":
 		v.toggleFailure(ctx)
-	case key.Matches(press, ctx.keys.Retry):
-		rows := v.rows(ctx)
-		if v.cursor < len(rows) && rows[v.cursor].app.Managed {
-			id := rows[v.cursor].app.ID
-			return v, ctx.run(Request{Action: ActionSetup, IDs: []string{id}}, "setup "+id), nav{}
-		}
 	case key.Matches(press, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
 	case key.Matches(press, ctx.keys.Down):

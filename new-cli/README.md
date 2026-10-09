@@ -122,8 +122,16 @@ The bar on the last row shows the global keys and the focused pane's keys.
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
 | [ and ] | Switch the App details sub-tab (logs, setup, info, compose). |
-| o, c, ?, q | Open the App's URL; choose a password or API key to copy; help; quit. |
-| enter, r, u, b | Start/stop the selected App; retry Setup; update images; make a Backup. |
+| a, A | Open the Action menu for the selected App, or for the whole Project. |
+| enter, o, c | Go into the selected App; open its URL; choose a password or API key to copy. |
+| ?, q | Help; quit. |
+
+No single key changes an App or the Project. The Action menu lists only the
+Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
+Remove for an App; Up all, Down all, Restart all, Update all and Backup for
+the Project. A letter highlights an Action and shows what it will do; `enter`
+runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
+closes the menu. Unavailable Actions stay greyed with the reason.
 
 While a search or an edit takes text, every key goes to it. Settings applies
 edits with `ctrl+s`; `esc` returns to the Overview. Activity shows remembered
@@ -131,9 +139,8 @@ render/pull/start, Setup, Links and checks. Space expands an App, `/` filters,
 and enter expands a failed step's error and recovery hint.
 While an Action pulls images, Activity, the status line and the CLI in a
 terminal show one overall bar, a slim bar per image and "N of M images"; piped
-output keeps one `✓ pulled` line per image.
-The Apps tab controls the whole Project with the UP, DOWN and RESTART buttons
-(click them); enter starts/stops the selected App.
+output keeps one `✓ pulled` line per image. On the Apps tab, `r` checks for
+updates again.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.
