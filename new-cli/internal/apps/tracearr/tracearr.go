@@ -191,36 +191,20 @@ func observeLogin(ctx context.Context, h *helpers.H, user, password string, obse
 // returns X-Retry-After in seconds. Bound both waits and requests; never infer
 // successful authentication from a rate-limit response.
 func loginAfterRateLimit(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (helpers.Response, error) {
-	var waited time.Duration
-	for attempt := 0; ; attempt++ {
+	return h.RetryAfter(ctx, helpers.RateLimit{
+		Headers: []string{"X-Retry-After", "Retry-After"},
+		Bound:   30 * time.Second,
+		Retries: 3,
+	}, func(ctx context.Context) (helpers.Response, error) {
 		resp, err := h.HTTP(ctx, helpers.Request{
 			Method: "POST", Path: "/api/v1/auth/sign-in/username",
 			JSON: map[string]string{"username": user, "password": password},
 		})
-		if err != nil {
-			return resp, err
+		if err == nil {
+			observed.loginHTTP = resp.Status
 		}
-		observed.loginHTTP = resp.Status
-		if resp.Status != 429 {
-			return resp, nil
-		}
-		value := resp.Header.Get("X-Retry-After")
-		if value == "" {
-			value = resp.Header.Get("Retry-After")
-		}
-		seconds, err := strconv.Atoi(value)
-		if err != nil || seconds <= 0 || seconds > 30 || attempt == 3 {
-			return resp, fmt.Errorf("Tracearr login returned HTTP 429; bounded rate-limit retry unavailable or exhausted")
-		}
-		delay := time.Duration(seconds) * time.Second
-		if waited+delay > 30*time.Second {
-			return resp, fmt.Errorf("Tracearr login returned HTTP 429; bounded rate-limit retry exhausted")
-		}
-		if err := h.Sleep(ctx, delay); err != nil {
-			return resp, fmt.Errorf("Tracearr login returned HTTP 429; rate-limit wait interrupted")
-		}
-		waited += delay
-	}
+		return resp, err
+	})
 }
 
 type setupStatus struct {
