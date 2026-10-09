@@ -1,0 +1,24 @@
+new-cli/internal/tui/backups.go
+  h_d6e478ca18e517 52-53,99,189-204,279,343-344,349-354
+new-cli/internal/tui/backups_test.go
+  h_d6e478ca18e517 128-132,149-151,158-188,247-254,434,486-498
+new-cli/internal/tui/testdata/settings-backups-passphrase-again-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-passphrase-again.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-passphrase-mismatch-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-passphrase-mismatch.golden
+  h_d6e478ca18e517 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0d1cdfeda16e26351f747cc15c812e554e09ee4",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
