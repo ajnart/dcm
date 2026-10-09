@@ -191,7 +191,7 @@ jobs:
             --archive "dist/selfhost-skills-${version}.zip" \
             --manifest dist/RELEASE-MANIFEST.json \
             --checksums dist/SHA256SUMS \
-            --archive-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${version}/selfhost-skills-${version}.zip" \
+            --archive-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/skills-v${version}/selfhost-skills-${version}.zip" \
             --output dist/distribution
 
   platform-plan:
@@ -318,7 +318,7 @@ jobs:
 
   cli-publish:
     name: Publish standalone CLI to npm
-    if: startsWith(github.ref, 'refs/tags/v') && vars.ENABLE_PUBLIC_NPM_PUBLISH == 'true'
+    if: startsWith(github.ref, 'refs/tags/skills-v') && vars.ENABLE_PUBLIC_NPM_PUBLISH == 'true'
     needs:
       - static
       - behavior
@@ -353,7 +353,7 @@ jobs:
       - name: Check tag and npm publisher versions
         run: |
           bun scripts/skillpack.ts release-check --tag "$GITHUB_REF_NAME"
-          node -e 'const p=require("./packages/cli/package.json"); if (process.env.GITHUB_REF_NAME !== `v${p.version}`) throw new Error("CLI version does not match release tag")'
+          node -e 'const p=require("./packages/cli/package.json"); if (process.env.GITHUB_REF_NAME !== `skills-v${p.version}`) throw new Error("CLI version does not match release tag")'
           node -e 'const [major, minor, patch]=process.argv[1].split(".").map(Number); if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) throw new Error("npm 11.5.1 or newer is required for trusted publishing")' "$(npm --version)"
 
       - name: Check the exact CLI artifact against npm
@@ -407,7 +407,7 @@ jobs:
 
   release:
     name: Release artifact
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/skills-v')
     needs:
       - static
       - behavior

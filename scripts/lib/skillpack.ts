@@ -1564,7 +1564,7 @@ export async function auditPublication() {
 
 export async function checkRelease(tag) {
   const registry = await loadRegistry();
-  const expectedTag = `v${registry.packVersion}`;
+  const expectedTag = `skills-v${registry.packVersion}`;
   const checkedTag = tag || expectedTag;
   const errors = [];
   if (checkedTag !== expectedTag) {
