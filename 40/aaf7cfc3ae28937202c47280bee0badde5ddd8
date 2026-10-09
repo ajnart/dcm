@@ -1,0 +1,42 @@
+new-cli/README.md
+  h_d6e478ca18e517 172-179
+new-cli/internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 95-96,116,133,206-213,215,218,221-229,232,240-254,332
+new-cli/internal/apps/beszel/beszel_test.go
+  h_d6e478ca18e517 166,345-361
+new-cli/internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 859-1043
+new-cli/internal/apps/homarr/links.go
+  h_d6e478ca18e517 14,26-28,33,42-57,117-123,654-655,669,684-689,693,885
+new-cli/internal/tui/backend.go
+  h_d6e478ca18e517 6-8,63-67,135-143
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 70,105,115
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 8,30-39,205-216
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 448-455
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 9,42,58-63,88,107-108,115,327-328,341-344,467-468
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 46,50
+new-cli/internal/tui/testdata/settings-tools-narrow.golden
+  h_d6e478ca18e517 4-9,24
+new-cli/internal/tui/testdata/settings-tools.golden
+  h_d6e478ca18e517 4-9,30
+new-cli/internal/tui/tools.go
+  h_d6e478ca18e517 1-114
+new-cli/internal/tui/tools_test.go
+  h_d6e478ca18e517 1-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "40aaf7cfc3ae28937202c47280bee0badde5ddd8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
