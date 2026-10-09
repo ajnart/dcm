@@ -413,6 +413,32 @@ func TestMachineIDIsThisMachinesRecordIDInTheHub(t *testing.T) {
 	}
 }
 
+func TestAReplacedKeyRecreatesTheRunningAgentWithTheNewValue(t *testing.T) {
+	ctx := context.Background()
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	if len(e.exec.upCalls()) != 1 {
+		t.Fatalf("first install started the agent %d times, want once", len(e.exec.upCalls()))
+	}
+	var keyAtUp string
+	e.exec.onUp = func([]string) { keyAtUp = e.secrets["BESZEL_AGENT_KEY"] }
+	fake.setKey("ssh-ed25519 AAAAreplacedKey")
+
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("rerun Setup: %v", err)
+	}
+	ups := e.exec.upCalls()
+	if len(ups) != 2 || ups[1][0] != beszel.AgentService || keyAtUp != "ssh-ed25519 AAAAreplacedKey" {
+		t.Errorf("ups = %v with key %q, want the agent recreated with the new key", ups, keyAtUp)
+	}
+	if fake.systemStatus("This machine") != "up" {
+		t.Error("this machine is not up after the agent was recreated")
+	}
+}
+
 func TestRenamingTheSystemInTheHubChangesNothing(t *testing.T) {
 	ctx := context.Background()
 	fake := &fakeBeszel{firstRun: true, key: hubKey}

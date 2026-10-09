@@ -282,7 +282,7 @@ func agentSettingsCurrent(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 // storeAgentSettings saves the Hub's public key and its permanent universal
-// token. An existing permanent token is kept: replacing it would disconnect
+// token, and recreates the agent when it already had older ones. An existing permanent token is kept: replacing it would disconnect
 // every other agent enrolled with it.
 func storeAgentSettings(ctx context.Context, h *helpers.H) error {
 	key, err := hubKey(ctx, h)
@@ -302,10 +302,17 @@ func storeAgentSettings(ctx context.Context, h *helpers.H) error {
 	if !token.usable() {
 		return errors.New("the Hub did not issue a permanent universal token")
 	}
+	replaced := h.Secret(h.Key("agent_key")) != "" && h.Secret(h.Key("agent_token")) != ""
 	if err := h.SetSecret(h.Key("agent_key"), key); err != nil {
 		return err
 	}
-	return h.SetSecret(h.Key("agent_token"), token.Token)
+	if err := h.SetSecret(h.Key("agent_token"), token.Token); err != nil {
+		return err
+	}
+	if replaced {
+		return h.Up(ctx, AgentService)
+	}
+	return nil
 }
 
 // Deferred holds the agent and its socket proxy back from every Compose up
