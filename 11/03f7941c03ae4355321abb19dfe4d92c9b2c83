@@ -1,0 +1,18 @@
+new-cli/internal/tui/glyphs_test.go
+  h_d6e478ca18e517 11,150-217
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 30-31,354-359,367-368,370,372-384,387-417,421-423,425-433
+new-cli/internal/tui/testdata/settings-pending-narrow.golden
+  h_d6e478ca18e517 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1103f7941c03ae4355321abb19dfe4d92c9b2c83",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
