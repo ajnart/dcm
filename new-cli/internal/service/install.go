@@ -186,6 +186,22 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	if err != nil {
 		return err
 	}
+	if !p.Exists() {
+		if _, err := s.resolvePrivateInputs(p, nil, apps, opts, preflightInputs); err != nil {
+			return err
+		}
+		opts.SetFiles = nil
+		opts.PrivateInputs = map[string]map[string]string{}
+		for _, a := range apps {
+			id := a.Info().ID
+			opts.PrivateInputs[id] = map[string]string{}
+			for _, input := range a.Inputs() {
+				if input.Private {
+					opts.PrivateInputs[id][input.Key] = preflightInputs[id][input.Key]
+				}
+			}
+		}
+	}
 	if opts.Exposure != "" && opts.Exposure != ExposureLAN && opts.Exposure != ExposureLocal {
 		return fmt.Errorf("--exposure must be %s or %s", ExposureLAN, ExposureLocal)
 	}

@@ -183,7 +183,12 @@ read that file directly.
 For inputs marked `private` by `self-host apps info <app> --json`, pass
 `--set-file app.key=/owned/private/credential-file` during install. Use an
 existing regular, owner-only file belonging to the Project owner; the CLI
-reads it privately and saves its value in the secret store. Interactive private
+reads it privately and saves its value in the secret store. Use
+`--set-file app.key=-` to read from the command's stdin instead, with at most
+one `-` per command. Both transports accept at most 64 KiB and strip trailing
+CR/LF; values must be a single line without NUL bytes. Never put the value in
+command arguments. Missing required private inputs fail before a first Install
+creates a Project or its settings. Interactive private
 inputs are masked. Provider accounts and approvals remain prerequisites.
 
 ## Updating the binary
