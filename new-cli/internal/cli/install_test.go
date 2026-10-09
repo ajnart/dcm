@@ -15,6 +15,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/cli"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -280,9 +281,10 @@ func TestLocalExposureBindsLoopbackAndShowsInStatus(t *testing.T) {
 		LANIP    string `json:"lan_ip"`
 		Settings map[string]string
 		Apps     []struct {
-			ID, URL, State, Setup string
-			Port                  int
-			Managed               bool
+			ID, URL, State string
+			Setup          stepstatus.Setup
+			Port           int
+			Managed        bool
 		}
 	}
 	if err := json.Unmarshal([]byte(out), &status); err != nil {
@@ -291,7 +293,7 @@ func TestLocalExposureBindsLoopbackAndShowsInStatus(t *testing.T) {
 	if status.Exposure != "local" || status.Settings["BIND_IP"] != "127.0.0.1" || status.LANIP != "192.168.1.20" {
 		t.Fatalf("exposure not reported: %+v", status)
 	}
-	if len(status.Apps) != 1 || status.Apps[0].URL != "http://127.0.0.1:9000" || status.Apps[0].Setup != "ok" || !status.Apps[0].Managed {
+	if len(status.Apps) != 1 || status.Apps[0].URL != "http://127.0.0.1:9000" || status.Apps[0].Setup != stepstatus.SetupOK || !status.Apps[0].Managed {
 		t.Fatalf("app status wrong: %+v", status.Apps)
 	}
 }
@@ -371,18 +373,21 @@ func TestStatusJSONExposesManualSetup(t *testing.T) {
 	code, out := runWith(t, deps, cat, "status", "--json")
 	var status struct {
 		Apps []struct {
-			Setup string
-			Steps []struct{ Status, Hint, Error string }
+			Setup stepstatus.Setup
+			Steps []struct {
+				Status      stepstatus.Step
+				Hint, Error string
+			}
 		}
 	}
 	if code != 0 || json.Unmarshal([]byte(out), &status) != nil {
 		t.Fatalf("status: %d %s", code, out)
 	}
-	if len(status.Apps) != 1 || status.Apps[0].Setup != "manual" {
+	if len(status.Apps) != 1 || status.Apps[0].Setup != stepstatus.SetupManual {
 		t.Fatalf("manual Setup missing: %s", out)
 	}
 	step := status.Apps[0].Steps[len(status.Apps[0].Steps)-1]
-	if step.Status != "manual" || step.Hint == "" || step.Error != "" {
+	if step.Status != stepstatus.StepManual || step.Hint == "" || step.Error != "" {
 		t.Fatalf("manual handoff missing: %s", out)
 	}
 }

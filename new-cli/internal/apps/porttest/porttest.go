@@ -8,6 +8,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -29,7 +30,7 @@ func (r *Recorder) Step(id string) *helpers.StepResult {
 	return nil
 }
 
-func (r *Recorder) Status(id string) string {
+func (r *Recorder) Status(id string) stepstatus.Step {
 	if step := r.Step(id); step != nil {
 		return step.Status
 	}
@@ -39,7 +40,7 @@ func (r *Recorder) Status(id string) string {
 // Hint returns the hint of the first failed step.
 func (r *Recorder) Hint() string {
 	for _, step := range r.Steps {
-		if step.Status == "fail" || step.Status == "manual" {
+		if step.Status.NeedsAttention() {
 			return step.Hint
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -32,7 +33,7 @@ func TestStatusRemembersInstallStagesBeforeSetupPerApp(t *testing.T) {
 		var ids []string
 		for _, step := range a.Steps {
 			ids = append(ids, step.ID)
-			if step.Status != "ok" || step.Msg == "" {
+			if step.Status != stepstatus.StepOK || step.Msg == "" {
 				t.Errorf("%s step = %+v, want success with message", a.ID, step)
 			}
 		}
@@ -70,7 +71,7 @@ func TestStatusRemembersFailedPullWithHintPerApp(t *testing.T) {
 			t.Fatalf("%s steps = %+v, want render and failed pull", a.ID, a.Steps)
 		}
 		pull := a.Steps[1]
-		if pull.Status != "fail" || pull.Error != failure["error"] || pull.Hint != failure["hint"] || pull.Msg != failure["msg"] {
+		if pull.Status != stepstatus.StepFail || pull.Error != failure["error"] || pull.Hint != failure["hint"] || pull.Msg != failure["msg"] {
 			t.Fatalf("%s pull = %+v, want CLI failure %+v", a.ID, pull, failure)
 		}
 	}

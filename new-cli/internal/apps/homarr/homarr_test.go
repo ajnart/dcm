@@ -20,6 +20,7 @@ import (
 	"github.com/ajnart/self-host/internal/clitest"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -1534,7 +1535,7 @@ func TestNTFYCredentialRejectionFailsTargetedStepWithoutChangingIntegration(t *t
 	if err := link.Apply(context.Background(), from, to); err == nil {
 		t.Fatal("Homarr's accepting update let an invalid ntfy token through")
 	}
-	if failed.Status != "fail" || failed.Hint != "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr." {
+	if failed.Status != stepstatus.StepFail || failed.Hint != "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr." {
 		t.Fatal("targeted ntfy failure lacks a supported retry hint")
 	}
 	if failureEvent.App != "homarr" || failureEvent.Step != "link-ntfy" || failureEvent.Credential != "admin" || failureEvent.Hint == "" {
@@ -1554,7 +1555,7 @@ func TestNTFYCredentialRejectionFailsTargetedStepWithoutChangingIntegration(t *t
 	if err := link.Apply(context.Background(), from, to); err != nil {
 		t.Fatal(err)
 	}
-	if failed.Status != "skip" {
+	if failed.Status != stepstatus.StepSkip {
 		t.Fatal("rejection changed the saved credential fingerprint")
 	}
 }
@@ -1633,7 +1634,7 @@ func TestSetupWithoutAssistantKindKeepsNotebookCurrent(t *testing.T) {
 	secrets := allSecrets()
 	for run := 0; run < 2; run++ {
 		h := homarrH(t, srv, secrets)
-		status := ""
+		var status stepstatus.Step
 		h.Record = func(result helpers.StepResult) {
 			if result.ID == "notebook" {
 				status = result.Status
@@ -1645,7 +1646,7 @@ func TestSetupWithoutAssistantKindKeepsNotebookCurrent(t *testing.T) {
 		if fake.assistantPosts != run+1 {
 			t.Fatalf("Setup run %d: want one rejected assistant POST per Setup, got %d total", run+1, fake.assistantPosts)
 		}
-		if run == 1 && status != "skip" {
+		if run == 1 && status != stepstatus.StepSkip {
 			t.Fatalf("notebook was not current on rerun: %s", status)
 		}
 	}
@@ -1797,7 +1798,7 @@ func TestSharedWidgetResizeRelocatesWithoutMovingUserItems(t *testing.T) {
 	}
 	beforeRerun, _ := json.Marshal(fake.items)
 	fresh := homarrH(t, srv, secrets)
-	status := ""
+	var status stepstatus.Step
 	fresh.Record = func(result helpers.StepResult) {
 		if result.ID == "link-sonarr" {
 			status = result.Status
@@ -1807,7 +1808,7 @@ func TestSharedWidgetResizeRelocatesWithoutMovingUserItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	afterRerun, _ := json.Marshal(fake.items)
-	if status != "skip" || string(beforeRerun) != string(afterRerun) {
+	if status != stepstatus.StepSkip || string(beforeRerun) != string(afterRerun) {
 		t.Fatal("rerun was not current or moved board items")
 	}
 }

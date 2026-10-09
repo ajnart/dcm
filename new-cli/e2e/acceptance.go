@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ajnart/self-host/internal/app"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
 	"io"
 	"path/filepath"
@@ -197,10 +198,10 @@ func (e *targetEvidence) complete() bool {
 }
 
 type statusEntry struct {
-	ID     string `json:"id"`
-	State  string `json:"state"`
-	Health string `json:"health"`
-	Setup  string `json:"setup"`
+	ID     string           `json:"id"`
+	State  string           `json:"state"`
+	Health string           `json:"health"`
+	Setup  stepstatus.Setup `json:"setup"`
 }
 
 func readyStatus(apps []statusEntry, expected []string) bool {
@@ -209,7 +210,7 @@ func readyStatus(apps []statusEntry, expected []string) bool {
 	}
 	seen := map[string]bool{}
 	for _, a := range apps {
-		if seen[a.ID] || a.Setup != "ok" || a.Health == "unhealthy" || a.Health == "starting" || a.Health == "broken" {
+		if seen[a.ID] || a.Setup != stepstatus.SetupOK || a.Health == "unhealthy" || a.Health == "starting" || a.Health == "broken" {
 			return false
 		}
 		if a.State != "running" && !((a.ID == "restic" || a.ID == "borgmatic" || a.ID == "renovate") && a.State == "exited") {

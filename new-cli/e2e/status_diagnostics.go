@@ -3,6 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"io"
 	"sort"
 	"strconv"
@@ -37,7 +38,7 @@ func statusReadinessDiagnostics(document string, expected []string, containersOK
 			continue
 		}
 		for _, step := range app.Steps {
-			if step.Status == "fail" && step.ID != "" && step.Error != "" {
+			if step.Status == stepstatus.StepFail && step.ID != "" && step.Error != "" {
 				out = append(out, event{Event: events.StepFail, App: id, Step: step.ID, Error: step.Error, Hint: step.Hint})
 			}
 		}
@@ -45,7 +46,7 @@ func statusReadinessDiagnostics(document string, expected []string, containersOK
 			out = append(out, event{Event: events.StepFail, App: id, Step: "docker-status", Error: doc.DockerError, Hint: "self-host doctor --json"})
 		}
 		if !readyStatus([]statusEntry{{ID: id, State: app.State, Health: app.Health, Setup: app.Setup}}, []string{id}) {
-			out = append(out, event{Event: events.StepFail, App: id, Step: "status", Error: fmt.Sprintf("App readiness not satisfied: state=%s health=%s setup=%s", safeStatusValue(app.State), safeStatusValue(app.Health), safeStatusValue(app.Setup)), Hint: "self-host logs " + id})
+			out = append(out, event{Event: events.StepFail, App: id, Step: "status", Error: fmt.Sprintf("App readiness not satisfied: state=%s health=%s setup=%s", safeStatusValue(app.State), safeStatusValue(app.Health), safeStatusValue(string(app.Setup))), Hint: "self-host logs " + id})
 		}
 	}
 	if len(out) != 0 {

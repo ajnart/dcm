@@ -10,6 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/gotify"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -86,7 +87,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatal("no steps recorded on the rerun")
 	}
 	for i, r := range results {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %d (%s) = %q, want skip", i, r.ID, r.Status)
 		}
 	}
@@ -103,7 +104,7 @@ func TestARejectedAdminLoginNamesTheCredentialCommand(t *testing.T) {
 		t.Fatal("Setup = nil, want a failure")
 	}
 	fail := results[len(results)-1]
-	if fail.Status != "fail" || !strings.Contains(fail.Hint, "self-host credentials") {
+	if fail.Status != stepstatus.StepFail || !strings.Contains(fail.Hint, "self-host credentials") {
 		t.Errorf("hint does not name the credentials command: %+v", fail)
 	}
 }

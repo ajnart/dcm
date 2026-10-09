@@ -8,6 +8,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type WorkflowState string
@@ -48,7 +49,7 @@ type WorkflowCounts struct {
 func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 	var out WorkflowSnapshot
 	for _, app := range status.Apps {
-		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed, SetUp: app.Managed && app.Setup == "ok"}
+		entry := WorkflowApp{ID: app.ID, Name: app.Name, Managed: app.Managed, SetUp: app.Managed && app.Setup == stepstatus.SetupOK}
 		if !app.Managed {
 			out.Apps = append(out.Apps, entry)
 			continue
@@ -56,20 +57,20 @@ func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 		for _, step := range app.Steps {
 			state := WorkflowNotRun
 			switch step.Status {
-			case "ok":
+			case stepstatus.StepOK:
 				state = WorkflowDone
-			case "skip":
+			case stepstatus.StepSkip:
 				state = WorkflowSkipped
-			case "manual":
+			case stepstatus.StepManual:
 				state = WorkflowManual
-			case "fail":
+			case stepstatus.StepFail:
 				state = WorkflowFailed
 			}
 			entry.Steps = append(entry.Steps, workflowStep(step.ID, state, step.Msg, step.Error, step.Hint))
 		}
 		progress := applyEvents(&entry, app, evs)
 		for i, step := range entry.Steps {
-			if step.ID == "pull" && step.State == WorkflowRunning {
+			if step.ID == service.StagePull && step.State == WorkflowRunning {
 				for _, image := range pullImages(progress) {
 					entry.Steps[i].Msg += fmt.Sprintf(" · %s %d%% · %s/%s", image.image, image.percent(), pullMB(image.current), pullMB(image.total))
 				}
@@ -111,11 +112,11 @@ func applyEvents(entry *WorkflowApp, app service.AppStatus, evs []events.Event) 
 			sharedPull = false
 			continue
 		}
-		if e.App == "" && e.Step == "pull" {
+		if e.App == "" && e.Step == service.StagePull {
 			if e.Event == events.StepStart {
 				sharedPull = false
 				for _, next := range evs[index+1:] {
-					if next.Event == events.RunStart || next.Event == events.RunEnd || next.Step == "pull" && next.Event != events.PullProgress {
+					if next.Event == events.RunStart || next.Event == events.RunEnd || next.Step == service.StagePull && next.Event != events.PullProgress {
 						break
 					}
 					if next.Event == events.PullProgress && app.Image != "" && next.Image == app.Image {
@@ -129,7 +130,7 @@ func applyEvents(entry *WorkflowApp, app service.AppStatus, evs []events.Event) 
 			}
 		}
 		if e.Event == events.PullProgress && (e.App == app.ID || e.App == "" && e.Image == app.Image) {
-			i := slices.IndexFunc(entry.Steps, func(s WorkflowStep) bool { return s.ID == "pull" })
+			i := slices.IndexFunc(entry.Steps, func(s WorkflowStep) bool { return s.ID == service.StagePull })
 			if !newRun && i >= 0 && entry.Steps[i].State == WorkflowRunning {
 				progress = append(progress, e)
 			}
@@ -170,7 +171,7 @@ func applyEvents(entry *WorkflowApp, app service.AppStatus, evs []events.Event) 
 			}
 			newRun = false
 		}
-		if e.Step == "pull" && e.Event == events.StepStart {
+		if e.Step == service.StagePull && e.Event == events.StepStart {
 			progress = nil
 		}
 		live[e.Step] = true
@@ -201,11 +202,11 @@ func workflowStep(id string, state WorkflowState, msg, err, hint string) Workflo
 
 func workflowOrder(id string) int {
 	switch id {
-	case "render":
+	case service.StageRender:
 		return 0
-	case "pull":
+	case service.StagePull:
 		return 1
-	case "start":
+	case service.StageStart:
 		return 2
 	case "check":
 		return 5

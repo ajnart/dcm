@@ -3,6 +3,7 @@ package onboard_test
 import (
 	"context"
 	"errors"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,8 +47,8 @@ func okServer() *httptest.Server {
 	}))
 }
 
-func statusOf(results []helpers.StepResult, id string) string {
-	status := ""
+func statusOf(results []helpers.StepResult, id string) stepstatus.Step {
+	var status stepstatus.Step
 	for _, r := range results {
 		if r.ID == id {
 			status = r.Status
@@ -62,7 +63,7 @@ func assertNoSecret(t *testing.T, secret string, err error, results []helpers.St
 		t.Errorf("returned error leaked the password: %v", err)
 	}
 	for _, r := range results {
-		if strings.Contains(r.ID+r.Status+r.Msg+r.Error+r.Hint, secret) {
+		if strings.Contains(r.ID+string(r.Status)+r.Msg+r.Error+r.Hint, secret) {
 			t.Errorf("step result leaked the password: %+v", r)
 		}
 	}
@@ -79,7 +80,7 @@ func TestNoAccountOKOn200(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if got := statusOf(results, "ready"); got != "skip" {
+	if got := statusOf(results, "ready"); got != stepstatus.StepSkip {
 		t.Errorf("ready status = %q, want skip (already serving)", got)
 	}
 	if err := n.Check(context.Background(), h); err != nil {
@@ -149,7 +150,7 @@ func TestNoAccountTimeout(t *testing.T) {
 	if !errors.Is(err, helpers.ErrStepFailed) {
 		t.Errorf("error %v does not wrap ErrStepFailed", err)
 	}
-	if got := statusOf(results, "ready"); got != "fail" {
+	if got := statusOf(results, "ready"); got != stepstatus.StepFail {
 		t.Errorf("ready status = %q, want fail", got)
 	}
 	if len(results) != 1 || !strings.Contains(results[0].Hint, "self-host logs demo") {
@@ -180,7 +181,7 @@ func TestNoAccount503Then200(t *testing.T) {
 	if err := n.Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if got := statusOf(results, "ready"); got != "ok" {
+	if got := statusOf(results, "ready"); got != stepstatus.StepOK {
 		t.Errorf("ready status = %q, want ok", got)
 	}
 	mu.Lock()
@@ -243,7 +244,7 @@ func TestFirstAdminCreatesOnce(t *testing.T) {
 	if st.user != "admin" || st.pass != adminPassword {
 		t.Errorf("Create got %q/%q, want the Admin login", st.user, st.pass)
 	}
-	if got := statusOf(results, "admin"); got != "ok" {
+	if got := statusOf(results, "admin"); got != stepstatus.StepOK {
 		t.Errorf("admin status = %q, want ok", got)
 	}
 	if err := f.Check(context.Background(), h); err != nil {
@@ -289,7 +290,7 @@ func TestFirstAdminRerunSkips(t *testing.T) {
 	if st.count() != 1 {
 		t.Errorf("Create called %d times, want 1", st.count())
 	}
-	if got := statusOf(results, "admin"); got != "skip" {
+	if got := statusOf(results, "admin"); got != stepstatus.StepSkip {
 		t.Errorf("admin status = %q, want skip", got)
 	}
 	assertNoSecret(t, adminPassword, err, results)
@@ -313,7 +314,7 @@ func TestFirstAdminAlreadyExists(t *testing.T) {
 	if st.count() != 0 {
 		t.Errorf("Create called %d times, want 0", st.count())
 	}
-	if got := statusOf(results, "admin"); got != "fail" {
+	if got := statusOf(results, "admin"); got != stepstatus.StepFail {
 		t.Errorf("admin status = %q, want fail", got)
 	}
 	assertNoSecret(t, adminPassword, err, results)
@@ -391,7 +392,7 @@ func TestFirstAdminRecordsManualStep(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	err := (onboard.FirstAdmin{Manual: "finish in the browser"}).Setup(context.Background(), h)
-	if got := statusOf(results, "admin"); got != "manual" {
+	if got := statusOf(results, "admin"); got != stepstatus.StepManual {
 		t.Fatalf("admin status = %q, want manual", got)
 	}
 	if err == nil {

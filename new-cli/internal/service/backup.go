@@ -148,11 +148,11 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 			recovery, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
 			defer cancel()
 			if err := ss.compose.Start(recovery, running...); err != nil {
-				log.Emit(events.Event{Event: events.StepFail, App: id, Step: "start", Msg: "could not restart after backup", Error: err.Error()})
+				log.Emit(events.Event{Event: events.StepFail, App: id, Step: StageStart, Msg: "could not restart after backup", Error: err.Error()})
 				result = errors.Join(result, fmt.Errorf("restart %s after backup: %w", id, err))
 				return
 			}
-			log.Emit(events.Event{Event: events.StepOK, App: id, Step: "start", Msg: "started again"})
+			log.Emit(events.Event{Event: events.StepOK, App: id, Step: StageStart, Msg: "started again"})
 		}()
 		if err := ss.compose.Stop(ctx, running...); err != nil {
 			return err
@@ -177,7 +177,7 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	}
 	log.Emit(events.Event{Event: events.StepOK, App: id, Step: "archive", Msg: "archived apps/" + id + "/"})
 	if len(running) == 0 {
-		log.Emit(events.Event{Event: events.StepSkip, App: id, Step: "start", Msg: "was not running"})
+		log.Emit(events.Event{Event: events.StepSkip, App: id, Step: StageStart, Msg: "was not running"})
 	}
 	return nil
 }

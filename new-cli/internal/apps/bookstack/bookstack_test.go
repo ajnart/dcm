@@ -16,6 +16,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/bookstack"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -157,7 +158,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, id := range []string{"admin"} {
-		if got := box.step(id); got.Status != "skip" {
+		if got := box.step(id); got.Status != stepstatus.StepSkip {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}
@@ -200,7 +201,7 @@ func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 			box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{"ADMIN_PASSWORD": "synthetic-private-secret"})
 			err := (bookstack.App{}).Setup(context.Background(), box.h)
 			step := box.step("startup-status")
-			if err == nil || !strings.Contains(err.Error(), tc.want) || step.Status != "fail" || !strings.Contains(step.Error, tc.want) {
+			if err == nil || !strings.Contains(err.Error(), tc.want) || step.Status != stepstatus.StepFail || !strings.Contains(step.Error, tc.want) {
 				t.Fatal("failed readiness omitted fixed dependency facts")
 			}
 			if strings.Contains(err.Error()+step.Error+step.Hint, "synthetic-private") {

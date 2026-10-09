@@ -14,6 +14,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/navidrome"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -26,7 +27,7 @@ type recorder struct{ steps []helpers.StepResult }
 
 func (r *recorder) record(step helpers.StepResult) { r.steps = append(r.steps, step) }
 
-func (r *recorder) status(id string) string {
+func (r *recorder) status(id string) stepstatus.Step {
 	for _, step := range r.steps {
 		if step.ID == id {
 			return step.Status
@@ -37,7 +38,7 @@ func (r *recorder) status(id string) string {
 
 func (r *recorder) hint() string {
 	for _, step := range r.steps {
-		if step.Status == "fail" {
+		if step.Status == stepstatus.StepFail {
 			return step.Hint
 		}
 	}
@@ -122,7 +123,7 @@ func TestCreatesTheFirstAdministratorThenProvesTheLogin(t *testing.T) {
 	if err := (navidrome.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if rec.status("admin") != "ok" {
+	if rec.status("admin") != stepstatus.StepOK {
 		t.Fatalf("admin step = %q, want ok", rec.status("admin"))
 	}
 }
@@ -138,7 +139,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (navidrome.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.status("ready") != "skip" || rec.status("admin") != "skip" {
+	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip both steps: ready=%q admin=%q", rec.status("ready"), rec.status("admin"))
 	}
 }
@@ -155,7 +156,7 @@ func TestTheHintNamesTheSignInPageWhenAnAdministratorAlreadyExists(t *testing.T)
 	if err == nil {
 		t.Fatal("Setup should fail against an administrator with a different password")
 	}
-	if rec.status("admin") != "fail" || !strings.Contains(rec.hint(), server.URL) || !strings.Contains(rec.hint(), "existing") || !strings.Contains(rec.hint(), "Do not delete") {
+	if rec.status("admin") != stepstatus.StepFail || !strings.Contains(rec.hint(), server.URL) || !strings.Contains(rec.hint(), "existing") || !strings.Contains(rec.hint(), "Do not delete") {
 		t.Fatalf("administrator conflict lacks account-preserving recovery hint: %q", rec.hint())
 	}
 	if fake.password != "set-by-hand" {
@@ -206,7 +207,7 @@ func TestLoginProbeErrorsNeverAttemptAdministratorCreation(t *testing.T) {
 			if fake.creates != 0 || fake.password != saved["ADMIN_PASSWORD"] {
 				t.Fatal("uncertain login attempted administrator creation or changed its password")
 			}
-			if rec.status("admin") != "fail" || !strings.Contains(rec.hint(), server.URL) {
+			if rec.status("admin") != stepstatus.StepFail || !strings.Contains(rec.hint(), server.URL) {
 				t.Fatal("uncertain login lacks an actionable administrator failure")
 			}
 		})

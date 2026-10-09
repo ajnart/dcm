@@ -10,6 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/dockge"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type secrets map[string]string
@@ -26,7 +27,7 @@ func TestBrowserAdministratorRemainsManual(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "has no headless way") {
 		t.Fatalf("Setup = %v, want explicit manual boundary", err)
 	}
-	if len(records) != 2 || records[0].ID != "ready" || records[0].Status != "skip" || records[1].ID != "admin" || records[1].Status != "manual" || !strings.Contains(records[1].Hint, srv.URL) {
+	if len(records) != 2 || records[0].ID != "ready" || records[0].Status != stepstatus.StepSkip || records[1].ID != "admin" || records[1].Status != stepstatus.StepManual || !strings.Contains(records[1].Hint, srv.URL) {
 		t.Fatalf("readiness/manual records = %+v", records)
 	}
 	err = (dockge.App{}).Check(context.Background(), h)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -115,7 +116,7 @@ func TestCompletedInstallStagesAreReadableBeforeSetupFinishes(t *testing.T) {
 		for _, id := range []string{"render", "pull", "start"} {
 			found := false
 			for _, step := range status.Apps[0].Steps {
-				if step.ID == id && step.Status == "ok" {
+				if step.ID == id && step.Status == stepstatus.StepOK {
 					found = true
 				}
 			}

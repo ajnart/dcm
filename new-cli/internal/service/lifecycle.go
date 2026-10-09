@@ -14,6 +14,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -151,7 +152,7 @@ func (ss *session) unlink(ctx context.Context, id string) []string {
 			err := link.Remove(ctx, h, ss.helpers(target))
 			ss.reportUnexpected(h, "un"+link.ID, err)
 			if err != nil {
-				ss.state.Apps[otherID].Setup = "incomplete"
+				ss.state.Apps[otherID].Setup = stepstatus.SetupIncomplete
 				failed = append(failed, otherID)
 				continue
 			}

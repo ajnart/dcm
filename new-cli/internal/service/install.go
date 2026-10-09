@@ -15,6 +15,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type InstallOptions struct {
@@ -243,7 +244,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 				info := a.Info()
 				st := ss.state.Apps[info.ID]
 				if st == nil {
-					st = &project.AppState{Setup: "pending"}
+					st = &project.AppState{Setup: stepstatus.SetupPending}
 					ss.state.Apps[info.ID] = st
 				}
 				values := inputs[info.ID]
@@ -262,19 +263,19 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 						return err
 					}
 				}
-				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: "render", Msg: "render " + info.ID})
+				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: StageRender, Msg: "render " + info.ID})
 				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values})
 				if err := ss.p.ValidateFragment(info.ID, fragment); err != nil {
 					st.Port, st.Inputs = previousPort, previousInputs
-					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
 				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
-					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
 				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {
-					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: "render", Error: err.Error()}))
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
-				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: "render",
+				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: StageRender,
 					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)}); err != nil {
 					return err
 				}
@@ -445,10 +446,10 @@ func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 	// verdict is read once every App has run.
 	var failed, manual []string
 	for _, id := range touched {
-		if st := ss.state.Apps[id]; st != nil && st.Setup == "manual" && !slices.Contains(manual, id) {
+		if st := ss.state.Apps[id]; st != nil && st.Setup == stepstatus.SetupManual && !slices.Contains(manual, id) {
 			manual = append(manual, id)
 		}
-		if st := ss.state.Apps[id]; st != nil && st.Setup == "incomplete" && !slices.Contains(failed, id) {
+		if st := ss.state.Apps[id]; st != nil && st.Setup == stepstatus.SetupIncomplete && !slices.Contains(failed, id) {
 			failed = append(failed, id)
 		}
 	}

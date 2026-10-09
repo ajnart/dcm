@@ -21,6 +21,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/wud"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 	"go.yaml.in/yaml/v3"
 )
@@ -246,7 +247,7 @@ func TestRecoveryHintUsesSupportedInstallCommand(t *testing.T) {
 	var hint string
 	h := tlsH(t, t.TempDir(), nil, &handlerTransport{handler: handler()})
 	h.Record = func(result helpers.StepResult) {
-		if result.Status == "fail" {
+		if result.Status == stepstatus.StepFail {
 			hint = result.Hint
 		}
 	}

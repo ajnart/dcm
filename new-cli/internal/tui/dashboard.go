@@ -13,6 +13,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 // detailTab is one tab of App details.
@@ -422,11 +423,11 @@ func stateLabel(a service.AppStatus) string {
 func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string {
 	t := ctx.theme
 	switch a.Setup {
-	case "ok":
+	case stepstatus.SetupOK:
 		return t.fg(t.ok).Render("✓")
-	case "incomplete":
+	case stepstatus.SetupIncomplete:
 		return t.fg(t.fail).Render("✗")
-	case "pending":
+	case stepstatus.SetupPending:
 		return t.fg(t.warn).Render("…")
 	}
 	return t.dim().Render("–")
@@ -457,10 +458,10 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 		for _, s := range a.Steps {
 			// Setup cannot retry a failed install stage; "is stopped" or an
 			// update below names the Action that can.
-			if s.Status == "manual" && !service.IsStage(s.ID) {
+			if s.Status == stepstatus.StepManual && !service.IsStage(s.ID) {
 				items = append(items, need{text: a.Name + ": " + s.ID + " manual · " + s.Hint, key: "r", desc: "retry Setup", app: a.ID})
 			}
-			if s.Status == "fail" && !service.IsStage(s.ID) {
+			if s.Status == stepstatus.StepFail && !service.IsStage(s.ID) {
 				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
 			}
 		}
@@ -587,7 +588,7 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		return t.dim().Render(wrap(app.Name+" was added by hand (Unmanaged app). self-host starts, stops, updates and backs it up, but runs no Setup for it.", width))
 	}
 	if len(app.Steps) == 0 {
-		if app.Setup == "ok" {
+		if app.Setup == stepstatus.SetupOK {
 			return t.fg(t.ok).Render("✓ ") + t.body().Render("Setup has finished.")
 		}
 		return t.dim().Render("Setup has not run yet. Press r to run it.")
@@ -596,15 +597,15 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 	for _, step := range app.Steps {
 		mark := t.fg(t.ok).Render("✓")
 		switch step.Status {
-		case "skip":
+		case stepstatus.StepSkip:
 			mark = t.dim().Render("↷")
-		case "manual":
+		case stepstatus.StepManual:
 			mark = t.fg(t.warn).Render("! manual")
-		case "fail":
+		case stepstatus.StepFail:
 			mark = t.fg(t.fail).Render("✗")
 		}
 		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status == "fail" || step.Status == "manual" {
+		if step.Status.NeedsAttention() {
 			if step.Error != "" {
 				lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
 			}
@@ -613,7 +614,7 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 			}
 		}
 	}
-	if app.Setup == "incomplete" {
+	if app.Setup == stepstatus.SetupIncomplete {
 		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press r to retry Setup.", width)))
 	}
 	return strings.Join(lines, "\n")
@@ -629,7 +630,7 @@ func renderInfo(t theme, app service.AppStatus, width int) string {
 		row("image", app.Image),
 		row("services", strings.Join(app.Services, ", ")),
 		row("state", strings.TrimSpace(app.State+" "+app.Health)),
-		row("setup", app.Setup),
+		row("setup", string(app.Setup)),
 		row("data", "apps/"+app.ID+"/"),
 	}
 	if app.Managed {

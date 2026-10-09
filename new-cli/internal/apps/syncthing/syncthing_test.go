@@ -13,6 +13,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/porttest"
 	"github.com/ajnart/self-host/internal/apps/syncthing"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 const apiKey = "0123456789abcdef0123456789abcdef"
@@ -91,7 +92,7 @@ func TestSetsTheGUILoginThroughREST(t *testing.T) {
 	if err := (syncthing.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if rec.Status("admin") != "ok" {
+	if rec.Status("admin") != stepstatus.StepOK {
 		t.Fatalf("admin step = %q, want ok", rec.Status("admin"))
 	}
 }
@@ -108,7 +109,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (syncthing.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.Status("ready") != "skip" || rec.Status("admin") != "skip" {
+	if rec.Status("ready") != stepstatus.StepSkip || rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip: ready=%q admin=%q", rec.Status("ready"), rec.Status("admin"))
 	}
 }
@@ -123,7 +124,7 @@ func TestTheHintNamesTheAppWhenTheConfigNeverAppears(t *testing.T) {
 	if err := (syncthing.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the config file is missing")
 	}
-	if rec.Status("admin") != "fail" || !strings.Contains(rec.Hint(), server.URL) {
+	if rec.Status("admin") != stepstatus.StepFail || !strings.Contains(rec.Hint(), server.URL) {
 		t.Fatalf("admin step should fail with the App URL hint, got %q", rec.Hint())
 	}
 }

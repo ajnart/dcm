@@ -6,6 +6,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 func TestWorkflowStepRunsUntilEnd(t *testing.T) {
@@ -34,14 +35,14 @@ func TestWorkflowLiveEventOverridesRememberedFailure(t *testing.T) {
 	} {
 		t.Run(tc.state, func(t *testing.T) {
 			status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
-				{ID: "ready", Status: "fail", Msg: "old", Error: "timeout", Hint: "check port"},
+				{ID: "ready", Status: stepstatus.StepFail, Msg: "old", Error: "timeout", Hint: "check port"},
 			}}}}
 			got := Workflow(status, []events.Event{{Event: tc.event, App: "sonarr", Step: "ready", Msg: "new"}})
 			step := got.Apps[0].Steps[0]
 			if string(step.State) != tc.state || step.Msg != "new" || step.Error != "" || step.Hint != "" || got.Counts.StepsFailed != 0 {
 				t.Fatalf("live override = %+v, failed = %d; want %s, new message, no stale failure", step, got.Counts.StepsFailed, tc.state)
 			}
-			if status.Apps[0].Steps[0].Status != "fail" {
+			if status.Apps[0].Steps[0].Status != stepstatus.StepFail {
 				t.Fatal("Workflow mutated remembered status")
 			}
 		})
@@ -50,7 +51,7 @@ func TestWorkflowLiveEventOverridesRememberedFailure(t *testing.T) {
 
 func TestWorkflowNewRunResetsOnlyThatAppsLiveSteps(t *testing.T) {
 	status := service.Status{Apps: []service.AppStatus{
-		{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: "fail", Error: "old failure"}}},
+		{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: stepstatus.StepFail, Error: "old failure"}}},
 		{ID: "radarr", Managed: true},
 	}}
 	evs := []events.Event{
@@ -195,9 +196,9 @@ func TestWorkflowOrdersRememberedSteps(t *testing.T) {
 func TestWorkflowUnmanagedAppHasNoSetupSteps(t *testing.T) {
 	for _, steps := range [][]service.StepStatus{
 		nil,
-		{{ID: "ready", Status: "fail", Error: "stale Setup failure"}},
+		{{ID: "ready", Status: stepstatus.StepFail, Error: "stale Setup failure"}},
 	} {
-		status := service.Status{Apps: []service.AppStatus{{ID: "whoami", Name: "whoami", Setup: "unmanaged", Steps: steps}}}
+		status := service.Status{Apps: []service.AppStatus{{ID: "whoami", Name: "whoami", Setup: stepstatus.SetupUnmanaged, Steps: steps}}}
 		got := Workflow(status, nil)
 		if len(got.Apps) != 1 || got.Apps[0].ID != "whoami" || got.Apps[0].Name != "whoami" || got.Apps[0].Managed || len(got.Apps[0].Steps) != 0 || got.Counts != (WorkflowCounts{}) {
 			t.Fatalf("Unmanaged app must have no Setup steps or progress: %+v", got)
@@ -216,7 +217,7 @@ func TestWorkflowWaitingLinkIsNotRunWithReason(t *testing.T) {
 	} {
 		t.Run(tc.id+"/"+tc.msg, func(t *testing.T) {
 			status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
-				{ID: tc.id, Status: "skip", Msg: tc.msg},
+				{ID: tc.id, Status: stepstatus.StepSkip, Msg: tc.msg},
 			}}}}
 			got := Workflow(status, nil)
 			step := got.Apps[0].Steps[0]
@@ -229,9 +230,9 @@ func TestWorkflowWaitingLinkIsNotRunWithReason(t *testing.T) {
 
 func TestWorkflowFailedLinkBelongsToConsumerWithTarget(t *testing.T) {
 	status := service.Status{Apps: []service.AppStatus{
-		{ID: "qbittorrent", Name: "qBittorrent", Managed: true, Setup: "ok", Steps: []service.StepStatus{{ID: "ready", Status: "ok"}}},
-		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{
-			{ID: "link-qbittorrent", Status: "fail", Msg: "download client", Error: "refused login", Hint: "check credentials"},
+		{ID: "qbittorrent", Name: "qBittorrent", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepOK}}},
+		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{
+			{ID: "link-qbittorrent", Status: stepstatus.StepFail, Msg: "download client", Error: "refused login", Hint: "check credentials"},
 		}},
 	}}
 	got := Workflow(status, nil)
@@ -255,14 +256,14 @@ func TestWorkflowCountsProjectProgress(t *testing.T) {
 	}{
 		{name: "empty Project"},
 		{name: "Setup status is authoritative", apps: []service.AppStatus{
-			{ID: "complete", Managed: true, Setup: "ok"},
-			{ID: "pending", Managed: true, Setup: "pending"},
-			{ID: "incomplete", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "ok"}}},
-			{ID: "unmanaged", Setup: "unmanaged"},
+			{ID: "complete", Managed: true, Setup: stepstatus.SetupOK},
+			{ID: "pending", Managed: true, Setup: stepstatus.SetupPending},
+			{ID: "incomplete", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepOK}}},
+			{ID: "unmanaged", Setup: stepstatus.SetupUnmanaged},
 		}, setup: 1},
 		{name: "failed steps across Apps", apps: []service.AppStatus{
-			{ID: "sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "fail"}, {ID: "link-qbittorrent", Status: "fail"}, {ID: "check", Status: ""}}},
-			{ID: "radarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "check", Status: "fail"}}},
+			{ID: "sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}, {ID: "link-qbittorrent", Status: stepstatus.StepFail}, {ID: "check", Status: ""}}},
+			{ID: "radarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "check", Status: stepstatus.StepFail}}},
 		}, failed: 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -281,7 +282,7 @@ func TestWorkflowMapsPersistedStates(t *testing.T) {
 	} {
 		t.Run(tc.status, func(t *testing.T) {
 			status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
-				{ID: "ready", Status: tc.status, Msg: "waiting for API", Error: "timeout", Hint: "check port"},
+				{ID: "ready", Status: stepstatus.Step(tc.status), Msg: "waiting for API", Error: "timeout", Hint: "check port"},
 			}}}}
 			step := Workflow(status, nil).Apps[0].Steps[0]
 			if string(step.State) != tc.want {
@@ -295,7 +296,7 @@ func TestWorkflowMapsPersistedStates(t *testing.T) {
 }
 
 func TestWorkflowLiveLinkKeepsItsTargetAndWaitingIsNotRun(t *testing.T) {
-	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "ok"}}}
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupOK}}}
 	evs := []events.Event{
 		{Event: events.RunStart},
 		{Event: events.StepSkip, App: "sonarr", Step: "link-qbittorrent", Msg: "waiting for qbittorrent"},
@@ -358,8 +359,8 @@ func TestWorkflowRetryAfterConsumerLinkRefreshResetsOwnResults(t *testing.T) {
 
 func TestWorkflowSetupRetryResetsRememberedSetupButKeepsStages(t *testing.T) {
 	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{
-		{ID: "render", Status: "ok"}, {ID: "pull", Status: "ok"}, {ID: "start", Status: "ok"},
-		{ID: "ready", Status: "ok"}, {ID: "account", Status: "fail", Error: "old failure"},
+		{ID: "render", Status: stepstatus.StepOK}, {ID: "pull", Status: stepstatus.StepOK}, {ID: "start", Status: stepstatus.StepOK},
+		{ID: "ready", Status: stepstatus.StepOK}, {ID: "account", Status: stepstatus.StepFail, Error: "old failure"},
 	}}}}
 	evs := []events.Event{{Event: events.RunStart, App: "sonarr"}, {Event: events.StepStart, App: "sonarr", Step: "ready"}}
 	for _, step := range Workflow(status, evs).Apps[0].Steps {
@@ -373,7 +374,7 @@ func TestWorkflowSetupRetryResetsRememberedSetupButKeepsStages(t *testing.T) {
 }
 
 func TestWorkflowCheckRefreshPreservesRememberedSetup(t *testing.T) {
-	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: "ok"}, {ID: "check", Status: "ok"}}}}}
+	status := service.Status{Apps: []service.AppStatus{{ID: "sonarr", Managed: true, Steps: []service.StepStatus{{ID: "account", Status: stepstatus.StepOK}, {ID: "check", Status: stepstatus.StepOK}}}}}
 	evs := []events.Event{{Event: events.RunStart}, {Event: events.StepStart, App: "sonarr", Step: "check"}}
 	for _, step := range Workflow(status, evs).Apps[0].Steps {
 		if step.ID == "account" && step.State != WorkflowDone {
@@ -383,7 +384,7 @@ func TestWorkflowCheckRefreshPreservesRememberedSetup(t *testing.T) {
 }
 
 func TestWorkflowLiveManualIsNotFailedOrSetUp(t *testing.T) {
-	status := service.Status{Apps: []service.AppStatus{{ID: "dockge", Managed: true, Setup: "ok"}}}
+	status := service.Status{Apps: []service.AppStatus{{ID: "dockge", Managed: true, Setup: stepstatus.SetupOK}}}
 	snapshot := Workflow(status, []events.Event{{Event: "step.manual", App: "dockge", Step: "admin", Hint: "open the browser"}})
 	if snapshot.Counts.AppsSetUp != 0 || snapshot.Counts.StepsFailed != 0 || snapshot.Apps[0].Steps[0].State != WorkflowManual {
 		t.Fatalf("manual live snapshot: %+v", snapshot)

@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/authentik"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -89,7 +90,7 @@ func TestSetupWaitsForTheWorkerToApplyTheBootstrapToken(t *testing.T) {
 	if err := (authentik.App{}).Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("Setup should wait for the worker to apply the token: %v", err)
 	}
-	if got := box.step("admin"); got.Status != "ok" {
+	if got := box.step("admin"); got.Status != stepstatus.StepOK {
 		t.Errorf("admin step = %q, want ok", got.Status)
 	}
 }
@@ -118,7 +119,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, id := range []string{"admin"} {
-		if got := box.step(id); got.Status != "skip" {
+		if got := box.step(id); got.Status != stepstatus.StepSkip {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}

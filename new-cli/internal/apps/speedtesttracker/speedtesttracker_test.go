@@ -16,6 +16,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/speedtesttracker"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -92,7 +93,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		if r.ID == "ready" {
 			continue
 		}
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s status %q, want skip", r.ID, r.Status)
 		}
 	}
@@ -113,7 +114,7 @@ func TestUnseededAdminFailsWithHint(t *testing.T) {
 			fail = &results[i]
 		}
 	}
-	if fail == nil || fail.Status != "fail" || !strings.Contains(fail.Hint, "self-host credentials") {
+	if fail == nil || fail.Status != stepstatus.StepFail || !strings.Contains(fail.Hint, "self-host credentials") {
 		t.Fatalf("admin-login should fail with a credential hint: %+v", results)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/service"
@@ -190,18 +191,18 @@ func TestHelpViewWithoutAModel(t *testing.T) {
 
 func workflowStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
-		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: "ok", Steps: []service.StepStatus{
-			{ID: "ready", Status: "ok", Msg: "API ready"},
-			{ID: "account", Status: "skip", Msg: "already configured"},
-			{ID: "check", Status: "ok"},
+		{ID: "jellyfin", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{
+			{ID: "ready", Status: stepstatus.StepOK, Msg: "API ready"},
+			{ID: "account", Status: stepstatus.StepSkip, Msg: "already configured"},
+			{ID: "check", Status: stepstatus.StepOK},
 		}},
-		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{
-			{ID: "ready", Status: "ok"},
-			{ID: "link-qbittorrent", Status: "fail", Msg: "download client", Error: "refused login", Hint: "check credentials"},
+		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{
+			{ID: "ready", Status: stepstatus.StepOK},
+			{ID: "link-qbittorrent", Status: stepstatus.StepFail, Msg: "download client", Error: "refused login", Hint: "check credentials"},
 			{ID: "check"},
 		}},
-		{ID: "radarr", Name: "Radarr", Managed: true, Setup: "pending"},
-		{ID: "whoami", Name: "whoami", Setup: "unmanaged"},
+		{ID: "radarr", Name: "Radarr", Managed: true, Setup: stepstatus.SetupPending},
+		{ID: "whoami", Name: "whoami", Setup: stepstatus.SetupUnmanaged},
 	}}
 }
 
@@ -256,9 +257,9 @@ func TestWorkflowViewSpaceTogglesAnApp(t *testing.T) {
 
 func workflowFilterStatus() service.Status {
 	return service.Status{Apps: []service.AppStatus{
-		{ID: "jf", Name: "Jellyfin", Managed: true, Setup: "ok"},
-		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "fail"}}},
-		{ID: "radarr", Name: "Radarr", Managed: true, Setup: "pending"},
+		{ID: "jf", Name: "Jellyfin", Managed: true, Setup: stepstatus.SetupOK},
+		{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}}},
+		{ID: "radarr", Name: "Radarr", Managed: true, Setup: stepstatus.SetupPending},
 	}}
 }
 
@@ -329,7 +330,7 @@ func workflowMany(n int) service.Status {
 	var apps []service.AppStatus
 	for i := 0; i < n; i++ {
 		apps = append(apps, service.AppStatus{ID: fmt.Sprintf("app%02d", i), Name: fmt.Sprintf("App %02d", i),
-			Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready"}}})
+			Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready"}}})
 	}
 	return service.Status{Apps: apps}
 }
@@ -386,10 +387,10 @@ func TestWorkflowViewFitsEightyColumns(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{
 		{ID: "long", Name: "An App whose name is far too long to ever fit an eighty column terminal",
-			Managed: true, Setup: "incomplete",
-			Steps: []service.StepStatus{{ID: "ready", Status: "fail",
+			Managed: true, Setup: stepstatus.SetupIncomplete,
+			Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail,
 				Msg: "a step message that also runs on and on well past the width of a narrow terminal"}}},
-		{ID: "other", Name: "Other", Managed: true, Setup: "incomplete",
+		{ID: "other", Name: "Other", Managed: true, Setup: stepstatus.SetupIncomplete,
 			Steps: []service.StepStatus{{ID: "ready"}}},
 	}}
 	var v view = &workflowView{}
@@ -470,8 +471,8 @@ func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
 
 func TestNeedsActionOffersStartNotSetupForAFailedStart(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "one", Name: "One", Managed: true, State: "exited", Setup: "ok",
-		Steps: []service.StepStatus{{ID: "start", Status: "fail", Error: "port is already allocated"}}}}}
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "one", Name: "One", Managed: true, State: "exited", Setup: stepstatus.SetupOK,
+		Steps: []service.StepStatus{{ID: "start", Status: stepstatus.StepFail, Error: "port is already allocated"}}}}}
 	for _, item := range (&dashboardView{}).needsAction(ctx) {
 		if item.desc == "retry Setup" {
 			t.Fatalf("a failed start cannot be fixed by Setup: %+v", item)
@@ -481,7 +482,7 @@ func TestNeedsActionOffersStartNotSetupForAFailedStart(t *testing.T) {
 
 func TestDashboardManualNeedsAction(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, State: "running", Setup: "manual", Steps: []service.StepStatus{{ID: "admin", Status: "manual", Hint: "Open the browser and create the administrator"}}}}}
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, State: "running", Setup: stepstatus.SetupManual, Steps: []service.StepStatus{{ID: "admin", Status: stepstatus.StepManual, Hint: "Open the browser and create the administrator"}}}}}
 	v := &dashboardView{}
 	needs := v.needsAction(ctx)
 	if len(needs) != 1 || needs[0].broken || needs[0].key != "r" || !strings.Contains(needs[0].text, "Open the browser") {
@@ -498,7 +499,7 @@ func TestDashboardManualNeedsAction(t *testing.T) {
 
 func TestWorkflowManualShowsHintWithoutFailures(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, Setup: "manual", Steps: []service.StepStatus{{ID: "admin", Status: "manual", Hint: "Open the browser and create the administrator"}}}}}
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, Setup: stepstatus.SetupManual, Steps: []service.StepStatus{{ID: "admin", Status: stepstatus.StepManual, Hint: "Open the browser and create the administrator"}}}}}
 	v := &workflowView{}
 	out := ansi.Strip(v.View(ctx, 120, 30))
 	for _, want := range []string{"manual", "Open the browser", "0 steps failed", "0 Apps fully set up"} {

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 
 	"github.com/ajnart/self-host/internal/apps/authelia"
 	"github.com/ajnart/self-host/internal/events"
@@ -92,7 +93,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -109,7 +110,7 @@ func TestFailingStepHintNamesTheApp(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

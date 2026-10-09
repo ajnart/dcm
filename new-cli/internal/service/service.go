@@ -27,6 +27,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -381,7 +382,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	}
 	st.Setup = setupResult(st)
 	var incomplete []string
-	if st.Setup == "incomplete" {
+	if st.Setup == stepstatus.SetupIncomplete {
 		incomplete = append(incomplete, id)
 	}
 	if ss.ready(id) {
@@ -403,7 +404,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 				ss.applyLink(ctx, other, link)
 				otherState := ss.state.Apps[otherID]
 				otherState.Setup = setupResult(otherState)
-				if otherState.Setup == "incomplete" {
+				if otherState.Setup == stepstatus.SetupIncomplete {
 					incomplete = append(incomplete, otherID)
 				}
 			}
@@ -430,33 +431,39 @@ func (ss *session) reportUnexpected(h *helpers.H, step string, err error) {
 		return
 	}
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: step, Error: err.Error(), URL: h.URL})
-	h.Record(helpers.StepResult{ID: step, Status: "fail", Error: err.Error()})
+	h.Record(helpers.StepResult{ID: step, Status: stepstatus.StepFail, Error: err.Error()})
 }
 
 func (ss *session) failed(id, step string) bool {
 	st := ss.state.Apps[id]
-	return st != nil && st.Steps[step].Status == "fail"
+	return st != nil && st.Steps[step].Status == stepstatus.StepFail
 }
 
 // setupResult gives failures precedence over manual steps. Install
 // stages are Compose work that Setup cannot retry, so they do not count.
-func setupResult(st *project.AppState) string {
-	result := "ok"
+func setupResult(st *project.AppState) stepstatus.Setup {
+	result := stepstatus.SetupOK
 	for id, step := range st.Steps {
-		if step.Status == "manual" && !IsStage(id) {
-			result = "manual"
+		if step.Status == stepstatus.StepManual && !IsStage(id) {
+			result = stepstatus.SetupManual
 		}
-		if step.Status == "fail" && !IsStage(id) {
-			return "incomplete"
+		if step.Status == stepstatus.StepFail && !IsStage(id) {
+			return stepstatus.SetupIncomplete
 		}
 	}
 	return result
 }
 
+const (
+	StageRender = "render"
+	StagePull   = "pull"
+	StageStart  = "start"
+)
+
 // IsStage reports whether a step is an install stage (render, pull, start)
 // recorded by the mutation module rather than by the App's Setup.
 func IsStage(id string) bool {
-	return id == "render" || id == "pull" || id == "start"
+	return id == StageRender || id == StagePull || id == StageStart
 }
 
 // isLinkStep reports whether a step belongs to a Link rather than to the
@@ -470,11 +477,11 @@ func isLinkStep(id string) bool {
 // must not block or hide other Links.
 func (ss *session) ready(id string) bool {
 	st := ss.state.Apps[id]
-	if st == nil || st.Setup == "pending" || st.Setup == "" {
+	if st == nil || st.Setup == stepstatus.SetupPending || st.Setup == "" {
 		return false
 	}
 	for stepID, step := range st.Steps {
-		if (step.Status == "fail" || step.Status == "manual") && !isLinkStep(stepID) && !IsStage(stepID) {
+		if step.Status.NeedsAttention() && !isLinkStep(stepID) && !IsStage(stepID) {
 			return false
 		}
 	}

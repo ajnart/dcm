@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/catalog"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -89,12 +90,13 @@ func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
 	_, statusOut := runWith(t, deps, cat, "status", "--json")
 	var status struct {
 		Apps []struct {
-			ID, Setup string
-			Managed   bool
+			ID      string
+			Setup   stepstatus.Setup
+			Managed bool
 		}
 	}
 	json.Unmarshal([]byte(statusOut), &status)
-	if len(status.Apps) != 2 || status.Apps[1].ID != "whoami" || status.Apps[1].Setup != "unmanaged" || status.Apps[1].Managed {
+	if len(status.Apps) != 2 || status.Apps[1].ID != "whoami" || status.Apps[1].Setup != stepstatus.SetupUnmanaged || status.Apps[1].Managed {
 		t.Fatalf("unmanaged app not listed: %+v", status.Apps)
 	}
 	if code, out := runWith(t, deps, cat, "setup", "whoami"); code != 1 || !strings.Contains(out, "not a catalog App") {

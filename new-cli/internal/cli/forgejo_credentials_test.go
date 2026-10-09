@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -67,7 +68,7 @@ func TestForgejoAliasIsVisibleInCredentialsAndDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Apps["forgejo"].Steps["configure"] = project.StepRecord{Status: "fail", Msg: "create selfhost-admin", Error: "refused synthetic-password", Hint: "sign in as selfhost-admin"}
+	state.Apps["forgejo"].Steps["configure"] = project.StepRecord{Status: stepstatus.StepFail, Msg: "create selfhost-admin", Error: "refused synthetic-password", Hint: "sign in as selfhost-admin"}
 	if err := p.SaveState(state); err != nil {
 		t.Fatal(err)
 	}

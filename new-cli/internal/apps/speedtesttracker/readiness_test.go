@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ajnart/self-host/internal/apps/speedtesttracker"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"net/http"
 	"net/http/httptest"
@@ -37,7 +38,7 @@ func TestReadiness502WithholdsUnexpectedRuntimeOutput(t *testing.T) {
 		if strings.Contains(result.Error, "private-runtime-value") {
 			t.Fatal("runtime output escaped")
 		}
-		if result.ID == "ready" && result.Status == "fail" && !strings.Contains(result.Error, "php_bootstrap_metadata=unobserved") {
+		if result.ID == "ready" && result.Status == stepstatus.StepFail && !strings.Contains(result.Error, "php_bootstrap_metadata=unobserved") {
 			t.Fatal("unexpected runtime output accepted")
 		}
 	}
@@ -61,7 +62,7 @@ func TestReadiness502ReportsOnlyFixedPHPBootstrapFacts(t *testing.T) {
 	}
 	var failure string
 	for _, r := range records {
-		if r.ID == "ready" && r.Status == "fail" {
+		if r.ID == "ready" && r.Status == stepstatus.StepFail {
 			failure = r.Error
 		}
 	}

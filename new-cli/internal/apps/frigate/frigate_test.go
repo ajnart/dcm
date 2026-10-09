@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/ajnart/self-host/internal/app"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -173,7 +174,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -191,7 +192,7 @@ func TestFailingStepHintNamesTheContainerLogs(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

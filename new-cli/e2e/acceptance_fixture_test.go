@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"os"
 	"reflect"
 	"strings"
@@ -61,10 +62,10 @@ func TestEvidenceNeverPromotesUnrunStages(t *testing.T) {
 
 func TestReadyRequiresExpectedAppsAndHealthyContainers(t *testing.T) {
 	want := []string{"ntfy", "vaultwarden"}
-	if readyStatus([]statusEntry{{ID: "ntfy", State: "running", Setup: "ok"}}, want) {
+	if readyStatus([]statusEntry{{ID: "ntfy", State: "running", Setup: stepstatus.SetupOK}}, want) {
 		t.Fatal("missing app accepted")
 	}
-	good := []statusEntry{{ID: "ntfy", State: "running", Setup: "ok", Health: "healthy"}, {ID: "vaultwarden", State: "running", Setup: "ok"}}
+	good := []statusEntry{{ID: "ntfy", State: "running", Setup: stepstatus.SetupOK, Health: "healthy"}, {ID: "vaultwarden", State: "running", Setup: stepstatus.SetupOK}}
 	if !readyStatus(good, want) {
 		t.Fatal("healthy expected apps rejected")
 	}
@@ -72,7 +73,7 @@ func TestReadyRequiresExpectedAppsAndHealthyContainers(t *testing.T) {
 	if readyStatus(good, want) {
 		t.Fatal("unhealthy accepted")
 	}
-	if !readyStatus([]statusEntry{{ID: "restic", State: "exited", Setup: "ok"}}, []string{"restic"}) {
+	if !readyStatus([]statusEntry{{ID: "restic", State: "exited", Setup: stepstatus.SetupOK}}, []string{"restic"}) {
 		t.Fatal("inert job rejected")
 	}
 }

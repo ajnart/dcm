@@ -8,6 +8,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/valkey"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -63,7 +64,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (valkey.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("second Setup: %v", err)
 	}
-	if len(results) != 1 || results[0].Status != "skip" {
+	if len(results) != 1 || results[0].Status != stepstatus.StepSkip {
 		t.Fatalf("rerun results = %+v, want the ping step skipped", results)
 	}
 }

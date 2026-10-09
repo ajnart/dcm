@@ -14,6 +14,7 @@ import (
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -118,10 +119,10 @@ func sampleStatus() service.Status {
 		Project: "/home/alice/self-host", Exposure: "lan", LANIP: "192.168.1.20",
 		Settings: map[string]string{"TZ": "Europe/Paris", "PUID": "1000", "PGID": "1000", "UMASK": "022"},
 		Apps: []service.AppStatus{
-			{ID: "jellyfin", Name: "Jellyfin", Managed: true, URL: "http://192.168.1.20:8096", Port: 8096, State: "running", Health: "healthy", Setup: "ok", Image: "lscr.io/linuxserver/jellyfin:latest"},
-			{ID: "sonarr", Name: "Sonarr", Managed: true, URL: "http://192.168.1.20:8989", Port: 8989, State: "running", Setup: "incomplete",
-				Steps: []service.StepStatus{{ID: "download-client", Status: "fail", Error: "qBittorrent refused login", Hint: "Add qBittorrent under Settings › Download Clients."}}},
-			{ID: "whoami", Name: "whoami", URL: "http://192.168.1.20:8099", Port: 8099, State: "exited", Setup: "unmanaged"},
+			{ID: "jellyfin", Name: "Jellyfin", Managed: true, URL: "http://192.168.1.20:8096", Port: 8096, State: "running", Health: "healthy", Setup: stepstatus.SetupOK, Image: "lscr.io/linuxserver/jellyfin:latest"},
+			{ID: "sonarr", Name: "Sonarr", Managed: true, URL: "http://192.168.1.20:8989", Port: 8989, State: "running", Setup: stepstatus.SetupIncomplete,
+				Steps: []service.StepStatus{{ID: "download-client", Status: stepstatus.StepFail, Error: "qBittorrent refused login", Hint: "Add qBittorrent under Settings › Download Clients."}}},
+			{ID: "whoami", Name: "whoami", URL: "http://192.168.1.20:8099", Port: 8099, State: "exited", Setup: stepstatus.SetupUnmanaged},
 		},
 	}
 }
@@ -262,7 +263,7 @@ func TestStatusLevelsAreOkAttentionBroken(t *testing.T) {
 			t.Errorf("%s Status = %s, want %s", app.ID, got, want[app.ID])
 		}
 	}
-	starting := service.AppStatus{State: "running", Health: "starting", Setup: "ok"}
+	starting := service.AppStatus{State: "running", Health: "starting", Setup: stepstatus.SetupOK}
 	if got := service.Level(starting); got != "attention" {
 		t.Errorf("starting App Status = %s, want attention", got)
 	}

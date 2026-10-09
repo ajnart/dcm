@@ -15,6 +15,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -152,7 +153,7 @@ func TestRestoreLegacyPrivateInputMigratesAndPreservesProject(t *testing.T) {
 			}
 			state, _ := p.LoadState()
 			state.Apps["one"].Inputs = map[string]string{"token": "synthetic-restore-legacy-79", "greeting": "restored-ordinary"}
-			state.Apps["one"].Steps["old"] = project.StepRecord{Status: "fail", Error: "failure synthetic-restore-legacy-79"}
+			state.Apps["one"].Steps["old"] = project.StepRecord{Status: stepstatus.StepFail, Error: "failure synthetic-restore-legacy-79"}
 			data, err := json.Marshal(state)
 			if err != nil {
 				t.Fatal(err)
@@ -252,7 +253,7 @@ func TestLegacyPrivateInputMigratesWithoutRotatingSavedSecret(t *testing.T) {
 	if err := p.SaveState(state); err != nil {
 		t.Fatal(err)
 	}
-	state.Apps["one"].Steps = map[string]project.StepRecord{"old": {Status: "fail", Error: "failed synthetic-legacy-token", Hint: "retry synthetic-legacy-token"}}
+	state.Apps["one"].Steps = map[string]project.StepRecord{"old": {Status: stepstatus.StepFail, Error: "failed synthetic-legacy-token", Hint: "retry synthetic-legacy-token"}}
 	if err := p.SaveState(state); err != nil {
 		t.Fatal(err)
 	}
