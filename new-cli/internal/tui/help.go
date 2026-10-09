@@ -35,6 +35,8 @@ func (v *helpView) open(ctx *viewContext, groups []pane) {
 	if ctx.latest != "" {
 		lines = append(lines, t.fg(t.info).Render(releaseNotice(ctx.latest)), "")
 	}
+	lines = append(lines, t.body().Render("Every change to an App or the Project goes through the Action menu:"),
+		t.body().Render("a for the selected App, A for the Project."), "")
 	for _, group := range groups {
 		lines = append(lines, t.heading().Render(group.name))
 		for _, b := range group.keys {
@@ -43,7 +45,6 @@ func (v *helpView) open(ctx *viewContext, groups []pane) {
 		lines = append(lines, "")
 	}
 	lines = append(lines,
-		t.dim().Render("Up, Down and Restart all: click UP, DOWN or RESTART on the Apps tab."),
 		t.dim().Render("More: self-host --help (remove, restore, config, credentials…)"))
 	v.vp.SetContent(strings.Join(lines, "\n"))
 	v.vp.GotoTop()

@@ -167,7 +167,7 @@ func TestBarShowsGlobalKeysAndTheFocusedPaneKeys(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 
 	bar := lastLine(screen(m))
-	for _, want := range []string{"1-5 tabs", "←/→", "? help", "q quit", "↑/↓  select", "[/]  sub-tab"} {
+	for _, want := range []string{"1-5 tabs", "←/→", "A Project", "? help", "q quit", "↑/↓  select", "[/]  sub-tab"} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("Apps pane bar lacks %q: %q", want, bar)
 		}
@@ -327,7 +327,7 @@ func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 	m = drive(t, m, press("?"))
 
 	help := ansi.Strip(m.renderOverlay())
-	order := []string{"Global", "1-5", "tabs", "Overview · Apps", "Overview · Details", "Apps", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
+	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Details", "Apps", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
 	at := 0
 	for _, want := range order {
 		i := strings.Index(help[at:], want)
@@ -336,7 +336,7 @@ func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 		}
 		at += i + len(want)
 	}
-	for _, want := range []string{"previous tab", "next tab", "next pane", "sub-tab", "start/stop", "retry Setup", "backup", "click UP, DOWN or RESTART"} {
+	for _, want := range []string{"previous tab", "next tab", "next pane", "sub-tab", "Project", "actions", "destructive Actions need it twice", "goes through the Action menu"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}

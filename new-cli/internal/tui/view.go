@@ -415,6 +415,7 @@ func (m Model) renderBar(mode string, chips []key.Binding) string {
 	if left == "" {
 		k := m.keys
 		left = barKey(t, k.Tabs.Help().Key, k.Tabs.Help().Desc) + "  " + t.title().Render("←/→") + "  " +
+			barKey(t, k.ProjectMenu.Help().Key, k.ProjectMenu.Help().Desc) + "  " +
 			barKey(t, k.Help.Help().Key, k.Help.Help().Desc) + "  " + barKey(t, k.Quit.Help().Key, k.Quit.Help().Desc)
 	}
 	left = " " + left
@@ -505,6 +506,9 @@ func (m Model) View() tea.View {
 			mode = m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(" · any other key closes")
 			chips = m.helpView.Keys()
 		}
+		if m.menu != nil {
+			mode, chips = m.menuBarMode(), m.menuBarKeys()
+		}
 		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	}
 
@@ -513,6 +517,9 @@ func (m Model) View() tea.View {
 		w, h := lipgloss.Width(overlay), lipgloss.Height(overlay)
 		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
 		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
+	}
+	if m.menu != nil && m.wizard == nil {
+		all = append(all, m.menuLayers()...)
 	}
 	comp := lipgloss.NewCompositor(all...)
 	v.SetContent(comp.Render())

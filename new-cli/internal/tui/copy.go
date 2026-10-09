@@ -80,7 +80,7 @@ func (v *dashboardView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 		v.copy.cursor = max(v.copy.cursor-1, 0)
 	case key.Matches(msg, ctx.keys.Down):
 		v.copy.cursor = min(v.copy.cursor+1, len(v.copy.rows)-1)
-	case key.Matches(msg, ctx.keys.Toggle):
+	case msg.String() == "enter":
 		choice := v.copy.rows[v.copy.cursor]
 		v.copy = nil
 		backend := ctx.backend

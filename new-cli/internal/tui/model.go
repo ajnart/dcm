@@ -132,6 +132,7 @@ type Model struct {
 	stack     *stackView
 	activity  *activityView
 	helpView  *helpView
+	menu      *actionMenu
 	wizard    *wizard
 }
 
@@ -511,7 +512,7 @@ func (m Model) openHelp() (tea.Model, tea.Cmd) {
 
 // helpGroups are the global keys, then every pane of every tab in tab order.
 func (m Model) helpGroups() []pane {
-	groups := []pane{{name: "Global", keys: m.keys.global()}}
+	groups := []pane{{name: "Global", keys: m.keys.global()}, {name: "Action menu", keys: menuHelpKeys}}
 	ctxView := m.ctx()
 	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctxView), newSettingsView(ctxView)}
 	for i, v := range views {
@@ -579,6 +580,8 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.dispatchHelp(msg)
 	case msg.String() == "ctrl+c":
 		return m.quit()
+	case m.menu != nil:
+		return m.menuKey(msg)
 	case m.activeView().Capturing():
 		return m.dispatchActive(msg)
 	}
@@ -600,6 +603,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.openTab((m.surface + surface(len(tabs)) - 1) % surface(len(tabs)))
 	case key.Matches(msg, k.NextTab):
 		return m.openTab((m.surface + 1) % surface(len(tabs)))
+	case key.Matches(msg, k.ProjectMenu):
+		m.menu = &actionMenu{}
+		return m, nil
+	case key.Matches(msg, k.AppMenu):
+		return m.openAppMenu()
 	}
 	return m.dispatchActive(msg)
 }
@@ -679,6 +687,12 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	if m.menu != nil {
+		if strings.HasPrefix(id, "menu:") {
+			return m.menuClick(id)
+		}
+		return m, nil
+	}
 	if name, ok := strings.CutPrefix(id, "nav:"); ok {
 		for i, tab := range tabs {
 			if tab.name == name {

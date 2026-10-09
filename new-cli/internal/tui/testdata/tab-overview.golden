@@ -5,9 +5,9 @@
 │ ✗ whoami        http://192.168.1.20:8099  stopped   –  ││ ✗ download-client                                          │
 ╰────────────────────────────────────────────────────────╯│   qBittorrent refused login                                │
 ╭─ Needs attention 3 ────────────────────────────────────╮│   → Add qBittorrent under Settings › Download Clients.     │
-│ ✗ Sonarr: download-client failed         r retry Setup ││                                                            │
-│ ✗ whoami is stopped                        enter start ││ Finish the failed step by hand (or let your agent use      │
-│ ! Firewall: ufw is active                              ││ agent-browser), then press r to retry Setup.               │
+│ ✗ Sonarr: download-client failed       a r retry Setup ││                                                            │
+│ ✗ whoami is stopped                          a s start ││ Finish the failed step by hand (or let your agent use      │
+│ ! Firewall: ufw is active                              ││ agent-browser), then press a r to retry Setup.             │
 │   → sudo ufw allow from 192.168.0.0/16 to any port 80… ││                                                            │
 │                                                        ││                                                            │
 │                                                        ││                                                            │
@@ -27,4 +27,4 @@
 │                                                        ││                                                            │
 ╰────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────╯
 
- 1-5 tabs  ←/→  ? help  q quit    ↑/↓  select   tab  next pane   [/]  sub-tab   o  open   c  copy   enter  start/stop …
+ 1-5 tabs  ←/→  A Project  ? help  q quit   ↑/↓  select   a  actions   enter  details   tab  next pane   [/]  sub-tab …

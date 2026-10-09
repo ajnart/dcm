@@ -23,6 +23,7 @@ const (
 	ActionUpdate  Action = "update"
 	ActionSetup   Action = "setup"
 	ActionBackup  Action = "backup"
+	ActionRemove  Action = "remove"
 	ActionInstall Action = "install"
 	ActionConfig  Action = "config"
 )
@@ -157,6 +158,8 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 		return s.Update(ctx, ids)
 	case ActionSetup:
 		return s.Setup(ctx, ids)
+	case ActionRemove:
+		return s.Remove(ctx, ids, false)
 	}
 	return nil
 }

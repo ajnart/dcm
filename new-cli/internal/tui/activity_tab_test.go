@@ -53,6 +53,9 @@ func idle(t *testing.T, m Model) Model {
 func TestFramesTickOnlyWhileAnActionRunsOrATransitionPlays(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 	m = idle(t, m)
+	for _, k := range []string{"j", "j", "a", "s"} {
+		m = drive(t, m, press(k))
+	}
 
 	next, cmd := m.Update(press("enter"))
 	m = next.(Model)
@@ -65,7 +68,7 @@ func TestFramesTickOnlyWhileAnActionRunsOrATransitionPlays(t *testing.T) {
 		t.Fatal("frames must keep ticking while the Action runs")
 	}
 
-	m = drive(t, m, taskDoneMsg{id: m.tasks.lastStarted(), title: "stop jellyfin"})
+	m = drive(t, m, taskDoneMsg{id: m.tasks.lastStarted(), title: "start whoami"})
 	next, cmd = m.Update(frameMsg{})
 	m = next.(Model)
 	if !yieldsFrame(cmd) {
@@ -81,14 +84,23 @@ func TestAnActionStartingFocusesActivity(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		host func(t *testing.T) (Model, *fakeBackend)
-		key  string
+		keys []string
 	}{
-		{"from the Overview", func(t *testing.T) (Model, *fakeBackend) { return sample(t, 140, 32) }, "enter"},
-		{"from Apps", stackHost, "u"},
+		{"from the Overview's Action menu", func(t *testing.T) (Model, *fakeBackend) { return sample(t, 140, 32) }, []string{"j", "j", "a", "s", "enter"}},
+		{"from the Catalog", func(t *testing.T) (Model, *fakeBackend) {
+			m, backend := sample(t, 140, 32)
+			backend.catalog = wizardCatalog()
+			return m, backend
+		}, []string{"4", "/", "n", "t", "f", "y", "enter", "space", "enter", "enter"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			m, _ := tc.host(t)
-			m = drive(t, m, press(tc.key))
+			m, backend := tc.host(t)
+			for _, k := range tc.keys {
+				m = drive(t, m, press(k))
+			}
+			if len(backend.Actions()) != 1 {
+				t.Fatalf("one Action should have started, actions %v", backend.Actions())
+			}
 			if m.surface != surfaceActivity {
 				t.Fatalf("an Action started %s must focus Activity, surface = %d", tc.name, m.surface)
 			}

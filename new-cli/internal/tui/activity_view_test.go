@@ -1,12 +1,10 @@
 package tui
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/activity"
-	"github.com/ajnart/self-host/internal/service"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -44,31 +42,16 @@ func TestWorkflowViewEnterExpandsAndCollapsesFailure(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewRetriesSelectedAppSetup(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		status service.Status
-		down   int
-		want   []string
-	}{
-		{name: "first App", status: workflowStatus(), want: []string{"setup jellyfin"}},
-		{name: "selected consumer", status: workflowStatus(), down: 4, want: []string{"setup sonarr"}},
-		{name: "empty Project"},
-		{name: "Unmanaged app", status: service.Status{Apps: []service.AppStatus{{ID: "whoami", Steps: []service.StepStatus{{ID: "ready"}}}}}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			backend := &fakeBackend{}
-			ctx := testViewContext(backend)
-			ctx.status = tc.status
-			var v view = &activityView{}
-			for range tc.down {
-				v, _, _ = v.Update(ctx, press("j"))
-			}
-			_, cmd, nv := v.Update(ctx, press("r"))
-			runCmd(cmd)
-			if got := backend.Actions(); !reflect.DeepEqual(got, tc.want) || nv.kind != navNone {
-				t.Fatalf("retry Actions = %v, want %v (navigation %v)", got, tc.want, nv.kind)
-			}
-		})
+func TestActivityRDoesNotRetrySetup(t *testing.T) {
+	backend := &fakeBackend{}
+	ctx := testViewContext(backend)
+	ctx.status = workflowStatus()
+	var v view = &activityView{}
+
+	_, cmd, _ := v.Update(ctx, press("r"))
+	runCmd(cmd)
+
+	if got := backend.Actions(); len(got) != 0 {
+		t.Fatalf("Retry Setup goes through the Action menu now, actions %v", got)
 	}
 }
