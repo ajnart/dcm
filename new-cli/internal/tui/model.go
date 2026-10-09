@@ -498,6 +498,12 @@ func (m *Model) relayout() {
 // screen; entering Apps refreshes containers and updates, and entering
 // Settings reloads the Host review.
 func (m Model) openTab(s surface) (tea.Model, tea.Cmd) {
+	if s != m.surface {
+		m.apps.searching = false
+		if m.activity != nil {
+			m.activity.searching = false
+		}
+	}
 	m.surface = s
 	switch s {
 	case surfaceApps:

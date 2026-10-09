@@ -321,3 +321,21 @@ func TestCatalogTabFocusesTheDetailAndArrowsScrollIt(t *testing.T) {
 		t.Fatalf("after tab, down should select the next App\n%s", out)
 	}
 }
+
+func TestSearchEndsWhenTheTabChanges(t *testing.T) {
+	m, _ := sample(t, 140, 32)
+	m = drive(t, m, press("/"))
+	m = drive(t, m, press("s"))
+
+	m = drive(t, m, clickMsg{id: "nav:activity"})
+	m = drive(t, m, clickMsg{id: "nav:dashboard"})
+	m = drive(t, m, press("q"))
+
+	out := screen(m)
+	if strings.Contains(out, "/sq") || strings.Contains(out, "▏") {
+		t.Fatalf("search still typing after a tab switch\n%s", out)
+	}
+	if !strings.Contains(out, "/s") {
+		t.Fatalf("filter was dropped\n%s", out)
+	}
+}

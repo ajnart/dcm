@@ -277,7 +277,7 @@ func (v *activityView) rowLines(ctx *viewContext, row activityRow, cursor string
 		return []string{line}
 	}
 	step := row.step
-	line := "  " + cursor + t.stepMark(step.State) + " " + step.Label
+	line := "    " + cursor + t.stepMark(step.State) + " " + step.Label
 	if step.Msg != "" {
 		line += t.dim().Render(" · " + firstLine(step.Msg))
 	}
@@ -286,10 +286,10 @@ func (v *activityView) rowLines(ctx *viewContext, row activityRow, cursor string
 		return out
 	}
 	if step.Error != "" {
-		out = append(out, strings.Split(indent("      error: ", t.fg(t.fail).Render(step.Error), width), "\n")...)
+		out = append(out, strings.Split(indent("        error: ", t.fg(t.fail).Render(step.Error), width), "\n")...)
 	}
 	if step.Hint != "" {
-		out = append(out, strings.Split(indent("      hint: ", t.dim().Render(step.Hint), width), "\n")...)
+		out = append(out, strings.Split(indent("        hint: ", t.dim().Render(step.Hint), width), "\n")...)
 	}
 	return out
 }

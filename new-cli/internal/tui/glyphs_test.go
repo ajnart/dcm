@@ -23,7 +23,7 @@ func TestAppsListsShowACategoryIconInEachSet(t *testing.T) {
 		media, downloads, other string
 	}{
 		{activity.NerdFont, "\U000F0FCE", "\U000F01DA", "\U000F08C6"},
-		{activity.Simple, "▶", "↓", "◇"},
+		{activity.Simple, "♫", "↓", "◇"},
 	} {
 		m := goldenModel(t, 120, 30)
 		m = withGlyphs(t, m, tc.set)

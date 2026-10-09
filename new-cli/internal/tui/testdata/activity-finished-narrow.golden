@@ -14,11 +14,11 @@
 
   > ▸ Jellyfin
     ▾ Sonarr
-    ✓ start · started
-    ✗ download-client
-    ✓ ready · wait for the Sonarr API
-    ✓ api-key · read the Sonarr API key
-    ✓ root-folder · add the root folder /media/tv
-    ✓ link-jellyfin → jellyfin · add Jellyfin as a connection
+      ✓ start · started
+      ✗ download-client
+      ✓ ready · wait for the Sonarr API
+      ✓ api-key · read the Sonarr API key
+      ✓ root-folder · add the root folder /media/tv
+      ✓ link-jellyfin → jellyfin · add Jellyfin as a connection
 
  1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   a  actions …
