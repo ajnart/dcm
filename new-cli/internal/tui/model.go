@@ -472,6 +472,9 @@ func (m *Model) relayout() {
 	ctxView := m.ctx()
 	m.apps.refreshDetails(ctxView)
 	m.help.SetWidth(m.width)
+	if m.onboardingShown() && m.onboarding.form != nil {
+		m.onboarding.form.WithWidth(m.formWidth())
+	}
 	if m.install != nil {
 		m.install.resize(m.width)
 	}

@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -100,6 +101,25 @@ func toReview(t *testing.T, m Model) Model {
 	m = typeText(t, m, "hunter2-long")
 	m = drive(t, m, press("enter")) // Who -> Look
 	return drive(t, m, press("enter"))
+}
+
+// atStep opens a step from Welcome with the defaults: Homarr only, the
+// detected settings and a generated password.
+func atStep(t *testing.T, m Model, name string) Model {
+	t.Helper()
+	m = drive(t, m, press("enter")) // Welcome -> What
+	for _, next := range []struct {
+		step   string
+		enters int
+	}{{"What", 1}, {"Where", 5}, {"Who", 2}, {"Look", 1}} {
+		if name == next.step {
+			return m
+		}
+		for range next.enters {
+			m = drive(t, m, press("enter"))
+		}
+	}
+	return m
 }
 
 func indicator(t *testing.T, m Model) string {
@@ -507,6 +527,14 @@ func TestGoldenOnboarding(t *testing.T) {
 			golden(t, "onboarding-initializing-reveal"+size.suffix, trimLines(screen(frames(t, m, 14))))
 			golden(t, "onboarding-initializing-done"+size.suffix, trimLines(screen(frames(t, m, 60))))
 		})
+		t.Run("steps"+size.suffix, func(t *testing.T) {
+			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
+				switch name {
+				case "What", "Where", "Who", "Look":
+					golden(t, "onboarding-"+strings.ToLower(name)+size.suffix, trimLines(screen(m)))
+				}
+			})
+		})
 		t.Run("welcome-review"+size.suffix, func(t *testing.T) {
 			m, _ := onboardingHost(t, size.width, size.height, checks...)
 			m = drive(t, frames(t, m, 60), press("enter"))
@@ -532,5 +560,273 @@ func TestOnboardingDrawsTheBrandThroughTheGlyphSet(t *testing.T) {
 	}
 	if activity.Simple.Brand() == activity.NerdFont.Brand() {
 		t.Fatal("the two glyph sets should draw different brands")
+	}
+}
+
+func onlyApps(apps ...stubApp) *catalog.Catalog {
+	list := make([]app.App, len(apps))
+	for i, a := range apps {
+		list[i] = a
+	}
+	return catalog.New(list, nil)
+}
+
+func TestWhatExplainsItselfAndShowsTheHoveredDescription(t *testing.T) {
+	m, _ := freshHost(t)
+
+	m = atStep(t, m, "What")
+
+	out := screen(m)
+	for _, want := range []string{"Pick the Apps you want to run", "Recipe", "add more later", "Homarr", "Dashboard"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("What lacks %q\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "Media server") {
+		t.Fatalf("only the hovered item's description shows\n%s", out)
+	}
+
+	m = drive(t, m, press("down"))
+
+	out = screen(m)
+	if !strings.Contains(out, "Media server") || strings.Contains(out, "Dashboard") {
+		t.Fatalf("the description should follow the highlight\n%s", out)
+	}
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("up"))
+	if out := screen(m); !strings.Contains(out, "Watch your movies") || !strings.Contains(out, "Jellyfin") {
+		t.Fatalf("a Recipe shows its description and its Apps\n%s", out)
+	}
+}
+
+func TestWhatWrapsALongDescriptionAtWordBoundaries(t *testing.T) {
+	long := "A self-hosted media server that streams your movies, shows, music and photos to every device in the house, " +
+		"with transcoding, subtitles, watch history for each person and a mobile app for travelling."
+	m, backend := onboardingHost(t, 80, 24, readyChecks...)
+	backend.catalog = onlyApps(stubApp{info: app.Info{ID: "homarr", Name: "Homarr", Description: long, Image: "x", Port: 1}})
+	m = frames(t, m, 60)
+	m = drive(t, m, press("enter")) // Initializing -> Welcome
+	m = atStep(t, m, "What")
+
+	out := screen(m)
+	for _, word := range strings.Fields(long)[:24] {
+		if !strings.Contains(out, word) {
+			t.Fatalf("the description lost or cut the word %q\n%s", word, out)
+		}
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if ansi.StringWidth(line) > 80 {
+			t.Fatalf("line wider than 80 columns: %q", line)
+		}
+	}
+}
+
+func TestWhatAsksOnlyTheChosenAppsInputs(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "What")
+
+	m = drive(t, m, press("enter"))
+
+	if out := screen(m); strings.Contains(out, "Server name") || !strings.Contains(out, "● Where") {
+		t.Fatalf("Homarr needs no inputs, so What should lead straight to Where\n%s", out)
+	}
+
+	m = drive(t, m, press("esc"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("x")) // Jellyfin
+	m = drive(t, m, press("enter"))
+
+	out := screen(m)
+	if !strings.Contains(out, "Server name") || !strings.Contains(out, "Jellyfin") || !strings.Contains(out, "● What") {
+		t.Fatalf("a chosen App's inputs follow What\n%s", out)
+	}
+}
+
+func TestWhereExplainsExposureWithTheDetectedLANAddress(t *testing.T) {
+	m, _ := freshHost(t)
+
+	m = atStep(t, m, "Where")
+
+	out := screen(m)
+	for _, want := range []string{"Other devices on your network can open these at 192.168.1.20", "Only this computer can open them"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Where lacks %q\n%s", want, out)
+		}
+	}
+	m = drive(t, m, press("enter"))
+	out = screen(m)
+	for _, want := range []string{"Time zone", "Detected from this machine", "own the files"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Host settings lack %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWhereAsksForFoldersOnlyWhenAMediaAppIsChosen(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "Where")
+	for range 5 {
+		if strings.Contains(screen(m), "Media folder") {
+			t.Fatalf("Homarr needs no media folder\n%s", screen(m))
+		}
+		m = drive(t, m, press("enter"))
+	}
+
+	m, _ = freshHost(t)
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("x")) // Jellyfin
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter")) // its server name
+	for range 5 {
+		m = drive(t, m, press("enter"))
+	}
+	out := screen(m)
+	for _, want := range []string{"Media folder", "Downloads folder", "Jellyfin", "/home/alice/media"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("a media App should bring its folders with %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWhoExplainsTheSharedLoginAndMasksThePassword(t *testing.T) {
+	m, _ := freshHost(t)
+
+	m = atStep(t, m, "Who")
+
+	out := screen(m)
+	for _, want := range []string{"One Admin login signs in to every App", "self-host credentials", "never shown"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Who lacks %q\n%s", want, out)
+		}
+	}
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, "hunter2-long")
+	if out := screen(m); strings.Contains(out, "hunter2-long") || !strings.Contains(out, "••••") && !strings.Contains(out, "****") {
+		t.Fatalf("the password must be masked as it is typed\n%s", out)
+	}
+}
+
+func TestLookShowsTheNerdFontSampleTheQuestionAndTheLink(t *testing.T) {
+	m, _ := freshHost(t)
+
+	m = atStep(t, m, "Look")
+
+	out := screen(m)
+	for _, want := range []string{activity.NerdFont.Brand(), activity.NerdFont.Docker(), "Do these icons look right?",
+		"Nerd Font", "Simple", "https://www.nerdfonts.com"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Look lacks %q\n%s", want, out)
+		}
+	}
+	if !strings.Contains(m.View().Content, "\x1b]8;;https://www.nerdfonts.com") {
+		t.Fatal("the Nerd Fonts address should be a terminal link")
+	}
+}
+
+func TestChoosingNerdFontDrawsReviewWithItAndSavesAtApproval(t *testing.T) {
+	m, backend := freshHost(t)
+	m = atStep(t, m, "Look")
+
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("enter"))
+
+	if !strings.Contains(indicator(t, m), "● Review") || !strings.Contains(strings.Split(screen(m), "\n")[0], activity.NerdFont.Brand()) {
+		t.Fatalf("Review should draw with the chosen icons\n%s", screen(m))
+	}
+	if len(backend.savedGlyphs()) != 0 || len(backend.installs()) != 0 {
+		t.Fatal("nothing is saved or installed before approval")
+	}
+
+	m = drive(t, m, press("enter"))
+
+	if got := backend.savedGlyphs(); len(got) != 1 || got[0] != activity.NerdFont {
+		t.Fatalf("approving should save the choice, saved %v", got)
+	}
+	if len(backend.installs()) != 1 || m.surface != surfaceActivity {
+		t.Fatalf("approving should still install and hand over, installs %v", backend.installs())
+	}
+}
+
+func TestEscBackToLookKeepsTheChoice(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "Look")
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("enter"))
+
+	m = drive(t, m, press("esc"))
+
+	out := screen(m)
+	if !strings.Contains(indicator(t, m), "● Look") || !strings.Contains(out, "> ● Yes") {
+		t.Fatalf("going back should keep the chosen icons highlighted\n%s", out)
+	}
+}
+
+func TestFailingToSaveTheChoiceOnlyFlashesAWarning(t *testing.T) {
+	m, backend := freshHost(t)
+	backend.glyphErr = errors.New("read-only file system")
+	m = atStep(t, m, "Look")
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("enter"))
+
+	m = drive(t, m, press("enter"))
+
+	if len(backend.installs()) != 1 || m.surface != surfaceActivity {
+		t.Fatalf("a failed save must not block the install, installs %v", backend.installs())
+	}
+	if !strings.Contains(m.flash, "icons") || !strings.Contains(m.flash, "read-only file system") {
+		t.Fatalf("a failed save should flash, flash %q", m.flash)
+	}
+}
+
+func TestEveryStepShowsItsKeysInTheBar(t *testing.T) {
+	want := map[string]string{"What": "enter next", "Where": "enter next", "Who": "enter next", "Look": "enter use", "Review": "enter approve"}
+	walkOnboarding(t, 80, 24, activity.Simple, func(name string, m Model) {
+		chips, ok := want[name]
+		if !ok {
+			return
+		}
+		lines := strings.Split(screen(m), "\n")
+		bar := strings.Join(strings.Fields(lines[len(lines)-1]), " ")
+		if !strings.Contains(bar, chips) || !strings.Contains(bar, "esc back") {
+			t.Fatalf("%s bar lacks %q and esc back: %q", name, chips, bar)
+		}
+	})
+}
+
+func TestWhatScrollsAFortyAppListAndKeepsTheDescriptionOnScreen(t *testing.T) {
+	var apps []stubApp
+	for i := range 40 {
+		apps = append(apps, stubApp{info: app.Info{ID: fmt.Sprintf("app%02d", i), Name: fmt.Sprintf("App %02d", i), Description: fmt.Sprintf("Description of app %02d.", i)}})
+	}
+	m, backend := onboardingHost(t, 80, 24, readyChecks...)
+	backend.catalog = onlyApps(apps...)
+	m = frames(t, m, 60)
+	m = drive(t, m, press("enter"))
+	m = atStep(t, m, "What")
+
+	for range 39 {
+		m = drive(t, m, press("down"))
+	}
+
+	out := screen(m)
+	for _, want := range []string{"App 39", "Description of app 39.", "enter  next"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("the last of forty Apps should show %q\n%s", want, out)
+		}
+	}
+}
+
+func TestResizingKeepsTheFormInsideTheWindow(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "Where")
+	m = drive(t, m, press("enter"))
+
+	m = update(t, m, windowSize(80, 24))
+
+	for _, line := range strings.Split(screen(m), "\n") {
+		if ansi.StringWidth(line) > 80 {
+			t.Fatalf("line wider than 80 columns after the resize: %q", line)
+		}
 	}
 }

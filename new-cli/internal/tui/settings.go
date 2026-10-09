@@ -442,12 +442,7 @@ func (v *settingsView) appearanceLines(ctx *viewContext, width int) []string {
 	if v.appearance {
 		heading = t.title()
 	}
-	icon := func(glyph, label string) string {
-		return t.fg(t.accentText).Render(glyph) + " " + t.body().Render(label)
-	}
-	sample := strings.Join([]string{icon(g.Brand(), "self-host"), icon(g.Docker(), "Docker"), icon(g.Key(), "key"),
-		icon(g.Link(), "link"), icon(g.Category("Media"), "Media"), icon(g.Category("Downloads"), "Downloads"),
-		icon(g.Category("Monitoring"), "Monitoring")}, "  ")
+	sample := glyphSample(t, g)
 	lines := []string{"", "  " + heading.Render("Appearance") + t.dim().Render("  icons in the Dashboard and the terminal · saved at once"), "",
 		"  " + truncate("  "+t.dim().Render(pad("Sample", 13))+sample, width)}
 	for i, choice := range glyphChoices {
@@ -463,8 +458,24 @@ func (v *settingsView) appearanceLines(ctx *viewContext, width int) []string {
 		}
 		lines = append(lines, "  "+truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), width))
 	}
+	return append(lines, "", "  "+nerdFontsLine(t))
+}
+
+// glyphSample is a line of the icons of a glyph set, each with its meaning.
+func glyphSample(t theme, g activity.Glyphs) string {
+	icon := func(glyph, label string) string {
+		return t.fg(t.accentText).Render(glyph) + " " + t.body().Render(label)
+	}
+	return strings.Join([]string{icon(g.Brand(), "self-host"), icon(g.Docker(), "Docker"), icon(g.Key(), "key"),
+		icon(g.Link(), "link"), icon(g.Category("Media"), "Media"), icon(g.Category("Downloads"), "Downloads"),
+		icon(g.Category("Monitoring"), "Monitoring")}, "  ")
+}
+
+// nerdFontsLine points at where to learn about Nerd Fonts, as text and as a
+// terminal link.
+func nerdFontsLine(t theme) string {
 	link := ansi.SetHyperlink(nerdFontsURL) + t.fg(t.info).Render(nerdFontsURL) + ansi.ResetHyperlink()
-	return append(lines, "", "  "+t.dim().Render("Learn about Nerd Fonts: ")+link)
+	return t.dim().Render("Learn about Nerd Fonts: ") + link
 }
 
 func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {

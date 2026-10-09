@@ -47,6 +47,8 @@ type fakeBackend struct {
 	statusErr error
 	glyphs    activity.Glyphs
 	saved     []activity.Glyphs
+	// glyphErr is what SetGlyphs returns.
+	glyphErr error
 }
 
 func (f *fakeBackend) Glyphs(context.Context) activity.Glyphs {
@@ -60,7 +62,7 @@ func (f *fakeBackend) SetGlyphs(_ context.Context, g activity.Glyphs) error {
 	defer f.mu.Unlock()
 	f.glyphs = g
 	f.saved = append(f.saved, g)
-	return nil
+	return f.glyphErr
 }
 
 func (f *fakeBackend) savedGlyphs() []activity.Glyphs {

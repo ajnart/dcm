@@ -114,6 +114,21 @@ bundle: inspect `self-host apps list`, then install it by ID, for example
 `self-host install media`. External accounts, hardware and browser-only setup
 remain explicit prerequisites.
 
+On a machine without a Project, `self-host` opens Onboarding. It checks Docker
+and Docker Compose (a failed check shows its fix and `r` checks again;
+warnings do not stop you), says that nothing is written until you approve the
+plan, then asks one thing at a time and says why. **What** picks Recipes and
+Apps and shows the highlighted item's description; an App that needs answers
+of its own asks them next. **Where** explains Exposure in plain words with the
+detected LAN address, the Host settings and, only for media Apps, the media and
+downloads folders. **Who** sets the one Admin login for every App: a password
+of your own, or leave it empty and self-host generates one, kept with the
+Project and shown by `self-host credentials`; the password is always masked.
+**Look** shows a sample of the Nerd Font icons and asks whether they look
+right, then saves the choice as the appearance setting. **Review** lists the
+plan; approving it hands over to the Dashboard with Activity focused, where
+the install plays. `esc` goes back one step and keeps your answers.
+
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The header names the Project, its LAN address, the host's health and the
 time. The bar on the last row shows the global keys and the focused pane's
