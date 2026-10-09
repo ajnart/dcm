@@ -1,0 +1,30 @@
+new-cli/internal/apps/homarr/notebook.go
+  s_a6c413b57d22ee::t_018bcaac243c33 111,118,168-170,172,175-178,189-207,209-211,213
+  s_a6c413b57d22ee::t_6fee5d1e7a088b 96-99
+new-cli/internal/apps/homarr/homarr_test.go
+  s_a6c413b57d22ee::t_79588a335cf5d1 380,1620,1623,1645-1647
+  s_a6c413b57d22ee::t_018bcaac243c33 1836-1838
+  s_a6c413b57d22ee::t_11a16ac10b8d76 1614,1624-1625,1847-1887
+  s_a6c413b57d22ee::t_02997074e1423d 46-47,377-379,1606-1613,1615-1619,1621-1622,1626
+new-cli/internal/apps/homarr/homarr.go
+  s_a6c413b57d22ee::t_6fee5d1e7a088b 423
+  s_a6c413b57d22ee::t_68c8a09817a00f 418-420
+new-cli/internal/apps/homarr/links.go
+  s_a6c413b57d22ee::t_018bcaac243c33 360-375,379,383,387,470,477
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe3a93a3ef23c27980793003b978353401e444d3",
+  "prompts": {},
+  "sessions": {
+    "s_a6c413b57d22ee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fc5-7f0b-7b21-a466-31e5ea79ab9c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
