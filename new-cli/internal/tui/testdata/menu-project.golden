@@ -6,7 +6,7 @@
 │                                                                                                                      │
 ╰─────────────────────────╭──────────────────────────────────────────────────────────────────╮─────────────────────────╯
 ╭─ Apps 3 ────────────────│ Project · Actions                                                │─────────────────────────╮
-│ ● ▶ Jellyfin      Media │                                                                  │failed   a r retry Setup │
+│ ● ♫ Jellyfin      Media │                                                                  │failed   a r retry Setup │
 │ ✗ ↓ Sonarr        Downlo│ > Up all                                                         │               a s start │
 │ ✗ ◇ whoami              │   Down all                                                       │                         │
 │                         │   Restart all                                                    │2.168.0.0/16 to any por… │

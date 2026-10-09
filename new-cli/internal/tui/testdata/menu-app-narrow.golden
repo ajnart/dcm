@@ -6,7 +6,7 @@
 │     │                                                                  │     │
 ╰─────│ > Stop                                                           │─────╯
 ╭─ App│   Restart                                                        │─────╮
-│ ● ▶ │   Update        no update known (checked every 30 minutes)       │     │
+│ ● ♫ │   Update        no update known (checked every 30 minutes)       │     │
 │ ✗ ↓ │   Retry Setup                                                    │     │
 │ ✗ ◇ │   Backup                                                         │     │
 ╰─────│   Remove                                                         │─────╯

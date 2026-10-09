@@ -120,7 +120,7 @@ var simpleIcons = iconSet{
 		"Identity":        "☺",
 		"Ingress":         "⇥",
 		"Local AI":        "✦",
-		"Media":           "▶",
+		"Media":           "♫",
 		"Monitoring":      "♥",
 		"Observability":   "∿",
 		"Passwords":       "✱",

@@ -14,7 +14,7 @@
 │   Apps that use a changed setting are recreated.                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Appearance saved at once ───────────────────────────────────────────────────╮
-│   Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ▶ Media  ↓ Downloads  … │
+│   Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  … │
 │   ○ Nerd Font  richer icons, drawn by a Nerd Font installed in your terminal │
 │   ● Simple     plain Unicode symbols that every terminal font can draw       │
 │                                                                              │
