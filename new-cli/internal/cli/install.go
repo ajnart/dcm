@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -167,6 +168,14 @@ func (a *program) credentialsCmd() *cobra.Command {
 				return writeJSON(a.deps.Out, creds)
 			}
 			fmt.Fprintf(a.deps.Out, "Shared Admin login\n  user      %s\n  password  %s\n", creds.Admin.Username, creds.Admin.Password)
+			ids := make([]string, 0, len(creds.Admin.Aliases))
+			for id := range creds.Admin.Aliases {
+				ids = append(ids, id)
+			}
+			sort.Strings(ids)
+			for _, id := range ids {
+				fmt.Fprintf(a.deps.Out, "  alias     %s %s\n", id, creds.Admin.Aliases[id])
+			}
 			for id, values := range creds.Apps {
 				fmt.Fprintf(a.deps.Out, "\n%s\n", id)
 				for key, value := range values {

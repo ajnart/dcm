@@ -12,6 +12,8 @@ import (
 // The picker stores identifiers and labels, never credential values.
 type copyChoice struct {
 	app, key, label string
+	// username selects the App's Admin login alias instead of an App secret.
+	username bool
 }
 
 type copyPicker struct {
@@ -43,6 +45,9 @@ func (v *dashboardView) openCopy(ctx *viewContext) tea.Cmd {
 		rows := []copyChoice{}
 		if creds.Admin.Password != "" {
 			rows = append(rows, copyChoice{label: "Admin password"})
+		}
+		if alias := creds.Admin.Aliases[app.ID]; alias != "" {
+			rows = append(rows, copyChoice{app: app.ID, username: true, label: app.Name + " username"})
 		}
 		keys := []string{}
 		for name, value := range creds.Apps[app.ID] {
@@ -90,7 +95,10 @@ func (v *dashboardView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 				return flashMsg{text: "could not read credentials", level: levelError}
 			}
 			value := creds.Admin.Password
-			if choice.key != "" {
+			switch {
+			case choice.username:
+				value = creds.Admin.Aliases[choice.app]
+			case choice.key != "":
 				value = creds.Apps[choice.app][choice.key]
 			}
 			if value == "" {

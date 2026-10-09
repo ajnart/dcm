@@ -53,7 +53,10 @@ reports.
 
 **Admin login**:
 The one username and password shared by every App's administrator account.
-API keys stay per App.
+API keys stay per App. An App that reserves the shared username upstream
+(Forgejo refuses `admin`) gets an App-local login alias, which Setup, the
+credential picker and `self-host credentials` name for that App.
+_Avoid_: per-App password
 
 **Backup**:
 One compressed archive of App configuration and database files plus the

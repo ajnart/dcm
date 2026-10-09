@@ -10,9 +10,10 @@ Third amendment: Workflow (`w`) is a full-screen view for the frequent need to s
 
 Within Workflow, `enter` expands or collapses a failed step's error and hint; `r` retries the selected App's Setup.
 
-Fourth amendment: `c` opens a credential picker for the Admin password and the
-selected App's saved API keys. It shows names, then fetches the chosen value
-only for copying. Stack (`d`) also owns Project-wide controls: `1` Up, `2` Down,
+Fourth amendment: `c` opens a credential picker for the Admin password, the
+selected App's Admin login alias when it has one, and the selected App's saved
+API keys. It shows names, then fetches the chosen value only for copying. Stack
+(`d`) also owns Project-wide controls: `1` Up, `2` Down,
 `3` Restart all, plus enter to start/stop the selected App. These keys stay in
 Stack because operating the whole Compose Project is distinct from operating
 one App on the Dashboard. Down removes only that Project's containers and
