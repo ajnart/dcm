@@ -290,9 +290,9 @@ func TestNeedsAttentionNamesTheActionForEachProblem(t *testing.T) {
 	out := screen(m)
 
 	for _, want := range []string{
-		"Sonarr: download-client failed", "r retry Setup",
-		"whoami is stopped", "enter start",
-		"Jellyfin has an update", "u update",
+		"Sonarr: download-client failed", "a r retry Setup",
+		"whoami is stopped", "a s start",
+		"Jellyfin has an update", "a u update",
 		"Firewall: ufw is active",
 	} {
 		if !strings.Contains(out, want) {
@@ -312,37 +312,36 @@ func TestNothingNeedsAttentionWhenAllIsWell(t *testing.T) {
 	}
 }
 
-// The keybind audit: the Dashboard's keys are exactly the global, pane and
-// read-only keys docs/adr/0004-tabbed-command-center-action-chords.md lists,
-// the legacy mutating keys until the Action menu replaces them, and each
-// pane's own hints as the bar and help show them. Adding one means changing
-// the ADR and this test on purpose.
+// The keybind audit: the Dashboard's keys are exactly the global, pane,
+// read-only and Action menu keys
+// docs/adr/0004-tabbed-command-center-action-chords.md lists, and each
+// pane's own hints as the bar and help show them. No key changes an App or
+// the Project directly. Adding one means changing the ADR and this test on
+// purpose.
 func TestKeybindAudit(t *testing.T) {
 	want := []string{
 		// Global keys.
-		"tabs: 1 2 3 4 5", "previous tab: left", "next tab: right", "help: ?", "quit: q ctrl+c",
+		"tabs: 1 2 3 4 5", "previous tab: left", "next tab: right", "Project: A", "help: ?", "quit: q ctrl+c",
 		// Moving within a tab.
 		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
 		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
-		// Read-only keys.
-		"open: o", "copy: c", "search: /", "back: esc",
+		// The App's Action menu and the read-only keys.
+		"actions: a", "open: o", "copy: c", "search: /", "back: esc", "details: enter",
 		// Settings applies its pending changes.
 		"apply: ctrl+s",
-		// Legacy mutating keys.
-		"start/stop: enter", // removed by #133
-		"update: u",         // removed by #133
-		"retry Setup: r",    // removed by #133
-		"backup: b",         // removed by #133
+		// The open Action menu.
+		"highlight an Action: letter", "run: enter", "run; destructive Actions need it twice: enter", "close: esc",
 		// Pane hints for the bar and help.
 		"select: ↑/↓", "scroll: ↑/↓", "sub-tab: [/]", "page: pgup/pgdn",
-		"copy: enter", "re-check: r", "error/hint: enter", "collapse: space",
+		"copy: enter", "check updates: r", "error/hint: enter", "collapse: space",
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
-	bindings := newKeyMap().all()
+	bindings := append(newKeyMap().all(), menuKeys...)
+	bindings = append(bindings, menuHelpKeys...)
 	for _, v := range views {
 		bindings = append(bindings, v.Keys()...)
 		for _, p := range v.Panes() {
@@ -368,15 +367,33 @@ func TestKeybindAudit(t *testing.T) {
 
 func TestRemovedKeysDoNothing(t *testing.T) {
 	m, backend := sample(t, 140, 32)
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": service.UpdateAvailable}})
 	before := screen(m)
 
-	// i, s, d and w opened views before the tabs replaced them.
-	for _, k := range []string{"i", "s", "d", "w", "x", "X", "S", "t", "l", "L", "f", "U", "e"} {
+	// i, s, d and w opened views before the tabs replaced them; u, r and b
+	// updated, retried Setup and backed up before the Action menu.
+	for _, k := range []string{"i", "s", "d", "w", "u", "r", "b", "x", "X", "S", "t", "l", "L", "f", "U", "e"} {
 		m = drive(t, m, press(k))
 	}
 
 	if len(backend.Actions()) != 0 || screen(m) != before {
 		t.Fatalf("removed keys must be inert; actions %v\n%s", backend.Actions(), screen(m))
+	}
+}
+
+func TestNoTabHasADirectMutatingKey(t *testing.T) {
+	m, backend := stackHost(t)
+	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": service.UpdateAvailable}})
+
+	for _, tab := range []string{"1", "2", "3"} {
+		m = drive(t, m, press(tab))
+		for _, k := range []string{"enter", "u", "r", "b", "enter"} {
+			m = drive(t, m, press(k))
+		}
+	}
+
+	if got := backend.Actions(); len(got) != 0 {
+		t.Fatalf("enter, u, r and b must not change anything: %v", got)
 	}
 }
 
@@ -389,60 +406,6 @@ func TestSetupTabShowsFailedStepAndHint(t *testing.T) {
 	out := screen(m)
 	if !strings.Contains(out, "qBittorrent refused login") || !strings.Contains(out, "→ Add qBittorrent") {
 		t.Fatalf("setup tab lacks failed step and hint\n%s", out)
-	}
-}
-
-func TestEnterStopsARunningAppAndStartsAStoppedOne(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("j"))
-	m = drive(t, m, press("j"))
-	drive(t, m, press("enter"))
-
-	if got := backend.Actions(); !slices.Equal(got, []string{"stop jellyfin", "start whoami"}) {
-		t.Fatalf("actions %v", got)
-	}
-}
-
-func TestUpdateRunsOnlyWhenAnUpdateIsKnown(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	m = drive(t, m, press("u"))
-	if len(backend.Actions()) != 0 || !strings.Contains(screen(m), "no update known for Jellyfin") {
-		t.Fatalf("u without a known update should only explain\n%s", screen(m))
-	}
-	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
-	drive(t, m, press("u"))
-
-	if got := backend.Actions(); !slices.Equal(got, []string{"update jellyfin"}) {
-		t.Fatalf("actions %v", got)
-	}
-}
-
-func TestRetrySetupOnlyForManagedApps(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	m = drive(t, m, press("j"))
-	m = drive(t, m, press("r"))
-	m = drive(t, m, press("j"))
-	m = drive(t, m, press("r"))
-
-	if got := backend.Actions(); !slices.Equal(got, []string{"setup sonarr"}) {
-		t.Fatalf("actions %v", got)
-	}
-	if !strings.Contains(screen(m), "whoami has no automatic Setup") {
-		t.Fatalf("unmanaged App should explain\n%s", screen(m))
-	}
-}
-
-func TestBackupRunsForEveryApp(t *testing.T) {
-	m, backend := sample(t, 140, 32)
-
-	drive(t, m, press("b"))
-
-	if got := backend.Actions(); !slices.Equal(got, []string{"backup"}) {
-		t.Fatalf("actions %v", got)
 	}
 }
 
@@ -505,13 +468,17 @@ func TestCopyPickerNamesAndCopiesAnAppLoginAlias(t *testing.T) {
 func TestStatusLineShowsTheRunningActionThenItsResult(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
-	next, _ := m.Update(press("enter"))
+	m = drive(t, m, press("a"))
+	m = drive(t, m, press("t"))
+	next, cmd := m.Update(press("enter"))
 	m = next.(Model)
-	if !strings.Contains(statusLine(screen(m)), "stop jellyfin") {
+	if !strings.Contains(statusLine(screen(m)), "restart jellyfin") {
 		t.Fatalf("the status line should name the running Action\n%s", statusLine(screen(m)))
 	}
-	m = drive(t, m, press("b"))
-	if !strings.Contains(statusLine(screen(m)), "✓ backup") {
+	for _, msg := range runCmd(cmd) {
+		m = drive(t, m, msg)
+	}
+	if !strings.Contains(statusLine(screen(m)), "✓ restart jellyfin") {
 		t.Fatalf("the status line should report the result\n%s", statusLine(screen(m)))
 	}
 }
@@ -579,7 +546,7 @@ func TestHelpListsEveryKey(t *testing.T) {
 	m = drive(t, m, press("?"))
 
 	help := ansi.Strip(m.renderOverlay())
-	for _, want := range []string{"tabs", "start/stop", "open", "copy", "update", "retry Setup", "pick", "install", "backup", "quit"} {
+	for _, want := range []string{"tabs", "Project", "actions", "highlight an Action", "open", "copy", "pick", "install", "check updates", "quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}
@@ -840,27 +807,14 @@ func TestStackHeaderCountsContainersRunningAndUpdates(t *testing.T) {
 	}
 }
 
-func TestStackUpdateAndRecheck(t *testing.T) {
+func TestStackRChecksUpdatesWithoutChangingAnything(t *testing.T) {
 	m, backend := stackHost(t)
 
-	m = drive(t, m, press("u"))
-	if got := backend.Actions(); !slices.Contains(got, "update jellyfin") {
-		t.Fatalf("u should update the selected App, actions %v", got)
-	}
 	before := backend.updateCalls
-	m = drive(t, m, press("r"))
-	if backend.updateCalls <= before {
-		t.Fatalf("r should re-check updates (%d → %d)", before, backend.updateCalls)
-	}
-	// The digits switch tabs now; the Project controls are buttons until #133.
-	for _, action := range []string{"up", "down", "restart"} {
-		m = drive(t, m, clickMsg{id: "stack:" + action})
-		if action == "down" {
-			m = drive(t, m, press("y"))
-		}
-		if !slices.Contains(backend.Actions(), action) {
-			t.Fatalf("the %s button must control the whole Project", action)
-		}
+	drive(t, m, press("r"))
+
+	if backend.updateCalls <= before || len(backend.Actions()) != 0 {
+		t.Fatalf("r should only check updates again (%d → %d), actions %v", before, backend.updateCalls, backend.Actions())
 	}
 }
 
@@ -883,4 +837,6 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		check(label, drive(t, m, press(strconv.Itoa(i+1))))
 	}
 	check("help", drive(t, m, press("?")))
+	check("App menu", drive(t, m, press("a")))
+	check("Project menu", drive(t, m, press("A")))
 }
