@@ -1,0 +1,25 @@
+new-cli/internal/activity/strip.go
+  s_59ffa5bfdcd3ba::t_5e6f524cb55b5d 7-8,10,15
+new-cli/internal/activity/strip_test.go
+  s_59ffa5bfdcd3ba::t_df4106889299d8 50,70,74-85
+new-cli/internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_4f157eb8cd6595 213
+new-cli/internal/tui/glyphs_test.go
+  s_59ffa5bfdcd3ba::t_08c3bf83c2ec90 11,219-241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3076a7dee81bf7d20c8624d694be3f508396783",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
