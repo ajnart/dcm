@@ -47,10 +47,13 @@ _Avoid_: setup (that is an App's automatic configuration), first run
 The full-screen scene between approving Onboarding's Review and the Dashboard,
 shown for the first install only and never for a Catalog install. It plays
 while the install pulls images, following the same pull as Activity: one bar,
-"N of M images", the narrative line and a star lit for each finished image.
-When the pull ends it plays its exit and lands on Activity; a failed pull lands
-there at once, and with nothing to pull it plays about four seconds. It is the
-one screen allowed several colours and 24 frames a second.
+"N of M images" and the narrative line, over a parallax starfield, with a
+friendly line comparing the time left to something small ("This should take
+about as long as a song on the radio"), which warms up until the pull has
+moved enough to estimate and never shows a number. When the pull ends it plays
+its exit and lands on Activity; a failed pull lands there at once, and with
+nothing to pull it plays about four seconds. It is the one screen allowed
+several colours and 24 frames a second.
 _Avoid_: splash screen, loading screen
 
 **Manual step**:

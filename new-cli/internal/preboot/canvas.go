@@ -18,9 +18,17 @@ type cell struct {
 type canvas struct {
 	w, h  int
 	cells []cell
+	// dots is the braille layer: eight sub-dots a cell, merged under the
+	// cells by flush.
+	dots   []uint8
+	dotFG  []color.RGBA
+	dotLum []float64
 }
 
-func newCanvas(w, h int) *canvas { return &canvas{w: w, h: h, cells: make([]cell, w*h)} }
+func newCanvas(w, h int) *canvas {
+	return &canvas{w: w, h: h, cells: make([]cell, w*h), dots: make([]uint8, w*h),
+		dotFG: make([]color.RGBA, w*h), dotLum: make([]float64, w*h)}
+}
 
 func (c *canvas) in(x, y int) bool { return x >= 0 && y >= 0 && x < c.w && y < c.h }
 
@@ -53,6 +61,32 @@ func (c *canvas) clear(x0, x1, y int) {
 		if c.in(x, y) {
 			c.cells[y*c.w+x] = cell{}
 		}
+	}
+}
+
+// dot sets one braille sub-dot, sx in [0, 2w) and sy in [0, 4h).
+func (c *canvas) dot(sx, sy int, fg color.RGBA, lum float64) {
+	cx, cy := sx>>1, sy>>2
+	if sx < 0 || sy < 0 || !c.in(cx, cy) {
+		return
+	}
+	bit := [4][2]uint8{{0x01, 0x08}, {0x02, 0x10}, {0x04, 0x20}, {0x40, 0x80}}[sy&3][sx&1]
+	i := cy*c.w + cx
+	c.dots[i] |= bit
+	c.dotFG[i] = fg
+	c.dotLum[i] = max(c.dotLum[i], lum)
+}
+
+// flush puts the braille layer under whatever the cells already hold.
+func (c *canvas) flush() {
+	for i, m := range c.dots {
+		if m == 0 {
+			continue
+		}
+		if c.cells[i].r == 0 {
+			c.cells[i] = cell{r: 0x2800 + rune(m), fg: c.dotFG[i], lum: c.dotLum[i]}
+		}
+		c.dots[i], c.dotLum[i] = 0, 0
 	}
 }
 

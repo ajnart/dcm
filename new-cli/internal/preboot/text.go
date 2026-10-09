@@ -26,32 +26,22 @@ func segWidth(ss []seg) int {
 type row struct {
 	y, x int
 	ss   []seg
+	// held is how much of the row's colour is held back while it fades in.
+	held float64
 }
 
 // block is the text the screen keeps readable: its rows and the box around
-// them, which the tunnel thins out near and the image stars stay clear of.
+// them, which the sparkles stay clear of.
 type block struct {
 	rows           []row
-	cupX           int
-	cup            bool
 	x0, x1, y0, y1 int
 	// barX and barW are where the progress bar and its count start and how
 	// wide they are together.
 	barX, barW int
 }
 
-var cupArt = [3]string{
-	"╭─────╮ ",
-	"│▒▒▒▒▒├╮",
-	"╰─────╯╯",
-}
-
-const (
-	cupWidth = 8
-	cupGap   = 3
-	// factWidth keeps the bar from shifting when the count changes.
-	factWidth = len("0 of 0 images")
-)
+// factWidth keeps the bar from shifting when the count changes.
+const factWidth = len("0 of 0 images")
 
 func (f *frame) keySegs(prefix string) []seg {
 	p := f.pal
@@ -110,34 +100,18 @@ func (f *frame) layoutText() block {
 	}
 	b.rows = append(b.rows, f.centred(l.titleY, ts))
 
-	coffee := []seg{{"Go grab a coffee — this takes a few minutes.", p.Text, true}}
-	apps := []seg{{"We'll take you to your Apps when it's ready.", p.Muted, false}}
-	switch l.tier {
-	case full:
-		texts := []row{
-			{y: l.coffeeY, ss: coffee},
-			{y: l.coffeeY + 1, ss: apps},
-			{y: l.keysY - 1, ss: []seg{{"Or buy us one while you wait:", p.Muted, false}}},
-			{y: l.keysY, ss: f.keySegs("")},
+	var lines [][]seg
+	for _, line := range timeLines(f.pr.Remaining, f.n) {
+		if line.lead == "" {
+			lines = append(lines, []seg{{line.body, p.Muted, false}})
+			continue
 		}
-		textW := 0
-		for _, r := range texts {
-			textW = max(textW, segWidth(r.ss))
-		}
-		x0 := (f.w - (cupWidth + cupGap + textW)) / 2
-		b.cup, b.cupX = true, x0
-		for _, r := range texts {
-			r.x = x0 + cupWidth + cupGap
-			b.rows = append(b.rows, r)
-		}
-	case medium:
-		b.rows = append(b.rows, f.centred(l.coffeeY, coffee), f.centred(l.coffeeY+1, apps),
-			f.centred(l.keysY, f.keySegs("Or buy us one:   ")))
-	default:
-		b.rows = append(b.rows,
-			f.centred(l.coffeeY, coffee, []seg{{"Go grab a coffee.", p.Text, true}}),
-			f.centred(l.keysY, f.keySegs("Or buy us one:  "), f.keySegs(""), f.shortKeySegs()))
+		lines = append(lines, []seg{{line.lead, p.Text, false}, {line.body, p.Sweep(0.1 + t*0.04), true}})
 	}
+	left := f.centred(l.timeY, lines...)
+	left.held = 1 - smooth(float64(f.n%rotateFrames)/6)
+	b.rows = append(b.rows, left)
+	b.rows = append(b.rows, f.centred(l.keysY, f.keySegs("Like self-host?   "), f.keySegs(""), f.shortKeySegs()))
 
 	fact := f.fact()
 	b.barW = l.barW + 2 + max(len(fact), factWidth)
@@ -146,9 +120,6 @@ func (f *frame) layoutText() block {
 	b.x0, b.x1, b.y0, b.y1 = b.barX, b.barX+b.barW, l.titleY, l.narrY
 	for _, r := range b.rows {
 		b.x0, b.x1 = min(b.x0, r.x), max(b.x1, r.x+segWidth(r.ss))
-	}
-	if b.cup {
-		b.x0 = min(b.x0, b.cupX)
 	}
 	return b
 }
@@ -179,45 +150,13 @@ func (f *frame) drawText(cv *canvas) {
 	if fade <= 0 || f.noColor && fade < 0.5 {
 		return
 	}
-	b := f.text
-	for _, r := range b.rows {
+	for _, r := range f.text.rows {
 		if fade > 0.5 {
 			cv.clear(r.x-2, r.x+segWidth(r.ss)+2, r.y)
 		}
-		f.segs(cv, r.x, r.y, r.ss, fade)
-	}
-	if b.cup {
-		f.cup(cv, fade)
+		f.segs(cv, r.x, r.y, r.ss, fade*(1-0.7*r.held))
 	}
 	f.progressBar(cv, fade)
-}
-
-func (f *frame) cup(cv *canvas, fade float64) {
-	p, l, t := f.pal, f.lay, f.t()
-	x0 := f.text.cupX
-	for i, line := range cupArt {
-		for j, r := range []rune(line) {
-			if r == ' ' {
-				continue
-			}
-			c := p.Cup
-			if r == '▒' {
-				c = p.Coffee
-			}
-			cv.put(x0+j, l.cupY+i, r, p.Fade(c, fade), 0.8)
-		}
-	}
-	for k := 0; k < 3; k++ {
-		u := math.Mod(t*0.55+float64(k)/3, 1)
-		y := l.cupY - 1 - int(u*3)
-		x := x0 + 2 + k*2 + int(math.Round(math.Sin(t*2.4+float64(k)*2)*0.99))
-		ch := '('
-		if k%2 == 1 {
-			ch = ')'
-		}
-		a := math.Sin(math.Pi*u) * 0.9
-		cv.put(x, y, ch, p.Fade(p.Sweep(0.62+u*0.4+t*0.05), a*fade), a)
-	}
 }
 
 func (f *frame) progressBar(cv *canvas, fade float64) {

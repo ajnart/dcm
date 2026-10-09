@@ -20,21 +20,23 @@ const prebootFramesPerActivity = preboot.FPS / activity.FPS
 
 // prebootScreen is the full-screen scene between approving Onboarding's
 // Review and the Dashboard: it plays while the first install pulls its images
-// and then lands on Activity. It keeps only its own frame and where the exit
-// is; the pull it shows comes from the Activity snapshot.
+// and then lands on Activity. It keeps only its own frame, where the exit is
+// and its estimate of the time left; the pull it shows comes from the
+// Activity snapshot.
 type prebootScreen struct {
 	frame int
 	// since counts the frames the exit has played, -1 while the pull plays.
 	since int
+	pace  preboot.Pace
 }
 
 func newPrebootScreen() *prebootScreen { return &prebootScreen{since: -1} }
 
 var (
-	prebootCoffee  = hint("c", "Ko-fi")
+	prebootKoFi    = hint("c", "Ko-fi")
 	prebootSponsor = hint("s", "GitHub Sponsors")
 	prebootSkip    = hint("enter", "skip")
-	prebootKeys    = []key.Binding{prebootCoffee, prebootSponsor, prebootSkip}
+	prebootKeys    = []key.Binding{prebootKoFi, prebootSponsor, prebootSkip}
 )
 
 // framePeriod is the time between frames: the pre-boot screen runs at its
@@ -56,6 +58,8 @@ func (m Model) advancePreboot(s activity.Snapshot) Model {
 	p.frame++
 	if p.since >= 0 {
 		p.since++
+	} else {
+		p.pace.Observe(p.frame, s.Pull.Fraction)
 	}
 	switch {
 	case s.Pull.Failed || s.Action.Finished && s.Action.Error != "", p.since >= preboot.ExitFrames:
@@ -81,7 +85,7 @@ func (m Model) handlePrebootKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.quit()
 	case key.Matches(msg, prebootSkip):
 		m.preboot = nil
-	case key.Matches(msg, prebootCoffee):
+	case key.Matches(msg, prebootKoFi):
 		return m, openLink(m.backend, koFiURL)
 	case key.Matches(msg, prebootSponsor):
 		return m, openLink(m.backend, sponsorsURL)
@@ -91,12 +95,10 @@ func (m Model) handlePrebootKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 // prebootProgress is the pull of the Activity snapshot as the scene shows it.
 // Once the exit starts the pull is whole.
-func prebootProgress(s activity.Snapshot, exiting bool) preboot.Progress {
-	pr := preboot.Progress{Fraction: s.Pull.Fraction, Done: s.Pull.Done, Total: s.Pull.Total, Narrative: s.Action.Narrative}
-	for _, img := range s.Pull.Images {
-		pr.Images = append(pr.Images, preboot.Image{Label: img.Label, Done: img.Done || exiting})
-	}
-	if exiting {
+func prebootProgress(s activity.Snapshot, p *prebootScreen) preboot.Progress {
+	pr := preboot.Progress{Fraction: s.Pull.Fraction, Done: s.Pull.Done, Total: s.Pull.Total,
+		Narrative: s.Action.Narrative, Remaining: p.pace.Remaining()}
+	if p.since >= 0 {
 		pr.Fraction, pr.Done = 1, pr.Total
 	}
 	return pr
@@ -110,7 +112,7 @@ func (m Model) renderPreboot() string {
 	if !m.theme.dark {
 		pal = preboot.Light()
 	}
-	pr := prebootProgress(m.ctx().snapshot(), p.since >= 0)
+	pr := prebootProgress(m.ctx().snapshot(), p)
 	if p.since < 0 {
 		return strings.Join(preboot.Render(p.frame, m.width, m.height, pr, pal, m.opts.NoColor), "\n")
 	}
