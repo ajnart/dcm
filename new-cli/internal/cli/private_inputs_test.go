@@ -284,20 +284,33 @@ func TestLegacyPrivateInputMigratesWithoutRotatingSavedSecret(t *testing.T) {
 }
 
 func TestPrivateInputFailureDiagnosticsAreRedacted(t *testing.T) {
-	deps := privateFileDeps(t)
-	a := &privateInputApp{echoApp: echoApp{id: "one"}, fail: true}
-	payload := "synthetic-failure-private-79"
-	file := filepath.Join(t.TempDir(), "token")
-	if err := os.WriteFile(file, []byte(payload), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json", "--set-file", "one.token="+file)
-	if code == 0 || a.seen != payload || !strings.Contains(out, "private failure [redacted]") {
-		t.Fatal("install did not reach the expected Setup failure")
-	}
-	state := readFile(t, filepath.Join(projectRoot(t, deps), "state.json"))
-	if strings.Contains(out+state, payload) {
-		t.Fatal("private failure was leaked or lost")
+	for _, transport := range []string{"file", "stdin"} {
+		t.Run(transport, func(t *testing.T) {
+			deps := privateFileDeps(t)
+			a := &privateInputApp{echoApp: echoApp{id: "one"}, fail: true}
+			payload := "synthetic-failure-private-79"
+			file := "-"
+			deps.In = strings.NewReader(payload)
+			if transport == "file" {
+				file = filepath.Join(t.TempDir(), "token")
+				if err := os.WriteFile(file, []byte(payload), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json", "--set-file", "one.token="+file)
+			if code == 0 || a.seen != payload || !strings.Contains(out, "private failure [redacted]") {
+				t.Fatal("install did not reach the expected Setup failure")
+			}
+			state := readFile(t, filepath.Join(projectRoot(t, deps), "state.json"))
+			if strings.Contains(out+state, payload) {
+				t.Fatal("private failure was leaked or lost")
+			}
+			for _, command := range deps.Runner.(*systemtest.Runner).Calls() {
+				if strings.Contains(command, payload) {
+					t.Fatal("private failure reached command arguments")
+				}
+			}
+		})
 	}
 }
 
@@ -341,4 +354,103 @@ func TestPrivateInputRejectsUnsafeFiles(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFirstInstallMissingPrivateInputLeavesNoProject(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	a := &privateInputApp{echoApp: echoApp{id: "one"}}
+	code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json")
+	if code == 0 || !strings.Contains(out, "one.token") || !strings.Contains(out, "--set-file one.token=PATH") {
+		t.Fatalf("missing private input diagnostic: %d %s", code, out)
+	}
+	if _, err := os.Stat(projectRoot(t, deps)); !os.IsNotExist(err) {
+		t.Fatal("missing private input created Project directory/settings")
+	}
+}
+
+func TestPrivateInputStdinTransport(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	payload := "synthetic-stdin-private-116"
+	deps.In = strings.NewReader(payload + "\r\n")
+	a := &privateInputApp{echoApp: echoApp{id: "one"}}
+	code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json", "--set-file", "one.token=-")
+	if code != 0 || a.seen != payload {
+		t.Fatal("stdin private input did not reach Setup")
+	}
+	if strings.Contains(out+readFile(t, filepath.Join(projectRoot(t, deps), "state.json")), payload) {
+		t.Fatal("stdin private input escaped into events/state")
+	}
+	for _, command := range deps.Runner.(*systemtest.Runner).Calls() {
+		if strings.Contains(command, payload) {
+			t.Fatal("stdin private input reached command arguments")
+		}
+	}
+	code, out = runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json")
+	if code != 0 || a.seen != payload || strings.Contains(out, payload) {
+		t.Fatal("stdin credential was not privately saved for rerun")
+	}
+}
+
+func TestPrivateInputRejectsMultipleStdinReferences(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	input := strings.NewReader("synthetic-stdin-private-116")
+	deps.In = input
+	cat := testCatalog(&privateInputApp{echoApp: echoApp{id: "one"}}, &privateInputApp{echoApp: echoApp{id: "two"}})
+	code, out := runWith(t, deps, cat, "install", "one", "two", "--yes", "--json", "--set-file", "one.token=-", "--set-file", "two.token=-")
+	if code == 0 || !strings.Contains(out, "at most one") || input.Len() == 0 {
+		t.Fatal("multiple stdin references were not rejected before reading stdin")
+	}
+	if _, err := os.Stat(projectRoot(t, deps)); !os.IsNotExist(err) {
+		t.Fatal("rejected stdin references created Project")
+	}
+}
+
+func TestPrivateInputStdinLimits(t *testing.T) {
+	for _, kind := range []string{"limit", "oversized", "multiline", "nul", "empty", "unavailable", "read-error"} {
+		t.Run(kind, func(t *testing.T) {
+			deps := systemtest.NewDeps(t)
+			payload := strings.Repeat("x", 64*1024)
+			switch kind {
+			case "oversized":
+				payload = strings.Repeat("x", 128*1024)
+			case "multiline":
+				payload = "synthetic-invalid-private-116\nsecond-line"
+			case "nul":
+				payload = "synthetic-invalid-private-116\x00"
+			case "empty":
+				payload = ""
+			}
+			input := strings.NewReader(payload)
+			deps.In = input
+			if kind == "unavailable" {
+				deps.In = nil
+			}
+			if kind == "read-error" {
+				deps.In = failingPrivateReader{}
+			}
+			a := &privateInputApp{echoApp: echoApp{id: "one"}}
+			code, out := runWith(t, deps, testCatalog(a), "install", "one", "--yes", "--json", "--set-file", "one.token=-")
+			if kind == "limit" {
+				if code != 0 || a.seen != payload {
+					t.Fatal("64 KiB stdin value rejected")
+				}
+				return
+			}
+			if code == 0 || a.seen != "" || strings.Contains(out, "synthetic-invalid-private-116") {
+				t.Fatal("invalid stdin accepted or leaked")
+			}
+			if _, err := os.Stat(projectRoot(t, deps)); !os.IsNotExist(err) {
+				t.Fatal("invalid stdin created Project")
+			}
+			if kind == "oversized" && input.Len() != 64*1024-1 {
+				t.Fatal("unexpected bounded stdin read")
+			}
+		})
+	}
+}
+
+type failingPrivateReader struct{}
+
+func (failingPrivateReader) Read(data []byte) (int, error) {
+	return copy(data, "synthetic-invalid-private-116"), errors.New("synthetic-invalid-private-116")
 }

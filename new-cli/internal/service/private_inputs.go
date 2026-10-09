@@ -37,12 +37,19 @@ func inputFor(apps []app.App, id, key string) (app.Input, bool) {
 // privateReferences validates references without reading their payloads.
 func privateReferences(apps []app.App, opts InstallOptions) (map[string]map[string]string, error) {
 	files := map[string]map[string]string{}
+	stdin := false
 	for _, reference := range opts.SetFiles {
 		key, file, ok := strings.Cut(reference, "=")
 		id, name, scoped := strings.Cut(key, ".")
 		input, found := inputFor(apps, id, name)
 		if !ok || !scoped || file == "" || !found || !input.Private {
 			return nil, fmt.Errorf("--set-file requires a selected private input as app.key=PATH")
+		}
+		if file == "-" {
+			if stdin {
+				return nil, fmt.Errorf("--set-file accepts at most one stdin reference (-) per command")
+			}
+			stdin = true
 		}
 		if files[id] == nil {
 			files[id] = map[string]string{}
@@ -91,10 +98,10 @@ func readPrivateInput(file string, ownerUID int) (string, error) {
 	return strings.TrimRight(string(data), "\r\n"), nil
 }
 
-func (ss *session) applyPrivateInputs(apps []app.App, opts InstallOptions, values map[string]map[string]string) error {
+func (s *Service) resolvePrivateInputs(p *project.Project, secrets map[string]string, apps []app.App, opts InstallOptions, values map[string]map[string]string) (map[string]string, error) {
 	files, err := privateReferences(apps, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Validate every supplied value before changing the secret store.
 	pending := map[string]string{}
@@ -105,22 +112,34 @@ func (ss *session) applyPrivateInputs(apps []app.App, opts InstallOptions, value
 				continue
 			}
 			secretKey := SecretKey(id, input.Key)
-			value := ss.secrets.Get(secretKey)
+			value := secrets[secretKey]
 			if supplied, found := opts.PrivateInputs[id][input.Key]; found {
 				value = supplied
 			}
 			if file, found := files[id][input.Key]; found {
-				value, err = readPrivateInput(file, ss.p.Owner.UID)
+				if file == "-" {
+					if s.Deps.In == nil {
+						return nil, fmt.Errorf("private input %s.%s: stdin unavailable", id, input.Key)
+					}
+					var data []byte
+					data, err = io.ReadAll(io.LimitReader(s.Deps.In, maxPrivateInputBytes+1))
+					if err != nil || len(data) > maxPrivateInputBytes {
+						return nil, fmt.Errorf("private input %s.%s: cannot read stdin (maximum 64 KiB)", id, input.Key)
+					}
+					value = strings.TrimRight(string(data), "\r\n")
+				} else {
+					value, err = readPrivateInput(file, p.Owner.UID)
+				}
 				if err != nil {
-					return fmt.Errorf("private input %s.%s: %w", id, input.Key, err)
+					return nil, fmt.Errorf("private input %s.%s: %w", id, input.Key, err)
 				}
 			}
-			ss.s.Log.Secret(value)
+			s.Log.Secret(value)
 			if err := validPrivateValue(value); err != nil {
-				return fmt.Errorf("private input %s.%s: %w", id, input.Key, err)
+				return nil, fmt.Errorf("private input %s.%s: %w", id, input.Key, err)
 			}
 			if input.Required && value == "" {
-				return fmt.Errorf("missing private input %s.%s (pass --set-file %s.%s=PATH to an owner-only credential file)", id, input.Key, id, input.Key)
+				return nil, fmt.Errorf("missing private input %s.%s (pass --set-file %s.%s=PATH to an owner-only credential file)", id, input.Key, id, input.Key)
 			}
 			values[id][input.Key] = value
 			if value != "" {
@@ -128,6 +147,15 @@ func (ss *session) applyPrivateInputs(apps []app.App, opts InstallOptions, value
 			}
 		}
 	}
+	return pending, nil
+}
+
+func (ss *session) applyPrivateInputs(apps []app.App, opts InstallOptions, values map[string]map[string]string) error {
+	pending, err := ss.s.resolvePrivateInputs(ss.p, ss.secrets.values, apps, opts, values)
+	if err != nil {
+		return err
+	}
+
 	for key, value := range pending {
 		ss.secrets.values[key] = value
 	}
