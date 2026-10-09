@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+╭─ Catalog Recipes and Apps ───────────────────╮╭─ Prowlarr ──────────────────────────────────────────────────────────╮
+│    ◐  ❖ Arr            arr                   ││ Indexers                                                            │
+│ ◇ Dashboards                                 ││                                                                     │
+│   [ ] Homarr           homarr                ││ category Downloads                                                  │
+│ ↓ Downloads                                  ││ image    lscr.io/linuxserver/prowlarr:latest                        │
+│ > [ ] Prowlarr         prowlarr              ││ port     9696                                                       │
+│   [x] Radarr           radarr                ││                                                                     │
+│ ◇ Notifications                              ││                                                                     │
+│   [ ] ntfy             ntfy                  ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+│                                              ││                                                                     │
+╰──────────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────╯
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit      ↑/↓  select   space  pick   enter  review   /  search   tab  next pane …

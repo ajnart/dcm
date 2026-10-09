@@ -22,7 +22,7 @@ type installView struct {
 	offset        int
 	detailFocused bool
 	detailOffset  int
-	picked        map[string]bool
+	picked        picks
 	search        textinput.Model
 	searching     bool
 	filter        string
@@ -68,7 +68,7 @@ func hint(help, desc string) key.Binding {
 }
 
 func newInstallView(ctx *viewContext) *installView {
-	v := &installView{picked: map[string]bool{}}
+	v := &installView{picked: picks{}}
 	v.search = textinput.New()
 	v.search.Prompt = "/ "
 	v.search.Placeholder = "filter by name, id, description or category"
@@ -181,13 +181,17 @@ func (v *installView) installItems(ctx *viewContext) []installItem {
 	return items
 }
 
-// filtered narrows the list case-insensitively on name, id, description and
-// category; headers disappear while a filter is active.
 func (v *installView) filtered(all []installItem) []installItem {
-	if v.filter == "" {
+	return filterItems(all, v.filter)
+}
+
+// filterItems narrows a list of Recipes and Apps case-insensitively on name,
+// id, description and category; headers disappear while a filter is active.
+func filterItems(all []installItem, filter string) []installItem {
+	if filter == "" {
 		return all
 	}
-	q := strings.ToLower(v.filter)
+	q := strings.ToLower(filter)
 	var out []installItem
 	for _, it := range all {
 		if it.header {
@@ -261,9 +265,8 @@ func (v *installView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd,
 	case key.Matches(msg, ctx.keys.ScrollDown):
 		v.scroll(5, len(items))
 	case msg.String() == "space":
-		if v.cursor < len(items) && !items[v.cursor].header && !items[v.cursor].installed {
-			it := items[v.cursor]
-			v.picked[it.key] = !v.picked[it.key]
+		if v.cursor < len(items) && !items[v.cursor].header {
+			v.picked.toggle(ctx.backend.Catalog(), items[v.cursor].key, v.installedIDs(ctx))
 		}
 	case msg.String() == "enter":
 		return v.planPicked(ctx)
@@ -322,16 +325,9 @@ func (v *installView) review(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.C
 
 func (v *installView) planPicked(ctx *viewContext) (view, tea.Cmd, nav) {
 	cat := ctx.backend.Catalog()
-	var picked []string
-	for k, on := range v.picked {
-		if on {
-			picked = append(picked, k)
-		}
-	}
-	slices.Sort(picked)
 	installed := v.installedIDs(ctx)
 	var apps []app.App
-	for _, a := range expand(cat, picked) {
+	for _, a := range v.picked.apps(cat) {
 		if !slices.Contains(installed, a.Info().ID) {
 			apps = append(apps, a)
 		}
@@ -414,7 +410,14 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 		switch {
 		case it.installed:
 			mark = t.fg(t.ok).Render(" ✓ ")
-		case v.picked[it.key]:
+		case strings.HasPrefix(it.key, "recipe:"):
+			r, _ := ctx.backend.Catalog().Recipe(it.id)
+			recipe := v.picked.recipeMark(r, v.installedIDs(ctx))
+			mark = t.dim().Render(" " + recipe.glyph() + " ")
+			if recipe != pickNone {
+				mark = t.title().Render(" " + recipe.glyph() + " ")
+			}
+		case v.picked[it.id]:
 			mark = t.title().Render("[x]")
 		}
 		cursor := "  "

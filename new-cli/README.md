@@ -118,7 +118,9 @@ On a machine without a Project, `self-host` opens Onboarding. It checks Docker
 and Docker Compose (a failed check shows its fix and `r` checks again;
 warnings do not stop you), says that nothing is written until you approve the
 plan, then asks one thing at a time and says why. **What** picks Recipes and
-Apps and shows the highlighted item's description; an App that needs answers
+Apps and shows the highlighted item's description. Picking a Recipe picks its
+Apps, which you can untick one by one, and its mark shows whether all, some or
+none are picked; an App that needs answers
 of its own asks them next. **Where** explains Exposure in plain words with the
 detected LAN address, the Host settings and, only for media Apps, the media and
 downloads folders. **Who** sets the one Admin login for every App: a password

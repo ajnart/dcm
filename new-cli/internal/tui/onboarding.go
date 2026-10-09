@@ -44,7 +44,7 @@ const revealEvery = 6
 // every step's form, built afresh each time the step opens, shows them.
 type answers struct {
 	exposure                 string
-	selected                 []string
+	picks                    picks
 	tz, lan, puid, pgid      string
 	media, downloads         string
 	adminUser, adminPassword string
@@ -55,8 +55,10 @@ type answers struct {
 // plan. Approving hands over to the Dashboard; onboarding stays until the
 // Project exists, so an install that fails before that returns to Review.
 type onboarding struct {
-	step    step
-	form    *huh.Form
+	step step
+	form *huh.Form
+	// list is the What step's Recipes and Apps, before the picked Apps' own inputs in form.
+	list    *whatList
 	answers *answers
 	plan    *plan
 	// checking is set while the host checks are being read; checksFrom is
@@ -130,47 +132,6 @@ func (m *Model) checksArrived() tea.Cmd {
 	return m.startTicking()
 }
 
-// expand turns "recipe:x"/"app:x" selections into catalog Apps.
-func expand(cat *catalog.Catalog, selected []string) []app.App {
-	var apps []app.App
-	seen := map[string]bool{}
-	add := func(id string) {
-		if a, found := cat.App(id); found && !seen[id] {
-			seen[id] = true
-			apps = append(apps, a)
-		}
-	}
-	for _, s := range selected {
-		kind, id, _ := strings.Cut(s, ":")
-		if kind == "recipe" {
-			if r, found := cat.Recipe(id); found {
-				for _, appID := range r.Apps {
-					add(appID)
-				}
-			}
-			continue
-		}
-		add(id)
-	}
-	return apps
-}
-
-func catalogOptions(cat *catalog.Catalog, g activity.Glyphs) []huh.Option[string] {
-	var options []huh.Option[string]
-	for _, r := range cat.Recipes() {
-		options = append(options, huh.NewOption(g.Recipe()+" "+r.Name+" (Recipe)", "recipe:"+r.ID))
-	}
-	apps := cat.Apps()
-	slices.SortFunc(apps, func(a, b app.App) int {
-		return strings.Compare(strings.ToLower(a.Info().Name), strings.ToLower(b.Info().Name))
-	})
-	for _, a := range apps {
-		info := a.Info()
-		options = append(options, huh.NewOption(info.Name, "app:"+info.ID))
-	}
-	return options
-}
-
 func validFolder(path string) error {
 	if !filepath.IsAbs(path) {
 		return errors.New("use an absolute path, e.g. /srv/media")
@@ -205,9 +166,9 @@ func validPassword(s string) error {
 }
 
 // mediaApps are the chosen Apps that keep files in the media and downloads folders.
-func mediaApps(cat *catalog.Catalog, selected []string) []string {
+func mediaApps(cat *catalog.Catalog, p picks) []string {
 	var names []string
-	for _, a := range expand(cat, selected) {
+	for _, a := range p.apps(cat) {
 		if a.Info().UsesMedia {
 			names = append(names, a.Info().Name)
 		}
@@ -225,22 +186,8 @@ func (m Model) buildForm(s step) *huh.Form {
 	height := m.formHeight(s)
 	switch s {
 	case stepWhat:
-		if v.selected == nil {
-			if _, found := cat.App("homarr"); found {
-				v.selected = []string{"app:homarr"}
-			}
-		}
-		options := catalogOptions(cat, m.glyphs)
-		groups = append(groups, huh.NewGroup(huh.NewMultiSelect[string]().Title("Apps and Recipes").
-			Value(&v.selected).Options(options...).Filterable(true).Height(min(len(options)+1, height-3)).
-			Validate(func(s []string) error {
-				if len(s) == 0 {
-					return errors.New("pick at least one Recipe or App")
-				}
-				return nil
-			})))
-		groups = append(groups, m.inputGroups(cat)...)
-		height = min(height, max(len(options)+3, 7))
+		groups = m.inputGroups(cat)
+		height-- // huh adds a line for its error
 	case stepWhere:
 		groups = append(groups,
 			huh.NewGroup(
@@ -260,8 +207,8 @@ func (m Model) buildForm(s step) *huh.Form {
 			huh.NewGroup(
 				huh.NewInput().Title("Media folder").Description("Movies, shows and music live here").Value(&v.media).Validate(validFolder),
 				huh.NewInput().Title("Downloads folder").Description("Downloads land here before they move to media").Value(&v.downloads).Validate(validFolder),
-			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.selected)) == 0 }))
-		groups[2].Description("Used by " + strings.Join(mediaApps(cat, v.selected), ", ") + ". The folder must exist or sit in a folder that does.")
+			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.picks)) == 0 }))
+		groups[2].Description("Used by " + strings.Join(mediaApps(cat, v.picks), ", ") + ". The folder must exist or sit in a folder that does.")
 	case stepWho:
 		groups = append(groups, huh.NewGroup(
 			huh.NewInput().Title("Admin username").Value(&v.adminUser).
@@ -282,13 +229,9 @@ func (m Model) buildForm(s step) *huh.Form {
 func (m Model) formWidth() int { return min(max(m.width-8, 40), 100) }
 
 // formHeight is what a form step has left under the step indicator and its
-// explanation, and above the hovered App's description on What.
+// explanation. The What list shares it with the hovered description.
 func (m Model) formHeight(s step) int {
-	height := m.mainHeight() - 3 - len(m.stepIntro(s)) - 1
-	if s == stepWhat {
-		height -= whatDetailLines + 1
-	}
-	return max(height, 6)
+	return max(m.mainHeight()-3-len(m.stepIntro(s))-1, 6)
 }
 
 // stepIntro is why a step asks, in one or two calm sentences.
@@ -335,20 +278,16 @@ const whatDetailLines = 5
 
 // whatDetail describes the item under the highlight of the What list.
 func (m Model) whatDetail() []string {
-	form := m.onboarding.form
-	if form == nil {
+	list := m.onboarding.list
+	if list == nil {
 		return nil
 	}
-	list, ok := form.GetFocusedField().(*huh.MultiSelect[string])
-	if !ok {
-		return nil
-	}
-	hovered, ok := list.Hovered()
-	if !ok {
+	rows := m.whatRows(list)
+	if list.cursor >= len(rows) {
 		return nil
 	}
 	t := m.theme
-	kind, id, _ := strings.Cut(hovered, ":")
+	kind, id, _ := strings.Cut(rows[list.cursor].key, ":")
 	cat := m.backend.Catalog()
 	var name, text, extra string
 	if kind == "recipe" {
@@ -428,7 +367,7 @@ func (m Model) inputGroups(cat *catalog.Catalog) []*huh.Group {
 			fields = append(fields, field)
 		}
 		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own.").WithHideFunc(func() bool {
-			return !slices.ContainsFunc(expand(cat, v.selected), func(x app.App) bool { return x.Info().ID == id })
+			return !v.picks[id]
 		}))
 	}
 	return groups
@@ -444,7 +383,7 @@ func numeric(s string) error {
 // planFromAnswers turns completed answers into a reviewed install.
 func (m Model) planFromAnswers(v *answers) *plan {
 	cat := m.backend.Catalog()
-	apps := expand(cat, v.selected)
+	apps := v.picks.apps(cat)
 	opts := service.InstallOptions{Exposure: v.exposure, AdminUser: v.adminUser, AdminPassword: v.adminPassword,
 		Settings: map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid}}
 	needsMedia := false
@@ -537,8 +476,14 @@ func (m Model) installEnded(finished []int) {
 
 func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
+	if o.list != nil {
+		return m.whatKey(msg)
+	}
 	if o.form != nil {
 		if msg.String() == "esc" && !takesEsc(o.form) {
+			if o.step == stepWhat {
+				return m.openStep(stepWhat)
+			}
 			return m.openStep(o.step - 1)
 		}
 		return m.updateOnboardingForm(msg)
@@ -612,9 +557,17 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 // openStep shows a step; the form steps get a form over the answers so far.
 func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	o := m.onboarding
-	o.step, o.form = s, nil
+	o.step, o.form, o.list = s, nil, nil
 	switch s {
-	case stepWhat, stepWhere, stepWho:
+	case stepWhat:
+		if o.answers.picks == nil {
+			o.answers.picks = picks{}
+			if _, found := m.backend.Catalog().App("homarr"); found {
+				o.answers.picks["homarr"] = true
+			}
+		}
+		o.list = m.newWhatList()
+	case stepWhere, stepWho:
 		o.form = m.buildForm(s)
 		return m, o.form.Init()
 	case stepLook:
@@ -637,15 +590,19 @@ func saveGlyphsWithInstall(backend Backend, g activity.Glyphs) tea.Cmd {
 	}
 }
 
+func (m Model) backToWelcome() (tea.Model, tea.Cmd) {
+	m.onboarding.step, m.onboarding.form, m.onboarding.list = stepWelcome, nil, nil
+	m.setFlash("back at Welcome; nothing was installed", levelInfo)
+	return m, nil
+}
+
 func (m Model) updateOnboardingForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
 	next, cmd := o.form.Update(msg)
 	o.form = next.(*huh.Form)
 	switch o.form.State {
 	case huh.StateAborted:
-		o.step, o.form = stepWelcome, nil
-		m.setFlash("back at Welcome; nothing was installed", levelInfo)
-		return m, nil
+		return m.backToWelcome()
 	case huh.StateCompleted:
 		return m.openStep(o.step + 1)
 	}
@@ -710,7 +667,8 @@ func (m Model) renderOnboarding() string {
 		if o.form != nil {
 			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
 		}
-		if o.step == stepWhat {
+		if o.list != nil {
+			lines = append(lines, m.renderWhatList()...)
 			lines = append(lines, "")
 			lines = append(lines, m.whatDetail()...)
 		}
