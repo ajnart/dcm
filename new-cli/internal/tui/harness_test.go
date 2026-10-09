@@ -430,6 +430,8 @@ func TestKeybindAudit(t *testing.T) {
 		"coffee: c", "sponsor: s",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
+		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
+		"more: ?", "close: esc/?",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
@@ -933,6 +935,12 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
 		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))
 		check(string(set)+" help", drive(t, m, press("?")))
+		exposure := drive(t, m, press("5"))
+		check(string(set)+" Settings Exposure", exposure)
+		check(string(set)+" Settings Exposure help", drive(t, exposure, press("?")))
+		local := drive(t, exposure, press("enter"))
+		check(string(set)+" Settings Exposure local", local)
+		check(string(set)+" Settings Exposure local help", drive(t, local, press("?")))
 	}
 	task := m.tasks.start("update every App in a Project with a long name")
 	t.Cleanup(m.tasks.cancelAll)

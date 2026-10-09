@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  Who can open your Apps?
+
+  ╭───────────────╮      ╭────────╮      ╭───────────────╮
+  │ phones        │──────│ router │──────│ this computer │
+  │ TVs · laptops │      ╰───┬────╯      │ 192.168.1.20  │
+  ╰───────────────╯      internet ✗      ╰───────────────╯
+
+  Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
+  192.168.1.20. Nobody on the internet can.
+  Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds
+  links.
+
+  What is a LAN address?
+  The address of this computer on your home or office network, like 192.168.1.20. Your router
+  usually hands it out. Other devices type it into a browser, followed by an App's port. self-host
+  finds it on this machine and uses it only to build App links; change it if this computer has
+  more than one.
+
+  The internet
+  Nobody on the internet can open your Apps unless your router forwards ports to this computer.
+  self-host never sets that up.
+
+  The firewall
+  If another device cannot connect, this computer's firewall may need a rule that allows the App's
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                                                                      ↑/↓  scroll   esc/?  close

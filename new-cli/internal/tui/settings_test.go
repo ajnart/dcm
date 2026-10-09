@@ -212,3 +212,96 @@ func TestSettingsViewWithoutAModelShowsAbout(t *testing.T) {
 		t.Fatalf("opened %v", backend.opened)
 	}
 }
+
+func TestSettingsExposureRowExplainsItselfLikeOnboarding(t *testing.T) {
+	m, _ := settingsHost(t)
+
+	out := screen(m)
+	if !strings.Contains(flat(out), lanExplanation) || !strings.Contains(out, "phones · TVs · laptops ──── router ──── this computer 192.168.1.20") {
+		t.Fatalf("the EXPOSURE row shows the explanation and the diagram Onboarding does\n%s", out)
+	}
+
+	m = drive(t, m, press("enter")) // lan → local, pending
+	out = screen(m)
+	if !strings.Contains(flat(out), localExplanation) || !strings.Contains(out, "router ──✗── this computer 127.0.0.1") || strings.Contains(flat(out), "can open your Apps at") {
+		t.Fatalf("the explanation follows the pending choice\n%s", out)
+	}
+
+	m = drive(t, m, press("down")) // LAN_IP
+	if out = screen(m); strings.Contains(out, "internet ✗") {
+		t.Fatalf("only the EXPOSURE row carries the explanation\n%s", out)
+	}
+}
+
+func TestQuestionMarkOpensTheSameExposureHelpPageInSettingsAndEscCloses(t *testing.T) {
+	m, _ := settingsHost(t)
+
+	m = drive(t, m, press("?"))
+
+	page := flat(screen(m))
+	for _, want := range []string{"What is a LAN address?", "Nobody on the internet can open your Apps unless your router forwards ports", "╭"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("the Settings help page lacks %q\n%s", want, screen(m))
+		}
+	}
+	if strings.Contains(page, "highlight an Action") {
+		t.Fatalf("on the EXPOSURE row ? opens the Exposure page, not the key reference\n%s", screen(m))
+	}
+	m = drive(t, m, press("esc"))
+	if m.showHelp || m.surface != surfaceSettings || strings.Contains(screen(m), "What is a LAN address?") {
+		t.Fatalf("esc closes the page and stays in Settings\n%s", screen(m))
+	}
+	m = drive(t, m, press("enter")) // local, pending
+	m = drive(t, m, press("?"))
+	if page = flat(screen(m)); !strings.Contains(page, "127.0.0.1") || !strings.Contains(page, localExplanation) {
+		t.Fatalf("the page follows the pending choice\n%s", screen(m))
+	}
+	m = drive(t, m, press("?"))
+	if m.showHelp || len(m.settings.pairs()) != 1 {
+		t.Fatalf("? closes the page and keeps the pending change, pairs %v", m.settings.pairs())
+	}
+}
+
+func TestQuestionMarkOnOtherSettingsRowsStillOpensTheKeyReference(t *testing.T) {
+	m, _ := settingsHost(t)
+	m = drive(t, m, press("down")) // LAN_IP
+
+	m = drive(t, m, press("?"))
+
+	if page := screen(m); !strings.Contains(page, "Keys") || strings.Contains(page, "What is a LAN address?") {
+		t.Fatalf("off the EXPOSURE row ? is the global Help\n%s", page)
+	}
+	m = drive(t, m, press("x")) // any key closes the key reference
+	m = drive(t, m, press("5"))
+	m = drive(t, m, press("]"))
+	m = drive(t, m, press("?"))
+	if page := screen(m); !strings.Contains(page, "Keys") {
+		t.Fatalf("on the other sub-tabs ? is the global Help\n%s", page)
+	}
+}
+
+func TestQuestionMarkTypesWhileEditingASetting(t *testing.T) {
+	m, _ := settingsHost(t)
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("down")) // TZ
+	m = drive(t, m, press("enter"))
+
+	m = drive(t, m, press("?"))
+
+	if got := m.settings.input.Value(); !strings.HasSuffix(got, "?") || m.showHelp {
+		t.Fatalf("? while editing types a question mark, input %q", got)
+	}
+}
+
+func TestSettingsBarOffersMoreOnlyOnTheExposureRow(t *testing.T) {
+	m, _ := settingsHost(t)
+	bar := func(m Model) string { return strings.Join(strings.Fields(lastLine(screen(m))), " ") }
+
+	if got := bar(m); !strings.Contains(got, "? more") || strings.Contains(got, "? help") {
+		t.Fatalf("on EXPOSURE the one ? entry is more: %q", got)
+	}
+	m = drive(t, m, press("down"))
+	if got := bar(m); strings.Contains(got, "? more") || !strings.Contains(got, "? help") {
+		t.Fatalf("on the other rows the ? entry is help: %q", got)
+	}
+}

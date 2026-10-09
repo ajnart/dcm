@@ -9,16 +9,16 @@
 │   UMASK           022                                                        │
 │   MEDIA_ROOT      /home/alice/media                                          │
 │   DOWNLOADS_ROOT  /home/alice/downloads                                      │
+│                                                                              │
+│   Phones, TVs and laptops on the same Wi-Fi or router as this computer can   │
+│   open your Apps at 192.168.1.20. Nobody on the internet can.                │
+│   Apps are published on 0.0.0.0, every address of this computer. The LAN     │
+│   address only builds links.                                                 │
+│                                                                              │
+│   phones · TVs · laptops ──── router ──── this computer 192.168.1.20         │
+│                                  │                                           │
+│                             internet ✗                                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
-
-
-
-
-
-
-
-
-
- 1-5 tabs  ←/→  A Project  ? help  q quit           ↑/↓  select   enter  edit …
+ 1-5 tabs  ←/→  A Project  q quit         ?  more   ↑/↓  select   enter  edit …

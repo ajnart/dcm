@@ -121,9 +121,11 @@ plan, then asks one thing at a time and says why. **What** picks Recipes and
 Apps and shows the highlighted item's description. Picking a Recipe picks its
 Apps, which you can untick one by one, and its mark shows whether all, some or
 none are picked; an App that needs answers
-of its own asks them next. **Where** explains Exposure in plain words with the
-detected LAN address, the Host settings and, only for media Apps, the media and
-downloads folders. **Who** sets the one Admin login for every App: a password
+of its own asks them next. **Where** explains each field in a line while it is
+focused: the LAN address, Exposure (a plain explanation and a small diagram that
+follow the highlighted choice), the Host settings and, only for media Apps, the
+media and downloads folders. On the Exposure choice `?` opens a longer help page
+(`esc` or `?` closes it); in a text input `?` types a question mark. **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look
@@ -154,7 +156,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
 | enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
 | / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
-| ?, q | Help; quit. |
+| ?, q | Help; quit. On Settings' Host sub-tab, `?` on the EXPOSURE row opens the Exposure help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
 Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
