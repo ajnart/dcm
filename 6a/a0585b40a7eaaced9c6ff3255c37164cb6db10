@@ -1,0 +1,36 @@
+new-cli/internal/activity/action.go
+  h_d6e478ca18e517 96-97,128-131,181-185,234-251,255-258,270-278,286-296,298-304,309-316,320-339
+new-cli/internal/activity/action_test.go
+  h_d6e478ca18e517 81,83-104,111
+new-cli/internal/activity/testdata/action-credential-120.golden
+  h_d6e478ca18e517 3,15,27
+new-cli/internal/activity/testdata/action-credential-80.golden
+  h_d6e478ca18e517 3,15,27
+new-cli/internal/activity/testdata/action-credential-saved-120.golden
+  h_d6e478ca18e517 3,15
+new-cli/internal/activity/testdata/action-credential-saved-80.golden
+  h_d6e478ca18e517 3,15
+new-cli/internal/activity/testdata/action-setup-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-setup-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-step-done-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-step-done-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 5
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6aa0585b40a7eaaced9c6ff3255c37164cb6db10",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
