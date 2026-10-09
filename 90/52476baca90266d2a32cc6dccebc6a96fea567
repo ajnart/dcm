@@ -1,0 +1,159 @@
+new-cli/internal/activity/glyphs.go
+  s_59ffa5bfdcd3ba::t_3e4bc11fa899e7 1-130
+new-cli/internal/activity/glyphs_test.go
+  s_59ffa5bfdcd3ba::t_bb06ed30a60fbb 1-128
+new-cli/internal/activity/render_action.go
+  s_59ffa5bfdcd3ba::t_4f6bb07e84b8f1 53-55,60,101,175,180-193,342
+new-cli/internal/activity/render_action_test.go
+  s_59ffa5bfdcd3ba::t_547e96da4647d5 115,133,137,165,177
+new-cli/internal/activity/terminal.go
+  s_59ffa5bfdcd3ba::t_0457a5827d5668 32,51-52,55-56,159
+new-cli/internal/activity/terminal_test.go
+  s_59ffa5bfdcd3ba::t_6d397c9af8e385 88,147,247
+new-cli/internal/activity/testdata/action-credential-120.golden
+  s_59ffa5bfdcd3ba::t_f7fdd5a3ce25f4 3,15,27
+new-cli/internal/activity/testdata/action-credential-80.golden
+  s_59ffa5bfdcd3ba::t_3ad9999245eea5 3,15,27
+new-cli/internal/activity/testdata/action-credential-saved-120.golden
+  s_59ffa5bfdcd3ba::t_95d3cb19dc9489 3,15
+new-cli/internal/activity/testdata/action-credential-saved-80.golden
+  s_59ffa5bfdcd3ba::t_597543fdc89ff5 3,15
+new-cli/internal/activity/testdata/action-failed-120.golden
+  s_59ffa5bfdcd3ba::t_8f7b257929c75b 3
+new-cli/internal/activity/testdata/action-failed-80.golden
+  s_59ffa5bfdcd3ba::t_a99881c5f4935a 3
+new-cli/internal/activity/testdata/action-finish-wave-120.golden
+  s_59ffa5bfdcd3ba::t_29dd1aba6fa49b 3,5,12,14,21,23,30,32
+new-cli/internal/activity/testdata/action-finish-wave-80.golden
+  s_59ffa5bfdcd3ba::t_e4594f112f2ef9 3,10,15,22,27,34,39,46
+new-cli/internal/activity/testdata/action-links-120.golden
+  s_59ffa5bfdcd3ba::t_b23f9d70e8859f 3,5-7,13,15-17,23,25-27
+new-cli/internal/activity/testdata/action-links-80.golden
+  s_59ffa5bfdcd3ba::t_dd03ffef4f85b1 3,11-13,18,26-28,33,41-43
+new-cli/internal/activity/testdata/action-manual-120.golden
+  s_59ffa5bfdcd3ba::t_e25d1548e29438 3
+new-cli/internal/activity/testdata/action-manual-80.golden
+  s_59ffa5bfdcd3ba::t_70b806866d285b 3
+new-cli/internal/activity/testdata/action-setup-120.golden
+  s_59ffa5bfdcd3ba::t_c1ce9eff6e0633 3
+new-cli/internal/activity/testdata/action-setup-80.golden
+  s_59ffa5bfdcd3ba::t_01cde2a71b3e58 3
+new-cli/internal/activity/testdata/action-start-pulse-120.golden
+  s_59ffa5bfdcd3ba::t_c2846c862e5895 3,12,21
+new-cli/internal/activity/testdata/action-start-pulse-80.golden
+  s_59ffa5bfdcd3ba::t_d86d136f867c69 3,12,21
+new-cli/internal/activity/testdata/action-start-spinner-120.golden
+  s_59ffa5bfdcd3ba::t_5ef9d3690db04a 3,12
+new-cli/internal/activity/testdata/action-start-spinner-80.golden
+  s_59ffa5bfdcd3ba::t_09efe6eacb3c1a 3,12
+new-cli/internal/activity/testdata/action-step-done-120.golden
+  s_59ffa5bfdcd3ba::t_dfba87309972f0 3
+new-cli/internal/activity/testdata/action-step-done-80.golden
+  s_59ffa5bfdcd3ba::t_afbf807b3fc497 3
+new-cli/internal/activity/testdata/glyphs-nerd-font-120.golden
+  s_59ffa5bfdcd3ba::t_6dd1a530585478 1-9
+new-cli/internal/activity/testdata/glyphs-nerd-font-80.golden
+  s_59ffa5bfdcd3ba::t_cd0c5028a89944 1-14
+new-cli/internal/activity/testdata/glyphs-simple-120.golden
+  s_59ffa5bfdcd3ba::t_2366a6c1d9d116 1-9
+new-cli/internal/activity/testdata/glyphs-simple-80.golden
+  s_59ffa5bfdcd3ba::t_f88b59839bc3ad 1-14
+new-cli/internal/project/appearance_test.go
+  s_59ffa5bfdcd3ba::t_08625a8e045f6b 1-56
+new-cli/internal/project/project.go
+  s_59ffa5bfdcd3ba::t_d6b02109bc0d9e 184-218
+new-cli/internal/service/appearance.go
+  s_59ffa5bfdcd3ba::t_2010e78df13885 1-23
+new-cli/internal/tui/activity_view.go
+  s_59ffa5bfdcd3ba::t_f5cc6a3ce7008d 218
+new-cli/internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_fd7b8f2ee6c72b 7,11,65-70,144-155
+new-cli/internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_180dd6b8a2fe72 445-446,453,458,462-471
+new-cli/internal/tui/glyphs_test.go
+  s_59ffa5bfdcd3ba::t_c86759bbe94156 1-148
+new-cli/internal/tui/golden_test.go
+  s_59ffa5bfdcd3ba::t_054b95e565b354 11-12,42-52,58
+new-cli/internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_86ab56d29e3232 20,45-66,362-363,860-868
+new-cli/internal/tui/install.go
+  s_59ffa5bfdcd3ba::t_e5b053dbbefa92 410
+new-cli/internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_b82933b3c64257 77-79,101,151,163,226-230,288,301,387-390
+new-cli/internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_955042e18fd8af 4,15,17,25-27,30-35,50-53,73-74,80-93,96-97,251-258,283-316,355-358,360,385,389-422,427
+new-cli/internal/tui/stack.go
+  s_59ffa5bfdcd3ba::t_54413877deb3fe 156
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  s_59ffa5bfdcd3ba::t_e4c7801eb1c7e8 5,11
+new-cli/internal/tui/testdata/activity-finished.golden
+  s_59ffa5bfdcd3ba::t_8791ad58d43b4c 5,7
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  s_59ffa5bfdcd3ba::t_be0f2ea3e632a7 5
+new-cli/internal/tui/testdata/activity-running.golden
+  s_59ffa5bfdcd3ba::t_7a86f58ce4a156 5
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_aacae35f8ab019 1-24
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps.golden
+  s_59ffa5bfdcd3ba::t_c108c8f59ee505 1-30
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_f33fb0bfb22f5c 1-24
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview.golden
+  s_59ffa5bfdcd3ba::t_3d2ad4224f3529 1-30
+new-cli/internal/tui/testdata/glyphs-simple-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_96e4591316d737 1-24
+new-cli/internal/tui/testdata/glyphs-simple-apps.golden
+  s_59ffa5bfdcd3ba::t_5e219b7e9787df 1-30
+new-cli/internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_c2f0adb631fd7d 1-24
+new-cli/internal/tui/testdata/glyphs-simple-overview.golden
+  s_59ffa5bfdcd3ba::t_4ec0e1ef2d9523 1-30
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  s_59ffa5bfdcd3ba::t_c20846de75d40a 3-5
+new-cli/internal/tui/testdata/menu-app.golden
+  s_59ffa5bfdcd3ba::t_4b63709b939550 3-5
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  s_59ffa5bfdcd3ba::t_dab41b00652504 3-5
+new-cli/internal/tui/testdata/menu-project.golden
+  s_59ffa5bfdcd3ba::t_77cfb4a6822f52 3-5
+new-cli/internal/tui/testdata/settings-appearance-narrow.golden
+  s_59ffa5bfdcd3ba::t_045188b025f59c 1-24
+new-cli/internal/tui/testdata/settings-appearance.golden
+  s_59ffa5bfdcd3ba::t_cc3ebbc51af7a6 1-30
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_7a0a365443e9b8 5-7
+new-cli/internal/tui/testdata/tab-apps.golden
+  s_59ffa5bfdcd3ba::t_02e4b7b0e3c027 5-7
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  s_59ffa5bfdcd3ba::t_38470bc361efdf 4-11
+new-cli/internal/tui/testdata/tab-catalog.golden
+  s_59ffa5bfdcd3ba::t_2b22a4e4174e00 4-11
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_d79a28a11c4629 3-5
+new-cli/internal/tui/testdata/tab-overview.golden
+  s_59ffa5bfdcd3ba::t_5033c6f136b2a4 3-5
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  s_59ffa5bfdcd3ba::t_ae16c0ef72ffc2 3,14,16-18,20
+new-cli/internal/tui/testdata/tab-settings.golden
+  s_59ffa5bfdcd3ba::t_c17d9df3e48f96 3,14,16-18,20,30
+new-cli/internal/tui/theme.go
+  s_59ffa5bfdcd3ba::t_94130ac1e78f4a 10,84-85
+new-cli/internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_34680fb8eb31d3 90,331-332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9052476baca90266d2a32cc6dccebc6a96fea567",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
