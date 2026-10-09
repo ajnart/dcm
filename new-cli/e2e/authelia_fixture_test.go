@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestAutheliaFixtureVerifiedChildTLSAndBoundedRoute(t *testing.T) {
@@ -73,7 +72,7 @@ func TestAutheliaFixtureChildTLS(t *testing.T) {
 	if target == "" {
 		t.Skip("child-only HTTPS probe")
 	}
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := ownedFixtureTLSClient(t)
 	resp, err := client.Get(target)
 	expected := os.Getenv("SELFHOST_AUTHELIA_FIXTURE_EXPECT")
 	if expected == "untrusted" {
