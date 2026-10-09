@@ -1,0 +1,243 @@
+new-cli/e2e/acceptance.go
+  s_a2fd509a765bab::t_c10856a9da3994 8,201-204,213
+new-cli/e2e/acceptance_fixture_test.go
+  s_a2fd509a765bab::t_a07a1a7a068376 7,65,68,76
+new-cli/e2e/status_diagnostics.go
+  s_a2fd509a765bab::t_db3f337476f8bb 6,41,49
+new-cli/internal/apps/actualbudget/actualbudget_test.go
+  s_a2fd509a765bab::t_b03ee738f061f3 15,115,133
+new-cli/internal/apps/adguard/adguard_test.go
+  s_a2fd509a765bab::t_88e7f4a81f5707 15,120,138
+new-cli/internal/apps/archiveteamwarrior/archiveteamwarrior_test.go
+  s_a2fd509a765bab::t_d4a5075d604b21 22,321,338
+new-cli/internal/apps/aria2/aria2_test.go
+  s_a2fd509a765bab::t_33abc95fdc2ece 14,89,106
+new-cli/internal/apps/arr/links_test.go
+  s_a2fd509a765bab::t_6a526ffdf38796 10,14-19,38,59,62,72
+new-cli/internal/apps/audiobookshelf/audiobookshelf_test.go
+  s_a2fd509a765bab::t_1be4330a9c3e17 15,104,128
+new-cli/internal/apps/authelia/authelia_test.go
+  s_a2fd509a765bab::t_050c6734cb5a4a 12,96,113
+new-cli/internal/apps/authentik/authentik_test.go
+  s_a2fd509a765bab::t_320d69cd6649af 14,93,122
+new-cli/internal/apps/bazarr/bazarr_test.go
+  s_a2fd509a765bab::t_63d0f9bae764cf 16,109,127
+new-cli/internal/apps/beszel/beszel_test.go
+  s_a2fd509a765bab::t_a38131a41c8193 15,110,128
+new-cli/internal/apps/bookstack/bookstack_test.go
+  s_a2fd509a765bab::t_51b1ea69848675 19,161,204
+new-cli/internal/apps/caddy/caddy_test.go
+  s_a2fd509a765bab::t_1166da4346f50d 5,46-47,82
+new-cli/internal/apps/deluge/deluge_test.go
+  s_a2fd509a765bab::t_9a5dcbf8202997 15,100,118
+new-cli/internal/apps/dockge/dockge_test.go
+  s_a2fd509a765bab::t_3b576d43db15bb 13,30
+new-cli/internal/apps/docmost/docmost_test.go
+  s_a2fd509a765bab::t_4ab454280129f0 17,176
+new-cli/internal/apps/emby/emby_test.go
+  s_a2fd509a765bab::t_193cce09c461da 14,81,98
+new-cli/internal/apps/fireflyiii/fireflyiii_test.go
+  s_a2fd509a765bab::t_324d7374814406 15,130
+new-cli/internal/apps/forgejo/forgejo_test.go
+  s_a2fd509a765bab::t_cec59039f8de2f 16,127,148,169
+new-cli/internal/apps/freshrss/freshrss_test.go
+  s_a2fd509a765bab::t_0554e40f869f63 14,105,124
+new-cli/internal/apps/frigate/frigate_test.go
+  s_a2fd509a765bab::t_1f078bc2fbefce 7,177,195
+new-cli/internal/apps/gatus/gatus_test.go
+  s_a2fd509a765bab::t_3666aeafaee7d0 13,75
+new-cli/internal/apps/gluetun/gluetun_test.go
+  s_a2fd509a765bab::t_4c00df9ca75393 13,74,91
+new-cli/internal/apps/gotify/gotify_test.go
+  s_a2fd509a765bab::t_011f9bf69898e1 13,90,107
+new-cli/internal/apps/grafana/grafana_test.go
+  s_a2fd509a765bab::t_eef39d2bc99942 15,102,124
+new-cli/internal/apps/haproxy/haproxy_test.go
+  s_a2fd509a765bab::t_df2dac084adef8 13,75,92
+new-cli/internal/apps/homarr/homarr_test.go
+  s_a2fd509a765bab::t_4745a39c3c03fd 23,1538,1558,1637,1649,1801,1811
+new-cli/internal/apps/homeassistant/homeassistant_test.go
+  s_a2fd509a765bab::t_83fa33ee4cb741 15,109,127
+new-cli/internal/apps/homebridge/homebridge_test.go
+  s_a2fd509a765bab::t_7ad9a19eff92d9 15,113,131
+new-cli/internal/apps/immich/immich_test.go
+  s_a2fd509a765bab::t_af84b459625835 15,118
+new-cli/internal/apps/keycloak/keycloak_test.go
+  s_a2fd509a765bab::t_c78c378d24c67a 13,96
+new-cli/internal/apps/kopia/kopia_test.go
+  s_a2fd509a765bab::t_7977d8d8ba8f35 15,94,123
+new-cli/internal/apps/lidarr/lidarr_test.go
+  s_a2fd509a765bab::t_f99800ff5481f8 16,105,124,141
+new-cli/internal/apps/linkwarden/linkwarden_test.go
+  s_a2fd509a765bab::t_c9bbb09b907391 15,126
+new-cli/internal/apps/lldap/lldap_test.go
+  s_a2fd509a765bab::t_d0a2ef63fab187 14,103,120
+new-cli/internal/apps/mayanedms/mayanedms_test.go
+  s_a2fd509a765bab::t_c532315f484e52 14,87,121,137
+new-cli/internal/apps/minio/minio_test.go
+  s_a2fd509a765bab::t_0365150dbd717c 14,69,89
+new-cli/internal/apps/navidrome/navidrome_test.go
+  s_a2fd509a765bab::t_27257b4ff8f548 17,30,41,126,142,159,210
+new-cli/internal/apps/netbird/netbird_test.go
+  s_a2fd509a765bab::t_2f2520eb80c874 16,111,128
+new-cli/internal/apps/nextcloud/nextcloud_test.go
+  s_a2fd509a765bab::t_12cf831e11dd46 14,75,98,115
+new-cli/internal/apps/nginxproxymanager/nginxproxymanager_test.go
+  s_a2fd509a765bab::t_8a8f3bcb4e30d1 16,150,174
+new-cli/internal/apps/nodered/nodered_test.go
+  s_a2fd509a765bab::t_89bea41eecea68 15,102,132
+new-cli/internal/apps/nzbget/nzbget_test.go
+  s_a2fd509a765bab::t_a375119c4799ba 14,83,113
+new-cli/internal/apps/openwebui/openwebui_test.go
+  s_a2fd509a765bab::t_139bf6396b5fb3 14,90,120
+new-cli/internal/apps/pangolin/pangolin_test.go
+  s_a2fd509a765bab::t_b9484ba8ec473e 20,89,191,208
+new-cli/internal/apps/paperlessngx/paperlessngx_test.go
+  s_a2fd509a765bab::t_bb6f8a32e18c48 14,74,94,110
+new-cli/internal/apps/passbolt/passbolt_test.go
+  s_a2fd509a765bab::t_f4a24f038b86d4 14,73,75,95
+new-cli/internal/apps/patchmon/patchmon_test.go
+  s_a2fd509a765bab::t_d51d00721a59f2 18,157,177,193
+new-cli/internal/apps/peanut/peanut_test.go
+  s_a2fd509a765bab::t_c9360dbe825bc5 14,94,124
+new-cli/internal/apps/photoprism/photoprism_test.go
+  s_a2fd509a765bab::t_4ec4402fbf2d0d 14,102,126
+new-cli/internal/apps/pihole/pihole_test.go
+  s_a2fd509a765bab::t_fca097ae88c909 15,99,117
+new-cli/internal/apps/plex/plex_test.go
+  s_a2fd509a765bab::t_360eb4ca072860 16,109,126
+new-cli/internal/apps/portainer/portainer_test.go
+  s_a2fd509a765bab::t_d80595ddf2a3de 14,59,74,89
+new-cli/internal/apps/porttest/porttest.go
+  s_a2fd509a765bab::t_d8ba9c5d591bc0 11,33,43
+new-cli/internal/apps/postgresql/postgresql_test.go
+  s_a2fd509a765bab::t_6b0a8bebdb1b04 11,80,95
+new-cli/internal/apps/sabnzbd/sabnzbd_test.go
+  s_a2fd509a765bab::t_2bc02cfa19b938 16,88,105,122
+new-cli/internal/apps/scrypted/scrypted_test.go
+  s_a2fd509a765bab::t_a2515b7a609d2e 14,60,75,90
+new-cli/internal/apps/seafile/seafile_test.go
+  s_a2fd509a765bab::t_9560f88072044d 17,81,101,117
+new-cli/internal/apps/slskd/slskd_test.go
+  s_a2fd509a765bab::t_2809fca4296c0c 14,97,127
+new-cli/internal/apps/speedtesttracker/readiness_test.go
+  s_a2fd509a765bab::t_18b304032f4ec9 7,41,65
+new-cli/internal/apps/speedtesttracker/speedtesttracker_test.go
+  s_a2fd509a765bab::t_e050b2dcd3eebd 19,96,117
+new-cli/internal/apps/stalwartmail/stalwartmail_test.go
+  s_a2fd509a765bab::t_f026c4941b7817 13,62,64,84
+new-cli/internal/apps/syncthing/syncthing_test.go
+  s_a2fd509a765bab::t_251ba2386f8f05 16,95,112,127
+new-cli/internal/apps/tailscale/tailscale_test.go
+  s_a2fd509a765bab::t_893e7cc8b61759 13,86,101
+new-cli/internal/apps/tdarr/tdarr_test.go
+  s_a2fd509a765bab::t_f59b6d375d6253 14,75,90,105
+new-cli/internal/apps/technitiumdns/technitiumdns_test.go
+  s_a2fd509a765bab::t_a7d44f011f43b2 15,89,107
+new-cli/internal/apps/tracearr/tracearr_test.go
+  s_a2fd509a765bab::t_ccb02c02b2ed4d 14,125,164,185,256,272
+new-cli/internal/apps/traefik/traefik_test.go
+  s_a2fd509a765bab::t_8c08bc78ac017b 16,101,134
+new-cli/internal/apps/transmission/transmission_test.go
+  s_a2fd509a765bab::t_63c8b5a0d9260d 13,70,85,100
+new-cli/internal/apps/umami/umami_test.go
+  s_a2fd509a765bab::t_264a8623bd4c81 14,109,129,145
+new-cli/internal/apps/unbound/unbound_test.go
+  s_a2fd509a765bab::t_78ebf8033be234 11,76
+new-cli/internal/apps/uptimekuma/uptimekuma_test.go
+  s_a2fd509a765bab::t_69c4848769721e 13,51,66,81
+new-cli/internal/apps/valkey/valkey_test.go
+  s_a2fd509a765bab::t_0f6fb8f6a2c463 11,67
+new-cli/internal/apps/vector/vector_test.go
+  s_a2fd509a765bab::t_fdcb327fd34256 13,75
+new-cli/internal/apps/wud/tls_test.go
+  s_a2fd509a765bab::t_ea41c568f80312 24,250
+new-cli/internal/apps/wud/wud_test.go
+  s_a2fd509a765bab::t_9d9becbb4bed18 15,113,130
+new-cli/internal/apps/zerotier/zerotier_test.go
+  s_a2fd509a765bab::t_eba21eca893ca8 12,81,103
+new-cli/internal/cli/forgejo_credentials_test.go
+  s_a2fd509a765bab::t_15547578b48137 9,71
+new-cli/internal/cli/install.go
+  s_a2fd509a765bab::t_9d43ae30a440b0 12,139,142
+new-cli/internal/cli/install_test.go
+  s_a2fd509a765bab::t_5497a533615c23 18,284-287,296,376-380,386,390
+new-cli/internal/cli/lan_test.go
+  s_a2fd509a765bab::t_6014dbfefcac24 12,120-126
+new-cli/internal/cli/lifecycle_test.go
+  s_a2fd509a765bab::t_742f535b955b92 12,93-95,99
+new-cli/internal/cli/private_inputs_test.go
+  s_a2fd509a765bab::t_90798b52ad0178 18,156,256
+new-cli/internal/cli/redaction_test.go
+  s_a2fd509a765bab::t_4ceee3483f099a 8,27
+new-cli/internal/cli/render_collision_test.go
+  s_a2fd509a765bab::t_091e4e0ca467a6 14,150
+new-cli/internal/cli/status_test.go
+  s_a2fd509a765bab::t_00b61d2fd2cb86 1-49
+new-cli/internal/cli/workflow_test.go
+  s_a2fd509a765bab::t_bace55c270dbd6 10,36,74
+new-cli/internal/helpers/helpers.go
+  s_a2fd509a765bab::t_646f8a74522cd8 15,39,138,157,165,171,178
+new-cli/internal/helpers/ready_test.go
+  s_a2fd509a765bab::t_03bce3df9c82a5 13,38,54,80,102
+new-cli/internal/helpers/redaction_test.go
+  s_a2fd509a765bab::t_8c81eeefc0826a 7,15-16,23,25,32
+new-cli/internal/onboard/onboard_test.go
+  s_a2fd509a765bab::t_30ebd21c17a4c1 6,50-51,66,83,153,184,247,293,317,395
+new-cli/internal/project/project.go
+  s_a2fd509a765bab::t_bd787c0889b915 21,187-190,196
+new-cli/internal/project/state_test.go
+  s_a2fd509a765bab::t_80166eace065d5 5,7,75,178-224
+new-cli/internal/service/backup.go
+  s_a2fd509a765bab::t_a3a33beb41689c 151,155,180
+new-cli/internal/service/install.go
+  s_a2fd509a765bab::t_8e4c88991e67dc 18,247,266,270,273,276,278,449,452
+new-cli/internal/service/level.go
+  s_a2fd509a765bab::t_bc4b60ef8a846a 3-4,13,15
+new-cli/internal/service/lifecycle.go
+  s_a2fd509a765bab::t_55b67fcf44dc00 17,155
+new-cli/internal/service/mutation.go
+  s_a2fd509a765bab::t_23517a4d0f4126 15,179,181,187,294,296,304,341,345,347
+new-cli/internal/service/mutation_test.go
+  s_a2fd509a765bab::t_976295027933be 19,252,457,470,481
+new-cli/internal/service/redaction_test.go
+  s_a2fd509a765bab::t_2107bd024ef5a2 12,20
+new-cli/internal/service/service.go
+  s_a2fd509a765bab::t_42daba73ee4cd1 30,385,407,434,439,444-445,447-448,450-451,457-462,466,480,484
+new-cli/internal/service/stages_test.go
+  s_a2fd509a765bab::t_d902f316afcd55 12,119
+new-cli/internal/service/status.go
+  s_a2fd509a765bab::t_93c78ca1f3ee04 11,16-20,35-37,80
+new-cli/internal/status/status.go
+  s_a2fd509a765bab::t_84fe646780822c 1-25
+new-cli/internal/status/status_test.go
+  s_a2fd509a765bab::t_a84051d211080d 1-12
+new-cli/internal/tui/dashboard.go
+  s_a2fd509a765bab::t_ac9664a9b4ce9f 16,426,428,430,461,464,591,600,602,604,608,617,633
+new-cli/internal/tui/harness_test.go
+  s_a2fd509a765bab::t_539525ecc80fb1 17,122-125,266
+new-cli/internal/tui/views_test.go
+  s_a2fd509a765bab::t_1887d0b925a219 11,194-197,199-201,204-205,260-262,333,390-391,393,474-475,485,502
+new-cli/internal/tui/workflow.go
+  s_a2fd509a765bab::t_cc90df520f7083 11,52,60,62,64,66,73,115,119,133,174,205,207,209
+new-cli/internal/tui/workflow_live_view_test.go
+  s_a2fd509a765bab::t_43a7830a89f386 7,50,70,80,90,115
+new-cli/internal/tui/workflow_test.go
+  s_a2fd509a765bab::t_b0835d0e4fd81e 9,38,45,54,199,201,220,233-235,259-262,265-266,285,299,362-363,377,387
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f70a675c3a5ad81507a0f922bd65b4c98f3b44f9",
+  "prompts": {},
+  "sessions": {
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
