@@ -68,7 +68,11 @@ func (rl RateLimit) wait(header http.Header) (time.Duration, bool) {
 }
 
 func (h *H) rateLimited(rl RateLimit, wait, waited time.Duration) error {
-	msg := fmt.Sprintf("%s login remained rate-limited (HTTP 429); gave up after waiting %s and refusing the next wait of %s", h.App, waited, wait)
+	msg := fmt.Sprintf("%s login remained rate-limited (HTTP 429); gave up after waiting %s", h.App, waited)
+	// Without a usable retry header there is no next wait to name.
+	if wait > 0 {
+		msg += fmt.Sprintf(" and refusing the next wait of %s", wait)
+	}
 	if rl.Hint != "" {
 		msg += "; " + rl.Hint
 	}
