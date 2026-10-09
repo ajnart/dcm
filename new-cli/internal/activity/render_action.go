@@ -1,6 +1,7 @@
 package activity
 
 import (
+	"cmp"
 	"strconv"
 	"strings"
 
@@ -57,7 +58,10 @@ func Render(s Snapshot, m Motion, width int, g Glyphs, p Palette) []string {
 	if a.Empty() {
 		return nil
 	}
-	r := renderer{a: a, m: m, g: g, p: p, narrow: width < wideBoxes}
+	r := renderer{a: a, m: m, g: g, p: p, narrow: width < wideBoxes, linkInner: width - 4}
+	if !r.narrow && len(a.Apps) > 0 && len(a.Links) > 0 {
+		r.linkInner = width - (width-1)/2 - 1 - 4
+	}
 	lines := []string{r.title()}
 	if len(a.Stages) > 0 {
 		lines = append(lines, "  "+r.stages())
@@ -82,13 +86,7 @@ func Render(s Snapshot, m Motion, width int, g Glyphs, p Palette) []string {
 		lines = append(lines, box(apps, width, len(apps.lines), p)...)
 		lines = append(lines, box(links, width, len(links.lines), p)...)
 	}
-	if a.Narrative != "" {
-		narrative := style(p.Text).Render(a.Narrative)
-		if a.Finished {
-			narrative = style(p.Bright).Bold(true).Render(a.Narrative)
-		}
-		lines = append(lines, "  "+narrative)
-	}
+	lines = append(lines, r.narrative()...)
 	for i, line := range lines {
 		lines[i] = ansi.Truncate(line, width, "…")
 	}
@@ -101,6 +99,25 @@ type renderer struct {
 	g      Glyphs
 	p      Palette
 	narrow bool
+	// linkInner is the width inside the box the Links are drawn in.
+	linkInner int
+}
+
+// narrative is the line under the boxes: calm while the Action runs, bold
+// when it finished, and red when it finished by failing.
+func (r renderer) narrative() []string {
+	a := r.a
+	if a.Narrative == "" {
+		return nil
+	}
+	narrative := style(r.p.Text).Render(a.Narrative)
+	switch {
+	case a.Finished && r.outcome() == Failed:
+		narrative = style(r.p.Fail).Render(a.Narrative)
+	case a.Finished:
+		narrative = style(r.p.Bright).Bold(true).Render(a.Narrative)
+	}
+	return []string{"  " + narrative}
 }
 
 // boxContent is a box's title and inner lines.
@@ -222,7 +239,8 @@ func (r renderer) lit(i int, app ActionApp) bool {
 
 func (r renderer) appRow(i int, app ActionApp) string {
 	mark := r.glyph(app.State)
-	name := style(r.p.Text).Render(pad(ansi.Truncate(app.Name, 15, "…"), 16))
+	label := pad(ansi.Truncate(app.Name, 15, "…"), 16)
+	name := style(r.p.Text).Render(label)
 	fact := ""
 	switch app.State {
 	case Done:
@@ -233,10 +251,10 @@ func (r renderer) appRow(i int, app ActionApp) string {
 		}
 		if r.lit(i, app) {
 			mark = style(r.p.OK).Bold(true).Render("◉")
-			name = style(r.p.OK).Bold(true).Render(pad(ansi.Truncate(app.Name, 15, "…"), 16))
+			name = style(r.p.OK).Bold(true).Render(label)
 		}
 	case Running:
-		name = style(r.p.Bright).Bold(true).Render(pad(ansi.Truncate(app.Name, 15, "…"), 16))
+		name = style(r.p.Bright).Bold(true).Render(label)
 		fact = "starting"
 		if len(app.Steps) > 0 {
 			fact = "setting up"
@@ -246,7 +264,7 @@ func (r renderer) appRow(i int, app ActionApp) string {
 	case Manual:
 		fact = "needs you"
 	case NotRun:
-		name = style(r.p.Muted).Render(pad(ansi.Truncate(app.Name, 15, "…"), 16))
+		name = style(r.p.Muted).Render(label)
 		fact = "waiting"
 	}
 	return mark + " " + name + style(r.p.Muted).Render(fact)
@@ -269,7 +287,7 @@ func (r renderer) stepRows(app ActionApp) []string {
 	}
 	var out []string
 	for _, step := range steps {
-		line := "  " + r.glyph(step.State) + " " + style(r.p.Text).Render(cmpOr(step.Msg, step.Label))
+		line := "  " + r.glyph(step.State) + " " + style(r.p.Text).Render(cmp.Or(step.Msg, step.Label))
 		if step.Credential != "" {
 			line += "  " + r.mask(step)
 		}
@@ -315,35 +333,43 @@ func (r renderer) linksBox() boxContent {
 	}
 	c := boxContent{title: "Links", counter: countOf(r.a.Counts.LinksApplied, r.a.Counts.LinksTotal)}
 	for _, link := range r.a.Links {
-		c.lines = append(c.lines, r.linkRow(link))
+		c.lines = append(c.lines, r.linkRows(link)...)
 	}
 	return c
 }
 
-func (r renderer) linkRow(link Link) string {
+// linkRows are a Link's row and, when the start of its fact (what it is for,
+// why it waits or how it failed) does not fit after the names, the fact on a
+// second line under them. What follows a parenthesis is detail that may be
+// cut, so a waiting reason such as "waiting for qbittorrent" always shows.
+func (r renderer) linkRows(link Link) []string {
 	length, nameWidth := linkLine, 12
 	if r.narrow {
 		length, nameWidth = narrowLine, 11
 	}
 	source := pad(ansi.Truncate(link.Source, nameWidth, "…"), nameWidth)
 	target := ansi.Truncate(link.Target, nameWidth, "…")
-	fact := style(r.p.Muted).Render(link.Purpose)
+	fact, factStyle := link.Purpose, style(r.p.Muted)
 	nameStyle := style(r.p.Text)
 	switch link.State {
 	case NotRun:
 		nameStyle = style(r.p.Muted)
-		fact = style(r.p.Muted).Render(link.Waiting)
+		fact = link.Waiting
 	case Failed:
-		fact = style(r.p.Fail).Render(firstLine(cmpOr(link.Error, link.Purpose)))
+		fact, factStyle = firstLine(cmp.Or(link.Error, link.Purpose)), style(r.p.Fail)
 	case Running:
 		nameStyle = style(r.p.Bright).Bold(true)
 	}
 	line := r.linkLine(link, length)
 	row := r.glyph(link.State) + " " + style(r.p.Muted).Render(r.g.Link()) + " " + nameStyle.Render(source) + " " + line + " " + nameStyle.Render(pad(target, nameWidth))
-	if fact != "" {
-		row += " " + fact
+	if fact == "" {
+		return []string{row}
 	}
-	return row
+	head, _, _ := strings.Cut(fact, " (")
+	if ansi.StringWidth(row)+1+ansi.StringWidth(head) <= r.linkInner {
+		return []string{row + " " + factStyle.Render(fact)}
+	}
+	return []string{row, "    " + factStyle.Render(fact)}
 }
 
 // linkLine is the dashed line between the two Apps: grey while the Link

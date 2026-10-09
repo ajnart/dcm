@@ -98,7 +98,7 @@ func TestEveryIconIsOneCellAndTheSetsDiffer(t *testing.T) {
 		"Local AI", "Media", "Monitoring", "Observability", "Passwords", "Photos", "Productivity", "Remote access",
 		"Requests", "Storage", "Something new"}
 	for _, set := range []Glyphs{NerdFont, Simple} {
-		icons := []string{set.Brand(), set.Docker(), set.Key(), set.Link()}
+		icons := []string{set.Brand(), set.Docker(), set.Key(), set.Link(), set.Recipe()}
 		for _, c := range categories {
 			icons = append(icons, set.Category(c))
 		}
@@ -108,7 +108,7 @@ func TestEveryIconIsOneCellAndTheSetsDiffer(t *testing.T) {
 			}
 		}
 	}
-	if NerdFont.Category("Media") == Simple.Category("Media") || NerdFont.Brand() == Simple.Brand() {
+	if NerdFont.Category("Media") == Simple.Category("Media") || NerdFont.Brand() == Simple.Brand() || NerdFont.Recipe() == Simple.Recipe() {
 		t.Fatal("the Nerd Font set must draw its own icons")
 	}
 	if Simple.Category("Something new") != "◇" || Simple.Category("") != "◇" {

@@ -13,8 +13,9 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-// Ticks starts a frame source and returns its channel and a stop function.
-type Ticks func() (<-chan time.Time, func())
+// tickSource starts a frame source and returns its channel and a stop
+// function. Tests inject their own.
+type tickSource func() (<-chan time.Time, func())
 
 func realTicks() (<-chan time.Time, func()) {
 	t := time.NewTicker(time.Second / FPS)
@@ -32,7 +33,7 @@ type TerminalSink struct {
 	glyphs  Glyphs
 	palette Palette
 	human   events.Sink
-	ticks   Ticks
+	ticks   tickSource
 
 	mu      sync.Mutex
 	buf     bytes.Buffer
@@ -44,15 +45,16 @@ type TerminalSink struct {
 	// stop ends the ticker goroutine; done is closed once it returned.
 	stop chan struct{}
 	done chan struct{}
-	// ticked, when set, is told after each tick is drawn.
-	ticked chan<- struct{}
+	// drawn, when set, is called after each tick is drawn, without the lock
+	// held. It lets a test wait for a frame; it must not block.
+	drawn func()
 }
 
 func Terminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette) *TerminalSink {
 	return newTerminal(w, verbose, width, g, p, realTicks)
 }
 
-func newTerminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette, ticks Ticks) *TerminalSink {
+func newTerminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette, ticks tickSource) *TerminalSink {
 	t := &TerminalSink{w: w, width: width, glyphs: g, palette: p, ticks: ticks}
 	t.human = events.Human(&t.buf, verbose)
 	return t
@@ -131,8 +133,8 @@ func (t *TerminalSink) startTicker() {
 				return
 			case <-ticks:
 				t.tick()
-				if t.ticked != nil {
-					t.ticked <- struct{}{}
+				if t.drawn != nil {
+					t.drawn()
 				}
 			}
 		}

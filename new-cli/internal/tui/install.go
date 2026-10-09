@@ -151,7 +151,7 @@ func (v *installView) installItems(ctx *viewContext) []installItem {
 	installed := v.installedIDs(ctx)
 	var items []installItem
 	for _, r := range cat.Recipes() {
-		items = append(items, installItem{key: "recipe:" + r.ID, id: r.ID, name: "📦 " + r.Name, desc: r.Description})
+		items = append(items, installItem{key: "recipe:" + r.ID, id: r.ID, name: ctx.glyphs.Recipe() + " " + r.Name, desc: r.Description})
 	}
 	apps := cat.Apps()
 	slices.SortFunc(apps, func(a, b app.App) int {

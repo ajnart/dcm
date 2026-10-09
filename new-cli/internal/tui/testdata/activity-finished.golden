@@ -4,8 +4,8 @@
   ✓ install jellyfin sonarr
     ✓ ▣ Start   ✓ Setup   ✓ ✱ Credentials   ✓ ⇄ Links   ✓ Check
   ╭─ Apps 2/2 set up ──────────────────────────────────────╮ ╭─ Links 1/1 ─────────────────────────────────────────────╮
-  │ ● Jellyfin        ready                                │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ Jellyfin     add Jellyfin as… │
-  │ ● Sonarr          ready                                │ │                                                         │
+  │ ● Jellyfin        ready                                │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ Jellyfin                      │
+  │ ● Sonarr          ready                                │ │     add Jellyfin as a connection                        │
   ╰────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────╯
     All 2 Apps are ready
 

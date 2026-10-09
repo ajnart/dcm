@@ -497,7 +497,11 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 	see("What", m)
 	m = drive(t, m, press("enter"))
 	see("Where", m)
-	for range 5 {
+	for range 2 {
+		m = drive(t, m, press("enter"))
+	}
+	see("Where host settings", m)
+	for range 3 {
 		m = drive(t, m, press("enter"))
 	}
 	see("Who", m)
@@ -530,8 +534,8 @@ func TestGoldenOnboarding(t *testing.T) {
 		t.Run("steps"+size.suffix, func(t *testing.T) {
 			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
 				switch name {
-				case "What", "Where", "Who", "Look":
-					golden(t, "onboarding-"+strings.ToLower(name)+size.suffix, trimLines(screen(m)))
+				case "What", "Where", "Where host settings", "Who", "Look":
+					golden(t, "onboarding-"+strings.ReplaceAll(strings.ToLower(name), " ", "-")+size.suffix, trimLines(screen(m)))
 				}
 			})
 		})
@@ -648,16 +652,79 @@ func TestWhereExplainsExposureWithTheDetectedLANAddress(t *testing.T) {
 	m = atStep(t, m, "Where")
 
 	out := screen(m)
-	for _, want := range []string{"Other devices on your network can open these at 192.168.1.20", "Only this computer can open them"} {
+	for _, want := range []string{"Other devices on your network can open these at 192.168.1.20", "LAN address", "Only this computer"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Where lacks %q\n%s", want, out)
 		}
 	}
-	m = drive(t, m, press("enter"))
+	m = drive(t, drive(t, m, press("enter")), press("enter"))
 	out = screen(m)
 	for _, want := range []string{"Time zone", "Detected from this machine", "own the files"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Host settings lack %q\n%s", want, out)
+		}
+	}
+}
+
+func TestWhereExposureNamesTheLANAddressThatWillBeUsed(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atStep(t, m, "Where")
+
+	for range len("192.168.1.20") {
+		m = drive(t, m, press("backspace"))
+	}
+	m = typeText(t, m, "10.0.0.7")
+
+	out := screen(m)
+	if !strings.Contains(out, "can open these at 10.0.0.7") || strings.Contains(out, "192.168.1.20") {
+		t.Fatalf("the Exposure explanation must follow the edited LAN address\n%s", out)
+	}
+
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	if out = screen(m); !strings.Contains(out, "Only this computer can open your Apps") || strings.Contains(out, "can open these at") {
+		t.Fatalf("choosing this computer only changes the explanation\n%s", out)
+	}
+	m = drive(t, m, press("up"))
+	if out = screen(m); !strings.Contains(out, "can open these at 10.0.0.7") {
+		t.Fatalf("choosing the network again names the address again\n%s", out)
+	}
+}
+
+func TestWhereFoldersFitTheScreenAtEightyByTwentyFour(t *testing.T) {
+	m, _ := onboardingHost(t, 80, 24, readyChecks...)
+	m = drive(t, frames(t, m, 60), press("enter"))
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("x")) // Jellyfin
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("enter")) // its server name
+	for range 5 {
+		m = drive(t, m, press("enter"))
+	}
+
+	out := screen(m)
+	for _, want := range []string{"Media folder", "Downloads folder", "/home/alice/downloads"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("the Folders page lacks %q at 80x24\n%s", want, out)
+		}
+	}
+}
+
+func TestRecipeIconFollowsTheGlyphSetInTheCatalogAndOnboarding(t *testing.T) {
+	for _, set := range []activity.Glyphs{activity.Simple, activity.NerdFont} {
+		m := withGlyphs(t, goldenModel(t, 120, 30), set)
+		catalog := screen(drive(t, m, press("4")))
+		if !strings.Contains(catalog, set.Recipe()+" Media") || strings.Contains(catalog, "📦") {
+			t.Errorf("%s: the Catalog should mark the Recipe with %q\n%s", set, set.Recipe(), catalog)
+		}
+
+		o, _ := onboardingHost(t, 120, 30, readyChecks...)
+		o = withGlyphs(t, o, set)
+		o = drive(t, frames(t, o, 60), press("enter"))
+		what := screen(drive(t, o, press("enter")))
+		if !strings.Contains(what, set.Recipe()+" Media (Recipe)") || strings.Contains(what, "📦") {
+			t.Errorf("%s: What should mark the Recipe with %q\n%s", set, set.Recipe(), what)
 		}
 	}
 }

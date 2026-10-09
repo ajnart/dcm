@@ -1,9 +1,9 @@
 package activity
 
 // Glyphs is a glyph set: the icons that carry meaning, which are an App's
-// category, the Docker, key and link stages, and the brand mark. Bars,
-// spinners and state dots are not part of it, so progress never depends on
-// a font. The zero value draws as Simple.
+// category, the Docker, key and link stages, a Recipe, and the brand mark.
+// Bars, spinners and state dots are not part of it, so progress never
+// depends on a font. The zero value draws as Simple.
 type Glyphs string
 
 const (
@@ -33,6 +33,7 @@ func (g Glyphs) Brand() string  { return g.icons().brand }
 func (g Glyphs) Docker() string { return g.icons().docker }
 func (g Glyphs) Key() string    { return g.icons().key }
 func (g Glyphs) Link() string   { return g.icons().link }
+func (g Glyphs) Recipe() string { return g.icons().recipe }
 
 // Category is the icon of an App category, or the set's fallback for a
 // category it does not know.
@@ -52,8 +53,8 @@ func (g Glyphs) icons() iconSet {
 }
 
 type iconSet struct {
-	brand, docker, key, link, fallback string
-	categories                         map[string]string
+	brand, docker, key, link, recipe, fallback string
+	categories                                 map[string]string
 }
 
 // nerdFontIcons are Material Design icons (nf-md-*) of Nerd Fonts v3.
@@ -62,6 +63,7 @@ var nerdFontIcons = iconSet{
 	docker:   "\U000F0868", // nf-md-docker
 	key:      "\U000F0306", // nf-md-key
 	link:     "\U000F0339", // nf-md-link_variant
+	recipe:   "\U000F03D7", // nf-md-package_variant_closed
 	fallback: "\U000F08C6", // nf-md-application
 	categories: map[string]string{
 		"Analytics":       "\U000F0128", // nf-md-chart_bar
@@ -99,6 +101,7 @@ var simpleIcons = iconSet{
 	docker:   "▣",
 	key:      "✱",
 	link:     "⇄",
+	recipe:   "❖",
 	fallback: "◇",
 	categories: map[string]string{
 		"Analytics":       "↗",
