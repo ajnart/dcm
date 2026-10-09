@@ -1,0 +1,31 @@
+video/reel/STORYBOARD.md
+  s_4f5c3f12c60544::t_0f9a006940d83d 1-25
+video/reel/assets/icons/navidrome.svg
+  s_4f5c3f12c60544::t_70fcfe1d028bf8 1-29
+video/reel/main.js
+  s_4f5c3f12c60544::t_bc424e389d62b6 1-89
+video/reel/s4.js
+  s_4f5c3f12c60544::t_a729063ff05fac 1-91
+video/reel/s6.js
+  s_4f5c3f12c60544::t_9bf3969e837b43 1-44
+video/reel/s8.js
+  s_4f5c3f12c60544::t_e5a62d2b50e646 1-65
+video/reel/styles.css
+  s_4f5c3f12c60544::t_8aada63b132111 1-709
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b12f5019e9c5babbc162a87fd21179fe08396825",
+  "prompts": {},
+  "sessions": {
+    "s_4f5c3f12c60544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bd20071-f191-45b1-a8aa-b87b0f7aa7bf",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
