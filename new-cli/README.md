@@ -217,8 +217,8 @@ The equivalent commands are `self-host up`, `self-host down` and
 ## Agents and automation
 
 Run `self-host skill` to get the guide matching the installed binary.
-[new-cli/SKILL.md](SKILL.md) is the small agent entry point. This Go guide is
-separate from the repository's older bundled self-host skill.
+The repository's one public skill, `.agents/skills/self-host/SKILL.md`, is the
+agent entry point and routes to that guide.
 
 Inspect first, agree on the Apps and Exposure, then apply the approved selection:
 
