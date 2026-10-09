@@ -109,6 +109,14 @@ The tabbed command center a person sees for an existing Project: Overview
 Apps, Activity, Catalog and Settings. Onboarding hands over to it.
 _Avoid_: screens, pages, control panel
 
+**Update prompt**:
+The "self-host X is available (you have Y). Update now? y/n" question the
+Dashboard asks once it is idle. `y` installs the verified release and restarts
+into it; `n` remembers that release so it is not asked again until a newer one
+exists. It never appears during Onboarding, pre-boot or a running Action, nor
+for `--json`, CI, a development build or `SELF_HOST_NO_UPDATE_CHECK=1`.
+_Avoid_: auto-update (nothing updates without a `y`)
+
 **Status**:
 An App's health at a glance: **ok** (green), **attention** (yellow) or
 **broken** (red), combined from its container, its health check and its Setup.

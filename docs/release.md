@@ -1,5 +1,7 @@
 # Release gate
 
+The Go CLI has its own release procedure: [new-cli/docs/releasing.md](../new-cli/docs/releasing.md).
+
 Version 1 releases preserve Git history and publish one generated Agent Plugins
 1.0 archive with a Claude Code compatibility manifest. The source of truth
 remains `.agents/skills/`; never commit a second `skills/` tree or a runtime portability

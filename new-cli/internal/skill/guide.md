@@ -298,11 +298,30 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 
 ## Updating the binary
 
-`self-host self-update` selects the highest stable `new-cli-vX.Y.Z` release
-from `ajnart/selfhost-skills`, verifies its sha256
+`self-host self-update` selects the highest stable CLI release from
+`ajnart/selfhost-skills` (tags `vX.Y.Z` or the earlier `new-cli-vX.Y.Z`; only a
+release that carries the `self-host_<version>_<os>_<arch>.tar.gz` archives and
+`checksums.txt` counts, so the skill-pack releases are never picked), verifies its sha256
 checksum, and replaces the running binary. It prints the old and new versions
 and refuses on a checksum mismatch. A development build must be replaced with
-a release using the install script instead.
+a release using the install script instead. `SELF_HOST_RELEASE_REPO=owner/name`
+points it at another repository, for a fork or after a rename.
+
+You are told about a newer release without asking, and never in a way that
+disturbs an agent:
+
+- The terminal Dashboard (bare `self-host`) asks "Update now? y/n" once it is
+  idle. `y` runs the same verified update and restarts into the new version;
+  `n` remembers that release in `<user cache dir>/self-host/update.json`, so it
+  does not ask again until a newer one appears. It never appears during
+  Onboarding or pre-boot, or while an Action runs.
+- A plain command in an interactive terminal prints one line,
+  `self-host <new> is available: run self-host self-update`, at most once every
+  24 hours. The check runs in parallel and is dropped if it is slow.
+- Neither appears under `--json`, when stdin or stdout is not a terminal, when
+  `CI` is set, on a development build, for `self-update` itself, or when
+  `SELF_HOST_NO_UPDATE_CHECK=1`. An agent that passes `--json` is never
+  interrupted.
 
 Linux and macOS amd64/arm64 are build targets. Use the Linux binary
 inside WSL; native Windows is unsupported. Cross-compilation
