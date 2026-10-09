@@ -1,0 +1,108 @@
+new-cli/PLAN.md
+  h_d6e478ca18e517 25,39
+new-cli/README.md
+  h_d6e478ca18e517 9,302
+new-cli/docs/catalog/traps/wud.md
+  h_d6e478ca18e517 8
+new-cli/internal/cli/backup.go
+  h_d6e478ca18e517 41
+new-cli/internal/cli/install_test.go
+  h_d6e478ca18e517 92,263
+new-cli/internal/cli/isolation_test.go
+  h_d6e478ca18e517 26
+new-cli/internal/clitest/clitest.go
+  h_d6e478ca18e517 68
+new-cli/internal/project/appearance_test.go
+  h_d6e478ca18e517 44
+new-cli/internal/project/open_test.go
+  h_d6e478ca18e517 1-14
+new-cli/internal/project/project.go
+  h_d6e478ca18e517 26
+new-cli/internal/service/mutation_test.go
+  h_d6e478ca18e517 123
+new-cli/internal/service/service.go
+  h_d6e478ca18e517 84
+new-cli/internal/skill/guide.md
+  h_d6e478ca18e517 4,69,158,165,185
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 183
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-simple-apps-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-simple-apps.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-simple-overview.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/menu-app.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/menu-project.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/overview-idle-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/overview-idle.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/overview-running-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/overview-running.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/settings-appearance-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/settings-appearance.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/settings-pending-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-activity-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-activity.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-apps.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-overview.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8b4e4dc53e2791e8345c28db7074fd6b7f762884",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
