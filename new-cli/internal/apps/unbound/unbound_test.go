@@ -8,6 +8,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/unbound"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -72,7 +73,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("rerun recorded %d steps, want 2", len(results))
 	}
 	for i, r := range results {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %d (%s) = %q, want skip", i, r.ID, r.Status)
 		}
 	}

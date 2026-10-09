@@ -16,6 +16,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -248,7 +249,7 @@ func TestStartRemembersFailureAndRetryWithoutChangingSetupSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	steps := status.Apps[0].Steps
-	if len(steps) != 5 || steps[2].ID != "start" || steps[2].Status != "fail" || !strings.Contains(steps[2].Error, "port is already allocated") {
+	if len(steps) != 5 || steps[2].ID != "start" || steps[2].Status != stepstatus.StepFail || !strings.Contains(steps[2].Error, "port is already allocated") {
 		t.Fatalf("start failure not remembered: %+v", steps)
 	}
 	if !reflect.DeepEqual(steps[3:], before.Apps[0].Steps[3:]) {
@@ -453,7 +454,7 @@ func TestFailedStartDoesNotFailSetup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Apps[0].Setup != "ok" {
+	if status.Apps[0].Setup != stepstatus.SetupOK {
 		t.Fatalf("Setup = %q, want ok: a failed start is not a Setup failure", status.Apps[0].Setup)
 	}
 }
@@ -466,7 +467,7 @@ func TestManualSetupIsNotIncomplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Apps[0].Setup != "manual" {
+	if status.Apps[0].Setup != stepstatus.SetupManual {
 		t.Fatalf("Setup = %q, want manual", status.Apps[0].Setup)
 	}
 	if e := h.rec.find("one", "setup"); e != nil {
@@ -477,7 +478,7 @@ func TestManualSetupIsNotIncomplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	status, err = h.svc.Status(context.Background())
-	if err != nil || status.Apps[0].Setup != "ok" {
+	if err != nil || status.Apps[0].Setup != stepstatus.SetupOK {
 		t.Fatalf("retry = %+v, %v", status, err)
 	}
 }

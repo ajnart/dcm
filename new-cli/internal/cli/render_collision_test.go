@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/backup"
 	"github.com/ajnart/self-host/internal/clitest"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -146,7 +147,7 @@ func TestInstallCollisionPreservesConfigAndRejectsBeforeCompose(t *testing.T) {
 	if current.Port != previous.Port || !reflect.DeepEqual(current.Inputs, previous.Inputs) {
 		t.Fatal("rejected install persisted unapplied port or public inputs")
 	}
-	if current.Steps["render"].Status != "fail" || !strings.Contains(current.Steps["render"].Error, "shared-cache") || result.StepEvent("two", "render") != "step.fail" {
+	if current.Steps["render"].Status != stepstatus.StepFail || !strings.Contains(current.Steps["render"].Error, "shared-cache") || result.StepEvent("two", "render") != "step.fail" {
 		t.Fatal("render rejection did not persist and emit its failure record")
 	}
 	for _, cmd := range runner.Cmds()[start:] {

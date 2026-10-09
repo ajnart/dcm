@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -183,16 +184,16 @@ func (p *Project) SaveSecrets(secrets map[string]string) error {
 // State
 
 type StepRecord struct {
-	Status string `json:"status"`
-	Msg    string `json:"msg,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Hint   string `json:"hint,omitempty"`
+	Status status.Step `json:"status"`
+	Msg    string      `json:"msg,omitempty"`
+	Error  string      `json:"error,omitempty"`
+	Hint   string      `json:"hint,omitempty"`
 }
 
 type AppState struct {
 	Port   int                   `json:"port"`
 	Inputs map[string]string     `json:"inputs,omitempty"`
-	Setup  string                `json:"setup"`
+	Setup  status.Setup          `json:"setup"`
 	Steps  map[string]StepRecord `json:"steps,omitempty"`
 	// StepOrder keeps steps in the order they last ran.
 	StepOrder []string `json:"step_order,omitempty"`

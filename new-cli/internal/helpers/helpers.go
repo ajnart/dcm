@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -35,7 +36,7 @@ type Executor interface {
 
 type StepResult struct {
 	ID     string
-	Status string // ok, skip, fail, manual
+	Status status.Step
 	Msg    string
 	Error  string
 	Hint   string
@@ -134,7 +135,7 @@ func (h *H) Step(ctx context.Context, id, msg string, spec StepSpec) error {
 	if spec.Check != nil {
 		if done, err := spec.Check(ctx); err == nil && done {
 			h.Log.Emit(events.Event{Event: events.StepSkip, App: h.App, Step: id, Msg: msg + " (already done)"})
-			h.Record(StepResult{ID: id, Status: "skip", Msg: msg})
+			h.Record(StepResult{ID: id, Status: status.StepSkip, Msg: msg})
 			return nil
 		}
 	}
@@ -153,7 +154,7 @@ func (h *H) Step(ctx context.Context, id, msg string, spec StepSpec) error {
 		}
 	}
 	h.Log.Emit(events.Event{Event: events.StepOK, App: h.App, Step: id, Msg: msg})
-	h.Record(StepResult{ID: id, Status: "ok", Msg: msg})
+	h.Record(StepResult{ID: id, Status: status.StepOK, Msg: msg})
 	return nil
 }
 
@@ -161,20 +162,20 @@ func (h *H) fail(id, msg string, spec StepSpec, err error) error {
 	if errors.Is(err, ErrManual) {
 		h.Log.Emit(events.Event{Event: events.StepManual, App: h.App, Step: id, Msg: msg,
 			URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
-		h.Record(StepResult{ID: id, Status: "manual", Msg: msg, Hint: spec.Hint})
+		h.Record(StepResult{ID: id, Status: status.StepManual, Msg: msg, Hint: spec.Hint})
 		return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, err))
 	}
 
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: id, Msg: msg, Error: err.Error(),
 		URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
-	h.Record(StepResult{ID: id, Status: "fail", Msg: msg, Error: err.Error(), Hint: spec.Hint})
+	h.Record(StepResult{ID: id, Status: status.StepFail, Msg: msg, Error: err.Error(), Hint: spec.Hint})
 	return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err)))
 }
 
 // Skip reports a step that cannot run yet and records it as skipped.
 func (h *H) Skip(id, msg string) {
 	h.Log.Emit(events.Event{Event: events.StepSkip, App: h.App, Step: id, Msg: msg})
-	h.Record(StepResult{ID: id, Status: "skip", Msg: msg})
+	h.Record(StepResult{ID: id, Status: status.StepSkip, Msg: msg})
 }
 
 // Info logs a progress line that is not a step.

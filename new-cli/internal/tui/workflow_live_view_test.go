@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/events"
@@ -46,7 +47,7 @@ func TestWorkflowViewConfiguredAppExpandsDuringRetry(t *testing.T) {
 	for _, event := range []string{events.StepStart, events.StepFail} {
 		t.Run(event, func(t *testing.T) {
 			ctx := testViewContext(&fakeBackend{})
-			ctx.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "ok", Steps: []service.StepStatus{{ID: "ready", Status: "ok"}}}}}
+			ctx.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepOK}}}}}
 			task := ctx.tasks.start("setup sonarr")
 			t.Cleanup(ctx.tasks.cancelAll)
 			task.append(events.Event{Event: events.RunStart, App: "sonarr"})
@@ -66,7 +67,7 @@ func TestWorkflowViewConfiguredAppExpandsDuringRetry(t *testing.T) {
 func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
 	m := New(backend, Options{})
-	m.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "fail"}}}}}
+	m.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}}}}}
 	m.workflow, m.surface = &workflowView{}, surfaceWorkflow
 	m.width, m.height, m.loaded = 80, 24, true
 	task := m.tasks.start("setup sonarr")
@@ -76,7 +77,7 @@ func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	if out := screen(m); !strings.Contains(out, "old TUI failure") {
 		t.Fatalf("terminal task lost before refresh\n%s", out)
 	}
-	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "ok", Steps: []service.StepStatus{{ID: "ready", Status: "ok", Msg: "new CLI success"}}}}}
+	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepOK, Msg: "new CLI success"}}}}}
 	m = update(t, m, m.loadStatus()())
 	if out := screen(m); strings.Contains(out, "old TUI failure") || !strings.Contains(out, "1 App fully set up") {
 		t.Fatalf("finished events override fresh persisted result\n%s", out)
@@ -86,7 +87,7 @@ func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 func TestWorkflowViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
 	m := New(backend, Options{})
-	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: "incomplete", Steps: []service.StepStatus{{ID: "ready", Status: "fail", Msg: "saved failure"}}}}}
+	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail, Msg: "saved failure"}}}}}
 	m.status = backend.status
 	m.workflow, m.surface = &workflowView{}, surfaceWorkflow
 	m.width, m.height, m.loaded = 80, 24, true
@@ -111,7 +112,7 @@ func TestWorkflowViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	if out := ansi.Strip(m.workflow.View(m.ctx(), 80, 24)); !strings.Contains(out, "✓ ready · live success") {
 		t.Fatalf("failed refresh erased terminal outcome\n%s", out)
 	}
-	backend.status.Apps[0].Steps[0] = service.StepStatus{ID: "ready", Status: "ok", Msg: "fresh saved success"}
+	backend.status.Apps[0].Steps[0] = service.StepStatus{ID: "ready", Status: stepstatus.StepOK, Msg: "fresh saved success"}
 	m = update(t, m, m.loadStatus()())
 	if out := screen(m); strings.Contains(out, "live success") || !strings.Contains(out, "fresh saved success") {
 		t.Fatalf("authoritative refresh did not replace finished task\n%s", out)

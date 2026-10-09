@@ -9,6 +9,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -116,8 +117,13 @@ func TestConfigReviewShowsDriftAndFixesItKeepingInstalledApps(t *testing.T) {
 		}
 	}
 	_, out = runWith(t, deps, cat, "status", "--json")
-	var status struct{ Apps []struct{ ID, Setup string } }
-	if err := json.Unmarshal([]byte(out), &status); err != nil || len(status.Apps) != 2 || status.Apps[0].Setup != "ok" || status.Apps[1].Setup != "ok" {
+	var status struct {
+		Apps []struct {
+			ID    string
+			Setup stepstatus.Setup
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &status); err != nil || len(status.Apps) != 2 || status.Apps[0].Setup != stepstatus.SetupOK || status.Apps[1].Setup != stepstatus.SetupOK {
 		t.Fatalf("installed Apps lost: %v\n%s", err, out)
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/docmost"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -172,7 +173,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, id := range []string{"admin"} {
-		if got := box.step(id); got.Status != "skip" {
+		if got := box.step(id); got.Status != stepstatus.StepSkip {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}

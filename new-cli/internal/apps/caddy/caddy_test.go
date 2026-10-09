@@ -2,6 +2,7 @@ package caddy_test
 
 import (
 	"context"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,8 +43,8 @@ func healthServer(status int) *httptest.Server {
 	}))
 }
 
-func statusOf(results []helpers.StepResult) []string {
-	var statuses []string
+func statusOf(results []helpers.StepResult) []stepstatus.Step {
+	var statuses []stepstatus.Step
 	for _, r := range results {
 		statuses = append(statuses, r.Status)
 	}
@@ -78,7 +79,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (caddy.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("second Setup: %v", err)
 	}
-	if statuses := statusOf(results); len(statuses) != 1 || statuses[0] != "skip" {
+	if statuses := statusOf(results); len(statuses) != 1 || statuses[0] != stepstatus.StepSkip {
 		t.Fatalf("rerun statuses = %v, want every step skipped", statuses)
 	}
 }

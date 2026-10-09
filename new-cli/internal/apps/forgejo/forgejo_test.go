@@ -13,6 +13,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/forgejo"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -123,7 +124,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -144,7 +145,7 @@ func TestSetupStepNamesTheAdministratorUsernameUsed(t *testing.T) {
 	}
 	var msg string
 	for _, r := range records {
-		if r.ID == "admin" && r.Status == "ok" {
+		if r.ID == "admin" && r.Status == stepstatus.StepOK {
 			msg = r.Msg
 		}
 	}
@@ -165,7 +166,7 @@ func TestFailingStepHintNamesTheSetupCommand(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

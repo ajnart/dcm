@@ -17,6 +17,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -85,7 +86,7 @@ func TestSavedInvalidTokenFailsBeforeAPICallsAndPreservesCredentials(t *testing.
 		if strings.Contains(record.Error+record.Hint, stored["PANGOLIN_SETUP_TOKEN"]) || strings.Contains(record.Error+record.Hint, adminPass) {
 			t.Fatal("bootstrap recovery message exposed a credential")
 		}
-		if record.ID != "setup-token" || record.Status != "fail" {
+		if record.ID != "setup-token" || record.Status != stepstatus.StepFail {
 			continue
 		}
 		for _, required := range []string{"PANGOLIN_SETUP_TOKEN", filepath.Join(h.Dir, "..", "..", "secrets.env"), "32 lowercase alphanumeric", "ADMIN_PASSWORD", "data", "self-host install pangolin"} {
@@ -187,7 +188,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if (r.ID == "admin" || r.ID == "management-url") && r.Status != "skip" {
+		if (r.ID == "admin" || r.ID == "management-url") && r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -204,7 +205,7 @@ func TestMissingOriginFailsWithAHint(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

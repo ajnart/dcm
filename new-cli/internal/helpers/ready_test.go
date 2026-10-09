@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 func stepStatus(t *testing.T, results []helpers.StepResult, id string) helpers.StepResult {
@@ -34,7 +35,7 @@ func TestReadySkipsWhenAlreadyAnswering(t *testing.T) {
 		t.Fatalf("Ready: %v", err)
 	}
 	got := stepStatus(t, results, "ready")
-	if got.Status != "skip" {
+	if got.Status != stepstatus.StepSkip {
 		t.Errorf("ready status = %q, want skip", got.Status)
 	}
 }
@@ -50,7 +51,7 @@ func TestReadyDefaultAcceptsAnyStatusBelow500(t *testing.T) {
 	if err := h.Ready(context.Background(), "/"); err != nil {
 		t.Fatalf("Ready: %v", err)
 	}
-	if got := stepStatus(t, results, "ready"); got.Status != "skip" {
+	if got := stepStatus(t, results, "ready"); got.Status != stepstatus.StepSkip {
 		t.Errorf("ready status = %q, want skip for HTTP 401", got.Status)
 	}
 }
@@ -76,7 +77,7 @@ func TestReadyPollsUntilOK(t *testing.T) {
 	if err := h.Ready(context.Background(), "/health", helpers.Timeout(time.Minute)); err != nil {
 		t.Fatalf("Ready: %v", err)
 	}
-	if got := stepStatus(t, results, "ready"); got.Status != "ok" {
+	if got := stepStatus(t, results, "ready"); got.Status != stepstatus.StepOK {
 		t.Errorf("ready status = %q, want ok", got.Status)
 	}
 	mu.Lock()
@@ -98,7 +99,7 @@ func TestReadyWantStatusRejectsOtherwise(t *testing.T) {
 	if err == nil {
 		t.Fatal("Ready = nil, want failure for a status outside WantStatus")
 	}
-	if got := stepStatus(t, results, "ready"); got.Status != "fail" {
+	if got := stepStatus(t, results, "ready"); got.Status != stepstatus.StepFail {
 		t.Errorf("ready status = %q, want fail", got.Status)
 	}
 }

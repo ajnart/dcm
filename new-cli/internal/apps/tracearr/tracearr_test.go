@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/tracearr"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -121,7 +122,7 @@ func TestSetupThenCheckPass(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			t.Errorf("step %s failed: %s", r.ID, r.Error)
 		}
 	}
@@ -160,7 +161,7 @@ func TestSetupMaintenanceTimeoutHasRecoveryHint(t *testing.T) {
 		t.Fatalf("expected only the readiness failure, got %+v", *recorded)
 	}
 	fail := (*recorded)[0]
-	if fail.ID != "ready" || fail.Status != "fail" ||
+	if fail.ID != "ready" || fail.Status != stepstatus.StepFail ||
 		!strings.Contains(fail.Hint, "/api/v1/setup/status") ||
 		!strings.Contains(fail.Hint, "self-host logs tracearr") {
 		t.Fatalf("missing readiness recovery hint: %+v", fail)
@@ -181,7 +182,7 @@ func TestMaintenanceFailureReportsOnlyFixedPublicStartupSignals(t *testing.T) {
 	}
 	var observed bool
 	for _, step := range *recorded {
-		if step.ID == "startup-status" && step.Status == "fail" && strings.Contains(step.Error, "db=unavailable") {
+		if step.ID == "startup-status" && step.Status == stepstatus.StepFail && strings.Contains(step.Error, "db=unavailable") {
 			observed = true
 		}
 		if strings.Contains(step.Error+step.Hint, "synthetic-private") {
@@ -252,7 +253,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s = %s on rerun, want skip", r.ID, r.Status)
 		}
 	}
@@ -268,7 +269,7 @@ func TestFailedCreateHintNamesTheApp(t *testing.T) {
 	}
 	var fail *helpers.StepResult
 	for i := range *recorded {
-		if (*recorded)[i].Status == "fail" {
+		if (*recorded)[i].Status == stepstatus.StepFail {
 			fail = &(*recorded)[i]
 		}
 	}

@@ -8,15 +8,16 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/compose"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
 )
 
 type StepStatus struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
-	Msg    string `json:"msg,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Hint   string `json:"hint,omitempty"`
+	ID     string          `json:"id"`
+	Status stepstatus.Step `json:"status"`
+	Msg    string          `json:"msg,omitempty"`
+	Error  string          `json:"error,omitempty"`
+	Hint   string          `json:"hint,omitempty"`
 }
 
 type AppStatus struct {
@@ -31,9 +32,9 @@ type AppStatus struct {
 	State  string `json:"state"`
 	Health string `json:"health,omitempty"`
 	// Setup is ok, manual, incomplete, pending, or unmanaged.
-	Setup    string       `json:"setup"`
-	Steps    []StepStatus `json:"steps,omitempty"`
-	Services []string     `json:"services,omitempty"`
+	Setup    stepstatus.Setup `json:"setup"`
+	Steps    []StepStatus     `json:"steps,omitempty"`
+	Services []string         `json:"services,omitempty"`
 	// Update is available, current or unknown; empty when not checked.
 	Update string `json:"update,omitempty"`
 }
@@ -76,7 +77,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	for _, id := range ids {
-		as := AppStatus{ID: id, Name: id, Setup: "unmanaged", State: "missing"}
+		as := AppStatus{ID: id, Name: id, Setup: stepstatus.SetupUnmanaged, State: "missing"}
 		services, _ := fragmentServices(ss.p.FragmentPath(id))
 		as.Services = services
 		mainService := id

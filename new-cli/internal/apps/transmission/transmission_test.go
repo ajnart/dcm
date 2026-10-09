@@ -10,6 +10,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/porttest"
 	"github.com/ajnart/self-host/internal/apps/transmission"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type fakeTransmission struct {
@@ -66,7 +67,7 @@ func TestPreseededLoginIsProvenThroughRPC(t *testing.T) {
 	if err := (transmission.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if rec.Status("admin") != "skip" {
+	if rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("admin step = %q, want skip", rec.Status("admin"))
 	}
 }
@@ -81,7 +82,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (transmission.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.Status("ready") != "skip" || rec.Status("admin") != "skip" {
+	if rec.Status("ready") != stepstatus.StepSkip || rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip: ready=%q admin=%q", rec.Status("ready"), rec.Status("admin"))
 	}
 }
@@ -96,7 +97,7 @@ func TestTheHintNamesTheAppWhenTheSeedDidNotApply(t *testing.T) {
 	if err := (transmission.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the seeded login is refused")
 	}
-	if rec.Status("admin") != "manual" || !strings.Contains(rec.Hint(), server.URL) {
+	if rec.Status("admin") != stepstatus.StepManual || !strings.Contains(rec.Hint(), server.URL) {
 		t.Fatalf("admin step should be manual with the App URL hint, got %q", rec.Hint())
 	}
 }

@@ -2,7 +2,9 @@ package project
 
 import (
 	"encoding/json"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -70,7 +72,7 @@ func TestConcurrentSavesNeverDamageState(t *testing.T) {
 			defer wg.Done()
 			state := &State{Version: 1, Apps: map[string]*AppState{}}
 			for j := 0; j <= i%7; j++ {
-				state.Apps[strings.Repeat("a", j+1)] = &AppState{Setup: "ok", Port: 8000 + j}
+				state.Apps[strings.Repeat("a", j+1)] = &AppState{Setup: stepstatus.SetupOK, Port: 8000 + j}
 			}
 			if err := p.SaveState(state); err != nil {
 				t.Error(err)
@@ -172,4 +174,51 @@ func TestLockRefusesAnotherLiveProcess(t *testing.T) {
 		t.Fatalf("a stale lock must be replaced: %v", err)
 	}
 	unlock()
+}
+
+func TestLegacyStatusStringsRoundTrip(t *testing.T) {
+	p := testProject(t)
+	legacy := []byte(`{"version":1,"apps":{"ok":{"port":0,"setup":"ok","steps":{"ok":{"status":"ok"},"skip":{"status":"skip"},"fail":{"status":"fail"},"manual":{"status":"manual"}}},"incomplete":{"port":0,"setup":"incomplete"},"manual":{"port":0,"setup":"manual"},"pending":{"port":0,"setup":"pending"},"unmanaged":{"port":0,"setup":"unmanaged"}}}`)
+	if err := os.WriteFile(p.Path("state.json"), legacy, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	state, err := p.LoadState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.SaveState(state); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(p.Path("state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	statusFields := func(data []byte) map[string]string {
+		var doc struct {
+			Apps map[string]struct {
+				Setup json.RawMessage
+				Steps map[string]struct{ Status json.RawMessage }
+			}
+		}
+		if err := json.Unmarshal(data, &doc); err != nil {
+			t.Fatal(err)
+		}
+		fields := map[string]string{}
+		for id, app := range doc.Apps {
+			fields[id+"/setup"] = string(app.Setup)
+			for step, record := range app.Steps {
+				fields[id+"/"+step] = string(record.Status)
+			}
+		}
+		return fields
+	}
+	if !reflect.DeepEqual(statusFields(got), statusFields(legacy)) {
+		t.Fatalf("legacy status bytes changed: %s", got)
+	}
+	if typ := reflect.TypeOf(state.Apps["ok"].Steps["ok"].Status); typ.Name() != "Step" {
+		t.Fatalf("step status type = %s, want status.Step", typ)
+	}
+	if typ := reflect.TypeOf(state.Apps["ok"].Setup); typ.Name() != "Setup" {
+		t.Fatalf("Setup type = %s, want status.Setup", typ)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -23,7 +24,7 @@ func TestStatusJSONRedactsLegacyStepDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Apps["one"].Steps["configure"] = project.StepRecord{Status: "fail", Msg: "failed synthetic-password", Error: "refused synthetic-password", Hint: "retry synthetic-password"}
+	state.Apps["one"].Steps["configure"] = project.StepRecord{Status: stepstatus.StepFail, Msg: "failed synthetic-password", Error: "refused synthetic-password", Hint: "retry synthetic-password"}
 	if err := p.SaveState(state); err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/spf13/cobra"
 
 	"github.com/ajnart/self-host/internal/service"
@@ -135,10 +136,10 @@ func printStatus(w io.Writer, s service.Status) {
 	tw.Flush()
 	for _, app := range s.Apps {
 		for _, step := range app.Steps {
-			if step.Status == "manual" {
+			if step.Status == stepstatus.StepManual {
 				fmt.Fprintf(w, "\n! %s › %s: manual step\n  → %s\n", app.ID, step.ID, step.Hint)
 			}
-			if step.Status == "fail" {
+			if step.Status == stepstatus.StepFail {
 				fmt.Fprintf(w, "\n✗ %s › %s: %s\n  → %s\n", app.ID, step.ID, step.Error, step.Hint)
 			}
 		}

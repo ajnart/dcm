@@ -11,6 +11,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/portainer"
 	"github.com/ajnart/self-host/internal/apps/porttest"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type fakePortainer struct {
@@ -55,7 +56,7 @@ func TestThePreseededAdministratorSignsIn(t *testing.T) {
 	if err := (portainer.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if rec.Status("admin") != "skip" {
+	if rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("admin step = %q, want skip", rec.Status("admin"))
 	}
 }
@@ -70,7 +71,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (portainer.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.Status("admin") != "skip" {
+	if rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("admin step = %q, want skip", rec.Status("admin"))
 	}
 }
@@ -85,7 +86,7 @@ func TestTheHintNamesTheAppWhenTheSeedIsStale(t *testing.T) {
 	if err := (portainer.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the preseeded password is refused")
 	}
-	if rec.Status("admin") != "fail" || !strings.Contains(rec.Hint(), server.URL) {
+	if rec.Status("admin") != stepstatus.StepFail || !strings.Contains(rec.Hint(), server.URL) {
 		t.Fatalf("admin step should fail with the App URL hint, got %q", rec.Hint())
 	}
 }
