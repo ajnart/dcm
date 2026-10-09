@@ -1,7 +1,7 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  ⚠ 1 update 12:00:00
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
 ╭─ Apps 3 ───────────────────────╮╭─ Jellyfin ─────────────────────────────────────────────────────────────────────────╮
 │ ● ▶ Jellyfin         running   ││  logs   setup   info   compose   containers                                        │
-│ ✗ ⊕ Sonarr           running   ││ ────────────────────────────────────────────────────────────────────────────────── │
+│ ✗ ↓ Sonarr           running   ││ ────────────────────────────────────────────────────────────────────────────────── │
 │ ✗ ◇ whoami           stopped   ││ 1 container · 1 running · ⚠ update available · checked 12:00                       │
 │                                ││                                                                                    │
 │                                ││ SERVICE               STATE     HEALTH    UPTIME                PORTS              │

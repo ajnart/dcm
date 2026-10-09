@@ -18,23 +18,23 @@ func withGlyphs(t *testing.T, m Model, g activity.Glyphs) Model {
 
 func TestAppsListsShowACategoryIconInEachSet(t *testing.T) {
 	for _, tc := range []struct {
-		set                    activity.Glyphs
-		media, requests, other string
+		set                     activity.Glyphs
+		media, downloads, other string
 	}{
-		{activity.NerdFont, "\U000F0FCE", "\U000F11D2", "\U000F08C6"},
-		{activity.Simple, "▶", "⊕", "◇"},
+		{activity.NerdFont, "\U000F0FCE", "\U000F01DA", "\U000F08C6"},
+		{activity.Simple, "▶", "↓", "◇"},
 	} {
 		m := goldenModel(t, 120, 30)
 		m = withGlyphs(t, m, tc.set)
 
 		overview := screen(m)
-		for _, want := range []string{tc.media + " Jellyfin", tc.requests + " Sonarr", tc.other + " whoami"} {
+		for _, want := range []string{tc.media + " Jellyfin", tc.downloads + " Sonarr", tc.other + " whoami"} {
 			if !strings.Contains(overview, want) {
 				t.Errorf("%s: the Overview's Apps lack %q\n%s", tc.set, want, overview)
 			}
 		}
 		apps := screen(drive(t, m, press("2")))
-		for _, want := range []string{tc.media + " Jellyfin", tc.requests + " Sonarr", tc.other + " whoami"} {
+		for _, want := range []string{tc.media + " Jellyfin", tc.downloads + " Sonarr", tc.other + " whoami"} {
 			if !strings.Contains(apps, want) {
 				t.Errorf("%s: the Apps tab lacks %q\n%s", tc.set, want, apps)
 			}

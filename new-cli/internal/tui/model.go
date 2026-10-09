@@ -126,6 +126,9 @@ type Model struct {
 
 	flash      string
 	flashLevel level
+	// resultFlash is the flash that reports the last Action's result, which
+	// the Overview's Now strip shows instead of the status line.
+	resultFlash string
 
 	surface   surface
 	showHelp  bool
@@ -460,6 +463,7 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	default:
 		m.setFlash("✓ "+msg.title, levelOK)
 	}
+	m.resultFlash = m.flash
 	cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
 	if strings.HasPrefix(msg.title, "config") {
 		// URLs and Compose files may have changed with the settings.
@@ -474,7 +478,6 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 // relayout sizes the dashboard viewport; call it whenever the layout can move.
 func (m *Model) relayout() {
 	ctxView := m.ctx()
-	m.dashboard.relayout(ctxView)
 	m.apps.refreshDetails(ctxView)
 	m.help.SetWidth(m.width)
 	if m.install != nil {

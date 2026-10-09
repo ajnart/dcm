@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -8,43 +9,44 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
-// dashboardView is the Overview tab: every App with its Status, what Needs
-// attention, and the selected App's details. The Apps pane and the details
-// pane take focus in turn; Needs attention has nothing to navigate. The App
-// selection, App details and the credential picker are the Apps tab's, so
-// both tabs show the same App.
+// dashboardView is the Overview tab, the command center: the Now strip with
+// the running or last Action, every App at a glance, and what Needs
+// attention, each item naming the chord that resolves it. The Apps pane and
+// Needs attention take focus in turn. The App selection and the credential
+// picker are the Apps tab's, so both tabs select the same App.
 type dashboardView struct {
-	apps *appsView
-	// detailsFocused gives ↑/↓ to the details instead of the App selection.
-	detailsFocused bool
+	apps         *appsView
+	needsFocused bool
+	needsCursor  int
 }
 
 func newDashboardView(apps *appsView) *dashboardView { return &dashboardView{apps: apps} }
 
 var (
-	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "go to App"),
-		hint("tab", "next pane"), hint("[/]", "sub-tab"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
-	overviewDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("a", "actions"), hint("tab", "next pane"),
-		hint("[/]", "sub-tab"), hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
+	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("enter", "go to App"), hint("a", "actions"),
+		hint("tab", "next pane"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
+	overviewNeedsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "resolve"), hint("enter", "go to App"),
+		hint("tab", "next pane"), hint("shift+tab", "previous pane")}
 )
 
 func (v *dashboardView) Keys() []key.Binding {
 	switch {
 	case v.apps.copy != nil:
 		return copyHelp
-	case v.detailsFocused:
-		return overviewDetailsKeys
+	case v.needsFocused:
+		return overviewNeedsKeys
 	}
 	return overviewAppsKeys
 }
 
 func (v *dashboardView) Panes() []pane {
-	return []pane{{"Apps", overviewAppsKeys}, {"Details", overviewDetailsKeys}}
+	return []pane{{"Apps", overviewAppsKeys}, {"Needs attention", overviewNeedsKeys}}
 }
 
 func (v *dashboardView) Capturing() bool { return false }
@@ -53,8 +55,35 @@ func (v *dashboardView) Title() string { return "Overview" }
 
 func (v *dashboardView) rows(ctx *viewContext) []service.AppStatus { return ctx.status.Apps }
 
+// selectedApp is the App a opens the Action menu for: the selected App, or
+// the App of the selected Needs attention item.
 func (v *dashboardView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
-	return v.apps.selectedApp(ctx)
+	if !v.needsFocused {
+		return v.apps.selectedApp(ctx)
+	}
+	item, found := v.selectedNeed(ctx)
+	if !found || item.app == "" {
+		return service.AppStatus{}, false
+	}
+	return appStatus(ctx, item.app)
+}
+
+// suggestedAction is the mnemonic of the Action the selected Needs attention
+// item names, which the Action menu highlights.
+func (v *dashboardView) suggestedAction(ctx *viewContext) string {
+	if !v.needsFocused {
+		return ""
+	}
+	item, _ := v.selectedNeed(ctx)
+	return item.action
+}
+
+func (v *dashboardView) selectedNeed(ctx *viewContext) (need, bool) {
+	items := v.needsAction(ctx)
+	if len(items) == 0 {
+		return need{}, false
+	}
+	return items[min(v.needsCursor, len(items)-1)], true
 }
 
 func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
@@ -64,10 +93,8 @@ func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, na
 			return v, v.apps.copyKey(ctx, msg), nav{}
 		}
 		return v.key(ctx, msg)
-	case tea.MouseWheelMsg:
-		v.apps.wheel(msg)
 	case clickMsg:
-		return v, v.apps.click(ctx, msg.id), nav{}
+		return v.click(ctx, msg.id)
 	}
 	return v, nil, nav{}
 }
@@ -76,40 +103,35 @@ func (v *dashboardView) View(ctx *viewContext, width, height int) string {
 	if v.apps.copy != nil {
 		return v.apps.copy.view(ctx, width, height)
 	}
-	main, layers := v.render(ctx)
+	main, layers := v.render(ctx, width, height)
 	ctx.layers = append(ctx.layers, layers...)
 	return main
 }
 
 func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	k := ctx.keys
-	vp := &v.apps.details.vp
+	items := v.needsAction(ctx)
+	if len(items) == 0 {
+		v.needsFocused = false
+	}
+	v.needsCursor = max(min(v.needsCursor, len(items)-1), 0)
 	switch {
-	case key.Matches(msg, k.Up) && v.detailsFocused:
-		vp.ScrollUp(1)
-	case key.Matches(msg, k.Down) && v.detailsFocused:
-		vp.ScrollDown(1)
+	case key.Matches(msg, k.NextPane), key.Matches(msg, k.PrevPane):
+		v.needsFocused = !v.needsFocused && len(items) > 0
+	case key.Matches(msg, k.Up) && v.needsFocused:
+		v.needsCursor = max(v.needsCursor-1, 0)
+	case key.Matches(msg, k.Down) && v.needsFocused:
+		v.needsCursor = min(v.needsCursor+1, len(items)-1)
+	case msg.String() == "enter" && v.needsFocused:
+		return v.goToApp(ctx, items[v.needsCursor].app)
+	case v.needsFocused:
+		// The keys below act on the Apps pane.
 	case key.Matches(msg, k.Up):
 		return v, v.apps.selectApp(ctx, v.apps.cursor-1), nav{}
 	case key.Matches(msg, k.Down):
 		return v, v.apps.selectApp(ctx, v.apps.cursor+1), nav{}
-	case key.Matches(msg, k.NextPane), key.Matches(msg, k.PrevPane):
-		if v.layout(ctx).detailsH > 0 {
-			v.detailsFocused = !v.detailsFocused
-		}
-	case msg.String() == "enter" && !v.detailsFocused:
-		if _, found := v.apps.selected(ctx); found {
-			v.apps.detailsFocused = true
-			return v, nil, nav{kind: navTo, to: surfaceApps}
-		}
-	case key.Matches(msg, k.NextSub):
-		return v, v.apps.stepSubTab(ctx, 1), nav{}
-	case key.Matches(msg, k.PrevSub):
-		return v, v.apps.stepSubTab(ctx, -1), nav{}
-	case key.Matches(msg, k.ScrollUp):
-		vp.PageUp()
-	case key.Matches(msg, k.ScrollDown):
-		vp.PageDown()
+	case msg.String() == "enter":
+		return v.goToApp(ctx, v.apps.selectedID(ctx))
 	case key.Matches(msg, k.Copy):
 		return v, v.apps.openCopy(ctx), nav{}
 	case key.Matches(msg, k.Open):
@@ -118,64 +140,90 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 	return v, nil, nav{}
 }
 
+// goToApp opens the App on the Apps tab with its details focused.
+func (v *dashboardView) goToApp(ctx *viewContext, id string) (view, tea.Cmd, nav) {
+	for i, app := range v.rows(ctx) {
+		if app.ID == id {
+			cmd := v.apps.selectApp(ctx, i)
+			v.apps.detailsFocused = true
+			return v, cmd, nav{kind: navTo, to: surfaceApps}
+		}
+	}
+	return v, nil, nav{}
+}
+
+// click selects an App row or a Needs attention item.
+func (v *dashboardView) click(ctx *viewContext, id string) (view, tea.Cmd, nav) {
+	var n int
+	switch {
+	case strings.HasPrefix(id, "need:"):
+		fmt.Sscanf(id, "need:%d", &n)
+		v.needsFocused, v.needsCursor = true, n
+	case strings.HasPrefix(id, "row:"):
+		v.needsFocused = false
+		return v, v.apps.click(ctx, id), nav{}
+	}
+	return v, nil, nav{}
+}
+
 // Layout
 
+// nowHeight is the Now strip's box: the Action's title, its bar or stages,
+// its narrative and the host health.
+const nowHeight = 6
+
 type layout struct {
-	wide                    bool
-	leftW, rightW           int
-	appsH, needsH, detailsH int
-	detailsX, detailsY      int
+	wide          bool
+	leftW, rightW int
+	appsH, needsH int
 }
 
-func (v *dashboardView) layout(ctx *viewContext) layout {
-	h := ctx.mainHeight()
-	appsWant := max(len(v.rows(ctx)), 1) + 2
-	if ctx.width >= wideWidth {
-		left := max(58, ctx.width*2/5)
-		appsH := min(appsWant, max(h-5, 3))
-		return layout{wide: true, leftW: left, rightW: ctx.width - left, appsH: appsH, needsH: h - appsH,
-			detailsH: h, detailsX: left, detailsY: 1}
+// layout puts the Now strip on top; below it Apps and Needs attention sit
+// side by side when wide, and stack when narrow.
+func (v *dashboardView) layout(ctx *viewContext, width, height int) layout {
+	h := max(height-nowHeight, 6)
+	if width >= wideWidth {
+		left := width * 11 / 20
+		return layout{wide: true, leftW: left, rightW: width - left, appsH: h, needsH: h}
 	}
-	l := layout{leftW: ctx.width, rightW: ctx.width}
-	l.appsH = min(appsWant, max(h/2, 3))
-	needs, _ := v.needsLines(ctx, ctx.width-4)
-	l.needsH = min(len(needs)+2, h-l.appsH)
-	l.detailsH = h - l.appsH - l.needsH
-	if l.detailsH < 6 {
-		l.needsH += l.detailsH
-		l.detailsH = 0
-	}
-	l.detailsY = 1 + l.appsH + l.needsH
-	return l
-}
-
-// relayout returns focus to the Apps pane when the details no longer fit.
-func (v *dashboardView) relayout(ctx *viewContext) {
-	if v.layout(ctx).detailsH == 0 {
-		v.detailsFocused = false
-	}
+	appsH := min(max(len(v.rows(ctx)), 1)+2, max(h/2, 3))
+	return layout{leftW: width, rightW: width, appsH: appsH, needsH: h - appsH}
 }
 
 // Rendering
 
-func (v *dashboardView) render(ctx *viewContext) (string, []*lipgloss.Layer) {
-	l := v.layout(ctx)
-	apps, layers := v.renderApps(ctx, l.leftW, l.appsH)
-	needs, needLayers := v.renderNeeds(ctx, l.leftW, l.needsH, 1+l.appsH)
-	layers = append(layers, needLayers...)
-	if l.detailsH == 0 {
-		return apps + "\n" + needs, layers
-	}
-	app, found := v.apps.selected(ctx)
-	details, tabLayers := v.apps.details.render(ctx, app, found, l.rightW, l.detailsH, l.detailsX, l.detailsY, v.detailsFocused)
-	layers = append(layers, tabLayers...)
+func (v *dashboardView) render(ctx *viewContext, width, height int) (string, []*lipgloss.Layer) {
+	l := v.layout(ctx, width, height)
+	now := v.renderNow(ctx, width)
+	apps, layers := v.renderApps(ctx, l.leftW, l.appsH, 1+nowHeight)
 	if l.wide {
-		return lipgloss.JoinHorizontal(lipgloss.Top, apps+"\n"+needs, details), layers
+		needs, needLayers := v.renderNeeds(ctx, l.rightW, l.needsH, l.leftW, 1+nowHeight)
+		return now + "\n" + lipgloss.JoinHorizontal(lipgloss.Top, apps, needs), append(layers, needLayers...)
 	}
-	return apps + "\n" + needs + "\n" + details, layers
+	needs, needLayers := v.renderNeeds(ctx, l.rightW, l.needsH, 0, 1+nowHeight+l.appsH)
+	return now + "\n" + apps + "\n" + needs, append(layers, needLayers...)
 }
 
-func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string, []*lipgloss.Layer) {
+// renderNow is the Now strip: the running Action drawn by the presentation
+// renderer, or the last Action's result, with the host health in words. It
+// is never empty: before any Action it says so.
+func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
+	t := ctx.theme
+	inner := width - 4
+	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, t.palette())
+	if len(lines) == 0 {
+		lines = []string{t.dim().Render("No Action yet")}
+	}
+	label, level := hostHealth(ctx.checks)
+	health := t.fg(t.muted).Render("○ Host: " + label)
+	if level != "" {
+		health = t.dot(level) + " " + t.body().Render("Host: "+label)
+	}
+	lines = append(lines, health)
+	return t.box("Now", "", strings.Join(lines, "\n"), width, nowHeight, false)
+}
+
+func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
 	inner := width - 4
 	visible := max(height-2, 1)
@@ -198,36 +246,47 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 			line = dot + t.selection().Render(pad(stripANSI(row), inner-2))
 		}
 		lines = append(lines, line)
-		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
+		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(y+1+i-offset).ID(rowLayerID(i)))
 	}
-	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.detailsFocused), layers
+	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.needsFocused), layers
 }
 
-// appRow is one App after its Status dot: category icon, name, URL, state,
-// Setup and update marks.
+// appRow is one App after its Status dot: its category icon and name, category,
+// address when it fits, state, Setup mark and update mark. The name cell is
+// built in one place.
 func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) string {
 	t := ctx.theme
 	update := " "
 	if a.Update == service.UpdateAvailable {
 		update = t.fg(t.warn).Render("↑")
 	}
-	urlWidth := min(width-28, 26)
+	name := t.dim().Render(categoryIcon(ctx, a.ID)) + " " + t.body().Render(pad(a.Name, 13)) + " "
+	category := t.dim().Render(pad(appCategory(ctx, a.ID), 10)) + " "
+	// The address without its scheme: o opens it.
+	address := strings.TrimPrefix(strings.TrimPrefix(a.URL, "http://"), "https://")
+	urlWidth := min(width-40, 22)
 	url := ""
 	if urlWidth >= 12 {
-		url = t.dim().Render(pad(a.URL, urlWidth)) + " "
+		url = t.dim().Render(pad(address, urlWidth)) + " "
 	}
-	return t.dim().Render(categoryIcon(ctx, a.ID)) + " " + t.body().Render(pad(a.Name, 12)) + " " + url +
-		pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
+	return name + category + url + pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
+}
+
+// appCategory is the App's Catalog category; an Unmanaged app has none.
+func appCategory(ctx *viewContext, id string) string {
+	if ctx.backend == nil {
+		return ""
+	}
+	if a, found := ctx.backend.Catalog().App(id); found {
+		return a.Info().Category
+	}
+	return ""
 }
 
 // categoryIcon is the App's category icon in the chosen glyph set; an App
 // outside the Catalog gets the set's fallback.
 func categoryIcon(ctx *viewContext, id string) string {
-	category := ""
-	if a, found := ctx.backend.Catalog().App(id); found {
-		category = a.Info().Category
-	}
-	return ctx.glyphs.Category(category)
+	return ctx.glyphs.Category(appCategory(ctx, id))
 }
 
 func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string {
@@ -243,13 +302,20 @@ func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string 
 	return t.disabled().Render("–")
 }
 
-// need is one Needs attention item and the Action that resolves it.
+// need is one Needs attention item: the App it points at, and the chord of
+// the Action that resolves it (a and its mnemonic), or another key, or the
+// command to run when no Action exists.
 type need struct {
 	broken bool
 	text   string
-	// key and desc name the Action; command is used when no key exists.
+	// action is the Action's mnemonic in the App's Action menu.
+	action             string
 	key, desc, command string
 	app                string
+}
+
+func appNeed(broken bool, text, action, desc, app string) need {
+	return need{broken: broken, text: text, action: action, key: "a " + action, desc: desc, app: app}
 }
 
 func (v *dashboardView) needsAction(ctx *viewContext) []need {
@@ -259,16 +325,16 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 			// Setup cannot retry a failed install stage; "is stopped" or an
 			// update below names the Action that can.
 			if s.Status == stepstatus.StepManual && !service.IsStage(s.ID) {
-				items = append(items, need{text: a.Name + ": " + s.ID + " manual · " + s.Hint, key: "a r", desc: "retry Setup", app: a.ID})
+				items = append(items, appNeed(false, a.Name+": "+s.ID+" manual · "+s.Hint, "r", "retry Setup", a.ID))
 			}
 			if s.Status == stepstatus.StepFail && !service.IsStage(s.ID) {
-				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "a r", desc: "retry Setup", app: a.ID})
+				items = append(items, appNeed(true, a.Name+": "+s.ID+" failed", "r", "retry Setup", a.ID))
 			}
 		}
 	}
 	for _, a := range v.rows(ctx) {
 		if a.State != "running" && a.State != "degraded" && a.State != "unknown" {
-			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "a s", desc: "start", app: a.ID})
+			items = append(items, appNeed(true, a.Name+" is stopped", "s", "start", a.ID))
 		}
 	}
 	if ctx.status.LANIPStale {
@@ -276,7 +342,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	}
 	for _, a := range v.rows(ctx) {
 		if a.Update == service.UpdateAvailable {
-			items = append(items, need{text: a.Name + " has an update", key: "a u", desc: "update", app: a.ID})
+			items = append(items, appNeed(false, a.Name+" has an update", "u", "update", a.ID))
 		}
 	}
 	for _, c := range ctx.checks {
@@ -293,47 +359,64 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	return items
 }
 
-// needsLines renders Needs attention and returns the App each line points at.
-func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []string) {
+// needsLines renders Needs attention and returns the item each line
+// belongs to; the selected item is highlighted while the pane has focus.
+func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []int) {
 	t := ctx.theme
 	items := v.needsAction(ctx)
 	if len(items) == 0 {
-		return []string{t.fg(t.ok).Render("✓ Nothing needs your attention")}, []string{""}
+		return []string{t.fg(t.ok).Render("✓ Nothing needs your attention")}, []int{-1}
 	}
-	var lines, apps []string
-	for _, it := range items {
+	var lines []string
+	var owners []int
+	for i, it := range items {
 		icon := t.fg(t.warn).Render("!")
 		if it.broken {
 			icon = t.fg(t.fail).Render("✗")
 		}
-		head := icon + " " + t.body().Render(it.text)
-		if it.key != "" {
+		text := t.body().Render(it.text)
+		if v.needsFocused && i == v.needsCursor {
+			text = t.selection().Render(it.text)
+		}
+		head := icon + " " + text
+		var item []string
+		switch {
+		case it.key != "":
 			action := t.title().Render(it.key) + t.dim().Render(" "+it.desc)
 			if gap := width - lipgloss.Width(head) - lipgloss.Width(action); gap >= 2 {
-				lines, apps = append(lines, head+strings.Repeat(" ", gap)+action), append(apps, it.app)
-				continue
+				item = []string{head + strings.Repeat(" ", gap) + action}
+			} else {
+				item = []string{truncate(head, width), "  " + action}
 			}
-			lines, apps = append(lines, truncate(head, width), "  "+action), append(apps, it.app, it.app)
-			continue
+		default:
+			item = []string{truncate(head, width), t.dim().Render(truncate("  → "+it.command, width))}
 		}
-		lines = append(lines, truncate(head, width), t.dim().Render(truncate("  → "+it.command, width)))
-		apps = append(apps, it.app, it.app)
+		for _, line := range item {
+			lines, owners = append(lines, line), append(owners, i)
+		}
 	}
-	return lines, apps
+	return lines, owners
 }
 
-func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, y int) (string, []*lipgloss.Layer) {
+func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, x, y int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
-	lines, apps := v.needsLines(ctx, width-4)
+	lines, owners := v.needsLines(ctx, width-4)
+	visible := max(height-2, 1)
+	offset := 0
+	for i, owner := range owners {
+		if owner == v.needsCursor && i >= offset+visible {
+			offset = i - visible + 1
+		}
+	}
 	var layers []*lipgloss.Layer
-	for i, app := range apps {
-		if app != "" && i < height-2 {
-			layers = append(layers, lipgloss.NewLayer(lines[i]).X(2).Y(y+1+i).ID("app:"+app))
+	for i := offset; i < len(lines) && i-offset < visible; i++ {
+		if owners[i] >= 0 {
+			layers = append(layers, lipgloss.NewLayer(lines[i]).X(x+2).Y(y+1+i-offset).ID("need:"+strconv.Itoa(owners[i])))
 		}
 	}
 	note := ""
 	if n := len(v.needsAction(ctx)); n > 0 {
 		note = strconv.Itoa(n)
 	}
-	return t.box("Needs attention", note, strings.Join(lines, "\n"), width, height, false), layers
+	return t.box("Needs attention", note, strings.Join(lines[offset:], "\n"), width, height, v.needsFocused), layers
 }

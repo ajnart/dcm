@@ -1,30 +1,30 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings       ◐ 1 warning   LAN 192.168.1.20  12:00:00 v1.0.0
-╭─ Apps 3 ───────────────────────────────────────────────╮╭─ Jellyfin logs ────────────────────────────────────────────╮
-│ ● ▶ Jellyfin     http://192.168.1.20:8096 running   ✓  ││  logs   setup   info   compose   containers                │
-│ ✗ ⊕ Sonarr       http://192.168.1.20:8989 running   ✗  ││ ────────────────────────────────────────────────────────── │
-│ ✗ ◇ whoami       http://192.168.1.20:8099 stopped   –  ││ jellyfin-1  | ready on :80                                 │
-╰────────────────────────────────────────────────────────╯│                                                            │
-╭─ Needs attention 3 ─────╭──────────────────────────────────────────────────────────────────╮                         │
-│ ✗ Sonarr: download-clien│ Project · Actions                                                │                         │
-│ ✗ whoami is stopped     │                                                                  │                         │
-│ ! Firewall: ufw is activ│ > Up all                                                         │                         │
-│   → sudo ufw allow from │   Down all                                                       │                         │
-│                         │   Restart all                                                    │                         │
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
+╭─ Now ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                                                        │
+│ ◐ Host: 1 warning                                                                                                    │
+│                                                                                                                      │
+│                                                                                                                      │
+╰─────────────────────────╭──────────────────────────────────────────────────────────────────╮─────────────────────────╯
+╭─ Apps 3 ────────────────│ Project · Actions                                                │─────────────────────────╮
+│ ● ▶ Jellyfin      Media │                                                                  │failed   a r retry Setup │
+│ ✗ ↓ Sonarr        Downlo│ > Up all                                                         │               a s start │
+│ ✗ ◇ whoami              │   Down all                                                       │                         │
+│                         │   Restart all                                                    │2.168.0.0/16 to any por… │
 │                         │   Update all    no update known (checked every 30 minutes)       │                         │
 │                         │   Backup                                                         │                         │
 │                         │                                                                  │                         │
 │                         │ ──────────────────────────────────────────────────────────────── │                         │
 │                         │ Starts every App's containers.                                   │                         │
 │                         ╰──────────────────────────────────────────────────────────────────╯                         │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-╰────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────╯
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────╯
 
  actions · letters pick an Action                                                 ↑/↓  select   enter  run   esc  close

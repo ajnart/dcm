@@ -99,63 +99,8 @@ func numberedCompose(n int) string {
 	return strings.Join(lines, "\n")
 }
 
-func TestTabMovesFocusAndArrowsActOnTheFocusedPane(t *testing.T) {
-	m, backend := sample(t, 120, 30)
-	backend.compose = numberedCompose(60)
-	for range 3 {
-		m = drive(t, m, press("]")) // logs → setup → info → compose
-	}
-
-	m = drive(t, m, press("down"))
-	if m.selectedID() != "sonarr" {
-		t.Fatalf("with the Apps pane focused, down should select Sonarr, got %q", m.selectedID())
-	}
-	if bold := boldText(m.View().Content)[1]; !strings.Contains(bold, "Apps") || strings.Contains(bold, "Sonarr") {
-		t.Fatalf("the Apps box should be the focused one: %q", bold)
-	}
-
-	m = drive(t, m, press("tab"))
-	if bold := boldText(m.View().Content)[1]; strings.Contains(bold, "Apps") || !strings.Contains(bold, "Sonarr") {
-		t.Fatalf("tab should focus the details box: %q", bold)
-	}
-	for range 3 {
-		m = drive(t, m, press("down"))
-	}
-	if m.selectedID() != "sonarr" {
-		t.Fatalf("down in the details pane must not move the App selection, got %q", m.selectedID())
-	}
-	if out := screen(m); strings.Contains(out, "line 01") || !strings.Contains(out, "line 04") {
-		t.Fatalf("down in the details pane should scroll the details\n%s", out)
-	}
-
-	m = drive(t, m, press("shift+tab"))
-	m = drive(t, m, press("down"))
-	if m.selectedID() != "whoami" {
-		t.Fatalf("shift+tab should return focus to Apps, got %q", m.selectedID())
-	}
-}
-
-func TestBracketsSwitchDetailSubTabs(t *testing.T) {
-	m, _ := sample(t, 120, 30)
-
-	for _, tc := range []struct{ key, shows string }{
-		{"]", "Setup has finished"},
-		{"]", "lscr.io/linuxserver/jellyfin:latest"},
-		{"]", "image: example/jellyfin:latest"},
-		{"]", "No containers for Jellyfin"},
-		{"]", "ready on :80"},
-		{"[", "No containers for Jellyfin"},
-		{"[", "image: example/jellyfin:latest"},
-	} {
-		m = drive(t, m, press(tc.key))
-		if !strings.Contains(screen(m), tc.shows) {
-			t.Fatalf("%s should show %q\n%s", tc.key, tc.shows, screen(m))
-		}
-	}
-}
-
 func TestTabDoesNotSwitchSubTabsAnyMore(t *testing.T) {
-	m, _ := sample(t, 120, 30)
+	m, _ := appsHost(t)
 
 	m = drive(t, m, press("tab"))
 
@@ -176,8 +121,8 @@ func TestBarShowsGlobalKeysAndTheFocusedPaneKeys(t *testing.T) {
 
 	m = drive(t, m, press("tab"))
 	bar = lastLine(screen(m))
-	if !strings.Contains(bar, "↑/↓  scroll") || strings.Contains(bar, "↑/↓  select") || !strings.Contains(bar, "1-5 tabs") {
-		t.Errorf("details pane bar should offer scrolling, not selecting: %q", bar)
+	if !strings.Contains(bar, "a  resolve") || strings.Contains(bar, "o  open") || !strings.Contains(bar, "1-5 tabs") {
+		t.Errorf("the Needs attention bar should offer resolving, not opening: %q", bar)
 	}
 
 	m = drive(t, m, press("3"))
@@ -326,7 +271,7 @@ func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
 	help := helpText(t, m)
-	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Details", "Apps · List", "Apps · Details", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
+	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Needs attention", "Apps · List", "Apps · Details", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
 	at := 0
 	for _, want := range order {
 		i := strings.Index(help[at:], want)

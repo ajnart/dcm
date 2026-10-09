@@ -274,14 +274,14 @@ func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtr
 
 func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
 
-func TestOverviewShowsAppsNeedsAttentionAndDetails(t *testing.T) {
+func TestOverviewShowsAppsNeedsAttentionAndNowStrip(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	out := screen(m)
 
 	for _, want := range []string{"self-host", "LAN 192.168.1.20", "1 warning",
-		"Apps", "Jellyfin", "http://192.168.1.20:8096", "Sonarr", "whoami",
-		"Needs attention", "logs", "setup", "info", "compose"} {
+		"Apps", "Jellyfin", "192.168.1.20:8096", "Sonarr", "whoami",
+		"Needs attention", "Now"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
@@ -348,7 +348,7 @@ func TestKeybindAudit(t *testing.T) {
 		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
 		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
 		// The App's Action menu and the read-only keys.
-		"actions: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
+		"actions: a", "resolve: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
 		// Settings applies its pending changes.
 		"apply: ctrl+s",
 		// The open Action menu.
@@ -424,6 +424,7 @@ func TestNoTabHasADirectMutatingKey(t *testing.T) {
 func TestSetupTabShowsFailedStepAndHint(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
+	m = drive(t, m, press("2"))
 	m = drive(t, m, press("j"))
 	m = drive(t, m, press("]"))
 
@@ -847,7 +848,8 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			}
 		}
 	}
-	for _, set := range []activity.Glyphs{activity.Simple, activity.NerdFont} {
+	sets := []activity.Glyphs{activity.Simple, activity.NerdFont}
+	for _, set := range sets {
 		m := drive(t, m, appearanceMsg{glyphs: set})
 		for i, label := range tabLabels {
 			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
@@ -855,6 +857,15 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
 		check(string(set)+" Apps containers", drive(t, drive(t, m, press("2")), press("[")))
 		check(string(set)+" help", drive(t, m, press("?")))
+	}
+	task := m.tasks.start("update every App in a Project with a long name")
+	t.Cleanup(m.tasks.cancelAll)
+	task.append(events.Event{Event: events.StepStart, Step: "pull", Msg: "pull 1 image"})
+	task.append(events.Event{Event: events.PullProgress, Image: "example/image:latest", Layer: "l1", Current: 1, Total: 2})
+	for _, set := range sets {
+		m := drive(t, m, appearanceMsg{glyphs: set})
+		check(string(set)+" Overview running", m)
+		check(string(set)+" Activity running", drive(t, m, press("3")))
 		check(string(set)+" App menu", drive(t, m, press("a")))
 		check(string(set)+" Project menu", drive(t, m, press("A")))
 	}
