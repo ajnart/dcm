@@ -55,6 +55,33 @@ type fakeBackend struct {
 	holdLogs    bool
 	logStarts   int
 	logsRunning int
+	// usage is what the Usage stream reports; usageStarts counts the streams
+	// opened and usageRunning those still open.
+	usage        []service.ContainerUsage
+	usageStarts  int
+	usageRunning int
+}
+
+func (f *fakeBackend) usageStreams() (started, running int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.usageStarts, f.usageRunning
+}
+
+func (f *fakeBackend) Usage(ctx context.Context, emit func([]service.ContainerUsage)) error {
+	f.mu.Lock()
+	f.usageStarts++
+	f.usageRunning++
+	usage := f.usage
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		f.usageRunning--
+		f.mu.Unlock()
+	}()
+	emit(usage)
+	<-ctx.Done()
+	return ctx.Err()
 }
 
 func (f *fakeBackend) logStreams() (started, running int) {
@@ -180,7 +207,7 @@ func (f *fakeBackend) Actions() []string {
 
 func sampleStatus() service.Status {
 	return service.Status{
-		Project: "/home/alice/self-host", Exposure: "lan", LANIP: "192.168.1.20",
+		Project: "/home/alice/.self-host", Exposure: "lan", LANIP: "192.168.1.20",
 		Settings: map[string]string{"TZ": "Europe/Paris", "PUID": "1000", "PGID": "1000", "UMASK": "022"},
 		Apps: []service.AppStatus{
 			{ID: "jellyfin", Name: "Jellyfin", Managed: true, URL: "http://192.168.1.20:8096", Port: 8096, State: "running", Health: "healthy", Setup: stepstatus.SetupOK, Image: "lscr.io/linuxserver/jellyfin:latest"},
@@ -399,6 +426,8 @@ func TestKeybindAudit(t *testing.T) {
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
+		// Settings' About sub-tab opens the donation pages.
+		"coffee: c", "sponsor: s",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
 	}
@@ -879,6 +908,7 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	backend.containers = []service.ContainerStatus{
 		{App: "jellyfin", Service: "jellyfin", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
 	}
+	backend.usage = []service.ContainerUsage{{Service: "jellyfin", CPU: 0.18, Mem: 0.31, MemBytes: 2540 << 20}}
 
 	check := func(name string, m Model) {
 		t.Helper()
@@ -894,7 +924,11 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		for i, label := range tabLabels {
 			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
 		}
-		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
+		settings := drive(t, m, press("5"))
+		for _, name := range []string{"Appearance", "Backups", "Tools", "About"} {
+			settings = drive(t, settings, press("]"))
+			check(string(set)+" Settings "+name, settings)
+		}
 		check(string(set)+" Apps containers", drive(t, drive(t, m, press("2")), press("[")))
 		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
 		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))

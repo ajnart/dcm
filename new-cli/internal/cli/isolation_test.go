@@ -23,7 +23,7 @@ func TestProjectFolderAndComposeNameCanBeOverridden(t *testing.T) {
 		t.Fatalf("Project not written to SELF_HOST_HOME: %v", err)
 	}
 	if _, err := os.Stat(projectRoot(t, deps)); err == nil {
-		t.Fatal("~/self-host must stay untouched")
+		t.Fatal("~/.self-host must stay untouched")
 	}
 	for _, line := range deps.Runner.(*systemtest.Runner).Calls() {
 		if strings.HasPrefix(line, "docker compose --project-directory") && !strings.Contains(line, "-p selfhost-e2e-1 ") {

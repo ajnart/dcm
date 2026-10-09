@@ -1,7 +1,7 @@
 # self-host agent guide (binary version {{version}})
 
 `self-host` installs, configures, backs up and repairs self-hosted Apps with one
-Docker Compose Project in `~/self-host`. Every action is a plain command with
+Docker Compose Project in `~/.self-host`. Every action is a plain command with
 human output, or one JSON event per line with `--json`. Use `--json` whenever
 you read the output yourself.
 
@@ -66,7 +66,7 @@ Command flags:
 - status: `--updates`
 - remove: `--purge` (also deletes the App's data folder), `--yes`
 - logs: `--follow`, `--tail N` (default 200)
-- backup: `--output <path>` (default `~/self-host/backups/selfhost-DATE.tar.zst`),
+- backup: `--output <path>` (default `~/.self-host/backups/selfhost-DATE.tar.zst`),
   `--encrypt`
 - restore: `--yes` (replaces the current data of the restored Apps)
 
@@ -155,14 +155,14 @@ recreated.
 For software outside the Catalog, add an Unmanaged app. The CLI starts, stops,
 updates and backs it up, but runs no Setup for it.
 
-1. Write `~/self-host/apps/<id>/compose.yml` with one service. Do not publish
+1. Write `~/.self-host/apps/<id>/compose.yml` with one service. Do not publish
    ports with a bare `"8080:80"`. Use the shared settings, which Compose reads
    from the Project's `.env`:
    - `${BIND_IP}` for the published address, for example
      `"${BIND_IP}:8099:80"`
    - `${TZ}`, `${PUID}`, `${PGID}`, `${UMASK}`
    - `${MEDIA_ROOT}`, `${DOWNLOADS_ROOT}`
-2. Keep persistent data under `~/self-host/apps/<id>/`, so backups include it.
+2. Keep persistent data under `~/.self-host/apps/<id>/`, so backups include it.
 3. Run `self-host start <id>`, then `self-host status --json`: the App shows
    with setup `unmanaged`.
 
@@ -182,7 +182,7 @@ not by assuming it works.
 Never print, log or paste a password or API key into your reply, a command line
 or a file you write. The only way to read them is `self-host credentials`; use
 its output where needed (a login form, an API header) and say only where it
-came from. Secrets live in `~/self-host/secrets.env` with mode 0600; do not
+came from. Secrets live in `~/.self-host/secrets.env` with mode 0600; do not
 read that file directly.
 
 For inputs marked `private` by `self-host apps info <app> --json`, pass

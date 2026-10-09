@@ -22,7 +22,7 @@ internal/cli/         subcommands and flag parsing
 internal/tui/         Bubble Tea + Huh screens
 internal/events/      step logger: human text or NDJSON
 internal/host/        Docker/Compose checks, host settings detection, ports, doctor
-internal/project/     ~/self-host layout, include list, .env, secrets.env, state.json, lock
+internal/project/     ~/.self-host layout, include list, .env, secrets.env, state.json, lock
 internal/compose/     `docker compose` wrapper (logs every command it runs)
 internal/catalog/     App and Recipe registry
 internal/apps/<id>/   one package per catalog App
@@ -36,7 +36,7 @@ install.sh            curl | bash installer
 ## Project on disk
 
 ```
-~/self-host/
+~/.self-host/
   compose.yml          generated: `include:` of every apps/*/compose.yml
   .env                 Host settings: TZ, PUID, PGID, UMASK, MEDIA_ROOT, DOWNLOADS_ROOT, LAN_IP, EXPOSURE
   secrets.env          0600: Admin login, per-App API keys

@@ -6,7 +6,7 @@ in your Project. Come back to the terminal Dashboard to open Apps, check health,
 retry Setup, update images, or make a Backup.
 
 One Go binary runs both the terminal interface and plain commands for agents.
-Apps share one Docker Compose Project, normally in `~/self-host`. The Catalog,
+Apps share one Docker Compose Project, normally in `~/.self-host`. The Catalog,
 Setup code and agent guide ship inside the binary; running it needs no Node.js,
 Bun, checkout, or AI account.
 
@@ -150,7 +150,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | --- | --- |
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the App details sub-tab (logs, setup, info, compose, containers). |
+| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Appearance, Backups, Tools, About). |
 | a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
 | enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
 | / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
@@ -165,8 +165,11 @@ closes the menu. With the mouse, a click highlights an Action and a click on
 the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
 
 While a search or an edit takes text, every key goes to it; in the App list
-`/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings applies
-edits with `ctrl+s`; `esc` returns to the Overview. Its Appearance pane (`tab`)
+`/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
+five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
+Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups and Tools are
+placeholders for now. About shows the version, the Project folder and whether a newer
+release exists; `c` opens Ko-fi and `s` GitHub Sponsors in the browser. Appearance
 chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
 in the terminal) or Simple Unicode symbols, the default. The choice is saved at
 once in the Project's `appearance.json`, and the CLI in a terminal uses it too.
@@ -185,8 +188,10 @@ stay plain.
 
 The Apps tab holds everything about one App: the App list on the left and
 App details on the right, including its containers and images with their
-state, health, uptime, ports and update state. `r` there reloads the
-containers and checks for updates again.
+state, health, uptime, ports and update state. While the containers sub-tab
+is open, each running container also shows CPU (of the whole machine) and
+memory (of its limit, or the machine's memory) bars with the MiB in use.
+`r` there reloads the containers and checks for updates again.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.
@@ -301,7 +306,7 @@ those services again. It includes App folders, Host settings, state and secrets;
 external media/download libraries and data stored outside App folders are not
 included. Even a single-App Backup contains Project credential metadata.
 
-The default destination is `~/self-host/backups/selfhost-DATE.tar.zst`, with
+The default destination is `~/.self-host/backups/selfhost-DATE.tar.zst`, with
 `.age` added for encryption. Restore replaces the selected Apps' current data
 and asks for confirmation; `--yes` skips it. A fresh Project requires a full
 Backup restore before selective restores are possible. Review Host settings on

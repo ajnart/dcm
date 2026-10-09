@@ -1,5 +1,9 @@
- ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Host   Appearance   Backups   Tools   About
 ╭─ Host settings 3 pending ────────────────────────────────────────────────────╮
+│   EXPOSURE        local                  (pending)                           │
+│   LAN_IP          192.168.1.20                                               │
+│   TZ              Europe/Paris                                               │
 │   PUID            1001                  detected 1000 (pending)              │
 │   PGID            1000                                                       │
 │   UMASK           022                                                        │
@@ -13,12 +17,8 @@
 │   ! PUID/PGID changes who owns the installed Apps' files                     │
 │   Apps that use a changed setting are recreated.                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-╭─ Appearance saved at once ───────────────────────────────────────────────────╮
-│   Sample       ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  … │
-│   ○ Nerd Font  richer icons, drawn by a Nerd Font installed in your terminal │
-│   ● Simple     plain Unicode symbols that every terminal font can draw       │
-│                                                                              │
-│ Learn about Nerd Fonts: https://www.nerdfonts.com                            │
-╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
 
  1-5 tabs  ←/→  A Project  ? help  q quit           ↑/↓  select   enter  edit …
