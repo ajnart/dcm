@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Who › ○ Look › ○ Review
+
+  Where your Apps keep their files, and which devices can open them.
+  Other devices on your network can open these at 192.168.1.20
+
+  Host settings
+  Detected from this machine. User and group IDs decide who will own the
+  files Apps write, so you can open them.
+  ┃ Time zone
+  ┃ The clock Apps use for schedules and logs
+  ┃ > Europe/Paris
+
+    User ID (PUID)
+    The user that owns the files Apps write
+    > 1000
+
+    Group ID (PGID)
+    The group that owns them
+    > 1000
+
+
+ answering · keys go to the form                        enter  next   esc  back

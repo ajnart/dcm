@@ -155,10 +155,10 @@ func expand(cat *catalog.Catalog, selected []string) []app.App {
 	return apps
 }
 
-func catalogOptions(cat *catalog.Catalog) []huh.Option[string] {
+func catalogOptions(cat *catalog.Catalog, g activity.Glyphs) []huh.Option[string] {
 	var options []huh.Option[string]
 	for _, r := range cat.Recipes() {
-		options = append(options, huh.NewOption("📦 "+r.Name+" (Recipe)", "recipe:"+r.ID))
+		options = append(options, huh.NewOption(g.Recipe()+" "+r.Name+" (Recipe)", "recipe:"+r.ID))
 	}
 	apps := cat.Apps()
 	slices.SortFunc(apps, func(a, b app.App) int {
@@ -230,7 +230,7 @@ func (m Model) buildForm(s step) *huh.Form {
 				v.selected = []string{"app:homarr"}
 			}
 		}
-		options := catalogOptions(cat)
+		options := catalogOptions(cat, m.glyphs)
 		groups = append(groups, huh.NewGroup(huh.NewMultiSelect[string]().Title("Apps and Recipes").
 			Value(&v.selected).Options(options...).Filterable(true).Height(min(len(options)+1, height-3)).
 			Validate(func(s []string) error {
@@ -242,20 +242,18 @@ func (m Model) buildForm(s step) *huh.Form {
 		groups = append(groups, m.inputGroups(cat)...)
 		height = min(height, max(len(options)+3, 7))
 	case stepWhere:
-		address := v.lan
-		if address == "" {
-			address = "this computer's address"
-		}
 		groups = append(groups,
-			huh.NewGroup(huh.NewSelect[string]().Title("Which devices can open your Apps?").
-				Description("TVs, phones and other computers use that address. You can change this later in Settings.").
-				Options(
-					huh.NewOption("Other devices on your network can open these at "+address, service.ExposureLAN),
-					huh.NewOption("Only this computer can open them", service.ExposureLocal),
-				).Value(&v.exposure)),
+			huh.NewGroup(
+				huh.NewInput().Title("LAN address").Description("What App links use, so other devices can open them").Value(&v.lan),
+				huh.NewSelect[string]().Title("Which devices can open your Apps?").
+					Description("TVs, phones and other computers use the LAN address. You can change this later in Settings.").
+					Options(
+						huh.NewOption("Other devices on your network", service.ExposureLAN),
+						huh.NewOption("Only this computer", service.ExposureLocal),
+					).Value(&v.exposure),
+			),
 			huh.NewGroup(
 				huh.NewInput().Title("Time zone").Description("The clock Apps use for schedules and logs").Value(&v.tz),
-				huh.NewInput().Title("LAN address").Description("What App links use, so other devices can open them").Value(&v.lan),
 				huh.NewInput().Title("User ID (PUID)").Description("The user that owns the files Apps write").Value(&v.puid).Validate(numeric),
 				huh.NewInput().Title("Group ID (PGID)").Description("The group that owns them").Value(&v.pgid).Validate(numeric),
 			).Title("Host settings").Description("Detected from this machine. User and group IDs decide who will own the files Apps write, so you can open them."),
@@ -309,7 +307,26 @@ func (m Model) stepIntro(s step) []string {
 		text = "self-host can draw its icons with a Nerd Font, a terminal font with extra symbols, or with plain symbols every font has. " +
 			"Bars and spinners look the same either way."
 	}
-	return strings.Split(wrap(text, min(max(m.width-4, 20), 96)), "\n")
+	width := min(max(m.width-4, 20), 96)
+	lines := strings.Split(wrap(text, width), "\n")
+	if s == stepWhere {
+		lines = append(lines, truncate(m.exposureLine(), width))
+	}
+	return lines
+}
+
+// exposureLine says who can open the Apps and at which address, from the
+// answers so far, so it follows the LAN address while it is edited.
+func (m Model) exposureLine() string {
+	v := m.onboarding.answers
+	if v.exposure == service.ExposureLocal {
+		return "Only this computer can open your Apps, at 127.0.0.1"
+	}
+	address := strings.TrimSpace(v.lan)
+	if address == "" {
+		address = "this computer's address"
+	}
+	return "Other devices on your network can open these at " + address
 }
 
 // whatDetailLines is the room for the hovered item's description on What:

@@ -3,16 +3,16 @@
   ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Who › ○ Look › ○ Review
 
   Where your Apps keep their files, and which devices can open them.
+  Other devices on your network can open these at 192.168.1.20
 
-  ┃ Which devices can open your Apps?
-  ┃ TVs, phones and other computers use that address. You can change this later in Settings.
-  ┃ > Other devices on your network can open these at 192.168.1.20
-  ┃   Only this computer can open them
+  ┃ LAN address
+  ┃ What App links use, so other devices can open them
+  ┃ > 192.168.1.20
 
-
-
-
-
+    Which devices can open your Apps?
+    TVs, phones and other computers use the LAN address. You can change this later in Settings.
+    > Other devices on your network
+      Only this computer
 
 
 
