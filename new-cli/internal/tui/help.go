@@ -10,8 +10,19 @@ import (
 )
 
 // helpView is the key reference, opened as an overlay over the active tab.
+// It also shows a help page, the longer explanation of what is focused,
+// which fills the tab's place instead.
 type helpView struct {
 	vp viewport.Model
+	// page is the open help page; nil while the key reference is open.
+	page *helpPage
+}
+
+// helpPage is a longer explanation of the focused thing, as the lines that
+// fit a width. Exposure has one, in Onboarding's Where and Settings' Host.
+type helpPage struct {
+	title string
+	lines func(t theme, width int) []string
 }
 
 const (
@@ -19,21 +30,71 @@ const (
 	sponsorsURL = "https://github.com/sponsors/ajnart"
 )
 
-var helpKeys = []key.Binding{hint("↑/↓", "scroll"), hint("pgup/pgdn", "page")}
+var (
+	helpKeys = []key.Binding{hint("↑/↓", "scroll"), hint("pgup/pgdn", "page")}
+	// moreKey opens the help page of the focused thing; it shows only where there is one.
+	moreKey  = hint("?", "more")
+	pageKeys = []key.Binding{hint("↑/↓", "scroll"), hint("esc/?", "close")}
+)
 
 func newHelpView() *helpView { return &helpView{vp: viewport.New()} }
 
-func (v *helpView) Keys() []key.Binding { return helpKeys }
+func (v *helpView) Keys() []key.Binding {
+	if v.page != nil {
+		return pageKeys
+	}
+	return helpKeys
+}
 
-func (v *helpView) Panes() []pane { return []pane{{"Keys", helpKeys}} }
+func (v *helpView) Panes() []pane { return []pane{{"Keys", helpKeys}, {"Help page", pageKeys}} }
 
 func (v *helpView) Capturing() bool { return false }
 
-func (v *helpView) Title() string { return "Keys" }
+func (v *helpView) Title() string {
+	if v.page != nil {
+		return v.page.title
+	}
+	return "Keys"
+}
+
+// pageChrome is what a help page spends outside its text: a blank line, the
+// title, a blank line, a blank line and the closing keys.
+const pageChrome = 5
+
+// openPage sizes the viewport and lays a help page into it.
+func (v *helpView) openPage(ctx *viewContext, page helpPage) {
+	v.page = &page
+	v.layoutPage(ctx)
+	v.vp.GotoTop()
+}
+
+// layoutPage lays the open page out again, as when the window is resized.
+func (v *helpView) layoutPage(ctx *viewContext) {
+	v.vp.SetWidth(max(min(ctx.width-4, 96), 20))
+	v.vp.SetHeight(max(ctx.mainHeight()-pageChrome, 3))
+	v.vp.SetContent(strings.Join(v.page.lines(ctx.theme, v.vp.Width()), "\n"))
+}
+
+// pageView is the open help page, in the place of the tab: its title, the
+// part of the text in view and how to scroll and close it.
+func (v *helpView) pageView(ctx *viewContext) string {
+	t := ctx.theme
+	closing := "↑/↓ scroll · esc or ? closes"
+	if !v.vp.AtBottom() {
+		closing += " · more below ↓"
+	}
+	body := make([]string, 0, pageChrome+v.vp.Height())
+	body = append(body, "", "  "+t.title().Render(v.page.title), "")
+	for _, line := range strings.Split(v.vp.View(), "\n") {
+		body = append(body, "  "+line)
+	}
+	return strings.Join(append(body, "", "  "+t.dim().Render(closing)), "\n")
+}
 
 // open sizes the viewport and lays the key reference into it, one group
 // per pane: the global keys first, then each tab's panes.
 func (v *helpView) open(ctx *viewContext, groups []pane) {
+	v.page = nil
 	v.vp.SetWidth(max(min(ctx.width-10, 92), 20))
 	v.vp.SetHeight(max(ctx.height-8, 5))
 	t := ctx.theme
@@ -59,12 +120,25 @@ func (v *helpView) open(ctx *viewContext, groups []pane) {
 }
 
 func (v *helpView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
+	if wheel, ok := msg.(tea.MouseWheelMsg); ok && v.page != nil {
+		if wheel.Button == tea.MouseWheelUp {
+			v.vp.ScrollUp(3)
+		} else {
+			v.vp.ScrollDown(3)
+		}
+		return v, nil, nav{}
+	}
 	press, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return v, nil, nav{}
 	}
 	k := ctx.keys
+	closes := key.Matches(press, k.Help) || press.String() == "esc" || press.String() == "ctrl+c"
 	switch {
+	case v.page != nil && closes:
+		return v, nil, nav{kind: navBack}
+	case v.page != nil && !key.Matches(press, k.Up, k.Down, k.ScrollUp, k.ScrollDown):
+		// Any other key is ignored, so it cannot act on the step behind the page.
 	case key.Matches(press, k.Up):
 		v.vp.ScrollUp(1)
 	case key.Matches(press, k.Down):

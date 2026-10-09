@@ -191,24 +191,23 @@ func (m Model) buildForm(s step) *huh.Form {
 	case stepWhere:
 		groups = append(groups,
 			huh.NewGroup(
-				huh.NewInput().Title("LAN address").Description("What App links use, so other devices can open them").Value(&v.lan),
-				huh.NewSelect[string]().Title("Which devices can open your Apps?").
-					Description("TVs, phones and other computers use the LAN address. You can change this later in Settings.").
+				huh.NewInput().Key(whereLAN).Title("LAN address").Value(&v.lan),
+				huh.NewSelect[string]().Key(whereExposure).Title("Which devices can open your Apps?").
 					Options(
 						huh.NewOption("Other devices on your network", service.ExposureLAN),
 						huh.NewOption("Only this computer", service.ExposureLocal),
 					).Value(&v.exposure),
 			),
 			huh.NewGroup(
-				huh.NewInput().Title("Time zone").Description("The clock Apps use for schedules and logs").Value(&v.tz),
-				huh.NewInput().Title("User ID (PUID)").Description("The user that owns the files Apps write").Value(&v.puid).Validate(numeric),
-				huh.NewInput().Title("Group ID (PGID)").Description("The group that owns them").Value(&v.pgid).Validate(numeric),
-			).Title("Host settings").Description("Detected from this machine. User and group IDs decide who will own the files Apps write, so you can open them."),
+				huh.NewInput().Key(whereTZ).Title("Time zone").Value(&v.tz),
+				huh.NewInput().Key(wherePUID).Title("User ID (PUID)").Value(&v.puid).Validate(numeric),
+				huh.NewInput().Key(wherePGID).Title("Group ID (PGID)").Value(&v.pgid).Validate(numeric),
+			).Title("Host settings").Description("Detected from this machine."),
 			huh.NewGroup(
-				huh.NewInput().Title("Media folder").Description("Movies, shows and music live here").Value(&v.media).Validate(validFolder),
-				huh.NewInput().Title("Downloads folder").Description("Downloads land here before they move to media").Value(&v.downloads).Validate(validFolder),
+				huh.NewInput().Key(whereMedia).Title("Media folder").Value(&v.media).Validate(validFolder),
+				huh.NewInput().Key(whereDownloads).Title("Downloads folder").Value(&v.downloads).Validate(validFolder),
 			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.picks)) == 0 }))
-		groups[2].Description("Used by " + strings.Join(mediaApps(cat, v.picks), ", ") + ". The folder must exist or sit in a folder that does.")
+		groups[2].Description("Used by " + strings.Join(mediaApps(cat, v.picks), ", ") + ".")
 	case stepWho:
 		groups = append(groups, huh.NewGroup(
 			huh.NewInput().Title("Admin username").Value(&v.adminUser).
@@ -222,16 +221,33 @@ func (m Model) buildForm(s step) *huh.Form {
 				EchoMode(huh.EchoModePassword).Value(&v.adminPassword).Validate(validPassword),
 		).Title("Admin login"))
 	}
-	return huh.NewForm(groups...).WithTheme(huh.ThemeFunc(huh.ThemeCharm)).WithShowHelp(true).
-		WithWidth(m.formWidth()).WithHeight(height)
+	form := huh.NewForm(groups...).WithTheme(huh.ThemeFunc(huh.ThemeCharm)).WithShowHelp(s != stepWhere).WithWidth(m.formWidth())
+	if s != stepWhere {
+		return form.WithHeight(height)
+	}
+	// Where's pages are as tall as their own fields, so the explanation of
+	// the focused field sits right under them, and scroll only past height.
+	for _, g := range groups {
+		raw := lipgloss.Height(g.Content())
+		if g.Header() != "" {
+			raw += lipgloss.Height(g.Header())
+		}
+		g.WithHeight(min(raw, height))
+	}
+	return form
 }
 
 func (m Model) formWidth() int { return min(max(m.width-8, 40), 100) }
 
 // formHeight is what a form step has left under the step indicator and its
-// explanation. The What list shares it with the hovered description.
+// explanation. The What list shares it with the hovered description, and
+// Where keeps room under its form for the explanation of the focused field.
 func (m Model) formHeight(s step) int {
-	return max(m.mainHeight()-3-len(m.stepIntro(s))-1, 6)
+	room := m.mainHeight() - 3 - len(m.stepIntro(s)) - 1
+	if s == stepWhere {
+		room -= whereExplainLines
+	}
+	return max(room, 6)
 }
 
 // stepIntro is why a step asks, in one or two calm sentences.
@@ -250,26 +266,84 @@ func (m Model) stepIntro(s step) []string {
 		text = "self-host can draw its icons with a Nerd Font, a terminal font with extra symbols, or with plain symbols every font has. " +
 			"Bars and spinners look the same either way."
 	}
-	width := min(max(m.width-4, 20), 96)
-	lines := strings.Split(wrap(text, width), "\n")
-	if s == stepWhere {
-		lines = append(lines, truncate(m.exposureLine(), width))
-	}
-	return lines
+	return strings.Split(wrap(text, min(max(m.width-4, 20), 96)), "\n")
 }
 
-// exposureLine says who can open the Apps and at which address, from the
-// answers so far, so it follows the LAN address while it is edited.
-func (m Model) exposureLine() string {
-	v := m.onboarding.answers
-	if v.exposure == service.ExposureLocal {
-		return "Only this computer can open your Apps, at 127.0.0.1"
+// The Where fields, by the key each answers to.
+const (
+	whereLAN       = "lan"
+	whereExposure  = "exposure"
+	whereTZ        = "tz"
+	wherePUID      = "puid"
+	wherePGID      = "pgid"
+	whereMedia     = "media"
+	whereDownloads = "downloads"
+)
+
+// whereExplainLines is the room Where keeps under its form for the
+// explanation of the focused field, a blank line and two of text, and for the
+// two lines a failed validation adds to the form.
+const whereExplainLines = 5
+
+// whereExplanations are the one-line explanations of the Where fields that
+// do not change with the answers. Exposure and the LAN address are explained
+// from the answers so far.
+var whereExplanations = map[string]string{
+	whereLAN:       "App links use this address, so TVs and phones can open them. It only builds links: the choice below decides who can connect.",
+	whereTZ:        "The clock your Apps use for schedules and logs, for example Europe/Paris.",
+	wherePUID:      "The user ID that owns the files your Apps write, so you can open them. Detected from this machine.",
+	wherePGID:      "The group ID that owns those files. Detected from this machine.",
+	whereMedia:     "Where movies, shows and music live. The folder must exist or sit inside one that does.",
+	whereDownloads: "Where downloads land before they move to media. The folder must exist or sit inside one that does.",
+}
+
+// focusedKey is the key of the focused form field, or "" off a form.
+func (o *onboarding) focusedKey() string {
+	if o.form == nil {
+		return ""
 	}
-	address := strings.TrimSpace(v.lan)
-	if address == "" {
-		address = "this computer's address"
+	if f := o.form.GetFocusedField(); f != nil {
+		return f.GetKey()
 	}
-	return "Other devices on your network can open these at " + address
+	return ""
+}
+
+// helpPage is the page `?` opens: Exposure's, while the Exposure choice is
+// focused. A text input takes `?` itself.
+func (o *onboarding) helpPage() (helpPage, bool) {
+	if o.step != stepWhere || o.focusedKey() != whereExposure {
+		return helpPage{}, false
+	}
+	return exposurePage(o.answers.exposure, o.answers.lan), true
+}
+
+// whereExplanation explains the focused Where field in at most room lines,
+// from the answers so far, so it follows the LAN address while it is edited.
+// Exposure adds where the Apps are published and the diagram, as far as they fit.
+func (m Model) whereExplanation(room int) []string {
+	o := m.onboarding
+	v := o.answers
+	t := m.theme
+	width := min(max(m.width-4, 20), 96)
+	paragraph := func(style lipgloss.Style, text string) []string {
+		var lines []string
+		for _, line := range strings.Split(wrap(text, width), "\n") {
+			lines = append(lines, "  "+style.Render(strings.TrimRight(line, " ")))
+		}
+		return lines
+	}
+	key := o.focusedKey()
+	if key != whereExposure {
+		text := whereExplanations[key]
+		if key == "" {
+			return nil
+		}
+		return append([]string{""}, paragraph(t.body(), text)...)
+	}
+	if block := exposureBlock(t, v.exposure, v.lan, width, room); block != nil {
+		return block
+	}
+	return append([]string{""}, paragraph(t.body(), exposureText(v.exposure, v.lan))...)
 }
 
 // whatDetailLines is the room for the hovered item's description on What:
@@ -476,6 +550,11 @@ func (m Model) installEnded(finished []int) {
 
 func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
+	if key.Matches(msg, m.keys.Help) {
+		if _, found := m.contextHelp(); found {
+			return m.openHelp()
+		}
+	}
 	if o.list != nil {
 		return m.whatKey(msg)
 	}
@@ -627,8 +706,11 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 	case stepInitializing:
 		return quit, []key.Binding{onboardingContinue, onboardingRecheck}
 	case stepWhat, stepWhere, stepWho:
-		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"),
-			[]key.Binding{onboardingNextKey, onboardingBack}
+		chips := []key.Binding{onboardingNextKey, onboardingBack}
+		if _, found := m.contextHelp(); found {
+			chips = append(chips, moreKey)
+		}
+		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"), chips
 	case stepLook:
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack}
 	case stepReview:
@@ -665,7 +747,11 @@ func (m Model) renderOnboarding() string {
 		}
 		lines = append(lines, "")
 		if o.form != nil {
-			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
+			form := lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View())
+			lines = append(lines, form)
+			if o.step == stepWhere {
+				lines = append(lines, m.whereExplanation(m.mainHeight()-len(lines)-strings.Count(form, "\n")-1)...)
+			}
 		}
 		if o.list != nil {
 			lines = append(lines, m.renderWhatList()...)

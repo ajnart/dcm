@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+  Host   Appearance   Backups   Tools   About
+╭─ Host settings 1 pending ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ > EXPOSURE        local                  (pending)                                                                   │
+│   LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an address of this machine any more              │
+│   TZ              Europe/Paris                                                                                       │
+│   PUID            1000                  detected 1001 ⚠ differs from this machine                                    │
+│   PGID            1000                                                                                               │
+│   UMASK           022                                                                                                │
+│   MEDIA_ROOT      /home/alice/media                                                                                  │
+│   DOWNLOADS_ROOT  /home/alice/downloads                                                                              │
+│                                                                                                                      │
+│ Pending changes 1                                                                                                    │
+│   EXPOSURE        lan → local                                                                                        │
+│   Apps that use a changed setting are recreated.                                                                     │
+│                                                                                                                      │
+│   Your Apps open only in a browser on this computer. Other devices can't reach them.                                 │
+│                                                                                                                      │
+│   phones · TVs · laptops ──── router ──✗── this computer                                                             │
+│                                  │                                                                                   │
+│                             internet ✗                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  q quit        ?  more   ↑/↓  select   enter  edit   ctrl+s  apply   [/]  sub-tab   esc  back

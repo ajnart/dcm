@@ -94,6 +94,8 @@ func newSettingsView(ctx *viewContext) *settingsView {
 
 func (v *settingsView) Keys() []key.Binding {
 	switch {
+	case v.exposureSelected():
+		return append([]key.Binding{moreKey}, settingsHelp...)
 	case v.editing && len(v.choices) > 1:
 		return append(slices.Clone(settingsEditKeys), settingsChoiceKey)
 	case v.editing:
@@ -111,7 +113,7 @@ func (v *settingsView) Keys() []key.Binding {
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Exposure row", []key.Binding{moreKey}}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
 		{"Restore", restorePreviewKey}, {"Tools", toolsKeys}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
@@ -132,6 +134,31 @@ const nerdFontsURL = "https://www.nerdfonts.com"
 
 func (v *settingsView) Capturing() bool {
 	return v.editing || v.tab == tabBackups && v.backups.modal()
+}
+
+// exposureSelected reports that the Host sub-tab's cursor is on EXPOSURE and
+// nothing else has taken the keys.
+func (v *settingsView) exposureSelected() bool {
+	return v.tab == tabHost && !v.editing && !v.confirmDiscard && v.rows[v.cursor].Key == "EXPOSURE"
+}
+
+// valueOf is the current or pending value of a setting.
+func (v *settingsView) valueOf(key string) string {
+	for i := range v.rows {
+		if v.rows[i].Key == key {
+			return v.value(i)
+		}
+	}
+	return ""
+}
+
+// helpPage is the page `?` opens on the EXPOSURE row: the one Onboarding's
+// Where has, for the pending choice.
+func (v *settingsView) helpPage() (helpPage, bool) {
+	if !v.exposureSelected() {
+		return helpPage{}, false
+	}
+	return exposurePage(v.valueOf("EXPOSURE"), v.valueOf("LAN_IP")), true
 }
 
 func (v *settingsView) Title() string { return "Settings" }
@@ -530,6 +557,9 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 		lines = append(lines, v.renderRow(ctx, i, inner))
 	}
 	lines = append(lines, pending...)
+	if v.exposureSelected() {
+		lines = append(lines, exposureBlock(t, v.valueOf("EXPOSURE"), v.valueOf("LAN_IP"), inner-2, space-window-len(pending))...)
+	}
 	lines = append(lines, confirm...)
 	note := ""
 	if n := len(v.pairs()); n > 0 {

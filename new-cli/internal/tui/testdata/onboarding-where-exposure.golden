@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Who › ○ Look › ○ Review
+
+  Where your Apps keep their files, and which devices can open them.
+
+    LAN address
+    > 192.168.1.20
+
+  ┃ Which devices can open your Apps?
+  ┃ > Other devices on your network
+  ┃   Only this computer
+
+  Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
+  192.168.1.20. Nobody on the internet can.
+
+  phones · TVs · laptops ──── router ──── this computer 192.168.1.20
+                                 │
+                            internet ✗
+
+
+
+
+
+
+
+
+
+
+ answering · keys go to the form                                                      enter  next   esc  back   ?  more
