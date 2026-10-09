@@ -228,9 +228,11 @@ func firstLine(s string) string {
 
 // Header
 
-func (m Model) health() (string, int) {
+// health sums up the host checks: a label and its Status level, or no
+// level while the checks are still running.
+func (m Model) health() (label, level string) {
 	if len(m.checks) == 0 {
-		return "checking", -1
+		return "checking", ""
 	}
 	warn, fail := 0, 0
 	for _, c := range m.checks {
@@ -243,11 +245,11 @@ func (m Model) health() (string, int) {
 	}
 	switch {
 	case fail > 0:
-		return plural(fail, "failing check", "failing checks"), 2
+		return plural(fail, "failing check", "failing checks"), checkLevel(host.Fail)
 	case warn > 0:
-		return plural(warn, "warning", "warnings"), 1
+		return plural(warn, "warning", "warnings"), checkLevel(host.Warn)
 	}
-	return "healthy", 0
+	return "healthy", checkLevel(host.OK)
 }
 
 func plural(n int, one, many string) string {
@@ -338,15 +340,11 @@ func fitContext(pieces []string, width int) string {
 // known updates, last refresh and version.
 func (m Model) headerContext() (essential, extra []string) {
 	t := m.theme
-	label, lvl := m.health()
+	label, level := m.health()
 	health := t.chip("○ "+label, t.muted)
-	switch lvl {
-	case 0:
-		health = t.chip(t.glyph("ok")+" "+label, t.ok)
-	case 1:
-		health = t.chip(t.glyph("warn")+" "+label, t.warn)
-	case 2:
-		health = t.chip(t.glyph("fail")+" "+label, t.fail)
+	if level != "" {
+		glyph, c := t.status(level)
+		health = t.chip(glyph+" "+label, c)
 	}
 	essential = []string{health}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {

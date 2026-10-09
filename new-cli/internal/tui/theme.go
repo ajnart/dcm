@@ -6,6 +6,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/ajnart/self-host/internal/host"
 )
 
 // theme is the dashboard's visual vocabulary. One purple accent marks focus,
@@ -41,31 +43,36 @@ func newTheme(dark bool) theme {
 
 func (t theme) fg(c color.Color) lipgloss.Style { return lipgloss.NewStyle().Foreground(c) }
 
-func (t theme) levelColor(level string) color.Color {
+// status is how a Status level (ok, attention, broken) looks: a glyph, so it
+// reads without colour, and its colour. Anything else reads as broken.
+func (t theme) status(level string) (string, color.Color) {
 	switch level {
 	case "ok":
-		return t.ok
-	case "warn", "attention":
-		return t.warn
+		return "●", t.ok
+	case "attention":
+		return "◐", t.warn
 	default:
-		return t.fail
-	}
-}
-
-// glyph is the shape of a Status level, so it reads without colour.
-func (t theme) glyph(level string) string {
-	switch level {
-	case "ok":
-		return "●"
-	case "warn", "attention":
-		return "◐"
-	default:
-		return "✗"
+		return "✗", t.fail
 	}
 }
 
 // dot is the coloured Status marker.
-func (t theme) dot(level string) string { return t.fg(t.levelColor(level)).Render(t.glyph(level)) }
+func (t theme) dot(level string) string {
+	glyph, c := t.status(level)
+	return t.fg(c).Render(glyph)
+}
+
+// checkLevel maps a host check's level onto the Status levels.
+func checkLevel(l host.Level) string {
+	switch l {
+	case host.OK:
+		return "ok"
+	case host.Warn:
+		return "attention"
+	default:
+		return "broken"
+	}
+}
 
 // chip is a pill on a near-black surface, coloured by what it reports.
 func (t theme) chip(label string, c color.Color) string {

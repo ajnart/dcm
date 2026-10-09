@@ -438,7 +438,8 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 		if i == v.cursor {
 			// One background under the whole row so per-cell colours do not
 			// punch holes in it; the Status glyph keeps its colour.
-			dot := t.fg(t.levelColor(level)).Background(t.selected).Bold(true).Render(t.glyph(level) + " ")
+			glyph, c := t.status(level)
+			dot := t.fg(c).Background(t.selected).Bold(true).Render(glyph + " ")
 			line = dot + t.selection().Render(pad(stripANSI(row), inner-2))
 		}
 		lines = append(lines, line)

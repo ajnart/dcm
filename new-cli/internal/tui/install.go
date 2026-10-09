@@ -424,7 +424,7 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 		line := cursor + mark + " " + t.body().Render(pad(it.name, 16)) + " " + t.dim().Render(it.id)
 		lines = append(lines, truncate(line, inner))
 	}
-	return t.box("Catalog", "recipes & apps", strings.Join(lines, "\n"), width, height, !v.detailFocused)
+	return t.box("Catalog", "Recipes and Apps", strings.Join(lines, "\n"), width, height, !v.detailFocused)
 }
 
 func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
