@@ -11,8 +11,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 type App struct{}
@@ -212,8 +212,8 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	first := onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/health", Want: []int{200}},
+	first := firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/health", Want: []int{200}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  signedIn,
@@ -223,7 +223,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{Login: signedIn}).Check(ctx, h)
+	return (firstadmin.FirstAdmin{Login: signedIn}).Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

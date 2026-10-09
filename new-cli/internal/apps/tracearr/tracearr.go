@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 const defaultEmail = "admin@selfhost.local"
@@ -236,8 +236,8 @@ func createOwner(ctx context.Context, h *helpers.H, user, password string) error
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	var observed authObservation
-	first := onboard.FirstAdmin{
-		Ready: onboard.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
+	first := firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
 		Exists: func(ctx context.Context, h *helpers.H) (bool, error) {
 			if observed.loginHTTP == 429 {
 				return false, fmt.Errorf("Tracearr login returned HTTP 429; retry setup after the authentication rate limit clears")
@@ -336,7 +336,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	var observed authObservation
-	err := (onboard.FirstAdmin{Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+	err := (firstadmin.FirstAdmin{Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 		return observeLogin(ctx, h, user, password, &observed)
 	}}).Check(ctx, h)
 	if err == nil {

@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Netdata. Traps: docs/catalog/traps/netdata.md.
@@ -48,11 +48,11 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/api/v1/info"}}.Setup(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info"}}.Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/api/v1/info"}}.Check(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info"}}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

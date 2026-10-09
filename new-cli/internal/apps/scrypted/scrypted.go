@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Scrypted. Traps: docs/catalog/traps/scrypted.md.
@@ -108,9 +108,9 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 	return nil
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{200, 302}},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/", Want: []int{200, 302}},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,

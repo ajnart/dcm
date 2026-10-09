@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Frigate. Traps: docs/catalog/traps/frigate.md.
@@ -147,11 +147,11 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
 		// The static frontend can answer before the authenticated API starts.
 		// Wait for the API to deny anonymous access before checking credentials.
-		Ready:  onboard.Probe{Path: "/api/profile", Want: []int{http.StatusUnauthorized, http.StatusForbidden}},
+		Ready:  firstadmin.Probe{Path: "/api/profile", Want: []int{http.StatusUnauthorized, http.StatusForbidden}},
 		Create: createAdmin,
 		Login:  loginWorks,
 		Manual: "sign in with the temporary password printed by the container (`self-host logs frigate`) and change it to the password from `self-host credentials`",

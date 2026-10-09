@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Caddy. Traps: docs/catalog/traps/caddy.md.
@@ -65,7 +65,7 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-var probe = onboard.NoAccount{Probe: onboard.Probe{Path: "/health"}}
+var probe = firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/health"}}
 
 func (App) Setup(ctx context.Context, h *helpers.H) error { return probe.Setup(ctx, h) }
 func (App) Check(ctx context.Context, h *helpers.H) error { return probe.Check(ctx, h) }

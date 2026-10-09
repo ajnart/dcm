@@ -1,4 +1,4 @@
-package onboard_test
+package firstadmin_test
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -74,7 +74,7 @@ func TestNoAccountOKOn200(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
-	n := onboard.NoAccount{}
+	n := firstadmin.NoAccount{}
 
 	err := n.Setup(context.Background(), h)
 	if err != nil {
@@ -101,17 +101,17 @@ func TestNoAccountWantAndContains(t *testing.T) {
 
 	cases := []struct {
 		name string
-		p    onboard.Probe
+		p    firstadmin.Probe
 		want bool
 	}{
-		{"contains present", onboard.Probe{Contains: "hello"}, true},
-		{"contains missing", onboard.Probe{Contains: "goodbye"}, false},
-		{"want matches", onboard.Probe{Want: []int{http.StatusOK}}, true},
-		{"want mismatches", onboard.Probe{Want: []int{http.StatusCreated}}, false},
+		{"contains present", firstadmin.Probe{Contains: "hello"}, true},
+		{"contains missing", firstadmin.Probe{Contains: "goodbye"}, false},
+		{"want matches", firstadmin.Probe{Want: []int{http.StatusOK}}, true},
+		{"want mismatches", firstadmin.Probe{Want: []int{http.StatusCreated}}, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := onboard.NoAccount{Probe: tc.p}.Check(ctx, h)
+			err := firstadmin.NoAccount{Probe: tc.p}.Check(ctx, h)
 			if tc.want && err != nil {
 				t.Fatalf("Check = %v, want nil", err)
 			}
@@ -129,7 +129,7 @@ func TestNoAccountEmptyWantAcceptsAny2xx(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
-	if err := (onboard.NoAccount{}).Check(context.Background(), h); err != nil {
+	if err := (firstadmin.NoAccount{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
 }
@@ -141,7 +141,7 @@ func TestNoAccountTimeout(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
-	n := onboard.NoAccount{Probe: onboard.Probe{Timeout: 30 * time.Second}}
+	n := firstadmin.NoAccount{Probe: firstadmin.Probe{Timeout: 30 * time.Second}}
 
 	err := n.Setup(context.Background(), h)
 	if err == nil {
@@ -176,7 +176,7 @@ func TestNoAccount503Then200(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
-	n := onboard.NoAccount{Probe: onboard.Probe{Timeout: time.Minute}}
+	n := firstadmin.NoAccount{Probe: firstadmin.Probe{Timeout: time.Minute}}
 
 	if err := n.Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
@@ -232,7 +232,7 @@ func TestFirstAdminCreatesOnce(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{}
-	f := onboard.FirstAdmin{Ready: onboard.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
+	f := firstadmin.FirstAdmin{Ready: firstadmin.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
 
 	err := f.Setup(context.Background(), h)
 	if err != nil {
@@ -259,7 +259,7 @@ func TestFirstAdminChecksResolvedUsername(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{}
-	f := onboard.FirstAdmin{
+	f := firstadmin.FirstAdmin{
 		Username: func(context.Context, *helpers.H) (string, error) { return "selfhost-admin", nil },
 		Exists:   st.has, Create: st.make, Login: st.signIn,
 	}
@@ -277,7 +277,7 @@ func TestFirstAdminRerunSkips(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{}
-	f := onboard.FirstAdmin{Ready: onboard.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
+	f := firstadmin.FirstAdmin{Ready: firstadmin.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
 
 	if err := f.Setup(context.Background(), h); err != nil {
 		t.Fatalf("first Setup: %v", err)
@@ -302,7 +302,7 @@ func TestFirstAdminAlreadyExists(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{exists: true, user: "admin", pass: "another-password"}
-	f := onboard.FirstAdmin{Ready: onboard.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
+	f := firstadmin.FirstAdmin{Ready: firstadmin.Probe{}, Exists: st.has, Create: st.make, Login: st.signIn}
 
 	err := f.Setup(context.Background(), h)
 	if err == nil {
@@ -326,7 +326,7 @@ func TestFirstAdminCreateNil(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{}
-	f := onboard.FirstAdmin{Ready: onboard.Probe{}, Exists: st.has, Login: st.signIn}
+	f := firstadmin.FirstAdmin{Ready: firstadmin.Probe{}, Exists: st.has, Login: st.signIn}
 
 	err := f.Setup(context.Background(), h)
 	if err == nil {
@@ -351,8 +351,8 @@ func TestFirstAdminValidRejects(t *testing.T) {
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
 	st := &adminState{}
-	f := onboard.FirstAdmin{
-		Ready:  onboard.Probe{},
+	f := firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{},
 		Exists: st.has,
 		Create: st.make,
 		Login:  st.signIn,
@@ -373,7 +373,7 @@ func TestFirstAdminValidRejects(t *testing.T) {
 }
 
 func TestKinds(t *testing.T) {
-	kinds := onboard.Kinds()
+	kinds := firstadmin.Kinds()
 	if len(kinds) != 2 {
 		t.Fatalf("Kinds() = %v, want 2 entries", kinds)
 	}
@@ -381,7 +381,7 @@ func TestKinds(t *testing.T) {
 	for _, k := range kinds {
 		seen[k] = true
 	}
-	if !seen[onboard.KindNoAccount] || !seen[onboard.KindManualFirstAdmin] {
+	if !seen[firstadmin.KindNoAccount] || !seen[firstadmin.KindManualFirstAdmin] {
 		t.Errorf("Kinds() = %v, want both helper kinds", kinds)
 	}
 }
@@ -391,7 +391,7 @@ func TestFirstAdminRecordsManualStep(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
-	err := (onboard.FirstAdmin{Manual: "finish in the browser"}).Setup(context.Background(), h)
+	err := (firstadmin.FirstAdmin{Manual: "finish in the browser"}).Setup(context.Background(), h)
 	if got := statusOf(results, "admin"); got != stepstatus.StepManual {
 		t.Fatalf("admin status = %q, want manual", got)
 	}

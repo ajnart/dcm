@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Transmission. Traps: docs/catalog/traps/transmission.md.
@@ -97,9 +97,9 @@ func rpcSession(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return payload.Result.Version != "", nil
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready: onboard.Probe{Path: "/transmission/web/", Want: []int{200, 401}},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/transmission/web/", Want: []int{200, 401}},
 		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 			return rpcSession(ctx, h, user, password)
 		},

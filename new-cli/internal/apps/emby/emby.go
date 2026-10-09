@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Emby. Traps: docs/catalog/traps/emby.md.
@@ -85,9 +85,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 
 // firstAdmin has no headless Create: the trap forbids writing Startup/User or
 // Startup/Complete, so a person completes the first-owner wizard.
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/System/Info/Public"},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/System/Info/Public"},
 		Login:  loginWorks,
 		Manual: "open the first-owner wizard and create the administrator with username admin and the password from `self-host credentials`",
 	}

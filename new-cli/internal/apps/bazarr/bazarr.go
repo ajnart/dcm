@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Bazarr. Traps: docs/catalog/traps/bazarr.md.
@@ -105,9 +105,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return resp.Status == http.StatusOK, nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusUnauthorized}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusUnauthorized}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

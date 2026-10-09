@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is VictoriaMetrics. Traps: docs/catalog/traps/victoria-metrics.md.
@@ -43,11 +43,11 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/health"}}.Setup(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/health"}}.Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/health"}}.Check(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/health"}}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

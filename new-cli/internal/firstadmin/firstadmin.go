@@ -1,7 +1,7 @@
-// Package onboard holds Setup helpers shared by App kinds whose onboarding
+// Package firstadmin holds Setup helpers shared by App kinds whose first-run
 // follows one pattern: Apps with no account at all, and Apps whose first
 // administrator is created by a person in the web UI.
-package onboard
+package firstadmin
 
 import (
 	"context"

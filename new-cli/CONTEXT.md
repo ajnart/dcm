@@ -32,7 +32,14 @@ The set of Apps and Recipes shipped inside the binary.
 **Setup**:
 The automatic, headless configuration of an installed App (accounts, API
 keys, settings, links to other Apps), done without a browser.
-_Avoid_: onboarding, wizard
+_Avoid_: onboarding (that is the person's first run), wizard
+
+**Onboarding**:
+The setup wizard a person goes through the first time they run self-host,
+before any Project exists: what they want to run, why, where it lives and who
+administers it. It ends at an approved plan and hands over to the Dashboard,
+where the first Action comes to life.
+_Avoid_: setup (that is an App's automatic configuration), first run
 
 **Manual step**:
 A Setup step that needs a person to finish or verify it in a browser. It keeps

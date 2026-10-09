@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 type App struct{}
@@ -154,7 +154,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	ready := onboard.NoAccount{Probe: onboard.Probe{Path: "/status.php", Timeout: 5 * time.Minute}}
+	ready := firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/status.php", Timeout: 5 * time.Minute}}
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}

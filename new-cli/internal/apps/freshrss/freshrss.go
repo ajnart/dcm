@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is FreshRSS. Traps: docs/catalog/traps/freshrss.md.
@@ -95,9 +95,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return res.ExitCode == 0, nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

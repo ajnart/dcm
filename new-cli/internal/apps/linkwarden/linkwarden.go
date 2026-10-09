@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Linkwarden. Traps: docs/catalog/traps/linkwarden.md.
@@ -127,10 +127,10 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.FirstAdmin{
+	return firstadmin.FirstAdmin{
 		// v2.16.3 has no health route. The protected current-user route proves
 		// API routing before signup; Login separately verifies authenticated identity.
-		Ready:  onboard.Probe{Path: "/api/v1/users/me", Want: []int{http.StatusUnauthorized}, Contains: `"response":"You must be logged in."`},
+		Ready:  firstadmin.Probe{Path: "/api/v1/users/me", Want: []int{http.StatusUnauthorized}, Contains: `"response":"You must be logged in."`},
 		Create: create,
 		Login:  login,
 		Manual: "Linkwarden signs up its first account on the private instance.",
@@ -146,7 +146,7 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.FirstAdmin{Create: create, Login: login}.Check(ctx, h)
+	return firstadmin.FirstAdmin{Create: create, Login: login}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

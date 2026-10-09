@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Home Assistant. Traps: docs/catalog/traps/home-assistant.md.
@@ -137,9 +137,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return result.Type == "create_entry" && result.Result != "", nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/", Want: []int{http.StatusOK}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

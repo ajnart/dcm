@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Navidrome. Traps: docs/catalog/traps/navidrome.md.
@@ -90,10 +90,10 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-func setup() onboard.FirstAdmin {
+func setup() firstadmin.FirstAdmin {
 	var loginErr error
-	return onboard.FirstAdmin{
-		Ready: onboard.Probe{Path: "/"},
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/"},
 		Create: func(ctx context.Context, h *helpers.H, user, password string) error {
 			// A failed probe is not evidence that the administrator is absent.
 			if loginErr != nil {

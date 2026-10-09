@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Tdarr. Traps: docs/catalog/traps/tdarr.md.
@@ -152,9 +152,9 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 	return nil
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/"},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,

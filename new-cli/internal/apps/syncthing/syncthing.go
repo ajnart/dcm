@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Syncthing. Traps: docs/catalog/traps/syncthing.md.
@@ -138,9 +138,9 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 	return err
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/rest/noauth/health"},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/rest/noauth/health"},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,

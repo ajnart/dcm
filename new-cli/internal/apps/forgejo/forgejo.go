@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Forgejo. Traps: docs/catalog/traps/forgejo.md.
@@ -99,10 +99,10 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
 		Username: adminUser,
-		Ready:    onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
+		Ready:    firstadmin.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
 		Exists:   adminExists,
 		Create:   createAdmin,
 		Login:    loginWorks,

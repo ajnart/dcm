@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Dockge. Traps: docs/catalog/traps/dockge.md.
@@ -46,15 +46,15 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
+	return (firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/"},
 		Manual: "open Dockge and create the first administrator account",
 	}).Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
+	return (firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/"},
 		Manual: "open Dockge and create the first administrator account",
 	}).Check(ctx, h)
 }
