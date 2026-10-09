@@ -1,0 +1,22 @@
+.github/workflows/new-cli.yml
+  h_d6e478ca18e517 112
+new-cli/install.sh
+  h_d6e478ca18e517 8,11,13-15,19-21,23-26,29-42,116-123,137-142,145-146,148,179,200-202,207,209-210,214-216,233-277,282,292-313,321,323,325,355,361
+new-cli/internal/release/installsh_test.go
+  h_d6e478ca18e517 42-43,50,76,78-88,104-110,120,132-135,190-191,438-625
+new-cli/internal/release/release.go
+  h_d6e478ca18e517 139,147
+new-cli/internal/release/release_test.go
+  h_d6e478ca18e517 66-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5589d7753db1b7ec4d0e618144840a84372e6f4",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
