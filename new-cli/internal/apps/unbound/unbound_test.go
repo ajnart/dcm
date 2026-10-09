@@ -28,6 +28,7 @@ func (f *fakeExec) Exec(context.Context, string, map[string]string, ...string) (
 }
 func (f *fakeExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
 func (f *fakeExec) Restart(context.Context, ...string) error                { return nil }
+func (f *fakeExec) Up(context.Context, ...string) error                     { return nil }
 
 const answer = ";; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 1\nnlnetlabs.nl. 3600 IN A 185.49.140.10\n"
 

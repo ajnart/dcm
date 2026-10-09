@@ -354,6 +354,35 @@ func (ss *session) services(ids ...string) ([]string, error) {
 	return all, nil
 }
 
+// startServices is services minus those a DeferredStarter App holds back from
+// Compose up until its Setup has what they need.
+func (ss *session) startServices(ids ...string) ([]string, error) {
+	var all []string
+	for _, id := range ids {
+		names, err := ss.services(id)
+		if err != nil {
+			return nil, err
+		}
+		if a, found := ss.s.Catalog.App(id); found {
+			if deferrer, ok := a.(app.DeferredStarter); ok {
+				deferred := deferrer.Deferred(ss.helpers(a))
+				names = slices.DeleteFunc(names, func(name string) bool { return slices.Contains(deferred, name) })
+			}
+		}
+		all = append(all, names...)
+	}
+	return all, nil
+}
+
+// up starts services. With none named, Compose would start every service of
+// the Project, including those an App holds back.
+func (ss *session) up(ctx context.Context, services []string) error {
+	if len(services) == 0 {
+		return nil
+	}
+	return ss.compose.Up(ctx, services...)
+}
+
 // runSetup runs an App's Setup, its Check and its own Links, then the Links
 // other ready Apps declare towards it. A Link failure is recorded on the App
 // that declares the Link. It returns every App whose Setup is now incomplete.

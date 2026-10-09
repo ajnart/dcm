@@ -24,11 +24,12 @@ type ContainerUsage struct {
 
 const usagePause = time.Second
 
-// Usage reports the load of the Project's running containers to emit about
-// every two seconds until ctx ends. It polls `docker stats --no-stream`
-// instead of following one stream: Docker redraws a followed stream with
-// terminal escape codes and keeps measuring the containers it started with,
-// while each poll names the Project's current containers.
+// Usage reports the load of the Project's running containers to emit until ctx
+// ends. Each round pauses a second after `docker stats` returns, so the
+// interval is that pause plus Docker's own time. It polls `docker stats
+// --no-stream` instead of following one stream: Docker redraws a followed
+// stream with terminal escape codes and keeps measuring the containers it
+// started with, while each poll names the Project's current containers.
 func (s *Service) Usage(ctx context.Context, emit func([]ContainerUsage)) error {
 	ss, err := s.open(ctx)
 	if err != nil {

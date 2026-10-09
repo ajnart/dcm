@@ -68,6 +68,7 @@ func (f *fakeExec) Exec(_ context.Context, _ string, env map[string]string, comm
 
 func (f *fakeExec) LogText(context.Context, int, ...string) (string, error) { return "", nil }
 func (f *fakeExec) Restart(context.Context, ...string) error                { return nil }
+func (f *fakeExec) Up(context.Context, ...string) error                     { return nil }
 
 func newH(t *testing.T, srv *httptest.Server, exec *fakeExec, records *[]helpers.StepResult) *helpers.H {
 	t.Helper()

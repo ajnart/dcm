@@ -223,38 +223,46 @@ func systems(ctx context.Context, h *helpers.H) ([]hubSystem, error) {
 	return body.Items, nil
 }
 
-// machine reports the status of this machine's system in the Hub.
-func machine(ctx context.Context, h *helpers.H) (status string, listed bool, err error) {
+// machine finds this machine's system in the Hub. Once enrolment has stored
+// its record id the id decides, so renaming the system in the Hub changes
+// nothing; the name only identifies a system that was never enrolled.
+func machine(ctx context.Context, h *helpers.H) (hubSystem, bool, error) {
 	items, err := systems(ctx, h)
 	if err != nil {
-		return "", false, err
+		return hubSystem{}, false, err
 	}
+	stored := h.Secret(h.Key("machine_id"))
 	for _, item := range items {
-		if item.Name == SystemName {
-			return item.Status, true, nil
+		if item.ID != "" && item.ID == stored {
+			return item, true, nil
 		}
 	}
-	return "", false, nil
+	for _, item := range items {
+		if item.ID != "" && item.Name == SystemName {
+			return item, true, nil
+		}
+	}
+	return hubSystem{}, false, nil
 }
 
 // MachineID is the Hub's record id for this machine's system, read as the
 // Admin login. Homarr's System Stats widget selects a system by it.
 func MachineID(ctx context.Context, h *helpers.H) (string, error) {
-	items, err := systems(ctx, h)
+	system, listed, err := machine(ctx, h)
 	if err != nil {
 		return "", err
 	}
-	for _, item := range items {
-		if item.Name == SystemName && item.ID != "" {
-			return item.ID, nil
-		}
+	if !listed {
+		return "", errors.New("this machine is not listed in the Hub; run: self-host setup " + h.App)
 	}
-	return "", errors.New("this machine is not listed in the Hub; run: self-host setup " + h.App)
+	return system.ID, nil
 }
 
-func machineUp(ctx context.Context, h *helpers.H) (bool, error) {
-	status, listed, err := machine(ctx, h)
-	return listed && status == "up", err
+// enrolled reports that the agent's system is up in the Hub and its record id
+// is the one stored, so later Checks keep finding it after a rename.
+func enrolled(ctx context.Context, h *helpers.H) (bool, error) {
+	system, listed, err := machine(ctx, h)
+	return listed && system.Status == "up" && system.ID == h.Secret(h.Key("machine_id")), err
 }
 
 func agentSettingsCurrent(ctx context.Context, h *helpers.H) (bool, error) {
@@ -274,7 +282,7 @@ func agentSettingsCurrent(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 // storeAgentSettings saves the Hub's public key and its permanent universal
-// token. An existing permanent token is kept: replacing it would disconnect
+// token, and recreates the agent when it already had older ones. An existing permanent token is kept: replacing it would disconnect
 // every other agent enrolled with it.
 func storeAgentSettings(ctx context.Context, h *helpers.H) error {
 	key, err := hubKey(ctx, h)
@@ -294,10 +302,27 @@ func storeAgentSettings(ctx context.Context, h *helpers.H) error {
 	if !token.usable() {
 		return errors.New("the Hub did not issue a permanent universal token")
 	}
+	replaced := h.Secret(h.Key("agent_key")) != "" && h.Secret(h.Key("agent_token")) != ""
 	if err := h.SetSecret(h.Key("agent_key"), key); err != nil {
 		return err
 	}
-	return h.SetSecret(h.Key("agent_token"), token.Token)
+	if err := h.SetSecret(h.Key("agent_token"), token.Token); err != nil {
+		return err
+	}
+	if replaced {
+		return h.Up(ctx, AgentService)
+	}
+	return nil
+}
+
+// Deferred holds the agent and its socket proxy back from every Compose up
+// until the agent's key and token are stored: without them the agent would
+// restart in a loop. Setup starts both.
+func (App) Deferred(h *helpers.H) []string {
+	if h.Secret(h.Key("agent_key")) != "" && h.Secret(h.Key("agent_token")) != "" {
+		return nil
+	}
+	return []string{AgentService, SocketProxyService}
 }
 
 func startAgent(ctx context.Context, h *helpers.H) error {
@@ -307,7 +332,16 @@ func startAgent(ctx context.Context, h *helpers.H) error {
 	if err := h.Up(ctx, AgentService); err != nil {
 		return err
 	}
-	return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return machineUp(ctx, h) })
+	var found hubSystem
+	err := h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) {
+		system, listed, err := machine(ctx, h)
+		found = system
+		return listed && system.Status == "up", err
+	})
+	if err != nil {
+		return err
+	}
+	return h.SetSecret(h.Key("machine_id"), found.ID)
 }
 
 func ready(ctx context.Context, h *helpers.H, path string) error {
@@ -359,7 +393,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	return h.Step(ctx, "agent", "start the agent and wait for this machine in the Hub", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return machineUp(ctx, h) },
+		Check: func(ctx context.Context) (bool, error) { return enrolled(ctx, h) },
 		Do:    func(ctx context.Context) error { return startAgent(ctx, h) },
 		Hint:  "Read the agent's output with: self-host logs " + h.App + "; it needs the Docker socket proxy and port " + agentPort + " free on this machine",
 	})
@@ -373,14 +407,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return errors.New("the Admin login cannot sign in to Beszel")
 	}
-	_, listed, err := machine(ctx, h)
-	if err != nil {
-		return err
-	}
-	if !listed {
-		return errors.New("this machine is not listed in the Hub; run: self-host setup " + h.App)
-	}
-	return nil
+	_, err = MachineID(ctx, h)
+	return err
 }
 
 func (App) Links() []app.Link { return nil }

@@ -47,6 +47,7 @@ func (*readinessExecutor) LogText(context.Context, int, ...string) (string, erro
 	panic("logs out of scope")
 }
 func (*readinessExecutor) Restart(context.Context, ...string) error { panic("restart out of scope") }
+func (*readinessExecutor) Up(context.Context, ...string) error      { return nil }
 func TestReadiness502ReportsOnlyFixedPHPBootstrapFacts(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(502)
