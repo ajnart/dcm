@@ -1,0 +1,22 @@
+.agents/install.md
+  h_d6e478ca18e517 9-10,15,35-38,73-75
+.agents/skills/self-host/references/cli-install.md
+  h_d6e478ca18e517 19,22,27-31,47,50
+README.md
+  h_d6e478ca18e517 5-6,11,31-34,61,65,91
+new-cli/README.md
+  h_d6e478ca18e517 17-18,23,43-46,49,72-74
+new-cli/internal/skill/guide.md
+  h_d6e478ca18e517 311-313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d237549025a2fb65882af1701d18c0c10a98e0c9",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
