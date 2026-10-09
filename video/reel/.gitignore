@@ -1,0 +1,5 @@
+node_modules/
+out/*
+!out/selfhost-reel.mp4
+!out/contact.png
+.DS_Store
