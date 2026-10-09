@@ -1,0 +1,44 @@
+new-cli/internal/tui/backups.go
+  h_d6e478ca18e517 86-87,153,160,247,307,383
+new-cli/internal/tui/backups_test.go
+  h_d6e478ca18e517 415-440
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 458
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 60-63,138-140,205-208,210-212,326,533,535,539,542,695
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 777,892
+new-cli/internal/tui/preboot.go
+  h_d6e478ca18e517 17-20,34-35
+new-cli/internal/tui/preboot_test.go
+  h_d6e478ca18e517 12,310-324
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 589,617,619-620,622,686-687
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-narrow.golden
+  h_d6e478ca18e517 20-22
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-note-narrow.golden
+  h_d6e478ca18e517 20-22
+new-cli/internal/tui/testdata/onboarding-where-exposure-local-narrow.golden
+  h_d6e478ca18e517 19
+new-cli/internal/tui/testdata/onboarding-where-exposure-narrow.golden
+  h_d6e478ca18e517 19
+new-cli/internal/tui/tools.go
+  h_d6e478ca18e517 108-110
+new-cli/internal/tui/tools_test.go
+  h_d6e478ca18e517 129,143-171
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 115-116,206-208,217-240,242,679
+new-cli/internal/tui/what.go
+  h_d6e478ca18e517 160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "628147d19578bd53ae1c3dcabcda785e59fb08aa",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
