@@ -143,9 +143,21 @@ func TestGoldenSettingsExposureHelp(t *testing.T) {
 			m := goldenModel(t, size.width, size.height)
 			m = drive(t, m, press("5"))
 
-			m = drive(t, m, press("enter"))
+			m = pickLocalExposure(t, m)
 
 			golden(t, "settings-exposure-pending"+size.suffix, trimLines(screen(m)))
+		})
+		t.Run("coming-soon"+size.suffix, func(t *testing.T) {
+			m := goldenModel(t, size.width, size.height)
+			m = drive(t, m, press("5"))
+			m = drive(t, m, press("enter"))
+			for range 3 {
+				m = drive(t, m, press("down"))
+			}
+
+			golden(t, "settings-exposure-coming-soon"+size.suffix, trimLines(screen(m)))
+			m = drive(t, m, press("enter"))
+			golden(t, "settings-exposure-coming-soon-note"+size.suffix, trimLines(screen(m)))
 		})
 	}
 }

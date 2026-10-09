@@ -125,7 +125,7 @@ of its own asks them next. **Where** explains each field in a line while it is
 focused: the LAN address, Exposure (a plain explanation and a small diagram that
 follow the highlighted choice), the Host settings and, only for media Apps, the
 media and downloads folders. On the Exposure choice `?` opens a longer help page
-(`esc` or `?` closes it); in a text input `?` types a question mark. **Who** sets the one Admin login for every App: a password
+(`esc` or `?` closes it); in a text input `?` types a question mark. Exposure also lists Tailscale, Cloudflare Tunnel and HTTPS with Caddy, dimmed and marked coming soon: the highlight explains them, `enter` only says they are coming soon, and Exposure stays `lan` or `local`. In Settings, `enter` on the EXPOSURE row opens the same list. **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look

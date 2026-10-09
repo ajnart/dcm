@@ -43,7 +43,10 @@ const revealEvery = 6
 // answers is shared by pointer so huh's bindings survive Model copies and
 // every step's form, built afresh each time the step opens, shows them.
 type answers struct {
-	exposure                 string
+	exposure string
+	// highlight is the Exposure entry under the highlight, a coming-soon one
+	// included; exposure only ever takes lan or local from it.
+	highlight                string
 	picks                    picks
 	tz, lan, puid, pgid      string
 	media, downloads         string
@@ -189,14 +192,12 @@ func (m Model) buildForm(s step) *huh.Form {
 		groups = m.inputGroups(cat)
 		height-- // huh adds a line for its error
 	case stepWhere:
+		v.highlight = v.exposure
 		groups = append(groups,
 			huh.NewGroup(
 				huh.NewInput().Key(whereLAN).Title("LAN address").Value(&v.lan),
 				huh.NewSelect[string]().Key(whereExposure).Title("Which devices can open your Apps?").
-					Options(
-						huh.NewOption("Other devices on your network", service.ExposureLAN),
-						huh.NewOption("Only this computer", service.ExposureLocal),
-					).Value(&v.exposure),
+					Options(exposureOptions(m.theme)...).Value(&v.highlight),
 			),
 			huh.NewGroup(
 				huh.NewInput().Key(whereTZ).Title("Time zone").Value(&v.tz),
@@ -235,6 +236,16 @@ func (m Model) buildForm(s step) *huh.Form {
 		g.WithHeight(min(raw, height))
 	}
 	return form
+}
+
+// exposureOptions are the entries of Where's Exposure choice. huh cannot dim
+// one option, so a coming-soon label carries its own dim style.
+func exposureOptions(t theme) []huh.Option[string] {
+	var options []huh.Option[string]
+	for _, c := range exposureChoices {
+		options = append(options, huh.NewOption(exposureLabel(t, c), c.id))
+	}
+	return options
 }
 
 func (m Model) formWidth() int { return min(max(m.width-8, 40), 100) }
@@ -340,10 +351,10 @@ func (m Model) whereExplanation(room int) []string {
 		}
 		return append([]string{""}, paragraph(t.body(), text)...)
 	}
-	if block := exposureBlock(t, v.exposure, v.lan, width, room); block != nil {
+	if block := exposureBlock(t, v.highlight, v.exposure, v.lan, width, room); block != nil {
 		return block
 	}
-	return append([]string{""}, paragraph(t.body(), exposureText(v.exposure, v.lan))...)
+	return append([]string{""}, paragraph(t.body(), exposureExplanation(v.highlight, v.exposure, v.lan))...)
 }
 
 // whatDetailLines is the room for the hovered item's description on What:
@@ -565,6 +576,14 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			}
 			return m.openStep(o.step - 1)
 		}
+		if choice, soon := comingSoon(o.answers.highlight); soon && o.step == stepWhere && o.focusedKey() == whereExposure &&
+			(msg.String() == "enter" || msg.String() == "tab") {
+			m.setFlash(exposureNote(choice, o.answers.exposure), levelInfo)
+			return m, nil
+		}
+		if o.step == stepWhere {
+			m.setFlash("", levelInfo)
+		}
 		return m.updateOnboardingForm(msg)
 	}
 	switch msg.String() {
@@ -679,6 +698,9 @@ func (m Model) updateOnboardingForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
 	next, cmd := o.form.Update(msg)
 	o.form = next.(*huh.Form)
+	if _, soon := comingSoon(o.answers.highlight); !soon && o.step == stepWhere {
+		o.answers.exposure = o.answers.highlight
+	}
 	switch o.form.State {
 	case huh.StateAborted:
 		return m.backToWelcome()

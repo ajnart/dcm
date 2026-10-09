@@ -10,12 +10,12 @@
     Which devices can open your Apps?
     > Other devices on your network
       Only this computer
+      Tailscale: your devices, from anywhere · coming soon
+      Cloudflare Tunnel: a public address · coming soon
+      HTTPS with a reverse proxy: Caddy · coming soon
 
   App links use this address, so TVs and phones can open them. It only builds
   links: the choice below decides who can connect.
-
-
-
 
 
 

@@ -10,6 +10,9 @@
   ┃ Which devices can open your Apps?
   ┃ > Other devices on your network
   ┃   Only this computer
+  ┃   Tailscale: your devices, from anywhere · coming soon
+  ┃   Cloudflare Tunnel: a public address · coming soon
+  ┃   HTTPS with a reverse proxy: Caddy · coming soon
 
   Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
   192.168.1.20. Nobody on the internet can.
@@ -17,9 +20,6 @@
   phones · TVs · laptops ──── router ──── this computer 192.168.1.20
                                  │
                             internet ✗
-
-
-
 
 
 

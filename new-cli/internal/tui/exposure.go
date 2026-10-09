@@ -14,6 +14,76 @@ import (
 // Apps' ports on 0.0.0.0 and local on 127.0.0.1, and the LAN address only
 // builds App links.
 
+// The coming-soon remote access options. They can be highlighted and
+// explained, never chosen: they are not Exposure values, so nothing persists
+// or dispatches them and `.env` and `status --json` only ever see lan or local.
+const (
+	exposureTailscale   = "tailscale"
+	exposureCloudflare  = "cloudflare"
+	exposureReverseHTTP = "caddy"
+)
+
+// exposureChoice is one entry of the Exposure choice: what it is called, and
+// for a coming-soon entry, what it will do.
+type exposureChoice struct {
+	id    string
+	label string
+	soon  bool
+	will  string
+	name  string
+}
+
+var exposureChoices = []exposureChoice{
+	{id: service.ExposureLAN, label: "Other devices on your network"},
+	{id: service.ExposureLocal, label: "Only this computer"},
+	{exposureTailscale, "Tailscale: your devices, from anywhere", true,
+		"Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a private network only your devices join.", "Tailscale"},
+	{exposureCloudflare, "Cloudflare Tunnel: a public address", true,
+		"Cloudflare Tunnel will give your Apps a public address on the internet, without opening any port on your router.", "Cloudflare Tunnel"},
+	{exposureReverseHTTP, "HTTPS with a reverse proxy: Caddy", true,
+		"A reverse proxy will put your Apps behind secure https:// addresses. Caddy, a small web server, handles the certificates for you.", "HTTPS with Caddy"},
+}
+
+// comingSoon is the coming-soon entry with an id.
+func comingSoon(id string) (exposureChoice, bool) {
+	i := slices.IndexFunc(exposureChoices, func(c exposureChoice) bool { return c.id == id && c.soon })
+	if i < 0 {
+		return exposureChoice{}, false
+	}
+	return exposureChoices[i], true
+}
+
+// exposureStays is where the Apps stay while a choice is not available.
+func exposureStays(current string) string {
+	if current == service.ExposureLocal {
+		return "on this computer"
+	}
+	return "on your network"
+}
+
+// exposureNote is the gentle note for enter on a coming-soon entry.
+func exposureNote(choice exposureChoice, current string) string {
+	return choice.name + " is coming soon; your Apps stay " + exposureStays(current)
+}
+
+// exposureExplanation explains a highlighted entry: a real choice in its own
+// words, a coming-soon one by what it will do and that it is not available.
+func exposureExplanation(highlight, current, lanIP string) string {
+	choice, soon := comingSoon(highlight)
+	if !soon {
+		return exposureText(highlight, lanIP)
+	}
+	return choice.will + " It isn't available yet: your Apps stay " + exposureStays(current) + "."
+}
+
+// exposureLabel is an entry as the choice lists show it: a coming-soon one dimmed and marked.
+func exposureLabel(t theme, c exposureChoice) string {
+	if c.soon {
+		return t.dim().Render(c.label + " · coming soon")
+	}
+	return c.label
+}
+
 // exposureAddress is the address a person types to open an App.
 func exposureAddress(exposure, lanIP string) string {
 	switch {
@@ -182,11 +252,12 @@ func exposurePage(exposure, lanIP string) helpPage {
 	}}
 }
 
-// exposureBlock is the live explanation of an Exposure choice as indented
+// exposureBlock is the live explanation of the highlighted entry, with the
+// diagram of the current choice, as indented
 // lines after a blank one, in at most room lines: what it means in plain
 // words and the diagram, shedding the blank line, then the diagram, when room
 // is short. It is nil when not even the text fits.
-func exposureBlock(t theme, exposure, lanIP string, width, room int) []string {
+func exposureBlock(t theme, highlight, current, lanIP string, width, room int) []string {
 	paragraph := func(style lipgloss.Style, text string) []string {
 		var lines []string
 		for _, line := range strings.Split(wrap(text, width), "\n") {
@@ -194,9 +265,9 @@ func exposureBlock(t theme, exposure, lanIP string, width, room int) []string {
 		}
 		return lines
 	}
-	text := paragraph(t.body(), exposureText(exposure, lanIP))
+	text := paragraph(t.body(), exposureExplanation(highlight, current, lanIP))
 	var diagram []string
-	for _, line := range exposureDiagram(t, exposure, lanIP, width, false) {
+	for _, line := range exposureDiagram(t, current, lanIP, width, false) {
 		diagram = append(diagram, "  "+line)
 	}
 	for _, block := range [][]string{

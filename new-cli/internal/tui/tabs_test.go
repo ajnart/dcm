@@ -240,7 +240,7 @@ func TestTabContentsPersistAcrossSwitches(t *testing.T) {
 	m, backend := settingsHost(t)
 	backend.catalog = wizardCatalog()
 
-	m = drive(t, m, press("space")) // EXPOSURE: lan → local, pending
+	m = pickLocalExposure(t, m) // EXPOSURE: lan → local, pending
 	m = drive(t, m, press("4"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))

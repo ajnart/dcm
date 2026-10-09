@@ -901,7 +901,7 @@ func TestSettingsRejectsAnInvalidValueInline(t *testing.T) {
 func TestSettingsEscapeWithPendingChangesAsksToDiscard(t *testing.T) {
 	m, backend := settingsHost(t)
 
-	m = drive(t, m, press("space")) // EXPOSURE: lan → local
+	m = pickLocalExposure(t, m) // EXPOSURE: lan → local
 	m = drive(t, m, press("esc"))
 
 	if !m.settings.confirmDiscard || !strings.Contains(screen(m), "discard 1 changes? y/n") {
@@ -967,7 +967,12 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		exposure := drive(t, m, press("5"))
 		check(string(set)+" Settings Exposure", exposure)
 		check(string(set)+" Settings Exposure help", drive(t, exposure, press("?")))
-		local := drive(t, exposure, press("enter"))
+		list := drive(t, exposure, press("enter"))
+		check(string(set)+" Settings Exposure list", list)
+		check(string(set)+" Settings Exposure coming soon", drive(t, drive(t, list, press("down")), press("down")))
+		soon := drive(t, drive(t, drive(t, list, press("down")), press("down")), press("enter"))
+		check(string(set)+" Settings Exposure coming soon note", soon)
+		local := pickLocalExposure(t, exposure)
 		check(string(set)+" Settings Exposure local", local)
 		check(string(set)+" Settings Exposure local help", drive(t, local, press("?")))
 	}
@@ -985,4 +990,13 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	for _, set := range sets {
 		walkOnboarding(t, 80, 24, set, func(name string, m Model) { check(string(set)+" Onboarding "+name, m) })
 	}
+}
+
+// pickLocalExposure opens Settings' EXPOSURE choice list on its row and takes
+// "Only this computer".
+func pickLocalExposure(t *testing.T, m Model) Model {
+	t.Helper()
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
+	return drive(t, m, press("enter"))
 }

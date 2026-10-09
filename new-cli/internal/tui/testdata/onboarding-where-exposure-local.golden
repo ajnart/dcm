@@ -10,15 +10,15 @@
   ┃ Which devices can open your Apps?
   ┃   Other devices on your network
   ┃ > Only this computer
+  ┃   Tailscale: your devices, from anywhere · coming soon
+  ┃   Cloudflare Tunnel: a public address · coming soon
+  ┃   HTTPS with a reverse proxy: Caddy · coming soon
 
   Your Apps open only in a browser on this computer. Other devices can't reach them.
 
   phones · TVs · laptops ──── router ──✗── this computer
                                  │
                             internet ✗
-
-
-
 
 
 
