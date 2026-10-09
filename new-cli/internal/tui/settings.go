@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
@@ -252,7 +253,7 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 	}
 	if key.Matches(msg, ctx.keys.NextPane) || key.Matches(msg, ctx.keys.PrevPane) {
 		v.appearance = !v.appearance
-		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == currentGlyphs(ctx) })
+		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
 		return v, nil, nav{}
 	}
 	if v.appearance && msg.String() != "esc" {
@@ -293,18 +294,13 @@ func (v *settingsView) appearanceKey(ctx *viewContext, msg tea.KeyPressMsg) tea.
 		v.glyphCursor = min(v.glyphCursor+1, len(glyphChoices)-1)
 	case msg.String() == "enter", msg.String() == "space":
 		chosen := glyphChoices[v.glyphCursor].glyphs
-		if chosen == currentGlyphs(ctx) {
+		if chosen == ctx.glyphs {
 			return nil
 		}
 		ctx.glyphs = chosen
 		return saveGlyphs(ctx.backend, chosen)
 	}
 	return nil
-}
-
-// currentGlyphs is the glyph set in use; an unset choice is Simple.
-func currentGlyphs(ctx *viewContext) activity.Glyphs {
-	return activity.ParseGlyphs(string(ctx.glyphs))
 }
 
 func saveGlyphs(backend Backend, g activity.Glyphs) tea.Cmd {
@@ -354,40 +350,44 @@ func (v *settingsView) cycleChoice() {
 // minRows is the fewest Host setting rows the pane keeps on screen.
 const minRows = 3
 
-// View lays the Host settings pane above the Appearance pane. The
-// Appearance pane is always whole; the Host settings rows scroll to keep the
-// cursor in view, and the pending changes shrink before the rows do.
+// View stacks the Host settings box above the Appearance box; the focused
+// one has the accent border and the bold title. The Appearance box is always
+// whole; the Host settings rows scroll to keep the cursor in view, and the
+// pending changes shrink before the rows do.
 func (v *settingsView) View(ctx *viewContext, width, height int) string {
+	appearance := v.appearanceBox(ctx, width)
+	avail := max(height-lipgloss.Height(appearance)-2, 3)
+	return v.hostBox(ctx, width, avail) + "\n" + appearance
+}
+
+// hostBox draws the Host settings, sized to its content within avail lines.
+func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	t := ctx.theme
 	inner := max(width-4, 12)
-	heading := t.title()
-	if v.appearance {
-		heading = t.inactive()
-	}
-	appearance := v.appearanceLines(ctx, inner)
-	header := []string{"", "  " + heading.Render("Host settings") + t.dim().Render("  enter/space edits · ctrl+s applies · tab Appearance")}
+	var head, confirm []string
 	if v.err != "" {
-		header = append(header, "  "+t.fg(t.fail).Render(v.err))
+		head = []string{t.fg(t.fail).Render(v.err)}
 	}
-	header = append(header, "")
-	var confirm []string
 	if v.confirmDiscard {
-		confirm = []string{"", "  " + t.fg(t.warn).Render("discard "+strconv.Itoa(len(v.pairs()))+" changes? y/n")}
+		confirm = []string{t.fg(t.warn).Render("discard " + strconv.Itoa(len(v.pairs())) + " changes? y/n")}
 	}
-	avail := height - len(appearance) - len(header) - len(confirm)
-	window := min(len(v.rows), max(minRows, avail-len(v.pendingLines(ctx, 1<<20))))
-	pending := v.pendingLines(ctx, max(avail-window, 0))
-	window = min(len(v.rows), max(avail-len(pending), 1))
+	space := avail - len(head) - len(confirm)
+	window := min(len(v.rows), max(minRows, space-v.pendingHeight()))
+	pending := v.pendingLines(ctx, max(space-window, 0))
+	window = min(len(v.rows), max(space-len(pending), 1))
 	v.scrollTo(window)
 
-	lines := header
+	lines := head
 	for i := v.offset; i < v.offset+window && i < len(v.rows); i++ {
-		lines = append(lines, "  "+v.renderRow(ctx, i, inner))
+		lines = append(lines, v.renderRow(ctx, i, inner))
 	}
 	lines = append(lines, pending...)
 	lines = append(lines, confirm...)
-	lines = append(lines, appearance...)
-	return strings.Join(lines, "\n")
+	note := ""
+	if n := len(v.pairs()); n > 0 {
+		note = strconv.Itoa(n) + " pending"
+	}
+	return t.box("Host settings", note, strings.Join(lines, "\n"), width, len(lines)+2, !v.appearance)
 }
 
 // scrollTo keeps the cursor inside a window of rows.
@@ -401,6 +401,30 @@ func (v *settingsView) scrollTo(window int) {
 	v.offset = max(min(v.offset, len(v.rows)-window), 0)
 }
 
+// pendingNotes are the lines that follow the pending changes: a warning when
+// file ownership changes, and the note that Apps are recreated.
+func (v *settingsView) pendingNotes(t theme) []string {
+	var notes []string
+	if v.hasKey("PUID") || v.hasKey("PGID") {
+		notes = append(notes, "  "+t.fg(t.warn).Render("! PUID/PGID changes who owns the installed Apps' files"))
+	}
+	return append(notes, "  "+t.dim().Render("Apps that use a changed setting are recreated."))
+}
+
+// pendingHeight is how many lines the pending changes take whole: a blank
+// line, the heading, every change and the notes; none without changes.
+func (v *settingsView) pendingHeight() int {
+	pairs := len(v.pairs())
+	if pairs == 0 {
+		return 0
+	}
+	notes := 1
+	if v.hasKey("PUID") || v.hasKey("PGID") {
+		notes++
+	}
+	return 2 + pairs + notes
+}
+
 // pendingLines are the pending changes in at most limit lines: the heading
 // and as many changes as fit, then "…" for the rest, with the notes only
 // when there is room for everything.
@@ -410,7 +434,7 @@ func (v *settingsView) pendingLines(ctx *viewContext, limit int) []string {
 	if pairs == 0 || limit < 3 {
 		return nil
 	}
-	lines := []string{"", "  " + t.heading().Render("Pending changes") + t.dim().Render(" "+strconv.Itoa(pairs))}
+	lines := []string{"", t.heading().Render("Pending changes") + t.dim().Render(" "+strconv.Itoa(pairs))}
 	var changes []string
 	for i := range v.rows {
 		if v.changed(i) {
@@ -418,13 +442,8 @@ func (v *settingsView) pendingLines(ctx *viewContext, limit int) []string {
 				t.dim().Render(v.rows[i].Current+" → ")+t.fg(t.accentText).Render(v.value(i)))
 		}
 	}
-	var notes []string
-	if v.hasKey("PUID") || v.hasKey("PGID") {
-		notes = append(notes, "  "+t.fg(t.warn).Render("! PUID/PGID changes who owns the installed Apps' files"))
-	}
-	notes = append(notes, "  "+t.dim().Render("Apps that use a changed setting are recreated."))
-	if len(lines)+len(changes)+len(notes) <= limit {
-		return append(append(lines, changes...), notes...)
+	if v.pendingHeight() <= limit {
+		return append(append(lines, changes...), v.pendingNotes(t)...)
 	}
 	room := limit - len(lines)
 	if len(changes) > room {
@@ -433,18 +452,13 @@ func (v *settingsView) pendingLines(ctx *viewContext, limit int) []string {
 	return append(lines, changes...)
 }
 
-// appearanceLines are the Appearance pane: a sample line of the icons in
-// the current set, the choice of set, and where to learn about Nerd Fonts.
-func (v *settingsView) appearanceLines(ctx *viewContext, width int) []string {
+// appearanceBox draws the Appearance pane: a sample line of the icons in the
+// current set, the choice of set, and where to learn about Nerd Fonts.
+func (v *settingsView) appearanceBox(ctx *viewContext, width int) string {
 	t := ctx.theme
-	g := currentGlyphs(ctx)
-	heading := t.inactive()
-	if v.appearance {
-		heading = t.title()
-	}
-	sample := glyphSample(t, g)
-	lines := []string{"", "  " + heading.Render("Appearance") + t.dim().Render("  icons in the Dashboard and the terminal · saved at once"), "",
-		"  " + truncate("  "+t.dim().Render(pad("Sample", 13))+sample, width)}
+	inner := max(width-4, 12)
+	g := ctx.glyphs
+	lines := []string{truncate("  "+t.dim().Render(pad("Sample", 13))+glyphSample(t, g), inner)}
 	for i, choice := range glyphChoices {
 		cursor := "  "
 		if v.appearance && i == v.glyphCursor {
@@ -456,9 +470,10 @@ func (v *settingsView) appearanceLines(ctx *viewContext, width int) []string {
 			mark = t.fg(t.accentText).Render("●")
 			name = t.active().Render(pad(choice.glyphs.Label(), 11))
 		}
-		lines = append(lines, "  "+truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), width))
+		lines = append(lines, truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), inner))
 	}
-	return append(lines, "", "  "+nerdFontsLine(t))
+	lines = append(lines, "", nerdFontsLine(t))
+	return t.box("Appearance", "saved at once", strings.Join(lines, "\n"), width, len(lines)+2, v.appearance)
 }
 
 // glyphSample is a line of the icons of a glyph set, each with its meaning.

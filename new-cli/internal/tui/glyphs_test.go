@@ -239,3 +239,31 @@ func TestNowStripStagesCarryTheIconsOfTheGlyphSet(t *testing.T) {
 		}
 	}
 }
+
+func TestSettingsPanesAreBoxesAndTheFocusedOneHasTheBoldTitle(t *testing.T) {
+	for _, size := range []struct{ width, height int }{{120, 30}, {80, 24}} {
+		m, _ := sample(t, size.width, size.height)
+		m = drive(t, m, press("5"))
+		titleRow := func(title string) int {
+			for i, line := range strings.Split(screen(m), "\n") {
+				if strings.Contains(line, "╭─ "+title) {
+					return i
+				}
+			}
+			t.Fatalf("%dx%d: no box titled %q\n%s", size.width, size.height, title, screen(m))
+			return -1
+		}
+
+		bold := boldText(m.View().Content)
+		if host, look := titleRow("Host settings"), titleRow("Appearance"); !strings.Contains(bold[host], "Host settings") || strings.Contains(bold[look], "Appearance") {
+			t.Errorf("%dx%d: Host settings has the focus, so only its title is bold: %q %q", size.width, size.height, bold[host], bold[look])
+		}
+
+		m = drive(t, m, press("tab"))
+
+		bold = boldText(m.View().Content)
+		if host, look := titleRow("Host settings"), titleRow("Appearance"); strings.Contains(bold[host], "Host settings") || !strings.Contains(bold[look], "Appearance") {
+			t.Errorf("%dx%d: tab moves the bold title to Appearance: %q %q", size.width, size.height, bold[host], bold[look])
+		}
+	}
+}
