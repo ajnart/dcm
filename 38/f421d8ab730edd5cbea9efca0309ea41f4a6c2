@@ -1,0 +1,109 @@
+new-cli/internal/activity/action.go
+  s_59ffa5bfdcd3ba::t_8758d2ab64c150 1-499
+new-cli/internal/activity/action_test.go
+  s_59ffa5bfdcd3ba::t_11f70e06e220c6 1-310
+new-cli/internal/activity/activity.go
+  s_59ffa5bfdcd3ba::t_35a651af722e65 31-35,48-50,60
+new-cli/internal/activity/motion.go
+  s_59ffa5bfdcd3ba::t_46e61f0e0b622f 1-79
+new-cli/internal/activity/render.go
+  s_59ffa5bfdcd3ba::t_a59dbc5da611c0 15,24,27
+new-cli/internal/activity/render_action.go
+  s_59ffa5bfdcd3ba::t_80376845ca26d6 1-389
+new-cli/internal/activity/render_action_test.go
+  s_59ffa5bfdcd3ba::t_6a9dc39795dd38 1-216
+new-cli/internal/activity/render_test.go
+  s_59ffa5bfdcd3ba::t_cc02d569ec60d5 77,96,108,119,131
+new-cli/internal/activity/terminal.go
+  s_59ffa5bfdcd3ba::t_2c2e2b541f8b4d 9-10,16-21,24-29,34-36,39-40,43-57,60-61,64,68-72,75-80,82-87,89-136,138-158,160-161,163-173,177-181
+new-cli/internal/activity/terminal_test.go
+  s_59ffa5bfdcd3ba::t_2399ec8c19d3a9 8-10,33,36,63-95,97-101,103-129,131-132,134-135,141-144,146-151,159,161-167,170-179,185-187,189,191,200-202,204-243,245-252
+new-cli/internal/activity/testdata/action-credential-120.golden
+  s_59ffa5bfdcd3ba::t_4227cf4f26236c 1-36
+new-cli/internal/activity/testdata/action-credential-80.golden
+  s_59ffa5bfdcd3ba::t_3a4fe724a157d2 1-36
+new-cli/internal/activity/testdata/action-credential-saved-120.golden
+  s_59ffa5bfdcd3ba::t_019acc688bfeb1 1-24
+new-cli/internal/activity/testdata/action-credential-saved-80.golden
+  s_59ffa5bfdcd3ba::t_cd508ab3f6b2b0 1-24
+new-cli/internal/activity/testdata/action-failed-120.golden
+  s_59ffa5bfdcd3ba::t_1470d051935012 1-12
+new-cli/internal/activity/testdata/action-failed-80.golden
+  s_59ffa5bfdcd3ba::t_eba16898c70ee9 1-12
+new-cli/internal/activity/testdata/action-finish-wave-120.golden
+  s_59ffa5bfdcd3ba::t_568046f4e2df73 1-36
+new-cli/internal/activity/testdata/action-finish-wave-80.golden
+  s_59ffa5bfdcd3ba::t_b29e9ec50623fb 1-48
+new-cli/internal/activity/testdata/action-links-120.golden
+  s_59ffa5bfdcd3ba::t_a458f20d7ee529 1-30
+new-cli/internal/activity/testdata/action-links-80.golden
+  s_59ffa5bfdcd3ba::t_02c733e73ccf67 1-45
+new-cli/internal/activity/testdata/action-manual-120.golden
+  s_59ffa5bfdcd3ba::t_5eb20e756b168c 1-11
+new-cli/internal/activity/testdata/action-manual-80.golden
+  s_59ffa5bfdcd3ba::t_090f541ae079a2 1-11
+new-cli/internal/activity/testdata/action-setup-120.golden
+  s_59ffa5bfdcd3ba::t_6ef16841ac60d9 1-12
+new-cli/internal/activity/testdata/action-setup-80.golden
+  s_59ffa5bfdcd3ba::t_3ec94fac1f60ea 1-12
+new-cli/internal/activity/testdata/action-start-pulse-120.golden
+  s_59ffa5bfdcd3ba::t_363f079e4aa359 1-27
+new-cli/internal/activity/testdata/action-start-pulse-80.golden
+  s_59ffa5bfdcd3ba::t_566e656c31f475 1-27
+new-cli/internal/activity/testdata/action-start-spinner-120.golden
+  s_59ffa5bfdcd3ba::t_92a66be9476ede 1-18
+new-cli/internal/activity/testdata/action-start-spinner-80.golden
+  s_59ffa5bfdcd3ba::t_f63ab2c9e04e1d 1-18
+new-cli/internal/activity/testdata/action-step-done-120.golden
+  s_59ffa5bfdcd3ba::t_11d67f9b317a45 1-13
+new-cli/internal/activity/testdata/action-step-done-80.golden
+  s_59ffa5bfdcd3ba::t_b97a5f46b54581 1-13
+new-cli/internal/cli/cli.go
+  s_59ffa5bfdcd3ba::t_b4552665b366b7 48-49,98,116-117,133-135
+new-cli/internal/tui/actionmenu.go
+  s_59ffa5bfdcd3ba::t_17e14be0169277 223
+new-cli/internal/tui/activity_live_view_test.go
+  s_59ffa5bfdcd3ba::t_c84af07d128d40 17,56,72,83,93,113
+new-cli/internal/tui/activity_tab_test.go
+  s_59ffa5bfdcd3ba::t_5234a99ef3ed59 1-219
+new-cli/internal/tui/activity_view.go
+  s_59ffa5bfdcd3ba::t_b1577959713a98 13,23-24,29,38,45,49,52,62,69,77-78,92-93,95,100,106,110,126,143,148,163,208,210,214-222,264
+new-cli/internal/tui/activity_view_test.go
+  s_59ffa5bfdcd3ba::t_9bf23f46d4a930 14,16-17,49
+new-cli/internal/tui/host_test.go
+  s_59ffa5bfdcd3ba::t_eb1050e94fc7cf 58-59
+new-cli/internal/tui/palette.go
+  s_59ffa5bfdcd3ba::t_40461c518fa371 12-13
+new-cli/internal/tui/tasks.go
+  s_59ffa5bfdcd3ba::t_10b05f95b4393e 102-108
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  s_59ffa5bfdcd3ba::t_ec65068f93ab0a 1-24
+new-cli/internal/tui/testdata/activity-finished.golden
+  s_59ffa5bfdcd3ba::t_b237155045624e 1-30
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  s_59ffa5bfdcd3ba::t_8e305dc3d791c2 1-24
+new-cli/internal/tui/testdata/activity-running.golden
+  s_59ffa5bfdcd3ba::t_abc7316f2ed815 1-30
+new-cli/internal/tui/theme_test.go
+  s_59ffa5bfdcd3ba::t_860b46547baecb 79
+new-cli/internal/tui/views_test.go
+  s_59ffa5bfdcd3ba::t_908092d2397c18 126,139,155,192,216,221,265,268,289,292,310,321,349,357,399
+new-cli/internal/tui/wizard.go
+  s_59ffa5bfdcd3ba::t_01fb987207833f 389,464-465
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38f421d8ab730edd5cbea9efca0309ea41f4a6c2",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
