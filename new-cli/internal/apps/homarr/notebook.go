@@ -2,7 +2,6 @@ package homarr
 
 import (
 	"context"
-	"fmt"
 	"html"
 	"slices"
 	"sort"
@@ -94,6 +93,10 @@ func ensureNotebook(ctx context.Context, h *helpers.H) error {
 	if err := ensureAssistant(ctx, h); err != nil {
 		return err
 	}
+	return updateNotebook(ctx, h)
+}
+
+func updateNotebook(ctx context.Context, h *helpers.H) error {
 	current, err := board(ctx, h)
 	if err != nil {
 		return err
@@ -105,13 +108,14 @@ func ensureNotebook(ctx context.Context, h *helpers.H) error {
 	content := notebookContent(services)
 	found, ok := findNotebook(itemsOf(current))
 	if !ok {
-		return addItem(ctx, h, map[string]any{
+		_, err := addItem(ctx, h, map[string]any{
 			"boardId":        stringField(current, "id"),
 			"kind":           "notebook",
 			"options":        map[string]any{"content": content, "showToolbar": false, "allowReadOnlyCheck": true},
 			"size":           map[string]any{"width": 3, "height": 5},
 			"integrationIds": []any{},
 		})
+		return err
 	}
 	options, _ := found["options"].(map[string]any)
 	if !itemSizeMatches(current, found, 3, 5) {
@@ -161,26 +165,17 @@ func ensureAssistant(ctx context.Context, h *helpers.H) error {
 	if err != nil || hasAssistant(itemsOf(current)) {
 		return err
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h),
-		JSON: map[string]any{
-			"boardId": stringField(current, "id"), "kind": "assistant", "options": map[string]any{},
-			"size": map[string]any{"width": 4, "height": 3}, "integrationIds": []any{},
-		},
+	resp, err := addItem(ctx, h, map[string]any{
+		"boardId": stringField(current, "id"), "kind": "assistant", "options": map[string]any{},
+		"size": map[string]any{"width": 4, "height": 3}, "integrationIds": []any{},
 	})
-	if err != nil {
-		return err
-	}
-	if resp.OK() {
-		var created struct{ ItemID string }
-		if err := resp.Decode(&created); err != nil {
-			return err
-		}
-		if created.ItemID == "" {
-			return fmt.Errorf("Homarr did not return the assistant item ID; run self-host setup homarr")
-		}
+	if assistantKindUnsupported(resp) {
 		return nil
 	}
+	return err
+}
+
+func assistantKindUnsupported(resp helpers.Response) bool {
 	var rejection struct {
 		Message string
 		Issues  []struct {
@@ -191,22 +186,29 @@ func ensureAssistant(ctx context.Context, h *helpers.H) error {
 			Received string
 		}
 	}
-	if resp.Status == 400 && resp.Decode(&rejection) == nil {
-		if strings.EqualFold(rejection.Message, "Unknown widget kind: assistant") {
-			return nil
-		}
-		if rejection.Message == "Input validation failed" && len(rejection.Issues) == 1 {
-			issue := rejection.Issues[0]
-			kinds := issue.Values
-			if issue.Code == "invalid_enum_value" && issue.Received == "assistant" {
-				kinds = issue.Options
-			}
-			if len(issue.Path) == 1 && issue.Path[0] == "kind" &&
-				(issue.Code == "invalid_value" || issue.Code == "invalid_enum_value") &&
-				len(kinds) > 0 && !slices.Contains(kinds, "assistant") {
-				return nil
-			}
-		}
+	if resp.Status != 400 || resp.Decode(&rejection) != nil {
+		return false
 	}
-	return fmt.Errorf("Homarr rejected assistant creation (HTTP %d)", resp.Status)
+	if strings.EqualFold(rejection.Message, "Unknown widget kind: assistant") {
+		return true
+	}
+	if rejection.Message != "Input validation failed" || len(rejection.Issues) != 1 {
+		return false
+	}
+	issue := rejection.Issues[0]
+	if len(issue.Path) != 1 || issue.Path[0] != "kind" {
+		return false
+	}
+	kinds := issue.Values
+	switch issue.Code {
+	case "invalid_value":
+	case "invalid_enum_value":
+		if issue.Received != "assistant" {
+			return false
+		}
+		kinds = issue.Options
+	default:
+		return false
+	}
+	return len(kinds) > 0 && !slices.Contains(kinds, "assistant")
 }

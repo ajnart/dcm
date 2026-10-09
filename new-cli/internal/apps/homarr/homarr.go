@@ -415,9 +415,12 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err
 		}
 	}
+	if err := ensureAssistant(ctx, h); err != nil {
+		return err
+	}
 	return h.Step(ctx, "notebook", "place the Homarr notebook", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return notebookCurrent(ctx, h) },
-		Do:         func(ctx context.Context) error { return ensureNotebook(ctx, h) },
+		Do:         func(ctx context.Context) error { return updateNotebook(ctx, h) },
 		Hint:       "Open " + h.URL + " and add a Notebook widget, or rerun this step.",
 		Credential: "admin",
 	})

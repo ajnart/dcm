@@ -357,25 +357,34 @@ func widgetCurrent(item map[string]any, w widget, integrationID string) bool {
 	return true
 }
 
-func addItem(ctx context.Context, h *helpers.H, body map[string]any) error {
-	_, err := addItemID(ctx, h, body)
-	return err
+func addItem(ctx context.Context, h *helpers.H, body map[string]any) (helpers.Response, error) {
+	resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h), JSON: body})
+	if err != nil {
+		return resp, err
+	}
+	if !resp.OK() {
+		return resp, fmt.Errorf("Homarr rejected %s creation (HTTP %d)", stringField(body, "kind"), resp.Status)
+	}
+	var created struct{ ItemID string }
+	if err := resp.Decode(&created); err != nil {
+		return resp, err
+	}
+	if created.ItemID == "" {
+		return resp, errors.New("Homarr did not return the board item ID; run self-host setup homarr")
+	}
+	return resp, nil
 }
 
 func addItemID(ctx context.Context, h *helpers.H, body map[string]any) (string, error) {
-	resp, err := h.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h), JSON: body})
+	resp, err := addItem(ctx, h, body)
 	if err != nil {
 		return "", err
 	}
-	var created map[string]any
+	var created struct{ ItemID string }
 	if err := resp.Decode(&created); err != nil {
 		return "", err
 	}
-	id := stringField(created, "itemId")
-	if id == "" {
-		return "", errors.New("Homarr did not return the board item ID; run self-host setup homarr")
-	}
-	return id, nil
+	return created.ItemID, nil
 }
 
 func ownedWidgets(h *helpers.H, integrationID string) map[string]bool {
@@ -458,13 +467,14 @@ func widgetOwnership(h *helpers.H, integrationID string, widgets []widget, items
 }
 
 func addTile(ctx context.Context, h *helpers.H, boardID, appID string) error {
-	return addItem(ctx, h, map[string]any{
+	_, err := addItem(ctx, h, map[string]any{
 		"boardId":        boardID,
 		"kind":           "app",
 		"options":        map[string]any{"appId": appID, "openInNewTab": true, "showTitle": true},
 		"size":           map[string]any{"width": 1, "height": 1},
 		"integrationIds": []any{},
 	})
+	return err
 }
 
 func managedAppIDs(h *helpers.H) map[string]string {

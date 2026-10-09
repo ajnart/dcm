@@ -43,6 +43,8 @@ type fakeHomarr struct {
 	layouts                []any
 	boards                 []map[string]any
 	readBoard              string
+	itemPosts              int
+	assistantPosts         int
 	rejectAssistantStatus  int
 	rejectAssistantMessage string
 	rejectAssistantIssues  []any
@@ -372,6 +374,10 @@ func (f *fakeHomarr) handler() http.Handler {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
+		f.itemPosts++
+		if body["kind"] == "assistant" {
+			f.assistantPosts++
+		}
 		if body["kind"] == "assistant" && f.rejectAssistantStatus != 0 {
 			w.WriteHeader(f.rejectAssistantStatus)
 			json.NewEncoder(w).Encode(map[string]any{"message": f.rejectAssistantMessage, "issues": f.rejectAssistantIssues})
@@ -1597,6 +1603,27 @@ func TestNTFYNewTokenRequiresTheExistingAdministratorAccount(t *testing.T) {
 	}
 }
 
+func TestSetupAddsMissingAssistantToCurrentNotebookOnce(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists, fake.adminName, fake.adminPassword, fake.step = true, "admin", "pw", "finish"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	if err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, secrets)); err != nil {
+		t.Fatal(err)
+	}
+	fake.items = notebooks(fake.items)
+	fake.itemPosts, fake.assistantPosts = 0, 0
+	for run := 1; run <= 2; run++ {
+		if err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, secrets)); err != nil {
+			t.Fatalf("Setup run %d: %v", run, err)
+		}
+		if fake.assistantPosts != 1 || fake.itemPosts != 1 || len(fake.items) != 2 {
+			t.Fatalf("Setup run %d: want exactly one assistant POST and two items, got assistant POSTs=%d, item POSTs=%d, items=%d", run, fake.assistantPosts, fake.itemPosts, len(fake.items))
+		}
+	}
+}
+
 func TestSetupWithoutAssistantKindKeepsNotebookCurrent(t *testing.T) {
 	fake := newFake()
 	fake.apiKey = "keyid.secret"
@@ -1614,6 +1641,9 @@ func TestSetupWithoutAssistantKindKeepsNotebookCurrent(t *testing.T) {
 		}
 		if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
 			t.Fatalf("Setup run %d without assistant kind: %v", run+1, err)
+		}
+		if fake.assistantPosts != run+1 {
+			t.Fatalf("Setup run %d: want one rejected assistant POST per Setup, got %d total", run+1, fake.assistantPosts)
 		}
 		if run == 1 && status != "skip" {
 			t.Fatalf("notebook was not current on rerun: %s", status)
@@ -1803,9 +1833,53 @@ func TestSetupWithoutAssistantEnumKeepsNotebookCurrent(t *testing.T) {
 				if err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, secrets)); err != nil {
 					t.Fatalf("Setup run %d without assistant enum: %v", run+1, err)
 				}
+				if fake.assistantPosts != run+1 {
+					t.Fatalf("Setup run %d: want one rejected assistant POST per Setup, got %d total", run+1, fake.assistantPosts)
+				}
 			}
 			if len(notebooks(fake.items)) != 1 || len(fake.items) != 1 {
 				t.Fatalf("want one notebook, got %v", fake.items)
+			}
+		})
+	}
+}
+
+func TestSetupAssistantRejectionFormats(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		status      int
+		message     string
+		issues      []any
+		unsupported bool
+	}{
+		{"unknown-kind", 400, "Unknown widget kind: assistant", nil, true},
+		{"unknown-kind-case", 400, "Unknown widget kind: ASSISTANT", nil, true},
+		{"zod-values", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"kind"}, "values": []any{"notebook"}}}, true},
+		{"zod-options", 400, "Input validation failed", []any{map[string]any{"code": "invalid_enum_value", "path": []any{"kind"}, "options": []any{"notebook"}, "received": "assistant"}}, true},
+		{"enum-wrong-received", 400, "Input validation failed", []any{map[string]any{"code": "invalid_enum_value", "path": []any{"kind"}, "values": []any{"notebook"}, "received": "app"}}, false},
+		{"enum-missing-received", 400, "Input validation failed", []any{map[string]any{"code": "invalid_enum_value", "path": []any{"kind"}, "values": []any{"notebook"}}}, false},
+		{"empty-kinds", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"kind"}, "values": []any{}}}, false},
+		{"nested-path", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"item", "kind"}, "values": []any{"notebook"}}}, false},
+		{"multiple-issues", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"kind"}, "values": []any{"notebook"}}, map[string]any{"code": "invalid_type", "path": []any{"boardId"}}}, false},
+		{"wrong-code", 400, "Input validation failed", []any{map[string]any{"code": "invalid_type", "path": []any{"kind"}, "values": []any{"notebook"}}}, false},
+		{"kind-offered", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"kind"}, "values": []any{"notebook", "assistant"}}}, false},
+		{"wrong-kind", 400, "Unknown widget kind: notebook", nil, false},
+		{"permission", 403, "Unknown widget kind: assistant", nil, false},
+		{"server", 500, "Unknown widget kind: assistant", nil, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			fake.adminExists, fake.adminName, fake.adminPassword, fake.step = true, "admin", "pw", "finish"
+			fake.rejectAssistantStatus, fake.rejectAssistantMessage, fake.rejectAssistantIssues = tc.status, tc.message, tc.issues
+			srv := serve(t, fake)
+			err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, allSecrets()))
+			if tc.unsupported {
+				if err != nil || len(notebooks(fake.items)) != 1 || fake.assistantPosts != 1 {
+					t.Fatalf("unsupported kind should keep notebook current after one attempt: err=%v, notebooks=%d, assistant POSTs=%d", err, len(notebooks(fake.items)), fake.assistantPosts)
+				}
+			} else if err == nil || len(notebooks(fake.items)) != 0 {
+				t.Fatalf("other rejection should fail before notebook creation: err=%v, notebooks=%d", err, len(notebooks(fake.items)))
 			}
 		})
 	}
