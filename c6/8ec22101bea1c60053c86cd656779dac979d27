@@ -1,0 +1,19 @@
+new-cli/scripts/verify-install.sh
+  s_765ccb2ae3482a::t_9d99751cf0a610 1-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c68ec22101bea1c60053c86cd656779dac979d27",
+  "prompts": {},
+  "sessions": {
+    "s_765ccb2ae3482a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "141b18b3-5f99-4461-b795-5223059869e0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
