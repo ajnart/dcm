@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/beszel"
 	"github.com/ajnart/self-host/internal/catalog"
 	"go.yaml.in/yaml/v3"
 	"golang.org/x/sys/unix"
@@ -385,15 +386,17 @@ func validateComposeIsolation(source string) error {
 			}
 		}
 	}
-	for _, svc := range doc.Services {
+	for name, svc := range doc.Services {
 		if svc.ContainerName != "" {
 			return errors.New("fixed container name")
 		}
-		if svc.NetworkMode != "" && svc.NetworkMode != "none" && !strings.HasPrefix(svc.NetworkMode, "service:") {
+		hostAgent := name == beszel.AgentService && svc.NetworkMode == "host"
+		if svc.NetworkMode != "" && svc.NetworkMode != "none" && !strings.HasPrefix(svc.NetworkMode, "service:") && !hostAgent {
 			return errors.New("external network namespace")
 		}
 		for _, volume := range svc.Volumes {
-			if strings.Contains(fmt.Sprint(volume), "docker.sock") {
+			readOnlyProxy := name == beszel.SocketProxyService && fmt.Sprint(volume) == beszel.DockerSocketMount
+			if strings.Contains(fmt.Sprint(volume), "docker.sock") && !readOnlyProxy {
 				return errors.New("Docker socket mount")
 			}
 		}

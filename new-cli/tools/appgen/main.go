@@ -13,9 +13,17 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/ajnart/self-host/internal/apps/beszel"
 )
 
 const module = "github.com/ajnart/self-host"
+
+// socketProxyException is the one service allowed to mount the Docker socket:
+// Beszel's read-only socket proxy. Every other service is rejected.
+const socketProxyException = beszel.SocketProxyService
+
+const dockerSocket = "/var/run/docker.sock"
 
 const portPlaceholder = "__PORT__"
 
@@ -46,6 +54,7 @@ type fact struct {
 
 type recipe struct {
 	Services []struct {
+		ID          string `json:"id"`
 		Environment []struct {
 			Name  string `json:"name"`
 			Value string `json:"value"`
@@ -321,14 +330,19 @@ func fileReason(rec recipe) string {
 }
 
 func mountReason(rec recipe) string {
-	for _, m := range rec.Services[0].Mounts {
-		if m.Kind != "bind" {
-			continue
-		}
-		target := m.Target
-		if strings.Contains(target, "docker.sock") || target == "/proc" || strings.HasPrefix(target, "/proc/") ||
-			target == "/sys" || strings.HasPrefix(target, "/sys/") || target == "/var/run" || strings.HasPrefix(target, "/var/run/") {
-			return "needs a host path outside the App folder (" + target + ")"
+	for _, svc := range rec.Services {
+		for _, m := range svc.Mounts {
+			if m.Kind != "bind" {
+				continue
+			}
+			target := m.Target
+			if svc.ID == socketProxyException && target == dockerSocket {
+				continue
+			}
+			if strings.Contains(target, "docker.sock") || target == "/proc" || strings.HasPrefix(target, "/proc/") ||
+				target == "/sys" || strings.HasPrefix(target, "/sys/") || target == "/var/run" || strings.HasPrefix(target, "/var/run/") {
+				return "needs a host path outside the App folder (" + target + ")"
+			}
 		}
 	}
 	return ""
