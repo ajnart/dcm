@@ -1,0 +1,19 @@
+new-cli/internal/cli/doctor.go
+  s_93e55d02c44f68::t_2b3a52d082a2d4 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c9f79741a6a64820561c3507f48a0ed948df71c1",
+  "prompts": {},
+  "sessions": {
+    "s_93e55d02c44f68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f70fd712-0011-4268-a7b3-c58eb50ef160",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
