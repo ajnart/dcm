@@ -10,8 +10,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 
 ## Workflow
 
-1. `self-host doctor` checks Docker, Compose, ports, firewalls and LAN
-   reachability. Fix every failed check first; each one carries a hint.
+1. `self-host doctor --json` checks the host (see "Doctor checks"). Fix every
+   failed check first; each one carries a hint.
 2. `self-host apps list --json` lists Apps and Recipes (named bundles such as
    `media`). `self-host apps info <app> --json` shows an App's image, port,
    inputs and Links.
@@ -29,12 +29,64 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    result and failed steps of every App. `self-host status --updates --json`
    also asks registries whether newer images exist.
 
+## Two kinds of users
+
+Decide who you are talking to from how they talk, and keep that register.
+
+- **New**: states a goal in plain words ("I want to watch my movies on the TV").
+- **Advanced**: names Apps, ports, Exposure or folders.
+
+When unclear, ask at most one short question. Never quiz a newcomer on settings.
+
+### New users
+
+1. Recommend a Recipe, or one or two Apps, that meets the goal (read
+   `self-host apps list --json`; for movies and TV that is `media` plus
+   `homarr`). Use the catalog defaults: Exposure `lan`, the default media and
+   downloads folders, a generated Admin login. Homarr is the dashboard.
+2. Explain each App in one plain sentence (its `description`). Explain
+   Exposure in plain words: devices on the same Wi-Fi or router can open the
+   Apps at this computer's LAN address; nothing is opened to the internet.
+3. If the person sits at the machine's terminal, suggest they run `self-host`
+   themselves. Onboarding asks What, Where, Who, Look and Review, explains
+   every question, writes nothing until they approve Review, and plays a
+   pre-boot screen while the images download.
+4. Otherwise show the plan, get approval, then run
+   `self-host install <recipe> --yes --json`.
+5. Afterwards give the dashboard and App URLs from `self-host status --json`.
+   Say that `self-host credentials` shows the Admin login and never paste it.
+   Finish any Manual steps for them (see "When a step fails").
+
+### Advanced users
+
+Respect their exact choices and expose every knob:
+
+- Specific Apps; `--set app.port=N`, `--set app.key=value`, private inputs with
+  `--set-file`.
+- `--exposure local`, `--media-root`, `--downloads-root`, `--admin-user`.
+- `self-host config set` and `self-host config review`.
+- Unmanaged apps.
+- `self-host logs <app> --follow`, `self-host update`,
+  `self-host status --updates --json`.
+- Encrypted backups and partial restores.
+- An isolated Project with `SELF_HOST_HOME` plus `SELF_HOST_COMPOSE_PROJECT`
+  (see "Project folder").
+- Optionally the Dashboard's Settings sub-tabs: Host, Appearance, Backups,
+  Tools and About.
+
+### Both
+
+Follow inspect → plan → approval → apply → verify. The CLI has no plan
+command: build the plan from `self-host doctor --json`,
+`self-host apps info <app> --json` and `self-host status --json`, show it, and
+only then pass `--yes`. `--yes` is authorization, never a preview flag.
+
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `self-host` | Terminal dashboard (only on a terminal; otherwise prints help) |
-| `self-host doctor` | Host and Docker checks |
+| `self-host` | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help |
+| `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
 | `self-host status` | Exposure, Host settings, every App's URL, state, Setup |
@@ -51,7 +103,7 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 | `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
 | `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
 | `self-host logs <app>` | Container logs |
-| `self-host backup [app...]` | Write one compressed archive |
+| `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
 | `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
 | `self-host self-update` | Replace the binary with the latest verified release |
 | `self-host skill` | Print this guide |
@@ -66,8 +118,8 @@ Command flags:
 - status: `--updates`
 - remove: `--purge` (also deletes the App's data folder), `--yes`
 - logs: `--follow`, `--tail N` (default 200)
-- backup: `--output <path>` (default `~/.self-host/backups/selfhost-DATE.tar.zst`),
-  `--encrypt`
+- backup: `--output <path>` or `-o` (default `~/.self-host/backups/selfhost-DATE.tar.zst`,
+  `.tar.zst.age` with `--encrypt`), `--encrypt`
 - restore: `--yes` (replaces the current data of the restored Apps)
 
 Pass `--yes` for `install`, `remove` and `restore` when no terminal is attached.
@@ -112,7 +164,6 @@ print one result on stdout and only errors on stderr with `--json`.
 - `1`: error (read the `error` field of the last `run.end` or `step.fail`)
 - `2`: Setup incomplete. Everything is installed, but at least one Setup step
   failed. Read the `step.fail` events or `self-host status --json`.
-
 - `3`: Only Manual steps remain after install or Setup. Read the `step.manual`
   hints or `self-host status --json` (`setup` and step `status` are `manual`).
   Finish them in the browser, then retry Setup. A browser-only verification
@@ -135,13 +186,31 @@ On `step.fail`, the event gives you everything to hand off:
 
 ## Reachability and Exposure
 
-Exposure is `lan` (reachable from the local network, the default) or `local`
-(this machine only). It explains most "I can't reach it from my TV or phone"
-reports. `self-host status` shows it first. Run `self-host doctor` to see
-bindings, firewall rules and LAN reachability; its hints name the fix. To
-switch, run `self-host config set EXPOSURE=lan` (or `local`). Never open ports
-to the internet; public access is the user's decision and needs their own
-reverse proxy or VPN.
+Exposure is `lan` (the default) or `local`. `lan` publishes every App's port on
+`0.0.0.0`, so other devices on the network can connect; `local` publishes on
+`127.0.0.1`, so only this machine can. `LAN_IP` only builds the links people
+open; it never decides who can connect. Exposure explains most "I can't reach
+it from my TV or phone" reports, and `self-host status` shows it first.
+Tailscale, Cloudflare Tunnel and HTTPS with Caddy appear in the Dashboard as
+"coming soon" and cannot be set. To switch, run
+`self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
+internet; public access is the user's decision and needs their own reverse
+proxy or VPN.
+
+## Doctor checks
+
+Without a Project, `self-host doctor` runs the Docker checks and stops at the
+first failure: `docker` (CLI found), `docker-socket` (daemon answers),
+`compose` (v2 plugin) and `docker-userns` (rootless detection, a warning when
+undetermined). With a Project it adds `project-lock`, `project-userns`
+(rootless with non-zero PUID/PGID), `project`, `exposure`, `lan-ip` and
+`firewall` (both only under `lan`), and per App `running`, `binding` and
+`reachable`.
+
+Doctor does not check that ports are free or how much disk is left (issue
+#140). `self-host install` takes the next free port from an App's default and
+emits `step.warn` step `port`; an explicit `--set app.port=N` is used as given,
+so check that port yourself. Free disk space is yours to check too.
 
 The LAN IP is detected at first install and stored. When the machine moves to
 another network (office to home), every App URL points at the old address:
@@ -166,16 +235,46 @@ updates and backs it up, but runs no Setup for it.
 3. Run `self-host start <id>`, then `self-host status --json`: the App shows
    with setup `unmanaged`.
 
+Never mount the Docker socket in an Unmanaged app.
+
 Never run `docker compose` or `docker` against the Project by hand when a
 `self-host` command exists; the Project is the single mutation boundary.
 
+## Beszel
+
+Installing `beszel` also enrols this machine: a `beszel-agent` service and a
+`beszel-socket-proxy` service that gives the agent read-only access to the
+Docker socket. That proxy is the only Docker socket mount any App may declare.
+Both services are held back from Compose until Setup stores the Hub's key and
+token, so finding them not running before Setup finishes is expected: finish
+Setup and recheck with `self-host status --json`. Installing Homarr next to it
+adds a Link that puts a Beszel System Stats widget on its board.
+
+## Project folder
+
+The Project lives in `~/.self-host`. For an isolated Project, set
+`SELF_HOST_HOME` to an absolute directory and `SELF_HOST_COMPOSE_PROJECT` to a
+unique lowercase name (letters, digits, `-`, `_`), and keep both the same for
+every later command. A Project made by a pre-release build in `~/self-host` is
+not picked up; point `SELF_HOST_HOME` at it only if the user asks.
+
 ## Backups
 
-`self-host backup` writes one archive of App configuration, databases and
-secrets. Media libraries are not included. Add `--encrypt` and set
-`SELF_HOST_BACKUP_PASSPHRASE` in the environment to encrypt it; the same
-variable is read by `self-host restore`. Test a backup by restoring one App,
-not by assuming it works.
+`self-host backup [app...]` writes one archive of App configuration, databases
+and secrets. Media libraries are not included.
+
+- Without `--output`, the file goes to `~/.self-host/backups` as
+  `selfhost-DATE.tar.zst`, or `.tar.zst.age` when encrypted.
+- `--encrypt` reads the passphrase from `SELF_HOST_BACKUP_PASSPHRASE`. When
+  that is unset it prompts on a terminal; without a terminal it fails.
+- An unencrypted backup emits `step.warn` step `unencrypted`: it contains
+  passwords and API keys, so keep it private or encrypt it.
+- `self-host restore <file> [app...]` restores every App in the archive or only
+  those named, and reads the same variable for an encrypted archive.
+- The Dashboard's Settings → Backups lists, makes and restores archives
+  interactively.
+
+Test a backup by restoring one App, not by assuming it works.
 
 ## Secrets
 

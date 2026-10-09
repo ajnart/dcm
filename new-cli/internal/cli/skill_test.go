@@ -65,6 +65,53 @@ func TestSkillGuideNamesEveryRegisteredCommandAndFlag(t *testing.T) {
 	})
 }
 
+// commandsTable returns the command path (without "self-host") of every row
+// in the guide's Commands table; the bare command is the empty path.
+func commandsTable(guide string) []string {
+	section := guide[strings.Index(guide, "## Commands"):]
+	if next := strings.Index(section[len("## Commands"):], "\n## "); next >= 0 {
+		section = section[:len("## Commands")+next]
+	}
+	var paths []string
+	for _, line := range strings.Split(section, "\n") {
+		if !strings.HasPrefix(line, "| `self-host") {
+			continue
+		}
+		span := strings.SplitN(strings.TrimPrefix(line, "| `"), "`", 2)[0]
+		var words []string
+		for _, word := range strings.Fields(span)[1:] {
+			if !regexp.MustCompile(`^[a-z][a-z-]*$`).MatchString(word) {
+				break
+			}
+			words = append(words, word)
+		}
+		paths = append(paths, strings.Join(words, " "))
+	}
+	return paths
+}
+
+func registeredCommandPaths(root *cobra.Command) []string {
+	var paths []string
+	walk(root, func(cmd *cobra.Command) {
+		if cmd.Hidden || cmd.Name() == "help" || cmd.Name() == "completion" || (cmd != root && cmd.HasSubCommands()) {
+			return
+		}
+		paths = append(paths, strings.TrimSpace(strings.TrimPrefix(cmd.CommandPath(), root.Name())))
+	})
+	return paths
+}
+
+func TestSkillGuideCommandsTableListsEveryRegisteredCommand(t *testing.T) {
+	guide := guideOutput(t)
+	root := cli.NewRootCommand(systemtest.NewDeps(t), catalog.Default())
+
+	documented, registered := commandsTable(guide), registeredCommandPaths(root)
+
+	if !sortedEqual(documented, registered) {
+		t.Errorf("Commands table lists %q, the binary registers %q", documented, registered)
+	}
+}
+
 // unknownMentions returns every `self-host a b` code span in guide whose
 // leading words are not a registered command path (so `self-host apps lst`
 // fails), and every --flag token that no registered command defines.
