@@ -9,8 +9,8 @@ The existing skill can already be installed into Claude Code, Codex, Pi, and Ope
 | Target | Baseline direct skill route | Native plugin/package route | Baseline gap |
 | --- | --- | --- | --- |
 | Claude Code | Skills CLI into `.claude/skills` | Claude plugin directory and marketplace | Release has plugin metadata; marketplace and native install proof pending |
-| Codex | Skills CLI into `.agents/skills` or `~/.codex/skills` | Portable plugin and Codex marketplace | Portable manifest exists; marketplace-addressable source and native install proof pending |
-| Pi | Skills CLI into `.pi/skills` or `~/.pi/agent/skills` | Pi package containing skill assets | No Pi package descriptor or package install proof |
+| Codex | Skills CLI into `.agents/skills` or `~/.agents/skills` | Portable plugin and Codex marketplace | Portable manifest exists; marketplace-addressable source and native install proof pending |
+| Pi | Skills CLI into `.agents/skills` or `~/.agents/skills` | Pi package containing skill assets | No Pi package descriptor or package install proof |
 | OpenCode | Skills CLI into `.agents/skills` | JS/TS hook plugin via local file or npm | No executable hook is needed for the skill; npm plugin would be a separate product |
 
 ## Implementation status, 2026-09-24

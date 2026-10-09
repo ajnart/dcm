@@ -1,38 +1,62 @@
-# CLI bootstrap
+# CLI install and troubleshooting
 
-Skill installation alone does not install the CLI. The current product is the
-Go `self-host` binary; the TypeScript CLI below is legacy.
+Installing the skill does not install the CLI. The current product is the Go
+`self-host` binary; the TypeScript CLI below is legacy.
+
+## Prerequisites
+
+- **Deploying:** Docker with the Compose v2 plugin. `self-host doctor` checks
+  it and each failure carries a hint.
+- **Installing the CLI:** `curl`, `tar`, and Linux or macOS (amd64 or arm64).
+  On Windows use WSL.
+- **While the repository is private:** GitHub access, either `gh auth login` or
+  `SELF_HOST_GITHUB_TOKEN`.
+- **Bun:** only for the Skills CLI and legacy helpers, never for the Go CLI.
 
 ## Go CLI (current)
 
 Locate it: `command -v self-host`. Then run `self-host skill`. If that prints
-the agent guide, the Go CLI is installed: read the guide and follow it. After
-`self-host self-update`, run `self-host skill` again.
+the agent guide, the CLI is installed: read the guide and follow it.
 
-If `self-host` is missing, install it. Linux and macOS (amd64/arm64) are the
-targets; use the Linux binary inside WSL, and native Windows is unsupported.
+If `self-host` is missing, install it. The repository is private, so use the
+authenticated GitHub CLI. The token goes through the environment and is never
+printed:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
+gh api -H 'Accept: application/vnd.github.raw+json' \
+  repos/ajnart/selfhost-skills/contents/new-cli/install.sh |
+  SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash
 export PATH="$HOME/.local/bin:$PATH"
 self-host --version
 ```
+
+Without `gh`, set `SELF_HOST_GITHUB_TOKEN` through the user's credential
+provider and run a `new-cli/install.sh` saved by any authenticated client. Once
+the repository is public, `curl -fsSL
+https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash`
+works. Never put a token in a command or report. If no access is available,
+stop and ask for it.
 
 The installer picks the highest stable `new-cli-vX.Y.Z` release, verifies it
 against `checksums.txt`, and installs into `~/.local/bin` (`/usr/local/bin` as
 root). `SELF_HOST_INSTALL_DIR` changes the destination and
 `SELF_HOST_VERSION=X.Y.Z` pins a version.
 
-While the repository is private, set `SELF_HOST_GITHUB_TOKEN` through the
-user's credential provider; the installer and `self-host self-update` use it for
-GitHub API downloads. Never put the token in commands or reports. An
-unauthenticated `curl` cannot fetch a private install script: fetch it with an
-authenticated client (for example `gh api -H 'Accept:
-application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh`)
-and run `bash install.sh`. If no access is available, stop and ask for it.
-
 `self-host self-update` replaces a release binary with the latest verified
-release. A development build cannot self-update.
+release, then run `self-host skill` again. A development build cannot
+self-update.
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| `self-host: command not found` | Add the install directory to `PATH`, for example `export PATH="$HOME/.local/bin:$PATH"`, or install the CLI. |
+| `self-host skill` lacks "Two kinds of users" | The binary predates the New and Advanced guide. Run `self-host self-update` and `self-host skill`. If the latest release is the same version, no newer release exists yet; follow the printed guide. |
+| `self-host skill` is an unknown command | The older TypeScript CLI. Use the legacy section below. |
+| Docker missing or `docker-socket` fails in `self-host doctor` | Install Docker with Compose v2, or start Docker Desktop, OrbStack or the daemon, then rerun `self-host doctor`. Do not deploy before it passes. |
+| 404 from the installer, `self-update` or the Skills CLI | No access to the private repository. Run `gh auth login`, or set `SELF_HOST_GITHUB_TOKEN`, or add an SSH key, then retry. |
+| Windows | Native Windows is unsupported. Install WSL, then run everything inside it, including the install command. |
+| `not on your PATH` warning | The binary installed; export the directory it names. |
 
 ## Legacy TypeScript CLI
 

@@ -263,7 +263,8 @@ main() {
   command -v docker >/dev/null 2>&1 ||
     say "Warning: Docker was not found. Install Docker with the Compose v2 plugin before deploying; self-host doctor checks it."
   say
-  say "Next: run  self-host  for the dashboard, or add the agent skill and ask your agent to self-host something."
+  say "Next: run  self-host  for the dashboard, or  self-host install media --yes  for the media server."
+  say "For an AI agent: bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host, then ask it to self-host something."
 }
 
 main "$@"

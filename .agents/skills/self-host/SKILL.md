@@ -12,22 +12,28 @@ metadata:
 
 # Self-host
 
-With no goal, ask what to replace.
+With no goal, ask what the user wants to self-host or replace.
 
 ## Route
 
-[Locate the CLI](references/cli-install.md) and run `self-host skill`.
-
-- **It prints the agent guide:** this is the Go CLI, the current product. Read
-  the guide fully and follow it, including its New and Advanced paths. Use no
-  other workflow unless a saved legacy owner exists.
-- **It does not, but `self-host doctor --scope plan --json` succeeds:** this is
-  the older CLI. Use the legacy workflows below.
-- **A saved legacy owner exists** (`.selfhost/shared/*/state/revision-*.json`,
-  `.selfhost/stack.json`, `.selfhost/cli.json`,
-  `.selfhost/bundles/*/household-bundle.json`, `.selfhost/app-batch.json`, or
-  `.selfhost/app-state/*.json`): preserve it, use upkeep, and never create a
-  competing project. Ask when distinct owners compete.
+1. `command -v self-host`. If missing, follow
+   [CLI install and troubleshooting](references/cli-install.md).
+2. Run `self-host skill` and follow the guide it prints. It matches the
+   installed binary and covers New and Advanced users.
+3. No "Two kinds of users" section means an old binary: run
+   `self-host self-update`, then `self-host skill` again. If it is still
+   missing, follow the printed guide anyway: plain words for newcomers, exact
+   flags for advanced users.
+4. Docker with Compose v2 is needed to deploy; `self-host doctor` checks it.
+   Fix failures with [troubleshooting](references/cli-install.md#troubleshooting).
+5. `self-host skill` is an unknown command but
+   `self-host doctor --scope plan --json` succeeds: this is the older
+   TypeScript CLI. Use the legacy workflows below.
+6. A saved legacy owner exists (`.selfhost/shared/*/state/revision-*.json`,
+   `.selfhost/stack.json`, `.selfhost/cli.json`,
+   `.selfhost/bundles/*/household-bundle.json`, `.selfhost/app-batch.json`, or
+   `.selfhost/app-state/*.json`): preserve it, use upkeep, and never create a
+   competing project. Ask when distinct owners compete.
 
 ## Legacy workflows
 

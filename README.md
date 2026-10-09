@@ -1,10 +1,44 @@
 # Self-host
 
-**Start with the Go CLI**, the current `self-host` binary:
-[installation, terminal Dashboard, agent commands and support status](new-cli/README.md).
-People run `self-host`; agents run `self-host skill` and follow the guide it
-prints, which matches the installed binary. It has its own release channel
-(`new-cli-vX.Y.Z`). The bundled skill below routes to it first.
+## Quick start
+
+Two steps. Deploying needs Docker with the Compose v2 plugin. While this
+repository is private you also need GitHub access (`gh auth login`). Linux,
+macOS, or Windows through WSL.
+
+1. **Install the CLI:**
+
+   ```bash
+   gh api -H 'Accept: application/vnd.github.raw+json' \
+     repos/ajnart/selfhost-skills/contents/new-cli/install.sh |
+     SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash
+   export PATH="$HOME/.local/bin:$PATH"
+   self-host --version
+   ```
+
+2. **Add the skill to your agent** (needs Git and Bun 1.4+):
+
+   ```bash
+   bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
+   ```
+
+Then ask your agent to use the self-host skill ("use self-host to watch my
+movies on the TV"; `/self-host` in Claude Code, `$self-host` in Codex), or run
+`self-host` yourself for the terminal Dashboard. Installing deploys nothing.
+
+If something fails:
+
+- `self-host: command not found`: add `~/.local/bin` to `PATH`.
+- The agent's guide has no New and Advanced paths: run `self-host self-update`.
+- Docker missing or stopped: install or start it, then run `self-host doctor`.
+- A 404 or "authentication failed": run `gh auth login` or set
+  `SELF_HOST_GITHUB_TOKEN`.
+- Windows: use WSL; native Windows is unsupported.
+
+The Go CLI is the current product: [installation, terminal Dashboard, agent
+commands and support status](new-cli/README.md). Agents run `self-host skill` and
+follow the guide it prints, which matches the installed binary. It has its own
+release channel (`new-cli-vX.Y.Z`).
 
 Everything from here on describes the **older TypeScript CLI** and its legacy
 workflows. They stay for saved legacy projects (`.selfhost/` owners) and are not
@@ -23,17 +57,15 @@ verified. Installing the CLI or skill alone does not deploy anything.
 
 ![Inspect, review, approve, apply, and verify](docs/images/selfhost-flow.svg)
 
-## Install the private CLI
+## Install the legacy TypeScript CLI
 
-The CLI is not on public npm. With access to the private repository, build a
+The older CLI is not on public npm. With access to the private repository, build a
 standalone package and install it globally:
 
 ```bash
 gh auth status
 gh repo clone ajnart/selfhost-skills
 cd selfhost-skills
-# Until PR #12 is merged, use its feature branch:
-git switch feat/headless-fallback-handoff
 bun install --frozen-lockfile
 cli_tgz=$(npm pack ./packages/cli --pack-destination . --silent)
 npm install -g "./$cli_tgz"

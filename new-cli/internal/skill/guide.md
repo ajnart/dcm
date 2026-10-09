@@ -41,8 +41,9 @@ When unclear, ask at most one short question. Never quiz a newcomer on settings.
 ### New users
 
 1. Recommend a Recipe, or one or two Apps, that meets the goal (read
-   `self-host apps list --json`; for movies and TV that is `media` plus
-   `homarr`). Use the catalog defaults: Exposure `lan`, the default media and
+   `self-host apps list --json`). To watch movies they already own that is
+   `owned-video-library` plus `homarr`; add `media` only when they also want to
+   request and download. Use the catalog defaults: Exposure `lan`, the default media and
    downloads folders, a generated Admin login. Homarr is the dashboard.
 2. Explain each App in one plain sentence (its `description`). Explain
    Exposure in plain words: devices on the same Wi-Fi or router can open the
