@@ -544,3 +544,20 @@ func TestGoldenBackups(t *testing.T) {
 		}
 	}
 }
+
+func TestLeavingBackupsMidPromptForgetsThePassphraseAndTheMode(t *testing.T) {
+	m, _ := backupsHost(t, 120, 30)
+	m = drive(t, m, press("b"))
+	m = typeText(t, m, "hunter2")
+
+	m = drive(t, m, clickMsg{id: "tab:3"})
+	m = drive(t, m, clickMsg{id: "tab:2"})
+
+	out := screen(m)
+	if strings.Contains(out, "Passphrase (optional") || strings.Contains(out, "•") || strings.Contains(out, "hunter2") {
+		t.Fatalf("the prompt or what was typed came back\n%s", out)
+	}
+	if m.settings.backups.mode != backupList || m.settings.backups.input.Value() != "" {
+		t.Fatalf("the pane kept its mode %v or text", m.settings.backups.mode)
+	}
+}

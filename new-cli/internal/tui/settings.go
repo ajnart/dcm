@@ -373,6 +373,9 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 
 // show opens a sub-tab; Appearance starts on the glyph set in use.
 func (v *settingsView) show(ctx *viewContext, tab settingsTab) {
+	if v.tab == tabBackups && tab != tabBackups {
+		v.backups.reset()
+	}
 	v.tab = tab
 	if tab == tabAppearance {
 		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
