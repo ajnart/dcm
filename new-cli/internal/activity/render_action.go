@@ -58,7 +58,10 @@ func Render(s Snapshot, m Motion, width int, p Palette) []string {
 		return nil
 	}
 	r := renderer{a: a, m: m, p: p, narrow: width < wideBoxes}
-	lines := []string{r.title(), "  " + r.stages()}
+	lines := []string{r.title()}
+	if len(a.Stages) > 0 {
+		lines = append(lines, "  "+r.stages())
+	}
 	if s.Pull.Pulling {
 		for _, line := range PullBlock(s, width-2, p) {
 			lines = append(lines, "  "+line)
