@@ -856,6 +856,191 @@ func TestNtfyIntegrationCarriesTopicAndAPIKey(t *testing.T) {
 	}
 }
 
+func beszelHub(t *testing.T, systems ...map[string]string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/collections/users/auth-with-password", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]string
+		json.NewDecoder(r.Body).Decode(&body)
+		if body["identity"] != "admin@selfhost.local" || body["password"] != "pw" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"token":  "hub-session",
+			"record": map[string]string{"email": "admin@selfhost.local", "role": "admin"},
+		})
+	})
+	mux.HandleFunc("GET /api/collections/systems/records", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "hub-session" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"items": systems})
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func beszelTarget(t *testing.T, hub *httptest.Server) *helpers.H {
+	t.Helper()
+	return targetH(t, hub, "beszel", 8090, allSecrets())
+}
+
+func TestBeszelLinkCreatesTheIntegrationAndOneSystemStatsWidgetBoundToThisMachine(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "other0000000001", "name": "Another box"}, map[string]string{"id": "abc123def456789", "name": "This machine"})
+	from := homarrH(t, srv, allSecrets())
+
+	if err := linkFor(t, "beszel").Apply(context.Background(), from, beszelTarget(t, hub)); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.integrations) != 1 {
+		t.Fatalf("integrations=%d, want 1", len(fake.integrations))
+	}
+	integration := fake.integrations[0]
+	if integration["kind"] != "beszel" || integration["url"] != "http://beszel:8090" {
+		t.Fatalf("integration=%v:%v, want beszel at http://beszel:8090", integration["kind"], integration["url"])
+	}
+	got := map[string]string{}
+	secrets, _ := integration["secrets"].([]any)
+	for _, raw := range secrets {
+		record, _ := raw.(map[string]any)
+		got[record["kind"].(string)], _ = record["value"].(string)
+	}
+	if len(got) != 2 || got["username"] != "admin@selfhost.local" || got["password"] != "pw" {
+		t.Fatalf("secrets carry %d kinds, want username admin@selfhost.local and the Admin password", len(got))
+	}
+	integrationID, _ := integration["id"].(string)
+	if n := widgetCount(fake.items, "beszelSystemStats", integrationID); n != 1 {
+		t.Fatalf("System Stats widgets=%d, want 1", n)
+	}
+	for _, item := range fake.items {
+		if item["kind"] != "beszelSystemStats" {
+			continue
+		}
+		options, _ := item["options"].(map[string]any)
+		if want := integrationID + ":abc123def456789"; options["systemId"] != want {
+			t.Fatalf("systemId=%v, want %s", options["systemId"], want)
+		}
+		if options["showCpu"] != true || options["showMemory"] != true {
+			t.Fatalf("options=%v, want the charts switched on", options)
+		}
+	}
+}
+
+type recorded struct {
+	mu     sync.Mutex
+	events []events.Event
+}
+
+func (r *recorded) Emit(e events.Event) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.events = append(r.events, e)
+}
+
+func TestBeszelLinkNeverShowsTheAdminPassword(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "abc123def456789", "name": "This machine"})
+	log := &recorded{}
+	var steps []helpers.StepResult
+	deps := systemtest.NewDeps(t)
+	from := helpers.New(helpers.Config{
+		App: "homarr", Service: "homarr", BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		Secrets: allSecrets(), Log: events.New(log), Now: deps.Now, Sleep: deps.Sleep,
+		Record: func(r helpers.StepResult) { steps = append(steps, r) },
+	})
+	link := linkFor(t, "beszel")
+
+	if err := link.Apply(context.Background(), from, beszelTarget(t, hub)); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if err := link.Remove(context.Background(), from, beszelTarget(t, hub)); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	log.mu.Lock()
+	seen, _ := json.Marshal([]any{log.events, steps})
+	log.mu.Unlock()
+	if len(steps) == 0 {
+		t.Fatal("the Link recorded no steps")
+	}
+	if strings.Contains(string(seen), `"pw"`) || strings.Contains(string(seen), "hub-session") {
+		t.Fatalf("a credential reached the events or step results: %.80s", seen)
+	}
+}
+
+func TestBeszelLinkRerunKeepsOneIntegrationAndOneWidget(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "abc123def456789", "name": "This machine"})
+	from := homarrH(t, srv, allSecrets())
+	link := linkFor(t, "beszel")
+	for range 2 {
+		if err := link.Apply(context.Background(), from, beszelTarget(t, hub)); err != nil {
+			t.Fatalf("apply: %v", err)
+		}
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	integrationID, _ := fake.integrations[0]["id"].(string)
+	if len(fake.integrations) != 1 || widgetCount(fake.items, "beszelSystemStats", integrationID) != 1 {
+		t.Fatalf("integrations=%d widgets=%d, want 1/1", len(fake.integrations), widgetCount(fake.items, "beszelSystemStats", integrationID))
+	}
+}
+
+func TestBeszelLinkFailsWhenTheHubDoesNotListThisMachine(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "other0000000001", "name": "Another box"})
+	from := homarrH(t, srv, allSecrets())
+
+	if err := linkFor(t, "beszel").Apply(context.Background(), from, beszelTarget(t, hub)); err == nil {
+		t.Fatal("a Hub without this machine must fail the Link")
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	for _, item := range fake.items {
+		if item["kind"] == "beszelSystemStats" {
+			t.Fatal("a widget was created without a system to show")
+		}
+	}
+}
+
+func TestBeszelLinkRemoveDeletesTheTileIntegrationAndWidget(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "abc123def456789", "name": "This machine"})
+	from := homarrH(t, srv, allSecrets())
+	link := linkFor(t, "beszel")
+	if err := link.Apply(context.Background(), from, beszelTarget(t, hub)); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if err := link.Remove(context.Background(), from, beszelTarget(t, hub)); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 0 || len(fake.integrations) != 0 {
+		t.Fatalf("apps=%d integrations=%d, want both removed", len(fake.apps), len(fake.integrations))
+	}
+	for _, item := range fake.items {
+		if item["kind"] == "beszelSystemStats" || item["kind"] == "app" {
+			t.Fatalf("a %v item survived removal", item["kind"])
+		}
+	}
+}
+
 func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
 	fake := newFake()
 	fake.apiKey = "keyid.secret"

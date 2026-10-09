@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/beszel"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -22,17 +23,36 @@ type secret struct {
 }
 
 // widget is one board widget from the App's catalog entry: the kind Homarr
-// stores, its options and, for a stats widget, the metric keys it shows.
+// stores, its options and, for a stats widget, the metric keys it shows. A
+// widget that shows one thing the target knows by id gets its options from
+// bind, which reads that id from the target when the widget is added.
 type widget struct {
 	kind    string
 	options map[string]any
 	metrics []string
+	bind    func(ctx context.Context, to *helpers.H, integrationID string) (map[string]any, error)
 }
 
 func plain(kind string) widget { return widget{kind: kind, options: map[string]any{}} }
 
 func statWidget(metrics ...string) widget {
 	return widget{kind: "stats", options: map[string]any{}, metrics: metrics}
+}
+
+// beszelSystemStats shows this machine's CPU, memory, disk and network.
+// Homarr selects the system as "<integration id>:<system id>".
+func beszelSystemStats() widget {
+	return widget{kind: "beszelSystemStats", bind: func(ctx context.Context, to *helpers.H, integrationID string) (map[string]any, error) {
+		id, err := beszel.MachineID(ctx, to)
+		if err != nil {
+			return nil, err
+		}
+		options := map[string]any{"systemId": integrationID + ":" + id, "timePeriod": "1h"}
+		for _, key := range []string{"showCpu", "showMemory", "showDisk", "showDiskIO", "showNetwork", "showGpuUsage", "showGpuMemory", "showGpuPower", "showDockerCpu", "showDockerMemory", "showDockerNetwork"} {
+			options[key] = true
+		}
+		return options, nil
+	}}
 }
 
 // target is one App Homarr links to: an app tile, for most a dedicated
@@ -93,6 +113,13 @@ func targets() []target {
 				return []secret{{Kind: "username", Value: from.AdminUser()}, {Kind: "password", Value: from.AdminPassword()}}
 			},
 			widgets: []widget{plain("downloads"), statWidget("download", "upload", "paused")},
+		},
+		{
+			id: "beszel", name: "Beszel", kind: "beszel", internal: fixed("http://beszel:8090"),
+			secrets: func(_, to *helpers.H) []secret {
+				return []secret{{Kind: "username", Value: beszel.AdminEmail(to)}, {Kind: "password", Value: to.AdminPassword()}}
+			},
+			widgets: []widget{beszelSystemStats()},
 		},
 		{id: "ntfy", name: "ntfy", kind: "ntfy", internal: fixed("http://ntfy:80"), secrets: ntfySecret,
 			widgets: []widget{plain("notifications"), statWidget("messages")}},
@@ -624,6 +651,8 @@ func widgetInitialSize(kind string) map[string]any {
 		return map[string]any{"width": 4, "height": 3}
 	case "mediaServer":
 		return map[string]any{"width": 3, "height": 2}
+	case "beszelSystemStats":
+		return map[string]any{"width": 6, "height": 4}
 	case "downloads":
 		return map[string]any{"width": 4, "height": 2}
 	case "mediaMissing", "mediaRequests-requestStats":
@@ -637,7 +666,7 @@ func widgetInitialSize(kind string) map[string]any {
 	}
 }
 
-func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrationID string, items []map[string]any) error {
+func (t target) addWidgets(ctx context.Context, h, to *helpers.H, boardID, integrationID string, items []map[string]any) error {
 	owned, err := widgetOwnership(h, integrationID, t.widgets, items)
 	if err != nil {
 		return err
@@ -652,10 +681,16 @@ func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrati
 		if hasWidget(items, w.kind, integrationID) {
 			continue
 		}
+		options := widgetOptions(w, integrationID)
+		if w.bind != nil {
+			if options, err = w.bind(ctx, to, integrationID); err != nil {
+				return err
+			}
+		}
 		id, err := addItemID(ctx, h, map[string]any{
 			"boardId": boardID, "kind": w.kind,
 			"size":           widgetInitialSize(w.kind),
-			"options":        widgetOptions(w, integrationID),
+			"options":        options,
 			"integrationIds": []any{integrationID},
 		})
 		if err != nil {
@@ -847,7 +882,7 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if err != nil {
 			return err
 		}
-		if err := t.addWidgets(ctx, from, boardID, integrationID, items); err != nil {
+		if err := t.addWidgets(ctx, from, to, boardID, integrationID, items); err != nil {
 			return err
 		}
 	}
