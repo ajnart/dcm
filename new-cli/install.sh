@@ -7,11 +7,15 @@
 # Environment:
 #   SELF_HOST_VERSION      install this version or tag (1.2.0 or new-cli-v1.2.0) instead of the latest
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
+#   SELF_HOST_GITHUB_TOKEN token for the private repository; defaults to `gh auth token` when gh is logged in
 #   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots
 set +x
 set -euo pipefail
 # Optional private-repository access. Tokens stay out of process arguments.
 TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
+if [ -z "$TOKEN" ] && [ -z "${SELF_HOST_RELEASES_URL:-}" ] && command -v gh >/dev/null 2>&1; then
+  TOKEN="$(gh auth token 2>/dev/null || true)"
+fi
 case "$TOKEN" in *[!a-zA-Z0-9_.-]*) printf "%s\n" "install.sh: invalid token format" >&2; exit 1 ;; esac
 
 REPO="ajnart/selfhost-skills"
@@ -43,6 +47,7 @@ detect_os() {
   case "$(uname -s)" in
     Linux) echo linux ;;
     Darwin) echo darwin ;;
+    MINGW* | MSYS* | CYGWIN*) die "native Windows is unsupported; install WSL, then run this script inside it" ;;
     *) die "unsupported operating system $(uname -s); self-host supports Linux and macOS" ;;
   esac
 }
@@ -165,7 +170,7 @@ latest_tag() {
   local body page count candidates="" tag version
   for page in {1..10}; do
     body="$(api_get "${API_URL}/releases?per_page=100&page=${page}" application/vnd.github+json)" ||
-      die "could not look up CLI releases; for a private repository set SELF_HOST_GITHUB_TOKEN"
+      die "could not look up CLI releases (404 means no access to the private repository); run 'gh auth login' or set SELF_HOST_GITHUB_TOKEN"
     while IFS= read -r tag; do
       case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; *) continue ;; esac
       if valid_version "$version"; then candidates="${candidates}${version}"$'\n'; fi
@@ -255,8 +260,10 @@ main() {
     *":${dir}:"*) ;;
     *) say "Warning: ${dir} is not on your PATH. Add it, for example:  export PATH=\"${dir}:\$PATH\"" ;;
   esac
+  command -v docker >/dev/null 2>&1 ||
+    say "Warning: Docker was not found. Install Docker with the Compose v2 plugin before deploying; self-host doctor checks it."
   say
-  say "Next: run  self-host  for the dashboard, or  self-host install media --yes  for the media server."
+  say "Next: run  self-host  for the dashboard, or add the agent skill and ask your agent to self-host something."
 }
 
 main "$@"
