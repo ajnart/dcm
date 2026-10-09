@@ -20,6 +20,7 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/tui"
+	"github.com/ajnart/self-host/internal/updatecheck"
 )
 
 // Exit codes.
@@ -40,6 +41,8 @@ type program struct {
 	catalog *catalog.Catalog
 	json    bool
 	verbose bool
+	// args are the command line after the program name.
+	args []string
 	// document commands print one result document on stdout, so their
 	// events go to stderr and only when verbose.
 	document bool
@@ -134,11 +137,12 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
-	a := &program{deps: deps, catalog: cat}
+	a := &program{deps: deps, catalog: cat, args: args}
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
+	notice := a.startNotice(root, args)
 	err := root.ExecuteContext(ctx)
 	if a.terminal != nil {
 		a.terminal.Close()
@@ -146,6 +150,9 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	var exit exitError
 	switch {
 	case err == nil:
+		if line := notice(); line != "" && !a.json {
+			fmt.Fprintln(deps.Err, line)
+		}
 		return ExitOK
 	case errors.As(err, &exit):
 		return exit.code
@@ -174,8 +181,8 @@ func (a *program) root() *cobra.Command {
 		if !a.deps.Interactive {
 			return cmd.Help()
 		}
-		backend := tui.ServiceBackend{Deps: a.deps, Apps: a.catalog}
-		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version, NoColor: a.deps.Getenv("NO_COLOR") != ""})
+		backend := tui.ServiceBackend{Deps: a.deps, Apps: a.catalog, Args: a.args}
+		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version, NoColor: a.deps.Getenv("NO_COLOR") != "", NoUpdatePrompt: updatecheck.Disabled(a.deps)})
 	}
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")

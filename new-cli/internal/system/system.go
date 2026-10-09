@@ -56,7 +56,12 @@ type Deps struct {
 	HTTP     *http.Client
 	LookPath func(name string) (string, error)
 	// Executable returns the path of the running binary.
-	Executable  func() (string, error)
+	Executable func() (string, error)
+	// Exec replaces this process with path run as argv. It returns only on
+	// failure; tests replace it so nothing is exec'd.
+	Exec func(path string, argv []string) error
+	// CacheDir is the per-user cache directory (os.UserCacheDir).
+	CacheDir    func() (string, error)
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)
 	LookupUser  func(name string) (User, error)

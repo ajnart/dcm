@@ -74,6 +74,16 @@ type fakeBackend struct {
 	archivePass string
 	backupLists int
 	requests    []Request
+	// skipped is the release the person last skipped, skips what SkipUpdate
+	// saved; selfUpdates counts SelfUpdate calls (it installs updateTo or
+	// fails with updateErr) and restarts the Restart calls (restartErr).
+	skipped     string
+	skips       []string
+	selfUpdates int
+	updateTo    string
+	updateErr   error
+	restarts    int
+	restartErr  error
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {
@@ -145,6 +155,32 @@ func (f *fakeBackend) installs() []service.InstallOptions {
 }
 
 func (f *fakeBackend) LatestRelease(context.Context) string { return f.latest }
+
+func (f *fakeBackend) SkippedUpdate() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.skipped
+}
+
+func (f *fakeBackend) SkipUpdate(version string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.skips = append(f.skips, version)
+}
+
+func (f *fakeBackend) SelfUpdate(context.Context) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.selfUpdates++
+	return f.updateTo, f.updateErr
+}
+
+func (f *fakeBackend) Restart() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.restarts++
+	return f.restartErr
+}
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, f.statusErr }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }

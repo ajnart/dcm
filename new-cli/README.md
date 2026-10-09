@@ -62,12 +62,58 @@ real binary and fixture. This demonstrates these three Apps, not the full Catalo
 
 ## Install details
 
-The installer selects the highest stable `new-cli-vX.Y.Z` release, verifies the
-archive against `checksums.txt`, and installs `self-host` in `~/.local/bin`
-(`/usr/local/bin` when run as root). Put that directory on `PATH`.
-`SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts
-an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. Omit it to select the
-highest stable CLI release.
+The installer selects the highest stable CLI release (tags `vX.Y.Z`, or the
+earlier `new-cli-vX.Y.Z`, carrying the `self-host_<version>_<os>_<arch>.tar.gz`
+archives and `checksums.txt`), verifies the archive against `checksums.txt`, and
+installs `self-host` in `~/.local/bin` (`/usr/local/bin` when run as root). When
+that directory is not on `PATH` it prints the exact line to add for your shell
+(bash, zsh or fish). `SELF_HOST_INSTALL_DIR` changes the destination;
+`SELF_HOST_VERSION` accepts `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z`. Omit it to
+select the highest stable CLI release. The script runs everything from one
+`main` function on its last line, so a truncated download installs nothing.
+
+`SELF_HOST_RELEASE_REPO=owner/name` makes the installer and `self-update` use
+another repository (a fork, or the new name after a rename). The repository name
+is written once in Go (`release.Repo`) and once in `install.sh` (`DEFAULT_REPO`);
+GitHub redirects the old name after a rename, and both the installer and the
+updater follow the redirect.
+
+### A custom domain
+
+The one-liner's URL is the only thing a domain changes. Point the domain at the
+raw `install.sh` (a redirect or a proxy to
+`https://raw.githubusercontent.com/<owner>/<repo>/main/new-cli/install.sh` works);
+the script, the updater and the releases stay where they are.
+
+```bash
+curl -fsSL https://your.domain/install.sh | bash
+```
+
+Check any URL with `new-cli/scripts/verify-install.sh`: it runs the one-liner in
+a throwaway `HOME`, then asserts `self-host --version` is the latest release,
+`self-host skill` works, and a pinned old version upgrades through
+`self-update`. While the repository is private, give it a token without printing
+it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" new-cli/scripts/verify-install.sh`.
+Once the repository is public, run it with no token. Set `VERIFY_INSTALL_URL`
+to test a different URL, or a local script as `file:///path/to/install.sh`.
+
+## Staying up to date
+
+`self-host self-update` replaces the binary with the latest release after
+checking its sha256 checksum. You do not have to remember it:
+
+- **Dashboard:** when a newer release exists and nothing is running, bare
+  `self-host` asks "self-host X is available (you have Y). Update now? y/n".
+  `y` updates and restarts into the new version; `n` remembers that release in
+  `<user cache dir>/self-host/update.json` (no secrets) so it does not ask
+  again. The header and Settings → About keep showing that an update exists.
+- **Plain commands:** on an interactive terminal, one line after the command,
+  at most once every 24 hours, never delaying it.
+- **Silence:** nothing appears under `--json`, off a terminal, with `CI` set, on
+  a development build, or with `SELF_HOST_NO_UPDATE_CHECK=1`. Agents using
+  `--json` are never interrupted.
+
+Maintainers: [how to cut a release](docs/releasing.md).
 
 When GitHub rejects an unauthenticated download, the installer accepts
 `SELF_HOST_GITHUB_TOKEN` or, when unset, uses `gh auth token`. Never print or

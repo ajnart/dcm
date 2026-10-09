@@ -44,7 +44,7 @@ type (
 	doctorMsg   struct{ checks []host.Check }
 	updatesMsg  struct{ updates map[string]string }
 	updatesTick struct{}
-	releaseMsg  struct{ version string }
+	releaseMsg  struct{ version, skipped string }
 	reviewMsg   struct {
 		rows []service.SettingReview
 		err  error
@@ -90,6 +90,9 @@ type Options struct {
 	Version string
 	// NoColor is NO_COLOR: the pre-boot screen keeps its motion without colour.
 	NoColor bool
+	// NoUpdatePrompt keeps the "Update now?" question away, for CI and
+	// SELF_HOST_NO_UPDATE_CHECK; the header still shows a newer release.
+	NoUpdatePrompt bool
 	// Now is the clock shown in the header; tests pin it.
 	Now func() time.Time
 }
@@ -122,6 +125,15 @@ type Model struct {
 	refreshed time.Time
 	// releaseChecked is whether the release check found the newest release.
 	releaseChecked bool
+
+	// upgrade is the prompt to install a newer release; skipped is the release
+	// the person last declined, offered once per session; restart is set
+	// once an update installed, so Run starts the new binary after quitting.
+	upgrade   *updatePrompt
+	skipped   string
+	offered   bool
+	restart   bool
+	updatedTo string
 
 	containers    []service.ContainerStatus
 	containersErr string
@@ -236,7 +248,7 @@ func (m Model) loadRelease() tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		return releaseMsg{version: backend.LatestRelease(ctx)}
+		return releaseMsg{version: backend.LatestRelease(ctx), skipped: backend.SkippedUpdate()}
 	}
 }
 
@@ -329,7 +341,7 @@ func (m *Model) absorb(ctx *viewContext) {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
-	m = next.(Model)
+	m = next.(Model).offerUpdate()
 	return m, tea.Batch(cmd, m.syncLogs(), m.syncUsage())
 }
 
@@ -411,8 +423,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	case updateDoneMsg:
+		return m.handleUpdateDone(msg)
+
 	case releaseMsg:
 		m.releaseChecked = msg.version != ""
+		m.skipped = msg.skipped
 		if newer, err := release.Newer(m.opts.Version, msg.version); err == nil && newer {
 			m.latest = msg.version
 			if m.flash == "" {
@@ -473,7 +489,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseWheelMsg:
-		if m.preboot != nil {
+		if m.preboot != nil || m.upgrade != nil {
 			return m, nil
 		}
 		if m.showHelp && m.helpView.page != nil {
@@ -694,6 +710,8 @@ func (m *Model) setActive(v view) {
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	m.flashHeld = false
 	switch {
+	case m.upgrade != nil:
+		return m.handleUpdateKey(msg)
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
 	case m.showHelp:
@@ -825,6 +843,9 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	if m.upgrade != nil {
+		return m, nil
+	}
 	if m.showHelp && m.helpView.page != nil {
 		return m, nil
 	}
@@ -867,6 +888,9 @@ func (m Model) installRows() []installItem {
 
 // renderOverlay is the Help overlay, empty unless it is open.
 func (m Model) renderOverlay() string {
+	if m.upgrade != nil {
+		return m.renderUpdate()
+	}
 	if !m.showHelp || m.helpView.page != nil {
 		return ""
 	}

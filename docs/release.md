@@ -1,5 +1,11 @@
 # Release gate
 
+The Go CLI has its own release procedure: [new-cli/docs/releasing.md](../new-cli/docs/releasing.md).
+
+Tags: plain `vX.Y.Z` belongs to the Go CLI and starts its release workflow.
+Skill-pack releases are tagged `skills-vX.Y.Z`. Releases `v1.0.0`–`v1.1.2`
+predate this split.
+
 Version 1 releases preserve Git history and publish one generated Agent Plugins
 1.0 archive with a Claude Code compatibility manifest. The source of truth
 remains `.agents/skills/`; never commit a second `skills/` tree or a runtime portability
@@ -25,7 +31,7 @@ bun scripts/skillpack.ts validate --scope all
 bun scripts/skillpack.ts audit
 bun scripts/skillpack.ts test --all
 bun scripts/skillpack.ts benchmark --runs 5
-bun scripts/skillpack.ts release-check --tag "v${release_version}"
+bun scripts/skillpack.ts release-check --tag "skills-v${release_version}"
 bun scripts/skillpack.ts package --version "$release_version" --output dist
 ```
 
@@ -53,7 +59,7 @@ bun scripts/distribution.ts \
   --archive "dist/selfhost-skills-${release_version}.zip" \
   --manifest dist/RELEASE-MANIFEST.json \
   --checksums dist/SHA256SUMS \
-  --archive-url "https://github.com/ajnart/selfhost-skills/releases/download/v${release_version}/selfhost-skills-${release_version}.zip" \
+  --archive-url "https://github.com/ajnart/selfhost-skills/releases/download/skills-v${release_version}/selfhost-skills-${release_version}.zip" \
   --output dist/distribution
 ```
 
@@ -84,10 +90,10 @@ a durable GitHub Release with the ZIP, manifest, and checksum. It downloads the
 published assets and checks byte equality before exporting and pushing two
 generated branches in the same repository:
 
-| Ref | Contents | Client source |
-| --- | --- | --- |
-| `plugin-claude` | `.claude-plugin/marketplace.json`, `plugins/selfhost-skills/`, and provenance | `/plugin marketplace add ajnart/selfhost-skills@plugin-claude` |
-| `plugin-codex` | `.agents/plugins/marketplace.json`, `plugins/selfhost-skills/`, and provenance | `codex plugin marketplace add ajnart/selfhost-skills --ref plugin-codex` |
+| Ref             | Contents                                                                       | Client source                                                            |
+| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `plugin-claude` | `.claude-plugin/marketplace.json`, `plugins/selfhost-skills/`, and provenance  | `/plugin marketplace add ajnart/selfhost-skills@plugin-claude`           |
+| `plugin-codex`  | `.agents/plugins/marketplace.json`, `plugins/selfhost-skills/`, and provenance | `codex plugin marketplace add ajnart/selfhost-skills --ref plugin-codex` |
 
 The source `main` branch remains the only editable skill tree. The generated
 branches preserve prior commits for rollback. The tag job needs repository

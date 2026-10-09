@@ -17,6 +17,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -24,14 +25,15 @@ import (
 	"github.com/ajnart/self-host/internal/system"
 )
 
-// DefaultAPI is the GitHub API root of the repository that publishes releases.
-const DefaultAPI = "https://api.github.com/repos/ajnart/selfhost-skills"
+// Repo is the GitHub repository that publishes releases. It is the one place
+// the name is written; a repository rename changes only this line (GitHub
+// redirects the old name until then) and the REPO variable in install.sh.
+const Repo = "ajnart/selfhost-skills"
 
-// DefaultWeb is the github.com root of the same repository for public assets.
-const DefaultWeb = "https://github.com/ajnart/selfhost-skills"
-
-// Environment overrides for the two roots, for tests and mirrors.
+// Environment overrides, for tests, forks and mirrors. EnvRepo swaps the
+// repository; EnvAPI and EnvWeb swap the two roots outright.
 const (
+	EnvRepo   = "SELF_HOST_RELEASE_REPO"
 	EnvAPI    = "SELF_HOST_RELEASES_URL"
 	EnvWeb    = "SELF_HOST_WEB_URL"
 	EnvToken  = "SELF_HOST_GITHUB_TOKEN"
@@ -39,7 +41,7 @@ const (
 )
 
 // InstallCommand is the one-line installer, for messages that point at it.
-const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash"
+const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/" + Repo + "/main/new-cli/install.sh | bash"
 
 const (
 	binaryName    = "self-host"
@@ -65,8 +67,39 @@ type Asset struct {
 	Name string `json:"name"`
 }
 
-// Version is the stable CLI tag without its channel prefix.
-func (r Release) Version() string { return strings.TrimPrefix(r.Tag, TagPrefix) }
+// Version is the stable CLI tag without its prefix, for both tag forms
+// (vX.Y.Z and the earlier new-cli-vX.Y.Z).
+func (r Release) Version() string { return tagVersion(r.Tag) }
+
+func tagVersion(tag string) string {
+	if v, ok := strings.CutPrefix(tag, TagPrefix); ok {
+		return v
+	}
+	return strings.TrimPrefix(tag, "v")
+}
+
+// platforms are the archives a CLI release is built for.
+var platforms = []struct{ goos, goarch string }{
+	{"linux", "amd64"}, {"linux", "arm64"}, {"darwin", "amd64"}, {"darwin", "arm64"},
+}
+
+// hasCLIAssets tells a CLI release from the legacy skill-pack releases that
+// share the tag namespace: only a CLI release carries checksums.txt and a
+// self-host archive named for its own version.
+func (r Release) hasCLIAssets() bool {
+	var sums, archive bool
+	for _, asset := range r.Assets {
+		if asset.Name == checksumsName {
+			sums = true
+		}
+		for _, p := range platforms {
+			if asset.Name == r.ArchiveName(p.goos, p.goarch) {
+				archive = true
+			}
+		}
+	}
+	return sums && archive
+}
 
 // ArchiveName is the goreleaser archive for a platform.
 func (r Release) ArchiveName(goos, goarch string) string {
@@ -79,7 +112,9 @@ type Client struct {
 	// APIURL and WebURL default to DefaultAPI and DefaultWeb.
 	APIURL string
 	WebURL string
-	Token  string
+	// Repo defaults to the package's Repo.
+	Repo  string
+	Token string
 }
 
 // NewClient builds the Client for a binary's dependencies. The shared HTTP
@@ -91,7 +126,7 @@ func NewClient(deps *system.Deps) Client {
 		httpClient = *deps.HTTP
 	}
 	httpClient.Timeout = 0
-	return Client{HTTP: &httpClient, APIURL: deps.Getenv(EnvAPI), WebURL: deps.Getenv(EnvWeb), Token: deps.Getenv(EnvToken)}
+	return Client{HTTP: &httpClient, APIURL: deps.Getenv(EnvAPI), WebURL: deps.Getenv(EnvWeb), Repo: deps.Getenv(EnvRepo), Token: deps.Getenv(EnvToken)}
 }
 
 func orDefault(value, fallback string) string {
@@ -101,8 +136,19 @@ func orDefault(value, fallback string) string {
 	return strings.TrimSuffix(value, "/")
 }
 
-func (c Client) api() string { return orDefault(c.APIURL, DefaultAPI) }
-func (c Client) web() string { return orDefault(c.WebURL, DefaultWeb) }
+var repoName = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+$`)
+
+func (c Client) repo() string { return orDefault(c.Repo, Repo) }
+
+func (c Client) api() string { return orDefault(c.APIURL, "https://api.github.com/repos/"+c.repo()) }
+func (c Client) web() string { return orDefault(c.WebURL, "https://github.com/"+c.repo()) }
+
+func (c Client) validate() error {
+	if repo := c.repo(); !repoName.MatchString(repo) || strings.Contains(repo, "..") || strings.HasSuffix(repo, "/.") {
+		return fmt.Errorf("%s must look like owner/name, not %q", EnvRepo, c.repo())
+	}
+	return nil
+}
 
 func (c Client) do(ctx context.Context, method, url, accept string, timeout time.Duration) (*http.Response, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -160,8 +206,13 @@ func (c Client) get(ctx context.Context, url, accept string, limit int64, timeou
 	return body, nil
 }
 
-// Latest selects the highest stable CLI version, never the legacy plugin channel.
+// Latest selects the highest stable CLI release: a vX.Y.Z or new-cli-vX.Y.Z
+// tag whose assets are the self-host archives and checksums.txt, which keeps
+// the legacy skill-pack releases out whatever their version.
 func (c Client) Latest(ctx context.Context) (Release, error) {
+	if err := c.validate(); err != nil {
+		return Release{}, err
+	}
 	var latest Release
 	for page := 1; page <= 10; page++ {
 		body, err := c.get(ctx, fmt.Sprintf("%s/releases?per_page=100&page=%d", c.api(), page), "application/vnd.github+json", maxChecksums, lookupTimeout)
@@ -173,7 +224,7 @@ func (c Client) Latest(ctx context.Context) (Release, error) {
 			return Release{}, errors.New("look up CLI releases: unexpected response")
 		}
 		for _, rel := range releases {
-			if rel.Draft || rel.Prerelease || !validTag(rel.Tag) {
+			if rel.Draft || rel.Prerelease || !validTag(rel.Tag) || !rel.hasCLIAssets() {
 				continue
 			}
 			newer, _ := Newer(latest.Version(), rel.Version())
@@ -183,7 +234,7 @@ func (c Client) Latest(ctx context.Context) (Release, error) {
 		}
 		if len(releases) < 100 {
 			if latest.Tag == "" {
-				return Release{}, errors.New("no stable new-cli-v release is published")
+				return Release{}, errors.New("no CLI release is published (a vX.Y.Z tag with the self-host archives and checksums.txt)")
 			}
 			return latest, nil
 		}
@@ -192,10 +243,10 @@ func (c Client) Latest(ctx context.Context) (Release, error) {
 }
 
 func validTag(tag string) bool {
-	if !strings.HasPrefix(tag, TagPrefix) {
+	if !strings.HasPrefix(tag, "v") && !strings.HasPrefix(tag, TagPrefix) {
 		return false
 	}
-	version := strings.TrimPrefix(tag, TagPrefix)
+	version := tagVersion(tag)
 	if strings.HasPrefix(version, "v") {
 		return false
 	}
@@ -254,6 +305,9 @@ func parseVersion(v string) ([3]int, error) {
 // atomically replaces the file at exe with the binary inside. exe is left
 // untouched on any failure.
 func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe string) error {
+	if err := c.validate(); err != nil {
+		return err
+	}
 	if !validTag(rel.Tag) {
 		return errors.New("invalid CLI release tag")
 	}

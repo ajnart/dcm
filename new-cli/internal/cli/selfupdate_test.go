@@ -54,7 +54,7 @@ func tarGz(t *testing.T, files map[string]string) []byte {
 
 func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server {
 	t.Helper()
-	version := strings.TrimPrefix(f.tag, "new-cli-v")
+	version := strings.TrimPrefix(strings.TrimPrefix(f.tag, "new-cli-"), "v")
 	name := fmt.Sprintf("self-host_%s_%s_%s.tar.gz", version, goos, goarch)
 	archive := tarGz(t, map[string]string{"LICENSE": "MIT", "self-host": f.binary})
 	sum := sha256.Sum256(archive)
@@ -71,7 +71,7 @@ func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server
 				w.WriteHeader(f.apiError)
 				return
 			}
-			fmt.Fprintf(w, `[{"tag_name":"v99.0.0"},{"tag_name":%q}]`, f.tag)
+			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-99.0.0.zip"}]},{"tag_name":%q,"assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]}]`, f.tag, name)
 		case "/web/releases/latest":
 			if f.noRedirect {
 				w.WriteHeader(http.StatusNotFound)
@@ -301,5 +301,16 @@ func TestSelfUpdateExplainsAnUnwritableInstallDirectory(t *testing.T) {
 	}
 	if got := clitest.Read(t, exe); got != "old-binary" {
 		t.Errorf("binary = %q", got)
+	}
+}
+
+func TestSelfUpdateInstallsAPlainVersionTagRelease(t *testing.T) {
+	rel := &fakeRelease{tag: "v1.3.0", binary: "plain-tag-binary"}
+	deps, exe := updateDeps(t, "1.2.0", rel.server(t, "linux", "amd64"))
+
+	r := clitest.Run(t, deps, catalog.Default(), "self-update")
+
+	if r.Code != 0 || clitest.Read(t, exe) != "plain-tag-binary" || !strings.Contains(r.Out, "1.3.0") {
+		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
 	}
 }

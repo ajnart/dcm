@@ -39,13 +39,15 @@ type installFake struct {
 	metadata          string
 	checksum          string // overrides the real sha256 when set
 	noRedirect        bool   // github.com/.../releases/latest answers 404
+	downloadError     int    // status of archive downloads when set
+	legacyTag         string // a skill-pack release served by tag, with only legacy assets
 	apiError          int
 	apiCalls          int
 }
 
 func (f *installFake) server(t *testing.T) *httptest.Server {
 	t.Helper()
-	version := strings.TrimPrefix(f.tag, "new-cli-v")
+	version := strings.TrimPrefix(strings.TrimPrefix(f.tag, "new-cli-"), "v")
 	name := hostAsset(version)
 	if f.platform != "" {
 		name = "self-host_" + version + "_" + f.platform + ".tar.gz"
@@ -71,7 +73,19 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 		digest = f.checksum
 	}
 	download := "/web/releases/download/" + f.tag + "/"
+	assets := fmt.Sprintf(`[{"id":11,"name":"checksums.txt"},{"id":12,"name":%q}]`, name)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A repository rename: the old paths answer 301 to the new ones.
+		for _, root := range []string{"api", "web"} {
+			if rest, ok := strings.CutPrefix(r.URL.Path, "/old"+root+"/"); ok {
+				target := "/" + root + "/" + rest
+				if r.URL.RawQuery != "" {
+					target += "?" + r.URL.RawQuery
+				}
+				http.Redirect(w, r, target, http.StatusMovedPermanently)
+				return
+			}
+		}
 		if f.token != "" && r.Header.Get("Authorization") != "Bearer "+f.token {
 			http.Error(w, "authentication required", http.StatusUnauthorized)
 			return
@@ -87,7 +101,13 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 				fmt.Fprint(w, f.releaseList)
 				return
 			}
-			fmt.Fprintf(w, `[{"tag_name":"v99.0.0"},{"tag_name":"new-cli-v99.0.0","draft":true},{"tag_name":"new-cli-v98.0.0","prerelease":true},{"tag_name":"new-cli-v01.2.0"},{"tag_name":%q,"assets":[]}]`, f.tag)
+			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-99.0.0.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"new-cli-v99.0.0","draft":true,"assets":%[2]s},{"tag_name":"new-cli-v98.0.0","prerelease":true,"assets":%[2]s},{"tag_name":"new-cli-v01.2.0","assets":%[2]s},{"tag_name":%[1]q,"assets":%[2]s}]`, f.tag, assets)
+		case "/api/releases/tags/" + f.legacyTag:
+			if f.legacyTag == "" {
+				http.NotFound(w, r)
+				return
+			}
+			fmt.Fprintf(w, `{"tag_name":%q,"assets":[{"id":21,"name":"CLI-SHA256SUMS"},{"id":22,"name":"selfhost-skills-1.1.2.zip"},{"id":23,"name":"SHA256SUMS"}]}`, f.legacyTag)
 		case "/api/releases/tags/" + f.tag:
 			if f.metadata != "" {
 				fmt.Fprint(w, f.metadata)
@@ -97,7 +117,7 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 				fmt.Fprintf(w, `{"tag_name":%q} trailing garbage`, f.tag)
 				return
 			}
-			fmt.Fprintf(w, `{"tag_name":%q,"assets":[{"id":11,"name":"checksums.txt"},{"id":12,"name":%q}]}`, f.tag, name)
+			fmt.Fprintf(w, `{"tag_name":%q,"assets":%s}`, f.tag, assets)
 		case "/web/releases/latest":
 			if f.noRedirect {
 				w.WriteHeader(http.StatusNotFound)
@@ -109,6 +129,10 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 		case download + "checksums.txt", "/api/releases/assets/11":
 			fmt.Fprintf(w, "%s  %s\n", digest, name)
 		case download + name, "/api/releases/assets/12":
+			if f.downloadError != 0 {
+				w.WriteHeader(f.downloadError)
+				return
+			}
 			w.Write(buf.Bytes())
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -163,8 +187,8 @@ func TestInstallScriptWithBusyBoxAwk(t *testing.T) {
 		{"tag_name":"new-cli-v99.0.0","draft":true,"prerelease":false},
 		{"tag_name":"new-cli-v98.0.0","draft":false,"prerelease":true},
 		{"tag_name":"v97.0.0","draft":false,"prerelease":false},
-		{"tag_name":%q,"draft":false,"prerelease":false,"assets":[{"tag_name":"new-cli-v96.0.0","size":42,"labels":[true,false,null,3]}]}
-	]`, tag)
+		{"tag_name":%q,"draft":false,"prerelease":false,"assets":[{"id":11,"name":"checksums.txt","size":42},{"id":12,"name":%q,"tag_name":"new-cli-v96.0.0","size":42,"labels":[true,false,null,3]}]}
+	]`, tag, hostAsset("1.2.0"))
 	metadata := fmt.Sprintf(`{"tag_name":%q,"draft":false,"prerelease":false,"assets":[{"id":11,"name":"checksums.txt","size":42},{"id":12,"name":%q,"size":123,"labels":[true,false,null,3]}]}`, tag, hostAsset("1.2.0"))
 	for _, tc := range []struct {
 		name, token, checksum, metadata, failure string
@@ -409,5 +433,193 @@ func TestInstallScriptSelectsDarwinAMD64Archive(t *testing.T) {
 	}
 	if !strings.Contains(out, "darwin/amd64") {
 		t.Fatalf("wrong platform: %s", out)
+	}
+}
+
+func installedBinary(dir string) string {
+	data, _ := os.ReadFile(filepath.Join(dir, "self-host"))
+	return string(data)
+}
+
+func TestInstallScriptSelectsAPlainVersionTagAndTheHighestOfBothForms(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	name := hostAsset("1.3.0")
+	older := hostAsset("1.2.0")
+	list := fmt.Sprintf(`[{"tag_name":"new-cli-v1.2.0","assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]},{"tag_name":"v1.3.0","assets":[{"id":11,"name":"checksums.txt"},{"id":12,"name":%q}]},{"tag_name":"v1.1.2","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-1.1.2.zip"}]}]`, older, name)
+	fake := &installFake{tag: "v1.3.0", binary: "plain-tag", releaseList: list}
+
+	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir)
+
+	if err != nil || installedBinary(dir) != "plain-tag" || !strings.Contains(out, "(1.3.0, checksum verified)") {
+		t.Fatalf("install: %v\n%s", err, out)
+	}
+}
+
+func TestInstallScriptNeverInstallsALegacySkillPackRelease(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	list := `[{"tag_name":"v1.1.2","assets":[{"name":"ajnart-selfhost-1.1.2.tgz"},{"name":"CLI-SHA256SUMS"},{"name":"RELEASE-MANIFEST.json"},{"name":"selfhost-skills-1.1.2.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"v1.0.0","assets":[{"name":"RELEASE-MANIFEST.json"},{"name":"selfhost-skills-1.0.0.zip"},{"name":"SHA256SUMS"}]}]`
+	fake := &installFake{tag: "new-cli-v0.2.0", binary: "x", releaseList: list}
+
+	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir)
+
+	if err == nil || !strings.Contains(out, "no CLI release is published") {
+		t.Fatalf("expected a refusal, got %v\n%s", err, out)
+	}
+	if installedBinary(dir) != "" {
+		t.Error("installed a skill-pack release")
+	}
+}
+
+func TestInstallScriptPinnedLegacyVersionIsNotACLIRelease(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	fake := &installFake{tag: "new-cli-v0.2.0", binary: "x", legacyTag: "v1.1.2"}
+
+	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_VERSION=1.1.2")
+
+	if err == nil || !strings.Contains(out, "not a CLI release") {
+		t.Fatalf("expected a refusal, got %v\n%s", err, out)
+	}
+	if installedBinary(dir) != "" {
+		t.Error("installed a skill-pack release")
+	}
+}
+
+func TestInstallScriptPinsAVersionByPlainTag(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	fake := &installFake{tag: "v1.3.0", binary: "pinned-plain"}
+
+	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_VERSION=1.3.0")
+
+	if err != nil || installedBinary(dir) != "pinned-plain" {
+		t.Fatalf("install: %v\n%s", err, out)
+	}
+}
+
+func TestInstallScriptFollowsARepositoryRenameRedirect(t *testing.T) {
+	for _, token := range []string{"", "fixture-token"} {
+		dir := filepath.Join(t.TempDir(), "bin")
+		fake := &installFake{tag: "v1.3.0", binary: "after-rename", token: token}
+		server := fake.server(t)
+
+		out, err := runInstaller(t, server, "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir,
+			"SELF_HOST_RELEASES_URL="+server.URL+"/oldapi", "SELF_HOST_WEB_URL="+server.URL+"/oldweb", "SELF_HOST_GITHUB_TOKEN="+token)
+
+		if err != nil || installedBinary(dir) != "after-rename" {
+			t.Fatalf("token %q: install: %v\n%s", token, err, out)
+		}
+	}
+}
+
+func TestInstallScriptReleaseRepoOverride(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	tools := t.TempDir()
+	log := filepath.Join(tools, "urls")
+	realCurl, err := exec.LookPath("curl")
+	if err != nil {
+		t.Skip("curl not installed")
+	}
+	shim := `#!/bin/sh
+n=$#
+while [ "$n" -gt 0 ]; do
+  a=$1; shift
+  case "$a" in https://api.github.com/*)
+    echo "$a" >> "$SHIM_LOG"
+    a=$(printf '%s' "$a" | sed -E "s#^https://api.github.com/repos/[^/]+/[^/]+#$SHIM_API#")
+  esac
+  set -- "$@" "$a"; n=$((n-1))
+done
+exec "$REAL_CURL" "$@"
+`
+	os.WriteFile(filepath.Join(tools, "curl"), []byte(shim), 0755)
+	fake := &installFake{tag: "v1.3.0", binary: "forked"}
+	server := fake.server(t)
+
+	out, err := runInstaller(t, server, "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_RELEASES_URL=", "SELF_HOST_GITHUB_TOKEN=",
+		"SELF_HOST_RELEASE_REPO=acme/selfhost", "SHIM_LOG="+log, "SHIM_API="+server.URL+"/api", "REAL_CURL="+realCurl, "PATH="+tools+":"+os.Getenv("PATH"))
+
+	if err != nil || installedBinary(dir) != "forked" {
+		t.Fatalf("install: %v\n%s", err, out)
+	}
+	if urls, _ := os.ReadFile(log); !strings.Contains(string(urls), "https://api.github.com/repos/acme/selfhost/releases") {
+		t.Errorf("release lookup did not use the override:\n%s", urls)
+	}
+}
+
+func TestInstallScriptRejectsAMalformedReleaseRepo(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	out, err := runInstaller(t, (&installFake{tag: "v1.3.0", binary: "x"}).server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_RELEASE_REPO=ajnart/..")
+	if err == nil || !strings.Contains(out, "SELF_HOST_RELEASE_REPO") || installedBinary(dir) != "" {
+		t.Fatalf("accepted a malformed repository: %v\n%s", err, out)
+	}
+}
+
+func TestInstallScriptFailsLoudlyWhenADownloadFails(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "bin")
+	fake := &installFake{tag: "v1.3.0", binary: "x", downloadError: http.StatusInternalServerError}
+
+	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir)
+
+	if err == nil || !strings.Contains(out, "could not download") {
+		t.Fatalf("expected a download failure, got %v\n%s", err, out)
+	}
+	if installedBinary(dir) != "" {
+		t.Error("installed after a failed download")
+	}
+}
+
+func TestInstallScriptTruncatedDownloadInstallsNothing(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Skip("bash not installed")
+	}
+	script, err := os.ReadFile("../../install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(string(script), "\n"), "\n")
+	if last := lines[len(lines)-1]; last != `main "$@"` {
+		t.Fatalf("the last line must be the call to main, got %q", last)
+	}
+	for name, truncated := range map[string]string{
+		"without the call": strings.Join(lines[:len(lines)-1], "\n"),
+		"mid function":     strings.Join(lines[:len(lines)*3/4], "\n"),
+		"half":             strings.Join(lines[:len(lines)/2], "\n"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "bin")
+			cmd := exec.Command("bash", "-s")
+			cmd.Stdin = strings.NewReader(truncated)
+			cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), "SELF_HOST_INSTALL_DIR=" + dir, "SELF_HOST_RELEASES_URL=http://127.0.0.1:1", "SELF_HOST_WEB_URL=http://127.0.0.1:1"}
+			out, _ := cmd.CombinedOutput()
+			if strings.Contains(string(out), "Downloading") || strings.Contains(string(out), "Installed") {
+				t.Errorf("a truncated script ran the installer:\n%s", out)
+			}
+			if _, err := os.Stat(dir); err == nil {
+				t.Error("a truncated script created the install directory")
+			}
+		})
+	}
+}
+
+func TestInstallScriptExplainsHowToAddTheInstallDirToPATH(t *testing.T) {
+	bashFile := "~/.bashrc"
+	if runtime.GOOS == "darwin" {
+		bashFile = "~/.bash_profile"
+	}
+	for _, tc := range []struct{ shell, want string }{
+		{"/bin/bash", `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ` + bashFile},
+		{"/usr/bin/zsh", `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc`},
+		{"/usr/bin/fish", `fish_add_path $HOME/.local/bin`},
+		{"/bin/tcsh", `export PATH="$HOME/.local/bin:$PATH"`},
+	} {
+		t.Run(filepath.Base(tc.shell), func(t *testing.T) {
+			home := t.TempDir()
+			server := (&installFake{tag: "v1.3.0", binary: "x"}).server(t)
+
+			out, err := runInstaller(t, server, "HOME="+home, "SHELL="+tc.shell)
+
+			if err != nil || !strings.Contains(out, "not on your PATH") || !strings.Contains(out, tc.want) {
+				t.Fatalf("install: %v; want %q in:\n%s", err, tc.want, out)
+			}
+		})
 	}
 }
