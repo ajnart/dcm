@@ -89,7 +89,7 @@ func runWith(t *testing.T, deps *system.Deps, cat *catalog.Catalog, args ...stri
 func projectRoot(t *testing.T, deps *system.Deps) string {
 	t.Helper()
 	u, _ := deps.CurrentUser()
-	return filepath.Join(u.Home, "self-host")
+	return filepath.Join(u.Home, ".self-host")
 }
 
 func readFile(t *testing.T, path string) string {
@@ -260,7 +260,7 @@ func TestSudoInstallBelongsToInvokingUser(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
-	env := readFile(t, filepath.Join(bobHome, "self-host", ".env"))
+	env := readFile(t, filepath.Join(bobHome, ".self-host", ".env"))
 	if !strings.Contains(env, "PUID=1001\n") || !strings.Contains(env, "PGID=1002\n") {
 		t.Fatalf("ids not taken from sudo user:\n%s", env)
 	}
