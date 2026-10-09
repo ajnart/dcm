@@ -1,0 +1,68 @@
+new-cli/README.md
+  h_d6e478ca18e517 128
+new-cli/internal/tui/backups.go
+  h_d6e478ca18e517 417-418,420-422
+new-cli/internal/tui/exposure.go
+  h_d6e478ca18e517 17-86,255-256,260,268,270
+new-cli/internal/tui/exposure_test.go
+  h_d6e478ca18e517 93
+new-cli/internal/tui/glyphs_test.go
+  h_d6e478ca18e517 167
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 146,150-161
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 904,970-975,994-1002
+new-cli/internal/tui/host_test.go
+  h_d6e478ca18e517 67-68
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 46-49,195,200,241-250,354,357,579-586,701-703
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 504-508,548,1112-1180
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 67-71,90,103-104,124,144,150,316-319,457-458,477-499,581-585,596-602,612-630
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 78,90,207,237,291-342
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 243
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-note-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-note.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-exposure-local-narrow.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/onboarding-where-exposure-local.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/onboarding-where-exposure-narrow.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/onboarding-where-exposure.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/onboarding-where-narrow.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/onboarding-where.golden
+  h_d6e478ca18e517 13-15
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-note-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-note.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-exposure-coming-soon.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 69-72,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bde88cfb498f88da63abba474dc6572248daee03",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
