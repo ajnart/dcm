@@ -1,0 +1,28 @@
+new-cli/docs/catalog/traps/beszel.md
+  h_d6e478ca18e517 10-11,18-21
+new-cli/internal/app/app.go
+  h_d6e478ca18e517 121-127
+new-cli/internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 226-229,232,234,236-237,240-245,251,255-256,258,261-265,311-320,328-337,389,403-404
+new-cli/internal/apps/beszel/beszel_test.go
+  h_d6e478ca18e517 44-47,50-53,57-106,108,126,219-220,291,394,416-529
+new-cli/internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 937-964
+new-cli/internal/service/deferred_test.go
+  h_d6e478ca18e517 1-42
+new-cli/internal/service/mutation.go
+  h_d6e478ca18e517 179-182,184
+new-cli/internal/service/service.go
+  h_d6e478ca18e517 357-385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87c0b44f2f0d72b4a34dd858c6e7f1355fa31a6a",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
