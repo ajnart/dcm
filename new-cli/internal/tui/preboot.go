@@ -14,6 +14,10 @@ import (
 // noPullFrames is how long pre-boot plays when there is nothing to pull.
 const noPullFrames = 4 * preboot.FPS
 
+// prebootFramesPerActivity is how many pre-boot frames play per Activity
+// frame, so Activity's motion keeps its own timing underneath.
+const prebootFramesPerActivity = preboot.FPS / activity.FPS
+
 // prebootScreen is the full-screen scene between approving Onboarding's
 // Review and the Dashboard: it plays while the first install pulls its images
 // and then lands on Activity. It keeps only its own frame and where the exit
@@ -27,8 +31,8 @@ type prebootScreen struct {
 func newPrebootScreen() *prebootScreen { return &prebootScreen{since: -1} }
 
 var (
-	prebootCoffee  = hint("c", "coffee")
-	prebootSponsor = hint("s", "sponsor")
+	prebootCoffee  = hint("c", "Ko-fi")
+	prebootSponsor = hint("s", "GitHub Sponsors")
 	prebootSkip    = hint("enter", "skip")
 	prebootKeys    = []key.Binding{prebootCoffee, prebootSponsor, prebootSkip}
 )

@@ -23,8 +23,8 @@ existing Project without touching installed Apps.
 
 **Recipe**:
 A named, pre-wired bundle of Apps chosen together for one purpose
-(e.g. a media server). In the pickers it is a shortcut for its Apps: picking it
-picks them, and its mark (✓ all, ◐ some, ○ none) follows the Apps picked.
+(e.g. a media server). In the pickers, picking it picks all of its Apps at
+once, and its mark (✓ all, ◐ some, ○ none) follows the Apps picked.
 _Avoid_: stack, goal, profile
 
 **Catalog**:
@@ -72,10 +72,13 @@ manages. Nothing outside it is touched.
 _Avoid_: stack, deployment
 
 **Exposure**:
-Who can reach the Apps: **local network** (default) or **this machine only**.
-Always shown in the recap, since it explains most "can't reach it from my TV"
-reports. **local network** publishes the Apps' ports on `0.0.0.0`; **this
-machine only** publishes them on `127.0.0.1`. Onboarding's Where and Settings
+Who can reach the Apps: **Other devices on your network** (default, stored as
+`lan`) or **Only this computer** (stored as `local`). Always shown in the
+recap, since it explains most "can't reach it from my TV" reports. Other
+devices on your network publishes the Apps' ports on `0.0.0.0`; Only this
+computer publishes them on `127.0.0.1`. The choice also lists coming-soon
+entries (Tailscale, Cloudflare Tunnel, HTTPS with a reverse proxy) that cannot
+be picked yet; the Apps stay where they are. Onboarding's Where and Settings
 explain the highlighted choice live, with a diagram and a help page on `?`.
 
 **LAN address**:

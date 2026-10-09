@@ -105,7 +105,9 @@ func (v *settingsView) toolsBox(ctx *viewContext, width int) string {
 		}
 		lines = append(lines, truncate(cursor+t.dim().Render(pad(s.name, 12)+pad(s.about, 26)+"not installed"), inner))
 		if command := s.install[v.goos]; command != "" {
-			lines = append(lines, truncate("      "+t.dim().Render("install  "+command), inner))
+			for _, line := range strings.Split(indent("      install  ", command, inner), "\n") {
+				lines = append(lines, t.dim().Render(strings.TrimRight(line, " ")))
+			}
 		}
 		lines = append(lines, "      "+t.dim().Render("docs     ")+link(t, s.readme, truncate(strings.TrimPrefix(s.readme, "https://"), max(inner-15, 8))))
 	}

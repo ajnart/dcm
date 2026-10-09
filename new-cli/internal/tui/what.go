@@ -157,13 +157,7 @@ func (m Model) renderWhatList() []string {
 	}
 	avail := max(m.whatListHeight()-2, 1)
 	l.cursor = max(min(l.cursor, len(rows)-1), 0)
-	if l.cursor < l.offset {
-		l.offset = l.cursor
-	}
-	if l.cursor >= l.offset+avail {
-		l.offset = l.cursor - avail + 1
-	}
-	l.offset = max(min(l.offset, max(len(rows)-avail, 0)), 0)
+	l.offset = scrolled(l.cursor, l.offset, avail, len(rows))
 
 	lines := []string{"  " + truncate(head, width)}
 	for i := l.offset; i < len(rows) && i-l.offset < avail; i++ {

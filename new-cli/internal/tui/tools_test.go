@@ -126,7 +126,7 @@ func TestTheTUIResumesAfterAToolExitsAndFlashesAnError(t *testing.T) {
 	}
 }
 
-func TestLinuxInstallCommandsTruncateWithinEightyColumns(t *testing.T) {
+func TestLinuxInstallCommandsShowInFullWithinEightyColumns(t *testing.T) {
 	m, _ := sample(t, 80, 24)
 	m = drive(t, m, press("5"))
 	m.settings.goos = "linux"
@@ -135,12 +135,38 @@ func TestLinuxInstallCommandsTruncateWithinEightyColumns(t *testing.T) {
 	}
 
 	out := screen(m)
-	if !strings.Contains(out, "install  sudo wget https://github.com/bcicen/ctop/releases/download/v…") {
-		t.Fatalf("the long command should truncate with an ellipsis\n%s", out)
-	}
 	for _, line := range strings.Split(out, "\n") {
 		if ansi.StringWidth(line) > 80 {
 			t.Fatalf("line wider than 80 columns: %q", line)
 		}
 	}
+	for _, command := range []string{
+		"sudo wget https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64 -O /usr/local/bin/ctop && sudo chmod +x /usr/local/bin/ctop",
+		"curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash",
+	} {
+		if !strings.Contains(installText(out), strings.ReplaceAll(command, " ", "")) {
+			t.Fatalf("the install command %q should be readable in full\n%s", command, out)
+		}
+	}
+}
+
+// installText is every install command on screen with its line breaks and
+// spaces removed, so a command wrapped over several lines reads as one.
+func installText(out string) string {
+	var text strings.Builder
+	reading := false
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.Trim(line, "│ ")
+		switch {
+		case strings.HasPrefix(line, "install"):
+			reading = true
+			line = strings.TrimPrefix(line, "install")
+		case strings.HasPrefix(line, "docs"):
+			reading = false
+		}
+		if reading {
+			text.WriteString(strings.ReplaceAll(line, " ", ""))
+		}
+	}
+	return text.String()
 }

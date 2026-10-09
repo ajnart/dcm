@@ -112,6 +112,8 @@ type viewContext struct {
 
 	flash      string
 	flashLevel level
+	// flashed is set when a view set a flash, even the same text again.
+	flashed bool
 	// headerFacts are the LAN address and time the header had no room for;
 	// the Overview's Now strip restates them.
 	headerFacts []string
@@ -201,7 +203,9 @@ func (m Model) pullProgress(ctx *viewContext) (int, bool) {
 	return int(pull.Fraction * 100), true
 }
 
-func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
+func (ctx *viewContext) setFlash(text string, l level) {
+	ctx.flash, ctx.flashLevel, ctx.flashed = text, l, true
+}
 
 // run starts a background Action; the status line shows its progress.
 func (ctx *viewContext) run(req Request, title string) tea.Cmd {
@@ -210,8 +214,32 @@ func (ctx *viewContext) run(req Request, title string) tea.Cmd {
 	return func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
 		err := backend.Run(t.ctx, req, log)
-		return taskDoneMsg{id: t.id, title: title, err: err}
+		return taskDoneMsg{id: t.id, title: title, action: req.Action, err: err}
 	}
+}
+
+// scrolled keeps cursor inside a window of size rows starting at offset.
+func scrolled(cursor, offset, size, total int) int {
+	if cursor < offset {
+		offset = cursor
+	}
+	if cursor >= offset+size {
+		offset = cursor - size + 1
+	}
+	return max(min(offset, total-size), 0)
+}
+
+// radioRow is one choice of a list: the cursor, a mark that is filled for the
+// selected choice, and the label, bright for the selected one.
+func radioRow(t theme, atCursor, selected bool, label string) string {
+	cursor, mark, style := "  ", t.dim().Render("○"), t.body()
+	if atCursor {
+		cursor = t.cursor()
+	}
+	if selected {
+		mark, style = t.fg(t.accentText).Render("●"), t.active()
+	}
+	return cursor + mark + " " + style.Render(label)
 }
 
 // fit pads or cuts s to exactly width×height cells.
@@ -648,7 +676,7 @@ func (m Model) footerStatus(ctx *viewContext) string {
 	if overview && m.flash == m.resultFlash {
 		return ""
 	}
-	if task := m.tasks.latest(); task != nil && !overview {
+	if task := m.tasks.latest(); task != nil && !overview && !m.flashHeld {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
 			if snapshot := ctx.snapshot(); snapshot.Pull.Pulling {

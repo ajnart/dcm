@@ -455,7 +455,7 @@ func TestKeybindAudit(t *testing.T) {
 		"done: enter", "clear: esc",
 		// Settings' About sub-tab and the pre-boot screen open the donation
 		// pages; pre-boot also skips to Activity.
-		"coffee: c", "sponsor: s", "skip: enter",
+		"coffee: c", "sponsor: s", "Ko-fi: c", "GitHub Sponsors: s", "skip: enter",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
 		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
