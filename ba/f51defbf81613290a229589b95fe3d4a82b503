@@ -1,0 +1,16 @@
+new-cli/README.md
+  h_d6e478ca18e517 80-87,117-123,185-195,282-290
+new-cli/internal/cli/cli.go
+  h_d6e478ca18e517 12-13,96-97,102-103,107-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "baf51defbf81613290a229589b95fe3d4a82b503",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
