@@ -324,7 +324,7 @@ func (m Model) windowTitle() string {
 // the essential context fit, so it does not flicker with the rest.
 func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 	t := m.theme
-	showTabs := m.wizard == nil && m.loaded && m.statusErr == ""
+	showTabs := !m.onboardingShown() && m.loaded && m.statusErr == ""
 	var labels []string
 	tabsWidth := 0
 	if showTabs {
@@ -392,13 +392,15 @@ func projectLabel(path string) string {
 // extra last refresh, known updates and version.
 func (m Model) headerContext() (essential, extra []string) {
 	t := m.theme
-	label, level := m.health()
-	health := t.chip("○ "+label, t.muted)
-	if level != "" {
-		glyph, c := t.status(level)
-		health = t.chip(glyph+" "+label, c)
+	if !m.onboardingShown() {
+		label, level := m.health()
+		health := t.chip("○ "+label, t.muted)
+		if level != "" {
+			glyph, c := t.status(level)
+			health = t.chip(glyph+" "+label, c)
+		}
+		essential = []string{health}
 	}
-	essential = []string{health}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {
 		switch {
 		case m.status.Exposure == service.ExposureLocal:
@@ -486,9 +488,7 @@ func (m Model) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 	v.ReportFocus = true
 	v.WindowTitle = m.windowTitle()
-	if pct, ok := m.installProgress(); ok {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
-	} else if pct, ok := m.pullProgress(); ok {
+	if pct, ok := m.pullProgress(); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
 	} else if m.tasks.running() > 0 {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
@@ -502,14 +502,16 @@ func (m Model) View() tea.View {
 	header, layers := m.renderHeader()
 	status := pad(m.footerStatus(), m.width)
 	var content string
-	if m.wizard != nil {
-		content = header + "\n" + fit(m.renderWizard(), m.width, max(m.height-2, 3)) + "\n" + status
+	if m.onboardingShown() {
+		mode, chips := m.onboardingBar()
+		content = header + "\n" + fit(m.renderOnboarding(), m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	} else {
 		var main, mode string
 		var chips []key.Binding
 		switch {
 		case !m.loaded:
-			main = m.theme.dim().Render("  " + activity.Spinner(m.frame) + " reading the Project…")
+			main = m.renderLoading()
+			mode = barKey(m.theme, m.keys.Quit.Help().Key, m.keys.Quit.Help().Desc)
 		case m.statusErr != "":
 			main = m.renderStatusError()
 		default:
@@ -537,7 +539,7 @@ func (m Model) View() tea.View {
 		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
 		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
 	}
-	if m.menu != nil && m.wizard == nil {
+	if m.menu != nil && !m.onboardingShown() {
 		all = append(all, m.menuLayers()...)
 	}
 	comp := lipgloss.NewCompositor(all...)
@@ -575,7 +577,7 @@ func (m Model) renderStatusError() string {
 // other messages.
 func (m Model) footerStatus() string {
 	t := m.theme
-	overview := m.wizard == nil && m.surface == surfaceDashboard
+	overview := !m.onboardingShown() && m.surface == surfaceDashboard
 	if overview && m.flash == m.resultFlash {
 		return ""
 	}
