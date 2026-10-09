@@ -76,8 +76,8 @@ func TestRetryAfterBoundNamesAppAndWait(t *testing.T) {
 	}, func(context.Context) (helpers.Response, error) {
 		return helpers.Response{Status: http.StatusTooManyRequests, Header: http.Header{"Retry-After": []string{"1"}}}, nil
 	})
-	if err == nil || !strings.Contains(err.Error(), "demo") || !strings.Contains(err.Error(), "2s") {
-		t.Fatalf("bound error = %v", err)
+	if err == nil || !strings.Contains(err.Error(), "demo") || !strings.Contains(err.Error(), "2s") || !strings.Contains(err.Error(), "1s") {
+		t.Fatalf("bound error must name the refused next wait and the total waited: %v", err)
 	}
 }
 
