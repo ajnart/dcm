@@ -1,0 +1,14 @@
+new-cli/internal/service/usage.go
+  h_d6e478ca18e517 27-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20419e779c4b4af96b5f38b6997acd1fa86dfb4e",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
