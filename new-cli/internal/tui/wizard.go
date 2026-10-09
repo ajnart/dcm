@@ -462,7 +462,7 @@ func (m Model) renderInstalling(taskID int) string {
 	}
 	s := task.snapshot()
 	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accentText).Render(m.spin.View()), ""}
-	if block := activity.Render(activity.Build(m.status, s.events), m.width-4, t.palette()); len(block) > 0 {
+	if block := activity.PullBlock(activity.Build(m.status, s.events), m.width-4, t.palette()); len(block) > 0 {
 		for _, line := range block {
 			lines = append(lines, "  "+line)
 		}

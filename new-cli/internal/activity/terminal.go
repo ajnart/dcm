@@ -38,7 +38,7 @@ func (t *terminal) Emit(e events.Event) {
 	}
 	t.evs = append(t.evs, e)
 	s := Build(service.Status{}, t.evs)
-	block := Render(s, t.width(), t.palette)
+	block := PullBlock(s, t.width(), t.palette)
 	if e.Event == events.PullProgress && s.Pull.Pulling && slices.Equal(block, t.shown) {
 		return
 	}

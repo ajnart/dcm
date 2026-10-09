@@ -212,7 +212,7 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
 		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}
 	if workflow.Pull.Pulling {
-		for _, line := range activity.Render(workflow, width-2, t.palette()) {
+		for _, line := range activity.PullBlock(workflow, width-2, t.palette()) {
 			lines = append(lines, "  "+line)
 		}
 		lines = append(lines, "")

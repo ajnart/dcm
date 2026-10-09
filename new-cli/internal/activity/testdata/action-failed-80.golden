@@ -1,0 +1,12 @@
+── frame 30 ──
+✗ install qbittorrent sonarr radarr
+  ✓ Pull   ✓ Start   ✗ Setup   ✓ Check
+╭─ Apps 2/3 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                                      │
+│ ✗ Sonarr          failed                                                     │
+│   ✗ add the root folder /media/tv                                            │
+│       403 Forbidden                                                          │
+│       → Sign in to Sonarr with the Admin login and add /media/tv under Sett… │
+│ ● Radarr          ready                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Sonarr failed: 403 Forbidden

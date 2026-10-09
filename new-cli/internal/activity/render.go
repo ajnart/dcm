@@ -12,7 +12,7 @@ import (
 // Palette is the colour of each role the renderer draws with. A nil colour
 // draws without colour.
 type Palette struct {
-	Accent, OK, Fail, Text, Muted, Faint color.Color
+	Accent, AccentText, OK, Warn, Fail, Bright, Text, Muted, Faint color.Color
 }
 
 const (
@@ -21,10 +21,10 @@ const (
 	compactWidth = 12
 )
 
-// Render draws the pull block of the snapshot within width cells: a header
+// PullBlock draws the pull block of the snapshot within width cells: a header
 // with the overall bar and the images done, then one slim bar per image. A
 // failed pull marks its unfinished images with ✗.
-func Render(s Snapshot, width int, p Palette) []string {
+func PullBlock(s Snapshot, width int, p Palette) []string {
 	pull := s.Pull
 	if len(pull.Images) == 0 {
 		return nil
