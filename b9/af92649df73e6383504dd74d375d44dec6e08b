@@ -1,0 +1,23 @@
+new-cli/internal/cli/cli.go
+  s_765ccb2ae3482a::t_127672ebe176d3 23,44-45,140,145,153-155,184-185
+new-cli/internal/cli/updatenotice.go
+  s_765ccb2ae3482a::t_49171eee410991 1-38
+new-cli/internal/cli/updatenotice_test.go
+  s_765ccb2ae3482a::t_b54bd305cd534c 1-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9af92649df73e6383504dd74d375d44dec6e08b",
+  "prompts": {},
+  "sessions": {
+    "s_765ccb2ae3482a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "141b18b3-5f99-4461-b795-5223059869e0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
