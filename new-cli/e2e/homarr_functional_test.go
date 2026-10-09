@@ -45,7 +45,7 @@ func TestHomarrFunctional(t *testing.T) {
 	t.Cleanup(parentCancel)
 	ctx, cancel := context.WithTimeout(parent, 30*time.Minute)
 	t.Cleanup(cancel)
-	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
+	lockPath := filepath.Join(os.TempDir(), globalLockName)
 	release, err := acquireGlobal(ctx, lockPath)
 	if err != nil {
 		t.Fatal("Homarr functional global serial slot unavailable")
@@ -53,13 +53,13 @@ func TestHomarrFunctional(t *testing.T) {
 	// Cleanup registrations run in reverse order: keep the slot until the
 	// runner's owned Compose teardown has completed.
 	t.Cleanup(release)
-	if _, err := os.Lstat(lockPath + ".blocked"); err == nil || !os.IsNotExist(err) {
+	if _, err := os.Lstat(blockedMarkerPath(lockPath)); err == nil || !os.IsNotExist(err) {
 		t.Fatal("recover the previous owned teardown blocker before functional acceptance")
 	}
 	guard := &sweepGuard{ProjectNames: map[string]string{}}
 	guard.OnBlock = func(owned string) {
-		data, _ := json.Marshal(map[string]string{"project": owned, "compose_project": guard.ProjectName(owned)})
-		if os.WriteFile(lockPath+".blocked", append(data, '\n'), 0o600) != nil {
+		payload := map[string]string{"project": owned, "compose_project": guard.ProjectName(owned)}
+		if writeBlockedMarker(lockPath, payload) != nil {
 			t.Error("could not persist the owned teardown blocker")
 		}
 	}

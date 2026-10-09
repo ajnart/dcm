@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ajnart/self-host/e2e/wudfixture"
 	"io"
@@ -150,7 +151,37 @@ func (r *runner) attachWUDFixture(source *wudRuntimeFixture) error {
 		}
 	}
 	r.env = append(env, "PATH="+filepath.Dir(wrapper)+string(os.PathListSeparator)+path)
-	r.wud = f
+	r.addFixture("wud", f, &fixtureHooks{
+		override:  f.override,
+		inputs:    []string{"--set", "wud.WUD_DOCKER_HOST=wud-facade.e2e.selfhost.test", "--set", "wud.WUD_DOCKER_PORT=2376", "--set", "wud.WUD_DOCKER_TLS_CLIENT_AUTH=true"},
+		installFn: func(args []string) result { return f.install(r, args, r.fixturePorts) },
+		checkFn: func(phase string) result {
+			switch phase {
+			case "before-setup":
+				if !f.observe(r) {
+					return f.observationFailure()
+				}
+			case "updated":
+				r.stage("owned-inventory", []string{"verify", "fresh-exact-owned-mtls-docker-inventory"}, func() result { return f.check(r) })
+			case "restored":
+				r.evidenceOwner.stage("restored-owned-inventory", []string{"verify", "fresh-exact-owned-mtls-docker-inventory"}, func() result { return f.check(r) })
+			case "restore-start":
+				f.start(r)
+			}
+			return result{}
+		},
+		reattachFn: func(target *runner) error {
+			if err := target.attachWUDFixture(f); err != nil {
+				return errors.New("reattach owned WUD mTLS Docker facade")
+			}
+			return nil
+		},
+		closeFn: func(before bool) {
+			if before {
+				f.close()
+			}
+		},
+	})
 	return nil
 }
 func (f *wudRuntimeFixture) observe(r *runner) bool {

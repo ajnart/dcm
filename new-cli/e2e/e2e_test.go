@@ -89,7 +89,7 @@ func TestE2E(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	lockPath := filepath.Join(os.TempDir(), "selfhost-e2e-global.lock")
+	lockPath := filepath.Join(os.TempDir(), globalLockName)
 	release, err := acquireGlobal(ctx, lockPath)
 	if err != nil {
 		for _, spec := range selected {
@@ -100,7 +100,7 @@ func TestE2E(t *testing.T) {
 		t.Fatal("global serial slot unavailable")
 	}
 	t.Cleanup(release)
-	if _, err := os.Lstat(lockPath + ".blocked"); err == nil {
+	if _, err := os.Lstat(blockedMarkerPath(lockPath)); err == nil {
 		for _, spec := range selected {
 			e := newEvidence(spec, codeHead)
 			e.Outcome, e.BlockerReason = "blocked", "previous owned teardown failure requires scoped recovery"
@@ -110,12 +110,12 @@ func TestE2E(t *testing.T) {
 	}
 	guard := newSweepGuard(workers)
 	guard.OnBlock = func(project string) {
-		data, _ := json.Marshal(struct {
+		payload := struct {
 			Project          string            `json:"project"`
 			ComposeProject   string            `json:"compose_project"`
 			RetainedProjects []retainedProject `json:"retained_projects"`
-		}{project, guard.ProjectName(project), guard.RetainedProjects()})
-		if err := os.WriteFile(lockPath+".blocked", append(data, '\n'), 0o600); err != nil {
+		}{project, guard.ProjectName(project), guard.RetainedProjects()}
+		if err := writeBlockedMarker(lockPath, payload); err != nil {
 			t.Error("failed to persist teardown blocker")
 		}
 	}

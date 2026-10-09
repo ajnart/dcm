@@ -57,10 +57,7 @@ func (n *fixtureConnect) close() {
 		c.Close()
 	}
 	n.mu.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	n.server.Shutdown(ctx)
-	n.server.Close()
+	closeFixtureServer(n.server)
 }
 
 func (n *fixtureConnect) tunnel(w http.ResponseWriter, r *http.Request, authority, target string) {
@@ -112,4 +109,11 @@ func (n *fixtureConnect) tunnel(w http.ResponseWriter, r *http.Request, authorit
 	io.Copy(client, upstream)
 	client.Close()
 	<-finished
+}
+
+func closeFixtureServer(server *http.Server) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+	server.Close()
 }

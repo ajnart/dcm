@@ -107,7 +107,7 @@ func exclusiveTarget(c *catalog.Catalog, t targetSpec) bool {
 		if !ok {
 			return true
 		}
-		ports, err := publishedPorts(a.Compose(app.RenderContext{Port: 30001, Inputs: localInputs[id]}))
+		ports, err := publishedPorts(a.Compose(app.RenderContext{Port: 30001, Inputs: appInputTable[id].local}))
 		if err != nil {
 			return true
 		}

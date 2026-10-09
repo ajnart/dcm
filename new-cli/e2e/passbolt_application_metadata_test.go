@@ -56,13 +56,13 @@ func TestPassboltApplicationMetadataWrapperRejectsExpandedAccess(t *testing.T) {
 	if os.WriteFile(real, []byte("#!/bin/sh\nexit 0\n"), 0700) != nil {
 		t.Fatal("fake executor")
 	}
-	wrapper, err := writePassboltDockerWrapper(root, project, "owned-passbolt", real, filepath.Join(root, "override.yml"))
+	wrapper, err := writePassboltDockerWrapper(root, project, ownedPassboltProject, real, filepath.Join(root, "override.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	prefix := []string{"compose", "--project-directory", project, "-p", "owned-passbolt", "exec", "-T", "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r"}
+	prefix := composeExec(project, ownedPassboltProject, nil, "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r")
 	if exec.CommandContext(ctx, wrapper, append(append([]string{}, prefix...), passboltApplicationMetadataPHP)...).Run() != nil {
 		t.Fatal("exact fixed application metadata denied")
 	}

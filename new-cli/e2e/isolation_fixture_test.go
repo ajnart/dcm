@@ -166,7 +166,7 @@ func TestComposeIsolationRejectsGlobalResources(t *testing.T) {
 
 func TestEveryCatalogSourceKeepsProjectIsolation(t *testing.T) {
 	for _, a := range catalog.Default().Apps() {
-		source := a.Compose(app.RenderContext{Port: 30001, Inputs: localInputs[a.Info().ID]})
+		source := a.Compose(app.RenderContext{Port: 30001, Inputs: appInputTable[a.Info().ID].local})
 		if err := validateComposeIsolation(source); err != nil {
 			t.Errorf("%s: %v", a.Info().ID, err)
 		}

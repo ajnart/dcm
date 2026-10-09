@@ -1,102 +1,19 @@
 package e2e
 
 import (
-	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"math/big"
 	"net"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"path/filepath"
-	"time"
 )
 
-// This route is only a management API fixture. It makes no peer/VPN/browser
-// claim, and publishes no container beyond the owned server's loopback port.
-type netBirdRoute struct {
-	origin string
-	caFile string
-	roots  *x509.CertPool
-	server *http.Server
-}
+// This route proves the management API only; no peer/VPN/browser claim.
+type netBirdRoute = fixtureTLSRoute
 
 func newNetBirdRoute(root string, listener net.Listener, backend string) (*netBirdRoute, error) {
-	fail := func() (*netBirdRoute, error) {
-		listener.Close()
-		return nil, errors.New("prepare owned NetBird TLS route")
-	}
-	destination, err := url.Parse(backend)
-	if err != nil || destination.Scheme != "http" || destination.Hostname() != "127.0.0.1" || destination.Port() == "" {
-		return fail()
-	}
-	addr, ok := listener.Addr().(*net.TCPAddr)
-	if !ok || !addr.IP.Equal(net.ParseIP("127.0.0.1")) {
-		return fail()
-	}
-	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return fail()
-	}
-	leafKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return fail()
-	}
-	now := time.Now()
-	ca := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "owned NetBird fixture CA"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(24 * time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign}
-	caDER, err := x509.CreateCertificate(rand.Reader, ca, ca, &caKey.PublicKey, caKey)
-	if err != nil {
-		return fail()
-	}
-	leaf := &x509.Certificate{SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "owned NetBird loopback"}, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(24 * time.Hour), KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}
-	leafDER, err := x509.CreateCertificate(rand.Reader, leaf, ca, &leafKey.PublicKey, caKey)
-	if err != nil {
-		return fail()
-	}
-	caPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER})
-	caFile := filepath.Join(root, "netbird-fixture-ca.pem")
-	if err := os.WriteFile(caFile, caPEM, 0o600); err != nil {
-		return fail()
-	}
-	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(caPEM) {
-		return fail()
-	}
-	proxy := httputil.NewSingleHostReverseProxy(destination)
-	proxy.Transport = &http.Transport{Proxy: nil}
-	director := proxy.Director
-	proxy.Director = func(r *http.Request) {
-		director(r)
-		r.Header.Set("X-Forwarded-Proto", "https")
-	}
-	proxy.ErrorLog = log.New(io.Discard, "", 0)
-	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) { w.WriteHeader(http.StatusBadGateway) }
-	server := &http.Server{Handler: proxy, ReadHeaderTimeout: 10 * time.Second, ErrorLog: log.New(io.Discard, "", 0)}
-	tlsListener := tls.NewListener(listener, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{{Certificate: [][]byte{leafDER, caDER}, PrivateKey: leafKey}}})
-	go server.Serve(tlsListener)
-	return &netBirdRoute{origin: "https://" + listener.Addr().String(), caFile: caFile, roots: roots, server: server}, nil
-}
-
-func (n *netBirdRoute) client() *http.Client {
-	return &http.Client{Timeout: 15 * time.Second, Transport: &http.Transport{Proxy: nil, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: n.roots}}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-}
-
-func (n *netBirdRoute) close() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	n.server.Shutdown(ctx)
+	return newFixtureTLSRoute(root, listener, backend, "NetBird", "127.0.0.1")
 }
 
 // The shim is child-local, contains no credentials, and never echoes argv.

@@ -37,21 +37,21 @@ func (r *runner) prepareAutheliaFixture(reservation *portReservation) {
 		r.autheliaFixtureFailure()
 		return
 	}
-	r.authelia, r.autheliaOwner = route, true
-	if err := r.attachAutheliaFixture(route); err != nil {
+	if err := r.attachAutheliaFixture(route, true); err != nil {
+		route.close()
 		r.autheliaFixtureFailure()
 		return
 	}
 	r.evidence.Probe += "; Authelia canonical-origin administrator login and session identity through owned verified TLS during source and restored Setup/Check; no MFA/browser claim"
 }
 
-func (r *runner) attachAutheliaFixture(route *autheliaRoute) error {
+func (r *runner) attachAutheliaFixture(route *autheliaRoute, owner bool) error {
 	caFile := route.caFile
-	if r.netbird != nil {
+	if netbird := fixtureApp[*netBirdFixture](r); netbird != nil {
 		// These are generated public fixture certificates, never runtime secrets.
 		var combined []byte
 		pool := x509.NewCertPool()
-		for _, path := range []string{route.caFile, r.netbird.route.caFile} {
+		for _, path := range []string{route.caFile, netbird.route.caFile} {
 			data, err := os.ReadFile(path)
 			if err != nil || len(data) > 16*1024 || !pool.AppendCertsFromPEM(data) {
 				return errors.New("owned fixture certificate unavailable")
@@ -64,7 +64,21 @@ func (r *runner) attachAutheliaFixture(route *autheliaRoute) error {
 			return errors.New("owned fixture trust could not be prepared")
 		}
 	}
-	r.authelia = route
+	r.addFixture("authelia", route, &fixtureHooks{
+		inputs: []string{"--set", "authelia.origin=" + route.origin},
+		reattachFn: func(target *runner) error {
+			if err := target.attachAutheliaFixture(route, false); err != nil {
+				r.autheliaFixtureFailure()
+				return err
+			}
+			return nil
+		},
+		closeFn: func(before bool) {
+			if !before && owner {
+				route.close()
+			}
+		},
+	})
 	r.env = autheliaChildEnvironment(r.env, route.proxyURL, caFile)
 	return nil
 }
