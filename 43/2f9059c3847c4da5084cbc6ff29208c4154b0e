@@ -1,0 +1,75 @@
+new-cli/README.md
+  s_59ffa5bfdcd3ba::t_628a7b3b7da5e6 120-127,152-157
+new-cli/internal/tui/actionmenu_test.go
+  s_59ffa5bfdcd3ba::t_54c14c7870cbec 295,297,300
+new-cli/internal/tui/apps.go
+  s_59ffa5bfdcd3ba::t_8b5b5f98fdffe7 6,8,12,17-20,22-25,28-46,49-51,53,55,57-62,64-68,70-87,90-106,109-111,114,116-122,127-138,140-163,170-209,214-219,243-246,248-249,251-253,255-260,263-264,266-273,275-285,287,290,292-297,299
+new-cli/internal/tui/apps_test.go
+  s_59ffa5bfdcd3ba::t_44b3401f6c34ca 1-190
+new-cli/internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_8476b37f4de009 55
+new-cli/internal/tui/copy.go
+  s_59ffa5bfdcd3ba::t_6ce43cd56c20cf 35,70-83
+new-cli/internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_2843eead36c7f3 18-20,22,27,30,38,47,57,63-64,68,70,76-77,86,89,91,93,95,101-103,106,108,110,112,114,116,152,154,169-170,182,193
+new-cli/internal/tui/details.go
+  s_59ffa5bfdcd3ba::t_8ce121ed256184 1-390
+new-cli/internal/tui/glyphs_test.go
+  s_59ffa5bfdcd3ba::t_f74f834d10dfef 36
+new-cli/internal/tui/golden_test.go
+  s_59ffa5bfdcd3ba::t_90c5fbe9756385 115-123
+new-cli/internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_a04bc5af9c1b0c 341-342,351,358,366,409,467,510-526,587-588,818,856
+new-cli/internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_9636a23e403c24 135,146,158-159,371,384,398,438,440,466,478,491,532,553-554,572-574,632,666-669,671,698-700,738
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_fe0f10f312efb4 2-22
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps.golden
+  s_59ffa5bfdcd3ba::t_40c5bb8f6a3e13 2-30
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_57c6ce541e9d70 14
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview.golden
+  s_59ffa5bfdcd3ba::t_f0ab14b12808bb 3,30
+new-cli/internal/tui/testdata/glyphs-simple-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_bc765e95d7ac20 2-22
+new-cli/internal/tui/testdata/glyphs-simple-apps.golden
+  s_59ffa5bfdcd3ba::t_bea42f2d25bf37 2-30
+new-cli/internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_f51b017068b0fa 14
+new-cli/internal/tui/testdata/glyphs-simple-overview.golden
+  s_59ffa5bfdcd3ba::t_e4c1f3a3cccc9d 3,30
+new-cli/internal/tui/testdata/menu-app.golden
+  s_59ffa5bfdcd3ba::t_97bb2becdda587 3
+new-cli/internal/tui/testdata/menu-project.golden
+  s_59ffa5bfdcd3ba::t_fb7a611678521c 3
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  s_59ffa5bfdcd3ba::t_b3475096b3f18e 1-30
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  s_59ffa5bfdcd3ba::t_c4c4a2cfc27b3a 2-22
+new-cli/internal/tui/testdata/tab-apps.golden
+  s_59ffa5bfdcd3ba::t_4630a0e92d7024 2-30
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  s_59ffa5bfdcd3ba::t_deaee7eb9a24a2 14
+new-cli/internal/tui/testdata/tab-overview.golden
+  s_59ffa5bfdcd3ba::t_d2bc16177ee637 3,30
+new-cli/internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_b3fa19b0664287 25,31,41,58-59,64
+new-cli/internal/tui/views_test.go
+  s_59ffa5bfdcd3ba::t_90d00e8131e9b2 30,42,77-78,80-81,83-86,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "432f9059c3847c4da5084cbc6ff29208c4154b0e",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
