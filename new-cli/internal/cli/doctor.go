@@ -10,7 +10,7 @@ import (
 func (a *program) doctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
-		Short: "Check Docker, ports, firewalls and LAN reachability",
+		Short: "Check Docker, Compose, App bindings, firewalls and LAN reachability",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			log := a.logger()

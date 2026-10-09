@@ -1,8 +1,14 @@
 # Self-host
 
-**Go CLI:** [Installation, terminal Dashboard, agent commands and support status](new-cli/README.md).
-The `new-cli/` rewrite has a separate release channel; the instructions below
-describe the older CLI and bundled skill.
+**Start with the Go CLI**, the current `self-host` binary:
+[installation, terminal Dashboard, agent commands and support status](new-cli/README.md).
+People run `self-host`; agents run `self-host skill` and follow the guide it
+prints, which matches the installed binary. It has its own release channel
+(`new-cli-vX.Y.Z`). The bundled skill below routes to it first.
+
+Everything from here on describes the **older TypeScript CLI** and its legacy
+workflows. They stay for saved legacy projects (`.selfhost/` owners) and are not
+what a fresh install of `self-host` runs.
 
 Own your apps, data, and credentials instead of depending on another
 subscription. `self-host` is a private terminal control panel for choosing,

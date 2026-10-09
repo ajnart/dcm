@@ -4,7 +4,7 @@ Pack version: `1.1.2`
 
 | Public skill | Install group | Requires | Kind | Risk | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| [`self-host`](.agents/skills/self-host/SKILL.md) | base | selfhost, selfhost-setup, selfhost-upkeep | router | approval-gated-write | explicit | Conversational self-host control panel: turn a goal into one shared Compose project with Homarr, or maintain its saved apps. |
+| [`self-host`](.agents/skills/self-host/SKILL.md) | base | selfhost, selfhost-setup, selfhost-upkeep | router | approval-gated-write | explicit | Install, configure, back up and repair self-hosted apps with the `self-host` CLI, from a plain goal or exact choices. |
 
 ## Internal workflows
 
