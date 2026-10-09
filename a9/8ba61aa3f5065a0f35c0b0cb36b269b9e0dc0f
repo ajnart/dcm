@@ -1,0 +1,74 @@
+.github/FUNDING.yml
+  s_93e55d02c44f68::t_0958b3878df0ce 1-2
+new-cli/PLAN.md
+  s_93e55d02c44f68::t_3d43b75d6b9b76 25,39
+new-cli/README.md
+  s_93e55d02c44f68::t_aa17f335207453 9,189-192,307
+new-cli/docs/catalog/traps/wud.md
+  s_93e55d02c44f68::t_f825fc46bb5f78 8
+new-cli/internal/activity/render.go
+  s_93e55d02c44f68::t_232ba6f6e8aa9a 49,93-94
+new-cli/internal/cli/backup.go
+  s_93e55d02c44f68::t_fe359ed74e7cd9 41
+new-cli/internal/cli/install_test.go
+  s_93e55d02c44f68::t_057734ef72d1e8 92,263
+new-cli/internal/cli/isolation_test.go
+  s_93e55d02c44f68::t_f9b25e277c04de 26
+new-cli/internal/clitest/clitest.go
+  s_93e55d02c44f68::t_4d6fd0f99252b4 68
+new-cli/internal/project/appearance_test.go
+  s_93e55d02c44f68::t_a846555ad10e01 44
+new-cli/internal/project/open_test.go
+  s_93e55d02c44f68::t_a1cf25c1fa5fd0 1-14
+new-cli/internal/project/project.go
+  s_93e55d02c44f68::t_069a95149620bd 26
+new-cli/internal/service/mutation_test.go
+  s_93e55d02c44f68::t_b6acada7ff59d6 123
+new-cli/internal/service/service.go
+  s_93e55d02c44f68::t_1f8fdb8e462531 84
+new-cli/internal/service/usage.go
+  s_93e55d02c44f68::t_fad4694b229ad8 1-160
+new-cli/internal/service/usage_test.go
+  s_93e55d02c44f68::t_4c73888df4dca6 1-45
+new-cli/internal/skill/guide.md
+  s_93e55d02c44f68::t_e5850859909f22 4,69,158,165,185
+new-cli/internal/tui/apps.go
+  s_93e55d02c44f68::t_a150b610ab16df 194
+new-cli/internal/tui/apps_test.go
+  s_93e55d02c44f68::t_a7847c2449d74f 4,261-339
+new-cli/internal/tui/backend.go
+  s_93e55d02c44f68::t_f838c79c40c635 50-52,112-115
+new-cli/internal/tui/details.go
+  s_93e55d02c44f68::t_293db4694bdb0c 40-42,110,165-194,226-237,358,403-405,417-438,474-487
+new-cli/internal/tui/golden_test.go
+  s_93e55d02c44f68::t_6b6c87e9ce5a32 65-68,143-149,151,153-155
+new-cli/internal/tui/harness_test.go
+  s_93e55d02c44f68::t_bfbad2aaf94815 58-84,210,911
+new-cli/internal/tui/help.go
+  s_93e55d02c44f68::t_b67d3a31a2752d 9,17-21,54-55,93-96
+new-cli/internal/tui/model.go
+  s_93e55d02c44f68::t_2f537b6eb59d3f 69-73,318,339-354,415,677
+new-cli/internal/tui/views_test.go
+  s_93e55d02c44f68::t_c6942f69365a0c 106-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a98ba61aa3f5065a0f35c0b0cb36b269b9e0dc0f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  },
+  "sessions": {
+    "s_93e55d02c44f68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f70fd712-0011-4268-a7b3-c58eb50ef160",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
