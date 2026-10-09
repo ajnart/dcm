@@ -14,19 +14,22 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-// installView is the full-screen Install surface: pick Recipes or Apps,
-// search the catalog, read the details, review, install.
+// installView is the Catalog tab: pick Recipes or Apps, search the
+// Catalog, read the details, review, install. The list and the detail take
+// focus in turn; the detail scrolls.
 type installView struct {
-	cursor    int
-	offset    int
-	picked    map[string]bool
-	search    textinput.Model
-	searching bool
-	filter    string
-	plan      *plan
-	reqInputs []reviewInput
-	field     int
-	err       string
+	cursor        int
+	offset        int
+	detailFocused bool
+	detailOffset  int
+	picked        map[string]bool
+	search        textinput.Model
+	searching     bool
+	filter        string
+	plan          *plan
+	reqInputs     []reviewInput
+	field         int
+	err           string
 }
 
 // reviewInput is one Required input with no default, asked on the review.
@@ -48,11 +51,17 @@ type installItem struct {
 	header    bool
 }
 
-var installHelp = []key.Binding{
-	hint("space", "pick"), hint("enter", "review"), hint("/", "search"), hint("esc", "back"),
-}
+var (
+	catalogListKeys = []key.Binding{hint("↑/↓", "select"), hint("space", "pick"), hint("enter", "review"),
+		hint("/", "search"), hint("tab", "next pane"), hint("esc", "back"), hint("shift+tab", "previous pane")}
+	catalogDetailKeys = []key.Binding{hint("↑/↓", "scroll"), hint("space", "pick"), hint("enter", "review"),
+		hint("tab", "next pane"), hint("shift+tab", "previous pane")}
+	catalogReviewKeys = []key.Binding{hint("enter", "install"), hint("esc", "back")}
+	catalogInputKey   = hint("tab", "next input")
+	catalogSearchKeys = []key.Binding{hint("enter", "done"), hint("esc", "clear")}
+)
 
-// hint is a footer entry; it needs a key, or help treats it as disabled
+// hint is a bar chip or help entry; it needs a key, or help treats it as disabled
 // and draws nothing.
 func hint(help, desc string) key.Binding {
 	return key.NewBinding(key.WithKeys(help), key.WithHelp(help, desc))
@@ -67,9 +76,30 @@ func newInstallView(ctx *viewContext) *installView {
 	return v
 }
 
-func (v *installView) Keys() []key.Binding { return installHelp }
+func (v *installView) Keys() []key.Binding {
+	switch {
+	case v.searching:
+		return catalogSearchKeys
+	case v.plan != nil && len(v.reqInputs) > 1:
+		return append(slices.Clone(catalogReviewKeys), catalogInputKey)
+	case v.plan != nil:
+		return catalogReviewKeys
+	case v.detailFocused:
+		return catalogDetailKeys
+	}
+	return catalogListKeys
+}
 
-func (v *installView) Title() string { return "Install" }
+func (v *installView) Panes() []pane {
+	return []pane{{"List", catalogListKeys}, {"Detail", catalogDetailKeys}, {"Review", append(slices.Clone(catalogReviewKeys), catalogInputKey)}, {"Search", catalogSearchKeys}}
+}
+
+// Capturing is true while the search or a review's Required inputs take text.
+func (v *installView) Capturing() bool {
+	return v.searching || (v.plan != nil && len(v.reqInputs) > 0)
+}
+
+func (v *installView) Title() string { return "Catalog" }
 
 func (v *installView) resize(width int) {
 	v.search.SetWidth(max(width*2/5-6, 10))
@@ -77,6 +107,7 @@ func (v *installView) resize(width int) {
 
 func (v *installView) clamp(n int) {
 	v.cursor = max(min(v.cursor, n-1), 0)
+	v.detailOffset = 0
 }
 
 func (v *installView) scroll(dy, n int) {
@@ -209,17 +240,22 @@ func (v *installView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd,
 	switch {
 	case msg.String() == "esc":
 		return v, nil, nav{kind: navBack}
-	case key.Matches(msg, ctx.keys.Quit):
-		ctx.tasks.cancelAll()
-		return v, tea.Quit, nav{}
 	case key.Matches(msg, ctx.keys.Search):
 		v.searching = true
 		v.search.Focus()
 		return v, textinput.Blink, nav{}
+	case key.Matches(msg, ctx.keys.NextPane), key.Matches(msg, ctx.keys.PrevPane):
+		v.detailFocused = !v.detailFocused
+	case key.Matches(msg, ctx.keys.Up) && v.detailFocused:
+		v.detailOffset = max(v.detailOffset-1, 0)
+	case key.Matches(msg, ctx.keys.Down) && v.detailFocused:
+		v.detailOffset++
 	case key.Matches(msg, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
+		v.detailOffset = 0
 	case key.Matches(msg, ctx.keys.Down):
 		v.cursor = min(v.cursor+1, max(len(items)-1, 0))
+		v.detailOffset = 0
 	case key.Matches(msg, ctx.keys.ScrollUp):
 		v.scroll(-5, len(items))
 	case key.Matches(msg, ctx.keys.ScrollDown):
@@ -274,7 +310,7 @@ func (v *installView) review(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.C
 			v.plan.opts.Sets = append(v.plan.opts.Sets, sets...)
 		}
 		opts := v.plan.opts
-		return v, ctx.run(Request{Action: ActionInstall, Install: &opts}, "install "+strings.Join(opts.Targets, " ")), nav{kind: navBack}
+		return v, ctx.run(Request{Action: ActionInstall, Install: &opts}, "install "+strings.Join(opts.Targets, " ")), nav{kind: navDone}
 	}
 	if len(reqs) > 0 {
 		var cmd tea.Cmd
@@ -388,7 +424,7 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 		line := cursor + mark + " " + t.body().Render(pad(it.name, 16)) + " " + t.dim().Render(it.id)
 		lines = append(lines, truncate(line, inner))
 	}
-	return t.box("Install", "recipes & apps", strings.Join(lines, "\n"), width, height, true)
+	return t.box("Catalog", "recipes & apps", strings.Join(lines, "\n"), width, height, !v.detailFocused)
 }
 
 func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
@@ -396,11 +432,11 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 	inner := max(width-4, 1)
 	items := v.rows(ctx)
 	if len(items) == 0 {
-		return t.box("Details", "", t.dim().Render("Nothing matches."), width, height, false)
+		return t.box("Details", "", t.dim().Render("Nothing matches."), width, height, v.detailFocused)
 	}
 	it := items[min(v.cursor, len(items)-1)]
 	if it.header {
-		return t.box("Details", "", t.dim().Render("Pick an App or a Recipe."), width, height, false)
+		return t.box("Details", "", t.dim().Render("Pick an App or a Recipe."), width, height, v.detailFocused)
 	}
 	cat := ctx.backend.Catalog()
 	row := func(k, val string) string { return t.dim().Render(pad(k, 9)) + t.body().Render(truncate(val, inner-9)) }
@@ -421,7 +457,7 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 	} else {
 		a, found := cat.App(it.id)
 		if !found {
-			return t.box("Details", "", t.dim().Render("Unknown App."), width, height, false)
+			return t.box("Details", "", t.dim().Render("Unknown App."), width, height, v.detailFocused)
 		}
 		info := a.Info()
 		title = info.Name
@@ -446,7 +482,9 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 		}
 		body = strings.Join(lines, "\n")
 	}
-	return t.box(title, "", body, width, height, false)
+	lines := strings.Split(body, "\n")
+	v.detailOffset = min(v.detailOffset, max(len(lines)-(height-2), 0))
+	return t.box(title, "", strings.Join(lines[v.detailOffset:], "\n"), width, height, v.detailFocused)
 }
 
 func (v *installView) renderReview(ctx *viewContext, width int) string {

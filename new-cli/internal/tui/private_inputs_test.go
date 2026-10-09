@@ -21,7 +21,7 @@ func privateInputCatalog() *catalog.Catalog {
 func TestInstallConcealsPrivateInputWhileOrdinaryInputStaysVisible(t *testing.T) {
 	m, backend := sample(t, 120, 40)
 	backend.catalog = privateInputCatalog()
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 	m = typeText(t, m, privateTypedValue)
@@ -87,7 +87,7 @@ func assertPrivateInstallOptions(t *testing.T, installs []service.InstallOptions
 func TestInstallDoesNotUsePrivateDefaults(t *testing.T) {
 	m, backend := sample(t, 120, 40)
 	backend.catalog = catalog.New([]app.App{stubApp{info: app.Info{ID: "credential-demo", Name: "Credential demo", Category: "Other"}, inputs: []app.Input{{Key: "TOKEN", Prompt: "Provider token", Required: true, Private: true, Default: "synthetic-private-default"}}}}, nil)
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("enter"))

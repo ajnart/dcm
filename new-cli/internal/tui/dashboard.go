@@ -28,11 +28,14 @@ const (
 
 var detailTabs = []string{"logs", "setup", "info", "compose"}
 
-// dashboardView is the home surface: every App with its Status, what Needs
-// action, and the selected App's details.
+// dashboardView is the Overview tab: every App with its Status, what Needs
+// attention, and the selected App's details. The Apps pane and the details
+// pane take focus in turn; Needs attention has nothing to navigate.
 type dashboardView struct {
 	cursor int
 	tab    detailTab
+	// detailsFocused gives ↑/↓ to the details instead of the App selection.
+	detailsFocused bool
 	// details scrolls the logs and compose tabs.
 	details  viewport.Model
 	logLines []string
@@ -45,14 +48,32 @@ func newDashboardView() *dashboardView {
 	return &dashboardView{details: viewport.New(), compose: map[string]string{}}
 }
 
+// The legacy enter, u, r and b keys act until #133's Action menu replaces them.
+var (
+	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("tab", "next pane"), hint("[/]", "sub-tab"),
+		hint("o", "open"), hint("c", "copy"), hint("enter", "start/stop"), hint("u", "update"),
+		hint("r", "retry Setup"), hint("b", "backup"), hint("shift+tab", "previous pane")}
+	overviewDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("tab", "next pane"), hint("[/]", "sub-tab"),
+		hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
+)
+
 func (v *dashboardView) Keys() []key.Binding {
-	if v.copy != nil {
+	switch {
+	case v.copy != nil:
 		return copyHelp
+	case v.detailsFocused:
+		return overviewDetailsKeys
 	}
-	return newKeyMap().all()
+	return overviewAppsKeys
 }
 
-func (v *dashboardView) Title() string { return "Dashboard" }
+func (v *dashboardView) Panes() []pane {
+	return []pane{{"Apps", overviewAppsKeys}, {"Details", overviewDetailsKeys}, {"Copy picker", copyHelp}}
+}
+
+func (v *dashboardView) Capturing() bool { return false }
+
+func (v *dashboardView) Title() string { return "Overview" }
 
 func (v *dashboardView) rows(ctx *viewContext) []service.AppStatus { return ctx.status.Apps }
 
@@ -131,33 +152,31 @@ func (v *dashboardView) View(ctx *viewContext, width, height int) string {
 func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	k := ctx.keys
 	switch {
-	case key.Matches(msg, k.Quit):
-		ctx.tasks.cancelAll()
-		v.stopLogs()
-		return v, tea.Quit, nav{}
-	case key.Matches(msg, k.Help):
-		return v, nil, nav{kind: navTo, to: surfaceHelp}
+	case key.Matches(msg, k.Up) && v.detailsFocused:
+		v.details.ScrollUp(1)
+		return v, nil, nav{}
+	case key.Matches(msg, k.Down) && v.detailsFocused:
+		v.details.ScrollDown(1)
+		return v, nil, nav{}
 	case key.Matches(msg, k.Up):
 		return v, v.move(ctx, -1), nav{}
 	case key.Matches(msg, k.Down):
 		return v, v.move(ctx, 1), nav{}
-	case key.Matches(msg, k.Tab):
-		v.tab = (v.tab + 1) % detailTab(len(detailTabs))
-		return v, v.syncDetails(ctx), nav{}
+	case key.Matches(msg, k.NextPane), key.Matches(msg, k.PrevPane):
+		if v.layout(ctx).detailsH > 0 {
+			v.detailsFocused = !v.detailsFocused
+		}
+		return v, nil, nav{}
+	case key.Matches(msg, k.NextSub):
+		return v, v.showTab(ctx, (v.tab+1)%detailTab(len(detailTabs))), nav{}
+	case key.Matches(msg, k.PrevSub):
+		return v, v.showTab(ctx, (v.tab+detailTab(len(detailTabs))-1)%detailTab(len(detailTabs))), nav{}
 	case key.Matches(msg, k.ScrollUp):
 		v.details.PageUp()
 		return v, nil, nav{}
 	case key.Matches(msg, k.ScrollDown):
 		v.details.PageDown()
 		return v, nil, nav{}
-	case key.Matches(msg, k.Install):
-		return v, nil, nav{kind: navTo, to: surfaceInstall}
-	case key.Matches(msg, k.Settings):
-		return v, nil, nav{kind: navTo, to: surfaceSettings}
-	case key.Matches(msg, k.Stack):
-		return v, nil, nav{kind: navTo, to: surfaceStack}
-	case key.Matches(msg, k.Workflow):
-		return v, nil, nav{kind: navTo, to: surfaceWorkflow}
 	case key.Matches(msg, k.Backup):
 		return v, ctx.run(Request{Action: ActionBackup}, "backup"), nav{}
 	case key.Matches(msg, k.Copy):
@@ -204,7 +223,13 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 func (v *dashboardView) move(ctx *viewContext, delta int) tea.Cmd {
 	v.cursor += delta
 	v.clampCursor(ctx)
-	return v.syncDetails(ctx)
+	return v.showDetails(ctx)
+}
+
+// showTab switches the details to another sub-tab, from its start.
+func (v *dashboardView) showTab(ctx *viewContext, tab detailTab) tea.Cmd {
+	v.tab = tab
+	return v.showDetails(ctx)
 }
 
 func (v *dashboardView) click(ctx *viewContext, id string) (tea.Cmd, nav) {
@@ -214,18 +239,17 @@ func (v *dashboardView) click(ctx *viewContext, id string) (tea.Cmd, nav) {
 		fmt.Sscanf(id, "row:%d", &n)
 		v.cursor = n
 		v.clampCursor(ctx)
-		return v.syncDetails(ctx), nav{}
+		return v.showDetails(ctx), nav{}
 	case strings.HasPrefix(id, "tab:"):
 		fmt.Sscanf(id, "tab:%d", &n)
-		v.tab = detailTab(n)
-		return v.syncDetails(ctx), nav{}
+		return v.showTab(ctx, detailTab(n)), nav{}
 	case strings.HasPrefix(id, "app:"):
 		for i, app := range v.rows(ctx) {
 			if app.ID == strings.TrimPrefix(id, "app:") {
 				v.cursor = i
 			}
 		}
-		return v.syncDetails(ctx), nav{}
+		return v.showDetails(ctx), nav{}
 	}
 	return nil, nav{}
 }
@@ -253,14 +277,33 @@ func loadComposeCmd(backend Backend, id string) tea.Cmd {
 	}
 }
 
-func (v *dashboardView) syncDetailsContent(ctx *viewContext) {
-	switch v.tab {
-	case tabLogs:
-		v.details.SetContentLines(v.logLines)
+// showDetails loads the selected App's sub-tab and starts it where it reads
+// best: logs at the end, everything else at the top.
+func (v *dashboardView) showDetails(ctx *viewContext) tea.Cmd {
+	cmd := v.syncDetails(ctx)
+	if v.tab == tabLogs {
 		v.details.GotoBottom()
-	case tabCompose:
-		v.details.SetContent(v.compose[v.selectedID(ctx)])
+	} else {
 		v.details.GotoTop()
+	}
+	return cmd
+}
+
+// syncDetailsContent lays the current sub-tab into the details viewport and
+// keeps the scroll position, so a refresh does not move what is being read.
+func (v *dashboardView) syncDetailsContent(ctx *viewContext) {
+	app, found := v.selected(ctx)
+	switch {
+	case v.tab == tabLogs:
+		v.details.SetContentLines(v.logLines)
+	case v.tab == tabCompose:
+		v.details.SetContent(v.compose[app.ID])
+	case !found:
+		v.details.SetContent("")
+	case v.tab == tabSetup:
+		v.details.SetContent(renderSetup(ctx.theme, app, v.details.Width()))
+	case v.tab == tabInfo:
+		v.details.SetContent(renderInfo(ctx.theme, app, v.details.Width()))
 	}
 }
 
@@ -351,6 +394,12 @@ func (v *dashboardView) relayout(ctx *viewContext) {
 	l := v.layout(ctx)
 	v.details.SetWidth(max(l.rightW-4, 1))
 	v.details.SetHeight(max(l.detailsH-4, 1))
+	if l.detailsH == 0 {
+		v.detailsFocused = false
+	}
+	if v.tab == tabSetup || v.tab == tabInfo {
+		v.syncDetailsContent(ctx)
+	}
 }
 
 // Rendering
@@ -380,7 +429,7 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 	var lines []string
 	var layers []*lipgloss.Layer
 	if len(rows) == 0 {
-		lines = append(lines, t.dim().Render("No Apps yet. Press i to install one."))
+		lines = append(lines, t.dim().Render("No Apps yet. Press 4 to open the Catalog."))
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
 		level := service.Level(rows[i])
@@ -395,8 +444,7 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 		lines = append(lines, line)
 		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
 	}
-	// Until panes take focus, the Apps list holding the cursor is the focused one.
-	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, true), layers
+	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.detailsFocused), layers
 }
 
 // appRow is one App after its Status dot: name, URL, state, Setup and
@@ -439,7 +487,7 @@ func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string 
 	return t.disabled().Render("–")
 }
 
-// need is one Needs action item and the Action that resolves it.
+// need is one Needs attention item and the Action that resolves it.
 type need struct {
 	broken bool
 	text   string
@@ -468,7 +516,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 		}
 	}
 	if ctx.status.LANIPStale {
-		items = append(items, need{broken: true, text: "LAN IP " + ctx.status.LANIP + " is not on this machine", key: "i", desc: "Host settings"})
+		items = append(items, need{broken: true, text: "LAN IP " + ctx.status.LANIP + " is not on this machine", key: "5", desc: "Host settings"})
 	}
 	for _, a := range v.rows(ctx) {
 		if a.Update == service.UpdateAvailable {
@@ -489,7 +537,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	return items
 }
 
-// needsLines renders Needs action and returns the App each line points at.
+// needsLines renders Needs attention and returns the App each line points at.
 func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []string) {
 	t := ctx.theme
 	items := v.needsAction(ctx)
@@ -531,7 +579,7 @@ func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, y int) (str
 	if n := len(v.needsAction(ctx)); n > 0 {
 		note = strconv.Itoa(n)
 	}
-	return t.box("Needs action", note, strings.Join(lines, "\n"), width, height, false), layers
+	return t.box("Needs attention", note, strings.Join(lines, "\n"), width, height, false), layers
 }
 
 func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int) (string, []*lipgloss.Layer) {
@@ -556,12 +604,9 @@ func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int)
 	switch {
 	case !found:
 		body = t.dim().Render("Select an App.")
-	case v.tab == tabSetup:
+	case v.tab == tabSetup, v.tab == tabInfo:
 		title = app.Name
-		body = renderSetup(t, app, inner)
-	case v.tab == tabInfo:
-		title = app.Name
-		body = renderInfo(t, app, inner)
+		body = v.details.View()
 	case v.tab == tabCompose:
 		title, note = app.Name, "apps/"+app.ID+"/compose.yml"
 		body = v.details.View()
@@ -576,7 +621,7 @@ func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int)
 		}
 	}
 	content := strings.Join(tabs, " ") + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
-	return t.box(title, note, content, width, height, false), layers
+	return t.box(title, note, content, width, height, v.detailsFocused), layers
 }
 
 func renderSetup(t theme, app service.AppStatus, width int) string {

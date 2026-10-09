@@ -33,7 +33,7 @@ func TestDashboardViewWithoutAModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 
 	out := ansi.Strip(v.View(ctx, 120, 30))
-	for _, want := range []string{"Jellyfin", "Needs action"} {
+	for _, want := range []string{"Jellyfin", "Needs attention"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("dashboard view lacks %q\n%s", want, out)
 		}
@@ -103,10 +103,10 @@ func TestStackDownAsksBeforeTakingTheProjectDown(t *testing.T) {
 	backend, ctx := stackDownContext(t)
 	v := &stackView{}
 
-	next, cmd, nv := v.Update(ctx, press("2"))
+	next, cmd, nv := v.Update(ctx, clickMsg{id: "stack:down"})
 	v = next.(*stackView)
 	if cmd != nil || nv.kind != navNone {
-		t.Fatalf("2 should ask first, got cmd %v nav %+v", cmd, nv)
+		t.Fatalf("DOWN should ask first, got cmd %v nav %+v", cmd, nv)
 	}
 	out := ansi.Strip(v.View(ctx, 120, 30))
 	for _, want := range []string{"containers and networks", "volumes", "App files", "Setup"} {
@@ -115,7 +115,7 @@ func TestStackDownAsksBeforeTakingTheProjectDown(t *testing.T) {
 		}
 	}
 	if got := backend.Actions(); len(got) != 0 {
-		t.Fatalf("2 must not take the Project down before confirmation: %v", got)
+		t.Fatalf("DOWN must not take the Project down before confirmation: %v", got)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestStackDownConfirmsWithYAndCancelsOtherwise(t *testing.T) {
 	arm := func(t *testing.T) (*stackView, *fakeBackend, *viewContext) {
 		t.Helper()
 		backend, ctx := stackDownContext(t)
-		next, _, _ := (&stackView{}).Update(ctx, press("2"))
+		next, _, _ := (&stackView{}).Update(ctx, clickMsg{id: "stack:down"})
 		return next.(*stackView), backend, ctx
 	}
 
@@ -140,7 +140,7 @@ func TestStackDownConfirmsWithYAndCancelsOtherwise(t *testing.T) {
 		}
 	})
 
-	for _, key := range []string{"n", "esc", "2"} {
+	for _, key := range []string{"n", "esc", "u"} {
 		t.Run(key+" cancels", func(t *testing.T) {
 			v, backend, ctx := arm(t)
 			next, cmd, _ := v.Update(ctx, press(key))
@@ -179,10 +179,10 @@ func TestStackDownMouseConfirmsTheSameWay(t *testing.T) {
 func TestHelpViewWithoutAModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	v := newHelpView()
-	v.open(ctx)
+	v.open(ctx, []pane{{"Global", ctx.keys.global()}, {"Overview · Apps", overviewAppsKeys}})
 
 	out := ansi.Strip(v.View(ctx, 120, 30))
-	for _, want := range []string{"Keys", "start/stop", "copy"} {
+	for _, want := range []string{"Keys", "Global", "1-5", "tabs", "Overview · Apps", "start/stop", "copy"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("help view lacks %q\n%s", want, out)
 		}
@@ -439,33 +439,15 @@ func TestWorkflowViewEscNavigatesBack(t *testing.T) {
 	}
 }
 
-func TestDashboardWOpensWorkflow(t *testing.T) {
-	ctx := testViewContext(&fakeBackend{})
-	v := newDashboardView()
-	_, cmd, nv := v.Update(ctx, press("w"))
-	if cmd != nil || nv.kind != navTo || nv.to != surfaceWorkflow {
-		t.Fatalf("w should open Workflow without an Action, got %+v", nv)
-	}
-}
-
-func TestHelpListsWorkflowKey(t *testing.T) {
-	ctx := testViewContext(&fakeBackend{})
-	v := newHelpView()
-	v.open(ctx)
-	out := ansi.Strip(v.View(ctx, 120, 30))
-	if !strings.Contains(strings.Join(strings.Fields(out), " "), "w workflow") {
-		t.Fatalf("help should list w for Workflow\n%s", out)
-	}
-}
-
-func TestWorkflowViewAdvertisesNavigationKeys(t *testing.T) {
+func TestActivityAdvertisesItsKeysMostFrequentFirst(t *testing.T) {
 	var v view = &workflowView{}
 	var keys []string
 	for _, binding := range v.Keys() {
-		keys = append(keys, binding.Keys()...)
+		keys = append(keys, binding.Help().Key+" "+binding.Help().Desc)
 	}
-	if got := strings.Join(keys, " "); got != "up k down j enter r space / esc pgup pgdown" || v.Title() != "Workflow" {
-		t.Fatalf("Workflow should advertise its own keys, got %q (%s)", got, v.Title())
+	want := "↑/↓ select, enter error/hint, space collapse, / search, r retry Setup, pgup/pgdn page, esc back"
+	if got := strings.Join(keys, ", "); got != want || v.Title() != "Activity" {
+		t.Fatalf("Activity should advertise its own keys, got %q (%s)", got, v.Title())
 	}
 }
 

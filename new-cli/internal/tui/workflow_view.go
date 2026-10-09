@@ -23,15 +23,28 @@ type workflowRow struct {
 	step *WorkflowStep
 }
 
-func (v *workflowView) Title() string { return "Workflow" }
+func (v *workflowView) Title() string { return "Activity" }
 
+// The r key acts until #133's Action menu replaces it.
+var (
+	activityKeys = []key.Binding{hint("↑/↓", "select"), hint("enter", "error/hint"), hint("space", "collapse"),
+		hint("/", "search"), hint("r", "retry Setup"), hint("pgup/pgdn", "page"), hint("esc", "back")}
+	activitySearchKeys = []key.Binding{hint("enter", "done"), hint("esc", "clear")}
+)
+
+// Keys puts frequent keys first: a narrow bar cuts the tail.
 func (v *workflowView) Keys() []key.Binding {
-	k := newKeyMap()
-	// Frequent keys first: a narrow footer truncates the tail.
-	return []key.Binding{k.Up, k.Down,
-		key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "error/hint")), k.Retry,
-		hint("space", "collapse"), k.Search, k.Back, k.ScrollUp, k.ScrollDown}
+	if v.searching {
+		return activitySearchKeys
+	}
+	return activityKeys
 }
+
+func (v *workflowView) Panes() []pane {
+	return []pane{{"Steps", activityKeys}, {"Search", activitySearchKeys}}
+}
+
+func (v *workflowView) Capturing() bool { return v.searching }
 
 // expanded reports whether the App's steps are shown: a set-up App starts
 // collapsed, everything else starts expanded, and space overrides that.
@@ -192,7 +205,7 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 	workflow := ctx.workflow()
 	rows := v.rows(ctx)
 	v.cursor = max(min(v.cursor, len(rows)-1), 0)
-	lines := []string{"  " + t.title().Render("Workflow") + " · " +
+	lines := []string{"  " + t.title().Render("Activity") + " · " +
 		plural(workflow.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
 		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
 		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}

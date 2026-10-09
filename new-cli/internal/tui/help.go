@@ -8,32 +8,44 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// helpView is the key reference, opened as an overlay over the active view.
+// helpView is the key reference, opened as an overlay over the active tab.
 type helpView struct {
 	vp viewport.Model
 }
 
+var helpKeys = []key.Binding{hint("↑/↓", "scroll"), hint("pgup/pgdn", "page")}
+
 func newHelpView() *helpView { return &helpView{vp: viewport.New()} }
 
-func (v *helpView) Keys() []key.Binding {
-	k := newKeyMap()
-	return []key.Binding{k.Up, k.Down, k.ScrollUp, k.ScrollDown, k.Back}
-}
+func (v *helpView) Keys() []key.Binding { return helpKeys }
+
+func (v *helpView) Panes() []pane { return []pane{{"Keys", helpKeys}} }
+
+func (v *helpView) Capturing() bool { return false }
 
 func (v *helpView) Title() string { return "Keys" }
 
-// open sizes the viewport and lays the key reference into it.
-func (v *helpView) open(ctx *viewContext) {
+// open sizes the viewport and lays the key reference into it, one group
+// per pane: the global keys first, then each tab's panes.
+func (v *helpView) open(ctx *viewContext, groups []pane) {
 	v.vp.SetWidth(max(min(ctx.width-10, 92), 20))
-	v.vp.SetHeight(max(min(ctx.height-8, 30), 5))
-	h := ctx.help
-	h.SetWidth(max(v.vp.Width(), 20))
-	body := h.FullHelpView(ctx.keys.FullHelp()) + "\n\n" +
-		"More: self-host --help (remove, restore, config, credentials…)"
+	v.vp.SetHeight(max(ctx.height-8, 5))
+	t := ctx.theme
+	var lines []string
 	if ctx.latest != "" {
-		body += "\n\n" + releaseNotice(ctx.latest)
+		lines = append(lines, t.fg(t.info).Render(releaseNotice(ctx.latest)), "")
 	}
-	v.vp.SetContent(body)
+	for _, group := range groups {
+		lines = append(lines, t.heading().Render(group.name))
+		for _, b := range group.keys {
+			lines = append(lines, "  "+t.title().Render(pad(b.Help().Key, 11))+" "+t.body().Render(b.Help().Desc))
+		}
+		lines = append(lines, "")
+	}
+	lines = append(lines,
+		t.dim().Render("Up, Down and Restart all: click UP, DOWN or RESTART on the Apps tab."),
+		t.dim().Render("More: self-host --help (remove, restore, config, credentials…)"))
+	v.vp.SetContent(strings.Join(lines, "\n"))
 	v.vp.GotoTop()
 }
 

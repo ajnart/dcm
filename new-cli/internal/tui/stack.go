@@ -12,31 +12,36 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-// stackView is the full-screen Stack surface: every container in the
-// Project's Compose project, at a glance.
+// stackView is the Apps tab for now: every container in the Project's
+// Compose project, at a glance. It is a single pane.
 type stackView struct {
 	cursor      int
 	offset      int
 	confirmDown bool
 }
 
+// The digits belong to the tabs now, so the Project controls are buttons
+// for the mouse until #133's A menu replaces them; enter and u act until then.
 var stackHelp = []key.Binding{
-	hint("↑/↓", "select"), hint("enter", "start/stop"), hint("1", "UP"), hint("2", "DOWN"), hint("3", "restart all"),
-	hint("u", "update"), hint("r", "re-check"), hint("esc", "back"),
+	hint("↑/↓", "select"), hint("enter", "start/stop"), hint("u", "update"), hint("r", "re-check"), hint("esc", "back"),
 }
 
 var stackControls = []struct {
-	key, label string
-	action     Action
+	label  string
+	action Action
 }{
-	{"1", "UP", ActionUp},
-	{"2", "DOWN", ActionDown},
-	{"3", "RESTART", ActionRestart},
+	{"UP", ActionUp},
+	{"DOWN", ActionDown},
+	{"RESTART", ActionRestart},
 }
 
 func (v *stackView) Keys() []key.Binding { return stackHelp }
 
-func (v *stackView) Title() string { return "Stack" }
+func (v *stackView) Panes() []pane { return []pane{{"Containers", stackHelp}} }
+
+func (v *stackView) Capturing() bool { return false }
+
+func (v *stackView) Title() string { return "Apps" }
 
 func (v *stackView) scroll(height, dy int) {
 	v.cursor += sign(dy)
@@ -82,17 +87,9 @@ func (v *stackView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, n
 		v.confirmDown = false
 		return v, nil, nav{}
 	}
-	for _, control := range stackControls {
-		if msg.String() == control.key {
-			return v, v.controlProject(ctx, control.action), nav{}
-		}
-	}
 	switch {
 	case msg.String() == "esc":
 		return v, nil, nav{kind: navBack}
-	case key.Matches(msg, ctx.keys.Quit):
-		ctx.tasks.cancelAll()
-		return v, tea.Quit, nav{}
 	case key.Matches(msg, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
 	case key.Matches(msg, ctx.keys.Down):
@@ -192,11 +189,11 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	lines = append(lines, "  "+stackHeader(ctx), "")
 	controls := "  "
 	for _, control := range stackControls {
-		button := t.button(control.key + " " + control.label)
+		button := t.button(control.label)
 		ctx.layers = append(ctx.layers, lipgloss.NewLayer(button).X(lipgloss.Width(controls)).Y(3).ID("stack:"+string(control.action)))
 		controls += button + "  "
 	}
-	lines = append(lines, truncate(controls, inner), "")
+	lines = append(lines, truncate(controls+t.dim().Render("click to run for every App"), inner), "")
 
 	header := "  " + t.dim().Render(pad("APP", 12)+pad("SERVICE", 16)+pad("STATE", 11)+pad("HEALTH", 11)+pad("UPD", 11))
 	if showUptime {

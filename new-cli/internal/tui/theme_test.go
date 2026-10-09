@@ -149,13 +149,8 @@ func TestFocusAndActiveReadByWeight(t *testing.T) {
 		t.Errorf("only the selected App row should be bold: %q %q %q", bold[2], bold[3], bold[4])
 	}
 	for _, line := range bold {
-		if strings.Contains(line, "Needs action") {
-			t.Errorf("the unfocused Needs action box should not have a bold title: %q", line)
+		if strings.Contains(line, "Needs attention") {
+			t.Errorf("the unfocused Needs attention box should not have a bold title: %q", line)
 		}
-	}
-
-	m = drive(t, m, press("d"))
-	if top := boldText(m.View().Content)[0]; !strings.Contains(top, "Stack") || strings.Contains(top, "Dashboard") || strings.Contains(top, "Workflow") {
-		t.Errorf("only the active top-bar surface should be bold: %q", top)
 	}
 }
