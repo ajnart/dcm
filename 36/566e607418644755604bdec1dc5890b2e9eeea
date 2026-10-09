@@ -1,0 +1,89 @@
+new-cli/e2e/passbolt_shared_runtime_fixture_test.go
+  s_2879cfbbd61f47::t_55eac47d7cfed5 52
+new-cli/e2e/fixture_tls.go
+  s_2879cfbbd61f47::t_3eb05f187326e5 1-108
+new-cli/e2e/fixture_lifecycle_runtime_test.go
+  s_2879cfbbd61f47::t_79f4633ad7214c 65,71-79,82,106
+  s_2879cfbbd61f47::t_810aada40a4b35 1-13,15-22,24-35,37,39-64,66-70,81,83-105,107-123,127-146,148-158
+  s_2879cfbbd61f47::t_3eb05f187326e5 80,147
+  s_2879cfbbd61f47::t_55eac47d7cfed5 125
+  s_2879cfbbd61f47::t_abbf1444356454 14,23,36,38,124,126
+new-cli/e2e/passbolt_fixture_runtime_test.go
+  s_2879cfbbd61f47::t_55eac47d7cfed5 108,113,118,145-148,150-155,158,160-166
+  s_2879cfbbd61f47::t_24a5677efe3e06 149,156-157,159,261,317,333,350
+new-cli/e2e/isolation.go
+  s_2879cfbbd61f47::t_15a2ca3b5c314d 178,181
+  s_2879cfbbd61f47::t_bc190766d3ff53 5,417-428
+new-cli/e2e/scenario_test.go
+  s_2879cfbbd61f47::t_0d6c30190785da 110
+  s_2879cfbbd61f47::t_810aada40a4b35 104,148,188,196,207,211
+  s_2879cfbbd61f47::t_3eb05f187326e5 102,108,150
+  s_2879cfbbd61f47::t_cfd114553e97d9 189,234-235
+new-cli/e2e/netbird_fixture_runtime_test.go
+  s_2879cfbbd61f47::t_0d6c30190785da 42-43,62,67-69,71-85,95,101,112
+  s_2879cfbbd61f47::t_7d8f55d3f67a8f 70
+new-cli/e2e/wud_fixture_runtime_test.go
+  s_2879cfbbd61f47::t_810aada40a4b35 154-157,159-173,176,178-184
+  s_2879cfbbd61f47::t_d66fa491f8f575 8,158,174-175,177
+new-cli/e2e/renovate_fixture_runtime_test.go
+  s_2879cfbbd61f47::t_3eb05f187326e5 22,24,42-43,124-128,130-139
+  s_2879cfbbd61f47::t_81a63b98b4373d 129,140
+new-cli/e2e/isolation_fixture_test.go
+  s_2879cfbbd61f47::t_15a2ca3b5c314d 169
+new-cli/e2e/authelia_fixture.go
+  s_2879cfbbd61f47::t_3eb05f187326e5 6,9-10,13-14,19,21-22,24,26-27,29
+new-cli/e2e/harness_test.go
+  s_2879cfbbd61f47::t_810aada40a4b35 99-100,210-211,350
+new-cli/e2e/authelia_integration_test.go
+  s_2879cfbbd61f47::t_0d6c30190785da 50,54
+  s_2879cfbbd61f47::t_4348f338aee5ee 40-41,48,67-81
+new-cli/e2e/netbird_fixture.go
+  s_2879cfbbd61f47::t_3eb05f187326e5 12-13,16
+new-cli/e2e/fixture_connect.go
+  s_2879cfbbd61f47::t_3eb05f187326e5 60,113-118
+  s_2879cfbbd61f47::t_0bb2316d93c09a 119
+new-cli/e2e/app_inputs.go
+  s_2879cfbbd61f47::t_15a2ca3b5c314d 1-26
+new-cli/e2e/fixture_lifecycle_test.go
+  s_2879cfbbd61f47::t_a11ca2e430fd78 70-77,104-109
+  s_2879cfbbd61f47::t_810aada40a4b35 6-7,10-11,13,15-19,26-28,31-33,37-59
+  s_2879cfbbd61f47::t_c707a16ac137b5 1-5,8-9,12,14,20,22-25,29-30,34-36,60
+  s_2879cfbbd61f47::t_fe9a546ee0df13 61-69,78-103,110-111
+  s_2879cfbbd61f47::t_a4d332874c5d55 21
+new-cli/e2e/acceptance.go
+  s_2879cfbbd61f47::t_15a2ca3b5c314d 65,68,101-102,105,110,257
+new-cli/e2e/e2e_test.go
+  s_2879cfbbd61f47::t_24c75e7044babb 92,103,113,117-118
+new-cli/e2e/homarr_functional_test.go
+  s_2879cfbbd61f47::t_b9068e95a47e3f 48,56,61-62
+new-cli/e2e/local_prerequisites_fixture_test.go
+  s_2879cfbbd61f47::t_bb60bfdbb2771b 66
+new-cli/e2e/passbolt_application_metadata_test.go
+  s_2879cfbbd61f47::t_1379bce036f7f6 59,65
+new-cli/e2e/passbolt_effective_metadata_test.go
+  s_2879cfbbd61f47::t_6de1235a632f87 90,96
+new-cli/e2e/passbolt_fixture.go
+  s_2879cfbbd61f47::t_73ae1503e208d9 135-145
+new-cli/e2e/passbolt_fixture_test.go
+  s_2879cfbbd61f47::t_938bdbae469491 126,130
+new-cli/e2e/passbolt_metadata_test.go
+  s_2879cfbbd61f47::t_3fb3c25178e75a 34,40-41,51
+new-cli/e2e/scheduler.go
+  s_2879cfbbd61f47::t_da823a171897ac 110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36566e607418644755604bdec1dc5890b2e9eeea",
+  "prompts": {},
+  "sessions": {
+    "s_2879cfbbd61f47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fb4-d4aa-7571-aa38-a79ae7d7c8c2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
