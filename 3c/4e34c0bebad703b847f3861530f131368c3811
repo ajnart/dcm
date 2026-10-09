@@ -1,0 +1,14 @@
+new-cli/install.sh
+  h_d6e478ca18e517 10,16-18,50,173,263-264,266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c4e34c0bebad703b847f3861530f131368c3811",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
