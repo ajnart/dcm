@@ -1,0 +1,23 @@
+.github/workflows/validate.yml
+  s_93e55d02c44f68::t_4a047f037aca4b 194,321,356,410
+docs/release.md
+  s_93e55d02c44f68::t_cf5716d50a421d 5-8,34,62,93-96
+scripts/lib/skillpack.ts
+  s_93e55d02c44f68::t_71a096126d1e6e 1567
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d7273ea4c2a9e5a6aff3b9de00cce6c4862ceb0",
+  "prompts": {},
+  "sessions": {
+    "s_93e55d02c44f68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f70fd712-0011-4268-a7b3-c58eb50ef160",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
