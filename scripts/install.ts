@@ -58,20 +58,19 @@ function parse(args: string[]) {
   return { selected: [...new Set(selected)], scope, projectRoot, codexPrompt };
 }
 
-function skillRoot(agent: string, scope: string, projectRoot: string) {
+function skillRoots(agent: string, scope: string, projectRoot: string) {
   if (scope === "project") {
-    if (agent === "pi") {
-      return join(projectRoot, ".pi", "skills", "self-host");
-    }
-    return join(projectRoot, ".agents", "skills", "self-host");
+    const shared = join(projectRoot, ".agents", "skills", "self-host");
+    return agent === "pi" ? [join(projectRoot, ".pi", "skills", "self-host"), shared] : [shared];
   }
+  const shared = join(homedir(), ".agents", "skills", "self-host");
   if (agent === "pi") {
-    return join(process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent"), "skills", "self-host");
+    return [join(process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent"), "skills", "self-host"), shared];
   }
   if (agent === "opencode") {
-    return join(homedir(), ".agents", "skills", "self-host");
+    return [shared];
   }
-  return join(process.env.CODEX_HOME || join(homedir(), ".codex"), "skills", "self-host");
+  return [shared, join(process.env.CODEX_HOME || join(homedir(), ".codex"), "skills", "self-host")];
 }
 
 function commandPath(agent: string, scope: string, projectRoot: string) {
@@ -166,9 +165,10 @@ async function main() {
   await run("bunx", cliArgs, projectRoot);
 
   for (const agent of options.selected) {
-    const installed = skillRoot(agent, options.scope, projectRoot);
-    if (!existsSync(join(installed, "SKILL.md"))) {
-      throw new Error(`The installer did not create the ${agent} self-host skill at ${installed}`);
+    const candidates = skillRoots(agent, options.scope, projectRoot);
+    const installed = candidates.find((root) => existsSync(join(root, "SKILL.md")));
+    if (!installed) {
+      throw new Error(`The installer did not create the ${agent} self-host skill in ${candidates.join(" or ")}`);
     }
     if (agent === "pi") {
       await ensurePiExplicitPolicy(installed);
