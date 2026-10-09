@@ -420,7 +420,7 @@ func (p *Project) lockOpenError(err error) error {
 // LockError reports a Project lock the current user cannot open, for read-only
 // diagnostics such as doctor. It never takes the lock or creates the file.
 func (p *Project) LockError() error {
-	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR, 0o644)
+	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0o644)
 	if err == nil {
 		f.Close()
 		return nil
