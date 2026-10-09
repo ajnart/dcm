@@ -130,6 +130,8 @@ func TestRootlessTarImportRejectsUnsafeEntries(t *testing.T) {
 		{"fifo", []*tar.Header{{Name: "pipe", Mode: 0644, Typeflag: tar.TypeFifo}}},
 		{"device", []*tar.Header{{Name: "dev", Mode: 0644, Typeflag: tar.TypeBlock, Devmajor: 8, Devminor: 1}}},
 		{"negative-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: -1, Typeflag: tar.TypeReg}}},
+		{"setuid-root", []*tar.Header{{Name: "tool", Mode: 04755, Typeflag: tar.TypeReg}}},
+		{"setgid-root", []*tar.Header{{Name: "tool", Mode: 02755, Uid: 1000, Typeflag: tar.TypeReg}}},
 		{"large-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: 2147483648, Typeflag: tar.TypeReg}}},
 		{"composed-escape", []*tar.Header{{Name: "link", Linkname: "deep1/deep2/../../outside", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "deep1/deep2", Linkname: "../..", Mode: 0777, Typeflag: tar.TypeSymlink}}},
 		{"cyclic", []*tar.Header{{Name: "link", Linkname: "other", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "other", Linkname: "link", Mode: 0777, Typeflag: tar.TypeSymlink}}},

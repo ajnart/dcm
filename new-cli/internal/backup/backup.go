@@ -269,6 +269,11 @@ func safeEntryOwnersAndMode(h *tar.Header) error {
 	if h.Uid < 0 || h.Gid < 0 || uint64(h.Uid) > 2147483647 || uint64(h.Gid) > 2147483647 || h.Mode < 0 || h.Mode & ^int64(0o7777) != 0 {
 		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use permission bits up to 07777")
 	}
+	// A restore may run as root, so an archive must not plant a file that
+	// runs with root's user or group.
+	if h.Typeflag != tar.TypeDir && (h.Mode&0o4000 != 0 && h.Uid == 0 || h.Mode&0o2000 != 0 && h.Gid == 0) {
+		return fmt.Errorf("unsafe backup metadata: %q is setuid or setgid root", h.Name)
+	}
 	return nil
 }
 
