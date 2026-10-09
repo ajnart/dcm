@@ -55,8 +55,8 @@ func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T
 	if len(backend.installs()) != 0 {
 		t.Fatal("re-confirming Host settings must not install anything")
 	}
-	if m.surface != surfaceDashboard {
-		t.Fatal("ctrl+s should return to the Dashboard")
+	if m.surface != surfaceActivity {
+		t.Fatal("ctrl+s should hand focus to Activity")
 	}
 }
 

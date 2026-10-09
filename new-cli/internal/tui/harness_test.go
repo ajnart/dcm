@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
@@ -182,7 +181,7 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 				out = append(out, runCmd(c)...)
 			}
 			return out
-		case tickMsg, tea.QuitMsg, spinner.TickMsg, updatesTick:
+		case tickMsg, tea.QuitMsg, frameMsg, updatesTick:
 			return nil
 		default:
 			// tea.Sequence yields an unexported []tea.Cmd; run it in order.
@@ -339,7 +338,7 @@ func TestKeybindAudit(t *testing.T) {
 		"done: enter", "clear: esc",
 	}
 	ctx := testViewContext(&fakeBackend{})
-	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
+	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
 	bindings := append(newKeyMap().all(), menuKeys...)
 	bindings = append(bindings, menuHelpKeys...)
 	for _, v := range views {
@@ -519,8 +518,8 @@ func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
 	if len(got) != 1 || strings.Join(got[0].Targets, ",") != "ntfy" {
 		t.Fatalf("installs %+v", got)
 	}
-	if out := screen(m); !strings.Contains(out, "Needs attention") {
-		t.Fatalf("approving the install should land on the Overview\n%s", out)
+	if out := screen(m); m.surface != surfaceActivity || !strings.Contains(out, "✓ install ntfy") {
+		t.Fatalf("approving the install should hand focus to Activity\n%s", out)
 	}
 	m = drive(t, m, press("4"))
 	if strings.Contains(screen(m), "Review") || strings.Contains(screen(m), "[x]") {
@@ -734,8 +733,8 @@ func TestSettingsAppliesEveryChangeAtOnce(t *testing.T) {
 	if got := backend.Actions(); !slices.Equal(got, []string{"config PUID=1001 DOWNLOADS_ROOT=/srv/downloads"}) {
 		t.Fatalf("actions %v", got)
 	}
-	if m.surface != surfaceDashboard {
-		t.Fatal("ctrl+s should return to the Dashboard")
+	if m.surface != surfaceActivity || m.settings != nil {
+		t.Fatal("ctrl+s should close Settings and hand focus to Activity")
 	}
 }
 

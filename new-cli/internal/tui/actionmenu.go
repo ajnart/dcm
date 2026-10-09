@@ -220,7 +220,7 @@ func (m Model) runMenuEntry(entries []menuEntry) (tea.Model, tea.Cmd) {
 	ctxView := m.ctx()
 	cmd := ctxView.run(e.req, e.title)
 	m.absorb(ctxView)
-	return m, cmd
+	return m.focusActivity(cmd)
 }
 
 // menuBarKeys are the open menu's chips; an armed entry asks for confirmation.

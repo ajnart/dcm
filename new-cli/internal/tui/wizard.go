@@ -386,7 +386,7 @@ func (m Model) renderWizard() string {
 			"  " + t.body().Render("configures everything with Docker Compose. Nothing is written until you review it."), "",
 			"  " + t.heading().Render("This machine")}
 		if len(m.checks) == 0 {
-			lines = append(lines, "  "+t.dim().Render(m.spin.View()+" checking Docker…"))
+			lines = append(lines, "  "+t.dim().Render(activity.Spinner(m.frame)+" checking Docker…"))
 		}
 		for _, c := range m.checks {
 			lines = append(lines, "  "+t.dot(checkLevel(c.Level))+" "+pad(c.Title, 18)+" "+t.dim().Render(c.Detail))
@@ -461,8 +461,8 @@ func (m Model) renderInstalling(taskID int) string {
 		return ""
 	}
 	s := task.snapshot()
-	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accentText).Render(m.spin.View()), ""}
-	if block := activity.Render(activity.Build(m.status, s.events), m.width-4, t.palette()); len(block) > 0 {
+	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accentText).Render(activity.Spinner(m.frame)), ""}
+	if block := activity.PullBlock(activity.Build(m.status, s.events), m.width-4, t.palette()); len(block) > 0 {
 		for _, line := range block {
 			lines = append(lines, "  "+line)
 		}

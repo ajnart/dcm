@@ -14,7 +14,7 @@ import (
 func TestWorkflowViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Image: "sonarr:latest", Managed: true, Steps: []service.StepStatus{{ID: "pull"}}}}}
-	var v view = &workflowView{}
+	var v view = &activityView{}
 	task := ctx.tasks.start("update sonarr")
 	t.Cleanup(ctx.tasks.cancelAll)
 	for _, tc := range []struct {
@@ -53,7 +53,7 @@ func TestWorkflowViewConfiguredAppExpandsDuringRetry(t *testing.T) {
 			t.Cleanup(ctx.tasks.cancelAll)
 			task.append(events.Event{Event: events.RunStart, App: "sonarr"})
 			task.append(events.Event{Event: event, App: "sonarr", Step: "ready", Error: "retry failed"})
-			out := ansi.Strip((&workflowView{}).View(ctx, 80, 24))
+			out := ansi.Strip((&activityView{}).View(ctx, 80, 24))
 			mark := "… ready"
 			if event == events.StepFail {
 				mark = "✗ ready"
@@ -69,7 +69,7 @@ func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
 	m := New(backend, Options{})
 	m.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}}}}}
-	m.workflow, m.surface = &workflowView{}, surfaceWorkflow
+	m.activity, m.surface = &activityView{}, surfaceActivity
 	m.width, m.height, m.loaded = 80, 24, true
 	task := m.tasks.start("setup sonarr")
 	t.Cleanup(m.tasks.cancelAll)
@@ -80,7 +80,7 @@ func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	}
 	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupOK, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepOK, Msg: "new CLI success"}}}}}
 	m = update(t, m, m.loadStatus()())
-	if out := screen(m); strings.Contains(out, "old TUI failure") || !strings.Contains(out, "1 App fully set up") {
+	if out := screen(m); strings.Contains(out, "ready · old TUI failure") || !strings.Contains(out, "1 App fully set up") {
 		t.Fatalf("finished events override fresh persisted result\n%s", out)
 	}
 }
@@ -90,7 +90,7 @@ func TestWorkflowViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	m := New(backend, Options{})
 	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail, Msg: "saved failure"}}}}}
 	m.status = backend.status
-	m.workflow, m.surface = &workflowView{}, surfaceWorkflow
+	m.activity, m.surface = &activityView{}, surfaceActivity
 	m.width, m.height, m.loaded = 80, 24, true
 	task := m.tasks.start("setup sonarr")
 	t.Cleanup(m.tasks.cancelAll)
@@ -110,7 +110,7 @@ func TestWorkflowViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	failed := m.loadStatus()().(statusMsg)
 	failed.err = service.ErrIncomplete
 	m = update(t, m, failed)
-	if out := ansi.Strip(m.workflow.View(m.ctx(), 80, 24)); !strings.Contains(out, "✓ ready · live success") {
+	if out := ansi.Strip(m.activity.View(m.ctx(), 80, 24)); !strings.Contains(out, "✓ ready · live success") {
 		t.Fatalf("failed refresh erased terminal outcome\n%s", out)
 	}
 	backend.status.Apps[0].Steps[0] = service.StepStatus{ID: "ready", Status: stepstatus.StepOK, Msg: "fresh saved success"}

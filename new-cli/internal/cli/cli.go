@@ -45,6 +45,8 @@ type program struct {
 	document bool
 	log      *events.Logger
 	svc      *service.Service
+	// terminal is the interactive sink, closed when the command returns.
+	terminal *activity.TerminalSink
 }
 
 func (a *program) service() *service.Service {
@@ -93,7 +95,7 @@ func (a *program) logger() *events.Logger {
 }
 
 // human prints events as plain lines, or on an interactive terminal with the
-// pull drawn as bars that redraw in place. Anything that is not a terminal,
+// running Action drawn below them and redrawn in place. Anything that is not a terminal,
 // and a dumb terminal that cannot move the cursor, gets the plain lines.
 func (a *program) human(w io.Writer, verbose bool) events.Sink {
 	f, ok := w.(*os.File)
@@ -111,7 +113,8 @@ func (a *program) human(w io.Writer, verbose bool) events.Sink {
 		return 80
 	}
 	palette := tui.Palette(lipgloss.HasDarkBackground(os.Stdin, f))
-	return activity.Terminal(profiled, verbose, width, palette)
+	a.terminal = activity.Terminal(profiled, verbose, width, palette)
+	return a.terminal
 }
 
 // Run executes the binary with args and returns the exit code.
@@ -127,6 +130,9 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
 	err := root.ExecuteContext(ctx)
+	if a.terminal != nil {
+		a.terminal.Close()
+	}
 	var exit exitError
 	switch {
 	case err == nil:

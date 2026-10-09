@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings       ◐ 1 warning   LAN 192.168.1.20  12:00:00 v1.0.0
+  Activity · 1 App fully set up · 1 step failed · 0 steps running
+
+  ✓ install jellyfin sonarr
+    ✓ Start   ✓ Setup   ✓ Credentials   ✓ Links   ✓ Check
+  ╭─ Apps 2/2 set up ──────────────────────────────────────╮ ╭─ Links 1/1 ─────────────────────────────────────────────╮
+  │ ● Jellyfin        ready                                │ │ ✓ Sonarr       ━━━━━━━▶ Jellyfin     add Jellyfin as a… │
+  │ ● Sonarr          ready                                │ │                                                         │
+  ╰────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────╯
+    All 2 Apps are ready
+
+  > ▸ Jellyfin
+    ▾ Sonarr
+    ✓ start · started
+    ✗ download-client
+    ✓ ready · wait for the Sonarr API
+    ✓ api-key · read the Sonarr API key
+    ✓ root-folder · add the root folder /media/tv
+    ✓ link-jellyfin → jellyfin · add Jellyfin as a connection
+    ✓ check · verify Sonarr works
+    ▾ whoami · added by hand, no Setup
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit              ↑/↓  select   a  actions   enter  error/hint   space  collapse …

@@ -134,13 +134,18 @@ runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
 closes the menu. Unavailable Actions stay greyed with the reason.
 
 While a search or an edit takes text, every key goes to it. Settings applies
-edits with `ctrl+s`; `esc` returns to the Overview. Activity shows remembered
-render/pull/start, Setup, Links and checks. Space expands an App, `/` filters,
-and enter expands a failed step's error and recovery hint.
+edits with `ctrl+s`; `esc` returns to the Overview. Activity takes focus when
+an Action starts and plays it: its stages, each App's Setup steps one at a
+time, credentials as masked dots, Links filling into arrows and one line that
+says what is happening now. The finished Action stays until the next one;
+below it are remembered render/pull/start, Setup, Links and checks. Space
+expands an App, `/` filters, and enter expands a failed step's error and
+recovery hint.
 While an Action pulls images, Activity, the status line and the CLI in a
 terminal show one overall bar, a slim bar per image and "N of M images"; piped
-output keeps one `✓ pulled` line per image. On the Apps tab, `r` checks for
-updates again.
+output keeps one `✓ pulled` line per image. In a terminal the CLI prints its
+usual lines and draws the same Action below them; piped and `--json` output
+stay plain. On the Apps tab, `r` checks for updates again.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.

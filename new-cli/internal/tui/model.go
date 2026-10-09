@@ -12,9 +12,9 @@ import (
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/release"
@@ -55,7 +55,9 @@ type (
 		containers []service.ContainerStatus
 		err        error
 	}
-	tickMsg     time.Time
+	tickMsg time.Time
+	// frameMsg advances the animation by one frame.
+	frameMsg    struct{}
 	taskDoneMsg struct {
 		id    int
 		title string
@@ -96,7 +98,12 @@ type Model struct {
 	theme         theme
 	keys          keyMap
 	help          help.Model
-	spin          spinner.Model
+
+	// frame is the animation frame; it advances only while ticking, which
+	// lasts while something runs or a transition still plays.
+	frame   int
+	ticking bool
+	tracker *activity.Tracker
 
 	status    service.Status
 	checks    []host.Check
@@ -123,7 +130,7 @@ type Model struct {
 	install   *installView
 	settings  *settingsView
 	stack     *stackView
-	workflow  *workflowView
+	activity  *activityView
 	helpView  *helpView
 	menu      *actionMenu
 	wizard    *wizard
@@ -140,7 +147,8 @@ func New(backend Backend, opts Options) Model {
 		theme:     newTheme(true),
 		keys:      newKeyMap(),
 		help:      help.New(),
-		spin:      spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		ticking:   true,
+		tracker:   &activity.Tracker{},
 		tasks:     &taskManager{},
 		dashboard: newDashboardView(),
 		helpView:  newHelpView(),
@@ -148,12 +156,40 @@ func New(backend Backend, opts Options) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.spin.Tick, tick(),
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), frameTick(), tick(),
 		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
 func tick() tea.Cmd {
 	return tea.Tick(refreshEvery, func(t time.Time) tea.Msg { return tickMsg(t) })
+}
+
+func frameTick() tea.Cmd {
+	return tea.Tick(time.Second/activity.FPS, func(time.Time) tea.Msg { return frameMsg{} })
+}
+
+// startTicking runs the frame ticker unless it already runs.
+func (m *Model) startTicking() tea.Cmd {
+	if m.ticking {
+		return nil
+	}
+	m.ticking = true
+	return frameTick()
+}
+
+// nextFrame advances the animation and keeps ticking only while the Project
+// is still being read, the wizard checks the host, an Action runs or a
+// transition still plays.
+func (m Model) nextFrame() (tea.Model, tea.Cmd) {
+	m.frame++
+	s := m.ctx().snapshot()
+	m.tracker.Observe(s, m.frame)
+	checking := m.wizard != nil && m.wizard.stage == stageWelcome && len(m.checks) == 0
+	if !m.loaded || checking || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
+		return m, frameTick()
+	}
+	m.ticking = false
+	return m, nil
 }
 
 func (m Model) loadStatus() tea.Cmd {
@@ -241,7 +277,7 @@ func (m Model) mainHeight() int { return max(m.height-3, 3) }
 func (m Model) ctx() *viewContext {
 	return &viewContext{
 		width: m.width, height: m.height, dark: m.dark, theme: m.theme,
-		keys: m.keys, help: m.help, spin: m.spin,
+		keys: m.keys, help: m.help, frame: m.frame, motion: m.tracker.Motion(m.frame),
 		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt,
 		latest: m.latest, loaded: m.loaded, statusErr: m.statusErr, refreshed: m.refreshed,
 		containers: m.containers, containersErr: m.containersErr,
@@ -255,7 +291,7 @@ func (m *Model) absorb(ctx *viewContext) {
 	m.width, m.height = ctx.width, ctx.height
 	m.containers, m.containersErr = ctx.containers, ctx.containersErr
 	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
-	m.help, m.spin = ctx.help, ctx.spin
+	m.help = ctx.help
 	m.defaults = ctx.defaults
 }
 
@@ -313,10 +349,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spin, cmd = m.spin.Update(msg)
-		return m, cmd
+	case frameMsg:
+		return m.nextFrame()
 
 	case taskDoneMsg:
 		return m.handleTaskDone(msg)
@@ -441,9 +475,9 @@ func (m Model) openTab(s surface) (tea.Model, tea.Cmd) {
 			m.stack = &stackView{}
 		}
 		return m, tea.Batch(m.loadContainers(), m.loadUpdates())
-	case surfaceWorkflow:
-		if m.workflow == nil {
-			m.workflow = &workflowView{}
+	case surfaceActivity:
+		if m.activity == nil {
+			m.activity = &activityView{}
 		}
 	case surfaceInstall:
 		if m.install == nil {
@@ -480,7 +514,7 @@ func (m Model) openHelp() (tea.Model, tea.Cmd) {
 func (m Model) helpGroups() []pane {
 	groups := []pane{{name: "Global", keys: m.keys.global()}, {name: "Action menu", keys: menuHelpKeys}}
 	ctxView := m.ctx()
-	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctxView), newSettingsView(ctxView)}
+	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctxView), newSettingsView(ctxView)}
 	for i, v := range views {
 		panes := v.Panes()
 		for _, p := range panes {
@@ -503,8 +537,8 @@ func (m Model) activeView() view {
 		return m.settings
 	case surfaceStack:
 		return m.stack
-	case surfaceWorkflow:
-		return m.workflow
+	case surfaceActivity:
+		return m.activity
 	default:
 		return m.dashboard
 	}
@@ -524,9 +558,9 @@ func (m *Model) setActive(v view) {
 		if sv, ok := v.(*stackView); ok {
 			m.stack = sv
 		}
-	case surfaceWorkflow:
-		if wv, ok := v.(*workflowView); ok {
-			m.workflow = wv
+	case surfaceActivity:
+		if wv, ok := v.(*activityView); ok {
+			m.activity = wv
 		}
 	default:
 		if dv, ok := v.(*dashboardView); ok {
@@ -585,16 +619,33 @@ func (m Model) quit() (tea.Model, tea.Cmd) {
 }
 
 // dispatchActive hands a message to the active view and applies its nav.
+// A view that started an Action hands focus to Activity.
 func (m Model) dispatchActive(msg tea.Msg) (tea.Model, tea.Cmd) {
 	v := m.activeView()
 	if v == nil {
 		return m, nil
 	}
+	started := m.tasks.lastStarted()
 	ctxView := m.ctx()
 	next, cmd, nv := v.Update(ctxView, msg)
 	m.setActive(next)
 	m.absorb(ctxView)
-	return m.applyNav(nv, cmd)
+	model, cmd := m.applyNav(nv, cmd)
+	m = model.(Model)
+	if m.tasks.lastStarted() != started {
+		return m.focusActivity(cmd)
+	}
+	return m, cmd
+}
+
+// focusActivity shows the Activity tab, where the Action that just started
+// plays, and starts the frame ticker.
+func (m Model) focusActivity(cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	m.surface = surfaceActivity
+	if m.activity == nil {
+		m.activity = &activityView{}
+	}
+	return m, tea.Batch(cmd, m.startTicking())
 }
 
 // dispatchDashboard delivers an asynchronous dashboard message (logs, Compose)
@@ -662,7 +713,7 @@ func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 		err := backend.Run(t.ctx, req, log)
 		return taskDoneMsg{id: t.id, title: title, err: err}
 	}
-	return m, tea.Batch(run, m.spin.Tick)
+	return m, tea.Batch(run, m.startTicking())
 }
 
 // Test-facing accessors kept on the Model.

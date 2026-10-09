@@ -74,7 +74,7 @@ func TestRenderPullGoldens(t *testing.T) {
 			name := fmt.Sprintf("pull-%s-%d", frame.name, width)
 			t.Run(name, func(t *testing.T) {
 				s := Snapshot{Pull: frame.pull}
-				block := Render(s, width, testPalette)
+				block := PullBlock(s, width, testPalette)
 				compact := Compact(s, width, testPalette)
 				for _, line := range append(block, compact) {
 					if w := ansi.StringWidth(line); w > width {
@@ -93,7 +93,7 @@ func TestRenderPullGoldens(t *testing.T) {
 func TestRenderPullFillUsesAccent(t *testing.T) {
 	s := Snapshot{Pull: Pull{Pulling: true, Fraction: 0.5, Total: 1, Images: []Image{{Label: "Jellyfin", Fraction: 0.5}}}}
 	accent := "\x1b[38;2;122;87;211m"
-	block := strings.Join(Render(s, 80, testPalette), "\n")
+	block := strings.Join(PullBlock(s, 80, testPalette), "\n")
 	if !strings.Contains(block, accent+"█") || !strings.Contains(block, accent+"━") {
 		t.Fatalf("fills are not drawn in the accent colour: %q", block)
 	}
@@ -105,7 +105,7 @@ func TestRenderPullFillUsesAccent(t *testing.T) {
 func TestRenderFailedPullUsesFailRole(t *testing.T) {
 	s := Snapshot{Pull: Pull{Failed: true, Fraction: 0.25, Total: 1, Images: []Image{{Label: "sonarr", Fraction: 0.25}}}}
 	fail := "\x1b[38;2;255;95;95m"
-	block := Render(s, 80, testPalette)
+	block := PullBlock(s, 80, testPalette)
 	if !strings.Contains(block[0], fail+"✗") || !strings.Contains(ansi.Strip(block[0]), "Pull failed") {
 		t.Fatalf("failed header lacks ✗ in the fail colour and \"Pull failed\": %q", block[0])
 	}
@@ -116,7 +116,7 @@ func TestRenderFailedPullUsesFailRole(t *testing.T) {
 
 func TestRenderPullWithoutColourKeepsGlyphs(t *testing.T) {
 	s := Snapshot{Pull: Pull{Pulling: true, Fraction: 0.5, Done: 1, Total: 2, Images: []Image{{Label: "Jellyfin", Fraction: 1, Done: true}, {Label: "sonarr"}}}}
-	block := strings.Join(Render(s, 80, Palette{}), "\n")
+	block := strings.Join(PullBlock(s, 80, Palette{}), "\n")
 	if strings.Contains(block, "\x1b[38") {
 		t.Fatalf("colour without a palette: %q", block)
 	}
@@ -128,7 +128,7 @@ func TestRenderPullWithoutColourKeepsGlyphs(t *testing.T) {
 }
 
 func TestRenderWithoutPullIsEmpty(t *testing.T) {
-	if block, compact := Render(Snapshot{}, 80, testPalette), Compact(Snapshot{}, 80, testPalette); len(block) != 0 || compact != "" {
+	if block, compact := PullBlock(Snapshot{}, 80, testPalette), Compact(Snapshot{}, 80, testPalette); len(block) != 0 || compact != "" {
 		t.Fatalf("no pull drew %q and %q", block, compact)
 	}
 }

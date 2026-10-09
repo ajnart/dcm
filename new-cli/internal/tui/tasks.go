@@ -99,6 +99,13 @@ func (m *taskManager) get(id int) *task {
 	return nil
 }
 
+// lastStarted is the id of the most recently started task, 0 before any.
+func (m *taskManager) lastStarted() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastID
+}
+
 // latest is the most recently started task, the one the footer follows.
 func (m *taskManager) latest() *task {
 	m.mu.Lock()
