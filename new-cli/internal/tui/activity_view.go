@@ -9,7 +9,7 @@ import (
 	"github.com/ajnart/self-host/internal/activity"
 )
 
-type workflowView struct {
+type activityView struct {
 	cursor    int
 	offset    int
 	toggled   map[string]bool
@@ -19,13 +19,13 @@ type workflowView struct {
 	failures map[string]bool
 }
 
-// workflowRow is one navigable line: an App header, or one of its steps.
-type workflowRow struct {
+// activityRow is one navigable line: an App header, or one of its steps.
+type activityRow struct {
 	app  activity.App
 	step *activity.Step
 }
 
-func (v *workflowView) Title() string { return "Activity" }
+func (v *activityView) Title() string { return "Activity" }
 
 // The r key acts until #133's Action menu replaces it.
 var (
@@ -35,29 +35,29 @@ var (
 )
 
 // Keys puts frequent keys first: a narrow bar cuts the tail.
-func (v *workflowView) Keys() []key.Binding {
+func (v *activityView) Keys() []key.Binding {
 	if v.searching {
 		return activitySearchKeys
 	}
 	return activityKeys
 }
 
-func (v *workflowView) Panes() []pane {
+func (v *activityView) Panes() []pane {
 	return []pane{{"Steps", activityKeys}, {"Search", activitySearchKeys}}
 }
 
-func (v *workflowView) Capturing() bool { return v.searching }
+func (v *activityView) Capturing() bool { return v.searching }
 
 // expanded reports whether the App's steps are shown: a set-up App starts
 // collapsed, everything else starts expanded, and space overrides that.
-func (v *workflowView) expanded(app activity.App) bool {
+func (v *activityView) expanded(app activity.App) bool {
 	if on, ok := v.toggled[app.ID]; ok {
 		return on
 	}
 	return !app.SetUp
 }
 
-func (v *workflowView) setExpanded(id string, on bool) {
+func (v *activityView) setExpanded(id string, on bool) {
 	if v.toggled == nil {
 		v.toggled = map[string]bool{}
 	}
@@ -65,8 +65,8 @@ func (v *workflowView) setExpanded(id string, on bool) {
 }
 
 // apps narrows the Project to the Apps matching the filter on name or id.
-func (v *workflowView) apps(ctx *viewContext) []activity.App {
-	all := ctx.workflow().Apps
+func (v *activityView) apps(ctx *viewContext) []activity.App {
+	all := ctx.snapshot().Apps
 	if v.filter == "" {
 		return all
 	}
@@ -80,25 +80,25 @@ func (v *workflowView) apps(ctx *viewContext) []activity.App {
 	return out
 }
 
-func (v *workflowView) rows(ctx *viewContext) []workflowRow {
-	var out []workflowRow
+func (v *activityView) rows(ctx *viewContext) []activityRow {
+	var out []activityRow
 	for _, app := range v.apps(ctx) {
-		out = append(out, workflowRow{app: app})
+		out = append(out, activityRow{app: app})
 		if !v.expanded(app) {
 			continue
 		}
 		for i := range app.Steps {
-			out = append(out, workflowRow{app: app, step: &app.Steps[i]})
+			out = append(out, activityRow{app: app, step: &app.Steps[i]})
 		}
 	}
 	return out
 }
 
-func (v *workflowView) clamp(ctx *viewContext) {
+func (v *activityView) clamp(ctx *viewContext) {
 	v.cursor = max(min(v.cursor, len(v.rows(ctx))-1), 0)
 }
 
-func (v *workflowView) toggle(ctx *viewContext) {
+func (v *activityView) toggle(ctx *viewContext) {
 	rows := v.rows(ctx)
 	if v.cursor >= len(rows) {
 		return
@@ -114,7 +114,7 @@ func (v *workflowView) toggle(ctx *viewContext) {
 }
 
 // toggleFailure opens or closes the error and hint of the selected failed step.
-func (v *workflowView) toggleFailure(ctx *viewContext) {
+func (v *activityView) toggleFailure(ctx *viewContext) {
 	rows := v.rows(ctx)
 	if v.cursor >= len(rows) {
 		return
@@ -131,12 +131,12 @@ func (v *workflowView) toggleFailure(ctx *viewContext) {
 }
 
 // scroll moves the selection by dy rows; the View keeps it on screen.
-func (v *workflowView) scroll(ctx *viewContext, dy int) {
+func (v *activityView) scroll(ctx *viewContext, dy int) {
 	v.cursor += dy
 	v.clamp(ctx)
 }
 
-func (v *workflowView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
+func (v *activityView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 	switch msg := msg.(type) {
 	case tea.MouseWheelMsg:
 		dy := 3
@@ -151,7 +151,7 @@ func (v *workflowView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav
 	return v, nil, nav{}
 }
 
-func (v *workflowView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.Cmd, nav) {
+func (v *activityView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	if v.searching {
 		switch press.String() {
 		case "enter":
@@ -202,17 +202,21 @@ func (v *workflowView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.C
 	return v, nil, nav{}
 }
 
-func (v *workflowView) View(ctx *viewContext, width, height int) string {
+func (v *activityView) View(ctx *viewContext, width, height int) string {
 	t := ctx.theme
-	workflow := ctx.workflow()
+	s := ctx.snapshot()
 	rows := v.rows(ctx)
 	v.cursor = max(min(v.cursor, len(rows)-1), 0)
 	lines := []string{"  " + t.title().Render("Activity") + " · " +
-		plural(workflow.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
-		plural(workflow.Counts.StepsFailed, "step failed", "steps failed") + " · " +
-		plural(workflow.Counts.StepsRunning, "step running", "steps running"), ""}
-	if workflow.Pull.Pulling {
-		for _, line := range activity.PullBlock(workflow, width-2, t.palette()) {
+		plural(s.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
+		plural(s.Counts.StepsFailed, "step failed", "steps failed") + " · " +
+		plural(s.Counts.StepsRunning, "step running", "steps running"), ""}
+	// The Action leaves room for a few of every App's remembered steps.
+	if block := activity.Render(s, ctx.motion, width-2, t.palette()); len(block) > 0 {
+		if limit := max(height-8, 6); len(block) > limit {
+			block = append(block[:limit-1], t.dim().Render("…"))
+		}
+		for _, line := range block {
 			lines = append(lines, "  "+line)
 		}
 		lines = append(lines, "")
@@ -254,7 +258,7 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 
 // rowLines renders one row: an App header, or a step plus, when opened, its
 // error and hint.
-func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string, width int) []string {
+func (v *activityView) rowLines(ctx *viewContext, row activityRow, cursor string, width int) []string {
 	t := ctx.theme
 	if row.step == nil {
 		chevron := t.dim().Render("▾")

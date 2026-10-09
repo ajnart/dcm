@@ -13,10 +13,10 @@ import (
 func TestWorkflowViewEnterExpandsAndCollapsesFailure(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = workflowStatus()
-	var v view = &workflowView{}
+	var v view = &activityView{}
 	for range 20 {
-		rows := v.(*workflowView).rows(ctx)
-		if row := rows[v.(*workflowView).cursor]; row.step != nil && row.step.State == activity.Failed {
+		rows := v.(*activityView).rows(ctx)
+		if row := rows[v.(*activityView).cursor]; row.step != nil && row.step.State == activity.Failed {
 			break
 		}
 		v, _, _ = v.Update(ctx, press("j"))
@@ -60,7 +60,7 @@ func TestWorkflowViewRetriesSelectedAppSetup(t *testing.T) {
 			backend := &fakeBackend{}
 			ctx := testViewContext(backend)
 			ctx.status = tc.status
-			var v view = &workflowView{}
+			var v view = &activityView{}
 			for range tc.down {
 				v, _, _ = v.Update(ctx, press("j"))
 			}

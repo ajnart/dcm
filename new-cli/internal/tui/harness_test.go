@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
@@ -182,7 +181,7 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 				out = append(out, runCmd(c)...)
 			}
 			return out
-		case tickMsg, tea.QuitMsg, spinner.TickMsg, updatesTick:
+		case tickMsg, tea.QuitMsg, frameMsg, updatesTick:
 			return nil
 		default:
 			// tea.Sequence yields an unexported []tea.Cmd; run it in order.
@@ -341,7 +340,7 @@ func TestKeybindAudit(t *testing.T) {
 		"done: enter", "clear: esc",
 	}
 	ctx := testViewContext(&fakeBackend{})
-	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
+	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
 	bindings := newKeyMap().all()
 	for _, v := range views {
 		bindings = append(bindings, v.Keys()...)
@@ -396,6 +395,7 @@ func TestEnterStopsARunningAppAndStartsAStoppedOne(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 
 	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("1"))
 	m = drive(t, m, press("j"))
 	m = drive(t, m, press("j"))
 	drive(t, m, press("enter"))
@@ -425,6 +425,7 @@ func TestRetrySetupOnlyForManagedApps(t *testing.T) {
 
 	m = drive(t, m, press("j"))
 	m = drive(t, m, press("r"))
+	m = drive(t, m, press("1"))
 	m = drive(t, m, press("j"))
 	m = drive(t, m, press("r"))
 
@@ -510,6 +511,7 @@ func TestStatusLineShowsTheRunningActionThenItsResult(t *testing.T) {
 	if !strings.Contains(statusLine(screen(m)), "stop jellyfin") {
 		t.Fatalf("the status line should name the running Action\n%s", statusLine(screen(m)))
 	}
+	m = drive(t, m, press("1"))
 	m = drive(t, m, press("b"))
 	if !strings.Contains(statusLine(screen(m)), "✓ backup") {
 		t.Fatalf("the status line should report the result\n%s", statusLine(screen(m)))
@@ -552,8 +554,8 @@ func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
 	if len(got) != 1 || strings.Join(got[0].Targets, ",") != "ntfy" {
 		t.Fatalf("installs %+v", got)
 	}
-	if out := screen(m); !strings.Contains(out, "Needs attention") {
-		t.Fatalf("approving the install should land on the Overview\n%s", out)
+	if out := screen(m); m.surface != surfaceActivity || !strings.Contains(out, "✓ install ntfy") {
+		t.Fatalf("approving the install should hand focus to Activity\n%s", out)
 	}
 	m = drive(t, m, press("4"))
 	if strings.Contains(screen(m), "Review") || strings.Contains(screen(m), "[x]") {
@@ -767,8 +769,8 @@ func TestSettingsAppliesEveryChangeAtOnce(t *testing.T) {
 	if got := backend.Actions(); !slices.Equal(got, []string{"config PUID=1001 DOWNLOADS_ROOT=/srv/downloads"}) {
 		t.Fatalf("actions %v", got)
 	}
-	if m.surface != surfaceDashboard {
-		t.Fatal("ctrl+s should return to the Dashboard")
+	if m.surface != surfaceActivity || m.settings != nil {
+		t.Fatal("ctrl+s should close Settings and hand focus to Activity")
 	}
 }
 
@@ -847,6 +849,7 @@ func TestStackUpdateAndRecheck(t *testing.T) {
 	if got := backend.Actions(); !slices.Contains(got, "update jellyfin") {
 		t.Fatalf("u should update the selected App, actions %v", got)
 	}
+	m = drive(t, m, press("2"))
 	before := backend.updateCalls
 	m = drive(t, m, press("r"))
 	if backend.updateCalls <= before {
@@ -861,6 +864,7 @@ func TestStackUpdateAndRecheck(t *testing.T) {
 		if !slices.Contains(backend.Actions(), action) {
 			t.Fatalf("the %s button must control the whole Project", action)
 		}
+		m = drive(t, m, press("2"))
 	}
 }
 
