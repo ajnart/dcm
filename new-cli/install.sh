@@ -5,25 +5,41 @@
 #
 # Installs to ~/.local/bin, or /usr/local/bin when run as root.
 # Environment:
-#   SELF_HOST_VERSION      install this version or tag (1.2.0 or new-cli-v1.2.0) instead of the latest
+#   SELF_HOST_VERSION      install this version (1.2.0, v1.2.0 or new-cli-v1.2.0) instead of the latest
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
 #   SELF_HOST_GITHUB_TOKEN token for the private repository; defaults to `gh auth token` when gh is logged in
+#   SELF_HOST_RELEASE_REPO owner/name of the repository that publishes releases (default below)
 #   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots
+#
+# Everything runs inside main, which is the last line: a truncated download
+# defines functions at most and installs nothing.
 set +x
 set -euo pipefail
-# Optional private-repository access. Tokens stay out of process arguments.
-TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
-if [ -z "$TOKEN" ] && [ -z "${SELF_HOST_RELEASES_URL:-}" ] && command -v gh >/dev/null 2>&1; then
-  TOKEN="$(gh auth token 2>/dev/null || true)"
-fi
-case "$TOKEN" in *[!a-zA-Z0-9_.-]*) printf "%s\n" "install.sh: invalid token format" >&2; exit 1 ;; esac
 
-REPO="ajnart/selfhost-skills"
-API_URL="${SELF_HOST_RELEASES_URL:-https://api.github.com/repos/${REPO}}"
-WEB_URL="${SELF_HOST_WEB_URL:-https://github.com/${REPO}}"
+# The one place the repository name is written. After a GitHub rename the old
+# name keeps redirecting, so changing it is cosmetic.
+DEFAULT_REPO="ajnart/selfhost-skills"
 
+REPO=""
+TOKEN=""
+API_URL=""
+WEB_URL=""
 tmp=""
 staging=""
+
+configure() {
+  REPO="${SELF_HOST_RELEASE_REPO:-$DEFAULT_REPO}"
+  [[ "$REPO" =~ ^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+$ && "$REPO" != *..* && "$REPO" != */. ]] || die "SELF_HOST_RELEASE_REPO must look like owner/name, not '${REPO}'"
+  # Optional private-repository access. Tokens stay out of process arguments.
+  TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
+  if [ -z "$TOKEN" ] && [ -z "${SELF_HOST_RELEASES_URL:-}" ] && command -v gh >/dev/null 2>&1; then
+    TOKEN="$(gh auth token 2>/dev/null || true)"
+  fi
+  case "$TOKEN" in *[!a-zA-Z0-9_.-]*) die "invalid token format" ;; esac
+  API_URL="${SELF_HOST_RELEASES_URL:-https://api.github.com/repos/${REPO}}"
+  WEB_URL="${SELF_HOST_WEB_URL:-https://github.com/${REPO}}"
+}
+
 cleanup() {
   if [ -n "$tmp" ]; then
     rm -rf "$tmp"
@@ -97,6 +113,14 @@ json_values() {
       }
       fail()
     }
+    function cli_release(tag,  ver,i,n,platforms) {
+      ver=tag
+      if (!sub(/^new-cli-v/, "", ver)) sub(/^v/, "", ver)
+      if (!sums) return 0
+      n=split("linux_amd64 linux_arm64 darwin_amd64 darwin_arm64", platforms, " ")
+      for (i=1; i<=n; i++) if (index(names, "\nself-host_" ver "_" platforms[i] ".tar.gz\n")) return 1
+      return 0
+    }
     function object_value( field,value,tag) {
       pos++; depth++; ws()
       if (substr(input,pos,1) != "}") {
@@ -110,11 +134,18 @@ json_values() {
       }
       pos++
       tag=values[depth,"tag_name"]
+      if (depth==2) {
+        if (values[depth,"name"]=="checksums.txt") sums=1
+        names=names "\n" values[depth,"name"] "\n"
+        if (mode=="asset" && values[depth,"name"]==wanted) output=output values[depth,"id"] "\n"
+        if (mode=="assetname" && values[depth,"name"]==wanted) output=output wanted "\n"
+      }
       if (depth==1 && tag!="") {
         count++
-        if ((mode=="tags" || mode=="tag") && values[depth,"draft"]!="true" && values[depth,"prerelease"]!="true") output=output tag "\n"
+        if (mode=="tag" && values[depth,"draft"]!="true" && values[depth,"prerelease"]!="true") output=output tag "\n"
+        if (mode=="tags" && values[depth,"draft"]!="true" && values[depth,"prerelease"]!="true" && cli_release(tag)) output=output tag "\n"
       }
-      if (depth==2 && mode=="asset" && values[depth,"name"]==wanted) output=output values[depth,"id"] "\n"
+      if (depth==1) { sums=0; names="" }
       for (field in values) if (index(field,depth SUBSEP)==1) delete values[field]
       depth--
       return ""
@@ -145,7 +176,7 @@ json_values() {
       if (invalid) exit 1
       pos=1; ws()
       if ((mode=="tags" || mode=="count") && substr(input,pos,1)!="[") fail()
-      if ((mode=="asset" || mode=="tag") && substr(input,pos,1)!="{") fail()
+      if ((mode=="asset" || mode=="assetname" || mode=="tag") && substr(input,pos,1)!="{") fail()
       parse_value(); ws()
       if (pos<=length(input) || invalid) exit 1
       if (mode=="count") print count+0
@@ -166,20 +197,23 @@ valid_version() {
   [[ "$1" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
 }
 
+# A CLI release is tagged vX.Y.Z or new-cli-vX.Y.Z and carries the self-host
+# archives and checksums.txt (json_values filters on that), which keeps the
+# legacy skill-pack releases out whatever their version.
 latest_tag() {
   local body page count candidates="" tag version
   for page in {1..10}; do
     body="$(api_get "${API_URL}/releases?per_page=100&page=${page}" application/vnd.github+json)" ||
-      die "could not look up CLI releases (404 means no access to the private repository); run 'gh auth login' or set SELF_HOST_GITHUB_TOKEN"
+      die "could not look up CLI releases from ${API_URL} (404 means no access to the private repository); run 'gh auth login' or set SELF_HOST_GITHUB_TOKEN"
     while IFS= read -r tag; do
-      case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; *) continue ;; esac
-      if valid_version "$version"; then candidates="${candidates}${version}"$'\n'; fi
+      case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; v*) version="${tag#v}" ;; *) continue ;; esac
+      if valid_version "$version"; then candidates="${candidates}${version} ${tag}"$'\n'; fi
     done < <(printf '%s' "$body" | json_values)
     count="$(printf '%s' "$body" | json_values "" count)" || die "invalid release-list JSON"
     if [ "$count" -lt 100 ]; then
-      version="$(printf '%s' "$candidates" | sed '/^$/d' | sort -t . -k1,1n -k2,2n -k3,3n | tail -n 1)"
-      [ -n "$version" ] || die "no stable new-cli-v release is published"
-      printf 'new-cli-v%s\n' "$version"
+      tag="$(printf '%s' "$candidates" | sed '/^$/d' | sort -t . -k1,1n -k2,2n -k3,3n | tail -n 1 | cut -d ' ' -f 2)"
+      [ -n "$tag" ] || die "no CLI release is published (a vX.Y.Z tag with the self-host archives and checksums.txt)"
+      printf '%s\n' "$tag"
       return
     fi
   done
@@ -196,10 +230,56 @@ sha256_of() {
   fi
 }
 
+# path_help says exactly how to put dir on PATH for the person's login shell.
+path_help() {
+  local dir="$1" shown="$1" file line
+  if [ "$dir" = "${HOME:-}/.local/bin" ]; then shown='$HOME/.local/bin'; fi
+  case "$(basename "${SHELL:-}")" in
+    fish)
+      say "Warning: ${dir} is not on your PATH. Add it for fish, then open a new terminal:"
+      say "  fish_add_path ${shown}"
+      return
+      ;;
+    zsh) file='~/.zshrc' ;;
+    bash)
+      if [ "$(uname -s)" = Darwin ]; then file='~/.bash_profile'; else file='~/.bashrc'; fi
+      ;;
+    *) file="" ;;
+  esac
+  line="export PATH=\"${shown}:\$PATH\""
+  if [ -n "$file" ]; then
+    say "Warning: ${dir} is not on your PATH. Add it, then open a new terminal:"
+    say "  echo '${line}' >> ${file}"
+  else
+    say "Warning: ${dir} is not on your PATH. Add this line to your shell's startup file, then open a new terminal:"
+    say "  ${line}"
+  fi
+}
+
+# resolve_release sets tag, version and metadata for the first candidate tag
+# that is a published CLI release listing the archive and checksums.txt.
+resolve_release() {
+  local archive="$1" candidate found="" listed
+  shift
+  for candidate in "$@"; do
+    metadata="$(api_get "${API_URL}/releases/tags/${candidate}" application/vnd.github+json 2>/dev/null)" || continue
+    [ "$(printf '%s' "$metadata" | json_values "" tag)" = "$candidate" ] || die "release metadata does not match requested stable CLI tag"
+    listed="$(printf '%s' "$metadata" | json_values "$archive" assetname)" || listed=""
+    [ -n "$listed" ] || { found="$candidate"; continue; }
+    tag="$candidate"
+    return
+  done
+  if [ -n "$found" ]; then
+    die "release ${found} is not a CLI release: it does not list ${archive}"
+  fi
+  die "could not read release metadata for $* from ${API_URL} (404 means no such release, or no access to the private repository)"
+}
+
 main() {
   need curl
   need tar
   need uname
+  configure
 
   local os arch tag version archive dir expected actual metadata asset_id name members
   os="$(detect_os)"
@@ -209,26 +289,40 @@ main() {
     *) die "no release is built for ${os}/${arch}" ;;
   esac
 
-  tag="${SELF_HOST_VERSION:-$(latest_tag)}"
-  case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; *) version="$tag"; tag="new-cli-v${tag}" ;; esac
-  valid_version "$version" || die "expected a stable X.Y.Z version or new-cli-vX.Y.Z tag"
-  archive="self-host_${version}_${os}_${arch}.tar.gz"
+  if [ -n "${SELF_HOST_VERSION:-}" ]; then
+    case "$SELF_HOST_VERSION" in
+      new-cli-v*) version="${SELF_HOST_VERSION#new-cli-v}" ;;
+      v*) version="${SELF_HOST_VERSION#v}" ;;
+      *) version="$SELF_HOST_VERSION" ;;
+    esac
+    valid_version "$version" || die "expected a stable X.Y.Z version, vX.Y.Z or new-cli-vX.Y.Z tag"
+    archive="self-host_${version}_${os}_${arch}.tar.gz"
+    tmp="$(mktemp -d)"
+    trap cleanup EXIT
+    case "$SELF_HOST_VERSION" in
+      new-cli-v*) resolve_release "$archive" "new-cli-v${version}" ;;
+      *) resolve_release "$archive" "v${version}" "new-cli-v${version}" ;;
+    esac
+  else
+    tmp="$(mktemp -d)"
+    trap cleanup EXIT
+    tag="$(latest_tag)"
+    case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; *) version="${tag#v}" ;; esac
+    archive="self-host_${version}_${os}_${arch}.tar.gz"
+    resolve_release "$archive" "$tag"
+  fi
   dir="$(install_dir)"
 
-  tmp="$(mktemp -d)"
-  trap cleanup EXIT
-
   say "Downloading self-host ${version} for ${os}/${arch}"
-  metadata="$(api_get "${API_URL}/releases/tags/${tag}" application/vnd.github+json)" || die "could not read release metadata for ${tag}"
-  [ "$(printf '%s' "$metadata" | json_values "" tag)" = "$tag" ] || die "release metadata does not match requested stable CLI tag"
   for name in "$archive" checksums.txt; do
     if [ -n "$TOKEN" ]; then
       asset_id="$(printf '%s' "$metadata" | json_values "$name" asset)"
       [[ "$asset_id" =~ ^[1-9][0-9]*$ ]] || die "release ${tag} does not list ${name}"
-      api_get "${API_URL}/releases/assets/${asset_id}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name}"
+      api_get "${API_URL}/releases/assets/${asset_id}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name} from ${API_URL}/releases/assets/${asset_id}"
     else
-      curl -fsSL -o "${tmp}/${name}" "${WEB_URL}/releases/download/${tag}/${name}" || die "could not download ${name}"
+      curl -fsSL -o "${tmp}/${name}" "${WEB_URL}/releases/download/${tag}/${name}" || die "could not download ${name} from ${WEB_URL}/releases/download/${tag}/${name}"
     fi
+    [ -s "${tmp}/${name}" ] || die "downloaded ${name} is empty; nothing was installed"
   done
 
   expected="$(awk -v name="$archive" '$2 == name || $2 == "*" name { count++; digest=$1 } END { if (count == 1) print digest }' "${tmp}/checksums.txt")"
@@ -258,13 +352,13 @@ main() {
   say "Installed ${dir}/self-host (${version}, checksum verified)"
   case ":${PATH}:" in
     *":${dir}:"*) ;;
-    *) say "Warning: ${dir} is not on your PATH. Add it, for example:  export PATH=\"${dir}:\$PATH\"" ;;
+    *) path_help "$dir" ;;
   esac
   command -v docker >/dev/null 2>&1 ||
     say "Warning: Docker was not found. Install Docker with the Compose v2 plugin before deploying; self-host doctor checks it."
   say
   say "Next: run  self-host  for the dashboard, or  self-host install media --yes  for the media server."
-  say "For an AI agent: bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host, then ask it to self-host something."
+  say "For an AI agent: bunx --bun skills@latest add ${REPO} --skill self-host, then ask it to self-host something."
 }
 
 main "$@"

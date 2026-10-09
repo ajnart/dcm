@@ -136,7 +136,7 @@ func orDefault(value, fallback string) string {
 	return strings.TrimSuffix(value, "/")
 }
 
-var repoName = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
+var repoName = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+$`)
 
 func (c Client) repo() string { return orDefault(c.Repo, Repo) }
 
@@ -144,7 +144,7 @@ func (c Client) api() string { return orDefault(c.APIURL, "https://api.github.co
 func (c Client) web() string { return orDefault(c.WebURL, "https://github.com/"+c.repo()) }
 
 func (c Client) validate() error {
-	if !repoName.MatchString(c.repo()) {
+	if repo := c.repo(); !repoName.MatchString(repo) || strings.Contains(repo, "..") || strings.HasSuffix(repo, "/.") {
 		return fmt.Errorf("%s must look like owner/name, not %q", EnvRepo, c.repo())
 	}
 	return nil

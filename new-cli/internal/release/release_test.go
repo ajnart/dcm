@@ -63,8 +63,10 @@ func TestRepositoryComesFromOneConstantAndTheEnvironmentOverride(t *testing.T) {
 }
 
 func TestAnInvalidRepositoryOverrideIsRefused(t *testing.T) {
-	c := Client{HTTP: http.DefaultClient, Repo: "../../evil"}
-	if _, err := c.Latest(context.Background()); err == nil || !strings.Contains(err.Error(), EnvRepo) {
-		t.Errorf("Latest error = %v", err)
+	for _, repo := range []string{"../../evil", "ajnart/..", "ajnart/.", "../evil", "just-a-name"} {
+		c := Client{HTTP: http.DefaultClient, Repo: repo}
+		if _, err := c.Latest(context.Background()); err == nil || !strings.Contains(err.Error(), EnvRepo) {
+			t.Errorf("Repo %q: Latest error = %v", repo, err)
+		}
 	}
 }

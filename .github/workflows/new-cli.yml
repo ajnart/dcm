@@ -109,7 +109,7 @@ jobs:
           class Handler(http.server.BaseHTTPRequestHandler):
               def do_GET(self):
                   if self.path == "/api/releases/tags/" + tag:
-                      body = json.dumps({"tag_name": tag, "draft": False, "prerelease": False, "assets": []}).encode()
+                      body = json.dumps({"tag_name": tag, "draft": False, "prerelease": False, "assets": [{"id": 1, "name": "checksums.txt"}, {"id": 2, "name": archive_name}]}).encode()
                   elif self.path == "/web/releases/download/" + tag + "/checksums.txt":
                       body = (checksum + "  " + archive_name + "\n").encode()
                   elif self.path == "/web/releases/download/" + tag + "/" + archive_name:
