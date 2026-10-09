@@ -1,0 +1,84 @@
+new-cli/CONTEXT.md
+  h_d6e478ca18e517 108-110
+new-cli/README.md
+  h_d6e478ca18e517 172-181
+new-cli/docs/adr/0004-tabbed-command-center-action-chords.md
+  h_d6e478ca18e517 7
+new-cli/internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 95-96,116,133,206-213,215,218,221-229,232,240-254,332
+new-cli/internal/apps/beszel/beszel_test.go
+  h_d6e478ca18e517 166,345-361
+new-cli/internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 859-1043
+new-cli/internal/apps/homarr/links.go
+  h_d6e478ca18e517 14,26-28,33,42-57,117-123,654-655,669,684-689,693,885
+new-cli/internal/service/backup.go
+  h_d6e478ca18e517 7,126,186-271
+new-cli/internal/service/backup_list_test.go
+  h_d6e478ca18e517 1-95
+new-cli/internal/tui/backend.go
+  h_d6e478ca18e517 6-8,34,44-48,63-67,82-86,135-143,179-186,204,206-207
+new-cli/internal/tui/backups.go
+  h_d6e478ca18e517 1-424
+new-cli/internal/tui/backups_test.go
+  h_d6e478ca18e517 1-520
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 70,105,115
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 8,30-39,69-76,205-216,221,462-463
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 418-420,448-455,518-520,569,762-773
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 9,42,58-63,67-68,88,107-110,116-117,135-137,277-282,330-332,352-355,368-371,492-495
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 45-46,50
+new-cli/internal/tui/testdata/settings-backups-list-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-list.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-narrow.golden
+  h_d6e478ca18e517 4-6,24
+new-cli/internal/tui/testdata/settings-backups-passphrase-again-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-passphrase-again.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-passphrase-mismatch-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-passphrase-mismatch.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-passphrase-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-passphrase.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-restore-armed-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-restore-armed.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups-restore-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-backups-restore.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-backups.golden
+  h_d6e478ca18e517 4-6,30
+new-cli/internal/tui/testdata/settings-tools-narrow.golden
+  h_d6e478ca18e517 4-9,24
+new-cli/internal/tui/testdata/settings-tools.golden
+  h_d6e478ca18e517 4-9,30
+new-cli/internal/tui/tools.go
+  h_d6e478ca18e517 1-114
+new-cli/internal/tui/tools_test.go
+  h_d6e478ca18e517 1-146
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 575-577
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4eda1e76dabe4216faa7cc7f87542258b35b5022",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
