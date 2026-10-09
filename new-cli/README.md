@@ -169,11 +169,14 @@ While a search or an edit takes text, every key goes to it; in the App list
 five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
 Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
 archives in `~/.self-host/backups` with date, size and whether each is encrypted:
-`b` asks for an optional passphrase (typed as dots; empty means unencrypted) and
-backs up the whole Project, and `enter` on an archive opens a restore preview that
-offers the whole Project or one App, asks for the passphrase only when the archive
-is encrypted, and restores only once `enter` is pressed twice in the preview. Both run as Actions in Activity, and
-no key deletes an archive. Tools is a placeholder for now. About shows the version, the Project folder and whether a newer
+`b` asks for an optional passphrase (typed as dots; empty means unencrypted, otherwise it
+is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore
+preview that offers the whole Project or one App, asks for the passphrase only when the
+archive is encrypted, and restores only once `enter` is pressed twice in the preview. Both
+run as Actions in Activity, and no key deletes an archive. Tools finds `ctop` and
+`lazydocker` on `PATH`: `enter` runs one and
+the TUI resumes when it exits; a missing one is dimmed with its install command for this
+platform and `c` copies it (self-host never installs a tool). About shows the version, the Project folder and whether a newer
 release exists; `c` opens Ko-fi and `s` GitHub Sponsors in the browser. Appearance
 chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
 in the terminal) or Simple Unicode symbols, the default. The choice is saved at
