@@ -13,12 +13,12 @@
 
   Phones, TVs and laptops on the same Wi-Fi or router as this computer can
   open your Apps at 192.168.1.20. Nobody on the internet can.
-  Apps are published on 0.0.0.0, every address of this computer. The LAN
-  address only builds links.
 
   phones · TVs · laptops ──── router ──── this computer 192.168.1.20
                                  │
                             internet ✗
+
+
 
 
  answering · keys go to the form              enter  next   esc  back   ?  more

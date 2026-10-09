@@ -206,7 +206,7 @@ func TestSettingsExposureRowExplainsItselfLikeOnboarding(t *testing.T) {
 
 	m = drive(t, m, press("enter")) // lan → local, pending
 	out = screen(m)
-	if !strings.Contains(flat(out), localExplanation) || !strings.Contains(out, "router ──✗── this computer 127.0.0.1") || strings.Contains(flat(out), "can open your Apps at") {
+	if !strings.Contains(flat(out), localExplanation) || !strings.Contains(out, "router ──✗── this computer") || strings.Contains(out, "127.0.0.1") || strings.Contains(out, "0.0.0.0") || strings.Contains(flat(out), "can open your Apps at") {
 		t.Fatalf("the explanation follows the pending choice\n%s", out)
 	}
 

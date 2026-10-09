@@ -27,8 +27,8 @@ func TestDiagramShowsDevicesThenRouterThenThisComputerWithNoInternet(t *testing.
 		}
 
 		local := diagramText(service.ExposureLocal, "192.168.1.20", 76, large)
-		if !strings.Contains(local, "127.0.0.1") || strings.Contains(local, "192.168.1.20") || !strings.Contains(local, "internet ✗") {
-			t.Errorf("large=%v: the local diagram names 127.0.0.1 and no LAN address\n%s", large, local)
+		if strings.Contains(local, "192.168.1.20") || !strings.Contains(local, "internet ✗") || strings.Contains(local, "127.0.0.1") != large {
+			t.Errorf("large=%v: the local diagram names no LAN address, and 127.0.0.1 only in the larger one\n%s", large, local)
 		}
 		if !strings.Contains(local, "✗") || local == lan || strings.Count(local, "✗") < 2 {
 			t.Errorf("large=%v: the local diagram must show the blocked way to this computer\n%s", large, local)
@@ -68,16 +68,32 @@ func TestExposureHelpPageTellsWhatTheTicketPromises(t *testing.T) {
 		"Nobody on the internet can open your Apps unless your router forwards ports",
 		"firewall",
 		"Settings",
-		"0.0.0.0",
+		"Technical details",
+		"published on 0.0.0.0",
+		"The LAN address only builds links",
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the Exposure help page lacks %q\n%s", want, text)
 		}
 	}
-	if local := strings.Join(exposureHelp(newTheme(true), service.ExposureLocal, "192.168.1.20", 70), "\n"); !strings.Contains(ansi.Strip(local), "127.0.0.1") {
+	if local := strings.Join(exposureHelp(newTheme(true), service.ExposureLocal, "192.168.1.20", 70), "\n"); !strings.Contains(flat(ansi.Strip(local)), "published on 127.0.0.1") {
 		t.Errorf("the page for this computer only names 127.0.0.1\n%s", local)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(text), "Technical details Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links.") {
+		t.Errorf("Technical details is the page's last section\n%s", text)
 	}
 	if !slices.ContainsFunc(lines, func(l string) bool { return strings.Contains(ansi.Strip(l), "╭") }) {
 		t.Errorf("the help page draws the larger boxed diagram\n%s", text)
+	}
+}
+
+func TestTheLiveExplanationIsPlainWordsWithNoBindAddress(t *testing.T) {
+	for _, exposure := range []string{service.ExposureLAN, service.ExposureLocal} {
+		for _, room := range []int{20, 8, 4} {
+			block := ansi.Strip(strings.Join(exposureBlock(newTheme(true), exposure, "192.168.1.20", 76, room), "\n"))
+			if strings.Contains(block, "0.0.0.0") || strings.Contains(block, "127.0.0.1") || strings.Contains(block, "published") {
+				t.Errorf("%s room=%d: the live block must be plain words\n%s", exposure, room, block)
+			}
+		}
 	}
 }

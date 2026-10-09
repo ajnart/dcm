@@ -704,11 +704,13 @@ func TestMovingTheExposureHighlightChangesTheExplanationAndTheDiagram(t *testing
 	if !strings.Contains(flat(local), localExplanation) || strings.Contains(flat(local), "can open your Apps at") {
 		t.Fatalf("the this-computer-only choice shows its own explanation\n%s", local)
 	}
-	if !strings.Contains(local, "router ──✗── this computer 127.0.0.1") || !strings.Contains(local, "internet ✗") || strings.Contains(local, "this computer 192.168.1.20") {
+	if !strings.Contains(local, "router ──✗── this computer") || !strings.Contains(local, "internet ✗") || strings.Contains(local, "this computer 192.168.1.20") {
 		t.Fatalf("the diagram follows the highlight and shows the way to this computer closed\n%s", local)
 	}
-	if !strings.Contains(flat(local), "published on 127.0.0.1") || !strings.Contains(flat(lan), "published on 0.0.0.0") {
-		t.Fatalf("each choice says where the Apps are published\nlan:\n%s\nlocal:\n%s", lan, local)
+	for name, out := range map[string]string{"lan": lan, "local": local} {
+		if strings.Contains(out, "0.0.0.0") || strings.Contains(out, "127.0.0.1") {
+			t.Fatalf("%s: the live explanation is plain words, with no bind address\n%s", name, out)
+		}
 	}
 }
 

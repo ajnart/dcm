@@ -38,19 +38,21 @@ func exposureText(exposure, lanIP string) string {
 		". Nobody on the internet can."
 }
 
-// exposureFacts is what Exposure does underneath: where the Apps' ports are
-// published, and that the LAN address only builds links.
+// exposureFacts is what Exposure does underneath, for the help page's
+// technical details: where the Apps' ports are published, and that the LAN
+// address only builds links.
 func exposureFacts(exposure string) string {
 	bind := service.BindIP(exposure)
 	if exposure == service.ExposureLocal {
-		return "Apps are published on " + bind + ", this computer only. Links use " + bind + "."
+		return "Apps are published on " + bind + ", so only this computer can reach them. The LAN address only builds links, and with this choice they use " + bind + "."
 	}
 	return "Apps are published on " + bind + ", every address of this computer. The LAN address only builds links."
 }
 
 // exposureDiagram draws who can reach this computer: devices, then the
 // router, then this computer, and the internet beyond the router, always
-// closed. The large one is boxed. Both fit width.
+// closed. The large one is boxed and names the address even for this
+// computer only; the small one stays in plain words. Both fit width.
 func exposureDiagram(t theme, exposure, lanIP string, width int, large bool) []string {
 	local := exposure == service.ExposureLocal
 	address := exposureAddress(exposure, lanIP)
@@ -73,11 +75,16 @@ func lineDiagram(t theme, local bool, address string, width int) []string {
 		rightStyled = t.fg(t.ok).Render("──") + t.fg(t.fail).Render("✗") + t.fg(t.ok).Render("──")
 	}
 	devices := "phones · TVs · laptops"
-	if lipgloss.Width(devices+" "+left+" router "+right+" this computer "+address) > width {
+	computer, computerStyled := "this computer", t.body().Render("this computer")
+	if !local {
+		computer += " " + address
+		computerStyled += " " + t.fg(t.accentText).Render(address)
+	}
+	if lipgloss.Width(devices+" "+left+" router "+right+" "+computer) > width {
 		devices = "devices"
 	}
 	path := t.body().Render(devices) + " " + t.fg(t.ok).Render(left) + " " + t.heading().Render("router") + " " + rightStyled +
-		" " + t.body().Render("this computer ") + t.fg(t.accentText).Render(address)
+		" " + computerStyled
 	centre := lipgloss.Width(devices) + 1 + lipgloss.Width(left) + 1 + 3
 	lines := []string{path, strings.Repeat(" ", centre) + t.dim().Render("│"),
 		strings.Repeat(" ", max(centre-5, 0)) + t.body().Render("internet ") + t.fg(t.fail).Render("✗")}
@@ -154,7 +161,6 @@ func exposureHelp(t theme, exposure, lanIP string, width int) []string {
 	}
 	lines = append(lines, "")
 	paragraph(t.body(), exposureText(exposure, lanIP))
-	paragraph(t.dim(), exposureFacts(exposure))
 	section("What is a LAN address?",
 		"The address of this computer on your home or office network, like 192.168.1.20. Your router usually hands it out. "+
 			"Other devices type it into a browser, followed by an App's port. self-host finds it on this machine and uses it "+
@@ -165,6 +171,7 @@ func exposureHelp(t theme, exposure, lanIP string, width int) []string {
 		"If another device cannot connect, this computer's firewall may need a rule that allows the App's port from your network.")
 	section("Changing it later",
 		"Everything here can be changed later in Settings, under Host.")
+	section("Technical details", exposureFacts(exposure))
 	return lines
 }
 
@@ -176,8 +183,8 @@ func exposurePage(exposure, lanIP string) helpPage {
 }
 
 // exposureBlock is the live explanation of an Exposure choice as indented
-// lines after a blank one, in at most room lines: what it means, where the
-// Apps are published and the diagram, shedding them in that order when room
+// lines after a blank one, in at most room lines: what it means in plain
+// words and the diagram, shedding the blank line, then the diagram, when room
 // is short. It is nil when not even the text fits.
 func exposureBlock(t theme, exposure, lanIP string, width, room int) []string {
 	paragraph := func(style lipgloss.Style, text string) []string {
@@ -188,13 +195,11 @@ func exposureBlock(t theme, exposure, lanIP string, width, room int) []string {
 		return lines
 	}
 	text := paragraph(t.body(), exposureText(exposure, lanIP))
-	facts := paragraph(t.dim(), exposureFacts(exposure))
 	var diagram []string
 	for _, line := range exposureDiagram(t, exposure, lanIP, width, false) {
 		diagram = append(diagram, "  "+line)
 	}
 	for _, block := range [][]string{
-		slices.Concat(text, facts, []string{""}, diagram),
 		slices.Concat(text, []string{""}, diagram),
 		slices.Concat(text, diagram),
 		text,

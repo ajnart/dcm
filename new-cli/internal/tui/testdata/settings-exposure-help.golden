@@ -9,8 +9,6 @@
 
   Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
   192.168.1.20. Nobody on the internet can.
-  Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds
-  links.
 
   What is a LAN address?
   The address of this computer on your home or office network, like 192.168.1.20. Your router
@@ -24,6 +22,8 @@
 
   The firewall
   If another device cannot connect, this computer's firewall may need a rule that allows the App's
+  port from your network.
+
 
   ↑/↓ scroll · esc or ? closes · more below ↓
 

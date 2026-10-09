@@ -13,11 +13,11 @@
 
   Your Apps open only in a browser on this computer. Other devices can't reach
   them.
-  Apps are published on 127.0.0.1, this computer only. Links use 127.0.0.1.
 
-  phones · TVs · laptops ──── router ──✗── this computer 127.0.0.1
+  phones · TVs · laptops ──── router ──✗── this computer
                                  │
                             internet ✗
+
 
 
 
