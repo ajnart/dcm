@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -15,7 +16,7 @@ func TestWorkflowViewEnterExpandsAndCollapsesFailure(t *testing.T) {
 	var v view = &workflowView{}
 	for range 20 {
 		rows := v.(*workflowView).rows(ctx)
-		if row := rows[v.(*workflowView).cursor]; row.step != nil && row.step.State == WorkflowFailed {
+		if row := rows[v.(*workflowView).cursor]; row.step != nil && row.step.State == activity.Failed {
 			break
 		}
 		v, _, _ = v.Update(ctx, press("j"))

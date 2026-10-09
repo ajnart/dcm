@@ -125,6 +125,9 @@ remain explicit prerequisites.
 Settings applies edits with `ctrl+s`; `esc` returns to the Dashboard. Workflow
 shows remembered render/pull/start, Setup, Links and checks. Space expands an
 App, `/` filters, and enter expands a failed step's error and recovery hint.
+While an Action pulls images, Workflow, the footer and the CLI in a terminal
+show one overall bar, a slim bar per image and "N of M images"; piped output
+keeps one `✓ pulled` line per image.
 Stack (`d`) controls the whole Project with `1` Up, `2` Down and `3` Restart all;
 enter starts/stops the selected App. The buttons also work with the mouse.
 Down removes the Project's containers and networks while keeping volumes,

@@ -6,9 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
@@ -74,16 +80,42 @@ func (a *program) logger() *events.Logger {
 	if a.document {
 		a.log = events.New()
 		if a.verbose {
-			a.log.AddSink(events.Human(a.deps.Err, true, a.deps.Interactive))
+			a.log.AddSink(a.human(a.deps.Err, true))
 		}
 		return a.log
 	}
 	if a.json {
 		a.log = events.New(events.JSON(a.deps.Out))
 	} else {
-		a.log = events.New(events.Human(a.deps.Out, a.verbose, a.deps.Interactive))
+		a.log = events.New(a.human(a.deps.Out, a.verbose))
 	}
 	return a.log
+}
+
+// human prints events as plain lines, or on an interactive terminal with the
+// pull drawn as bars that redraw in place. A dumb terminal cannot move the
+// cursor, so it gets the plain lines.
+func (a *program) human(w io.Writer, verbose bool) events.Sink {
+	if !a.deps.Interactive {
+		return events.Human(w, verbose)
+	}
+	dark, width := true, 80
+	if f, ok := w.(*os.File); ok && term.IsTerminal(f.Fd()) {
+		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
+			width = cols
+		}
+		profiled := colorprofile.NewWriter(f, os.Environ())
+		if profiled.Profile <= colorprofile.NoTTY {
+			return events.Human(w, verbose)
+		}
+		dark = lipgloss.HasDarkBackground(os.Stdin, f)
+		w = profiled
+	}
+	palette := tui.Palette(dark)
+	if a.deps.Getenv != nil && a.deps.Getenv("NO_COLOR") != "" {
+		palette = activity.Palette{}
+	}
+	return activity.Terminal(w, verbose, width, palette)
 }
 
 // Run executes the binary with args and returns the exit code.
