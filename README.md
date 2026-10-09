@@ -40,10 +40,10 @@ Run `self-host self-update` to install the newest release, checksum verified.
 The terminal Dashboard also asks "Update now? y/n" when one is available, and a
 plain command prints a one-line reminder at most once a day on a terminal.
 `--json` (agents), CI, development builds and `SELF_HOST_NO_UPDATE_CHECK=1`
-never see either. Details: [new-cli/README.md](new-cli/README.md#staying-up-to-date).
+never see either. Details: [new-cli/README.md](https://github.com/ajnart/selfhost-skills/blob/main/new-cli/README.md#staying-up-to-date).
 
 The Go CLI is the current product: [installation, terminal Dashboard, agent
-commands and support status](new-cli/README.md). Agents run `self-host skill` and
+commands and support status](https://github.com/ajnart/selfhost-skills/blob/main/new-cli/README.md). Agents run `self-host skill` and
 follow the guide it prints, which matches the installed binary. It has its own
 release channel (`vX.Y.Z` tags; earlier releases use `new-cli-vX.Y.Z`).
 
