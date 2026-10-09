@@ -87,6 +87,8 @@ type (
 
 type Options struct {
 	Version string
+	// NoColor is NO_COLOR: the pre-boot screen keeps its motion without colour.
+	NoColor bool
 	// Now is the clock shown in the header; tests pin it.
 	Now func() time.Time
 }
@@ -146,6 +148,8 @@ type Model struct {
 
 	// onboarding is set from the first run until the Project exists.
 	onboarding *onboarding
+	// preboot is set while the first install's pre-boot screen is on screen.
+	preboot *prebootScreen
 }
 
 func New(backend Backend, opts Options) Model {
@@ -169,7 +173,7 @@ func New(backend Backend, opts Options) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.loadGlyphs(), frameTick(), tick(),
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.loadGlyphs(), m.frameTick(), tick(),
 		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
@@ -177,8 +181,8 @@ func tick() tea.Cmd {
 	return tea.Tick(refreshEvery, func(t time.Time) tea.Msg { return tickMsg(t) })
 }
 
-func frameTick() tea.Cmd {
-	return tea.Tick(time.Second/activity.FPS, func(time.Time) tea.Msg { return frameMsg{} })
+func (m Model) frameTick() tea.Cmd {
+	return tea.Tick(m.framePeriod(), func(time.Time) tea.Msg { return frameMsg{} })
 }
 
 // startTicking runs the frame ticker unless it already runs.
@@ -187,18 +191,19 @@ func (m *Model) startTicking() tea.Cmd {
 		return nil
 	}
 	m.ticking = true
-	return frameTick()
+	return m.frameTick()
 }
 
 // nextFrame advances the animation and keeps ticking only while the Project
-// is still being read, Onboarding reveals the host checks, an Action runs or
-// a transition still plays.
+// is still being read, Onboarding reveals the host checks, pre-boot plays, an
+// Action runs or a transition still plays.
 func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 	m.frame++
 	s := m.ctx().snapshot()
 	m.tracker.Observe(s, m.frame)
-	if !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
-		return m, frameTick()
+	m = m.advancePreboot(s)
+	if m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
+		return m, m.frameTick()
 	}
 	m.ticking = false
 	return m, nil
@@ -458,6 +463,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseWheelMsg:
+		if m.preboot != nil {
+			return m, nil
+		}
 		if m.showHelp && m.helpView.page != nil {
 			return m.dispatchHelp(msg)
 		}
@@ -501,6 +509,9 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	m.tasks.finish(msg.id, msg.err)
+	if msg.err != nil {
+		m.preboot = nil
+	}
 	switch {
 	case errors.Is(msg.err, service.ErrIncomplete), errors.Is(msg.err, service.ErrManual):
 		m.setFlash("! "+msg.title+": Setup needs attention (see Needs attention)", levelWarn)
@@ -667,11 +678,13 @@ func (m *Model) setActive(v view) {
 	}
 }
 
-// handleKey routes a key: Help and Onboarding take every key; a view that
+// handleKey routes a key: pre-boot, Help and Onboarding take every key; a view that
 // is capturing text takes every key but ctrl+c; otherwise the global keys
 // act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
+	case m.preboot != nil:
+		return m.handlePrebootKey(msg)
 	case m.showHelp:
 		return m.dispatchHelp(msg)
 	case m.onboardingShown():

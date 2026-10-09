@@ -175,7 +175,7 @@ func (a *program) root() *cobra.Command {
 			return cmd.Help()
 		}
 		backend := tui.ServiceBackend{Deps: a.deps, Apps: a.catalog}
-		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version})
+		return tui.Run(cmd.Context(), backend, tui.Options{Version: a.deps.Version, NoColor: a.deps.Getenv("NO_COLOR") != ""})
 	}
 	root.PersistentFlags().BoolVar(&a.json, "json", false, "print one JSON event per line")
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")

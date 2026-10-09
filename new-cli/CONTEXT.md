@@ -38,9 +38,20 @@ _Avoid_: onboarding (that is the person's first run), wizard
 **Onboarding**:
 The setup wizard a person goes through the first time they run self-host,
 before any Project exists: what they want to run, why, where it lives and who
-administers it. It ends at an approved plan and hands over to the Dashboard,
-where the first Action comes to life.
+administers it. It ends at an approved plan; Pre-boot plays while the first
+install pulls its images, then Onboarding hands over to the Dashboard, where
+the first Action comes to life.
 _Avoid_: setup (that is an App's automatic configuration), first run
+
+**Pre-boot**:
+The full-screen scene between approving Onboarding's Review and the Dashboard,
+shown for the first install only and never for a Catalog install. It plays
+while the install pulls images, following the same pull as Activity: one bar,
+"N of M images", the narrative line and a star lit for each finished image.
+When the pull ends it plays its exit and lands on Activity; a failed pull lands
+there at once, and with nothing to pull it plays about four seconds. It is the
+one screen allowed several colours and 24 frames a second.
+_Avoid_: splash screen, loading screen
 
 **Manual step**:
 A Setup step that needs a person to finish or verify it in a browser. It keeps

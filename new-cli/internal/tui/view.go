@@ -538,6 +538,10 @@ func (m Model) View() tea.View {
 		v.SetContent("")
 		return v
 	}
+	if m.preboot != nil {
+		v.SetContent(m.renderPreboot())
+		return v
+	}
 
 	header, layers, restated := m.renderHeader()
 	ctxView.headerFacts = restated

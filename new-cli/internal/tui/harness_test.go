@@ -453,8 +453,9 @@ func TestKeybindAudit(t *testing.T) {
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
-		// Settings' About sub-tab opens the donation pages.
-		"coffee: c", "sponsor: s",
+		// Settings' About sub-tab and the pre-boot screen open the donation
+		// pages; pre-boot also skips to Activity.
+		"coffee: c", "sponsor: s", "skip: enter",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
 		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
@@ -466,6 +467,7 @@ func TestKeybindAudit(t *testing.T) {
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
 	bindings := append(newKeyMap().all(), menuKeys...)
 	bindings = append(bindings, menuHelpKeys...)
+	bindings = append(bindings, prebootKeys...)
 	for _, v := range views {
 		bindings = append(bindings, v.Keys()...)
 		for _, p := range v.Panes() {
@@ -989,6 +991,16 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	}
 	for _, set := range sets {
 		walkOnboarding(t, 80, 24, set, func(name string, m Model) { check(string(set)+" Onboarding "+name, m) })
+	}
+	pre, _, _ := approved(t, 80, 24)
+	play(pre, pullStart("2"), downloading("ghcr.io/homarr-labs/homarr:latest"), pulledImage("binwiederhier/ntfy:latest"))
+	for _, step := range []int{1, 30} {
+		check("pre-boot pull", frames(t, pre, step))
+	}
+	play(pre, events.Event{Event: events.StepOK, Step: "pull"})
+	for _, step := range []int{1, 30, 40} {
+		pre = frames(t, pre, step)
+		check("pre-boot exit", pre)
 	}
 }
 
