@@ -72,7 +72,7 @@ func TestApprovingReviewShowsPrebootAndDispatchesTheInstall(t *testing.T) {
 	m, backend, cmd := approved(t, 120, 30)
 
 	out := screen(m)
-	for _, want := range []string{"s e l f - h o s t", "Go grab a coffee", "c Ko-fi", "s GitHub Sponsors", "enter skip"} {
+	for _, want := range []string{"s e l f - h o s t", "Warming up the engines…", "Like self-host?", "c Ko-fi", "s GitHub Sponsors", "enter skip"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("pre-boot lacks %q\n%s", want, out)
 		}
@@ -106,9 +106,6 @@ func TestPrebootBarAndImageCountFollowThePullEvents(t *testing.T) {
 	if strings.Count(after, "█") <= strings.Count(before, "█") {
 		t.Fatalf("the bar should have grown:\n%s\n%s", before, after)
 	}
-	if !strings.Contains(screen(m), "homarr:latest") {
-		t.Fatalf("a finished image should light a star named after it\n%s", screen(m))
-	}
 }
 
 func TestPrebootIsFullScreenAtTheTerminalSize(t *testing.T) {
@@ -138,17 +135,34 @@ func TestPrebootPlaysTheExitThenLandsOnActivity(t *testing.T) {
 
 	m = frames(t, m, 36)
 
-	if out := screen(m); !strings.Contains(out, "▓") || strings.Contains(out, "Go grab a coffee") {
+	if out := screen(m); !strings.Contains(out, "▓") || strings.Contains(out, "Like self-host?") {
 		t.Fatalf("the iris should be opening onto the Dashboard\n%s", out)
 	}
 	m = frames(t, m, preboot.ExitFrames)
 
 	out := screen(m)
-	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Go grab a coffee") {
+	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Like self-host?") {
 		t.Fatalf("the exit should land on the Dashboard with Activity focused\n%s", out)
 	}
 	if !strings.Contains(out, "install homarr ntfy") {
 		t.Fatalf("Activity should show the install\n%s", out)
+	}
+}
+
+func TestPrebootWarmsUpThenComparesTheTimeLeft(t *testing.T) {
+	m, _, _ := approved(t, 120, 30)
+	play(m, pullStart("2"), downloading("ghcr.io/homarr-labs/homarr:latest"), downloading("binwiederhier/ntfy:latest"))
+
+	m = frames(t, m, 2*preboot.FPS)
+
+	if out := screen(m); !strings.Contains(out, "Warming up the engines…") || strings.Contains(out, "as long as") {
+		t.Fatalf("with no estimate yet pre-boot warms up\n%s", out)
+	}
+	m = frames(t, m, 3*preboot.FPS)
+
+	out := screen(m)
+	if !strings.Contains(out, "This should take about as long as") || strings.Contains(out, "Warming up") || strings.Contains(out, "%") {
+		t.Fatalf("once the pull has moved pre-boot compares the time left to something\n%s", out)
 	}
 }
 
@@ -160,7 +174,7 @@ func TestAFailedPullLandsOnActivityAtOnce(t *testing.T) {
 	m = frames(t, m, 1)
 
 	out := screen(m)
-	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Go grab a coffee") {
+	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Like self-host?") {
 		t.Fatalf("a failed pull should land on Activity at once\n%s", out)
 	}
 }
@@ -174,7 +188,7 @@ func TestAFailedInstallLandsOnActivityWithoutWaitingForAFrame(t *testing.T) {
 	}
 
 	out := screen(m)
-	if strings.Contains(out, "Go grab a coffee") || !strings.Contains(out, "homarr did not become healthy") {
+	if strings.Contains(out, "Like self-host?") || !strings.Contains(out, "homarr did not become healthy") {
 		t.Fatalf("a failed install should land on Activity\n%s", out)
 	}
 }
@@ -187,11 +201,11 @@ func TestPrebootPlaysAboutFourSecondsWithNothingToPull(t *testing.T) {
 
 	m = frames(t, m, 3*preboot.FPS+preboot.FPS/2)
 
-	if !strings.Contains(screen(m), "Go grab a coffee") {
+	if !strings.Contains(screen(m), "Like self-host?") {
 		t.Fatalf("pre-boot should still play after 3.5 s\n%s", screen(m))
 	}
 	m = frames(t, m, preboot.FPS)
-	if strings.Contains(screen(m), "3 Activity") || strings.Contains(screen(m), "Go grab a coffee") {
+	if strings.Contains(screen(m), "3 Activity") || strings.Contains(screen(m), "Like self-host?") {
 		t.Fatalf("the exit should play after 4 s\n%s", screen(m))
 	}
 	m = frames(t, m, preboot.ExitFrames)
@@ -207,7 +221,7 @@ func TestEnterSkipsPrebootToActivity(t *testing.T) {
 	m = drive(t, m, press("enter"))
 
 	out := screen(m)
-	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Go grab a coffee") {
+	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Like self-host?") {
 		t.Fatalf("enter should skip to Activity\n%s", out)
 	}
 }
@@ -221,7 +235,7 @@ func TestPrebootOpensTheDonationPages(t *testing.T) {
 	if got := strings.Join(backend.opened, " "); got != koFiURL+" "+sponsorsURL {
 		t.Fatalf("opened %q", got)
 	}
-	if !strings.Contains(screen(m), "Go grab a coffee") {
+	if !strings.Contains(screen(m), "Like self-host?") {
 		t.Fatalf("opening a page should leave pre-boot on screen\n%s", screen(m))
 	}
 }
@@ -266,13 +280,13 @@ func TestACatalogInstallNeverShowsPreboot(t *testing.T) {
 	play(m, pullStart("1"), downloading("binwiederhier/ntfy:latest"))
 	m = frames(t, m, 5)
 
-	if out := screen(m); m.preboot != nil || strings.Contains(out, "Go grab a coffee") || !strings.Contains(out, "3 Activity") {
+	if out := screen(m); m.preboot != nil || strings.Contains(out, "Like self-host?") || !strings.Contains(out, "3 Activity") {
 		t.Fatalf("a Catalog install belongs on Activity\n%s", out)
 	}
 	for _, msg := range runCmd(cmd) {
 		m = drive(t, m, msg)
 	}
-	if out := frames(t, m, 100); strings.Contains(screen(out), "Go grab a coffee") {
+	if out := frames(t, m, 100); strings.Contains(screen(out), "Like self-host?") {
 		t.Fatal("a Catalog install must not show pre-boot later either")
 	}
 }
@@ -344,7 +358,7 @@ func TestSmallTerminalsGetTheSmallSceneWithWholeText(t *testing.T) {
 
 	out := screen(m)
 
-	for _, want := range []string{"s e l f - h o s t", "Go grab a coffee — this takes a few minutes.", "c Ko-fi", "s GitHub Sponsors", "enter skip"} {
+	for _, want := range []string{"s e l f - h o s t", "Warming up the engines…", "Like self-host?", "c Ko-fi", "s GitHub Sponsors", "enter skip"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("the small scene lacks %q\n%s", want, out)
 		}

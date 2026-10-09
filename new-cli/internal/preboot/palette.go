@@ -10,8 +10,8 @@ import (
 type Palette struct {
 	Light                    bool
 	Purple, Pink, Cyan, Gold color.RGBA
-	Text, Muted, Faint       color.RGBA
-	Cup, Coffee, Bg          color.RGBA
+	Text, Muted, Faint, Star color.RGBA
+	Bg                       color.RGBA
 }
 
 func hex(v uint32) color.RGBA {
@@ -22,8 +22,8 @@ func hex(v uint32) color.RGBA {
 func Dark() Palette {
 	return Palette{
 		Purple: hex(0x7A57D3), Pink: hex(0xFF5FA8), Cyan: hex(0x3DDCFF), Gold: hex(0xFFC857),
-		Text: hex(0xEDEBF5), Muted: hex(0xA09DB5), Faint: hex(0x4A4663),
-		Cup: hex(0xE8E6F2), Coffee: hex(0xC98A4B), Bg: hex(0x000000),
+		Text: hex(0xEDEBF5), Muted: hex(0xA09DB5), Faint: hex(0x4A4663), Star: hex(0xC9C6E6),
+		Bg: hex(0x000000),
 	}
 }
 
@@ -32,8 +32,8 @@ func Light() Palette {
 	return Palette{
 		Light:  true,
 		Purple: hex(0x5B3BB0), Pink: hex(0xD6246E), Cyan: hex(0x0A87AD), Gold: hex(0xB57400),
-		Text: hex(0x1D1A2B), Muted: hex(0x5A5670), Faint: hex(0xCBC7DD),
-		Cup: hex(0x3A3650), Coffee: hex(0x8A5524), Bg: hex(0xFFFFFF),
+		Text: hex(0x1D1A2B), Muted: hex(0x5A5670), Faint: hex(0xCBC7DD), Star: hex(0x8C88A8),
+		Bg: hex(0xFFFFFF),
 	}
 }
 

@@ -1,7 +1,6 @@
 package preboot
 
 import (
-	"math"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -15,17 +14,14 @@ const (
 	drawn
 )
 
-// reveal opens a diamond iris from the centre of the scene onto under:
-// inside it is under, at its rim a band of shades and sparks, outside the
-// scene. Rows are cut and joined with their styles kept.
+// reveal wipes under in along a slanted edge that sweeps from the right
+// edge of the screen to the left: right of the edge is under, at the edge a
+// band of shades and sparks, left of it the scene. Rows are cut and joined
+// with their styles kept.
 func (f *frame) reveal(scene, under []string, opening float64) []string {
 	under = f.fit(under)
-	cx, cy := f.centre()
-	far := 0.0
-	for _, c := range [][2]int{{0, 0}, {f.w, 0}, {0, f.h}, {f.w, f.h}} {
-		far = math.Max(far, math.Abs(float64(c[0]-cx))/2+math.Abs(float64(c[1]-cy)))
-	}
-	reach := smooth(opening) * (far + 3)
+	span := float64(f.w + 2*f.h + 12)
+	front := (1-smooth(opening))*span - 2*float64(f.h)
 	shades := []rune("░▒▓█")
 	out := make([]string, f.h)
 	for y := range out {
@@ -41,7 +37,7 @@ func (f *frame) reveal(scene, under []string, opening float64) []string {
 			}
 		}
 		for x := 0; x < f.w; x++ {
-			d := (reach - (math.Abs(float64(x-cx))/2 + math.Abs(float64(y-cy)))) * 2
+			d := float64(x) - (front + 2*float64(y) - 6)
 			next, glyph := fromScene, ""
 			switch {
 			case d >= 5:

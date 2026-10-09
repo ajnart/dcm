@@ -133,9 +133,9 @@ Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look
 right, then saves the choice as the appearance setting. **Review** lists the
 plan; approving it plays the pre-boot screen while the first install pulls its
-images, with the overall bar, "N of M images" and a star for each finished
-image, then hands over to the Dashboard with Activity focused, where the
-install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
+images, a parallax starfield with the overall bar, "N of M images" and a line
+comparing the time left to something small, then hands over to the Dashboard
+with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
 Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
 motion without colour. `esc` goes back one step and keeps your answers.
 

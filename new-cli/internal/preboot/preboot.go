@@ -1,13 +1,15 @@
 // Package preboot draws the pre-boot screen: the full-screen scene shown
-// while the first install pulls its images. It is a hyperspace tunnel whose
-// star trails lengthen with the pull, with a star lit and named for each
-// finished image, and an exit that stretches the stars into streaks and then
-// opens a diamond iris onto the Dashboard.
+// while the first install pulls its images. It is a parallax starfield, with
+// aurora ribbons, shooting stars and sparkles around a pulsing ◆, the pull's
+// bar and a friendly line on how long is left. Its exit stretches the stars
+// into streaks and then wipes the Dashboard in along a slanted edge.
 //
 // Rendering is pure: a frame is a function of the frame number, the size,
 // the Progress, the palette and whether colour is off. The package keeps no
 // clock; the caller counts frames at FPS.
 package preboot
+
+import "time"
 
 const (
 	// FPS is the frame rate of the pre-boot screen.
@@ -16,7 +18,7 @@ const (
 	ExitFrames = 44
 
 	streakFrames = 24
-	irisFrom     = 20
+	wipeFrom     = 20
 )
 
 // Progress is what the screen shows of the pull.
@@ -25,14 +27,9 @@ type Progress struct {
 	Fraction    float64
 	Done, Total int
 	Narrative   string
-	// Images are in pull order.
-	Images []Image
-}
-
-// Image is one image of the pull; a finished one lights its star.
-type Image struct {
-	Label string
-	Done  bool
+	// Remaining is the estimated time left, 0 while there is no estimate;
+	// the screen then says it is warming up. A Pace makes a steady one.
+	Remaining time.Duration
 }
 
 type frame struct {
@@ -55,27 +52,27 @@ const (
 )
 
 type layout struct {
-	tier                      tier
-	cx, brandCY, brandR       int
-	titleY, coffeeY, keysY    int
-	barY, narrY, steamY, cupY int
-	barW                      int
+	tier                tier
+	cx, brandCY, brandR int
+	titleY, timeY       int
+	keysY, barY, narrY  int
+	barW                int
 }
 
 func layoutFor(w, h int) layout {
 	cx := w / 2
 	switch {
 	case w >= 100 && h >= 28:
-		t := max((h-21)/2, 0)
-		return layout{tier: full, cx: cx, brandCY: t + 3, brandR: 3, titleY: t + 8, steamY: t + 10, coffeeY: t + 11,
-			cupY: t + 13, keysY: t + 15, barY: t + 18, narrY: t + 20, barW: min(52, w-34)}
+		t := max((h-19)/2, 0)
+		return layout{tier: full, cx: cx, brandCY: t + 3, brandR: 3, titleY: t + 8, timeY: t + 11,
+			keysY: t + 13, barY: t + 16, narrY: t + 18, barW: min(52, w-34)}
 	case w >= 80 && h >= 24:
 		t := max((h-15)/2, 0)
-		return layout{tier: medium, cx: cx, brandCY: t + 2, brandR: 2, titleY: t + 6, coffeeY: t + 8,
+		return layout{tier: medium, cx: cx, brandCY: t + 2, brandR: 2, titleY: t + 6, timeY: t + 8,
 			keysY: t + 10, barY: t + 12, narrY: t + 14, barW: min(40, w-30)}
 	}
-	t := max((h-7)/2, 0)
-	return layout{tier: small, cx: cx, titleY: t, coffeeY: t + 2, keysY: t + 3, barY: t + 5, narrY: t + 6,
+	t := max((h-8)/2, 0)
+	return layout{tier: small, cx: cx, titleY: t, timeY: t + 2, keysY: t + 4, barY: t + 6, narrY: t + 7,
 		barW: max(min(28, w-24), 8)}
 }
 
@@ -111,30 +108,23 @@ func (f *frame) fade() float64 {
 	return 1 - clamp01(float64(f.since)/8)
 }
 
-// opening is how far the iris has opened, 0 until the streaks are long.
+// opening is how far the wipe has gone, 0 until the streaks are long.
 func (f *frame) opening() float64 {
-	if f.since < irisFrom {
+	if f.since < wipeFrom {
 		return 0
 	}
-	return clamp01(float64(f.since-irisFrom) / float64(ExitFrames-1-irisFrom))
-}
-
-// centre is where the tunnel and the iris open from.
-func (f *frame) centre() (int, int) {
-	if f.lay.tier == small {
-		return f.lay.cx, f.h * 2 / 5
-	}
-	return f.lay.cx, f.lay.brandCY
+	return clamp01(float64(f.since-wipeFrom) / float64(ExitFrames-1-wipeFrom))
 }
 
 func (f *frame) scene() *canvas {
 	cv := newCanvas(f.w, f.h)
-	f.tunnel(cv)
-	f.imageStars(cv)
+	f.sky(cv)
+	cv.flush()
 	if f.lay.tier != small {
 		f.brand(cv)
 	}
 	f.drawText(cv)
+	cv.flush()
 	return cv
 }
 
@@ -144,8 +134,8 @@ func Render(n, width, height int, pr Progress, pal Palette, noColor bool) []stri
 }
 
 // RenderExit draws frame since of the exit, n frames after the pull began:
-// the stars stretch into streaks, then a diamond iris opens from the ◆ onto
-// under, the screen the person lands on, one string per row.
+// the stars stretch into streaks, then a slanted wipe brings in under, the
+// screen the person lands on, one string per row.
 func RenderExit(n, since, width, height int, pr Progress, pal Palette, noColor bool, under []string) []string {
 	f := newFrame(n, since, width, height, pr, pal, noColor)
 	cv := f.scene()
