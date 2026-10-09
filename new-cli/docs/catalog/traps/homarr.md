@@ -3,6 +3,18 @@
 ## Pitfalls
 
 - A generic link is not evidence that a dedicated integration or widget works.
+- Setup owns one shared `stats` widget and one shared `calendar` widget on Home.
+  Ownership remains recorded per integration: each participating App records the
+  surviving shared item ID. Removing an App removes only its integration and
+  stats entries; delete the shared item only after its last integration is gone.
+- Adopt legacy per-App widgets only from complete, unique generated sets with
+  deterministic stats entries and empty plain options. Preserve unowned widgets;
+  ambiguous ownership needs review before mutation (`{}` preserves existing items).
+  Resize owned items within each responsive grid and relocate them around user
+  items and containers; reruns preserve placements and larger user-selected sizes.
+- The assistant widget is optional. Its absence does not make the Notebook
+  outdated. An explicit unknown-kind or kind-enum rejection may be skipped;
+  authentication, other validation and server failures still fail Setup.
 
 ## Security
 

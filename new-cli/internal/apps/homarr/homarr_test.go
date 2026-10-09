@@ -2,7 +2,10 @@ package homarr_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -25,22 +28,26 @@ import (
 // use, including the claim cookie, the administrator session and the
 // integration connection test.
 type fakeHomarr struct {
-	mu            sync.Mutex
-	adminExists   bool
-	adminName     string
-	adminPassword string
-	step          string
-	claimToken    string
-	sessionToken  string
-	apiKey        string
-	apps          []map[string]any
-	integrations  []map[string]any
-	items         []map[string]any
-	sections      []any
-	boards        []map[string]any
-	readBoard     string
-	rejectUpdates bool
-	nextID        int
+	mu                     sync.Mutex
+	adminExists            bool
+	adminName              string
+	adminPassword          string
+	step                   string
+	claimToken             string
+	sessionToken           string
+	apiKey                 string
+	apps                   []map[string]any
+	integrations           []map[string]any
+	items                  []map[string]any
+	sections               []any
+	layouts                []any
+	boards                 []map[string]any
+	readBoard              string
+	rejectAssistantStatus  int
+	rejectAssistantMessage string
+	rejectAssistantIssues  []any
+	rejectUpdates          bool
+	nextID                 int
 }
 
 func newFake() *fakeHomarr { return &fakeHomarr{step: "start", nextID: 1} }
@@ -365,6 +372,11 @@ func (f *fakeHomarr) handler() http.Handler {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
+		if body["kind"] == "assistant" && f.rejectAssistantStatus != 0 {
+			w.WriteHeader(f.rejectAssistantStatus)
+			json.NewEncoder(w).Encode(map[string]any{"message": f.rejectAssistantMessage, "issues": f.rejectAssistantIssues})
+			return
+		}
 		body["itemId"] = f.id("item")
 		body["id"] = body["itemId"]
 		if body["integrationIds"] == nil {
@@ -397,7 +409,7 @@ func (f *fakeHomarr) handler() http.Handler {
 		}
 		trpc(w, map[string]any{
 			"id": "board-1", "name": "Home", "isPublic": false,
-			"sections": sections, "layouts": []any{}, "items": items,
+			"sections": sections, "layouts": f.layouts, "items": items,
 		})
 	})
 	mux.HandleFunc("POST /api/trpc/board.saveBoard", func(w http.ResponseWriter, r *http.Request) {
@@ -1580,6 +1592,250 @@ func TestNTFYNewTokenRequiresTheExistingAdministratorAccount(t *testing.T) {
 			}
 			if secrets["NTFY_HOMARR_TOKEN"] != "ntfy-token" {
 				t.Fatal("configured token changed")
+			}
+		})
+	}
+}
+
+func TestSetupWithoutAssistantKindKeepsNotebookCurrent(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists, fake.adminName, fake.adminPassword, fake.step = true, "admin", "pw", "finish"
+	fake.rejectAssistantStatus, fake.rejectAssistantMessage = http.StatusBadRequest, "Unknown widget kind: assistant"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	for run := 0; run < 2; run++ {
+		h := homarrH(t, srv, secrets)
+		status := ""
+		h.Record = func(result helpers.StepResult) {
+			if result.ID == "notebook" {
+				status = result.Status
+			}
+		}
+		if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+			t.Fatalf("Setup run %d without assistant kind: %v", run+1, err)
+		}
+		if run == 1 && status != "skip" {
+			t.Fatalf("notebook was not current on rerun: %s", status)
+		}
+	}
+	if len(notebooks(fake.items)) != 1 || len(fake.items) != 1 {
+		t.Fatalf("want one current notebook without assistant, got %v", fake.items)
+	}
+}
+
+func TestLinksAdoptLegacyPerAppWidgets(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	secrets := allSecrets()
+	for _, appID := range []string{"sonarr", "radarr"} {
+		id := "legacy-" + appID
+		fake.integrations = append(fake.integrations, map[string]any{"id": id, "kind": appID, "url": "http://" + appID + ":" + map[string]string{"sonarr": "8989", "radarr": "7878"}[appID]})
+		secrets["HOMARR_LINKED_"+strings.ToUpper(appID)] = id
+		metrics := []string{"shows", "downloaded", "missing", "queued"}
+		if appID == "radarr" {
+			metrics[0] = "movies"
+		}
+		entries := []any{}
+		for _, metric := range metrics {
+			sum := sha256.Sum256([]byte(metric))
+			entries = append(entries, map[string]any{"id": "auto-stack-" + hex.EncodeToString(sum[:])[:32], "integrationId": id, "metric": metric, "label": "", "hidden": false, "compact": false})
+		}
+		for _, kind := range []string{"calendar", "mediaMissing", "stats"} {
+			options := map[string]any{}
+			if kind == "stats" {
+				options["entries"] = entries
+			}
+			fake.items = append(fake.items, map[string]any{"id": id + "-" + kind, "kind": kind, "options": options, "integrationIds": []any{id}, "size": map[string]any{"width": 1, "height": 1}})
+		}
+	}
+	fake.items = append(fake.items, map[string]any{"id": "user-calendar", "kind": "calendar", "options": map[string]any{"custom": true}, "integrationIds": []any{}, "size": map[string]any{"width": 2, "height": 3}})
+	srv := serve(t, fake)
+	from := homarrH(t, srv, secrets)
+	for _, target := range []struct {
+		id   string
+		port int
+	}{{"sonarr", 8989}, {"radarr", 7878}} {
+		if err := linkFor(t, target.id).Apply(context.Background(), from, targetH(t, srv, target.id, target.port, secrets)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, kind := range []string{"calendar", "stats"} {
+		for _, id := range []string{"legacy-sonarr", "legacy-radarr"} {
+			if count := widgetCount(fake.items, kind, id); count != 1 {
+				t.Fatalf("%s for %s: got %d widgets, want one", kind, id, count)
+			}
+		}
+		count := 0
+		for _, item := range fake.items {
+			if item["kind"] != kind || item["id"] == "user-calendar" {
+				continue
+			}
+			count++
+			ids := item["integrationIds"].([]any)
+			if len(ids) != 2 {
+				t.Fatalf("legacy %s not consolidated: %v", kind, item)
+			}
+			if kind == "stats" {
+				entries := item["options"].(map[string]any)["entries"].([]any)
+				seen := map[string]bool{}
+				for _, raw := range entries {
+					id := raw.(map[string]any)["id"].(string)
+					if seen[id] {
+						t.Fatal("duplicate stats entry ID")
+					}
+					seen[id] = true
+				}
+				if len(entries) != 8 {
+					t.Fatalf("got %d stats entries, want 8", len(entries))
+				}
+			}
+		}
+		if count != 1 {
+			t.Fatalf("got %d managed %s widgets, want one", count, kind)
+		}
+	}
+	for _, id := range []string{"legacy-sonarr", "legacy-radarr"} {
+		var owned map[string]bool
+		if err := json.Unmarshal([]byte(secrets["HOMARR_WIDGETS_"+strings.ToUpper(strings.ReplaceAll(id, "-", "_"))]), &owned); err != nil {
+			t.Fatal(err)
+		}
+		if !owned["legacy-sonarr-calendar"] || !owned["legacy-sonarr-stats"] || owned["legacy-radarr-calendar"] || owned["legacy-radarr-stats"] {
+			t.Fatalf("incorrect shared ownership: %v", owned)
+		}
+	}
+	for _, item := range fake.items {
+		if item["id"] == "user-calendar" && item["options"].(map[string]any)["custom"] == true {
+			return
+		}
+	}
+	t.Fatal("user calendar was changed or removed")
+}
+
+func TestSharedWidgetResizeRelocatesWithoutMovingUserItems(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.layouts = []any{map[string]any{"id": "desktop", "columnCount": 6}, map[string]any{"id": "mobile", "columnCount": 2}}
+	fake.sections = []any{map[string]any{"id": "root", "kind": "section", "xOffset": 0}}
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	to := targetH(t, srv, "sonarr", 8989, secrets)
+	link := linkFor(t, "sonarr")
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	for _, item := range fake.items {
+		if item["kind"] == "stats" {
+			delete(item, "size")
+			item["layouts"] = []any{
+				map[string]any{"layoutId": "desktop", "sectionId": "root", "xOffset": 2, "yOffset": 0, "width": 4, "height": 2},
+				map[string]any{"layoutId": "mobile", "sectionId": "root", "xOffset": 0, "yOffset": 0, "width": 2, "height": 1},
+			}
+		}
+	}
+	user := map[string]any{"id": "user-item", "kind": "notebook", "options": map[string]any{"content": "My notes"}, "layouts": []any{
+		map[string]any{"layoutId": "desktop", "sectionId": "root", "xOffset": 3, "yOffset": 2, "width": 2, "height": 2},
+		map[string]any{"layoutId": "mobile", "sectionId": "root", "xOffset": 0, "yOffset": 1, "width": 2, "height": 2},
+	}}
+	fake.items = append(fake.items, user)
+	before, _ := json.Marshal(user)
+	fake.mu.Unlock()
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range fake.items {
+		if item["id"] == "user-item" {
+			after, _ := json.Marshal(item)
+			if string(before) != string(after) {
+				t.Fatal("user item moved or changed")
+			}
+		}
+		if item["kind"] != "stats" {
+			continue
+		}
+		for _, raw := range item["layouts"].([]any) {
+			placement := raw.(map[string]any)
+			want := map[string][]float64{"desktop": {2, 4, 4, 3}, "mobile": {0, 3, 2, 3}}[placement["layoutId"].(string)]
+			for i, key := range []string{"xOffset", "yOffset", "width", "height"} {
+				if fmt.Sprint(placement[key]) != fmt.Sprint(want[i]) {
+					t.Fatalf("%s placement %s=%v, want %v", placement["layoutId"], key, placement[key], want[i])
+				}
+			}
+		}
+	}
+	beforeRerun, _ := json.Marshal(fake.items)
+	fresh := homarrH(t, srv, secrets)
+	status := ""
+	fresh.Record = func(result helpers.StepResult) {
+		if result.ID == "link-sonarr" {
+			status = result.Status
+		}
+	}
+	if err := link.Apply(context.Background(), fresh, to); err != nil {
+		t.Fatal(err)
+	}
+	afterRerun, _ := json.Marshal(fake.items)
+	if status != "skip" || string(beforeRerun) != string(afterRerun) {
+		t.Fatal("rerun was not current or moved board items")
+	}
+}
+
+func TestSetupWithoutAssistantEnumKeepsNotebookCurrent(t *testing.T) {
+	for _, code := range []string{"invalid_value", "invalid_enum_value"} {
+		t.Run(code, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			fake.adminExists, fake.adminName, fake.adminPassword, fake.step = true, "admin", "pw", "finish"
+			fake.rejectAssistantStatus, fake.rejectAssistantMessage = http.StatusBadRequest, "Input validation failed"
+			issue := map[string]any{"code": code, "path": []any{"kind"}}
+			if code == "invalid_value" {
+				issue["values"] = []any{"app", "notebook", "stats"}
+			} else {
+				issue["options"] = []any{"app", "notebook", "stats"}
+				issue["received"] = "assistant"
+			}
+			fake.rejectAssistantIssues = []any{issue}
+			srv := serve(t, fake)
+			secrets := allSecrets()
+			for run := 0; run < 2; run++ {
+				if err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, secrets)); err != nil {
+					t.Fatalf("Setup run %d without assistant enum: %v", run+1, err)
+				}
+			}
+			if len(notebooks(fake.items)) != 1 || len(fake.items) != 1 {
+				t.Fatalf("want one notebook, got %v", fake.items)
+			}
+		})
+	}
+}
+
+func TestSetupDoesNotIgnoreOtherAssistantFailures(t *testing.T) {
+	for _, failure := range []struct {
+		name    string
+		status  int
+		message string
+		issues  []any
+	}{
+		{"missing-item-id", 200, "Invalid creation response", nil},
+		{"permission", 403, "Unknown widget kind: assistant", nil},
+		{"server", 500, "Unknown widget kind: assistant", nil},
+		{"other-kind", 400, "Unknown widget kind: notebook", nil},
+		{"other-validation", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"boardId"}, "values": []any{"board-1"}}}},
+		{"kind-offered", 400, "Input validation failed", []any{map[string]any{"code": "invalid_value", "path": []any{"kind"}, "values": []any{"notebook", "assistant"}}}},
+	} {
+		t.Run(failure.name, func(t *testing.T) {
+			fake := newFake()
+			fake.apiKey = "keyid.secret"
+			fake.adminExists, fake.adminName, fake.adminPassword, fake.step = true, "admin", "pw", "finish"
+			fake.rejectAssistantStatus, fake.rejectAssistantMessage, fake.rejectAssistantIssues = failure.status, failure.message, failure.issues
+			srv := serve(t, fake)
+			if err := (homarr.App{}).Setup(context.Background(), homarrH(t, srv, allSecrets())); err == nil {
+				t.Fatal("assistant API failure was ignored")
+			}
+			if len(notebooks(fake.items)) != 0 {
+				t.Fatal("published notebook after assistant API failure")
 			}
 		})
 	}

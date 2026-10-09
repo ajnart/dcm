@@ -2,7 +2,9 @@ package homarr
 
 import (
 	"context"
+	"fmt"
 	"html"
+	"slices"
 	"sort"
 	"strings"
 
@@ -132,9 +134,6 @@ func notebookCurrent(ctx context.Context, h *helpers.H) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if !hasAssistant(itemsOf(current)) {
-		return false, nil
-	}
 	services, err := notebookServices(ctx, h)
 	if err != nil {
 		return false, err
@@ -162,8 +161,52 @@ func ensureAssistant(ctx context.Context, h *helpers.H) error {
 	if err != nil || hasAssistant(itemsOf(current)) {
 		return err
 	}
-	return addItem(ctx, h, map[string]any{
-		"boardId": stringField(current, "id"), "kind": "assistant", "options": map[string]any{},
-		"size": map[string]any{"width": 4, "height": 3}, "integrationIds": []any{},
+	resp, err := h.HTTP(ctx, helpers.Request{
+		Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h),
+		JSON: map[string]any{
+			"boardId": stringField(current, "id"), "kind": "assistant", "options": map[string]any{},
+			"size": map[string]any{"width": 4, "height": 3}, "integrationIds": []any{},
+		},
 	})
+	if err != nil {
+		return err
+	}
+	if resp.OK() {
+		var created struct{ ItemID string }
+		if err := resp.Decode(&created); err != nil {
+			return err
+		}
+		if created.ItemID == "" {
+			return fmt.Errorf("Homarr did not return the assistant item ID; run self-host setup homarr")
+		}
+		return nil
+	}
+	var rejection struct {
+		Message string
+		Issues  []struct {
+			Code     string
+			Path     []string
+			Values   []string
+			Options  []string
+			Received string
+		}
+	}
+	if resp.Status == 400 && resp.Decode(&rejection) == nil {
+		if strings.EqualFold(rejection.Message, "Unknown widget kind: assistant") {
+			return nil
+		}
+		if rejection.Message == "Input validation failed" && len(rejection.Issues) == 1 {
+			issue := rejection.Issues[0]
+			kinds := issue.Values
+			if issue.Code == "invalid_enum_value" && issue.Received == "assistant" {
+				kinds = issue.Options
+			}
+			if len(issue.Path) == 1 && issue.Path[0] == "kind" &&
+				(issue.Code == "invalid_value" || issue.Code == "invalid_enum_value") &&
+				len(kinds) > 0 && !slices.Contains(kinds, "assistant") {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("Homarr rejected assistant creation (HTTP %d)", resp.Status)
 }
