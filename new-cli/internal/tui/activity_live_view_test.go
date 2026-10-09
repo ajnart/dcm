@@ -11,7 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/service"
 )
 
-func TestWorkflowViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
+func TestActivityViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Image: "sonarr:latest", Managed: true, Steps: []service.StepStatus{{ID: "pull"}}}}}
 	var v view = &activityView{}
@@ -30,10 +30,10 @@ func TestWorkflowViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
 			task.append(tc.event)
 		}
 		out := ansi.Strip(v.View(ctx, 120, 30))
-		assertNoProgressText(t, "Workflow view", out)
+		assertNoProgressText(t, "Activity view", out)
 		for _, want := range tc.want {
 			if !strings.Contains(out, want) {
-				t.Fatalf("Workflow view lacks %q after %q\n%s", want, tc.event.Event, out)
+				t.Fatalf("Activity view lacks %q after %q\n%s", want, tc.event.Event, out)
 			}
 		}
 	}
@@ -44,7 +44,7 @@ func TestWorkflowViewUpdatesFromTaskEventsWithoutModel(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewConfiguredAppExpandsDuringRetry(t *testing.T) {
+func TestActivityViewConfiguredAppExpandsDuringRetry(t *testing.T) {
 	for _, event := range []string{events.StepStart, events.StepFail} {
 		t.Run(event, func(t *testing.T) {
 			ctx := testViewContext(&fakeBackend{})
@@ -65,7 +65,7 @@ func TestWorkflowViewConfiguredAppExpandsDuringRetry(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
+func TestActivityViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
 	m := New(backend, Options{})
 	m.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail}}}}}
@@ -85,7 +85,7 @@ func TestWorkflowViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 	}
 }
 
-func TestWorkflowViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
+func TestActivityViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
 	m := New(backend, Options{})
 	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail, Msg: "saved failure"}}}}}

@@ -66,9 +66,9 @@ func TestDashboardStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 	}
 }
 
-func TestWorkflowStepStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
+func TestActivityStepStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
-	ctx.status = workflowStatus()
+	ctx.status = activityStatus()
 	ctx.status.Apps[2].Steps = []service.StepStatus{
 		{ID: "account", Status: stepstatus.StepManual, Hint: "open the browser"},
 		{ID: "ready"},
@@ -83,7 +83,7 @@ func TestWorkflowStepStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 
 	for _, want := range []string{"✓ ready", "↷ account", "✗ link-qbittorrent", "○ check", "! manual account", "… ready"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("Workflow view lacks %q without colour\n%s", want, out)
+			t.Errorf("Activity view lacks %q without colour\n%s", want, out)
 		}
 	}
 }

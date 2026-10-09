@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/service"
 )
@@ -188,4 +189,71 @@ func TestAnActionFromTheAppsTabLandsOnActivity(t *testing.T) {
 	if m.selectedID() != "sonarr" || !strings.Contains(screen(m), "Sonarr logs") {
 		t.Fatalf("returning to Apps should keep Sonarr selected\n%s", screen(m))
 	}
+}
+
+func TestEnterOnTheAppsListFocusesTheDetails(t *testing.T) {
+	m, _ := appsHost(t)
+	if bar := lastLine(screen(m)); !strings.Contains(bar, "enter  details") {
+		t.Fatalf("the list's bar should offer enter: %q", bar)
+	}
+
+	m = drive(t, m, press("enter"))
+
+	if bar := lastLine(screen(m)); !strings.Contains(bar, "↑/↓  scroll") {
+		t.Fatalf("enter should focus the details: %q", bar)
+	}
+}
+
+func TestTheActionsChipSurvivesEightyColumns(t *testing.T) {
+	for _, tab := range []string{"1", "2"} {
+		m, _ := sample(t, 80, 24)
+		m = drive(t, m, press(tab))
+
+		if bar := lastLine(screen(m)); !strings.Contains(bar, "a  actions") {
+			t.Errorf("tab %s: the bar should keep a actions at 80 columns: %q", tab, bar)
+		}
+	}
+}
+
+func TestMovingThroughTheOverviewStartsNoLogStream(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+
+	for _, k := range []string{"j", "k", "j", "tab", "tab"} {
+		m = drive(t, m, press(k))
+	}
+	m = drive(t, m, statusMsg{status: backend.status})
+
+	if started, _ := backend.logStreams(); started != 0 {
+		t.Fatalf("nothing on the Overview shows logs, yet %d stream(s) started", started)
+	}
+	m = drive(t, m, press("2"))
+	if started, _ := backend.logStreams(); started != 1 || !strings.Contains(screen(m), "ready on :80") {
+		t.Fatalf("the Apps tab's logs should start one stream, started %d\n%s", started, screen(m))
+	}
+}
+
+func TestTheLogStreamStopsWhenLogsLeaveTheScreen(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+	backend.holdLogs = true
+	running := func(want int) {
+		t.Helper()
+		for range 100 {
+			if _, n := backend.logStreams(); n == want {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		_, n := backend.logStreams()
+		t.Fatalf("want %d running log stream(s), have %d", want, n)
+	}
+
+	m = drive(t, m, press("2"))
+	running(1)
+	m = drive(t, m, press("]")) // setup
+	running(0)
+	m = drive(t, m, press("["))
+	running(1)
+	m = drive(t, m, press("3"))
+	running(0)
+	_ = m
 }

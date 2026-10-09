@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/service"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 )
@@ -48,8 +49,6 @@ func (d *appDetails) sync(ctx *viewContext, app service.AppStatus, found bool) t
 	switch {
 	case !found:
 		return nil
-	case d.tab == tabLogs:
-		return d.syncLogs(ctx, app.ID)
 	case d.tab == tabCompose:
 		return loadComposeCmd(ctx.backend, app.ID)
 	case d.tab == tabContainers:
@@ -140,7 +139,8 @@ func (d *appDetails) stopLogs() {
 	}
 }
 
-// syncLogs (re)starts the log stream when the App changes.
+// syncLogs follows the logs of target, restarting the stream when the App
+// changes.
 func (d *appDetails) syncLogs(ctx *viewContext, target string) tea.Cmd {
 	if target == "" || (d.stream != nil && d.stream.target == target) {
 		return nil
@@ -153,7 +153,7 @@ func (d *appDetails) syncLogs(ctx *viewContext, target string) tea.Cmd {
 	d.stream = stream
 	backend := ctx.backend
 	go func() {
-		backend.Logs(streamCtx, target, chanWriter{stream.ch})
+		backend.Logs(streamCtx, target, chanWriter{ctx: streamCtx, ch: stream.ch})
 		close(stream.ch)
 	}()
 	return waitLog(stream)
@@ -252,23 +252,14 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		return t.dim().Render("Setup has not run yet. Press a, then r, to run it.")
 	}
 	var lines []string
-	for _, step := range app.Steps {
-		mark := t.fg(t.ok).Render("✓")
-		switch step.Status {
-		case stepstatus.StepSkip:
-			mark = t.dim().Render("↷")
-		case stepstatus.StepManual:
-			mark = t.fg(t.warn).Render("! manual")
-		case stepstatus.StepFail:
-			mark = t.fg(t.fail).Render("✗")
-		}
-		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status.NeedsAttention() {
-			if step.Error != "" {
-				lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
+	for _, s := range app.Steps {
+		lines = append(lines, t.stepMark(setupState(s.Status))+" "+t.body().Render(s.ID)+t.dim().Render("  "+s.Msg))
+		if s.Status.NeedsAttention() {
+			if s.Error != "" {
+				lines = append(lines, t.fg(t.fail).Render(indent("  ", s.Error, width)))
 			}
-			if step.Hint != "" {
-				lines = append(lines, t.fg(t.warn).Render(indent("  → ", step.Hint, width)))
+			if s.Hint != "" {
+				lines = append(lines, t.fg(t.warn).Render(indent("  → ", s.Hint, width)))
 			}
 		}
 	}
@@ -276,6 +267,19 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press a r to retry Setup.", width)))
 	}
 	return strings.Join(lines, "\n")
+}
+
+// setupState is the activity state of a remembered Setup step.
+func setupState(s stepstatus.Step) activity.State {
+	switch s {
+	case stepstatus.StepSkip:
+		return activity.Skipped
+	case stepstatus.StepManual:
+		return activity.Manual
+	case stepstatus.StepFail:
+		return activity.Failed
+	}
+	return activity.Done
 }
 
 func renderInfo(t theme, app service.AppStatus, width int) string {
@@ -375,11 +379,20 @@ type logStream struct {
 	cancel context.CancelFunc
 }
 
-type chanWriter struct{ ch chan string }
+// chanWriter feeds a log stream's channel until the stream stops, so a full
+// channel never holds the Logs goroutine after the view stopped reading.
+type chanWriter struct {
+	ctx context.Context
+	ch  chan string
+}
 
 func (w chanWriter) Write(p []byte) (int, error) {
-	w.ch <- string(p)
-	return len(p), nil
+	select {
+	case w.ch <- string(p):
+		return len(p), nil
+	case <-w.ctx.Done():
+		return 0, w.ctx.Err()
+	}
 }
 
 func waitLog(stream *logStream) tea.Cmd {

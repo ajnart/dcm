@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -90,14 +89,10 @@ type view interface {
 // checks, containers, the Backend, run(Request, title) for Actions, and flash.
 type viewContext struct {
 	width, height int
-	dark          bool
 	theme         theme
 	glyphs        activity.Glyphs
 	keys          keyMap
-	help          help.Model
-	// frame and motion are the animation's current frame and the frame at
-	// which each row of the Action last changed.
-	frame  int
+	// motion is the frame at which each row of the Action last changed.
 	motion activity.Motion
 
 	status    service.Status
@@ -105,21 +100,24 @@ type viewContext struct {
 	updates   map[string]string
 	updatesAt time.Time
 	latest    string
-	loaded    bool
-	statusErr string
-	refreshed time.Time
 
 	containers    []service.ContainerStatus
 	containersErr string
 
-	defaults map[string]string
-
 	backend Backend
 	tasks   *taskManager
-	opts    Options
 
 	flash      string
 	flashLevel level
+	// headerFacts are the LAN address and time the header had no room for;
+	// the Overview's Now strip restates them.
+	headerFacts []string
+
+	// shared marks a context a Model hands out: it builds the snapshot once,
+	// so the tracker, the status line, the Now strip and the Activity tab
+	// read the same one.
+	shared bool
+	snap   *activity.Snapshot
 
 	// layers are the clickable regions a view produced in View; the Model
 	// composites them so rows and tabs stay mouse targets.
@@ -133,6 +131,17 @@ func (ctx *viewContext) mainHeight() int { return max(ctx.height-3, 3) }
 // tasks a status refresh has not read yet, and the Action of the latest
 // task, which stays until the next one starts.
 func (ctx *viewContext) snapshot() activity.Snapshot {
+	if !ctx.shared {
+		return ctx.buildSnapshot()
+	}
+	if ctx.snap == nil {
+		s := ctx.buildSnapshot()
+		ctx.snap = &s
+	}
+	return *ctx.snap
+}
+
+func (ctx *viewContext) buildSnapshot() activity.Snapshot {
 	var evs, latest []events.Event
 	if ctx.tasks != nil {
 		for _, task := range ctx.tasks.snapshots() {
@@ -177,16 +186,12 @@ func actionEvents(t taskSnapshot) []events.Event {
 
 // pullProgress is the running Action's overall pull, as a whole number out
 // of 100 for the terminal's own progress indicator.
-func (m Model) pullProgress() (int, bool) {
+func (m Model) pullProgress(ctx *viewContext) (int, bool) {
 	task := m.tasks.latest()
-	if task == nil {
+	if task == nil || task.snapshot().state != taskRunning {
 		return 0, false
 	}
-	s := task.snapshot()
-	if s.state != taskRunning {
-		return 0, false
-	}
-	pull := activity.Build(m.status, s.events).Pull
+	pull := ctx.snapshot().Pull
 	if !pull.Pulling || pull.Total == 0 {
 		return 0, false
 	}
@@ -199,12 +204,11 @@ func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLev
 func (ctx *viewContext) run(req Request, title string) tea.Cmd {
 	t := ctx.tasks.start(title)
 	backend := ctx.backend
-	run := func() tea.Msg {
+	return func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
 		err := backend.Run(t.ctx, req, log)
 		return taskDoneMsg{id: t.id, title: title, err: err}
 	}
-	return run
 }
 
 // fit pads or cuts s to exactly width×height cells.
@@ -318,11 +322,22 @@ func (m Model) windowTitle() string {
 	return fmt.Sprintf("self-host · %d apps · %s", len(m.status.Apps), label)
 }
 
+// headerPiece is one piece of the header's context: what it says, how it
+// looks, and whether the Overview's Now strip says it again when the header
+// has no room for it (the LAN address and the time).
+type headerPiece struct {
+	text, styled string
+	restated     bool
+}
+
+func piece(text, styled string) headerPiece { return headerPiece{text: text, styled: styled} }
+
 // renderHeader is the one header row: the brand, the five tabs once the
 // Project is read, and on the right as much context as fits, most important
 // first. The brand's name shrinks to its mark only when that lets more of
-// the essential context fit, so it does not flicker with the rest.
-func (m Model) renderHeader() (string, []*lipgloss.Layer) {
+// the essential context fit, so it does not flicker with the rest. It also
+// returns what the Now strip should restate: the pieces that did not fit.
+func (m Model) renderHeader() (string, []*lipgloss.Layer, []string) {
 	t := m.theme
 	showTabs := !m.onboardingShown() && m.loaded && m.statusErr == ""
 	var labels []string
@@ -337,11 +352,18 @@ func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 	essential, extra := m.headerContext()
 	brand := t.brand(m.glyphs)
 	mark := " " + t.title().Render(m.glyphs.Brand()) + " "
-	if lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)) >
-		lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)) {
+	withMark, _ := fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)
+	withBrand, _ := fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)
+	if lipgloss.Width(withMark) > lipgloss.Width(withBrand) {
 		brand = mark
 	}
-	right := fitContext(append(essential, extra...), m.width-lipgloss.Width(brand)-tabsWidth)
+	right, hidden := fitContext(append(essential, extra...), m.width-lipgloss.Width(brand)-tabsWidth)
+	var restated []string
+	for _, p := range hidden {
+		if p.restated {
+			restated = append(restated, p.text)
+		}
+	}
 	left := brand
 	var layers []*lipgloss.Layer
 	for i, label := range labels {
@@ -358,25 +380,28 @@ func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 	}
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
-		return truncate(left, m.width), layers
+		return truncate(left, m.width), layers, restated
 	}
-	return left + strings.Repeat(" ", gap) + right, layers
+	return left + strings.Repeat(" ", gap) + right, layers, restated
 }
 
 // fitContext joins the context pieces that fit in width after a one-cell
-// gap, in order of importance, skipping any that do not.
-func fitContext(pieces []string, width int) string {
+// gap, in order of importance, skipping any that do not; those are returned.
+func fitContext(pieces []headerPiece, width int) (string, []headerPiece) {
 	right := ""
-	for _, piece := range pieces {
-		next := piece
+	var hidden []headerPiece
+	for _, p := range pieces {
+		next := p.styled
 		if right != "" {
-			next = right + " " + piece
+			next = right + " " + p.styled
 		}
 		if 1+lipgloss.Width(next) <= width {
 			right = next
+		} else {
+			hidden = append(hidden, p)
 		}
 	}
-	return right
+	return right, hidden
 }
 
 // projectLabel names the Project in the header: its folder, short.
@@ -390,40 +415,48 @@ func projectLabel(path string) string {
 // headerContext is the right side of the header, most important first: the
 // essential host health, LAN address, newer release and Project, then the
 // extra last refresh, known updates and version.
-func (m Model) headerContext() (essential, extra []string) {
+func (m Model) headerContext() (essential, extra []headerPiece) {
 	t := m.theme
 	if !m.onboardingShown() {
 		label, level := m.health()
-		health := t.chip("○ "+label, t.muted)
+		health := piece(label, t.chip("○ "+label, t.muted))
 		if level != "" {
 			glyph, c := t.status(level)
-			health = t.chip(glyph+" "+label, c)
+			health = piece(label, t.chip(glyph+" "+label, c))
 		}
-		essential = []string{health}
+		essential = []headerPiece{health}
 	}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		var lan headerPiece
 		switch {
 		case m.status.Exposure == service.ExposureLocal:
-			essential = append(essential, t.chip("LOCAL ONLY", t.warn))
+			lan = piece("LOCAL ONLY", t.chip("LOCAL ONLY", t.warn))
 		case m.status.LANIPStale:
-			essential = append(essential, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
+			lan = piece("⚠ LAN "+m.status.LANIP, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
 		default:
-			essential = append(essential, t.chip("LAN "+m.status.LANIP, t.info))
+			lan = piece("LAN "+m.status.LANIP, t.chip("LAN "+m.status.LANIP, t.info))
 		}
+		lan.restated = true
+		essential = append(essential, lan)
 	}
 	if m.latest != "" {
-		essential = append(essential, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
+		release := "↑ v" + strings.TrimPrefix(m.latest, "v")
+		essential = append(essential, piece(release, t.fg(t.info).Render(release)))
 	}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {
-		essential = append(essential, t.dim().Render(projectLabel(m.status.Project)))
+		project := projectLabel(m.status.Project)
+		essential = append(essential, piece(project, t.dim().Render(project)))
 	}
 	if !m.refreshed.IsZero() {
-		extra = append(extra, t.dim().Render(m.refreshed.Format("15:04:05")))
+		clock := m.refreshed.Format("15:04:05")
+		extra = append(extra, headerPiece{text: clock, styled: t.dim().Render(clock), restated: true})
 	}
 	if n := m.updatesAvailable(); n > 0 {
-		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
+		updates := "⚠ " + plural(n, "update", "updates")
+		extra = append(extra, piece(updates, t.fg(t.warn).Bold(true).Render(updates)))
 	}
-	return essential, append(extra, t.dim().Render("v"+strings.TrimPrefix(m.opts.Version, "v")))
+	version := "v" + strings.TrimPrefix(m.opts.Version, "v")
+	return essential, append(extra, piece(version, t.dim().Render(version)))
 }
 
 // renderBar is the last row: the global keys on the left and the focused
@@ -488,7 +521,8 @@ func (m Model) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 	v.ReportFocus = true
 	v.WindowTitle = m.windowTitle()
-	if pct, ok := m.pullProgress(); ok {
+	ctxView := m.ctx()
+	if pct, ok := m.pullProgress(ctxView); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
 	} else if m.tasks.running() > 0 {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
@@ -498,9 +532,9 @@ func (m Model) View() tea.View {
 		return v
 	}
 
-	ctxView := m.ctx()
-	header, layers := m.renderHeader()
-	status := pad(m.footerStatus(), m.width)
+	header, layers, restated := m.renderHeader()
+	ctxView.headerFacts = restated
+	status := pad(m.footerStatus(ctxView), m.width)
 	var content string
 	if m.onboardingShown() {
 		mode, chips := m.onboardingBar()
@@ -575,7 +609,7 @@ func (m Model) renderStatusError() string {
 // latest event, else the last result or flash message. On the Overview the
 // Now strip shows the Action and its result, so the line keeps only the
 // other messages.
-func (m Model) footerStatus() string {
+func (m Model) footerStatus(ctx *viewContext) string {
 	t := m.theme
 	overview := !m.onboardingShown() && m.surface == surfaceDashboard
 	if overview && m.flash == m.resultFlash {
@@ -584,7 +618,7 @@ func (m Model) footerStatus() string {
 	if task := m.tasks.latest(); task != nil && !overview {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
-			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
+			if snapshot := ctx.snapshot(); snapshot.Pull.Pulling {
 				line += t.dim().Render(" · ")
 				line += activity.Compact(snapshot, m.width-lipgloss.Width(line), t.palette())
 			} else if n := len(s.events); n > 0 {

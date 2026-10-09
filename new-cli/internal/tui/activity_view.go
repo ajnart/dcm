@@ -277,20 +277,7 @@ func (v *activityView) rowLines(ctx *viewContext, row activityRow, cursor string
 		return []string{line}
 	}
 	step := row.step
-	mark := t.dim().Render("○")
-	switch step.State {
-	case activity.Done:
-		mark = t.fg(t.ok).Render("✓")
-	case activity.Skipped:
-		mark = t.fg(t.info).Render("↷")
-	case activity.Manual:
-		mark = t.fg(t.warn).Render("! manual")
-	case activity.Failed:
-		mark = t.fg(t.fail).Render("✗")
-	case activity.Running:
-		mark = t.fg(t.accentText).Render("…")
-	}
-	line := "  " + cursor + mark + " " + step.Label
+	line := "  " + cursor + t.stepMark(step.State) + " " + step.Label
 	if step.Msg != "" {
 		line += t.dim().Render(" · " + firstLine(step.Msg))
 	}

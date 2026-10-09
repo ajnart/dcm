@@ -3,7 +3,7 @@
 │ ⠋ update jellyfin sonarr                                                     │
 │   ██████░░░░░░  1 of 2 images                                                │
 │   Pulling 2 images                                                           │
-│ ◐ Host: 1 warning                                                            │
+│ ◐ Host: 1 warning · LAN 192.168.1.20 · 12:00:00                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Apps 3 ─────────────────────────────────────────────────────────────────────╮
 │ ● ▶ Jellyfin      Media      192.168.1.20:8096      running   ✓              │
@@ -21,4 +21,4 @@
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
- 1-5 tabs  ←/→  A Project  ? help  q quit      ↑/↓  select   enter  go to App …
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   a  actions …

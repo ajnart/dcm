@@ -49,6 +49,18 @@ type fakeBackend struct {
 	saved     []activity.Glyphs
 	// glyphErr is what SetGlyphs returns.
 	glyphErr error
+	// holdLogs makes Logs follow a never-ending stream until it is
+	// cancelled; logStarts counts the streams opened and logsRunning those
+	// still open.
+	holdLogs    bool
+	logStarts   int
+	logsRunning int
+}
+
+func (f *fakeBackend) logStreams() (started, running int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.logStarts, f.logsRunning
 }
 
 func (f *fakeBackend) Glyphs(context.Context) activity.Glyphs {
@@ -121,8 +133,27 @@ func (f *fakeBackend) Compose(_ context.Context, id string) (string, error) {
 	return "services:\n  " + id + ":\n    image: example/" + id + ":latest\n", nil
 }
 func (f *fakeBackend) Logs(_ context.Context, id string, w io.Writer) error {
-	io.WriteString(w, id+"-1  | ready on :80\n")
-	return nil
+	f.mu.Lock()
+	f.logStarts++
+	hold := f.holdLogs
+	if hold {
+		f.logsRunning++
+	}
+	f.mu.Unlock()
+	if !hold {
+		io.WriteString(w, id+"-1  | ready on :80\n")
+		return nil
+	}
+	defer func() {
+		f.mu.Lock()
+		f.logsRunning--
+		f.mu.Unlock()
+	}()
+	for {
+		if _, err := io.WriteString(w, id+"-1  | still here\n"); err != nil {
+			return err
+		}
+	}
 }
 func (f *fakeBackend) OpenURL(url string) error {
 	f.mu.Lock()
@@ -357,7 +388,7 @@ func TestKeybindAudit(t *testing.T) {
 		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
 		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
 		// The App's Action menu and the read-only keys.
-		"actions: a", "resolve: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
+		"actions: a", "resolve: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter", "details: enter",
 		// Settings applies its pending changes.
 		"apply: ctrl+s",
 		// The open Action menu.
@@ -865,6 +896,8 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		}
 		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
 		check(string(set)+" Apps containers", drive(t, drive(t, m, press("2")), press("[")))
+		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
+		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))
 		check(string(set)+" help", drive(t, m, press("?")))
 	}
 	task := m.tasks.start("update every App in a Project with a long name")

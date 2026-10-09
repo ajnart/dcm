@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,7 @@ type dashboardView struct {
 func newDashboardView(apps *appsView) *dashboardView { return &dashboardView{apps: apps} }
 
 var (
-	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("enter", "go to App"), hint("a", "actions"),
+	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "go to App"), hint("/", "search"),
 		hint("tab", "next pane"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
 	overviewNeedsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "resolve"), hint("enter", "go to App"),
 		hint("tab", "next pane"), hint("shift+tab", "previous pane")}
@@ -39,6 +40,8 @@ func (v *dashboardView) Keys() []key.Binding {
 	switch {
 	case v.apps.copy != nil:
 		return copyHelp
+	case v.apps.searching:
+		return appsSearchKeys
 	case v.needsFocused:
 		return overviewNeedsKeys
 	}
@@ -46,14 +49,12 @@ func (v *dashboardView) Keys() []key.Binding {
 }
 
 func (v *dashboardView) Panes() []pane {
-	return []pane{{"Apps", overviewAppsKeys}, {"Needs attention", overviewNeedsKeys}}
+	return []pane{{"Apps", overviewAppsKeys}, {"Needs attention", overviewNeedsKeys}, {"Search", appsSearchKeys}}
 }
 
-func (v *dashboardView) Capturing() bool { return false }
+func (v *dashboardView) Capturing() bool { return v.apps.searching }
 
 func (v *dashboardView) Title() string { return "Overview" }
-
-func (v *dashboardView) rows(ctx *viewContext) []service.AppStatus { return ctx.status.Apps }
 
 // selectedApp is the App a opens the Action menu for: the selected App, or
 // the App of the selected Needs attention item.
@@ -79,7 +80,7 @@ func (v *dashboardView) suggestedAction(ctx *viewContext) string {
 }
 
 func (v *dashboardView) selectedNeed(ctx *viewContext) (need, bool) {
-	items := v.needsAction(ctx)
+	items := v.needsAttention(ctx)
 	if len(items) == 0 {
 		return need{}, false
 	}
@@ -110,7 +111,10 @@ func (v *dashboardView) View(ctx *viewContext, width, height int) string {
 
 func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	k := ctx.keys
-	items := v.needsAction(ctx)
+	if v.apps.searching {
+		return v, v.apps.searchKey(ctx, msg), nav{}
+	}
+	items := v.needsAttention(ctx)
 	if len(items) == 0 {
 		v.needsFocused = false
 	}
@@ -132,6 +136,10 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 		return v, v.apps.selectApp(ctx, v.apps.cursor+1), nav{}
 	case msg.String() == "enter":
 		return v.goToApp(ctx, v.apps.selectedID(ctx))
+	case key.Matches(msg, k.Search):
+		v.apps.searching = true
+	case msg.String() == "esc" && v.apps.filter != "":
+		return v, v.apps.clearFilter(ctx), nav{}
 	case key.Matches(msg, k.Copy):
 		return v, v.apps.openCopy(ctx), nav{}
 	case key.Matches(msg, k.Open):
@@ -140,9 +148,13 @@ func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cm
 	return v, nil, nav{}
 }
 
-// goToApp opens the App on the Apps tab with its details focused.
+// goToApp opens the App on the Apps tab with its details focused; a search
+// that hides the App is dropped first.
 func (v *dashboardView) goToApp(ctx *viewContext, id string) (view, tea.Cmd, nav) {
-	for i, app := range v.rows(ctx) {
+	if !slices.ContainsFunc(v.apps.visible(ctx), func(a service.AppStatus) bool { return a.ID == id }) {
+		v.apps.filter = ""
+	}
+	for i, app := range v.apps.visible(ctx) {
 		if app.ID == id {
 			cmd := v.apps.selectApp(ctx, i)
 			v.apps.detailsFocused = true
@@ -186,7 +198,11 @@ func (v *dashboardView) layout(ctx *viewContext, width, height int) layout {
 		left := width * 11 / 20
 		return layout{wide: true, leftW: left, rightW: width - left, appsH: h, needsH: h}
 	}
-	appsH := min(max(len(v.rows(ctx)), 1)+2, max(h/2, 3))
+	rows := max(len(ctx.status.Apps), 1)
+	if _, searching := v.apps.searchLine(ctx.theme); searching {
+		rows++
+	}
+	appsH := min(rows+2, max(h/2, 3))
 	return layout{leftW: width, rightW: width, appsH: appsH, needsH: h - appsH}
 }
 
@@ -196,17 +212,19 @@ func (v *dashboardView) render(ctx *viewContext, width, height int) (string, []*
 	l := v.layout(ctx, width, height)
 	now := v.renderNow(ctx, width)
 	apps, layers := v.renderApps(ctx, l.leftW, l.appsH, 1+nowHeight)
+	items := v.needsAttention(ctx)
 	if l.wide {
-		needs, needLayers := v.renderNeeds(ctx, l.rightW, l.needsH, l.leftW, 1+nowHeight)
+		needs, needLayers := v.renderNeeds(ctx, items, l.rightW, l.needsH, l.leftW, 1+nowHeight)
 		return now + "\n" + lipgloss.JoinHorizontal(lipgloss.Top, apps, needs), append(layers, needLayers...)
 	}
-	needs, needLayers := v.renderNeeds(ctx, l.rightW, l.needsH, 0, 1+nowHeight+l.appsH)
+	needs, needLayers := v.renderNeeds(ctx, items, l.rightW, l.needsH, 0, 1+nowHeight+l.appsH)
 	return now + "\n" + apps + "\n" + needs, append(layers, needLayers...)
 }
 
 // renderNow is the Now strip: the running Action drawn by the presentation
-// renderer, or the last Action's result, with the host health in words. It
-// is never empty: before any Action it says so.
+// renderer, or the last Action's result, with the host health in words and,
+// when the header has no room, the LAN address and time. It is never empty:
+// before any Action it says so.
 func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	t := ctx.theme
 	inner := width - 4
@@ -219,34 +237,35 @@ func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	if level != "" {
 		health = t.dot(level) + " " + t.body().Render("Host: "+label)
 	}
-	lines = append(lines, health)
+	if len(ctx.headerFacts) > 0 {
+		health += t.dim().Render(" · " + strings.Join(ctx.headerFacts, " · "))
+	}
+	lines = append(lines, truncate(health, inner))
 	return t.box("Now", "", strings.Join(lines, "\n"), width, nowHeight, false)
 }
 
 func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
 	inner := width - 4
-	visible := max(height-2, 1)
-	offset := max(v.apps.cursor-visible+1, 0)
-	rows := v.rows(ctx)
+	rows := v.apps.visible(ctx)
 	var lines []string
+	if line, ok := v.apps.searchLine(t); ok {
+		lines = append(lines, line)
+	}
+	top := len(lines)
+	visible := max(height-2-top, 1)
+	offset := max(v.apps.cursor-visible+1, 0)
 	var layers []*lipgloss.Layer
-	if len(rows) == 0 {
+	switch {
+	case len(ctx.status.Apps) == 0:
 		lines = append(lines, t.dim().Render("No Apps yet. Press 4 to open the Catalog."))
+	case len(rows) == 0:
+		lines = append(lines, t.dim().Render("No Apps match."))
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		level := service.Level(rows[i])
-		row := v.appRow(ctx, rows[i], inner-2)
-		line := t.dot(level) + " " + row
-		if i == v.apps.cursor {
-			// One background under the whole row so per-cell colours do not
-			// punch holes in it; the Status glyph keeps its colour.
-			glyph, c := t.status(level)
-			dot := t.fg(c).Background(t.selected).Bold(true).Render(glyph + " ")
-			line = dot + t.selection().Render(pad(stripANSI(row), inner-2))
-		}
+		line := appListRow(t, service.Level(rows[i]), v.appRow(ctx, rows[i], inner-2), i == v.apps.cursor, inner)
 		lines = append(lines, line)
-		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(y+1+i-offset).ID(rowLayerID(i)))
+		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(y+1+top+i-offset).ID(rowLayerID(i)))
 	}
 	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.needsFocused), layers
 }
@@ -318,9 +337,9 @@ func appNeed(broken bool, text, action, desc, app string) need {
 	return need{broken: broken, text: text, action: action, key: "a " + action, desc: desc, app: app}
 }
 
-func (v *dashboardView) needsAction(ctx *viewContext) []need {
+func (v *dashboardView) needsAttention(ctx *viewContext) []need {
 	var items []need
-	for _, a := range v.rows(ctx) {
+	for _, a := range ctx.status.Apps {
 		for _, s := range a.Steps {
 			// Setup cannot retry a failed install stage; "is stopped" or an
 			// update below names the Action that can.
@@ -332,7 +351,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 			}
 		}
 	}
-	for _, a := range v.rows(ctx) {
+	for _, a := range ctx.status.Apps {
 		if a.State != "running" && a.State != "degraded" && a.State != "unknown" {
 			items = append(items, appNeed(true, a.Name+" is stopped", "s", "start", a.ID))
 		}
@@ -340,7 +359,7 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 	if ctx.status.LANIPStale {
 		items = append(items, need{broken: true, text: "LAN IP " + ctx.status.LANIP + " is not on this machine", key: "5", desc: "Host settings"})
 	}
-	for _, a := range v.rows(ctx) {
+	for _, a := range ctx.status.Apps {
 		if a.Update == service.UpdateAvailable {
 			items = append(items, appNeed(false, a.Name+" has an update", "u", "update", a.ID))
 		}
@@ -361,9 +380,8 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 
 // needsLines renders Needs attention and returns the item each line
 // belongs to; the selected item is highlighted while the pane has focus.
-func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []int) {
+func (v *dashboardView) needsLines(ctx *viewContext, items []need, width int) ([]string, []int) {
 	t := ctx.theme
-	items := v.needsAction(ctx)
 	if len(items) == 0 {
 		return []string{t.fg(t.ok).Render("✓ Nothing needs your attention")}, []int{-1}
 	}
@@ -398,9 +416,9 @@ func (v *dashboardView) needsLines(ctx *viewContext, width int) ([]string, []int
 	return lines, owners
 }
 
-func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, x, y int) (string, []*lipgloss.Layer) {
+func (v *dashboardView) renderNeeds(ctx *viewContext, items []need, width, height, x, y int) (string, []*lipgloss.Layer) {
 	t := ctx.theme
-	lines, owners := v.needsLines(ctx, width-4)
+	lines, owners := v.needsLines(ctx, items, width-4)
 	visible := max(height-2, 1)
 	offset := 0
 	for i, owner := range owners {
@@ -415,7 +433,7 @@ func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, x, y int) (
 		}
 	}
 	note := ""
-	if n := len(v.needsAction(ctx)); n > 0 {
+	if n := len(items); n > 0 {
 		note = strconv.Itoa(n)
 	}
 	return t.box("Needs attention", note, strings.Join(lines[offset:], "\n"), width, height, v.needsFocused), layers

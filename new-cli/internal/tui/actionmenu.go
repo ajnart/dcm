@@ -208,7 +208,8 @@ func (m Model) menuKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// menuClick highlights the clicked entry and runs it like enter.
+// menuClick highlights the clicked entry, so its preview shows; a click on
+// the highlighted entry runs it like enter.
 func (m Model) menuClick(id string) (tea.Model, tea.Cmd) {
 	_, entries, ok := m.menuEntries()
 	i, err := strconv.Atoi(strings.TrimPrefix(id, "menu:"))
@@ -217,6 +218,7 @@ func (m Model) menuClick(id string) (tea.Model, tea.Cmd) {
 	}
 	if i != m.menu.cursor {
 		m.menu.cursor, m.menu.armed = i, false
+		return m, nil
 	}
 	return m.runMenuEntry(entries)
 }
@@ -233,10 +235,7 @@ func (m Model) runMenuEntry(entries []menuEntry) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.menu = nil
-	ctxView := m.ctx()
-	cmd := ctxView.run(e.req, e.title)
-	m.absorb(ctxView)
-	return m.focusActivity(cmd)
+	return m.focusActivity(m.ctx().run(e.req, e.title))
 }
 
 // menuBarKeys are the open menu's chips; an armed entry asks for confirmation.

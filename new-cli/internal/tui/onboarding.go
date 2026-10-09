@@ -544,7 +544,8 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		if o.step == stepInitializing && !o.checking {
 			o.checking = true
-			return m, tea.Batch(m.loadDoctor(), m.startTicking())
+			tick := m.startTicking()
+			return m, tea.Batch(m.loadDoctor(), tick)
 		}
 	case "enter":
 		return m.onboardingNext()
@@ -585,7 +586,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		return m.openStep(stepReview)
 	case stepReview:
 		next, cmd := m.installPlan(o.plan)
-		o.task, o.err = next.tasks.lastStarted(), ""
+		o.task, o.err = next.tasks.latest().id, ""
 		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs)))
 	}
 	return m.openStep(o.step + 1)
