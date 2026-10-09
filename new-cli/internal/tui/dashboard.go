@@ -263,7 +263,8 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (stri
 		lines = append(lines, t.dim().Render("No Apps match."))
 	}
 	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		line := appListRow(t, service.Level(rows[i]), v.appRow(ctx, rows[i], inner-2), i == v.apps.cursor, inner)
+		row, address := v.appRow(ctx, rows[i], inner-2)
+		line := appListRow(t, service.Level(rows[i]), row, address, rows[i].URL, i == v.apps.cursor, inner)
 		lines = append(lines, line)
 		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(y+1+top+i-offset).ID(rowLayerID(i)))
 	}
@@ -272,8 +273,9 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (stri
 
 // appRow is one App after its Status dot: its category icon and name, category,
 // address when it fits, state, Setup mark and update mark. The name cell is
-// built in one place.
-func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) string {
+// built in one place. It also returns the visible address, empty when it does
+// not fit.
+func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) (string, string) {
 	t := ctx.theme
 	update := " "
 	if a.Update == service.UpdateAvailable {
@@ -285,10 +287,12 @@ func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int)
 	address := strings.TrimPrefix(strings.TrimPrefix(a.URL, "http://"), "https://")
 	urlWidth := min(width-40, 22)
 	url := ""
+	shown := ""
 	if urlWidth >= 12 {
-		url = t.dim().Render(pad(address, urlWidth)) + " "
+		shown = truncate(address, urlWidth)
+		url = hyperlink(a.URL, t.dim().Render(shown)) + t.dim().Render(strings.Repeat(" ", urlWidth-lipgloss.Width(shown))) + " "
 	}
-	return name + category + url + pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
+	return name + category + url + pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update, shown
 }
 
 // appCategory is the App's Catalog category; an Unmanaged app has none.

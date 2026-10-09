@@ -92,5 +92,14 @@ func releaseNotice(latest string) string {
 }
 
 func link(t theme, url, label string) string {
-	return ansi.SetHyperlink(url) + t.fg(t.info).Render(label) + ansi.ResetHyperlink()
+	return hyperlink(url, t.fg(t.info).Render(label))
+}
+
+// hyperlink wraps already styled, already truncated text in an OSC 8 link,
+// which adds no visible width. An empty url leaves the text as it is.
+func hyperlink(url, text string) string {
+	if url == "" {
+		return text
+	}
+	return ansi.SetHyperlink(url) + text + ansi.ResetHyperlink()
 }
