@@ -1,0 +1,16 @@
+scripts/install.ts
+  h_d6e478ca18e517 61,63-64,66,68,71,73,168-171
+scripts/smoke-install.sh
+  h_d6e478ca18e517 12-13,78,87-90,349,389,442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed98aab30ab4a1126950783b2e902e9320081a09",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
