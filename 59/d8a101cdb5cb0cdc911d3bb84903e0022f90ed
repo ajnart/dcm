@@ -1,0 +1,38 @@
+new-cli/internal/service/private_inputs.go
+  s_683718c6d3553a::t_478aae46d48b96 101,104,115,134,137,139,142,150-158
+  s_683718c6d3553a::t_7ab6c9017794a5 40,48-52
+  s_683718c6d3553a::t_660b0137633312 120-132
+  s_683718c6d3553a::t_e91c056ae6fc47 53
+new-cli/internal/cli/private_inputs_test.go
+  s_683718c6d3553a::t_478aae46d48b96 360-368
+  s_683718c6d3553a::t_7ab6c9017794a5 395-404,449
+  s_683718c6d3553a::t_23935c0445e722 287-313,405-414,416-444,446-448,450-453
+  s_683718c6d3553a::t_660b0137633312 372-391
+  s_683718c6d3553a::t_4ec3e784538b64 358-359,369
+  s_683718c6d3553a::t_20f26102df2602 415,445,454-455
+  s_683718c6d3553a::t_ae413204546ac5 370-371,392
+  s_683718c6d3553a::t_655350174fb203 393-394,456
+new-cli/internal/skill/guide.md
+  s_683718c6d3553a::t_23935c0445e722 186-191
+new-cli/internal/service/install.go
+  s_683718c6d3553a::t_478aae46d48b96 189-192,204
+  s_683718c6d3553a::t_660b0137633312 193-203
+new-cli/internal/cli/install.go
+  s_683718c6d3553a::t_23935c0445e722 39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59d8a101cdb5cb0cdc911d3bb84903e0022f90ed",
+  "prompts": {},
+  "sessions": {
+    "s_683718c6d3553a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-c7af-73f3-a7fd-514e042c687f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
