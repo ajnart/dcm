@@ -934,6 +934,34 @@ func TestBeszelLinkCreatesTheIntegrationAndOneSystemStatsWidgetBoundToThisMachin
 	}
 }
 
+func TestBeszelLinkBindsTheWidgetToTheStoredSystemWhateverItIsCalled(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	hub := beszelHub(t, map[string]string{"id": "other0000000001", "name": "This machine"}, map[string]string{"id": "abc123def456789", "name": "Home server"})
+	from := homarrH(t, srv, allSecrets())
+	secrets := allSecrets()
+	secrets["BESZEL_MACHINE_ID"] = "abc123def456789"
+
+	if err := linkFor(t, "beszel").Apply(context.Background(), from, targetH(t, hub, "beszel", 8090, secrets)); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	integrationID, _ := fake.integrations[0]["id"].(string)
+	for _, item := range fake.items {
+		if item["kind"] != "beszelSystemStats" {
+			continue
+		}
+		options, _ := item["options"].(map[string]any)
+		if want := integrationID + ":abc123def456789"; options["systemId"] != want {
+			t.Fatalf("systemId=%v, want %s", options["systemId"], want)
+		}
+		return
+	}
+	t.Fatal("no System Stats widget was created")
+}
+
 type recorded struct {
 	mu     sync.Mutex
 	events []events.Event

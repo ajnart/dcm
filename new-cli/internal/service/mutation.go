@@ -176,8 +176,12 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 	}
 	switch c.compose {
 	case composeUp, composePullUp:
+		startable, err := ss.startServices(ids...)
+		if err != nil {
+			return err
+		}
 		ss.emitStage(ids, events.Event{Event: events.StepStart, Step: StageStart, Msg: "start " + strings.Join(ids, ", ")})
-		if err := ss.compose.Up(ctx, services...); err != nil {
+		if err := ss.up(ctx, startable); err != nil {
 			return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: StageStart, Msg: "could not start " + strings.Join(ids, ", "), Error: err.Error()}))
 		}
 		msg := "started "

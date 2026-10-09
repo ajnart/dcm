@@ -41,17 +41,71 @@ type fakeBeszel struct {
 	permanent string
 	// enables counts requests that created a permanent token.
 	enables int
-	// systems maps a system name to its status.
-	systems map[string]string
+	systems []hubSystem
+	// agentID is the system the agent registered, which it finds again by
+	// its fingerprint whatever the system is called.
+	agentID string
 }
 
+type hubSystem struct{ id, name, status string }
+
+// addSystem registers a system, or changes the status of the one with that
+// name. A system's id is fixed when it is first registered.
 func (f *fakeBeszel) addSystem(name, status string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.systems == nil {
-		f.systems = map[string]string{}
+	for i := range f.systems {
+		if f.systems[i].name == name {
+			f.systems[i].status = status
+			return
+		}
 	}
-	f.systems[name] = status
+	f.systems = append(f.systems, hubSystem{id: "id-" + strings.ReplaceAll(name, " ", "-"), name: name, status: status})
+}
+
+// renameSystem is a rename in the Hub's UI: the record keeps its id.
+func (f *fakeBeszel) renameSystem(from, to string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := range f.systems {
+		if f.systems[i].name == from {
+			f.systems[i].name = to
+		}
+	}
+}
+
+// connectAgent is the agent connecting with a valid key and token: the first
+// time the Hub registers a system under the agent's SYSTEM_NAME, afterwards it
+// finds that system again and marks it up.
+func (f *fakeBeszel) connectAgent() {
+	f.mu.Lock()
+	known := f.agentID
+	f.mu.Unlock()
+	if known == "" {
+		f.addSystem(beszel.SystemName, "up")
+		f.mu.Lock()
+		f.agentID = f.systems[len(f.systems)-1].id
+		f.mu.Unlock()
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := range f.systems {
+		if f.systems[i].id == known {
+			f.systems[i].status = "up"
+		}
+	}
+}
+
+func (f *fakeBeszel) systemStatus(name string) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, system := range f.systems {
+		if system.name == name {
+			return system.status
+		}
+	}
+	return ""
 }
 
 func (f *fakeBeszel) setKey(key string) {
@@ -69,7 +123,7 @@ func (f *fakeBeszel) setPermanent(token string) {
 func (f *fakeBeszel) dropSystems() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.systems = nil
+	f.systems, f.agentID = nil, ""
 }
 
 func (f *fakeBeszel) permanentToken() string {
@@ -162,8 +216,8 @@ func (f *fakeBeszel) handler() http.Handler {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		items := []map[string]string{}
-		for name, status := range f.systems {
-			items = append(items, map[string]string{"id": "id-" + strings.ReplaceAll(name, " ", "-"), "name": name, "status": status})
+		for _, system := range f.systems {
+			items = append(items, map[string]string{"id": system.id, "name": system.name, "status": system.status})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"page": 1, "perPage": 500, "totalItems": len(items), "items": items})
 	})
@@ -234,7 +288,7 @@ func newEnv(t *testing.T, fake *fakeBeszel) *env {
 	e.exec.onUp = func(services []string) {
 		for _, name := range services {
 			if name == beszel.AgentService && e.secrets["BESZEL_AGENT_KEY"] == fake.key && e.secrets["BESZEL_AGENT_TOKEN"] == fake.permanentToken() && fake.permanentToken() != "" {
-				fake.addSystem(beszel.SystemName, "up")
+				fake.connectAgent()
 			}
 		}
 	}
@@ -337,7 +391,7 @@ func TestSetupStoresTheHubKeyAndANewPermanentTokenThenStartsTheAgent(t *testing.
 	if len(ups) != 1 || len(ups[0]) != 1 || ups[0][0] != "beszel-agent" {
 		t.Errorf("started services = %v, want only beszel-agent", ups)
 	}
-	if status := fake.systems["This machine"]; status != "up" {
+	if status := fake.systemStatus("This machine"); status != "up" {
 		t.Errorf("this machine is %q in the Hub, want up", status)
 	}
 }
@@ -356,6 +410,120 @@ func TestMachineIDIsThisMachinesRecordIDInTheHub(t *testing.T) {
 	}
 	if id != "id-This-machine" {
 		t.Errorf("MachineID = %q, want id-This-machine", id)
+	}
+}
+
+func TestRenamingTheSystemInTheHubChangesNothing(t *testing.T) {
+	ctx := context.Background()
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	if e.secrets["BESZEL_MACHINE_ID"] != "id-This-machine" {
+		t.Fatalf("stored system id = %q, want the record id of this machine", e.secrets["BESZEL_MACHINE_ID"])
+	}
+	fake.addSystem("Another box", "up")
+	fake.renameSystem("This machine", "Home server")
+
+	if err := (beszel.App{}).Check(ctx, e.h); err != nil {
+		t.Fatalf("Check after a rename: %v", err)
+	}
+	id, err := beszel.MachineID(ctx, e.h)
+	if err != nil || id != "id-This-machine" {
+		t.Fatalf("MachineID after a rename = %q, %v; want id-This-machine", id, err)
+	}
+	e.records = nil
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("rerun Setup after a rename: %v", err)
+	}
+	for _, r := range e.records {
+		if r.Status != stepstatus.StepSkip {
+			t.Errorf("step %s = %s after a rename, want skip", r.ID, r.Status)
+		}
+	}
+	if len(e.exec.upCalls()) != 1 {
+		t.Errorf("the agent was started %d times, want once", len(e.exec.upCalls()))
+	}
+}
+
+func TestARenamedSystemWhoseAgentWentDownIsStartedAgainAndStillFound(t *testing.T) {
+	ctx := context.Background()
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	fake.renameSystem("This machine", "Home server")
+	fake.addSystem("Home server", "down")
+
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("rerun Setup: %v", err)
+	}
+	if e.secrets["BESZEL_MACHINE_ID"] != "id-This-machine" || fake.systemStatus("Home server") != "up" || len(fake.systems) != 1 {
+		t.Errorf("stored id %q, systems %v; want the renamed system back up under its own id", e.secrets["BESZEL_MACHINE_ID"], fake.systems)
+	}
+}
+
+func TestASystemDeletedAndEnrolledAgainIsFoundUnderItsNewID(t *testing.T) {
+	ctx := context.Background()
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	fake.dropSystems()
+	if err := (beszel.App{}).Check(ctx, e.h); err == nil {
+		t.Fatal("Check passed although the system was deleted from the Hub")
+	}
+	fake.addSystem("Unrelated", "up")
+	fake.addSystem("This machine", "up")
+	fake.mu.Lock()
+	fake.systems[1].id = "id-after-deletion"
+	fake.mu.Unlock()
+
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("rerun Setup: %v", err)
+	}
+	if e.secrets["BESZEL_MACHINE_ID"] != "id-after-deletion" {
+		t.Errorf("stored system id = %q, want the new record's id", e.secrets["BESZEL_MACHINE_ID"])
+	}
+}
+
+func TestAnInstallFromBeforeTheSystemIDWasStoredIsFoundByNameAndRecordsIt(t *testing.T) {
+	ctx := context.Background()
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	delete(e.secrets, "BESZEL_MACHINE_ID")
+
+	if err := (beszel.App{}).Check(ctx, e.h); err != nil {
+		t.Fatalf("Check without a stored id: %v", err)
+	}
+	if err := (beszel.App{}).Setup(ctx, e.h); err != nil {
+		t.Fatalf("rerun Setup: %v", err)
+	}
+	if e.secrets["BESZEL_MACHINE_ID"] != "id-This-machine" {
+		t.Errorf("stored system id = %q, want it recorded by the rerun", e.secrets["BESZEL_MACHINE_ID"])
+	}
+}
+
+func TestComposeUpHoldsTheAgentAndItsProxyBackUntilTheirSettingsAreStored(t *testing.T) {
+	e := newEnv(t, &fakeBeszel{firstRun: true, key: hubKey})
+	held := func() []string { return (beszel.App{}).Deferred(e.h) }
+
+	if got := held(); len(got) != 2 || got[0] != beszel.AgentService || got[1] != beszel.SocketProxyService {
+		t.Fatalf("before Setup the held back services = %v, want the agent and its proxy", got)
+	}
+	e.secrets["BESZEL_AGENT_KEY"] = hubKey
+	if len(held()) == 0 {
+		t.Error("a key without a token must still hold the agent back")
+	}
+	e.secrets["BESZEL_AGENT_TOKEN"] = "token"
+	if got := held(); len(got) != 0 {
+		t.Errorf("after Setup stored them the held back services = %v, want none", got)
 	}
 }
 
