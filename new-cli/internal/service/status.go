@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
@@ -98,7 +100,13 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			as.State = "unknown"
 		} else {
 			completed := fragmentCompletionDependencies(ss.p.FragmentPath(id))
-			fillContainer(&as, byService, mainService, services, completed, ss.settings)
+			var deferred []string
+			if a, found := s.Catalog.App(id); found {
+				if deferrer, ok := a.(app.DeferredStarter); ok {
+					deferred = deferrer.Deferred(ss.helpers(a))
+				}
+			}
+			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
 		}
 		status.Apps = append(status.Apps, as)
 	}
@@ -107,7 +115,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 // fillContainer sets state and health from the main service, and the
 // worst state among the App's other services.
-func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, settings map[string]string) {
+func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, deferred []string, settings map[string]string) {
 	c, found := byService[main]
 	if !found && !as.Managed && len(services) > 0 {
 		c, found = byService[services[0]]
@@ -131,7 +139,9 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 	for _, name := range services {
 		other, found := byService[name]
 		if !found {
-			as.State = "degraded"
+			if !slices.Contains(deferred, name) {
+				as.State = "degraded"
+			}
 			continue
 		}
 		if name != main && completed[name] {

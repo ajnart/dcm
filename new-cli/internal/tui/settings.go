@@ -373,6 +373,9 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 
 // show opens a sub-tab; Appearance starts on the glyph set in use.
 func (v *settingsView) show(ctx *viewContext, tab settingsTab) {
+	if v.tab == tabBackups && tab != tabBackups {
+		v.backups.reset()
+	}
 	v.tab = tab
 	if tab == tabAppearance {
 		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
@@ -478,7 +481,9 @@ func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
 // lan or local as a pending change and closes it, and says a coming-soon entry
 // is coming soon without changing or saving anything.
 func (v *settingsView) chooseExposure(ctx *viewContext, msg tea.KeyPressMsg) {
-	ctx.setFlash("", levelInfo)
+	if ctx.flash != "" {
+		ctx.setFlash("", levelInfo)
+	}
 	switch {
 	case key.Matches(msg, ctx.keys.Up):
 		v.highlight = max(v.highlight-1, 0)
