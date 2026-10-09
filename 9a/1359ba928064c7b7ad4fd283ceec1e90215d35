@@ -1,0 +1,112 @@
+new-cli/README.md
+  h_d6e478ca18e517 118-129,136
+new-cli/internal/activity/strip.go
+  h_d6e478ca18e517 1-36
+new-cli/internal/activity/strip_test.go
+  h_d6e478ca18e517 1-73
+new-cli/internal/tui/actionmenu.go
+  h_d6e478ca18e517 139-144,168-179
+new-cli/internal/tui/actionmenu_test.go
+  h_d6e478ca18e517 235
+new-cli/internal/tui/apps_test.go
+  h_d6e478ca18e517 158,160
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 4,12,18-22,24-26,32-35,42-43,49,58-59,61-86,97,106,113-117,119-128,133-134,143-153,155-166,169-178,181-187,189-190,195-198,200-220,222-223,226,249,251,254-256,263-267,270,272-283,289,305-307,311-312,317-320,328,331,337,345,362-364,368,370-372,377-384,387-389,391-395,398,401,403-410,412-414,421
+new-cli/internal/tui/glyphs_test.go
+  h_d6e478ca18e517 21-22,24-25,31,37
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 13,43-44,46-50,59,124-158
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 277,283-284,351,427,851-852,860-868
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 129-131,466
+new-cli/internal/tui/overview_test.go
+  h_d6e478ca18e517 1-191
+new-cli/internal/tui/pull_test.go
+  h_d6e478ca18e517 21-22,55-56,73-74
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 103,124-125,274
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  h_d6e478ca18e517 1-7,9-11,24
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview.golden
+  h_d6e478ca18e517 1-28,30
+new-cli/internal/tui/testdata/glyphs-simple-apps-narrow.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/glyphs-simple-apps.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  h_d6e478ca18e517 1-7,9-11,24
+new-cli/internal/tui/testdata/glyphs-simple-overview.golden
+  h_d6e478ca18e517 1-28,30
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  h_d6e478ca18e517 1-11,13-17
+new-cli/internal/tui/testdata/menu-app.golden
+  h_d6e478ca18e517 1-12,19-28
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  h_d6e478ca18e517 1-11,13-17
+new-cli/internal/tui/testdata/menu-project.golden
+  h_d6e478ca18e517 1-12,19-28
+new-cli/internal/tui/testdata/overview-idle-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/overview-idle.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/overview-running-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/overview-running.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-appearance-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/settings-appearance.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/settings-pending-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-activity-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-activity.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/tab-apps.golden
+  h_d6e478ca18e517 1,4
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 1,4-7,10-11
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 1,4-7,10-11
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  h_d6e478ca18e517 1-7,9-11,24
+new-cli/internal/tui/testdata/tab-overview.golden
+  h_d6e478ca18e517 1-28,30
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/theme_test.go
+  h_d6e478ca18e517 140-145,148-149,151-152,154-158
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 5-6,273-275,277-278,282,382-389,391-392,415-416,421-423,573-575,578-582
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a1359ba928064c7b7ad4fd283ceec1e90215d35",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
