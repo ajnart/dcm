@@ -172,7 +172,18 @@ func TestNoticeSkipsALookupThatErrors(t *testing.T) {
 func TestNoticeNeverWaitsForASlowLookup(t *testing.T) {
 	deps := depsAt(t, "1.0.0", nil)
 	l := &lookup{version: "1.1.0", block: make(chan struct{})}
-	defer close(l.block)
+	// Release the lookup and wait for its cache write before the temp dir
+	// is removed; the real CLI simply exits instead.
+	t.Cleanup(func() {
+		close(l.block)
+		dir, _ := deps.CacheDir()
+		for range 200 {
+			if _, err := os.Stat(filepath.Join(dir, "self-host", "update.json")); err == nil {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	})
 
 	start := time.Now()
 	got := notice(t, deps, l)
