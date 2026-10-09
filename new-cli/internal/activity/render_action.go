@@ -50,14 +50,14 @@ func Animating(s Snapshot, m Motion) bool {
 
 // Render draws the Action of the snapshot within width cells: its title and
 // stages, the pull while it runs, the Apps and Links boxes with their
-// counters, and the narrative line. Transitions are functions of the frames
-// since each row changed.
-func Render(s Snapshot, m Motion, width int, p Palette) []string {
+// counters, and the narrative line, with the icons of glyph set g.
+// Transitions are functions of the frames since each row changed.
+func Render(s Snapshot, m Motion, width int, g Glyphs, p Palette) []string {
 	a := s.Action
 	if a.Empty() {
 		return nil
 	}
-	r := renderer{a: a, m: m, p: p, narrow: width < wideBoxes}
+	r := renderer{a: a, m: m, g: g, p: p, narrow: width < wideBoxes}
 	lines := []string{r.title()}
 	if len(a.Stages) > 0 {
 		lines = append(lines, "  "+r.stages())
@@ -98,6 +98,7 @@ func Render(s Snapshot, m Motion, width int, p Palette) []string {
 type renderer struct {
 	a      Action
 	m      Motion
+	g      Glyphs
 	p      Palette
 	narrow bool
 }
@@ -171,9 +172,23 @@ func (r renderer) stages() string {
 		if stage.State == Running {
 			name = style(r.p.Bright).Bold(true).Render(stage.Name)
 		}
-		parts = append(parts, r.glyph(stage.State)+" "+name)
+		parts = append(parts, r.glyph(stage.State)+" "+r.stageIcon(stage.Name)+name)
 	}
 	return strings.Join(parts, "   ")
+}
+
+// stageIcon is the icon of the stages that have one, with its space: Docker
+// for the pull and start, a key for credentials, a link for Links.
+func (r renderer) stageIcon(name string) string {
+	switch name {
+	case StagePull, StageStart:
+		return style(r.p.Muted).Render(r.g.Docker()) + " "
+	case StageCredentials:
+		return style(r.p.Muted).Render(r.g.Key()) + " "
+	case StageLinks:
+		return style(r.p.Muted).Render(r.g.Link()) + " "
+	}
+	return ""
 }
 
 func (r renderer) appsBox() boxContent {
@@ -324,7 +339,7 @@ func (r renderer) linkRow(link Link) string {
 		nameStyle = style(r.p.Bright).Bold(true)
 	}
 	line := r.linkLine(link, length)
-	row := r.glyph(link.State) + " " + nameStyle.Render(source) + " " + line + " " + nameStyle.Render(pad(target, nameWidth))
+	row := r.glyph(link.State) + " " + style(r.p.Muted).Render(r.g.Link()) + " " + nameStyle.Render(source) + " " + line + " " + nameStyle.Render(pad(target, nameWidth))
 	if fact != "" {
 		row += " " + fact
 	}

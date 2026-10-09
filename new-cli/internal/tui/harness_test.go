@@ -17,6 +17,7 @@ import (
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
@@ -41,6 +42,28 @@ type fakeBackend struct {
 	updateCalls int
 	// compose replaces every App's Compose file when set.
 	compose string
+	glyphs  activity.Glyphs
+	saved   []activity.Glyphs
+}
+
+func (f *fakeBackend) Glyphs(context.Context) activity.Glyphs {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.glyphs
+}
+
+func (f *fakeBackend) SetGlyphs(_ context.Context, g activity.Glyphs) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.glyphs = g
+	f.saved = append(f.saved, g)
+	return nil
+}
+
+func (f *fakeBackend) savedGlyphs() []activity.Glyphs {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]activity.Glyphs(nil), f.saved...)
 }
 
 func (f *fakeBackend) ReviewSettings(context.Context) ([]service.SettingReview, error) {
@@ -336,6 +359,8 @@ func TestKeybindAudit(t *testing.T) {
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
+		// Settings' Appearance pane saves the highlighted glyph set at once.
+		"choose: enter",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
@@ -832,10 +857,14 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			}
 		}
 	}
-	for i, label := range tabLabels {
-		check(label, drive(t, m, press(strconv.Itoa(i+1))))
+	for _, set := range []activity.Glyphs{activity.Simple, activity.NerdFont} {
+		m := drive(t, m, appearanceMsg{glyphs: set})
+		for i, label := range tabLabels {
+			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
+		}
+		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
+		check(string(set)+" help", drive(t, m, press("?")))
+		check(string(set)+" App menu", drive(t, m, press("a")))
+		check(string(set)+" Project menu", drive(t, m, press("A")))
 	}
-	check("help", drive(t, m, press("?")))
-	check("App menu", drive(t, m, press("a")))
-	check("Project menu", drive(t, m, press("A")))
 }

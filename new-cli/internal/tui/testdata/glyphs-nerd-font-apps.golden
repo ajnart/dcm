@@ -1,0 +1,30 @@
+ 󰜋 self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  ⚠ 1 update 12:00:00
+  3 containers · 2 running · 1 App with an update · checked 12:00
+
+  APP         SERVICE         STATE      HEALTH     UPD        UPTIME            PORTS
+> 󰿎 jellyfin  jellyfin        running    healthy    ⚠ update   Up 2 hours        0.0.0.0:8096→8096
+  󱇒 sonarr    sonarr          running               ? unknown  Up 2 hours        0.0.0.0:8989→8989
+  󰣆 whoami    whoami          exited                ? unknown  Exited (0) 1 hour…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit                       ↑/↓  select   a  actions   r  check updates   esc  back

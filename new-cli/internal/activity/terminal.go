@@ -29,6 +29,7 @@ func realTicks() (<-chan time.Time, func()) {
 type TerminalSink struct {
 	w       io.Writer
 	width   func() int
+	glyphs  Glyphs
 	palette Palette
 	human   events.Sink
 	ticks   Ticks
@@ -47,12 +48,12 @@ type TerminalSink struct {
 	ticked chan<- struct{}
 }
 
-func Terminal(w io.Writer, verbose bool, width func() int, p Palette) *TerminalSink {
-	return newTerminal(w, verbose, width, p, realTicks)
+func Terminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette) *TerminalSink {
+	return newTerminal(w, verbose, width, g, p, realTicks)
 }
 
-func newTerminal(w io.Writer, verbose bool, width func() int, p Palette, ticks Ticks) *TerminalSink {
-	t := &TerminalSink{w: w, width: width, palette: p, ticks: ticks}
+func newTerminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette, ticks Ticks) *TerminalSink {
+	t := &TerminalSink{w: w, width: width, glyphs: g, palette: p, ticks: ticks}
 	t.human = events.Human(&t.buf, verbose)
 	return t
 }
@@ -155,7 +156,7 @@ func (t *TerminalSink) stopTicker() func() {
 func (t *TerminalSink) redraw(s Snapshot, m Motion) {
 	var block []string
 	if len(s.Action.Stages) > 0 || s.Pull.Pulling {
-		block = Render(s, m, t.width(), t.palette)
+		block = Render(s, m, t.width(), t.glyphs, t.palette)
 	}
 	if slices.Equal(block, t.shown) {
 		return

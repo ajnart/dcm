@@ -2,9 +2,9 @@
   3 containers · 2 running · 1 App with an update · checked 12:00
 
   APP         SERVICE         STATE      HEALTH     UPD
-> jellyfin    jellyfin        running    healthy    ⚠ update
-  sonarr      sonarr          running               ? unknown
-  whoami      whoami          exited                ? unknown
+> ▶ jellyfin  jellyfin        running    healthy    ⚠ update
+  ⊕ sonarr    sonarr          running               ? unknown
+  ◇ whoami    whoami          exited                ? unknown
 
 
 

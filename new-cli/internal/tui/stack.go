@@ -153,7 +153,7 @@ func (v *stackView) renderRow(ctx *viewContext, c service.ContainerStatus, i int
 	if i == v.cursor {
 		cursor = t.cursor()
 	}
-	line := cursor + t.body().Render(pad(c.App, 12)) + t.dim().Render(pad(c.Service, 16)) +
+	line := cursor + t.dim().Render(categoryIcon(ctx, c.App)) + " " + t.body().Render(pad(c.App, 10)) + t.dim().Render(pad(c.Service, 16)) +
 		pad(c.State, 11) + t.dim().Render(pad(c.Health, 11)) + pad(updateMark(ctx, c.App), 11)
 	if uptime {
 		line += t.dim().Render(pad(c.Status, 18))

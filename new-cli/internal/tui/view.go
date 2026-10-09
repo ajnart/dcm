@@ -87,6 +87,7 @@ type viewContext struct {
 	width, height int
 	dark          bool
 	theme         theme
+	glyphs        activity.Glyphs
 	keys          keyMap
 	help          help.Model
 	// frame and motion are the animation's current frame and the frame at
@@ -327,8 +328,8 @@ func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 		tabsWidth += 2 * (len(labels) - 1)
 	}
 	essential, extra := m.headerContext()
-	brand := t.brand()
-	mark := " " + t.title().Render("◆") + " "
+	brand := t.brand(m.glyphs)
+	mark := " " + t.title().Render(m.glyphs.Brand()) + " "
 	if lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)) >
 		lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)) {
 		brand = mark

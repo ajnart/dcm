@@ -1,14 +1,14 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
 ╭─ Catalog Recipes and Apps ───╮╭─ Media ─────────────────────────────────────╮
 │ > [ ] 📦 Media         media ││ Watch your movies                           │
-│ Other                        ││                                             │
-│   [ ] Homarr           homa… ││ Apps                                        │
-│    ✓  Jellyfin         jell… ││ Jellyfin  Media server                      │
-│   [ ] ntfy             ntfy  ││                                             │
-│                              ││                                             │
-│                              ││                                             │
-│                              ││                                             │
-│                              ││                                             │
+│ ✉ Communication              ││                                             │
+│   [ ] ntfy             ntfy  ││ Apps                                        │
+│ ▦ Dashboard                  ││ Jellyfin  Media server                      │
+│   [ ] Homarr           homa… ││                                             │
+│ ▶ Media                      ││                                             │
+│    ✓  Jellyfin         jell… ││                                             │
+│ ⊕ Requests                   ││                                             │
+│    ✓  Sonarr           sona… ││                                             │
 │                              ││                                             │
 │                              ││                                             │
 │                              ││                                             │

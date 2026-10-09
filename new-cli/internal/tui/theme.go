@@ -7,6 +7,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/host"
 )
 
@@ -80,8 +81,8 @@ func (t theme) chip(label string, c color.Color) string {
 }
 
 // brand is the top-left mark, the width of a chip.
-func (t theme) brand() string {
-	return " " + t.title().Render("◆") + " " + t.active().Render("self-host") + " "
+func (t theme) brand(g activity.Glyphs) string {
+	return " " + t.title().Render(g.Brand()) + " " + t.active().Render("self-host") + " "
 }
 
 // button is a key the person can press, filled with the accent.

@@ -11,6 +11,26 @@ import (
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
+func TestStatusJSONIgnoresTheAppearance(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	owner, _ := deps.CurrentUser()
+	p := project.Open(owner)
+	if err := p.SaveSettings(map[string]string{"EXPOSURE": "lan", "TZ": "UTC"}); err != nil {
+		t.Fatal(err)
+	}
+	cat := testCatalog(&echoApp{id: "one"})
+	_, before := runWith(t, deps, cat, "status", "--json")
+
+	if err := p.SaveAppearance(project.Appearance{Glyphs: "nerd-font"}); err != nil {
+		t.Fatal(err)
+	}
+
+	code, after := runWith(t, deps, cat, "status", "--json")
+	if code != 0 || after != before {
+		t.Fatalf("status JSON changed with the appearance: exit %d\ngot %s\nwant %s", code, after, before)
+	}
+}
+
 func TestStatusJSONKeepsLegacyStrings(t *testing.T) {
 	deps := systemtest.NewDeps(t)
 	owner, _ := deps.CurrentUser()

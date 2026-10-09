@@ -2,9 +2,9 @@
   Activity · 1 App fully set up · 1 step failed · 0 steps running
 
   ✓ install jellyfin sonarr
-    ✓ Start   ✓ Setup   ✓ Credentials   ✓ Links   ✓ Check
+    ✓ ▣ Start   ✓ Setup   ✓ ✱ Credentials   ✓ ⇄ Links   ✓ Check
   ╭─ Apps 2/2 set up ──────────────────────────────────────╮ ╭─ Links 1/1 ─────────────────────────────────────────────╮
-  │ ● Jellyfin        ready                                │ │ ✓ Sonarr       ━━━━━━━▶ Jellyfin     add Jellyfin as a… │
+  │ ● Jellyfin        ready                                │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ Jellyfin     add Jellyfin as… │
   │ ● Sonarr          ready                                │ │                                                         │
   ╰────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────╯
     All 2 Apps are ready

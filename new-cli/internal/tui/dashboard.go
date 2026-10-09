@@ -442,21 +442,31 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 	return t.box("Apps", strconv.Itoa(len(rows)), strings.Join(lines, "\n"), width, height, !v.detailsFocused), layers
 }
 
-// appRow is one App after its Status dot: name, URL, state, Setup and
-// update marks.
+// appRow is one App after its Status dot: category icon, name, URL, state,
+// Setup and update marks.
 func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int) string {
 	t := ctx.theme
 	update := " "
 	if a.Update == service.UpdateAvailable {
 		update = t.fg(t.warn).Render("↑")
 	}
-	urlWidth := min(width-27, 26)
+	urlWidth := min(width-28, 26)
 	url := ""
 	if urlWidth >= 12 {
 		url = t.dim().Render(pad(a.URL, urlWidth)) + " "
 	}
-	return t.body().Render(pad(a.Name, 13)) + " " + url +
+	return t.dim().Render(categoryIcon(ctx, a.ID)) + " " + t.body().Render(pad(a.Name, 12)) + " " + url +
 		pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
+}
+
+// categoryIcon is the App's category icon in the chosen glyph set; an App
+// outside the Catalog gets the set's fallback.
+func categoryIcon(ctx *viewContext, id string) string {
+	category := ""
+	if a, found := ctx.backend.Catalog().App(id); found {
+		category = a.Info().Category
+	}
+	return ctx.glyphs.Category(category)
 }
 
 func stateLabel(a service.AppStatus) string {

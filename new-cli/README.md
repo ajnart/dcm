@@ -77,14 +77,14 @@ Run `self-host doctor` before installation. With rootless Docker, compatible
 images may require container `PUID=0 PGID=0`; host filesystem ownership remains
 the invoking user. Images with fixed container UIDs need separate handling.
 
-| Platform | Binary target | Current validation |
-| --- | --- | --- |
-| Linux amd64 | Yes | Published host install/update and clean Alpine bootstrap/update passed. |
-| Linux arm64 | Yes | Native CLI/local archive checks passed; image support varies by App. |
-| macOS arm64 | Yes | Native CLI/local archive checks passed; deployment requires a Linux Docker VM. |
-| Intel macOS | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
-| WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
-| Native Windows | No | Unsupported. |
+| Platform       | Binary target           | Current validation                                                               |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| Linux amd64    | Yes                     | Published host install/update and clean Alpine bootstrap/update passed.          |
+| Linux arm64    | Yes                     | Native CLI/local archive checks passed; image support varies by App.             |
+| macOS arm64    | Yes                     | Native CLI/local archive checks passed; deployment requires a Linux Docker VM.   |
+| Intel macOS    | Yes                     | Native CLI execution, local checksummed install and corruption rejection passed. |
+| WSL2           | Linux binary inside WSL | Planned path; native WSL validation pending.                                     |
+| Native Windows | No                      | Unsupported.                                                                     |
 
 [Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
 and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
@@ -117,14 +117,14 @@ remain explicit prerequisites.
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The bar on the last row shows the global keys and the focused pane's keys.
 
-| Dashboard key | Action |
-| --- | --- |
-| 1–5, ←/→ | Switch tabs. |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the App details sub-tab (logs, setup, info, compose). |
-| a, A | Open the Action menu for the selected App, or for the whole Project. |
-| enter, o, c | Go into the selected App; open its URL; choose a password or API key to copy. |
-| ?, q | Help; quit. |
+| Dashboard key   | Action                                                                        |
+| --------------- | ----------------------------------------------------------------------------- |
+| 1–5, ←/→        | Switch tabs.                                                                  |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                           |
+| [ and ]         | Switch the App details sub-tab (logs, setup, info, compose).                  |
+| a, A            | Open the Action menu for the selected App, or for the whole Project.          |
+| enter, o, c     | Go into the selected App; open its URL; choose a password or API key to copy. |
+| ?, q            | Help; quit.                                                                   |
 
 No single key changes an App or the Project. The Action menu lists only the
 Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
@@ -134,7 +134,11 @@ runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
 closes the menu. Unavailable Actions stay greyed with the reason.
 
 While a search or an edit takes text, every key goes to it. Settings applies
-edits with `ctrl+s`; `esc` returns to the Overview. Activity takes focus when
+edits with `ctrl+s`; `esc` returns to the Overview. Its Appearance pane (`tab`)
+chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
+in the terminal) or Simple Unicode symbols, the default. The choice is saved at
+once in the Project's `appearance.json`, and the CLI in a terminal uses it too.
+Bars, spinners and state dots look the same in both. Activity takes focus when
 an Action starts and plays it: its stages, each App's Setup steps one at a
 time, credentials as masked dots, Links filling into arrows and one line that
 says what is happening now. The finished Action stays until the next one;
@@ -198,17 +202,17 @@ chat replies, screenshots and ordinary evidence.
 
 ## Daily commands
 
-| Command | Effect |
-| --- | --- |
-| `status [--updates]` | Show URLs, container state, health and Setup; optionally check image updates. |
-| `setup [app...]` | Retry unfinished Setup. |
-| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted. |
-| `update [app...]` | Pull images, recreate Apps and rerun checks. |
-| `logs <app> [--follow] [--tail N]` | Read container logs; default tail is 200 lines. |
-| `remove <app>... [--yes]` | Remove Apps while keeping data; `--purge` also deletes their data folders. |
-| `config set KEY=value...` | Change Host settings and recreate affected Apps. |
-| `config review [--yes]` | Review current host drift; `--yes` applies detected LAN IP/time zone fixes. |
-| `self-update` | Replace a release binary with the latest stable checksummed CLI release. |
+| Command                             | Effect                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `status [--updates]`                | Show URLs, container state, health and Setup; optionally check image updates. |
+| `setup [app...]`                    | Retry unfinished Setup.                                                       |
+| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted.                      |
+| `update [app...]`                   | Pull images, recreate Apps and rerun checks.                                  |
+| `logs <app> [--follow] [--tail N]`  | Read container logs; default tail is 200 lines.                               |
+| `remove <app>... [--yes]`           | Remove Apps while keeping data; `--purge` also deletes their data folders.    |
+| `config set KEY=value...`           | Change Host settings and recreate affected Apps.                              |
+| `config review [--yes]`             | Review current host drift; `--yes` applies detected LAN IP/time zone fixes.   |
+| `self-update`                       | Replace a release binary with the latest stable checksummed CLI release.      |
 
 Prefix each with `self-host`. `--verbose` (`-v`) adds command and step details.
 Use `--yes` for approved noninteractive install, remove and restore operations;
@@ -295,15 +299,15 @@ at one immutable head. The terminal screenshots above use that same fixture
 and binary. API payload checks, archive sentinels, browser review and full
 workload recovery remain distinct claims.
 
-| Capability | Available behavior | Evidence limit |
-| --- | --- | --- |
-| Catalog install | Compiled Compose definitions and App inputs. | All-catalog runtime acceptance is incomplete. |
-| Setup and Links | Per-App API/configuration routines; retry unfinished steps. | Browser-only tasks, external credentials and remote enrollment may need you. |
-| Dashboard/Workflow | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
-| Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
-| Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps | Lifecycle/Backup for manually added Compose App folders. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
-| VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
+| Capability         | Available behavior                                              | Evidence limit                                                                                 |
+| ------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Catalog install    | Compiled Compose definitions and App inputs.                    | All-catalog runtime acceptance is incomplete.                                                  |
+| Setup and Links    | Per-App API/configuration routines; retry unfinished steps.     | Browser-only tasks, external credentials and remote enrollment may need you.                   |
+| Dashboard/Workflow | TUI, persisted stages, retry hints and live progress.           | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate.         |
+| Lifecycle/update   | Project-scoped commands and image refreshes.                    | Update checks do not establish safe version-to-version migration.                              |
+| Backup/Restore     | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
+| Unmanaged Apps     | Lifecycle/Backup for manually added Compose App folders.        | No compiled Setup for off-Catalog Apps; see `self-host skill`.                                 |
+| VPN/public access  | App configuration where implemented.                            | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof.                  |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,
 per-target outcomes and the limits of generic checks. Manual, blocked,

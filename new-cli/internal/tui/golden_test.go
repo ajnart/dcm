@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -37,12 +39,23 @@ func trimLines(s string) string {
 	return strings.Join(lines, "\n")
 }
 
+// categoryCatalog gives the sample Apps their categories; whoami is not in
+// it, so it gets the fallback icon.
+func categoryCatalog() *catalog.Catalog {
+	return catalog.New([]app.App{
+		stubApp{info: app.Info{ID: "homarr", Name: "Homarr", Category: "Dashboard", Description: "Dashboard", Image: "ghcr.io/homarr-labs/homarr:latest", Port: 7575}},
+		stubApp{info: app.Info{ID: "jellyfin", Name: "Jellyfin", Category: "Media", Description: "Media server", Image: "lscr.io/linuxserver/jellyfin:latest", Port: 8096}},
+		stubApp{info: app.Info{ID: "ntfy", Name: "ntfy", Category: "Communication", Description: "Notifications", Image: "binwiederhier/ntfy:latest", Port: 2586}},
+		stubApp{info: app.Info{ID: "sonarr", Name: "Sonarr", Category: "Requests", Description: "TV shows", Image: "lscr.io/linuxserver/sonarr:latest", Port: 8989}},
+	}, []catalog.Recipe{{ID: "media", Name: "Media", Description: "Watch your movies", Apps: []string{"jellyfin"}}})
+}
+
 // goldenModel is the sample Project with a Catalog, containers, a known
 // update and a Host review that has drifted, so every tab has content.
 func goldenModel(t *testing.T, width, height int) Model {
 	t.Helper()
 	m, backend := sample(t, width, height)
-	backend.catalog = wizardCatalog()
+	backend.catalog = categoryCatalog()
 	backend.containers = []service.ContainerStatus{
 		{App: "jellyfin", Service: "jellyfin", Image: "lscr.io/linuxserver/jellyfin:latest", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
 		{App: "sonarr", Service: "sonarr", State: "running", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8989→8989"}},

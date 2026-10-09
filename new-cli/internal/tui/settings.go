@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"net"
 	"path/filepath"
@@ -11,7 +12,9 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -19,12 +22,17 @@ import (
 // ConfigSet receives them.
 var settingsKeys = []string{"EXPOSURE", "LAN_IP", "TZ", "PUID", "PGID", "UMASK", "MEDIA_ROOT", "DOWNLOADS_ROOT"}
 
-// settingsView is the Settings tab, a single pane: every Host setting is
-// editable, with drift shown and pending changes applied at once.
+// settingsView is the Settings tab. Its Host settings pane edits every Host
+// setting, with drift shown and pending changes applied at once; its
+// Appearance pane chooses the glyph set, saved as soon as it is chosen.
 type settingsView struct {
 	cursor int
-	rows   []service.SettingReview
-	edits  map[string]string
+	// appearance gives the keys to the Appearance pane; glyphCursor is its
+	// highlighted choice, an index into glyphChoices.
+	appearance  bool
+	glyphCursor int
+	rows        []service.SettingReview
+	edits       map[string]string
 
 	editing bool
 	key     string
@@ -39,7 +47,10 @@ type settingsView struct {
 
 var (
 	settingsHelp = []key.Binding{
-		hint("↑/↓", "select"), hint("enter", "edit"), hint("ctrl+s", "apply"), hint("esc", "back"),
+		hint("↑/↓", "select"), hint("enter", "edit"), hint("ctrl+s", "apply"), hint("tab", "next pane"), hint("esc", "back"),
+	}
+	appearanceKeys = []key.Binding{
+		hint("↑/↓", "select"), hint("enter", "choose"), hint("tab", "next pane"), hint("esc", "back"),
 	}
 	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
 	settingsChoiceKey = hint("tab", "next choice")
@@ -59,13 +70,30 @@ func (v *settingsView) Keys() []key.Binding {
 		return append(slices.Clone(settingsEditKeys), settingsChoiceKey)
 	case v.editing:
 		return settingsEditKeys
+	case v.appearance:
+		return appearanceKeys
 	}
 	return settingsHelp
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
+	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys},
+		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
+
+type glyphChoice struct {
+	glyphs  activity.Glyphs
+	explain string
+}
+
+// glyphChoices are the glyph sets the Appearance pane offers, with the one
+// line that explains each.
+var glyphChoices = []glyphChoice{
+	{activity.NerdFont, "richer icons, drawn by a Nerd Font installed in your terminal"},
+	{activity.Simple, "plain Unicode symbols that every terminal font can draw"},
+}
+
+const nerdFontsURL = "https://www.nerdfonts.com"
 
 func (v *settingsView) Capturing() bool { return v.editing }
 
@@ -220,6 +248,14 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		v.input, cmd = v.input.Update(msg)
 		return v, cmd, nav{}
 	}
+	if key.Matches(msg, ctx.keys.NextPane) || key.Matches(msg, ctx.keys.PrevPane) {
+		v.appearance = !v.appearance
+		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == currentGlyphs(ctx) })
+		return v, nil, nav{}
+	}
+	if v.appearance && msg.String() != "esc" {
+		return v, v.appearanceKey(ctx, msg), nav{}
+	}
 	switch {
 	case msg.String() == "esc":
 		if len(v.pairs()) > 0 {
@@ -242,6 +278,40 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		return v.beginEdit(ctx)
 	}
 	return v, nil, nav{}
+}
+
+// appearanceKey moves the highlight between the glyph sets, and enter or
+// space uses the highlighted one: the whole UI redraws with it at once and
+// it is saved with the Project.
+func (v *settingsView) appearanceKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
+	switch {
+	case key.Matches(msg, ctx.keys.Up):
+		v.glyphCursor = max(v.glyphCursor-1, 0)
+	case key.Matches(msg, ctx.keys.Down):
+		v.glyphCursor = min(v.glyphCursor+1, len(glyphChoices)-1)
+	case msg.String() == "enter", msg.String() == "space":
+		chosen := glyphChoices[v.glyphCursor].glyphs
+		if chosen == currentGlyphs(ctx) {
+			return nil
+		}
+		ctx.glyphs = chosen
+		return saveGlyphs(ctx.backend, chosen)
+	}
+	return nil
+}
+
+// currentGlyphs is the glyph set in use; an unset choice is Simple.
+func currentGlyphs(ctx *viewContext) activity.Glyphs {
+	return activity.ParseGlyphs(string(ctx.glyphs))
+}
+
+func saveGlyphs(backend Backend, g activity.Glyphs) tea.Cmd {
+	return func() tea.Msg {
+		if err := backend.SetGlyphs(context.Background(), g); err != nil {
+			return flashMsg{text: "could not save the icons: " + err.Error(), level: levelError}
+		}
+		return flashMsg{text: "icons: " + g.Label() + " (saved)", level: levelOK}
+	}
 }
 
 func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
@@ -282,8 +352,12 @@ func (v *settingsView) cycleChoice() {
 func (v *settingsView) View(ctx *viewContext, width, height int) string {
 	t := ctx.theme
 	inner := max(width-4, 12)
+	heading := t.title()
+	if v.appearance {
+		heading = t.inactive()
+	}
 	var lines []string
-	lines = append(lines, "", "  "+t.title().Render("Host settings")+t.dim().Render("  enter/space edits · ctrl+s applies · esc back"))
+	lines = append(lines, "", "  "+heading.Render("Host settings")+t.dim().Render("  enter/space edits · ctrl+s applies · tab Appearance"))
 	if v.err != "" {
 		lines = append(lines, "  "+t.fg(t.fail).Render(v.err))
 	}
@@ -308,14 +382,49 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 	if v.confirmDiscard {
 		lines = append(lines, "", "  "+t.fg(t.warn).Render("discard "+strconv.Itoa(len(v.pairs()))+" changes? y/n"))
 	}
+	lines = append(lines, v.appearanceLines(ctx, inner)...)
 	return strings.Join(lines, "\n")
+}
+
+// appearanceLines are the Appearance pane: a sample line of the icons in
+// the current set, the choice of set, and where to learn about Nerd Fonts.
+func (v *settingsView) appearanceLines(ctx *viewContext, width int) []string {
+	t := ctx.theme
+	g := currentGlyphs(ctx)
+	heading := t.inactive()
+	if v.appearance {
+		heading = t.title()
+	}
+	icon := func(glyph, label string) string {
+		return t.fg(t.accentText).Render(glyph) + " " + t.body().Render(label)
+	}
+	sample := strings.Join([]string{icon(g.Brand(), "self-host"), icon(g.Docker(), "Docker"), icon(g.Key(), "key"),
+		icon(g.Link(), "link"), icon(g.Category("Media"), "Media"), icon(g.Category("Downloads"), "Downloads"),
+		icon(g.Category("Monitoring"), "Monitoring")}, "  ")
+	lines := []string{"", "  " + heading.Render("Appearance") + t.dim().Render("  icons in the Dashboard and the terminal · saved at once"), "",
+		"  " + truncate("  "+t.dim().Render(pad("Sample", 13))+sample, width)}
+	for i, choice := range glyphChoices {
+		cursor := "  "
+		if v.appearance && i == v.glyphCursor {
+			cursor = t.cursor()
+		}
+		mark := t.dim().Render("○")
+		name := t.body().Render(pad(choice.glyphs.Label(), 11))
+		if choice.glyphs == g {
+			mark = t.fg(t.accentText).Render("●")
+			name = t.active().Render(pad(choice.glyphs.Label(), 11))
+		}
+		lines = append(lines, "  "+truncate(cursor+mark+" "+name+t.dim().Render(choice.explain), width))
+	}
+	link := ansi.SetHyperlink(nerdFontsURL) + t.fg(t.info).Render(nerdFontsURL) + ansi.ResetHyperlink()
+	return append(lines, "", "  "+t.dim().Render("Learn about Nerd Fonts: ")+link)
 }
 
 func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
 	t := ctx.theme
 	row := v.rows[i]
 	cursor := "  "
-	if i == v.cursor {
+	if i == v.cursor && !v.appearance {
 		cursor = t.cursor()
 	}
 	line := cursor + t.body().Render(pad(row.Key, 16))

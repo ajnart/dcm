@@ -1,6 +1,6 @@
 ── frame 3 ──
 ⠸ install qbittorrent sonarr radarr
-  ✓ Pull   ⠸ Start
+  ✓ ▣ Pull   ⠸ ▣ Start
 ╭─ Apps 0/3 set up ────────────────────────────────────────────────────────────╮
 │ ⠸ qBittorrent     starting                                                   │
 │ ⠸ Sonarr          starting                                                   │
@@ -9,7 +9,7 @@
   Starting 3 Apps
 ── frame 4 ──
 ⠼ install qbittorrent sonarr radarr
-  ✓ Pull   ⠼ Start
+  ✓ ▣ Pull   ⠼ ▣ Start
 ╭─ Apps 0/3 set up ────────────────────────────────────────────────────────────╮
 │ ⠼ qBittorrent     starting                                                   │
 │ ⠼ Sonarr          starting                                                   │

@@ -407,7 +407,7 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 	for i := v.offset; i < len(items) && i-v.offset < avail; i++ {
 		it := items[i]
 		if it.header {
-			lines = append(lines, t.heading().Render(truncate(it.name, inner)))
+			lines = append(lines, truncate(t.dim().Render(ctx.glyphs.Category(it.name))+" "+t.heading().Render(it.name), inner))
 			continue
 		}
 		mark := "[ ]"
