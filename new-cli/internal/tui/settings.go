@@ -39,7 +39,7 @@ var settingsTabs = []string{"Host", "Appearance", "Backups", "Tools", "About"}
 // settingsView is the Settings tab, in sub-tabs. Host edits every Host
 // setting, with drift shown and pending changes applied at once; Appearance
 // chooses the glyph set, saved as soon as it is chosen; About says what runs
-// and where to support it. Backups and Tools are placeholders.
+// and where to support it; Backups lists, backs up and restores archives; Tools runs ctop and lazydocker.
 type settingsView struct {
 	tab    settingsTab
 	cursor int
@@ -64,6 +64,8 @@ type settingsView struct {
 	choices   []string
 	choiceIdx int
 
+	backups backupsPane
+
 	err            string
 	confirmDiscard bool
 }
@@ -78,7 +80,6 @@ var (
 	aboutKeys = []key.Binding{
 		hint("c", "coffee"), hint("s", "sponsor"), hint("[/]", "sub-tab"), hint("esc", "back"),
 	}
-	placeholderKeys   = []key.Binding{hint("[/]", "sub-tab"), hint("esc", "back")}
 	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
 	settingsChoiceKey = hint("tab", "next choice")
 )
@@ -101,16 +102,17 @@ func (v *settingsView) Keys() []key.Binding {
 		return appearanceKeys
 	case v.tab == tabAbout:
 		return aboutKeys
+	case v.tab == tabBackups:
+		return v.backups.keys()
 	case v.tab == tabTools:
 		return toolsKeys
-	case v.tab != tabHost:
-		return placeholderKeys
 	}
 	return settingsHelp
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"Tools", toolsKeys}, {"About", aboutKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
+		{"Restore", restorePreviewKey}, {"Tools", toolsKeys}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
 
@@ -128,7 +130,9 @@ var glyphChoices = []glyphChoice{
 
 const nerdFontsURL = "https://www.nerdfonts.com"
 
-func (v *settingsView) Capturing() bool { return v.editing }
+func (v *settingsView) Capturing() bool {
+	return v.editing || v.tab == tabBackups && v.backups.modal()
+}
 
 func (v *settingsView) Title() string { return "Settings" }
 
@@ -243,6 +247,12 @@ func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav
 			v.show(ctx, settingsTab(n))
 		}
 		return v, nil, nav{}
+	case backupsMsg:
+		v.backups.apply(msg)
+		return v, nil, nav{}
+	case backupAppsMsg:
+		v.backups.opened(msg)
+		return v, nil, nav{}
 	case tea.MouseWheelMsg:
 		if v.tab != tabHost {
 			return v, nil, nav{}
@@ -290,6 +300,9 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		v.input, cmd = v.input.Update(msg)
 		return v, cmd, nav{}
 	}
+	if v.tab == tabBackups && v.backups.modal() {
+		return v, v.backups.modalKey(ctx, msg), nav{}
+	}
 	switch {
 	case key.Matches(msg, ctx.keys.NextSub):
 		v.show(ctx, (v.tab+1)%settingsTab(len(settingsTabs)))
@@ -309,6 +322,8 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		return v.hostKey(ctx, msg)
 	case tabAppearance:
 		return v, v.appearanceKey(ctx, msg), nav{}
+	case tabBackups:
+		return v, v.backups.key(ctx, msg), nav{}
 	case tabTools:
 		return v, v.toolsKey(ctx, msg), nav{}
 	case tabAbout:
@@ -447,19 +462,14 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 		body = v.hostBox(ctx, width, max(height-3, 3))
 	case tabAppearance:
 		body = v.appearanceBox(ctx, width)
+	case tabBackups:
+		body = v.backups.box(ctx, width, height)
 	case tabTools:
 		body = v.toolsBox(ctx, width)
 	case tabAbout:
 		body = aboutBox(ctx, width)
-	default:
-		body = placeholderBox(ctx.theme, settingsTabs[v.tab], width)
 	}
 	return truncate(strip, width) + "\n" + body
-}
-
-// placeholderBox stands in for a sub-tab that is not built yet.
-func placeholderBox(t theme, title string, width int) string {
-	return t.box(title, "", "  "+t.dim().Render("Coming in the next update."), width, 3, true)
 }
 
 // aboutBox is the version, the Project folder, the update status and the two

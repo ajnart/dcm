@@ -66,6 +66,14 @@ type fakeBackend struct {
 	usage        []service.ContainerUsage
 	usageStarts  int
 	usageRunning int
+	// archives is what Backups lists, archiveApps the Apps in each archive's
+	// manifest by path, archivePass the passphrase that opens encrypted
+	// ones, and requests every Request Run received.
+	archives    []service.BackupInfo
+	archiveApps map[string][]string
+	archivePass string
+	backupLists int
+	requests    []Request
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {
@@ -210,6 +218,7 @@ func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) er
 	f.mu.Lock()
 	entry := strings.TrimSpace(string(req.Action) + " " + strings.Join(append(req.IDs, req.Pairs...), " "))
 	f.actions = append(f.actions, entry)
+	f.requests = append(f.requests, req)
 	if req.Install != nil {
 		f.install = append(f.install, *req.Install)
 	}
@@ -448,6 +457,8 @@ func TestKeybindAudit(t *testing.T) {
 		"coffee: c", "sponsor: s",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
+		// Settings' Backups sub-tab.
+		"back up: b", "restore: enter",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}

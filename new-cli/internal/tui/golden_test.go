@@ -102,7 +102,7 @@ func TestGoldenTabs(t *testing.T) {
 }
 
 // TestGoldenSettingsSubTabs is the Settings sub-tabs after Host and
-// Appearance: the two placeholders and About.
+// Appearance: Backups, Tools and About.
 func TestGoldenSettingsSubTabs(t *testing.T) {
 	for _, size := range []struct {
 		suffix        string

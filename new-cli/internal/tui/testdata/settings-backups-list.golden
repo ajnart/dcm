@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+  Host   Appearance   Backups   Tools   About
+╭─ Backups 2 archives ─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   Date              Size      Encrypted        Apps                                                                  │
+│ > 2026-10-08 23:15  1.2 MB    ✓ encrypted      passphrase needed to list Apps                                        │
+│   2026-10-01 09:00  47.1 KB   ! not encrypted  jellyfin, sonarr, whoami                                              │
+│                                                                                                                      │
+│   A backup holds configuration, databases and secrets, not media.                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit          ↑/↓  select   b  back up   enter  restore   [/]  sub-tab   esc  back

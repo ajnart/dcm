@@ -558,6 +558,9 @@ func (m Model) View() tea.View {
 			chips = active.Keys()
 			if active.Capturing() {
 				mode = m.theme.fg(m.theme.accentText).Bold(true).Render("typing") + m.theme.dim().Render(" · keys go to the input")
+				if chooser, ok := active.(interface{ BarMode(theme) string }); ok && chooser.BarMode(m.theme) != "" {
+					mode = chooser.BarMode(m.theme)
+				}
 			}
 		}
 		if m.showHelp {

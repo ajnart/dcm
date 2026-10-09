@@ -31,6 +31,7 @@ const (
 	ActionRemove  Action = "remove"
 	ActionInstall Action = "install"
 	ActionConfig  Action = "config"
+	ActionRestore Action = "restore"
 )
 
 // Request is one mutating Action.
@@ -40,6 +41,11 @@ type Request struct {
 	Install *service.InstallOptions
 	// Pairs are the KEY=value Host settings ActionConfig sets.
 	Pairs []string
+	// File is the archive ActionRestore restores from.
+	File string
+	// Passphrase opens or encrypts a backup; it reaches only the Service and
+	// is never shown or logged.
+	Passphrase string
 }
 
 // Backend is everything the dashboard needs from the Service.
@@ -73,6 +79,11 @@ type Backend interface {
 	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
 	Run(ctx context.Context, req Request, log *events.Logger) error
+	// Backups lists the archives in the Project's backups folder.
+	Backups(ctx context.Context) ([]service.BackupInfo, error)
+	// BackupApps reads the App IDs from an archive's manifest, opening an
+	// encrypted one with the passphrase.
+	BackupApps(ctx context.Context, file, passphrase string) ([]string, error)
 	// Glyphs is the Project's glyph set: Simple until a person chooses, and
 	// when no Project exists yet.
 	Glyphs(ctx context.Context) activity.Glyphs
@@ -165,6 +176,14 @@ func (b ServiceBackend) Containers(ctx context.Context) ([]service.ContainerStat
 	return b.quiet().Containers(ctx)
 }
 
+func (b ServiceBackend) Backups(context.Context) ([]service.BackupInfo, error) {
+	return b.quiet().Backups()
+}
+
+func (b ServiceBackend) BackupApps(_ context.Context, file, passphrase string) ([]string, error) {
+	return b.quiet().BackupApps(file, passphrase)
+}
+
 func (b ServiceBackend) Glyphs(context.Context) activity.Glyphs {
 	appearance, err := b.quiet().Appearance()
 	if err != nil {
@@ -182,8 +201,10 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 	ids := req.IDs
 	switch req.Action {
 	case ActionBackup:
-		_, err := s.Backup(ctx, ids, "", "")
+		_, err := s.Backup(ctx, ids, "", req.Passphrase)
 		return err
+	case ActionRestore:
+		return s.Restore(ctx, req.File, ids, req.Passphrase)
 	case ActionInstall:
 		return s.Install(ctx, *req.Install)
 	case ActionConfig:

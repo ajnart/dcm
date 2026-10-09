@@ -1,7 +1,9 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
   Host   Appearance   Backups   Tools   About
 ╭─ Backups ────────────────────────────────────────────────────────────────────╮
-│   Coming in the next update.                                                 │
+│   No backups yet. Press b to back up now.                                    │
+│                                                                              │
+│   A backup holds configuration, databases and secrets, not media.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
@@ -19,6 +21,4 @@
 
 
 
-
-
- 1-5 tabs  ←/→  A Project  ? help  q quit              [/]  sub-tab   esc  back
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   b  back up …
