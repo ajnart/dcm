@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -457,10 +458,12 @@ func TestCancellingTheFormWritesNothing(t *testing.T) {
 
 // walkOnboarding shows every Onboarding screen at the given size to see,
 // in order, as the person reaches it.
-func walkOnboarding(t *testing.T, width, height int, see func(name string, m Model)) {
+func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see func(name string, m Model)) {
 	t.Helper()
-	see("loading", update(t, New(&fakeBackend{}, Options{Version: "1.0.0"}), windowSize(width, height)))
+	loading := update(t, New(&fakeBackend{}, Options{Version: "1.0.0"}), windowSize(width, height))
+	see("loading", update(t, loading, appearanceMsg{glyphs: glyphs}))
 	m, _ := onboardingHost(t, width, height, readyChecks...)
+	m = update(t, m, appearanceMsg{glyphs: glyphs})
 	m = frames(t, m, 60)
 	see("Initializing", m)
 	m = drive(t, m, press("enter"))

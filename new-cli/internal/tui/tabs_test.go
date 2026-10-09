@@ -38,7 +38,7 @@ func TestNumberKeysSwitchTabs(t *testing.T) {
 
 	for _, tc := range []struct{ key, tab, shows string }{
 		{"4", "4 Catalog", "Watch your movies"},
-		{"2", "2 Apps", "0 containers"},
+		{"2", "2 Apps", "● ◇ Jellyfin         running"},
 		{"3", "3 Activity", "fully set up"},
 		{"5", "5 Settings", "Host settings"},
 		{"1", "1 Overview", "Needs attention"},
@@ -99,62 +99,8 @@ func numberedCompose(n int) string {
 	return strings.Join(lines, "\n")
 }
 
-func TestTabMovesFocusAndArrowsActOnTheFocusedPane(t *testing.T) {
-	m, backend := sample(t, 120, 30)
-	backend.compose = numberedCompose(60)
-	for range 3 {
-		m = drive(t, m, press("]")) // logs → setup → info → compose
-	}
-
-	m = drive(t, m, press("down"))
-	if m.selectedID() != "sonarr" {
-		t.Fatalf("with the Apps pane focused, down should select Sonarr, got %q", m.selectedID())
-	}
-	if bold := boldText(m.View().Content)[1]; !strings.Contains(bold, "Apps") || strings.Contains(bold, "Sonarr") {
-		t.Fatalf("the Apps box should be the focused one: %q", bold)
-	}
-
-	m = drive(t, m, press("tab"))
-	if bold := boldText(m.View().Content)[1]; strings.Contains(bold, "Apps") || !strings.Contains(bold, "Sonarr") {
-		t.Fatalf("tab should focus the details box: %q", bold)
-	}
-	for range 3 {
-		m = drive(t, m, press("down"))
-	}
-	if m.selectedID() != "sonarr" {
-		t.Fatalf("down in the details pane must not move the App selection, got %q", m.selectedID())
-	}
-	if out := screen(m); strings.Contains(out, "line 01") || !strings.Contains(out, "line 04") {
-		t.Fatalf("down in the details pane should scroll the details\n%s", out)
-	}
-
-	m = drive(t, m, press("shift+tab"))
-	m = drive(t, m, press("down"))
-	if m.selectedID() != "whoami" {
-		t.Fatalf("shift+tab should return focus to Apps, got %q", m.selectedID())
-	}
-}
-
-func TestBracketsSwitchDetailSubTabs(t *testing.T) {
-	m, _ := sample(t, 120, 30)
-
-	for _, tc := range []struct{ key, shows string }{
-		{"]", "Setup has finished"},
-		{"]", "lscr.io/linuxserver/jellyfin:latest"},
-		{"]", "image: example/jellyfin:latest"},
-		{"]", "ready on :80"},
-		{"[", "image: example/jellyfin:latest"},
-		{"[", "lscr.io/linuxserver/jellyfin:latest"},
-	} {
-		m = drive(t, m, press(tc.key))
-		if !strings.Contains(screen(m), tc.shows) {
-			t.Fatalf("%s should show %q\n%s", tc.key, tc.shows, screen(m))
-		}
-	}
-}
-
 func TestTabDoesNotSwitchSubTabsAnyMore(t *testing.T) {
-	m, _ := sample(t, 120, 30)
+	m, _ := appsHost(t)
 
 	m = drive(t, m, press("tab"))
 
@@ -167,7 +113,7 @@ func TestBarShowsGlobalKeysAndTheFocusedPaneKeys(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 
 	bar := lastLine(screen(m))
-	for _, want := range []string{"1-5 tabs", "←/→", "A Project", "? help", "q quit", "↑/↓  select", "[/]  sub-tab"} {
+	for _, want := range []string{"1-5 tabs", "←/→", "A Project", "? help", "q quit", "↑/↓  select", "enter  go to App"} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("Apps pane bar lacks %q: %q", want, bar)
 		}
@@ -175,8 +121,8 @@ func TestBarShowsGlobalKeysAndTheFocusedPaneKeys(t *testing.T) {
 
 	m = drive(t, m, press("tab"))
 	bar = lastLine(screen(m))
-	if !strings.Contains(bar, "↑/↓  scroll") || strings.Contains(bar, "↑/↓  select") || !strings.Contains(bar, "1-5 tabs") {
-		t.Errorf("details pane bar should offer scrolling, not selecting: %q", bar)
+	if !strings.Contains(bar, "a  resolve") || strings.Contains(bar, "o  open") || !strings.Contains(bar, "1-5 tabs") {
+		t.Errorf("the Needs attention bar should offer resolving, not opening: %q", bar)
 	}
 
 	m = drive(t, m, press("3"))
@@ -324,10 +270,8 @@ func TestEnteringSettingsLoadsTheHostReview(t *testing.T) {
 func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
-	m = drive(t, m, press("?"))
-
-	help := ansi.Strip(m.renderOverlay())
-	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Details", "Apps", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
+	help := helpText(t, m)
+	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Needs attention", "Apps · List", "Apps · Details", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
 	at := 0
 	for _, want := range order {
 		i := strings.Index(help[at:], want)

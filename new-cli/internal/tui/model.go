@@ -74,7 +74,9 @@ type (
 	}
 	clickMsg     struct{ id string }
 	clipboardMsg struct{ text, what string }
-	flashMsg     struct {
+	// appearanceMsg carries the Project's glyph set.
+	appearanceMsg struct{ glyphs activity.Glyphs }
+	flashMsg      struct {
 		text  string
 		level level
 	}
@@ -96,6 +98,7 @@ type Model struct {
 	width, height int
 	dark          bool
 	theme         theme
+	glyphs        activity.Glyphs
 	keys          keyMap
 	help          help.Model
 
@@ -123,13 +126,16 @@ type Model struct {
 
 	flash      string
 	flashLevel level
+	// resultFlash is the flash that reports the last Action's result, which
+	// the Overview's Now strip shows instead of the status line.
+	resultFlash string
 
 	surface   surface
 	showHelp  bool
 	dashboard *dashboardView
 	install   *installView
 	settings  *settingsView
-	stack     *stackView
+	apps      *appsView
 	activity  *activityView
 	helpView  *helpView
 	menu      *actionMenu
@@ -142,23 +148,26 @@ func New(backend Backend, opts Options) Model {
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
+	apps := newAppsView()
 	return Model{
 		backend:   backend,
 		opts:      opts,
 		dark:      true,
 		theme:     newTheme(true),
+		glyphs:    activity.Simple,
 		keys:      newKeyMap(),
 		help:      help.New(),
 		ticking:   true,
 		tracker:   &activity.Tracker{},
 		tasks:     &taskManager{},
-		dashboard: newDashboardView(),
+		apps:      apps,
+		dashboard: newDashboardView(apps),
 		helpView:  newHelpView(),
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), frameTick(), tick(),
+	return tea.Batch(tea.RequestBackgroundColor, m.loadStatus(), m.loadDoctor(), m.loadRelease(), m.loadGlyphs(), frameTick(), tick(),
 		tea.Tick(3*time.Second, func(time.Time) tea.Msg { return updatesTick{} }))
 }
 
@@ -220,6 +229,11 @@ func (m Model) releaseNotice() string {
 	return releaseNotice(m.latest)
 }
 
+func (m Model) loadGlyphs() tea.Cmd {
+	backend := m.backend
+	return func() tea.Msg { return appearanceMsg{glyphs: backend.Glyphs(context.Background())} }
+}
+
 func (m Model) loadUpdates() tea.Cmd {
 	backend, status := m.backend, m.status
 	return func() tea.Msg {
@@ -277,7 +291,7 @@ func (m Model) mainHeight() int { return max(m.height-3, 3) }
 // ctx is the read/ask view of the Model handed to the active view.
 func (m Model) ctx() *viewContext {
 	return &viewContext{
-		width: m.width, height: m.height, dark: m.dark, theme: m.theme,
+		width: m.width, height: m.height, dark: m.dark, theme: m.theme, glyphs: m.glyphs,
 		keys: m.keys, help: m.help, frame: m.frame, motion: m.tracker.Motion(m.frame),
 		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt,
 		latest: m.latest, loaded: m.loaded, statusErr: m.statusErr, refreshed: m.refreshed,
@@ -290,6 +304,7 @@ func (m Model) ctx() *viewContext {
 // absorb copies the shared fields a view may have changed back onto the Model.
 func (m *Model) absorb(ctx *viewContext) {
 	m.width, m.height = ctx.width, ctx.height
+	m.glyphs = ctx.glyphs
 	m.containers, m.containersErr = ctx.containers, ctx.containersErr
 	m.flash, m.flashLevel = ctx.flash, ctx.flashLevel
 	m.help = ctx.help
@@ -357,7 +372,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleTaskDone(msg)
 
 	case logChunkMsg, composeMsg:
-		return m.dispatchDashboard(msg)
+		return m.dispatchApps(msg)
 
 	case reviewMsg:
 		if m.settings != nil {
@@ -370,16 +385,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.containersErr = msg.err.Error()
 		}
+		m.relayout()
 		return m, nil
 
 	case clickMsg:
 		return m.handleClick(msg.id)
 
+	case appearanceMsg:
+		m.glyphs = msg.glyphs
+		return m, nil
+
 	case clipboardMsg:
 		m.setFlash("copied "+msg.what, levelOK)
 		return m, tea.SetClipboard(msg.text)
 	case copyOptionsMsg:
-		return m.dispatchDashboard(msg)
+		return m.dispatchApps(msg)
 
 	case flashMsg:
 		m.setFlash(msg.text, msg.level)
@@ -418,9 +438,9 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	m.applyUpdates()
 	m.refreshed = m.opts.Now()
 	ctxView := m.ctx()
-	m.dashboard.clampCursor(ctxView)
+	m.apps.clampCursor(ctxView)
 	m.relayout()
-	cmd := m.dashboard.syncDetails(ctxView)
+	cmd := m.apps.syncDetails(ctxView)
 	m.absorb(ctxView)
 	return m, cmd
 }
@@ -435,10 +455,11 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	default:
 		m.setFlash("✓ "+msg.title, levelOK)
 	}
+	m.resultFlash = m.flash
 	cmds := []tea.Cmd{m.loadStatus(), m.loadDoctor()}
 	if strings.HasPrefix(msg.title, "config") {
 		// URLs and Compose files may have changed with the settings.
-		clear(m.dashboard.compose)
+		clear(m.apps.details.compose)
 	}
 	if strings.HasPrefix(msg.title, "update") {
 		cmds = append(cmds, m.loadUpdates())
@@ -449,7 +470,7 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 // relayout sizes the dashboard viewport; call it whenever the layout can move.
 func (m *Model) relayout() {
 	ctxView := m.ctx()
-	m.dashboard.relayout(ctxView)
+	m.apps.refreshDetails(ctxView)
 	m.help.SetWidth(m.width)
 	if m.install != nil {
 		m.install.resize(m.width)
@@ -462,10 +483,7 @@ func (m *Model) relayout() {
 func (m Model) openTab(s surface) (tea.Model, tea.Cmd) {
 	m.surface = s
 	switch s {
-	case surfaceStack:
-		if m.stack == nil {
-			m.stack = &stackView{}
-		}
+	case surfaceApps:
 		return m, tea.Batch(m.loadContainers(), m.loadUpdates())
 	case surfaceActivity:
 		if m.activity == nil {
@@ -506,7 +524,7 @@ func (m Model) openHelp() (tea.Model, tea.Cmd) {
 func (m Model) helpGroups() []pane {
 	groups := []pane{{name: "Global", keys: m.keys.global()}, {name: "Action menu", keys: menuHelpKeys}}
 	ctxView := m.ctx()
-	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctxView), newSettingsView(ctxView)}
+	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctxView), newSettingsView(ctxView)}
 	for i, v := range views {
 		panes := v.Panes()
 		for _, p := range panes {
@@ -527,8 +545,8 @@ func (m Model) activeView() view {
 		return m.install
 	case surfaceSettings:
 		return m.settings
-	case surfaceStack:
-		return m.stack
+	case surfaceApps:
+		return m.apps
 	case surfaceActivity:
 		return m.activity
 	default:
@@ -546,9 +564,9 @@ func (m *Model) setActive(v view) {
 		if sv, ok := v.(*settingsView); ok {
 			m.settings = sv
 		}
-	case surfaceStack:
-		if sv, ok := v.(*stackView); ok {
-			m.stack = sv
+	case surfaceApps:
+		if av, ok := v.(*appsView); ok {
+			m.apps = av
 		}
 	case surfaceActivity:
 		if wv, ok := v.(*activityView); ok {
@@ -606,7 +624,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) quit() (tea.Model, tea.Cmd) {
 	m.tasks.cancelAll()
-	m.dashboard.stopLogs()
+	m.apps.details.stopLogs()
 	return m, tea.Quit
 }
 
@@ -640,14 +658,12 @@ func (m Model) focusActivity(cmd tea.Cmd) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmd, m.startTicking())
 }
 
-// dispatchDashboard delivers an asynchronous dashboard message (logs, Compose)
-// even when another view is on screen, so its state keeps updating.
-func (m Model) dispatchDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
+// dispatchApps delivers an asynchronous App details message (logs, Compose,
+// credential choices) even when another tab is on screen, so its state keeps
+// updating.
+func (m Model) dispatchApps(msg tea.Msg) (tea.Model, tea.Cmd) {
 	ctxView := m.ctx()
-	next, cmd, _ := m.dashboard.Update(ctxView, msg)
-	if dv, ok := next.(*dashboardView); ok {
-		m.dashboard = dv
-	}
+	_, cmd, _ := m.apps.Update(ctxView, msg)
 	m.absorb(ctxView)
 	return m, cmd
 }
@@ -674,6 +690,9 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 		m.surface = surfaceDashboard
 	case navBack:
 		m.surface = surfaceDashboard
+	case navTo:
+		next, open := m.openTab(nv.to)
+		return next, tea.Batch(cmd, open)
 	}
 	return m, cmd
 }
@@ -711,7 +730,7 @@ func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 // Test-facing accessors kept on the Model.
 
 func (m Model) selectedID() string {
-	return m.dashboard.selectedID(m.ctx())
+	return m.apps.selectedID(m.ctx())
 }
 
 func (m Model) installRows() []installItem {

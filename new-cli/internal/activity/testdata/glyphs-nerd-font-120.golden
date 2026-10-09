@@ -1,0 +1,9 @@
+⠋ install qbittorrent sonarr radarr
+  ✓ 󰡨 Pull   ✓ 󰡨 Start   ✓ 󰌆 Credentials   ⠋ 󰌹 Links   ✓ Check
+╭─ Apps 2/4 set up ───────────────────────────────────────╮ ╭─ Links 1/3 ──────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                 │ │ ✓ 󰌹 Sonarr       ━━━━━━━▶ qBittorrent  use qBittorrent … │
+│ ● Sonarr          ready                                 │ │ ○ 󰌹 Radarr       ╌╌╌╌╌╌╌╌ qBittorrent  waiting for qbit… │
+│ ● Radarr          started                               │ │ ⠋ 󰌹 Seerr        ━╌╌╌╌╌╌╌ Sonarr       send requests to… │
+│ ○ Seerr           waiting                               │ │                                                          │
+╰─────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────────────────────╯
+  Linking Seerr to Sonarr

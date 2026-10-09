@@ -4,9 +4,11 @@ import (
 	"context"
 	"io"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
@@ -50,7 +52,7 @@ type Backend interface {
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
 	Compose(ctx context.Context, id string) (string, error)
-	// Containers lists every container in the Project for the Stack view.
+	// Containers lists every container in the Project for App details.
 	Containers(ctx context.Context) ([]service.ContainerStatus, error)
 	Catalog() *catalog.Catalog
 	// LatestRelease returns the newest published release tag, or "" when it
@@ -60,6 +62,12 @@ type Backend interface {
 	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
 	Run(ctx context.Context, req Request, log *events.Logger) error
+	// Glyphs is the Project's glyph set: Simple until a person chooses, and
+	// when no Project exists yet.
+	Glyphs(ctx context.Context) activity.Glyphs
+	// SetGlyphs saves the glyph set with the Project. It works while the
+	// install that creates the Project runs, and after it.
+	SetGlyphs(ctx context.Context, g activity.Glyphs) error
 }
 
 // ServiceBackend runs every call on a fresh Service so each task gets its
@@ -131,6 +139,18 @@ func (b ServiceBackend) Compose(ctx context.Context, id string) (string, error) 
 
 func (b ServiceBackend) Containers(ctx context.Context) ([]service.ContainerStatus, error) {
 	return b.quiet().Containers(ctx)
+}
+
+func (b ServiceBackend) Glyphs(context.Context) activity.Glyphs {
+	appearance, err := b.quiet().Appearance()
+	if err != nil {
+		return activity.Simple
+	}
+	return activity.ParseGlyphs(appearance.Glyphs)
+}
+
+func (b ServiceBackend) SetGlyphs(_ context.Context, g activity.Glyphs) error {
+	return b.quiet().SetAppearance(project.Appearance{Glyphs: string(g)})
 }
 
 func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {

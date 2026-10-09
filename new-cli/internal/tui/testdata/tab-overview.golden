@@ -1,30 +1,30 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings       ◐ 1 warning   LAN 192.168.1.20  12:00:00 v1.0.0
-╭─ Apps 3 ───────────────────────────────────────────────╮╭─ Sonarr ───────────────────────────────────────────────────╮
-│ ● Jellyfin      http://192.168.1.20:8096  running   ✓  ││  logs   setup   info   compose                             │
-│ ✗ Sonarr        http://192.168.1.20:8989  running   ✗  ││ ────────────────────────────────────────────────────────── │
-│ ✗ whoami        http://192.168.1.20:8099  stopped   –  ││ ✗ download-client                                          │
-╰────────────────────────────────────────────────────────╯│   qBittorrent refused login                                │
-╭─ Needs attention 3 ────────────────────────────────────╮│   → Add qBittorrent under Settings › Download Clients.     │
-│ ✗ Sonarr: download-client failed       a r retry Setup ││                                                            │
-│ ✗ whoami is stopped                          a s start ││ Finish the failed step by hand (or let your agent use      │
-│ ! Firewall: ufw is active                              ││ agent-browser), then press a r to retry Setup.             │
-│   → sudo ufw allow from 192.168.0.0/16 to any port 80… ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-│                                                        ││                                                            │
-╰────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────╯
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
+╭─ Now ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                                                        │
+│ ◐ Host: 1 warning                                                                                                    │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Apps 3 ───────────────────────────────────────────────────────╮╭─ Needs attention 3 ────────────────────────────────╮
+│ ● ▶ Jellyfin      Media      192.168.1.20:8096    running   ✓  ││ ✗ Sonarr: download-client failed   a r retry Setup │
+│ ✗ ↓ Sonarr        Downloads  192.168.1.20:8989    running   ✗  ││ ✗ whoami is stopped                      a s start │
+│ ✗ ◇ whoami                   192.168.1.20:8099    stopped   –  ││ ! Firewall: ufw is active                          │
+│                                                                ││   → sudo ufw allow from 192.168.0.0/16 to any por… │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────╯
 
- 1-5 tabs  ←/→  A Project  ? help  q quit   ↑/↓  select   a  actions   enter  details   tab  next pane   [/]  sub-tab …
+ 1-5 tabs  ←/→  A Project  ? help  q quit      ↑/↓  select   enter  go to App   a  actions   tab  next pane   o  open …

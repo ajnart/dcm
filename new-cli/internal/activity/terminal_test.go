@@ -85,7 +85,7 @@ func (c *clock) tick() {
 
 func testTerminal(out *bytes.Buffer, width func() int) (*TerminalSink, *clock) {
 	c := newClock()
-	sink := newTerminal(out, false, width, Palette{}, c.ticks)
+	sink := newTerminal(out, false, width, Simple, Palette{}, c.ticks)
 	sink.ticked = c.ticked
 	return sink, c
 }
@@ -144,7 +144,7 @@ func TestTerminalPrintsTheLogAboveTheLiveAction(t *testing.T) {
 		"  ✓ sonarr › check verify Sonarr works",
 		"■ done",
 		"✓ install sonarr",
-		"  ✓ Pull   ✓ Start   ✓ Credentials   ✓ Check",
+		"  ✓ ▣ Pull   ✓ ▣ Start   ✓ ✱ Credentials   ✓ Check",
 		"╭─ Apps 1/1 set up ────────────────────────────────────────╮",
 		"│ ● sonarr          ready                                  │",
 		"╰──────────────────────────────────────────────────────────╯",
@@ -244,7 +244,7 @@ func TestTerminalLeavesTheLastBlockWhenANewRunStarts(t *testing.T) {
 	want := strings.Join([]string{
 		"▶ start sonarr",
 		"⠋ start sonarr",
-		"  ⠋ Start",
+		"  ⠋ ▣ Start",
 		"╭─ Apps 0/1 set up ────────────────────────────────────────╮",
 		"│ ⠋ sonarr          starting                               │",
 		"╰──────────────────────────────────────────────────────────╯",

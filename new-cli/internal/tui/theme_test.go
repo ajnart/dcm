@@ -36,10 +36,10 @@ func TestDashboardStatesHaveDistinctGlyphsWithoutColour(t *testing.T) {
 	out := screen(m)
 
 	for _, tc := range []struct{ app, status, setup string }{
-		{"Jellyfin", "● Jellyfin", "✓"},
-		{"Radarr", "◐ Radarr", "…"},
-		{"Sonarr", "✗ Sonarr", "✗"},
-		{"whoami", "✗ whoami", "–"},
+		{"Jellyfin", "● ◇ Jellyfin", "✓"},
+		{"Radarr", "◐ ◇ Radarr", "…"},
+		{"Sonarr", "✗ ◇ Sonarr", "✗"},
+		{"whoami", "✗ ◇ whoami", "–"},
 	} {
 		line := lineWith(t, out, tc.app+"  ")
 		if !strings.Contains(line, tc.status) {
@@ -137,20 +137,24 @@ func boldText(raw string) []string {
 func TestFocusAndActiveReadByWeight(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 	m = drive(t, m, press("j"))
+	top := 0
+	for i, line := range strings.Split(screen(m), "\n") {
+		if strings.Contains(line, "╭─ Apps 3") {
+			top = i
+		}
+	}
 	bold := boldText(m.View().Content)
 
-	if !strings.Contains(bold[1], "Apps") || strings.Contains(bold[1], "Sonarr") {
-		t.Errorf("the focused Apps box should have a bold title and the Details box not: %q", bold[1])
+	if !strings.Contains(bold[top], "Apps") || strings.Contains(bold[top], "Needs attention") {
+		t.Errorf("the focused Apps box should have a bold title and Needs attention not: %q", bold[top])
 	}
-	if !strings.Contains(bold[2], "logs") || strings.Contains(bold[2], "setup") {
-		t.Errorf("only the active detail tab should be bold: %q", bold[2])
+	if !strings.Contains(bold[top+2], "Sonarr") || strings.Contains(bold[top+1], "Jellyfin") || strings.Contains(bold[top+3], "whoami") {
+		t.Errorf("only the selected App row should be bold: %q %q %q", bold[top+1], bold[top+2], bold[top+3])
 	}
-	if !strings.Contains(bold[3], "Sonarr") || strings.Contains(bold[2]+bold[4], "Jellyfin") || strings.Contains(bold[4], "whoami") {
-		t.Errorf("only the selected App row should be bold: %q %q %q", bold[2], bold[3], bold[4])
-	}
-	for _, line := range bold {
-		if strings.Contains(line, "Needs attention") {
-			t.Errorf("the unfocused Needs attention box should not have a bold title: %q", line)
-		}
+
+	m = drive(t, m, press("tab"))
+	bold = boldText(m.View().Content)
+	if strings.Contains(bold[top], "Apps 3") || !strings.Contains(bold[top], "Needs attention") {
+		t.Errorf("tab should move the bold title to Needs attention: %q", bold[top])
 	}
 }

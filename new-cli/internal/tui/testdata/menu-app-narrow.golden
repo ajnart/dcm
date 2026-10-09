@@ -1,20 +1,20 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
-╭─ Apps 3 ─────────────────────────────────────────────────────────────────────╮
-│ ● Jellyfin      http://192.168.1.20:8096   running   ✓                       │
-│ ✗ So╭──────────────────────────────────────────────────────────────────╮     │
-│ ✗ wh│ Jellyfin · Actions                                               │     │
-╰─────│                                                                  │─────╯
-╭─ Nee│ > Stop                                                           │─────╮
-│ ✗ So│   Restart                                                        │etup │
-│ ✗ wh│   Update        no update known (checked every 30 minutes)       │tart │
-│ ! Fi│   Retry Setup                                                    │     │
-│   → │   Backup                                                         │     │
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+╭─ Now ────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                │
+│ ◐ Ho╭──────────────────────────────────────────────────────────────────╮     │
+│     │ Jellyfin · Actions                                               │     │
+│     │                                                                  │     │
+╰─────│ > Stop                                                           │─────╯
+╭─ App│   Restart                                                        │─────╮
+│ ● ▶ │   Update        no update known (checked every 30 minutes)       │     │
+│ ✗ ↓ │   Retry Setup                                                    │     │
+│ ✗ ◇ │   Backup                                                         │     │
 ╰─────│   Remove                                                         │─────╯
-╭─ Jel│                                                                  │─────╮
-│  log│ ──────────────────────────────────────────────────────────────── │     │
-│ ────│ Stops Jellyfin's containers. Its data, settings and Setup stay.  │──── │
-│ jell╰──────────────────────────────────────────────────────────────────╯     │
-│                                                                              │
+╭─ Nee│                                                                  │─────╮
+│ ✗ So│ ──────────────────────────────────────────────────────────────── │etup │
+│ ✗ wh│ Stops Jellyfin's containers. Its data, settings and Setup stay.  │tart │
+│ ! Fi╰──────────────────────────────────────────────────────────────────╯     │
+│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
 │                                                                              │
 │                                                                              │
 │                                                                              │

@@ -1,20 +1,20 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
-╭─ Apps 3 ─────────────────────────────────────────────────────────────────────╮
-│ ● Jellyfin      http://192.168.1.20:8096   running   ✓                       │
-│ ✗ Sonarr        http://192.168.1.20:8989   running   ✗                       │
-│ ✗ wh╭──────────────────────────────────────────────────────────────────╮     │
-╰─────│ Project · Actions                                                │─────╯
-╭─ Nee│                                                                  │─────╮
-│ ✗ So│ > Up all                                                         │etup │
-│ ✗ wh│   Down all                                                       │tart │
-│ ! Fi│   Restart all                                                    │     │
-│   → │   Update all    no update known (checked every 30 minutes)       │     │
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+╭─ Now ────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                │
+│ ◐ Host: 1 warning                                                            │
+│     ╭──────────────────────────────────────────────────────────────────╮     │
+│     │ Project · Actions                                                │     │
+╰─────│                                                                  │─────╯
+╭─ App│ > Up all                                                         │─────╮
+│ ● ▶ │   Down all                                                       │     │
+│ ✗ ↓ │   Restart all                                                    │     │
+│ ✗ ◇ │   Update all    no update known (checked every 30 minutes)       │     │
 ╰─────│   Backup                                                         │─────╯
-╭─ Jel│                                                                  │─────╮
-│  log│ ──────────────────────────────────────────────────────────────── │     │
-│ ────│ Starts every App's containers.                                   │──── │
-│ jell╰──────────────────────────────────────────────────────────────────╯     │
-│                                                                              │
+╭─ Nee│                                                                  │─────╮
+│ ✗ So│ ──────────────────────────────────────────────────────────────── │etup │
+│ ✗ wh│ Starts every App's containers.                                   │tart │
+│ ! Fi╰──────────────────────────────────────────────────────────────────╯     │
+│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
 │                                                                              │
 │                                                                              │
 │                                                                              │

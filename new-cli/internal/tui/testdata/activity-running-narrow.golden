@@ -1,8 +1,8 @@
- ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
   Activity · 1 App fully set up · 1 step failed · 1 step running
 
   ⠧ install jellyfin sonarr
-    ✓ Start   ⠧ Setup   ○ Credentials   ○ Check
+    ✓ ▣ Start   ⠧ Setup   ○ ✱ Credentials   ○ Check
   ╭─ Apps 1/2 set up ──────────────────────────────────────────────────────────╮
   │ ● Jellyfin        ready                                                    │
   │ ⠧ Sonarr          setting up                                               │

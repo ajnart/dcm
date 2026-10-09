@@ -18,6 +18,8 @@ func assertNoProgressText(t *testing.T, where, out string) {
 
 func TestRunningPullShowsFooterAndBars(t *testing.T) {
 	m, _ := sample(t, 140, 32)
+	// On the Overview the Now strip shows the Action; the status line shows it elsewhere.
+	m = drive(t, m, press("3"))
 	task := m.tasks.start("update one")
 	for _, e := range []events.Event{
 		{Event: events.RunStart, Msg: "update one"},
@@ -41,6 +43,8 @@ func TestRunningPullShowsFooterAndBars(t *testing.T) {
 
 func TestFooterShowsLatestEventOnceThePullEnds(t *testing.T) {
 	m, _ := sample(t, 140, 32)
+	// On the Overview the Now strip shows the Action; the status line shows it elsewhere.
+	m = drive(t, m, press("3"))
 	task := m.tasks.start("update one")
 	for _, e := range []events.Event{
 		{Event: events.StepStart, Step: "pull", Msg: "pull 1 image"},
@@ -57,6 +61,8 @@ func TestFooterShowsLatestEventOnceThePullEnds(t *testing.T) {
 
 func TestNarrowFooterKeepsTheImagesFact(t *testing.T) {
 	m, _ := sample(t, 36, 24)
+	// On the Overview the Now strip shows the Action; the status line shows it elsewhere.
+	m = drive(t, m, press("3"))
 	task := m.tasks.start("update one")
 	for _, e := range []events.Event{
 		{Event: events.StepStart, Step: "pull", Msg: "pull 2 images"},

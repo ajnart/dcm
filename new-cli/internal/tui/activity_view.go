@@ -215,7 +215,7 @@ func (v *activityView) View(ctx *viewContext, width, height int) string {
 		plural(s.Counts.StepsFailed, "step failed", "steps failed") + " · " +
 		plural(s.Counts.StepsRunning, "step running", "steps running"), ""}
 	// The Action leaves room for a few of every App's remembered steps.
-	if block := activity.Render(s, ctx.motion, width-2, t.palette()); len(block) > 0 {
+	if block := activity.Render(s, ctx.motion, width-2, ctx.glyphs, t.palette()); len(block) > 0 {
 		if limit := max(height-8, 6); len(block) > limit {
 			block = append(block[:limit-1], t.dim().Render("…"))
 		}

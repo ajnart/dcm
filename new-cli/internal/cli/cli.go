@@ -113,8 +113,18 @@ func (a *program) human(w io.Writer, verbose bool) events.Sink {
 		return 80
 	}
 	palette := tui.Palette(lipgloss.HasDarkBackground(os.Stdin, f))
-	a.terminal = activity.Terminal(profiled, verbose, width, palette)
+	a.terminal = activity.Terminal(profiled, verbose, width, a.glyphs(), palette)
 	return a.terminal
+}
+
+// glyphs is the Project's glyph set, or Simple when there is no Project or
+// its appearance cannot be read.
+func (a *program) glyphs() activity.Glyphs {
+	appearance, err := service.New(a.deps, events.Discard(), a.catalog).Appearance()
+	if err != nil {
+		return activity.Simple
+	}
+	return activity.ParseGlyphs(appearance.Glyphs)
 }
 
 // Run executes the binary with args and returns the exit code.

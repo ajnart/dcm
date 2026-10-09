@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,13 +24,13 @@ import (
 const wideWidth = 100
 
 // surface is the Dashboard tab a view fills, in tab order: Overview
-// (dashboardView), Apps (stackView), Activity (activityView), Catalog
+// (dashboardView), Apps (appsView), Activity (activityView), Catalog
 // (installView) and Settings.
 type surface int
 
 const (
 	surfaceDashboard surface = iota
-	surfaceStack
+	surfaceApps
 	surfaceActivity
 	surfaceInstall
 	surfaceSettings
@@ -38,7 +40,7 @@ var tabs = []struct {
 	name, label string
 }{
 	surfaceDashboard: {"dashboard", "Overview"},
-	surfaceStack:     {"stack", "Apps"},
+	surfaceApps:      {"apps", "Apps"},
 	surfaceActivity:  {"activity", "Activity"},
 	surfaceInstall:   {"install", "Catalog"},
 	surfaceSettings:  {"settings", "Settings"},
@@ -55,10 +57,13 @@ const (
 	// install or a Settings change was approved, or changes were discarded),
 	// so the tab starts afresh next time.
 	navDone
+	// navTo switches to another tab.
+	navTo
 )
 
 type nav struct {
 	kind navKind
+	to   surface
 }
 
 // pane is one focusable part of a tab and the keys that act in it.
@@ -87,6 +92,7 @@ type viewContext struct {
 	width, height int
 	dark          bool
 	theme         theme
+	glyphs        activity.Glyphs
 	keys          keyMap
 	help          help.Model
 	// frame and motion are the animation's current frame and the frame at
@@ -264,14 +270,16 @@ func firstLine(s string) string {
 
 // Header
 
-// health sums up the host checks: a label and its Status level, or no
+func (m Model) health() (label, level string) { return hostHealth(m.checks) }
+
+// hostHealth sums up the host checks: a label and its Status level, or no
 // level while the checks are still running.
-func (m Model) health() (label, level string) {
-	if len(m.checks) == 0 {
+func hostHealth(checks []host.Check) (label, level string) {
+	if len(checks) == 0 {
 		return "checking", ""
 	}
 	warn, fail := 0, 0
-	for _, c := range m.checks {
+	for _, c := range checks {
 		switch c.Level {
 		case host.Warn:
 			warn++
@@ -327,8 +335,8 @@ func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 		tabsWidth += 2 * (len(labels) - 1)
 	}
 	essential, extra := m.headerContext()
-	brand := t.brand()
-	mark := " " + t.title().Render("◆") + " "
+	brand := t.brand(m.glyphs)
+	mark := " " + t.title().Render(m.glyphs.Brand()) + " "
 	if lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)) >
 		lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)) {
 		brand = mark
@@ -371,9 +379,17 @@ func fitContext(pieces []string, width int) string {
 	return right
 }
 
+// projectLabel names the Project in the header: its folder, short.
+func projectLabel(path string) string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" && strings.HasPrefix(path, home+"/") {
+		return "~/" + strings.TrimPrefix(path, home+"/")
+	}
+	return filepath.Base(path)
+}
+
 // headerContext is the right side of the header, most important first: the
-// essential host health, LAN address and newer release, then the extra
-// known updates, last refresh and version.
+// essential host health, LAN address, newer release and Project, then the
+// extra last refresh, known updates and version.
 func (m Model) headerContext() (essential, extra []string) {
 	t := m.theme
 	if !m.onboardingShown() {
@@ -398,11 +414,14 @@ func (m Model) headerContext() (essential, extra []string) {
 	if m.latest != "" {
 		essential = append(essential, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
 	}
-	if n := m.updatesAvailable(); n > 0 {
-		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		essential = append(essential, t.dim().Render(projectLabel(m.status.Project)))
 	}
 	if !m.refreshed.IsZero() {
 		extra = append(extra, t.dim().Render(m.refreshed.Format("15:04:05")))
+	}
+	if n := m.updatesAvailable(); n > 0 {
+		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
 	}
 	return essential, append(extra, t.dim().Render("v"+strings.TrimPrefix(m.opts.Version, "v")))
 }
@@ -553,10 +572,16 @@ func (m Model) renderStatusError() string {
 }
 
 // footerStatus is the status line above the bar: the running Action's
-// latest event, else the last result or flash message.
+// latest event, else the last result or flash message. On the Overview the
+// Now strip shows the Action and its result, so the line keeps only the
+// other messages.
 func (m Model) footerStatus() string {
 	t := m.theme
-	if task := m.tasks.latest(); task != nil {
+	overview := !m.onboardingShown() && m.surface == surfaceDashboard
+	if overview && m.flash == m.resultFlash {
+		return ""
+	}
+	if task := m.tasks.latest(); task != nil && !overview {
 		if s := task.snapshot(); s.state == taskRunning {
 			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
 			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {

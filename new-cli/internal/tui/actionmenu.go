@@ -136,6 +136,12 @@ type selectsApp interface {
 	selectedApp(ctx *viewContext) (service.AppStatus, bool)
 }
 
+// suggestsAction is a view that knows which Action its selection calls for,
+// which the menu then highlights.
+type suggestsAction interface {
+	suggestedAction(ctx *viewContext) string
+}
+
 // menuEntries are the open menu's title and entries; false when its App is gone.
 func (m Model) menuEntries() (string, []menuEntry, bool) {
 	busy := m.tasks.running() > 0
@@ -159,8 +165,18 @@ func (m Model) openAppMenu() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	if app, found := sel.selectedApp(m.ctx()); found {
-		m.menu = &actionMenu{appID: app.ID}
+	app, found := sel.selectedApp(m.ctx())
+	if !found {
+		return m, nil
+	}
+	m.menu = &actionMenu{appID: app.ID}
+	if hint, ok := m.activeView().(suggestsAction); ok {
+		_, entries, _ := m.menuEntries()
+		for i, e := range entries {
+			if e.mnemonic == hint.suggestedAction(m.ctx()) {
+				m.menu.cursor = i
+			}
+		}
 	}
 	return m, nil
 }

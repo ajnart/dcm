@@ -532,7 +532,7 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 func (m Model) renderLoading() string {
 	t := m.theme
 	block := lipgloss.JoinVertical(lipgloss.Center,
-		t.title().Render("◆")+" "+t.active().Render("self-host"), "",
+		t.title().Render(m.glyphs.Brand())+" "+t.active().Render("self-host"), "",
 		t.fg(t.accentText).Render(activity.Spinner(m.frame))+" "+t.dim().Render("Getting ready…"))
 	return lipgloss.Place(m.width, m.mainHeight(), lipgloss.Center, lipgloss.Center, block)
 }
