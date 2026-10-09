@@ -1,0 +1,28 @@
+.agents/install.md
+  h_d6e478ca18e517 7-43,74-76,170-171,176,179,192
+.agents/skills/self-host/SKILL.md
+  h_d6e478ca18e517 15,19-36
+.agents/skills/self-host/references/cli-install.md
+  h_d6e478ca18e517 1,3-14,19,21-23,26-28,33-39,46-59
+README.md
+  h_d6e478ca18e517 3-41,60,62
+docs/plugin-audit.md
+  h_d6e478ca18e517 12-13
+new-cli/README.md
+  h_d6e478ca18e517 15-49,64,68,70-78
+new-cli/install.sh
+  h_d6e478ca18e517 266-267
+new-cli/internal/skill/guide.md
+  h_d6e478ca18e517 44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92ac93fc1d21ade45be4f1cecd8fa24deaaf7c6f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
