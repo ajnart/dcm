@@ -1,0 +1,17 @@
+new-cli/internal/service/deferred_test.go
+  h_d6e478ca18e517 5-8,47-85
+new-cli/internal/service/status.go
+  h_d6e478ca18e517 103-109,118,142-144
+  h_d6e478ca18e517 7,11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd334973af5d2dfa2d56e1701bdc333b8f8da97b",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
