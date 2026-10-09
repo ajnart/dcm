@@ -67,6 +67,7 @@ func goldenModel(t *testing.T, width, height int) Model {
 		{Service: "sonarr", CPU: 0.02, Mem: 0.06, MemBytes: 480 << 20},
 	}
 	backend.updates = map[string]string{"jellyfin": "available"}
+	backend.tools = map[string]string{"ctop": "/usr/local/bin/ctop"}
 	backend.review = []service.SettingReview{
 		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
 		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.0.12", Choices: []string{"192.168.1.20", "192.168.0.12"}, Drift: true, Note: "not an address of this machine any more"},
@@ -111,6 +112,7 @@ func TestGoldenSettingsSubTabs(t *testing.T) {
 			t.Run(name+size.suffix, func(t *testing.T) {
 				m := goldenModel(t, size.width, size.height)
 				m = drive(t, m, press("5"))
+				m.settings.goos = "darwin"
 
 				for range i + 2 {
 					m = drive(t, m, press("]"))

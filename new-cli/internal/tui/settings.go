@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -54,6 +55,12 @@ type settingsView struct {
 	key     string
 	input   textinput.Model
 
+	// tools are the programs the Tools sub-tab found on PATH when it opened;
+	// goos picks their install commands.
+	tools      []toolState
+	toolCursor int
+	goos       string
+
 	choices   []string
 	choiceIdx int
 
@@ -77,7 +84,7 @@ var (
 )
 
 func newSettingsView(ctx *viewContext) *settingsView {
-	v := &settingsView{edits: map[string]string{}}
+	v := &settingsView{edits: map[string]string{}, goos: runtime.GOOS}
 	for _, key := range settingsKeys {
 		v.rows = append(v.rows, service.SettingReview{Key: key, Current: settingCurrent(ctx, key)})
 	}
@@ -94,6 +101,8 @@ func (v *settingsView) Keys() []key.Binding {
 		return appearanceKeys
 	case v.tab == tabAbout:
 		return aboutKeys
+	case v.tab == tabTools:
+		return toolsKeys
 	case v.tab != tabHost:
 		return placeholderKeys
 	}
@@ -101,7 +110,7 @@ func (v *settingsView) Keys() []key.Binding {
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"About", aboutKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"Tools", toolsKeys}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
 
@@ -300,6 +309,8 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		return v.hostKey(ctx, msg)
 	case tabAppearance:
 		return v, v.appearanceKey(ctx, msg), nav{}
+	case tabTools:
+		return v, v.toolsKey(ctx, msg), nav{}
 	case tabAbout:
 		return v, v.aboutKey(ctx, msg), nav{}
 	}
@@ -311,6 +322,10 @@ func (v *settingsView) show(ctx *viewContext, tab settingsTab) {
 	v.tab = tab
 	if tab == tabAppearance {
 		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
+	}
+	if tab == tabTools {
+		v.tools = detectTools(ctx.backend)
+		v.toolCursor = 0
 	}
 }
 
@@ -432,6 +447,8 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 		body = v.hostBox(ctx, width, max(height-3, 3))
 	case tabAppearance:
 		body = v.appearanceBox(ctx, width)
+	case tabTools:
+		body = v.toolsBox(ctx, width)
 	case tabAbout:
 		body = aboutBox(ctx, width)
 	default:

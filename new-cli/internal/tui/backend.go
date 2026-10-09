@@ -3,6 +3,9 @@ package tui
 import (
 	"context"
 	"io"
+	"os/exec"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
@@ -51,6 +54,11 @@ type Backend interface {
 	// ctx ends.
 	Usage(ctx context.Context, emit func([]service.ContainerUsage)) error
 	OpenURL(url string) error
+	// LookTool finds a program on PATH.
+	LookTool(name string) (path string, ok bool)
+	// ExecTool runs cmd with the terminal, pausing the TUI until it exits,
+	// then delivers done's message.
+	ExecTool(cmd *exec.Cmd, done func(error) tea.Msg) tea.Cmd
 	// ReviewSettings compares Host settings with this machine now.
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
@@ -111,6 +119,15 @@ func (b ServiceBackend) Logs(ctx context.Context, id string, w io.Writer) error 
 
 func (b ServiceBackend) Usage(ctx context.Context, emit func([]service.ContainerUsage)) error {
 	return b.quiet().Usage(ctx, emit)
+}
+
+func (b ServiceBackend) LookTool(name string) (string, bool) {
+	path, err := exec.LookPath(name)
+	return path, err == nil
+}
+
+func (b ServiceBackend) ExecTool(cmd *exec.Cmd, done func(error) tea.Msg) tea.Cmd {
+	return tea.ExecProcess(cmd, done)
 }
 
 func (b ServiceBackend) OpenURL(url string) error {
