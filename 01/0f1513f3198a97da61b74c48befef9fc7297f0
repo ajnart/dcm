@@ -1,0 +1,109 @@
+new-cli/internal/tui/dashboard.go
+  s_95f2547e24b970::t_e71f6c98a877b9 460-462,601-602,607-610
+new-cli/internal/apps/passbolt/passbolt_test.go
+  s_95f2547e24b970::t_f65b340f6b6767 62-63,72,117-123
+  s_95f2547e24b970::t_070b5188c708b1 115-116,124
+new-cli/internal/service/status.go
+  s_95f2547e24b970::t_369c93d48ae80d 33
+new-cli/internal/tui/workflow.go
+  s_95f2547e24b970::t_81794951e23ace 19,63-64,77-79,149-150
+new-cli/internal/cli/install_test.go
+  s_95f2547e24b970::t_e0248a892f483c 366-367,388
+  s_95f2547e24b970::t_369c93d48ae80d 368-387,391-409
+  s_95f2547e24b970::t_2708d279b397ff 389-390,410
+new-cli/internal/tui/workflow_view.go
+  s_95f2547e24b970::t_81794951e23ace 258-259,270
+new-cli/internal/apps/passbolt/passbolt.go
+  s_95f2547e24b970::t_f65b340f6b6767 197
+  s_95f2547e24b970::t_798b10f21f2a8c 174
+new-cli/internal/apps/dockge/dockge_test.go
+  s_95f2547e24b970::t_7c806a44a0eadc 29
+new-cli/internal/apps/emby/emby_test.go
+  s_95f2547e24b970::t_97c8e1b532c283 97
+new-cli/e2e/manual_test.go
+  s_95f2547e24b970::t_40629d02a7385b 1-17,19-23
+  s_95f2547e24b970::t_24ad9bb0c57a98 18
+new-cli/internal/skill/guide.md
+  s_95f2547e24b970::t_369c93d48ae80d 90,116-119
+  s_95f2547e24b970::t_af5291d61a7d01 120
+new-cli/internal/cli/skill_test.go
+  s_95f2547e24b970::t_369c93d48ae80d 190
+new-cli/internal/apps/transmission/transmission_test.go
+  s_95f2547e24b970::t_3e7bad6637a9f8 99-100
+new-cli/internal/cli/install.go
+  s_95f2547e24b970::t_369c93d48ae80d 5,32,137-139
+new-cli/internal/tui/workflow_test.go
+  s_95f2547e24b970::t_97c8e1b532c283 386-390
+  s_95f2547e24b970::t_81794951e23ace 384-385,391
+new-cli/internal/service/mutation_test.go
+  s_95f2547e24b970::t_e0248a892f483c 486-487,491,495-508
+  s_95f2547e24b970::t_94a689a8a8556b 462-482
+  s_95f2547e24b970::t_7980e39bd03516 484-485,488-490,492-494,509
+  s_95f2547e24b970::t_c853d4417d3ed8 460-461,483
+new-cli/internal/apps/stalwartmail/stalwartmail_test.go
+  s_95f2547e24b970::t_798b10f21f2a8c 91-92,100
+  s_95f2547e24b970::t_bbb66afc549327 51-52,61,93-99
+new-cli/internal/tui/model.go
+  s_95f2547e24b970::t_97c8e1b532c283 393,401
+new-cli/internal/apps/porttest/porttest.go
+  s_95f2547e24b970::t_97c8e1b532c283 42
+new-cli/internal/service/level.go
+  s_95f2547e24b970::t_e71f6c98a877b9 13
+new-cli/internal/events/events.go
+  s_95f2547e24b970::t_369c93d48ae80d 187,207
+  s_95f2547e24b970::t_28be6b89b6c24d 22
+new-cli/internal/apps/stalwartmail/stalwartmail.go
+  s_95f2547e24b970::t_bbb66afc549327 132
+  s_95f2547e24b970::t_5fd33ac997b939 95
+new-cli/internal/service/service.go
+  s_95f2547e24b970::t_94a689a8a8556b 429,444,446-448,453
+  s_95f2547e24b970::t_e0248a892f483c 441,468,477
+  s_95f2547e24b970::t_369c93d48ae80d 36-37
+new-cli/internal/cli/cli.go
+  s_95f2547e24b970::t_369c93d48ae80d 24,59-60
+  s_95f2547e24b970::t_ff534bfe869924 61
+new-cli/internal/service/install.go
+  s_95f2547e24b970::t_369c93d48ae80d 430,432-434,443-445,453
+new-cli/CONTEXT.md
+  s_95f2547e24b970::t_3e7bad6637a9f8 83-84
+  s_95f2547e24b970::t_5b9063245a1b74 37-42
+new-cli/e2e/manual.go
+  s_95f2547e24b970::t_40629d02a7385b 1-2,4,6-7,9-16
+  s_95f2547e24b970::t_246e3dc95db2a3 3,5,8
+new-cli/internal/tui/views_test.go
+  s_95f2547e24b970::t_97c8e1b532c283 431-440
+  s_95f2547e24b970::t_48944241d5db15 429-430,441
+  s_95f2547e24b970::t_1f50bd214eb09e 396-397,428
+  s_95f2547e24b970::t_e71f6c98a877b9 398-414
+  s_95f2547e24b970::t_81794951e23ace 415-427
+new-cli/internal/apps/uptimekuma/uptimekuma_test.go
+  s_95f2547e24b970::t_97c8e1b532c283 80-81
+new-cli/e2e/harness_test.go
+  s_95f2547e24b970::t_30389e96d1bfa1 24
+new-cli/e2e/passbolt_fixture_runtime_test.go
+  s_95f2547e24b970::t_358c5fbbcddcd6 153
+new-cli/e2e/scenario_test.go
+  s_95f2547e24b970::t_ac45b3f827ff21 56,61
+new-cli/internal/helpers/helpers.go
+  s_95f2547e24b970::t_baa22edf227c1a 21-23,38,161-167
+new-cli/internal/onboard/onboard.go
+  s_95f2547e24b970::t_9e25135a0cfa41 155,173
+new-cli/internal/onboard/onboard_test.go
+  s_95f2547e24b970::t_c0f8c6fe4c7a43 387-405
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "010f1513f3198a97da61b74c48befef9fc7297f0",
+  "prompts": {},
+  "sessions": {
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
