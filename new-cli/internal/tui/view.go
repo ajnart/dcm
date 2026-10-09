@@ -615,6 +615,9 @@ func (m Model) View() tea.View {
 		if m.menu != nil {
 			mode, chips = m.menuBarMode(), m.menuBarKeys()
 		}
+		if m.upgrade != nil && m.upgrade.state == updateAsking {
+			mode, chips = m.updateBar()
+		}
 		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	}
 

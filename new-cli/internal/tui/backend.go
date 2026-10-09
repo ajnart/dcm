@@ -2,8 +2,11 @@ package tui
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/updatecheck"
 )
 
 type Action string
@@ -75,6 +79,16 @@ type Backend interface {
 	// LatestRelease returns the newest published release tag, or "" when it
 	// cannot be determined.
 	LatestRelease(ctx context.Context) string
+	// SkippedUpdate is the release version the person last declined, or "".
+	SkippedUpdate() string
+	// SkipUpdate remembers that the person declined a release version.
+	SkipUpdate(version string)
+	// SelfUpdate replaces the running binary with the newest release after
+	// checking its checksum, returning the version it installed.
+	SelfUpdate(ctx context.Context) (string, error)
+	// Restart starts the replaced binary in this process's place with the
+	// same arguments. It returns only when that failed.
+	Restart() error
 	// Detect returns the Host settings a new Project would get.
 	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
@@ -97,6 +111,9 @@ type Backend interface {
 type ServiceBackend struct {
 	Deps *system.Deps
 	Apps *catalog.Catalog
+	// Args are the command-line arguments after the program name, which
+	// Restart passes on to the new binary.
+	Args []string
 }
 
 func (b ServiceBackend) quiet() *service.Service {
@@ -151,7 +168,54 @@ func (b ServiceBackend) LatestRelease(ctx context.Context) string {
 	if err != nil {
 		return ""
 	}
-	return rel.Tag
+	return "v" + rel.Version()
+}
+
+func (b ServiceBackend) SkippedUpdate() string {
+	cache, ok := updatecheck.Open(b.Deps)
+	if !ok {
+		return ""
+	}
+	return cache.Load().Skipped
+}
+
+func (b ServiceBackend) SkipUpdate(version string) {
+	cache, ok := updatecheck.Open(b.Deps)
+	if !ok {
+		return
+	}
+	state := cache.Load()
+	state.Skipped = version
+	cache.Save(state)
+}
+
+func (b ServiceBackend) SelfUpdate(ctx context.Context) (string, error) {
+	client := release.NewClient(b.Deps)
+	rel, err := client.Latest(ctx)
+	if err != nil {
+		return "", err
+	}
+	if newer, err := release.Newer(b.Deps.Version, rel.Tag); err != nil || !newer {
+		return "", fmt.Errorf("self-host %s is already the newest release", b.Deps.Version)
+	}
+	exe, err := b.Deps.Executable()
+	if err != nil {
+		return "", errors.New("cannot locate the running binary: " + err.Error())
+	}
+	if err := client.Install(ctx, rel, b.Deps.GOOS, b.Deps.GOARCH, exe); err != nil {
+		return "", err
+	}
+	return rel.Version(), nil
+}
+
+func (b ServiceBackend) Restart() error {
+	exe, err := b.Deps.Executable()
+	if err != nil {
+		return err
+	}
+	// Linux appends this to a path whose file was replaced.
+	exe = strings.TrimSuffix(exe, " (deleted)")
+	return b.Deps.Exec(exe, append([]string{exe}, b.Args...))
 }
 
 func (b ServiceBackend) Catalog() *catalog.Catalog { return b.Apps }

@@ -12,8 +12,9 @@ func releaseModel(t *testing.T, version, latest string) Model {
 	t.Helper()
 	m, backend := sample(t, 140, 32)
 	backend.latest = latest
+	backend.skipped = strings.TrimPrefix(latest, "v") // these tests are about the notices, not the prompt
 	m.opts.Version = version
-	return drive(t, m, releaseMsg{version: backend.latest})
+	return drive(t, m, releaseMsg{version: backend.latest, skipped: backend.skipped})
 }
 
 func TestHeaderNoticeAppearsWhenANewerReleaseExists(t *testing.T) {
@@ -33,7 +34,7 @@ func TestHeaderNoticeFitsEightyColumns(t *testing.T) {
 	m, backend := sample(t, 80, 24)
 	backend.latest = "v1.2.0"
 	m.opts.Version = "1.1.0"
-	m = drive(t, m, releaseMsg{version: backend.latest})
+	m = drive(t, m, releaseMsg{version: backend.latest, skipped: "1.2.0"})
 
 	if header := strings.Split(screen(m), "\n")[0]; !strings.Contains(header, "↑ v1.2.0") {
 		t.Errorf("notice does not fit 80 columns\n%s", header)
