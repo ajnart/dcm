@@ -36,7 +36,7 @@ func TestComposeConnectsServerEventsToConfiguredRedis(t *testing.T) {
 	}
 	// RedisServerEventStreamBackend accepts url; redis_url is an ignored
 	// keyword that would silently leave it connected to localhost.
-	if arguments["url"] != "redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/3" || len(arguments) != 1 {
+	if arguments["url"] != "redis://:${MAYAN_EDMS_REDIS_PASSWORD}@mayan-edms-redis:6379/3" || len(arguments) != 1 {
 		t.Fatal("server events do not use the configured private Redis service")
 	}
 }
@@ -55,7 +55,7 @@ func TestComposeWaitsForHealthyMayanDependencies(t *testing.T) {
 	if err := yaml.Unmarshal([]byte((mayanedms.App{}).Compose(app.RenderContext{Port: 34321})), &doc); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"postgresql", "rabbitmq", "redis"} {
+	for _, name := range []string{"mayan-edms-postgresql", "mayan-edms-rabbitmq", "mayan-edms-redis"} {
 		if doc.Services["mayan-edms"].DependsOn[name].Condition != "service_healthy" || len(doc.Services[name].Healthcheck.Test) == 0 {
 			t.Fatalf("Mayan startup does not wait for %s readiness", name)
 		}
@@ -117,7 +117,7 @@ func TestInstallKeepsRedisConfiguredUserAndPrivateConfigAcrossReruns(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
-			redis := doc.Services["redis"]
+			redis := doc.Services["mayan-edms-redis"]
 			if got := os.Expand(redis.User, func(key string) string { return settings[key] }); got != tc.wantUser {
 				t.Fatalf("Redis user changed: got %s, want %s", got, tc.wantUser)
 			}

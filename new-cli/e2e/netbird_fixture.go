@@ -106,7 +106,7 @@ func writeNetBirdDockerWrapper(root, project, name, real string, port int) (stri
 		return "", errors.New("invalid owned NetBird fixture selectors")
 	}
 	override := filepath.Join(root, "netbird-override.yml")
-	if err := os.WriteFile(override, []byte(fmt.Sprintf("services:\n  server:\n    ports:\n      - 127.0.0.1:%d:80\n", port)), 0o600); err != nil {
+	if err := os.WriteFile(override, []byte(fmt.Sprintf("services:\n  netbird-server:\n    ports:\n      - 127.0.0.1:%d:80\n", port)), 0o600); err != nil {
 		return "", err
 	}
 	bin := filepath.Join(root, "fixture-bin")

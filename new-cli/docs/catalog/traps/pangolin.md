@@ -2,6 +2,7 @@
 
 ## Pitfalls
 
+- Auxiliary Compose services use App-owned names: `pangolin-server`. Keep these names in connection settings and dependencies; persistent data paths stay unchanged.
 - The full server is not a drop-in answer for a CGNAT-only home host.
 - The official installer generates a multi-container public ingress stack and asks for deployment-specific domains and Let's Encrypt email; a loopback-bound shared recipe would not reproduce it.
 - Container start does not complete token-based first-admin registration or organization creation.

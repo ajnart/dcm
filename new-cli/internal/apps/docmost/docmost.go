@@ -49,18 +49,18 @@ func (App) Compose(rc app.RenderContext) string {
     image: docker.io/docmost/docmost:0.96.0
     restart: unless-stopped
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://docmost-redis:6379
       APP_URL: http://${LAN_IP}:` + port + `
       APP_SECRET: ${DOCMOST_APP_SECRET}
-      DATABASE_URL: postgresql://docmost:${DOCMOST_DB_PASSWORD}@db:5432/docmost
+      DATABASE_URL: postgresql://docmost:${DOCMOST_DB_PASSWORD}@docmost-db:5432/docmost
     volumes:
       - ./storage:/app/data/storage
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - db
-      - redis
-  db:
+      - docmost-db
+      - docmost-redis
+  docmost-db:
     image: docker.io/library/postgres:18
     restart: unless-stopped
     environment:
@@ -69,7 +69,7 @@ func (App) Compose(rc app.RenderContext) string {
       POSTGRES_PASSWORD: ${DOCMOST_DB_PASSWORD}
     volumes:
       - ./database:/var/lib/postgresql
-  redis:
+  docmost-redis:
     image: docker.io/library/redis:8
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]

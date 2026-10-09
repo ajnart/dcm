@@ -42,7 +42,7 @@ func (App) Compose(rc app.RenderContext) string {
 	return `services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
-    command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=db", "--db-username=keycloak"]
+    command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=keycloak-db", "--db-username=keycloak"]
     restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_USER}
@@ -51,9 +51,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8080
     depends_on:
-      db:
+      keycloak-db:
         condition: service_healthy
-  db:
+  keycloak-db:
     image: docker.io/library/postgres:17-alpine
     restart: unless-stopped
     environment:

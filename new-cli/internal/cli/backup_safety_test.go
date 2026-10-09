@@ -120,7 +120,7 @@ type restoreRecoveryRunner struct {
 }
 
 func (r *restoreRecoveryRunner) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) {
-	if strings.Contains(systemtest.Line(cmd), " up -d ") {
+	if strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans ") {
 		_, r.bounded = ctx.Deadline()
 	}
 	return r.Runner.Run(ctx, cmd)
@@ -196,7 +196,7 @@ func TestRestoreStartFailureRetainsOriginalRecoveryCopy(t *testing.T) {
 	beforeState := readFile(t, filepath.Join(root, "state.json"))
 	beforeSecrets := readFile(t, filepath.Join(root, "secrets.env"))
 	deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
-		if strings.Contains(systemtest.Line(cmd), " up -d one") {
+		if strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("start refused")}
 		}
 		return system.Result{}
@@ -297,7 +297,7 @@ func TestRestoreReplacementFailureRollsBackDataAndRecords(t *testing.T) {
 			upCalls = append(upCalls, call)
 		}
 	}
-	if len(upCalls) != 1 || !strings.HasSuffix(upCalls[0], " up -d one") || !recoveryRunner.bounded {
+	if len(upCalls) != 1 || !strings.HasSuffix(upCalls[0], " up -d --remove-orphans one") || !recoveryRunner.bounded {
 		t.Fatalf("rollback must recreate only previously running services with a bound: %v", upCalls)
 	}
 }
@@ -350,7 +350,7 @@ func TestRestorePartialRemovalReportsScopedRecoveryFailure(t *testing.T) {
 		if strings.Contains(line, " rm --stop --force one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("partial removal failed")}
 		}
-		if strings.Contains(line, " up -d one") {
+		if strings.Contains(line, " up -d --remove-orphans one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("recovery start refused")}
 		}
 		return system.Result{}

@@ -47,7 +47,7 @@ func (App) Compose(rc app.RenderContext) string {
     restart: unless-stopped
     environment:
       DB_DATABASE_NAME: immich
-      DB_HOSTNAME: database
+      DB_HOSTNAME: immich-database
       DB_USERNAME: postgres
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       IMMICH_ALLOW_SETUP: "true"
@@ -58,7 +58,7 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:2283
     depends_on:
-      - database
+      - immich-database
       - immich-redis
     healthcheck:
       test: ["CMD", "immich-healthcheck"]
@@ -83,7 +83,7 @@ func (App) Compose(rc app.RenderContext) string {
       interval: 30s
       timeout: 10s
       retries: 3
-  database:
+  immich-database:
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
     restart: unless-stopped
     shm_size: 134217728

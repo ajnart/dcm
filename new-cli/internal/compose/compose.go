@@ -82,7 +82,7 @@ func lastLine(b []byte) string {
 }
 
 func (c *Compose) Up(ctx context.Context, services ...string) error {
-	_, err := c.Run(ctx, nil, append([]string{"up", "-d"}, services...)...)
+	_, err := c.Run(ctx, nil, append([]string{"up", "-d", "--remove-orphans"}, services...)...)
 	return err
 }
 

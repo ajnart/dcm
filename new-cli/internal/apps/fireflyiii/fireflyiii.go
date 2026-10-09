@@ -55,7 +55,7 @@ func (App) Compose(rc app.RenderContext) string {
       APP_DEBUG: "false"
       APP_URL: http://${LAN_IP}:` + port + `
       DB_CONNECTION: pgsql
-      DB_HOST: db
+      DB_HOST: firefly-iii-db
       DB_PORT: "5432"
       DB_DATABASE: firefly
       DB_USERNAME: firefly
@@ -68,8 +68,8 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8080
     depends_on:
-      - db
-  db:
+      - firefly-iii-db
+  firefly-iii-db:
     image: docker.io/library/postgres:18
     restart: always
     environment:

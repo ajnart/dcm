@@ -51,7 +51,7 @@ func (App) Secrets() []app.SecretSpec {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
-	environment := `      AUTHENTIK_POSTGRESQL__HOST: postgresql
+	environment := `      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
@@ -71,9 +71,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:9000
     depends_on:
-      postgresql:
+      authentik-postgresql:
         condition: service_healthy
-  worker:
+  authentik-worker:
     image: ghcr.io/goauthentik/server:2026.8.3
     command: worker
     restart: unless-stopped
@@ -83,9 +83,9 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./data:/data
     depends_on:
-      postgresql:
+      authentik-postgresql:
         condition: service_healthy
-  postgresql:
+  authentik-postgresql:
     image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     environment:

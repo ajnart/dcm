@@ -18,7 +18,7 @@ $origin = parse_url((string)getenv("APP_FULL_BASE_URL"));
 $canonical = is_array($origin) && ($origin["scheme"] ?? "") === "https" && ($origin["host"] ?? "") === "passbolt.e2e.selfhost.test" && ($origin["port"] ?? 0) > 0 && ($origin["port"] ?? 0) <= 65535 && !isset($origin["user"]) && !isset($origin["pass"]) && !isset($origin["query"]) && !isset($origin["fragment"]);
 $data = ["private_key_exists"=>is_file($key), "private_key_readable"=>is_readable($key), "keyring_readable"=>is_readable($ring), "keyring_writable"=>is_writable($ring), "gnupg_extension"=>extension_loaded("gnupg"), "pdo_mysql_extension"=>extension_loaded("pdo_mysql"), "canonical_input_valid"=>$canonical, "ssl_force_input"=>filter_var(getenv("PASSBOLT_SSL_FORCE"), FILTER_VALIDATE_BOOLEAN), "datasource"=>"unobserved", "schema"=>"unobserved"];
 $port = getenv("DATASOURCES_DEFAULT_PORT");
-if (getenv("DATASOURCES_DEFAULT_HOST") !== "db" || getenv("DATASOURCES_DEFAULT_DATABASE") !== "passbolt" || getenv("DATASOURCES_DEFAULT_USERNAME") !== "passbolt" || ($port !== false && $port !== "" && $port !== "3306")) {
+if (getenv("DATASOURCES_DEFAULT_HOST") !== "passbolt-db" || getenv("DATASOURCES_DEFAULT_DATABASE") !== "passbolt" || getenv("DATASOURCES_DEFAULT_USERNAME") !== "passbolt" || ($port !== false && $port !== "" && $port !== "3306")) {
  $data["datasource"] = "selectors-mismatch";
 } elseif (!$data["pdo_mysql_extension"]) {
  $data["datasource"] = "driver-unavailable";

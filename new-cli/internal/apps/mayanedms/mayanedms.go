@@ -61,23 +61,23 @@ func (App) Compose(rc app.RenderContext) string {
       MAYAN_LOCK_MANAGER_BACKEND: mayan.apps.lock_manager.backends.redis_lock.RedisLock
       MAYAN_SERVER_SIDE_EVENTS_BACKEND: mayan.apps.server_side_events.sse_backends.redis.RedisServerEventStreamBackend
       MAYAN_AUTOADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      MAYAN_DATABASES: "{'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'mayan', 'USER': 'mayan', 'PASSWORD': '${MAYAN_EDMS_DB_PASSWORD}', 'HOST': 'postgresql', 'PORT': '5432'}}"
-      MAYAN_CELERY_BROKER_URL: amqp://mayan:${MAYAN_EDMS_BROKER_PASSWORD}@rabbitmq:5672/mayan
-      MAYAN_CELERY_RESULT_BACKEND: redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/1
-      MAYAN_LOCK_MANAGER_BACKEND_ARGUMENTS: "{'redis_url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/2'}"
-      MAYAN_SERVER_SIDE_EVENTS_BACKEND_ARGUMENTS: "{'url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@redis:6379/3'}"
+      MAYAN_DATABASES: "{'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'mayan', 'USER': 'mayan', 'PASSWORD': '${MAYAN_EDMS_DB_PASSWORD}', 'HOST': 'mayan-edms-postgresql', 'PORT': '5432'}}"
+      MAYAN_CELERY_BROKER_URL: amqp://mayan:${MAYAN_EDMS_BROKER_PASSWORD}@mayan-edms-rabbitmq:5672/mayan
+      MAYAN_CELERY_RESULT_BACKEND: redis://:${MAYAN_EDMS_REDIS_PASSWORD}@mayan-edms-redis:6379/1
+      MAYAN_LOCK_MANAGER_BACKEND_ARGUMENTS: "{'redis_url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@mayan-edms-redis:6379/2'}"
+      MAYAN_SERVER_SIDE_EVENTS_BACKEND_ARGUMENTS: "{'url': 'redis://:${MAYAN_EDMS_REDIS_PASSWORD}@mayan-edms-redis:6379/3'}"
     volumes:
       - ./data:/var/lib/mayan
     ports:
       - ${BIND_IP}:` + port + `:8000
     depends_on:
-      postgresql:
+      mayan-edms-postgresql:
         condition: service_healthy
-      rabbitmq:
+      mayan-edms-rabbitmq:
         condition: service_healthy
-      redis:
+      mayan-edms-redis:
         condition: service_healthy
-  postgresql:
+  mayan-edms-postgresql:
     image: postgres:15.17
     restart: unless-stopped
     environment:
@@ -92,7 +92,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 30s
       retries: 5
-  rabbitmq:
+  mayan-edms-rabbitmq:
     image: rabbitmq:4.1.8-management
     restart: unless-stopped
     environment:
@@ -107,7 +107,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 30s
       start_period: 20s
       retries: 5
-  redis:
+  mayan-edms-redis:
     image: redis:7.4.8
     user: ${PUID}:${PGID}
     entrypoint: ["sh", "-c", "umask 0077; exec redis-server \"$$@\"", "selfhost-redis"]

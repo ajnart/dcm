@@ -17,7 +17,7 @@ func TestInstallReportsPerAppStartWhileComposeRuns(t *testing.T) {
 	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}}, &testApp{id: "two", done: map[string]bool{}})
 	observed := false
 	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
-		if !strings.Contains(systemtest.Line(cmd), " up -d one two") {
+		if !strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans one two") {
 			return system.Result{}
 		}
 		observed = true

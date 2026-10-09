@@ -71,7 +71,7 @@ func (App) Compose(rc app.RenderContext) string {
       PGID: ${PGID}
       TZ: ${TZ}
       APP_URL: http://${LAN_IP}:` + port + `
-      DB_HOST: db
+      DB_HOST: bookstack-db
       DB_PORT: "3306"
       DB_USERNAME: bookstack
       DB_DATABASE: bookstack
@@ -83,8 +83,8 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:
-      - db
-  db:
+      - bookstack-db
+  bookstack-db:
     image: docker.io/library/mariadb:12.3.3
     restart: unless-stopped
     environment:
