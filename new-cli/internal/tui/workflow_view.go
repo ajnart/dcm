@@ -218,7 +218,7 @@ func (v *workflowView) View(ctx *viewContext, width, height int) string {
 	for i, row := range rows {
 		cursor := "  "
 		if i == v.cursor {
-			cursor = t.fg(t.accent).Bold(true).Render("> ")
+			cursor = t.cursor()
 			first = len(body)
 		}
 		body = append(body, v.rowLines(ctx, row, cursor, width)...)
@@ -268,7 +268,7 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 	case activity.Failed:
 		mark = t.fg(t.fail).Render("✗")
 	case activity.Running:
-		mark = t.fg(t.accent).Render("…")
+		mark = t.fg(t.accentText).Render("…")
 	}
 	line := "  " + cursor + mark + " " + step.Label
 	if step.Msg != "" {

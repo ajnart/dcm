@@ -379,17 +379,16 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 		case it.installed:
 			mark = t.fg(t.ok).Render(" ✓ ")
 		case v.picked[it.key]:
-			mark = t.fg(t.accent).Render("[x]")
+			mark = t.title().Render("[x]")
 		}
 		cursor := "  "
 		if i == v.cursor {
-			cursor = t.fg(t.accent).Bold(true).Render("> ")
+			cursor = t.cursor()
 		}
 		line := cursor + mark + " " + t.body().Render(pad(it.name, 16)) + " " + t.dim().Render(it.id)
 		lines = append(lines, truncate(line, inner))
 	}
-	title := t.heading().Render("Install") + t.dim().Render(" recipes & apps")
-	return t.box(title, strings.Join(lines, "\n"), width, height)
+	return t.box("Install", "recipes & apps", strings.Join(lines, "\n"), width, height, true)
 }
 
 func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
@@ -397,11 +396,11 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 	inner := max(width-4, 1)
 	items := v.rows(ctx)
 	if len(items) == 0 {
-		return t.box(t.heading().Render("Details"), t.dim().Render("Nothing matches."), width, height)
+		return t.box("Details", "", t.dim().Render("Nothing matches."), width, height, false)
 	}
 	it := items[min(v.cursor, len(items)-1)]
 	if it.header {
-		return t.box(t.heading().Render("Details"), t.dim().Render("Pick an App or a Recipe."), width, height)
+		return t.box("Details", "", t.dim().Render("Pick an App or a Recipe."), width, height, false)
 	}
 	cat := ctx.backend.Catalog()
 	row := func(k, val string) string { return t.dim().Render(pad(k, 9)) + t.body().Render(truncate(val, inner-9)) }
@@ -422,7 +421,7 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 	} else {
 		a, found := cat.App(it.id)
 		if !found {
-			return t.box(t.heading().Render("Details"), t.dim().Render("Unknown App."), width, height)
+			return t.box("Details", "", t.dim().Render("Unknown App."), width, height, false)
 		}
 		info := a.Info()
 		title = info.Name
@@ -447,7 +446,7 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 		}
 		body = strings.Join(lines, "\n")
 	}
-	return t.box(t.heading().Render(title), body, width, height)
+	return t.box(title, "", body, width, height, false)
 }
 
 func (v *installView) renderReview(ctx *viewContext, width int) string {
@@ -458,7 +457,7 @@ func (v *installView) renderReview(ctx *viewContext, width int) string {
 		for i, r := range v.reqInputs {
 			cursor := "  "
 			if i == v.field {
-				cursor = t.fg(t.accent).Render("> ")
+				cursor = t.cursor()
 			}
 			fields = append(fields, "  "+cursor+t.dim().Render(r.label), "    "+r.field.View())
 		}

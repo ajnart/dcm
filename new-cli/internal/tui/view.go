@@ -252,7 +252,7 @@ func (m Model) windowTitle() string {
 
 func (m Model) renderHeader() string {
 	t := m.theme
-	parts := []string{t.chip("◆ self-host", t.accent)}
+	parts := []string{t.brand()}
 	if m.status.Project != "" && m.width >= wideWidth {
 		parts = append(parts, t.dim().Render(shortHome(m.status.Project)))
 	}
@@ -267,16 +267,16 @@ func (m Model) renderHeader() string {
 		}
 	}
 	label, lvl := m.health()
-	healthColor := t.muted
+	health := t.chip("○ "+label, t.muted)
 	switch lvl {
 	case 0:
-		healthColor = t.ok
+		health = t.chip(t.glyph("ok")+" "+label, t.ok)
 	case 1:
-		healthColor = t.warn
+		health = t.chip(t.glyph("warn")+" "+label, t.warn)
 	case 2:
-		healthColor = t.fail
+		health = t.chip(t.glyph("fail")+" "+label, t.fail)
 	}
-	parts = append(parts, t.chip("● "+label, healthColor))
+	parts = append(parts, health)
 	if m.latest != "" {
 		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
 	}
@@ -319,18 +319,18 @@ var navItems = []struct {
 // surfaces with the active one highlighted, and the version on the right.
 func (m Model) renderNav(active surface) (string, []*lipgloss.Layer) {
 	t := m.theme
-	left := t.chip("◆ self-host", t.accent) + "  "
+	left := t.brand() + "  "
 	x := lipgloss.Width(left)
 	var layers []*lipgloss.Layer
 	for i, item := range navItems {
 		if i > 0 {
-			sep := t.dim().Render(" · ")
+			sep := t.disabled().Render(" · ")
 			left += sep
 			x += lipgloss.Width(sep)
 		}
-		style := t.dim()
+		style := t.inactive()
 		if item.surface == active {
-			style = lipgloss.NewStyle().Bold(true).Foreground(t.bright).Background(t.selected)
+			style = t.current()
 		}
 		rendered := style.Render(item.label)
 		left += rendered
@@ -456,7 +456,7 @@ func (m Model) footerStatus() string {
 	t := m.theme
 	if task := m.tasks.latest(); task != nil {
 		if s := task.snapshot(); s.state == taskRunning {
-			line := t.fg(t.accent).Render(m.spin.View() + " " + s.title)
+			line := t.fg(t.accentText).Render(m.spin.View() + " " + s.title)
 			if snapshot := activity.Build(m.status, s.events); snapshot.Pull.Pulling {
 				line += t.dim().Render(" · ") + activity.Compact(snapshot, m.width, t.palette())
 			} else if n := len(s.events); n > 0 {
