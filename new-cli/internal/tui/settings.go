@@ -19,7 +19,7 @@ import (
 // ConfigSet receives them.
 var settingsKeys = []string{"EXPOSURE", "LAN_IP", "TZ", "PUID", "PGID", "UMASK", "MEDIA_ROOT", "DOWNLOADS_ROOT"}
 
-// settingsView is the full-screen Settings surface: every Host setting is
+// settingsView is the Settings tab, a single pane: every Host setting is
 // editable, with drift shown and pending changes applied at once.
 type settingsView struct {
 	cursor int
@@ -37,9 +37,13 @@ type settingsView struct {
 	confirmDiscard bool
 }
 
-var settingsHelp = []key.Binding{
-	hint("enter", "edit"), hint("ctrl+s", "apply"), hint("esc", "back"),
-}
+var (
+	settingsHelp = []key.Binding{
+		hint("↑/↓", "select"), hint("enter", "edit"), hint("ctrl+s", "apply"), hint("esc", "back"),
+	}
+	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
+	settingsChoiceKey = hint("tab", "next choice")
+)
 
 func newSettingsView(ctx *viewContext) *settingsView {
 	v := &settingsView{edits: map[string]string{}}
@@ -49,7 +53,21 @@ func newSettingsView(ctx *viewContext) *settingsView {
 	return v
 }
 
-func (v *settingsView) Keys() []key.Binding { return settingsHelp }
+func (v *settingsView) Keys() []key.Binding {
+	switch {
+	case v.editing && len(v.choices) > 1:
+		return append(slices.Clone(settingsEditKeys), settingsChoiceKey)
+	case v.editing:
+		return settingsEditKeys
+	}
+	return settingsHelp
+}
+
+func (v *settingsView) Panes() []pane {
+	return []pane{{"Host settings", settingsHelp}, {"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
+}
+
+func (v *settingsView) Capturing() bool { return v.editing }
 
 func (v *settingsView) Title() string { return "Settings" }
 
@@ -174,7 +192,7 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 	if v.confirmDiscard {
 		switch msg.String() {
 		case "y", "Y":
-			return v, nil, nav{kind: navBack}
+			return v, nil, nav{kind: navDone}
 		case "n", "N", "esc":
 			v.confirmDiscard = false
 		}
@@ -209,16 +227,13 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 			return v, nil, nav{}
 		}
 		return v, nil, nav{kind: navBack}
-	case key.Matches(msg, ctx.keys.Quit):
-		ctx.tasks.cancelAll()
-		return v, tea.Quit, nav{}
 	case key.Matches(msg, ctx.keys.Apply):
 		pairs := v.pairs()
 		if len(pairs) == 0 {
 			ctx.setFlash("no pending changes", levelInfo)
 			return v, nil, nav{}
 		}
-		return v, ctx.run(Request{Action: ActionConfig, Pairs: pairs}, "config "+strings.Join(pairs, " ")), nav{kind: navBack}
+		return v, ctx.run(Request{Action: ActionConfig, Pairs: pairs}, "config "+strings.Join(pairs, " ")), nav{kind: navDone}
 	case key.Matches(msg, ctx.keys.Up):
 		v.cursor = max(v.cursor-1, 0)
 	case key.Matches(msg, ctx.keys.Down):

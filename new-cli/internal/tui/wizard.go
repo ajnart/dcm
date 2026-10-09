@@ -389,7 +389,7 @@ func (m Model) renderWizard() string {
 			lines = append(lines, "  "+t.dim().Render(m.spin.View()+" checking Docker…"))
 		}
 		for _, c := range m.checks {
-			lines = append(lines, "  "+t.dot(string(c.Level))+" "+pad(c.Title, 18)+" "+t.dim().Render(c.Detail))
+			lines = append(lines, "  "+t.dot(checkLevel(c.Level))+" "+pad(c.Title, 18)+" "+t.dim().Render(c.Detail))
 			if c.Level != host.OK {
 				lines = append(lines, "      "+t.fg(t.warn).Render("→ "+c.Hint), "      "+t.dim().Render(c.Docs))
 			}

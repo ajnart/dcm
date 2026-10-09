@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -36,31 +37,18 @@ func trimLines(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-func TestGoldenDashboard(t *testing.T) {
-	m, _ := sample(t, 120, 30)
-	m = drive(t, m, press("j"))
-	m = drive(t, m, press("tab"))
-
-	golden(t, "dashboard", trimLines(screen(m)))
-}
-
-func TestGoldenNarrowDashboard(t *testing.T) {
-	m, _ := sample(t, 80, 24)
-
-	golden(t, "dashboard-narrow", trimLines(screen(m)))
-}
-
-func TestGoldenInstall(t *testing.T) {
-	m, backend := sample(t, 120, 30)
+// goldenModel is the sample Project with a Catalog, containers, a known
+// update and a Host review that has drifted, so every tab has content.
+func goldenModel(t *testing.T, width, height int) Model {
+	t.Helper()
+	m, backend := sample(t, width, height)
 	backend.catalog = wizardCatalog()
-
-	m = drive(t, m, press("i"))
-
-	golden(t, "install", trimLines(screen(m)))
-}
-
-func TestGoldenSettings(t *testing.T) {
-	m, backend := sample(t, 120, 30)
+	backend.containers = []service.ContainerStatus{
+		{App: "jellyfin", Service: "jellyfin", Image: "lscr.io/linuxserver/jellyfin:latest", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
+		{App: "sonarr", Service: "sonarr", State: "running", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8989→8989"}},
+		{App: "whoami", Service: "whoami", State: "exited", Status: "Exited (0) 1 hour ago"},
+	}
+	backend.updates = map[string]string{"jellyfin": "available"}
 	backend.review = []service.SettingReview{
 		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
 		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.0.12", Choices: []string{"192.168.1.20", "192.168.0.12"}, Drift: true, Note: "not an address of this machine any more"},
@@ -71,45 +59,26 @@ func TestGoldenSettings(t *testing.T) {
 		{Key: "MEDIA_ROOT", Current: "/home/alice/media"},
 		{Key: "DOWNLOADS_ROOT", Current: "/home/alice/downloads"},
 	}
-
-	m = drive(t, m, press("s"))
-
-	golden(t, "settings", trimLines(screen(m)))
+	return m
 }
 
-func TestGoldenStack(t *testing.T) {
-	m, backend := sample(t, 120, 30)
-	backend.containers = []service.ContainerStatus{
-		{App: "jellyfin", Service: "jellyfin", Image: "lscr.io/linuxserver/jellyfin:latest", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
-		{App: "sonarr", Service: "sonarr", State: "running", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8989→8989"}},
-		{App: "whoami", Service: "whoami", State: "exited", Status: "Exited (0) 1 hour ago"},
-	}
-	backend.updates = map[string]string{"jellyfin": "available"}
+func TestGoldenTabs(t *testing.T) {
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		for i, name := range []string{"overview", "apps", "activity", "catalog", "settings"} {
+			t.Run(name+size.suffix, func(t *testing.T) {
+				m := goldenModel(t, size.width, size.height)
+				if name == "overview" && size.suffix == "" {
+					m = drive(t, m, press("j"))
+					m = drive(t, m, press("]"))
+				}
 
-	m = drive(t, m, press("d"))
+				m = drive(t, m, press(strconv.Itoa(i+1)))
 
-	golden(t, "stack", trimLines(screen(m)))
-}
-
-func TestGoldenWorkflow(t *testing.T) {
-	m, backend := sample(t, 120, 30)
-	backend.status = workflowStatus()
-	m = update(t, m, statusMsg{status: backend.status})
-	m = drive(t, m, press("w"))
-	out := screen(m)
-	for _, want := range []string{"Dashboard · Stack · Workflow · Install · Settings", "1 App fully set up", "↑/k select up", "esc back"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("w should render Workflow with its top bar and footer; missing %q\n%s", want, out)
+				golden(t, "tab-"+name+size.suffix, trimLines(screen(m)))
+			})
 		}
 	}
-	m = drive(t, m, press("esc"))
-	if !strings.Contains(screen(m), "Needs action") {
-		t.Fatalf("esc should return to Dashboard\n%s", screen(m))
-	}
-	m = drive(t, m, clickMsg{id: "nav:workflow"})
-	if !strings.Contains(screen(m), "1 App fully set up") {
-		t.Fatalf("top bar should open Workflow\n%s", screen(m))
-	}
-	m = drive(t, m, press("j"))
-	golden(t, "workflow", trimLines(screen(m)))
 }

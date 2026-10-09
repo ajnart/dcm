@@ -25,11 +25,11 @@ func movedHost(t *testing.T) (Model, *fakeBackend) {
 	return m, backend
 }
 
-func TestStaleLANIPNeedsActionAndPointsAtHostSettings(t *testing.T) {
+func TestStaleLANIPNeedsAttentionAndPointsAtTheSettingsTab(t *testing.T) {
 	m, _ := movedHost(t)
 
 	out := screen(m)
-	for _, want := range []string{"⚠ LAN 192.168.1.20", "LAN IP 192.168.1.20 is not on this machine", "i Host settings"} {
+	for _, want := range []string{"⚠ LAN 192.168.1.20", "LAN IP 192.168.1.20 is not on this machine", "5 Host settings"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
@@ -39,9 +39,9 @@ func TestStaleLANIPNeedsActionAndPointsAtHostSettings(t *testing.T) {
 func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T) {
 	m, backend := movedHost(t)
 
-	m = drive(t, m, press("s"))
+	m = drive(t, m, press("5"))
 	if m.surface != surfaceSettings {
-		t.Fatalf("s should open the Settings view")
+		t.Fatalf("5 should open the Settings tab")
 	}
 	m = drive(t, m, press("down"))  // LAN_IP row
 	m = drive(t, m, press("enter")) // edit
@@ -63,7 +63,7 @@ func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T
 func TestHostSettingsReviewCanChangeExposureAndGoBack(t *testing.T) {
 	m, backend := movedHost(t)
 
-	m = drive(t, m, press("s"))
+	m = drive(t, m, press("5"))
 	m = drive(t, m, press("space")) // EXPOSURE: lan → local
 	m = drive(t, m, press("esc"))   // pending changes: ask to discard
 	if !m.settings.confirmDiscard || len(backend.Actions()) != 0 {

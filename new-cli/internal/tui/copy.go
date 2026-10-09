@@ -72,11 +72,6 @@ func (v *dashboardView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 		v.copy = nil
 		return nil
 	}
-	if key.Matches(msg, ctx.keys.Quit) {
-		ctx.tasks.cancelAll()
-		v.stopLogs()
-		return tea.Quit
-	}
 	if v.copy.loading || len(v.copy.rows) == 0 {
 		return nil
 	}

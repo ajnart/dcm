@@ -40,12 +40,11 @@ func TestHeaderNoticeFitsEightyColumns(t *testing.T) {
 	}
 }
 
-func TestSelfUpdateHintIsInTheFooterAndHelpOverlay(t *testing.T) {
+func TestSelfUpdateHintIsInTheStatusLineAndHelpOverlay(t *testing.T) {
 	m := releaseModel(t, "1.1.0", "v1.2.0")
 
-	lines := strings.Split(screen(m), "\n")
-	if footer := lines[len(lines)-1]; !strings.Contains(footer, "self-host self-update") {
-		t.Errorf("footer lacks the update hint\n%s", footer)
+	if status := statusLine(screen(m)); !strings.Contains(status, "self-host self-update") {
+		t.Errorf("status line lacks the update hint\n%s", status)
 	}
 
 	m = drive(t, m, press("?"))

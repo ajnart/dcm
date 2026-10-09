@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -39,6 +40,8 @@ type fakeBackend struct {
 	containers  []service.ContainerStatus
 	updates     map[string]string
 	updateCalls int
+	// compose replaces every App's Compose file when set.
+	compose string
 }
 
 func (f *fakeBackend) ReviewSettings(context.Context) ([]service.SettingReview, error) {
@@ -85,6 +88,9 @@ func (f *fakeBackend) Credentials(context.Context) (service.Credentials, error) 
 	return c, nil
 }
 func (f *fakeBackend) Compose(_ context.Context, id string) (string, error) {
+	if f.compose != "" {
+		return f.compose, nil
+	}
 	return "services:\n  " + id + ":\n    image: example/" + id + ":latest\n", nil
 }
 func (f *fakeBackend) Logs(_ context.Context, id string, w io.Writer) error {
@@ -204,6 +210,14 @@ func press(s string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeyTab}
 	case "down":
 		return tea.KeyPressMsg{Code: tea.KeyDown}
+	case "up":
+		return tea.KeyPressMsg{Code: tea.KeyUp}
+	case "left":
+		return tea.KeyPressMsg{Code: tea.KeyLeft}
+	case "right":
+		return tea.KeyPressMsg{Code: tea.KeyRight}
+	case "shift+tab":
+		return tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
 	case "space":
 		return tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
 	case "backspace":
@@ -238,14 +252,14 @@ func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtr
 
 func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
 
-func TestDashboardShowsAppsNeedsActionAndDetails(t *testing.T) {
+func TestOverviewShowsAppsNeedsAttentionAndDetails(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	out := screen(m)
 
 	for _, want := range []string{"self-host", "LAN 192.168.1.20", "1 warning",
 		"Apps", "Jellyfin", "http://192.168.1.20:8096", "Sonarr", "whoami",
-		"Needs action", "logs", "setup", "info", "compose"} {
+		"Needs attention", "logs", "setup", "info", "compose"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
@@ -269,7 +283,7 @@ func TestStatusLevelsAreOkAttentionBroken(t *testing.T) {
 	}
 }
 
-func TestNeedsActionNamesTheActionForEachProblem(t *testing.T) {
+func TestNeedsAttentionNamesTheActionForEachProblem(t *testing.T) {
 	m, _ := sample(t, 140, 40)
 	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": "available"}})
 
@@ -282,12 +296,12 @@ func TestNeedsActionNamesTheActionForEachProblem(t *testing.T) {
 		"Firewall: ufw is active",
 	} {
 		if !strings.Contains(out, want) {
-			t.Errorf("Needs action lacks %q\n%s", want, out)
+			t.Errorf("Needs attention lacks %q\n%s", want, out)
 		}
 	}
 }
 
-func TestNothingNeedsActionWhenAllIsWell(t *testing.T) {
+func TestNothingNeedsAttentionWhenAllIsWell(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 	backend.status.Apps = backend.status.Apps[:1]
 	m = update(t, m, statusMsg{status: backend.status})
@@ -298,40 +312,52 @@ func TestNothingNeedsActionWhenAllIsWell(t *testing.T) {
 	}
 }
 
-// The keybind audit: every view's Keys() together are exactly the keybinds
-// docs/adr/0002 lists, plus each view's own footer hints. Adding one means
-// changing the ADR and this test on purpose.
+// The keybind audit: the Dashboard's keys are exactly the global, pane and
+// read-only keys docs/adr/0004-tabbed-command-center-action-chords.md lists,
+// the legacy mutating keys until the Action menu replaces them, and each
+// pane's own hints as the bar and help show them. Adding one means changing
+// the ADR and this test on purpose.
 func TestKeybindAudit(t *testing.T) {
 	want := []string{
-		// Dashboard (docs/adr/0002's fixed budget).
-		"select up: up k", "select down: down j", "next tab: tab", "start/stop: enter",
-		"open: o", "copy: c", "update: u", "retry Setup: r", "install: i",
-		"backup: b", "help: ?", "quit: q ctrl+c", "scroll up: pgup", "scroll down: pgdown",
-		"settings: s", "stack: d", "workflow: w", "search: /", "apply: ctrl+s", "back: esc",
-		// Workflow.
-		"collapse: space",
-		// Install.
-		"pick: space", "review: enter",
-		// Settings.
-		"edit: enter",
-		// Stack.
-		"select: ↑/↓", "re-check: r", "UP: 1", "DOWN: 2", "restart all: 3", "copy: enter",
-		// Workflow.
-		"error/hint: enter",
+		// Global keys.
+		"tabs: 1 2 3 4 5", "previous tab: left", "next tab: right", "help: ?", "quit: q ctrl+c",
+		// Moving within a tab.
+		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
+		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
+		// Read-only keys.
+		"open: o", "copy: c", "search: /", "back: esc",
+		// Settings applies its pending changes.
+		"apply: ctrl+s",
+		// Legacy mutating keys.
+		"start/stop: enter", // removed by #133
+		"update: u",         // removed by #133
+		"retry Setup: r",    // removed by #133
+		"backup: b",         // removed by #133
+		// Pane hints for the bar and help.
+		"select: ↑/↓", "scroll: ↑/↓", "sub-tab: [/]", "page: pgup/pgdn",
+		"copy: enter", "re-check: r", "error/hint: enter", "collapse: space",
+		"pick: space", "review: enter", "install: enter", "next input: tab",
+		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
+		"done: enter", "clear: esc",
 	}
-	empty := &viewContext{}
-	views := []view{newDashboardView(), newInstallView(empty), newSettingsView(empty), &stackView{}, &workflowView{}, newHelpView(), &dashboardView{copy: &copyPicker{}}}
+	ctx := testViewContext(&fakeBackend{})
+	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
+	bindings := newKeyMap().all()
+	for _, v := range views {
+		bindings = append(bindings, v.Keys()...)
+		for _, p := range v.Panes() {
+			bindings = append(bindings, p.keys...)
+		}
+	}
 	var got []string
 	seen := map[string]bool{}
-	for _, v := range views {
-		for _, b := range v.Keys() {
-			s := b.Help().Desc + ": " + strings.Join(b.Keys(), " ")
-			if seen[s] {
-				continue
-			}
-			seen[s] = true
-			got = append(got, s)
+	for _, b := range bindings {
+		s := b.Help().Desc + ": " + strings.Join(b.Keys(), " ")
+		if seen[s] {
+			continue
 		}
+		seen[s] = true
+		got = append(got, s)
 	}
 	slices.Sort(want)
 	slices.Sort(got)
@@ -344,7 +370,8 @@ func TestRemovedKeysDoNothing(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 	before := screen(m)
 
-	for _, k := range []string{"x", "X", "S", "t", "1", "2", "5", "l", "L", "f", "U", "e"} {
+	// i, s, d and w opened views before the tabs replaced them.
+	for _, k := range []string{"i", "s", "d", "w", "x", "X", "S", "t", "l", "L", "f", "U", "e"} {
 		m = drive(t, m, press(k))
 	}
 
@@ -353,32 +380,11 @@ func TestRemovedKeysDoNothing(t *testing.T) {
 	}
 }
 
-func TestTabCyclesDetailsIncludingCompose(t *testing.T) {
-	m, _ := sample(t, 140, 32)
-
-	m = drive(t, m, press("tab"))
-	if !strings.Contains(screen(m), "Setup has finished") && !strings.Contains(screen(m), "✓") {
-		t.Errorf("setup tab not shown\n%s", screen(m))
-	}
-	m = drive(t, m, press("tab"))
-	if !strings.Contains(screen(m), "lscr.io/linuxserver/jellyfin:latest") {
-		t.Errorf("info tab not shown\n%s", screen(m))
-	}
-	m = drive(t, m, press("tab"))
-	if !strings.Contains(screen(m), "image: example/jellyfin:latest") {
-		t.Errorf("compose tab does not show the App's Compose file\n%s", screen(m))
-	}
-	m = drive(t, m, press("tab"))
-	if !strings.Contains(screen(m), "ready on :80") {
-		t.Errorf("tab should wrap back to logs\n%s", screen(m))
-	}
-}
-
 func TestSetupTabShowsFailedStepAndHint(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	m = drive(t, m, press("j"))
-	m = drive(t, m, press("tab"))
+	m = drive(t, m, press("]"))
 
 	out := screen(m)
 	if !strings.Contains(out, "qBittorrent refused login") || !strings.Contains(out, "→ Add qBittorrent") {
@@ -496,17 +502,17 @@ func TestCopyPickerNamesAndCopiesAnAppLoginAlias(t *testing.T) {
 	}
 }
 
-func TestFooterShowsTheRunningActionThenItsResult(t *testing.T) {
+func TestStatusLineShowsTheRunningActionThenItsResult(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	next, _ := m.Update(press("enter"))
 	m = next.(Model)
-	if !strings.Contains(lastLine(screen(m)), "stop jellyfin") {
-		t.Fatalf("footer should name the running Action\n%s", lastLine(screen(m)))
+	if !strings.Contains(statusLine(screen(m)), "stop jellyfin") {
+		t.Fatalf("the status line should name the running Action\n%s", statusLine(screen(m)))
 	}
 	m = drive(t, m, press("b"))
-	if !strings.Contains(lastLine(screen(m)), "✓ backup") {
-		t.Fatalf("footer should report the result\n%s", lastLine(screen(m)))
+	if !strings.Contains(statusLine(screen(m)), "✓ backup") {
+		t.Fatalf("the status line should report the result\n%s", statusLine(screen(m)))
 	}
 }
 
@@ -515,13 +521,19 @@ func lastLine(s string) string {
 	return lines[len(lines)-1]
 }
 
+// statusLine is the row above the bar.
+func statusLine(s string) string {
+	lines := strings.Split(s, "\n")
+	return lines[len(lines)-2]
+}
+
 func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 	backend.catalog = wizardCatalog()
 
-	m = drive(t, m, press("i"))
-	if m.surface != surfaceInstall || !strings.Contains(screen(m), "Install") || !strings.Contains(screen(m), "ntfy") {
-		t.Fatalf("install view not shown\n%s", screen(m))
+	m = drive(t, m, press("4"))
+	if !strings.Contains(screen(m), "Catalog") || !strings.Contains(screen(m), "ntfy") {
+		t.Fatalf("Catalog not shown\n%s", screen(m))
 	}
 	m = drive(t, m, press("/"))
 	m = typeText(t, m, "ntfy")
@@ -540,30 +552,34 @@ func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
 	if len(got) != 1 || strings.Join(got[0].Targets, ",") != "ntfy" {
 		t.Fatalf("installs %+v", got)
 	}
-	if m.surface != surfaceDashboard || m.install != nil {
-		t.Fatal("install must return to the Dashboard")
+	if out := screen(m); !strings.Contains(out, "Needs attention") {
+		t.Fatalf("approving the install should land on the Overview\n%s", out)
+	}
+	m = drive(t, m, press("4"))
+	if strings.Contains(screen(m), "Review") || strings.Contains(screen(m), "[x]") {
+		t.Fatalf("the Catalog should start afresh after an install\n%s", screen(m))
 	}
 }
 
-func TestEscapeClosesTheInstallViewWithoutInstalling(t *testing.T) {
+func TestEscapeLeavesTheCatalogWithoutInstalling(t *testing.T) {
 	m, backend := sample(t, 140, 32)
 	backend.catalog = wizardCatalog()
 
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	m = drive(t, m, press("esc"))
 
-	if m.install != nil || m.surface != surfaceDashboard || len(backend.installs()) != 0 {
-		t.Fatal("esc must close the install view and install nothing")
+	if !strings.Contains(screen(m), "Needs attention") || len(backend.installs()) != 0 {
+		t.Fatalf("esc must return to the Overview and install nothing\n%s", screen(m))
 	}
 }
 
 func TestHelpListsEveryKey(t *testing.T) {
-	m, _ := sample(t, 140, 40)
+	m, _ := sample(t, 140, 100)
 
 	m = drive(t, m, press("?"))
 
 	help := ansi.Strip(m.renderOverlay())
-	for _, want := range []string{"start/stop", "open", "copy", "update", "retry Setup", "install", "backup", "quit"} {
+	for _, want := range []string{"tabs", "start/stop", "open", "copy", "update", "retry Setup", "pick", "install", "backup", "quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}
@@ -574,7 +590,7 @@ func TestNarrowTerminalKeepsAppsAndNeedsAction(t *testing.T) {
 	m, _ := sample(t, 80, 24)
 
 	out := screen(m)
-	for _, want := range []string{"Jellyfin", "Needs action"} {
+	for _, want := range []string{"Jellyfin", "Needs attention"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("narrow layout lacks %q\n%s", want, out)
 		}
@@ -651,7 +667,7 @@ func TestInstallSearchFiltersAndShowsTheFullDescription(t *testing.T) {
 	m, backend := sample(t, 140, 40)
 	backend.catalog = wizardCatalog()
 
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	m = drive(t, m, press("/"))
 	m = typeText(t, m, "notif")
 	m = drive(t, m, press("enter"))
@@ -666,7 +682,7 @@ func TestInstallSearchFiltersAndShowsTheFullDescription(t *testing.T) {
 
 	m2, backend2 := sample(t, 140, 40)
 	backend2.catalog = inputCatalog()
-	m2 = drive(t, m2, press("i"))
+	m2 = drive(t, m2, press("4"))
 	out := screen(m2)
 	if !strings.Contains(out, "ZINTAIL") {
 		t.Fatalf("the full description must be shown untruncated\n%s", out)
@@ -677,7 +693,7 @@ func TestInstallListScrollsToTheLastOfFortyApps(t *testing.T) {
 	m, backend := sample(t, 80, 24)
 	backend.catalog = bigCatalog()
 
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	for i := 0; i < 60; i++ {
 		m = drive(t, m, press("down"))
 	}
@@ -694,7 +710,7 @@ func TestInstallReviewAsksForRequiredInputs(t *testing.T) {
 	m, backend := sample(t, 140, 40)
 	backend.catalog = inputCatalog()
 
-	m = drive(t, m, press("i"))
+	m = drive(t, m, press("4"))
 	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 	if !strings.Contains(screen(m), "Required inputs") {
@@ -725,7 +741,7 @@ func settingsHost(t *testing.T) (Model, *fakeBackend) {
 		{Key: "MEDIA_ROOT", Current: "/home/alice/media"},
 		{Key: "DOWNLOADS_ROOT", Current: "/home/alice/downloads"},
 	}
-	m = drive(t, m, press("s"))
+	m = drive(t, m, press("5"))
 	return m, backend
 }
 
@@ -806,7 +822,7 @@ func stackHost(t *testing.T) (Model, *fakeBackend) {
 		{App: "whoami", Service: "whoami-cache", State: "created", Status: "Created"},
 	}
 	backend.updates = map[string]string{"jellyfin": "available"}
-	m = drive(t, m, press("d"))
+	m = drive(t, m, press("2"))
 	return m, backend
 }
 
@@ -836,13 +852,14 @@ func TestStackUpdateAndRecheck(t *testing.T) {
 	if backend.updateCalls <= before {
 		t.Fatalf("r should re-check updates (%d → %d)", before, backend.updateCalls)
 	}
-	for _, control := range []struct{ key, action string }{{"1", "up"}, {"2", "down"}, {"3", "restart"}} {
-		m = drive(t, m, press(control.key))
-		if control.action == "down" {
+	// The digits switch tabs now; the Project controls are buttons until #133.
+	for _, action := range []string{"up", "down", "restart"} {
+		m = drive(t, m, clickMsg{id: "stack:" + action})
+		if action == "down" {
 			m = drive(t, m, press("y"))
 		}
-		if !slices.Contains(backend.Actions(), control.action) {
-			t.Fatalf("%s must control the whole Project", control.key)
+		if !slices.Contains(backend.Actions(), action) {
+			t.Fatalf("the %s button must control the whole Project", action)
 		}
 	}
 }
@@ -862,9 +879,8 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			}
 		}
 	}
-	check("dashboard", m)
-	check("install", drive(t, m, press("i")))
-	check("settings", drive(t, m, press("s")))
-	check("stack", drive(t, m, press("d")))
-	check("workflow", drive(t, m, press("w")))
+	for i, label := range tabLabels {
+		check(label, drive(t, m, press(strconv.Itoa(i+1))))
+	}
+	check("help", drive(t, m, press("?")))
 }

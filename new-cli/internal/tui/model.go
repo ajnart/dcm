@@ -1,16 +1,17 @@
-// Package tui is the Dashboard: one screen showing every App with its
-// Status, what Needs action, and the selected App's details. It owns no
-// logic of its own; every Action goes through the Backend, the same Service
-// the CLI uses.
+// Package tui is the Dashboard: a tabbed command center (Overview, Apps,
+// Activity, Catalog, Settings) over one Project. It owns no logic of its
+// own; every Action goes through the Backend, the same Service the CLI uses.
 package tui
 
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
@@ -83,8 +84,9 @@ type Options struct {
 	Now func() time.Time
 }
 
-// Model keeps the state every view shares and the active view. Each view
-// owns its own state and its own key handling.
+// Model keeps the state every view shares and the active tab. Each view
+// owns its own state and its own key handling; the Model handles the global
+// keys.
 type Model struct {
 	backend Backend
 	opts    Options
@@ -232,7 +234,7 @@ func (m *Model) setFlash(text string, l level) {
 	m.flash, m.flashLevel = text, l
 }
 
-func (m Model) mainHeight() int { return max(m.height-2, 3) }
+func (m Model) mainHeight() int { return max(m.height-3, 3) }
 
 // ctx is the read/ask view of the Model handed to the active view.
 func (m Model) ctx() *viewContext {
@@ -267,6 +269,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dark = msg.IsDark()
 		m.theme = newTheme(m.dark)
 		m.help.Styles = help.DefaultStyles(m.dark)
+		m.relayout()
 		return m, nil
 
 	case tea.FocusMsg:
@@ -399,7 +402,7 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	}
 	switch {
 	case errors.Is(msg.err, service.ErrIncomplete), errors.Is(msg.err, service.ErrManual):
-		m.setFlash("! "+msg.title+": Setup needs attention (see Needs action)", levelWarn)
+		m.setFlash("! "+msg.title+": Setup needs attention (see Needs attention)", levelWarn)
 	case msg.err != nil:
 		m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error()), levelError)
 	default:
@@ -426,11 +429,32 @@ func (m *Model) relayout() {
 	}
 }
 
-// openInstall switches to the Install view.
-func (m Model) openInstall() (tea.Model, tea.Cmd) {
-	m.surface = surfaceInstall
-	m.install = newInstallView(m.ctx())
-	m.install.cursor = firstSelectable(m.install.installItems(m.ctx()))
+// openTab switches to a tab. Every tab keeps its state while another is on
+// screen; entering Apps refreshes containers and updates, and entering
+// Settings reloads the Host review.
+func (m Model) openTab(s surface) (tea.Model, tea.Cmd) {
+	m.surface = s
+	switch s {
+	case surfaceStack:
+		if m.stack == nil {
+			m.stack = &stackView{}
+		}
+		return m, tea.Batch(m.loadContainers(), m.loadUpdates())
+	case surfaceWorkflow:
+		if m.workflow == nil {
+			m.workflow = &workflowView{}
+		}
+	case surfaceInstall:
+		if m.install == nil {
+			m.install = newInstallView(m.ctx())
+			m.install.cursor = firstSelectable(m.install.installItems(m.ctx()))
+		}
+	case surfaceSettings:
+		if m.settings == nil {
+			m.settings = newSettingsView(m.ctx())
+		}
+		return m, m.loadReview()
+	}
 	return m, nil
 }
 
@@ -444,31 +468,32 @@ func firstSelectable(items []installItem) int {
 	return 0
 }
 
-// openSettings switches to the Settings view and loads the host review.
-func (m Model) openSettings() (tea.Model, tea.Cmd) {
-	m.surface = surfaceSettings
-	m.settings = newSettingsView(m.ctx())
-	return m, m.loadReview()
-}
-
-// openStack switches to the Stack view and refreshes containers and updates.
-func (m Model) openStack() (tea.Model, tea.Cmd) {
-	m.surface = surfaceStack
-	if m.stack == nil {
-		m.stack = &stackView{}
-	}
-	return m, tea.Batch(m.loadContainers(), m.loadUpdates())
-}
-
 // openHelp shows the key reference, scrolled into a viewport.
 func (m Model) openHelp() (tea.Model, tea.Cmd) {
 	m.showHelp = true
-	m.helpView.open(m.ctx())
+	m.helpView.open(m.ctx(), m.helpGroups())
 	return m, nil
 }
 
-// activeView is the view keys, the mouse and View go to; Help is the overlay
-// when it is open.
+// helpGroups are the global keys, then every pane of every tab in tab order.
+func (m Model) helpGroups() []pane {
+	groups := []pane{{name: "Global", keys: m.keys.global()}}
+	ctxView := m.ctx()
+	views := []view{newDashboardView(), &stackView{}, &workflowView{}, newInstallView(ctxView), newSettingsView(ctxView)}
+	for i, v := range views {
+		panes := v.Panes()
+		for _, p := range panes {
+			name := tabs[i].label
+			if len(panes) > 1 {
+				name += " · " + p.name
+			}
+			groups = append(groups, pane{name: name, keys: p.keys})
+		}
+	}
+	return groups
+}
+
+// activeView is the view of the active tab; Help is an overlay over it.
 func (m Model) activeView() view {
 	switch m.surface {
 	case surfaceInstall:
@@ -509,14 +534,46 @@ func (m *Model) setActive(v view) {
 	}
 }
 
+// handleKey routes a key: the wizard and Help take every key; a view that
+// is capturing text takes every key but ctrl+c; otherwise the global keys
+// act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.wizard != nil:
 		return m.handleWizardKey(msg)
 	case m.showHelp:
 		return m.dispatchHelp(msg)
+	case msg.String() == "ctrl+c":
+		return m.quit()
+	case m.activeView().Capturing():
+		return m.dispatchActive(msg)
+	}
+	k := m.keys
+	switch {
+	case key.Matches(msg, k.Quit):
+		return m.quit()
+	case key.Matches(msg, k.Help):
+		return m.openHelp()
+	}
+	if !m.loaded || m.statusErr != "" {
+		return m.dispatchActive(msg)
+	}
+	switch {
+	case key.Matches(msg, k.Tabs):
+		n, _ := strconv.Atoi(msg.String())
+		return m.openTab(surface(n - 1))
+	case key.Matches(msg, k.PrevTab):
+		return m.openTab((m.surface + surface(len(tabs)) - 1) % surface(len(tabs)))
+	case key.Matches(msg, k.NextTab):
+		return m.openTab((m.surface + 1) % surface(len(tabs)))
 	}
 	return m.dispatchActive(msg)
+}
+
+func (m Model) quit() (tea.Model, tea.Cmd) {
+	m.tasks.cancelAll()
+	m.dashboard.stopLogs()
+	return m, tea.Quit
 }
 
 // dispatchActive hands a message to the active view and applies its nav.
@@ -556,71 +613,33 @@ func (m Model) dispatchHelp(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 	switch nv.kind {
+	case navDone:
+		switch m.surface {
+		case surfaceInstall:
+			m.install = nil
+		case surfaceSettings:
+			m.settings = nil
+		}
+		m.surface = surfaceDashboard
 	case navBack:
-		return m.goBack(), cmd
-	case navTo:
-		return m.gotoView(nv.to)
+		m.surface = surfaceDashboard
 	}
 	return m, cmd
 }
 
-func (m Model) goBack() Model {
-	switch m.surface {
-	case surfaceInstall:
-		m.install = nil
-	case surfaceSettings:
-		m.settings = nil
-	}
-	m.surface = surfaceDashboard
-	return m
-}
-
-func (m Model) gotoView(s surface) (tea.Model, tea.Cmd) {
-	switch s {
-	case surfaceInstall:
-		return m.openInstall()
-	case surfaceSettings:
-		return m.openSettings()
-	case surfaceStack:
-		return m.openStack()
-	case surfaceWorkflow:
-		m.surface = surfaceWorkflow
-		m.workflow = &workflowView{}
-		return m, nil
-	case surfaceHelp:
-		return m.openHelp()
-	default:
-		m.surface = surfaceDashboard
-		return m, nil
-	}
-}
-
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 	if name, ok := strings.CutPrefix(id, "nav:"); ok {
-		return m.gotoSurface(name)
+		for i, tab := range tabs {
+			if tab.name == name {
+				return m.openTab(surface(i))
+			}
+		}
+		return m, nil
 	}
 	return m.dispatchActive(clickMsg{id: id})
 }
 
-// gotoSurface switches screens from a mouse click on the top bar.
-func (m Model) gotoSurface(name string) (tea.Model, tea.Cmd) {
-	switch name {
-	case "install":
-		return m.openInstall()
-	case "settings":
-		return m.openSettings()
-	case "stack":
-		return m.openStack()
-	case "workflow":
-		return m.gotoView(surfaceWorkflow)
-	default:
-		m.surface = surfaceDashboard
-		m.install, m.settings = nil, nil
-		return m, nil
-	}
-}
-
-// run starts a background Action; the footer shows its progress.
+// run starts a background Action; the status line shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
 	t := m.tasks.start(title)
 	backend := m.backend

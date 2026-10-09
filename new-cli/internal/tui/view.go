@@ -21,42 +21,63 @@ import (
 // Below wideWidth columns the panels stack instead of sitting side by side.
 const wideWidth = 100
 
-// surface is the whole screen the Dashboard, Install, Settings, Stack, Workflow or Help
-// view fills; the Dashboard is home.
+// surface is the Dashboard tab a view fills, in tab order: Overview
+// (dashboardView), Apps (stackView), Activity (workflowView), Catalog
+// (installView) and Settings.
 type surface int
 
 const (
 	surfaceDashboard surface = iota
-	surfaceInstall
-	surfaceSettings
 	surfaceStack
 	surfaceWorkflow
-	surfaceHelp
+	surfaceInstall
+	surfaceSettings
 )
+
+var tabs = []struct {
+	name, label string
+}{
+	surfaceDashboard: {"dashboard", "Overview"},
+	surfaceStack:     {"stack", "Apps"},
+	surfaceWorkflow:  {"workflow", "Activity"},
+	surfaceInstall:   {"install", "Catalog"},
+	surfaceSettings:  {"settings", "Settings"},
+}
 
 // navKind is what a view asks the Model to do after it handled a message.
 type navKind int
 
 const (
 	navNone navKind = iota
+	// navBack returns to the Overview and keeps the view as it is.
 	navBack
-	navTo
+	// navDone returns to the Overview after the view finished its job (an
+	// install or a Settings change was approved, or changes were discarded),
+	// so the tab starts afresh next time.
+	navDone
 )
 
-// nav is the result of a view's Update: stay, go back to the Dashboard, or
-// switch to another view.
 type nav struct {
 	kind navKind
-	to   surface
 }
 
-// view is one full-screen surface of the Dashboard.
+// pane is one focusable part of a tab and the keys that act in it.
+type pane struct {
+	name string
+	keys []key.Binding
+}
+
+// view is one tab of the Dashboard.
 type view interface {
-	// Update handles a message; nav asks the Model to switch views (navNone, navBack, navTo(kind)).
 	Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav)
 	View(ctx *viewContext, width, height int) string
-	// Keys are the view's own bindings: its footer, its help, and the keybind audit.
+	// Keys are the keys that act in the focused pane right now: the bar's chips.
 	Keys() []key.Binding
+	// Panes are every pane of the view with its keys, for help and the keybind audit.
+	Panes() []pane
+	// Capturing reports that the view is taking text input: every key goes
+	// to it, and the global keys are text.
+	Capturing() bool
 	Title() string
 }
 
@@ -96,7 +117,8 @@ type viewContext struct {
 	layers []*lipgloss.Layer
 }
 
-func (ctx *viewContext) mainHeight() int { return max(ctx.height-2, 3) }
+// mainHeight leaves the header row above and the status line and bar below.
+func (ctx *viewContext) mainHeight() int { return max(ctx.height-3, 3) }
 
 func (ctx *viewContext) workflow() activity.Snapshot {
 	var evs []events.Event
@@ -131,7 +153,7 @@ func (m Model) pullProgress() (int, bool) {
 
 func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
 
-// run starts a background Action; the footer shows its progress.
+// run starts a background Action; the status line shows its progress.
 func (ctx *viewContext) run(req Request, title string) tea.Cmd {
 	t := ctx.tasks.start(title)
 	backend := ctx.backend
@@ -206,9 +228,11 @@ func firstLine(s string) string {
 
 // Header
 
-func (m Model) health() (string, int) {
+// health sums up the host checks: a label and its Status level, or no
+// level while the checks are still running.
+func (m Model) health() (label, level string) {
 	if len(m.checks) == 0 {
-		return "checking", -1
+		return "checking", ""
 	}
 	warn, fail := 0, 0
 	for _, c := range m.checks {
@@ -221,11 +245,11 @@ func (m Model) health() (string, int) {
 	}
 	switch {
 	case fail > 0:
-		return plural(fail, "failing check", "failing checks"), 2
+		return plural(fail, "failing check", "failing checks"), checkLevel(host.Fail)
 	case warn > 0:
-		return plural(warn, "warning", "warnings"), 1
+		return plural(warn, "warning", "warnings"), checkLevel(host.Warn)
 	}
-	return "healthy", 0
+	return "healthy", checkLevel(host.OK)
 }
 
 func plural(n int, one, many string) string {
@@ -250,103 +274,156 @@ func (m Model) windowTitle() string {
 	return fmt.Sprintf("self-host · %d apps · %s", len(m.status.Apps), label)
 }
 
-func (m Model) renderHeader() string {
+// renderHeader is the one header row: the brand, the five tabs once the
+// Project is read, and on the right as much context as fits, most important
+// first. The brand's name shrinks to its mark only when that lets more of
+// the essential context fit, so it does not flicker with the rest.
+func (m Model) renderHeader() (string, []*lipgloss.Layer) {
 	t := m.theme
-	parts := []string{t.brand()}
-	if m.status.Project != "" && m.width >= wideWidth {
-		parts = append(parts, t.dim().Render(shortHome(m.status.Project)))
-	}
-	if m.loaded && m.statusErr == "" && m.status.Project != "" {
-		switch {
-		case m.status.Exposure == service.ExposureLocal:
-			parts = append(parts, t.chip("LOCAL ONLY", t.warn))
-		case m.status.LANIPStale:
-			parts = append(parts, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
-		default:
-			parts = append(parts, t.chip("LAN "+m.status.LANIP, t.info))
+	showTabs := m.wizard == nil && m.loaded && m.statusErr == ""
+	var labels []string
+	tabsWidth := 0
+	if showTabs {
+		for i, tab := range tabs {
+			labels = append(labels, strconv.Itoa(i+1)+" "+tab.label)
+			tabsWidth += lipgloss.Width(labels[i])
 		}
+		tabsWidth += 2 * (len(labels) - 1)
 	}
-	label, lvl := m.health()
-	health := t.chip("○ "+label, t.muted)
-	switch lvl {
-	case 0:
-		health = t.chip(t.glyph("ok")+" "+label, t.ok)
-	case 1:
-		health = t.chip(t.glyph("warn")+" "+label, t.warn)
-	case 2:
-		health = t.chip(t.glyph("fail")+" "+label, t.fail)
+	essential, extra := m.headerContext()
+	brand := t.brand()
+	mark := " " + t.title().Render("◆") + " "
+	if lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)) >
+		lipgloss.Width(fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)) {
+		brand = mark
 	}
-	parts = append(parts, health)
-	if m.latest != "" {
-		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
-	}
-	if n := m.updatesAvailable(); n > 0 {
-		parts = append(parts, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
-	}
-	left := strings.Join(parts, " ")
-	right := t.dim().Render("v" + strings.TrimPrefix(m.opts.Version, "v"))
-	if !m.refreshed.IsZero() {
-		right = t.dim().Render(m.refreshed.Format("15:04:05")+" · ") + right
+	right := fitContext(append(essential, extra...), m.width-lipgloss.Width(brand)-tabsWidth)
+	left := brand
+	var layers []*lipgloss.Layer
+	for i, label := range labels {
+		style := t.inactive()
+		if surface(i) == m.surface {
+			style = t.current()
+		}
+		if i > 0 {
+			left += "  "
+		}
+		rendered := style.Render(label)
+		layers = append(layers, lipgloss.NewLayer(rendered).X(lipgloss.Width(left)).Y(0).ID("nav:"+tabs[i].name))
+		left += rendered
 	}
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
-		return truncate(left, m.width)
-	}
-	return left + strings.Repeat(" ", gap) + right
-}
-
-func shortHome(path string) string {
-	if i := strings.Index(path, "/self-host"); i > 0 && strings.HasSuffix(path, "/self-host") {
-		return "~/self-host"
-	}
-	return path
-}
-
-var navItems = []struct {
-	name  string
-	label string
-	// Help is a view too but it opens as an overlay, not a top-bar tab.
-	surface surface
-}{
-	{"dashboard", "Dashboard", surfaceDashboard},
-	{"stack", "Stack", surfaceStack},
-	{"workflow", "Workflow", surfaceWorkflow},
-	{"install", "Install", surfaceInstall},
-	{"settings", "Settings", surfaceSettings},
-}
-
-// renderNav is the top bar of the full-screen views: the brand, the five
-// surfaces with the active one highlighted, and the version on the right.
-func (m Model) renderNav(active surface) (string, []*lipgloss.Layer) {
-	t := m.theme
-	left := t.brand() + "  "
-	x := lipgloss.Width(left)
-	var layers []*lipgloss.Layer
-	for i, item := range navItems {
-		if i > 0 {
-			sep := t.disabled().Render(" · ")
-			left += sep
-			x += lipgloss.Width(sep)
-		}
-		style := t.inactive()
-		if item.surface == active {
-			style = t.current()
-		}
-		rendered := style.Render(item.label)
-		left += rendered
-		layers = append(layers, lipgloss.NewLayer(rendered).X(x).Y(0).ID("nav:"+item.name))
-		x += lipgloss.Width(rendered)
-	}
-	right := t.dim().Render("v" + strings.TrimPrefix(m.opts.Version, "v"))
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
-	if gap < 2 {
 		return truncate(left, m.width), layers
 	}
 	return left + strings.Repeat(" ", gap) + right, layers
 }
 
-// View composes the top bar, the active view and the footer, then the Help
-// overlay when it is open.
+// fitContext joins the context pieces that fit in width after a one-cell
+// gap, in order of importance, skipping any that do not.
+func fitContext(pieces []string, width int) string {
+	right := ""
+	for _, piece := range pieces {
+		next := piece
+		if right != "" {
+			next = right + " " + piece
+		}
+		if 1+lipgloss.Width(next) <= width {
+			right = next
+		}
+	}
+	return right
+}
+
+// headerContext is the right side of the header, most important first: the
+// essential host health, LAN address and newer release, then the extra
+// known updates, last refresh and version.
+func (m Model) headerContext() (essential, extra []string) {
+	t := m.theme
+	label, level := m.health()
+	health := t.chip("○ "+label, t.muted)
+	if level != "" {
+		glyph, c := t.status(level)
+		health = t.chip(glyph+" "+label, c)
+	}
+	essential = []string{health}
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		switch {
+		case m.status.Exposure == service.ExposureLocal:
+			essential = append(essential, t.chip("LOCAL ONLY", t.warn))
+		case m.status.LANIPStale:
+			essential = append(essential, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
+		default:
+			essential = append(essential, t.chip("LAN "+m.status.LANIP, t.info))
+		}
+	}
+	if m.latest != "" {
+		essential = append(essential, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
+	}
+	if n := m.updatesAvailable(); n > 0 {
+		extra = append(extra, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
+	}
+	if !m.refreshed.IsZero() {
+		extra = append(extra, t.dim().Render(m.refreshed.Format("15:04:05")))
+	}
+	return essential, append(extra, t.dim().Render("v"+strings.TrimPrefix(m.opts.Version, "v")))
+}
+
+// renderBar is the last row: the global keys on the left and the focused
+// pane's keys as chips on the right. Chips that do not fit are cut from the
+// right and marked "…"; the global keys always stay. A mode (typing, help)
+// replaces the global keys while they do not act.
+func (m Model) renderBar(mode string, chips []key.Binding) string {
+	t := m.theme
+	left := mode
+	if left == "" {
+		k := m.keys
+		left = barKey(t, k.Tabs.Help().Key, k.Tabs.Help().Desc) + "  " + t.title().Render("←/→") + "  " +
+			barKey(t, k.Help.Help().Key, k.Help.Help().Desc) + "  " + barKey(t, k.Quit.Help().Key, k.Quit.Help().Desc)
+	}
+	left = " " + left
+	var rendered []string
+	total := 0
+	for i, b := range chips {
+		chip := t.chip(b.Help().Key, t.bright) + " " + t.dim().Render(b.Help().Desc)
+		rendered = append(rendered, chip)
+		if i > 0 {
+			total += 2
+		}
+		total += lipgloss.Width(chip)
+	}
+	avail := m.width - lipgloss.Width(left) - 3
+	right := strings.Join(rendered, "  ")
+	if total > avail {
+		ellipsis := " " + t.dim().Render("…")
+		var fitted []string
+		used := 0
+		for _, chip := range rendered {
+			w := lipgloss.Width(chip)
+			if len(fitted) > 0 {
+				w += 2
+			}
+			if used+w+lipgloss.Width(ellipsis) > avail {
+				break
+			}
+			fitted = append(fitted, chip)
+			used += w
+		}
+		right = strings.Join(fitted, "  ") + ellipsis
+	}
+	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 1
+	if gap < 2 {
+		return pad(left, m.width)
+	}
+	return pad(left+strings.Repeat(" ", gap)+right, m.width)
+}
+
+func barKey(t theme, k, desc string) string {
+	return t.title().Render(k) + " " + t.dim().Render(desc)
+}
+
+// View composes the header, the active tab, the status line and the bar,
+// then the Help overlay when it is open.
 func (m Model) View() tea.View {
 	var v tea.View
 	v.AltScreen = true
@@ -366,30 +443,34 @@ func (m Model) View() tea.View {
 	}
 
 	ctxView := m.ctx()
-	var main string
-	var layers []*lipgloss.Layer
-	header := m.renderHeader()
-	footer := m.renderFooter()
-	switch {
-	case m.wizard != nil:
-		main = m.renderWizard()
-	case !m.loaded:
-		main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
-	case m.statusErr != "":
-		main = m.renderStatusError()
-	default:
-		active := m.activeView()
-		if m.surface != surfaceDashboard {
-			header, layers = m.renderNav(m.surface)
-			footer = m.footerWith(active.Keys())
+	header, layers := m.renderHeader()
+	status := pad(m.footerStatus(), m.width)
+	var content string
+	if m.wizard != nil {
+		content = header + "\n" + fit(m.renderWizard(), m.width, max(m.height-2, 3)) + "\n" + status
+	} else {
+		var main, mode string
+		var chips []key.Binding
+		switch {
+		case !m.loaded:
+			main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
+		case m.statusErr != "":
+			main = m.renderStatusError()
+		default:
+			active := m.activeView()
+			main = active.View(ctxView, m.width, m.mainHeight())
+			layers = append(layers, ctxView.layers...)
+			chips = active.Keys()
+			if active.Capturing() {
+				mode = m.theme.fg(m.theme.accentText).Bold(true).Render("typing") + m.theme.dim().Render(" · keys go to the input")
+			}
 		}
-		if m.surface == surfaceDashboard && m.dashboard.copy != nil {
-			footer = m.footerWith(active.Keys())
+		if m.showHelp {
+			mode = m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(" · any other key closes")
+			chips = m.helpView.Keys()
 		}
-		main = active.View(ctxView, m.width, m.mainHeight())
-		layers = append(layers, ctxView.layers...)
+		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	}
-	content := header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + footer
 
 	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
 	if overlay := m.renderOverlay(); overlay != "" {
@@ -426,32 +507,8 @@ func (m Model) renderStatusError() string {
 	}, "\n")
 }
 
-// Footer
-
-// renderFooter shows the running Action's latest event, else the last
-// result, with the key hints on the right.
-func (m Model) renderFooter() string {
-	return m.footerWith(m.keys.ShortHelp())
-}
-
-// footerWith is renderFooter with the given key hints, used by each view's
-// own footer.
-func (m Model) footerWith(bindings []key.Binding) string {
-	t := m.theme
-	left := m.footerStatus()
-	if m.wizard != nil {
-		return pad(left, m.width)
-	}
-	h := m.help
-	h.SetWidth(max(m.width-lipgloss.Width(left)-2, 0))
-	right := h.ShortHelpView(bindings)
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
-	if gap < 2 {
-		return pad(left, m.width)
-	}
-	return left + strings.Repeat(" ", gap) + t.dim().Render(right)
-}
-
+// footerStatus is the status line above the bar: the running Action's
+// latest event, else the last result or flash message.
 func (m Model) footerStatus() string {
 	t := m.theme
 	if task := m.tasks.latest(); task != nil {

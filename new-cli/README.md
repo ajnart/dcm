@@ -109,27 +109,31 @@ which publishes ports on all host interfaces. Review network/firewall scope
 before choosing LAN access. Public ingress is a separate decision.
 
 Run `self-host` on a terminal to open the first-install flow or the existing
-Dashboard. Use `i` to choose more Apps and `/` to search. A Recipe chooses a
+Dashboard. Use `4` to open the Catalog and `/` to search. A Recipe chooses a
 bundle: inspect `self-host apps list`, then install it by ID, for example
 `self-host install media`. External accounts, hardware and browser-only setup
 remain explicit prerequisites.
 
+The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
+The bar on the last row shows the global keys and the focused pane's keys.
+
 | Dashboard key | Action |
 | --- | --- |
-| ↑/↓ or k/j, tab | Select an App; change its details tab. |
-| enter, o | Start/stop the selected App; open its URL. |
-| r, u, b | Retry Setup; update images; make a Backup. |
-| i, s, d, w | Install picker; Settings; Stack; Workflow. |
-| c, ?, q | Choose a password or the selected App's API key to copy; help; quit. |
+| 1–5, ←/→ | Switch tabs. |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
+| [ and ] | Switch the App details sub-tab (logs, setup, info, compose). |
+| o, c, ?, q | Open the App's URL; choose a password or API key to copy; help; quit. |
+| enter, r, u, b | Start/stop the selected App; retry Setup; update images; make a Backup. |
 
-Settings applies edits with `ctrl+s`; `esc` returns to the Dashboard. Workflow
-shows remembered render/pull/start, Setup, Links and checks. Space expands an
-App, `/` filters, and enter expands a failed step's error and recovery hint.
-While an Action pulls images, Workflow, the footer and the CLI in a terminal
-show one overall bar, a slim bar per image and "N of M images"; piped output
-keeps one `✓ pulled` line per image.
-Stack (`d`) controls the whole Project with `1` Up, `2` Down and `3` Restart all;
-enter starts/stops the selected App. The buttons also work with the mouse.
+While a search or an edit takes text, every key goes to it. Settings applies
+edits with `ctrl+s`; `esc` returns to the Overview. Activity shows remembered
+render/pull/start, Setup, Links and checks. Space expands an App, `/` filters,
+and enter expands a failed step's error and recovery hint.
+While an Action pulls images, Activity, the status line and the CLI in a
+terminal show one overall bar, a slim bar per image and "N of M images"; piped
+output keeps one `✓ pulled` line per image.
+The Apps tab controls the whole Project with the UP, DOWN and RESTART buttons
+(click them); enter starts/stops the selected App.
 Down removes the Project's containers and networks while keeping volumes,
 App files and Setup records. Use named volumes or bind mounts for persistent
 data: anonymous volumes are not automatically reattached after Down/Up.
