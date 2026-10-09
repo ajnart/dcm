@@ -402,6 +402,35 @@ func (p *Project) LockContext(ctx context.Context, pid int, alive func(int) bool
 	}, nil
 }
 
+// lockOpenError explains a lock the current user cannot open because of its
+// owner or mode, naming the file and the two safe fixes.
+func (p *Project) lockOpenError(err error) error {
+	if !errors.Is(err, os.ErrPermission) {
+		return err
+	}
+	user := p.Owner.Name
+	if user == "" {
+		user = strconv.Itoa(p.Owner.UID)
+	}
+	path := p.Path(".lock")
+	return fmt.Errorf("cannot open Project lock %s: %w; fix it with: sudo chown %s %s, or remove %s if no self-host is running",
+		path, err, user, path, path)
+}
+
+// LockError reports a Project lock the current user cannot open, for read-only
+// diagnostics such as doctor. It never takes the lock or creates the file.
+func (p *Project) LockError() error {
+	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR, 0o644)
+	if err == nil {
+		f.Close()
+		return nil
+	}
+	if errors.Is(err, os.ErrPermission) {
+		return p.lockOpenError(err)
+	}
+	return nil
+}
+
 func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return nil, err
@@ -411,7 +440,7 @@ func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
 	// ownership when this descriptor closes, including after a process crash.
 	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0o644)
 	if err != nil {
-		return nil, err
+		return nil, p.lockOpenError(err)
 	}
 	info, err := f.Stat()
 	if err != nil {

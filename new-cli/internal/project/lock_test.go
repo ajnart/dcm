@@ -98,6 +98,35 @@ func TestLockRejectsSymlinksWithoutChangingTargets(t *testing.T) {
 	}
 }
 
+func TestLockNamesThePathAndFixWhenUnopenable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can open a lock regardless of its mode")
+	}
+	p := testProject(t)
+	p.Owner.Name = "alice"
+	if err := os.WriteFile(p.Path(".lock"), []byte("flock:1"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(p.Path(".lock"), 0o600) })
+
+	_, err := p.Lock(os.Getpid(), func(int) bool { return false })
+
+	if err == nil {
+		t.Fatal("a lock the owner cannot open must not be taken")
+	}
+	msg := err.Error()
+	path := p.Path(".lock")
+	if !strings.Contains(msg, path) {
+		t.Fatalf("error does not name the lock file: %v", err)
+	}
+	if !strings.Contains(msg, "sudo chown alice "+path) {
+		t.Fatalf("error does not give the ownership fix: %v", err)
+	}
+	if !strings.Contains(msg, "remove "+path+" if no self-host is running") {
+		t.Fatalf("error does not say when removal is safe: %v", err)
+	}
+}
+
 func TestLockRejectsNonregularFilesPromptly(t *testing.T) {
 	for _, kind := range []string{"directory", "fifo"} {
 		t.Run(kind, func(t *testing.T) {
