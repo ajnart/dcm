@@ -1,0 +1,21 @@
+new-cli/internal/tui/testdata/tab-catalog-recipe-narrow.golden
+  s_93e55d02c44f68::t_43cfd06db113f0 1
+new-cli/internal/tui/testdata/tab-catalog-recipe.golden
+  s_93e55d02c44f68::t_3c90f970c3403d 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38bff6dffb63136e4b920fe3fa21b5aa806cfda9",
+  "prompts": {},
+  "sessions": {
+    "s_93e55d02c44f68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f70fd712-0011-4268-a7b3-c58eb50ef160",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
