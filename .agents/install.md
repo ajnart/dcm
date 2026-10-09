@@ -6,16 +6,13 @@ Profiles select behavior and services, not separate packages to install.
 
 ## Quick start
 
-Two steps. Deploying needs Docker with the Compose v2 plugin. While this
-repository is private you also need GitHub access (`gh auth login`). Linux,
-macOS, or Windows through WSL.
+Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
+Windows through WSL.
 
 1. **Install the CLI:**
 
    ```bash
-   gh api -H 'Accept: application/vnd.github.raw+json' \
-     repos/ajnart/selfhost-skills/contents/new-cli/install.sh |
-     SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    self-host --version
    ```
@@ -35,8 +32,10 @@ If something fails:
 - `self-host: command not found`: add `~/.local/bin` to `PATH`.
 - The agent's guide has no New and Advanced paths: run `self-host self-update`.
 - Docker missing or stopped: install or start it, then run `self-host doctor`.
-- A 404 or "authentication failed": run `gh auth login` or set
-  `SELF_HOST_GITHUB_TOKEN`.
+- A 404 or authentication error: run `gh auth login`, then
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+- `curl` reports an error but the command seems to succeed: a pipe hides
+  curl's exit status. In scripts run `set -o pipefail` first.
 - Windows: use WSL; native Windows is unsupported.
 
 The sections below cover each agent, scope, and layout in detail.
@@ -71,9 +70,9 @@ deployed services.
 
 ## Skills CLI
 
-Install Git and Bun 1.4.0 or newer, and have GitHub access while the repository
-is private (`gh auth login`, an SSH key, or a Git credential helper; the Skills
-CLI tries `gh` and SSH). From the project that will own the stack:
+Install Git and Bun 1.4.0 or newer. If the clone is refused, authenticate with
+`gh auth login`, an SSH key, or a Git credential helper; the Skills CLI tries
+`gh` and SSH. From the project that will own the stack:
 
 ```bash
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host

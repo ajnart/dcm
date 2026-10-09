@@ -2,16 +2,13 @@
 
 ## Quick start
 
-Two steps. Deploying needs Docker with the Compose v2 plugin. While this
-repository is private you also need GitHub access (`gh auth login`). Linux,
-macOS, or Windows through WSL.
+Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
+Windows through WSL.
 
 1. **Install the CLI:**
 
    ```bash
-   gh api -H 'Accept: application/vnd.github.raw+json' \
-     repos/ajnart/selfhost-skills/contents/new-cli/install.sh |
-     SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    self-host --version
    ```
@@ -31,8 +28,10 @@ If something fails:
 - `self-host: command not found`: add `~/.local/bin` to `PATH`.
 - The agent's guide has no New and Advanced paths: run `self-host self-update`.
 - Docker missing or stopped: install or start it, then run `self-host doctor`.
-- A 404 or "authentication failed": run `gh auth login` or set
-  `SELF_HOST_GITHUB_TOKEN`.
+- A 404 or authentication error: run `gh auth login`, then
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+- `curl` reports an error but the command seems to succeed: a pipe hides
+  curl's exit status. In scripts run `set -o pipefail` first.
 - Windows: use WSL; native Windows is unsupported.
 
 The Go CLI is the current product: [installation, terminal Dashboard, agent
@@ -59,12 +58,11 @@ verified. Installing the CLI or skill alone does not deploy anything.
 
 ## Install the legacy TypeScript CLI
 
-The older CLI is not on public npm. With access to the private repository, build a
+The older CLI is not on public npm. Build a
 standalone package and install it globally:
 
 ```bash
-gh auth status
-gh repo clone ajnart/selfhost-skills
+git clone https://github.com/ajnart/selfhost-skills.git
 cd selfhost-skills
 bun install --frozen-lockfile
 cli_tgz=$(npm pack ./packages/cli --pack-destination . --silent)
@@ -90,7 +88,7 @@ From the project where you want your agent to work, install just the skill:
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host --agent codex --copy --yes
 ```
 
-This needs Git, Bun 1.4+, and access to the private repository. Then ask
+This needs Git and Bun 1.4+. Then ask
 Codex `$self-host photos` or select it with `/skills`. For Claude Code, use
 `--agent claude-code` and `/self-host photos`. Pi can invoke
 `/skill:self-host photos`; other clients and named-command setup are in the

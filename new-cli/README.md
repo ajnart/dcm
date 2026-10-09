@@ -14,16 +14,13 @@ at one.
 
 ## Quick start
 
-Two steps. Deploying needs Docker with the Compose v2 plugin. While this
-repository is private you also need GitHub access (`gh auth login`). Linux,
-macOS, or Windows through WSL.
+Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
+Windows through WSL.
 
 1. **Install the CLI:**
 
    ```bash
-   gh api -H 'Accept: application/vnd.github.raw+json' \
-     repos/ajnart/selfhost-skills/contents/new-cli/install.sh |
-     SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    self-host --version
    ```
@@ -43,11 +40,13 @@ If something fails:
 - `self-host: command not found`: add `~/.local/bin` to `PATH`.
 - The agent's guide has no New and Advanced paths: run `self-host self-update`.
 - Docker missing or stopped: install or start it, then run `self-host doctor`.
-- A 404 or "authentication failed": run `gh auth login` or set
-  `SELF_HOST_GITHUB_TOKEN`.
+- A 404 or authentication error: run `gh auth login`, then
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+- `curl` reports an error but the command seems to succeed: a pipe hides
+  curl's exit status. In scripts run `set -o pipefail` first.
 - Windows: use WSL; native Windows is unsupported.
 
-**Private release:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
+**Release proof:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
 is published. Linux amd64 host installation, self-update and a clean Alpine
 bootstrap/update passed using the 0.1.2 installer; [release proof](docs/release-proof.md)
 records the scope. The older npm CLI and agent-plugin releases use separate versions.
@@ -70,12 +69,9 @@ archive against `checksums.txt`, and installs `self-host` in `~/.local/bin`
 an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. Omit it to select the
 highest stable CLI release.
 
-While the repository is private, an unauthenticated `curl` download of the
-script returns 404, so the quick start fetches it with `gh`. The installer
-accepts `SELF_HOST_GITHUB_TOKEN` or, when unset, uses `gh auth token`. Never
-print or paste a token into commands or reports. Once the repository is public,
-`curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash`
-installs the same way.
+When GitHub rejects an unauthenticated download, the installer accepts
+`SELF_HOST_GITHUB_TOKEN` or, when unset, uses `gh auth token`. Never print or
+paste a token into commands or reports.
 
 To build the current development source from an authenticated checkout:
 

@@ -308,6 +308,7 @@ Linux and macOS amd64/arm64 are build targets. Use the Linux binary
 inside WSL; native Windows is unsupported. Cross-compilation
 alone does not prove native platform support.
 
-For private releases, provide `SELF_HOST_GITHUB_TOKEN` through your credential
-provider. It is used for authenticated API downloads and is never printed.
+When GitHub refuses an unauthenticated download (a 404 or authentication
+error), run `gh auth login` or provide `SELF_HOST_GITHUB_TOKEN` through your
+credential provider. It is used for authenticated API downloads and is never printed.
 Never put its value in commands, reports or saved client configuration.
