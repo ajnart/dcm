@@ -1,0 +1,30 @@
+new-cli/docs/catalog/traps/beszel.md
+  h_d6e478ca18e517 6-12,17-20
+new-cli/e2e/isolation.go
+  h_d6e478ca18e517 18,389,393-394,398-399
+new-cli/e2e/isolation_fixture_test.go
+  h_d6e478ca18e517 167-195
+new-cli/internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 1-2,11,20-35,40,54,62-89,111-112,117,120,130-243,246-283,306,323-337,349-355
+new-cli/internal/apps/beszel/beszel_test.go
+  h_d6e478ca18e517 12,17,19,30-31,39-92,127,131-169,173-228,230-240,242,245-247,249-260,264-265,268,274,278-279,282-285,290-292,296-297,299,303,312-586
+new-cli/internal/helpers/exec_test.go
+  h_d6e478ca18e517 108-137
+new-cli/internal/helpers/helpers.go
+  h_d6e478ca18e517 37-42,269-279
+new-cli/tools/appgen/main.go
+  h_d6e478ca18e517 16-17,22-27,57,333-345
+new-cli/tools/appgen/main_test.go
+  h_d6e478ca18e517 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bcdfde337d782901b0bcda4f6eaafe97c5073a8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
