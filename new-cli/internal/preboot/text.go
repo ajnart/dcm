@@ -198,10 +198,12 @@ func (f *frame) narrative(cv *canvas, fade float64) {
 		return
 	}
 	p, t := f.pal, f.t()
-	dots := strings.Repeat("·", int(t*4)%4)
-	room := min(f.text.x1-f.text.x0, f.w-2) - 2 - len(dots)
+	// The dots always take three cells, so the line never moves as they animate.
+	n := int(t*4) % 4
+	dots := strings.Repeat("·", n) + strings.Repeat(" ", 3-n)
+	room := min(f.text.x1-f.text.x0, f.w-2) - 2 - 3
 	ss := []seg{{"◆ ", p.Sweep(t * 0.5), true}, {ansi.Truncate(f.pr.Narrative, room, "…"), p.Text, false}, {dots, p.Muted, false}}
-	w := segWidth(ss) + 3 - len(dots)
+	w := segWidth(ss)
 	x := (f.w - w) / 2
 	if fade > 0.5 {
 		cv.clear(x-2, x+w+2, f.lay.narrY)

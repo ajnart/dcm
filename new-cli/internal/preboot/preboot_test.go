@@ -314,3 +314,27 @@ func TestPaceDoesNotFlickerBetweenBuckets(t *testing.T) {
 		t.Fatalf("after four seconds past the boundary the bucket should move: %v", p.Remaining())
 	}
 }
+
+func TestTheNarrativeStaysPutWhileItsDotsAnimate(t *testing.T) {
+	for _, size := range sizes {
+		start := -1
+		for frame := 0; frame < FPS; frame++ {
+			col := -1
+			for _, line := range Render(frame, size.w, size.h, pulling(3, 0), Dark(), false) {
+				plain := ansi.Strip(line)
+				if i := strings.Index(plain, "Pulling 7 images"); i >= 0 {
+					col = ansi.StringWidth(plain[:i])
+				}
+			}
+			if col < 0 {
+				t.Fatalf("%s frame %d: no narrative", size.name, frame)
+			}
+			if start < 0 {
+				start = col
+			}
+			if col != start {
+				t.Fatalf("%s frame %d: narrative at column %d, was %d", size.name, frame, col, start)
+			}
+		}
+	}
+}
