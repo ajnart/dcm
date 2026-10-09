@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -214,4 +215,27 @@ func TestSettingsConfirmDiscardStaysOnScreenAt80x24(t *testing.T) {
 
 func TestSettingsPendingChangesGoldenAtEightyColumns(t *testing.T) {
 	golden(t, "settings-pending-narrow", trimLines(screen(narrowSettings(t))))
+}
+
+func TestNowStripStagesCarryTheIconsOfTheGlyphSet(t *testing.T) {
+	for set, want := range map[activity.Glyphs]string{
+		activity.Simple:   "✓ ▣ Pull",
+		activity.NerdFont: "✓ \U000F0868 Pull",
+	} {
+		m, _ := sample(t, 120, 30)
+		m = withGlyphs(t, m, set)
+		task := m.tasks.start("update jellyfin")
+		t.Cleanup(m.tasks.cancelAll)
+		for _, e := range []events.Event{
+			{Event: events.RunStart, Msg: "update jellyfin"},
+			{Event: events.StepOK, Step: "pull", Msg: "pulled"},
+			{Event: events.StepStart, Step: "start", Msg: "start"},
+		} {
+			task.append(e)
+		}
+
+		if out := screen(m); !strings.Contains(out, want) {
+			t.Errorf("%s: the Now strip lacks %q\n%s", set, want, out)
+		}
+	}
 }

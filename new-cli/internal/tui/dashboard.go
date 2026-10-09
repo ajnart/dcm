@@ -210,7 +210,7 @@ func (v *dashboardView) render(ctx *viewContext, width, height int) (string, []*
 func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	t := ctx.theme
 	inner := width - 4
-	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, t.palette())
+	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, ctx.glyphs, t.palette())
 	if len(lines) == 0 {
 		lines = []string{t.dim().Render("No Action yet")}
 	}
