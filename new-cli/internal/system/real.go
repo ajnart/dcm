@@ -80,6 +80,8 @@ func Real(version string) *Deps {
 		HTTP:         &http.Client{Timeout: 30 * time.Second},
 		LookPath:     exec.LookPath,
 		Executable:   os.Executable,
+		Exec:         func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
+		CacheDir:     os.UserCacheDir,
 		Getenv:       os.Getenv,
 		CurrentUser:  currentUser,
 		LookupUser:   lookupUser,
