@@ -1,0 +1,16 @@
+new-cli/internal/cli/skill_test.go
+  h_d6e478ca18e517 68-114
+new-cli/internal/skill/guide.md
+  h_d6e478ca18e517 13-14,32-83,88-89,106,121-122,189-213,238-239,243-260,263-277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d202777ee3c04b1d6ca78a96d2be663b7428f78",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
