@@ -132,6 +132,27 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	}
 }
 
+func TestSetupStepNamesTheAdministratorUsernameUsed(t *testing.T) {
+	fake := &fakeForgejo{}
+	srv := httptest.NewServer(fake.handler())
+	t.Cleanup(srv.Close)
+	var records []helpers.StepResult
+	h := newH(t, srv, &fakeExec{http: fake}, &records)
+
+	if err := (forgejo.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	var msg string
+	for _, r := range records {
+		if r.ID == "admin" && r.Status == "ok" {
+			msg = r.Msg
+		}
+	}
+	if !strings.Contains(msg, "selfhost-admin") {
+		t.Fatalf("Setup step should name the administrator username used, got %q", msg)
+	}
+}
+
 func TestFailingStepHintNamesTheSetupCommand(t *testing.T) {
 	fake := &fakeForgejo{}
 	srv := httptest.NewServer(fake.handler())
