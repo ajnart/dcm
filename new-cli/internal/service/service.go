@@ -25,12 +25,16 @@ import (
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
 // ErrIncomplete means some Setup steps failed; the hints say how to finish.
 var ErrIncomplete = errors.New("setup incomplete")
+
+var ErrManual = errors.New("setup needs manual steps")
 
 // ErrNoProject means no Project exists yet for this user.
 var ErrNoProject = errors.New("no Project yet; run: self-host install <app|recipe>")
@@ -114,6 +118,10 @@ func BindIP(exposure string) string {
 
 // DetectSettings returns Host settings for a new Project.
 func (s *Service) DetectSettings(owner system.User, exposure string) map[string]string {
+	return s.detectSettings(context.Background(), owner, exposure)
+}
+
+func (s *Service) detectSettings(ctx context.Context, owner system.User, exposure string) map[string]string {
 	if exposure == "" {
 		exposure = ExposureLAN
 	}
@@ -121,7 +129,7 @@ func (s *Service) DetectSettings(owner system.User, exposure string) map[string]
 	if err != nil || lan == "" {
 		lan = "127.0.0.1"
 	}
-	return map[string]string{
+	settings := map[string]string{
 		"TZ":             s.Deps.TimeZone(),
 		"PUID":           strconv.Itoa(owner.UID),
 		"PGID":           strconv.Itoa(owner.GID),
@@ -132,6 +140,12 @@ func (s *Service) DetectSettings(owner system.User, exposure string) map[string]
 		"MEDIA_ROOT":     filepath.Join(owner.Home, "media"),
 		"DOWNLOADS_ROOT": filepath.Join(owner.Home, "downloads"),
 	}
+	if rootless, err := host.Rootless(ctx, s.Deps); err == nil && rootless {
+		// Container root maps to the rootless daemon's host user, who owns
+		// the Project folders. Project ownership itself stays unchanged.
+		settings["PUID"], settings["PGID"] = "0", "0"
+	}
+	return settings
 }
 
 // Defaults returns the Host settings a new Project would get.
@@ -228,6 +242,17 @@ func (s *Service) open(ctx context.Context) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Older releases stored private inputs in state. Register them even for
+	// read-only reports; migration itself happens only under the mutation lock.
+	for id, st := range state.Apps {
+		if a, found := s.Catalog.App(id); found && st != nil {
+			for _, input := range a.Inputs() {
+				if input.Private {
+					s.Log.Secret(st.Inputs[input.Key])
+				}
+			}
+		}
+	}
 	return &session{s: s, p: p, settings: settings, secrets: &secretStore{p: p, values: secrets}, state: state, compose: s.compose(p)}, nil
 }
 
@@ -239,9 +264,17 @@ func (ss *session) helpers(a app.App) *helpers.H {
 	info := a.Info()
 	st := ss.state.Apps[info.ID]
 	port := info.Port
-	var inputs map[string]string
+	inputs := map[string]string{}
 	if st != nil {
-		port, inputs = st.Port, st.Inputs
+		port = st.Port
+		for key, value := range st.Inputs {
+			inputs[key] = value
+		}
+	}
+	for _, input := range a.Inputs() {
+		if input.Private {
+			inputs[input.Key] = ss.secrets.Get(SecretKey(info.ID, input.Key))
+		}
 	}
 	return helpers.New(helpers.Config{
 		App:      info.ID,
@@ -264,9 +297,10 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			}
 			return ss.helpers(peer)
 		},
-		PollInterval: ss.s.pollInterval(),
-		Now:          ss.s.Deps.Now,
-		Sleep:        ss.s.Deps.Sleep,
+		InstalledApps: ss.installedApps,
+		PollInterval:  ss.s.pollInterval(),
+		Now:           ss.s.Deps.Now,
+		Sleep:         ss.s.Deps.Sleep,
 	})
 }
 
@@ -284,7 +318,7 @@ func (ss *session) recorder(id string) func(helpers.StepResult) {
 		if _, seen := st.Steps[r.ID]; !seen {
 			st.StepOrder = append(st.StepOrder, r.ID)
 		}
-		st.Steps[r.ID] = project.StepRecord{Status: r.Status, Msg: r.Msg, Error: r.Error, Hint: r.Hint}
+		st.Steps[r.ID] = project.StepRecord{Status: r.Status, Msg: ss.s.Log.Redact(r.Msg), Error: ss.s.Log.Redact(r.Error), Hint: ss.s.Log.Redact(r.Hint)}
 	}
 }
 
@@ -326,7 +360,12 @@ func (ss *session) services(ids ...string) ([]string, error) {
 func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	id := a.Info().ID
 	st := ss.state.Apps[id]
-	st.Steps, st.StepOrder = nil, nil
+	for step := range st.Steps {
+		if !IsStage(step) {
+			delete(st.Steps, step)
+		}
+	}
+	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool { return !IsStage(step) })
 	h := ss.helpers(a)
 	err := a.Setup(ctx, h)
 	if err == nil {
@@ -343,7 +382,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	}
 	st.Setup = setupResult(st)
 	var incomplete []string
-	if st.Setup == "incomplete" {
+	if st.Setup == stepstatus.SetupIncomplete {
 		incomplete = append(incomplete, id)
 	}
 	if ss.ready(id) {
@@ -365,7 +404,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 				ss.applyLink(ctx, other, link)
 				otherState := ss.state.Apps[otherID]
 				otherState.Setup = setupResult(otherState)
-				if otherState.Setup == "incomplete" {
+				if otherState.Setup == stepstatus.SetupIncomplete {
 					incomplete = append(incomplete, otherID)
 				}
 			}
@@ -388,26 +427,43 @@ func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link) {
 // reportUnexpected records an error that did not come from a failed step,
 // so it is visible and counts against the App.
 func (ss *session) reportUnexpected(h *helpers.H, step string, err error) {
-	if err == nil || errors.Is(err, helpers.ErrStepFailed) {
+	if err == nil || errors.Is(err, helpers.ErrStepFailed) || errors.Is(err, helpers.ErrManual) {
 		return
 	}
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: step, Error: err.Error(), URL: h.URL})
-	h.Record(helpers.StepResult{ID: step, Status: "fail", Error: err.Error()})
+	h.Record(helpers.StepResult{ID: step, Status: stepstatus.StepFail, Error: err.Error()})
 }
 
 func (ss *session) failed(id, step string) bool {
 	st := ss.state.Apps[id]
-	return st != nil && st.Steps[step].Status == "fail"
+	return st != nil && st.Steps[step].Status == stepstatus.StepFail
 }
 
-// setupResult is "incomplete" while any recorded step failed.
-func setupResult(st *project.AppState) string {
-	for _, step := range st.Steps {
-		if step.Status == "fail" {
-			return "incomplete"
+// setupResult gives failures precedence over manual steps. Install
+// stages are Compose work that Setup cannot retry, so they do not count.
+func setupResult(st *project.AppState) stepstatus.Setup {
+	result := stepstatus.SetupOK
+	for id, step := range st.Steps {
+		if step.Status == stepstatus.StepManual && !IsStage(id) {
+			result = stepstatus.SetupManual
+		}
+		if step.Status == stepstatus.StepFail && !IsStage(id) {
+			return stepstatus.SetupIncomplete
 		}
 	}
-	return "ok"
+	return result
+}
+
+const (
+	StageRender = "render"
+	StagePull   = "pull"
+	StageStart  = "start"
+)
+
+// IsStage reports whether a step is an install stage (render, pull, start)
+// recorded by the mutation module rather than by the App's Setup.
+func IsStage(id string) bool {
+	return id == StageRender || id == StagePull || id == StageStart
 }
 
 // isLinkStep reports whether a step belongs to a Link rather than to the
@@ -416,16 +472,16 @@ func isLinkStep(id string) bool {
 	return strings.HasPrefix(id, "link-") || strings.HasPrefix(id, "unlink-")
 }
 
-// ready reports whether an App's own Setup has run without failures, so
+// ready reports whether an App's own Setup has no failed or manual steps, so
 // Links may use it. Failed Links do not count: they belong to their App and
 // must not block or hide other Links.
 func (ss *session) ready(id string) bool {
 	st := ss.state.Apps[id]
-	if st == nil || st.Setup == "pending" || st.Setup == "" {
+	if st == nil || st.Setup == stepstatus.SetupPending || st.Setup == "" {
 		return false
 	}
 	for stepID, step := range st.Steps {
-		if step.Status == "fail" && !isLinkStep(stepID) {
+		if step.Status.NeedsAttention() && !isLinkStep(stepID) && !IsStage(stepID) {
 			return false
 		}
 	}
@@ -440,11 +496,11 @@ func (ss *session) readyPeer(id string) *helpers.H {
 	return ss.helpers(peer)
 }
 
-// registerSecrets redacts every stored secret except the Admin username,
-// which is not secret and too common a word ("admin") to hide.
+// registerSecrets redacts stored secrets while keeping the shared username
+// and Forgejo's administrator alias visible in recovery hints.
 func registerSecrets(log *events.Logger, secrets map[string]string) {
 	for key, value := range secrets {
-		if key != "ADMIN_USER" {
+		if key != "ADMIN_USER" && key != "FORGEJO_ADMIN_USER" {
 			log.Secret(value)
 		}
 	}

@@ -1,0 +1,68 @@
+{
+  "scope": "isolated public-image PHP-FPM reproduction; not live application acceptance",
+  "host_policy": {
+    "attachment": "/usr/sbin/php-fpm*",
+    "enforced_profile": "php_fpm_enforce",
+    "allowed_php_configuration_glob": "/etc/php{,5,7,8}/**",
+    "public_code_glob": "/usr/share/php{,5,7,8}/**",
+    "local_override_empty": true
+  },
+  "passbolt": {
+    "image": "passbolt/passbolt:5.16.0-1-ce",
+    "image_id": "sha256:a7d4b166b6702ca0752e51f734638f95ba383b7446f9028082b0ea7c34b6facb",
+    "public_source_path": "/etc/passbolt/requirements.php",
+    "cli_www_data": {
+      "requirements_readable": true,
+      "requirements_openable": true
+    },
+    "fpm": {
+      "transport_available": true,
+      "probe_response_valid": true,
+      "fpm_sapi": true,
+      "requirements_readable": true,
+      "requirements_openable": false,
+      "profile": "php_fpm_enforce"
+    },
+    "application_auth_verify_status": 500,
+    "application_acceptance": "failed; unchanged",
+    "cleanup": {
+      "status": "pass",
+      "helper_absent": true,
+      "owned_blocker_removed": true,
+      "method": "normal FPM shutdown from policy-permitted host peer; exact stopped helper removal"
+    },
+    "source_artifacts": {
+      "projection_sha256": "c4a10400a2abe7d82f94640e13a6c79f70d91e210629ee73bcd289c17889e7b9",
+      "cleanup_sha256": "f27bd222554a5ccf989e56d2fd6f761f16be63867fe8a96417f8f84bb60e348b"
+    }
+  },
+  "limits": [
+    "No environment, credential, configuration value, key payload or application log was retained.",
+    "No AppArmor policy, executable path, confinement setting or application acceptance check was changed.",
+    "Public-file access reproduction does not establish the complete live HTTP 500 causal chain or application acceptance."
+  ],
+  "bookstack": {
+    "image_id": "sha256:675c1edfab2ab727303aa5014df941f710ee858b472500d75faeb1a775bde4a4",
+    "scope": "isolated public BookStack image helpers",
+    "provenance": "root-received tool observations; runtime traces were not saved",
+    "public_config_path": "/etc/php85/php-fpm.conf",
+    "cli_fopen_succeeded": true,
+    "native_fpm_config_open": "permission_denied",
+    "native_fpm_profile": "php_fpm_enforce",
+    "binary_uid": 0,
+    "binary_gid": 0,
+    "binary_mode": "0755",
+    "binary_setuid": false,
+    "binary_setgid": false,
+    "owned_helpers_cleaned": 5,
+    "cleanup_verified": true,
+    "public_defaults_projection_sha256": "7eec74aa9cafcc3ceef21ab41b9f850f572b63f8548999c4e829d47534be16ac"
+  },
+  "speedtest_tracker": {
+    "scope": "same pinned PHP-FPM configuration path in application source; not an independent public-image reproduction",
+    "public_config_path": "/etc/php85/php-fpm.conf",
+    "binary_path": "/usr/sbin/php-fpm85",
+    "relationship": "uses the same excluded Alpine PHP configuration directory demonstrated by the BookStack helper",
+    "application_acceptance": "failed; unchanged"
+  }
+}

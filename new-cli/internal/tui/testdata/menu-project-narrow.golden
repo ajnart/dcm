@@ -1,0 +1,24 @@
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+╭─ Now ────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                │
+│ ◐ Host: 1 warning · LAN 192.168.1.20 · 12:00:00                              │
+│     ╭──────────────────────────────────────────────────────────────────╮     │
+│     │ Project · Actions                                                │     │
+╰─────│                                                                  │─────╯
+╭─ App│ > Up all                                                         │─────╮
+│ ● ♫ │   Down all                                                       │     │
+│ ✗ ↓ │   Restart all                                                    │     │
+│ ✗ ◇ │   Update all    no update known (checked every 30 minutes)       │     │
+╰─────│   Backup                                                         │─────╯
+╭─ Nee│                                                                  │─────╮
+│ ✗ So│ ──────────────────────────────────────────────────────────────── │etup │
+│ ✗ wh│ Starts every App's containers.                                   │tart │
+│ ! Fi╰──────────────────────────────────────────────────────────────────╯     │
+│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ actions · letters pick an Action         ↑/↓  select   enter  run   esc  close

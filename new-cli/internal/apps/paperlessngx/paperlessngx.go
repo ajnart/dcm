@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 type App struct{}
@@ -53,8 +53,8 @@ func (App) Compose(rc app.RenderContext) string {
     image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
     restart: unless-stopped
     environment:
-      PAPERLESS_REDIS: redis://broker:6379
-      PAPERLESS_DBHOST: db
+      PAPERLESS_REDIS: redis://paperless-ngx-broker:6379
+      PAPERLESS_DBHOST: paperless-ngx-db
       PAPERLESS_DBENGINE: postgresql
       PAPERLESS_ADMIN_USER: ${ADMIN_USER}
       USERMAP_UID: ${PUID}
@@ -73,14 +73,14 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8000
     depends_on:
-      - broker
-      - db
-  broker:
+      - paperless-ngx-broker
+      - paperless-ngx-db
+  paperless-ngx-broker:
     image: valkey/valkey:9-alpine
     restart: unless-stopped
     volumes:
       - ./broker:/data
-  db:
+  paperless-ngx-db:
     image: postgres:18
     restart: unless-stopped
     environment:
@@ -131,7 +131,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	ready := onboard.NoAccount{Probe: onboard.Probe{Path: "/", Want: []int{200, 302}, Timeout: 5 * time.Minute}}
+	ready := firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/", Want: []int{200, 302}, Timeout: 5 * time.Minute}}
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}

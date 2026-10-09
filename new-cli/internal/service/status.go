@@ -2,18 +2,22 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/ajnart/self-host/internal/compose"
+	stepstatus "github.com/ajnart/self-host/internal/status"
+	"go.yaml.in/yaml/v3"
 )
 
 type StepStatus struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
-	Msg    string `json:"msg,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Hint   string `json:"hint,omitempty"`
+	ID     string          `json:"id"`
+	Status stepstatus.Step `json:"status"`
+	Msg    string          `json:"msg,omitempty"`
+	Error  string          `json:"error,omitempty"`
+	Hint   string          `json:"hint,omitempty"`
 }
 
 type AppStatus struct {
@@ -27,10 +31,10 @@ type AppStatus struct {
 	// container exists and "unknown" when Docker could not be asked.
 	State  string `json:"state"`
 	Health string `json:"health,omitempty"`
-	// Setup is ok, incomplete, pending, or unmanaged.
-	Setup    string       `json:"setup"`
-	Steps    []StepStatus `json:"steps,omitempty"`
-	Services []string     `json:"services,omitempty"`
+	// Setup is ok, manual, incomplete, pending, or unmanaged.
+	Setup    stepstatus.Setup `json:"setup"`
+	Steps    []StepStatus     `json:"steps,omitempty"`
+	Services []string         `json:"services,omitempty"`
 	// Update is available, current or unknown; empty when not checked.
 	Update string `json:"update,omitempty"`
 }
@@ -62,7 +66,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	}
 	containers, psErr := ss.compose.Ps(ctx)
 	if psErr != nil {
-		status.DockerError = psErr.Error()
+		status.DockerError = s.Log.Redact(psErr.Error())
 	}
 	byService := map[string]compose.Container{}
 	for _, c := range containers {
@@ -73,7 +77,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	for _, id := range ids {
-		as := AppStatus{ID: id, Name: id, Setup: "unmanaged", State: "missing"}
+		as := AppStatus{ID: id, Name: id, Setup: stepstatus.SetupUnmanaged, State: "missing"}
 		services, _ := fragmentServices(ss.p.FragmentPath(id))
 		as.Services = services
 		mainService := id
@@ -81,17 +85,20 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			info := a.Info()
 			st := ss.state.Apps[id]
 			as.Name, as.Managed, as.Port, as.Image, as.Setup = info.Name, true, st.Port, info.Image, st.Setup
-			as.URL = AppURL(ss.settings, st.Port, info.Path)
+			if !info.NoWebUI && st.Port > 0 && info.ContainerPort > 0 {
+				as.URL = AppURL(ss.settings, st.Port, info.Path)
+			}
 			mainService = info.Service
 			for _, stepID := range st.StepOrder {
 				r := st.Steps[stepID]
-				as.Steps = append(as.Steps, StepStatus{ID: stepID, Status: r.Status, Msg: r.Msg, Error: r.Error, Hint: r.Hint})
+				as.Steps = append(as.Steps, StepStatus{ID: stepID, Status: r.Status, Msg: s.Log.Redact(r.Msg), Error: s.Log.Redact(r.Error), Hint: s.Log.Redact(r.Hint)})
 			}
 		}
 		if psErr != nil {
 			as.State = "unknown"
 		} else {
-			fillContainer(&as, byService, mainService, services, ss.settings)
+			completed := fragmentCompletionDependencies(ss.p.FragmentPath(id))
+			fillContainer(&as, byService, mainService, services, completed, ss.settings)
 		}
 		status.Apps = append(status.Apps, as)
 	}
@@ -100,9 +107,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 // fillContainer sets state and health from the main service, and the
 // worst state among the App's other services.
-func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, settings map[string]string) {
+func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, settings map[string]string) {
 	c, found := byService[main]
-	if !found && len(services) > 0 {
+	if !found && !as.Managed && len(services) > 0 {
 		c, found = byService[services[0]]
 	}
 	if !found {
@@ -127,6 +134,12 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 			as.State = "degraded"
 			continue
 		}
+		if name != main && completed[name] {
+			if other.State != "exited" || other.ExitCode == nil || *other.ExitCode != 0 {
+				as.State = "degraded"
+			}
+			continue
+		}
 		if other.State != "running" && as.State == "running" {
 			as.State = "degraded"
 		}
@@ -136,10 +149,54 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 	}
 }
 
+// A dependency may finish instead of remaining running only when every
+// reference to that declared service requires successful completion.
+// Short-form and conflicting dependency conditions retain the running rule.
+func fragmentCompletionDependencies(path string) map[string]bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var doc struct {
+		Services map[string]struct {
+			DependsOn yaml.Node `yaml:"depends_on"`
+		} `yaml:"services"`
+	}
+	if yaml.Unmarshal(data, &doc) != nil {
+		return nil
+	}
+	completed := map[string]bool{}
+	for _, service := range doc.Services {
+		node := service.DependsOn
+		if node.Kind == yaml.SequenceNode {
+			for _, name := range node.Content {
+				completed[name.Value] = false
+			}
+		}
+		if node.Kind != yaml.MappingNode {
+			continue
+		}
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			name := node.Content[i].Value
+			var dependency struct{ Condition string }
+			ok := node.Content[i+1].Decode(&dependency) == nil && dependency.Condition == "service_completed_successfully"
+			if _, declared := doc.Services[name]; !declared {
+				continue
+			}
+			previous, seen := completed[name]
+			completed[name] = ok && (!seen || previous)
+		}
+	}
+	return completed
+}
+
 type Credentials struct {
 	Admin struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		// Aliases maps an App ID to the App-local Admin login username it needs
+		// when the shared username is reserved upstream.
+		Aliases map[string]string `json:"aliases,omitempty"`
 	} `json:"admin"`
 	// Apps maps App ID to its secrets by name.
 	Apps map[string]map[string]string `json:"apps"`
@@ -153,6 +210,7 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 	var creds Credentials
 	creds.Admin.Username = ss.secrets.values["ADMIN_USER"]
 	creds.Admin.Password = ss.secrets.values["ADMIN_PASSWORD"]
+	creds.Admin.Aliases = map[string]string{}
 	creds.Apps = map[string]map[string]string{}
 	ids, _ := ss.p.AppIDs()
 	sort.Slice(ids, func(i, j int) bool { return len(ids[i]) > len(ids[j]) })
@@ -168,6 +226,13 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 				break
 			}
 		}
+		// The reserved-username alias is part of the Admin login, not an App secret.
+		if strings.HasSuffix(key, "_ADMIN_USER") {
+			if value != creds.Admin.Username {
+				creds.Admin.Aliases[owner] = value
+			}
+			continue
+		}
 		if creds.Apps[owner] == nil {
 			creds.Apps[owner] = map[string]string{}
 		}
@@ -177,3 +242,63 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 }
 
 func sortStrings(values []string) { sort.Strings(values) }
+
+// ContainerStatus is one container of the Project: which App owns it, what
+// image it runs, its state and health, its uptime text and its published ports.
+type ContainerStatus struct {
+	App     string   `json:"app,omitempty"`
+	Service string   `json:"service"`
+	Image   string   `json:"image,omitempty"`
+	State   string   `json:"state"`
+	Health  string   `json:"health,omitempty"`
+	Status  string   `json:"status,omitempty"`
+	Ports   []string `json:"ports,omitempty"`
+}
+
+// Containers lists every container in the Project's Compose project.
+func (s *Service) Containers(ctx context.Context) ([]ContainerStatus, error) {
+	ss, err := s.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	containers, err := ss.compose.Ps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byService := map[string]string{}
+	ids, err := ss.p.AppIDs()
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ids {
+		services, _ := fragmentServices(ss.p.FragmentPath(id))
+		for _, service := range services {
+			byService[service] = id
+		}
+	}
+	out := make([]ContainerStatus, 0, len(containers))
+	for _, c := range containers {
+		cs := ContainerStatus{App: byService[c.Service], Service: c.Service, Image: c.Image,
+			State: c.State, Health: c.Health, Status: c.Status}
+		for _, pub := range c.Publishers {
+			cs.Ports = append(cs.Ports, formatPublisher(pub))
+		}
+		out = append(out, cs)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].App != out[j].App {
+			return out[i].App < out[j].App
+		}
+		return out[i].Service < out[j].Service
+	})
+	return out, nil
+}
+
+// formatPublisher renders one published port as "ip:published→target".
+func formatPublisher(p compose.Publisher) string {
+	ip := p.URL
+	if ip == "" {
+		ip = "0.0.0.0"
+	}
+	return fmt.Sprintf("%s:%d→%d", ip, p.PublishedPort, p.TargetPort)
+}

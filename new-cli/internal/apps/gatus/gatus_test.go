@@ -10,6 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/gatus"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -71,7 +72,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for i, r := range results {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %d = %q, want skip", i, r.Status)
 		}
 	}

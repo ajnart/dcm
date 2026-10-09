@@ -6,12 +6,14 @@ package tracearr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 const defaultEmail = "admin@selfhost.local"
@@ -52,11 +54,11 @@ func (App) Compose(rc app.RenderContext) string {
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://tracearr-redis:6379
       LOG_LEVEL: info
       TZ: ${TZ}
       CORS_ORIGIN: http://127.0.0.1:` + port + `
-      DATABASE_URL: postgresql://tracearr:${TRACEARR_DB_PASSWORD}@timescale:5432/tracearr
+      DATABASE_URL: postgresql://tracearr:${TRACEARR_DB_PASSWORD}@tracearr-timescale:5432/tracearr
       JWT_SECRET: ${TRACEARR_JWT_SECRET}
       COOKIE_SECRET: ${TRACEARR_COOKIE_SECRET}
       BETTER_AUTH_SECRET: ${TRACEARR_AUTH_SECRET}
@@ -66,10 +68,13 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - timescale
-      - redis
-  timescale:
+      - tracearr-timescale
+      - tracearr-redis
+  tracearr-timescale:
     image: timescale/timescaledb-ha:pg18.4-ts2.29.1
+    # This pinned image defaults to postgres UID 1000. Enter its official
+    # root ownership preparation for the bind, then it drops to postgres.
+    user: "0:0"
     restart: unless-stopped
     shm_size: 512mb
     ulimits:
@@ -100,7 +105,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 0s
       retries: 5
-  redis:
+  tracearr-redis:
     image: redis:8-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
@@ -122,11 +127,17 @@ func ownerEmail(h *helpers.H) string {
 	return defaultEmail
 }
 
-func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	login, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/api/v1/auth/sign-in/username",
-		JSON: map[string]string{"username": user, "password": password},
-	})
+type authObservation struct {
+	attempted                         bool
+	loginHTTP, meHTTP                 int
+	token, username, email, owner, id bool
+}
+
+func observeLogin(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (bool, error) {
+	*observed = authObservation{attempted: true}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	login, err := loginAfterRateLimit(ctx, h, user, password, observed)
 	if err != nil {
 		return false, err
 	}
@@ -142,6 +153,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err := login.Decode(&token); err != nil {
 		return false, err
 	}
+	observed.token = token.Token != ""
 	if token.Token == "" {
 		return false, nil
 	}
@@ -152,6 +164,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err != nil {
 		return false, err
 	}
+	observed.meHTTP = resp.Status
 	if resp.Status == 401 || resp.Status == 403 {
 		return false, nil
 	}
@@ -167,7 +180,31 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err := resp.Decode(&me); err != nil {
 		return false, err
 	}
-	return me.Username == user && me.Email == ownerEmail(h) && me.Role == "owner" && me.UserID != "", nil
+	observed.username = me.Username == user
+	observed.email = me.Email == ownerEmail(h)
+	observed.owner = me.Role == "owner"
+	observed.id = me.UserID != ""
+	return observed.username && observed.email && observed.owner && observed.id, nil
+}
+
+// Better Auth 1.6.33 limits sign-in to three requests per ten seconds and
+// returns X-Retry-After in seconds. Bound both waits and requests; never infer
+// successful authentication from a rate-limit response.
+func loginAfterRateLimit(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (helpers.Response, error) {
+	return h.RetryAfter(ctx, helpers.RateLimit{
+		Headers: []string{"X-Retry-After", "Retry-After"},
+		Bound:   30 * time.Second,
+		Retries: 3,
+	}, func(ctx context.Context) (helpers.Response, error) {
+		resp, err := h.HTTP(ctx, helpers.Request{
+			Method: "POST", Path: "/api/v1/auth/sign-in/username",
+			JSON: map[string]string{"username": user, "password": password},
+		})
+		if err == nil {
+			observed.loginHTTP = resp.Status
+		}
+		return resp, err
+	})
 }
 
 type setupStatus struct {
@@ -198,18 +235,114 @@ func createOwner(ctx context.Context, h *helpers.H, user, password string) error
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	first := onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/health", Want: []int{200}},
-		Exists: ownerExists,
+	var observed authObservation
+	first := firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/api/v1/setup/status", Want: []int{200}},
+		Exists: func(ctx context.Context, h *helpers.H) (bool, error) {
+			if observed.loginHTTP == 429 {
+				return false, fmt.Errorf("Tracearr login returned HTTP 429; retry setup after the authentication rate limit clears")
+			}
+			return ownerExists(ctx, h)
+		},
 		Create: createOwner,
-		Login:  signedIn,
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			return observeLogin(ctx, h, user, password, &observed)
+		},
 		Manual: "Open " + h.URL + " and create the first owner as " + ownerEmail(h) + ".",
 	}
-	return first.Setup(ctx, h)
+	err := first.Setup(ctx, h)
+	if err == nil {
+		return nil
+	}
+	return errors.Join(err, startupStatus(ctx, h), authStatus(ctx, h, observed))
+}
+
+// Keep the failed attempt instead of signing in again: retries can hide a
+// rate-limit response. Public setup metadata is the only additional request.
+func authStatus(ctx context.Context, h *helpers.H, observed authObservation) error {
+	if !observed.attempted {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	local, password, needs := "unknown", "unknown", "unknown"
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/v1/setup/status", NoRedirect: true})
+	if err == nil && resp.Status == 200 {
+		var status struct {
+			NeedsSetup      *bool `json:"needsSetup"`
+			HasPasswordAuth *bool `json:"hasPasswordAuth"`
+			AuthMethods     struct {
+				Local *bool `json:"local"`
+			} `json:"authMethods"`
+		}
+		if resp.Decode(&status) == nil {
+			flag := func(value *bool) string {
+				if value == nil {
+					return "unknown"
+				}
+				return strconv.FormatBool(*value)
+			}
+			local, password, needs = flag(status.AuthMethods.Local), flag(status.HasPasswordAuth), flag(status.NeedsSetup)
+		}
+	}
+	return h.Step(ctx, "auth-status", "observe Tracearr failed authentication", helpers.StepSpec{
+		Do: func(context.Context) error {
+			return fmt.Errorf("Tracearr authentication status: login_http=%d token_present=%t me_http=%d username_match=%t email_match=%t owner_match=%t owner_id_present=%t local_login_enabled=%s has_password_auth=%s needs_setup=%s", observed.loginHTTP, observed.token, observed.meHTTP, observed.username, observed.email, observed.owner, observed.id, local, password, needs)
+		},
+		Hint: "Open " + h.URL + " and check the reported authentication stage and local-login policy; preserve the existing owner and saved credentials.",
+	})
+}
+
+// Tracearr 2.6.0 exposes these cached public signals even while its API is
+// gated with 503. Report only fixed enums and booleans, never migration error
+// text, restore details or the raw health body.
+func startupStatus(ctx context.Context, h *helpers.H) error {
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/health"})
+	if err != nil || resp.Status != 200 {
+		return nil
+	}
+	var status struct {
+		Mode  string `json:"mode"`
+		DB    *bool  `json:"db"`
+		Redis *bool  `json:"redis"`
+		Init  string `json:"initStep"`
+	}
+	if resp.Decode(&status) != nil || (status.Mode != "maintenance" && status.Mode != "starting") {
+		return nil
+	}
+	phase := "unrecognized"
+	switch status.Init {
+	case "":
+		phase = "none"
+	case "migrations", "timescale", "services":
+		phase = status.Init
+	}
+	dependency := func(healthy *bool) string {
+		if healthy == nil {
+			return "unknown"
+		}
+		if *healthy {
+			return "ready"
+		}
+		return "unavailable"
+	}
+	return h.Step(ctx, "startup-status", "observe Tracearr startup status", helpers.StepSpec{
+		Do: func(context.Context) error {
+			return fmt.Errorf("Tracearr startup status: mode=%s db=%s redis=%s init=%s", status.Mode, dependency(status.DB), dependency(status.Redis), phase)
+		},
+		Hint: "Check the owned database and Redis health and the reported initialization phase before retrying Tracearr setup.",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{Login: signedIn}).Check(ctx, h)
+	var observed authObservation
+	err := (firstadmin.FirstAdmin{Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+		return observeLogin(ctx, h, user, password, &observed)
+	}}).Check(ctx, h)
+	if err == nil {
+		return nil
+	}
+	return errors.Join(err, authStatus(ctx, h, observed))
 }
 
 func (App) Links() []app.Link { return nil }

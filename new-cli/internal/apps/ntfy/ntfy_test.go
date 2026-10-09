@@ -1,10 +1,12 @@
 package ntfy_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -13,6 +15,8 @@ import (
 	"github.com/ajnart/self-host/internal/apps/ntfy"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -21,6 +25,8 @@ import (
 type fakeNtfy struct {
 	mu               sync.Mutex
 	users            map[string]string
+	tokens           map[string]string
+	nextToken        int
 	anonymousCanRead bool
 }
 
@@ -43,18 +49,42 @@ func (f *fakeNtfy) handler() http.Handler {
 		}
 		json.NewEncoder(w).Encode(map[string]string{"username": user, "role": "admin"})
 	})
-	mux.HandleFunc("GET /{topic}/json", func(w http.ResponseWriter, r *http.Request) {
-		if _, _, ok := r.BasicAuth(); !ok && !f.anonymousCanRead {
-			w.WriteHeader(http.StatusForbidden)
+	mux.HandleFunc("POST /v1/account/token", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !ok || f.users[user] != pass {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		w.Write([]byte(""))
+		f.nextToken++
+		token := "tk_test_" + strconv.Itoa(f.nextToken)
+		f.tokens[token] = user
+		json.NewEncoder(w).Encode(map[string]string{"token": token})
+	})
+	mux.HandleFunc("GET /{topic}/json", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if _, _, ok := r.BasicAuth(); ok {
+			w.Write([]byte(""))
+			return
+		}
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if _, ok := f.tokens[token]; token != "" && ok {
+			w.Write([]byte(""))
+			return
+		}
+		if f.anonymousCanRead {
+			w.Write([]byte(""))
+			return
+		}
+		w.WriteHeader(http.StatusForbidden)
 	})
 	return mux
 }
 
 func setup(t *testing.T) (*system.Deps, *fakeNtfy, *httptest.Server, *catalog.Catalog) {
-	fake := &fakeNtfy{users: map[string]string{}}
+	fake := &fakeNtfy{users: map[string]string{}, tokens: map[string]string{}}
 	server := httptest.NewServer(fake.handler())
 	t.Cleanup(server.Close)
 	deps := systemtest.NewDeps(t)
@@ -103,8 +133,38 @@ func TestInstallCreatesAdminAndDeniesAnonymousReads(t *testing.T) {
 	if fake.users["admin"] == "" || fake.users["admin"] != parsed.Admin.Password {
 		t.Fatalf("ntfy admin not created with the Admin login: %v", fake.users)
 	}
-	if r.StepEvent("ntfy", "admin-user") != "step.ok" || r.StepEvent("ntfy", "check") != "step.ok" {
+	secrets := clitest.Read(t, filepath.Join(clitest.Root(t, deps), "secrets.env"))
+	for _, want := range []string{"NTFY_TOPIC=", "NTFY_HOMARR_TOKEN="} {
+		if !strings.Contains(secrets, want) {
+			t.Errorf("secrets.env lacks %s:\n%s", want, secrets)
+		}
+	}
+	if r.StepEvent("ntfy", "admin-user") != "step.ok" || r.StepEvent("ntfy", "topic-token") != "step.ok" || r.StepEvent("ntfy", "check") != "step.ok" {
 		t.Fatalf("steps not ok:\n%s", r.Out)
+	}
+}
+
+// fakeSecrets is the in-memory store a direct Check uses.
+type fakeSecrets map[string]string
+
+func (s fakeSecrets) Get(key string) string       { return s[key] }
+func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
+
+func TestCheckRejectsATokenThatCannotReadTheTopic(t *testing.T) {
+	deps, fake, server, _ := setup(t)
+	fake.users["admin"] = "pw"
+	h := helpers.New(helpers.Config{
+		App: "ntfy", Service: "ntfy", BaseURL: server.URL, URL: server.URL,
+		HTTP: server.Client(), Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
+		Secrets: fakeSecrets{
+			"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw",
+			"NTFY_TOPIC": "topic", "NTFY_HOMARR_TOKEN": "stale",
+		},
+	})
+
+	err := (ntfy.App{}).Check(context.Background(), h)
+	if err == nil || !strings.Contains(err.Error(), "token") {
+		t.Fatalf("check should reject a token that cannot read the topic: %v", err)
 	}
 }
 

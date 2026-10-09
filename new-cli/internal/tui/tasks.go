@@ -24,10 +24,11 @@ type task struct {
 	cancel  context.CancelFunc
 	ctx     context.Context
 
-	mu     sync.Mutex
-	state  taskState
-	err    string
-	events []events.Event
+	mu        sync.Mutex
+	state     taskState
+	err       string
+	events    []events.Event
+	persisted bool
 }
 
 func (t *task) append(e events.Event) {
@@ -37,23 +38,25 @@ func (t *task) append(e events.Event) {
 }
 
 type taskSnapshot struct {
-	id     int
-	title  string
-	state  taskState
-	err    string
-	events []events.Event
+	id        int
+	title     string
+	state     taskState
+	err       string
+	events    []events.Event
+	persisted bool
 }
 
 func (t *task) snapshot() taskSnapshot {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return taskSnapshot{id: t.id, title: t.title, state: t.state, err: t.err, events: append([]events.Event(nil), t.events...)}
+	return taskSnapshot{id: t.id, title: t.title, state: t.state, err: t.err, events: append([]events.Event(nil), t.events...), persisted: t.persisted}
 }
 
 // taskManager is shared by every copy of the Model.
 type taskManager struct {
 	mu     sync.Mutex
 	nextID int
+	lastID int
 	tasks  []*task
 }
 
@@ -64,6 +67,7 @@ func (m *taskManager) start(title string) *task {
 	ctx, cancel := context.WithCancel(context.Background())
 	t := &task{id: m.nextID, title: title, started: time.Now(), ctx: ctx, cancel: cancel}
 	m.tasks = append(m.tasks, t)
+	m.lastID = t.id
 	return t
 }
 
@@ -95,6 +99,14 @@ func (m *taskManager) get(id int) *task {
 	return nil
 }
 
+// latest is the most recently started task, the one the footer follows.
+func (m *taskManager) latest() *task {
+	m.mu.Lock()
+	id := m.lastID
+	m.mu.Unlock()
+	return m.get(id)
+}
+
 func (m *taskManager) snapshots() []taskSnapshot {
 	m.mu.Lock()
 	tasks := append([]*task(nil), m.tasks...)
@@ -104,6 +116,28 @@ func (m *taskManager) snapshots() []taskSnapshot {
 		out[i] = t.snapshot()
 	}
 	return out
+}
+
+// terminalIDs captures tasks whose mutations finished before a status read.
+func (m *taskManager) terminalIDs() []int {
+	var ids []int
+	for _, task := range m.snapshots() {
+		if task.state != taskRunning {
+			ids = append(ids, task.id)
+		}
+	}
+	return ids
+}
+
+// acknowledge keeps footer history but lets refreshed status own these steps.
+func (m *taskManager) acknowledge(ids []int) {
+	for _, id := range ids {
+		if task := m.get(id); task != nil {
+			task.mu.Lock()
+			task.persisted = true
+			task.mu.Unlock()
+		}
+	}
 }
 
 func (m *taskManager) running() int {

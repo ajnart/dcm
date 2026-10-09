@@ -1,0 +1,42 @@
+{
+  "binary_sha256": "4a1329fe447ecffb7e799ba1f385311fb42fc2f95b0e0c25b290976b0be5d6bb",
+  "project": "/tmp/selfhost-e2e-960534721/project",
+  "compose_name": "selfhost-e2e-d6ac35f1",
+  "cols": 120,
+  "rows": 30,
+  "screens": [
+    "dashboard",
+    "workflow",
+    "install-search"
+  ],
+  "docker_logs_and_mutations": "blocked from process start",
+  "terminal_renderer": "@xterm/xterm@5.5.0",
+  "source_head": "374bd1c813aa6f2d32580f1ae4fe2711a0ecb427",
+  "fixture_apps": [
+    "homarr",
+    "jellyfin",
+    "ntfy"
+  ],
+  "workflow_expansion": "actual Space key; selected Homarr expanded",
+  "capture_scope": "Actual read-only TUI, captured after all nine real API/browser stages passed; loopback-only fixture; Docker logs and mutations blocked from process start",
+  "screenshot_pixels": {
+    "dashboard": {
+      "width": 1124,
+      "height": 580
+    },
+    "workflow": {
+      "width": 1124,
+      "height": 580
+    },
+    "install-search": {
+      "width": 1124,
+      "height": 580
+    }
+  },
+  "artifacts": {
+    "images/dashboard.png": "204b7b26dc08c7526f9f606bc72f9022a98d16efdb4faf16c7c554a9179601cc",
+    "images/workflow.png": "7d8a57b0905a92726b737d4a5230b191970a55bdbd49382228521e1383e6adf6",
+    "images/install-search.png": "433b41ce5a39db9ff303e6a9a0dd97737058f02f6d4edab70f3b0d8bc2275449",
+    "demos/self-host.cast": "5dfb3891fc760ee9a619771f97fa54c34169b8eb977f8d0f2e43b44a829d1b06"
+  }
+}

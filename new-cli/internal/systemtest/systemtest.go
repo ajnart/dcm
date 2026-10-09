@@ -2,6 +2,7 @@
 package systemtest
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -20,12 +21,25 @@ type rule struct {
 	handle func(system.Cmd) system.Result
 }
 
+type streamRule struct {
+	match  string
+	output string
+	err    error
+}
+
+type streamIORule struct {
+	match  string
+	handle func(context.Context, system.Cmd, io.Reader, io.Writer, io.Writer) error
+}
+
 // Runner is a scripted stand-in for external processes. Rules match on the
 // space-joined command line prefix; the most recently added rule wins.
 type Runner struct {
-	mu    sync.Mutex
-	rules []rule
-	calls []system.Cmd
+	mu       sync.Mutex
+	rules    []rule
+	streams  []streamRule
+	streamIO []streamIORule
+	calls    []system.Cmd
 	// Logs is written by Stream for `docker compose logs`.
 	Logs string
 }
@@ -58,8 +72,36 @@ func (r *Runner) Run(_ context.Context, cmd system.Cmd) (system.Result, error) {
 	return system.Result{}, nil
 }
 
+// OnStream scripts the output Stream writes for commands whose line contains
+// match. The last matching entry wins.
+func (r *Runner) OnStream(match, output string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.streams = append(r.streams, streamRule{match: match, output: output})
+}
+
+// OnStreamError is OnStream with a failure, so Stream returns err after
+// writing output.
+func (r *Runner) OnStreamError(match, output string, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.streams = append(r.streams, streamRule{match: match, output: output, err: err})
+}
+
 func (r *Runner) Stream(ctx context.Context, cmd system.Cmd, w io.Writer) error {
 	result, _ := r.Run(ctx, cmd)
+	r.mu.Lock()
+	streams := append([]streamRule(nil), r.streams...)
+	r.mu.Unlock()
+	line := Line(cmd)
+	for i := len(streams) - 1; i >= 0; i-- {
+		if strings.Contains(line, streams[i].match) {
+			if streams[i].output != "" {
+				io.WriteString(w, streams[i].output)
+			}
+			return streams[i].err
+		}
+	}
 	if len(result.Stdout) > 0 {
 		w.Write(result.Stdout)
 	} else {
@@ -69,6 +111,59 @@ func (r *Runner) Stream(ctx context.Context, cmd system.Cmd, w io.Writer) error 
 		return fmt.Errorf("exit status %d", result.ExitCode)
 	}
 	return nil
+}
+
+// OnStreamIO scripts an invocation without buffering its input or combining
+// binary stdout with diagnostics. The last matching handler wins.
+func (r *Runner) OnStreamIO(match string, handle func(context.Context, system.Cmd, io.Reader, io.Writer, io.Writer) error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.streamIO = append(r.streamIO, streamIORule{match: match, handle: handle})
+}
+
+func (r *Runner) StreamIO(ctx context.Context, cmd system.Cmd, stdin io.Reader, stdout, stderr io.Writer) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	r.mu.Lock()
+	r.calls = append(r.calls, cmd)
+	streams := append([]streamIORule(nil), r.streamIO...)
+	rules := append([]rule(nil), r.rules...)
+	r.mu.Unlock()
+	if stdin == nil && cmd.Stdin != nil {
+		stdin = bytes.NewReader(cmd.Stdin)
+	}
+	line := Line(cmd)
+	for i := len(streams) - 1; i >= 0; i-- {
+		if strings.Contains(line, streams[i].match) {
+			err := streams[i].handle(ctx, cmd, stdin, stdout, stderr)
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return err
+		}
+	}
+	var result system.Result
+	for i := len(rules) - 1; i >= 0; i-- {
+		if strings.HasPrefix(line, rules[i].prefix) {
+			result = rules[i].handle(cmd)
+			break
+		}
+	}
+	if stdout != nil {
+		if _, err := stdout.Write(result.Stdout); err != nil {
+			return err
+		}
+	}
+	if stderr != nil {
+		if _, err := stderr.Write(result.Stderr); err != nil {
+			return err
+		}
+	}
+	if result.ExitCode != 0 {
+		return fmt.Errorf("exit status %d", result.ExitCode)
+	}
+	return ctx.Err()
 }
 
 // Calls returns every command line run so far.
@@ -95,6 +190,7 @@ func NewDeps(t *testing.T) *system.Deps {
 	t.Helper()
 	runner := &Runner{}
 	runner.On("docker version", system.Result{Stdout: []byte("27.3.1\n")})
+	runner.On("docker info", system.Result{Stdout: []byte(`["name=seccomp,profile=builtin","name=cgroupns"]`)})
 	runner.On("docker compose version", system.Result{Stdout: []byte("2.29.7\n")})
 	home := t.TempDir()
 	env := map[string]string{}

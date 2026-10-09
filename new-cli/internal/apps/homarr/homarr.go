@@ -372,7 +372,7 @@ func (s *session) createAPIKey(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/health/live", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/health/live", helpers.Timeout(2*time.Minute)); err != nil {
 		return err
 	}
 	s := newSession()
@@ -396,11 +396,32 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	return h.Step(ctx, "api-key", "create and store a Homarr API key", helpers.StepSpec{
+	err = h.Step(ctx, "api-key", "create and store a Homarr API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return apiKeyWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return s.createAPIKey(ctx, h) },
 		Hint: "Open " + h.URL + "/manage/api, create an API key and save it in secrets.env as " +
 			h.Key("api_key") + ".",
+		Credential: "admin",
+	})
+	if err != nil {
+		return err
+	}
+	if h.InstalledApps != nil {
+		if err := h.Step(ctx, "app-tiles", "reconcile installed App tiles", helpers.StepSpec{
+			Check: func(ctx context.Context) (bool, error) { return installedTiles(ctx, h, false) },
+			Do:    func(ctx context.Context) error { _, err := installedTiles(ctx, h, true); return err },
+			Hint:  "Run self-host setup homarr to reconcile installed App tiles; tiles prove navigation only.",
+		}); err != nil {
+			return err
+		}
+	}
+	if err := ensureAssistant(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "notebook", "place the Homarr notebook", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return notebookCurrent(ctx, h) },
+		Do:         func(ctx context.Context) error { return updateNotebook(ctx, h) },
+		Hint:       "Open " + h.URL + " and add a Notebook widget, or rerun this step.",
 		Credential: "admin",
 	})
 }

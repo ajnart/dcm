@@ -1,0 +1,24 @@
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+  Activity · 1 App fully set up · 1 step failed · 0 steps running
+
+  ✓ install jellyfin sonarr
+    ✓ ▣ Start   ✓ Setup   ✓ ✱ Credentials   ✓ ⇄ Links   ✓ Check
+  ╭─ Apps 2/2 set up ──────────────────────────────────────────────────────────╮
+  │ ● Jellyfin        ready                                                    │
+  │ ● Sonarr          ready                                                    │
+  ╰────────────────────────────────────────────────────────────────────────────╯
+  ╭─ Links 1/1 ────────────────────────────────────────────────────────────────╮
+  │ ✓ ⇄ Sonarr      ━━━━▶ Jellyfin    add Jellyfin as a connection             │
+  ╰────────────────────────────────────────────────────────────────────────────╯
+    All 2 Apps are ready
+
+  > ▸ Jellyfin
+    ▾ Sonarr
+      ✓ start · started
+      ✗ download-client
+      ✓ ready · wait for the Sonarr API
+      ✓ api-key · read the Sonarr API key
+      ✓ root-folder · add the root folder /media/tv
+      ✓ link-jellyfin → jellyfin · add Jellyfin as a connection
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   a  actions …

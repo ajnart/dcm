@@ -1,0 +1,27 @@
+── frame 10 ──
+⠋ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start
+╭─ Apps 0/3 set up ────────────────────────────────────────────────────────────╮
+│ ◉ qBittorrent     started                                                    │
+│ ◉ Sonarr          started                                                    │
+│ ◉ Radarr          started                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Working on install qbittorrent sonarr radarr
+── frame 13 ──
+⠸ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start
+╭─ Apps 0/3 set up ────────────────────────────────────────────────────────────╮
+│ ◉ qBittorrent     started                                                    │
+│ ◉ Sonarr          started                                                    │
+│ ◉ Radarr          started                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Working on install qbittorrent sonarr radarr
+── frame 14 ──
+⠼ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start
+╭─ Apps 0/3 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     started                                                    │
+│ ● Sonarr          started                                                    │
+│ ● Radarr          started                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Working on install qbittorrent sonarr radarr

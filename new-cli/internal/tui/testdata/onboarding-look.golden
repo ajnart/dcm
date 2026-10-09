@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ✓ Who › ● Look › ○ Review
+
+  How self-host looks
+  self-host can draw its icons with a Nerd Font, a terminal font with extra symbols, or with plain
+  symbols every font has. Bars and spinners look the same either way.
+
+  󰜋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring
+
+  Do these icons look right?
+    ○ Yes, they look right: use Nerd Font icons
+  > ● No, I see boxes or gaps: use Simple symbols
+
+  Learn about Nerd Fonts: https://www.nerdfonts.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ q quit                                                                            ↑/↓  choose   enter  use   esc  back

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -48,19 +47,19 @@ func (App) Compose(rc app.RenderContext) string {
     restart: unless-stopped
     environment:
       DB_DATABASE_NAME: immich
-      DB_HOSTNAME: database
+      DB_HOSTNAME: immich-database
       DB_USERNAME: postgres
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       IMMICH_ALLOW_SETUP: "true"
       IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
-      REDIS_HOSTNAME: redis
+      REDIS_HOSTNAME: immich-redis
     volumes:
       - ./uploads:/data
     ports:
       - ${BIND_IP}:` + port + `:2283
     depends_on:
-      - database
-      - redis
+      - immich-database
+      - immich-redis
     healthcheck:
       test: ["CMD", "immich-healthcheck"]
       interval: 30s
@@ -76,7 +75,7 @@ func (App) Compose(rc app.RenderContext) string {
       interval: 30s
       timeout: 30s
       retries: 3
-  redis:
+  immich-redis:
     image: docker.io/valkey/valkey:9
     restart: unless-stopped
     healthcheck:
@@ -84,7 +83,7 @@ func (App) Compose(rc app.RenderContext) string {
       interval: 30s
       timeout: 10s
       retries: 3
-  database:
+  immich-database:
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
     restart: unless-stopped
     shm_size: 134217728
@@ -147,7 +146,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/server/config", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/server/config"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "create the first administrator "+email, helpers.StepSpec{

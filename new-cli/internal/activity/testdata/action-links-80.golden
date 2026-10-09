@@ -1,0 +1,45 @@
+── frame 30 ──
+⠋ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start   ⠋ ⇄ Links   ✓ Check
+╭─ Apps 2/4 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                                      │
+│ ● Sonarr          ready                                                      │
+│ ● Radarr          started                                                    │
+│ ○ Seerr           waiting                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Links 1/3 ──────────────────────────────────────────────────────────────────╮
+│ ✓ ⇄ Sonarr      ╌╌╌╌╌ qBittorrent use qBittorrent as the download client     │
+│ ○ ⇄ Radarr      ╌╌╌╌╌ qBittorrent waiting for qbittorrent (install it, or f… │
+│ ⠋ ⇄ Seerr       ━╌╌╌╌ Sonarr      send requests to Sonarr                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Linking Seerr to Sonarr
+── frame 32 ──
+⠹ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start   ⠹ ⇄ Links   ✓ Check
+╭─ Apps 2/4 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                                      │
+│ ● Sonarr          ready                                                      │
+│ ● Radarr          started                                                    │
+│ ○ Seerr           waiting                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Links 1/3 ──────────────────────────────────────────────────────────────────╮
+│ ✓ ⇄ Sonarr      ━━╌╌╌ qBittorrent use qBittorrent as the download client     │
+│ ○ ⇄ Radarr      ╌╌╌╌╌ qBittorrent waiting for qbittorrent (install it, or f… │
+│ ⠹ ⇄ Seerr       ╌╌━╌╌ Sonarr      send requests to Sonarr                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Linking Seerr to Sonarr
+── frame 36 ──
+⠦ install qbittorrent sonarr radarr
+  ✓ ▣ Pull   ✓ ▣ Start   ⠦ ⇄ Links   ✓ Check
+╭─ Apps 2/4 set up ────────────────────────────────────────────────────────────╮
+│ ● qBittorrent     ready                                                      │
+│ ● Sonarr          ready                                                      │
+│ ● Radarr          started                                                    │
+│ ○ Seerr           waiting                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Links 1/3 ──────────────────────────────────────────────────────────────────╮
+│ ✓ ⇄ Sonarr      ━━━━▶ qBittorrent use qBittorrent as the download client     │
+│ ○ ⇄ Radarr      ╌╌╌╌╌ qBittorrent waiting for qbittorrent (install it, or f… │
+│ ⠦ ⇄ Seerr       ╌━╌╌╌ Sonarr      send requests to Sonarr                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  Linking Seerr to Sonarr

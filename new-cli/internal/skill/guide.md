@@ -17,7 +17,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    inputs and Links.
 3. `self-host install <app|recipe>... --yes --json` installs and runs Setup.
    Without `--yes` a non-terminal run refuses. Answer an App's inputs with
-   `--set app.key=value` (repeatable); `--set app.port=N` picks its port.
+   `--set app.key=value` for non-secret fields (repeatable); `--set app.port=N`
+   picks its port. Private inputs use the file references described in Secrets.
    Host choices for a new Project: `--exposure`, `--media-root`,
    `--downloads-root`, `--admin-user`. The Admin password comes from
    `SELF_HOST_ADMIN_PASSWORD` or is generated.
@@ -42,6 +43,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 | `self-host apps info <app>` | One App's image, port, inputs, Links |
 | `self-host start [app...]` | Start Apps (all when none named) |
 | `self-host stop [app...]` | Stop Apps |
+| `self-host up` | Start every App in the Project |
+| `self-host down` | Take down the Project's containers and networks; App files, state and volumes stay |
 | `self-host restart [app...]` | Restart Apps |
 | `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
 | `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
@@ -58,7 +61,7 @@ JSON document), `--verbose` or `-v` (also print every command and step start).
 
 Command flags:
 
-- install: `--yes`, `--set`, `--exposure`, `--media-root`, `--downloads-root`,
+- install: `--yes`, `--set`, `--set-file`, `--exposure`, `--media-root`, `--downloads-root`,
   `--admin-user`
 - status: `--updates`
 - remove: `--purge` (also deletes the App's data folder), `--yes`
@@ -84,7 +87,7 @@ Fields (all but `event` are omitted when empty):
 
 | Field | Meaning |
 | --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `command`, `info` |
+| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
 | `app`, `step` | What the event is about |
 | `msg` | Human summary |
 | `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
@@ -93,6 +96,9 @@ Fields (all but `event` are omitted when empty):
 | `hint` | The next action, in words |
 | `docs` | Upstream documentation |
 | `command` | The shell command run (`command` events) |
+| `image`, `layer` | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events) |
+| `status` | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled` |
+| `current`, `total` | Bytes done and expected for a `pull.progress` event |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
@@ -106,6 +112,11 @@ print one result on stdout and only errors on stderr with `--json`.
 - `1`: error (read the `error` field of the last `run.end` or `step.fail`)
 - `2`: Setup incomplete. Everything is installed, but at least one Setup step
   failed. Read the `step.fail` events or `self-host status --json`.
+
+- `3`: Only Manual steps remain after install or Setup. Read the `step.manual`
+  hints or `self-host status --json` (`setup` and step `status` are `manual`).
+  Finish them in the browser, then retry Setup. A browser-only verification
+  remains manual on retry; a successful probe does not prove that step finished.
 
 `self-host doctor` exits `1` when any check fails.
 
@@ -174,9 +185,29 @@ its output where needed (a login form, an API header) and say only where it
 came from. Secrets live in `~/self-host/secrets.env` with mode 0600; do not
 read that file directly.
 
+For inputs marked `private` by `self-host apps info <app> --json`, pass
+`--set-file app.key=/owned/private/credential-file` during install. Use an
+existing regular, owner-only file belonging to the Project owner; the CLI
+reads it privately and saves its value in the secret store. Use
+`--set-file app.key=-` to read from the command's stdin instead, with at most
+one `-` per command. Both transports accept at most 64 KiB and strip trailing
+CR/LF; values must be a single line without NUL bytes. Never put the value in
+command arguments. Missing required private inputs fail before a first Install
+creates a Project or its settings. Interactive private
+inputs are masked. Provider accounts and approvals remain prerequisites.
+
 ## Updating the binary
 
-`self-host self-update` downloads the latest release, verifies its sha256
+`self-host self-update` selects the highest stable `new-cli-vX.Y.Z` release
+from `ajnart/selfhost-skills`, verifies its sha256
 checksum, and replaces the running binary. It prints the old and new versions
 and refuses on a checksum mismatch. A development build must be replaced with
 a release using the install script instead.
+
+Linux and macOS amd64/arm64 are build targets. Use the Linux binary
+inside WSL; native Windows is unsupported. Cross-compilation
+alone does not prove native platform support.
+
+For private releases, provide `SELF_HOST_GITHUB_TOKEN` through your credential
+provider. It is used for authenticated API downloads and is never printed.
+Never put its value in commands, reports or saved client configuration.

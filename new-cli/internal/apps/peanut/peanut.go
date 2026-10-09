@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -23,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "peanut", Name: "PeaNUT", Category: "Monitoring",
 		Description:   "Dashboard for the readings of your NUT-monitored UPS",
-		Image:         "brandawg93/peanut:v6.0.0",
+		Image:         "brandawg93/peanut:6.0.0",
 		Docs:          "https://github.com/Brandawg93/PeaNUT#readme",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -37,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   peanut:
-    image: brandawg93/peanut:v6.0.0
+    image: brandawg93/peanut:6.0.0
     restart: unless-stopped
     environment:
       WEB_HOST: 0.0.0.0
@@ -76,7 +75,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, infoPath, 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, infoPath); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-auth", "verify the administrator "+h.AdminUser(), helpers.StepSpec{

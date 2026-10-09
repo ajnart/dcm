@@ -2,6 +2,11 @@ version: 2
 
 project_name: self-host
 
+# The release workflow validates new-cli-vX.Y.Z and supplies X.Y.Z.
+# Package locally with --snapshot; publication is owned by that workflow.
+snapshot:
+  version_template: "{{ .Env.SELF_HOST_RELEASE_VERSION }}"
+
 builds:
   - id: self-host
     main: ./cmd/self-host
@@ -14,9 +19,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: darwin
-        goarch: amd64
     flags:
       - -trimpath
     ldflags:

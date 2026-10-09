@@ -22,6 +22,8 @@ type Info struct {
 	Service string
 	// Path is appended to the App URL when users open it (e.g. "/web").
 	Path string
+	// NoWebUI identifies a published protocol endpoint that is not a browser URL.
+	NoWebUI bool
 	// UsesMedia means the App mounts ${MEDIA_ROOT} or ${DOWNLOADS_ROOT}.
 	UsesMedia bool
 }
@@ -32,6 +34,10 @@ type Input struct {
 	Help     string
 	Default  string
 	Required bool
+	// Private inputs are stored in secrets.env, never in Project state.
+	Private bool
+	// Validate rejects an invalid public input before any apply operation.
+	Validate func(string) error `json:"-"`
 }
 
 // RenderContext is what an App needs to render its Compose fragment.
@@ -75,6 +81,13 @@ type SecretDeclarer interface {
 	Secrets() []SecretSpec
 }
 
+// EphemeralFIFODeclarer identifies disposable runtime FIFOs recreated by the
+// App. Only an exact FIFO at a canonical App-relative path may be omitted from
+// backup; regular files, other special types and unsafe paths remain checked.
+type EphemeralFIFODeclarer interface {
+	EphemeralFIFOs() []string
+}
+
 // Link wires the App that declares it to Target. Apply runs only once both
 // Apps finished Setup; Remove runs when Target is removed.
 type Link struct {
@@ -103,4 +116,11 @@ type File struct {
 // "ADMIN_USER" and "ADMIN_PASSWORD".
 type FileDeclarer interface {
 	Files(rc RenderContext, secret func(name string) string) []File
+}
+
+// PreflightChecker validates an App's owned local prerequisites before rendering
+// or starting containers. It must not mutate files or call the running App.
+// Restore checks safely extracted files using their archived public inputs.
+type PreflightChecker interface {
+	Preflight(context.Context, *helpers.H) error
 }

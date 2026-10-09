@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"regexp"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -47,7 +48,7 @@ func (App) Inputs() []app.Input {
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
 		{Name: "server_secret", Length: 32},
-		{Name: "setup_token", Length: 16, Hex: true},
+		{Name: "setup_token", Length: 32, Hex: true},
 	}
 }
 
@@ -84,10 +85,10 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
     depends_on:
-      - server
+      - pangolin-server
     ports:
-      - ${BIND_IP}:18086:8080
-  server:
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:8080
+  pangolin-server:
     image: fosrl/pangolin:1.24.0
     restart: unless-stopped
     environment:
@@ -117,11 +118,11 @@ const dynamicConfig = "http:\n" +
 	"    dashboard:\n" +
 	"      loadBalancer:\n" +
 	"        servers:\n" +
-	"          - url: \"http://server:3002\"\n" +
+	"          - url: \"http://pangolin-server:3002\"\n" +
 	"    api:\n" +
 	"      loadBalancer:\n" +
 	"        servers:\n" +
-	"          - url: \"http://server:3000\"\n"
+	"          - url: \"http://pangolin-server:3000\"\n"
 
 // Files writes the Traefik router, the server config and its secret file.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
@@ -138,7 +139,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 		"  domain1:\n" +
 		"    base_domain: \"" + baseDomain(rc) + "\"\n" +
 		"server:\n" +
-		"  internal_hostname: \"server\"\n" +
+		"  internal_hostname: \"pangolin-server\"\n" +
 		"  secret: \"" + secret("server_secret") + "\"\n" +
 		"  cors:\n" +
 		"    origins: [\"" + base + "\"]\n" +
@@ -161,10 +162,12 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	}
 }
 
-const managementHint = "Set the external URL with: self-host setup pangolin --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com " +
+const managementHint = "Set the external URL with: self-host install pangolin --yes --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com " +
 	"(see https://docs.pangolin.net/)"
 
 func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+
+var setupTokenPattern = regexp.MustCompile(`^[a-z0-9]{32}$`)
 
 type loginResult struct {
 	Status  int    `json:"status"`
@@ -176,7 +179,8 @@ type loginResult struct {
 func loginWorks(ctx context.Context, h *helpers.H, email string) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/v1/auth/login",
-		JSON: map[string]string{"email": email, "password": h.AdminPassword()},
+		Header: map[string]string{"X-CSRF-Token": "x-csrf-protection"},
+		JSON:   map[string]string{"email": email, "password": h.AdminPassword()},
 	})
 	if err != nil {
 		return false, err
@@ -202,7 +206,24 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/api/v1/auth/initial-setup-complete", 2*time.Minute); err != nil {
+	secretPath := "Project secrets.env"
+	if h.Dir != "" {
+		secretPath = filepath.Join(h.Dir, "..", "..", "secrets.env")
+	}
+	if err := h.Step(ctx, "setup-token", "validate the saved Pangolin bootstrap token", helpers.StepSpec{
+		Check: func(context.Context) (bool, error) {
+			if !setupTokenPattern.MatchString(h.Secret(h.Key("setup_token"))) {
+				return false, errors.New("the saved bootstrap token does not match Pangolin's pinned startup contract")
+			}
+			return true, nil
+		},
+		Hint: "Privately replace only " + h.Key("setup_token") + " in " + secretPath +
+			" with a securely generated token of exactly 32 lowercase alphanumeric characters. " +
+			"Leave ADMIN_USER, ADMIN_PASSWORD, all other credentials and existing data unchanged; then rerun self-host install pangolin.",
+	}); err != nil {
+		return err
+	}
+	if err := h.Ready(ctx, "/api/v1/auth/initial-setup-complete"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "create the first Pangolin administrator "+email, helpers.StepSpec{
@@ -225,6 +246,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			created, err := h.Expect(ctx, helpers.Request{
 				Method: http.MethodPut, Path: "/api/v1/auth/set-server-admin",
+				Header: map[string]string{"X-CSRF-Token": "x-csrf-protection"},
 				JSON: map[string]string{"email": email, "password": h.AdminPassword(),
 					"setupToken": h.Secret(h.Key("setup_token"))},
 			})
@@ -240,7 +262,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "If the first administrator was already created, sign in with the saved Admin login or recreate the server; do not replay creation. " + managementHint,
+		Hint:       "If the first administrator was already created, privately reconcile the saved Admin login with that administrator; preserve its data and do not replay creation. " + managementHint,
 		Credential: "admin",
 	})
 }

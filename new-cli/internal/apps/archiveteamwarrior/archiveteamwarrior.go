@@ -43,15 +43,40 @@ func (App) Compose(rc app.RenderContext) string {
 		nickname = "selfhost"
 	}
 	port := strconv.Itoa(rc.Port)
+	// The pinned image runs as UID/GID 1000 and seeds config before opening
+	// its UI. Docker creates fresh binds as root; restore the hidden image
+	// helpers as regular executables and prepare only these App directories.
+	// Only the pinned image's known absolute helper link is migrated; custom
+	// paths and saved config are retained, and backup containment stays strict.
 	return `services:
+  archive-team-warrior-init:
+    image: atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca
+    user: "0:0"
+    network_mode: none
+    read_only: true
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ -L /owned/data/wget-at ] && [ "$(readlink /owned/data/wget-at)" = /usr/local/bin/wget-lua ]; then
+          rm -- /owned/data/wget-at
+        fi
+        cp -aLn /home/warrior/data/. /owned/data/
+        chown -Rh 1000:1000 /owned/projects /owned/data
+    volumes:
+      - ./projects:/owned/projects
+      - ./data:/owned/data
   archive-team-warrior:
     image: atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca
     restart: unless-stopped
+    user: "1000:1000"
+    depends_on:
+      archive-team-warrior-init:
+        condition: service_completed_successfully
     environment:
       TZ: ${TZ}
       DOWNLOADER: ` + nickname + `
       SELECTED_PROJECT: "none"
-      CONCURRENCY: "1"
+      CONCURRENT_ITEMS: "1"
       HTTP_USERNAME: ${ADMIN_USER}
       HTTP_PASSWORD: ${ADMIN_PASSWORD}
     volumes:

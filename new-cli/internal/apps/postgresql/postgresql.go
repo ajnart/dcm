@@ -25,6 +25,7 @@ func (App) Info() app.Info {
 		Port:          5432,
 		ContainerPort: 5432,
 		Service:       "postgresql",
+		NoWebUI:       true,
 	}
 }
 

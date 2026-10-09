@@ -7,11 +7,16 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/arr"
 	"github.com/ajnart/self-host/internal/apps/qbittorrent"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type appStatus struct {
-	ID, Setup string
-	Steps     []struct{ ID, Status string }
+	ID    string
+	Setup stepstatus.Setup
+	Steps []struct {
+		ID     string
+		Status stepstatus.Step
+	}
 }
 
 func appsStatus(t *testing.T, out string) map[string]appStatus {
@@ -30,7 +35,7 @@ func appsStatus(t *testing.T, out string) map[string]appStatus {
 func failedSteps(a appStatus) []string {
 	var failed []string
 	for _, s := range a.Steps {
-		if s.Status == "fail" {
+		if s.Status == stepstatus.StepFail {
 			failed = append(failed, s.ID)
 		}
 	}
@@ -51,10 +56,10 @@ func TestAFailingLinkMakesItsConsumerIncompleteNotItsTarget(t *testing.T) {
 		t.Fatalf("the hint must name the consuming App only:\n%s", r.Out)
 	}
 	apps := appsStatus(t, e.Run("status", "--json").Out)
-	if apps["sonarr"].Setup != "incomplete" || strings.Join(failedSteps(apps["sonarr"]), ",") != "link-qbittorrent" {
+	if apps["sonarr"].Setup != stepstatus.SetupIncomplete || strings.Join(failedSteps(apps["sonarr"]), ",") != "link-qbittorrent" {
 		t.Fatalf("sonarr should be incomplete because of its Link: %+v", apps["sonarr"])
 	}
-	if apps["qbittorrent"].Setup != "ok" {
+	if apps["qbittorrent"].Setup != stepstatus.SetupOK {
 		t.Fatalf("qbittorrent's own Setup succeeded: %+v", apps["qbittorrent"])
 	}
 
@@ -64,7 +69,7 @@ func TestAFailingLinkMakesItsConsumerIncompleteNotItsTarget(t *testing.T) {
 	if retry.Code != 0 || len(e.Sonarr.DownloadClients()) != 1 {
 		t.Fatalf("rerunning the target's Setup must retry the Link (exit %d)\n%s", retry.Code, retry.Out)
 	}
-	if apps := appsStatus(t, e.Run("status", "--json").Out); apps["sonarr"].Setup != "ok" {
+	if apps := appsStatus(t, e.Run("status", "--json").Out); apps["sonarr"].Setup != stepstatus.SetupOK {
 		t.Fatalf("sonarr should be ok once its Link works: %+v", apps["sonarr"])
 	}
 }

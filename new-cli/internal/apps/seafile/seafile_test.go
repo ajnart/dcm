@@ -5,13 +5,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/seafile"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
+	"go.yaml.in/yaml/v3"
 )
 
 type fakeSeafile struct {
@@ -73,7 +78,7 @@ func TestSetupThenCheckPass(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			t.Errorf("step %s failed: %s", r.ID, r.Error)
 		}
 	}
@@ -93,7 +98,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s = %s on rerun, want skip", r.ID, r.Status)
 		}
 	}
@@ -109,11 +114,68 @@ func TestFailedLoginHintNamesTheApp(t *testing.T) {
 	}
 	var fail *helpers.StepResult
 	for i := range *recorded {
-		if (*recorded)[i].Status == "fail" {
+		if (*recorded)[i].Status == stepstatus.StepFail {
 			fail = &(*recorded)[i]
 		}
 	}
 	if fail == nil || !strings.Contains(fail.Hint, "self-host logs seafile") {
 		t.Fatalf("failing step hint should name the App command, got %+v", fail)
+	}
+}
+
+func TestComposeConfiguredServiceURLMatchesSelectedPublishedPort(t *testing.T) {
+	for _, port := range []int{8080, 24880, 80} {
+		t.Run(strconv.Itoa(port), func(t *testing.T) {
+			compose := (seafile.App{}).Compose(app.RenderContext{Port: port})
+			var deployment struct {
+				Services map[string]struct {
+					Environment map[string]string
+					Ports       []string
+				}
+			}
+			if err := yaml.Unmarshal([]byte(compose), &deployment); err != nil {
+				t.Fatal(err)
+			}
+			service := deployment.Services["seafile"]
+			host := strings.ReplaceAll(service.Environment["SEAFILE_SERVER_HOSTNAME"], "${LAN_IP}", "192.0.2.44")
+			origin, err := url.Parse(service.Environment["SEAFILE_SERVER_PROTOCOL"] + "://" + host)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(service.Ports) != 1 {
+				t.Fatal("Seafile must publish one owned HTTP endpoint")
+			}
+			mapping := strings.Split(service.Ports[0], ":")
+			published := mapping[len(mapping)-2]
+			configured := origin.Port()
+			if configured == "" && origin.Scheme == "http" {
+				configured = "80"
+			}
+			if configured != published {
+				t.Fatalf("Seafile builds URLs for port %s while owned Compose publishes port %s", configured, published)
+			}
+		})
+	}
+}
+
+// The v13 Docker bootstrap exports each omitted variable as an empty installer
+// value. Unlike an absent installer environment key, that does not select the
+// installer default and causes initialization to stop before Seahub starts.
+func TestComposeSuppliesDatabaseNamesRequiredByDockerBootstrap(t *testing.T) {
+	var deployment struct {
+		Services map[string]struct{ Environment map[string]string }
+	}
+	if err := yaml.Unmarshal([]byte((seafile.App{}).Compose(app.RenderContext{Port: 8080})), &deployment); err != nil {
+		t.Fatal(err)
+	}
+	env := deployment.Services["seafile"].Environment
+	for key, want := range map[string]string{
+		"SEAFILE_MYSQL_DB_CCNET_DB_NAME":   "ccnet_db",
+		"SEAFILE_MYSQL_DB_SEAFILE_DB_NAME": "seafile_db",
+		"SEAFILE_MYSQL_DB_SEAHUB_DB_NAME":  "seahub_db",
+	} {
+		if env[key] != want {
+			t.Errorf("%s = %q; Docker bootstrap needs official database name %q instead of an empty installer parameter", key, env[key], want)
+		}
 	}
 }

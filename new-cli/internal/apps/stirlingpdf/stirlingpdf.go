@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Stirling PDF. Traps: docs/catalog/traps/stirling-pdf.md.
@@ -44,11 +44,11 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/"}}.Setup(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info/status"}}.Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/"}}.Check(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info/status"}}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

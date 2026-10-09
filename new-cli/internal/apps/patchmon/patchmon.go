@@ -11,8 +11,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 type App struct{}
@@ -60,12 +60,12 @@ func (App) Compose(rc app.RenderContext) string {
       APP_ENV: production
       PORT: "3000"
       POD_ID: patchmon-server
-      REDIS_HOST: redis
+      REDIS_HOST: patchmon-redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"
-      GUACD_ADDRESS: guacd:4822
+      GUACD_ADDRESS: patchmon-guacd:4822
       CORS_ORIGIN: http://127.0.0.1:` + port + `
-      DATABASE_URL: postgresql://patchmon_user:${PATCHMON_DB_PASSWORD}@database:5432/patchmon_db
+      DATABASE_URL: postgresql://patchmon_user:${PATCHMON_DB_PASSWORD}@patchmon-database:5432/patchmon_db
       REDIS_PASSWORD: ${PATCHMON_REDIS_PASSWORD}
       JWT_SECRET: ${PATCHMON_JWT_SECRET}
       SESSION_SECRET: ${PATCHMON_SESSION_SECRET}
@@ -73,10 +73,10 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - database
-      - redis
-      - guacd
-  database:
+      - patchmon-database
+      - patchmon-redis
+      - patchmon-guacd
+  patchmon-database:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -91,15 +91,17 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 0s
       retries: 7
-  redis:
+  patchmon-redis:
     image: redis:7.4-alpine
     user: ${PUID}:${PGID}
+    # Keep the selected user: the image entrypoint drops container 0 to redis.
+    entrypoint: ["/bin/sh", "-c", "umask 077; exec \"$$@\"", "--"]
     command: ["redis-server", "/run/secrets/redis-config"]
     restart: unless-stopped
     volumes:
       - ./redis:/data
       - ./redis-config:/run/secrets/redis-config:ro
-  guacd:
+  patchmon-guacd:
     image: guacamole/guacd:1.6.0
     restart: unless-stopped
     read_only: true
@@ -124,6 +126,10 @@ func adminEmail(h *helpers.H) string {
 	return h.AdminUser() + "@selfhost.local"
 }
 
+// A stable, non-secret client identity lets the pinned server reuse the
+// bootstrap session when an immediate check issues the same refresh JWT.
+const clientDeviceID = "self-host-patchmon"
+
 type profile struct {
 	User struct {
 		ID       string `json:"id"`
@@ -137,7 +143,8 @@ type profile struct {
 func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	login, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/login",
-		JSON: map[string]string{"username": user, "password": password},
+		Header: map[string]string{"X-Device-ID": clientDeviceID},
+		JSON:   map[string]string{"username": user, "password": password},
 	})
 	if err != nil {
 		return false, err
@@ -195,6 +202,7 @@ func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
 	_, err := h.Expect(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/setup-admin",
+		Header: map[string]string{"X-Device-ID": clientDeviceID},
 		JSON: map[string]string{
 			"firstName": "Dashboard", "lastName": "Administrator",
 			"username": user, "email": adminEmail(h), "password": password,
@@ -204,8 +212,8 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	first := onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/health", Want: []int{200}},
+	first := firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/health", Want: []int{200}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  signedIn,
@@ -215,7 +223,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (onboard.FirstAdmin{Login: signedIn}).Check(ctx, h)
+	return (firstadmin.FirstAdmin{Login: signedIn}).Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

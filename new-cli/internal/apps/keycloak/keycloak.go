@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -43,7 +42,7 @@ func (App) Compose(rc app.RenderContext) string {
 	return `services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
-    command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=db", "--db-username=keycloak"]
+    command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=keycloak-db", "--db-username=keycloak"]
     restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_USER}
@@ -52,9 +51,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8080
     depends_on:
-      db:
+      keycloak-db:
         condition: service_healthy
-  db:
+  keycloak-db:
     image: docker.io/library/postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -122,7 +121,7 @@ func adminRealm(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/realms/master", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/realms/master"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "the Admin login reads the master realm", helpers.StepSpec{

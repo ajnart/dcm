@@ -230,5 +230,7 @@ Before writing Go:
 
 After writing Go:
 
+- [ ] Every auxiliary Compose service has an App-owned `<app-id>-<role>` name; environment hosts, dependencies, generated configuration and Setup/Check/Exec targets use that same name. Database names, users and bind-mount paths do not change when services are renamed.
+- [ ] The complete catalog renders together (`TestCatalogAppsRenderTogether`). For an existing Project, rerun `self-host install <affected-apps> --yes` to refresh definitions; `up --remove-orphans` retires only services absent from that Project's complete Compose configuration, without deleting volumes. Apps still included in the Project stay configured.
 - [ ] `Check()` reproduces the `acceptance[]` intent
 - [ ] Trap list is reflected (e.g. qBittorrent 204 + `QBT_SID_<port>`)

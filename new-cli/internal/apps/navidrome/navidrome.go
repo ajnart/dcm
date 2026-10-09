@@ -6,10 +6,11 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Navidrome. Traps: docs/catalog/traps/navidrome.md.
@@ -48,9 +49,17 @@ func (App) Links() []app.Link { return nil }
 // loginWorks posts the saved Admin login; Navidrome only answers 200 with an
 // administrator identity when the credential is right.
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/auth/login",
-		JSON: map[string]string{"username": user, "password": password},
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	resp, err := h.RetryAfter(ctx, helpers.RateLimit{
+		Headers: []string{"Retry-After"},
+		Default: 20 * time.Second, // The pinned server's default authentication window.
+		Bound:   time.Minute,
+	}, func(ctx context.Context) (helpers.Response, error) {
+		return h.HTTP(ctx, helpers.Request{
+			Method: "POST", Path: "/auth/login",
+			JSON: map[string]string{"username": user, "password": password},
+		})
 	})
 	if err != nil {
 		return false, err
@@ -81,12 +90,23 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
-		Create: createAdmin,
-		Login:  loginWorks,
-		Manual: "Navidrome creates the first administrator on its sign-in page.",
+func setup() firstadmin.FirstAdmin {
+	var loginErr error
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/"},
+		Create: func(ctx context.Context, h *helpers.H, user, password string) error {
+			// A failed probe is not evidence that the administrator is absent.
+			if loginErr != nil {
+				return loginErr
+			}
+			return createAdmin(ctx, h, user, password)
+		},
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			ok, err := loginWorks(ctx, h, user, password)
+			loginErr = err
+			return ok, err
+		},
+		Manual: "If an administrator already exists, sign in with its existing credentials and review Users; reconcile the saved Admin login with that account. Do not delete Navidrome's data folder or reset its administrator.",
 	}
 }
 

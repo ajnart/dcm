@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is FreshRSS. Traps: docs/catalog/traps/freshrss.md.
@@ -50,12 +51,14 @@ func (App) Compose(rc app.RenderContext) string {
 const root = "/var/www/FreshRSS"
 
 // adminExists checks the exact owned user configuration inside the container.
+// The probe always exits 0: Compose treats a bare `test -f` miss as an error.
 func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
-	res, err := h.Exec(ctx, nil, "sh", "-c", "test -f "+root+"/data/users/"+h.AdminUser()+"/config.php")
+	res, err := h.Exec(ctx, nil, "sh", "-c",
+		"test -f "+root+"/data/users/"+h.AdminUser()+"/config.php && echo yes || echo no")
 	if err != nil {
 		return false, err
 	}
-	return res.ExitCode == 0, nil
+	return strings.TrimSpace(string(res.Stdout)) == "yes", nil
 }
 
 // createAdmin installs FreshRSS, creates the first user and sets its password
@@ -69,7 +72,7 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 		` && h=$(php -r 'echo password_hash(getenv("FRESHRSS_ADMIN_PASSWORD"), PASSWORD_BCRYPT, ["cost"=>9]);')` +
 		` && printf %s "$h" | php ` + root + `/cli/reconfigure-user.php --user ` + user +
 		` --key passwordHash --set --value-stdin`
-	res, err := h.Exec(ctx, env, "sh", "-c", script)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return err
 	}
@@ -85,16 +88,16 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	env := map[string]string{"FRESHRSS_ADMIN_PASSWORD": password}
 	script := `php -r '$u=@include "` + root + `/data/users/` + user + `/config.php";` +
 		` exit(is_array($u) && password_verify(getenv("FRESHRSS_ADMIN_PASSWORD"), $u["passwordHash"] ?? "") ? 0 : 1);'`
-	res, err := h.Exec(ctx, env, "sh", "-c", script)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return false, err
 	}
 	return res.ExitCode == 0, nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

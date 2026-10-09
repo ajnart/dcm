@@ -79,7 +79,8 @@ func (s *Service) ReviewSettings(ctx context.Context) ([]SettingReview, error) {
 		return nil, err
 	}
 	settings := ss.settings
-	detected := s.DetectSettings(owner, settings["EXPOSURE"])
+	detected := s.detectSettings(ctx, owner, settings["EXPOSURE"])
+	rootless, _ := host.Rootless(ctx, s.Deps)
 	choices := func(values ...string) []string {
 		var out []string
 		for _, v := range values {
@@ -108,6 +109,9 @@ func (s *Service) ReviewSettings(ctx context.Context) ([]SettingReview, error) {
 			r.Choices = choices(settings[key], detected[key])
 		} else if r.Drift {
 			r.Note = "changing it changes who owns the Apps' files; use self-host config set " + key + "=" + detected[key] + " on purpose"
+		}
+		if rootless && (key == "PUID" || key == "PGID") {
+			r.Note = "rootless Docker maps container 0:0 to the daemon's host user; review bind-mount ownership before changing saved IDs. " + r.Note
 		}
 		review = append(review, r)
 	}

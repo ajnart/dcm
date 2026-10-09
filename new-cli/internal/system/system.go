@@ -34,6 +34,12 @@ type Runner interface {
 	Stream(ctx context.Context, cmd Cmd, w io.Writer) error
 }
 
+// StreamIORunner is an optional Runner capability for binary streams. Stdout
+// and diagnostics stay separate; nonnil stdin replaces Cmd.Stdin.
+type StreamIORunner interface {
+	StreamIO(ctx context.Context, cmd Cmd, stdin io.Reader, stdout, stderr io.Writer) error
+}
+
 // User is the account that owns the Project. Under sudo it is the invoking user.
 type User struct {
 	Name string

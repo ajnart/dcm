@@ -3,6 +3,8 @@ package cli_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -113,6 +115,32 @@ func TestDoctorWarnsAboutTheMacOSFirewall(t *testing.T) {
 
 	if fw := r.Step("", "firewall"); fw == nil || fw["event"] != "step.warn" {
 		t.Fatalf("expected macOS firewall warning:\n%s", r.Out)
+	}
+}
+
+func TestDoctorReportsAnUnopenableProjectLock(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can open a lock regardless of its mode")
+	}
+	deps, cat, _ := doctorProject(t, "0.0.0.0")
+	lock := filepath.Join(projectRoot(t, deps), ".lock")
+	if err := os.WriteFile(lock, []byte("flock:1"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(lock, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(lock, 0o600) })
+
+	r := doctor(t, deps, cat)
+
+	check := r.Step("", "project-lock")
+	if check == nil || check["event"] != "step.fail" {
+		t.Fatalf("doctor must report the unopenable lock:\n%s", r.Out)
+	}
+	msg := check["msg"].(string)
+	if !strings.Contains(msg, lock) || !strings.Contains(msg, "sudo chown") {
+		t.Fatalf("lock check lacks the path or the fix: %v", check)
 	}
 }
 

@@ -5,12 +5,15 @@ package headscale
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
+	"go.yaml.in/yaml/v3"
 )
 
 // App is Headscale. Traps: docs/catalog/traps/headscale.md.
@@ -92,6 +95,14 @@ prefixes:
   v4: 100.64.0.0/10
   v6: fd7a:115c:a1e0::/48
   allocation: sequential
+derp:
+  server:
+    enabled: false
+  urls:
+    - https://controlplane.tailscale.com/derpmap/default
+  paths: []
+  auto_update_enabled: true
+  update_frequency: 3h
 disable_check_updates: true
 database:
   type: sqlite
@@ -119,6 +130,13 @@ logtail:
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := h.Step(ctx, "relay-config", "Headscale has a configured relay map", helpers.StepSpec{
+		Check: func(context.Context) (bool, error) { return relayConfigured(h) },
+		Hint: "Edit " + filepath.Join(h.Dir, "config.yaml") + " and configure derp.urls or derp.paths, or enable embedded DERP. " +
+			"Then run: self-host restart headscale and self-host setup headscale. The default public relay map requires access to controlplane.tailscale.com.",
+	}); err != nil {
+		return err
+	}
 	if err := h.Step(ctx, "ready", "the Headscale control plane answers its health probe", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return healthy(ctx, h) },
 		Do: func(ctx context.Context) error {
@@ -132,6 +150,30 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		"`headscale users create <name>` and `headscale preauthkeys create --user <id>` inside the container. " +
 		"Install a proxy that supports the tailscale-control-protocol WebSocket upgrade before clients connect.")
 	return nil
+}
+
+func relayConfigured(h *helpers.H) (bool, error) {
+	data, err := os.ReadFile(filepath.Join(h.Dir, "config.yaml"))
+	if err != nil {
+		return false, fmt.Errorf("read Headscale config.yaml: %w", err)
+	}
+	var cfg struct {
+		DERP struct {
+			URLs   []string `yaml:"urls"`
+			Paths  []string `yaml:"paths"`
+			Server struct {
+				Enabled bool `yaml:"enabled"`
+			} `yaml:"server"`
+		} `yaml:"derp"`
+	}
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		// YAML errors can include values from private OIDC configuration.
+		return false, fmt.Errorf("Headscale config.yaml is invalid YAML; correct the saved configuration")
+	}
+	if len(cfg.DERP.URLs) == 0 && len(cfg.DERP.Paths) == 0 && !cfg.DERP.Server.Enabled {
+		return false, fmt.Errorf("Headscale requires a DERP relay source in derp.urls or derp.paths, or an embedded DERP server")
+	}
+	return true, nil
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

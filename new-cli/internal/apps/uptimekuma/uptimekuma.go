@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Uptime Kuma. Traps: docs/catalog/traps/uptime-kuma.md.
@@ -64,9 +64,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return strings.Contains(string(resp.Body), "# HELP") || strings.Contains(string(resp.Body), "# TYPE"), nil
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready: onboard.Probe{Path: "/"},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/"},
 		Login: loginWorks,
 		Manual: "Uptime Kuma creates its first administrator in the web UI and has no HTTP setup API; " +
 			"open the App, create the administrator, then rerun setup.",

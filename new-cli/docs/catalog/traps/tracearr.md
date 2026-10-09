@@ -2,6 +2,7 @@
 
 ## Pitfalls
 
+- Auxiliary Compose services use App-owned names: `tracearr-timescale`, `tracearr-redis`. Keep these names in connection settings and dependencies; persistent data paths stay unchanged.
 - Session analytics are not a replacement for service readiness or host monitoring.
 - The standard image requires TimescaleDB, not plain PostgreSQL, and a secret-bearing DATABASE_URL.
 - The current official pg18 Compose example calls PostgreSQL 18 experimental and new-install-only; never reuse an existing data volume with it.

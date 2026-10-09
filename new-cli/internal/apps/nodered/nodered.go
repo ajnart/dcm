@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // App is Node-RED. Traps: docs/catalog/traps/node-red.md.
@@ -55,14 +53,14 @@ func (App) Compose(rc app.RenderContext) string {
 // bcrypt hash of the shared Admin login. The file is mode 0600 so the hash
 // never lands in a world-readable config.
 func (App) Files(_ app.RenderContext, secret func(name string) string) []app.File {
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret("ADMIN_PASSWORD")), bcrypt.DefaultCost)
+	hash, err := helpers.HashPassword(helpers.Bcrypt, secret("ADMIN_PASSWORD"))
 	if err != nil {
 		return nil
 	}
 	content := "module.exports = {\n" +
 		"  adminAuth: {\n" +
 		"    type: 'credentials',\n" +
-		"    users: [{ username: '" + secret("ADMIN_USER") + "', password: '" + string(hash) + "', permissions: '*' }]\n" +
+		"    users: [{ username: '" + secret("ADMIN_USER") + "', password: '" + hash + "', permissions: '*' }]\n" +
 		"  }\n" +
 		"};\n"
 	return []app.File{{Path: "settings", Content: content, Mode: 0o600}}
@@ -124,7 +122,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/auth/login", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/auth/login"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{

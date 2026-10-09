@@ -2,6 +2,7 @@
 
 ## Pitfalls
 
+- Auxiliary Compose services use App-owned names: `passbolt-db`. Keep these names in connection settings and dependencies; persistent data paths stay unchanged.
 - The derived shared recipe binds explicit SMTP relay, sender, server-key and HTTPS identity choices before start and generates private database passwords. It supports only an owner-approved no-auth STARTTLS relay. Native first-admin enrollment/login is source-implemented; time synchronization, SMTP delivery, client import, encrypted-vault acceptance and recovery remain independently unverified.
 - Working SMTP and time sync are installation prerequisites; test delivery of a real registration/recovery email independently of container or HTTP health.
 - First-admin creation uses the official register_user command with an owner-selected email, first name, last name, and admin role. It returns a one-time setup URL, not a password; the current headless HTTP onboarding patterns cannot safely claim completion of the browser extension, owner passphrase, and recovery-kit flow.

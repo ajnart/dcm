@@ -1,0 +1,11 @@
+{"id":"Image busybox:1.36.1","status":"Working","text":"Pulling"}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Working","text":"Pulling fs layer","details":"0B"}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Working","text":"Downloading","details":"32.12kB","current":32124,"total":1896265,"percent":1}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Working","text":"Verifying Checksum","details":"0B"}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Done","text":"Download complete","details":"0B","percent":100}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Working","text":"Extracting","details":"32.77kB","current":32768,"total":1896265,"percent":1}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Working","text":"Extracting","details":"1.896MB","current":1896265,"total":1896265,"percent":100}
+{"id":"821d9dafb26d","parent_id":"Image busybox:1.36.1","status":"Done","text":"Pull complete","details":"0B","percent":100}
+{"id":"Image busybox:1.36.1","status":"Done","text":"Pulled"}
+not json at all
+{"unexpected":"shape"}

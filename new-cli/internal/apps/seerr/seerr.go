@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/jellyfin"
@@ -48,12 +47,15 @@ func (App) Inputs() []app.Input { return nil }
 // Secrets pins Seerr's API key: the container adopts API_KEY on start.
 func (App) Secrets() []app.SecretSpec { return []app.SecretSpec{{Name: "api_key", Length: 32}} }
 
+// The image defaults to node (1000:1000); configured IDs keep its config
+// writable when rootless Docker maps host-owned folders to container 0:0.
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     init: true
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     environment:
       TZ: ${TZ}
       LOG_LEVEL: info
@@ -94,7 +96,7 @@ func readPublic(ctx context.Context, h *helpers.H) (public, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return h.WaitHTTP(ctx, "/api/v1/status", 2*time.Minute)
+	return h.Ready(ctx, "/api/v1/status")
 }
 
 // Check proves Seerr answers; whether it is connected is the Links' job.

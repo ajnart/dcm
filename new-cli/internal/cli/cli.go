@@ -6,9 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
@@ -21,6 +27,7 @@ const (
 	ExitOK         = 0
 	ExitError      = 1
 	ExitIncomplete = 2
+	ExitManual     = 3
 )
 
 // exitError carries an exit code out of a command without printing usage.
@@ -38,6 +45,8 @@ type program struct {
 	document bool
 	log      *events.Logger
 	svc      *service.Service
+	// terminal is the interactive sink, closed when the command returns.
+	terminal *activity.TerminalSink
 }
 
 func (a *program) service() *service.Service {
@@ -55,6 +64,9 @@ func (a *program) fail(err error) error {
 	if errors.Is(err, service.ErrIncomplete) {
 		return exitError{ExitIncomplete}
 	}
+	if errors.Is(err, service.ErrManual) {
+		return exitError{ExitManual}
+	}
 	if a.document {
 		fmt.Fprintln(a.deps.Err, "error:", err)
 		return exitError{ExitError}
@@ -70,16 +82,49 @@ func (a *program) logger() *events.Logger {
 	if a.document {
 		a.log = events.New()
 		if a.verbose {
-			a.log.AddSink(events.Human(a.deps.Err, true))
+			a.log.AddSink(a.human(a.deps.Err, true))
 		}
 		return a.log
 	}
 	if a.json {
 		a.log = events.New(events.JSON(a.deps.Out))
 	} else {
-		a.log = events.New(events.Human(a.deps.Out, a.verbose))
+		a.log = events.New(a.human(a.deps.Out, a.verbose))
 	}
 	return a.log
+}
+
+// human prints events as plain lines, or on an interactive terminal with the
+// running Action drawn below them and redrawn in place. Anything that is not a terminal,
+// and a dumb terminal that cannot move the cursor, gets the plain lines.
+func (a *program) human(w io.Writer, verbose bool) events.Sink {
+	f, ok := w.(*os.File)
+	if !a.deps.Interactive || !ok || !term.IsTerminal(f.Fd()) {
+		return events.Human(w, verbose)
+	}
+	profiled := colorprofile.NewWriter(f, os.Environ())
+	if profiled.Profile <= colorprofile.NoTTY {
+		return events.Human(w, verbose)
+	}
+	width := func() int {
+		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
+			return cols
+		}
+		return 80
+	}
+	palette := tui.Palette(lipgloss.HasDarkBackground(os.Stdin, f))
+	a.terminal = activity.Terminal(profiled, verbose, width, a.glyphs(), palette)
+	return a.terminal
+}
+
+// glyphs is the Project's glyph set, or Simple when there is no Project or
+// its appearance cannot be read.
+func (a *program) glyphs() activity.Glyphs {
+	appearance, err := service.New(a.deps, events.Discard(), a.catalog).Appearance()
+	if err != nil {
+		return activity.Simple
+	}
+	return activity.ParseGlyphs(appearance.Glyphs)
 }
 
 // Run executes the binary with args and returns the exit code.
@@ -95,6 +140,9 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
 	err := root.ExecuteContext(ctx)
+	if a.terminal != nil {
+		a.terminal.Close()
+	}
 	var exit exitError
 	switch {
 	case err == nil:

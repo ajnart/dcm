@@ -25,20 +25,21 @@ import (
 )
 
 // DefaultAPI is the GitHub API root of the repository that publishes releases.
-const DefaultAPI = "https://api.github.com/repos/ajnart/self-host"
+const DefaultAPI = "https://api.github.com/repos/ajnart/selfhost-skills"
 
-// DefaultWeb is the github.com root of the same repository. Looking up the
-// latest tag through its redirect is not subject to API rate limits.
-const DefaultWeb = "https://github.com/ajnart/self-host"
+// DefaultWeb is the github.com root of the same repository for public assets.
+const DefaultWeb = "https://github.com/ajnart/selfhost-skills"
 
 // Environment overrides for the two roots, for tests and mirrors.
 const (
-	EnvAPI = "SELF_HOST_RELEASES_URL"
-	EnvWeb = "SELF_HOST_WEB_URL"
+	EnvAPI    = "SELF_HOST_RELEASES_URL"
+	EnvWeb    = "SELF_HOST_WEB_URL"
+	EnvToken  = "SELF_HOST_GITHUB_TOKEN"
+	TagPrefix = "new-cli-v"
 )
 
 // InstallCommand is the one-line installer, for messages that point at it.
-const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/ajnart/self-host/main/install.sh | bash"
+const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash"
 
 const (
 	binaryName    = "self-host"
@@ -52,11 +53,20 @@ const (
 
 // Release is one published version.
 type Release struct {
-	Tag string
+	Tag        string  `json:"tag_name"`
+	Draft      bool    `json:"draft"`
+	Prerelease bool    `json:"prerelease"`
+	Assets     []Asset `json:"assets"`
 }
 
-// Version is the tag without its leading "v".
-func (r Release) Version() string { return strings.TrimPrefix(r.Tag, "v") }
+// Asset identifies an exact GitHub release download.
+type Asset struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// Version is the stable CLI tag without its channel prefix.
+func (r Release) Version() string { return strings.TrimPrefix(r.Tag, TagPrefix) }
 
 // ArchiveName is the goreleaser archive for a platform.
 func (r Release) ArchiveName(goos, goarch string) string {
@@ -69,6 +79,7 @@ type Client struct {
 	// APIURL and WebURL default to DefaultAPI and DefaultWeb.
 	APIURL string
 	WebURL string
+	Token  string
 }
 
 // NewClient builds the Client for a binary's dependencies. The shared HTTP
@@ -80,7 +91,7 @@ func NewClient(deps *system.Deps) Client {
 		httpClient = *deps.HTTP
 	}
 	httpClient.Timeout = 0
-	return Client{HTTP: &httpClient, APIURL: deps.Getenv(EnvAPI), WebURL: deps.Getenv(EnvWeb)}
+	return Client{HTTP: &httpClient, APIURL: deps.Getenv(EnvAPI), WebURL: deps.Getenv(EnvWeb), Token: deps.Getenv(EnvToken)}
 }
 
 func orDefault(value, fallback string) string {
@@ -104,7 +115,24 @@ func (c Client) do(ctx context.Context, method, url, accept string, timeout time
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
-	resp, err := c.HTTP.Do(req)
+	if c.Token != "" && strings.HasPrefix(url, c.api()+"/") {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	httpClient := *c.HTTP
+	previousRedirect := httpClient.CheckRedirect
+	httpClient.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+		if next.URL.Scheme != req.URL.Scheme || next.URL.Host != req.URL.Host {
+			next.Header.Del("Authorization")
+		}
+		if previousRedirect != nil {
+			return previousRedirect(next, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("too many redirects")
+		}
+		return nil
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		cancel()
 		return nil, nil, err
@@ -132,41 +160,47 @@ func (c Client) get(ctx context.Context, url, accept string, limit int64, timeou
 	return body, nil
 }
 
-// Latest returns the newest published release. It follows the redirect of
-// github.com/<repo>/releases/latest first, and asks the API only when that
-// fails, because the API is rate limited per IP address.
+// Latest selects the highest stable CLI version, never the legacy plugin channel.
 func (c Client) Latest(ctx context.Context) (Release, error) {
-	if tag, err := c.latestFromRedirect(ctx); err == nil {
-		return Release{Tag: tag}, nil
+	var latest Release
+	for page := 1; page <= 10; page++ {
+		body, err := c.get(ctx, fmt.Sprintf("%s/releases?per_page=100&page=%d", c.api(), page), "application/vnd.github+json", maxChecksums, lookupTimeout)
+		if err != nil {
+			return Release{}, fmt.Errorf("look up CLI releases: %w", err)
+		}
+		var releases []Release
+		if err := json.Unmarshal(body, &releases); err != nil {
+			return Release{}, errors.New("look up CLI releases: unexpected response")
+		}
+		for _, rel := range releases {
+			if rel.Draft || rel.Prerelease || !validTag(rel.Tag) {
+				continue
+			}
+			newer, _ := Newer(latest.Version(), rel.Version())
+			if latest.Tag == "" || newer {
+				latest = rel
+			}
+		}
+		if len(releases) < 100 {
+			if latest.Tag == "" {
+				return Release{}, errors.New("no stable new-cli-v release is published")
+			}
+			return latest, nil
+		}
 	}
-	body, err := c.get(ctx, c.api()+"/releases/latest", "application/vnd.github+json", maxChecksums, lookupTimeout)
-	if err != nil {
-		return Release{}, fmt.Errorf("look up the latest release: %w", err)
-	}
-	var rel struct {
-		Tag string `json:"tag_name"`
-	}
-	if err := json.Unmarshal(body, &rel); err != nil || rel.Tag == "" {
-		return Release{}, errors.New("look up the latest release: unexpected response")
-	}
-	return Release{Tag: rel.Tag}, nil
+	return Release{}, errors.New("CLI release lookup exceeded 1000 releases")
 }
 
-func (c Client) latestFromRedirect(ctx context.Context) (string, error) {
-	resp, cancel, err := c.do(ctx, http.MethodHead, c.web()+"/releases/latest", "", lookupTimeout)
-	if err != nil {
-		return "", err
+func validTag(tag string) bool {
+	if !strings.HasPrefix(tag, TagPrefix) {
+		return false
 	}
-	defer cancel()
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("releases/latest: %s", resp.Status)
+	version := strings.TrimPrefix(tag, TagPrefix)
+	if strings.HasPrefix(version, "v") {
+		return false
 	}
-	dir, tag := path.Split(resp.Request.URL.Path)
-	if tag == "" || path.Base(dir) != "tag" {
-		return "", errors.New("releases/latest did not redirect to a tag")
-	}
-	return tag, nil
+	_, err := parseVersion(version)
+	return err == nil
 }
 
 // Newer reports whether latest is a higher version than current. It fails when
@@ -196,16 +230,19 @@ func IsRelease(v string) bool {
 
 func parseVersion(v string) ([3]int, error) {
 	var out [3]int
-	core := strings.TrimPrefix(strings.TrimSpace(v), "v")
-	core, _, _ = strings.Cut(core, "-")
-	core, _, _ = strings.Cut(core, "+")
+	core := v
+	if strings.HasPrefix(core, TagPrefix) {
+		core = strings.TrimPrefix(core, TagPrefix)
+	} else {
+		core = strings.TrimPrefix(core, "v")
+	}
 	parts := strings.Split(core, ".")
-	if len(parts) > 3 {
-		return out, fmt.Errorf("%q is not a release version", v)
+	if len(parts) != 3 {
+		return out, fmt.Errorf("%q is not a stable release version", v)
 	}
 	for i, part := range parts {
 		n, err := strconv.Atoi(part)
-		if err != nil || n < 0 {
+		if err != nil || n < 0 || strconv.Itoa(n) != part {
 			return out, fmt.Errorf("%q is not a release version", v)
 		}
 		out[i] = n
@@ -217,9 +254,27 @@ func parseVersion(v string) ([3]int, error) {
 // atomically replaces the file at exe with the binary inside. exe is left
 // untouched on any failure.
 func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe string) error {
+	if !validTag(rel.Tag) {
+		return errors.New("invalid CLI release tag")
+	}
+	switch goos + "_" + goarch {
+	case "linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64":
+	default:
+		return fmt.Errorf("unsupported platform %s/%s", goos, goarch)
+	}
+	if c.Token != "" {
+		body, err := c.get(ctx, c.api()+"/releases/tags/"+rel.Tag, "application/vnd.github+json", maxChecksums, lookupTimeout)
+		if err != nil {
+			return err
+		}
+		var detail Release
+		if json.Unmarshal(body, &detail) != nil || detail.Tag != rel.Tag || detail.Draft || detail.Prerelease {
+			return errors.New("release metadata does not match requested stable CLI tag")
+		}
+		rel = detail
+	}
 	name := rel.ArchiveName(goos, goarch)
-	base := c.web() + "/releases/download/" + rel.Tag + "/"
-	sumsBody, err := c.get(ctx, base+checksumsName, "", maxChecksums, downloadTimeout)
+	sumsBody, err := c.download(ctx, rel, checksumsName, maxChecksums)
 	if err != nil {
 		return fmt.Errorf("download %s: %w", checksumsName, err)
 	}
@@ -227,7 +282,7 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 	if !ok {
 		return fmt.Errorf("%s does not list %s: release %s has no build for %s/%s", checksumsName, name, rel.Tag, goos, goarch)
 	}
-	data, err := c.get(ctx, base+name, "", maxArchive, downloadTimeout)
+	data, err := c.download(ctx, rel, name, maxArchive)
 	if err != nil {
 		return fmt.Errorf("download %s: %w", name, err)
 	}
@@ -242,14 +297,31 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 	return replace(exe, binary)
 }
 
+func (c Client) download(ctx context.Context, rel Release, name string, limit int64) ([]byte, error) {
+	if c.Token != "" {
+		for _, asset := range rel.Assets {
+			if asset.Name == name && asset.ID > 0 {
+				return c.get(ctx, fmt.Sprintf("%s/releases/assets/%d", c.api(), asset.ID), "application/octet-stream", limit, downloadTimeout)
+			}
+		}
+		return nil, fmt.Errorf("release %s does not list %s", rel.Tag, name)
+	}
+	return c.get(ctx, c.web()+"/releases/download/"+rel.Tag+"/"+name, "", limit, downloadTimeout)
+}
+
 func checksumFor(sums []byte, name string) (string, bool) {
+	var digest string
 	for _, line := range strings.Split(string(sums), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == name {
-			return strings.ToLower(fields[0]), true
+			decoded, err := hex.DecodeString(fields[0])
+			if digest != "" || err != nil || len(decoded) != sha256.Size {
+				return "", false
+			}
+			digest = strings.ToLower(fields[0])
 		}
 	}
-	return "", false
+	return digest, digest != ""
 }
 
 func extract(archive []byte, limit int64) ([]byte, error) {

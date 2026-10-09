@@ -25,11 +25,11 @@ func movedHost(t *testing.T) (Model, *fakeBackend) {
 	return m, backend
 }
 
-func TestStaleLANIPNeedsActionAndPointsAtHostSettings(t *testing.T) {
+func TestStaleLANIPNeedsAttentionAndPointsAtTheSettingsTab(t *testing.T) {
 	m, _ := movedHost(t)
 
 	out := screen(m)
-	for _, want := range []string{"⚠ LAN 192.168.1.20", "LAN IP 192.168.1.20 is not on this machine", "i Host settings"} {
+	for _, want := range []string{"⚠ LAN 192.168.1.20", "LAN IP 192.168.1.20 is not on this machine", "5 Host settings"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
@@ -39,16 +39,15 @@ func TestStaleLANIPNeedsActionAndPointsAtHostSettings(t *testing.T) {
 func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T) {
 	m, backend := movedHost(t)
 
-	m = drive(t, m, press("i"))
-	if currentPick(m) != hostSettingsKey {
-		t.Fatalf("Host settings should be the first picker entry, got %q", currentPick(m))
+	m = drive(t, m, press("5"))
+	if m.surface != surfaceSettings {
+		t.Fatalf("5 should open the Settings tab")
 	}
-	m = drive(t, m, press("enter"))
-	overlay := m.renderOverlay()
-	if !strings.Contains(overlay, "Host settings") || !strings.Contains(overlay, "192.168.0.12") || !strings.Contains(overlay, "not an address of this machine") {
-		t.Fatalf("review should preselect the detected LAN IP\n%s", overlay)
-	}
-	drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))  // LAN_IP row
+	m = drive(t, m, press("enter")) // edit
+	m = drive(t, m, press("tab"))   // cycle to the detected address
+	m = drive(t, m, press("enter")) // accept
+	m = drive(t, m, ctrlS())        // apply
 
 	if got := backend.Actions(); !slices.Equal(got, []string{"config LAN_IP=192.168.0.12"}) {
 		t.Fatalf("actions %v", got)
@@ -56,23 +55,27 @@ func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T
 	if len(backend.installs()) != 0 {
 		t.Fatal("re-confirming Host settings must not install anything")
 	}
+	if m.surface != surfaceActivity {
+		t.Fatal("ctrl+s should hand focus to Activity")
+	}
 }
 
 func TestHostSettingsReviewCanChangeExposureAndGoBack(t *testing.T) {
 	m, backend := movedHost(t)
 
-	m = drive(t, m, press("i"))
-	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("5"))
 	m = drive(t, m, press("space")) // EXPOSURE: lan → local
-	m = drive(t, m, press("esc"))
-	if m.picker == nil || m.picker.host != nil || len(backend.Actions()) != 0 {
-		t.Fatal("esc should return to the picker without applying")
+	m = drive(t, m, press("esc"))   // pending changes: ask to discard
+	if !m.settings.confirmDiscard || len(backend.Actions()) != 0 {
+		t.Fatal("esc with pending changes should ask before discarding")
 	}
-	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("space"))
-	drive(t, m, press("enter"))
+	m = drive(t, m, press("n")) // keep editing
+	if m.settings == nil || m.settings.confirmDiscard {
+		t.Fatal("n should keep the pending changes")
+	}
+	m = drive(t, m, ctrlS())
 
-	if got := backend.Actions(); !slices.Equal(got, []string{"config EXPOSURE=local LAN_IP=192.168.0.12"}) {
+	if got := backend.Actions(); !slices.Equal(got, []string{"config EXPOSURE=local"}) {
 		t.Fatalf("actions %v", got)
 	}
 }

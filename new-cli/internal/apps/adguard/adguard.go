@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is AdGuard Home. Traps: docs/catalog/traps/adguard-home.md.
@@ -79,9 +79,12 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/control/status", Want: []int{http.StatusOK, http.StatusUnauthorized}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{
+			Path: "/control/install/get_addresses",
+			Want: []int{http.StatusOK, http.StatusForbidden, http.StatusNotFound},
+		},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

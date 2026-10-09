@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,37 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
-
-// mutate opens the Project under the lock, refreshes the root Compose file
-// so agent-added folders are included, and runs fn.
-func (s *Service) mutate(ctx context.Context, title string, fn func(*session) error) error {
-	p, err := s.Project()
-	if err != nil {
-		return err
-	}
-	if !p.Exists() {
-		return ErrNoProject
-	}
-	unlock, err := s.lock(p)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if err := ss.p.WriteRoot(); err != nil {
-		return err
-	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: title})
-	return s.finish(fn(ss))
-}
 
 // targets validates App IDs against the Project; empty means every App.
 func (ss *session) targets(ids []string) ([]string, error) {
@@ -61,68 +38,63 @@ func (ss *session) targets(ids []string) ([]string, error) {
 	return ids, nil
 }
 
-func (s *Service) composeAction(ctx context.Context, verb string, ids []string, action func(*session, []string) error) error {
-	title := strings.TrimSpace(verb + " " + strings.Join(ids, " "))
-	return s.mutate(ctx, title, func(ss *session) error {
-		targets, err := ss.targets(ids)
-		if err != nil {
-			return err
-		}
-		services, err := ss.services(targets...)
-		if err != nil {
-			return err
-		}
-		if err := action(ss, services); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: verb, Msg: verb + " " + strings.Join(targets, ", ")})
-		return nil
+func (s *Service) Start(ctx context.Context, ids []string) error {
+	return s.run(ctx, change{
+		title:   strings.TrimSpace("start " + strings.Join(ids, " ")),
+		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		compose: composeUp,
 	})
 }
 
-func (s *Service) Start(ctx context.Context, ids []string) error {
-	return s.composeAction(ctx, "start", ids, func(ss *session, services []string) error { return ss.compose.Up(ctx, services...) })
+func (s *Service) Stop(ctx context.Context, ids []string) error {
+	return s.run(ctx, change{
+		title:   strings.TrimSpace("stop " + strings.Join(ids, " ")),
+		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		compose: composeStop,
+	})
 }
 
-func (s *Service) Stop(ctx context.Context, ids []string) error {
-	return s.composeAction(ctx, "stop", ids, func(ss *session, services []string) error { return ss.compose.Stop(ctx, services...) })
+// Down takes down only the selected Project; App files, state and volumes stay.
+func (s *Service) Down(ctx context.Context) error {
+	return s.run(ctx, change{
+		title: "down Project",
+		targets: func(ss *session) ([]string, error) {
+			return ss.targets(nil)
+		},
+		compose: composeDown,
+	})
 }
 
 func (s *Service) Restart(ctx context.Context, ids []string) error {
-	return s.composeAction(ctx, "restart", ids, func(ss *session, services []string) error { return ss.compose.Restart(ctx, services...) })
+	return s.run(ctx, change{
+		title:   strings.TrimSpace("restart " + strings.Join(ids, " ")),
+		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		compose: composeRestart,
+	})
 }
 
 // Update pulls newer images, recreates the Apps and reruns each catalog
 // App's Check.
 func (s *Service) Update(ctx context.Context, ids []string) error {
-	title := strings.TrimSpace("update " + strings.Join(ids, " "))
-	return s.mutate(ctx, title, func(ss *session) error {
-		targets, err := ss.targets(ids)
-		if err != nil {
-			return err
-		}
-		services, err := ss.services(targets...)
-		if err != nil {
-			return err
-		}
-		if err := ss.compose.Pull(ctx, services...); err != nil {
-			return err
-		}
-		if err := ss.compose.Up(ctx, services...); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: "update", Msg: "recreated " + strings.Join(targets, ", ")})
-		var failed []string
-		for _, id := range targets {
-			if err := ss.check(ctx, id); err != nil {
-				failed = append(failed, id)
-			}
-		}
-		if len(failed) > 0 {
-			return fmt.Errorf("%w: check failed after update for %s", ErrIncomplete, strings.Join(failed, ", "))
-		}
-		return nil
+	return s.run(ctx, change{
+		title:   strings.TrimSpace("update " + strings.Join(ids, " ")),
+		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		compose: composePullUp,
+		after:   afterCheck,
 	})
+}
+
+func pullImageName(ss *session, ids []string, err error) string {
+	var perr *compose.PullError
+	if errors.As(err, &perr) && perr.Image != "" {
+		return perr.Image
+	}
+	for _, id := range ids {
+		if a, found := ss.s.Catalog.App(id); found {
+			return a.Info().Image
+		}
+	}
+	return "the image"
 }
 
 // check reruns a catalog App's Check, waiting for it to come back up.
@@ -149,45 +121,12 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 	if len(ids) == 0 {
 		return fmt.Errorf("name the Apps to remove")
 	}
-	return s.mutate(ctx, "remove "+strings.Join(ids, " "), func(ss *session) error {
-		targets, err := ss.targets(ids)
-		if err != nil {
-			return err
-		}
-		var unlinkFailed []string
-		for _, id := range targets {
-			unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
-			services, err := ss.services(id)
-			if err != nil {
-				return err
-			}
-			if err := ss.compose.Remove(ctx, services...); err != nil {
-				return err
-			}
-			if err := os.Remove(ss.p.FragmentPath(id)); err != nil {
-				return err
-			}
-			delete(ss.state.Apps, id)
-			msg := "removed " + id + "; data kept in " + ss.p.Path("apps", id)
-			if purge {
-				if err := os.RemoveAll(ss.p.Path("apps", id)); err != nil {
-					return err
-				}
-				msg = "removed " + id + " and deleted its data"
-			}
-			s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "remove", Msg: msg})
-		}
-		if err := ss.p.SaveState(ss.state); err != nil {
-			return err
-		}
-		if err := ss.p.WriteRoot(); err != nil {
-			return err
-		}
-		if len(unlinkFailed) > 0 {
-			return fmt.Errorf("%w: removed, but %s still point at it; fix them using the hints above, then run: self-host setup %s",
-				ErrIncomplete, strings.Join(unlinkFailed, ", "), strings.Join(unlinkFailed, " "))
-		}
-		return nil
+	return s.run(ctx, change{
+		title:   "remove " + strings.Join(ids, " "),
+		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		compose: composeRemove,
+		after:   afterDashboard,
+		purge:   purge,
 	})
 }
 
@@ -213,7 +152,7 @@ func (ss *session) unlink(ctx context.Context, id string) []string {
 			err := link.Remove(ctx, h, ss.helpers(target))
 			ss.reportUnexpected(h, "un"+link.ID, err)
 			if err != nil {
-				ss.state.Apps[otherID].Setup = "incomplete"
+				ss.state.Apps[otherID].Setup = stepstatus.SetupIncomplete
 				failed = append(failed, otherID)
 				continue
 			}
@@ -259,46 +198,50 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 	if len(changes) == 0 {
 		return fmt.Errorf("nothing to set; pass KEY=value")
 	}
-	return s.mutate(ctx, "config set "+strings.Join(pairs, " "), func(ss *session) error {
-		for key, value := range changes {
-			if old := ss.settings[key]; old != value {
-				s.Log.Emit(events.Event{Event: events.Info, Step: "config", Msg: key + ": " + old + " → " + value})
+	after := afterNone
+	if _, changed := changes["LAN_IP"]; changed {
+		after = afterDashboard
+	}
+	if _, changed := changes["EXPOSURE"]; changed {
+		after = afterDashboard
+	}
+	return s.run(ctx, change{
+		title: "config set " + strings.Join(pairs, " "),
+		edit: func(_ context.Context, ss *session) error {
+			for key, value := range changes {
+				if old := ss.settings[key]; old != value {
+					s.Log.Emit(events.Event{Event: events.Info, Step: "config", Msg: key + ": " + old + " → " + value})
+				}
+				ss.settings[key] = value
 			}
-			ss.settings[key] = value
-		}
-		if err := ss.p.SaveSettings(ss.settings); err != nil {
-			return err
-		}
-		ids, err := ss.p.AppIDs()
-		if err != nil {
-			return err
-		}
-		var affected []string
-		for _, id := range ids {
-			data, err := os.ReadFile(ss.p.FragmentPath(id))
-			if err != nil {
+			if err := ss.p.SaveSettings(ss.settings); err != nil {
 				return err
 			}
-			for key := range changes {
-				if strings.Contains(string(data), "${"+key+"}") {
-					affected = append(affected, id)
-					break
+			s.Log.Emit(events.Event{Event: events.StepOK, Step: "config", Msg: "saved " + ss.p.Path(".env")})
+			return nil
+		},
+		targets: func(ss *session) ([]string, error) {
+			ids, err := ss.p.AppIDs()
+			if err != nil {
+				return nil, err
+			}
+			var affected []string
+			for _, id := range ids {
+				data, err := os.ReadFile(ss.p.FragmentPath(id))
+				if err != nil {
+					return nil, err
+				}
+				for key := range changes {
+					if strings.Contains(string(data), "${"+key+"}") {
+						affected = append(affected, id)
+						break
+					}
 				}
 			}
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: "config", Msg: "saved " + ss.p.Path(".env")})
-		if len(affected) == 0 {
-			return nil
-		}
-		services, err := ss.services(affected...)
-		if err != nil {
-			return err
-		}
-		if err := ss.compose.Up(ctx, services...); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, Step: "recreate", Msg: "recreated " + strings.Join(affected, ", ")})
-		return nil
+			return affected, nil
+		},
+		compose: composeUp,
+		after:   after,
 	})
 }
 

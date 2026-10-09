@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: Space separated Recipe or App ids
+        description: Space separated Recipe or App ids; all covers both inventories
         required: false
         default: "ntfy vaultwarden media"
 
@@ -33,11 +33,15 @@ jobs:
           E2E_TARGETS: ${{ github.event.inputs.targets || 'ntfy vaultwarden media' }}
           E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
         run: go test -tags e2e -v -timeout 90m ./e2e/
-      - if: failure()
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs-recipes
-          path: ${{ runner.temp }}/e2e-logs
+          path: |
+            ${{ runner.temp }}/e2e-logs/inventory.json
+            ${{ runner.temp }}/e2e-logs/app-*.json
+            ${{ runner.temp }}/e2e-logs/recipe-*.json
+            !${{ runner.temp }}/e2e-logs/private/**
           if-no-files-found: ignore
 
   catalog:
@@ -54,9 +58,13 @@ jobs:
           E2E_TARGETS: all
           E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
         run: go test -tags e2e -v -timeout 340m ./e2e/
-      - if: failure()
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs-catalog
-          path: ${{ runner.temp }}/e2e-logs
+          path: |
+            ${{ runner.temp }}/e2e-logs/inventory.json
+            ${{ runner.temp }}/e2e-logs/app-*.json
+            ${{ runner.temp }}/e2e-logs/recipe-*.json
+            !${{ runner.temp }}/e2e-logs/private/**
           if-no-files-found: ignore

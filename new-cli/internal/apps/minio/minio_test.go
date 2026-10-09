@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/minio"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -65,7 +66,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.ID == "root-s3-auth" && r.Status != "skip" {
+		if r.ID == "root-s3-auth" && r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -85,7 +86,7 @@ func TestRejectedRootLoginFailsWithARecreateHint(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

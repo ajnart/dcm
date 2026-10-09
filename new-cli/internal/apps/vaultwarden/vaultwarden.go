@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -99,7 +98,7 @@ func adminCookie(ctx context.Context, h *helpers.H) (string, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/alive", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/alive"); err != nil {
 		return err
 	}
 	// Sign in once up front so the hint can tell a rate limit from a stale token.

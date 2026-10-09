@@ -2,6 +2,7 @@
 
 ## Pitfalls
 
+- Auxiliary Compose services use App-owned names: `patchmon-database`, `patchmon-redis`, `patchmon-guacd`. Keep these names in connection settings and dependencies; persistent data paths stay unchanged.
 - Inventory freshness is not proof that patches installed successfully or that reboots completed.
 - Redis authentication must remain enabled. Its generated private configuration keeps the password out of command arguments; no Redis healthcheck is claimed because upstream's documented check exposes the password in argv. The server's pinned startup authenticates and pings Redis before serving HTTP; an initial failure exits and relies on its restart policy.
 - CORS_ORIGIN derives from the selected loopback origin. A different browser-facing private URL requires separately reviewed origin configuration; a running container is not CORS or dashboard acceptance.

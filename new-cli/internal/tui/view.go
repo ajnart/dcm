@@ -2,12 +2,18 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
@@ -16,100 +22,193 @@ import (
 // Below wideWidth columns the panels stack instead of sitting side by side.
 const wideWidth = 100
 
-// layout places the three panels: Apps above Needs action, App details on
-// the right (wide) or underneath when there is room (narrow).
-type layout struct {
-	wide                    bool
-	leftW, rightW           int
-	appsH, needsH, detailsH int
-	detailsX, detailsY      int
+// surface is the Dashboard tab a view fills, in tab order: Overview
+// (dashboardView), Apps (appsView), Activity (activityView), Catalog
+// (installView) and Settings.
+type surface int
+
+const (
+	surfaceDashboard surface = iota
+	surfaceApps
+	surfaceActivity
+	surfaceInstall
+	surfaceSettings
+)
+
+var tabs = []struct {
+	name, label string
+}{
+	surfaceDashboard: {"dashboard", "Overview"},
+	surfaceApps:      {"apps", "Apps"},
+	surfaceActivity:  {"activity", "Activity"},
+	surfaceInstall:   {"install", "Catalog"},
+	surfaceSettings:  {"settings", "Settings"},
 }
 
-func (m Model) mainHeight() int { return max(m.height-2, 3) }
+// navKind is what a view asks the Model to do after it handled a message.
+type navKind int
 
-func (m Model) layout() layout {
-	h := m.mainHeight()
-	appsWant := max(len(m.rows()), 1) + 2
-	if m.width >= wideWidth {
-		left := max(58, m.width*2/5)
-		appsH := min(appsWant, max(h-5, 3))
-		return layout{wide: true, leftW: left, rightW: m.width - left, appsH: appsH, needsH: h - appsH,
-			detailsH: h, detailsX: left, detailsY: 1}
-	}
-	l := layout{leftW: m.width, rightW: m.width}
-	l.appsH = min(appsWant, max(h/2, 3))
-	needs, _ := m.needsLines(m.width - 4)
-	l.needsH = min(len(needs)+2, h-l.appsH)
-	l.detailsH = h - l.appsH - l.needsH
-	if l.detailsH < 6 {
-		l.needsH += l.detailsH
-		l.detailsH = 0
-	}
-	l.detailsY = 1 + l.appsH + l.needsH
-	return l
+const (
+	navNone navKind = iota
+	// navBack returns to the Overview and keeps the view as it is.
+	navBack
+	// navDone returns to the Overview after the view finished its job (an
+	// install or a Settings change was approved, or changes were discarded),
+	// so the tab starts afresh next time.
+	navDone
+	// navTo switches to another tab.
+	navTo
+)
+
+type nav struct {
+	kind navKind
+	to   surface
 }
 
-// relayout sizes the details viewport; call it whenever the layout can move.
-func (m *Model) relayout() {
-	l := m.layout()
-	m.details.SetWidth(max(l.rightW-4, 1))
-	m.details.SetHeight(max(l.detailsH-4, 1))
-	m.help.SetWidth(m.width)
+// pane is one focusable part of a tab and the keys that act in it.
+type pane struct {
+	name string
+	keys []key.Binding
 }
 
-func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }
+// view is one tab of the Dashboard.
+type view interface {
+	Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav)
+	View(ctx *viewContext, width, height int) string
+	// Keys are the keys that act in the focused pane right now: the bar's chips.
+	Keys() []key.Binding
+	// Panes are every pane of the view with its keys, for help and the keybind audit.
+	Panes() []pane
+	// Capturing reports that the view is taking text input: every key goes
+	// to it, and the global keys are text.
+	Capturing() bool
+	Title() string
+}
 
-func (m Model) View() tea.View {
-	var v tea.View
-	v.AltScreen = true
-	v.MouseMode = tea.MouseModeCellMotion
-	v.ReportFocus = true
-	v.WindowTitle = m.windowTitle()
-	if pct, ok := m.installProgress(); ok {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
-	} else if m.tasks.running() > 0 {
-		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
-	}
-	if m.width == 0 {
-		v.SetContent("")
-		return v
-	}
+// viewContext is what every view may read or ask for: theme, status, updates,
+// checks, containers, the Backend, run(Request, title) for Actions, and flash.
+type viewContext struct {
+	width, height int
+	theme         theme
+	glyphs        activity.Glyphs
+	keys          keyMap
+	// motion is the frame at which each row of the Action last changed.
+	motion activity.Motion
 
-	var main string
-	var layers []*lipgloss.Layer
-	switch {
-	case m.wizard != nil:
-		main = m.renderWizard()
-	case !m.loaded:
-		main = m.theme.dim().Render("  " + m.spin.View() + " reading the Project…")
-	case m.statusErr != "":
-		main = m.renderStatusError()
-	default:
-		main, layers = m.renderDashboard()
-	}
-	content := m.renderHeader() + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + m.renderFooter()
+	status    service.Status
+	checks    []host.Check
+	updates   map[string]string
+	updatesAt time.Time
+	latest    string
 
-	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
-	if overlay := m.renderOverlay(); overlay != "" {
-		w, h := lipgloss.Width(overlay), lipgloss.Height(overlay)
-		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
-		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
+	containers    []service.ContainerStatus
+	containersErr string
+
+	backend Backend
+	tasks   *taskManager
+
+	flash      string
+	flashLevel level
+	// headerFacts are the LAN address and time the header had no room for;
+	// the Overview's Now strip restates them.
+	headerFacts []string
+
+	// shared marks a context a Model hands out: it builds the snapshot once,
+	// so the tracker, the status line, the Now strip and the Activity tab
+	// read the same one.
+	shared bool
+	snap   *activity.Snapshot
+
+	// layers are the clickable regions a view produced in View; the Model
+	// composites them so rows and tabs stay mouse targets.
+	layers []*lipgloss.Layer
+}
+
+// mainHeight leaves the header row above and the status line and bar below.
+func (ctx *viewContext) mainHeight() int { return max(ctx.height-3, 3) }
+
+// snapshot is every App's remembered steps overlaid with the events of the
+// tasks a status refresh has not read yet, and the Action of the latest
+// task, which stays until the next one starts.
+func (ctx *viewContext) snapshot() activity.Snapshot {
+	if !ctx.shared {
+		return ctx.buildSnapshot()
 	}
-	comp := lipgloss.NewCompositor(all...)
-	v.SetContent(comp.Render())
-	v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {
-		click, ok := msg.(tea.MouseClickMsg)
-		if !ok {
-			return nil
+	if ctx.snap == nil {
+		s := ctx.buildSnapshot()
+		ctx.snap = &s
+	}
+	return *ctx.snap
+}
+
+func (ctx *viewContext) buildSnapshot() activity.Snapshot {
+	var evs, latest []events.Event
+	if ctx.tasks != nil {
+		for _, task := range ctx.tasks.snapshots() {
+			if task.persisted {
+				continue
+			}
+			evs = append(evs, task.events...)
 		}
-		hit := comp.Hit(click.X, click.Y)
-		if hit.Empty() || hit.ID() == "overlay" {
-			return nil
+		if task := ctx.tasks.latest(); task != nil {
+			latest = actionEvents(task.snapshot())
 		}
-		id := hit.ID()
-		return func() tea.Msg { return clickMsg{id: id} }
 	}
-	return v
+	s := activity.Build(ctx.status, evs)
+	action := activity.Build(ctx.status, latest)
+	s.Action, s.Pull = action.Action, action.Pull
+	return s
+}
+
+// actionEvents are a task's events as one Action: opened with a run.start
+// named after the task when the Service has not sent one yet, and closed
+// with a run.end when the task ended without one, as an Action that fails
+// outside the Service's own finish does.
+func actionEvents(t taskSnapshot) []events.Event {
+	evs := t.events
+	if !slices.ContainsFunc(evs, func(e events.Event) bool { return e.Event == events.RunStart }) {
+		evs = append([]events.Event{{Event: events.RunStart, Msg: t.title}}, evs...)
+	}
+	if t.state == taskRunning {
+		return evs
+	}
+	for i := len(evs) - 1; i >= 0 && evs[i].Event != events.RunStart; i-- {
+		if evs[i].Event == events.RunEnd {
+			return evs
+		}
+	}
+	end := events.Event{Event: events.RunEnd, Error: t.err}
+	if t.state == taskCancelled {
+		end.Error = "cancelled"
+	}
+	return append(evs, end)
+}
+
+// pullProgress is the running Action's overall pull, as a whole number out
+// of 100 for the terminal's own progress indicator.
+func (m Model) pullProgress(ctx *viewContext) (int, bool) {
+	task := m.tasks.latest()
+	if task == nil || task.snapshot().state != taskRunning {
+		return 0, false
+	}
+	pull := ctx.snapshot().Pull
+	if !pull.Pulling || pull.Total == 0 {
+		return 0, false
+	}
+	return int(pull.Fraction * 100), true
+}
+
+func (ctx *viewContext) setFlash(text string, l level) { ctx.flash, ctx.flashLevel = text, l }
+
+// run starts a background Action; the status line shows its progress.
+func (ctx *viewContext) run(req Request, title string) tea.Cmd {
+	t := ctx.tasks.start(title)
+	backend := ctx.backend
+	return func() tea.Msg {
+		log := events.New(events.SinkFunc(t.append))
+		err := backend.Run(t.ctx, req, log)
+		return taskDoneMsg{id: t.id, title: title, err: err}
+	}
 }
 
 // fit pads or cuts s to exactly width×height cells.
@@ -127,14 +226,64 @@ func fit(s string, width, height int) string {
 	return strings.Join(lines, "\n")
 }
 
+// clip cuts every line of s to width cells.
+func clip(s string, width int) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = truncate(line, width)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func wrap(s string, width int) string {
+	if width < 10 {
+		return s
+	}
+	return lipgloss.NewStyle().Width(width).Render(s)
+}
+
+// indent wraps s with a hanging indent under prefix.
+func indent(prefix, s string, width int) string {
+	inner := width - lipgloss.Width(prefix)
+	lines := strings.Split(wrap(s, inner), "\n")
+	hang := strings.Repeat(" ", lipgloss.Width(prefix))
+	for i := range lines {
+		if i == 0 {
+			lines[i] = prefix + lines[i]
+		} else {
+			lines[i] = hang + lines[i]
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func sign(n int) int {
+	if n < 0 {
+		return -1
+	}
+	if n > 0 {
+		return 1
+	}
+	return 0
+}
+
+func firstLine(s string) string {
+	line, _, _ := strings.Cut(s, "\n")
+	return line
+}
+
 // Header
 
-func (m Model) health() (string, int) {
-	if len(m.checks) == 0 {
-		return "checking", -1
+func (m Model) health() (label, level string) { return hostHealth(m.checks) }
+
+// hostHealth sums up the host checks: a label and its Status level, or no
+// level while the checks are still running.
+func hostHealth(checks []host.Check) (label, level string) {
+	if len(checks) == 0 {
+		return "checking", ""
 	}
 	warn, fail := 0, 0
-	for _, c := range m.checks {
+	for _, c := range checks {
 		switch c.Level {
 		case host.Warn:
 			warn++
@@ -144,11 +293,11 @@ func (m Model) health() (string, int) {
 	}
 	switch {
 	case fail > 0:
-		return plural(fail, "failing check", "failing checks"), 2
+		return plural(fail, "failing check", "failing checks"), checkLevel(host.Fail)
 	case warn > 0:
-		return plural(warn, "warning", "warnings"), 1
+		return plural(warn, "warning", "warnings"), checkLevel(host.Warn)
 	}
-	return "healthy", 0
+	return "healthy", checkLevel(host.OK)
 }
 
 func plural(n int, one, many string) string {
@@ -173,56 +322,275 @@ func (m Model) windowTitle() string {
 	return fmt.Sprintf("self-host · %d apps · %s", len(m.status.Apps), label)
 }
 
-func (m Model) renderHeader() string {
+// headerPiece is one piece of the header's context: what it says, how it
+// looks, and whether the Overview's Now strip says it again when the header
+// has no room for it (the LAN address and the time).
+type headerPiece struct {
+	text, styled string
+	restated     bool
+}
+
+func piece(text, styled string) headerPiece { return headerPiece{text: text, styled: styled} }
+
+// renderHeader is the one header row: the brand, the five tabs once the
+// Project is read, and on the right as much context as fits, most important
+// first. The brand's name shrinks to its mark only when that lets more of
+// the essential context fit, so it does not flicker with the rest. It also
+// returns what the Now strip should restate: the pieces that did not fit.
+func (m Model) renderHeader() (string, []*lipgloss.Layer, []string) {
 	t := m.theme
-	parts := []string{t.chip("◆ self-host", t.accent)}
-	if m.status.Project != "" && m.width >= wideWidth {
-		parts = append(parts, t.dim().Render(shortHome(m.status.Project)))
+	showTabs := !m.onboardingShown() && m.loaded && m.statusErr == ""
+	var labels []string
+	tabsWidth := 0
+	if showTabs {
+		for i, tab := range tabs {
+			labels = append(labels, strconv.Itoa(i+1)+" "+tab.label)
+			tabsWidth += lipgloss.Width(labels[i])
+		}
+		tabsWidth += 2 * (len(labels) - 1)
 	}
-	if m.loaded && m.statusErr == "" && m.status.Project != "" {
-		switch {
-		case m.status.Exposure == service.ExposureLocal:
-			parts = append(parts, t.chip("LOCAL ONLY", t.warn))
-		case m.status.LANIPStale:
-			parts = append(parts, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
-		default:
-			parts = append(parts, t.chip("LAN "+m.status.LANIP, t.info))
+	essential, extra := m.headerContext()
+	brand := t.brand(m.glyphs)
+	mark := " " + t.title().Render(m.glyphs.Brand()) + " "
+	withMark, _ := fitContext(essential, m.width-lipgloss.Width(mark)-tabsWidth)
+	withBrand, _ := fitContext(essential, m.width-lipgloss.Width(brand)-tabsWidth)
+	if lipgloss.Width(withMark) > lipgloss.Width(withBrand) {
+		brand = mark
+	}
+	right, hidden := fitContext(append(essential, extra...), m.width-lipgloss.Width(brand)-tabsWidth)
+	var restated []string
+	for _, p := range hidden {
+		if p.restated {
+			restated = append(restated, p.text)
 		}
 	}
-	label, lvl := m.health()
-	healthColor := t.muted
-	switch lvl {
-	case 0:
-		healthColor = t.ok
-	case 1:
-		healthColor = t.warn
-	case 2:
-		healthColor = t.fail
-	}
-	parts = append(parts, t.chip("● "+label, healthColor))
-	if m.latest != "" {
-		parts = append(parts, t.fg(t.info).Render("↑ v"+strings.TrimPrefix(m.latest, "v")))
-	}
-	if n := m.updatesAvailable(); n > 0 {
-		parts = append(parts, t.fg(t.warn).Bold(true).Render("⚠ "+plural(n, "update", "updates")))
-	}
-	left := strings.Join(parts, " ")
-	right := t.dim().Render("v" + strings.TrimPrefix(m.opts.Version, "v"))
-	if !m.refreshed.IsZero() {
-		right = t.dim().Render(m.refreshed.Format("15:04:05")+" · ") + right
+	left := brand
+	var layers []*lipgloss.Layer
+	for i, label := range labels {
+		style := t.inactive()
+		if surface(i) == m.surface {
+			style = t.current()
+		}
+		if i > 0 {
+			left += "  "
+		}
+		rendered := style.Render(label)
+		layers = append(layers, lipgloss.NewLayer(rendered).X(lipgloss.Width(left)).Y(0).ID("nav:"+tabs[i].name))
+		left += rendered
 	}
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
-		return truncate(left, m.width)
+		return truncate(left, m.width), layers, restated
 	}
-	return left + strings.Repeat(" ", gap) + right
+	return left + strings.Repeat(" ", gap) + right, layers, restated
 }
 
-func shortHome(path string) string {
-	if i := strings.Index(path, "/self-host"); i > 0 && strings.HasSuffix(path, "/self-host") {
-		return "~/self-host"
+// fitContext joins the context pieces that fit in width after a one-cell
+// gap, in order of importance, skipping any that do not; those are returned.
+func fitContext(pieces []headerPiece, width int) (string, []headerPiece) {
+	right := ""
+	var hidden []headerPiece
+	for _, p := range pieces {
+		next := p.styled
+		if right != "" {
+			next = right + " " + p.styled
+		}
+		if 1+lipgloss.Width(next) <= width {
+			right = next
+		} else {
+			hidden = append(hidden, p)
+		}
 	}
-	return path
+	return right, hidden
+}
+
+// projectLabel names the Project in the header: its folder, short.
+func projectLabel(path string) string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" && strings.HasPrefix(path, home+"/") {
+		return "~/" + strings.TrimPrefix(path, home+"/")
+	}
+	return filepath.Base(path)
+}
+
+// headerContext is the right side of the header, most important first: the
+// essential host health, LAN address, newer release and Project, then the
+// extra last refresh, known updates and version.
+func (m Model) headerContext() (essential, extra []headerPiece) {
+	t := m.theme
+	if !m.onboardingShown() {
+		label, level := m.health()
+		health := piece(label, t.chip("○ "+label, t.muted))
+		if level != "" {
+			glyph, c := t.status(level)
+			health = piece(label, t.chip(glyph+" "+label, c))
+		}
+		essential = []headerPiece{health}
+	}
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		var lan headerPiece
+		switch {
+		case m.status.Exposure == service.ExposureLocal:
+			lan = piece("LOCAL ONLY", t.chip("LOCAL ONLY", t.warn))
+		case m.status.LANIPStale:
+			lan = piece("⚠ LAN "+m.status.LANIP, t.chip("⚠ LAN "+m.status.LANIP, t.warn))
+		default:
+			lan = piece("LAN "+m.status.LANIP, t.chip("LAN "+m.status.LANIP, t.info))
+		}
+		lan.restated = true
+		essential = append(essential, lan)
+	}
+	if m.latest != "" {
+		release := "↑ v" + strings.TrimPrefix(m.latest, "v")
+		essential = append(essential, piece(release, t.fg(t.info).Render(release)))
+	}
+	if m.loaded && m.statusErr == "" && m.status.Project != "" {
+		project := projectLabel(m.status.Project)
+		essential = append(essential, piece(project, t.dim().Render(project)))
+	}
+	if !m.refreshed.IsZero() {
+		clock := m.refreshed.Format("15:04:05")
+		extra = append(extra, headerPiece{text: clock, styled: t.dim().Render(clock), restated: true})
+	}
+	if n := m.updatesAvailable(); n > 0 {
+		updates := "⚠ " + plural(n, "update", "updates")
+		extra = append(extra, piece(updates, t.fg(t.warn).Bold(true).Render(updates)))
+	}
+	version := "v" + strings.TrimPrefix(m.opts.Version, "v")
+	return essential, append(extra, piece(version, t.dim().Render(version)))
+}
+
+// renderBar is the last row: the global keys on the left and the focused
+// pane's keys as chips on the right. Chips that do not fit are cut from the
+// right and marked "…"; the global keys always stay. A mode (typing, help)
+// replaces the global keys while they do not act.
+func (m Model) renderBar(mode string, chips []key.Binding) string {
+	t := m.theme
+	left := mode
+	if left == "" {
+		k := m.keys
+		left = barKey(t, k.Tabs.Help().Key, k.Tabs.Help().Desc) + "  " + t.title().Render("←/→") + "  " +
+			barKey(t, k.ProjectMenu.Help().Key, k.ProjectMenu.Help().Desc) + "  " +
+			barKey(t, k.Help.Help().Key, k.Help.Help().Desc) + "  " + barKey(t, k.Quit.Help().Key, k.Quit.Help().Desc)
+	}
+	left = " " + left
+	var rendered []string
+	total := 0
+	for i, b := range chips {
+		chip := t.chip(b.Help().Key, t.bright) + " " + t.dim().Render(b.Help().Desc)
+		rendered = append(rendered, chip)
+		if i > 0 {
+			total += 2
+		}
+		total += lipgloss.Width(chip)
+	}
+	avail := m.width - lipgloss.Width(left) - 3
+	right := strings.Join(rendered, "  ")
+	if total > avail {
+		ellipsis := " " + t.dim().Render("…")
+		var fitted []string
+		used := 0
+		for _, chip := range rendered {
+			w := lipgloss.Width(chip)
+			if len(fitted) > 0 {
+				w += 2
+			}
+			if used+w+lipgloss.Width(ellipsis) > avail {
+				break
+			}
+			fitted = append(fitted, chip)
+			used += w
+		}
+		right = strings.Join(fitted, "  ") + ellipsis
+	}
+	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 1
+	if gap < 2 {
+		return pad(left, m.width)
+	}
+	return pad(left+strings.Repeat(" ", gap)+right, m.width)
+}
+
+func barKey(t theme, k, desc string) string {
+	return t.title().Render(k) + " " + t.dim().Render(desc)
+}
+
+// View composes the header, the active tab, the status line and the bar,
+// then the Help overlay when it is open.
+func (m Model) View() tea.View {
+	var v tea.View
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	v.ReportFocus = true
+	v.WindowTitle = m.windowTitle()
+	ctxView := m.ctx()
+	if pct, ok := m.pullProgress(ctxView); ok {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
+	} else if m.tasks.running() > 0 {
+		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
+	}
+	if m.width == 0 {
+		v.SetContent("")
+		return v
+	}
+
+	header, layers, restated := m.renderHeader()
+	ctxView.headerFacts = restated
+	status := pad(m.footerStatus(ctxView), m.width)
+	var content string
+	if m.onboardingShown() {
+		mode, chips := m.onboardingBar()
+		content = header + "\n" + fit(m.renderOnboarding(), m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
+	} else {
+		var main, mode string
+		var chips []key.Binding
+		switch {
+		case !m.loaded:
+			main = m.renderLoading()
+			mode = barKey(m.theme, m.keys.Quit.Help().Key, m.keys.Quit.Help().Desc)
+		case m.statusErr != "":
+			main = m.renderStatusError()
+		default:
+			active := m.activeView()
+			main = active.View(ctxView, m.width, m.mainHeight())
+			layers = append(layers, ctxView.layers...)
+			chips = active.Keys()
+			if active.Capturing() {
+				mode = m.theme.fg(m.theme.accentText).Bold(true).Render("typing") + m.theme.dim().Render(" · keys go to the input")
+			}
+		}
+		if m.showHelp {
+			mode = m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(" · any other key closes")
+			chips = m.helpView.Keys()
+		}
+		if m.menu != nil {
+			mode, chips = m.menuBarMode(), m.menuBarKeys()
+		}
+		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
+	}
+
+	all := append([]*lipgloss.Layer{lipgloss.NewLayer(content)}, layers...)
+	if overlay := m.renderOverlay(); overlay != "" {
+		w, h := lipgloss.Width(overlay), lipgloss.Height(overlay)
+		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
+		all = append(all, lipgloss.NewLayer(overlay).X(x).Y(y).Z(10).ID("overlay"))
+	}
+	if m.menu != nil && !m.onboardingShown() {
+		all = append(all, m.menuLayers()...)
+	}
+	comp := lipgloss.NewCompositor(all...)
+	v.SetContent(comp.Render())
+	v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {
+		click, ok := msg.(tea.MouseClickMsg)
+		if !ok {
+			return nil
+		}
+		hit := comp.Hit(click.X, click.Y)
+		if hit.Empty() || hit.ID() == "overlay" {
+			return nil
+		}
+		id := hit.ID()
+		return func() tea.Msg { return clickMsg{id: id} }
+	}
+	return v
 }
 
 func (m Model) renderStatusError() string {
@@ -237,331 +605,23 @@ func (m Model) renderStatusError() string {
 	}, "\n")
 }
 
-// Panels
-
-func (m Model) renderDashboard() (string, []*lipgloss.Layer) {
-	l := m.layout()
-	apps, layers := m.renderApps(l.leftW, l.appsH)
-	needs, needLayers := m.renderNeeds(l.leftW, l.needsH, 1+l.appsH)
-	layers = append(layers, needLayers...)
-	if l.detailsH == 0 {
-		return apps + "\n" + needs, layers
-	}
-	details, tabLayers := m.renderDetails(l.rightW, l.detailsH, l.detailsX, l.detailsY)
-	layers = append(layers, tabLayers...)
-	if l.wide {
-		return lipgloss.JoinHorizontal(lipgloss.Top, apps+"\n"+needs, details), layers
-	}
-	return apps + "\n" + needs + "\n" + details, layers
-}
-
-func (m Model) renderApps(width, height int) (string, []*lipgloss.Layer) {
+// footerStatus is the status line above the bar: the running Action's
+// latest event, else the last result or flash message. On the Overview the
+// Now strip shows the Action and its result, so the line keeps only the
+// other messages.
+func (m Model) footerStatus(ctx *viewContext) string {
 	t := m.theme
-	inner := width - 4
-	visible := max(height-2, 1)
-	offset := max(m.cursor-visible+1, 0)
-	rows := m.rows()
-	var lines []string
-	var layers []*lipgloss.Layer
-	if len(rows) == 0 {
-		lines = append(lines, t.dim().Render("No Apps yet. Press i to install one."))
+	overview := !m.onboardingShown() && m.surface == surfaceDashboard
+	if overview && m.flash == m.resultFlash {
+		return ""
 	}
-	for i := offset; i < len(rows) && i-offset < visible; i++ {
-		line := m.appRow(rows[i], inner)
-		if i == m.cursor {
-			line = lipgloss.NewStyle().Background(t.selected).Bold(true).Render(pad(keepDot(line), inner))
-		}
-		lines = append(lines, line)
-		layers = append(layers, lipgloss.NewLayer(line).X(2).Y(2+i-offset).ID(rowLayerID(i)))
-	}
-	title := t.heading().Render("Apps") + t.dim().Render(" "+strconv.Itoa(len(rows)))
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
-}
-
-// appRow is one App: Status dot, name, URL, state, Setup and update marks.
-func (m Model) appRow(a service.AppStatus, width int) string {
-	t := m.theme
-	update := " "
-	if a.Update == service.UpdateAvailable {
-		update = t.fg(t.warn).Render("↑")
-	}
-	urlWidth := min(width-29, 26)
-	url := ""
-	if urlWidth >= 12 {
-		url = t.dim().Render(pad(a.URL, urlWidth)) + " "
-	}
-	return t.dot(service.Level(a)) + " " + t.body().Render(pad(a.Name, 13)) + " " + url +
-		pad(stateLabel(a), 9) + " " + m.setupMark(a) + update
-}
-
-func stateLabel(a service.AppStatus) string {
-	switch {
-	case a.State == "running" && a.Health != "" && a.Health != "healthy":
-		return a.Health
-	case a.State == "exited" || a.State == "created":
-		return "stopped"
-	}
-	return a.State
-}
-
-func (m Model) setupMark(a service.AppStatus) string {
-	t := m.theme
-	switch a.Setup {
-	case "ok":
-		return t.fg(t.ok).Render("✓")
-	case "incomplete":
-		return t.fg(t.fail).Render("✗")
-	case "pending":
-		return t.fg(t.warn).Render("…")
-	}
-	return t.dim().Render("–")
-}
-
-// The selected row is redrawn on one background so per-cell colours do not
-// punch holes in the highlight; the dot keeps its colour.
-func keepDot(line string) string {
-	dot, rest, found := strings.Cut(line, "● ")
-	if !found {
-		return line
-	}
-	return dot + "● " + stripANSI(rest)
-}
-
-// need is one Needs action item and the Action that resolves it.
-type need struct {
-	broken bool
-	text   string
-	// key and desc name the Action; command is used when no key exists.
-	key, desc, command string
-	app                string
-}
-
-func (m Model) needsAction() []need {
-	var items []need
-	for _, a := range m.rows() {
-		for _, s := range a.Steps {
-			if s.Status == "fail" {
-				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
-			}
-		}
-	}
-	for _, a := range m.rows() {
-		if a.State != "running" && a.State != "degraded" && a.State != "unknown" {
-			items = append(items, need{broken: true, text: a.Name + " is stopped", key: "enter", desc: "start", app: a.ID})
-		}
-	}
-	if m.status.LANIPStale {
-		items = append(items, need{broken: true, text: "LAN IP " + m.status.LANIP + " is not on this machine", key: "i", desc: "Host settings"})
-	}
-	for _, a := range m.rows() {
-		if a.Update == service.UpdateAvailable {
-			items = append(items, need{text: a.Name + " has an update", key: "u", desc: "update", app: a.ID})
-		}
-	}
-	for _, c := range m.checks {
-		// Stopped containers and a stale LAN IP are already listed above.
-		if c.Level == host.OK || c.ID == "running" || c.ID == "lan-ip" {
-			continue
-		}
-		command := c.Hint
-		if command == "" {
-			command = "self-host doctor"
-		}
-		items = append(items, need{broken: c.Level == host.Fail, text: c.Title + ": " + c.Detail, command: command, app: c.App})
-	}
-	return items
-}
-
-// needsLines renders Needs action and returns the App each line points at.
-func (m Model) needsLines(width int) ([]string, []string) {
-	t := m.theme
-	items := m.needsAction()
-	if len(items) == 0 {
-		return []string{t.fg(t.ok).Render("✓ Nothing needs your attention")}, []string{""}
-	}
-	var lines, apps []string
-	for _, it := range items {
-		icon := t.fg(t.warn).Render("!")
-		if it.broken {
-			icon = t.fg(t.fail).Render("✗")
-		}
-		head := icon + " " + t.body().Render(it.text)
-		if it.key != "" {
-			action := t.fg(t.accent).Bold(true).Render(it.key) + t.dim().Render(" "+it.desc)
-			if gap := width - lipgloss.Width(head) - lipgloss.Width(action); gap >= 2 {
-				lines, apps = append(lines, head+strings.Repeat(" ", gap)+action), append(apps, it.app)
-				continue
-			}
-			lines, apps = append(lines, truncate(head, width), "  "+action), append(apps, it.app, it.app)
-			continue
-		}
-		lines = append(lines, truncate(head, width), t.dim().Render(truncate("  → "+it.command, width)))
-		apps = append(apps, it.app, it.app)
-	}
-	return lines, apps
-}
-
-func (m Model) renderNeeds(width, height, y int) (string, []*lipgloss.Layer) {
-	t := m.theme
-	lines, apps := m.needsLines(width - 4)
-	var layers []*lipgloss.Layer
-	for i, app := range apps {
-		if app != "" && i < height-2 {
-			layers = append(layers, lipgloss.NewLayer(lines[i]).X(2).Y(y+1+i).ID("app:"+app))
-		}
-	}
-	title := t.heading().Render("Needs action")
-	if n := len(m.needsAction()); n > 0 {
-		title += t.dim().Render(" " + strconv.Itoa(n))
-	}
-	return t.box(title, strings.Join(lines, "\n"), width, height), layers
-}
-
-func (m Model) renderDetails(width, height, x, y int) (string, []*lipgloss.Layer) {
-	t := m.theme
-	inner := width - 4
-	var tabs []string
-	var layers []*lipgloss.Layer
-	tx := x + 2
-	for i, name := range detailTabs {
-		style := t.dim()
-		if detailTab(i) == m.tab {
-			style = lipgloss.NewStyle().Bold(true).Foreground(t.bright).Background(t.selected)
-		}
-		rendered := style.Render(" " + name + " ")
-		layers = append(layers, lipgloss.NewLayer(rendered).X(tx).Y(y+1).ID("tab:"+strconv.Itoa(i)))
-		tabs = append(tabs, rendered)
-		tx += lipgloss.Width(rendered) + 1
-	}
-	app, found := m.selected()
-	title := t.heading().Render("Details")
-	var body string
-	switch {
-	case !found:
-		body = t.dim().Render("Select an App.")
-	case m.tab == tabSetup:
-		title = t.heading().Render(app.Name)
-		body = m.renderSetup(app, inner)
-	case m.tab == tabInfo:
-		title = t.heading().Render(app.Name)
-		body = m.renderInfo(app, inner)
-	case m.tab == tabCompose:
-		title = t.heading().Render(app.Name) + t.dim().Render(" apps/"+app.ID+"/compose.yml")
-		body = m.details.View()
-		if m.compose[app.ID] == "" {
-			body = t.dim().Render("reading the Compose file…")
-		}
-	default:
-		title = t.heading().Render(app.Name) + t.dim().Render(" logs")
-		body = m.details.View()
-		if len(m.logLines) == 0 {
-			body = t.dim().Render("waiting for logs…")
-		}
-	}
-	content := strings.Join(tabs, " ") + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
-	return t.box(title, content, width, height), layers
-}
-
-func (m Model) renderSetup(app service.AppStatus, width int) string {
-	t := m.theme
-	if !app.Managed {
-		return t.dim().Render(wrap(app.Name+" was added by hand (Unmanaged app). self-host starts, stops, updates and backs it up, but runs no Setup for it.", width))
-	}
-	if len(app.Steps) == 0 {
-		if app.Setup == "ok" {
-			return t.fg(t.ok).Render("✓ ") + t.body().Render("Setup has finished.")
-		}
-		return t.dim().Render("Setup has not run yet. Press r to run it.")
-	}
-	var lines []string
-	for _, step := range app.Steps {
-		mark := t.fg(t.ok).Render("✓")
-		switch step.Status {
-		case "skip":
-			mark = t.dim().Render("↷")
-		case "fail":
-			mark = t.fg(t.fail).Render("✗")
-		}
-		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status == "fail" {
-			lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
-			if step.Hint != "" {
-				lines = append(lines, t.fg(t.warn).Render(indent("  → ", step.Hint, width)))
-			}
-		}
-	}
-	if app.Setup == "incomplete" {
-		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press r to retry Setup.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-func (m Model) renderInfo(app service.AppStatus, width int) string {
-	t := m.theme
-	row := func(k, v string) string { return t.dim().Render(pad(k, 10)) + t.body().Render(truncate(v, width-10)) }
-	lines := []string{
-		row("url", app.URL),
-		row("port", strconv.Itoa(app.Port)),
-		row("image", app.Image),
-		row("services", strings.Join(app.Services, ", ")),
-		row("state", strings.TrimSpace(app.State+" "+app.Health)),
-		row("setup", app.Setup),
-		row("data", "apps/"+app.ID+"/"),
-	}
-	if app.Managed {
-		lines = append(lines, "", t.dim().Render(wrap("Sign in with the Admin login: c copies the password, self-host credentials shows API keys.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-// indent wraps s with a hanging indent under prefix.
-func indent(prefix, s string, width int) string {
-	inner := width - lipgloss.Width(prefix)
-	lines := strings.Split(wrap(s, inner), "\n")
-	hang := strings.Repeat(" ", lipgloss.Width(prefix))
-	for i := range lines {
-		if i == 0 {
-			lines[i] = prefix + lines[i]
-		} else {
-			lines[i] = hang + lines[i]
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
-func wrap(s string, width int) string {
-	if width < 10 {
-		return s
-	}
-	return lipgloss.NewStyle().Width(width).Render(s)
-}
-
-// Footer and overlays
-
-// renderFooter shows the running Action's latest event, else the last
-// result, with the key hints on the right.
-func (m Model) renderFooter() string {
-	t := m.theme
-	left := m.footerStatus()
-	if m.wizard != nil {
-		return pad(left, m.width)
-	}
-	h := m.help
-	h.SetWidth(max(m.width-lipgloss.Width(left)-2, 0))
-	right := h.ShortHelpView(m.keys.ShortHelp())
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
-	if gap < 2 {
-		return pad(left, m.width)
-	}
-	return left + strings.Repeat(" ", gap) + t.dim().Render(right)
-}
-
-func (m Model) footerStatus() string {
-	t := m.theme
-	if task := m.tasks.get(m.lastTask); task != nil {
+	if task := m.tasks.latest(); task != nil && !overview {
 		if s := task.snapshot(); s.state == taskRunning {
-			line := t.fg(t.accent).Render(m.spin.View() + " " + s.title)
-			if n := len(s.events); n > 0 {
+			line := t.fg(t.accentText).Render(activity.Spinner(m.frame) + " " + s.title)
+			if snapshot := ctx.snapshot(); snapshot.Pull.Pulling {
+				line += t.dim().Render(" · ")
+				line += activity.Compact(snapshot, m.width-lipgloss.Width(line), t.palette())
+			} else if n := len(s.events); n > 0 {
 				line += t.dim().Render(" · ") + formatEvent(t, s.events[n-1])
 			}
 			return truncate(line, m.width)
@@ -577,34 +637,6 @@ func (m Model) footerStatus() string {
 		style = t.fg(t.fail)
 	}
 	return truncate(style.Render(m.flash), m.width)
-}
-
-func (m Model) renderOverlay() string {
-	t := m.theme
-	width := max(min(m.width-6, 100), 20)
-	switch {
-	case m.picker != nil:
-		return t.panel(true).Render(clip(m.renderPicker(width, max(m.height-8, 5)), width))
-	case m.showHelp:
-		h := m.help
-		h.SetWidth(width)
-		body := t.title().Render("Keys") + "\n\n" + h.FullHelpView(m.keys.FullHelp()) + "\n\n" +
-			t.dim().Render("More: self-host --help (remove, restore, config, credentials…)")
-		if m.latest != "" {
-			body += "\n\n" + t.fg(t.info).Render("↑ "+m.releaseNotice())
-		}
-		return t.panel(true).Render(clip(body+"\n\n"+t.dim().Render("any key closes"), width))
-	}
-	return ""
-}
-
-// clip cuts every line of s to width cells.
-func clip(s string, width int) string {
-	lines := strings.Split(s, "\n")
-	for i, line := range lines {
-		lines[i] = truncate(line, width)
-	}
-	return strings.Join(lines, "\n")
 }
 
 func formatEvent(t theme, e events.Event) string {

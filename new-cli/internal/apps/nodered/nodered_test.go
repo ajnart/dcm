@@ -12,6 +12,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/nodered"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -95,10 +96,10 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range results {
-		if r.ID == "wait" {
+		if r.ID == "ready" {
 			continue
 		}
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s status %q, want skip", r.ID, r.Status)
 		}
 	}
@@ -128,7 +129,7 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 			fail = &results[i]
 		}
 	}
-	if fail == nil || fail.Status != "fail" {
+	if fail == nil || fail.Status != stepstatus.StepFail {
 		t.Fatalf("admin-login did not fail: %+v", results)
 	}
 	if !strings.Contains(fail.Hint, "self-host credentials") {

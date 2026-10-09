@@ -45,6 +45,7 @@ func (App) Compose(rc app.RenderContext) string {
     read_only: true
     environment:
       TZ: ${TZ}
+      HAPROXY_ADMIN_USER: ${ADMIN_USER}
       HAPROXY_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     volumes:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
@@ -75,7 +76,7 @@ defaults
   timeout server 30s
 
 userlist owner-stats
-  user admin password "$HAPROXY_ADMIN_PASSWORD"
+  user "$HAPROXY_ADMIN_USER" insecure-password "$HAPROXY_ADMIN_PASSWORD"
 
 frontend private-http
   bind :8080

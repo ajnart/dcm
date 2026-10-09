@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 const (
@@ -52,14 +52,14 @@ func (App) Compose(rc app.RenderContext) string {
     init: true
     restart: always
     environment:
-      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@db:5432/umami
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET}
       TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_KEY}
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - db
-  db:
+      - umami-db
+  umami-db:
     image: postgres:15-alpine
     restart: always
     environment:
@@ -150,7 +150,7 @@ func rotate(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	ready := onboard.NoAccount{Probe: onboard.Probe{Path: "/api/heartbeat", Timeout: 5 * time.Minute}}
+	ready := firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/heartbeat", Timeout: 5 * time.Minute}}
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}

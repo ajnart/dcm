@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Frigate. Traps: docs/catalog/traps/frigate.md.
@@ -39,10 +39,14 @@ func (App) Secrets() []app.SecretSpec {
 }
 
 // bootstrapConfig is the read-only, camera-free starter config; only the
-// authenticated 8971 listener is published.
+// authenticated 8971 listener is published. 8971 serves TLS with a
+// self-signed certificate by default, which answers plain HTTP with 400, so
+// TLS is off on this private, authenticated listener (as the trap says).
 const bootstrapConfig = `version: 0.18
 auth:
   enabled: true
+tls:
+  enabled: false
 cameras: {}
 `
 
@@ -95,19 +99,22 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 
 var temporaryPassword = regexp.MustCompile(`\*\*\*\s+Password:\s+([0-9a-f]{32})\s+\*\*\*`)
 
-// firstUserPassword reads the generated password from the exact current-start
-// fresh-user block; reset blocks are refused.
+// firstUserPassword reads the generated password from the latest fresh-user
+// block in the container's whole log: Frigate logs every request, so the
+// block scrolls far out of a short tail. A password reset after that block
+// is refused.
 func firstUserPassword(ctx context.Context, h *helpers.H) (string, error) {
-	logs, err := h.Logs(ctx, 200)
+	logs, err := h.Logs(ctx, 1_000_000)
 	if err != nil {
 		return "", err
 	}
-	if !strings.Contains(logs, "Auth is enabled, but no users exist") || strings.Contains(logs, "Reset admin password") {
-		return "", errors.New("no fresh Frigate first-user password block in the current logs")
+	start := strings.LastIndex(logs, "Auth is enabled, but no users exist")
+	if start < 0 || strings.Contains(logs[start:], "Reset admin password") {
+		return "", errors.New("no fresh Frigate first-user password block in the logs")
 	}
-	found := temporaryPassword.FindStringSubmatch(logs)
+	found := temporaryPassword.FindStringSubmatch(logs[start:])
 	if found == nil {
-		return "", errors.New("no generated administrator password in the current Frigate logs")
+		return "", errors.New("no generated administrator password in the Frigate logs")
 	}
 	return found[1], nil
 }
@@ -119,7 +126,7 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 		return err
 	}
 	if denied.Status != http.StatusUnauthorized && denied.Status != http.StatusForbidden {
-		return errors.New("Frigate anonymous profile access was not denied")
+		return fmt.Errorf("Frigate anonymous profile access was not denied (HTTP %d)", denied.Status)
 	}
 	temporary, err := firstUserPassword(ctx, h)
 	if err != nil {
@@ -140,9 +147,11 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusUnauthorized}},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		// The static frontend can answer before the authenticated API starts.
+		// Wait for the API to deny anonymous access before checking credentials.
+		Ready:  firstadmin.Probe{Path: "/api/profile", Want: []int{http.StatusUnauthorized, http.StatusForbidden}},
 		Create: createAdmin,
 		Login:  loginWorks,
 		Manual: "sign in with the temporary password printed by the container (`self-host logs frigate`) and change it to the password from `self-host credentials`",

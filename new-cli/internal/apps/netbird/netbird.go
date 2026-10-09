@@ -4,11 +4,11 @@ package netbird
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -75,10 +75,10 @@ func (App) Compose(rc app.RenderContext) string {
       NGINX_SSL_PORT: "443"
       LETSENCRYPT_DOMAIN: none
     depends_on:
-      - server
+      - netbird-server
     ports:
-      - ${BIND_IP}:18080:80
-  server:
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:80
+  netbird-server:
     image: netbirdio/netbird-server:0.80.0
     restart: unless-stopped
     command: ["--config", "/run/secrets/server-config"]
@@ -95,6 +95,13 @@ func (App) Compose(rc app.RenderContext) string {
 // declared secrets, supplied through secret() rather than Compose.
 func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	base := origin(rc)
+	storeKey := secret("store_key")
+	// Generated keys are 32 raw bytes; the pinned datastore expects Base64.
+	// Preserve existing encoded keys and unsupported values rather than rotate
+	// encryption material that may already protect persistent state.
+	if len(storeKey) == 32 {
+		storeKey = base64.StdEncoding.EncodeToString([]byte(storeKey))
+	}
 	proxy := rc.Inputs["NETBIRD_TRUSTED_PROXY"]
 	if proxy == "" {
 		proxy = "127.0.0.1"
@@ -122,7 +129,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 		"    trustedPeers: [\"" + proxy + "/32\"]\n" +
 		"  store:\n" +
 		"    engine: \"sqlite\"\n" +
-		"    encryptionKey: " + secret("store_key") + "\n"
+		"    encryptionKey: " + storeKey + "\n"
 	return []app.File{{Path: "server-config", Content: config, Mode: 0600}}
 }
 
@@ -154,7 +161,7 @@ func ownerWorks(ctx context.Context, h *helpers.H, email string) (bool, error) {
 	return current.Role == "owner" && current.Email == email, nil
 }
 
-const managementHint = "Set the external management URL with: self-host setup netbird --set netbird.NETBIRD_CANONICAL_ORIGIN=https://netbird.example.com " +
+const managementHint = "Set the external management URL with: self-host install netbird --yes --set netbird.NETBIRD_CANONICAL_ORIGIN=https://netbird.example.com " +
 	"(see https://docs.netbird.io/selfhosted/selfhosted-quickstart)"
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
@@ -165,7 +172,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/api/instance", 2*time.Minute); err != nil {
+	// The published port serves the dashboard; /api is routed to the server
+	// through the separately configured HTTPS management origin.
+	h.BaseURL = base
+	if err := h.Ready(ctx, "/api/instance"); err != nil {
 		return err
 	}
 	email := ownerEmail(h)
@@ -213,6 +223,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
+	base := h.Inputs["NETBIRD_CANONICAL_ORIGIN"]
+	if !strings.HasPrefix(base, "https://") {
+		return errors.New(managementHint)
+	}
+	h.BaseURL = base
 	ok, err := ownerWorks(ctx, h, ownerEmail(h))
 	if err != nil {
 		return err

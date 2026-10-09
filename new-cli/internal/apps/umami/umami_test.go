@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/umami"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -105,7 +106,7 @@ func TestSetupThenCheckPass(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			t.Errorf("step %s failed: %s", r.ID, r.Error)
 		}
 	}
@@ -125,7 +126,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range *recorded {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s = %s on rerun, want skip", r.ID, r.Status)
 		}
 	}
@@ -141,7 +142,7 @@ func TestFailedRotationHintNamesTheApp(t *testing.T) {
 	}
 	var fail *helpers.StepResult
 	for i := range *recorded {
-		if (*recorded)[i].Status == "fail" {
+		if (*recorded)[i].Status == stepstatus.StepFail {
 			fail = &(*recorded)[i]
 		}
 	}

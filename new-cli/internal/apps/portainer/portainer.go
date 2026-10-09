@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -96,7 +95,7 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin", "the preseeded administrator signs in", helpers.StepSpec{

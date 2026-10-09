@@ -4,16 +4,14 @@ package authelia
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
-	"golang.org/x/crypto/argon2"
 )
 
 // App is Authelia. Traps: docs/catalog/traps/authelia.md.
@@ -48,13 +46,15 @@ func (App) Secrets() []app.SecretSpec {
 	}
 }
 
-func (App) Compose(app.RenderContext) string {
+func (App) Compose(rc app.RenderContext) string {
 	return `services:
   authelia:
     image: docker.io/authelia/authelia:4.39.25
     restart: unless-stopped
     command: ["--config", "/config/configuration.yml"]
     environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
       TZ: ${TZ}
       AUTHELIA_SESSION_SECRET: ${AUTHELIA_SESSION_SECRET}
       AUTHELIA_STORAGE_ENCRYPTION_KEY: ${AUTHELIA_STORAGE_KEY}
@@ -62,7 +62,7 @@ func (App) Compose(app.RenderContext) string {
     volumes:
       - ./config:/config
     ports:
-      - ${BIND_IP}:9091:9091
+      - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:9091
 `
 }
 
@@ -92,6 +92,10 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	if user == "" {
 		user = "admin"
 	}
+	hash, err := helpers.HashPassword(helpers.Argon2id, secret("ADMIN_PASSWORD"))
+	if err != nil {
+		return nil
+	}
 	configuration := `server:
   address: tcp://0.0.0.0:9091/
 log:
@@ -109,7 +113,6 @@ session:
   cookies:
     - domain: ` + fmt.Sprintf("%q", host) + `
       authelia_url: ` + fmt.Sprintf("%q", origin) + `
-      default_redirection_url: ` + fmt.Sprintf("%q", origin) + `
 storage:
   local:
     path: /config/db.sqlite3
@@ -121,12 +124,12 @@ notifier:
   ` + user + `:
     disabled: false
     displayname: Administrator
-    password: ` + fmt.Sprintf("%q", argon2id(secret("ADMIN_PASSWORD"))) + `
+    password: ` + fmt.Sprintf("%q", hash) + `
     email: ` + fmt.Sprintf("%q", user+"@selfhost.local") + `
     groups: []
 `
 	return []app.File{
-		{Path: "config/configuration.yml", Content: configuration},
+		{Path: "config/configuration.yml", Content: configuration, Keep: true},
 		{Path: "config/users_database.yml", Content: users, Mode: 0o600, Keep: true},
 	}
 }
@@ -138,7 +141,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return login(ctx, h) })
 		},
 		Hint: "Open " + h.URL + " and sign in with the Admin login (self-host credentials). " +
-			"Authelia needs an eligible HTTPS origin and a writable user database; read the logs with: self-host logs authelia",
+			"Authelia needs a working approved private DNS/TLS route for its HTTPS origin and a writable user database; read the logs with: self-host logs authelia",
 		Credential: "admin",
 	})
 }
@@ -159,12 +162,17 @@ func (App) Links() []app.Link { return nil }
 // login performs the one-factor login and proves the resulting session with
 // /api/state, so a bare HTTP 200 is never accepted as identity.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
+	origin := strings.TrimSpace(h.Inputs["origin"])
+	portal, err := url.Parse(origin)
+	if err != nil || portal.Scheme != "https" || portal.Hostname() == "" || portal.User != nil || portal.RawQuery != "" || portal.Fragment != "" || (portal.Path != "" && portal.Path != "/") {
+		return false, fmt.Errorf("Authelia requires the saved approved HTTPS portal origin and a trusted private TLS route")
+	}
 	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: http.MethodPost, Path: "/api/firstfactor",
+		Method: http.MethodPost, Path: "/api/firstfactor", BaseURL: origin,
 		JSON: map[string]any{"username": h.AdminUser(), "password": h.AdminPassword(), "keepMeLoggedIn": false},
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Authelia HTTPS portal login requires its approved private DNS/TLS route: %w", err)
 	}
 	if resp.Status != http.StatusOK {
 		return false, nil
@@ -173,7 +181,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if cookie == "" {
 		return false, nil
 	}
-	state, err := h.HTTP(ctx, helpers.Request{Path: "/api/state", Header: map[string]string{"Cookie": "authelia_session=" + cookie}})
+	state, err := h.HTTP(ctx, helpers.Request{Path: "/api/state", BaseURL: origin, Header: map[string]string{"Cookie": "authelia_session=" + cookie}})
 	if err != nil {
 		return false, err
 	}
@@ -193,16 +201,4 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	return body.Status == "OK" && body.Data.Username == h.AdminUser() &&
 		body.Data.AuthenticationLevel == 1 && body.Data.FactorKnowledge, nil
-}
-
-// argon2id builds the PHC digest Authelia's file backend expects.
-func argon2id(password string) string {
-	salt := make([]byte, 16)
-	_, _ = rand.Read(salt)
-	const memory, iterations, parallelism, keyLen = 65536, 3, 1, 32
-	key := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, keyLen)
-	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
-		memory, iterations, parallelism,
-		base64.RawStdEncoding.EncodeToString(salt),
-		base64.RawStdEncoding.EncodeToString(key))
 }

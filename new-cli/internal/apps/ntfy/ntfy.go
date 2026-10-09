@@ -4,10 +4,11 @@ package ntfy
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -28,6 +29,12 @@ func (App) Info() app.Info {
 }
 
 func (App) Inputs() []app.Input { return nil }
+
+// Secrets declares the topic Homarr publishes to and subscribes from. The name
+// is generated because deny-all only protects a topic whose name is unguessable.
+func (App) Secrets() []app.SecretSpec {
+	return []app.SecretSpec{{Name: "topic", Length: 32}}
+}
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
@@ -74,13 +81,57 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	return acc.Username == h.AdminUser() && acc.Role == "admin", nil
 }
 
+// homarrToken is the access token ntfy issued for Homarr, or "".
+func homarrToken(h *helpers.H) string { return h.Secret(h.Key("homarr_token")) }
+
+type issuedToken struct {
+	Token string `json:"token"`
+}
+
+// tokenReadsTopic subscribes to the topic with the token. An admin token
+// inherits the Admin user's read-write access to every topic.
+func tokenReadsTopic(ctx context.Context, h *helpers.H, token, topic string) (bool, error) {
+	if token == "" || topic == "" {
+		return false, nil
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{
+		Path:   "/" + topic + "/json?poll=1",
+		Header: map[string]string{"Authorization": "Bearer " + token},
+	})
+	if err != nil {
+		return false, err
+	}
+	return resp.Status == http.StatusOK, nil
+}
+
+// createHomarrToken mints a non-expiring administrator token (POST
+// /v1/account/token) and saves it for Homarr.
+func createHomarrToken(ctx context.Context, h *helpers.H) error {
+	resp, err := h.Expect(ctx, helpers.Request{
+		Method: "POST", Path: "/v1/account/token",
+		User: h.AdminUser(), Password: h.AdminPassword(),
+		JSON: map[string]any{"label": "homarr"},
+	})
+	if err != nil {
+		return err
+	}
+	var issued issuedToken
+	if err := resp.Decode(&issued); err != nil {
+		return err
+	}
+	if issued.Token == "" {
+		return errors.New("ntfy did not return an access token")
+	}
+	return h.SetSecret(h.Key("homarr_token"), issued.Token)
+}
+
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/v1/health", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/v1/health"); err != nil {
 		return err
 	}
 	user := h.AdminUser()
 	env := map[string]string{"NTFY_PASSWORD": h.AdminPassword()}
-	return h.Step(ctx, "admin-user", "create administrator "+user, helpers.StepSpec{
+	if err := h.Step(ctx, "admin-user", "create administrator "+user, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
 			result, err := h.Exec(ctx, env, "ntfy", "user", "add", "--role=admin", user)
@@ -98,6 +149,17 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		},
 		Hint:       "Run inside the container: ntfy user add --role=admin " + user + " (password from self-host credentials).",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "topic-token", "grant Homarr read-write on its topic", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			return tokenReadsTopic(ctx, h, homarrToken(h), h.Secret(h.Key("topic")))
+		},
+		Do: func(ctx context.Context) error { return createHomarrToken(ctx, h) },
+		Hint: "Create an ntfy access token for " + user + " and save it in secrets.env as " +
+			h.Key("homarr_token") + ".",
+		Credential: "admin",
 	})
 }
 
@@ -111,6 +173,13 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if resp.Status != 401 && resp.Status != 403 {
 		return fmt.Errorf("anonymous users can read topics (HTTP %d); NTFY_AUTH_DEFAULT_ACCESS=deny-all is not applied", resp.Status)
+	}
+	ok, err := tokenReadsTopic(ctx, h, homarrToken(h), h.Secret(h.Key("topic")))
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("Homarr's ntfy access token cannot read its topic")
 	}
 	return nil
 }

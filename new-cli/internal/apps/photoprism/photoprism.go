@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -106,7 +105,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/v1/status", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/v1/status"); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{

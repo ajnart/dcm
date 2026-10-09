@@ -49,18 +49,18 @@ func (App) Compose(rc app.RenderContext) string {
     image: docker.io/docmost/docmost:0.96.0
     restart: unless-stopped
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://docmost-redis:6379
       APP_URL: http://${LAN_IP}:` + port + `
       APP_SECRET: ${DOCMOST_APP_SECRET}
-      DATABASE_URL: postgresql://docmost:${DOCMOST_DB_PASSWORD}@db:5432/docmost
+      DATABASE_URL: postgresql://docmost:${DOCMOST_DB_PASSWORD}@docmost-db:5432/docmost
     volumes:
       - ./storage:/app/data/storage
     ports:
       - ${BIND_IP}:` + port + `:3000
     depends_on:
-      - db
-      - redis
-  db:
+      - docmost-db
+      - docmost-redis
+  docmost-db:
     image: docker.io/library/postgres:18
     restart: unless-stopped
     environment:
@@ -69,7 +69,7 @@ func (App) Compose(rc app.RenderContext) string {
       POSTGRES_PASSWORD: ${DOCMOST_DB_PASSWORD}
     volumes:
       - ./database:/var/lib/postgresql
-  redis:
+  docmost-redis:
     image: docker.io/library/redis:8
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
@@ -81,15 +81,35 @@ func (App) Compose(rc app.RenderContext) string {
 // login signs in with the saved owner credentials and reads the owner role
 // back through the pinned users/me endpoint.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: http.MethodPost, Path: "/api/auth/login",
-		JSON: map[string]string{"email": adminEmail(h), "password": h.AdminPassword()},
+	// Docmost 0.96.0 uses a named auth throttler: ten requests per minute,
+	// Redis-backed, with Retry-After-auth in seconds.
+	resp, err := h.RetryAfter(ctx, helpers.RateLimit{
+		Headers: []string{"Retry-After-auth", "Retry-After"},
+		Default: time.Minute,
+		Bound:   2 * time.Minute,
+		Hint:    "self-host setup docmost",
+	}, func(ctx context.Context) (helpers.Response, error) {
+		return h.HTTP(ctx, helpers.Request{
+			Method: http.MethodPost, Path: "/api/auth/login",
+			JSON: map[string]string{"email": adminEmail(h), "password": h.AdminPassword()},
+		})
 	})
 	if err != nil {
 		return false, err
 	}
 	if resp.Status == http.StatusUnauthorized || resp.Status == http.StatusBadRequest {
 		return false, nil
+	}
+	if resp.Status == http.StatusNotFound {
+		// v0.96.0's workspace preHandler runs before login and returns this
+		// exact response until the first workspace exists. Setup is exempt.
+		var failure struct {
+			StatusCode int    `json:"statusCode"`
+			Message    string `json:"message"`
+		}
+		if resp.Decode(&failure) == nil && failure.StatusCode == http.StatusNotFound && failure.Message == "Workspace not found" {
+			return false, nil
+		}
 	}
 	if resp.Status != http.StatusOK && resp.Status != http.StatusCreated {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
@@ -100,7 +120,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	identity, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/users/me",
-		Body:   []byte("{}"),
+		JSON:   map[string]any{},
 		Header: map[string]string{"Cookie": "authToken=" + cookie},
 	})
 	if err != nil {
@@ -125,12 +145,21 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/api/health", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/api/health"); err != nil {
 		return err
 	}
+	_, loginErr := login(ctx, h)
 	return h.Step(ctx, "admin", "create the first workspace owner "+adminEmail(h), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
+		Check: func(ctx context.Context) (bool, error) {
+			if loginErr != nil {
+				return false, loginErr
+			}
+			return login(ctx, h)
+		},
 		Do: func(ctx context.Context) error {
+			if loginErr != nil {
+				return loginErr
+			}
 			if _, err := h.Expect(ctx, helpers.Request{
 				Method: http.MethodPost, Path: "/api/auth/setup",
 				JSON: map[string]string{"name": "Admin", "email": adminEmail(h), "password": h.AdminPassword()},

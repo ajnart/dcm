@@ -12,11 +12,15 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
 // ErrStepFailed marks an error already reported as step.fail.
 var ErrStepFailed = errors.New("setup step failed")
+
+// ErrManual marks a step that needs a person to finish or verify it.
+var ErrManual = errors.New("manual step")
 
 type Secrets interface {
 	Get(key string) string
@@ -32,10 +36,16 @@ type Executor interface {
 
 type StepResult struct {
 	ID     string
-	Status string // ok, skip, fail
+	Status status.Step
 	Msg    string
 	Error  string
 	Hint   string
+}
+
+// InstalledApp is the non-secret connection metadata for a Project App.
+type InstalledApp struct {
+	ID, Name, URL, Service string
+	ContainerPort          int
 }
 
 type Config struct {
@@ -55,7 +65,8 @@ type Config struct {
 	Exec     Executor
 	Record   func(StepResult)
 	// Peer returns the helpers of another installed App, or nil.
-	Peer func(id string) *H
+	Peer          func(id string) *H
+	InstalledApps func(context.Context) ([]InstalledApp, error)
 	// PollInterval is how often waits retry. Zero means one second.
 	PollInterval time.Duration
 	// Now and Sleep drive waits; tests pass a fake clock.
@@ -77,6 +88,13 @@ func New(cfg Config) *H {
 	}
 	if cfg.Record == nil {
 		cfg.Record = func(StepResult) {}
+	}
+	record := cfg.Record
+	cfg.Record = func(r StepResult) {
+		r.Msg = cfg.Log.Redact(r.Msg)
+		r.Error = cfg.Log.Redact(r.Error)
+		r.Hint = cfg.Log.Redact(r.Hint)
+		record(r)
 	}
 	if cfg.Peer == nil {
 		cfg.Peer = func(string) *H { return nil }
@@ -117,7 +135,7 @@ func (h *H) Step(ctx context.Context, id, msg string, spec StepSpec) error {
 	if spec.Check != nil {
 		if done, err := spec.Check(ctx); err == nil && done {
 			h.Log.Emit(events.Event{Event: events.StepSkip, App: h.App, Step: id, Msg: msg + " (already done)"})
-			h.Record(StepResult{ID: id, Status: "skip", Msg: msg})
+			h.Record(StepResult{ID: id, Status: status.StepSkip, Msg: msg})
 			return nil
 		}
 	}
@@ -136,21 +154,28 @@ func (h *H) Step(ctx context.Context, id, msg string, spec StepSpec) error {
 		}
 	}
 	h.Log.Emit(events.Event{Event: events.StepOK, App: h.App, Step: id, Msg: msg})
-	h.Record(StepResult{ID: id, Status: "ok", Msg: msg})
+	h.Record(StepResult{ID: id, Status: status.StepOK, Msg: msg})
 	return nil
 }
 
 func (h *H) fail(id, msg string, spec StepSpec, err error) error {
+	if errors.Is(err, ErrManual) {
+		h.Log.Emit(events.Event{Event: events.StepManual, App: h.App, Step: id, Msg: msg,
+			URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
+		h.Record(StepResult{ID: id, Status: status.StepManual, Msg: msg, Hint: spec.Hint})
+		return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, err))
+	}
+
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: id, Msg: msg, Error: err.Error(),
 		URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
-	h.Record(StepResult{ID: id, Status: "fail", Msg: msg, Error: err.Error(), Hint: spec.Hint})
-	return fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err))
+	h.Record(StepResult{ID: id, Status: status.StepFail, Msg: msg, Error: err.Error(), Hint: spec.Hint})
+	return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, errors.Join(ErrStepFailed, err)))
 }
 
 // Skip reports a step that cannot run yet and records it as skipped.
 func (h *H) Skip(id, msg string) {
 	h.Log.Emit(events.Event{Event: events.StepSkip, App: h.App, Step: id, Msg: msg})
-	h.Record(StepResult{ID: id, Status: "skip", Msg: msg})
+	h.Record(StepResult{ID: id, Status: status.StepSkip, Msg: msg})
 }
 
 // Info logs a progress line that is not a step.
@@ -202,6 +227,30 @@ func (h *H) AdminPassword() string { return h.Secrets.Get("ADMIN_PASSWORD") }
 // passed through the environment and never appear in logs.
 func (h *H) Exec(ctx context.Context, env map[string]string, command ...string) (system.Result, error) {
 	return h.ExecIn(ctx, h.Service, env, command...)
+}
+
+// ExecSecret runs script with `sh -c` in the App's main service, passing
+// secrets only through the environment. The script and argv never carry a
+// secret value.
+func (h *H) ExecSecret(ctx context.Context, secrets map[string]string, script string) (system.Result, error) {
+	res, err := h.Exec(ctx, secrets, "sh", "-c", script)
+	if err != nil {
+		if out := commandOutput(res); out != "" {
+			return res, h.Log.RedactError(fmt.Errorf("%w: %s", err, out))
+		}
+	}
+	return res, h.Log.RedactError(err)
+}
+
+// commandOutput returns the output a failed container command printed, so the
+// error an App returns names the real cause instead of an empty exit.
+// ExecSecret redacts the complete diagnostic, including the wrapped error.
+func commandOutput(res system.Result) string {
+	out := strings.TrimSpace(string(res.Stderr))
+	if out == "" {
+		out = strings.TrimSpace(string(res.Stdout))
+	}
+	return out
 }
 
 // Restart restarts the App's main service, e.g. so it rereads settings it

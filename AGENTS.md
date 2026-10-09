@@ -114,3 +114,20 @@ and CI validation.
 When commits are requested, make small continuous commits that each leave the
 targeted gate coherent. Do not commit generated runtime, evidence, secret, or
 client-install state.
+
+## Agent skills
+
+### Issue tracker
+
+Track issues and specs in GitHub Issues for `ajnart/selfhost-skills`.
+Before tracker operations, read `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage labels.
+Before triaging, read `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single context in `.agents/CONTEXT.md` with ADRs in `.agents/adr/`.
+Before codebase exploration or domain changes, read `docs/agents/domain.md`.

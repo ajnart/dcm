@@ -2,6 +2,8 @@ package homarr
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,8 +21,22 @@ type secret struct {
 	Value string `json:"value"`
 }
 
-// target is one App Homarr links to: an app tile, and for most a dedicated
-// integration with its connection secrets.
+// widget is one board widget from the App's catalog entry: the kind Homarr
+// stores, its options and, for a stats widget, the metric keys it shows.
+type widget struct {
+	kind    string
+	options map[string]any
+	metrics []string
+}
+
+func plain(kind string) widget { return widget{kind: kind, options: map[string]any{}} }
+
+func statWidget(metrics ...string) widget {
+	return widget{kind: "stats", options: map[string]any{}, metrics: metrics}
+}
+
+// target is one App Homarr links to: an app tile, for most a dedicated
+// integration with its connection secrets, and the widgets that use it.
 type target struct {
 	id   string
 	name string
@@ -28,6 +44,7 @@ type target struct {
 	kind     string
 	internal func(to *helpers.H) string
 	secrets  func(from, to *helpers.H) []secret
+	widgets  []widget
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -36,23 +53,49 @@ func apiKeySecret(_, to *helpers.H) []secret {
 	return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("api_key"))}}
 }
 
+// ntfySecret wires Homarr's ntfy integration to the topic and to the
+// administrator access token ntfy issued for Homarr.
+func ntfySecret(_, to *helpers.H) []secret {
+	return []secret{
+		{Kind: "topic", Value: to.Secret(to.Key("topic"))},
+		{Kind: "apiKey", Value: to.Secret(to.Key("homarr_token"))},
+	}
+}
+
 // targets are the Apps Homarr supports here, in the order they are declared.
 // Other Apps are reached by Compose service name, never localhost.
 func targets() []target {
 	return []target{
-		{id: "sonarr", name: "Sonarr", kind: "sonarr", internal: fixed("http://sonarr:8989"), secrets: apiKeySecret},
-		{id: "radarr", name: "Radarr", kind: "radarr", internal: fixed("http://radarr:7878"), secrets: apiKeySecret},
-		{id: "prowlarr", name: "Prowlarr", kind: "prowlarr", internal: fixed("http://prowlarr:9696"), secrets: apiKeySecret},
-		{id: "jellyfin", name: "Jellyfin", kind: "jellyfin", internal: fixed("http://jellyfin:8096"), secrets: apiKeySecret},
-		{id: "seerr", name: "Seerr", kind: "seerr", internal: fixed("http://seerr:5055"), secrets: apiKeySecret},
+		{
+			id: "sonarr", name: "Sonarr", kind: "sonarr", internal: fixed("http://sonarr:8989"), secrets: apiKeySecret,
+			widgets: []widget{plain("calendar"), plain("mediaMissing"), statWidget("shows", "downloaded", "missing", "queued")},
+		},
+		{
+			id: "radarr", name: "Radarr", kind: "radarr", internal: fixed("http://radarr:7878"), secrets: apiKeySecret,
+			widgets: []widget{plain("calendar"), plain("mediaMissing"), statWidget("movies", "downloaded", "missing", "queued")},
+		},
+		{
+			id: "prowlarr", name: "Prowlarr", kind: "prowlarr", internal: fixed("http://prowlarr:9696"), secrets: apiKeySecret,
+			widgets: []widget{plain("indexerManager"), statWidget("indexers")},
+		},
+		{
+			id: "jellyfin", name: "Jellyfin", kind: "jellyfin", internal: fixed("http://jellyfin:8096"), secrets: apiKeySecret,
+			widgets: []widget{plain("mediaServer"), plain("mediaReleases"), statWidget("sessions")},
+		},
+		{
+			id: "seerr", name: "Seerr", kind: "seerr", internal: fixed("http://seerr:5055"), secrets: apiKeySecret,
+			widgets: []widget{plain("mediaRequests-requestList"), plain("mediaRequests-requestStats"), statWidget("pending", "approved", "available")},
+		},
 		{
 			id: "qbittorrent", name: "qBittorrent", kind: "qBittorrent",
 			internal: func(to *helpers.H) string { return "http://qbittorrent:" + strconv.Itoa(to.Port) },
 			secrets: func(from, _ *helpers.H) []secret {
 				return []secret{{Kind: "username", Value: from.AdminUser()}, {Kind: "password", Value: from.AdminPassword()}}
 			},
+			widgets: []widget{plain("downloads"), statWidget("download", "upload", "paused")},
 		},
-		{id: "ntfy", name: "ntfy", internal: fixed("http://ntfy:80")},
+		{id: "ntfy", name: "ntfy", kind: "ntfy", internal: fixed("http://ntfy:80"), secrets: ntfySecret,
+			widgets: []widget{plain("notifications"), statWidget("messages")}},
 		{id: "vaultwarden", name: "Vaultwarden", internal: fixed("http://vaultwarden:80")},
 	}
 }
@@ -71,11 +114,18 @@ func iconURL(id string) string {
 }
 
 func (t target) hint(from *helpers.H) string {
+	if t.id == "ntfy" {
+		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
+	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
 	}
-	return "Open " + from.URL + "/manage/integrations to add the " + t.name + " integration and " +
-		from.URL + "/manage/apps to add and place its app tile."
+	hint := "Open " + from.URL + "/manage/integrations to add the " + t.name + " integration and " +
+		from.URL + "/manage/apps to add and place its app tile"
+	if len(t.widgets) > 0 {
+		hint += " and its widgets"
+	}
+	return hint + "."
 }
 
 // apiKeyProcedure runs a tRPC call with the stored API key instead of a session.
@@ -185,39 +235,504 @@ func deleteIntegration(ctx context.Context, h *helpers.H, id string) error {
 	return err
 }
 
-func addTile(ctx context.Context, h *helpers.H, appID string) error {
+// board reads the board Homarr created during onboarding, together with its
+// items. The item list is read through tRPC board.getBoardByName because Homarr
+// exposes no REST route for a single board's items.
+func board(ctx context.Context, h *helpers.H) (map[string]any, error) {
 	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/boards", Header: apiKeyHeader(h)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var boards []map[string]any
 	if err := resp.Decode(&boards); err != nil {
-		return err
+		return nil, err
 	}
-	if len(boards) == 0 || stringField(boards[0], "id") == "" {
-		return errors.New("Homarr has no board to place the tile on")
+	name := ""
+	for _, candidate := range boards {
+		if stringField(candidate, "name") == "Home" {
+			name = "Home"
+			break
+		}
 	}
-	_, err = h.Expect(ctx, helpers.Request{
-		Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h),
-		JSON: map[string]any{
-			"boardId":        stringField(boards[0], "id"),
-			"kind":           "app",
-			"options":        map[string]any{"appId": appID, "openInNewTab": true, "showTitle": true},
-			"size":           map[string]any{"width": 1, "height": 1},
-			"integrationIds": []any{},
-		},
+	if name == "" {
+		return nil, errors.New("Homarr Home board is missing; restore or rename the managed board to Home, then run self-host setup homarr")
+	}
+	value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": name})
+	if err != nil {
+		return nil, err
+	}
+	record, _ := value.(map[string]any)
+	if record == nil {
+		return nil, errors.New("Homarr did not return the board")
+	}
+	return record, nil
+}
+
+func itemsOf(board map[string]any) []map[string]any {
+	raw, _ := board["items"].([]any)
+	items := make([]map[string]any, 0, len(raw))
+	for _, value := range raw {
+		if record, ok := value.(map[string]any); ok {
+			items = append(items, record)
+		}
+	}
+	return items
+}
+
+func hasTile(items []map[string]any, appID string) bool {
+	for _, item := range items {
+		if stringField(item, "kind") != "app" {
+			continue
+		}
+		options, _ := item["options"].(map[string]any)
+		if stringField(options, "appId") == appID {
+			return true
+		}
+	}
+	return false
+}
+
+func wiredTo(item map[string]any, kind, integrationID string) bool {
+	if stringField(item, "kind") != kind {
+		return false
+	}
+	ids, _ := item["integrationIds"].([]any)
+	for _, id := range ids {
+		if id == integrationID {
+			return true
+		}
+	}
+	return false
+}
+
+func hasWidget(items []map[string]any, kind, integrationID string) bool {
+	for _, item := range items {
+		if wiredTo(item, kind, integrationID) {
+			return true
+		}
+	}
+	return false
+}
+
+// statsEntryID reproduces the deterministic per-metric id Homarr expects in a
+// stats widget's options.
+func statsEntryID(metric string) string {
+	sum := sha256.Sum256([]byte(metric))
+	return "auto-stack-" + hex.EncodeToString(sum[:])[:32]
+}
+
+func widgetOptions(w widget, integrationID string) map[string]any {
+	if w.kind != "stats" {
+		return w.options
+	}
+	entries := make([]any, 0, len(w.metrics))
+	for _, metric := range w.metrics {
+		entries = append(entries, map[string]any{
+			"id": statsEntryID(integrationID + ":" + metric), "integrationId": integrationID,
+			"metric": metric, "label": "", "hidden": false, "compact": false,
+		})
+	}
+	return map[string]any{"entries": entries}
+}
+
+func widgetCurrent(item map[string]any, w widget, integrationID string) bool {
+	if w.kind != "stats" {
+		return true
+	}
+	options, _ := item["options"].(map[string]any)
+	entries, _ := options["entries"].([]any)
+	for _, metric := range w.metrics {
+		found := false
+		for _, raw := range entries {
+			entry, _ := raw.(map[string]any)
+			id := stringField(entry, "id")
+			if stringField(entry, "metric") == metric && stringField(entry, "integrationId") == integrationID && id != "" {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func addItem(ctx context.Context, h *helpers.H, body map[string]any) (helpers.Response, error) {
+	resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/boards/items", Header: apiKeyHeader(h), JSON: body})
+	if err != nil {
+		return resp, err
+	}
+	if !resp.OK() {
+		return resp, fmt.Errorf("Homarr rejected %s creation (HTTP %d)", stringField(body, "kind"), resp.Status)
+	}
+	var created struct{ ItemID string }
+	if err := resp.Decode(&created); err != nil {
+		return resp, err
+	}
+	if created.ItemID == "" {
+		return resp, errors.New("Homarr did not return the board item ID; run self-host setup homarr")
+	}
+	return resp, nil
+}
+
+func addItemID(ctx context.Context, h *helpers.H, body map[string]any) (string, error) {
+	resp, err := addItem(ctx, h, body)
+	if err != nil {
+		return "", err
+	}
+	var created struct{ ItemID string }
+	if err := resp.Decode(&created); err != nil {
+		return "", err
+	}
+	return created.ItemID, nil
+}
+
+func ownedWidgets(h *helpers.H, integrationID string) map[string]bool {
+	ids := map[string]bool{}
+	json.Unmarshal([]byte(h.Secret(h.Key("widgets_"+integrationID))), &ids)
+	return ids
+}
+
+// The old CLI emitted one widget per kind, empty plain options, and
+// deterministic stats entries. Only that complete, unique shape is adopted.
+// Anything ambiguous requires an explicit ownership decision before mutation.
+func widgetOwnership(h *helpers.H, integrationID string, widgets []widget, items []map[string]any) (map[string]bool, error) {
+	key := h.Key("widgets_" + integrationID)
+	if raw := h.Secret(key); raw != "" {
+		ids := map[string]bool{}
+		if err := json.Unmarshal([]byte(raw), &ids); err != nil || ids == nil {
+			return nil, fmt.Errorf("invalid Homarr widget ownership; review %s as a JSON object of owned widget IDs, then run self-host setup homarr", key)
+		}
+		return ids, nil
+	}
+	owned := map[string]bool{}
+	matching := false
+	complete := true
+	stats := false
+	for _, w := range widgets {
+		candidates := []map[string]any{}
+		for _, item := range items {
+			if wiredTo(item, w.kind, integrationID) {
+				candidates = append(candidates, item)
+			}
+		}
+		if len(candidates) > 0 {
+			matching = true
+		}
+		if len(candidates) != 1 {
+			complete = false
+			continue
+		}
+		item := candidates[0]
+		ids, _ := item["integrationIds"].([]any)
+		options, _ := item["options"].(map[string]any)
+		if len(ids) != 1 || stringField(item, "id") == "" {
+			complete = false
+			continue
+		}
+		if w.kind == "stats" {
+			entries, _ := options["entries"].([]any)
+			if len(entries) != len(w.metrics) || !widgetCurrent(item, w, integrationID) {
+				complete = false
+				continue
+			}
+			generated := true
+			for _, raw := range entries {
+				entry, _ := raw.(map[string]any)
+				metric := stringField(entry, "metric")
+				id := stringField(entry, "id")
+				if id != statsEntryID(metric) && id != statsEntryID(integrationID+":"+metric) {
+					generated = false
+				}
+			}
+			if !generated {
+				complete = false
+				continue
+			}
+			stats = true
+		} else if len(options) != 0 {
+			complete = false
+			continue
+		}
+		owned[stringField(item, "id")] = true
+	}
+	if matching && (!complete || !stats) {
+		return nil, fmt.Errorf("legacy Homarr widget ownership is ambiguous; review Home widgets and save confirmed owned widget IDs as a JSON object in %s (use {} to preserve all existing widgets), then run self-host setup homarr", key)
+	}
+	raw, _ := json.Marshal(owned)
+	if err := h.SetSecret(key, string(raw)); err != nil {
+		return nil, err
+	}
+	return owned, nil
+}
+
+func addTile(ctx context.Context, h *helpers.H, boardID, appID string) error {
+	_, err := addItem(ctx, h, map[string]any{
+		"boardId":        boardID,
+		"kind":           "app",
+		"options":        map[string]any{"appId": appID, "openInNewTab": true, "showTitle": true},
+		"size":           map[string]any{"width": 1, "height": 1},
+		"integrationIds": []any{},
 	})
 	return err
 }
 
-// linked reports whether the app tile exists and, for an integration kind, the
-// integration is listed with the same kind and internal URL. It deliberately
-// does not claim the tile: that is what a rerun proves.
+func managedAppIDs(h *helpers.H) map[string]string {
+	ids := map[string]string{}
+	json.Unmarshal([]byte(h.Secret(h.Key("app_ids"))), &ids)
+	return ids
+}
+
+func rememberAppID(h *helpers.H, targetID, appID string) error {
+	ids := managedAppIDs(h)
+	ids[targetID] = appID
+	raw, _ := json.Marshal(ids)
+	return h.SetSecret(h.Key("app_ids"), string(raw))
+}
+
+func removeAppTiles(ctx context.Context, h *helpers.H, appID string) error {
+	if appID == "" {
+		return nil
+	}
+	current, err := board(ctx, h)
+	if err != nil {
+		return err
+	}
+	items := itemsOf(current)
+	kept := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		options, _ := item["options"].(map[string]any)
+		if stringField(item, "kind") == "app" && stringField(options, "appId") == appID {
+			continue
+		}
+		kept = append(kept, item)
+	}
+	if len(kept) == len(items) {
+		return nil
+	}
+	_, err = apiKeyWrite(ctx, h, "board.saveBoard", map[string]any{"id": stringField(current, "id"), "sections": current["sections"], "items": kept})
+	return err
+}
+
+// ensureIntegration returns the integration id, creating it only when the
+// listed integrations do not already match by kind and internal URL.
+func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID string) (string, error) {
+	internal := t.internal(to)
+	match := func(integrations []map[string]any) string {
+		for _, item := range integrations {
+			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+				return stringField(item, "id")
+			}
+		}
+		return ""
+	}
+	integrations, err := listIntegrations(ctx, from)
+	if err != nil {
+		return "", err
+	}
+	// The pinned Homarr ntfy connection test resolves even HTTP401, so it
+	// cannot prove token validity. Verify new/changed tokens directly before
+	// storing them or a fingerprint; unchanged routine Checks publish nothing.
+	if id := match(integrations); t.id == "ntfy" && (id == "" || from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to)) {
+		if err := verifyNTFYToken(ctx, to); err != nil {
+			return "", err
+		}
+	}
+	if id := match(integrations); id != "" {
+		if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
+			return "", err
+		}
+		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) {
+			value, err := apiKeyWrite(ctx, from, "integration.update", map[string]any{
+				"id": id, "name": t.name, "url": internal, "secrets": t.secrets(from, to), "appId": appID,
+			})
+			if err != nil {
+				return "", err
+			}
+			if record, ok := value.(map[string]any); ok {
+				if failure, found := record["error"]; found && failure != nil {
+					return "", fmt.Errorf("Homarr rejected the %s integration update: %v; correct its connection or credentials, then run self-host setup homarr", t.name, failure)
+				}
+			}
+			if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
+				return "", err
+			}
+		}
+		return id, nil
+	}
+	if previous := from.Secret(from.Key("linked_" + t.id)); previous != "" {
+		if err := removeWidgets(ctx, from, previous, t.widgets); err != nil {
+			return "", err
+		}
+	}
+	if err := createIntegration(ctx, from, map[string]any{
+		"name": t.name, "url": internal, "kind": t.kind,
+		"secrets": t.secrets(from, to), "attemptSearchEngineCreation": false,
+		"app": map[string]any{"id": appID},
+	}); err != nil {
+		return "", err
+	}
+	integrations, err = listIntegrations(ctx, from)
+	if err != nil {
+		return "", err
+	}
+	id := match(integrations)
+	if id == "" {
+		return "", errors.New("Homarr did not keep the " + t.name + " integration")
+	}
+	if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
+		return "", err
+	}
+	if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func verifyNTFYToken(ctx context.Context, to *helpers.H) error {
+	const failure = "ntfy Homarr token did not authenticate the existing administrator account"
+	token := to.Secret(to.Key("homarr_token"))
+	if token == "" {
+		return errors.New(failure)
+	}
+	response, err := to.HTTP(ctx, helpers.Request{Path: "/v1/account", NoRedirect: true, Header: map[string]string{"Authorization": "Bearer " + token}})
+	if err != nil || response.Status != 200 {
+		return errors.New(failure)
+	}
+	var account struct{ Username, Role string }
+	if response.Decode(&account) != nil || account.Username != to.AdminUser() || account.Role != "admin" {
+		return errors.New(failure)
+	}
+	return nil
+}
+
+func integrationFingerprintKey(h *helpers.H, id string) string { return h.Key("integration_" + id) }
+
+func integrationFingerprint(t target, from, to *helpers.H) string {
+	raw, _ := json.Marshal(t.secrets(from, to))
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
+
+// REST item creation defaults to one grid cell, independently of Homarr's UI
+// widgetDefaultSizes. Give integration lists enough space for actual content.
+func widgetInitialSize(kind string) map[string]any {
+	switch kind {
+	case "notifications", "mediaReleases":
+		return map[string]any{"width": 4, "height": 3}
+	case "stats", "calendar":
+		return map[string]any{"width": 4, "height": 3}
+	case "mediaServer":
+		return map[string]any{"width": 3, "height": 2}
+	case "downloads":
+		return map[string]any{"width": 4, "height": 2}
+	case "mediaMissing", "mediaRequests-requestStats":
+		return map[string]any{"width": 2, "height": 2}
+	case "indexerManager":
+		return map[string]any{"width": 2, "height": 3}
+	case "mediaRequests-requestList":
+		return map[string]any{"width": 3, "height": 2}
+	default:
+		return map[string]any{"width": 3, "height": 2}
+	}
+}
+
+func (t target) addWidgets(ctx context.Context, h *helpers.H, boardID, integrationID string, items []map[string]any) error {
+	owned, err := widgetOwnership(h, integrationID, t.widgets, items)
+	if err != nil {
+		return err
+	}
+	for _, w := range t.widgets {
+		if sharedWidget(w.kind) {
+			if err := ensureSharedWidget(ctx, h, w, integrationID, owned); err != nil {
+				return err
+			}
+			continue
+		}
+		if hasWidget(items, w.kind, integrationID) {
+			continue
+		}
+		id, err := addItemID(ctx, h, map[string]any{
+			"boardId": boardID, "kind": w.kind,
+			"size":           widgetInitialSize(w.kind),
+			"options":        widgetOptions(w, integrationID),
+			"integrationIds": []any{integrationID},
+		})
+		if err != nil {
+			return err
+		}
+		owned[id] = true
+		raw, _ := json.Marshal(owned)
+		if err := h.SetSecret(h.Key("widgets_"+integrationID), string(raw)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeWidgets drops the target's widget items through the full-board save,
+// the only removal Homarr exposes (no REST delete-item).
+func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widgets []widget) error {
+	current, err := board(ctx, h)
+	if err != nil {
+		return err
+	}
+	items := itemsOf(current)
+	owned, err := widgetOwnership(h, integrationID, widgets, items)
+	if err != nil {
+		return err
+	}
+	kept := make([]map[string]any, 0, len(items))
+	removed := false
+	for _, item := range items {
+		if owned[stringField(item, "id")] {
+			if sharedWidget(stringField(item, "kind")) {
+				removeWidgetIntegration(item, integrationID)
+				ids, _ := item["integrationIds"].([]any)
+				if len(ids) > 0 {
+					kept = append(kept, item)
+				}
+				removed = true
+				continue
+			}
+			removed = true
+			continue
+		}
+		kept = append(kept, item)
+	}
+	if !removed {
+		return nil
+	}
+	_, err = apiKeyWrite(ctx, h, "board.saveBoard", map[string]any{
+		"id": stringField(current, "id"), "sections": current["sections"], "items": kept,
+	})
+	return err
+}
+
+// linked reports whether the app tile, the integration and every widget wired
+// to it exist. It deliberately does not claim them: that is what a rerun
+// proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	internal := t.internal(to)
-	_, found, err := findApp(ctx, from, internal)
+	id, found, err := findApp(ctx, from, internal)
 	if err != nil || !found {
 		return false, err
+	}
+	apps, err := listApps(ctx, from)
+	if err != nil {
+		return false, err
+	}
+	for _, item := range apps {
+		if appID(item) == id && stringField(item, "href") != to.URL {
+			return false, nil
+		}
+	}
+	current, err := board(ctx, from)
+	if err != nil {
+		return false, err
+	}
+	if !hasTile(itemsOf(current), id) {
+		return false, nil
 	}
 	if t.kind == "" {
 		return true, nil
@@ -226,25 +741,67 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	integrationID := ""
 	for _, item := range integrations {
 		if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
-			return true, nil
+			integrationID = stringField(item, "id")
+			break
 		}
 	}
-	return false, nil
+	if integrationID == "" {
+		return false, nil
+	}
+	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
+		return false, nil
+	}
+	if len(t.widgets) == 0 {
+		return true, nil
+	}
+	rawOwnership := from.Secret(from.Key("widgets_" + integrationID))
+	if rawOwnership == "" {
+		return false, nil
+	}
+	var ownership map[string]bool
+	if err := json.Unmarshal([]byte(rawOwnership), &ownership); err != nil || ownership == nil {
+		return false, errors.New("Homarr widget ownership must be reviewed; run self-host setup homarr for the recovery operation")
+	}
+	items := itemsOf(current)
+	for _, w := range t.widgets {
+		if sharedWidget(w.kind) && !sharedWidgetCurrent(from, current, w, integrationID) {
+			return false, nil
+		}
+		if !hasWidget(items, w.kind, integrationID) {
+			return false, nil
+		}
+		owned := ownedWidgets(from, integrationID)
+		for _, item := range items {
+			if owned[stringField(item, "id")] && wiredTo(item, w.kind, integrationID) && !widgetCurrent(item, w, integrationID) {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
 	internal := t.internal(to)
+	current, err := board(ctx, from)
+	if err != nil {
+		return err
+	}
+	boardID := stringField(current, "id")
 	id, found, err := findApp(ctx, from, internal)
 	if err != nil {
 		return err
 	}
 	if !found {
+		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+			return err
+		}
 		resp, err := from.Expect(ctx, helpers.Request{
 			Method: "POST", Path: "/api/apps", Header: apiKeyHeader(from),
 			JSON: map[string]any{
-				"name": t.name, "description": nil, "iconUrl": iconURL(t.id),
+				"name": t.name, "description": installedTileMarker + t.id, "iconUrl": iconURL(t.id),
 				"href": to.URL, "pingUrl": internal,
 			},
 		})
@@ -259,40 +816,131 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if id == "" {
 			return errors.New("Homarr did not return an app id")
 		}
+	} else {
+		apps, err := listApps(ctx, from)
+		if err != nil {
+			return err
+		}
+		for _, item := range apps {
+			if appID(item) != id || stringField(item, "href") == to.URL {
+				continue
+			}
+			_, err := from.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(from), JSON: map[string]any{
+				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": to.URL, "pingUrl": internal,
+			}})
+			if err != nil {
+				return err
+			}
+		}
 	}
-	if t.kind != "" {
-		if err := createIntegration(ctx, from, map[string]any{
-			"name": t.name, "url": internal, "kind": t.kind,
-			"secrets": t.secrets(from, to), "attemptSearchEngineCreation": false,
-			"app": map[string]any{"id": id},
-		}); err != nil {
+	if err := rememberAppID(from, t.id, id); err != nil {
+		return err
+	}
+	items := itemsOf(current)
+	if !hasTile(items, id) {
+		if err := addTile(ctx, from, boardID, id); err != nil {
 			return err
 		}
 	}
-	return addTile(ctx, from, id)
+	if t.kind != "" {
+		integrationID, err := ensureIntegration(ctx, from, to, t, id)
+		if err != nil {
+			return err
+		}
+		if err := t.addWidgets(ctx, from, boardID, integrationID, items); err != nil {
+			return err
+		}
+	}
+	return ensureNotebook(ctx, from)
 }
 
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 	internal := t.internal(to)
 	if t.kind != "" {
+		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
+			if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
+				return err
+			}
+		}
 		integrations, err := listIntegrations(ctx, from)
 		if err != nil {
 			return err
 		}
 		for _, item := range integrations {
 			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
-				if err := deleteIntegration(ctx, from, stringField(item, "id")); err != nil {
+				id := stringField(item, "id")
+				if len(t.widgets) > 0 {
+					if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
+						return err
+					}
+				}
+				if err := deleteIntegration(ctx, from, id); err != nil {
 					return err
 				}
 			}
 		}
 	}
 	id, found, err := findApp(ctx, from, internal)
-	if err != nil || !found {
+	if err != nil {
 		return err
 	}
-	_, err = from.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(from)})
-	return err
+	if !found {
+		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+			return err
+		}
+		return ensureNotebook(ctx, from)
+	}
+	if err := removeAppTiles(ctx, from, id); err != nil {
+		return err
+	}
+	if _, err = from.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(from)}); err != nil {
+		return err
+	}
+	return ensureNotebook(ctx, from)
+}
+
+func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
+	internal := t.internal(to)
+	_, found, err := findApp(ctx, from, internal)
+	if err != nil || found {
+		return false, err
+	}
+	if id := managedAppIDs(from)[t.id]; id != "" {
+		current, err := board(ctx, from)
+		if err != nil {
+			return false, err
+		}
+		if hasTile(itemsOf(current), id) {
+			return false, nil
+		}
+	}
+	if t.kind != "" {
+		integrations, err := listIntegrations(ctx, from)
+		if err != nil {
+			return false, err
+		}
+		for _, item := range integrations {
+			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+				return false, nil
+			}
+		}
+		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
+			current, err := board(ctx, from)
+			if err != nil {
+				return false, err
+			}
+			owned := ownedWidgets(from, id)
+			for _, item := range itemsOf(current) {
+				if owned[stringField(item, "id")] {
+					if sharedWidget(stringField(item, "kind")) && !wiredTo(item, stringField(item, "kind"), id) {
+						continue
+					}
+					return false, nil
+				}
+			}
+		}
+	}
+	return true, nil
 }
 
 // link wires Homarr to one target. The framework runs Apply only once the
@@ -318,8 +966,7 @@ func (t target) link() app.Link {
 		Remove: func(ctx context.Context, from, to *helpers.H) error {
 			return from.Step(ctx, "un"+id, "remove "+t.name+" from Homarr", helpers.StepSpec{
 				Check: func(ctx context.Context) (bool, error) {
-					found, err := t.linked(ctx, from, to)
-					return !found, err
+					return t.absent(ctx, from, to)
 				},
 				Do:         func(ctx context.Context) error { return t.remove(ctx, from, to) },
 				Hint:       t.hint(from),

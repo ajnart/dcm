@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Syncthing. Traps: docs/catalog/traps/syncthing.md.
@@ -52,28 +51,13 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
-var apiKeyElement = regexp.MustCompile(`<apikey>([^<]+)</apikey>`)
-
 func configXML(h *helpers.H) string {
 	return filepath.Join(h.Dir, "syncthing-data", "config", "config.xml")
 }
 
 // readAPIKey waits for the key Syncthing writes to its config on first start.
 func readAPIKey(ctx context.Context, h *helpers.H) (string, error) {
-	var key string
-	err := h.Poll(ctx, 2*time.Minute, func(context.Context) (bool, error) {
-		data, err := os.ReadFile(configXML(h))
-		if err != nil {
-			return false, err
-		}
-		found := apiKeyElement.FindSubmatch(data)
-		if found == nil {
-			return false, errors.New("no api key in config.xml yet")
-		}
-		key = string(found[1])
-		return true, nil
-	})
-	return key, err
+	return h.ConfigValue(ctx, filepath.Join("syncthing-data", "config", "config.xml"), helpers.XMLElement("apikey"), 2*time.Minute)
 }
 
 type gui struct {
@@ -99,11 +83,11 @@ func savedKey(ctx context.Context, h *helpers.H) (string, bool, error) {
 	if err != nil {
 		return "", false, nil
 	}
-	found := apiKeyElement.FindSubmatch(data)
-	if found == nil {
-		return "", false, nil
+	value, found, err := helpers.XMLElement("apikey")(data)
+	if err != nil || !found {
+		return "", false, err
 	}
-	return string(found[1]), true, nil
+	return value, true, nil
 }
 
 // exists reports whether the GUI already has credentials.
@@ -154,9 +138,9 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 	return err
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/rest/noauth/health"},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/rest/noauth/health"},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,

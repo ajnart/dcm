@@ -32,6 +32,7 @@ func (App) Inputs() []app.Input {
 		Prompt:   "Cloudflare Tunnel connector token",
 		Help:     "The token shown for an existing named tunnel in the Cloudflare Zero Trust dashboard (Networks > Tunnels)",
 		Required: true,
+		Private:  true,
 	}}
 }
 
@@ -57,7 +58,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return h.SetSecret(h.Key("token"), h.Inputs["token"])
 		},
 		Hint: "Create or open a named tunnel in the Cloudflare Zero Trust dashboard (Networks > Tunnels), " +
-			"copy its connector token, then pass it with: self-host install cloudflare-tunnel --set cloudflare-tunnel.token=<token>",
+			"copy its connector token, then pass it with: self-host install cloudflare-tunnel --set-file cloudflare-tunnel.token=/path/to/credential",
 		Credential: h.Key("token"),
 	}); err != nil {
 		return err
@@ -73,7 +74,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if h.Secret(h.Key("token")) == "" {
-		return errors.New("no Cloudflare tunnel token is saved; provide one with: self-host install cloudflare-tunnel --set cloudflare-tunnel.token=<token>")
+		return errors.New("no Cloudflare tunnel token is saved; provide one with: self-host install cloudflare-tunnel --set-file cloudflare-tunnel.token=/path/to/credential")
 	}
 	ok, err := ready(ctx, h)
 	if err != nil {

@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Audiobookshelf. Traps: docs/catalog/traps/audiobookshelf.md.
@@ -102,9 +102,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return body.User.Username == user && body.User.Type == "root", nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/status"},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/status"},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

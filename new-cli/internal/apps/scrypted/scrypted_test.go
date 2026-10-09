@@ -11,6 +11,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/porttest"
 	"github.com/ajnart/self-host/internal/apps/scrypted"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type fakeScrypted struct {
@@ -56,7 +57,7 @@ func TestCreatesTheFirstAdminThenProvesTheLogin(t *testing.T) {
 	}
 	// POST /login creates the first administrator when none exists, so the
 	// login check can satisfy the step by itself.
-	if status := rec.Status("admin"); status != "ok" && status != "skip" {
+	if status := rec.Status("admin"); status != stepstatus.StepOK && status != stepstatus.StepSkip {
 		t.Fatalf("admin step = %q, want ok or skip", status)
 	}
 }
@@ -71,7 +72,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (scrypted.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.Status("ready") != "skip" || rec.Status("admin") != "skip" {
+	if rec.Status("ready") != stepstatus.StepSkip || rec.Status("admin") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip: ready=%q admin=%q", rec.Status("ready"), rec.Status("admin"))
 	}
 }
@@ -86,7 +87,7 @@ func TestTheHintNamesTheLoginPage(t *testing.T) {
 	if err := (scrypted.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail against a different administrator")
 	}
-	if rec.Status("admin") != "fail" || !strings.Contains(rec.Hint(), server.URL) {
+	if rec.Status("admin") != stepstatus.StepFail || !strings.Contains(rec.Hint(), server.URL) {
 		t.Fatalf("admin step should fail with the App URL hint, got %q", rec.Hint())
 	}
 }

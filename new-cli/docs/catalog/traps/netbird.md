@@ -2,6 +2,7 @@
 
 ## Pitfalls
 
+- Auxiliary Compose services use App-owned names: `netbird-server`. Keep these names in connection settings and dependencies; persistent data paths stay unchanged.
 - Self-hosting the control plane adds availability and recovery dependencies.
 - The first-owner setup endpoint is unauthenticated until setup completes; inspect GET /api/instance first. NB_SETUP_PAT_ENABLED=true and create_pat=true permit POST /api/setup to return a one-time PAT, followed by GET /api/users with Authorization: Token. Keep the response private and never replay setup after an ambiguous response; the PAT defaults to one day and needs a reviewed expiry/rotation policy.
 - The pinned installer offers use-ip over HTTP, but that is an explicit different identity/exposure choice, not permission to substitute a loopback HTTP URL for reviewed HTTPS. External-proxy mode keeps HTTP frontends private but still exposes STUN separately and requires path-specific HTTP/WebSocket and h2c/gRPC routing.

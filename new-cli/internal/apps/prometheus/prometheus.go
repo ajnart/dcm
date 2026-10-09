@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Prometheus. Traps: docs/catalog/traps/prometheus.md.
@@ -34,6 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
   prometheus:
     image: prom/prometheus:v3.15.0
     restart: unless-stopped
+    user: ${PUID}:${PGID}
     volumes:
       - ./data:/prometheus
     ports:
@@ -42,11 +43,11 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/-/ready"}}.Setup(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/-/ready"}}.Setup(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return onboard.NoAccount{Probe: onboard.Probe{Path: "/-/ready"}}.Check(ctx, h)
+	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/-/ready"}}.Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

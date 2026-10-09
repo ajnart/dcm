@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -67,53 +67,87 @@ func (App) Compose(rc app.RenderContext) string {
 const (
 	currentUserPath = "/api/v1/current-user"
 	basicChallenge  = `Basic realm="Kopia"`
+	sessionCookie   = "Kopia-Session-Cookie"
+	csrfHeader      = "X-Kopia-Csrf-Token"
 )
 
+// Kopia 0.23.1 embeds this hex token in the authenticated UI's head.
+var csrfMeta = regexp.MustCompile(`<meta name="kopia-csrf-token" content="([a-f0-9]{64})"\s*/?>`)
+
 // adminWorks proves unauthenticated access is denied, a wrong password is
-// refused, and the saved administrator reads the documented current-user body.
+// refused, and the saved administrator reads current-user using Kopia's UI
+// session cookie and CSRF token. This works without a connected repository.
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	anonymous, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath})
+	anonymous, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, requestFailure(ctx)
 	}
-	if anonymous.Status != http.StatusUnauthorized || anonymous.Header.Get("WWW-Authenticate") != basicChallenge {
-		return false, nil
+	if anonymous.Status != http.StatusUnauthorized {
+		return false, fmt.Errorf("anonymous Kopia API returned HTTP %d; expected HTTP 401", anonymous.Status)
 	}
-	wrong, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword() + "-wrong"})
+	if anonymous.Header.Get("WWW-Authenticate") != basicChallenge {
+		return false, errors.New("Kopia API did not provide its expected Basic authentication challenge")
+	}
+	wrong, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword() + "-wrong", NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, requestFailure(ctx)
 	}
 	if wrong.Status != http.StatusUnauthorized {
-		return false, nil
+		return false, fmt.Errorf("Kopia API accepted an incorrect administrator credential or returned an unexpected response (HTTP %d); expected HTTP 401", wrong.Status)
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword()})
+	ui, err := h.HTTP(ctx, helpers.Request{Path: "/", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {
-		return false, err
+		return false, requestFailure(ctx)
+	}
+	if ui.Status != http.StatusOK {
+		return false, fmt.Errorf("saved administrator login to the Kopia UI returned HTTP %d; expected HTTP 200", ui.Status)
+	}
+	cookie := ui.Cookie(sessionCookie)
+	token := csrfMeta.FindSubmatch(ui.Body)
+	if cookie == "" || len(token) != 2 {
+		return false, errors.New("authenticated Kopia UI did not supply its session cookie and CSRF token")
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true,
+		Header: map[string]string{"Cookie": sessionCookie + "=" + cookie, csrfHeader: string(token[1])}})
+	if err != nil {
+		return false, requestFailure(ctx)
 	}
 	if resp.Status != http.StatusOK {
-		return false, nil
+		return false, fmt.Errorf("authenticated Kopia current-user API returned HTTP %d; expected HTTP 200 with a valid UI session", resp.Status)
 	}
 	var identity struct {
 		Username string `json:"username"`
 		Hostname string `json:"hostname"`
 	}
 	if err := resp.Decode(&identity); err != nil {
-		return false, err
+		return false, errors.New("authenticated Kopia current-user API returned invalid identity JSON")
 	}
-	return identity.Username != "" && identity.Hostname != "", nil
+	if identity.Username == "" || identity.Hostname == "" {
+		return false, errors.New("authenticated Kopia current-user API omitted its username or hostname")
+	}
+	return true, nil
+}
+
+func requestFailure(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return errors.New("Kopia authentication request failed before an HTTP response")
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, currentUserPath, 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, currentUserPath, helpers.WantStatus(http.StatusUnauthorized), helpers.NoRedirect()); err != nil {
 		return err
 	}
 	return h.Step(ctx, "admin-auth", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
-			return errors.New("Kopia reads KOPIA_SERVER_USERNAME and KOPIA_SERVER_PASSWORD only when the server starts")
+		Do: func(ctx context.Context) error {
+			_, err := adminWorks(ctx, h)
+			return err
 		},
-		Hint: "Kopia binds the Admin login when the server starts. Recreate the container: self-host start kopia, " +
-			"then open " + h.URL + " and sign in with the password from `self-host credentials`.",
+		Hint: "Verify the saved login with self-host credentials. UI HTTP 401 indicates the saved login is refused; " +
+			"API HTTP 401 after successful UI login indicates a session/CSRF contract failure. Keep the existing login and repository; " +
+			"recreate the container after correcting its server configuration.",
 		Credential: "admin",
 	})
 }
@@ -122,7 +156,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 // and does not claim backup readiness.
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to Kopia: %v", h.AdminUser(), err)
+		return fmt.Errorf("Kopia administrator verification failed: %w", err)
 	}
 	return nil
 }

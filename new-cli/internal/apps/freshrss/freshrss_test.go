@@ -2,6 +2,7 @@ package freshrss_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/freshrss"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -37,10 +39,18 @@ func (f *fakeExec) Exec(_ context.Context, _ string, env map[string]string, comm
 	script := command[2]
 	switch {
 	case strings.Contains(script, "test -f"):
+		// Model the container shell: a bare `test -f` exits 1 when the file is
+		// absent, and Compose turns any non-zero exit into an error.
+		if strings.Contains(script, "echo yes") {
+			if f.exists {
+				return system.Result{Stdout: []byte("yes")}, nil
+			}
+			return system.Result{Stdout: []byte("no")}, nil
+		}
 		if f.exists {
 			return system.Result{}, nil
 		}
-		return system.Result{ExitCode: 1}, nil
+		return system.Result{ExitCode: 1}, errors.New("docker compose exec: exit 1")
 	case strings.Contains(script, "do-install"):
 		if f.failCreate {
 			return system.Result{ExitCode: 1}, nil
@@ -92,7 +102,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -111,7 +121,7 @@ func TestFailingStepHintNamesTheSetupCommand(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

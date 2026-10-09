@@ -15,6 +15,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/cli"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -131,7 +132,7 @@ func TestInstallCreatesProjectAndStartsApp(t *testing.T) {
 		t.Fatal("root compose does not include the app fragment")
 	}
 	calls := strings.Join(deps.Runner.(*systemtest.Runner).Calls(), "\n")
-	if !strings.Contains(calls, "docker compose --project-directory "+root+" -p selfhost --env-file "+root+"/.env --env-file "+root+"/secrets.env up -d one") {
+	if !strings.Contains(calls, "docker compose --project-directory "+root+" -p selfhost --env-file "+root+"/.env --env-file "+root+"/secrets.env up -d --remove-orphans one") {
 		t.Fatalf("compose up not run:\n%s", calls)
 	}
 	if !strings.Contains(out, `"command":"docker compose --project-directory `+root) {
@@ -280,9 +281,10 @@ func TestLocalExposureBindsLoopbackAndShowsInStatus(t *testing.T) {
 		LANIP    string `json:"lan_ip"`
 		Settings map[string]string
 		Apps     []struct {
-			ID, URL, State, Setup string
-			Port                  int
-			Managed               bool
+			ID, URL, State string
+			Setup          stepstatus.Setup
+			Port           int
+			Managed        bool
 		}
 	}
 	if err := json.Unmarshal([]byte(out), &status); err != nil {
@@ -291,7 +293,7 @@ func TestLocalExposureBindsLoopbackAndShowsInStatus(t *testing.T) {
 	if status.Exposure != "local" || status.Settings["BIND_IP"] != "127.0.0.1" || status.LANIP != "192.168.1.20" {
 		t.Fatalf("exposure not reported: %+v", status)
 	}
-	if len(status.Apps) != 1 || status.Apps[0].URL != "http://127.0.0.1:9000" || status.Apps[0].Setup != "ok" || !status.Apps[0].Managed {
+	if len(status.Apps) != 1 || status.Apps[0].URL != "http://127.0.0.1:9000" || status.Apps[0].Setup != stepstatus.SetupOK || !status.Apps[0].Managed {
 		t.Fatalf("app status wrong: %+v", status.Apps)
 	}
 }
@@ -346,8 +348,8 @@ func TestStaleLockIsReplaced(t *testing.T) {
 	if code, out := runWith(t, deps, cat, "setup", "one"); code != 0 {
 		t.Fatalf("stale lock blocked setup: %d\n%s", code, out)
 	}
-	if _, err := os.Stat(filepath.Join(projectRoot(t, deps), ".lock")); !os.IsNotExist(err) {
-		t.Fatal("lock not released")
+	if code, out := runWith(t, deps, cat, "setup", "one"); code != 0 {
+		t.Fatalf("released lock blocked the next mutation: %d\n%s", code, out)
 	}
 }
 
@@ -361,5 +363,53 @@ func TestUsernamesAreNotRedactedInLaterCommands(t *testing.T) {
 	fail := findCheck(decodeEvents(t, out), "configure")
 	if fail == nil || fail["error"] != "admin page returned 500" {
 		t.Fatalf("username was redacted out of messages:\n%s", out)
+	}
+}
+
+func TestStatusJSONExposesManualSetup(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}, fail: helpers.ErrManual})
+	runWith(t, deps, cat, "install", "one", "--yes", "--json")
+	code, out := runWith(t, deps, cat, "status", "--json")
+	var status struct {
+		Apps []struct {
+			Setup stepstatus.Setup
+			Steps []struct {
+				Status      stepstatus.Step
+				Hint, Error string
+			}
+		}
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &status) != nil {
+		t.Fatalf("status: %d %s", code, out)
+	}
+	if len(status.Apps) != 1 || status.Apps[0].Setup != stepstatus.SetupManual {
+		t.Fatalf("manual Setup missing: %s", out)
+	}
+	step := status.Apps[0].Steps[len(status.Apps[0].Steps)-1]
+	if step.Status != stepstatus.StepManual || step.Hint == "" || step.Error != "" {
+		t.Fatalf("manual handoff missing: %s", out)
+	}
+}
+
+func TestInstallOnlyManualStepsExitThree(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	a := &echoApp{id: "one", done: map[string]bool{}, fail: helpers.ErrManual}
+	cat := testCatalog(a)
+	code, out := runWith(t, deps, cat, "install", "one", "--yes", "--json")
+	if code != 3 {
+		t.Fatalf("exit %d, want 3 for manual Setup", code)
+	}
+	if !strings.Contains(out, `"event":"step.manual"`) || strings.Contains(out, `"event":"step.fail"`) {
+		t.Fatalf("manual events: %s", out)
+	}
+	code, out = runWith(t, deps, cat, "setup", "one")
+	if code != 3 || !strings.Contains(out, "Open the echo settings page") {
+		t.Fatalf("retry handoff: exit %d, %s", code, out)
+	}
+	a.fail = errors.New("endpoint unavailable")
+	code, _ = runWith(t, deps, cat, "setup", "one", "--json")
+	if code != 2 {
+		t.Fatalf("failed retry exit = %d, want 2", code)
 	}
 }

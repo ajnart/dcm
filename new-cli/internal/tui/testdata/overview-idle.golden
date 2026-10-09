@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings    ◐ 1 warning   LAN 192.168.1.20  self-host 12:00:00
+╭─ Now ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✓ restart jellyfin                                                                                                   │
+│   ✓ Setup                                                                                                            │
+│   Done                                                                                                               │
+│ ◐ Host: 1 warning                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Apps 3 ───────────────────────────────────────────────────────╮╭─ Needs attention 3 ────────────────────────────────╮
+│ ● ♫ Jellyfin      Media      192.168.1.20:8096    running   ✓  ││ ✗ Sonarr: download-client failed   a r retry Setup │
+│ ✗ ↓ Sonarr        Downloads  192.168.1.20:8989    running   ✗  ││ ✗ whoami is stopped                      a s start │
+│ ✗ ◇ whoami                   192.168.1.20:8099    stopped   –  ││ ! Firewall: ufw is active                          │
+│                                                                ││   → sudo ufw allow from 192.168.0.0/16 to any por… │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+│                                                                ││                                                    │
+╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────╯
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit    ↑/↓  select   a  actions   enter  go to App   /  search   tab  next pane …

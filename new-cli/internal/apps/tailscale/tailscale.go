@@ -32,6 +32,7 @@ func (App) Inputs() []app.Input {
 		Prompt:   "Tailscale auth key",
 		Help:     "Create an auth key at https://login.tailscale.com/admin/settings/keys and paste it here.",
 		Required: true,
+		Private:  true,
 	}}
 }
 
@@ -74,7 +75,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Check: func(context.Context) (bool, error) { return h.Inputs["auth_key"] != "", nil },
 		Do:    func(context.Context) error { return errors.New("no Tailscale auth key was supplied") },
 		Hint: "Create an auth key at https://login.tailscale.com/admin/settings/keys and pass it with " +
-			"--set tailscale.auth_key=KEY, then run: self-host install tailscale",
+			"--set-file tailscale.auth_key=/path/to/credential, then run: self-host install tailscale",
 		Credential: "admin",
 	}); err != nil {
 		return err

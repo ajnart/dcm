@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Homebridge. Traps: docs/catalog/traps/homebridge.md.
@@ -123,9 +123,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return false, nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/api/auth/settings"},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/api/auth/settings"},
 		Exists: adminExists,
 		Create: createAdmin,
 		Login:  loginWorks,

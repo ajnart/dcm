@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -77,11 +76,13 @@ func input(rc app.RenderContext, key, fallback string) string {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	// A fresh bind hides the image directory's www-data group write access. The official
+	// entrypoint exports its server keys there as www-data before starting nginx.
 	return `services:
   passbolt:
     image: passbolt/passbolt:5.16.0-1-ce
     restart: unless-stopped
-    command: ["/usr/bin/wait-for.sh", "-t", "0", "db:3306", "--", "/docker-entrypoint.sh"]
+    command: ["/bin/sh", "-c", "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 passbolt-db:3306 -- /docker-entrypoint.sh"]
     environment:
       TZ: ${TZ}
       APP_FULL_BASE_URL: ` + origin(rc) + `
@@ -93,7 +94,7 @@ func (App) Compose(rc app.RenderContext) string {
       EMAIL_TRANSPORT_DEFAULT_TLS: "true"
       PASSBOLT_KEY_EMAIL: ` + input(rc, "PASSBOLT_SERVER_KEY_EMAIL", "passbolt@selfhost.local") + `
       PASSBOLT_KEY_NAME: ` + input(rc, "PASSBOLT_SERVER_KEY_NAME", "Passbolt") + `
-      DATASOURCES_DEFAULT_HOST: db
+      DATASOURCES_DEFAULT_HOST: passbolt-db
       DATASOURCES_DEFAULT_USERNAME: passbolt
       DATASOURCES_DEFAULT_DATABASE: passbolt
       DATASOURCES_DEFAULT_PASSWORD: ${PASSBOLT_DATABASE_PASSWORD}
@@ -101,10 +102,10 @@ func (App) Compose(rc app.RenderContext) string {
       - ./gpg:/etc/passbolt/gpg
       - ./jwt:/etc/passbolt/jwt
     depends_on:
-      - db
+      - passbolt-db
     ports:
       - ${BIND_IP}:` + port + `:80
-  db:
+  passbolt-db:
     image: mariadb:10.11
     restart: unless-stopped
     environment:
@@ -117,7 +118,7 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-const managementHint = "Set the origin with: self-host setup passbolt --set passbolt.PASSBOLT_CANONICAL_ORIGIN=https://passbolt.selfhost.local " +
+const managementHint = "Set the origin with: self-host install passbolt --yes --set passbolt.PASSBOLT_CANONICAL_ORIGIN=https://passbolt.selfhost.local " +
 	"--set passbolt.PASSBOLT_SMTP_HOST=smtp.example.com (see https://www.passbolt.com/docs/hosting/install/ce/docker/)"
 
 var fingerprint = regexp.MustCompile(`^[0-9A-Fa-f]{40}$`)
@@ -158,7 +159,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.WaitHTTP(ctx, "/auth/verify.json", 2*time.Minute); err != nil {
+	if err := h.Ready(ctx, "/auth/verify.json"); err != nil {
 		return err
 	}
 	if err := h.Step(ctx, "server-key", "Passbolt serves its server OpenPGP key", helpers.StepSpec{
@@ -169,10 +170,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	h.Info("Create the first administrator by enrolling the browser extension: open " + h.URL +
+	return h.Step(ctx, "admin", "enroll the administrator's browser extension", helpers.StepSpec{
+		Do:   func(context.Context) error { return fmt.Errorf("%w: %s", helpers.ErrManual, manualAdmin) },
+		Hint: enrollmentHint(h),
+	})
+}
+
+const manualAdmin = "Passbolt has no headless way to verify browser extension enrollment"
+
+func enrollmentHint(h *helpers.H) string {
+	return "Create the first administrator by enrolling the browser extension: open " + h.URL +
 		", register " + adminEmail(h) + " as an admin, and save the private key, passphrase and recovery kit privately. " +
-		"The Admin password is not used: Passbolt enrollment is OpenPGP key-based. Time sync and SMTP delivery are installation prerequisites.")
-	return nil
+		"The Admin password is not used: Passbolt enrollment is OpenPGP key-based. Time sync and SMTP delivery are installation prerequisites."
 }
 
 func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }

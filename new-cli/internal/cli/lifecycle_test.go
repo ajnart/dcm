@@ -2,12 +2,14 @@ package cli_test
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/catalog"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -43,7 +45,7 @@ func TestStopAndStartTargetOnlyTheNamedApp(t *testing.T) {
 	if code, out := runWith(t, deps, cat, "stop", "one"); code != 0 || lastCompose(deps) != "stop one" {
 		t.Fatalf("stop: %d %q\n%s", code, lastCompose(deps), out)
 	}
-	if code, _ := runWith(t, deps, cat, "start", "one"); code != 0 || lastCompose(deps) != "up -d one" {
+	if code, _ := runWith(t, deps, cat, "start", "one"); code != 0 || lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("start: %d %q", code, lastCompose(deps))
 	}
 	if code, _ := runWith(t, deps, cat, "restart", "two"); code != 0 || lastCompose(deps) != "restart two" {
@@ -79,7 +81,7 @@ func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
 
 	code, out := runWith(t, deps, cat, "start", "whoami")
 
-	if code != 0 || lastCompose(deps) != "up -d whoami" {
+	if code != 0 || lastCompose(deps) != "up -d --remove-orphans whoami" {
 		t.Fatalf("start unmanaged: %d %q\n%s", code, lastCompose(deps), out)
 	}
 	if !strings.Contains(readFile(t, filepath.Join(root, "compose.yml")), "apps/whoami/compose.yml") {
@@ -88,12 +90,13 @@ func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
 	_, statusOut := runWith(t, deps, cat, "status", "--json")
 	var status struct {
 		Apps []struct {
-			ID, Setup string
-			Managed   bool
+			ID      string
+			Setup   stepstatus.Setup
+			Managed bool
 		}
 	}
 	json.Unmarshal([]byte(statusOut), &status)
-	if len(status.Apps) != 2 || status.Apps[1].ID != "whoami" || status.Apps[1].Setup != "unmanaged" || status.Apps[1].Managed {
+	if len(status.Apps) != 2 || status.Apps[1].ID != "whoami" || status.Apps[1].Setup != stepstatus.SetupUnmanaged || status.Apps[1].Managed {
 		t.Fatalf("unmanaged app not listed: %+v", status.Apps)
 	}
 	if code, out := runWith(t, deps, cat, "setup", "whoami"); code != 1 || !strings.Contains(out, "not a catalog App") {
@@ -144,11 +147,28 @@ func TestUpdatePullsRecreatesAndChecks(t *testing.T) {
 	code, out := runWith(t, deps, cat, "update", "one", "--json")
 
 	calls := composeCalls(deps)
-	if code != 0 || calls[len(calls)-2] != "pull one" || calls[len(calls)-1] != "up -d one" {
+	if code != 0 || calls[len(calls)-2] != "--progress json pull one" || calls[len(calls)-1] != "up -d --remove-orphans one" {
 		t.Fatalf("update: %d %v\n%s", code, calls, out)
 	}
 	if findCheck(decodeEvents(t, out), "check") == nil {
 		t.Fatalf("update did not run Check:\n%s", out)
+	}
+}
+
+func TestUpdatePullFailureNamesTheImage(t *testing.T) {
+	deps, cat := installed(t, "one")
+	deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull",
+		`{"id":"Image example/echo:latest","status":"Working","text":"Pulling"}`+"\n", errors.New("exit status 125"))
+
+	code, out := runWith(t, deps, cat, "update", "one", "--json")
+
+	if code != 1 {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	for _, want := range []string{"example/echo:latest", "docker pull example/echo:latest"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("pull failure lacks %q:\n%s", want, out)
+		}
 	}
 }
 
@@ -166,7 +186,7 @@ func TestConfigSetRewritesSettingsAndRecreatesApps(t *testing.T) {
 			t.Errorf(".env lacks %q", want)
 		}
 	}
-	if lastCompose(deps) != "up -d one" {
+	if lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("app not recreated: %q", lastCompose(deps))
 	}
 }

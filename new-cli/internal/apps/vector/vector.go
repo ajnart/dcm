@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Vector. Traps: docs/catalog/traps/vector.md.
@@ -60,7 +60,7 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-var probe = onboard.NoAccount{Probe: onboard.Probe{Path: "/health", Contains: `"ok":true`}}
+var probe = firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/health", Contains: `"ok":true`}}
 
 func (App) Setup(ctx context.Context, h *helpers.H) error { return probe.Setup(ctx, h) }
 func (App) Check(ctx context.Context, h *helpers.H) error { return probe.Check(ctx, h) }

@@ -8,15 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
-	"path/filepath"
-	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is SABnzbd. Traps: docs/catalog/traps/sabnzbd.md.
@@ -56,25 +53,9 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
-var apiKeyElement = regexp.MustCompile(`(?m)^\s*api_key\s*=\s*([0-9a-f]{32})\s*$`)
-
 // readAPIKey waits for the key SABnzbd writes to its config on first start.
 func readAPIKey(ctx context.Context, h *helpers.H) (string, error) {
-	path := filepath.Join(h.Dir, "config", "sabnzbd.ini")
-	var key string
-	err := h.Poll(ctx, 2*time.Minute, func(context.Context) (bool, error) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return false, err
-		}
-		found := apiKeyElement.FindSubmatch(data)
-		if found == nil {
-			return false, errors.New("no api_key in sabnzbd.ini yet")
-		}
-		key = string(found[1])
-		return true, nil
-	})
-	return key, err
+	return h.ConfigValue(ctx, "config/sabnzbd.ini", helpers.INIKey("misc", "api_key"), 2*time.Minute)
 }
 
 func apiForm(ctx context.Context, h *helpers.H, fields map[string]string) (map[string]any, error) {
@@ -166,9 +147,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return resp.Cookie("login_cookie") != "", nil
 }
 
-func setup() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/"},
+func setup() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready:  firstadmin.Probe{Path: "/"},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,

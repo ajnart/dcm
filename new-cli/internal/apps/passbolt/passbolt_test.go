@@ -11,6 +11,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/passbolt"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -49,27 +50,34 @@ func inputs() map[string]string {
 	}
 }
 
-func TestSetupThenCheckThenRerunSkips(t *testing.T) {
+func TestServerKeyReadinessDoesNotCompleteBrowserEnrollment(t *testing.T) {
 	srv := httptest.NewServer(handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, inputs())
 	ctx := context.Background()
 
-	if err := (passbolt.App{}).Setup(ctx, h); err != nil {
-		t.Fatalf("Setup: %v", err)
+	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
+		t.Fatalf("Setup = %v, want manual browser enrollment", err)
 	}
 	if err := (passbolt.App{}).Check(ctx, h); err != nil {
-		t.Fatalf("Check: %v", err)
+		t.Fatalf("Check = %v, want successful probe", err)
 	}
 	records = nil
-	if err := (passbolt.App{}).Setup(ctx, h); err != nil {
-		t.Fatalf("rerun Setup: %v", err)
+	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
+		t.Fatalf("rerun Setup = %v, want manual browser enrollment", err)
 	}
+	manual := false
 	for _, r := range records {
-		if r.ID == "server-key" && r.Status != "skip" {
+		if r.ID == "admin" {
+			manual = r.Status == stepstatus.StepManual && r.Error == "" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "browser extension") && strings.Contains(r.Hint, "recovery kit")
+		}
+		if r.ID == "server-key" && r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if !manual {
+		t.Fatalf("browser enrollment failure/hint missing: %+v", records)
 	}
 }
 
@@ -84,11 +92,11 @@ func TestMissingConfigurationFailsWithAHint(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}
-	if !strings.Contains(hint, "PASSBOLT_CANONICAL_ORIGIN") {
+	if !strings.Contains(hint, "self-host install passbolt --yes --set") || !strings.Contains(hint, "PASSBOLT_CANONICAL_ORIGIN") {
 		t.Errorf("hint should name the required input, got %q", hint)
 	}
 }
@@ -103,5 +111,15 @@ func TestMissingServerKeyFailsTheCheck(t *testing.T) {
 
 	if err := (passbolt.App{}).Check(context.Background(), h); err == nil {
 		t.Fatal("Check should fail when the server key is absent")
+	}
+}
+
+func TestCheckPassesWhenServerKeyWorks(t *testing.T) {
+	srv := httptest.NewServer(handler())
+	defer srv.Close()
+	var records []helpers.StepResult
+	h := newH(t, srv, &records, inputs())
+	if err := (passbolt.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("Check = %v, want successful server-key probe", err)
 	}
 }

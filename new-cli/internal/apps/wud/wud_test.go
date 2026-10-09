@@ -8,11 +8,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/wud"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (wud.App{}).Compose(app.RenderContext{Port: 31003})
+	if !strings.Contains(compose, "${BIND_IP}:31003:3000") || strings.Contains(compose, "${BIND_IP}:18083:3000") {
+		t.Fatalf("selected dashboard port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 
@@ -43,7 +52,28 @@ func handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode([]any{})
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
+	})
+	mux.HandleFunc("GET /api/watchers", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]string{{"id": "docker.approved", "type": "docker", "name": "approved"}})
+	})
+	mux.HandleFunc("POST /api/containers/watch", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
+	})
+	mux.HandleFunc("POST /api/containers/owned-fixture/watch", func(w http.ResponseWriter, r *http.Request) {
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}})
 	})
 	return mux
 }
@@ -51,8 +81,10 @@ func handler() http.Handler {
 func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult, inputs map[string]string) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
+	dir := t.TempDir()
+	writeTLSFixture(t, dir, false)
 	return helpers.New(helpers.Config{
-		App: "wud", Service: "wud", BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		App: "wud", Service: "wud", Dir: dir, BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Inputs:  inputs,
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
@@ -78,7 +110,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.ID == "admin" && r.Status != "skip" {
+		if r.ID == "admin" && r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
@@ -95,7 +127,7 @@ func TestMissingDockerEndpointFailsWithAHint(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

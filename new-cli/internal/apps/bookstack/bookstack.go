@@ -4,11 +4,12 @@ package bookstack
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,21 @@ import (
 type App struct{}
 
 const service = "bookstack"
+
+// The pinned image inherits Alpine nginx 3.24's PHP 8.5 pool for abc,
+// whose IDs follow PUID/PGID. PHP-FPM needs -R if either pool ID is zero,
+// including container zero mapped to the rootless project owner.
+const phpFPMRun = `#!/usr/bin/with-contenv bash
+if [[ "${PUID:-911}" = 0 || "${PGID:-911}" = 0 ]]; then
+    exec /usr/sbin/php-fpm85 -F -R
+fi
+exec /usr/sbin/php-fpm85 -F
+`
+
+// Files keeps the pinned PHP-FPM service compatible with the configured IDs.
+func (App) Files(_ app.RenderContext, _ func(string) string) []app.File {
+	return []app.File{{Path: "php-fpm-run", Content: phpFPMRun, Mode: 0o755}}
+}
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -55,7 +71,7 @@ func (App) Compose(rc app.RenderContext) string {
       PGID: ${PGID}
       TZ: ${TZ}
       APP_URL: http://${LAN_IP}:` + port + `
-      DB_HOST: db
+      DB_HOST: bookstack-db
       DB_PORT: "3306"
       DB_USERNAME: bookstack
       DB_DATABASE: bookstack
@@ -63,11 +79,12 @@ func (App) Compose(rc app.RenderContext) string {
       APP_KEY: ${BOOKSTACK_APP_KEY}
     volumes:
       - ./config:/config
+      - ./php-fpm-run:/etc/s6-overlay/s6-rc.d/svc-php-fpm/run:ro
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:
-      - db
-  db:
+      - bookstack-db
+  bookstack-db:
     image: docker.io/library/mariadb:12.3.3
     restart: unless-stopped
     environment:
@@ -80,49 +97,19 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-var csrfPattern = regexp.MustCompile(`name="_token"[^>]*value="([A-Za-z0-9]+)"`)
-
-type jar map[string]string
-
-func (j jar) add(resp helpers.Response) {
-	for _, line := range resp.Header.Values("Set-Cookie") {
-		pair, _, _ := strings.Cut(line, ";")
-		name, value, ok := strings.Cut(pair, "=")
-		if ok && name != "" {
-			j[name] = value
-		}
-	}
-}
-
-func (j jar) header() string {
-	parts := make([]string, 0, len(j))
-	for name, value := range j {
-		parts = append(parts, name+"="+value)
-	}
-	return strings.Join(parts, "; ")
-}
-
 // login signs in through the pinned email form and proves administrator access
 // by opening the users settings page.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
 	email := h.AdminUser() + "@selfhost.local"
-	page, err := h.HTTP(ctx, helpers.Request{Path: "/login", Header: map[string]string{"Accept": "text/html"}})
+	session := h.Session()
+	token, err := session.FormToken(ctx, "/login", "_token")
 	if err != nil {
-		return false, err
-	}
-	cookies := jar{}
-	cookies.add(page)
-	if page.Status != http.StatusOK {
 		return false, nil
 	}
-	match := csrfPattern.FindSubmatch(page.Body)
-	if match == nil {
-		return false, nil
-	}
-	form := url.Values{"_token": {string(match[1])}, "email": {email}, "password": {h.AdminPassword()}}
-	resp, err := h.HTTP(ctx, helpers.Request{
+	form := url.Values{"_token": {token}, "email": {email}, "password": {h.AdminPassword()}}
+	resp, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/login", Form: form, NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -133,10 +120,9 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status != http.StatusFound {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
 	}
-	cookies.add(resp)
-	users, err := h.HTTP(ctx, helpers.Request{
+	users, err := session.HTTP(ctx, helpers.Request{
 		Path: "/settings/users", NoRedirect: true,
-		Header: map[string]string{"Accept": "text/html", "Cookie": cookies.header()},
+		Header: map[string]string{"Accept": "text/html"},
 	})
 	if err != nil {
 		return false, err
@@ -151,13 +137,13 @@ func createAdmin(ctx context.Context, h *helpers.H) error {
 	script := fmt.Sprintf(
 		`php /app/www/artisan bookstack:create-admin --initial --email=%s@selfhost.local --name=%s --password="$SELFHOST_PW"`,
 		user, user)
-	_, err := h.Exec(ctx, map[string]string{"SELFHOST_PW": h.AdminPassword()}, "sh", "-c", script)
+	_, err := h.ExecSecret(ctx, map[string]string{"SELFHOST_PW": h.AdminPassword()}, script)
 	return err
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.WaitHTTP(ctx, "/login", 2*time.Minute); err != nil {
-		return err
+	if err := h.Ready(ctx, "/login"); err != nil {
+		return errors.Join(err, startupStatus(ctx, h))
 	}
 	email := h.AdminUser() + "@selfhost.local"
 	return h.Step(ctx, "admin", "create the administrator "+email, helpers.StepSpec{
@@ -182,6 +168,165 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Credential: "admin",
 	})
 }
+
+// Failure-only observations distinguish image initialization from an absent
+// PHP upstream. Database TCP availability does not claim authenticated access.
+func startupStatus(ctx context.Context, h *helpers.H) error {
+	facts := "bootstrap_metadata=unobserved"
+	hint := "Check owned image initialization, PHP-FPM readiness and database health before retrying; a database TCP listener does not prove authenticated database access."
+	if h.Config.Exec != nil {
+		probeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", strings.ReplaceAll(bootstrapProbe, "__SELFHOST_LAUNCHER_SHA__", fmt.Sprintf("%x", sha256.Sum256([]byte(phpFPMRun)))))
+		if err == nil && result.ExitCode == 0 {
+			values := strings.Fields(string(result.Stdout))
+			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category", "path", "process_root", "target_read", "target_write", "target_owner"}
+			valid := len(values) == len(keys)
+			if valid {
+				for i, key := range keys {
+					if key == "path" {
+						if !slices.Contains([]string{"path=main_config", "path=base_pool", "path=local_pool", "path=php_log", "path=proc_stderr", "path=unrecognized"}, values[i]) {
+							valid = false
+							break
+						}
+						values[i] = strings.TrimPrefix(values[i], "path=")
+						continue
+					}
+					if key == "category" {
+						if !slices.Contains([]string{"category=none", "category=root_identity", "category=identity_lookup", "category=directive", "category=missing_path", "category=permission", "category=log_open", "category=socket", "category=resource", "category=config_open", "category=unrecognized", "category=timeout", "category=unavailable"}, values[i]) {
+							valid = false
+							break
+						}
+						values[i] = strings.TrimPrefix(values[i], "category=")
+						continue
+					}
+					unknown := (key == "authenticated" || key == "php_process" || i >= 7) && values[i] == key+"=unknown"
+					if values[i] != key+"=true" && values[i] != key+"=false" && !unknown {
+						valid = false
+						break
+					}
+					values[i] = strings.TrimPrefix(values[i], key+"=")
+				}
+			}
+			if valid {
+				if values[14] == "config_open" && values[15] == "main_config" && values[17] == "true" {
+					hint += " Ask the host administrator to review PHP-FPM confinement compatibility: its configuration appears readable but PHP-FPM cannot open it."
+				}
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s php_failure_path=%s process_uid_zero=%s failure_path_readable=%s failure_path_writable=%s failure_path_owner_current=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[16], values[17], values[18], values[19])
+			}
+		}
+	}
+	return h.Step(ctx, "startup-status", "observe BookStack bootstrap dependencies", helpers.StepSpec{
+		Do:   func(context.Context) error { return errors.New("BookStack startup status: " + facts) },
+		Hint: hint,
+	})
+}
+
+// The pinned Alpine-nginx image uses PHP-FPM TCP 9000; BookStack's public
+// init-bookstack-config script waits for DB_HOST/DB_PORT before migrations.
+// Emit only fixed booleans/enums, never environment values, private files or raw output.
+const bootstrapProbe = `set +x
+key=false; root_pool=false; launcher_root=false; php_process=unknown; upstream=false; database=false; authenticated=unknown
+[ -n "${APP_KEY:-}" ] && key=true
+if [ "$(id -u abc)" = 0 ] || [ "$(id -g abc)" = 0 ]; then root_pool=true; fi
+if [[ "${PUID:-911}" = 0 || "${PGID:-911}" = 0 ]]; then launcher_root=true; fi
+if command -v pgrep >/dev/null 2>&1; then
+    php_process=false
+    pgrep -x php-fpm85 >/dev/null 2>&1 && php_process=true
+fi
+timeout 2 bash -c 'true > /dev/tcp/127.0.0.1/9000' >/dev/null 2>&1 && upstream=true
+timeout 2 bash -c 'true > "/dev/tcp/${DB_HOST}/${DB_PORT:-3306}"' >/dev/null 2>&1 && database=true
+# PDO receives only the existing application environment inside its container.
+# It neither reads Laravel's private configuration nor prints exception text.
+auth_result=$(timeout 2 php -r 'try { new PDO("mysql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: "3306").";dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), [PDO::ATTR_TIMEOUT => 2]); echo "true"; } catch (Throwable $e) { echo "false"; }' 2>/dev/null)
+case "$auth_result" in true|false) authenticated="$auth_result" ;; esac
+printf 'key=%s\nroot_pool=%s\nlauncher_root=%s\nphp_process=%s\nupstream=%s\ndatabase=%s\nauthenticated=%s\n' "$key" "$root_pool" "$launcher_root" "$php_process" "$upstream" "$database" "$authenticated"
+
+# Hash only the owned non-secret launcher; expose neither content nor hashes.
+launcher_matches() {
+    local actual
+    actual=$(sha256sum "$1" 2>/dev/null) || { printf unknown; return; }
+    if [[ "$actual" = "__SELFHOST_LAUNCHER_SHA__ "* ]]; then printf true; else printf false; fi
+}
+launcher_executable() {
+    if [ ! -e "$1" ]; then printf unknown; elif [ -x "$1" ]; then printf true; else printf false; fi
+}
+source=/etc/s6-overlay/s6-rc.d/svc-php-fpm/run
+compiled=/run/service/svc-php-fpm/run
+source_match=$(launcher_matches "$source"); source_exec=$(launcher_executable "$source")
+compiled_match=$(launcher_matches "$compiled"); compiled_exec=$(launcher_executable "$compiled")
+wanted=unknown; up=unknown
+supervision=$(timeout 2 s6-svstat -o up,wantedup /run/service/svc-php-fpm 2>/dev/null)
+case "$supervision" in
+    'true true') up=true; wanted=true ;;
+    'true false') up=true; wanted=false ;;
+    'false true') up=false; wanted=true ;;
+    'false false') up=false; wanted=false ;;
+esac
+# PHP 8.5 fpm_conf.c/fpm_unix.c/fpm_stdio.c/fpm_sockets.c error phrases.
+# Consume at most 16 KiB in memory and emit only a fixed category; no raw
+# diagnostic, private path, configuration value or pool name leaves the pipe.
+validation=$(
+    timeout 3 /usr/sbin/php-fpm85 -t -R 2>&1 | head -c 16384 | awk '
+        BEGIN { category="unrecognized"; path="unrecognized" }
+        category == "unrecognized" && /ERROR:|ALERT:/ {
+            candidate_path="unrecognized"
+            if (index($0, "\047/etc/php85/php-fpm.conf\047")) candidate_path="main_config"
+            else if (index($0, "\047/etc/php85/php-fpm.d/www.conf\047")) candidate_path="base_pool"
+            else if (index($0, "\047/config/php/www2.conf\047")) candidate_path="local_pool"
+            else if (index($0, "(/config/log/php/error.log)")) candidate_path="php_log"
+            else if (index($0, "(/proc/self/fd/2)")) candidate_path="proc_stderr"
+            if (/please specify user and group other than root|without --allow-to-run-as-root/) category="root_identity"
+            else if (/cannot get uid for user|cannot get gid for group|ID .* is out of range/) category="identity_lookup"
+            else if (/unknown entry|unable to parse value for entry|Unknown INI syntax|No pool defined|no listen address have been defined|process manager is missing/) category="directive"
+            else if (/failed to open error_log/) category="log_open"
+            else if (/does not exist or is not a directory/) category="missing_path"
+            else if (/failed to open configuration file|failed to include more than 5 files recursively/) category="config_open"
+            else if (/Permission denied|Operation not permitted/) category="permission"
+            else if (/unable to bind listening socket|failed to listen to address|already listen on|invalid port value/) category="socket"
+            else if (/failed to set rlimit|unable to malloc|failed to create pipe/) category="resource"
+            if (category != "unrecognized") path=candidate_path
+        }
+        END { print category " " path }
+    '
+    printf '%s\n' "${PIPESTATUS[0]}"
+)
+config=unknown
+classification="${validation%%$'\n'*}"
+category="${classification%% *}"
+path="${classification##* }"
+case "${validation##*$'\n'}" in
+    0) config=true; category=none ;;
+    124) category=timeout ;;
+    127) category=unavailable ;;
+    141) category=unrecognized ;;
+    *) config=false ;;
+esac
+printf 'source_match=%s\nsource_exec=%s\ncompiled_match=%s\ncompiled_exec=%s\nwanted=%s\nup=%s\nconfig=%s\ncategory=%s\n' "$source_match" "$source_exec" "$compiled_match" "$compiled_exec" "$wanted" "$up" "$config" "$category"
+
+# Metadata only for fixed public/owned paths. Never traverse an observed path.
+process_root=false; target_read=unknown; target_write=unknown; target_owner=unknown
+test "$(id -u)" = 0 && process_root=true
+target=''
+case "$path" in
+    main_config) target=/etc/php85/php-fpm.conf ;;
+    base_pool) target=/etc/php85/php-fpm.d/www.conf ;;
+    local_pool) target=/config/php/www2.conf ;;
+    php_log) target=/config/log/php/error.log ;;
+    proc_stderr) target=/proc/self/fd/2 ;;
+esac
+if [ -n "$target" ]; then
+    target_read=false; target_write=false
+    test -r "$target" && target_read=true
+    test -w "$target" && target_write=true
+    owner=$(stat -c %u "$target" 2>/dev/null)
+    if [[ "$owner" =~ ^[0-9]+$ ]]; then
+        target_owner=false
+        test "$owner" = "$(id -u)" && target_owner=true
+    fi
+fi
+printf 'path=%s\nprocess_root=%s\ntarget_read=%s\ntarget_write=%s\ntarget_owner=%s\n' "$path" "$process_root" "$target_read" "$target_write" "$target_owner"
+`
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	ok, err := login(ctx, h)

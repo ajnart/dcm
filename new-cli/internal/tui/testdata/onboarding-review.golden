@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ✓ Who › ✓ Look › ● Review
+
+  Review  nothing has been written yet
+
+  APP                 IMAGE                                         PORT
+  ● Homarr            ghcr.io/homarr-labs/homarr:latest             7575
+  ● ntfy              binwiederhier/ntfy:latest                     2586
+
+  Exposure  local network — other devices connect on 192.168.1.20
+  Settings  TZ=Europe/Paris PUID=1000 PGID=1000
+  Admin     admin · •••••••• your own password
+
+  Links
+  ⇄ ntfy → Homarr: show ntfy in Homarr
+
+
+
+
+
+
+
+
+
+
+
+
+
+ q quit                                                                                      enter  approve   esc  back

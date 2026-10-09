@@ -5,15 +5,20 @@ package project
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 
+	"github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 )
 
@@ -65,17 +70,27 @@ func (p *Project) writeFile(name string, data []byte, mode os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {
 		return err
 	}
-	tmp := name + ".tmp"
-	if err := os.WriteFile(tmp, data, mode); err != nil {
+	// A unique temporary file per write: concurrent writers sharing one used
+	// to interleave their bytes.
+	tmp, err := os.CreateTemp(filepath.Dir(name), "."+filepath.Base(name)+".*.tmp")
+	if err != nil {
 		return err
 	}
-	if err := os.Chmod(tmp, mode); err != nil {
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
 		return err
 	}
-	if err := p.chown(tmp); err != nil {
+	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, name)
+	if err := os.Chmod(tmp.Name(), mode); err != nil {
+		return err
+	}
+	if err := p.chown(tmp.Name()); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), name)
 }
 
 // Env files
@@ -166,19 +181,54 @@ func (p *Project) SaveSecrets(secrets map[string]string) error {
 	return p.writeFile(p.Path("secrets.env"), formatEnv(header, secrets, []string{"ADMIN_USER", "ADMIN_PASSWORD"}), 0o600)
 }
 
+// Appearance is how the Dashboard and the interactive terminal draw. It is
+// a non-secret choice kept in appearance.json, apart from the Host settings,
+// so status and config never see it.
+type Appearance struct {
+	// Glyphs is the glyph set: nerd-font or simple.
+	Glyphs string `json:"glyphs"`
+}
+
+// LoadAppearance reads the appearance; the zero Appearance when none was
+// chosen.
+func (p *Project) LoadAppearance() (Appearance, error) {
+	var a Appearance
+	data, err := os.ReadFile(p.Path("appearance.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return a, nil
+	}
+	if err != nil {
+		return a, err
+	}
+	return a, json.Unmarshal(data, &a)
+}
+
+// SaveAppearance writes the appearance, creating the Project folder when an
+// install has not created it yet.
+func (p *Project) SaveAppearance(a Appearance) error {
+	if err := p.MkdirAll(); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		return err
+	}
+	return p.writeFile(p.Path("appearance.json"), append(data, '\n'), 0o644)
+}
+
 // State
 
 type StepRecord struct {
-	Status string `json:"status"`
-	Msg    string `json:"msg,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Hint   string `json:"hint,omitempty"`
+	Status status.Step `json:"status"`
+	Msg    string      `json:"msg,omitempty"`
+	Error  string      `json:"error,omitempty"`
+	Hint   string      `json:"hint,omitempty"`
 }
 
 type AppState struct {
 	Port   int                   `json:"port"`
 	Inputs map[string]string     `json:"inputs,omitempty"`
-	Setup  string                `json:"setup"`
+	Setup  status.Setup          `json:"setup"`
 	Steps  map[string]StepRecord `json:"steps,omitempty"`
 	// StepOrder keeps steps in the order they last ran.
 	StepOrder []string `json:"step_order,omitempty"`
@@ -189,6 +239,8 @@ type State struct {
 	Apps    map[string]*AppState `json:"apps"`
 }
 
+// LoadState reads state without modifying any Project files. A damaged tail
+// can be ignored when the first JSON value is complete.
 func (p *Project) LoadState() (*State, error) {
 	state := &State{Version: 1, Apps: map[string]*AppState{}}
 	data, err := os.ReadFile(p.Path("state.json"))
@@ -198,13 +250,55 @@ func (p *Project) LoadState() (*State, error) {
 	if err != nil {
 		return nil, err
 	}
+	state, _, err = decodeState(data)
+	if err != nil {
+		return nil, stateRecoveryError(err)
+	}
+	return state, nil
+}
+
+func decodeState(data []byte) (*State, bool, error) {
+	state := &State{Version: 1, Apps: map[string]*AppState{}}
+	damaged := false
 	if err := json.Unmarshal(data, state); err != nil {
-		return nil, fmt.Errorf("state.json: %w", err)
+		damaged = true
+		state = &State{Version: 1, Apps: map[string]*AppState{}}
+		if decodeErr := json.NewDecoder(bytes.NewReader(data)).Decode(state); decodeErr != nil {
+			return nil, true, err
+		}
 	}
 	if state.Apps == nil {
 		state.Apps = map[string]*AppState{}
 	}
-	return state, nil
+	return state, damaged, nil
+}
+
+func stateRecoveryError(err error) error {
+	return fmt.Errorf("state.json: %w (restore state.json from a backup or move it aside, then run self-host setup to rebuild Setup results)", err)
+}
+
+// RecoverState repairs a salvageable damaged state.json. The caller must hold
+// the Project mutation lock. Read current bytes after acquiring that lock;
+// never repair a snapshot previously loaded by an unlocked reader.
+func (p *Project) RecoverState() error {
+	data, err := os.ReadFile(p.Path("state.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	state, damaged, decodeErr := decodeState(data)
+	if !damaged {
+		return nil
+	}
+	if err := p.writeFile(p.Path("state.json.corrupt"), data, 0o600); err != nil {
+		return fmt.Errorf("preserve damaged state.json: %w", err)
+	}
+	if decodeErr != nil {
+		return stateRecoveryError(decodeErr)
+	}
+	return p.SaveState(state)
 }
 
 func (p *Project) SaveState(state *State) error {
@@ -220,6 +314,9 @@ func (p *Project) SaveState(state *State) error {
 func (p *Project) FragmentPath(id string) string { return p.Path("apps", id, "compose.yml") }
 
 func (p *Project) WriteFragment(id, content string) error {
+	if err := p.ValidateFragment(id, content); err != nil {
+		return err
+	}
 	if err := p.MkdirAll("apps", id); err != nil {
 		return err
 	}
@@ -284,22 +381,156 @@ func (p *Project) WriteRoot() error {
 type LockedError struct{ PID int }
 
 func (e LockedError) Error() string {
+	if e.PID <= 0 {
+		return "another self-host command is changing this Project; wait for it or stop it"
+	}
 	return fmt.Sprintf("another self-host command (PID %d) is changing this Project; wait for it or stop it", e.PID)
 }
 
-// Lock takes the Project lock for pid. A lock held by a dead process is replaced.
+// projectLocks serialises mutations inside one process: the Dashboard runs
+// several tasks at once under the same PID, which the lock file alone cannot
+// tell apart.
+var projectLocks sync.Map
+
+// Lock takes the Project lock for pid, waiting for other mutations of this
+// process. Another process's claim is refused; a dead owner's claim is recovered.
 func (p *Project) Lock(pid int, alive func(int) bool) (func(), error) {
-	path := p.Path(".lock")
-	if data, err := os.ReadFile(path); err == nil {
-		if holder, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil && holder != pid && alive(holder) {
-			return nil, LockedError{PID: holder}
-		}
+	return p.LockContext(context.Background(), pid, alive)
+}
+
+// LockContext waits for this process's current mutation until ctx is canceled.
+// Another process's claim is refused immediately, as in Lock.
+func (p *Project) LockContext(ctx context.Context, pid int, alive func(int) bool) (func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
+	key, err := filepath.Abs(p.Root)
+	if err != nil {
+		return nil, err
+	}
+	entry, _ := projectLocks.LoadOrStore(key, make(chan struct{}, 1))
+	gate := entry.(chan struct{})
+	select {
+	case gate <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		<-gate
+		return nil, err
+	}
+	unlockFile, err := p.lockFile(pid, alive)
+	if err != nil {
+		<-gate
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		unlockFile()
+		<-gate
+		return nil, err
+	}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			unlockFile()
+			<-gate
+		})
+	}, nil
+}
+
+// lockOpenError explains a lock the current user cannot open because of its
+// owner or mode, naming the file and the two safe fixes.
+func (p *Project) lockOpenError(err error) error {
+	if !errors.Is(err, os.ErrPermission) {
+		return err
+	}
+	user := p.Owner.Name
+	if user == "" {
+		user = strconv.Itoa(p.Owner.UID)
+	}
+	path := p.Path(".lock")
+	return fmt.Errorf("cannot open Project lock %s: %w; fix it with: sudo chown %s %s, or remove %s if no self-host is running",
+		path, err, user, path, path)
+}
+
+// LockError reports a Project lock the current user cannot open, for read-only
+// diagnostics such as doctor. It never takes the lock or creates the file.
+func (p *Project) LockError() error {
+	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0o644)
+	if err == nil {
+		f.Close()
+		return nil
+	}
+	if errors.Is(err, os.ErrPermission) {
+		return p.lockOpenError(err)
+	}
+	return nil
+}
+
+func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o644); err != nil {
+	// Keep this inode in place: unlinking even a stale claim can split owners
+	// between an already-open file and its replacement. The kernel releases
+	// ownership when this descriptor closes, including after a process crash.
+	f, err := os.OpenFile(p.Path(".lock"), os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0o644)
+	if err != nil {
+		return nil, p.lockOpenError(err)
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
 		return nil, err
 	}
-	return func() { os.Remove(path) }, nil
+	if !info.Mode().IsRegular() {
+		f.Close()
+		return nil, errors.New("Project lock (.lock) must be a regular file")
+	}
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	data, readErr := io.ReadAll(f)
+	claim := strings.TrimSpace(string(data))
+	owner, kernelClaim := strings.CutPrefix(claim, "flock:")
+	holder, convErr := strconv.Atoi(owner)
+	if err != nil {
+		f.Close()
+		if errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN) {
+			return nil, LockedError{PID: holder}
+		}
+		return nil, err
+	}
+	if readErr != nil {
+		f.Close()
+		return nil, readErr
+	}
+	// Respect live PID-only claims from older binaries, which did not flock.
+	if !kernelClaim && convErr == nil && holder != pid && alive(holder) {
+		f.Close()
+		return nil, LockedError{PID: holder}
+	}
+	// A sudo command must leave the persistent inode writable by its normal
+	// Project owner. Operate on this descriptor, never a replaceable path.
+	if os.Geteuid() == 0 {
+		if err := f.Chown(p.Owner.UID, p.Owner.GID); err != nil {
+			f.Close()
+			return nil, err
+		}
+		if err := f.Chmod(0o644); err != nil {
+			f.Close()
+			return nil, err
+		}
+	}
+	if err := f.Truncate(0); err != nil {
+		f.Close()
+		return nil, err
+	}
+	if _, err := f.WriteAt([]byte("flock:"+strconv.Itoa(pid)), 0); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return func() {
+		// Clear owner metadata while we still own the kernel lock.
+		f.Truncate(0)
+		f.Close()
+	}, nil
 }

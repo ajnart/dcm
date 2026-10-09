@@ -8,11 +8,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
+	stepstatus "github.com/ajnart/self-host/internal/status"
+
 	"github.com/ajnart/self-host/internal/apps/authelia"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+func TestComposePublishesSelectedPort(t *testing.T) {
+	compose := (authelia.App{}).Compose(app.RenderContext{Port: 31001})
+	if !strings.Contains(compose, "${BIND_IP}:31001:9091") || strings.Contains(compose, "${BIND_IP}:9091:9091") {
+		t.Fatalf("selected portal port not published:\n%s", compose)
+	}
+}
 
 type fakeSecrets map[string]string
 
@@ -31,6 +41,7 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 	return helpers.New(helpers.Config{
 		App: "authelia", Service: "authelia",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
+		Inputs:  map[string]string{"origin": srv.URL},
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { *records = append(*records, r) },
@@ -64,7 +75,7 @@ func handler(accept bool) http.Handler {
 }
 
 func TestSetupThenCheckThenRerunSkips(t *testing.T) {
-	srv := httptest.NewServer(handler(true))
+	srv := httptest.NewTLSServer(handler(true))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
@@ -82,14 +93,14 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		t.Fatalf("rerun Setup: %v", err)
 	}
 	for _, r := range records {
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
 }
 
 func TestFailingStepHintNamesTheApp(t *testing.T) {
-	srv := httptest.NewServer(handler(false))
+	srv := httptest.NewTLSServer(handler(false))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
@@ -99,7 +110,7 @@ func TestFailingStepHintNamesTheApp(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == stepstatus.StepFail {
 			hint = r.Hint
 		}
 	}

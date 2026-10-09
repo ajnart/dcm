@@ -171,3 +171,15 @@ func TestPeerPortsFollowExposure(t *testing.T) {
 		}
 	}
 }
+
+func TestInstallSelectsTorrentPortThroughCLI(t *testing.T) {
+	e := newEnv(t)
+	e.Run("install", "qbittorrent", "--yes", "--set", "qbittorrent.torrent-port=24567")
+	fragment := clitest.Read(t, filepath.Join(e.AppDir("qbittorrent"), "compose.yml"))
+	for _, want := range []string{"TORRENTING_PORT: \"24567\"", "${BIND_IP}:24567:24567\n", "${BIND_IP}:24567:24567/udp"} {
+		if !strings.Contains(fragment, want) {
+			t.Errorf("selected peer port missing from installed fragment: %s", want)
+		}
+	}
+	e.Run("check", "qbittorrent")
+}

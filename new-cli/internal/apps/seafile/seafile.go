@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // adminEmail is the first administrator's login, built from the shared Admin
@@ -51,14 +51,17 @@ func (App) Compose(rc app.RenderContext) string {
     image: seafileltd/seafile-mc:13.0.28
     restart: unless-stopped
     environment:
-      SEAFILE_MYSQL_DB_HOST: db
+      SEAFILE_MYSQL_DB_HOST: seafile-db
       SEAFILE_MYSQL_DB_PORT: "3306"
       SEAFILE_MYSQL_DB_USER: seafile
+      SEAFILE_MYSQL_DB_CCNET_DB_NAME: ccnet_db
+      SEAFILE_MYSQL_DB_SEAFILE_DB_NAME: seafile_db
+      SEAFILE_MYSQL_DB_SEAHUB_DB_NAME: seahub_db
       INIT_SEAFILE_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       SEAFILE_SERVER_PROTOCOL: http
-      SEAFILE_SERVER_HOSTNAME: ${LAN_IP}
+      SEAFILE_SERVER_HOSTNAME: ${LAN_IP}:` + port + `
       CACHE_PROVIDER: redis
-      REDIS_HOST: redis
+      REDIS_HOST: seafile-redis
       REDIS_PORT: "6379"
       ENABLE_SEADOC: "false"
       ENABLE_NOTIFICATION_SERVER: "false"
@@ -73,9 +76,9 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:80
     depends_on:
-      - db
-      - redis
-  db:
+      - seafile-db
+      - seafile-redis
+  seafile-db:
     image: mariadb:10.11.19
     restart: unless-stopped
     environment:
@@ -90,7 +93,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 5s
       start_period: 30s
       retries: 10
-  redis:
+  seafile-redis:
     image: redis:8.2.9-alpine3.22
     restart: unless-stopped
 `
@@ -138,7 +141,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	ready := onboard.NoAccount{Probe: onboard.Probe{Path: "/", Want: []int{200, 302}, Timeout: 10 * time.Minute}}
+	ready := firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/", Want: []int{200, 302}, Timeout: 10 * time.Minute}}
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}

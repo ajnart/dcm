@@ -2,11 +2,14 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/spf13/cobra"
 
 	"github.com/ajnart/self-host/internal/service"
@@ -28,7 +31,7 @@ func (a *program) installCmd() *cobra.Command {
 				opts.AdminPassword = a.deps.Getenv("SELF_HOST_ADMIN_PASSWORD")
 			}
 			err := a.service().Install(cmd.Context(), opts)
-			if err == nil || isIncomplete(err) {
+			if err == nil || isIncomplete(err) || errors.Is(err, service.ErrManual) {
 				a.recap(cmd)
 			}
 			return a.fail(err)
@@ -36,6 +39,7 @@ func (a *program) installCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "install without asking for confirmation")
 	cmd.Flags().StringArrayVar(&opts.Sets, "set", nil, "input as app.key=value or key=value (repeatable); app.port=N picks a port")
+	cmd.Flags().StringArrayVar(&opts.SetFiles, "set-file", nil, "private input as app.key=PATH to an owner-only file, or app.key=- for stdin (at most one; maximum 64 KiB)")
 	cmd.Flags().StringVar(&opts.Exposure, "exposure", "", "lan (default) or local, for a new Project")
 	cmd.Flags().StringVar(&opts.MediaRoot, "media-root", "", "media library folder, for a new Project")
 	cmd.Flags().StringVar(&opts.DownloadsRoot, "downloads-root", "", "downloads folder, for a new Project")
@@ -132,7 +136,10 @@ func printStatus(w io.Writer, s service.Status) {
 	tw.Flush()
 	for _, app := range s.Apps {
 		for _, step := range app.Steps {
-			if step.Status == "fail" {
+			if step.Status == stepstatus.StepManual {
+				fmt.Fprintf(w, "\n! %s › %s: manual step\n  → %s\n", app.ID, step.ID, step.Hint)
+			}
+			if step.Status == stepstatus.StepFail {
 				fmt.Fprintf(w, "\n✗ %s › %s: %s\n  → %s\n", app.ID, step.ID, step.Error, step.Hint)
 			}
 		}
@@ -165,7 +172,15 @@ func (a *program) credentialsCmd() *cobra.Command {
 			if a.json {
 				return writeJSON(a.deps.Out, creds)
 			}
-			fmt.Fprintf(a.deps.Out, "Admin login (every App)\n  user      %s\n  password  %s\n", creds.Admin.Username, creds.Admin.Password)
+			fmt.Fprintf(a.deps.Out, "Shared Admin login\n  user      %s\n  password  %s\n", creds.Admin.Username, creds.Admin.Password)
+			ids := make([]string, 0, len(creds.Admin.Aliases))
+			for id := range creds.Admin.Aliases {
+				ids = append(ids, id)
+			}
+			sort.Strings(ids)
+			for _, id := range ids {
+				fmt.Fprintf(a.deps.Out, "  alias     %s %s\n", id, creds.Admin.Aliases[id])
+			}
 			for id, values := range creds.Apps {
 				fmt.Fprintf(a.deps.Out, "\n%s\n", id)
 				for key, value := range values {

@@ -12,8 +12,10 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type InstallOptions struct {
@@ -21,6 +23,10 @@ type InstallOptions struct {
 	Targets []string
 	// Sets are "app.key=value" or "key=value" inputs.
 	Sets []string
+	// SetFiles are private input references in "app.key=PATH" form.
+	SetFiles []string
+	// PrivateInputs carries interactive values only in memory.
+	PrivateInputs map[string]map[string]string
 	// Exposure, MediaRoot and DownloadsRoot apply when the Project is created.
 	Exposure      string
 	MediaRoot     string
@@ -72,7 +78,14 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 	for _, set := range sets {
 		key, value, found := strings.Cut(set, "=")
 		if !found || key == "" {
-			return nil, fmt.Errorf("--set %q: want key=value or app.key=value", set)
+			return nil, fmt.Errorf("--set requires key=value or app.key=value")
+		}
+		for _, a := range apps {
+			for _, input := range a.Inputs() {
+				if input.Private && (key == input.Key || key == a.Info().ID+"."+input.Key) {
+					return nil, fmt.Errorf("private input %s.%s must use --set-file %s.%s=PATH", a.Info().ID, input.Key, a.Info().ID, input.Key)
+				}
+			}
 		}
 		if appID, name, ok := strings.Cut(key, "."); ok {
 			if scoped[appID] == nil {
@@ -95,6 +108,10 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 			values["port"] = port
 		}
 		for _, input := range a.Inputs() {
+			if input.Private {
+				delete(values, input.Key)
+				continue
+			}
 			if value, found := scoped[id][input.Key]; found {
 				values[input.Key] = value
 			} else if value, found := global[input.Key]; found {
@@ -105,6 +122,11 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 			if input.Required && values[input.Key] == "" {
 				missing = append(missing, id+"."+input.Key)
 			}
+			if input.Validate != nil {
+				if err := input.Validate(values[input.Key]); err != nil {
+					return nil, fmt.Errorf("invalid input %s.%s: %w", id, input.Key, err)
+				}
+			}
 		}
 		result[id] = values
 	}
@@ -114,9 +136,13 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 	return result, nil
 }
 
-// requireDocker fails with the first failing Docker check.
+// requireDocker reports warnings before apply and fails with the first failing check.
 func (s *Service) requireDocker(ctx context.Context) error {
 	for _, check := range host.Docker(ctx, s.Deps) {
+		if check.Level == host.Warn {
+			s.Log.Emit(events.Event{Event: events.StepWarn, Step: check.ID, Msg: check.Title + ": " + check.Detail,
+				Hint: check.Hint, Docs: check.Docs})
+		}
 		if check.Level == host.Fail {
 			msg := check.Title + ": " + check.Detail
 			if check.Hint != "" {
@@ -132,8 +158,14 @@ func (s *Service) requireDocker(ctx context.Context) error {
 }
 
 func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	apps, err := s.Resolve(opts.Targets)
 	if err != nil {
+		return err
+	}
+	if _, err := privateReferences(apps, opts); err != nil {
 		return err
 	}
 	p, err := s.Project()
@@ -151,12 +183,36 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 			previous[id] = st.Inputs
 		}
 	}
-	inputs, err := resolveInputs(apps, opts.Sets, previous)
+	preflightInputs, err := resolveInputs(apps, opts.Sets, previous)
 	if err != nil {
 		return err
 	}
+	if !p.Exists() {
+		if _, err := s.resolvePrivateInputs(p, nil, apps, opts, preflightInputs); err != nil {
+			return err
+		}
+		opts.SetFiles = nil
+		opts.PrivateInputs = map[string]map[string]string{}
+		for _, a := range apps {
+			id := a.Info().ID
+			opts.PrivateInputs[id] = map[string]string{}
+			for _, input := range a.Inputs() {
+				if input.Private {
+					opts.PrivateInputs[id][input.Key] = preflightInputs[id][input.Key]
+				}
+			}
+		}
+	}
 	if opts.Exposure != "" && opts.Exposure != ExposureLAN && opts.Exposure != ExposureLocal {
 		return fmt.Errorf("--exposure must be %s or %s", ExposureLAN, ExposureLocal)
+	}
+	for _, a := range apps {
+		if preflight, ok := a.(app.PreflightChecker); ok {
+			h := helpers.New(helpers.Config{App: a.Info().ID, Dir: p.Path("apps", a.Info().ID), Inputs: publicInputs(a, preflightInputs[a.Info().ID]), Log: s.Log})
+			if err := preflight.Preflight(ctx, h); err != nil {
+				return err
+			}
+		}
 	}
 	if err := s.requireDocker(ctx); err != nil {
 		return err
@@ -166,74 +222,74 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "install " + strings.Join(names, " ")})
-
-	if !p.Exists() {
-		if err := s.createProject(p, opts); err != nil {
-			return err
-		}
-	}
-	unlock, err := s.lock(p)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if err := ss.ensureAdmin(opts); err != nil {
-		return err
-	}
-
-	for _, a := range apps {
-		info := a.Info()
-		st := ss.state.Apps[info.ID]
-		if st == nil {
-			st = &project.AppState{Setup: "pending"}
-			ss.state.Apps[info.ID] = st
-		}
-		values := inputs[info.ID]
-		port, err := ss.allocatePort(info, values["port"], st.Port)
-		if err != nil {
-			return err
-		}
-		delete(values, "port")
-		if err := ss.ensureSecrets(a); err != nil {
-			return err
-		}
-		st.Port, st.Inputs = port, values
-		if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
-			return err
-		}
-		if err := ss.p.WriteFragment(info.ID, a.Compose(app.RenderContext{Port: port, Inputs: values})); err != nil {
-			return err
-		}
-		s.Log.Emit(events.Event{Event: events.StepOK, App: info.ID, Step: "render",
-			Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)})
-	}
-	if err := ss.p.WriteRoot(); err != nil {
-		return err
-	}
-	if err := ss.p.SaveState(ss.state); err != nil {
-		return err
-	}
-	if err := ss.ensureMediaFolders(apps); err != nil {
-		return err
-	}
-	services, err := ss.services(names...)
-	if err != nil {
-		return err
-	}
-	if err := ss.compose.Up(ctx, services...); err != nil {
-		return err
-	}
-	s.Log.Emit(events.Event{Event: events.StepOK, Step: "start", Msg: "started " + strings.Join(names, ", ")})
-	return s.finish(ss.setupAll(ctx, apps))
+	return s.run(ctx, change{
+		title:      "install " + strings.Join(names, " "),
+		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
+		edit: func(ctx context.Context, ss *session) error {
+			previous := map[string]map[string]string{}
+			for id, st := range ss.state.Apps {
+				previous[id] = st.Inputs
+			}
+			inputs, err := resolveInputs(apps, opts.Sets, previous)
+			if err != nil {
+				return err
+			}
+			if err := ss.applyPrivateInputs(apps, opts, inputs); err != nil {
+				return err
+			}
+			if err := ss.ensureAdmin(opts); err != nil {
+				return err
+			}
+			for _, a := range apps {
+				info := a.Info()
+				st := ss.state.Apps[info.ID]
+				if st == nil {
+					st = &project.AppState{Setup: stepstatus.SetupPending}
+					ss.state.Apps[info.ID] = st
+				}
+				values := inputs[info.ID]
+				port, err := ss.allocatePort(info, values["port"], st.Port)
+				if err != nil {
+					return err
+				}
+				delete(values, "port")
+				if err := ss.ensureSecrets(a); err != nil {
+					return err
+				}
+				previousPort, previousInputs := st.Port, st.Inputs
+				st.Port, st.Inputs = port, publicInputs(a, values)
+				if preflight, ok := a.(app.PreflightChecker); ok {
+					if err := preflight.Preflight(ctx, ss.helpers(a)); err != nil {
+						return err
+					}
+				}
+				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: StageRender, Msg: "render " + info.ID})
+				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values})
+				if err := ss.p.ValidateFragment(info.ID, fragment); err != nil {
+					st.Port, st.Inputs = previousPort, previousInputs
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
+				}
+				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
+				}
+				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
+				}
+				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: StageRender,
+					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)}); err != nil {
+					return err
+				}
+			}
+			return ss.ensureMediaFolders(apps)
+		},
+		targets: func(*session) ([]string, error) { return names, nil },
+		compose: composePullUp,
+		after:   afterSetup,
+	})
 }
 
-func (s *Service) createProject(p *project.Project, opts InstallOptions) error {
-	settings := s.DetectSettings(p.Owner, opts.Exposure)
+func (s *Service) createProject(ctx context.Context, p *project.Project, opts InstallOptions) error {
+	settings := s.detectSettings(ctx, p.Owner, opts.Exposure)
 	for key, value := range opts.Settings {
 		if value != "" && key != "EXPOSURE" && key != "BIND_IP" {
 			settings[key] = value
@@ -270,7 +326,7 @@ func (ss *session) ensureAdmin(opts InstallOptions) error {
 	}
 	generated := values["ADMIN_PASSWORD"] == ""
 	if generated {
-		values["ADMIN_PASSWORD"] = GeneratePassword(20)
+		values["ADMIN_PASSWORD"] = generateAdminPassword()
 	}
 	if err := project.ValidEnvValue(values["ADMIN_PASSWORD"]); err != nil {
 		return fmt.Errorf("admin password: %w", err)
@@ -388,15 +444,21 @@ func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 	}
 	// A later App's Setup can complete an earlier consumer's Link, so the
 	// verdict is read once every App has run.
-	var failed []string
+	var failed, manual []string
 	for _, id := range touched {
-		if st := ss.state.Apps[id]; st != nil && st.Setup == "incomplete" && !slices.Contains(failed, id) {
+		if st := ss.state.Apps[id]; st != nil && st.Setup == stepstatus.SetupManual && !slices.Contains(manual, id) {
+			manual = append(manual, id)
+		}
+		if st := ss.state.Apps[id]; st != nil && st.Setup == stepstatus.SetupIncomplete && !slices.Contains(failed, id) {
 			failed = append(failed, id)
 		}
 	}
 	if len(failed) > 0 {
 		return fmt.Errorf("%w for %s; finish the failed steps using their hints, then run: self-host setup %s",
 			ErrIncomplete, strings.Join(failed, ", "), strings.Join(failed, " "))
+	}
+	if len(manual) > 0 {
+		return fmt.Errorf("%w for %s; follow their hints, then run: self-host setup %s", ErrManual, strings.Join(manual, ", "), strings.Join(manual, " "))
 	}
 	return nil
 }
@@ -405,49 +467,35 @@ func (s *Service) finish(err error) error {
 	switch {
 	case err == nil:
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: "done"})
-	case errors.Is(err, ErrIncomplete):
+	case errors.Is(err, ErrIncomplete), errors.Is(err, ErrManual):
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: err.Error()})
 	}
-	return err
+	return s.Log.RedactError(err)
 }
 
 // Setup reruns Setup for installed catalog Apps (all when ids is empty).
 func (s *Service) Setup(ctx context.Context, ids []string) error {
-	p, err := s.Project()
-	if err != nil {
-		return err
-	}
-	if !p.Exists() {
-		return ErrNoProject
-	}
-	unlock, err := s.lock(p)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	ss, err := s.open(ctx)
-	if err != nil {
-		return err
-	}
-	if len(ids) == 0 {
-		for id := range ss.state.Apps {
-			ids = append(ids, id)
-		}
-		sortStrings(ids)
-	}
-	var apps []app.App
-	for _, id := range ids {
-		a, found := s.Catalog.App(id)
-		if !found {
-			return fmt.Errorf("%s is not a catalog App; Setup only runs for catalog Apps", id)
-		}
-		if ss.state.Apps[id] == nil {
-			return fmt.Errorf("%s is not installed (run: self-host install %s)", id, id)
-		}
-		apps = append(apps, a)
-	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "setup " + strings.Join(ids, " ")})
-	return s.finish(ss.setupAll(ctx, apps))
+	return s.run(ctx, change{
+		title: "setup " + strings.Join(ids, " "),
+		targets: func(ss *session) ([]string, error) {
+			if len(ids) == 0 {
+				for id := range ss.state.Apps {
+					ids = append(ids, id)
+				}
+				sortStrings(ids)
+			}
+			for _, id := range ids {
+				if _, found := s.Catalog.App(id); !found {
+					return nil, fmt.Errorf("%s is not a catalog App; Setup only runs for catalog Apps", id)
+				}
+				if ss.state.Apps[id] == nil {
+					return nil, fmt.Errorf("%s is not installed (run: self-host install %s)", id, id)
+				}
+			}
+			return ids, nil
+		},
+		after: afterSetup,
+	})
 }
 
 // ensureMediaFolders creates the media and downloads folders before Docker

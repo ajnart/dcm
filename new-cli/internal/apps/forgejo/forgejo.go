@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
-	"github.com/ajnart/self-host/internal/onboard"
 )
 
 // App is Forgejo. Traps: docs/catalog/traps/forgejo.md.
@@ -86,10 +86,10 @@ func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
 // enters the logged command line.
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
 	env := map[string]string{"FORGEJO_ADMIN_PASSWORD": password}
-	script := `su-exec git forgejo admin user create --username "$1"` +
+	script := `su-exec git forgejo admin user create --username "` + user + `"` +
 		` --email "admin@forgejo.local" --admin --must-change-password=false` +
 		` --password "$FORGEJO_ADMIN_PASSWORD"`
-	res, err := h.Exec(ctx, env, "sh", "-c", script, "--", user)
+	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
 		return err
 	}
@@ -99,14 +99,47 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return nil
 }
 
-func firstAdmin() onboard.FirstAdmin {
-	return onboard.FirstAdmin{
-		Ready:  onboard.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
-		Exists: adminExists,
-		Create: createAdmin,
-		Login:  loginWorks,
-		Manual: "open the site administration page and create the first administrator",
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Username: adminUser,
+		Ready:    firstadmin.Probe{Path: "/", Want: []int{http.StatusOK, http.StatusFound}},
+		Exists:   adminExists,
+		Create:   createAdmin,
+		Login:    loginWorks,
+		Manual:   "open the site administration page and create the first administrator",
 	}
+}
+
+// adminUser preserves a saved or working login. Only a fresh reserved default
+// receives an App-local alias, which also appears in per-App credentials.
+func adminUser(ctx context.Context, h *helpers.H) (string, error) {
+	if user := h.Secret(h.Key("admin_user")); user != "" {
+		return user, nil
+	}
+	user := h.AdminUser()
+	if user != "admin" {
+		return user, nil
+	}
+	works, err := loginWorks(ctx, h, user, h.AdminPassword())
+	if err != nil {
+		return "", err
+	}
+	if works {
+		return user, nil
+	}
+	exists, err := adminExists(ctx, h)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return user, nil
+	}
+	user = "selfhost-admin"
+	// A username belongs in credentials, but is not a redacted secret.
+	if err := h.Secrets.Set(h.Key("admin_user"), user); err != nil {
+		return "", err
+	}
+	return user, nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
@@ -114,12 +147,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	ok, err := loginWorks(ctx, h, h.AdminUser(), h.AdminPassword())
+	user, err := adminUser(ctx, h)
+	if err != nil {
+		return err
+	}
+	ok, err := loginWorks(ctx, h, user, h.AdminPassword())
 	if err != nil {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to Forgejo", h.AdminUser())
+		return fmt.Errorf("the Admin login %s cannot sign in to Forgejo", user)
 	}
 	return nil
 }

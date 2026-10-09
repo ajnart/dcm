@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/bookstack"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -153,7 +158,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, id := range []string{"admin"} {
-		if got := box.step(id); got.Status != "skip" {
+		if got := box.step(id); got.Status != stepstatus.StepSkip {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}
@@ -179,5 +184,231 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 	}
 	if !strings.Contains(hint, "admin@selfhost.local") {
 		t.Errorf("hint should name the admin email, got %q", hint)
+	}
+}
+
+func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
+	for _, tc := range []struct{ output, want string }{
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false category=log_open path=php_log process_root=true target_read=false target_write=false target_owner=false", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open php_failure_path=php_log process_uid_zero=true failure_path_readable=false failure_path_writable=false failure_path_owner_current=false"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=false"},
+		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=unknown"},
+		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
+		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=synthetic-private-secret", "bootstrap_metadata=unobserved"},
+		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
+	} {
+		t.Run(tc.want, func(t *testing.T) {
+			executor := &recordingExec{stdout: []byte(tc.output)}
+			box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{"ADMIN_PASSWORD": "synthetic-private-secret"})
+			err := (bookstack.App{}).Setup(context.Background(), box.h)
+			step := box.step("startup-status")
+			if err == nil || !strings.Contains(err.Error(), tc.want) || step.Status != stepstatus.StepFail || !strings.Contains(step.Error, tc.want) {
+				t.Fatal("failed readiness omitted fixed dependency facts")
+			}
+			if strings.Contains(err.Error()+step.Error+step.Hint, "synthetic-private") {
+				t.Fatal("raw bootstrap output entered diagnostics")
+			}
+			if len(executor.args) != 1 || executor.args[0][0] != "/usr/bin/with-contenv" || box.step("admin").Status != "" {
+				t.Fatal("probe lost image environment or attempted admin creation")
+			}
+		})
+	}
+}
+
+func bootstrapProbeFixture(t *testing.T) (string, string) {
+	t.Helper()
+	executor := &recordingExec{}
+	box := newHarness(t, executor, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{})
+	_ = (bookstack.App{}).Setup(context.Background(), box.h)
+	if len(executor.args) != 1 {
+		t.Fatal("missing bootstrap probe")
+	}
+	script := executor.args[0][3]
+	dir := t.TempDir()
+	source := filepath.Join(dir, "source", "run")
+	compiled := filepath.Join(dir, "compiled", "run")
+	for _, path := range []string{source, compiled} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := (bookstack.App{}).Files(app.RenderContext{}, nil)
+	if err := os.WriteFile(source, []byte(files[0].Content), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(compiled, []byte("different launcher"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script = strings.ReplaceAll(script, "/etc/s6-overlay/s6-rc.d/svc-php-fpm/run", source)
+	script = strings.ReplaceAll(script, "/run/service/svc-php-fpm", filepath.Dir(compiled))
+	script = strings.ReplaceAll(script, "/usr/sbin/php-fpm85", filepath.Join(dir, "php-fpm85"))
+	for name, body := range map[string]string{
+		"id":        "#!/bin/sh\nprintf '0\\n'\n",
+		"pgrep":     "#!/bin/sh\nexit 1\n",
+		"timeout":   "#!/bin/sh\nshift\ncase \"$1\" in bash) exit 1;; php|s6-svstat|*/php-fpm85) exec \"$@\";; *) exit 90;; esac\n",
+		"php":       "#!/bin/sh\ncase \"$*\" in *synthetic-private-secret*) exit 90;; esac\nprintf '%s' \"$FIXTURE_PHP_OUTPUT\"\nprintf '%s' \"$DB_PASSWORD\" >&2\n",
+		"s6-svstat": "#!/bin/sh\n[ \"$1\" = -o ] && [ \"$2\" = up,wantedup ] || exit 90\nprintf 'false true'\n",
+		"php-fpm85": "#!/bin/sh\n[ \"$1\" = -t ] && [ \"$2\" = -R ] || exit 90\nprintf '%s\\n' \"$FIXTURE_FPM_OUTPUT\" >&2\nprintf '%s' \"$DB_PASSWORD\" >&2\nexit \"$FIXTURE_FPM_EXIT\"\n",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return script, dir
+}
+
+func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T) {
+	script, dir := bootstrapProbeFixture(t)
+	// PHP8.5 source phrases; private pool names, paths and directive values
+	// are deliberately present to prove only fixed categories survive.
+	for _, tc := range []struct{ output, want, fpm, category, code string }{
+		{"true", "true", "", "none", "0"},
+		{"false", "false", "ERROR: failed to open error_log (synthetic-private-secret)", "log_open", "78"},
+		{"synthetic-private-secret", "unknown", "ERROR: [pool synthetic-private-secret] please specify user and group other than root", "root_identity", "78"},
+		{"true", "true", "ERROR: [pool synthetic-private-secret] cannot get uid for user 'synthetic-private-secret'", "identity_lookup", "78"},
+		{"true", "true", "ERROR: [synthetic-private-secret:1] unknown entry 'synthetic-private-secret'", "directive", "78"},
+		{"true", "true", "ERROR: [pool synthetic-private-secret] the chdir path 'synthetic-private-secret' does not exist or is not a directory", "missing_path", "78"},
+		{"true", "true", "ERROR: synthetic-private-secret: Permission denied", "permission", "78"},
+		{"true", "true", "ERROR: failed to open configuration file 'synthetic-private-secret'", "config_open", "78"},
+		{"true", "true", "ERROR: unable to bind listening socket for address 'synthetic-private-secret'", "socket", "78"},
+		{"true", "true", "ERROR: failed to set rlimit_files for this pool synthetic-private-secret", "resource", "78"},
+		{"true", "true", "synthetic-private-secret", "unrecognized", "78"},
+		{"true", "true", "synthetic-private-secret", "timeout", "124"},
+		{"true", "true", "synthetic-private-secret", "unavailable", "127"},
+	} {
+		t.Run(tc.category, func(t *testing.T) {
+			command := exec.Command("bash", "-c", script)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "APP_KEY=synthetic-private-secret", "DB_PASSWORD=synthetic-private-secret", "PUID=0", "PGID=0", "FIXTURE_PHP_OUTPUT="+tc.output, "FIXTURE_FPM_OUTPUT="+tc.fpm, "FIXTURE_FPM_EXIT="+tc.code)
+			output, err := command.CombinedOutput()
+			if err != nil || !strings.Contains(string(output), "authenticated="+tc.want) || !strings.Contains(string(output), "launcher_root=true") {
+				t.Fatalf("probe omitted fixed observations: %v", err)
+			}
+			if strings.Contains(string(output), "synthetic-private") {
+				t.Fatal("credential or exception output escaped bootstrap probe")
+			}
+			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\n") || !strings.Contains(string(output), "category="+tc.category) {
+				t.Fatal("actual probe lost launcher, supervision or silent checker facts")
+			}
+		})
+	}
+}
+
+func TestPHPConfigPermissionPathsUseOnlyKnownMetadata(t *testing.T) {
+	script, dir := bootstrapProbeFixture(t)
+	marker := filepath.Join(dir, "stat-called")
+	metadata := filepath.Join(dir, "known-public-path")
+	if err := os.WriteFile(metadata, []byte("synthetic public fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "stat"), []byte("#!/bin/sh\nprintf called > \"$FIXTURE_STAT_MARKER\"\nprintf '0\\n'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Redirect only metadata targets, keeping exact upstream error matching.
+	for _, path := range []string{"/etc/php85/php-fpm.conf", "/etc/php85/php-fpm.d/www.conf", "/config/php/www2.conf", "/config/log/php/error.log", "/proc/self/fd/2"} {
+		script = strings.ReplaceAll(script, "target="+path+" ;", "target="+metadata+" ;")
+	}
+	for _, tc := range []struct{ error, path, category string }{
+		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.conf': Permission denied", "main_config", "config_open"},
+		{"ERROR: failed to open configuration file '/etc/php85/php-fpm.d/www.conf': Permission denied", "base_pool", "config_open"},
+		{"ERROR: failed to open configuration file '/config/php/www2.conf': Permission denied", "local_pool", "config_open"},
+		{"ERROR: failed to open configuration file '/config/php/www2.conf': Permission denied\nERROR: failed to load configuration file '/etc/php85/php-fpm.conf'\nERROR: FPM initialization failed", "local_pool", "config_open"},
+		{"ERROR: failed to open error_log (/config/log/php/error.log): Permission denied", "php_log", "log_open"},
+		{"ERROR: failed to open error_log (/proc/self/fd/2): Permission denied", "proc_stderr", "log_open"},
+		{"ERROR: failed to open configuration file '/synthetic-private-secret': Permission denied", "unrecognized", "config_open"},
+		{"ERROR: failed to open configuration file '/synthetic-private-secret': Permission denied\nERROR: failed to load configuration file '/etc/php85/php-fpm.conf'", "unrecognized", "config_open"},
+		{"ERROR: unfamiliar failure '/etc/php85/php-fpm.conf'\nERROR: unfamiliar failure '/synthetic-private-secret': Permission denied", "unrecognized", "permission"},
+		{"ERROR: failed to load configuration file '/etc/php85/php-fpm.conf'", "unrecognized", "unrecognized"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			_ = os.Remove(marker)
+			command := exec.Command("bash", "-c", script)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "DB_PASSWORD=synthetic-private-secret", "FIXTURE_PHP_OUTPUT=true", "FIXTURE_FPM_OUTPUT="+tc.error, "FIXTURE_FPM_EXIT=78", "FIXTURE_STAT_MARKER="+marker)
+			output, err := command.CombinedOutput()
+			if err != nil || !strings.Contains(string(output), "category="+tc.category+"\npath="+tc.path) || strings.Contains(string(output), "synthetic-private") {
+				t.Fatal("path or permission category was unsafe or missing")
+			}
+			_, statErr := os.Stat(marker)
+			if tc.path == "unrecognized" {
+				if statErr == nil || !strings.Contains(string(output), "target_read=unknown\ntarget_write=unknown\ntarget_owner=unknown") {
+					t.Fatal("unknown observed path was traversed")
+				}
+			} else if statErr != nil || !strings.Contains(string(output), "process_root=true\ntarget_read=true\ntarget_write=true\ntarget_owner=true") {
+				t.Fatal("fixed metadata projection missing")
+			}
+		})
+	}
+}
+
+func TestPHPFPMAllowsOnlyConfiguredRootIdentity(t *testing.T) {
+	provider, ok := any(bookstack.App{}).(app.FileDeclarer)
+	if !ok {
+		t.Fatal("missing executable PHP-FPM launcher provider")
+	}
+	files := provider.Files(app.RenderContext{}, func(string) string { t.Fatal("launcher must not read secrets"); return "" })
+	var launcher app.File
+	for _, file := range files {
+		if file.Path == "php-fpm-run" {
+			launcher = file
+		}
+	}
+	if launcher.Content == "" || launcher.Mode != 0o755 {
+		t.Fatal("missing executable PHP-FPM launcher")
+	}
+	compose := (bookstack.App{}).Compose(app.RenderContext{Port: 8080})
+	if !strings.Contains(compose, "./php-fpm-run:/etc/s6-overlay/s6-rc.d/svc-php-fpm/run:ro") {
+		t.Fatal("launcher is not mounted read-only over the owned PHP-FPM service")
+	}
+	if !strings.HasPrefix(launcher.Content, "#!/usr/bin/with-contenv bash\n") {
+		t.Fatal("launcher must preserve the upstream container environment")
+	}
+	dir := t.TempDir()
+	// Substitute only the container's absolute executable with an argv recorder.
+	php := filepath.Join(dir, "php-fpm85")
+	if err := os.WriteFile(php, []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "run")
+	script := strings.ReplaceAll(launcher.Content, "/usr/sbin/php-fpm85", php)
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		uid, gid, want string
+	}{
+		{"0", "0", "-F\n-R\n"},
+		{"0", "1000", "-F\n-R\n"},
+		{"1000", "0", "-F\n-R\n"},
+		{"1000", "1000", "-F\n"},
+		{"", "", "-F\n"},
+	} {
+		t.Run(tc.uid+"-"+tc.gid, func(t *testing.T) {
+			cmd := exec.Command("bash", path)
+			cmd.Env = append(os.Environ(), "PUID="+tc.uid, "PGID="+tc.gid)
+			out, err := cmd.CombinedOutput()
+			if err != nil || string(out) != tc.want {
+				t.Fatalf("PHP-FPM args = %q, error = %v, want %q", out, err, tc.want)
+			}
+		})
+	}
+}
+
+func TestReadablePHPMainConfigFailureSuggestsHostReview(t *testing.T) {
+	for _, tc := range []struct {
+		category, path, readable string
+		want                     bool
+	}{
+		{"config_open", "main_config", "true", true},
+		{"config_open", "unrecognized", "true", false},
+		{"directive", "main_config", "true", false},
+		{"config_open", "main_config", "false", false},
+	} {
+
+		output := "key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=" + tc.category + " path=" + tc.path + " process_root=true target_read=" + tc.readable + " target_write=true target_owner=true"
+		box := newHarness(t, &recordingExec{stdout: []byte(output)}, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(502) }), secrets{})
+		_ = (bookstack.App{}).Setup(context.Background(), box.h)
+		hint := box.step("startup-status").Hint
+		if strings.Contains(hint, "host administrator") != tc.want {
+			t.Fatalf("unexpected host review recommendation for %s/%s/%s", tc.category, tc.path, tc.readable)
+		}
+
 	}
 }

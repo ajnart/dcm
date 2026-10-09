@@ -87,7 +87,18 @@ func Docker(ctx context.Context, deps *system.Deps) []Check {
 			Hint:   "Install the Docker Compose v2 plugin (docker compose, not docker-compose).",
 			Docs:   composeDocs})
 	}
-	return append(checks, Check{ID: "compose", Title: "Docker Compose", Level: OK, Detail: "compose " + short})
+	checks = append(checks, Check{ID: "compose", Title: "Docker Compose", Level: OK, Detail: "compose " + short})
+	rootless, err := Rootless(ctx, deps)
+	if err != nil {
+		return append(checks, Check{ID: "docker-userns", Title: "Container IDs", Level: Warn,
+			Detail: "Docker user namespace could not be determined: " + err.Error(),
+			Hint:   "Inspect docker info before choosing PUID/PGID for bind-mounted folders.", Docs: rootlessDocs})
+	}
+	detail := "rootless mode is not enabled; container IDs default to the Project owner's UID/GID"
+	if rootless {
+		detail = "rootless Docker: container 0:0 maps to the daemon's host user; new Projects default to PUID=0 and PGID=0. Images with fixed nonzero users need separate bind-mount ownership; backups may require additional read access"
+	}
+	return append(checks, Check{ID: "docker-userns", Title: "Container IDs", Level: OK, Detail: detail, Docs: rootlessDocs})
 }
 
 func majorVersion(v string) int {

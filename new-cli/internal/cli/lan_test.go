@@ -9,6 +9,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -76,7 +77,7 @@ func TestConfigSetLANIPAutoRedetectsAndRecreatesTheAppsThatUseIt(t *testing.T) {
 	if env := readFile(t, filepath.Join(projectRoot(t, deps), ".env")); !strings.Contains(env, "LAN_IP="+home+"\n") {
 		t.Fatalf(".env not re-detected:\n%s", env)
 	}
-	if lastCompose(deps) != "up -d one" {
+	if lastCompose(deps) != "up -d --remove-orphans one" {
 		t.Fatalf("only the App using LAN_IP should be recreated, last call %q", lastCompose(deps))
 	}
 	if _, out := runWith(t, deps, cat, "status", "--json"); strings.Contains(out, "lan_ip_stale") {
@@ -116,8 +117,13 @@ func TestConfigReviewShowsDriftAndFixesItKeepingInstalledApps(t *testing.T) {
 		}
 	}
 	_, out = runWith(t, deps, cat, "status", "--json")
-	var status struct{ Apps []struct{ ID, Setup string } }
-	if err := json.Unmarshal([]byte(out), &status); err != nil || len(status.Apps) != 2 || status.Apps[0].Setup != "ok" || status.Apps[1].Setup != "ok" {
+	var status struct {
+		Apps []struct {
+			ID    string
+			Setup stepstatus.Setup
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &status); err != nil || len(status.Apps) != 2 || status.Apps[0].Setup != stepstatus.SetupOK || status.Apps[1].Setup != stepstatus.SetupOK {
 		t.Fatalf("installed Apps lost: %v\n%s", err, out)
 	}
 }

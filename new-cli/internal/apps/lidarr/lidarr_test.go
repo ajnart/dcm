@@ -13,6 +13,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/apps/lidarr"
 	"github.com/ajnart/self-host/internal/apps/porttest"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 type fakeLidarr struct {
@@ -101,7 +102,7 @@ func TestReadsTheAPIKeyAndRequiresFormsAuth(t *testing.T) {
 	if err := (lidarr.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
-	if rec.Status("api-key") != "ok" || rec.Status("auth") != "ok" {
+	if rec.Status("api-key") != stepstatus.StepOK || rec.Status("auth") != stepstatus.StepOK {
 		t.Fatalf("api-key=%q auth=%q, want ok", rec.Status("api-key"), rec.Status("auth"))
 	}
 }
@@ -120,7 +121,7 @@ func TestRerunSkipsTheConfigurationSteps(t *testing.T) {
 	if err := (lidarr.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.Status("api-key") != "skip" || rec.Status("auth") != "skip" {
+	if rec.Status("api-key") != stepstatus.StepSkip || rec.Status("auth") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip config steps: api-key=%q auth=%q", rec.Status("api-key"), rec.Status("auth"))
 	}
 }
@@ -137,7 +138,7 @@ func TestTheHintNamesTheSecurityPage(t *testing.T) {
 	if err := (lidarr.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the host configuration cannot be updated")
 	}
-	if rec.Status("auth") != "fail" || !strings.Contains(rec.Hint(), "Security") {
+	if rec.Status("auth") != stepstatus.StepFail || !strings.Contains(rec.Hint(), "Security") {
 		t.Fatalf("auth step should fail with a Security-page hint, got %q", rec.Hint())
 	}
 }

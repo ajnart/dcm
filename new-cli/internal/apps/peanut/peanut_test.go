@@ -7,13 +7,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/peanut"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 const password = "admin-password-123"
+
+func TestPublishedImagePin(t *testing.T) {
+	a := peanut.App{}
+	const image = "brandawg93/peanut:6.0.0"
+	if got := a.Info().Image; got != image {
+		t.Fatalf("image = %q, want published tag %q", got, image)
+	}
+	if compose := a.Compose(app.RenderContext{Port: 8080}); !strings.Contains(compose, "image: "+image+"\n") {
+		t.Fatalf("Compose does not use the published pinned image %q", image)
+	}
+}
 
 type secrets map[string]string
 
@@ -75,10 +88,10 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("second Setup: %v", err)
 	}
 	for _, r := range results {
-		if r.ID == "wait" {
+		if r.ID == "ready" {
 			continue
 		}
-		if r.Status != "skip" {
+		if r.Status != stepstatus.StepSkip {
 			t.Errorf("step %s status %q, want skip", r.ID, r.Status)
 		}
 	}
@@ -108,7 +121,7 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 			fail = &results[i]
 		}
 	}
-	if fail == nil || fail.Status != "fail" {
+	if fail == nil || fail.Status != stepstatus.StepFail {
 		t.Fatalf("admin-auth did not fail: %+v", results)
 	}
 	if !strings.Contains(fail.Hint, "self-host credentials") {
