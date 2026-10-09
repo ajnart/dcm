@@ -32,7 +32,7 @@ var copyHelp = []key.Binding{
 	hint("↑/↓", "select"), hint("enter", "copy"), hint("esc", "back"),
 }
 
-func (v *dashboardView) openCopy(ctx *viewContext) tea.Cmd {
+func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
 	picker := &copyPicker{loading: true}
 	v.copy = picker
 	backend := ctx.backend
@@ -67,7 +67,20 @@ func (v *dashboardView) openCopy(ctx *viewContext) tea.Cmd {
 	}
 }
 
-func (v *dashboardView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
+// copyOptions fills the open picker once the credentials are read.
+func (v *appsView) copyOptions(ctx *viewContext, msg copyOptionsMsg) {
+	if v.copy != msg.picker {
+		return
+	}
+	v.copy.loading = false
+	v.copy.rows = msg.rows
+	if msg.err != nil {
+		v.copy = nil
+		ctx.setFlash("could not read credentials", levelError)
+	}
+}
+
+func (v *appsView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 	if msg.String() == "esc" {
 		v.copy = nil
 		return nil

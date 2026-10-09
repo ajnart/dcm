@@ -29,7 +29,7 @@ func testViewContext(backend Backend) *viewContext {
 }
 
 func TestDashboardViewWithoutAModel(t *testing.T) {
-	v := newDashboardView()
+	v := newDashboardView(newAppsView())
 	ctx := testViewContext(&fakeBackend{})
 
 	out := ansi.Strip(v.View(ctx, 120, 30))
@@ -41,7 +41,7 @@ func TestDashboardViewWithoutAModel(t *testing.T) {
 
 	next, _, _ := v.Update(ctx, press("down"))
 	v = next.(*dashboardView)
-	if app, ok := v.selected(ctx); !ok || app.ID != "sonarr" {
+	if app, ok := v.selectedApp(ctx); !ok || app.ID != "sonarr" {
 		t.Fatalf("down should select sonarr, got %+v", app)
 	}
 }
@@ -76,17 +76,18 @@ func TestSettingsViewWithoutAModel(t *testing.T) {
 	}
 }
 
-func TestStackViewWithoutAModel(t *testing.T) {
-	backend := &fakeBackend{containers: []service.ContainerStatus{
-		{App: "jellyfin", Service: "jellyfin", State: "running", Health: "healthy"},
-	}}
+func TestAppsViewWithoutAModel(t *testing.T) {
+	backend := &fakeBackend{}
 	ctx := testViewContext(backend)
-	ctx.containers = backend.containers
+	ctx.containers = []service.ContainerStatus{{App: "jellyfin", Service: "jellyfin", State: "running", Health: "healthy"}}
+	var v view = newAppsView()
 
-	out := ansi.Strip((&stackView{}).View(ctx, 120, 30))
-	for _, want := range []string{"jellyfin", "1 container", "1 running"} {
+	v, _, _ = v.Update(ctx, press("["))
+	out := ansi.Strip(v.View(ctx, 120, 30))
+
+	for _, want := range []string{"Apps 3", "Jellyfin", "containers", "1 container · 1 running", "healthy"} {
 		if !strings.Contains(out, want) {
-			t.Fatalf("stack view lacks %q\n%s", want, out)
+			t.Fatalf("Apps view lacks %q\n%s", want, out)
 		}
 	}
 }

@@ -1,13 +1,10 @@
 package tui
 
 import (
-	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -16,40 +13,21 @@ import (
 	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
-// detailTab is one tab of App details.
-type detailTab int
-
-const (
-	tabLogs detailTab = iota
-	tabSetup
-	tabInfo
-	tabCompose
-)
-
-var detailTabs = []string{"logs", "setup", "info", "compose"}
-
 // dashboardView is the Overview tab: every App with its Status, what Needs
 // attention, and the selected App's details. The Apps pane and the details
-// pane take focus in turn; Needs attention has nothing to navigate.
+// pane take focus in turn; Needs attention has nothing to navigate. The App
+// selection, App details and the credential picker are the Apps tab's, so
+// both tabs show the same App.
 type dashboardView struct {
-	cursor int
-	tab    detailTab
+	apps *appsView
 	// detailsFocused gives ↑/↓ to the details instead of the App selection.
 	detailsFocused bool
-	// details scrolls the logs and compose tabs.
-	details  viewport.Model
-	logLines []string
-	stream   *logStream
-	compose  map[string]string
-	copy     *copyPicker
 }
 
-func newDashboardView() *dashboardView {
-	return &dashboardView{details: viewport.New(), compose: map[string]string{}}
-}
+func newDashboardView(apps *appsView) *dashboardView { return &dashboardView{apps: apps} }
 
 var (
-	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "details"),
+	overviewAppsKeys = []key.Binding{hint("↑/↓", "select"), hint("a", "actions"), hint("enter", "go to App"),
 		hint("tab", "next pane"), hint("[/]", "sub-tab"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
 	overviewDetailsKeys = []key.Binding{hint("↑/↓", "scroll"), hint("a", "actions"), hint("tab", "next pane"),
 		hint("[/]", "sub-tab"), hint("pgup/pgdn", "page"), hint("o", "open"), hint("c", "copy"), hint("shift+tab", "previous pane")}
@@ -57,7 +35,7 @@ var (
 
 func (v *dashboardView) Keys() []key.Binding {
 	switch {
-	case v.copy != nil:
+	case v.apps.copy != nil:
 		return copyHelp
 	case v.detailsFocused:
 		return overviewDetailsKeys
@@ -66,7 +44,7 @@ func (v *dashboardView) Keys() []key.Binding {
 }
 
 func (v *dashboardView) Panes() []pane {
-	return []pane{{"Apps", overviewAppsKeys}, {"Details", overviewDetailsKeys}, {"Copy picker", copyHelp}}
+	return []pane{{"Apps", overviewAppsKeys}, {"Details", overviewDetailsKeys}}
 }
 
 func (v *dashboardView) Capturing() bool { return false }
@@ -75,81 +53,28 @@ func (v *dashboardView) Title() string { return "Overview" }
 
 func (v *dashboardView) rows(ctx *viewContext) []service.AppStatus { return ctx.status.Apps }
 
-func (v *dashboardView) selected(ctx *viewContext) (service.AppStatus, bool) {
-	rows := v.rows(ctx)
-	if v.cursor < 0 || v.cursor >= len(rows) {
-		return service.AppStatus{}, false
-	}
-	return rows[v.cursor], true
-}
-
-// selectedApp is the App the Action menu opens for; none while the copy
-// picker is open.
 func (v *dashboardView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
-	if v.copy != nil {
-		return service.AppStatus{}, false
-	}
-	return v.selected(ctx)
-}
-
-func (v *dashboardView) selectedID(ctx *viewContext) string {
-	app, _ := v.selected(ctx)
-	return app.ID
-}
-
-func (v *dashboardView) clampCursor(ctx *viewContext) {
-	v.cursor = max(min(v.cursor, len(v.rows(ctx))-1), 0)
+	return v.apps.selectedApp(ctx)
 }
 
 func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		if v.copy != nil {
-			return v, v.copyKey(ctx, msg), nav{}
+		if v.apps.copy != nil {
+			return v, v.apps.copyKey(ctx, msg), nav{}
 		}
 		return v.key(ctx, msg)
-	case copyOptionsMsg:
-		if v.copy != msg.picker {
-			return v, nil, nav{}
-		}
-		v.copy.loading = false
-		v.copy.rows = msg.rows
-		if msg.err != nil {
-			v.copy = nil
-			ctx.setFlash("could not read credentials", levelError)
-		}
-		return v, nil, nav{}
 	case tea.MouseWheelMsg:
-		if msg.Button == tea.MouseWheelUp {
-			v.details.ScrollUp(3)
-		} else {
-			v.details.ScrollDown(3)
-		}
-		return v, nil, nav{}
+		v.apps.wheel(msg)
 	case clickMsg:
-		cmd, nv := v.click(ctx, msg.id)
-		return v, cmd, nv
-	case logChunkMsg:
-		if msg.stream != v.stream || msg.done {
-			return v, nil, nav{}
-		}
-		v.appendLogs(msg.text)
-		return v, waitLog(msg.stream), nav{}
-	case composeMsg:
-		text := msg.text
-		if msg.err != nil {
-			text = "could not read the Compose file: " + msg.err.Error()
-		}
-		v.compose[msg.id] = text
-		v.syncDetailsContent(ctx)
-		return v, nil, nav{}
+		return v, v.apps.click(ctx, msg.id), nav{}
 	}
 	return v, nil, nav{}
 }
 
 func (v *dashboardView) View(ctx *viewContext, width, height int) string {
-	if v.copy != nil {
-		return v.copy.view(ctx, width, height)
+	if v.apps.copy != nil {
+		return v.apps.copy.view(ctx, width, height)
 	}
 	main, layers := v.render(ctx)
 	ctx.layers = append(ctx.layers, layers...)
@@ -158,196 +83,39 @@ func (v *dashboardView) View(ctx *viewContext, width, height int) string {
 
 func (v *dashboardView) key(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	k := ctx.keys
+	vp := &v.apps.details.vp
 	switch {
 	case key.Matches(msg, k.Up) && v.detailsFocused:
-		v.details.ScrollUp(1)
-		return v, nil, nav{}
+		vp.ScrollUp(1)
 	case key.Matches(msg, k.Down) && v.detailsFocused:
-		v.details.ScrollDown(1)
-		return v, nil, nav{}
+		vp.ScrollDown(1)
 	case key.Matches(msg, k.Up):
-		return v, v.move(ctx, -1), nav{}
+		return v, v.apps.selectApp(ctx, v.apps.cursor-1), nav{}
 	case key.Matches(msg, k.Down):
-		return v, v.move(ctx, 1), nav{}
+		return v, v.apps.selectApp(ctx, v.apps.cursor+1), nav{}
 	case key.Matches(msg, k.NextPane), key.Matches(msg, k.PrevPane):
 		if v.layout(ctx).detailsH > 0 {
 			v.detailsFocused = !v.detailsFocused
 		}
-		return v, nil, nav{}
 	case msg.String() == "enter" && !v.detailsFocused:
-		// Going into the App; #135 makes this the jump to the Apps tab.
-		if v.layout(ctx).detailsH > 0 {
-			v.detailsFocused = true
+		if _, found := v.apps.selected(ctx); found {
+			v.apps.detailsFocused = true
+			return v, nil, nav{kind: navTo, to: surfaceApps}
 		}
-		return v, nil, nav{}
 	case key.Matches(msg, k.NextSub):
-		return v, v.showTab(ctx, (v.tab+1)%detailTab(len(detailTabs))), nav{}
+		return v, v.apps.stepSubTab(ctx, 1), nav{}
 	case key.Matches(msg, k.PrevSub):
-		return v, v.showTab(ctx, (v.tab+detailTab(len(detailTabs))-1)%detailTab(len(detailTabs))), nav{}
+		return v, v.apps.stepSubTab(ctx, -1), nav{}
 	case key.Matches(msg, k.ScrollUp):
-		v.details.PageUp()
-		return v, nil, nav{}
+		vp.PageUp()
 	case key.Matches(msg, k.ScrollDown):
-		v.details.PageDown()
-		return v, nil, nav{}
+		vp.PageDown()
 	case key.Matches(msg, k.Copy):
-		return v, v.openCopy(ctx), nav{}
-	}
-	app, found := v.selected(ctx)
-	if !found {
-		return v, nil, nav{}
-	}
-	switch {
+		return v, v.apps.openCopy(ctx), nav{}
 	case key.Matches(msg, k.Open):
-		if app.URL == "" {
-			ctx.setFlash(app.Name+" has no URL", levelWarn)
-			return v, nil, nav{}
-		}
-		backend, url := ctx.backend, app.URL
-		return v, func() tea.Msg {
-			if err := backend.OpenURL(url); err != nil {
-				return flashMsg{text: "could not open a browser: " + err.Error() + " — " + url, level: levelError}
-			}
-			return flashMsg{text: "opened " + url, level: levelOK}
-		}, nav{}
+		return v, v.apps.open(ctx), nav{}
 	}
 	return v, nil, nav{}
-}
-
-func (v *dashboardView) move(ctx *viewContext, delta int) tea.Cmd {
-	v.cursor += delta
-	v.clampCursor(ctx)
-	return v.showDetails(ctx)
-}
-
-// showTab switches the details to another sub-tab, from its start.
-func (v *dashboardView) showTab(ctx *viewContext, tab detailTab) tea.Cmd {
-	v.tab = tab
-	return v.showDetails(ctx)
-}
-
-func (v *dashboardView) click(ctx *viewContext, id string) (tea.Cmd, nav) {
-	var n int
-	switch {
-	case strings.HasPrefix(id, "row:"):
-		fmt.Sscanf(id, "row:%d", &n)
-		v.cursor = n
-		v.clampCursor(ctx)
-		return v.showDetails(ctx), nav{}
-	case strings.HasPrefix(id, "tab:"):
-		fmt.Sscanf(id, "tab:%d", &n)
-		return v.showTab(ctx, detailTab(n)), nav{}
-	case strings.HasPrefix(id, "app:"):
-		for i, app := range v.rows(ctx) {
-			if app.ID == strings.TrimPrefix(id, "app:") {
-				v.cursor = i
-			}
-		}
-		return v.showDetails(ctx), nav{}
-	}
-	return nil, nav{}
-}
-
-// Details
-
-// syncDetails loads what the current tab shows for the selected App.
-func (v *dashboardView) syncDetails(ctx *viewContext) tea.Cmd {
-	v.syncDetailsContent(ctx)
-	switch v.tab {
-	case tabLogs:
-		return v.syncLogs(ctx)
-	case tabCompose:
-		if id := v.selectedID(ctx); id != "" {
-			return loadComposeCmd(ctx.backend, id)
-		}
-	}
-	return nil
-}
-
-func loadComposeCmd(backend Backend, id string) tea.Cmd {
-	return func() tea.Msg {
-		text, err := backend.Compose(context.Background(), id)
-		return composeMsg{id: id, text: text, err: err}
-	}
-}
-
-// showDetails loads the selected App's sub-tab and starts it where it reads
-// best: logs at the end, everything else at the top.
-func (v *dashboardView) showDetails(ctx *viewContext) tea.Cmd {
-	cmd := v.syncDetails(ctx)
-	if v.tab == tabLogs {
-		v.details.GotoBottom()
-	} else {
-		v.details.GotoTop()
-	}
-	return cmd
-}
-
-// syncDetailsContent lays the current sub-tab into the details viewport and
-// keeps the scroll position, so a refresh does not move what is being read.
-func (v *dashboardView) syncDetailsContent(ctx *viewContext) {
-	app, found := v.selected(ctx)
-	switch {
-	case v.tab == tabLogs:
-		v.details.SetContentLines(v.logLines)
-	case v.tab == tabCompose:
-		v.details.SetContent(v.compose[app.ID])
-	case !found:
-		v.details.SetContent("")
-	case v.tab == tabSetup:
-		v.details.SetContent(renderSetup(ctx.theme, app, v.details.Width()))
-	case v.tab == tabInfo:
-		v.details.SetContent(renderInfo(ctx.theme, app, v.details.Width()))
-	}
-}
-
-func (v *dashboardView) stopLogs() {
-	if v.stream != nil {
-		v.stream.cancel()
-		v.stream = nil
-	}
-}
-
-// syncLogs (re)starts the log stream when the selected App changes.
-func (v *dashboardView) syncLogs(ctx *viewContext) tea.Cmd {
-	target := v.selectedID(ctx)
-	if target == "" || (v.stream != nil && v.stream.target == target) {
-		return nil
-	}
-	v.stopLogs()
-	v.logLines = nil
-	v.details.SetContent("")
-	streamCtx, cancel := context.WithCancel(context.Background())
-	stream := &logStream{target: target, ch: make(chan string, 64), cancel: cancel}
-	v.stream = stream
-	backend := ctx.backend
-	go func() {
-		backend.Logs(streamCtx, target, chanWriter{stream.ch})
-		close(stream.ch)
-	}()
-	return waitLog(stream)
-}
-
-const maxLogLines = 2000
-
-// appendLogs adds lines and keeps following the end unless scrolled up.
-func (v *dashboardView) appendLogs(text string) {
-	following := v.details.AtBottom()
-	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		if strings.TrimSpace(line) != "" {
-			v.logLines = append(v.logLines, line)
-		}
-	}
-	if len(v.logLines) > maxLogLines {
-		v.logLines = v.logLines[len(v.logLines)-maxLogLines:]
-	}
-	if v.tab != tabLogs {
-		return
-	}
-	v.details.SetContentLines(v.logLines)
-	if following {
-		v.details.GotoBottom()
-	}
 }
 
 // Layout
@@ -358,8 +126,6 @@ type layout struct {
 	appsH, needsH, detailsH int
 	detailsX, detailsY      int
 }
-
-func rowLayerID(i int) string { return "row:" + strconv.Itoa(i) }
 
 func (v *dashboardView) layout(ctx *viewContext) layout {
 	h := ctx.mainHeight()
@@ -383,16 +149,10 @@ func (v *dashboardView) layout(ctx *viewContext) layout {
 	return l
 }
 
-// relayout sizes the details viewport; call it whenever the layout can move.
+// relayout returns focus to the Apps pane when the details no longer fit.
 func (v *dashboardView) relayout(ctx *viewContext) {
-	l := v.layout(ctx)
-	v.details.SetWidth(max(l.rightW-4, 1))
-	v.details.SetHeight(max(l.detailsH-4, 1))
-	if l.detailsH == 0 {
+	if v.layout(ctx).detailsH == 0 {
 		v.detailsFocused = false
-	}
-	if v.tab == tabSetup || v.tab == tabInfo {
-		v.syncDetailsContent(ctx)
 	}
 }
 
@@ -406,7 +166,8 @@ func (v *dashboardView) render(ctx *viewContext) (string, []*lipgloss.Layer) {
 	if l.detailsH == 0 {
 		return apps + "\n" + needs, layers
 	}
-	details, tabLayers := v.renderDetails(ctx, l.rightW, l.detailsH, l.detailsX, l.detailsY)
+	app, found := v.apps.selected(ctx)
+	details, tabLayers := v.apps.details.render(ctx, app, found, l.rightW, l.detailsH, l.detailsX, l.detailsY, v.detailsFocused)
 	layers = append(layers, tabLayers...)
 	if l.wide {
 		return lipgloss.JoinHorizontal(lipgloss.Top, apps+"\n"+needs, details), layers
@@ -418,7 +179,7 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 	t := ctx.theme
 	inner := width - 4
 	visible := max(height-2, 1)
-	offset := max(v.cursor-visible+1, 0)
+	offset := max(v.apps.cursor-visible+1, 0)
 	rows := v.rows(ctx)
 	var lines []string
 	var layers []*lipgloss.Layer
@@ -429,7 +190,7 @@ func (v *dashboardView) renderApps(ctx *viewContext, width, height int) (string,
 		level := service.Level(rows[i])
 		row := v.appRow(ctx, rows[i], inner-2)
 		line := t.dot(level) + " " + row
-		if i == v.cursor {
+		if i == v.apps.cursor {
 			// One background under the whole row so per-cell colours do not
 			// punch holes in it; the Status glyph keeps its colour.
 			glyph, c := t.status(level)
@@ -457,16 +218,6 @@ func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int)
 	}
 	return t.body().Render(pad(a.Name, 13)) + " " + url +
 		pad(stateLabel(a), 9) + " " + v.setupMark(ctx, a) + update
-}
-
-func stateLabel(a service.AppStatus) string {
-	switch {
-	case a.State == "running" && a.Health != "" && a.Health != "healthy":
-		return a.Health
-	case a.State == "exited" || a.State == "created":
-		return "stopped"
-	}
-	return a.State
 }
 
 func (v *dashboardView) setupMark(ctx *viewContext, a service.AppStatus) string {
@@ -575,122 +326,4 @@ func (v *dashboardView) renderNeeds(ctx *viewContext, width, height, y int) (str
 		note = strconv.Itoa(n)
 	}
 	return t.box("Needs attention", note, strings.Join(lines, "\n"), width, height, false), layers
-}
-
-func (v *dashboardView) renderDetails(ctx *viewContext, width, height, x, y int) (string, []*lipgloss.Layer) {
-	t := ctx.theme
-	inner := width - 4
-	var tabs []string
-	var layers []*lipgloss.Layer
-	tx := x + 2
-	for i, name := range detailTabs {
-		style := t.inactive()
-		if detailTab(i) == v.tab {
-			style = t.current()
-		}
-		rendered := " " + style.Render(name) + " "
-		layers = append(layers, lipgloss.NewLayer(rendered).X(tx).Y(y+1).ID("tab:"+strconv.Itoa(i)))
-		tabs = append(tabs, rendered)
-		tx += lipgloss.Width(rendered) + 1
-	}
-	app, found := v.selected(ctx)
-	title, note := "Details", ""
-	var body string
-	switch {
-	case !found:
-		body = t.dim().Render("Select an App.")
-	case v.tab == tabSetup, v.tab == tabInfo:
-		title = app.Name
-		body = v.details.View()
-	case v.tab == tabCompose:
-		title, note = app.Name, "apps/"+app.ID+"/compose.yml"
-		body = v.details.View()
-		if v.compose[app.ID] == "" {
-			body = t.dim().Render("reading the Compose file…")
-		}
-	default:
-		title, note = app.Name, "logs"
-		body = v.details.View()
-		if len(v.logLines) == 0 {
-			body = t.dim().Render("waiting for logs…")
-		}
-	}
-	content := strings.Join(tabs, " ") + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
-	return t.box(title, note, content, width, height, v.detailsFocused), layers
-}
-
-func renderSetup(t theme, app service.AppStatus, width int) string {
-	if !app.Managed {
-		return t.dim().Render(wrap(app.Name+" was added by hand (Unmanaged app). self-host starts, stops, updates and backs it up, but runs no Setup for it.", width))
-	}
-	if len(app.Steps) == 0 {
-		if app.Setup == stepstatus.SetupOK {
-			return t.fg(t.ok).Render("✓ ") + t.body().Render("Setup has finished.")
-		}
-		return t.dim().Render("Setup has not run yet. Press a, then r, to run it.")
-	}
-	var lines []string
-	for _, step := range app.Steps {
-		mark := t.fg(t.ok).Render("✓")
-		switch step.Status {
-		case stepstatus.StepSkip:
-			mark = t.dim().Render("↷")
-		case stepstatus.StepManual:
-			mark = t.fg(t.warn).Render("! manual")
-		case stepstatus.StepFail:
-			mark = t.fg(t.fail).Render("✗")
-		}
-		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status.NeedsAttention() {
-			if step.Error != "" {
-				lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
-			}
-			if step.Hint != "" {
-				lines = append(lines, t.fg(t.warn).Render(indent("  → ", step.Hint, width)))
-			}
-		}
-	}
-	if app.Setup == stepstatus.SetupIncomplete {
-		lines = append(lines, "", t.dim().Render(wrap("Finish the failed step by hand (or let your agent use agent-browser), then press a r to retry Setup.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-func renderInfo(t theme, app service.AppStatus, width int) string {
-	row := func(k, val string) string {
-		return t.dim().Render(pad(k, 10)) + t.body().Render(truncate(val, width-10))
-	}
-	lines := []string{
-		row("url", app.URL),
-		row("port", strconv.Itoa(app.Port)),
-		row("image", app.Image),
-		row("services", strings.Join(app.Services, ", ")),
-		row("state", strings.TrimSpace(app.State+" "+app.Health)),
-		row("setup", string(app.Setup)),
-		row("data", "apps/"+app.ID+"/"),
-	}
-	if app.Managed {
-		lines = append(lines, "", t.dim().Render(wrap("Sign in with the Admin login: c copies the password, self-host credentials shows API keys.", width)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-type logStream struct {
-	target string
-	ch     chan string
-	cancel context.CancelFunc
-}
-
-type chanWriter struct{ ch chan string }
-
-func (w chanWriter) Write(p []byte) (int, error) {
-	w.ch <- string(p)
-	return len(p), nil
-}
-
-func waitLog(stream *logStream) tea.Cmd {
-	return func() tea.Msg {
-		text, ok := <-stream.ch
-		return logChunkMsg{stream: stream, text: text, done: !ok}
-	}
 }
