@@ -415,6 +415,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case logChunkMsg, composeMsg, usageMsg:
 		return m.dispatchApps(msg)
 
+	case backupsMsg, backupAppsMsg:
+		return m.dispatchSettings(msg)
+
 	case reviewMsg:
 		if m.settings != nil {
 			m.settings.apply(msg.rows, msg.err)
@@ -501,6 +504,9 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 		// URLs and Compose files may have changed with the settings.
 		clear(m.apps.details.compose)
 	}
+	if strings.HasPrefix(msg.title, "backup") || strings.HasPrefix(msg.title, "restore") {
+		cmds = append(cmds, loadBackups(m.backend))
+	}
 	if strings.HasPrefix(msg.title, "update") {
 		cmds = append(cmds, m.loadUpdates())
 	}
@@ -546,7 +552,7 @@ func (m Model) openTab(s surface) (tea.Model, tea.Cmd) {
 		if m.settings == nil {
 			m.settings = newSettingsView(m.ctx())
 		}
-		return m, m.loadReview()
+		return m, tea.Batch(m.loadReview(), loadBackups(m.backend))
 	}
 	return m, nil
 }
@@ -715,6 +721,18 @@ func (m Model) focusActivity(cmd tea.Cmd) (tea.Model, tea.Cmd) {
 func (m Model) dispatchApps(msg tea.Msg) (tea.Model, tea.Cmd) {
 	ctxView := m.ctx()
 	_, cmd, _ := m.apps.Update(ctxView, msg)
+	m.absorb(ctxView)
+	return m, cmd
+}
+
+// dispatchSettings delivers an asynchronous Backups message (the archives, an
+// archive's Apps) even when another tab is on screen.
+func (m Model) dispatchSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.settings == nil {
+		return m, nil
+	}
+	ctxView := m.ctx()
+	_, cmd, _ := m.settings.Update(ctxView, msg)
 	m.absorb(ctxView)
 	return m, cmd
 }

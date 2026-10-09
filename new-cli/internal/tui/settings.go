@@ -57,6 +57,8 @@ type settingsView struct {
 	choices   []string
 	choiceIdx int
 
+	backups backupsPane
+
 	err            string
 	confirmDiscard bool
 }
@@ -94,6 +96,8 @@ func (v *settingsView) Keys() []key.Binding {
 		return appearanceKeys
 	case v.tab == tabAbout:
 		return aboutKeys
+	case v.tab == tabBackups:
+		return v.backups.keys()
 	case v.tab != tabHost:
 		return placeholderKeys
 	}
@@ -101,7 +105,8 @@ func (v *settingsView) Keys() []key.Binding {
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"About", aboutKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
+		{"Restore", restorePreviewKey}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
 
@@ -119,7 +124,9 @@ var glyphChoices = []glyphChoice{
 
 const nerdFontsURL = "https://www.nerdfonts.com"
 
-func (v *settingsView) Capturing() bool { return v.editing }
+func (v *settingsView) Capturing() bool {
+	return v.editing || v.tab == tabBackups && v.backups.modal()
+}
 
 func (v *settingsView) Title() string { return "Settings" }
 
@@ -234,6 +241,12 @@ func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav
 			v.show(ctx, settingsTab(n))
 		}
 		return v, nil, nav{}
+	case backupsMsg:
+		v.backups.apply(msg)
+		return v, nil, nav{}
+	case backupAppsMsg:
+		v.backups.opened(msg)
+		return v, nil, nav{}
 	case tea.MouseWheelMsg:
 		if v.tab != tabHost {
 			return v, nil, nav{}
@@ -281,6 +294,9 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		v.input, cmd = v.input.Update(msg)
 		return v, cmd, nav{}
 	}
+	if v.tab == tabBackups && v.backups.modal() {
+		return v, v.backups.modalKey(ctx, msg), nav{}
+	}
 	switch {
 	case key.Matches(msg, ctx.keys.NextSub):
 		v.show(ctx, (v.tab+1)%settingsTab(len(settingsTabs)))
@@ -300,6 +316,8 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		return v.hostKey(ctx, msg)
 	case tabAppearance:
 		return v, v.appearanceKey(ctx, msg), nav{}
+	case tabBackups:
+		return v, v.backups.key(ctx, msg), nav{}
 	case tabAbout:
 		return v, v.aboutKey(ctx, msg), nav{}
 	}
@@ -432,6 +450,8 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 		body = v.hostBox(ctx, width, max(height-3, 3))
 	case tabAppearance:
 		body = v.appearanceBox(ctx, width)
+	case tabBackups:
+		body = v.backups.box(ctx, width, height)
 	case tabAbout:
 		body = aboutBox(ctx, width)
 	default:

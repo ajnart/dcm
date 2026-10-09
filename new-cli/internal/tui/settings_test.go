@@ -42,7 +42,7 @@ func TestBracketsCycleTheFiveSettingsSubTabsAndTheStripShowsTheActiveOne(t *test
 	for _, tc := range []struct{ key, active, shows string }{
 		{"", "Host", "Host settings"},
 		{"]", "Appearance", "Learn about Nerd Fonts"},
-		{"]", "Backups", "Coming in the next update"},
+		{"]", "Backups", "No backups yet"},
 		{"]", "Tools", "Coming in the next update"},
 		{"]", "About", "Project folder"},
 		{"]", "Host", "Host settings"},
@@ -72,11 +72,12 @@ func TestClickingASettingsSubTabOpensIt(t *testing.T) {
 	}
 }
 
-func TestBackupsAndToolsArePlaceholdersUntilTheyLand(t *testing.T) {
+func TestToolsIsAPlaceholderUntilItLands(t *testing.T) {
 	m, _ := settingsHost(t)
 	grey := "\x1b[38;2;138;138;138m"
+	m = drive(t, m, press("]"))
 
-	for _, name := range []string{"Backups", "Tools"} {
+	for _, name := range []string{"Tools"} {
 		m = drive(t, m, press("]"))
 		m = drive(t, m, press("]"))
 		raw := m.View().Content

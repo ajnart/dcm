@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+  Host   Appearance   Backups   Tools   About
+╭─ Backups ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   Restore from selfhost-20261001-090000.tar.zst                                                                      │
+│   2026-10-01 09:00 · 47.1 KB                                                                                         │
+│                                                                                                                      │
+│   ○ Whole Project  jellyfin, sonarr, whoami                                                                          │
+│ > ● jellyfin                                                                                                         │
+│   ○ sonarr                                                                                                           │
+│   ○ whoami                                                                                                           │
+│                                                                                                                      │
+│   Restores jellyfin: replaces apps/jellyfin/, its secrets and state, then starts it.                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ restore · enter twice to run                                                ↑/↓  select   enter  restore   esc  cancel
