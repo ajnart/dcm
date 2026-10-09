@@ -1,0 +1,98 @@
+new-cli/CONTEXT.md
+  h_d6e478ca18e517 77-84
+new-cli/README.md
+  h_d6e478ca18e517 124-128,163
+new-cli/docs/adr/0004-tabbed-command-center-action-chords.md
+  h_d6e478ca18e517 7
+new-cli/internal/tui/backups.go
+  h_d6e478ca18e517 417-418,420-422
+new-cli/internal/tui/exposure.go
+  h_d6e478ca18e517 1-283
+new-cli/internal/tui/exposure_test.go
+  h_d6e478ca18e517 1-99
+new-cli/internal/tui/glyphs_test.go
+  h_d6e478ca18e517 167
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 127-164
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 461-462,906,969-979,1006-1014
+new-cli/internal/tui/help.go
+  h_d6e478ca18e517 13-14,17-25,33-38,42-47,49,53-92,97,123-130,136,138-141
+new-cli/internal/tui/host_test.go
+  h_d6e478ca18e517 67-68
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 469-471,548-550,595-598,601-604,609-621,681,690-691,817-819,859
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 46-49,195,198-200,203-206,208-209,211,225-248,254-255,257-261,280-314,316-319,322-326,328-344,346-357,565-569,580-587,703-705,733-737,774-778
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 509-522,557,669-683,688-689,693-699,706-730,740,742-743,746-747,750,755-914,1121-1189
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 67-71,90,103-106,124,144-169,316-319,457-458,477-499,581-585,596-603,612-630
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 78,90,198-342
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 243
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-note-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon-note.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-exposure-coming-soon.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-exposure-local-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure-local.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-exposure-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-exposure.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-help-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/onboarding-where-help.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/onboarding-where-host-settings-narrow.golden
+  h_d6e478ca18e517 8,18-22
+new-cli/internal/tui/testdata/onboarding-where-host-settings.golden
+  h_d6e478ca18e517 8,18-22
+new-cli/internal/tui/testdata/onboarding-where-narrow.golden
+  h_d6e478ca18e517 13-15,17-18
+new-cli/internal/tui/testdata/onboarding-where.golden
+  h_d6e478ca18e517 13-15,17-18
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-note-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-coming-soon-note.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-exposure-coming-soon.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-exposure-help-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-help.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-exposure-pending-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-exposure-pending.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 12-18,24
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 12-18,30
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 475-480,552-559,573-575,585,619-628
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 69-72,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a99cc5c538e58d7b258ffb695d266712159edd6",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
