@@ -1,0 +1,19 @@
+new-cli/internal/updatecheck/updatecheck_test.go
+  s_93e55d02c44f68::t_045f2cc105842b 175-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f3ce91fdee563dc67675c370537fcb2b0efb122c",
+  "prompts": {},
+  "sessions": {
+    "s_93e55d02c44f68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f70fd712-0011-4268-a7b3-c58eb50ef160",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
