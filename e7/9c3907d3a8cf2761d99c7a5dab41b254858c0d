@@ -1,0 +1,206 @@
+new-cli/CONTEXT.md
+  h_d6e478ca18e517 120-126
+new-cli/README.md
+  h_d6e478ca18e517 80-87,118-129,135-137,148-152,163-168,221-231,318-326
+new-cli/internal/activity/glyphs.go
+  h_d6e478ca18e517 1-130
+new-cli/internal/activity/glyphs_test.go
+  h_d6e478ca18e517 1-128
+new-cli/internal/activity/render_action.go
+  h_d6e478ca18e517 53-55,60,101,175,180-193,342
+new-cli/internal/activity/render_action_test.go
+  h_d6e478ca18e517 115,133,137,165,177
+new-cli/internal/activity/strip.go
+  h_d6e478ca18e517 1-37
+new-cli/internal/activity/strip_test.go
+  h_d6e478ca18e517 1-85
+new-cli/internal/activity/terminal.go
+  h_d6e478ca18e517 32,51-52,55-56,159
+new-cli/internal/activity/terminal_test.go
+  h_d6e478ca18e517 88,147,247
+new-cli/internal/activity/testdata/action-credential-120.golden
+  h_d6e478ca18e517 3,15,27
+new-cli/internal/activity/testdata/action-credential-80.golden
+  h_d6e478ca18e517 3,15,27
+new-cli/internal/activity/testdata/action-credential-saved-120.golden
+  h_d6e478ca18e517 3,15
+new-cli/internal/activity/testdata/action-credential-saved-80.golden
+  h_d6e478ca18e517 3,15
+new-cli/internal/activity/testdata/action-failed-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-failed-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-finish-wave-120.golden
+  h_d6e478ca18e517 3,5,12,14,21,23,30,32
+new-cli/internal/activity/testdata/action-finish-wave-80.golden
+  h_d6e478ca18e517 3,10,15,22,27,34,39,46
+new-cli/internal/activity/testdata/action-links-120.golden
+  h_d6e478ca18e517 3,5-7,13,15-17,23,25-27
+new-cli/internal/activity/testdata/action-links-80.golden
+  h_d6e478ca18e517 3,11-13,18,26-28,33,41-43
+new-cli/internal/activity/testdata/action-manual-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-manual-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-setup-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-setup-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-start-pulse-120.golden
+  h_d6e478ca18e517 3,12,21
+new-cli/internal/activity/testdata/action-start-pulse-80.golden
+  h_d6e478ca18e517 3,12,21
+new-cli/internal/activity/testdata/action-start-spinner-120.golden
+  h_d6e478ca18e517 3,12
+new-cli/internal/activity/testdata/action-start-spinner-80.golden
+  h_d6e478ca18e517 3,12
+new-cli/internal/activity/testdata/action-step-done-120.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/action-step-done-80.golden
+  h_d6e478ca18e517 3
+new-cli/internal/activity/testdata/glyphs-nerd-font-120.golden
+  h_d6e478ca18e517 1-9
+new-cli/internal/activity/testdata/glyphs-nerd-font-80.golden
+  h_d6e478ca18e517 1-14
+new-cli/internal/activity/testdata/glyphs-simple-120.golden
+  h_d6e478ca18e517 1-9
+new-cli/internal/activity/testdata/glyphs-simple-80.golden
+  h_d6e478ca18e517 1-14
+new-cli/internal/cli/cli.go
+  h_d6e478ca18e517 116,120-129
+new-cli/internal/cli/status_test.go
+  h_d6e478ca18e517 14-33
+new-cli/internal/project/appearance_test.go
+  h_d6e478ca18e517 1-56
+new-cli/internal/project/project.go
+  h_d6e478ca18e517 184-218
+new-cli/internal/service/appearance.go
+  h_d6e478ca18e517 1-23
+new-cli/internal/tui/actionmenu.go
+  h_d6e478ca18e517 139-144,168-179
+new-cli/internal/tui/actionmenu_test.go
+  h_d6e478ca18e517 235,295,297,300
+new-cli/internal/tui/activity_view.go
+  h_d6e478ca18e517 218
+new-cli/internal/tui/apps.go
+  h_d6e478ca18e517 6,8,12,17-20,22-25,28-46,49-51,53,55,57-62,64-68,70-87,90-106,109-111,114,116-122,127-138,140-163,170-209,214-219,243-246,248-249,251-253,255-260,263-264,266-273,275-285,287,290,292-297,299
+new-cli/internal/tui/apps_test.go
+  h_d6e478ca18e517 1-191
+new-cli/internal/tui/backend.go
+  h_d6e478ca18e517 7,11,55,65-70,144-155
+new-cli/internal/tui/copy.go
+  h_d6e478ca18e517 35,70-83
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 12,18-22,24-26,29,32-35,40,42-43,49,58-59,61-65,68,71-78,81-86,92-93,97,103-104,106,113-117,119-128,130,132-134,136,138,143-152,155-156,159-161,163-164,166,169,171-173,175-178,181-187,189-190,193,195-201,203-204,207-215,217-220,222-223,226,230,241,249,251,254-256,263-267,270,272,275-281,283-289,305-307,311-312,317-320,328,331,337,345,362-364,368,370-372,377-384,387-389,391-395,398,401,403-410,412-414,421
+new-cli/internal/tui/details.go
+  h_d6e478ca18e517 1-390
+new-cli/internal/tui/glyphs_test.go
+  h_d6e478ca18e517 1-241
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 11-13,43-53,59,115-158
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 20,48-69,280,286-287,344-345,354,361,365-366,369,412,430,471,514-530,591-592,822,854-876
+new-cli/internal/tui/install.go
+  h_d6e478ca18e517 410
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 77-79,101,129-131,138,151,157,163-164,170,232-236,294,307,375,388,394-397,402,441,443,458,462,473,486,527,548-549,567-569,627,661-664,666,693-695,733
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 535
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 11,461,463-464,466
+new-cli/internal/tui/overview_test.go
+  h_d6e478ca18e517 1-191
+new-cli/internal/tui/pull_test.go
+  h_d6e478ca18e517 21-22,46-47,64-65
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 4,15,17,25-27,30-37,52-55,75-76,82-88,91-99,253-260,285-318,354-359,363-368,370,372-384,387-417,421-423,425-467,474
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 41,103,116,124-125,273-274
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  h_d6e478ca18e517 1,5,11
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 1,5,7
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 1,5
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 1,5
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/glyphs-nerd-font-apps.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/glyphs-nerd-font-overview.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/glyphs-simple-apps-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/glyphs-simple-apps.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/glyphs-simple-overview.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  h_d6e478ca18e517 1-11,13-17
+new-cli/internal/tui/testdata/menu-app.golden
+  h_d6e478ca18e517 1-12,19-28
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  h_d6e478ca18e517 1-11,13-17
+new-cli/internal/tui/testdata/menu-project.golden
+  h_d6e478ca18e517 1-12,19-28
+new-cli/internal/tui/testdata/overview-idle-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/overview-idle.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/overview-running-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/overview-running.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-appearance-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/settings-appearance.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/settings-pending-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/tab-activity-narrow.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-activity.golden
+  h_d6e478ca18e517 1
+new-cli/internal/tui/testdata/tab-apps-containers.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  h_d6e478ca18e517 1-22
+new-cli/internal/tui/testdata/tab-apps.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 1,4,6-10
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 1,4,6-10
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  h_d6e478ca18e517 1-7,9-11,24
+new-cli/internal/tui/testdata/tab-overview.golden
+  h_d6e478ca18e517 1-28,30
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 1,3,14,16-18,20
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 1,3,14,16-18,20,30
+new-cli/internal/tui/theme.go
+  h_d6e478ca18e517 10,84-85
+new-cli/internal/tui/theme_test.go
+  h_d6e478ca18e517 39-42,140-145,148-149,151-152,154-158
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 5-6,27,33,43,60-61,66,95,273-275,277-278,282,338-339,382-389,391-392,417-418,423-425,575-577,580-584
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 30,42,77-78,80-81,83-86,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e79c3907d3a8cf2761d99c7a5dab41b254858c0d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
