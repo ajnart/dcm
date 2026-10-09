@@ -13,15 +13,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/ajnart/self-host/internal/apps/beszel"
 )
 
 const module = "github.com/ajnart/self-host"
 
 // socketProxyException is the one service allowed to mount the Docker socket:
-// Beszel's read-only socket proxy. Every other service is rejected.
-const socketProxyException = beszel.SocketProxyService
+// Beszel's read-only socket proxy. Every other service is rejected. It repeats
+// beszel.SocketProxyService, which main_test.go cross-checks.
+const socketProxyException = "beszel-socket-proxy"
 
 const dockerSocket = "/var/run/docker.sock"
 
