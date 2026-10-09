@@ -32,11 +32,8 @@ type Executor interface {
 	// LogText returns the last lines a service printed.
 	LogText(ctx context.Context, tail int, services ...string) (string, error)
 	Restart(ctx context.Context, services ...string) error
-}
-
-// Starter is implemented by an Executor that can create and start services,
-// which a plain restart does not do for a service whose settings changed.
-type Starter interface {
+	// Up creates or recreates services so they start with the current
+	// Compose settings and secrets, which a restart does not do.
 	Up(ctx context.Context, services ...string) error
 }
 
@@ -269,12 +266,8 @@ func (h *H) Restart(ctx context.Context) error {
 // Up creates or recreates the named services of this App so they start with
 // the current Compose settings and secrets.
 func (h *H) Up(ctx context.Context, services ...string) error {
-	starter, ok := h.Config.Exec.(Starter)
-	if !ok {
-		return errors.New("this environment cannot start services")
-	}
 	h.Info("starting " + strings.Join(services, ", "))
-	return starter.Up(ctx, services...)
+	return h.Config.Exec.Up(ctx, services...)
 }
 
 func (h *H) ExecIn(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error) {

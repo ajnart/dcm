@@ -25,6 +25,10 @@ func (*bootstrapProbe) Restart(context.Context, ...string) error {
 	panic("password changes out of scope")
 }
 
+func (*bootstrapProbe) Up(context.Context, ...string) error {
+	panic("starting services out of scope")
+}
+
 func TestFailureDiagnosticsSeparateAuthenticationFromLocalAPIAndBootstrap(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
