@@ -1,0 +1,41 @@
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_a51bb9ba059db6::t_f3a09b6eb157d1 20-22
+new-cli/internal/tui/harness_test.go
+  s_95f2547e24b970::t_a5cfd661edf893 840-842
+new-cli/internal/tui/stack.go
+  s_720a00d9bb6c72::t_d6d6b078948e48 18-20,54-55,57-64,78-84,119-123,236-238
+new-cli/internal/tui/views_test.go
+  s_95f2547e24b970::t_842e928fd5e37f 93-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c9f4b6a1dfbd10b78b42d39fcf9b754816a06fa",
+  "prompts": {},
+  "sessions": {
+    "s_720a00d9bb6c72": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-b69f-7a61-90e9-31aa486da678",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a51bb9ba059db6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fb0-5f05-7792-9180-d15e2386445d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
