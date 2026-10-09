@@ -148,7 +148,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | --- | --- |
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the App details sub-tab (logs, setup, info, compose, containers). |
+| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Appearance, Backups, Tools, About). |
 | a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
 | enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
 | / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
@@ -163,8 +163,11 @@ closes the menu. With the mouse, a click highlights an Action and a click on
 the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
 
 While a search or an edit takes text, every key goes to it; in the App list
-`/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings applies
-edits with `ctrl+s`; `esc` returns to the Overview. Its Appearance pane (`tab`)
+`/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
+five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
+Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups and Tools are
+placeholders for now. About shows the version, the Project folder and whether a newer
+release exists; `c` opens Ko-fi and `s` GitHub Sponsors in the browser. Appearance
 chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
 in the terminal) or Simple Unicode symbols, the default. The choice is saved at
 once in the Project's `appearance.json`, and the CLI in a terminal uses it too.

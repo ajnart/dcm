@@ -251,19 +251,7 @@ func (d *appDetails) render(ctx *viewContext, app service.AppStatus, found bool,
 	d.resize(ctx, app, found, width, height)
 	t := ctx.theme
 	inner := width - 4
-	var tabs []string
-	var layers []*lipgloss.Layer
-	tx := x + 2
-	for i, name := range detailTabs {
-		style := t.inactive()
-		if detailTab(i) == d.tab {
-			style = t.current()
-		}
-		rendered := " " + style.Render(name) + " "
-		layers = append(layers, lipgloss.NewLayer(rendered).X(tx).Y(y+1).ID("tab:"+strconv.Itoa(i)))
-		tabs = append(tabs, rendered)
-		tx += lipgloss.Width(rendered) + 1
-	}
+	strip, layers := subTabStrip(t, detailTabs, int(d.tab), x+2, y+1)
 	title, note := "Details", ""
 	body := d.vp.View()
 	switch {
@@ -282,8 +270,26 @@ func (d *appDetails) render(ctx *viewContext, app service.AppStatus, found bool,
 	default:
 		title = app.Name
 	}
-	content := truncate(strings.Join(tabs, " "), inner) + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
+	content := truncate(strip, inner) + "\n" + t.fg(t.faint).Render(strings.Repeat("─", max(inner, 0))) + "\n" + body
 	return t.box(title, note, content, width, height, focused), layers
+}
+
+// subTabStrip draws sub-tab names in a row with the active one marked, and
+// one clickable layer per name, "tab:<index>", from (x, y).
+func subTabStrip(t theme, names []string, active, x, y int) (string, []*lipgloss.Layer) {
+	var tabs []string
+	var layers []*lipgloss.Layer
+	for i, name := range names {
+		style := t.inactive()
+		if i == active {
+			style = t.current()
+		}
+		rendered := " " + style.Render(name) + " "
+		layers = append(layers, lipgloss.NewLayer(rendered).X(x).Y(y).ID("tab:"+strconv.Itoa(i)))
+		tabs = append(tabs, rendered)
+		x += lipgloss.Width(rendered) + 1
+	}
+	return strings.Join(tabs, " "), layers
 }
 
 func renderSetup(t theme, app service.AppStatus, width int) string {

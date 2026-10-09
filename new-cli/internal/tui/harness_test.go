@@ -426,6 +426,8 @@ func TestKeybindAudit(t *testing.T) {
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
+		// Settings' About sub-tab opens the donation pages.
+		"coffee: c", "sponsor: s",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
 	}
@@ -922,7 +924,11 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		for i, label := range tabLabels {
 			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
 		}
-		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
+		settings := drive(t, m, press("5"))
+		for _, name := range []string{"Appearance", "Backups", "Tools", "About"} {
+			settings = drive(t, settings, press("]"))
+			check(string(set)+" Settings "+name, settings)
+		}
 		check(string(set)+" Apps containers", drive(t, drive(t, m, press("2")), press("[")))
 		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
 		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))

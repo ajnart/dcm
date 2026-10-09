@@ -117,6 +117,8 @@ type Model struct {
 	loaded    bool
 	statusErr string
 	refreshed time.Time
+	// releaseChecked is whether the release check found the newest release.
+	releaseChecked bool
 
 	containers    []service.ContainerStatus
 	containersErr string
@@ -295,6 +297,7 @@ func (m Model) ctx() *viewContext {
 		width: m.width, height: m.height, theme: m.theme, glyphs: m.glyphs,
 		keys: m.keys, motion: m.tracker.Motion(m.frame),
 		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt, latest: m.latest,
+		releaseChecked: m.releaseChecked, version: m.opts.Version,
 		containers: m.containers, containersErr: m.containersErr,
 		backend: m.backend, tasks: m.tasks,
 		flash: m.flash, flashLevel: m.flashLevel,
@@ -394,6 +397,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case releaseMsg:
+		m.releaseChecked = msg.version != ""
 		if newer, err := release.Newer(m.opts.Version, msg.version); err == nil && newer {
 			m.latest = msg.version
 			if m.flash == "" {
