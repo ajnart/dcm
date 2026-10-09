@@ -266,10 +266,33 @@ func safeEntryMetadata(h *tar.Header) error {
 }
 
 func safeEntryOwnersAndMode(h *tar.Header) error {
-	if h.Uid < 0 || h.Gid < 0 || uint64(h.Uid) > 2147483647 || uint64(h.Gid) > 2147483647 || h.Mode < 0 || h.Mode & ^int64(0o777) != 0 {
-		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use ordinary permission bits")
+	if h.Uid < 0 || h.Gid < 0 || uint64(h.Uid) > 2147483647 || uint64(h.Gid) > 2147483647 || h.Mode < 0 || h.Mode & ^int64(0o7777) != 0 {
+		return errors.New("unsafe backup metadata: owners must be nonnegative IDs and modes must use permission bits up to 07777")
 	}
 	return nil
+}
+
+// entryFileMode maps raw tar mode bits, including setuid, setgid and sticky,
+// onto fs.FileMode's permission and special bits.
+func entryFileMode(mode int64) fs.FileMode {
+	m := fs.FileMode(mode) & fs.ModePerm
+	if mode&0o4000 != 0 {
+		m |= fs.ModeSetuid
+	}
+	if mode&0o2000 != 0 {
+		m |= fs.ModeSetgid
+	}
+	if mode&0o1000 != 0 {
+		m |= fs.ModeSticky
+	}
+	return m
+}
+
+// stagedMode defers chmod until after every entry's chown, so ownership
+// changes cannot clear restored setuid or setgid bits.
+type stagedMode struct {
+	rel  string
+	mode fs.FileMode
 }
 
 // hardlinkTarget permits only an earlier ordinary file in the same App. A
@@ -412,6 +435,7 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 	defer staging.Close()
 	var links []string
 	locations := make(map[string]string)
+	var fileModes, dirModes []stagedMode
 	for {
 		h, err := r.tr.Next()
 		if err == io.EOF {
@@ -421,6 +445,9 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 				if _, err := staging.Stat(link); err != nil && !errors.Is(err, fs.ErrNotExist) {
 					return fmt.Errorf("unsafe symlink in backup entry %q: link chain cannot resolve inside staging", filepath.ToSlash(link))
 				}
+			}
+			if err := applyStagedModes(staging, fileModes, dirModes); err != nil {
+				return err
 			}
 			r.extracted = true
 			return nil
@@ -458,6 +485,7 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 			if err := staging.MkdirAll(rel, mode|0o700); err != nil {
 				return err
 			}
+			dirModes = append(dirModes, stagedMode{rel, entryFileMode(h.Mode) | 0o700})
 		case tar.TypeSymlink:
 			link := filepath.FromSlash(h.Linkname)
 			resolved := filepath.Clean(filepath.Join(filepath.Dir(rel), link))
@@ -512,6 +540,7 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 			if err := f.Close(); err != nil {
 				return err
 			}
+			fileModes = append(fileModes, stagedMode{rel, entryFileMode(h.Mode)})
 		default:
 			return fmt.Errorf("unsupported backup entry type 0x%02x: special files cannot be restored", h.Typeflag)
 		}
@@ -523,6 +552,23 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 			}
 		}
 	}
+}
+
+func applyStagedModes(staging *os.Root, files, dirs []stagedMode) error {
+	for _, m := range files {
+		if err := staging.Chmod(m.rel, m.mode); err != nil {
+			return err
+		}
+	}
+	sort.SliceStable(dirs, func(i, j int) bool {
+		return strings.Count(dirs[i].rel, string(filepath.Separator)) > strings.Count(dirs[j].rel, string(filepath.Separator))
+	})
+	for _, m := range dirs {
+		if err := staging.Chmod(m.rel, m.mode); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func rejectSymlinkPath(root *os.Root, name string) error {

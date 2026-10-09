@@ -201,7 +201,7 @@ func (s *Service) applyDockerMetadata(ctx context.Context, dir string, entries [
 		quoted := "'" + strings.ReplaceAll(entry.Path, "'", "'\"'\"'") + "'"
 		fmt.Fprintf(&script, "chown -h %d:%d -- %s\n", entry.UID, entry.GID, quoted)
 		if entry.Type != tar.TypeSymlink {
-			fmt.Fprintf(&script, "chmod %03o -- %s\n", entry.Mode, quoted)
+			fmt.Fprintf(&script, "chmod %04o -- %s\n", entry.Mode, quoted)
 		}
 	}
 	return s.runBackupHelper(ctx, dir, false, true, strings.NewReader(script.String()), io.Discard)
