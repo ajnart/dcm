@@ -1,0 +1,47 @@
+new-cli/internal/tui/actionmenu_test.go
+  s_59ffa5bfdcd3ba::t_d44bb056140d2e 220,226-240,242-261
+new-cli/internal/tui/activity_live_view_test.go
+  s_59ffa5bfdcd3ba::t_8aeb946d882177 14,33,36,47,68,88
+new-cli/internal/tui/activity_tab_test.go
+  s_59ffa5bfdcd3ba::t_1bc0e720eb3357 71
+new-cli/internal/tui/activity_view_test.go
+  s_59ffa5bfdcd3ba::t_b774cf5694415a 11,13,48
+new-cli/internal/tui/apps.go
+  s_59ffa5bfdcd3ba::t_b5f3ce45170368 6,19-21,23,25-27,37-39,43,50-51,59,62,66-81,83-84,87,105-155,211-212,215-217,229-232,247-248,346,348-353,355-356,358-359,363,365,370-382
+new-cli/internal/tui/apps_test.go
+  s_59ffa5bfdcd3ba::t_7bf1fbc26c15b5 7,193-259
+new-cli/internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_6f099fe05db977 5,33,43-44,52,55,83,114-117,139-142,151-152,154-157,201-205,215,217,220,225-227,240-243,250,252-257,259-260,262-263,266,268,340,342,354,362,383,419,421,436
+new-cli/internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_f8681bc1bfcef1 52-63,136-156,391,899-900
+new-cli/internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_bda9738c82dbdc 131,286-287,290-292,294,296,300-301,308-331,339,362-363,441-442,460,643,656,663,676-677,739-741
+new-cli/internal/tui/overview_test.go
+  s_59ffa5bfdcd3ba::t_56461d767a9c56 192-220
+new-cli/internal/tui/pull_test.go
+  s_59ffa5bfdcd3ba::t_521880fd811ff4 35,56,74
+new-cli/internal/tui/search_test.go
+  s_59ffa5bfdcd3ba::t_3c0916dcba8e07 1-162
+new-cli/internal/tui/theme_test.go
+  s_59ffa5bfdcd3ba::t_50b65f96f67783 69,71,86
+new-cli/internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_6b239ec5374e58 95,112-120,134-144,189,191,194,207,325-334,338-340,355-357,360-366,383,385,389-390,392-394,396,400-401,404,418,422,425,427,430,433,435,437,439-440,443-444,447-448,451-452,455-456,458-459,524-525,535-537,612,621
+new-cli/internal/tui/views_test.go
+  s_59ffa5bfdcd3ba::t_60760adb3b5628 12,21,106,123,125,131,136,138,152,154,172,180,191,212,214,243,252,264,282,300,318,320,347,372,383,396,403
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "705b4c03f389a2df2c8ef18a623a5fa8ce9a8afa",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
