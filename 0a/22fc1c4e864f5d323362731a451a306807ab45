@@ -1,0 +1,78 @@
+new-cli/README.md
+  h_d6e478ca18e517 131-136
+new-cli/internal/activity/activity.go
+  h_d6e478ca18e517 1-3,15,18-23,26,29,33,37,40-44,47,51-53,55,61,64,66,68,70,72,74-76,79,83,91-92,101-102,129,132,135,137,139,141,143,156,164-165,174,176-177,181-182,188
+new-cli/internal/activity/activity_test.go
+  h_d6e478ca18e517 1,12,21,32,40,46,52,66,81,90,101,109,130,137,155,166,181,183,196,202-203,209,212,214-216,222,231,238-239,243,251,270,272,278,287,298,304,311,316,328,331,334,340,353-354,360,366-367,370,376,379-380,386,388-389
+new-cli/internal/activity/pull.go
+  h_d6e478ca18e517 1,4,7,10-23,26-42,44-46,48-56,60-70,72-84,88-90,94,98-101,103,105-117,119-121,123-124,126-128,130-137,139,141,143,146-152,154-155,157
+new-cli/internal/activity/pull_test.go
+  h_d6e478ca18e517 1-244
+new-cli/internal/activity/render.go
+  h_d6e478ca18e517 1-120
+new-cli/internal/activity/render_test.go
+  h_d6e478ca18e517 1-134
+new-cli/internal/activity/terminal.go
+  h_d6e478ca18e517 1-68
+new-cli/internal/activity/terminal_test.go
+  h_d6e478ca18e517 1-154
+new-cli/internal/activity/testdata/pull-complete-120.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-complete-80.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-failed-120.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-failed-80.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-interrupted-120.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/activity/testdata/pull-interrupted-80.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/activity/testdata/pull-out-of-order-120.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/activity/testdata/pull-out-of-order-80.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/activity/testdata/pull-partial-120.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-partial-80.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-start-120.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-start-80.golden
+  h_d6e478ca18e517 1-6
+new-cli/internal/activity/testdata/pull-unknown-size-120.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/activity/testdata/pull-unknown-size-80.golden
+  h_d6e478ca18e517 1-5
+new-cli/internal/cli/cli.go
+  h_d6e478ca18e517 9-10,12-14,17,83,90,95-116
+new-cli/internal/events/events.go
+  h_d6e478ca18e517 134-136
+new-cli/internal/events/human_test.go
+  h_d6e478ca18e517 1-35
+new-cli/internal/tui/palette.go
+  h_d6e478ca18e517 1-13
+new-cli/internal/tui/pull_test.go
+  h_d6e478ca18e517 12-18,23-24,28,34,39,43,48-80
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 15,123,133-151,437,519-521
+new-cli/internal/tui/wizard.go
+  h_d6e478ca18e517 16,465-467
+new-cli/internal/tui/workflow_live_view_test.go
+  h_d6e478ca18e517 26,33,42
+new-cli/internal/tui/workflow_view.go
+  h_d6e478ca18e517 8-9,24-25,53,68,74,123,214-219,275,277,279,281,283,291
+new-cli/internal/tui/workflow_view_test.go
+  h_d6e478ca18e517 8,19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a22fc1c4e864f5d323362731a451a306807ab45",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
