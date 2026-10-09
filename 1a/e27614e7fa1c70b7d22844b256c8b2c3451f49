@@ -1,0 +1,16 @@
+new-cli/README.md
+  h_d6e478ca18e517 220-221
+scripts/validate-repo.ts
+  h_d6e478ca18e517 425-449,453-455
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ae27614e7fa1c70b7d22844b256c8b2c3451f49",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
