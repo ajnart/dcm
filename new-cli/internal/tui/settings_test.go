@@ -340,3 +340,20 @@ func TestSettingsExposureListChoosesLocalAsAPendingChange(t *testing.T) {
 		t.Fatalf("choosing Only this computer pends EXPOSURE=local and closes the list, pairs %v", got)
 	}
 }
+
+func TestSettingsExposureListKeepsTheRunningActionsProgressLine(t *testing.T) {
+	m, _ := settingsHost(t)
+	m = drive(t, m, press("2"))
+	m = drive(t, m, press("a"))
+	m = drive(t, m, press("t"))
+	next, _ := m.Update(press("enter"))
+	m = next.(Model)
+	m = drive(t, m, press("5"))
+	m = drive(t, m, press("enter"))
+
+	m = drive(t, m, press("down"))
+
+	if !strings.Contains(statusLine(screen(m)), "restart jellyfin") {
+		t.Fatalf("hides the running Action\n%s", screen(m))
+	}
+}
