@@ -37,15 +37,6 @@ func TestRunningPullShowsFooterAndBars(t *testing.T) {
 		}
 	}
 	assertNoProgressText(t, "footer", footer)
-
-	m.wizard = &wizard{stage: stageInstalling, taskID: task.id, plan: &plan{}}
-	out := ansi.Strip(m.renderInstalling(task.id))
-	for _, want := range []string{"Pulling", "jellyfin:latest", "sonarr:latest", "━", "✓", "1 of 2 images"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("install screen lacks %q:\n%s", want, out)
-		}
-	}
-	assertNoProgressText(t, "install screen", out)
 }
 
 func TestFooterShowsLatestEventOnceThePullEnds(t *testing.T) {

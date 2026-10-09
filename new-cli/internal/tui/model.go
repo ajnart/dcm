@@ -133,7 +133,9 @@ type Model struct {
 	activity  *activityView
 	helpView  *helpView
 	menu      *actionMenu
-	wizard    *wizard
+
+	// onboarding is set from the first run until the Project exists.
+	onboarding *onboarding
 }
 
 func New(backend Backend, opts Options) Model {
@@ -178,14 +180,13 @@ func (m *Model) startTicking() tea.Cmd {
 }
 
 // nextFrame advances the animation and keeps ticking only while the Project
-// is still being read, the wizard checks the host, an Action runs or a
-// transition still plays.
+// is still being read, Onboarding reveals the host checks, an Action runs or
+// a transition still plays.
 func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 	m.frame++
 	s := m.ctx().snapshot()
 	m.tracker.Observe(s, m.frame)
-	checking := m.wizard != nil && m.wizard.stage == stageWelcome && len(m.checks) == 0
-	if !m.loaded || checking || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
+	if !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, frameTick()
 	}
 	m.ticking = false
@@ -317,8 +318,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case defaultsMsg:
 		m.defaults = msg.settings
-		if m.wizard != nil && m.wizard.stage == stageWelcome {
-			m.wizard = m.newWizard()
+		if m.onboarding != nil {
+			m.onboarding.answers.fill(m.defaults)
 		}
 		return m, nil
 
@@ -328,7 +329,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case doctorMsg:
 		m.checks = msg.checks
 		m.relayout()
-		return m, nil
+		return m, m.checksArrived()
 
 	case updatesTick:
 		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
@@ -390,8 +391,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
-	if m.wizard != nil && m.wizard.stage == stageForm {
-		return m.updateWizardForm(msg)
+	if m.onboardingShown() && m.onboarding.form != nil {
+		return m.updateOnboardingForm(msg)
 	}
 	return m, nil
 }
@@ -399,19 +400,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	m.loaded = true
 	if errors.Is(msg.err, service.ErrNoProject) {
-		if m.wizard == nil {
-			m.wizard = m.newWizard()
-			return m, m.loadDefaults()
+		if m.onboarding == nil {
+			m.onboarding = m.newOnboarding()
+			return m, tea.Batch(m.loadDefaults(), m.startTicking())
 		}
+		m.installEnded(msg.finishedTasks)
 		return m, nil
 	}
 	if msg.err != nil {
 		m.statusErr = msg.err.Error()
 		return m, nil
 	}
-	if m.wizard != nil && m.wizard.stage != stageInstalling {
-		m.wizard = nil
-	}
+	m.onboarding = nil
 	m.statusErr = ""
 	m.status = msg.status
 	m.tasks.acknowledge(msg.finishedTasks)
@@ -427,14 +427,6 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	m.tasks.finish(msg.id, msg.err)
-	if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
-		if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) && !errors.Is(msg.err, service.ErrManual) {
-			m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
-			m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
-			return m, nil
-		}
-		m.wizard = nil
-	}
 	switch {
 	case errors.Is(msg.err, service.ErrIncomplete), errors.Is(msg.err, service.ErrManual):
 		m.setFlash("! "+msg.title+": Setup needs attention (see Needs attention)", levelWarn)
@@ -569,13 +561,13 @@ func (m *Model) setActive(v view) {
 	}
 }
 
-// handleKey routes a key: the wizard and Help take every key; a view that
+// handleKey routes a key: Onboarding and Help take every key; a view that
 // is capturing text takes every key but ctrl+c; otherwise the global keys
 // act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case m.wizard != nil:
-		return m.handleWizardKey(msg)
+	case m.onboardingShown():
+		return m.handleOnboardingKey(msg)
 	case m.showHelp:
 		return m.dispatchHelp(msg)
 	case msg.String() == "ctrl+c":

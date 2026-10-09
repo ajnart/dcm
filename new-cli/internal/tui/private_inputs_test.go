@@ -41,12 +41,8 @@ func TestWizardConcealsPrivateInputWhileOrdinaryInputStaysVisible(t *testing.T) 
 	m, backend := freshHost(t)
 	backend.catalog = privateInputCatalog()
 	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("x"))
 	m = drive(t, m, press("enter"))
-	for i := 0; i < 6; i++ {
-		m = drive(t, m, press("enter"))
-	}
 	if out := screen(m); !strings.Contains(out, "Provider token") {
 		t.Fatalf("wizard did not reach private input\n%s", out)
 	}
@@ -59,8 +55,10 @@ func TestWizardConcealsPrivateInputWhileOrdinaryInputStaysVisible(t *testing.T) 
 	if out := screen(m); strings.Contains(out, "synthetic-private-token") || !strings.Contains(out, "ordinary-visible-name") {
 		t.Fatal("wizard must conceal private values while showing ordinary values")
 	}
-	m = drive(t, m, press("enter"))
-	if out := screen(m); !strings.Contains(out, "Review") || strings.Contains(out, "synthetic-private-token") {
+	for range 9 { // What, then Where's five, Who's two and Look
+		m = drive(t, m, press("enter"))
+	}
+	if out := screen(m); !strings.Contains(out, "● Review") || strings.Contains(out, "synthetic-private-token") {
 		t.Fatal("wizard review echoed a private input")
 	}
 	m = drive(t, m, press("enter"))
@@ -100,14 +98,13 @@ func TestWizardDoesNotUsePrivateDefaults(t *testing.T) {
 	m, backend := freshHost(t)
 	backend.catalog = catalog.New([]app.App{stubApp{info: app.Info{ID: "credential-demo", Name: "Credential demo"}, inputs: []app.Input{{Key: "TOKEN", Prompt: "Provider token", Required: true, Private: true, Default: "synthetic-private-default"}}}}, nil)
 	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("x"))
 	m = drive(t, m, press("enter"))
 	for i := 0; i < 6; i++ {
 		m = drive(t, m, press("enter"))
 	}
 	m = drive(t, m, press("enter"))
-	if out := screen(m); !strings.Contains(out, "required") || strings.Contains(out, "Review") || strings.Contains(out, "synthetic-private-default") {
+	if out := screen(m); !strings.Contains(out, "required") || strings.Contains(out, "● Review") || strings.Contains(out, "synthetic-private-default") {
 		t.Fatal("private wizard default bypassed explicit concealed input")
 	}
 }

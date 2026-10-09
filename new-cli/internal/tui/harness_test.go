@@ -41,6 +41,9 @@ type fakeBackend struct {
 	updateCalls int
 	// compose replaces every App's Compose file when set.
 	compose string
+	// statusErr is what Status returns, such as ErrNoProject before an
+	// install creates the Project.
+	statusErr error
 }
 
 func (f *fakeBackend) ReviewSettings(context.Context) ([]service.SettingReview, error) {
@@ -65,7 +68,7 @@ func (f *fakeBackend) installs() []service.InstallOptions {
 
 func (f *fakeBackend) LatestRelease(context.Context) string { return f.latest }
 
-func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, nil }
+func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, f.statusErr }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
 func (f *fakeBackend) Containers(context.Context) ([]service.ContainerStatus, error) {
 	return f.containers, nil
@@ -838,4 +841,5 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	check("help", drive(t, m, press("?")))
 	check("App menu", drive(t, m, press("a")))
 	check("Project menu", drive(t, m, press("A")))
+	walkOnboarding(t, 80, 24, func(name string, m Model) { check("Onboarding "+name, m) })
 }

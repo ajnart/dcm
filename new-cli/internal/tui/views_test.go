@@ -407,9 +407,9 @@ func TestWorkflowManualShowsHintWithoutFailures(t *testing.T) {
 func TestManualInstallReturnsToDashboardWithAttention(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 	task := m.tasks.start("install dockge")
-	m.wizard = &wizard{stage: stageInstalling, taskID: task.id, plan: &plan{}}
-	m = update(t, m, taskDoneMsg{id: task.id, title: "install dockge", err: service.ErrManual})
-	if m.wizard != nil {
+	m.onboarding = &onboarding{step: stepReview, task: task.id, plan: &plan{}}
+	m = drive(t, m, taskDoneMsg{id: task.id, title: "install dockge", err: service.ErrManual})
+	if m.onboarding != nil {
 		t.Fatal("manual install treated as failed review")
 	}
 	if m.flashLevel != levelWarn {

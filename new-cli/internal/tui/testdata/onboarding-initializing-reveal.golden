@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ● Initializing › ○ Welcome › ○ What › ○ Where › ○ Who › ○ Look › ○ Review
+
+  Checking this machine
+  self-host runs every App with Docker and Docker Compose.
+
+  ✓ Docker            docker command found
+  ✓ Docker daemon     engine 27.3.1
+  ⠼ Docker Compose
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ q quit                                                                                    enter  continue   r  recheck
