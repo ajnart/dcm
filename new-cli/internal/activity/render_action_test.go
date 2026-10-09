@@ -126,6 +126,16 @@ func TestRenderActionGoldens(t *testing.T) {
 	}
 }
 
+func TestRenderActionShowsWhatALinkWaitsForInFullAtEveryWidth(t *testing.T) {
+	s := Build(sceneStatus, linksScene)
+	for _, width := range []int{120, 100, 80} {
+		out := ansi.Strip(strings.Join(Render(s, Motion{Frame: 30}, width, Simple, Palette{}), "\n"))
+		if !strings.Contains(out, "waiting for qbittorrent") {
+			t.Fatalf("at %d columns the waiting reason is cut:\n%s", width, out)
+		}
+	}
+}
+
 func TestRenderActionWithoutColourKeepsEveryGlyph(t *testing.T) {
 	for _, scene := range actionScenes {
 		s := Build(sceneStatus, scene.evs)

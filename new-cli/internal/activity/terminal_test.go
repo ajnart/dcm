@@ -61,16 +61,17 @@ func screen(t *testing.T, out string) string {
 }
 
 // clock is an injected frame source: tick sends one frame and waits until
-// the sink drew it.
+// the sink drew it. The sink reports a drawn frame through a buffered
+// channel without blocking, so a test that stops waiting cannot stall Close.
 type clock struct {
 	c       chan time.Time
-	ticked  chan struct{}
+	drawn   chan struct{}
 	started int
 	stopped int
 }
 
 func newClock() *clock {
-	return &clock{c: make(chan time.Time), ticked: make(chan struct{})}
+	return &clock{c: make(chan time.Time), drawn: make(chan struct{}, 64)}
 }
 
 func (c *clock) ticks() (<-chan time.Time, func()) {
@@ -78,15 +79,27 @@ func (c *clock) ticks() (<-chan time.Time, func()) {
 	return c.c, func() { c.stopped++ }
 }
 
-func (c *clock) tick() {
+func (c *clock) tick(t *testing.T) {
+	t.Helper()
 	c.c <- time.Time{}
-	<-c.ticked
+	select {
+	case <-c.drawn:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the sink did not draw the frame")
+	}
+}
+
+func (c *clock) notify() {
+	select {
+	case c.drawn <- struct{}{}:
+	default:
+	}
 }
 
 func testTerminal(out *bytes.Buffer, width func() int) (*TerminalSink, *clock) {
 	c := newClock()
 	sink := newTerminal(out, false, width, Simple, Palette{}, c.ticks)
-	sink.ticked = c.ticked
+	sink.drawn = c.notify
 	return sink, c
 }
 
@@ -105,20 +118,20 @@ func TestTerminalPrintsTheLogAboveTheLiveAction(t *testing.T) {
 		stage(events.StepStart, "pull", "pull 1 image", "sonarr"),
 		layer("lscr.io/linuxserver/sonarr:latest", "a", "Downloading", 50, 100),
 	)...)
-	clock.tick()
-	clock.tick()
+	clock.tick(t)
+	clock.tick(t)
 	emit(seq(
 		pulled("lscr.io/linuxserver/sonarr:latest"),
 		stage(events.StepOK, "pull", "pulled sonarr", "sonarr"),
 		stage(events.StepStart, "start", "start sonarr", "sonarr"),
 	)...)
-	clock.tick()
+	clock.tick(t)
 	emit(seq(
 		stage(events.StepOK, "start", "started sonarr", "sonarr"),
 		ev(events.StepStart, "sonarr", "admin", "create the admin account"),
 	)...)
-	clock.tick()
-	clock.tick()
+	clock.tick(t)
+	clock.tick(t)
 	emit(seq(
 		ev(events.StepOK, "sonarr", "admin", "create the admin account"),
 		ev(events.StepStart, "sonarr", "check", "verify Sonarr works"),
@@ -168,7 +181,7 @@ func TestTerminalShowsPullBarsAndAnimatesBetweenEvents(t *testing.T) {
 		sink.Emit(e)
 	}
 	first := screen(t, out.String())
-	clock.tick()
+	clock.tick(t)
 	second := screen(t, out.String())
 	for _, want := range []string{"⠋ install sonarr", "Pulling", "redis:7", "0 of 1 image"} {
 		if !strings.Contains(first, want) {
@@ -203,7 +216,7 @@ func TestTerminalRedrawsAtTheNewWidth(t *testing.T) {
 	sink.Emit(events.Event{Event: events.StepStart, Step: "pull"})
 	sink.Emit(layer("redis:7", "b", "Downloading", 50, 100))
 	width = 40
-	clock.tick()
+	clock.tick(t)
 	for _, line := range strings.Split(screen(t, out.String()), "\n") {
 		if w := ansi.StringWidth(line); w > 40 {
 			t.Fatalf("line is %d cells after the resize: %q", w, line)

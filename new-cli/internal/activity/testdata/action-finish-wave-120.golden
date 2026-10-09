@@ -2,8 +2,8 @@
 ✓ install qbittorrent sonarr radarr
   ✓ ▣ Pull   ✓ ▣ Start   ✓ ⇄ Links   ✓ Check
 ╭─ Apps 3/3 set up ───────────────────────────────────────╮ ╭─ Links 1/1 ──────────────────────────────────────────────╮
-│ ◉ qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent  use qBittorrent … │
-│ ● Sonarr          ready                                 │ │                                                          │
+│ ◉ qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent                    │
+│ ● Sonarr          ready                                 │ │     use qBittorrent as the download client               │
 │ ● Radarr          ready                                 │ │                                                          │
 ╰─────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────────────────────╯
   All 3 Apps are ready
@@ -11,8 +11,8 @@
 ✓ install qbittorrent sonarr radarr
   ✓ ▣ Pull   ✓ ▣ Start   ✓ ⇄ Links   ✓ Check
 ╭─ Apps 3/3 set up ───────────────────────────────────────╮ ╭─ Links 1/1 ──────────────────────────────────────────────╮
-│ ◉ qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent  use qBittorrent … │
-│ ◉ Sonarr          ready                                 │ │                                                          │
+│ ◉ qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent                    │
+│ ◉ Sonarr          ready                                 │ │     use qBittorrent as the download client               │
 │ ● Radarr          ready                                 │ │                                                          │
 ╰─────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────────────────────╯
   All 3 Apps are ready
@@ -20,8 +20,8 @@
 ✓ install qbittorrent sonarr radarr
   ✓ ▣ Pull   ✓ ▣ Start   ✓ ⇄ Links   ✓ Check
 ╭─ Apps 3/3 set up ───────────────────────────────────────╮ ╭─ Links 1/1 ──────────────────────────────────────────────╮
-│ ● qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent  use qBittorrent … │
-│ ◉ Sonarr          ready                                 │ │                                                          │
+│ ● qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent                    │
+│ ◉ Sonarr          ready                                 │ │     use qBittorrent as the download client               │
 │ ◉ Radarr          ready                                 │ │                                                          │
 ╰─────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────────────────────╯
   All 3 Apps are ready
@@ -29,8 +29,8 @@
 ✓ install qbittorrent sonarr radarr
   ✓ ▣ Pull   ✓ ▣ Start   ✓ ⇄ Links   ✓ Check
 ╭─ Apps 3/3 set up ───────────────────────────────────────╮ ╭─ Links 1/1 ──────────────────────────────────────────────╮
-│ ● qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent  use qBittorrent … │
-│ ● Sonarr          ready                                 │ │                                                          │
+│ ● qBittorrent     ready                                 │ │ ✓ ⇄ Sonarr       ━━━━━━━▶ qBittorrent                    │
+│ ● Sonarr          ready                                 │ │     use qBittorrent as the download client               │
 │ ● Radarr          ready                                 │ │                                                          │
 ╰─────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────────────────────╯
   All 3 Apps are ready

@@ -1,6 +1,7 @@
 package activity
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -383,13 +384,13 @@ func narrative(a Action, running events.Event, pull Pull, name func(string) stri
 		for _, app := range a.Apps {
 			for _, step := range app.Steps {
 				if step.State == Failed {
-					return app.Name + " failed: " + firstLine(cmpOr(step.Error, step.Msg))
+					return app.Name + " failed: " + firstLine(cmp.Or(step.Error, step.Msg))
 				}
 			}
 		}
 		for _, link := range a.Links {
 			if link.State == Failed {
-				return "Linking " + link.Source + " to " + link.Target + " failed: " + firstLine(cmpOr(link.Error, link.Purpose))
+				return "Linking " + link.Source + " to " + link.Target + " failed: " + firstLine(cmp.Or(link.Error, link.Purpose))
 			}
 		}
 		if msg := needsYou(a); msg != "" {
@@ -472,18 +473,11 @@ func needsYou(a Action) string {
 	for _, app := range a.Apps {
 		for _, step := range app.Steps {
 			if step.State == Manual {
-				return app.Name + " needs you: " + firstLine(cmpOr(step.Hint, step.Msg))
+				return app.Name + " needs you: " + firstLine(cmp.Or(step.Hint, step.Msg))
 			}
 		}
 	}
 	return ""
-}
-
-func cmpOr(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
 
 func firstLine(s string) string {

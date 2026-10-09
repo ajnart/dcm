@@ -20,16 +20,7 @@ func Strip(s Snapshot, m Motion, width int, g Glyphs, p Palette) []string {
 	case len(a.Stages) > 0:
 		lines = append(lines, "  "+r.stages())
 	}
-	if a.Narrative != "" {
-		narrative := style(p.Text).Render(a.Narrative)
-		switch {
-		case r.outcome() == Failed && a.Finished:
-			narrative = style(p.Fail).Render(a.Narrative)
-		case a.Finished:
-			narrative = style(p.Bright).Bold(true).Render(a.Narrative)
-		}
-		lines = append(lines, "  "+narrative)
-	}
+	lines = append(lines, r.narrative()...)
 	for i, line := range lines {
 		lines[i] = ansi.Truncate(line, width, "…")
 	}
