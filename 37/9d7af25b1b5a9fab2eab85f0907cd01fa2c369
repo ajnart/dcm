@@ -1,0 +1,44 @@
+new-cli/internal/tui/exposure.go
+  h_d6e478ca18e517 41-43,47,54-55,78-83,87,174,186-187
+new-cli/internal/tui/exposure_test.go
+  h_d6e478ca18e517 30-31,71-73,79,82-84,89-99
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 707,710-713
+new-cli/internal/tui/settings_test.go
+  h_d6e478ca18e517 209
+new-cli/internal/tui/testdata/onboarding-where-exposure-local-narrow.golden
+  h_d6e478ca18e517 17,23
+new-cli/internal/tui/testdata/onboarding-where-exposure-local.golden
+  h_d6e478ca18e517 16,29
+new-cli/internal/tui/testdata/onboarding-where-exposure-narrow.golden
+  h_d6e478ca18e517 22-23
+new-cli/internal/tui/testdata/onboarding-where-exposure.golden
+  h_d6e478ca18e517 28-29
+new-cli/internal/tui/testdata/onboarding-where-help-narrow.golden
+  h_d6e478ca18e517 20-21
+new-cli/internal/tui/testdata/onboarding-where-help.golden
+  h_d6e478ca18e517 25-26
+new-cli/internal/tui/testdata/settings-exposure-help-narrow.golden
+  h_d6e478ca18e517 20-21
+new-cli/internal/tui/testdata/settings-exposure-help.golden
+  h_d6e478ca18e517 25-26
+new-cli/internal/tui/testdata/settings-exposure-pending-narrow.golden
+  h_d6e478ca18e517 19
+new-cli/internal/tui/testdata/settings-exposure-pending.golden
+  h_d6e478ca18e517 19,29
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 22-23
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "379d7af25b1b5a9fab2eab85f0907cd01fa2c369",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
