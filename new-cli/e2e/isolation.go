@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -110,11 +111,6 @@ type portReservation struct {
 	listeners []io.Closer
 }
 
-// Only these concrete catalog inputs override fixed secondary publications.
-var isolatedSecondaryInputs = map[string]string{
-	"qbittorrent": "torrent-port", "pihole": "dns-port", "technitium-dns": "dns-port",
-}
-
 func (r *portReservation) closeSockets() {
 	for _, l := range r.listeners {
 		l.Close()
@@ -179,10 +175,10 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 			}
 		}
 		inputs := map[string]string{}
-		for key, value := range localInputs[id] {
+		for key, value := range appInputTable[id].local {
 			inputs[key] = value
 		}
-		if key := isolatedSecondaryInputs[id]; key != "" {
+		if key := appInputTable[id].secondary; key != "" {
 			for attempts := 0; attempts < 1024; attempts++ {
 				tcp, err := net.Listen("tcp4", "127.0.0.1:0")
 				if err != nil {
@@ -417,4 +413,16 @@ func validateComposeIsolation(source string) error {
 		}
 	}
 	return nil
+}
+
+const globalLockName = "selfhost-e2e-global.lock"
+
+func blockedMarkerPath(lockPath string) string { return lockPath + ".blocked" }
+
+func writeBlockedMarker(lockPath string, payload any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(blockedMarkerPath(lockPath), append(data, '\n'), 0o600)
 }

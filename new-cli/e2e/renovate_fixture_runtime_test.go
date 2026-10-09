@@ -19,9 +19,9 @@ type renovateRuntimeFixture struct {
 	forge *renovateForgejoFixture
 }
 
-func (r *runner) prepareRenovateFixture(ports map[string]int) *renovateRuntimeFixture {
+func (r *runner) prepareRenovateFixture(ports map[string]int) {
 	if !slices.Contains(r.spec.Apps, "renovate") {
-		return nil
+		return
 	}
 	var stages []stageEvidence
 	for _, stage := range r.evidence.Stages {
@@ -39,7 +39,8 @@ func (r *runner) prepareRenovateFixture(ports map[string]int) *renovateRuntimeFi
 	}
 	r.evidence.Stages = stages
 	r.evidence.Probe += "; Renovate prepared and inert (--version only), no dependency jobs, scheduler or pull-request claim; actual dedicated owned Forgejo PAT identity and exact persisted token ID before backup and after restore"
-	return &renovateRuntimeFixture{port: ports["forgejo"], path: filepath.Join(r.root, "renovate-pat")}
+	f := &renovateRuntimeFixture{port: ports["forgejo"], path: filepath.Join(r.root, "renovate-pat")}
+	r.attachRenovateFixture(f)
 }
 
 func renovateFixtureFailure() result {
@@ -119,4 +120,21 @@ func (f *renovateRuntimeFixture) check(r *runner) result {
 		return renovateFixtureFailure()
 	}
 	return result{}
+}
+
+func (r *runner) attachRenovateFixture(f *renovateRuntimeFixture) {
+	r.addFixture("renovate", f, &fixtureHooks{
+		inputs:    []string{"--set-file", "renovate.token=" + f.path},
+		installFn: func(args []string) result { return f.install(r, args, r.fixturePorts) },
+		checkFn: func(phase string) result {
+			switch phase {
+			case "after-images":
+				r.stage("forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return f.check(r) })
+			case "restored":
+				r.evidenceOwner.stage("restored-forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return f.check(r) })
+			}
+			return result{}
+		},
+		reattachFn: func(target *runner) error { target.attachRenovateFixture(f); return nil },
+	})
 }

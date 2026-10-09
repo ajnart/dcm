@@ -123,11 +123,11 @@ func TestPassboltWrapperAllowsOnlyOwnedComposeAndLocalSMTPProbe(t *testing.T) {
 		t.Fatal(err)
 	}
 	override := filepath.Join(root, "passbolt-override.yml")
-	wrapper, err := writePassboltDockerWrapper(root, project, "owned-passbolt", real, override)
+	wrapper, err := writePassboltDockerWrapper(root, project, ownedPassboltProject, real, override)
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefix := []string{"compose", "--project-directory", project, "-p", "owned-passbolt", "--env-file", filepath.Join(project, ".env")}
+	prefix := []string{"compose", "--project-directory", project, "-p", ownedPassboltProject, "--env-file", filepath.Join(project, ".env")}
 	probe := []string{"exec", "-T", "passbolt", "su", "-s", "/bin/bash", "-c", passboltSMTPCommand, "www-data"}
 	for _, suffix := range [][]string{{"up", "-d"}, probe} {
 		args := append(append([]string{}, prefix...), suffix...)

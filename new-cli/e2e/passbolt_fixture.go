@@ -132,3 +132,14 @@ func writePassboltDockerWrapper(root, project, name, real, override string) (str
 	}
 	return wrapper, nil
 }
+
+const ownedPassboltProject = "owned-passbolt"
+
+func composeExec(project, name string, envFiles []string, argv ...string) []string {
+	args := []string{"compose", "--project-directory", project, "-p", name}
+	for _, file := range envFiles {
+		args = append(args, "--env-file", file)
+	}
+	args = append(args, "exec", "-T")
+	return append(args, argv...)
+}

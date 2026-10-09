@@ -105,17 +105,17 @@ func (r *runner) preparePassboltFixture(reservation *portReservation) {
 		return
 	}
 	fixture := &passboltRuntimeFixture{files: files, connect: connect, realDocker: real}
-	if err := r.attachPassboltFixture(fixture); err != nil {
+	if err := r.attachPassboltFixture(fixture, true); err != nil {
 		connect.close()
 		fail()
 		return
 	}
-	r.passboltOwner = true
+	preparePassboltEvidence(r.evidence)
 	success = true
 	r.evidence.Probe += "; fixture helper linux/" + runtime.GOARCH + " sha256:" + files.helperSHA + "; owned verified canonical HTTPS and private no-auth STARTTLS delivery are prerequisites only; browser-extension owner OpenPGP enrollment and key recovery remain manual"
 }
 
-func (r *runner) attachPassboltFixture(fixture *passboltRuntimeFixture) error {
+func (r *runner) attachPassboltFixture(fixture *passboltRuntimeFixture, owner bool) error {
 	override := filepath.Join(r.root, "passbolt-override.yml")
 	source, err := fixture.files.compose()
 	if err != nil {
@@ -142,7 +142,28 @@ func (r *runner) attachPassboltFixture(fixture *passboltRuntimeFixture) error {
 	// Each project uses its own selector override while sharing stable trust.
 	copy := *fixture
 	copy.override = override
-	r.passbolt = &copy
+	f := &copy
+	r.addFixture("passbolt", f, &fixtureHooks{
+		override: f.override, inputs: f.files.inputs(),
+		installFn: func(args []string) result { return f.install(r, args) },
+		checkFn: func(phase string) result {
+			if phase == "restored" {
+				r.evidenceOwner.stage("restored-local-prerequisites", []string{"verify", "owned-passbolt-tls-and-starttls"}, func() result { return f.probe(r) })
+			}
+			return result{}
+		},
+		reattachFn: func(target *runner) error {
+			if err := target.attachPassboltFixture(f, false); err != nil {
+				return errors.New("reattach owned Passbolt TLS and STARTTLS prerequisites")
+			}
+			return nil
+		},
+		closeFn: func(before bool) {
+			if !before && owner {
+				f.close()
+			}
+		},
+	})
 	return nil
 }
 
@@ -237,7 +258,7 @@ func (f *passboltRuntimeFixture) probe(r *runner) result {
 		return passboltPrerequisiteFailure()
 	}
 	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
-	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "passbolt", "su", "-s", "/bin/bash", "-c", passboltSMTPCommand, "www-data"}
+	args := composeExec(r.project, r.name, []string{filepath.Join(r.project, ".env"), filepath.Join(r.project, "secrets.env")}, "passbolt", "su", "-s", "/bin/bash", "-c", passboltSMTPCommand, "www-data")
 	cmd := exec.CommandContext(ctx, wrapper, args...)
 	cmd.Dir = r.project
 	cmd.Env = r.env
@@ -293,7 +314,7 @@ func (f *passboltRuntimeFixture) metadataDiagnostic(r *runner) event {
 	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	defer cancel()
 	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
-	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "passbolt", "sh", "-c", passboltMetadataCommand}
+	args := composeExec(r.project, r.name, []string{filepath.Join(r.project, ".env"), filepath.Join(r.project, "secrets.env")}, "passbolt", "sh", "-c", passboltMetadataCommand)
 	command := exec.CommandContext(ctx, wrapper, args...)
 	command.Dir = r.project
 	command.Env = r.env
@@ -309,7 +330,7 @@ func (f *passboltRuntimeFixture) applicationMetadataDiagnostic(r *runner) event 
 	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	defer cancel()
 	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
-	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltApplicationMetadataPHP}
+	args := composeExec(r.project, r.name, []string{filepath.Join(r.project, ".env"), filepath.Join(r.project, "secrets.env")}, "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltApplicationMetadataPHP)
 	command := exec.CommandContext(ctx, wrapper, args...)
 	command.Dir = r.project
 	command.Env = r.env
@@ -326,7 +347,7 @@ func (f *passboltRuntimeFixture) effectiveMetadataDiagnostic(r *runner) event {
 	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	defer cancel()
 	wrapper := filepath.Join(r.root, "passbolt-bin", "docker")
-	args := []string{"compose", "--project-directory", r.project, "-p", r.name, "--env-file", filepath.Join(r.project, ".env"), "--env-file", filepath.Join(r.project, "secrets.env"), "exec", "-T", "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltEffectiveMetadataPHP}
+	args := composeExec(r.project, r.name, []string{filepath.Join(r.project, ".env"), filepath.Join(r.project, "secrets.env")}, "--user", "www-data", "passbolt", "php", "-d", "display_errors=0", "-d", "log_errors=0", "-r", passboltEffectiveMetadataPHP)
 	command := exec.CommandContext(ctx, wrapper, args...)
 	command.Dir = r.project
 	command.Env = r.env

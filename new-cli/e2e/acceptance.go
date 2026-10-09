@@ -46,17 +46,6 @@ func findTarget(inventory []targetSpec, id string) targetSpec {
 	return targetSpec{}
 }
 
-var localInputs = map[string]map[string]string{
-	"archive-team-warrior": {"nickname": "selfhost-e2e"},
-	"headscale":            {"canonical-origin": "https://headscale.e2e.selfhost.test", "magic-dns-domain": "mesh.e2e.selfhost.test"},
-	"authelia":             {"origin": "https://auth.e2e.selfhost.test"},
-	"pangolin":             {"PANGOLIN_CANONICAL_ORIGIN": "https://pangolin.e2e.selfhost.test", "PANGOLIN_BASE_DOMAIN": "e2e.selfhost.test"},
-	"restic":               {"repository": "/repository"},
-	"borgmatic":            {"repository": "/mnt/borg-repository"},
-	"stalwart-mail":        {"STALWART_HOSTNAME": "mail.e2e.selfhost.test", "STALWART_DOMAIN": "e2e.selfhost.test"},
-	"haproxy":              {"target-app": "ntfy", "target-port": "80"},
-}
-
 // Credentials/licenses and externally owned endpoints are never synthesized.
 var externalApps = map[string]bool{
 	"cloudflare-tunnel": true, "gluetun": true, "minio": true,
@@ -73,22 +62,10 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 			return "missing-configuration"
 		}
 		for _, in := range a.Inputs() {
-			if id == "wud" && in.Key == "WUD_DOCKER_HOST" && slices.Contains(t.Apps, "ntfy") {
+			if dependency, supplied := appInputTable[id].runtime[in.Key]; supplied && (dependency == "" || slices.Contains(t.Apps, dependency)) {
 				continue
 			}
-			if id == "netbird" && in.Key == "NETBIRD_CANONICAL_ORIGIN" {
-				// Reserved loopback TLS origin is supplied by the real runtime fixture.
-				continue
-			}
-			if id == "renovate" && in.Key == "token" && slices.Contains(t.Apps, "forgejo") {
-				// The owned Forgejo fixture supplies an actual dedicated bot PAT.
-				continue
-			}
-			if id == "passbolt" && (in.Key == "PASSBOLT_CANONICAL_ORIGIN" || in.Key == "PASSBOLT_SMTP_HOST") {
-				// Verified TLS and STARTTLS are supplied by the owned runtime fixture.
-				continue
-			}
-			if !in.Required || in.Default != "" || localInputs[id][in.Key] != "" {
+			if !in.Required || in.Default != "" || appInputTable[id].local[in.Key] != "" {
 				continue
 			}
 			if externalApps[id] {
@@ -121,16 +98,16 @@ func installArguments(t targetSpec, root string, ports map[string]int, secondary
 		if port := ports[id]; port > 0 {
 			args = append(args, "--set", fmt.Sprintf("%s.port=%d", id, port))
 		}
-		if len(secondary) > 0 && secondary[0][id] > 0 && isolatedSecondaryInputs[id] != "" {
-			args = append(args, "--set", fmt.Sprintf("%s.%s=%d", id, isolatedSecondaryInputs[id], secondary[0][id]))
+		if len(secondary) > 0 && secondary[0][id] > 0 && appInputTable[id].secondary != "" {
+			args = append(args, "--set", fmt.Sprintf("%s.%s=%d", id, appInputTable[id].secondary, secondary[0][id]))
 		}
 		keys := []string{}
-		for key := range localInputs[id] {
+		for key := range appInputTable[id].local {
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			args = append(args, "--set", id+"."+key+"="+localInputs[id][key])
+			args = append(args, "--set", id+"."+key+"="+appInputTable[id].local[key])
 		}
 	}
 	return args
@@ -277,7 +254,7 @@ func expectedServices(t targetSpec) []string {
 		var doc struct {
 			Services map[string]any `yaml:"services"`
 		}
-		if yaml.Unmarshal([]byte(a.Compose(app.RenderContext{Port: 30001, Inputs: localInputs[id]})), &doc) != nil {
+		if yaml.Unmarshal([]byte(a.Compose(app.RenderContext{Port: 30001, Inputs: appInputTable[id].local})), &doc) != nil {
 			return nil
 		}
 		for name := range doc.Services {

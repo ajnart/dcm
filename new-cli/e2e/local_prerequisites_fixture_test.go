@@ -63,7 +63,7 @@ func TestLocalRoutingPrerequisitesAreNotExternalCredentials(t *testing.T) {
 func TestStalwartLocalInputsReachManualBoundary(t *testing.T) {
 	c := catalog.Default()
 	target := findTarget(acceptanceInventory(c), "stalwart-mail")
-	if classifyTarget(c, target) != "runnable" || externalApps["stalwart-mail"] || localInputs["stalwart-mail"]["STALWART_HOSTNAME"] != "mail.e2e.selfhost.test" || localInputs["stalwart-mail"]["STALWART_DOMAIN"] != "e2e.selfhost.test" {
+	if classifyTarget(c, target) != "runnable" || externalApps["stalwart-mail"] || appInputTable["stalwart-mail"].local["STALWART_HOSTNAME"] != "mail.e2e.selfhost.test" || appInputTable["stalwart-mail"].local["STALWART_DOMAIN"] != "e2e.selfhost.test" {
 		t.Fatal("ordinary local domain inputs still classified as external")
 	}
 	e := newEvidence(target, "fixture")

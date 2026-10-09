@@ -49,7 +49,7 @@ func TestPassboltDockerObservationAndCleanupUseOwnedOverride(t *testing.T) {
 	root := t.TempDir()
 	project := filepath.Join(root, "project")
 	override := filepath.Join(root, "passbolt-override.yml")
-	r := &runner{root: root, project: project, name: "owned-fixture", passbolt: &passboltRuntimeFixture{override: override}}
+	r := &runner{root: root, project: project, name: "owned-fixture", fixtures: []fixtureEntry{{fixture: &fixtureHooks{override: override}}}}
 	for _, operation := range []string{"ps", "images", "down"} {
 		args := r.dockerArgs("compose", "-p", r.name, operation)
 		for _, file := range []string{filepath.Join(project, "compose.yml"), override} {

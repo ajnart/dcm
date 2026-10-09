@@ -39,9 +39,8 @@ func (r *runner) prepareNetBirdFixture(reservation *portReservation) {
 	if err != nil {
 		r.t.Fatal("prepare owned NetBird verified TLS")
 	}
-	r.netbird = &netBirdFixture{route: route, backendPort: backend, realDocker: real}
-	r.netbirdOwner = true
-	r.attachNetBirdFixture(r.netbird)
+	fixture := &netBirdFixture{route: route, backendPort: backend, realDocker: real}
+	r.attachNetBirdFixture(fixture, true)
 	var stages []stageEvidence
 	for _, stage := range r.evidence.Stages {
 		stages = append(stages, stage)
@@ -60,12 +59,30 @@ func (r *runner) prepareNetBirdFixture(reservation *portReservation) {
 	r.evidence.Probe += "; real NetBird owner and protected management API through owned verified loopback HTTPS before backup and after isolated restore; no peer/VPN/browser claim"
 }
 
-func (r *runner) attachNetBirdFixture(fixture *netBirdFixture) {
+func (r *runner) attachNetBirdFixture(fixture *netBirdFixture, owner bool) {
 	wrapper, err := writeNetBirdDockerWrapper(r.root, r.project, r.name, fixture.realDocker, fixture.backendPort)
 	if err != nil {
 		r.t.Fatal("prepare owned NetBird Compose route override")
 	}
-	r.netbird = fixture
+	r.addFixture("netbird", fixture, &fixtureHooks{
+		override: filepath.Join(r.root, "netbird-override.yml"),
+		inputs:   []string{"--set", "netbird.NETBIRD_CANONICAL_ORIGIN=" + fixture.route.origin},
+		checkFn: func(phase string) result {
+			switch phase {
+			case "setup":
+				r.stage("management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, func() result { return fixture.managementProbe() })
+			case "restored":
+				r.evidenceOwner.stage("restored-management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, func() result { return fixture.managementProbe() })
+			}
+			return result{}
+		},
+		reattachFn: func(target *runner) error { target.attachNetBirdFixture(fixture, false); return nil },
+		closeFn: func(before bool) {
+			if !before && owner {
+				fixture.route.close()
+			}
+		},
+	})
 	path := ""
 	for _, item := range r.env {
 		if strings.HasPrefix(item, "PATH=") {
@@ -75,13 +92,13 @@ func (r *runner) attachNetBirdFixture(fixture *netBirdFixture) {
 	r.env = append(r.env, "PATH="+filepath.Dir(wrapper)+string(os.PathListSeparator)+path, "SSL_CERT_FILE="+fixture.route.caFile)
 }
 
-func (r *runner) netBirdManagementProbe() result {
+func (f *netBirdFixture) managementProbe() result {
 	fail := func(reason string) result {
 		return result{code: 1, events: []event{{Event: "step.fail", App: "netbird", Step: "management-tls", Error: reason}}}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, r.netbird.route.origin+"/api/users/current", nil)
+	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, f.route.origin+"/api/users/current", nil)
 	untrusted := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	if response, err := untrusted.Do(request); err == nil {
 		response.Body.Close()
@@ -92,7 +109,7 @@ func (r *runner) netBirdManagementProbe() result {
 			return fail("untrusted probe did not prove fixture CA rejection")
 		}
 	}
-	response, err := r.netbird.route.client().Do(request)
+	response, err := f.route.client().Do(request)
 	if err != nil {
 		return fail("management route did not establish verified fixture TLS")
 	}

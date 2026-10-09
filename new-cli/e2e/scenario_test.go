@@ -99,49 +99,15 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	r.requireLocalResources()
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
-	renovate := r.prepareRenovateFixture(reservation.primary)
-	r.prepareWUDFixture(reservation.primary)
-	r.prepareNetBirdFixture(reservation)
-	r.prepareAutheliaFixture(reservation)
-	r.preparePassboltFixture(reservation)
-	if r.passbolt != nil {
-		preparePassboltEvidence(r.evidence)
-	}
+	r.prepareFixtures(reservation)
 	args := installArguments(spec, r.root, reservation.primary, reservation.secondary)
-	if renovate != nil {
-		args = append(args, "--set-file", "renovate.token="+renovate.path)
-	}
-	if r.netbird != nil {
-		args = append(args, "--set", "netbird.NETBIRD_CANONICAL_ORIGIN="+r.netbird.route.origin)
-	}
-	if r.authelia != nil {
-		args = append(args, "--set", "authelia.origin="+r.authelia.origin)
-	}
-	if r.passbolt != nil {
-		args = append(args, r.passbolt.files.inputs()...)
-	}
-	if r.wud != nil {
-		args = append(args, "--set", "wud.WUD_DOCKER_HOST=wud-facade.e2e.selfhost.test", "--set", "wud.WUD_DOCKER_PORT=2376", "--set", "wud.WUD_DOCKER_TLS_CLIENT_AUTH=true")
-	}
+	args = r.fixtureArgs(args)
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
 	reservation.closeSockets()
-	r.stage("install", args, func() result {
-		if r.passbolt != nil {
-			return r.passbolt.install(r, args)
-		}
-		if r.wud != nil {
-			return r.wud.install(r, args, reservation.primary)
-		}
-		if renovate != nil {
-			return renovate.install(r, args, reservation.primary)
-		}
-		return r.runWithTimeout(installCommandLimit(spec), args...)
-	})
+	r.stage("install", args, func() result { return r.installFixtures(args) })
 	r.stage("setup-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(r) })
-	if r.netbird != nil {
-		r.stage("management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, r.netBirdManagementProbe)
-	}
+	r.checkFixtures("setup")
 	if proxyProbe {
 		r.stage("backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return r.haproxyProbe(reservation.primary) })
 	}
@@ -179,13 +145,9 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		}
 		return r.setupAndReady(r)
 	})
-	if r.wud != nil {
-		r.stage("owned-inventory", []string{"verify", "fresh-exact-owned-mtls-docker-inventory"}, func() result { return r.wud.check(r) })
-	}
+	r.checkFixtures("updated")
 	r.recordImages()
-	if renovate != nil {
-		r.stage("forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return renovate.check(r) })
-	}
+	r.checkFixtures("after-images")
 	if !completeImageEvidence(r.evidence.Images, expectedServices(r.spec)) {
 		for i := range r.evidence.Stages {
 			if r.evidence.Stages[i].Name == "update" {
@@ -223,32 +185,15 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	restored.evidenceOwner = r
 	restored.spec = spec
 	restored.target = r.target + "-restore"
-	if r.wud != nil {
-		if restored.attachWUDFixture(r.wud) != nil {
-			r.t.Fatal("reattach owned WUD mTLS Docker facade")
-		}
-	}
-	if r.passbolt != nil {
-		if err := restored.attachPassboltFixture(r.passbolt); err != nil {
-			r.t.Fatal("reattach owned Passbolt TLS and STARTTLS prerequisites")
-		}
-	}
-	if r.netbird != nil {
-		restored.attachNetBirdFixture(r.netbird)
-	}
-	if r.authelia != nil {
-		if err := restored.attachAutheliaFixture(r.authelia); err != nil {
-			r.autheliaFixtureFailure()
-		}
+	if err := r.reattachFixtures(restored); err != nil {
+		r.t.Fatal(err)
 	}
 	r.stage("isolated-restore", []string{"stop", "--json", "then", "restore", archive, "--yes", "--json"}, func() result {
 		res := r.run("stop", "--json")
 		if res.code != 0 {
 			return res
 		}
-		if r.wud != nil {
-			r.wud.close()
-		}
+		r.closeFixtures(true)
 		if err := r.composeDown(); err != nil {
 			r.guard.Block(r.project)
 			r.evidence.Cleanup = "failed"
@@ -259,24 +204,11 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 		if r.t.Failed() {
 			return result{code: 1}
 		}
-		if restored.wud != nil {
-			restored.wud.start(restored)
-		}
+		restored.checkFixtures("restore-start")
 		return restored.run("restore", archive, "--yes", "--json")
 	})
 	r.stage("restored-check", []string{"setup", "--json"}, func() result { return r.setupAndReady(restored) })
-	if restored.passbolt != nil {
-		r.stage("restored-local-prerequisites", []string{"verify", "owned-passbolt-tls-and-starttls"}, func() result { return restored.passbolt.probe(restored) })
-	}
-	if restored.wud != nil {
-		r.stage("restored-owned-inventory", []string{"verify", "fresh-exact-owned-mtls-docker-inventory"}, func() result { return restored.wud.check(restored) })
-	}
-	if renovate != nil {
-		r.stage("restored-forge-token-identity", []string{"verify", "owned-forgejo-pat-identity-and-persisted-id"}, func() result { return renovate.check(restored) })
-	}
-	if r.netbird != nil {
-		r.stage("restored-management-tls", []string{"verify", "owned-verified-tls-and-protected-management-api"}, restored.netBirdManagementProbe)
-	}
+	restored.checkFixtures("restored")
 	if proxyProbe {
 		r.stage("restored-backend-routing", []string{"verify", "owned-backend-routing-and-protected-statistics"}, func() result { return restored.haproxyProbe(reservation.primary) })
 	}
@@ -299,8 +231,8 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 }
 
 func (r *runner) setupAndReady(target *runner) result {
-	if target.wud != nil && !target.wud.observe(target) {
-		return target.wud.observationFailure()
+	if res := target.checkFixtures("before-setup"); res.code != 0 {
+		return res
 	}
 	res := target.run("setup", "--json")
 	if res.code != 0 {
