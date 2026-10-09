@@ -1,0 +1,24 @@
+ ◆ 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning  self-host
+╭─ Now ────────────────────────────────────────────────────────────────────────╮
+│ ⠋ update jellyfin sonarr                                                     │
+│   ██████░░░░░░  1 of 2 images                                                │
+│   Pulling 2 images                                                           │
+│ ◐ Host: 1 warning                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Apps 3 ─────────────────────────────────────────────────────────────────────╮
+│ ● Jellyfin      Media      192.168.1.20:8096      running   ✓                │
+│ ✗ Sonarr        Downloads  192.168.1.20:8989      running   ✗                │
+│ ✗ whoami                   192.168.1.20:8099      stopped   –                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Needs attention 3 ──────────────────────────────────────────────────────────╮
+│ ✗ Sonarr: download-client failed                             a r retry Setup │
+│ ✗ whoami is stopped                                                a s start │
+│ ! Firewall: ufw is active                                                    │
+│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit      ↑/↓  select   enter  go to App …

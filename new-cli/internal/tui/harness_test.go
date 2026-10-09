@@ -251,14 +251,14 @@ func ctrlC() tea.KeyPressMsg { return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtr
 
 func lightBackground() tea.BackgroundColorMsg { return tea.BackgroundColorMsg{Color: color.White} }
 
-func TestOverviewShowsAppsNeedsAttentionAndDetails(t *testing.T) {
+func TestOverviewShowsAppsNeedsAttentionAndNowStrip(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
 	out := screen(m)
 
 	for _, want := range []string{"self-host", "LAN 192.168.1.20", "1 warning",
-		"Apps", "Jellyfin", "http://192.168.1.20:8096", "Sonarr", "whoami",
-		"Needs attention", "logs", "setup", "info", "compose"} {
+		"Apps", "Jellyfin", "192.168.1.20:8096", "Sonarr", "whoami",
+		"Needs attention", "Now"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard lacks %q\n%s", want, out)
 		}
@@ -325,7 +325,7 @@ func TestKeybindAudit(t *testing.T) {
 		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
 		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
 		// The App's Action menu and the read-only keys.
-		"actions: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
+		"actions: a", "resolve: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
 		// Settings applies its pending changes.
 		"apply: ctrl+s",
 		// The open Action menu.
@@ -399,6 +399,7 @@ func TestNoTabHasADirectMutatingKey(t *testing.T) {
 func TestSetupTabShowsFailedStepAndHint(t *testing.T) {
 	m, _ := sample(t, 140, 32)
 
+	m = drive(t, m, press("2"))
 	m = drive(t, m, press("j"))
 	m = drive(t, m, press("]"))
 
@@ -827,6 +828,11 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	}
 	check("help", drive(t, m, press("?")))
 	check("Apps containers", drive(t, drive(t, m, press("2")), press("[")))
+	task := m.tasks.start("update every App in a Project with a long name")
+	t.Cleanup(m.tasks.cancelAll)
+	task.append(events.Event{Event: events.StepStart, Step: "pull", Msg: "pull 1 image"})
+	task.append(events.Event{Event: events.PullProgress, Image: "example/image:latest", Layer: "l1", Current: 1, Total: 2})
+	check("Overview running", m)
 	check("App menu", drive(t, m, press("a")))
 	check("Project menu", drive(t, m, press("A")))
 }

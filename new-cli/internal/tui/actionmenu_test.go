@@ -232,7 +232,7 @@ func TestMnemonicIsBoldInsideTheLabel(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 	m = drive(t, m, press("a"))
 
-	raw := m.View().Content
+	raw := m.renderMenu()
 	lines := strings.Split(raw, "\n")
 	for i, line := range lines {
 		if strings.Contains(ansi.Strip(line), "Restart") {

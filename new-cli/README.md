@@ -115,14 +115,25 @@ bundle: inspect `self-host apps list`, then install it by ID, for example
 remain explicit prerequisites.
 
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
-The bar on the last row shows the global keys and the focused pane's keys.
+The header names the Project, its LAN address, the host's health and the
+time. The bar on the last row shows the global keys and the focused pane's
+keys.
+
+The Overview is the command center. The Now strip mirrors the running Action
+(its bar or stages and one line on what happens now) and, once it ends, its
+result next to the host's health. Below it, every App shows its Status,
+category, address, state and Setup, and Needs attention lists failed and
+Manual steps, stopped Apps, updates and host warnings, each with the chord
+that resolves it, such as `a r` (retry Setup), or the command to run. `tab`
+focuses Needs attention: `a` then opens the Action menu for that item's App
+with its Action highlighted, and `enter` opens the App on the Apps tab.
 
 | Dashboard key | Action |
 | --- | --- |
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
 | [ and ] | Switch the App details sub-tab (logs, setup, info, compose, containers). |
-| a, A | Open the Action menu for the selected App, or for the whole Project. |
+| a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
 | enter, o, c | Open the selected App in the Apps tab; open its URL; choose a password or API key to copy. |
 | ?, q | Help; quit. |
 
