@@ -68,7 +68,7 @@ func TestNetBirdChildTLS(t *testing.T) {
 	if endpoint == "" {
 		t.Skip("child-only trust-store probe")
 	}
-	response, err := http.Get(endpoint)
+	response, err := ownedFixtureTLSClient(t).Get(endpoint)
 	if err != nil {
 		t.Fatal("verified child TLS failed")
 	}
@@ -105,7 +105,12 @@ func TestNetBirdFixturePortsRemainOwnedThroughRestore(t *testing.T) {
 }
 
 func TestNetBirdDockerWrapperRestrictsOwnedSelectors(t *testing.T) {
-	root := t.TempDir()
+	// The wrapper rejects mount sources whose realpath differs. macOS temp
+	// paths cross the /var -> /private/var symlink, so resolve the root first.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	project := filepath.Join(root, "project")
 	if err := os.Mkdir(project, 0o700); err != nil {
 		t.Fatal(err)

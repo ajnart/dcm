@@ -86,8 +86,15 @@ func TestStartupRemovesOnlyProvenStockShortcutAndPreservesArguments(t *testing.T
 			}
 			argsFile := filepath.Join(root, "official-args")
 			official := filepath.Join(root, "official-start")
-			// Model upstream cp-an and record the exact argv handed to its entrypoint.
-			body := "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$@\" > '" + argsFile + "'\ncp -an '" + stock + "/.' '" + config + "/'\n"
+			// Model busybox cp -a -n, which copies missing entries, keeps
+			// existing ones, and still exits zero when a destination is
+			// present. BSD cp -n reports a skip as exit status 1.
+			body := "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$@\" > '" + argsFile + "'\n" +
+				"for src in '" + stock + "'/*; do\n" +
+				"  name=${src##*/}\n" +
+				"  if [ -e \"" + config + "/$name\" ] || [ -L \"" + config + "/$name\" ]; then continue; fi\n" +
+				"  cp -P \"$src\" '" + config + "/'\n" +
+				"done\n"
 			if err := os.WriteFile(official, []byte(body), 0o755); err != nil {
 				t.Fatal(err)
 			}
