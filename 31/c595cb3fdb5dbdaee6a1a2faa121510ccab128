@@ -1,0 +1,41 @@
+new-cli/CONTEXT.md
+  s_683718c6d3553a::t_73800b0d99a65b 56-59
+new-cli/docs/adr/0002-one-dashboard-fixed-keybinds.md
+  s_683718c6d3553a::t_02d8e338046d3f 13-16
+new-cli/internal/apps/forgejo/forgejo_test.go
+  s_683718c6d3553a::t_11af3076110fa4 135-155
+new-cli/internal/cli/forgejo_credentials_test.go
+  s_683718c6d3553a::t_28a1df3b9723a3 4,9,13-16,27-54,56-57,59-65,74
+new-cli/internal/cli/install.go
+  s_720a00d9bb6c72::t_b42e8d29f4ecf4 7,171-178
+new-cli/internal/service/status.go
+  s_720a00d9bb6c72::t_a5ba9d8731c8f2 196-198,212,228-232
+new-cli/internal/tui/copy.go
+  s_720a00d9bb6c72::t_385f9054b5354b 15-16,49-51,98-101
+new-cli/internal/tui/harness_test.go
+  s_683718c6d3553a::t_535dc0680abda1 32,82,478-497
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31c595cb3fdb5dbdaee6a1a2faa121510ccab128",
+  "prompts": {},
+  "sessions": {
+    "s_683718c6d3553a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-c7af-73f3-a7fd-514e042c687f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_720a00d9bb6c72": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-b69f-7a61-90e9-31aa486da678",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
