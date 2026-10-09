@@ -393,3 +393,49 @@ func TestNeedsActionOffersStartNotSetupForAFailedStart(t *testing.T) {
 		}
 	}
 }
+
+func TestDashboardManualNeedsAction(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, State: "running", Setup: "manual", Steps: []service.StepStatus{{ID: "admin", Status: "manual", Hint: "Open the browser and create the administrator"}}}}}
+	v := &dashboardView{}
+	needs := v.needsAction(ctx)
+	if len(needs) != 1 || needs[0].broken || needs[0].key != "r" || !strings.Contains(needs[0].text, "Open the browser") {
+		t.Fatalf("manual Needs action = %+v", needs)
+	}
+	out := ansi.Strip(renderSetup(ctx.theme, ctx.status.Apps[0], 100))
+	if !strings.Contains(out, "manual") || !strings.Contains(out, "Open the browser") || strings.Contains(out, "✗") {
+		t.Fatalf("manual Setup details: %s", out)
+	}
+	if level := service.Level(ctx.status.Apps[0]); level != "attention" {
+		t.Fatalf("manual Status = %s, want attention", level)
+	}
+}
+
+func TestWorkflowManualShowsHintWithoutFailures(t *testing.T) {
+	ctx := testViewContext(&fakeBackend{})
+	ctx.status = service.Status{Apps: []service.AppStatus{{ID: "dockge", Name: "Dockge", Managed: true, Setup: "manual", Steps: []service.StepStatus{{ID: "admin", Status: "manual", Hint: "Open the browser and create the administrator"}}}}}
+	v := &workflowView{}
+	out := ansi.Strip(v.View(ctx, 120, 30))
+	for _, want := range []string{"manual", "Open the browser", "0 steps failed", "0 Apps fully set up"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Workflow lacks %q: %s", want, out)
+		}
+	}
+	_, cmd, _ := v.Update(ctx, press("r"))
+	if cmd == nil {
+		t.Fatal("manual Setup retry unavailable")
+	}
+}
+
+func TestManualInstallReturnsToDashboardWithAttention(t *testing.T) {
+	m, _ := sample(t, 120, 30)
+	task := m.tasks.start("install dockge")
+	m.wizard = &wizard{stage: stageInstalling, taskID: task.id, plan: &plan{}}
+	m = update(t, m, taskDoneMsg{id: task.id, title: "install dockge", err: service.ErrManual})
+	if m.wizard != nil {
+		t.Fatal("manual install treated as failed review")
+	}
+	if m.flashLevel != levelWarn {
+		t.Fatalf("manual install flash = %+v, want warning", m.flash)
+	}
+}

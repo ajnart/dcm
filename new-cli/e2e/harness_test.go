@@ -21,6 +21,7 @@ import (
 )
 
 const exitIncomplete = 2
+const exitManual = 3
 
 var e2eBinary string
 var dockerAvailable bool

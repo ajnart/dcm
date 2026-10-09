@@ -381,3 +381,11 @@ func TestWorkflowCheckRefreshPreservesRememberedSetup(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkflowLiveManualIsNotFailedOrSetUp(t *testing.T) {
+	status := service.Status{Apps: []service.AppStatus{{ID: "dockge", Managed: true, Setup: "ok"}}}
+	snapshot := Workflow(status, []events.Event{{Event: "step.manual", App: "dockge", Step: "admin", Hint: "open the browser"}})
+	if snapshot.Counts.AppsSetUp != 0 || snapshot.Counts.StepsFailed != 0 || snapshot.Apps[0].Steps[0].State != WorkflowManual {
+		t.Fatalf("manual live snapshot: %+v", snapshot)
+	}
+}

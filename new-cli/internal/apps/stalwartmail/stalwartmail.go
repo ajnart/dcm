@@ -4,7 +4,6 @@ package stalwartmail
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -93,7 +92,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	return h.Step(ctx, "admin", "complete the Stalwart administrator setup", helpers.StepSpec{
-		Do:         func(context.Context) error { return errors.New(manualAdmin) },
+		Do:         func(context.Context) error { return fmt.Errorf("%w: %s", helpers.ErrManual, manualAdmin) },
 		Hint:       adminHint(h),
 		Credential: "admin",
 	})
@@ -130,7 +129,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Stalwart admin UI did not answer at %s", h.BaseURL)
 	}
-	return fmt.Errorf("%s: %s", manualAdmin, adminHint(h))
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }

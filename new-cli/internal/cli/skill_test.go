@@ -187,7 +187,7 @@ func TestSkillGuideExitCodesMatchTheConstants(t *testing.T) {
 		documented = append(documented, m[1])
 	}
 
-	want := []string{strconv.Itoa(cli.ExitOK), strconv.Itoa(cli.ExitError), strconv.Itoa(cli.ExitIncomplete)}
+	want := []string{strconv.Itoa(cli.ExitOK), strconv.Itoa(cli.ExitError), strconv.Itoa(cli.ExitIncomplete), strconv.Itoa(cli.ExitManual)}
 
 	if !sortedEqual(documented, want) {
 		t.Errorf("guide documents exit codes %v, the binary uses %v", documented, want)

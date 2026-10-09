@@ -255,6 +255,8 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 		mark = t.fg(t.ok).Render("✓")
 	case WorkflowSkipped:
 		mark = t.fg(t.info).Render("↷")
+	case WorkflowManual:
+		mark = t.fg(t.warn).Render("! manual")
 	case WorkflowFailed:
 		mark = t.fg(t.fail).Render("✗")
 	case WorkflowRunning:
@@ -265,7 +267,7 @@ func (v *workflowView) rowLines(ctx *viewContext, row workflowRow, cursor string
 		line += t.dim().Render(" · " + firstLine(step.Msg))
 	}
 	out := []string{line}
-	if step.State != WorkflowFailed || !v.failures[row.app.ID+"/"+step.ID] {
+	if step.State != WorkflowManual && (step.State != WorkflowFailed || !v.failures[row.app.ID+"/"+step.ID]) {
 		return out
 	}
 	if step.Error != "" {

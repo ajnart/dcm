@@ -39,7 +39,7 @@ func (r *Recorder) Status(id string) string {
 // Hint returns the hint of the first failed step.
 func (r *Recorder) Hint() string {
 	for _, step := range r.Steps {
-		if step.Status == "fail" {
+		if step.Status == "fail" || step.Status == "manual" {
 			return step.Hint
 		}
 	}

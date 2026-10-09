@@ -33,6 +33,8 @@ import (
 // ErrIncomplete means some Setup steps failed; the hints say how to finish.
 var ErrIncomplete = errors.New("setup incomplete")
 
+var ErrManual = errors.New("setup needs manual steps")
+
 // ErrNoProject means no Project exists yet for this user.
 var ErrNoProject = errors.New("no Project yet; run: self-host install <app|recipe>")
 
@@ -424,7 +426,7 @@ func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link) {
 // reportUnexpected records an error that did not come from a failed step,
 // so it is visible and counts against the App.
 func (ss *session) reportUnexpected(h *helpers.H, step string, err error) {
-	if err == nil || errors.Is(err, helpers.ErrStepFailed) {
+	if err == nil || errors.Is(err, helpers.ErrStepFailed) || errors.Is(err, helpers.ErrManual) {
 		return
 	}
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: step, Error: err.Error(), URL: h.URL})
@@ -436,15 +438,19 @@ func (ss *session) failed(id, step string) bool {
 	return st != nil && st.Steps[step].Status == "fail"
 }
 
-// setupResult is "incomplete" while any recorded Setup step failed. Install
+// setupResult gives failures precedence over manual steps. Install
 // stages are Compose work that Setup cannot retry, so they do not count.
 func setupResult(st *project.AppState) string {
+	result := "ok"
 	for id, step := range st.Steps {
+		if step.Status == "manual" && !IsStage(id) {
+			result = "manual"
+		}
 		if step.Status == "fail" && !IsStage(id) {
 			return "incomplete"
 		}
 	}
-	return "ok"
+	return result
 }
 
 // IsStage reports whether a step is an install stage (render, pull, start)
@@ -459,7 +465,7 @@ func isLinkStep(id string) bool {
 	return strings.HasPrefix(id, "link-") || strings.HasPrefix(id, "unlink-")
 }
 
-// ready reports whether an App's own Setup has run without failures, so
+// ready reports whether an App's own Setup has no failed or manual steps, so
 // Links may use it. Failed Links do not count: they belong to their App and
 // must not block or hide other Links.
 func (ss *session) ready(id string) bool {
@@ -468,7 +474,7 @@ func (ss *session) ready(id string) bool {
 		return false
 	}
 	for stepID, step := range st.Steps {
-		if step.Status == "fail" && !isLinkStep(stepID) && !IsStage(stepID) {
+		if (step.Status == "fail" || step.Status == "manual") && !isLinkStep(stepID) && !IsStage(stepID) {
 			return false
 		}
 	}

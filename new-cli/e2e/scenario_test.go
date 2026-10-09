@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -54,12 +53,12 @@ func (r *runner) stage(name string, args []string, fn func() result) bool {
 		}
 		r.t.Logf("%s %s: %s", name, label, message)
 	}
-	if res.code == exitIncomplete && allNoHeadless(res) {
+	if res.code == exitManual && allManual(res) {
 		stage.Outcome = "manual"
 		stage.Reason = "first administrator requires web UI"
 		r.evidence.Outcome = "manual"
 		for _, event := range res.events {
-			if event.Event == "step.fail" && strings.Contains(event.Error, "has no headless way") {
+			if event.Event == "step.manual" {
 				stage.Apps[event.App] = "manual"
 			}
 		}
@@ -323,20 +322,6 @@ func (r *runner) setupAndReady(target *runner) result {
 		}
 	}
 	return res
-}
-
-func allNoHeadless(res result) bool {
-	found := false
-	for _, e := range res.events {
-		if e.Event != "step.fail" {
-			continue
-		}
-		found = true
-		if !strings.Contains(e.Error, "has no headless way") {
-			return false
-		}
-	}
-	return found
 }
 
 func (r *runner) waitRunning(limit time.Duration, expected []string) bool {

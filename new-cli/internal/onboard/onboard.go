@@ -152,7 +152,7 @@ func (f FirstAdmin) admin(ctx context.Context, h *helpers.H) error {
 				}
 			}
 			if f.Create == nil {
-				return errors.New("this App has no headless way to create its first administrator")
+				return fmt.Errorf("%w: this App has no headless way to create its first administrator", helpers.ErrManual)
 			}
 			return f.Create(ctx, h, user, password)
 		},
@@ -170,7 +170,7 @@ func (f FirstAdmin) username(ctx context.Context, h *helpers.H) (string, error) 
 
 func (f FirstAdmin) signIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	if f.Login == nil {
-		return false, errors.New("this App has no headless way to verify its administrator login")
+		return false, fmt.Errorf("%w: this App has no headless way to verify its administrator login", helpers.ErrManual)
 	}
 	return f.Login(ctx, h, user, password)
 }

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -28,7 +29,7 @@ func (a *program) installCmd() *cobra.Command {
 				opts.AdminPassword = a.deps.Getenv("SELF_HOST_ADMIN_PASSWORD")
 			}
 			err := a.service().Install(cmd.Context(), opts)
-			if err == nil || isIncomplete(err) {
+			if err == nil || isIncomplete(err) || errors.Is(err, service.ErrManual) {
 				a.recap(cmd)
 			}
 			return a.fail(err)
@@ -133,6 +134,9 @@ func printStatus(w io.Writer, s service.Status) {
 	tw.Flush()
 	for _, app := range s.Apps {
 		for _, step := range app.Steps {
+			if step.Status == "manual" {
+				fmt.Fprintf(w, "\n! %s › %s: manual step\n  → %s\n", app.ID, step.ID, step.Hint)
+			}
 			if step.Status == "fail" {
 				fmt.Fprintf(w, "\n✗ %s › %s: %s\n  → %s\n", app.ID, step.ID, step.Error, step.Hint)
 			}

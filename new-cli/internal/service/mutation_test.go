@@ -457,3 +457,53 @@ func TestFailedStartDoesNotFailSetup(t *testing.T) {
 		t.Fatalf("Setup = %q, want ok: a failed start is not a Setup failure", status.Apps[0].Setup)
 	}
 }
+
+func TestManualSetupIsNotIncomplete(t *testing.T) {
+	a := &testApp{id: "one", fail: helpers.ErrManual, done: map[string]bool{}}
+	h := newHarness(t, a)
+	_ = h.install("one")
+	status, err := h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Apps[0].Setup != "manual" {
+		t.Fatalf("Setup = %q, want manual", status.Apps[0].Setup)
+	}
+	if e := h.rec.find("one", "setup"); e != nil {
+		t.Fatalf("manual reported as unexpected failure: %+v", e)
+	}
+	a.fail = nil
+	if err := h.svc.Setup(context.Background(), []string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	status, err = h.svc.Status(context.Background())
+	if err != nil || status.Apps[0].Setup != "ok" {
+		t.Fatalf("retry = %+v, %v", status, err)
+	}
+}
+
+type linkedTestApp struct {
+	*testApp
+	linked bool
+}
+
+func (a *linkedTestApp) Links() []app.Link {
+	return []app.Link{{ID: "link-one", Target: "one", Apply: func(context.Context, *helpers.H, *helpers.H) error { a.linked = true; return nil }}}
+}
+
+func TestManualSetupBlocksLinksUntilRetry(t *testing.T) {
+	target := &testApp{id: "one", fail: helpers.ErrManual, done: map[string]bool{}}
+	consumer := &linkedTestApp{testApp: &testApp{id: "two", done: map[string]bool{}}}
+	h := newHarness(t, target, consumer)
+	_ = h.install("one", "two")
+	if consumer.linked {
+		t.Fatal("Link used an App with a manual Setup step")
+	}
+	target.fail = nil
+	if err := h.svc.Setup(context.Background(), []string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	if !consumer.linked {
+		t.Fatal("Link did not run after manual Setup completed")
+	}
+}

@@ -34,6 +34,12 @@ The automatic, headless configuration of an installed App (accounts, API
 keys, settings, links to other Apps), done without a browser.
 _Avoid_: onboarding, wizard
 
+**Manual step**:
+A Setup step that needs a person to finish or verify it in a browser. It keeps
+its hint and remains retryable, but is not a failed step. Setup is **manual**
+while only Manual steps remain; a failed step takes precedence as **incomplete**.
+_Avoid_: failure (for a browser-only boundary)
+
 **Link**:
 Setup that wires one App to another (e.g. Sonarr to qBittorrent). It belongs
 to the consuming App: it runs once both Apps have finished their own Setup,
@@ -74,8 +80,8 @@ An App's health at a glance: **ok** (green), **attention** (yellow) or
 _Avoid_: state (the container's state is one input to Status)
 
 **Needs action**:
-The things a person must deal with: a failed Setup step, an available update,
-a failing or warning host check. Each item names the one Action that resolves
+The things a person must deal with: a failed Setup step, a Manual step, an
+available update, a failing or warning host check. Each item names the one Action that resolves
 it, or the command to run when no Action exists.
 
 **Action**:

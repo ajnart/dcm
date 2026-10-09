@@ -21,6 +21,7 @@ const (
 	ExitOK         = 0
 	ExitError      = 1
 	ExitIncomplete = 2
+	ExitManual     = 3
 )
 
 // exitError carries an exit code out of a command without printing usage.
@@ -54,6 +55,9 @@ func (a *program) fail(err error) error {
 	}
 	if errors.Is(err, service.ErrIncomplete) {
 		return exitError{ExitIncomplete}
+	}
+	if errors.Is(err, service.ErrManual) {
+		return exitError{ExitManual}
 	}
 	if a.document {
 		fmt.Fprintln(a.deps.Err, "error:", err)

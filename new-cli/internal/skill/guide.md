@@ -87,7 +87,7 @@ Fields (all but `event` are omitted when empty):
 
 | Field | Meaning |
 | --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `command`, `info`, `pull.progress` |
+| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
 | `app`, `step` | What the event is about |
 | `msg` | Human summary |
 | `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
@@ -112,6 +112,11 @@ print one result on stdout and only errors on stderr with `--json`.
 - `1`: error (read the `error` field of the last `run.end` or `step.fail`)
 - `2`: Setup incomplete. Everything is installed, but at least one Setup step
   failed. Read the `step.fail` events or `self-host status --json`.
+
+- `3`: Only Manual steps remain after install or Setup. Read the `step.manual`
+  hints or `self-host status --json` (`setup` and step `status` are `manual`).
+  Finish them in the browser, then retry Setup. A browser-only verification
+  remains manual on retry; a successful probe does not prove that step finished.
 
 `self-host doctor` exits `1` when any check fails.
 

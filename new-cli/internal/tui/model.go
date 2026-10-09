@@ -390,7 +390,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	m.tasks.finish(msg.id, msg.err)
 	if m.wizard != nil && m.wizard.stage == stageInstalling && msg.id == m.wizard.taskID {
-		if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) {
+		if msg.err != nil && !errors.Is(msg.err, service.ErrIncomplete) && !errors.Is(msg.err, service.ErrManual) {
 			m.wizard.stage, m.wizard.err = stageReview, msg.err.Error()
 			m.setFlash("✗ "+firstLine(msg.err.Error()), levelError)
 			return m, nil
@@ -398,7 +398,7 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 		m.wizard = nil
 	}
 	switch {
-	case errors.Is(msg.err, service.ErrIncomplete):
+	case errors.Is(msg.err, service.ErrIncomplete), errors.Is(msg.err, service.ErrManual):
 		m.setFlash("! "+msg.title+": Setup needs attention (see Needs action)", levelWarn)
 	case msg.err != nil:
 		m.setFlash("✗ "+msg.title+": "+firstLine(msg.err.Error()), levelError)

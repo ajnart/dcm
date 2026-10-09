@@ -10,7 +10,7 @@ func Level(a AppStatus) string {
 		return "broken"
 	case a.Health == "unhealthy" || a.Setup == "incomplete":
 		return "broken"
-	case a.Health == "starting" || a.Setup == "pending":
+	case a.Health == "starting" || a.Setup == "pending" || a.Setup == "manual":
 		return "attention"
 	default:
 		return "ok"

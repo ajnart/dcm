@@ -77,7 +77,7 @@ func TestTheHintNamesTheAppPage(t *testing.T) {
 	if err := (uptimekuma.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the administrator is not the saved login")
 	}
-	if rec.Status("admin") != "fail" || !strings.Contains(rec.Hint(), server.URL) {
-		t.Fatalf("admin step should fail with the App URL hint, got %q", rec.Hint())
+	if rec.Status("admin") != "manual" || !strings.Contains(rec.Hint(), server.URL) {
+		t.Fatalf("admin step should be manual with the App URL hint, got %q", rec.Hint())
 	}
 }
