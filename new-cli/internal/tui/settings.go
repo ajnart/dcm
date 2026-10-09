@@ -283,7 +283,7 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 				continue
 			}
 			lines = append(lines, "  "+t.body().Render(pad(v.rows[i].Key, 16))+
-				t.dim().Render(v.rows[i].Current+" → ")+t.fg(t.accent).Render(v.value(i)))
+				t.dim().Render(v.rows[i].Current+" → ")+t.fg(t.accentText).Render(v.value(i)))
 		}
 		if v.hasKey("PUID") || v.hasKey("PGID") {
 			lines = append(lines, "  "+t.fg(t.warn).Render("! PUID/PGID changes who owns the installed Apps' files"))
@@ -301,7 +301,7 @@ func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
 	row := v.rows[i]
 	cursor := "  "
 	if i == v.cursor {
-		cursor = t.fg(t.accent).Bold(true).Render("> ")
+		cursor = t.cursor()
 	}
 	line := cursor + t.body().Render(pad(row.Key, 16))
 	if v.editing && i == v.cursor {
@@ -314,7 +314,7 @@ func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
 	}
 	switch {
 	case v.changed(i):
-		line += t.fg(t.accent).Render(" (pending)")
+		line += t.fg(t.accentText).Render(" (pending)")
 	case row.Drift:
 		note := row.Note
 		if note == "" {

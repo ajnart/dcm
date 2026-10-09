@@ -8,26 +8,34 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// theme is the dashboard's visual vocabulary. Colour carries meaning — green
-// works, amber needs attention, red is broken — so the palette stays small.
+// theme is the dashboard's visual vocabulary. One purple accent marks focus,
+// selection and progress; green, amber and red only ever mean a state; and a
+// grey ramp from bright to faint carries the hierarchy, together with weight.
 type theme struct {
 	accent, ok, warn, fail, info, muted, faint, text, bright, ink, selected color.Color
+	// accentText is the accent as a text colour: lighter on dark terminals,
+	// where the accent itself is too dim to read.
+	accentText color.Color
+	// surface is the near-black ground of status chips.
+	surface color.Color
 }
 
 func newTheme(dark bool) theme {
 	ld := lipgloss.LightDark(dark)
 	return theme{
-		accent:   ld(lipgloss.Color("#6E40C9"), lipgloss.Color("212")),
-		ok:       ld(lipgloss.Color("#1A7F37"), lipgloss.Color("42")),
-		warn:     ld(lipgloss.Color("#9A6700"), lipgloss.Color("214")),
-		fail:     ld(lipgloss.Color("#CF222E"), lipgloss.Color("203")),
-		info:     ld(lipgloss.Color("#0969DA"), lipgloss.Color("81")),
-		muted:    ld(lipgloss.Color("243"), lipgloss.Color("245")),
-		faint:    ld(lipgloss.Color("250"), lipgloss.Color("238")),
-		text:     ld(lipgloss.Color("236"), lipgloss.Color("252")),
-		bright:   ld(lipgloss.Color("16"), lipgloss.Color("230")),
-		ink:      ld(lipgloss.Color("255"), lipgloss.Color("235")),
-		selected: ld(lipgloss.Color("189"), lipgloss.Color("57")),
+		accent:     ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#7A57D3")),
+		accentText: ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#A88DF2")),
+		ok:         ld(lipgloss.Color("#1A7F37"), lipgloss.Color("#00D787")),
+		warn:       ld(lipgloss.Color("#9A6700"), lipgloss.Color("#FFAF00")),
+		fail:       ld(lipgloss.Color("#CF222E"), lipgloss.Color("#FF5F5F")),
+		info:       ld(lipgloss.Color("#0969DA"), lipgloss.Color("#5FAFFF")),
+		bright:     ld(lipgloss.Color("#111114"), lipgloss.Color("#F5F5F5")),
+		text:       ld(lipgloss.Color("#2E2E34"), lipgloss.Color("#D0D0D0")),
+		muted:      ld(lipgloss.Color("#6E6E76"), lipgloss.Color("#8A8A8A")),
+		faint:      ld(lipgloss.Color("#BCBCC4"), lipgloss.Color("#444444")),
+		ink:        ld(lipgloss.Color("#FFFFFF"), lipgloss.Color("#F5F5F5")),
+		selected:   ld(lipgloss.Color("#E6DDF7"), lipgloss.Color("#2B2140")),
+		surface:    ld(lipgloss.Color("#ECEAF2"), lipgloss.Color("#26262C")),
 	}
 }
 
@@ -44,18 +52,57 @@ func (t theme) levelColor(level string) color.Color {
 	}
 }
 
-// dot is the coloured health marker.
-func (t theme) dot(level string) string { return t.fg(t.levelColor(level)).Render("●") }
-
-// chip is a filled pill for the few states that must be seen at a glance.
-func (t theme) chip(label string, bg color.Color) string {
-	return lipgloss.NewStyle().Bold(true).Foreground(t.ink).Background(bg).Padding(0, 1).Render(label)
+// glyph is the shape of a Status level, so it reads without colour.
+func (t theme) glyph(level string) string {
+	switch level {
+	case "ok":
+		return "●"
+	case "warn", "attention":
+		return "◐"
+	default:
+		return "✗"
+	}
 }
 
-func (t theme) title() lipgloss.Style   { return lipgloss.NewStyle().Bold(true).Foreground(t.accent) }
-func (t theme) heading() lipgloss.Style { return lipgloss.NewStyle().Bold(true).Foreground(t.bright) }
+// dot is the coloured Status marker.
+func (t theme) dot(level string) string { return t.fg(t.levelColor(level)).Render(t.glyph(level)) }
+
+// chip is a pill on a near-black surface, coloured by what it reports.
+func (t theme) chip(label string, c color.Color) string {
+	return lipgloss.NewStyle().Bold(true).Foreground(c).Background(t.surface).Padding(0, 1).Render(label)
+}
+
+// brand is the top-left mark, the width of a chip.
+func (t theme) brand() string {
+	return " " + t.title().Render("◆") + " " + t.active().Render("self-host") + " "
+}
+
+// button is a key the person can press, filled with the accent.
+func (t theme) button(label string) string {
+	return lipgloss.NewStyle().Bold(true).Foreground(t.ink).Background(t.accent).Padding(0, 1).Render(label)
+}
+
+func (t theme) title() lipgloss.Style   { return lipgloss.NewStyle().Bold(true).Foreground(t.accentText) }
+func (t theme) heading() lipgloss.Style { return t.active() }
 func (t theme) dim() lipgloss.Style     { return t.fg(t.muted) }
 func (t theme) body() lipgloss.Style    { return t.fg(t.text) }
+
+// active, inactive and disabled are the weight and brightness hierarchy:
+// what is active or focused is bold and near-white, the rest normal grey,
+// and what cannot be used is faint.
+func (t theme) active() lipgloss.Style   { return lipgloss.NewStyle().Bold(true).Foreground(t.bright) }
+func (t theme) inactive() lipgloss.Style { return t.fg(t.muted) }
+func (t theme) disabled() lipgloss.Style { return t.fg(t.faint) }
+
+// current marks the active top-bar surface or detail tab.
+func (t theme) current() lipgloss.Style {
+	return t.active().Underline(true).UnderlineColor(t.accent)
+}
+
+// selection is the highlighted row on its purple-tinted surface.
+func (t theme) selection() lipgloss.Style { return t.active().Background(t.selected) }
+
+func (t theme) cursor() string { return t.title().Render("> ") }
 
 func (t theme) panel(focused bool) lipgloss.Style {
 	border := t.faint
@@ -65,11 +112,21 @@ func (t theme) panel(focused bool) lipgloss.Style {
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(border).Padding(0, 1)
 }
 
-// box draws a rounded panel of exactly width×height cells with title set
-// into its top border.
-func (t theme) box(title, body string, width, height int) string {
+// box draws a rounded panel of exactly width×height cells with title and a
+// dim note set into its top border. The focused box has an accent border and
+// a bold, bright title; the others a faint border and a grey title.
+func (t theme) box(title, note, body string, width, height int, focused bool) string {
 	border := t.fg(t.faint)
-	label := " " + title + " "
+	heading := t.inactive()
+	if focused {
+		border = t.fg(t.accent)
+		heading = t.active()
+	}
+	label := " " + heading.Render(title)
+	if note != "" {
+		label += t.dim().Render(" " + note)
+	}
+	label += " "
 	fill := max(width-3-lipgloss.Width(label), 0)
 	lines := []string{border.Render("╭─") + label + border.Render(strings.Repeat("─", fill)+"╮")}
 	for _, line := range strings.Split(fit(body, max(width-4, 0), max(height-2, 0)), "\n") {

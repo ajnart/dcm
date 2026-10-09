@@ -192,7 +192,7 @@ func (v *stackView) View(ctx *viewContext, width, height int) string {
 	lines = append(lines, "  "+stackHeader(ctx), "")
 	controls := "  "
 	for _, control := range stackControls {
-		button := t.chip(control.key+" "+control.label, t.accent)
+		button := t.button(control.key + " " + control.label)
 		ctx.layers = append(ctx.layers, lipgloss.NewLayer(button).X(lipgloss.Width(controls)).Y(3).ID("stack:"+string(control.action)))
 		controls += button + "  "
 	}
@@ -243,7 +243,7 @@ func (v *stackView) renderRow(ctx *viewContext, c service.ContainerStatus, i int
 	t := ctx.theme
 	cursor := "  "
 	if i == v.cursor {
-		cursor = t.fg(t.accent).Bold(true).Render("> ")
+		cursor = t.cursor()
 	}
 	line := cursor + t.body().Render(pad(c.App, 12)) + t.dim().Render(pad(c.Service, 16)) +
 		pad(c.State, 11) + t.dim().Render(pad(c.Health, 11)) + pad(updateMark(ctx, c.App), 11)

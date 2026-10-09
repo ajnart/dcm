@@ -398,7 +398,7 @@ func (m Model) renderWizard() string {
 		if host.Worst(m.checks) == host.Fail {
 			lines = append(lines, "  "+t.fg(t.fail).Render("Fix the checks above, then press r to check again."))
 		} else {
-			lines = append(lines, "  "+t.chip("enter", t.accent)+t.dim().Render(" start   r recheck   q quit"))
+			lines = append(lines, "  "+t.button("enter")+t.dim().Render(" start   r recheck   q quit"))
 		}
 		return strings.Join(lines, "\n")
 	case stageForm:
@@ -450,7 +450,7 @@ func renderPlan(t theme, p *plan, keys string) string {
 			lines = append(lines, "  "+t.dim().Render("⇄ ")+t.body().Render(l))
 		}
 	}
-	lines = append(lines, "", "  "+t.chip("enter", t.accent)+t.dim().Render(" "+keys))
+	lines = append(lines, "", "  "+t.button("enter")+t.dim().Render(" "+keys))
 	return strings.Join(lines, "\n")
 }
 
@@ -461,7 +461,7 @@ func (m Model) renderInstalling(taskID int) string {
 		return ""
 	}
 	s := task.snapshot()
-	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accent).Render(m.spin.View()), ""}
+	lines := []string{"", "  " + t.title().Render("Installing") + " " + t.fg(t.accentText).Render(m.spin.View()), ""}
 	if images := pullImages(s.events); len(images) > 0 {
 		bar := progress.New(progress.WithWidth(24), progress.WithoutPercentage(),
 			progress.WithFillCharacters('█', '░'))
