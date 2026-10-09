@@ -1,0 +1,19 @@
+new-cli/internal/project/project.go
+  s_95f2547e24b970::t_53b61571ece807 423
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ea7cf8f5237e20e977b7feb1db136e78f10b31a",
+  "prompts": {},
+  "sessions": {
+    "s_95f2547e24b970": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11fa8-dcc0-79c1-902d-e0195801fb85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
