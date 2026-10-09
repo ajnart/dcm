@@ -1,0 +1,84 @@
+new-cli/README.md
+  h_d6e478ca18e517 125-134,148
+new-cli/internal/tui/actionmenu.go
+  h_d6e478ca18e517 1-332
+new-cli/internal/tui/actionmenu_test.go
+  h_d6e478ca18e517 1-347
+new-cli/internal/tui/activity_tab_test.go
+  h_d6e478ca18e517 56-58,71,87,89-94,97-103
+new-cli/internal/tui/activity_view.go
+  h_d6e478ca18e517 10,32-33,51-59,194
+new-cli/internal/tui/activity_view_test.go
+  h_d6e478ca18e517 45-55
+new-cli/internal/tui/backend.go
+  h_d6e478ca18e517 26,161-162
+new-cli/internal/tui/copy.go
+  h_d6e478ca18e517 83
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 52-55,86-94,177-182,501,504,510,518,630,654
+new-cli/internal/tui/golden_test.go
+  h_d6e478ca18e517 85-101
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 292-294,314-319,323,327-328,331-332,335,342-343,369,372-374,383-385,387-391,394-395,399-400,403,405-407,470-472,474,477-480,548,809,813-816,839-840
+new-cli/internal/tui/help.go
+  h_d6e478ca18e517 38-39
+new-cli/internal/tui/keys.go
+  h_d6e478ca18e517 7-8,11,14,22-41,48,53
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 135,515,583-584,606-610,690-695
+new-cli/internal/tui/stack.go
+  h_d6e478ca18e517 17-18,21-22,24,65,71-72,75-76,78,80,124
+new-cli/internal/tui/tabs_test.go
+  h_d6e478ca18e517 170,330,339
+new-cli/internal/tui/testdata/activity-finished-narrow.golden
+  h_d6e478ca18e517 24
+new-cli/internal/tui/testdata/activity-finished.golden
+  h_d6e478ca18e517 30
+new-cli/internal/tui/testdata/activity-running-narrow.golden
+  h_d6e478ca18e517 24
+new-cli/internal/tui/testdata/activity-running.golden
+  h_d6e478ca18e517 30
+new-cli/internal/tui/testdata/menu-app-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/menu-app.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/menu-project-narrow.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/tui/testdata/menu-project.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/tui/testdata/tab-activity-narrow.golden
+  h_d6e478ca18e517 24
+new-cli/internal/tui/testdata/tab-activity.golden
+  h_d6e478ca18e517 30
+new-cli/internal/tui/testdata/tab-apps-narrow.golden
+  h_d6e478ca18e517 22-24
+new-cli/internal/tui/testdata/tab-apps.golden
+  h_d6e478ca18e517 28-30
+new-cli/internal/tui/testdata/tab-catalog-narrow.golden
+  h_d6e478ca18e517 24
+new-cli/internal/tui/testdata/tab-catalog.golden
+  h_d6e478ca18e517 30
+new-cli/internal/tui/testdata/tab-overview-narrow.golden
+  h_d6e478ca18e517 8-9,24
+new-cli/internal/tui/testdata/tab-overview.golden
+  h_d6e478ca18e517 8-10,30
+new-cli/internal/tui/testdata/tab-settings-narrow.golden
+  h_d6e478ca18e517 24
+new-cli/internal/tui/testdata/tab-settings.golden
+  h_d6e478ca18e517 30
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 418,509-511,521-523
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 98,361,383
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59ac3697e0f7445f2f6973438acd6c1d4771af6c",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
