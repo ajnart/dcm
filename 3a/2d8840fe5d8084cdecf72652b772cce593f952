@@ -1,0 +1,36 @@
+new-cli/internal/tui/copy.go
+  h_d6e478ca18e517 126
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 386-388,390-393,398-399,402-403,410,415,439,507,530,532,534,544,546,548,554,560,563,566,572,579
+new-cli/internal/tui/install.go
+  h_d6e478ca18e517 382,386,391,399,403,424,449,460
+new-cli/internal/tui/settings.go
+  h_d6e478ca18e517 286,304,317
+new-cli/internal/tui/stack.go
+  h_d6e478ca18e517 195,246
+new-cli/internal/tui/testdata/dashboard-narrow.golden
+  h_d6e478ca18e517 1,4-5
+new-cli/internal/tui/testdata/dashboard.golden
+  h_d6e478ca18e517 1,4-5
+new-cli/internal/tui/theme.go
+  h_d6e478ca18e517 11-13,16-20,26-38,55-68,70-72,75-86,90-106,115-118,120-129
+new-cli/internal/tui/theme_test.go
+  h_d6e478ca18e517 1-161
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 255,270,273,275,277,279,322,327,331,333,459
+new-cli/internal/tui/wizard.go
+  h_d6e478ca18e517 401,453,464
+new-cli/internal/tui/workflow_view.go
+  h_d6e478ca18e517 221,271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3a2d8840fe5d8084cdecf72652b772cce593f952",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
