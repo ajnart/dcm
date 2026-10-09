@@ -33,7 +33,7 @@ func TestAppsListsShowACategoryIconInEachSet(t *testing.T) {
 			}
 		}
 		apps := screen(drive(t, m, press("2")))
-		for _, want := range []string{tc.media + " jellyfin", tc.requests + " sonarr", tc.other + " whoami"} {
+		for _, want := range []string{tc.media + " Jellyfin", tc.requests + " Sonarr", tc.other + " whoami"} {
 			if !strings.Contains(apps, want) {
 				t.Errorf("%s: the Apps tab lacks %q\n%s", tc.set, want, apps)
 			}

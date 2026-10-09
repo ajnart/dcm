@@ -22,13 +22,13 @@ import (
 const wideWidth = 100
 
 // surface is the Dashboard tab a view fills, in tab order: Overview
-// (dashboardView), Apps (stackView), Activity (activityView), Catalog
+// (dashboardView), Apps (appsView), Activity (activityView), Catalog
 // (installView) and Settings.
 type surface int
 
 const (
 	surfaceDashboard surface = iota
-	surfaceStack
+	surfaceApps
 	surfaceActivity
 	surfaceInstall
 	surfaceSettings
@@ -38,7 +38,7 @@ var tabs = []struct {
 	name, label string
 }{
 	surfaceDashboard: {"dashboard", "Overview"},
-	surfaceStack:     {"stack", "Apps"},
+	surfaceApps:      {"apps", "Apps"},
 	surfaceActivity:  {"activity", "Activity"},
 	surfaceInstall:   {"install", "Catalog"},
 	surfaceSettings:  {"settings", "Settings"},
@@ -55,10 +55,13 @@ const (
 	// install or a Settings change was approved, or changes were discarded),
 	// so the tab starts afresh next time.
 	navDone
+	// navTo switches to another tab.
+	navTo
 )
 
 type nav struct {
 	kind navKind
+	to   surface
 }
 
 // pane is one focusable part of a tab and the keys that act in it.

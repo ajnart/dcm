@@ -292,12 +292,12 @@ func TestProjectDownShowsItsConsequenceBeforeRunning(t *testing.T) {
 }
 
 func TestAppMenuOpensFromTheAppsAndActivityTabs(t *testing.T) {
-	m, _ := stackHost(t)
+	m, _ := appsHost(t)
 
-	m = drive(t, m, press("down")) // sonarr's container
+	m = drive(t, m, press("down")) // Sonarr
 	m = drive(t, m, press("a"))
 	if !strings.Contains(screen(m), "Sonarr · Actions") {
-		t.Fatalf("a on the Apps tab should open the selected container's App menu\n%s", screen(m))
+		t.Fatalf("a on the Apps tab should open the selected App's menu\n%s", screen(m))
 	}
 	m = drive(t, m, press("esc"))
 

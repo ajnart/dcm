@@ -112,3 +112,12 @@ func TestGoldenActionMenus(t *testing.T) {
 		}
 	}
 }
+
+func TestGoldenAppsContainers(t *testing.T) {
+	m := goldenModel(t, 120, 30)
+	m = drive(t, m, press("2"))
+
+	m = drive(t, m, press("[")) // logs → containers
+
+	golden(t, "tab-apps-containers", trimLines(screen(m)))
+}

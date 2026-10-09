@@ -338,8 +338,8 @@ func TestNothingNeedsAttentionWhenAllIsWell(t *testing.T) {
 // read-only and Action menu keys
 // docs/adr/0004-tabbed-command-center-action-chords.md lists, and each
 // pane's own hints as the bar and help show them. No key changes an App or
-// the Project directly. Adding one means changing the ADR and this test on
-// purpose.
+// the Project directly, and no Stack key survives: the Apps tab holds its
+// containers. Adding one means changing the ADR and this test on purpose.
 func TestKeybindAudit(t *testing.T) {
 	want := []string{
 		// Global keys.
@@ -348,14 +348,14 @@ func TestKeybindAudit(t *testing.T) {
 		"up: up k", "down: down j", "next pane: tab", "previous pane: shift+tab",
 		"previous sub-tab: [", "next sub-tab: ]", "page up: pgup", "page down: pgdown",
 		// The App's Action menu and the read-only keys.
-		"actions: a", "open: o", "copy: c", "search: /", "back: esc", "details: enter",
+		"actions: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter",
 		// Settings applies its pending changes.
 		"apply: ctrl+s",
 		// The open Action menu.
 		"highlight an Action: letter", "run: enter", "run; destructive Actions need it twice: enter", "close: esc",
 		// Pane hints for the bar and help.
 		"select: ↑/↓", "scroll: ↑/↓", "sub-tab: [/]", "page: pgup/pgdn",
-		"copy: enter", "check updates: r", "error/hint: enter", "collapse: space",
+		"copy: enter", "refresh: r", "error/hint: enter", "collapse: space",
 		"pick: space", "review: enter", "install: enter", "next input: tab",
 		"edit: enter", "accept: enter", "cancel: esc", "next choice: tab",
 		"done: enter", "clear: esc",
@@ -363,7 +363,7 @@ func TestKeybindAudit(t *testing.T) {
 		"choose: enter",
 	}
 	ctx := testViewContext(&fakeBackend{})
-	views := []view{newDashboardView(), &stackView{}, &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
+	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}
 	bindings := append(newKeyMap().all(), menuKeys...)
 	bindings = append(bindings, menuHelpKeys...)
 	for _, v := range views {
@@ -406,7 +406,7 @@ func TestRemovedKeysDoNothing(t *testing.T) {
 }
 
 func TestNoTabHasADirectMutatingKey(t *testing.T) {
-	m, backend := stackHost(t)
+	m, backend := appsHost(t)
 	m = update(t, m, updatesMsg{updates: map[string]string{"jellyfin": service.UpdateAvailable}})
 
 	for _, tab := range []string{"1", "2", "3"} {
@@ -464,7 +464,7 @@ func TestOpenUsesTheLANURLAndCopyGetsThePassword(t *testing.T) {
 	}
 	m = drive(t, m, press("c"))
 	m = drive(t, m, press("esc"))
-	if m.dashboard.copy != nil {
+	if m.apps.copy != nil {
 		t.Fatal("esc must close the copy picker")
 	}
 }
@@ -505,6 +505,23 @@ func TestStatusLineShowsTheRunningActionThenItsResult(t *testing.T) {
 	if !strings.Contains(statusLine(screen(m)), "✓ restart jellyfin") {
 		t.Fatalf("the status line should report the result\n%s", statusLine(screen(m)))
 	}
+}
+
+// helpText opens help and reads it to the end, page by page, the way a
+// person scrolls it.
+func helpText(t *testing.T, m Model) string {
+	t.Helper()
+	m = drive(t, m, press("?"))
+	var pages []string
+	for range 20 {
+		page := ansi.Strip(m.renderOverlay())
+		if len(pages) > 0 && page == pages[len(pages)-1] {
+			break
+		}
+		pages = append(pages, page)
+		m = drive(t, m, pgdownKey())
+	}
+	return strings.Join(pages, "\n")
 }
 
 func lastLine(s string) string {
@@ -567,10 +584,8 @@ func TestEscapeLeavesTheCatalogWithoutInstalling(t *testing.T) {
 func TestHelpListsEveryKey(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
-	m = drive(t, m, press("?"))
-
-	help := ansi.Strip(m.renderOverlay())
-	for _, want := range []string{"tabs", "Project", "actions", "highlight an Action", "open", "copy", "pick", "install", "check updates", "quit"} {
+	help := helpText(t, m)
+	for _, want := range []string{"tabs", "Project", "actions", "highlight an Action", "open", "copy", "pick", "install", "refresh", "go to App", "quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}
@@ -800,7 +815,7 @@ func TestSettingsEscapeWithPendingChangesAsksToDiscard(t *testing.T) {
 	}
 }
 
-func stackHost(t *testing.T) (Model, *fakeBackend) {
+func appsHost(t *testing.T) (Model, *fakeBackend) {
 	t.Helper()
 	m, backend := sample(t, 140, 40)
 	backend.containers = []service.ContainerStatus{
@@ -815,31 +830,6 @@ func stackHost(t *testing.T) (Model, *fakeBackend) {
 	backend.updates = map[string]string{"jellyfin": "available"}
 	m = drive(t, m, press("2"))
 	return m, backend
-}
-
-func TestStackHeaderCountsContainersRunningAndUpdates(t *testing.T) {
-	m, _ := stackHost(t)
-
-	out := screen(m)
-	for _, want := range []string{"7 containers", "5 running", "1 App with an update", "checked 12:00"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("stack header lacks %q\n%s", want, out)
-		}
-	}
-	if !strings.Contains(out, "⚠ update") || !strings.Contains(out, "? unknown") {
-		t.Errorf("stack should mark updates\n%s", out)
-	}
-}
-
-func TestStackRChecksUpdatesWithoutChangingAnything(t *testing.T) {
-	m, backend := stackHost(t)
-
-	before := backend.updateCalls
-	drive(t, m, press("r"))
-
-	if backend.updateCalls <= before || len(backend.Actions()) != 0 {
-		t.Fatalf("r should only check updates again (%d → %d), actions %v", before, backend.updateCalls, backend.Actions())
-	}
 }
 
 func TestEveryViewFitsEightyColumns(t *testing.T) {
@@ -863,6 +853,7 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
 		}
 		check(string(set)+" Appearance", drive(t, drive(t, m, press("5")), press("tab")))
+		check(string(set)+" Apps containers", drive(t, drive(t, m, press("2")), press("[")))
 		check(string(set)+" help", drive(t, m, press("?")))
 		check(string(set)+" App menu", drive(t, m, press("a")))
 		check(string(set)+" Project menu", drive(t, m, press("A")))
