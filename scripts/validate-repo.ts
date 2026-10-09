@@ -422,9 +422,37 @@ function parseOpenAiInterface(yaml, label) {
   return values;
 }
 
+async function findStraySkillFiles() {
+  const stray = [];
+  const candidates = [join(REPOSITORY_ROOT, "SKILL.md")];
+  for (const entry of await readdir(REPOSITORY_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
+      continue;
+    }
+    candidates.push(join(REPOSITORY_ROOT, entry.name, "SKILL.md"));
+    if (entry.name === "skills") {
+      for (const child of await readdir(join(REPOSITORY_ROOT, entry.name), { withFileTypes: true })) {
+        candidates.push(join(REPOSITORY_ROOT, entry.name, child.name, "SKILL.md"));
+      }
+    }
+  }
+  for (const candidate of candidates) {
+    try {
+      await lstat(candidate);
+      stray.push(repositoryPath(candidate));
+    } catch {
+      continue;
+    }
+  }
+  return stray;
+}
+
 async function validateSkillMetadata() {
   const skills = await discoverSkillRoots();
   const errors = [];
+  for (const stray of await findStraySkillFiles()) {
+    errors.push(`skill discovery: ${stray} would shadow the public self-host skill in a repository install`);
+  }
   let descriptionCharacters = 0;
 
   for (const skill of skills) {

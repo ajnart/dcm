@@ -9,6 +9,8 @@ MINIMUM_BUN_MAJOR=1
 MINIMUM_BUN_MINOR=4
 MINIMUM_BUN_PATCH=0
 SMOKE_TEMP_DIR=""
+SMOKE_TEMP_BASE="${TMPDIR:-/tmp}"
+SMOKE_TEMP_BASE="${SMOKE_TEMP_BASE%/}"
 SOURCE_SKILL_NAMES=()
 PROFILE_SKILL_NAMES=(
   self-host
@@ -24,7 +26,6 @@ COMMON_AGENT_ARGUMENTS=(
 COMMON_COPY_ROOTS=(
   .agents/skills
   .claude/skills
-  .pi/skills
   skills
   .hermes/skills
 )
@@ -74,13 +75,17 @@ cleanup() {
     return
   fi
   case "$SMOKE_TEMP_DIR" in
-    /tmp/selfhost-skills-smoke.*)
+    "$SMOKE_TEMP_BASE"/selfhost-skills-smoke.*)
       rm -rf -- "$SMOKE_TEMP_DIR"
       ;;
     *)
       printf 'FAIL smoke-install: refusing to clean an unexpected path\n' >&2
       ;;
   esac
+}
+
+strip_terminal_codes() {
+  sed $'s/\x1b\\[[0-9;?]*[A-Za-z]//g'
 }
 
 name_in_array() {
@@ -341,7 +346,7 @@ for source_skill in "$REPOSITORY_ROOT"/.agents/skills/*; do
 done
 ((${#SOURCE_SKILL_NAMES[@]} > 0)) || fail "no source skills were found"
 
-SMOKE_TEMP_DIR="$(mktemp -d /tmp/selfhost-skills-smoke.XXXXXX)"
+SMOKE_TEMP_DIR="$(mktemp -d "$SMOKE_TEMP_BASE/selfhost-skills-smoke.XXXXXX")"
 [[ -d "$SMOKE_TEMP_DIR" ]] || fail "mktemp did not create the disposable directory"
 INSTALL_SOURCE="$SMOKE_TEMP_DIR/source-package"
 LIST_PROJECT="$SMOKE_TEMP_DIR/list"
@@ -381,7 +386,7 @@ done
 
 LIST_OUTPUT="$(
   cd -- "$LIST_PROJECT"
-  bunx --bun skills@latest add "$INSTALL_SOURCE" --list
+  bunx --bun skills@latest add "$INSTALL_SOURCE" --list | strip_terminal_codes
 )" || fail "skills CLI could not list the local repository"
 case "$LIST_OUTPUT" in
   *"Available Skills"*)
@@ -434,7 +439,7 @@ done
 
 BROWSER_LIST_OUTPUT="$(
   cd -- "$LIST_PROJECT"
-  bunx --bun skills@latest add vercel-labs/agent-browser --list
+  bunx --bun skills@latest add vercel-labs/agent-browser --list | strip_terminal_codes
 )" || fail "skills CLI could not list the official agent-browser repository"
 BROWSER_SKILL_COUNT=0
 while IFS= read -r list_line; do

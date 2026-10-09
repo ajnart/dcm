@@ -12,7 +12,41 @@ Bun, checkout, or AI account. A Project made by a pre-release build in
 `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
 at one.
 
-**Private release:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
+## Quick start
+
+Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
+Windows through WSL.
+
+1. **Install the CLI:**
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
+   export PATH="$HOME/.local/bin:$PATH"
+   self-host --version
+   ```
+
+2. **Add the skill to your agent** (needs Git and Bun 1.4+):
+
+   ```bash
+   bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
+   ```
+
+Then ask your agent to use the self-host skill ("use self-host to watch my
+movies on the TV"; `/self-host` in Claude Code, `$self-host` in Codex), or run
+`self-host` yourself for the terminal Dashboard. Installing deploys nothing.
+
+If something fails:
+
+- `self-host: command not found`: add `~/.local/bin` to `PATH`.
+- The agent's guide has no New and Advanced paths: run `self-host self-update`.
+- Docker missing or stopped: install or start it, then run `self-host doctor`.
+- A 404 or authentication error: run `gh auth login`, then
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+- `curl` reports an error but the command seems to succeed: a pipe hides
+  curl's exit status. In scripts run `set -o pipefail` first.
+- Windows: use WSL; native Windows is unsupported.
+
+**Release proof:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
 is published. Linux amd64 host installation, self-update and a clean Alpine
 bootstrap/update passed using the 0.1.2 installer; [release proof](docs/release-proof.md)
 records the scope. The older npm CLI and agent-plugin releases use separate versions.
@@ -26,37 +60,18 @@ Project at `374bd1c`, captured after all nine Homarr API/browser stages passed.
 (asciicast v2) and [capture provenance](docs/demos/capture.json) come from the same
 real binary and fixture. This demonstrates these three Apps, not the full Catalog.
 
-## Install
-
-The repository is currently private. With repository access, fetch the installer
-using your authenticated GitHub client:
-
-```bash
-set +x
-gh auth status
-gh api --method GET -H 'Accept: application/vnd.github.raw+json' \
-  'repos/ajnart/selfhost-skills/contents/new-cli/install.sh?ref=new-cli-v0.1.2' \
-  > /tmp/self-host-install.sh
-SELF_HOST_VERSION=0.1.2 SELF_HOST_GITHUB_TOKEN="$(gh auth token)" \
-  bash /tmp/self-host-install.sh
-export PATH="$HOME/.local/bin:$PATH"
-self-host --version
-```
-
-GitHub CLI must be logged in with access to this repository. The command passes
-its stored credential directly to the installer through `SELF_HOST_GITHUB_TOKEN`
-with shell tracing disabled. You can instead supply that variable through your
-credential provider. Never print or paste its value into commands or reports.
-This exact bootstrap passed with the published 0.1.2 installer and binary on
-Linux amd64. The repository remains private; an unauthenticated `curl` download
-cannot install this release.
+## Install details
 
 The installer selects the highest stable `new-cli-vX.Y.Z` release, verifies the
 archive against `checksums.txt`, and installs `self-host` in `~/.local/bin`
-(`/usr/local/bin` when run as root). Put the selected directory on `PATH`.
+(`/usr/local/bin` when run as root). Put that directory on `PATH`.
 `SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts
-an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. Omit the version override
-to select the highest stable CLI release.
+an existing `X.Y.Z` version or its `new-cli-vX.Y.Z` tag. Omit it to select the
+highest stable CLI release.
+
+When GitHub rejects an unauthenticated download, the installer accepts
+`SELF_HOST_GITHUB_TOKEN` or, when unset, uses `gh auth token`. Never print or
+paste a token into commands or reports.
 
 To build the current development source from an authenticated checkout:
 
@@ -217,8 +232,8 @@ The equivalent commands are `self-host up`, `self-host down` and
 ## Agents and automation
 
 Run `self-host skill` to get the guide matching the installed binary.
-[new-cli/SKILL.md](SKILL.md) is the small agent entry point. This Go guide is
-separate from the repository's older bundled self-host skill.
+The repository's one public skill, `.agents/skills/self-host/SKILL.md`, is the
+agent entry point and routes to that guide.
 
 Inspect first, agree on the Apps and Exposure, then apply the approved selection:
 

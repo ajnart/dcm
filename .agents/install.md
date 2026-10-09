@@ -4,6 +4,42 @@ The package has one public `self-host` skill. Its internal workflows and service
 recipes are included as ordinary files and loaded only for the current task.
 Profiles select behavior and services, not separate packages to install.
 
+## Quick start
+
+Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
+Windows through WSL.
+
+1. **Install the CLI:**
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
+   export PATH="$HOME/.local/bin:$PATH"
+   self-host --version
+   ```
+
+2. **Add the skill to your agent** (needs Git and Bun 1.4+):
+
+   ```bash
+   bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
+   ```
+
+Then ask your agent to use the self-host skill ("use self-host to watch my
+movies on the TV"; `/self-host` in Claude Code, `$self-host` in Codex), or run
+`self-host` yourself for the terminal Dashboard. Installing deploys nothing.
+
+If something fails:
+
+- `self-host: command not found`: add `~/.local/bin` to `PATH`.
+- The agent's guide has no New and Advanced paths: run `self-host self-update`.
+- Docker missing or stopped: install or start it, then run `self-host doctor`.
+- A 404 or authentication error: run `gh auth login`, then
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+- `curl` reports an error but the command seems to succeed: a pipe hides
+  curl's exit status. In scripts run `set -o pipefail` first.
+- Windows: use WSL; native Windows is unsupported.
+
+The sections below cover each agent, scope, and layout in detail.
+
 ## One-step Pi, OpenCode, and Codex install
 
 Clone the repository, then run its installer for the project you use with your
@@ -34,7 +70,9 @@ deployed services.
 
 ## Skills CLI
 
-Install Git and Bun 1.4.0 or newer. From the project that will own the stack:
+Install Git and Bun 1.4.0 or newer. If the clone is refused, authenticate with
+`gh auth login`, an SSH key, or a Git credential helper; the Skills CLI tries
+`gh` and SSH. From the project that will own the stack:
 
 ```bash
 bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
@@ -128,16 +166,16 @@ JS/TS plugin for this workflow. [OpenCode skills](https://opencode.ai/docs/skill
 
 ## Agent paths and invocation
 
-These are the Skills CLI targets checked against its official source. Clients
-may support additional paths; the setup helper uses
+These are the Skills CLI 1.7 targets, checked by installing into disposable
+homes. Clients may support additional paths; the setup helper uses
 [coding-agents.json](skills/self-host/workflows/selfhost-setup/references/coding-agents.json).
 
 | Agent ID | Project skill directory | Global skill directory | Invocation |
 | --- | --- | --- | --- |
-| `codex` | `.agents/skills` | `~/.codex/skills` (`CODEX_HOME` override) | `$self-host` |
+| `codex` | `.agents/skills` | `~/.agents/skills` (older CLIs: `~/.codex/skills`) | `$self-host` |
 | `claude-code` | `.claude/skills` | `~/.claude/skills` (`CLAUDE_CONFIG_DIR` override) | `/self-host` |
 | `opencode` | `.agents/skills` | `~/.agents/skills` | Ask to use `self-host`; client also supports native `.opencode/skills` |
-| `pi` | `.pi/skills` | `~/.pi/agent/skills` | `/skill:self-host` |
+| `pi` | `.agents/skills` (older CLIs: `.pi/skills`) | `~/.agents/skills` (older CLIs: `~/.pi/agent/skills`) | `/skill:self-host` |
 | `openclaw` | `skills` in the agent workspace | `~/.openclaw/skills` | `/skill self-host` |
 | `hermes-agent` | `.hermes/skills` | `~/.hermes/skills` | `/self-host` |
 
@@ -150,7 +188,7 @@ single [command template](skills/self-host/commands/self-host.md) to each
 client's command directory:
 
 ```bash
-bun ~/.codex/skills/self-host/scripts/install-command.ts --agent codex --agent pi --agent opencode --scope global
+bun ~/.agents/skills/self-host/scripts/install-command.ts --agent codex --agent pi --agent opencode --scope global
 ```
 
 For a project-scoped Pi and OpenCode install, run the helper from either
