@@ -90,7 +90,7 @@ func TestExposureHelpPageTellsWhatTheTicketPromises(t *testing.T) {
 func TestTheLiveExplanationIsPlainWordsWithNoBindAddress(t *testing.T) {
 	for _, exposure := range []string{service.ExposureLAN, service.ExposureLocal} {
 		for _, room := range []int{20, 8, 4} {
-			block := ansi.Strip(strings.Join(exposureBlock(newTheme(true), exposure, "192.168.1.20", 76, room), "\n"))
+			block := ansi.Strip(strings.Join(exposureBlock(newTheme(true), exposure, exposure, "192.168.1.20", 76, room), "\n"))
 			if strings.Contains(block, "0.0.0.0") || strings.Contains(block, "127.0.0.1") || strings.Contains(block, "published") {
 				t.Errorf("%s room=%d: the live block must be plain words\n%s", exposure, room, block)
 			}

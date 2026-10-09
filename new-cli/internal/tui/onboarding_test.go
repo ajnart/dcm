@@ -501,6 +501,11 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 	see("Where exposure", m)
 	m = drive(t, m, press("down"))
 	see("Where exposure local", m)
+	m = drive(t, m, press("down"))
+	see("Where exposure coming soon", m)
+	m = drive(t, m, press("enter"))
+	see("Where exposure coming soon note", m)
+	m = drive(t, m, press("up"))
 	m = drive(t, m, press("up"))
 	m = drive(t, m, press("?"))
 	see("Where help", m)
@@ -540,7 +545,7 @@ func TestGoldenOnboarding(t *testing.T) {
 		t.Run("steps"+size.suffix, func(t *testing.T) {
 			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
 				switch name {
-				case "What", "Where", "Where exposure", "Where exposure local", "Where help", "Where host settings", "Who", "Look":
+				case "What", "Where", "Where exposure", "Where exposure local", "Where exposure coming soon", "Where exposure coming soon note", "Where help", "Where host settings", "Who", "Look":
 					golden(t, "onboarding-"+strings.ReplaceAll(strings.ToLower(name), " ", "-")+size.suffix, trimLines(screen(m)))
 				}
 			})
@@ -1102,5 +1107,74 @@ func TestResizingKeepsTheFormInsideTheWindow(t *testing.T) {
 		if ansi.StringWidth(line) > 80 {
 			t.Fatalf("line wider than 80 columns after the resize: %q", line)
 		}
+	}
+}
+
+func TestWhereListsTheComingSoonOptionsAfterTheTwoChoices(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+
+	out := ansi.Strip(screen(m))
+	last := -1
+	for _, want := range []string{"Other devices on your network", "Only this computer", "Tailscale: your devices, from anywhere · coming soon",
+		"Cloudflare Tunnel: a public address · coming soon", "HTTPS with a reverse proxy: Caddy · coming soon"} {
+		at := strings.Index(out, want)
+		if at <= last {
+			t.Fatalf("%q should follow the entries before it\n%s", want, out)
+		}
+		last = at
+	}
+}
+
+func TestHighlightingAComingSoonOptionExplainsItAndEnterKeepsTheChoice(t *testing.T) {
+	for _, tc := range []struct {
+		downs         int
+		will, stays   string
+		diagramMarker string
+	}{
+		{2, "Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are", "your Apps stay on this computer", "router ──✗── this computer"},
+		{3, "Cloudflare Tunnel will give your Apps a public address on the internet, without opening any port on your router", "your Apps stay on this computer", "internet ✗"},
+		{4, "A reverse proxy will put your Apps behind secure https:// addresses. Caddy", "your Apps stay on this computer", "internet ✗"},
+	} {
+		m, backend := freshHost(t)
+		m = atExposure(t, m)
+		m = drive(t, m, press("down")) // this computer only
+		for range tc.downs - 1 {
+			m = drive(t, m, press("down"))
+		}
+
+		out := flat(screen(m))
+		if !strings.Contains(out, tc.will) || !strings.Contains(out, "It isn't available yet: "+tc.stays) || !strings.Contains(out, tc.diagramMarker) {
+			t.Fatalf("the highlighted entry says what it will do and that it isn't available yet\n%s", screen(m))
+		}
+		m = drive(t, m, press("enter"))
+		if m.onboarding.step != stepWhere || m.onboarding.answers.exposure != service.ExposureLocal {
+			t.Fatalf("enter keeps Where and the current choice, step %v exposure %q", m.onboarding.step, m.onboarding.answers.exposure)
+		}
+		if note := flat(screen(m)); !strings.Contains(note, " is coming soon; your Apps stay on this computer") {
+			t.Fatalf("enter says it is coming soon\n%s", screen(m))
+		}
+		if len(backend.Actions()) != 0 || len(backend.installs()) != 0 {
+			t.Fatalf("nothing is dispatched, actions %v", backend.Actions())
+		}
+	}
+}
+
+func TestTabAndEnterOnAComingSoonOptionStayOnTheCurrentChoice(t *testing.T) {
+	m, _ := freshHost(t)
+	m = atExposure(t, m)
+	for range 2 {
+		m = drive(t, m, press("down"))
+	}
+	m = drive(t, m, press("tab"))
+	m = drive(t, m, press("enter"))
+	if m.onboarding.step != stepWhere || m.onboarding.focusedKey() != whereExposure || m.onboarding.answers.exposure != service.ExposureLocal {
+		t.Fatalf("tab and enter on a coming-soon entry keep the last real choice at the Exposure choice, exposure %q focus %q", m.onboarding.answers.exposure, m.onboarding.focusedKey())
+	}
+
+	m = drive(t, m, press("up"))
+	m = drive(t, m, press("enter"))
+	if m.onboarding.focusedKey() == whereExposure || m.onboarding.answers.exposure != service.ExposureLocal {
+		t.Fatalf("enter on this computer only moves on with it, exposure %q focus %q", m.onboarding.answers.exposure, m.onboarding.focusedKey())
 	}
 }

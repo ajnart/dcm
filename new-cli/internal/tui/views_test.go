@@ -66,11 +66,13 @@ func TestSettingsViewWithoutAModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	v := newSettingsView(ctx)
 
-	next, _, _ := v.Update(ctx, press("space"))
-	v = next.(*settingsView)
+	for _, k := range []string{"space", "down", "enter"} {
+		next, _, _ := v.Update(ctx, press(k))
+		v = next.(*settingsView)
+	}
 
 	if pairs := v.pairs(); len(pairs) != 1 || pairs[0] != "EXPOSURE=local" {
-		t.Fatalf("space on EXPOSURE should pend local: %v", pairs)
+		t.Fatalf("choosing Only this computer on EXPOSURE should pend local: %v", pairs)
 	}
 }
 

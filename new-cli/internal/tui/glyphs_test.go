@@ -164,7 +164,7 @@ func narrowSettings(t *testing.T) Model {
 		{Key: "DOWNLOADS_ROOT", Current: "/home/alice/downloads"},
 	}
 	m = drive(t, m, press("5"))
-	m = drive(t, m, press("space"))
+	m = pickLocalExposure(t, m)
 	for i := 0; i < 3; i++ {
 		m = drive(t, m, press("down"))
 	}

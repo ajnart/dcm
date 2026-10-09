@@ -64,6 +64,11 @@ type settingsView struct {
 	choices   []string
 	choiceIdx int
 
+	// choosing is the Exposure choice open as a list, highlight an index into
+	// exposureChoices.
+	choosing  bool
+	highlight int
+
 	backups backupsPane
 
 	err            string
@@ -82,6 +87,7 @@ var (
 	}
 	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
 	settingsChoiceKey = hint("tab", "next choice")
+	exposureListKeys  = []key.Binding{hint("↑/↓", "select"), hint("enter", "choose"), hint("esc", "cancel")}
 )
 
 func newSettingsView(ctx *viewContext) *settingsView {
@@ -94,6 +100,8 @@ func newSettingsView(ctx *viewContext) *settingsView {
 
 func (v *settingsView) Keys() []key.Binding {
 	switch {
+	case v.choosing:
+		return exposureListKeys
 	case v.exposureSelected():
 		return append([]key.Binding{moreKey}, settingsHelp...)
 	case v.editing && len(v.choices) > 1:
@@ -113,7 +121,7 @@ func (v *settingsView) Keys() []key.Binding {
 }
 
 func (v *settingsView) Panes() []pane {
-	return []pane{{"Host settings", settingsHelp}, {"Exposure row", []key.Binding{moreKey}}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
+	return []pane{{"Host settings", settingsHelp}, {"Exposure row", []key.Binding{moreKey}}, {"Exposure choice", exposureListKeys}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
 		{"Restore", restorePreviewKey}, {"Tools", toolsKeys}, {"About", aboutKeys},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
@@ -133,13 +141,13 @@ var glyphChoices = []glyphChoice{
 const nerdFontsURL = "https://www.nerdfonts.com"
 
 func (v *settingsView) Capturing() bool {
-	return v.editing || v.tab == tabBackups && v.backups.modal()
+	return v.editing || v.choosing || v.tab == tabBackups && v.backups.modal()
 }
 
 // exposureSelected reports that the Host sub-tab's cursor is on EXPOSURE and
 // nothing else has taken the keys.
 func (v *settingsView) exposureSelected() bool {
-	return v.tab == tabHost && !v.editing && !v.confirmDiscard && v.rows[v.cursor].Key == "EXPOSURE"
+	return v.tab == tabHost && !v.editing && !v.choosing && !v.confirmDiscard && v.rows[v.cursor].Key == "EXPOSURE"
 }
 
 // valueOf is the current or pending value of a setting.
@@ -305,6 +313,10 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		}
 		return v, nil, nav{}
 	}
+	if v.choosing {
+		v.chooseExposure(ctx, msg)
+		return v, nil, nav{}
+	}
 	if v.editing {
 		switch msg.String() {
 		case "esc":
@@ -442,11 +454,8 @@ func saveGlyphs(backend Backend, g activity.Glyphs) tea.Cmd {
 func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
 	row := v.rows[v.cursor]
 	if row.Key == "EXPOSURE" {
-		value := service.ExposureLAN
-		if v.value(v.cursor) == service.ExposureLAN {
-			value = service.ExposureLocal
-		}
-		v.edits[row.Key] = value
+		v.choosing = true
+		v.highlight = max(slices.IndexFunc(exposureChoices, func(c exposureChoice) bool { return c.id == v.value(v.cursor) }), 0)
 		return v, nil, nav{}
 	}
 	v.editing, v.key, v.err = true, row.Key, ""
@@ -463,6 +472,29 @@ func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
 	v.input.SetWidth(max(ctx.width-24, 20))
 	v.input.Focus()
 	return v, textinput.Blink, nav{}
+}
+
+// chooseExposure moves the highlight of the open Exposure list; enter takes
+// lan or local as a pending change and closes it, and says a coming-soon entry
+// is coming soon without changing or saving anything.
+func (v *settingsView) chooseExposure(ctx *viewContext, msg tea.KeyPressMsg) {
+	ctx.setFlash("", levelInfo)
+	switch {
+	case key.Matches(msg, ctx.keys.Up):
+		v.highlight = max(v.highlight-1, 0)
+	case key.Matches(msg, ctx.keys.Down):
+		v.highlight = min(v.highlight+1, len(exposureChoices)-1)
+	case msg.String() == "esc":
+		v.choosing = false
+	case msg.String() == "enter":
+		choice := exposureChoices[v.highlight]
+		if choice.soon {
+			ctx.setFlash(exposureNote(choice, v.valueOf("EXPOSURE")), levelInfo)
+			return
+		}
+		v.edits["EXPOSURE"] = choice.id
+		v.choosing = false
+	}
 }
 
 func (v *settingsView) cycleChoice() {
@@ -546,7 +578,11 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	if v.confirmDiscard {
 		confirm = []string{t.fg(t.warn).Render("discard " + strconv.Itoa(len(v.pairs())) + " changes? y/n")}
 	}
-	space := avail - len(head) - len(confirm)
+	var list []string
+	if v.choosing {
+		list = v.exposureList(t)
+	}
+	space := avail - len(head) - len(confirm) - len(list)
 	window := min(len(v.rows), max(minRows, space-v.pendingHeight()))
 	pending := v.pendingLines(ctx, max(space-window, 0))
 	window = min(len(v.rows), max(space-len(pending), 1))
@@ -557,8 +593,13 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 		lines = append(lines, v.renderRow(ctx, i, inner))
 	}
 	lines = append(lines, pending...)
-	if v.exposureSelected() {
-		lines = append(lines, exposureBlock(t, v.valueOf("EXPOSURE"), v.valueOf("LAN_IP"), inner-2, space-window-len(pending))...)
+	lines = append(lines, list...)
+	if v.exposureSelected() || v.choosing {
+		highlight := v.valueOf("EXPOSURE")
+		if v.choosing {
+			highlight = exposureChoices[v.highlight].id
+		}
+		lines = append(lines, exposureBlock(t, highlight, v.valueOf("EXPOSURE"), v.valueOf("LAN_IP"), inner-2, space-window-len(pending))...)
 	}
 	lines = append(lines, confirm...)
 	note := ""
@@ -566,6 +607,25 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 		note = strconv.Itoa(n) + " pending"
 	}
 	return t.box("Host settings", note, strings.Join(lines, "\n"), width, len(lines)+2, true)
+}
+
+// exposureList draws the open Exposure choice, the pending one marked and the
+// coming-soon entries dimmed.
+func (v *settingsView) exposureList(t theme) []string {
+	lines := []string{""}
+	for i, c := range exposureChoices {
+		cursor := "  "
+		if i == v.highlight {
+			cursor = t.cursor()
+		}
+		mark := t.dim().Render("○")
+		label := exposureLabel(t, c)
+		if c.id == v.valueOf("EXPOSURE") {
+			mark, label = t.fg(t.accentText).Render("●"), t.active().Render(c.label)
+		}
+		lines = append(lines, cursor+mark+" "+label)
+	}
+	return lines
 }
 
 // scrollTo keeps the cursor inside a window of rows.

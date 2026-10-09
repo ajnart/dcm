@@ -75,7 +75,7 @@ func TestClickingASettingsSubTabOpensIt(t *testing.T) {
 func TestHostSettingsKeepTheirEditsWhileAnotherSubTabIsOpen(t *testing.T) {
 	m, _ := settingsHost(t)
 
-	m = drive(t, m, press("space")) // EXPOSURE: lan → local
+	m = pickLocalExposure(t, m) // EXPOSURE: lan → local
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("["))
 
@@ -87,7 +87,7 @@ func TestHostSettingsKeepTheirEditsWhileAnotherSubTabIsOpen(t *testing.T) {
 func TestEscapeFromAnotherSubTabAsksToDiscardOnTheHostSubTab(t *testing.T) {
 	m, backend := settingsHost(t)
 
-	m = drive(t, m, press("space"))
+	m = pickLocalExposure(t, m)
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("esc"))
 
@@ -204,7 +204,7 @@ func TestSettingsExposureRowExplainsItselfLikeOnboarding(t *testing.T) {
 		t.Fatalf("the EXPOSURE row shows the explanation and the diagram Onboarding does\n%s", out)
 	}
 
-	m = drive(t, m, press("enter")) // lan → local, pending
+	m = pickLocalExposure(t, m) // lan → local, pending
 	out = screen(m)
 	if !strings.Contains(flat(out), localExplanation) || !strings.Contains(out, "router ──✗── this computer") || strings.Contains(out, "127.0.0.1") || strings.Contains(out, "0.0.0.0") || strings.Contains(flat(out), "can open your Apps at") {
 		t.Fatalf("the explanation follows the pending choice\n%s", out)
@@ -234,7 +234,7 @@ func TestQuestionMarkOpensTheSameExposureHelpPageInSettingsAndEscCloses(t *testi
 	if m.showHelp || m.surface != surfaceSettings || strings.Contains(screen(m), "What is a LAN address?") {
 		t.Fatalf("esc closes the page and stays in Settings\n%s", screen(m))
 	}
-	m = drive(t, m, press("enter")) // local, pending
+	m = pickLocalExposure(t, m) // local, pending
 	m = drive(t, m, press("?"))
 	if page = flat(screen(m)); !strings.Contains(page, "127.0.0.1") || !strings.Contains(page, localExplanation) {
 		t.Fatalf("the page follows the pending choice\n%s", screen(m))
@@ -286,5 +286,57 @@ func TestSettingsBarOffersMoreOnlyOnTheExposureRow(t *testing.T) {
 	m = drive(t, m, press("down"))
 	if got := bar(m); strings.Contains(got, "? more") || !strings.Contains(got, "? help") {
 		t.Fatalf("on the other rows the ? entry is help: %q", got)
+	}
+}
+
+func TestSettingsExposureListShowsTheComingSoonOptionsDimmed(t *testing.T) {
+	m, _ := settingsHost(t)
+
+	m = drive(t, m, press("enter"))
+
+	out := screen(m)
+	for _, want := range []string{"● Other devices on your network", "○ Only this computer", "○ Tailscale: your devices, from anywhere · coming soon",
+		"○ Cloudflare Tunnel: a public address · coming soon", "○ HTTPS with a reverse proxy: Caddy · coming soon"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("the Exposure list lacks %q\n%s", want, out)
+		}
+	}
+	if len(m.settings.pairs()) != 0 {
+		t.Fatalf("opening the list changes nothing, pairs %v", m.settings.pairs())
+	}
+}
+
+func TestSettingsComingSoonOptionExplainsItselfAndEnterSavesNothing(t *testing.T) {
+	m, backend := settingsHost(t)
+	m = drive(t, m, press("enter"))
+	for range 2 {
+		m = drive(t, m, press("down"))
+	}
+
+	if out := flat(screen(m)); !strings.Contains(out, "Tailscale will let you open your Apps from your own phone") ||
+		!strings.Contains(out, "It isn't available yet: your Apps stay on your network.") {
+		t.Fatalf("the highlighted entry says what it will do and that it isn't available yet\n%s", screen(m))
+	}
+	m = drive(t, m, press("enter"))
+
+	if out := flat(screen(m)); !strings.Contains(out, "Tailscale is coming soon; your Apps stay on your network") {
+		t.Fatalf("enter says it is coming soon\n%s", screen(m))
+	}
+	if len(m.settings.pairs()) != 0 || len(backend.Actions()) != 0 || !m.settings.choosing {
+		t.Fatalf("enter on a coming-soon entry keeps the choice and the list, pairs %v actions %v", m.settings.pairs(), backend.Actions())
+	}
+	m = drive(t, m, press("esc"))
+	if m.settings.choosing || len(m.settings.pairs()) != 0 || m.surface != surfaceSettings {
+		t.Fatal("esc closes the list without a change")
+	}
+}
+
+func TestSettingsExposureListChoosesLocalAsAPendingChange(t *testing.T) {
+	m, _ := settingsHost(t)
+
+	m = pickLocalExposure(t, m)
+
+	if got := m.settings.pairs(); len(got) != 1 || got[0] != "EXPOSURE=local" || m.settings.choosing {
+		t.Fatalf("choosing Only this computer pends EXPOSURE=local and closes the list, pairs %v", got)
 	}
 }
