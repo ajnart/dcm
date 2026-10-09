@@ -1,0 +1,86 @@
+new-cli/CONTEXT.md
+  h_d6e478ca18e517 41-43,46-55
+new-cli/README.md
+  h_d6e478ca18e517 131-136
+new-cli/docs/adr/0004-tabbed-command-center-action-chords.md
+  h_d6e478ca18e517 7
+new-cli/internal/cli/cli.go
+  h_d6e478ca18e517 178
+new-cli/internal/preboot/canvas.go
+  h_d6e478ca18e517 1-135
+new-cli/internal/preboot/iris.go
+  h_d6e478ca18e517 1-85
+new-cli/internal/preboot/palette.go
+  h_d6e478ca18e517 1-93
+new-cli/internal/preboot/preboot.go
+  h_d6e478ca18e517 1-156
+new-cli/internal/preboot/preboot_test.go
+  h_d6e478ca18e517 1-168
+new-cli/internal/preboot/stars.go
+  h_d6e478ca18e517 1-60
+new-cli/internal/preboot/testdata/exit-00-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/exit-00-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/exit-12-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/exit-12-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/exit-28-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/exit-28-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/exit-36-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/exit-36-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/exit-43-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/exit-43-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/pull-end-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/pull-end-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/pull-mid-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/pull-mid-70x20.golden
+  h_d6e478ca18e517 1-19
+new-cli/internal/preboot/testdata/pull-mid-80x24.golden
+  h_d6e478ca18e517 1-24
+new-cli/internal/preboot/testdata/pull-start-120x30.golden
+  h_d6e478ca18e517 1-30
+new-cli/internal/preboot/testdata/pull-start-80x24.golden
+  h_d6e478ca18e517 1-23
+new-cli/internal/preboot/text.go
+  h_d6e478ca18e517 1-271
+new-cli/internal/preboot/tunnel.go
+  h_d6e478ca18e517 1-238
+new-cli/internal/tui/harness_test.go
+  h_d6e478ca18e517 456-458,468,982-991
+new-cli/internal/tui/model.go
+  h_d6e478ca18e517 90-91,151-152,176,184-185,194,198-199,204-206,466-468,509-511,655,660-661
+new-cli/internal/tui/onboarding.go
+  h_d6e478ca18e517 70,465,475,551
+new-cli/internal/tui/onboarding_test.go
+  h_d6e478ca18e517 369-372,399-403
+new-cli/internal/tui/preboot.go
+  h_d6e478ca18e517 1-116
+new-cli/internal/tui/preboot_test.go
+  h_d6e478ca18e517 1-350
+new-cli/internal/tui/theme.go
+  h_d6e478ca18e517 24-25,31
+new-cli/internal/tui/view.go
+  h_d6e478ca18e517 537-540
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77ea88bfd62ebad26cb134886af306698879051d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
