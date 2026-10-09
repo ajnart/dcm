@@ -105,8 +105,9 @@ _Avoid_: needs action
 
 **Action**:
 A change a person triggers on one App or on the whole Project: install, start
-or stop, restart, update, retry Setup, backup, remove. In the Dashboard every
-Action goes through the Action menu; restore and config stay commands.
+or stop, restart, update, retry Setup, backup, restore, remove. In the Dashboard
+every Action goes through the Action menu, except restore and config, which run
+from Settings (Backups and Host); each shows in Activity like the others.
 
 **Action menu**:
 The menu that `a` opens for the selected App (`A` for the Project). It lists

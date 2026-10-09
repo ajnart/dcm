@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Host   Appearance   Backups   Tools   About
+╭─ Backups ────────────────────────────────────────────────────────────────────╮
+│   Back up now                                                                │
+│   Passphrase (optional; leave empty for no encryption)                       │
+│   •••••••                                                                    │
+│                                                                              │
+│   Without a passphrase the archive holds your passwords and API keys in the… │
+│   An encrypted backup cannot be restored without its passphrase.             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+ typing · keys go to the input                      enter  accept   esc  cancel

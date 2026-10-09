@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+	"os/exec"
 	"reflect"
 	"slices"
 	"strconv"
@@ -26,11 +27,16 @@ import (
 )
 
 type fakeBackend struct {
-	mu          sync.Mutex
-	status      service.Status
-	checks      []host.Check
-	actions     []string
-	opened      []string
+	mu      sync.Mutex
+	status  service.Status
+	checks  []host.Check
+	actions []string
+	opened  []string
+	// tools maps a program name to its path on PATH; executed are the
+	// commands ExecTool was given, and toolErr is what they exit with.
+	tools       map[string]string
+	executed    []*exec.Cmd
+	toolErr     error
 	aliases     map[string]string
 	catalog     *catalog.Catalog
 	install     []service.InstallOptions
@@ -60,6 +66,14 @@ type fakeBackend struct {
 	usage        []service.ContainerUsage
 	usageStarts  int
 	usageRunning int
+	// archives is what Backups lists, archiveApps the Apps in each archive's
+	// manifest by path, archivePass the passphrase that opens encrypted
+	// ones, and requests every Request Run received.
+	archives    []service.BackupInfo
+	archiveApps map[string][]string
+	archivePass string
+	backupLists int
+	requests    []Request
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {
@@ -188,10 +202,23 @@ func (f *fakeBackend) OpenURL(url string) error {
 	f.opened = append(f.opened, url)
 	return nil
 }
+func (f *fakeBackend) LookTool(name string) (string, bool) {
+	path, ok := f.tools[name]
+	return path, ok
+}
+
+func (f *fakeBackend) ExecTool(cmd *exec.Cmd, done func(error) tea.Msg) tea.Cmd {
+	f.mu.Lock()
+	f.executed = append(f.executed, cmd)
+	f.mu.Unlock()
+	return func() tea.Msg { return done(f.toolErr) }
+}
+
 func (f *fakeBackend) Run(_ context.Context, req Request, log *events.Logger) error {
 	f.mu.Lock()
 	entry := strings.TrimSpace(string(req.Action) + " " + strings.Join(append(req.IDs, req.Pairs...), " "))
 	f.actions = append(f.actions, entry)
+	f.requests = append(f.requests, req)
 	if req.Install != nil {
 		f.install = append(f.install, *req.Install)
 	}
@@ -432,6 +459,8 @@ func TestKeybindAudit(t *testing.T) {
 		"choose: enter",
 		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
 		"more: ?", "close: esc/?",
+		// Settings' Backups sub-tab.
+		"back up: b", "restore: enter",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}

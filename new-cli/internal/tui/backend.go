@@ -3,6 +3,9 @@ package tui
 import (
 	"context"
 	"io"
+	"os/exec"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
@@ -28,6 +31,7 @@ const (
 	ActionRemove  Action = "remove"
 	ActionInstall Action = "install"
 	ActionConfig  Action = "config"
+	ActionRestore Action = "restore"
 )
 
 // Request is one mutating Action.
@@ -37,6 +41,11 @@ type Request struct {
 	Install *service.InstallOptions
 	// Pairs are the KEY=value Host settings ActionConfig sets.
 	Pairs []string
+	// File is the archive ActionRestore restores from.
+	File string
+	// Passphrase opens or encrypts a backup; it reaches only the Service and
+	// is never shown or logged.
+	Passphrase string
 }
 
 // Backend is everything the dashboard needs from the Service.
@@ -51,6 +60,11 @@ type Backend interface {
 	// ctx ends.
 	Usage(ctx context.Context, emit func([]service.ContainerUsage)) error
 	OpenURL(url string) error
+	// LookTool finds a program on PATH.
+	LookTool(name string) (path string, ok bool)
+	// ExecTool runs cmd with the terminal, pausing the TUI until it exits,
+	// then delivers done's message.
+	ExecTool(cmd *exec.Cmd, done func(error) tea.Msg) tea.Cmd
 	// ReviewSettings compares Host settings with this machine now.
 	ReviewSettings(ctx context.Context) ([]service.SettingReview, error)
 	// Compose returns the App's Compose file.
@@ -65,6 +79,11 @@ type Backend interface {
 	Detect(ctx context.Context) map[string]string
 	// Run performs a mutating action, reporting progress to log.
 	Run(ctx context.Context, req Request, log *events.Logger) error
+	// Backups lists the archives in the Project's backups folder.
+	Backups(ctx context.Context) ([]service.BackupInfo, error)
+	// BackupApps reads the App IDs from an archive's manifest, opening an
+	// encrypted one with the passphrase.
+	BackupApps(ctx context.Context, file, passphrase string) ([]string, error)
 	// Glyphs is the Project's glyph set: Simple until a person chooses, and
 	// when no Project exists yet.
 	Glyphs(ctx context.Context) activity.Glyphs
@@ -113,6 +132,15 @@ func (b ServiceBackend) Usage(ctx context.Context, emit func([]service.Container
 	return b.quiet().Usage(ctx, emit)
 }
 
+func (b ServiceBackend) LookTool(name string) (string, bool) {
+	path, err := exec.LookPath(name)
+	return path, err == nil
+}
+
+func (b ServiceBackend) ExecTool(cmd *exec.Cmd, done func(error) tea.Msg) tea.Cmd {
+	return tea.ExecProcess(cmd, done)
+}
+
 func (b ServiceBackend) OpenURL(url string) error {
 	return b.quiet().OpenURL(context.Background(), url)
 }
@@ -148,6 +176,14 @@ func (b ServiceBackend) Containers(ctx context.Context) ([]service.ContainerStat
 	return b.quiet().Containers(ctx)
 }
 
+func (b ServiceBackend) Backups(context.Context) ([]service.BackupInfo, error) {
+	return b.quiet().Backups()
+}
+
+func (b ServiceBackend) BackupApps(_ context.Context, file, passphrase string) ([]string, error) {
+	return b.quiet().BackupApps(file, passphrase)
+}
+
 func (b ServiceBackend) Glyphs(context.Context) activity.Glyphs {
 	appearance, err := b.quiet().Appearance()
 	if err != nil {
@@ -165,8 +201,10 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 	ids := req.IDs
 	switch req.Action {
 	case ActionBackup:
-		_, err := s.Backup(ctx, ids, "", "")
+		_, err := s.Backup(ctx, ids, "", req.Passphrase)
 		return err
+	case ActionRestore:
+		return s.Restore(ctx, req.File, ids, req.Passphrase)
 	case ActionInstall:
 		return s.Install(ctx, *req.Install)
 	case ActionConfig:

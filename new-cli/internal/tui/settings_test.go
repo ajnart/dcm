@@ -42,12 +42,12 @@ func TestBracketsCycleTheFiveSettingsSubTabsAndTheStripShowsTheActiveOne(t *test
 	for _, tc := range []struct{ key, active, shows string }{
 		{"", "Host", "Host settings"},
 		{"]", "Appearance", "Learn about Nerd Fonts"},
-		{"]", "Backups", "Coming in the next update"},
-		{"]", "Tools", "Coming in the next update"},
+		{"]", "Backups", "No backups yet"},
+		{"]", "Tools", "never installs these for you"},
 		{"]", "About", "Project folder"},
 		{"]", "Host", "Host settings"},
 		{"[", "About", "Project folder"},
-		{"[", "Tools", "Coming in the next update"},
+		{"[", "Tools", "never installs these for you"},
 	} {
 		if tc.key != "" {
 			m = drive(t, m, press(tc.key))
@@ -69,23 +69,6 @@ func TestClickingASettingsSubTabOpensIt(t *testing.T) {
 
 	if got := activeSubTab(t, m); got != "About" {
 		t.Fatalf("clicking About should open it, got %s", got)
-	}
-}
-
-func TestBackupsAndToolsArePlaceholdersUntilTheyLand(t *testing.T) {
-	m, _ := settingsHost(t)
-	grey := "\x1b[38;2;138;138;138m"
-
-	for _, name := range []string{"Backups", "Tools"} {
-		m = drive(t, m, press("]"))
-		m = drive(t, m, press("]"))
-		raw := m.View().Content
-		if !strings.Contains(raw, grey+"Coming in the next update") {
-			t.Errorf("%s: the placeholder should be dim\n%s", name, ansi.Strip(raw))
-		}
-		m = drive(t, m, press("["))
-		m = drive(t, m, press("["))
-		m = drive(t, m, press("]"))
 	}
 }
 
