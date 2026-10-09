@@ -1,0 +1,18 @@
+.github/FUNDING.yml
+  h_d6e478ca18e517 1-2
+new-cli/internal/tui/help.go
+  h_d6e478ca18e517 9,17-21,54-55,93-96
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 106-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac3a3f27e6de2c87f8cbc8868d3410aa242d3bfc",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
