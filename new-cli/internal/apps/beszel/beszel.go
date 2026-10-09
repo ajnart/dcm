@@ -92,7 +92,8 @@ func (App) Compose(rc app.RenderContext) string {
 
 const emailSuffix = "@selfhost.local"
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + emailSuffix }
+// AdminEmail is the Admin login in the Hub: the Admin user at a fixed domain.
+func AdminEmail(h *helpers.H) string { return h.AdminUser() + emailSuffix }
 
 func firstRun(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/beszel/first-run"}, http.StatusOK)
@@ -112,7 +113,7 @@ func firstRun(ctx context.Context, h *helpers.H) (bool, error) {
 func signIn(ctx context.Context, h *helpers.H) (token string, ok bool, err error) {
 	resp, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost,
 		Path: "/api/collections/users/auth-with-password",
-		JSON: map[string]string{"identity": adminEmail(h), "password": h.AdminPassword()}})
+		JSON: map[string]string{"identity": AdminEmail(h), "password": h.AdminPassword()}})
 	if err != nil {
 		return "", false, err
 	}
@@ -129,7 +130,7 @@ func signIn(ctx context.Context, h *helpers.H) (token string, ok bool, err error
 	if err := resp.Decode(&body); err != nil {
 		return "", false, err
 	}
-	if body.Token == "" || body.Record.Email != adminEmail(h) || body.Record.Role != "admin" {
+	if body.Token == "" || body.Record.Email != AdminEmail(h) || body.Record.Role != "admin" {
 		return "", false, nil
 	}
 	return body.Token, true, nil
@@ -202,27 +203,53 @@ func tokenRequest(ctx context.Context, h *helpers.H, query string) (universalTok
 	return token, err
 }
 
+type hubSystem struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+func systems(ctx context.Context, h *helpers.H) ([]hubSystem, error) {
+	resp, err := hubRequest(ctx, h, "/api/collections/systems/records?perPage=500&fields=id,name,status")
+	if err != nil {
+		return nil, err
+	}
+	var body struct {
+		Items []hubSystem `json:"items"`
+	}
+	if err := resp.Decode(&body); err != nil {
+		return nil, err
+	}
+	return body.Items, nil
+}
+
 // machine reports the status of this machine's system in the Hub.
 func machine(ctx context.Context, h *helpers.H) (status string, listed bool, err error) {
-	resp, err := hubRequest(ctx, h, "/api/collections/systems/records?perPage=500&fields=name,status")
+	items, err := systems(ctx, h)
 	if err != nil {
 		return "", false, err
 	}
-	var body struct {
-		Items []struct {
-			Name   string `json:"name"`
-			Status string `json:"status"`
-		} `json:"items"`
-	}
-	if err := resp.Decode(&body); err != nil {
-		return "", false, err
-	}
-	for _, item := range body.Items {
+	for _, item := range items {
 		if item.Name == SystemName {
 			return item.Status, true, nil
 		}
 	}
 	return "", false, nil
+}
+
+// MachineID is the Hub's record id for this machine's system, read as the
+// Admin login. Homarr's System Stats widget selects a system by it.
+func MachineID(ctx context.Context, h *helpers.H) (string, error) {
+	items, err := systems(ctx, h)
+	if err != nil {
+		return "", err
+	}
+	for _, item := range items {
+		if item.Name == SystemName && item.ID != "" {
+			return item.ID, nil
+		}
+	}
+	return "", errors.New("this machine is not listed in the Hub; run: self-host setup " + h.App)
 }
 
 func machineUp(ctx context.Context, h *helpers.H) (bool, error) {
@@ -302,7 +329,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready(ctx, h, "/api/health"); err != nil {
 		return err
 	}
-	user := adminEmail(h)
+	user := AdminEmail(h)
 	if err := h.Step(ctx, "admin-login", "create the Hub administrator "+user, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminSignedIn(ctx, h) },
 		Do: func(ctx context.Context) error {
