@@ -48,8 +48,8 @@ func TestAdminUIReadinessDoesNotCompleteBrowserAdministrator(t *testing.T) {
 	if err := (stalwartmail.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
 		t.Fatalf("Setup = %v, want manual administrator boundary", err)
 	}
-	if err := (stalwartmail.App{}).Check(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
-		t.Fatalf("Check = %v, want manual administrator boundary", err)
+	if err := (stalwartmail.App{}).Check(ctx, h); err != nil {
+		t.Fatalf("Check = %v, want successful probe", err)
 	}
 	records = nil
 	if err := (stalwartmail.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
@@ -58,7 +58,7 @@ func TestAdminUIReadinessDoesNotCompleteBrowserAdministrator(t *testing.T) {
 	manual := false
 	for _, r := range records {
 		if r.ID == "admin" {
-			manual = r.Status == "fail" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "first-run wizard") && strings.Contains(r.Hint, "admin@example.com")
+			manual = r.Status == "manual" && r.Error == "" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "first-run wizard") && strings.Contains(r.Hint, "admin@example.com")
 		}
 		if r.ID == "admin-ui" && r.Status != "skip" {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
@@ -86,5 +86,15 @@ func TestMissingHostnameFailsWithAHint(t *testing.T) {
 	}
 	if !strings.Contains(hint, "STALWART_HOSTNAME") {
 		t.Errorf("hint should name the required input, got %q", hint)
+	}
+}
+
+func TestCheckPassesWhenAdminUIAnswers(t *testing.T) {
+	srv := httptest.NewServer(handler())
+	defer srv.Close()
+	var records []helpers.StepResult
+	h := newH(t, srv, &records, map[string]string{"STALWART_HOSTNAME": "mail.example.com", "STALWART_DOMAIN": "example.com"})
+	if err := (stalwartmail.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("Check = %v, want successful admin UI probe", err)
 	}
 }

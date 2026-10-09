@@ -94,7 +94,7 @@ func TestManualHintNamesTheAdminCredentialCommand(t *testing.T) {
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == "fail" {
+		if r.Status == "manual" {
 			hint = r.Hint
 		}
 	}

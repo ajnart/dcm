@@ -443,8 +443,11 @@ func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 	}
 	// A later App's Setup can complete an earlier consumer's Link, so the
 	// verdict is read once every App has run.
-	var failed []string
+	var failed, manual []string
 	for _, id := range touched {
+		if st := ss.state.Apps[id]; st != nil && st.Setup == "manual" && !slices.Contains(manual, id) {
+			manual = append(manual, id)
+		}
 		if st := ss.state.Apps[id]; st != nil && st.Setup == "incomplete" && !slices.Contains(failed, id) {
 			failed = append(failed, id)
 		}
@@ -453,6 +456,9 @@ func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 		return fmt.Errorf("%w for %s; finish the failed steps using their hints, then run: self-host setup %s",
 			ErrIncomplete, strings.Join(failed, ", "), strings.Join(failed, " "))
 	}
+	if len(manual) > 0 {
+		return fmt.Errorf("%w for %s; follow their hints, then run: self-host setup %s", ErrManual, strings.Join(manual, ", "), strings.Join(manual, " "))
+	}
 	return nil
 }
 
@@ -460,7 +466,7 @@ func (s *Service) finish(err error) error {
 	switch {
 	case err == nil:
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: "done"})
-	case errors.Is(err, ErrIncomplete):
+	case errors.Is(err, ErrIncomplete), errors.Is(err, ErrManual):
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: err.Error()})
 	}
 	return s.Log.RedactError(err)

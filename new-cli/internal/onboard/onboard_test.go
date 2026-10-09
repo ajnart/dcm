@@ -384,3 +384,22 @@ func TestKinds(t *testing.T) {
 		t.Errorf("Kinds() = %v, want both helper kinds", kinds)
 	}
 }
+
+func TestFirstAdminRecordsManualStep(t *testing.T) {
+	srv := okServer()
+	defer srv.Close()
+	var results []helpers.StepResult
+	h := newH(t, srv, &results)
+	err := (onboard.FirstAdmin{Manual: "finish in the browser"}).Setup(context.Background(), h)
+	if got := statusOf(results, "admin"); got != "manual" {
+		t.Fatalf("admin status = %q, want manual", got)
+	}
+	if err == nil {
+		t.Fatal("manual Setup must remain unfinished")
+	}
+	for _, r := range results {
+		if r.ID == "admin" && (r.Error != "" || !strings.Contains(r.Hint, "finish in the browser")) {
+			t.Fatalf("manual handoff = %+v", r)
+		}
+	}
+}

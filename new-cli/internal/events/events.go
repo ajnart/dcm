@@ -19,6 +19,7 @@ const (
 	StepSkip     = "step.skip"
 	StepWarn     = "step.warn"
 	StepFail     = "step.fail"
+	StepManual   = "step.manual"
 	Command      = "command"
 	Info         = "info"
 	PullProgress = "pull.progress"
@@ -183,7 +184,7 @@ func Human(w io.Writer, verbose, interactive bool) Sink {
 			fmt.Fprintf(w, "  ✓ %s %s\n", subject, e.Msg)
 		case StepSkip:
 			fmt.Fprintf(w, "  ↷ %s %s\n", subject, e.Msg)
-		case StepWarn:
+		case StepWarn, StepManual:
 			fmt.Fprintf(w, "  ! %s %s\n", subject, e.Msg)
 		case StepFail:
 			fmt.Fprintf(w, "  ✗ %s %s\n", subject, e.Msg)
@@ -203,7 +204,7 @@ func Human(w io.Writer, verbose, interactive bool) Sink {
 		default:
 			fmt.Fprintf(w, "  %s\n", e.Msg)
 		}
-		if e.Event == StepWarn || e.Event == StepFail {
+		if e.Event == StepWarn || e.Event == StepFail || e.Event == StepManual {
 			if e.Hint != "" {
 				fmt.Fprintf(w, "      → %s\n", e.Hint)
 			}

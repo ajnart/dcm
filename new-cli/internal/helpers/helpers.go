@@ -18,6 +18,9 @@ import (
 // ErrStepFailed marks an error already reported as step.fail.
 var ErrStepFailed = errors.New("setup step failed")
 
+// ErrManual marks a step that needs a person to finish or verify it.
+var ErrManual = errors.New("manual step")
+
 type Secrets interface {
 	Get(key string) string
 	Set(key, value string) error
@@ -32,7 +35,7 @@ type Executor interface {
 
 type StepResult struct {
 	ID     string
-	Status string // ok, skip, fail
+	Status string // ok, skip, fail, manual
 	Msg    string
 	Error  string
 	Hint   string
@@ -155,6 +158,13 @@ func (h *H) Step(ctx context.Context, id, msg string, spec StepSpec) error {
 }
 
 func (h *H) fail(id, msg string, spec StepSpec, err error) error {
+	if errors.Is(err, ErrManual) {
+		h.Log.Emit(events.Event{Event: events.StepManual, App: h.App, Step: id, Msg: msg,
+			URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
+		h.Record(StepResult{ID: id, Status: "manual", Msg: msg, Hint: spec.Hint})
+		return h.Log.RedactError(fmt.Errorf("%s: %s: %w", h.App, id, err))
+	}
+
 	h.Log.Emit(events.Event{Event: events.StepFail, App: h.App, Step: id, Msg: msg, Error: err.Error(),
 		URL: h.URL, Credential: spec.Credential, Hint: spec.Hint})
 	h.Record(StepResult{ID: id, Status: "fail", Msg: msg, Error: err.Error(), Hint: spec.Hint})

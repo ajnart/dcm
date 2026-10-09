@@ -16,6 +16,7 @@ const (
 	WorkflowDone    WorkflowState = "done"
 	WorkflowSkipped WorkflowState = "skipped"
 	WorkflowFailed  WorkflowState = "failed"
+	WorkflowManual  WorkflowState = "manual"
 	WorkflowRunning WorkflowState = "running"
 	WorkflowNotRun  WorkflowState = "notRun"
 )
@@ -59,6 +60,8 @@ func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 				state = WorkflowDone
 			case "skip":
 				state = WorkflowSkipped
+			case "manual":
+				state = WorkflowManual
 			case "fail":
 				state = WorkflowFailed
 			}
@@ -70,6 +73,9 @@ func Workflow(status service.Status, evs []events.Event) WorkflowSnapshot {
 				for _, image := range pullImages(progress) {
 					entry.Steps[i].Msg += fmt.Sprintf(" · %s %d%% · %s/%s", image.image, image.percent(), pullMB(image.current), pullMB(image.total))
 				}
+			}
+			if step.State == WorkflowManual {
+				entry.SetUp = false
 			}
 			if step.State == WorkflowFailed {
 				entry.SetUp = false
@@ -140,6 +146,8 @@ func applyEvents(entry *WorkflowApp, app service.AppStatus, evs []events.Event) 
 			state = WorkflowDone
 		case events.StepSkip:
 			state = WorkflowSkipped
+		case events.StepManual:
+			state = WorkflowManual
 		case events.StepFail:
 			state = WorkflowFailed
 		default:

@@ -457,6 +457,9 @@ func (v *dashboardView) needsAction(ctx *viewContext) []need {
 		for _, s := range a.Steps {
 			// Setup cannot retry a failed install stage; "is stopped" or an
 			// update below names the Action that can.
+			if s.Status == "manual" && !service.IsStage(s.ID) {
+				items = append(items, need{text: a.Name + ": " + s.ID + " manual · " + s.Hint, key: "r", desc: "retry Setup", app: a.ID})
+			}
 			if s.Status == "fail" && !service.IsStage(s.ID) {
 				items = append(items, need{broken: true, text: a.Name + ": " + s.ID + " failed", key: "r", desc: "retry Setup", app: a.ID})
 			}
@@ -595,12 +598,16 @@ func renderSetup(t theme, app service.AppStatus, width int) string {
 		switch step.Status {
 		case "skip":
 			mark = t.dim().Render("↷")
+		case "manual":
+			mark = t.fg(t.warn).Render("! manual")
 		case "fail":
 			mark = t.fg(t.fail).Render("✗")
 		}
 		lines = append(lines, mark+" "+t.body().Render(step.ID)+t.dim().Render("  "+step.Msg))
-		if step.Status == "fail" {
-			lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
+		if step.Status == "fail" || step.Status == "manual" {
+			if step.Error != "" {
+				lines = append(lines, t.fg(t.fail).Render(indent("  ", step.Error, width)))
+			}
 			if step.Hint != "" {
 				lines = append(lines, t.fg(t.warn).Render(indent("  → ", step.Hint, width)))
 			}

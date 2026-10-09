@@ -59,8 +59,8 @@ func TestServerKeyReadinessDoesNotCompleteBrowserEnrollment(t *testing.T) {
 	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
 		t.Fatalf("Setup = %v, want manual browser enrollment", err)
 	}
-	if err := (passbolt.App{}).Check(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
-		t.Fatalf("Check = %v, want manual browser enrollment", err)
+	if err := (passbolt.App{}).Check(ctx, h); err != nil {
+		t.Fatalf("Check = %v, want successful probe", err)
 	}
 	records = nil
 	if err := (passbolt.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
@@ -69,7 +69,7 @@ func TestServerKeyReadinessDoesNotCompleteBrowserEnrollment(t *testing.T) {
 	manual := false
 	for _, r := range records {
 		if r.ID == "admin" {
-			manual = r.Status == "fail" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "browser extension") && strings.Contains(r.Hint, "recovery kit")
+			manual = r.Status == "manual" && r.Error == "" && strings.Contains(r.Hint, srv.URL) && strings.Contains(r.Hint, "browser extension") && strings.Contains(r.Hint, "recovery kit")
 		}
 		if r.ID == "server-key" && r.Status != "skip" {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
@@ -110,5 +110,15 @@ func TestMissingServerKeyFailsTheCheck(t *testing.T) {
 
 	if err := (passbolt.App{}).Check(context.Background(), h); err == nil {
 		t.Fatal("Check should fail when the server key is absent")
+	}
+}
+
+func TestCheckPassesWhenServerKeyWorks(t *testing.T) {
+	srv := httptest.NewServer(handler())
+	defer srv.Close()
+	var records []helpers.StepResult
+	h := newH(t, srv, &records, inputs())
+	if err := (passbolt.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("Check = %v, want successful server-key probe", err)
 	}
 }

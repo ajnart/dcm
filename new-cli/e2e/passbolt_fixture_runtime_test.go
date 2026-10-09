@@ -150,7 +150,7 @@ func (f *passboltRuntimeFixture) close() { f.connect.close() }
 
 func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
-	if installed.code != 0 && !(installed.code == exitIncomplete && allNoHeadless(installed)) {
+	if installed.code != 0 && !(installed.code == exitManual && allManual(installed)) {
 		if installed.termination == nil {
 			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r), f.effectiveMetadataDiagnostic(r))
 		}

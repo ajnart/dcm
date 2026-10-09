@@ -30,7 +30,7 @@ type AppStatus struct {
 	// container exists and "unknown" when Docker could not be asked.
 	State  string `json:"state"`
 	Health string `json:"health,omitempty"`
-	// Setup is ok, incomplete, pending, or unmanaged.
+	// Setup is ok, manual, incomplete, pending, or unmanaged.
 	Setup    string       `json:"setup"`
 	Steps    []StepStatus `json:"steps,omitempty"`
 	Services []string     `json:"services,omitempty"`

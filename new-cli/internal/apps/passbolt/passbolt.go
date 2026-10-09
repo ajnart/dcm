@@ -171,7 +171,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	return h.Step(ctx, "admin", "enroll the administrator's browser extension", helpers.StepSpec{
-		Do:   func(context.Context) error { return errors.New(manualAdmin) },
+		Do:   func(context.Context) error { return fmt.Errorf("%w: %s", helpers.ErrManual, manualAdmin) },
 		Hint: enrollmentHint(h),
 	})
 }
@@ -194,7 +194,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("Passbolt is not serving its server OpenPGP key at %s", h.BaseURL)
 	}
-	return fmt.Errorf("%s: %s", manualAdmin, enrollmentHint(h))
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }
