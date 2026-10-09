@@ -119,6 +119,9 @@ func (w *Writer) AddTree(dir, prefix string) error {
 			if link, err = os.Readlink(p); err != nil {
 				return err
 			}
+			if filepath.IsAbs(link) {
+				return absoluteSymlinkError(path.Join(prefix, filepath.ToSlash(rel)), link)
+			}
 		}
 		h, err := tar.FileInfoHeader(info, link)
 		if err != nil {
@@ -201,8 +204,11 @@ func (w *Writer) AddTar(src io.Reader, prefix string, ephemeralFIFOs ...string) 
 			continue
 		}
 		if h.Typeflag == tar.TypeSymlink {
-			if len(h.Linkname) > 4096 || path.IsAbs(h.Linkname) || filepath.IsAbs(filepath.FromSlash(h.Linkname)) {
+			if len(h.Linkname) > 4096 {
 				return errors.New("unsafe helper archive symlink")
+			}
+			if path.IsAbs(h.Linkname) || filepath.IsAbs(filepath.FromSlash(h.Linkname)) {
+				return absoluteSymlinkError(path.Join(prefix, name), h.Linkname)
 			}
 			resolved := path.Clean(path.Join(path.Dir(name), h.Linkname))
 			if err := safeArchivePath(resolved); err != nil {
@@ -243,6 +249,14 @@ func (w *Writer) AddTar(src io.Reader, prefix string, ephemeralFIFOs ...string) 
 		}
 		previous[copyHeader.Name] = EntryMetadata{Path: copyHeader.Name, UID: h.Uid, GID: h.Gid, Mode: uint32(h.Mode), Type: h.Typeflag}
 	}
+}
+
+// linkPolicyRef points at the documented Backup symlink policy.
+const linkPolicyRef = "see docs/adr/0003-backup-helper-container.md"
+
+// absoluteSymlinkError names the refused link and its absolute target.
+func absoluteSymlinkError(name, target string) error {
+	return fmt.Errorf("refusing absolute symlink %q -> %q: a Backup keeps links only inside the selected App; a Restore must not follow links outside it (%s)", name, target, linkPolicyRef)
 }
 
 func safeArchivePath(name string) error {
@@ -496,7 +510,10 @@ func (r *Reader) Extract(root string, dest func(name string) string, chown func(
 			resolved := filepath.Clean(filepath.Join(filepath.Dir(rel), link))
 			archiveLink := path.Clean(path.Join(path.Dir(clean), h.Linkname))
 			selected := dest(archiveLink)
-			if filepath.IsAbs(link) || path.IsAbs(h.Linkname) || !filepath.IsLocal(resolved) || selected == "" || filepath.Clean(selected) != filepath.Join(root, resolved) {
+			if filepath.IsAbs(link) || path.IsAbs(h.Linkname) {
+				return absoluteSymlinkError(clean, h.Linkname)
+			}
+			if !filepath.IsLocal(resolved) || selected == "" || filepath.Clean(selected) != filepath.Join(root, resolved) {
 				return fmt.Errorf("unsafe symlink in backup entry %q: use a relative link to another selected path", clean)
 			}
 			if err := staging.Remove(rel); err != nil && !errors.Is(err, fs.ErrNotExist) {

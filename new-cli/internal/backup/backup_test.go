@@ -161,6 +161,61 @@ func TestExtractRejectsUnsafeArchiveEntries(t *testing.T) {
 	}
 }
 
+func TestExtractRefusesAbsoluteSymlinkWithPolicy(t *testing.T) {
+	staging := t.TempDir()
+	r := openArchive(t, archiveEntry{name: "apps/one/link", link: "/tmp/outside", kind: tar.TypeSymlink})
+	err := r.Extract(staging, selectedDestination(staging), nil)
+	if err == nil {
+		t.Fatal("absolute symlink accepted")
+	}
+	if !strings.Contains(err.Error(), "apps/one/link") || !strings.Contains(err.Error(), "docs/adr/0003") {
+		t.Fatalf("absolute symlink error must name the link and the policy: %v", err)
+	}
+}
+
+func TestAddTarRefusesAbsoluteSymlinkWithPolicy(t *testing.T) {
+	var compressed, stream bytes.Buffer
+	tw := tar.NewWriter(&stream)
+	if err := tw.WriteHeader(&tar.Header{Name: "link", Linkname: "/tmp/outside", Mode: 0777, Typeflag: tar.TypeSymlink}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	w, err := Create(&compressed, "", Manifest{Apps: []ManifestApp{{ID: "one", OwnershipNamespace: OwnershipDocker}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	err = w.AddTar(&stream, "apps/one")
+	if err == nil {
+		t.Fatal("absolute symlink imported")
+	}
+	if !strings.Contains(err.Error(), "apps/one/link") || !strings.Contains(err.Error(), "docs/adr/0003") {
+		t.Fatalf("absolute symlink error must name the link and the policy: %v", err)
+	}
+}
+
+func TestAddTreeRefusesAbsoluteSymlinkWithPolicy(t *testing.T) {
+	source := t.TempDir()
+	if err := os.Symlink("/tmp/outside", filepath.Join(source, "link")); err != nil {
+		t.Fatal(err)
+	}
+	var compressed bytes.Buffer
+	w, err := Create(&compressed, "", Manifest{Apps: []ManifestApp{{ID: "one"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	err = w.AddTree(source, "apps/one")
+	if err == nil {
+		t.Fatal("absolute symlink archived")
+	}
+	if !strings.Contains(err.Error(), "apps/one/link") || !strings.Contains(err.Error(), "docs/adr/0003") {
+		t.Fatalf("absolute symlink error must name the link and the policy: %v", err)
+	}
+}
+
 func TestExtractRejectsPreexistingSymlinks(t *testing.T) {
 	for _, ancestor := range []bool{false, true} {
 		name := "destination"
