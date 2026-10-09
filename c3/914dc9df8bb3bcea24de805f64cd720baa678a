@@ -1,0 +1,37 @@
+README.md
+  s_765ccb2ae3482a::t_bbe62c7b874595 37-44,48
+docs/release.md
+  s_4f5c3f12c60544::t_984773e5352cff 3-4
+new-cli/CONTEXT.md
+  s_765ccb2ae3482a::t_e1f52851968c42 112-119
+new-cli/README.md
+  s_765ccb2ae3482a::t_963e2c55e66ef0 65-116
+new-cli/docs/releasing.md
+  s_765ccb2ae3482a::t_74868fbec20a8a 1-89
+new-cli/internal/skill/guide.md
+  s_765ccb2ae3482a::t_d4f347b4f0150c 301-304,307-324
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3914dc9df8bb3bcea24de805f64cd720baa678a",
+  "prompts": {},
+  "sessions": {
+    "s_4f5c3f12c60544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bd20071-f191-45b1-a8aa-b87b0f7aa7bf",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_765ccb2ae3482a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "141b18b3-5f99-4461-b795-5223059869e0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
