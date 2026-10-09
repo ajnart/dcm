@@ -163,7 +163,7 @@ func (f *fakeBeszel) handler() http.Handler {
 		defer f.mu.Unlock()
 		items := []map[string]string{}
 		for name, status := range f.systems {
-			items = append(items, map[string]string{"name": name, "status": status})
+			items = append(items, map[string]string{"id": "id-" + strings.ReplaceAll(name, " ", "-"), "name": name, "status": status})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"page": 1, "perPage": 500, "totalItems": len(items), "items": items})
 	})
@@ -339,6 +339,23 @@ func TestSetupStoresTheHubKeyAndANewPermanentTokenThenStartsTheAgent(t *testing.
 	}
 	if status := fake.systems["This machine"]; status != "up" {
 		t.Errorf("this machine is %q in the Hub, want up", status)
+	}
+}
+
+func TestMachineIDIsThisMachinesRecordIDInTheHub(t *testing.T) {
+	fake := &fakeBeszel{firstRun: true, key: hubKey}
+	e := newEnv(t, fake)
+	if err := (beszel.App{}).Setup(context.Background(), e.h); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	fake.addSystem("Another box", "up")
+
+	id, err := beszel.MachineID(context.Background(), e.h)
+	if err != nil {
+		t.Fatalf("MachineID: %v", err)
+	}
+	if id != "id-This-machine" {
+		t.Errorf("MachineID = %q, want id-This-machine", id)
 	}
 }
 
