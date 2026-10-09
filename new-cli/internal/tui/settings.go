@@ -13,7 +13,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/service"
@@ -455,8 +454,7 @@ func aboutBox(ctx *viewContext, width int) string {
 		return truncate("  "+t.dim().Render(pad(name, 16))+value, inner)
 	}
 	entry := func(key, label, url string) string {
-		return "  " + t.title().Render(key) + "  " + t.body().Render(pad(label, 20)) +
-			ansi.SetHyperlink(url) + t.fg(t.info).Render(url) + ansi.ResetHyperlink()
+		return "  " + t.title().Render(key) + "  " + t.body().Render(pad(label, 20)) + link(t, url, url)
 	}
 	lines := []string{
 		row("Version", t.body().Render("v"+strings.TrimPrefix(ctx.version, "v"))),
@@ -612,8 +610,7 @@ func glyphSample(t theme, g activity.Glyphs) string {
 // nerdFontsLine points at where to learn about Nerd Fonts, as text and as a
 // terminal link.
 func nerdFontsLine(t theme) string {
-	link := ansi.SetHyperlink(nerdFontsURL) + t.fg(t.info).Render(nerdFontsURL) + ansi.ResetHyperlink()
-	return t.dim().Render("Learn about Nerd Fonts: ") + link
+	return t.dim().Render("Learn about Nerd Fonts: ") + link(t, nerdFontsURL, nerdFontsURL)
 }
 
 func (v *settingsView) renderRow(ctx *viewContext, i, width int) string {
