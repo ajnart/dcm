@@ -23,7 +23,8 @@ existing Project without touching installed Apps.
 
 **Recipe**:
 A named, pre-wired bundle of Apps chosen together for one purpose
-(e.g. a media server).
+(e.g. a media server). In the pickers it is a shortcut for its Apps: picking it
+picks them, and its mark (✓ all, ◐ some, ○ none) follows the Apps picked.
 _Avoid_: stack, goal, profile
 
 **Catalog**:

@@ -242,7 +242,9 @@ func TestTabContentsPersistAcrossSwitches(t *testing.T) {
 
 	m = drive(t, m, press("space")) // EXPOSURE: lan → local, pending
 	m = drive(t, m, press("4"))
-	m = drive(t, m, press("space")) // pick the Media Recipe
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("space")) // pick Homarr, after the Other header
 	m = drive(t, m, press("1"))
 	m = drive(t, m, press("4"))
 	if !strings.Contains(screen(m), "[x]") {

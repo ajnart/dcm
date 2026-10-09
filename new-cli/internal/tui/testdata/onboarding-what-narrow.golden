@@ -5,17 +5,17 @@
   Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that
   work together. You can add more later from the Catalog.
 
-  ┃ Apps and Recipes
-  ┃   • ❖ Media (Recipe)
-  ┃ > ✓ Homarr
-  ┃   • Jellyfin
-  ┃   • ntfy
-
-
-  x toggle • ↑ up • ↓ down • / filter • enter submit • ctrl+a select all
+  Apps and Recipes
+    ○ ❖ Media (Recipe)
+  > ✓ Homarr
+    ○ Jellyfin
+    ○ ntfy
+  x toggle · / filter · ↑/↓ move
 
   Homarr
   Dashboard
+
+
 
 
 
