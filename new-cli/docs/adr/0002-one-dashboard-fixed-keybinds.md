@@ -17,4 +17,6 @@ API keys. It shows names, then fetches the chosen value only for copying. Stack
 `3` Restart all, plus enter to start/stop the selected App. These keys stay in
 Stack because operating the whole Compose Project is distinct from operating
 one App on the Dashboard. Down removes only that Project's containers and
-networks; it keeps volumes, App files and remembered Setup.
+networks; it keeps volumes, App files and remembered Setup. Before Down runs it
+asks first, naming what goes away (the Project's containers and networks) and
+what stays (volumes, App files, Setup): `y` confirms, any other key cancels.

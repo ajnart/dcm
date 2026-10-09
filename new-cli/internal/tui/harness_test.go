@@ -837,6 +837,9 @@ func TestStackUpdateAndRecheck(t *testing.T) {
 	}
 	for _, control := range []struct{ key, action string }{{"1", "up"}, {"2", "down"}, {"3", "restart"}} {
 		m = drive(t, m, press(control.key))
+		if control.action == "down" {
+			m = drive(t, m, press("y"))
+		}
 		if !slices.Contains(backend.Actions(), control.action) {
 			t.Fatalf("%s must control the whole Project", control.key)
 		}
