@@ -1,0 +1,22 @@
+new-cli/internal/tui/apps.go
+  h_d6e478ca18e517 363,374,380-385
+new-cli/internal/tui/dashboard.go
+  h_d6e478ca18e517 266-267,276-278,290,292-293,295
+new-cli/internal/tui/details.go
+  h_d6e478ca18e517 334,336
+new-cli/internal/tui/help.go
+  h_d6e478ca18e517 95-104
+new-cli/internal/tui/views_test.go
+  h_d6e478ca18e517 445-498
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "41a977a45f7b507ef9ebb6ed5bb4823c12af9fbf",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
