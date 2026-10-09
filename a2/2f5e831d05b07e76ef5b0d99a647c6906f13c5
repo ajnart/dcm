@@ -1,0 +1,22 @@
+new-cli/README.md
+  h_d6e478ca18e517 129-135,138-140
+new-cli/internal/activity/render_action.go
+  h_d6e478ca18e517 61-64
+new-cli/internal/activity/terminal.go
+  h_d6e478ca18e517 9-10,16-21,24-29,34-36,39-40,43-57,60-61,64,68-72,75-80,82-87,89-136,138-158,160-161,163-173,177-181
+new-cli/internal/activity/terminal_test.go
+  h_d6e478ca18e517 8-10,33,36,63-95,97-101,103-129,131-132,134-135,141-144,146-151,159,161-167,170-179,185-187,189,191,200-202,204-243,245-252
+new-cli/internal/cli/cli.go
+  h_d6e478ca18e517 48-49,98,116-117,133-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a22f5e831d05b07e76ef5b0d99a647c6906f13c5",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
