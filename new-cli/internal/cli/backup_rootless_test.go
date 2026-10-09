@@ -271,7 +271,7 @@ func TestNamespaceRestoreAppliesScopedDatabaseMetadata(t *testing.T) {
 	if r.Code != 0 {
 		t.Fatal(r.Out)
 	}
-	if len(runner.metadata) != 1 || !strings.Contains(runner.metadata[0], "999:999") || !strings.Contains(runner.metadata[0], "chmod 700") {
+	if len(runner.metadata) != 1 || !strings.Contains(runner.metadata[0], "999:999") || !strings.Contains(runner.metadata[0], "chmod 0700") {
 		t.Fatal("restore did not apply database ownership and modes inside Docker")
 	}
 	if readFile(t, filepath.Join(root, "apps", "one", "database", "row")) != "pg-row!" {

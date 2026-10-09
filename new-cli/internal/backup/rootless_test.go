@@ -69,6 +69,53 @@ func TestRootlessTarImportPreservesContainerMetadata(t *testing.T) {
 	}
 }
 
+func TestRootlessTarImportPreservesSpecialModeBits(t *testing.T) {
+	var stream, compressed bytes.Buffer
+	tw := tar.NewWriter(&stream)
+	headers := []*tar.Header{
+		{Name: "cache", Typeflag: tar.TypeDir, Mode: 0o1777, Uid: 999, Gid: 999},
+		{Name: "helper", Typeflag: tar.TypeReg, Mode: 0o2755, Uid: 999, Gid: 999, Size: 3},
+	}
+	for _, h := range headers {
+		if err := tw.WriteHeader(h); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := tw.Write([]byte("run")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	w, err := Create(&compressed, "", Manifest{Apps: []ManifestApp{{ID: "one", OwnershipNamespace: OwnershipDocker}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.AddTar(&stream, "apps/one"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r, err := Open(bytes.NewReader(compressed.Bytes()), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	staging := t.TempDir()
+	if err := r.Extract(staging, selectedDestination(staging), nil); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.Stat(filepath.Join(staging, "apps/one/cache"))
+	if err != nil || dir.Mode().Perm() != 0o777 || dir.Mode()&os.ModeSticky == 0 {
+		t.Fatalf("sticky directory mode lost: %v, %v", dir.Mode(), err)
+	}
+	file, err := os.Stat(filepath.Join(staging, "apps/one/helper"))
+	if err != nil || file.Mode().Perm() != 0o755 || file.Mode()&os.ModeSetgid == 0 {
+		t.Fatalf("setgid file mode lost: %v, %v", file.Mode(), err)
+	}
+}
+
 func TestRootlessTarImportRejectsUnsafeEntries(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -80,7 +127,8 @@ func TestRootlessTarImportRejectsUnsafeEntries(t *testing.T) {
 		{"link-write", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "link/file", Mode: 0600, Typeflag: tar.TypeReg}}},
 		{"link-overwrite", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "link", Mode: 0600, Typeflag: tar.TypeReg}}},
 		{"forward-hardlink", []*tar.Header{{Name: "link", Linkname: "config", Mode: 0600, Typeflag: tar.TypeLink}}},
-		{"setuid", []*tar.Header{{Name: "config", Mode: 04755, Typeflag: tar.TypeReg}}},
+		{"fifo", []*tar.Header{{Name: "pipe", Mode: 0644, Typeflag: tar.TypeFifo}}},
+		{"device", []*tar.Header{{Name: "dev", Mode: 0644, Typeflag: tar.TypeBlock, Devmajor: 8, Devminor: 1}}},
 		{"negative-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: -1, Typeflag: tar.TypeReg}}},
 		{"large-owner", []*tar.Header{{Name: "config", Mode: 0600, Uid: 2147483648, Typeflag: tar.TypeReg}}},
 		{"composed-escape", []*tar.Header{{Name: "link", Linkname: "deep1/deep2/../../outside", Mode: 0777, Typeflag: tar.TypeSymlink}, {Name: "deep1/deep2", Linkname: "../..", Mode: 0777, Typeflag: tar.TypeSymlink}}},
