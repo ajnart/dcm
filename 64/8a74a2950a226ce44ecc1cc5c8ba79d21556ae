@@ -1,0 +1,31 @@
+internal/apps/homarr/homarr_test.go
+  s_8b1d5a69f175a9::t_8c47242877321c 1174-1205
+internal/service/cloudflare.go
+  s_8b1d5a69f175a9::t_d5fcb8011a1ea8 19,190-191,425-431,504-506
+internal/service/install.go
+  s_8b1d5a69f175a9::t_84e4961026d738 23,268
+internal/service/installed_apps_test.go
+  s_8b1d5a69f175a9::t_63dc39ea89a56a 13,19-92,98,109
+internal/service/mutation.go
+  s_8b1d5a69f175a9::t_9260def3ab444f 388-391
+internal/service/service.go
+  s_8b1d5a69f175a9::t_05aa3ba99b9661 216-227
+internal/service/tailscale_test.go
+  s_8b1d5a69f175a9::t_430b84c5f7ea4d 123-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "648a74a2950a226ce44ecc1cc5c8ba79d21556ae",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
