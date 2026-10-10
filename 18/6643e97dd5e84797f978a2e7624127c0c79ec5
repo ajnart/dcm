@@ -1,0 +1,23 @@
+internal/cli/install_test.go
+  s_59ffa5bfdcd3ba::t_815e3020012060 33-34
+internal/system/system.go
+  s_59ffa5bfdcd3ba::t_943e004280c0f9 64
+internal/telemetry/telemetry.go
+  s_59ffa5bfdcd3ba::t_918b932ab266e7 41,88-89,105,108-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "186643e97dd5e84797f978a2e7624127c0c79ec5",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
