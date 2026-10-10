@@ -1,0 +1,68 @@
+README.md
+  h_d6e478ca18e517 3,5,7,9-10,12,19,21-28,30-39,157-166
+install.sh
+  h_d6e478ca18e517 13-14,280-321,405-406
+internal/catalog/catalog.go
+  h_d6e478ca18e517 57-69
+internal/catalog/expand_test.go
+  h_d6e478ca18e517 1-36
+internal/cli/cli.go
+  h_d6e478ca18e517 199
+internal/cli/debug.go
+  h_d6e478ca18e517 68
+internal/cli/debug_print_test.go
+  h_d6e478ca18e517 1-18
+internal/cli/feedback.go
+  h_d6e478ca18e517 1-99
+internal/cli/feedback_test.go
+  h_d6e478ca18e517 1-290
+internal/cli/lifecycle.go
+  h_d6e478ca18e517 144-148,152
+internal/cli/skill_test.go
+  h_d6e478ca18e517 4-5,12,252-320
+internal/release/installsh_skill_test.go
+  h_d6e478ca18e517 1-153
+internal/release/installsh_test.go
+  h_d6e478ca18e517 17,157
+internal/service/debug.go
+  h_d6e478ca18e517 6,36-40,61-69,71-72,81
+internal/service/debug_test.go
+  h_d6e478ca18e517 101,169-196
+internal/service/feedback.go
+  h_d6e478ca18e517 1-69
+internal/service/install.go
+  h_d6e478ca18e517 56-58,60-63,77-78,81,83
+internal/service/install_test.go
+  h_d6e478ca18e517 1-36
+internal/skill/guide.md
+  h_d6e478ca18e517 4-67,70-73,77-95,106,125,194-202,251,297-300,350-370,374-387
+internal/telemetry/telemetry.go
+  h_d6e478ca18e517 19,93-104,194-228,231,238,245,248,250-252,265-284
+internal/telemetry/telemetry_test.go
+  h_d6e478ca18e517 356-424
+internal/telemetry/telemetrytest/telemetrytest.go
+  h_d6e478ca18e517 22,33,61-67
+internal/tui/onboarding.go
+  h_d6e478ca18e517 51,83-85,573-575,585-587,648-652,663,756-758,901-908,910
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 293-295,297,301-302,304-312,314-318,322-336
+internal/tui/testdata/onboarding-welcome-saved-profile-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-welcome-saved-profile.golden
+  h_d6e478ca18e517 1-30
+scripts/verify-install.sh
+  h_d6e478ca18e517 9-11,25,68-80,82,87,137-141
+skills/self-host/SKILL.md
+  h_d6e478ca18e517 3,9,11,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9fc132ca0507e7004257a7cbe4369ee4375dfed4",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
