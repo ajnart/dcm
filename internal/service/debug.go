@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	stepstatus "github.com/ajnart/self-host/internal/status"
@@ -32,9 +33,11 @@ type DebugReport struct {
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
 	// FailedSteps are the Setup steps that failed or wait for a person.
-	FailedSteps []StepStatus     `json:"failed_steps,omitempty"`
-	Docs        string           `json:"docs,omitempty"`
-	Logs        []string         `json:"logs"`
+	FailedSteps []StepStatus `json:"failed_steps,omitempty"`
+	Docs        string       `json:"docs,omitempty"`
+	Logs        []string     `json:"logs"`
+	// LogLines is how many of the latest log lines the report keeps at most.
+	LogLines    int              `json:"log_lines"`
 	LogsError   string           `json:"logs_error,omitempty"`
 	HealthCheck DebugHealthCheck `json:"health_check"`
 }
@@ -55,10 +58,19 @@ func (s *Service) Debug(ctx context.Context, id string) (DebugReport, error) {
 	if as == nil {
 		return DebugReport{}, fmt.Errorf("%s is not in the Project (see: self-host status)", id)
 	}
+	report := debugReportOf(*as, status.DockerError)
+	if a, found := s.Catalog.App(id); found {
+		report.Docs = a.Info().Docs
+	}
+	report.Logs, report.LogsError = s.debugLogs(ctx, id)
+	return s.maskDebug(report), nil
+}
+
+func debugReportOf(as AppStatus, dockerError string) DebugReport {
 	report := DebugReport{ID: as.ID, Name: as.Name, Managed: as.Managed, State: as.State, Health: as.Health,
-		Setup: as.Setup, Image: as.Image, DockerError: status.DockerError, Logs: []string{}}
+		Setup: as.Setup, Image: as.Image, Addresses: slices.Clone(as.Addresses), DockerError: dockerError,
+		Logs: []string{}, LogLines: debugLogLines}
 	if as.URL != "" {
-		report.Addresses = []string{as.URL}
 		report.HealthCheck = DebugHealthCheck{URL: as.URL, Working: debugWorkingPage}
 	}
 	for _, step := range as.Steps {
@@ -66,11 +78,7 @@ func (s *Service) Debug(ctx context.Context, id string) (DebugReport, error) {
 			report.FailedSteps = append(report.FailedSteps, step)
 		}
 	}
-	if a, found := s.Catalog.App(id); found {
-		report.Docs = a.Info().Docs
-	}
-	report.Logs, report.LogsError = s.debugLogs(ctx, id)
-	return s.maskDebug(report), nil
+	return report
 }
 
 func (s *Service) debugLogs(ctx context.Context, id string) ([]string, string) {
