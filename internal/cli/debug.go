@@ -65,7 +65,7 @@ func printDebug(w io.Writer, r service.DebugReport) {
 	if r.HealthCheck.URL != "" {
 		fmt.Fprintf(w, "\nHealth check\n  URL      %s\n  Working  %s\n", r.HealthCheck.URL, r.HealthCheck.Working)
 	}
-	fmt.Fprintf(w, "\nLogs (last %d lines)\n", 100)
+	fmt.Fprintf(w, "\nLogs (last %d lines)\n", r.LogLines)
 	for _, line := range r.Logs {
 		fmt.Fprintf(w, "  %s\n", line)
 	}
