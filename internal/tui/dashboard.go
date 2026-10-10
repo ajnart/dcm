@@ -52,7 +52,9 @@ func (v *dashboardView) Panes() []pane {
 	return []pane{{"Apps", overviewAppsKeys}, {"Needs attention", overviewNeedsKeys}, {"Search", appsSearchKeys}}
 }
 
-func (v *dashboardView) Capturing() bool { return v.apps.searching }
+func (v *dashboardView) Capturing() bool { return v.apps.Capturing() }
+
+func (v *dashboardView) BarMode(t theme) string { return v.apps.BarMode(t) }
 
 func (v *dashboardView) Title() string { return "Overview" }
 
@@ -101,9 +103,6 @@ func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, na
 }
 
 func (v *dashboardView) View(ctx *viewContext, width, height int) string {
-	if v.apps.copy != nil {
-		return v.apps.copy.view(ctx, width, height)
-	}
 	main, layers := v.render(ctx, width, height)
 	ctx.layers = append(ctx.layers, layers...)
 	return main

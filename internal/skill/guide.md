@@ -311,6 +311,10 @@ internet; publishing needs the separate yes below.
 
 6. Read `self-host status --json`: verified `https://<app>.<domain>` Addresses
    precede `IP:port`; valid private Tailscale HTTPS comes first when both are on.
+   Public Addresses are offered only while the connector is observed running;
+   stopped, missing or unknown state falls back without discarding cleanup
+   receipts. Reads never start or unpublish it. Homarr tiles share this ordering
+   and refresh after verified publication is finalized; API endpoints stay local.
    The person opens the Address,
    requests the emailed PIN and signs in. Do not bypass the login for native
    clients. Upload limits and Cloudflare's terms still apply.
@@ -371,8 +375,9 @@ One managed Caddy in the Compose Project routes HTTP by Host to Catalog Apps
 with web pages, at `http://<app>.<lan-ip-with-dashes>.sslip.io` on every OS.
 Port conflicts, rootless Docker and unsuitable networks refuse without changes.
 
-Read `status --json`: `addresses` lists only resolving names, first, followed
-by `IP:port`; `url` remains the first. Homarr tiles use that working name.
+Read `status --json`: `addresses` lists only working Easy names ahead of
+`IP:port`, after valid private Tailscale and available verified Cloudflare
+Addresses; `url` remains the first. Homarr tiles share that browser Address.
 The additive `names` section has `on`, `working` and, on failure, `problem`,
 `message`, `technical`. Give the plain `message` first and the numbered Address;
 do not change the router or disable its protection yourself. `blocked` compares

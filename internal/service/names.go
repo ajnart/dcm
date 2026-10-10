@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/names"
 	"github.com/ajnart/self-host/internal/project"
@@ -135,6 +136,10 @@ func (s *Service) ownCaddyRuns(ctx context.Context, p *project.Project) bool {
 	if err != nil {
 		return false
 	}
+	return caddyRuns(containers)
+}
+
+func caddyRuns(containers []compose.Container) bool {
 	for _, c := range containers {
 		if c.Service == names.Service && c.State == "running" {
 			for _, pub := range c.Publishers {
@@ -356,7 +361,13 @@ func (ss *session) namesRuntimeProblem(ctx context.Context) string {
 	if !slices.Contains(current, ss.settings["LAN_IP"]) {
 		return "lan-changed"
 	}
-	if !ss.p.HasNames() || !ss.s.ownCaddyRuns(ctx, ss.p) {
+	running := false
+	if ss.navigationContainers != nil {
+		running = caddyRuns([]compose.Container{ss.navigationContainers[names.Service]})
+	} else {
+		running = ss.s.ownCaddyRuns(ctx, ss.p)
+	}
+	if !ss.p.HasNames() || !running {
 		return "binding"
 	}
 	data, err := os.ReadFile(ss.p.NamesCaddyfilePath())
@@ -387,11 +398,4 @@ func addresses(name, ipURL string) []string {
 		out = append(out, ipURL)
 	}
 	return out
-}
-
-// friendlyAddress is the Address a dashboard tile should open: the Easy name
-// while it works, otherwise the address with numbers.
-func (ss *session) friendlyAddress(ctx context.Context, id, ipURL string) string {
-	working, _ := ss.workingNames(ctx, []string{id})
-	return addresses(working[id], ipURL)[0]
 }

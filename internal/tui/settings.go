@@ -45,7 +45,7 @@ var settingsTabs = []string{"Host", "Access", "Appearance", "Backups", "Tools", 
 // setting, with drift shown and pending changes applied at once; Access
 // chooses how the Apps are opened and shares Host's pending changes; Appearance
 // chooses the glyph set, saved as soon as it is chosen; About says what runs
-// and where to support it; Backups lists, backs up and restores archives; Tools runs ctop and lazydocker.
+// and where to support it; Backups lists, backs up and restores archives; Tools runs installed terminal tools.
 type settingsView struct {
 	tab    settingsTab
 	cursor int
@@ -71,6 +71,7 @@ type settingsView struct {
 	tools      []toolState
 	toolCursor int
 	goos       string
+	goarch     string
 
 	choices   []string
 	choiceIdx int
@@ -100,7 +101,7 @@ var (
 )
 
 func newSettingsView(ctx *viewContext) *settingsView {
-	v := &settingsView{edits: map[string]string{}, goos: runtime.GOOS, exposure: cmp.Or(ctx.status.Exposure, service.ExposureLAN)}
+	v := &settingsView{edits: map[string]string{}, goos: runtime.GOOS, goarch: runtime.GOARCH, exposure: cmp.Or(ctx.status.Exposure, service.ExposureLAN)}
 	v.names = cmp.Or(ctx.status.Settings["EASY_NAMES"], "off")
 	for _, key := range settingsKeys {
 		v.rows = append(v.rows, service.SettingReview{Key: key, Current: settingCurrent(ctx, key)})
@@ -603,7 +604,7 @@ func (v *settingsView) View(ctx *viewContext, width, height int) string {
 	case tabBackups:
 		body = v.backups.box(ctx, width, height)
 	case tabTools:
-		body = v.toolsBox(ctx, width)
+		body = v.toolsBox(ctx, width, max(height-1, 3))
 	case tabAbout:
 		body = aboutBox(ctx, width)
 	}

@@ -1,18 +1,18 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
   Host   Access   Appearance   Backups   Tools   About
 ╭─ Tools ──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ > ctop        live container metrics    ✓ /usr/local/bin/ctop                                                        │
-│   lazydocker  terminal UI for Docker    not installed                                                                │
-│       install  brew install lazydocker                                                                               │
-│       docs     github.com/jesseduffield/lazydocker#installation                                                      │
+│ > ctop        live container metrics            ✓ /usr/local/bin/ctop                                                │
+│   lazydocker  terminal UI for Docker            not installed                                                        │
+│   btop        CPU, memory, disks and processes  not installed                                                        │
+│   bottom      CPU, memory and network graphs    not installed                                                        │
+│   ncdu        find large folders (read-only)    not installed                                                        │
+│                                                                                                                      │
+│   Found /usr/local/bin/ctop                                                                                          │
+│   docs  github.com/bcicen/ctop#install                                                                               │
 │                                                                                                                      │
 │   self-host never installs these for you.                                                                            │
+│   enter runs installed tools; c copies an available install command.                                                 │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-
-
-
-
 
 
 

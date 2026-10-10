@@ -59,7 +59,14 @@ func (v *appsView) Panes() []pane {
 	return []pane{{"List", appsListKeys}, {"Details", appsDetailsKeys}, {"Search", appsSearchKeys}, {"Copy picker", copyHelp}}
 }
 
-func (v *appsView) Capturing() bool { return v.searching }
+func (v *appsView) Capturing() bool { return v.searching || v.copy != nil }
+
+func (v *appsView) BarMode(t theme) string {
+	if v.copy != nil {
+		return t.fg(t.accentText).Bold(true).Render("copy credentials")
+	}
+	return ""
+}
 
 func (v *appsView) Title() string { return "Apps" }
 
@@ -187,9 +194,15 @@ func (v *appsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		}
 		return v.key(ctx, msg)
 	case tea.MouseWheelMsg:
+		if v.copy != nil {
+			return v, nil, nav{}
+		}
 		v.wheel(msg)
 		return v, nil, nav{}
 	case clickMsg:
+		if v.copy != nil {
+			return v, nil, nav{}
+		}
 		return v, v.click(ctx, msg.id), nav{}
 	case logChunkMsg, composeMsg, usageMsg:
 		app, found := v.selected(ctx)
@@ -328,9 +341,6 @@ func appsListWidth(width int) int {
 }
 
 func (v *appsView) View(ctx *viewContext, width, height int) string {
-	if v.copy != nil {
-		return v.copy.view(ctx, width, height)
-	}
 	listW := appsListWidth(width)
 	list, layers := v.renderList(ctx, listW, height)
 	app, found := v.selected(ctx)

@@ -213,12 +213,18 @@ func SecretKey(appID, name string) string {
 
 // session is one locked, loaded Project.
 type session struct {
-	s        *Service
-	p        *project.Project
-	settings map[string]string
-	secrets  *secretStore
-	state    *project.State
-	compose  *compose.Compose
+	s                    *Service
+	p                    *project.Project
+	settings             map[string]string
+	secrets              *secretStore
+	state                *project.State
+	compose              *compose.Compose
+	navigationAddresses  map[string][]string
+	nameFailure          bool
+	navigationContainers map[string]compose.Container
+	navigationError      error
+	navigationWarnings   []string
+	deferDashboard       bool
 }
 
 func (s *Service) open(ctx context.Context) (*session, error) {
@@ -406,6 +412,9 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool { return !IsStage(step) })
 	h := ss.helpers(a)
 	err := a.Setup(ctx, h)
+	if id == tailscaleID || id == cloudflareConnector {
+		ss.invalidateNavigation()
+	}
 	if err == nil {
 		err = h.Step(ctx, "check", "verify "+a.Info().Name+" works", helpers.StepSpec{
 			Do:   func(ctx context.Context) error { return a.Check(ctx, h) },
