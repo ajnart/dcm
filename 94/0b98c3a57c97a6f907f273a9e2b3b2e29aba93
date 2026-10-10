@@ -1,0 +1,20 @@
+new-cli/CONTEXT.md
+  h_d6e478ca18e517 14-17,22,79-99,103-157,240-242,245-247
+new-cli/docs/adr/0005-agents-load-the-skill-on-their-own.md
+  h_d6e478ca18e517 1-3
+new-cli/docs/adr/0006-telemetry-on-by-default.md
+  h_d6e478ca18e517 1-3
+new-cli/docs/adr/0007-one-repo-go-cli-only.md
+  h_d6e478ca18e517 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "940b98c3a57c97a6f907f273a9e2b3b2e29aba93",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
