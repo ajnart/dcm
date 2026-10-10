@@ -196,16 +196,18 @@ func NewDeps(t *testing.T) *system.Deps {
 	env := map[string]string{}
 	clock := &Clock{now: time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)}
 	deps := &system.Deps{
-		Version:    "test",
-		GOOS:       "linux",
-		GOARCH:     "amd64",
-		Runner:     runner,
-		HTTP:       &http.Client{Timeout: 5 * time.Second},
-		LookPath:   func(name string) (string, error) { return "/usr/bin/" + name, nil },
-		Executable: func() (string, error) { return filepath.Join(home, "bin", "self-host"), nil },
-		Exec:       func(path string, argv []string) error { return fmt.Errorf("unexpected exec of %s", path) },
-		CacheDir:   func() (string, error) { return filepath.Join(home, ".cache"), nil },
-		Getenv:     func(key string) string { return env[key] },
+		Version:     "test",
+		GOOS:        "linux",
+		GOARCH:      "amd64",
+		Runner:      runner,
+		HTTP:        &http.Client{Timeout: 5 * time.Second},
+		LookPath:    func(name string) (string, error) { return "/usr/bin/" + name, nil },
+		Executable:  func() (string, error) { return filepath.Join(home, "bin", "self-host"), nil },
+		Exec:        func(path string, argv []string) error { return fmt.Errorf("unexpected exec of %s", path) },
+		CacheDir:    func() (string, error) { return filepath.Join(home, ".cache"), nil },
+		ConfigDir:   func() (string, error) { return filepath.Join(home, ".config"), nil },
+		ConfigFiles: &ConfigFiles{},
+		Getenv:      func(key string) string { return env[key] },
 		CurrentUser: func() (system.User, error) {
 			return system.User{Name: "alice", Home: home, UID: 1000, GID: 1000}, nil
 		},

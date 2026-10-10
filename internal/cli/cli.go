@@ -19,6 +19,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/tui"
 	"github.com/ajnart/self-host/internal/updatecheck"
 )
@@ -50,9 +51,10 @@ type program struct {
 	svc      *service.Service
 	// terminal is the interactive sink, closed when the command returns.
 	terminal *activity.TerminalSink
-	// steps and failure are what Telemetry learns of a failed command.
-	steps   failedSteps
-	failure error
+	// steps, failure and panicked are what Telemetry learns of a failed command.
+	steps    telemetry.Progress
+	failure  error
+	panicked any
 }
 
 func (a *program) service() *service.Service {
@@ -68,6 +70,9 @@ func (a *program) fail(err error) error {
 		return nil
 	}
 	a.failure = err
+	if a.steps.Report.Stack == nil {
+		a.steps.Report.Stack = telemetry.CaptureStack(1)
+	}
 	if errors.Is(err, service.ErrIncomplete) {
 		return exitError{ExitIncomplete}
 	}
@@ -144,14 +149,43 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
-	a := &program{deps: deps, catalog: cat, args: args, steps: failedSteps{cat: cat}}
+	a := &program{deps: deps, catalog: cat, args: args, steps: telemetry.Progress{Now: deps.Now, KnownApp: func(id string) bool { _, ok := cat.App(id); return ok }}}
+	return a.run(ctx)
+}
+
+func (a *program) run(ctx context.Context) int {
+	return a.runWithNotice(ctx, a.startNotice)
+}
+
+func (a *program) runWithNotice(ctx context.Context, startNotice func(context.Context, *cobra.Command, []string) func() string) int {
+	deps, args := a.deps, a.args
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
-	notice := a.startNotice(root, args)
+	noticeCtx, abandonNotice := context.WithCancel(ctx)
+	defer abandonNotice()
+	notice := startNotice(noticeCtx, root, args)
+	rejectNotice := func() {
+		abandonNotice()
+		notice()
+	}
 	report := a.startTelemetry(root, args)
+	defer func() {
+		if crash := recover(); crash != nil {
+			stack := telemetry.CaptureStack(1)
+			if captured, ok := crash.(system.CapturedPanic); ok {
+				crash, stack = captured.Value, telemetry.Stack(captured.Stack)
+			}
+			system.CatchPanic(rejectNotice)
+			a.reportPanic(report, crash, stack)
+			panic(crash)
+		}
+	}()
 	err := root.ExecuteContext(ctx)
+	if err != nil {
+		rejectNotice()
+	}
 	if a.terminal != nil {
 		a.terminal.Close()
 	}
@@ -170,6 +204,15 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	}
 	report(err, code)
 	return code
+}
+
+func (a *program) reportPanic(report func(error, int), crash any, stack telemetry.Stack) {
+	if a.terminal != nil {
+		system.CatchPanic(a.terminal.Close)
+	}
+	a.panicked = crash
+	a.steps.Report.Stack = stack
+	report(nil, ExitError)
 }
 
 // NewRootCommand returns the cobra command tree, for tests that inspect what
