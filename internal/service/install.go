@@ -54,16 +54,14 @@ func (s *Service) Resolve(targets []string) ([]app.App, error) {
 		return nil
 	}
 	for _, target := range targets {
-		if recipe, found := s.Catalog.Recipe(target); found {
-			for _, id := range recipe.Apps {
-				if err := add(id); err != nil {
-					return nil, err
-				}
-			}
-			continue
+		_, ids, found := s.Catalog.Expand(target)
+		if !found {
+			return nil, fmt.Errorf("unknown app or recipe %q (see: self-host apps list)", target)
 		}
-		if err := add(target); err != nil {
-			return nil, err
+		for _, id := range ids {
+			if err := add(id); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if len(apps) == 0 {
@@ -77,13 +75,13 @@ func (s *Service) Resolve(targets []string) ([]app.App, error) {
 func (s *Service) recipeOf(targets []string) map[string]string {
 	out := map[string]string{}
 	for _, target := range targets {
-		recipe, found := s.Catalog.Recipe(target)
-		if !found {
+		recipe, ids, _ := s.Catalog.Expand(target)
+		if recipe == "" {
 			continue
 		}
-		for _, id := range recipe.Apps {
+		for _, id := range ids {
 			if _, taken := out[id]; !taken {
-				out[id] = recipe.ID
+				out[id] = recipe
 			}
 		}
 	}
