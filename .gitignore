@@ -1,8 +1,8 @@
-/data/
-/config/
+dist/
+/self-host
+.scratch/
+
 /.sessions/
-/.selfhost/
-**/.selfhost/
 
 # Disposable client and installer state
 /.claude/
@@ -10,18 +10,7 @@
 /.cursor/
 /.gemini/
 /.opencode/
-/.client-install/
-/.install-tmp/
 /.tmp/
-
-# Local validation and acceptance output
-/artifacts/
-/evidence/
-/screenshots/
-/coverage/
-/dist/
-/node_modules/
-**/node_modules/
 
 # BEGIN oh-my-opencode-slim worktrees
 .slim/worktrees/
