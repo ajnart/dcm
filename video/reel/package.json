@@ -5,6 +5,8 @@
   "scripts": {
     "stills": "node render.mjs stills",
     "lint": "node render.mjs lint",
+    "cues": "node render.mjs cues",
+    "audio": "node render.mjs cues && node audio/synth.mjs",
     "video": "node render.mjs video"
   },
   "dependencies": {

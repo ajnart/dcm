@@ -1,10 +1,13 @@
 // Deterministic frame renderer: every pixel is a pure function of t (window.seek).
-//   node render.mjs stills 0:25:1          PNG stills (list "1,2.5" or range start:end:step) → out/stills/
-//   node render.mjs lint [times]           determinism (same t twice, out of order, fresh page) + safe-area text check
+//   node render.mjs stills 0:52:0.5        PNG stills (list "1,2.5", range start:end:step, or "holds") → out/stills/
+//   node render.mjs lint [times]           readability holds + undeclared text + safe area + determinism
+//   node render.mjs cues                   write the sound cue sheet the scenes registered → audio/cues.json
 //   node render.mjs video [--sub 8] [--workers 6] [--fps 60] [--crf 23] [--fresh]   (chunks resume; --crf only re-muxes)
-//   node render.mjs contact                25-frame contact sheet from the final MP4
+//   node render.mjs contact                one frame per second from the final MP4, in a grid
+//   node render.mjs sheets [dir] [prefix]  4×3 review sheets of out/<dir>/*.png → out/sheets/
 //   node render.mjs eval "<js>" <t>        evaluate an expression at t
 import { chromium } from "playwright";
+import { DUR } from "./timeline.js";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { readFile, readdir, mkdir, writeFile, rm, access, rename } from "node:fs/promises";
@@ -15,7 +18,7 @@ import { createHash } from "node:crypto";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const OUT = join(ROOT, "out");
-const DUR = 25;
+const AUDIO = join(ROOT, "audio");
 const SHUTTER = 0.5;
 const args = process.argv.slice(2);
 const mode = args[0];
@@ -86,11 +89,15 @@ function parseTimes(spec) {
   return spec.split(",").map(Number);
 }
 
-async function stills(url, times) {
+async function stills(url, spec) {
   const dir = join(OUT, flag("dir", "stills"));
   await mkdir(dir, { recursive: true });
   const browser = await chromium.launch(LAUNCH);
   const { page, cdp } = await openPage(browser, url);
+  // "holds": the first and last frame of every declared readability hold
+  const times = spec === "holds"
+    ? [...new Set((await page.evaluate(() => window.lintHolds())).flatMap((h) => [h.a, h.b - 0.01]).map((t) => +t.toFixed(2)))].sort((x, y) => x - y)
+    : parseTimes(spec);
   for (const t of times) {
     await page.evaluate((x) => window.seek(x), t);
     const file = join(dir, `t${t.toFixed(2).padStart(5, "0")}.png`);
@@ -126,10 +133,24 @@ async function lint(url, times) {
   }, [x.toString("base64"), y.toString("base64")]);
   const seen = new Map();
   let bad = 0, worst = 0, differing = 0, minPsnr = Infinity;
+
+  // 1 · readability: every declared hold is long enough (0.6 s + 0.3 s/word), 32 px+, opaque, unoverlapped and still
+  const rd = await a.page.evaluate(() => window.lintRead());
+  for (const i of rd.issues) { bad++; console.log("READABILITY", JSON.stringify(i)); }
+  const tight = rd.holds.reduce((m, h) => Math.min(m, h.have - h.need), Infinity);
+  console.log(`readability: ${rd.holds.length} holds checked at 30 Hz, ${rd.issues.length} problem(s); tightest margin ${tight.toFixed(2)} s`);
+  // 2 · every visible text is declared readable or [data-deco]
+  let undeclared = 0;
+  for (let t = 0.1; t < DUR; t += 0.25) {
+    const u = await a.page.evaluate((x) => window.lintUndeclared(x), +t.toFixed(3));
+    for (const i of u) { if (undeclared++ < 40) console.log("UNDECLARED TEXT", JSON.stringify(i)); }
+  }
+  if (undeclared) { bad++; console.log(`undeclared text: ${undeclared} sighting(s)`); }
+
   for (const t of times) {
     await a.page.evaluate((x) => window.seek(x), t);
     seen.set(t, await shot(a.cdp));
-    const issues = await a.page.evaluate(() => window.lint());
+    const issues = await a.page.evaluate((x) => window.lint(x), t);
     if (issues.length) { bad++; console.log(`safe-area ${t.toFixed(2)}`, JSON.stringify(issues)); }
   }
   const check = async (label, t, buf) => {
@@ -152,7 +173,7 @@ async function lint(url, times) {
     await check("fresh page", t, await shot(b.cdp));
   }
   await browser.close();
-  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
+  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — every readable text holds long enough, legible and still; no undeclared text; ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
   if (bad) process.exitCode = 1;
 }
 
@@ -160,10 +181,10 @@ async function sourceHash() {
   const hash = createHash("sha1");
   const walk = async (d) => {
     for (const e of (await readdir(d, { withFileTypes: true })).sort((x, y) => x.name.localeCompare(y.name))) {
-      if (e.name === "node_modules" || e.name === "out" || e.name === "render.mjs") continue;
+      if (e.name === "node_modules" || e.name === "out" || e.name === "audio" || e.name === "render.mjs") continue;
       const p = join(d, e.name);
       if (e.isDirectory()) await walk(p);
-      else if (/\.(js|mjs|css|html|svg)$/.test(e.name)) { hash.update(p); hash.update(await readFile(p)); }
+      else if (/\.(js|mjs|css|html|svg|png)$/.test(e.name)) { hash.update(p); hash.update(await readFile(p)); }
     }
   };
   await walk(ROOT);
@@ -227,28 +248,67 @@ async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
 
   const list = join(dir, "list.txt");
   await writeFile(list, jobs.map((j) => `file '${j.file}'`).join("\n"));
-  const ff = ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-c:v", "libx264", "-preset", "slow", "-crf", String(crf), "-profile:v", "high", "-tune", "film", "-pix_fmt", "yuv420p", "-r", String(fps), "-frames:v", String(total), "-movflags", "+faststart", "-an", join(OUT, out)]);
+  const wav = join(AUDIO, "out", "soundtrack.wav");
+  await access(wav).catch(() => { throw new Error(`no soundtrack at ${wav}: run node render.mjs cues && node audio/synth.mjs first`); });
+  const ff = ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-i", wav, "-map", "0:v:0", "-map", "1:a:0",
+    "-c:v", "libx264", "-preset", "slow", "-crf", String(crf), "-profile:v", "high", "-tune", "film", "-pix_fmt", "yuv420p", "-r", String(fps), "-frames:v", String(total),
+    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-t", String(DUR), "-movflags", "+faststart", join(OUT, out)]);
   ff.stdin.end();
   await ff.done;
   console.log("wrote", join(OUT, out), `in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 }
 
+// lay PNGs out in a labelled grid with the browser (this ffmpeg build has no drawtext)
+async function grid(files, labels, out, { cols, w, h }) {
+  const browser = await chromium.launch(LAUNCH);
+  const rows = Math.ceil(files.length / cols);
+  const page = await browser.newPage({ viewport: { width: cols * w, height: rows * h }, deviceScaleFactor: 1 });
+  const cells = await Promise.all(files.map(async (f, i) => `<div style="position:relative;width:${w}px;height:${h}px;background:url(data:image/png;base64,${(await readFile(f)).toString("base64")}) 0 0/${w}px ${h}px"><b style="position:absolute;left:4px;top:3px;font:600 ${Math.round(h / 8)}px monospace;color:#fff;background:#000b;padding:0 4px">${labels[i]}</b></div>`));
+  await page.setContent(`<body style="margin:0;background:#000;display:grid;grid-template-columns:repeat(${cols},${w}px)">${cells.join("")}</body>`);
+  await page.screenshot({ path: out });
+  await browser.close();
+}
+
 async function contact() {
   const src = join(OUT, "selfhost-reel.mp4");
-  const font = join(ROOT, "node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff");
-  const vf = "select='eq(mod(n\\,60)\\,30)',scale=384:216:flags=lanczos,tile=5x5:margin=0:padding=0";
-  const ff = ffmpeg(["-i", src, "-vf", vf, "-frames:v", "1", join(OUT, "contact.png")]);
+  const dir = join(OUT, "contact-frames");
+  await rm(dir, { recursive: true, force: true });
+  await mkdir(dir, { recursive: true });
+  const ff = ffmpeg(["-i", src, "-vf", "select='eq(mod(n\\,60)\\,30)',scale=240:135:flags=lanczos", "-fps_mode", "vfr", join(dir, "f%03d.png")]);
   ff.stdin.end();
   await ff.done;
-  console.log("wrote", join(OUT, "contact.png"), font ? "" : "");
+  const files = (await readdir(dir)).filter((f) => f.endsWith(".png")).sort().map((f) => join(dir, f));
+  await grid(files, files.map((_, i) => `${i}.5 s`), join(OUT, "contact.png"), { cols: 8, w: 240, h: 135 });
+  console.log("wrote", join(OUT, "contact.png"), `(${files.length} frames, one per second)`);
+}
+
+async function sheets(dir, prefix = "s") {
+  const files = (await readdir(dir)).filter((f) => f.endsWith(".png")).sort();
+  const outDir = join(OUT, "sheets");
+  await mkdir(outDir, { recursive: true });
+  for (let i = 0, k = 0; i < files.length; i += 12, k++) {
+    const part = files.slice(i, i + 12);
+    await grid(part.map((f) => join(dir, f)), part.map((f) => f.replace(".png", "")), join(outDir, `${prefix}${String(k).padStart(2, "0")}.png`), { cols: 4, w: 480, h: 270 });
+  }
+  console.log(`wrote ${Math.ceil(files.length / 12)} sheet(s) to ${outDir}`);
 }
 
 const srv = await serve();
 const url = `http://127.0.0.1:${srv.address().port}/index.html`;
 try {
-  if (mode === "stills") await stills(url, parseTimes(args[1]));
-  else if (mode === "lint") await lint(url, parseTimes(args[1] || "0.25:24.75:0.5"));
+  if (mode === "stills") await stills(url, args[1]);
+  else if (mode === "lint") await lint(url, parseTimes(args[1] || `0.25:${DUR - 0.25}:0.5`));
+  else if (mode === "cues") {
+    const browser = await chromium.launch(LAUNCH);
+    const { page } = await openPage(browser, url);
+    const sheet = await page.evaluate(() => window.cueSheet());
+    await mkdir(AUDIO, { recursive: true });
+    await writeFile(join(AUDIO, "cues.json"), JSON.stringify(sheet, null, 1) + "\n");
+    console.log(`wrote ${join(AUDIO, "cues.json")}: ${sheet.cues.length} cues over ${sheet.duration} s`);
+    await browser.close();
+  }
   else if (mode === "contact") await contact();
+  else if (mode === "sheets") await sheets(join(OUT, args[1] || "stills"), args[2]);
   else if (mode === "eval") {
     const browser = await chromium.launch(LAUNCH);
     const { page } = await openPage(browser, url);
@@ -256,7 +316,7 @@ try {
     console.log(JSON.stringify(await page.evaluate(args[1]), null, 1));
     await browser.close();
   } else if (mode === "video") await video(url, { fps: +flag("fps", 60), sub: +flag("sub", 8), workers: +flag("workers", Math.max(2, Math.min(8, Math.floor(cpus().length / 2)))), chunk: +flag("chunk", 60), fresh: has("fresh"), out: flag("out", "selfhost-reel.mp4"), crf: +flag("crf", 23) });
-  else console.log("usage: node render.mjs stills|lint|video|contact|eval");
+  else console.log("usage: node render.mjs stills|lint|cues|video|contact|eval");
 } finally {
   srv.close();
 }

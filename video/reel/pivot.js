@@ -1,5 +1,7 @@
-import { gsap, $, $$, proc, prog, clamp, scene, diamond, rng } from "./lib.js";
+import { $, $$, proc, prog, scene, diamond, rng, read, cue } from "./lib.js";
+import { SC, shown } from "./timeline.js";
 
+const [A, B] = SC.pivot;
 const FLAGS = [
   "self-host install sonarr radarr qbittorrent --exposure lan --media-root ~/media --downloads-root ~/downloads --admin-user admin --yes --json",
   "--set sonarr.port=8989 --set radarr.port=7878 --set-file vaultwarden.admin_token=./token --exposure local",
@@ -8,10 +10,12 @@ const FLAGS = [
   "self-host update jellyfin sonarr radarr && self-host status --updates --json && self-host doctor --json",
   "self-host logs jellyfin --follow --tail 200 | grep -i error && self-host restart prowlarr sonarr radarr",
 ];
+const IN = A + 0.15, OUT = B - 0.3;
 
 export function build(tl) {
-  const root = scene("s6", 14.7, 17.0);
-  tl.fromTo(root, { clipPath: diamond(960, 540, 0) }, { clipPath: diamond(960, 540, 1900), duration: 0.5, ease: "power3.inOut" }, 14.7);
+  const root = scene("pivot", A, shown("pivot"));
+  tl.fromTo(root, { clipPath: diamond(960, 540, 0) }, { clipPath: diamond(960, 540, 1900), duration: 0.5, ease: "power3.inOut" }, A);
+  cue(A, "whoosh", { dur: 0.5, pan: 0 });
   const wrap = $("#flags");
   const r = rng(5);
   const lines = Array.from({ length: 15 }, (_, i) => {
@@ -21,24 +25,25 @@ export function build(tl) {
     el.textContent = txt.repeat(3);
     el.style.top = `${i * 76 - 10}px`;
     wrap.appendChild(el);
-    return { el, loop: txt.length * 18, dir: i % 2 ? 1 : -1, sp: 260 + r() * 520, off: r() * 3000 };
+    return { el, loop: txt.length * 18, dir: i % 2 ? 1 : -1, sp: 180 + r() * 360, off: r() * 3000 };
   });
   proc((t) => {
-    const age = t - 14.7;
+    if (t < A || t > shown("pivot")) return;
+    const age = t - A;
     lines.forEach((l) => {
       const x = (((age * l.sp + l.off) % l.loop) + l.loop) % l.loop;
       l.el.style.transform = `translateX(${l.dir > 0 ? -l.loop + x : -x}px)`;
     });
-    const dim = 0.3 - 0.2 * prog(t, 14.9, 15.5);
-    wrap.style.opacity = dim * (1 - prog(t, 16.3, 16.6));
+    wrap.style.opacity = (0.3 - 0.18 * prog(t, A + 0.2, A + 0.9)) * (1 - prog(t, OUT, OUT + 0.3));
   });
-  tl.fromTo("#flags", { scale: 1.0 }, { scale: 1.12, duration: 2.3, ease: "none" }, 14.7);
 
-  const ws = $$("#pivot .w");
+  const ws = $$("#pivot-t .w");
   ws.forEach((w, i) => {
     const q = w.classList.contains("q");
-    tl.fromTo(w, { yPercent: 190, rotation: q ? 18 : 4, scale: q ? 0.4 : 1 }, { yPercent: 0, rotation: 0, scale: 1, duration: q ? 0.5 : 0.6, ease: q ? "back.out(2.4)" : "expo.out" }, 14.86 + (q ? 0.62 : i * 0.085));
-    tl.fromTo(w, { yPercent: 0 }, { yPercent: -190, duration: 0.3, ease: "power3.in" }, 16.2 + i * 0.02);
+    const t0 = IN + (q ? 0.62 : i * 0.085);
+    tl.fromTo(w, { yPercent: 190, rotation: q ? 18 : 4, scale: q ? 0.4 : 1 }, { yPercent: 0, rotation: 0, scale: 1, duration: q ? 0.5 : 0.6, ease: q ? "back.out(2.4)" : "expo.out" }, t0);
+    tl.fromTo(w, { yPercent: 0 }, { yPercent: -190, duration: 0.3, ease: "power3.in" }, OUT + i * 0.02);
+    if (q) cue(t0 + 0.12, "plink");
   });
-  tl.fromTo("#pivot", { scale: 1 }, { scale: 1.05, duration: 1.6, ease: "none" }, 14.86);
+  read("#pivot-t", IN + 1.15, OUT, "pivot");
 }

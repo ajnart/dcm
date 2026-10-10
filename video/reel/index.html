@@ -13,71 +13,83 @@
 <body>
 <div id="stage">
 
-  <!-- 1 · hook + the rented wall -->
-  <section class="scene" id="s1">
-    <div class="glow" id="s1-glow"></div>
+  <!-- 1 · hook, the rented wall, "Your servers." -->
+  <section class="scene" id="hook">
+    <div class="glow" id="hook-glow"></div>
     <div id="tiles"></div>
-    <h1 id="hook"><span class="ln"><span class="mk"><span class="w">Stop</span></span> <span class="mk"><span class="w strike" id="w-renting">renting</span></span></span><span class="ln"><span class="mk"><span class="w">your</span></span> <span class="mk"><span class="w">own</span></span> <span class="mk"><em class="w">stuff.</em></span></span></h1>
-    <div id="wallhead"><span class="mk"><span id="wh-a" class="w">Their servers.</span></span><span class="mk"><span id="wh-b" class="w">Yours.</span></span></div>
-    <div id="meter"><div class="m-n" id="m-n">$0</div><div class="m-l">per month, rented</div></div>
+    <h1 id="hook-t"><span class="ln"><span class="mk"><span class="w">Stop</span></span> <span class="mk"><span class="w">renting</span></span></span><span class="ln"><span class="mk"><span class="w">your</span></span> <span class="mk"><em class="w">software.</em></span></span></h1>
+    <div id="wallhead"><span class="mk"><span id="wh-a" class="w">Their servers.</span></span><span class="mk"><span id="wh-b" class="w">Your servers.</span></span></div>
+    <div id="meter"><div class="m-n" id="m-n" data-deco>$0</div><div class="m-l" id="m-l1">per month, rented</div><div class="m-l" id="m-l2">per month, yours</div></div>
   </section>
 
   <!-- 2 · product -->
-  <section class="scene" id="s3">
-    <div class="bgfill" id="s3-bg"></div>
+  <section class="scene" id="product">
+    <div class="bgfill" id="product-bg"></div>
     <div id="dia"></div>
     <div id="wm">self-host</div>
     <div id="mark"><svg viewBox="0 0 100 100"><path d="M50 4 96 50 50 96 4 50Z"/></svg></div>
-    <div id="s3-cap"><div class="mk"><div id="cap-a" class="w">One command.</div></div><div class="mk"><div id="cap-b" class="w">A whole <em>stack.</em></div></div></div>
+    <div id="cap"><div class="mk"><div id="cap-a" class="w">One command.</div></div><div class="mk"><div id="cap-b" class="w">A whole <em>stack.</em></div></div></div>
     <div id="cmd"><span class="pr">$</span> <span id="cmd-t"></span><span class="caret" id="cmd-c"></span></div>
-    <div id="proj"><div class="p-label"><span class="pl-d">◆</span> ~/.self-host <i>·</i> one Compose Project</div><div id="p-icons"></div></div>
+    <div id="proj"><div class="p-label" id="p-label"><span class="pl-d">◆</span> ~/.self-host <i>·</i> one Compose Project</div></div>
   </section>
 
   <!-- 3 · pre-boot -->
-  <section class="scene" id="s4">
+  <section class="scene" id="preboot">
     <canvas id="stars" width="1920" height="1080"></canvas>
     <div id="pb-dia"><svg viewBox="0 0 100 100"><path d="M50 4 96 50 50 96 4 50Z"/></svg></div>
-    <div id="pb-quote"><span class="mk"><span class="w">About as long as a song on the radio.</span></span></div>
+    <div id="pb-quote"><span class="mk"><span class="w">Let self-host do it.</span></span></div>
     <div id="pb-icons"></div>
-    <div id="pb-bar"><div class="pb-top"><span id="pb-spin">⠋</span> <b>Pulling images</b><span class="pb-n" id="pb-n">0 of 6 images</span></div><div class="pb-track"><div id="pb-fill"></div></div></div>
+    <div id="pb-bar"><div class="pb-top"><span id="pb-spin" data-deco>⠋</span> <b id="pb-label">Pulling images</b><span class="pb-n" id="pb-n" data-deco>0 of 7 images</span></div><div class="pb-track"><div id="pb-fill"></div></div></div>
   </section>
 
-  <!-- 4 · TUI -->
-  <section class="scene" id="s5">
-    <div class="bgfill" id="s5-bg"></div>
-    <div id="s5-cam"><div id="win"></div><div id="board"></div></div>
-    <div id="s5-heads"></div>
+  <!-- 4 · TUI: Setup -->
+  <section class="scene" id="setup">
+    <div class="bgfill" id="setup-bg"></div>
+    <div id="setup-cam"><div id="win" data-deco></div></div>
+    <div class="hbar"><div class="hcap" id="cap-setup"><span class="mk"><span class="w">Sets up every App.</span></span></div></div>
   </section>
 
-  <!-- 5 · pivot -->
-  <section class="scene" id="s6">
-    <div class="bgfill" id="s6-bg"></div>
-    <div id="flags"></div>
-    <h2 id="pivot"><span class="ln"><span class="mk"><span class="w">Don’t</span></span> <span class="mk"><span class="w">want</span></span> <span class="mk"><span class="w">to</span></span> <span class="mk"><span class="w">learn</span></span></span><span class="ln"><span class="mk"><span class="w">the</span></span> <span class="mk"><span class="w cli">CLI</span></span><span class="mk"><span class="w q">?</span></span></span></h2>
+  <!-- 5 · Links -->
+  <section class="scene" id="links">
+    <div class="bgfill" id="links-bg"></div>
+    <div id="lk-grid"></div>
+    <div class="hbar"><div class="hcap" id="cap-links"><span class="mk"><span class="w">Links them together.</span></span></div></div>
   </section>
 
-  <!-- 6 · skill + agent chat -->
-  <section class="scene" id="s7">
-    <div class="bgfill" id="s7-bg"></div>
-    <div id="sk-left"></div>
+  <!-- 6 · Homarr board -->
+  <section class="scene" id="boardsc">
+    <div class="bgfill" id="board-bg"></div>
+    <div id="board-cam"><div id="board" data-deco></div></div>
+    <div class="hbar"><div class="hcap" id="cap-board"><span class="mk"><span class="w">Then builds your dashboard.</span></span></div></div>
+  </section>
+
+  <!-- 7 · pivot -->
+  <section class="scene" id="pivot">
+    <div class="bgfill" id="pivot-bg"></div>
+    <div id="flags" data-deco></div>
+    <h2 id="pivot-t"><span class="ln"><span class="mk"><span class="w">Don’t</span></span> <span class="mk"><span class="w">want</span></span> <span class="mk"><span class="w">to</span></span> <span class="mk"><span class="w">learn</span></span></span><span class="ln"><span class="mk"><span class="w">the</span></span> <span class="mk"><span class="w cli">CLI</span></span><span class="mk"><span class="w q">?</span></span></span></h2>
+  </section>
+
+  <!-- 8 · the skill in six agents -->
+  <section class="scene" id="agents">
+    <div class="bgfill" id="agents-bg"></div>
+    <div id="ag-strip"></div>
+    <div id="ag-left"></div>
     <div id="chat"></div>
     <div id="cursor"><svg viewBox="0 0 24 24"><path d="M3 2 21 11l-8 2.2L9.6 21Z"/></svg></div>
   </section>
 
-  <!-- 7 · end card -->
-  <section class="scene" id="s8">
-    <div class="bgfill" id="s8-bg"></div>
+  <!-- 9 · end card -->
+  <section class="scene" id="endsc">
+    <div class="bgfill" id="end-bg"></div>
     <canvas id="mosaic" width="1920" height="1080"></canvas>
     <div id="end"></div>
   </section>
 
-  <canvas id="fx" width="1920" height="1080"></canvas>
-  <div id="flash"></div>
   <div id="vig"></div>
   <div id="grain"></div>
 </div>
 <script src="node_modules/gsap/dist/gsap.min.js"></script>
-<script src="node_modules/gsap/dist/CustomEase.min.js"></script>
 <script type="module" src="main.js"></script>
 </body>
 </html>

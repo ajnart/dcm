@@ -25,6 +25,23 @@ export const procs = [];
 export const proc = (fn) => procs.push(fn);
 
 export const icon = (name, ext = "svg") => `assets/icons/${name}.${ext}`;
+export const agentLogo = (name) => `assets/agents/${name}.svg`;
+
+// Readability contract: every element meant to be read declares the window in which it must sit
+// fully legible, opaque, unoverlapped and still. lint (render.mjs) checks the window is at least
+// 0.6 s + 0.3 s per word, then samples it. Text that is not meant to be read sits under [data-deco].
+export const READS = [];
+export const countWords = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+export const needHold = (s) => 0.6 + 0.3 * countWords(s);
+export function read(el, a, b, label) {
+  const els = typeof el === "string" ? [...document.querySelectorAll(el)] : Array.isArray(el) ? el : [el];
+  if (!els.length) throw new Error(`read(): nothing matches ${el}`);
+  els.forEach((e) => READS.push({ el: e, a, b, label: label || e.id || e.className }));
+}
+
+// Sound cues: scenes register them while they build, render.mjs cues writes them to audio/cues.json.
+export const CUES = [];
+export const cue = (t, kind, o = {}) => CUES.push({ t: +t.toFixed(4), kind, ...o });
 
 export function scene(id, a, b) {
   const el = document.getElementById(id);
@@ -73,10 +90,19 @@ export function chars(el, cls = "c") {
   return parts;
 }
 
-export function typed(el, text, a, b, ease = (p) => p) {
+export function typed(el, text, a, b) {
   proc((t) => {
-    const n = Math.round(text.length * ease(prog(t, a, b)));
+    const n = Math.round(text.length * prog(t, a, b));
     el.textContent = text.slice(0, n);
+  });
+  typeCues(text, a, b);
+}
+
+// one key click per visible character, at the moment it appears (n = round(len * p))
+export function typeCues(text, a, b, kind = "key") {
+  [...text].forEach((ch, i) => {
+    if (ch === " ") return;
+    cue(a + ((i + 0.5) / text.length) * (b - a), kind, { i });
   });
 }
 
