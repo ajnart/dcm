@@ -1,49 +1,51 @@
-import { $, $$, proc, prog, scene, diamond, rng, read, cue } from "./lib.js";
-import { SC, shown } from "./timeline.js";
+import { $, $$, proc, scene, rng, read, on, cut } from "./lib.js";
+import { SC, b, BEAT } from "./timeline.js";
 
 const [A, B] = SC.pivot;
 const FLAGS = [
-  "self-host install sonarr radarr qbittorrent --exposure lan --media-root ~/media --downloads-root ~/downloads --admin-user admin --yes --json",
+  "self-host install sonarr radarr qbittorrent --exposure lan --media-root ~/media --downloads-root ~/downloads --yes --json",
   "--set sonarr.port=8989 --set radarr.port=7878 --set-file vaultwarden.admin_token=./token --exposure local",
-  "self-host config set LAN_IP=auto TZ=Europe/Paris PUID=1000 PGID=1000 UMASK=002 && self-host config review --yes",
+  "self-host config set LAN_IP=auto TZ=Europe/Paris PUID=1000 PGID=1000 && self-host config review --yes",
   "self-host backup --encrypt -o ~/.self-host/backups/selfhost-2026-10-09.tar.zst.age && self-host restore --yes",
   "self-host update jellyfin sonarr radarr && self-host status --updates --json && self-host doctor --json",
   "self-host logs jellyfin --follow --tail 200 | grep -i error && self-host restart prowlarr sonarr radarr",
 ];
-const IN = A + 0.15, OUT = B - 0.3;
+const IN = 0.2;
+// beats: 0 line one · ½ line two · then the wall of real flags steps sideways on every beat
 
 export function build(tl) {
-  const root = scene("pivot", A, shown("pivot"));
-  tl.fromTo(root, { clipPath: diamond(960, 540, 0) }, { clipPath: diamond(960, 540, 1900), duration: 0.5, ease: "power3.inOut" }, A);
-  cue(A, "whoosh", { dur: 0.5, pan: 0 });
+  scene("pivot", A, B);
+  cut(A, "Don't want to learn the CLI?");
   const wrap = $("#flags");
   const r = rng(5);
-  const lines = Array.from({ length: 15 }, (_, i) => {
-    const txt = FLAGS[i % FLAGS.length] + "   ·   ";
+  const lines = Array.from({ length: 14 }, (_, i) => {
     const el = document.createElement("div");
     el.className = "fl";
-    el.textContent = txt.repeat(3);
-    el.style.top = `${i * 76 - 10}px`;
+    el.textContent = (FLAGS[i % FLAGS.length] + "   ").repeat(3);
+    el.style.top = `${i * 78}px`;
     wrap.appendChild(el);
-    return { el, loop: txt.length * 18, dir: i % 2 ? 1 : -1, sp: 180 + r() * 360, off: r() * 3000 };
+    return { el, dir: i % 2 ? 1 : -1, off: -200 - r() * 900 };
   });
+  // the wall moves in steps: one expo step of 140 px on each beat, nothing in between
+  const step = (t) => {
+    let s = 0;
+    for (let k = 0; ; k++) {
+      const tk = A + BEAT + k * BEAT;
+      if (tk > t || tk >= B) break;
+      const p = Math.min(1, (t - tk) / 0.25);
+      s += 1 - Math.pow(2, -10 * p);
+    }
+    return s;
+  };
   proc((t) => {
-    if (t < A || t > shown("pivot")) return;
-    const age = t - A;
-    lines.forEach((l) => {
-      const x = (((age * l.sp + l.off) % l.loop) + l.loop) % l.loop;
-      l.el.style.transform = `translateX(${l.dir > 0 ? -l.loop + x : -x}px)`;
-    });
-    wrap.style.opacity = (0.3 - 0.18 * prog(t, A + 0.2, A + 0.9)) * (1 - prog(t, OUT, OUT + 0.3));
+    if (t < A || t >= B) return;
+    const s = step(t);
+    lines.forEach((l) => { l.el.style.transform = `translateX(${(l.off + l.dir * s * 140).toFixed(2)}px)`; });
   });
+  for (let k = 1; A + k * BEAT < B - 1e-6; k++) on(A + k * BEAT, "flags step");
 
   const ws = $$("#pivot-t .w");
-  ws.forEach((w, i) => {
-    const q = w.classList.contains("q");
-    const t0 = IN + (q ? 0.62 : i * 0.085);
-    tl.fromTo(w, { yPercent: 190, rotation: q ? 18 : 4, scale: q ? 0.4 : 1 }, { yPercent: 0, rotation: 0, scale: 1, duration: q ? 0.5 : 0.6, ease: q ? "back.out(2.4)" : "expo.out" }, t0);
-    tl.fromTo(w, { yPercent: 0 }, { yPercent: -190, duration: 0.3, ease: "power3.in" }, OUT + i * 0.02);
-    if (q) cue(t0 + 0.12, "plink");
-  });
-  read("#pivot-t", IN + 1.15, OUT, "pivot");
+  tl.fromTo(ws[0], { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, A);
+  tl.fromTo(ws[1], { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, A + BEAT / 2);
+  read("#pivot-t", A + BEAT / 2 + IN, B - 0.01, "pivot");
 }

@@ -1,12 +1,14 @@
-import { gsap, $, $$, proc, prog, clamp, scene, icon, read, cue } from "./lib.js";
-import { SC, shown } from "./timeline.js";
+import { gsap, $, $$, proc, prog, scene, icon, read, on, cut } from "./lib.js";
+import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.setup;
-const STEP = 0.36;
+// beats: 0 the TUI (a match cut from the Compose Project box), "Sets up every App." · then one App ready
+// every eighth note from 0.5 · 3 the camera pushes into the Links box
+const STEP = 0.25;
 const APPS = [
   ["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["radarr", "Radarr"], ["prowlarr", "Prowlarr"],
   ["jellyfin", "Jellyfin"], ["seerr", "Seerr"], ["homarr", "Homarr"],
-].map(([id, name], i) => ({ id, name, s: A + 0.3 + i * STEP, e: A + 0.3 + (i + 1) * STEP }));
+].map(([id, name], i) => ({ id, name, s: A + i * STEP, e: A + (i + 1) * STEP }));
 // the Links each App declares (new-cli/internal/apps/{arr,seerr,homarr})
 export const LINKS = [
   ["sonarr", "Sonarr", "qbittorrent", "qBittorrent"],
@@ -17,14 +19,14 @@ export const LINKS = [
   ["seerr", "Seerr", "sonarr", "Sonarr"],
   ["homarr", "Homarr", "jellyfin", "Jellyfin"],
 ];
-const L0 = APPS[6].e + 0.05, LSTEP = 0.08, LFILL = 0.25;
+const L0 = APPS[6].e - 0.2, LSTEP = 0.04, LFILL = 0.18;
 const SPIN = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 const spin = (t) => SPIN[Math.floor(t * 14) % 10];
-const CAP_IN = A + 0.15, CAP_OUT = B - 0.5;
+const CAP_IN = A, PUSH = b(23);
 
 export function build(tl) {
-  const root = scene("setup", A, shown("setup"));
-  tl.fromTo(root, { clipPath: "circle(0px at 960px 600px)" }, { clipPath: "circle(1300px at 960px 600px)", duration: 0.45, ease: "power3.out" }, A);
+  scene("setup", A, B);
+  cut(A, "the TUI");
   const win = $("#win");
   win.innerHTML = `
     <div class="tb"><i></i><i></i><i></i><span>self-host</span></div>
@@ -44,10 +46,10 @@ export function build(tl) {
   $("#links-rows").innerHTML = LINKS.map(([c, cn, tg, tn]) => `<div class="lk"><img src="${icon(c)}"><span class="ln1">${cn}</span><span class="ln-line"><i class="fillbar"></i><b class="head">▶</b></span><img src="${icon(tg)}"><span class="ln2">${tn}</span><span class="lst"></span></div>`).join("");
   const lkEls = $$("#links-rows .lk");
   const appsRows = $("#apps-rows");
-  APPS.forEach((a) => cue(a.e, "tick", { soft: 1 }));
+  APPS.forEach((a) => { if (Math.abs((a.e / 0.5) - Math.round(a.e / 0.5)) < 1e-6 && a.e < B) on(a.e, `${a.name} ready`); });
 
   proc((t) => {
-    if (t < A || t > shown("setup")) return;
+    if (t < A || t > B) return;
     $("#apps-count").textContent = `${APPS.filter((a) => t >= a.e).length}/7 set up`;
     let html = "";
     APPS.forEach((a, i) => {
@@ -97,19 +99,14 @@ export function build(tl) {
     $("#a-narr").innerHTML = `<span class="text">${narr}</span>`;
   });
 
-  // a calm camera: one slow move, no cuts inside the hold
+  // a still camera; on beat 3 it pushes into the Links box, which the next scene opens out of
   const cam = $("#setup-cam");
   const view = (px, py, s) => ({ x: 960 - px * s, y: 540 - py * s, scale: s });
   gsap.set(cam, { transformOrigin: "0 0" });
-  tl.fromTo(win, { scale: 1.08, opacity: 0, y: 50 }, { scale: 1, opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, A);
-  tl.fromTo(cam, { ...view(960, 640, 1.0) }, { ...view(860, 620, 1.08), duration: B - A - 0.5, ease: "sine.inOut" }, A);
-  tl.fromTo(cam, { ...view(860, 620, 1.08) }, { ...view(1300, 640, 1.7), duration: 0.5, ease: "power3.in" }, B - 0.5);
-  tl.fromTo(win, { opacity: 1 }, { opacity: 0, duration: 0.2 }, B - 0.25);
-  cue(B - 0.5, "whoosh", { dur: 0.5, pan: 0.6 });
+  tl.fromTo(cam, { ...view(960, 540, 1.0) }, { ...view(1310, 690, 2.4), duration: 0.5, ease: "expo.in" }, PUSH);
+  on(PUSH, "push into the Links box");
 
   const w = $("#cap-setup .w");
-  tl.fromTo(w, { yPercent: 190, rotation: 3 }, { yPercent: 0, rotation: 0, duration: 0.55, ease: "expo.out" }, CAP_IN);
-  tl.fromTo(w, { yPercent: 0 }, { yPercent: -190, duration: 0.28, ease: "power3.in" }, CAP_OUT);
-  cue(CAP_IN + 0.04, "thump", { i: 0 });
-  read("#cap-setup", CAP_IN + 0.6, CAP_OUT);
+  tl.fromTo(w, { yPercent: 110 }, { yPercent: 0, duration: 0.2, ease: "expo.out" }, CAP_IN);
+  read("#cap-setup", CAP_IN + 0.2, B - 0.01);
 }

@@ -1,125 +1,138 @@
-# self-host showreel v2.1: 52.6 s storyboard
+# self-host showreel v3: 16 bars, 32 s, locked to the beat
 
 1920×1080 · 60 fps · H.264 `yuv420p` `+faststart` · AAC 192 kb/s stereo 48 kHz.
-Every pixel is a pure function of `t` (`window.seek(t)`). Every sound is synthesised from the same timeline.
+Every pixel is a pure function of `t` (`window.seek(t)`). The music is "Let's Move" by Michael Ramir C.
+(Mixkit Stock Music Free License; see `audio/SOURCES.md`), cut on its own bar lines.
 Palette from the TUI: accent `#7A57D3`, accentText `#A88DF2`, ok `#00D787`, fail `#FF5F5F`.
-Type: Inter Tight, Unbounded, JetBrains Mono and Instrument Serif, all bundled through fontsource.
+Type: Inter Tight, Unbounded, JetBrains Mono and Instrument Serif, bundled through fontsource.
 
-`timeline.js` holds the scene windows and music sections; the scenes, `render.mjs` and
-`audio/synth.mjs` (through `audio/cues.json`) all read it.
+`timeline.js` holds the grid (120 BPM: a beat is 0.5 s, a bar 2 s, reel time 0 is a downbeat), the scene
+windows and the edit of the track. The scenes, `render.mjs` and `audio/mix.mjs` (through `audio/cues.json`)
+all read it.
 
-## Shot list
+## Direction
 
-| #   | Time        | Beat                            | What happens                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Music                                                                                  |
-| --- | ----------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 1   | 0.00–9.00   | **Hook and the rented wall**    | "Stop renting your software." lands word by word over eight drifting subscription tiles. The tiles snap into a wall: "Their servers.", each tile locks, and the meter counts to `$92 per month, rented`. The tiles flip to "Your servers.", each showing the Catalog App that replaces the service, labelled under its icon, with the original logo as a small badge in the corner. The meter runs down to `$0 per month, yours`. The tiles implode into the centre.                                                        | Build: pad swell, pulse bass, kick from 3 s, arps, snare build and riser               |
-| 2   | 9.00–14.90  | **One command**                 | A violet diamond floods the frame (the lift) and `self-host` drops in letter by letter with an impact, then docks top-left. "One command. A whole _stack._" The command `self-host install media homarr` types out above the Compose Project box, which fills with seven App icons.                                                                                                                                                                                                                                         | Lift: full groove                                                                      |
-| 3   | 14.40–18.60 | **Pre-boot**                    | The TUI's starfield opens from the icon row. "Let self-host do it." Seven rounded-square App tiles, each inside a matching rounded-square progress ring, fill one after another and tick green over a `Pulling images` bar. A warp rush hands over to the TUI.                                                                                                                                                                                                                                                              | Groove; checks chime up the scale; riser into the warp                                 |
-| 4   | 18.50–22.10 | **Sets up every App.**          | The Activity view opens in a circle. One slow, small camera move (scale 1.00 → 1.08 over 3.1 s) while each App goes from `waiting` to `setting up` to `ready`. The camera pushes into the Links box.                                                                                                                                                                                                                                                                                                                        | Groove; a tick per App                                                                 |
-| 5   | 22.00–28.10 | **Links them together.**        | Four Link cards build one by one. In each, a wire draws between the two Apps, a key chip (`••••`) travels from the App that owns the credential to the App being configured, and the receiving App ticks green. Then the card states what the Link did and which credential it used, masked.                                                                                                                                                                                                                                | Drive: brighter arps and melody                                                        |
-| 6   | 28.00–31.10 | **Then builds your dashboard.** | The Homarr board rises in: seven App tiles, then the widgets the Homarr Links add (Downloads, Media server, Requests, Calendar, Indexers, Latest releases).                                                                                                                                                                                                                                                                                                                                                                 | Drive                                                                                  |
-| 7   | 31.00–35.10 | **The pivot**                   | A wall of real CLI flags scrolls behind "Don't want to learn the _CLI?_", with the question mark in accentText purple.                                                                                                                                                                                                                                                                                                                                                                                                      | Breakdown: drums out, pad and plucks, reverb                                           |
-| 8   | 35.00–46.70 | **Just ask your agent.**        | A strip of six agents, each with its logo, sits at the top; the active one lights up. The chat window's chrome (logo, name, accent colour) switches agent while the conversation continues: Claude Code (the request), Codex (`self-host skill`, `self-host apps list --json`), OpenChamber (the plan, and the click on Approve & install), Hermes Agent (`self-host install owned-video-library homarr --yes --json`, then "All set." with the dashboard URL), then OpenCode and Pi. All six light up together at the end. | Rebuild: half-time, filter opening, snare build and riser                              |
-| 9   | 46.60–52.60 | **End card**                    | A circle opens from the dashboard URL onto a slow mosaic of Catalog icons. ◆ and `self-host` land with an impact; the install one-liner, `93 Apps · 20 Recipes · 1 binary` and the six agent names follow. From 48.2 s every element is still: the mosaic decelerates to rest and the grain fades out.                                                                                                                                                                                                                      | Payoff: impact, two bars of groove and melody, the final A minor add 9 chord rings out |
+Flat UI, crisp motion. Entrances are masks and expo-out moves of 0.2 s (0.08 s in the flurry); scene changes
+are hard cuts, a diamond, a circle or a match cut, always on a beat. There is no bouncy or overshooting ease,
+no particle or warp burst, no glow, bloom or text shadow, no gradient on any panel, bar or button, no grain
+or vignette. The UI glyphs the reel draws (lock, key, check) share one 2 px round stroke. Between beats
+nothing drifts: things move on the beat and then sit still.
 
-Transitions are match cuts or masks: imploding tiles → violet diamond; Compose icon row → starfield circle → icon row;
-warp → TUI circle; TUI push into the Links box → Links wipe; circle → Homarr board; diamond → pivot; diamond → agents;
-dashboard URL circle → end card. Camera shakes only on the two impacts (9.55 s and 47.0 s), settling before any hold.
-There is no white flash anywhere: the old reel's end flash was a full-screen white overlay at 50 % opacity fired 0.55 s
-into the end-card reveal (mean luma 39 → 128 at 23.38 s). The overlay is gone, and so is the product scene's 85 % flash.
+## The edit (`timeline.js` `EDIT`, built by `audio/mix.mjs`)
 
-## Readability holds
+| Reel bars       | Source bars (start) | What the music does                                     |
+| --------------- | ------------------- | ------------------------------------------------------- |
+| 0-2 (0-6 s)     | 5-7 (10.03 s)       | the intro build, lifted 8 dB, hats rising into the drop |
+| 3-8 (6-18 s)    | 8-13 (16.03 s)      | the drop on reel bar 3, then the full groove            |
+| 9-12 (18-26 s)  | 15-18 (30.03 s)     | the fill, then the louder second section                |
+| 13 (26-28 s)    | 35 (70.03 s)        | the track's brightest riser                             |
+| 14-15 (28-32 s) | 48-49 (96.03 s)     | the final hit and its ring-out, to silence              |
 
-Every text meant to be read is declared with `read(el, from, to)` in its scene. `node render.mjs lint` fails when a
-hold is shorter than **0.6 s + 0.3 s per word**, or when, sampled at 30 Hz through the hold, any word is below 32 px,
-not fully opaque, overlapped by something that paints over it, off screen, outside the 56 px safe margin, changing text
-or moving by more than 0.6 px. Words are counted as the viewer sees them (a visible gap or a line break separates
-words). Every other visible text must sit under `[data-deco]` (TUI and Homarr mock-ups, the CLI flag wall, counters
-and chrome subtitles) or lint fails on it too.
+Each cut starts 6 ms before the bar's attack with a 4 ms equal-power crossfade. `mix.mjs` measures the grid
+from the audio on every run (`audio/analyze.mjs`: 119.997 BPM, first downbeat 0.0297 s, 181 attacks fitted,
+3.8 ms RMS).
 
-| Hold (s)    | Have ≥ need  | Text                                                                                                                                             |
-| ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1.15–3.05   | 1.90 ≥ 1.80  | Stop renting your software.                                                                                                                      |
-| 3.80–5.35   | 1.55 ≥ 1.50  | per month, rented                                                                                                                                |
-| 3.85–5.30   | 1.45 ≥ 0.90  | the eight service names and prices (Netflix $15/mo … ChatGPT $20/mo)                                                                             |
-| 4.00–5.30   | 1.30 ≥ 1.20  | Their servers.                                                                                                                                   |
-| 4.45–5.40   | 0.95 ≥ 0.90  | $92                                                                                                                                              |
-| 5.90–8.66   | 2.76 ≥ 1.50  | per month, yours                                                                                                                                 |
-| 6.00–8.66   | 2.66 ≥ 0.90  | $0                                                                                                                                               |
-| 6.15–8.66   | 2.51 ≥ 1.20  | the eight replacements and their "yours" pills (the "Yours" state holds 2.5 s)                                                                   |
-| 6.25–8.66   | 2.41 ≥ 1.20  | Your servers.                                                                                                                                    |
-| 10.05–11.00 | 0.95 ≥ 0.90  | self-host (wordmark)                                                                                                                             |
-| 11.55–14.30 | 2.75 ≥ 0.90  | self-host (docked)                                                                                                                               |
-| 11.90–14.30 | 2.40 ≥ 1.20  | One command.                                                                                                                                     |
-| 12.35–14.30 | 1.95 ≥ 1.80  | ◆ ~/.self-host · one Compose Project                                                                                                             |
-| 12.40–14.30 | 1.90 ≥ 1.80  | $ self-host install media homarr                                                                                                                 |
-| 12.45–14.30 | 1.85 ≥ 1.50  | A whole stack.                                                                                                                                   |
-| 15.15–17.75 | 2.60 ≥ 0.90  | qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr, Homarr                                                                                   |
-| 15.40–17.75 | 2.35 ≥ 1.20  | Pulling images                                                                                                                                   |
-| 15.55–17.45 | 1.90 ≥ 1.80  | Let self-host do it.                                                                                                                             |
-| 19.25–21.60 | 2.35 ≥ 1.80  | Sets up every App.                                                                                                                               |
-| 22.70–27.85 | 5.15 ≥ 1.50  | Links them together.                                                                                                                             |
-| 22.90–27.85 | 4.95 ≥ 2.40  | Sonarr · qBittorrent · Adds qBittorrent as Sonarr's download client                                                                              |
-| 23.50–27.85 | 4.35 ≥ 2.70  | Prowlarr · Sonarr · Radarr · Syncs Prowlarr's indexers to Sonarr and Radarr                                                                      |
-| 24.00–27.85 | 3.85 ≥ 1.20  | Admin login ••••••                                                                                                                               |
-| 24.10–27.85 | 3.75 ≥ 2.70  | Seerr · Sonarr · Radarr · Sends your requests to Sonarr and Radarr                                                                               |
-| 24.60–27.85 | 3.25 ≥ 1.50  | Their API keys ••••••                                                                                                                            |
-| 24.70–27.85 | 3.15 ≥ 3.00  | Homarr · Jellyfin · Adds a Jellyfin tile and widgets to Homarr                                                                                   |
-| 25.20–27.85 | 2.65 ≥ 1.50  | Their API keys ••••••                                                                                                                            |
-| 25.80–27.85 | 2.05 ≥ 1.50  | Jellyfin API key ••••••                                                                                                                          |
-| 28.75–30.90 | 2.15 ≥ 1.80  | Then builds your dashboard.                                                                                                                      |
-| 32.30–34.80 | 2.50 ≥ 2.40  | Don't want to learn the CLI?                                                                                                                     |
-| 35.95–46.55 | 10.60 ≥ 1.20 | Claude Code · Codex · OpenChamber · Hermes Agent · OpenCode · Pi (strip)                                                                         |
-| 36.20–46.55 | 10.35 ≥ 1.80 | Just ask your agent.                                                                                                                             |
-| 36.75–41.95 | 5.20 ≥ 3.30  | I want to watch my movies on the TV.                                                                                                             |
-| 36.85–46.55 | 9.70 ≥ 1.80  | One skill. Every agent.                                                                                                                          |
-| 37.40–41.95 | 4.55 ≥ 1.80  | $ self-host skill ✓ guide loaded                                                                                                                 |
-| 37.85–41.95 | 4.10 ≥ 2.40  | $ self-host apps list --json ✓ 20 Recipes                                                                                                        |
-| 38.80–41.95 | 3.15 ≥ 1.20  | ◆ The plan                                                                                                                                       |
-| 39.26–41.95 | 2.69 ≥ 2.10  | Recipe owned-video-library · Dashboard Homarr · Exposure Local network only · Admin login Generated for you                                      |
-| 39.60–40.84 | 1.24 ≥ 1.20  | Approve & install                                                                                                                                |
-| 39.60–41.95 | 2.35 ≥ 0.90  | Change                                                                                                                                           |
-| 41.01–41.95 | 0.94 ≥ 0.90  | Approved ✓                                                                                                                                       |
-| 36.05–46.55 | ≥ 0.9 each   | chat header: Claude Code 36.05–37.30, Codex 37.45–38.50, OpenChamber 38.65–41.30, Hermes Agent 41.45–44.25, OpenCode 44.40–45.35, Pi 45.50–46.55 |
-| 42.75–46.55 | 3.80 ≥ 1.80  | $ self-host install owned-video-library homarr --yes --json                                                                                      |
-| 43.95–46.55 | 2.60 ≥ 2.40  | All set. Your dashboard is ready. / Admin login: self-host credentials                                                                           |
-| 44.15–46.55 | 2.40 ≥ 0.90  | http://192.168.1.20:7575                                                                                                                         |
-| 47.80–52.60 | 4.80 ≥ 0.90  | self-host                                                                                                                                        |
-| 47.90–52.60 | 4.70 ≥ 1.80  | $ curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh \ \| bash                                          |
-| 48.05–52.60 | 4.55 ≥ 2.40  | 93 Apps · 20 Recipes · 1 binary                                                                                                                  |
-| 48.20–52.60 | 4.40 ≥ 3.00  | Claude Code · Codex · OpenChamber · Hermes Agent · OpenCode · Pi                                                                                 |
+## Bar and beat map
 
-The end card is fully still from 48.2 s to 52.6 s (4.4 s).
+Beat numbers count from 0 inside each bar. "Cut" marks a picture cut on that beat.
+
+| Bar | Time  | Beat 1                                                                                   | Beat 2                                                                       | Beat 3                                                                                                                        | Beat 4                                                                |
+| --- | ----- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 0   | 0-2   | Cut. "Stop"                                                                              | "renting"                                                                    | "your _software._"                                                                                                            | eight dark subscription tiles fly in from the edges                   |
+| 1   | 2-4   | their prices pop                                                                         | the tiles step inward                                                        | the headline exits, the tiles snap into a wall: "Their servers."                                                              | row 1 locks, the meter counts to $49                                  |
+| 2   | 4-6   | row 2 locks: `$92 per month, rented`                                                     | a red line strikes "Their servers."                                          | the tiles flip: "Your servers.", each Catalog App that replaces the service, "yours"; the meter runs to `$0 per month, yours` | each tile shows the service it replaced as a small badge              |
+| 3   | 6-8   | Cut. **The drop:** a violet diamond floods the frame, `self-host` rises letter by letter | the violet collapses into the ◆ mark                                         | the lockup docks top-left, "One command."                                                                                     | `self-host install media homarr` types                                |
+| 4   | 8-10  | enter; "A whole _stack._"; the Compose Project box draws                                 | four Apps land in it                                                         | three more                                                                                                                    | the box opens into the TUI window                                     |
+| 5   | 10-12 | Cut (match). The TUI Activity view, "Sets up every App."                                 | Apps go ready, one per eighth note                                           | …                                                                                                                             | the camera pushes into the Links box                                  |
+| 6   | 12-14 | Cut. "Links them together." Sonarr → qBittorrent card                                    | Prowlarr card; wire 1 draws, the key travels                                 | Seerr card; wire 2                                                                                                            | Homarr card; wire 3; card 1 ticks                                     |
+| 7   | 14-16 | wire 4; card 2 ticks                                                                     | card 3 ticks                                                                 | card 4 ticks                                                                                                                  | the counter turns green: 4 of 4 linked                                |
+| 8   | 16-18 | Cut (circle). The Homarr board and its seven App tiles, "Builds your dashboard."         | the large widgets                                                            | the small widgets                                                                                                             | Cut. "Don't want to learn"… "the _CLI?_" on the off-beat              |
+| 9   | 18-20 | the wall of real CLI flags steps sideways                                                | steps                                                                        | steps                                                                                                                         | steps                                                                 |
+| 10  | 20-22 | Cut. Six agent logos, "Just ask your agent.", the chat in Claude Code                    | the request: "I want to watch my movies on the TV."                          | Codex: `self-host apps list --json`                                                                                           | ✓ 20 Recipes; the plan lands with Approve & install                   |
+| 11  | 22-24 | OpenChamber; the cursor reaches Approve                                                  | click: Approved; `self-host install owned-video-library homarr --yes --json` | Hermes Agent; both Apps tick                                                                                                  | "All set.", the dashboard URL, "Admin login: `self-host credentials`" |
+| 12  | 24-26 | OpenCode                                                                                 | the cursor opens the dashboard link                                          | Pi                                                                                                                            | all six agents light up                                               |
+| 13  | 26-28 | Cut. **"Your hardware."**                                                                | Cut. **"Your rules."**                                                       | Cut. **"No rent."**                                                                                                           | Cut. **"Your data."** (the bar under them fills a quarter per beat)   |
+| 14  | 28-30 | Cut on the final hit: ◆ **self-host**                                                    | the install one-liner                                                        | the six agents                                                                                                                | `93 Apps · 20 Recipes · 1 binary`                                     |
+| 15  | 30-32 | still                                                                                    | still                                                                        | still                                                                                                                         | still                                                                 |
+
+The end card holds 4 s (bars 14-15) on the final hit and its ring-out, and every element is still from
+29.7 s. The flurry sits on the track's brightest riser and builds into the logo on the next downbeat.
+
+## Lint (`node render.mjs lint`)
+
+- **The beat.** Every beat up to the end card's still hold (29.7 s) has a declared event (`on()`/`cut()` in
+  `lib.js`) and changes at least 0.2 % of the frame between 30 ms before and 200 ms after it. Every cut, sound
+  cue and event sits on the 0.5 s grid.
+- **Readability.** Every text meant to be read is declared with `read(el, from, to)`. A sentence must hold
+  0.4 s + 0.25 s per word after it has landed; a phrase of one to three words may hold a single beat, which
+  leaves it 0.4 s still after its 0.1 s entrance. Sampled at 30 Hz through the hold, no word may be under 32 px,
+  less than fully opaque, overlapped, off screen, outside the 56 px safe margin, changing text or moving by
+  more than 0.6 px. Every other visible text sits under `[data-deco]` (the TUI and Homarr mock-ups, the flag
+  wall, the meter while it counts, spinners) or lint fails on it.
+- **Determinism.** Frames revisited out of order and on a fresh page must match (30 dB PSNR floor).
+
+| Hold (s)    | Have ≥ need | Text                                                                                                  |
+| ----------- | ----------- | ----------------------------------------------------------------------------------------------------- |
+| 1.20-3.00   | 1.80 ≥ 1.40 | Stop renting your software.                                                                           |
+| 3.20-4.99   | 1.79 ≥ 0.40 | Their servers.                                                                                        |
+| 3.34-4.88   | 1.54 ≥ 0.40 | the eight service names and prices (Netflix $15/mo … ChatGPT $20/mo)                                  |
+| 4.08-4.99   | 0.91 ≥ 0.40 | $92 · per month, rented (3.70-4.99)                                                                   |
+| 5.20-5.99   | 0.79 ≥ 0.40 | Your servers. · per month, yours · $0 (5.31-5.99)                                                     |
+| 5.36-5.99   | 0.63 ≥ 0.40 | the eight replacements and their "yours" pills                                                        |
+| 6.38-6.99   | 0.61 ≥ 0.40 | self-host (wordmark)                                                                                  |
+| 7.20-9.49   | 2.29 ≥ 0.40 | One command.                                                                                          |
+| 7.88-9.49   | 1.61 ≥ 1.40 | $ self-host install media homarr                                                                      |
+| 8.20-9.49   | 1.29 ≥ 0.40 | A whole stack. · ◆ one Compose Project                                                                |
+| 10.20-11.99 | 1.79 ≥ 1.40 | Sets up every App.                                                                                    |
+| 12.20-15.99 | 3.79 ≥ 1.90 | Adds qBittorrent as Sonarr's download client (and its names and key)                                  |
+| 12.70-15.99 | 3.29 ≥ 2.15 | Syncs Prowlarr's indexers to Sonarr and Radarr                                                        |
+| 13.20-15.99 | 2.79 ≥ 2.15 | Sends your requests to Sonarr and Radarr                                                              |
+| 13.70-15.99 | 2.29 ≥ 2.15 | Adds Jellyfin's tile and widgets to Homarr                                                            |
+| 12.20-15.99 | 3.79 ≥ 0.40 | Links them together.                                                                                  |
+| 16.20-17.49 | 1.29 ≥ 0.40 | Builds your dashboard.                                                                                |
+| 17.95-19.99 | 2.04 ≥ 1.90 | Don't want to learn the CLI?                                                                          |
+| 20.26-25.99 | 5.73 ≥ 1.40 | Just ask your agent. · One skill. Every agent. (20.76) · the six agent names                          |
+| 20.70-25.99 | 5.29 ≥ 2.65 | I want to watch my movies on the TV.                                                                  |
+| 21.20-25.99 | 4.79 ≥ 1.40 | self-host apps list --json · 20 Recipes (21.65)                                                       |
+| 21.70-25.99 | 4.29 ≥ 1.40 | The plan: Recipe owned-video-library · Dashboard Homarr · Exposure Local network only                 |
+| 21.70-22.49 | 0.79 ≥ 0.40 | Approve & install, then Approved (22.50-25.99)                                                        |
+| 22.70-25.99 | 3.29 ≥ 1.40 | $ self-host install owned-video-library homarr --yes --json                                           |
+| 23.70-25.99 | 2.29 ≥ 1.40 | All set. · http://192.168.1.20:7575 · Admin login: self-host credentials                              |
+| each 0.41   | 0.41 ≥ 0.40 | Your hardware. · Your rules. · No rent. · Your data.                                                  |
+| 28.70-32.00 | 3.30 ≥ 1.40 | $ curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh \| bash |
+| 29.20-32.00 | 2.80 ≥ 2.40 | Claude Code · Codex · OpenChamber · Hermes Agent · OpenCode · Pi                                      |
+| 29.70-32.00 | 2.30 ≥ 1.90 | 93 Apps · 20 Recipes · 1 binary                                                                       |
+
+Each agent's name in the chat header holds its two beats (Pi: 25.00-25.99).
 
 ## Facts on screen, and where they come from
 
-- **93 Apps, 20 Recipes:** `self-host apps list --json` from a binary built from `new-cli/` (93 `apps`, 20 `recipes`).
+- **93 Apps, 20 Recipes:** `self-host apps list --json` from a binary built from `new-cli/` on 2026-10-10
+  (93 `apps`, 20 `recipes`).
 - **Replacements:** each pairing matches the App's Catalog description. Netflix → Jellyfin, Spotify → Navidrome,
-  Drive → Nextcloud (the `files` Recipe replaces Google Drive and Dropbox), Dropbox → Syncthing ("keeps folders in
-  sync between your own devices"), Google Photos → Immich, 1Password → Vaultwarden, Notion → Docmost,
-  ChatGPT → Open WebUI.
-- **Links:** `new-cli/internal/apps/arr/links.go` (Sonarr and Radarr add qBittorrent as their download client with
-  the Admin login; Prowlarr syncs indexers to Sonarr and Radarr with their API keys), `apps/seerr/seerr.go`
-  (Seerr sends requests to Sonarr and Radarr with their API keys) and `apps/homarr/links.go` (Homarr adds a Jellyfin
-  app tile, an integration holding its API key, and its widgets).
-- **Agent demo:** `new-cli/internal/skill/guide.md`, "Two kinds of users": for a new user who wants to watch movies
-  they own, recommend `owned-video-library` plus `homarr` (not `media`, which also requests and downloads), show the
-  plan, get approval, run `self-host install <recipe> --yes --json`, and point to `self-host credentials` rather than
+  Drive → Nextcloud (the `files` Recipe replaces Google Drive and Dropbox), Dropbox → Syncthing, Google Photos →
+  Immich, 1Password → Vaultwarden, Notion → Docmost, ChatGPT → Open WebUI. Prices are the ones the previous cut
+  showed; their sum, $92, is what the meter counts.
+- **Links:** `new-cli/internal/apps/arr/links.go` (Sonarr and Radarr add qBittorrent as their download client
+  with the Admin login; Prowlarr syncs indexers to Sonarr and Radarr with their API keys), `apps/seerr/seerr.go`
+  (Seerr sends requests to Sonarr and Radarr with their API keys) and `apps/homarr/links.go` (Homarr adds a
+  Jellyfin app tile, an integration holding its API key, and its widgets).
+- **Agent demo:** `new-cli/internal/skill/guide.md`, "New users": to watch movies they own, recommend
+  `owned-video-library` plus `homarr`, Exposure `lan` (shown as "Local network only"), show the plan, get
+  approval, run `self-host install <recipe> --yes --json`, and point to `self-host credentials` rather than
   pasting the login.
 - **Install line:** `new-cli/install.sh` on `main`, as in the README.
 - **Agent logos:** `assets/agents/SOURCES.md`.
 
 ## Sound
 
-`audio/synth.mjs` writes `audio/out/soundtrack.wav` from `audio/cues.json` (written by `node render.mjs cues`).
-Everything is synthesised in the script: band-limited saw and square oscillators, sine kicks and bells, seeded noise,
-RBJ biquad filters, a ping-pong delay and a Freeverb-style reverb. There are no samples and no third-party music.
+`node render.mjs cues` writes `audio/cues.json`; `node audio/mix.mjs` fetches and verifies the track, builds the
+edit above, adds nine short synthesised UI sounds, all on beats (two lock thocks at 3.5 and 4.0 s, the flip at
+5.0 s, the enter key at 8.0 s, four soft ticks as the Links go green, the click on Approve at 22.5 s), and
+masters to -14 LUFS integrated under -1 dBTP with a look-ahead limiter, by measurement (ffmpeg `ebur128`).
 
-- **Music (120 BPM, A minor):** Am–F–C–G. Build 0–9 s, lift 9 s, drive 22 s (with a lead motif from 17 s),
-  breakdown 31 s, rebuild 35 s, payoff 47 s, and a final A minor add 9 chord ringing out under the still end card.
-- **Sound design:** whooshes on every mask transition, a suck into the implode, a boom on the violet flood, impacts on
-  both wordmarks, a key click per typed character, thumps on headline words, locks, a card-flip flurry, pops, chimes
-  on checkmarks that climb the scale, zips and a passing key on the Link cards, switch swipes between agents, a mouse
-  click on Approve, a success chime, and risers into the warp, the agents and the end card.
-- **Mix:** kick sidechain on bass and pads; mastered by measurement (ffmpeg `ebur128`) to −14 LUFS integrated with a
-  look-ahead limiter under −1 dBTP.
+## Checks on the final MP4 (`node render.mjs verify`)
+
+Streams and durations, loudness, a frame-by-frame luminance scan (Rec. 709 mean luma; a flash is a pair of
+opposing changes of 20+ levels within 0.5 s) and beat sync (the picture cuts in `cues.json` against the beat
+grid detected in the MP4's own audio).

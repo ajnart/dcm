@@ -1,9 +1,10 @@
 // Deterministic frame renderer: every pixel is a pure function of t (window.seek).
 //   node render.mjs stills 0:52:0.5        PNG stills (list "1,2.5", range start:end:step, or "holds") → out/stills/
 //   node render.mjs lint [times]           readability holds + undeclared text + safe area + determinism
-//   node render.mjs cues                   write the sound cue sheet the scenes registered → audio/cues.json
+//   node render.mjs cues                   write the cue sheet (picture cuts, sound cues, the edit) → audio/cues.json
 //   node render.mjs video [--sub 8] [--workers 6] [--fps 60] [--crf 23] [--fresh]   (chunks resume; --crf only re-muxes)
 //   node render.mjs contact                one frame per second from the final MP4, in a grid
+//   node render.mjs verify                 streams, loudness, flash scan and beat sync of the final MP4
 //   node render.mjs sheets [dir] [prefix]  4×3 review sheets of out/<dir>/*.png → out/sheets/
 //   node render.mjs eval "<js>" <t>        evaluate an expression at t
 import { chromium } from "playwright";
@@ -134,7 +135,36 @@ async function lint(url, times) {
   const seen = new Map();
   let bad = 0, worst = 0, differing = 0, minPsnr = Infinity;
 
-  // 1 · readability: every declared hold is long enough (0.6 s + 0.3 s/word), 32 px+, opaque, unoverlapped and still
+  // 0 · the beat: every beat up to the end card's still hold has a declared event and visibly changes the frame;
+  //     every cut, sound cue and event sits on the 0.5 s grid
+  const changed = (x, y) => judge.evaluate(async ([p, q]) => {
+    const load = async (b64) => {
+      const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
+      const c = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = c.getContext("2d");
+      g.drawImage(bmp, 0, 0);
+      return g.getImageData(0, 0, bmp.width, bmp.height).data;
+    };
+    const [d1, d2] = [await load(p), await load(q)];
+    let n = 0;
+    for (let i = 0; i < d1.length; i += 4) if (Math.max(Math.abs(d1[i] - d2[i]), Math.abs(d1[i + 1] - d2[i + 1]), Math.abs(d1[i + 2] - d2[i + 2])) > 24) n++;
+    return n / (d1.length / 4);
+  }, [x.toString("base64"), y.toString("base64")]);
+  const bt = await a.page.evaluate(() => window.lintBeats());
+  for (const e of bt.empty) { bad++; console.log("DEAD BEAT (no event)", JSON.stringify(e)); }
+  for (const e of bt.offGrid) { bad++; console.log("OFF THE BEAT", JSON.stringify(e)); }
+  let quietest = { f: 1 };
+  for (const x of bt.beats) {
+    await a.page.evaluate((t) => window.seek(t), Math.max(0, x.t - 0.03));
+    const before = await shot(a.cdp);
+    await a.page.evaluate((t) => window.seek(t), x.t + 0.2);
+    const f = await changed(before, await shot(a.cdp));
+    if (f < quietest.f) quietest = { f, t: x.t, what: x.what.join("; ") };
+    if (f < 0.002) { bad++; console.log("DEAD BEAT (frame barely changes)", JSON.stringify({ t: x.t, changed: +(f * 100).toFixed(3) + "%", what: x.what })); }
+  }
+  console.log(`beats: ${bt.beats.length} beats to ${bt.settled} s, ${bt.empty.length} without an event, ${bt.offGrid.length} off the grid; smallest change ${(quietest.f * 100).toFixed(2)}% of pixels at ${quietest.t} s (${quietest.what})`);
+
+  // 1 · readability: every declared hold is long enough (1-3 words: 0.4 s; otherwise 0.4 s + 0.25 s/word), 32 px+, opaque, unoverlapped and still
   const rd = await a.page.evaluate(() => window.lintRead());
   for (const i of rd.issues) { bad++; console.log("READABILITY", JSON.stringify(i)); }
   const tight = rd.holds.reduce((m, h) => Math.min(m, h.have - h.need), Infinity);
@@ -173,7 +203,7 @@ async function lint(url, times) {
     await check("fresh page", t, await shot(b.cdp));
   }
   await browser.close();
-  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — every readable text holds long enough, legible and still; no undeclared text; ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
+  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — something happens on every beat and every cut is on the grid; every readable text holds long enough, legible and still; no undeclared text; ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
   if (bad) process.exitCode = 1;
 }
 
@@ -193,7 +223,7 @@ async function sourceHash() {
 
 async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
   const total = Math.round(DUR * fps);
-  const dir = join(OUT, `chunks-${await sourceHash()}-${fps}-${sub}`);
+  const dir = join(OUT, `chunks-${await sourceHash()}-${fps}-${sub}-open`);
   if (fresh) await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   const jobs = [];
@@ -224,7 +254,8 @@ async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
           const ff = ffmpeg(["-f", "image2pipe", "-framerate", String(fps * sub), "-c:v", "png", "-i", "-", ...(vf.length ? ["-vf", vf.join(",")] : []), "-r", String(fps), "-c:v", "libx264", "-preset", "veryfast", "-crf", "6", "-pix_fmt", "yuv444p", "-f", "matroska", tmp]);
           for (let k = job.s; k < job.e; k++) {
             for (let j = 0; j < sub; j++) {
-              const t = Math.min(DUR - 1e-4, Math.max(0, (k + ((j + 0.5) / sub - 0.5) * SHUTTER) / fps));
+              // the shutter opens at the frame's own time, so the frame on a hard cut shows only the new shot
+              const t = Math.min(DUR - 1e-4, (k + ((j + 0.5) / sub) * SHUTTER) / fps);
               await ctx.page.evaluate((x) => window.seek(x), t);
               await write(ff.stdin, await shot(ctx.cdp));
             }
@@ -249,13 +280,68 @@ async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
   const list = join(dir, "list.txt");
   await writeFile(list, jobs.map((j) => `file '${j.file}'`).join("\n"));
   const wav = join(AUDIO, "out", "soundtrack.wav");
-  await access(wav).catch(() => { throw new Error(`no soundtrack at ${wav}: run node render.mjs cues && node audio/synth.mjs first`); });
+  await access(wav).catch(() => { throw new Error(`no soundtrack at ${wav}: run node render.mjs cues && node audio/mix.mjs first`); });
   const ff = ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-i", wav, "-map", "0:v:0", "-map", "1:a:0",
     "-c:v", "libx264", "-preset", "slow", "-crf", String(crf), "-profile:v", "high", "-tune", "film", "-pix_fmt", "yuv420p", "-r", String(fps), "-frames:v", String(total),
     "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-t", String(DUR), "-movflags", "+faststart", join(OUT, out)]);
   ff.stdin.end();
   await ff.done;
   console.log("wrote", join(OUT, out), `in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+}
+
+// Checks on the final MP4: both streams and their durations, loudness, a frame-by-frame luminance scan
+// for flashes, and how far each picture cut lies from the beat grid detected in the file's own audio.
+async function verify(file) {
+  const { spawnSync } = await import("node:child_process");
+  const run = (cmd, argv, opts = {}) => spawnSync(cmd, argv, { maxBuffer: 1 << 30, ...opts });
+  const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", file], { encoding: "utf8" }).stdout);
+  const v = probe.streams.find((s) => s.codec_type === "video"), au = probe.streams.find((s) => s.codec_type === "audio");
+  const streams = { video: v && { codec: v.codec_name, profile: v.profile, pix_fmt: v.pix_fmt, size: `${v.width}x${v.height}`, fps: v.r_frame_rate, frames: +v.nb_frames, duration: +v.duration }, audio: au && { codec: au.codec_name, rate: +au.sample_rate, channels: au.channels, kbps: Math.round(au.bit_rate / 1000), duration: +au.duration }, container: +probe.format.duration, mb: +(probe.format.size / 1e6).toFixed(2) };
+  const head = (await readFile(file)).subarray(0, 4096);
+  streams.faststart = head.indexOf("moov") >= 0 && (head.indexOf("mdat") < 0 || head.indexOf("moov") < head.indexOf("mdat"));
+  const e = run("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-map", "0:a", "-af", "ebur128=peak=true", "-f", "null", "-"], { encoding: "utf8" }).stderr;
+  const sum = e.slice(e.lastIndexOf("Summary:"));
+  const loud = { I: +sum.match(/I:\s+(-?[\d.]+) LUFS/)[1], LRA: +sum.match(/LRA:\s+(-?[\d.]+) LU/)[1], TP: +sum.match(/Peak:\s+(-?[\d.inf]+) dBFS/)[1] };
+  // mean luma per frame (Rec. 709 weights on a 192x108 copy), then flashes: a pair of opposing changes of
+  // 20+ levels within 0.5 s; more than three such pairs in any second would fail
+  const W = 192, H = 108;
+  const raw = run("ffmpeg", ["-v", "error", "-i", file, "-vf", `scale=${W}:${H}:flags=area`, "-pix_fmt", "rgb24", "-f", "rawvideo", "-"]).stdout;
+  const luma = [];
+  for (let f = 0; f * W * H * 3 < raw.length; f++) {
+    let s = 0;
+    for (let i = f * W * H * 3; i < (f + 1) * W * H * 3; i += 3) s += 0.2126 * raw[i] + 0.7152 * raw[i + 1] + 0.0722 * raw[i + 2];
+    luma.push(s / (W * H));
+  }
+  const fps = 60;
+  let maxJump = { d: 0 };
+  const changes = [];
+  for (let f = 1; f < luma.length; f++) {
+    const d = luma[f] - luma[f - 1];
+    if (Math.abs(d) > Math.abs(maxJump.d)) maxJump = { d: +d.toFixed(1), t: +(f / fps).toFixed(3), from: +luma[f - 1].toFixed(1), to: +luma[f].toFixed(1) };
+  }
+  // collapse each monotonic run into one change, keep the ones of 20+ levels
+  let a = 0;
+  for (let f = 1; f <= luma.length; f++) {
+    const dir = f < luma.length ? Math.sign(luma[f] - luma[f - 1]) : 0;
+    const prev = Math.sign(luma[f - 1] - luma[Math.max(0, f - 2)]);
+    if (f === luma.length || (dir !== prev && f - 1 > a)) {
+      const d = luma[f - 1] - luma[a];
+      if (Math.abs(d) >= 20) changes.push({ t0: a / fps, t1: (f - 1) / fps, d });
+      a = f - 1;
+    }
+  }
+  const flashes = [];
+  for (let i = 1; i < changes.length; i++) if (Math.sign(changes[i].d) !== Math.sign(changes[i - 1].d) && changes[i].t1 - changes[i - 1].t0 <= 0.5) flashes.push(+changes[i - 1].t0.toFixed(2));
+  const perSecond = Math.max(0, ...flashes.map((t) => flashes.filter((u) => u >= t && u < t + 1).length));
+  const lum = { frames: luma.length, mean: +(luma.reduce((s, x) => s + x, 0) / luma.length).toFixed(1), max: +Math.max(...luma).toFixed(1), maxFrameJump: maxJump, changesOver20: changes.length, flashes, maxFlashesPerSecond: perSecond };
+  const { analyze, offsets } = await import("./audio/analyze.mjs");
+  const g = analyze(file);
+  const sheet = JSON.parse(await readFile(join(AUDIO, "cues.json"), "utf8"));
+  const off = offsets(sheet.cuts.map((c) => c.t), g.firstBeat, g.beat);
+  let worst = 0, wi = 0;
+  off.forEach((o, i) => { if (Math.abs(o) > Math.abs(worst)) { worst = o; wi = i; } });
+  const beat = { detected: { bpm: g.bpm, beat: g.beat, firstBeat: g.firstBeat, fit: g.fit }, cuts: off.length, worstMs: +worst.toFixed(2), worstAt: sheet.cuts[wi], meanAbsMs: +(off.reduce((s, o) => s + Math.abs(o), 0) / off.length).toFixed(2) };
+  console.log(JSON.stringify({ streams, loudness: loud, luminance: lum, beatSync: beat }, null, 1));
 }
 
 // lay PNGs out in a labelled grid with the browser (this ffmpeg build has no drawtext)
@@ -308,11 +394,12 @@ try {
     await browser.close();
   }
   else if (mode === "contact") await contact();
+  else if (mode === "verify") await verify(join(OUT, args[1] || "selfhost-reel.mp4"));
   else if (mode === "sheets") await sheets(join(OUT, args[1] || "stills"), args[2]);
   else if (mode === "eval") {
     const browser = await chromium.launch(LAUNCH);
     const { page } = await openPage(browser, url);
-    await page.evaluate((x) => window.seek(x), +args[2]);
+    await page.evaluate((x) => window.seek(x), +(args[2] || 0));
     console.log(JSON.stringify(await page.evaluate(args[1]), null, 1));
     await browser.close();
   } else if (mode === "video") await video(url, { fps: +flag("fps", 60), sub: +flag("sub", 8), workers: +flag("workers", Math.max(2, Math.min(8, Math.floor(cpus().length / 2)))), chunk: +flag("chunk", 60), fresh: has("fresh"), out: flag("out", "selfhost-reel.mp4"), crf: +flag("crf", 23) });

@@ -1,62 +1,37 @@
-import { gsap, $, $$, proc, procs, rng, track, prog, READS, CUES, countWords, needHold } from "./lib.js";
-import { DUR, FPS, BPM, SC, SECTIONS } from "./timeline.js";
+import { gsap, $$, procs, track, READS, CUES, BEATS, CUTS, countWords, needHold } from "./lib.js";
+import { DUR, FPS, BPM, BEAT, SC, EDIT } from "./timeline.js";
 import * as hook from "./hook.js";
 import * as product from "./product.js";
-import * as preboot from "./preboot.js";
 import * as setup from "./setup.js";
 import * as links from "./links.js";
 import * as board from "./board.js";
 import * as pivot from "./pivot.js";
 import * as agents from "./agents.js";
+import * as flurry from "./flurry.js";
 import * as end from "./end.js";
 
 gsap.ticker.sleep();
 gsap.config({ force3D: false });
 const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
 
+// scenes measure text while they build, so the bundled faces load first
+const faces = [
+  '800 100px "Inter Tight Variable"', '700 100px "Inter Tight Variable"', '600 100px "Inter Tight Variable"', '500 100px "Inter Tight Variable"',
+  '800 100px "Unbounded Variable"', '600 100px "JetBrains Mono Variable"', '400 100px "JetBrains Mono Variable"', '800 100px "JetBrains Mono Variable"',
+  '400 100px "Instrument Serif"', 'italic 400 100px "Instrument Serif"',
+];
+await Promise.all(faces.map((f) => document.fonts.load(f, "Aa Zz 0123 ◆ ⠋ ✓ ● ▶ → › •")));
+await document.fonts.ready;
 track(tl);
-[hook, product, preboot, setup, links, board, pivot, agents, end].forEach((s) => s.build(tl));
+[hook, product, setup, links, board, pivot, agents, flurry, end].forEach((s) => s.build(tl));
 tl.finalize();
 
-// camera shakes only on the two impacts, and they settle before any text hold starts
-const SHAKES = [[SC.product[0] + 0.55, 10], [SC.end[0] + 0.4, 7]];
-proc((t) => {
-  let x = 0, y = 0;
-  for (const [t0, a] of SHAKES) {
-    const d = t - t0;
-    if (d < 0 || d > 0.45) continue;
-    const e = Math.exp(-d * 13) * a;
-    x += Math.sin(d * 85) * e;
-    y += Math.cos(d * 71) * e * 0.8;
-  }
-  $$(".scene").forEach((s) => { s.style.transform = x || y ? `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)` : "none"; });
-});
-
-(() => {
-  const c = document.createElement("canvas");
-  c.width = c.height = 256;
-  const g = c.getContext("2d");
-  const im = g.createImageData(256, 256);
-  const r = rng(7);
-  for (let i = 0; i < im.data.length; i += 4) {
-    const v = Math.floor(r() * 255);
-    im.data[i] = im.data[i + 1] = im.data[i + 2] = v;
-    im.data[i + 3] = 255;
-  }
-  g.putImageData(im, 0, 0);
-  const grain = $("#grain");
-  grain.style.backgroundImage = `url(${c.toDataURL()})`;
-  proc((t) => {
-    const f = Math.floor(t * 24);
-    grain.style.transform = `translate(${(f * 37) % 64}px, ${(f * 53) % 64}px)`;
-    // the end card's last seconds are a still frame: no grain either
-    grain.style.opacity = String(0.07 * (1 - prog(t, end.SETTLED - 0.3, end.SETTLED)));
-  });
-})();
-
+// a word pushed fully out of its mask is hidden, so it neither shows a stray serif nor catches a hit test
+const masked = $$(".mk > .w, .mk > .ww, #wm .c, .e-wm .c");
 window.seek = (t) => {
   tl.time(t, false);
   for (const p of procs) p(t);
+  for (const w of masked) w.style.visibility = Math.abs(+gsap.getProperty(w, "yPercent")) >= 99 ? "hidden" : "";
 };
 
 const visible = (el) => {
@@ -200,16 +175,21 @@ window.lintUndeclared = (t) => {
 
 window.__reads = READS;
 window.lintHolds = () => READS.map(({ a, b, label }) => ({ a, b, label }));
-window.cueSheet = () => ({ duration: DUR, fps: FPS, bpm: BPM, scenes: SC, sections: SECTIONS, cues: [...CUES].sort((a, b) => a.t - b.t) });
+window.cueSheet = () => ({ duration: DUR, fps: FPS, bpm: BPM, scenes: SC, edit: EDIT, cuts: [...CUTS].sort((a, b) => a.t - b.t), cues: [...CUES].sort((a, b) => a.t - b.t) });
+// the beat contract (lib.js on/cut): events per beat, off-grid cuts and cues, and the end card's still hold
+window.lintBeats = () => {
+  const off = (t) => Math.abs(t / BEAT - Math.round(t / BEAT)) * BEAT;
+  const beats = [];
+  for (let k = 0; k * BEAT < end.SETTLED - 1e-6; k++) beats.push({ k, t: k * BEAT, what: BEATS.filter((e) => Math.abs(e.t - k * BEAT) < 1e-3).map((e) => e.what) });
+  return {
+    settled: end.SETTLED,
+    beats,
+    empty: beats.filter((x) => !x.what.length),
+    offGrid: [...CUTS.map((c) => ({ ...c, kind: "cut" })), ...CUES.map((c) => ({ t: c.t, what: c.kind, kind: "cue" })), ...BEATS.map((e) => ({ ...e, kind: "event" }))].filter((c) => off(c.t) > 1e-3),
+  };
+};
 
-const faces = [
-  '800 100px "Inter Tight Variable"', '700 100px "Inter Tight Variable"', '600 100px "Inter Tight Variable"', '500 100px "Inter Tight Variable"',
-  '800 100px "Unbounded Variable"', '600 100px "JetBrains Mono Variable"', '400 100px "JetBrains Mono Variable"', '800 100px "JetBrains Mono Variable"',
-  '400 100px "Instrument Serif"', 'italic 400 100px "Instrument Serif"',
-];
-await Promise.all(faces.map((f) => document.fonts.load(f, "Aa Zz 0123 ◆ ⠋ ✓ ● ▶ → › •")));
-await document.fonts.ready;
+
 await Promise.all($$("img").map((i) => i.decode().catch(() => {})));
-await window.__prepMosaic();
 window.seek(0);
 window.__ready = true;

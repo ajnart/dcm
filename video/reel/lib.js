@@ -9,7 +9,15 @@ export const eOut = ez("expo.out");
 export const p3o = ez("power3.out");
 export const p3io = ez("power3.inOut");
 export const p2io = ez("power2.inOut");
-export const bOut = ez("back.out(1.6)");
+
+// One stroke weight for every UI glyph the reel draws (24 px grid, 2 px round strokes, no fills).
+const glyph = (d) => `<svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+export const ICON = {
+  lock: glyph(`<rect x="5" y="11" width="14" height="9" rx="2"/><path class="sh" d="M8 11V8a4 4 0 0 1 8 0v3"/>`),
+  key: glyph(`<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/>`),
+  check: glyph(`<path d="M5 12.5l4.5 4.5L19 7.5"/>`),
+  arrow: glyph(`<path d="M5 12h14M13 6l6 6-6 6"/>`),
+};
 
 export function rng(seed) {
   let s = seed >>> 0;
@@ -28,11 +36,21 @@ export const icon = (name, ext = "svg") => `assets/icons/${name}.${ext}`;
 export const agentLogo = (name) => `assets/agents/${name}.svg`;
 
 // Readability contract: every element meant to be read declares the window in which it must sit
-// fully legible, opaque, unoverlapped and still. lint (render.mjs) checks the window is at least
-// 0.6 s + 0.3 s per word, then samples it. Text that is not meant to be read sits under [data-deco].
+// fully legible, opaque, unoverlapped and still. lint (render.mjs) checks the window is long enough,
+// then samples it. A sentence needs 0.4 s + 0.25 s per word once it has landed; a phrase of one to
+// three words may hold for a single beat, which leaves it 0.4 s still after a 0.1 s entrance.
+// Text that is not meant to be read sits under [data-deco].
 export const READS = [];
 export const countWords = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
-export const needHold = (s) => 0.6 + 0.3 * countWords(s);
+export const needHold = (s) => (countWords(s) <= 3 ? 0.4 : 0.4 + 0.25 * countWords(s));
+
+// Beat contract: scenes declare what happens on each beat and where the picture cuts. lint checks
+// every beat up to the end card's still hold has an event and visibly changes the frame, and that
+// every cut and every sound cue sits on the beat grid.
+export const BEATS = [];
+export const CUTS = [];
+export const on = (t, what) => BEATS.push({ t: +t.toFixed(4), what });
+export const cut = (t, what) => { CUTS.push({ t: +t.toFixed(4), what }); on(t, what); };
 export function read(el, a, b, label) {
   const els = typeof el === "string" ? [...document.querySelectorAll(el)] : Array.isArray(el) ? el : [el];
   if (!els.length) throw new Error(`read(): nothing matches ${el}`);
@@ -90,19 +108,12 @@ export function chars(el, cls = "c") {
   return parts;
 }
 
-export function typed(el, text, a, b) {
+// a line that reveals word by word from a to b (no sound: the music carries the beat)
+export function reveal(el, a, b) {
+  const ws = el.querySelectorAll(".rv");
   proc((t) => {
-    const n = Math.round(text.length * prog(t, a, b));
-    el.textContent = text.slice(0, n);
-  });
-  typeCues(text, a, b);
-}
-
-// one key click per visible character, at the moment it appears (n = round(len * p))
-export function typeCues(text, a, b, kind = "key") {
-  [...text].forEach((ch, i) => {
-    if (ch === " ") return;
-    cue(a + ((i + 0.5) / text.length) * (b - a), kind, { i });
+    const n = Math.round(ws.length * prog(t, a, b));
+    ws.forEach((w, i) => { w.style.visibility = i < n ? "visible" : "hidden"; });
   });
 }
 
