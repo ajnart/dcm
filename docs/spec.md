@@ -148,7 +148,7 @@ version-matched guide for agents.
 - **Modules.**
   - **events**: one step logger with a human renderer and an NDJSON renderer; secret redaction at this boundary; the TUI subscribes to the same event stream.
   - **host**: Docker/Compose/socket detection, Host settings detection (TZ, PUID/PGID with sudo awareness, UMASK, LAN IP), free-port selection, doctor checks returning `{id, level: ok|warn|fail, detail, hint}`.
-  - **project**: Project layout, include-list root Compose file, `.env`, `secrets.env` (0600), `state.json`, PID lock; discovers catalog Apps and Unmanaged apps from `apps/*/compose.yml`.
+  - **project**: Project layout, include-list root Compose file, `.env`, `secrets.env` (0600), `state.json`, PID lock; discovers catalog Apps from `apps/*/compose.yml` and Unmanaged apps from `extra/*/compose.yml` (and, for older Projects, from `apps/*/compose.yml`).
   - **compose**: the only place that runs `docker compose`; logs every command; parses `ps --format json`, `logs --follow`, `pull`.
   - **registry**: compares local image digests to the registry manifest digest for floating tags to detect updates (Docker Hub, GHCR, lscr).
   - **catalog**: registry of Apps and Recipes compiled into the binary.

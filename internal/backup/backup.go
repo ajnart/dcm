@@ -35,6 +35,8 @@ type ManifestApp struct {
 	Name               string `json:"name,omitempty"`
 	Image              string `json:"image,omitempty"`
 	Managed            bool   `json:"managed"`
+	// Extra marks an Unmanaged app, archived under extra/<id>/ not apps/<id>/.
+	Extra bool `json:"extra,omitempty"`
 }
 
 type Manifest struct {
@@ -42,6 +44,16 @@ type Manifest struct {
 	Created    time.Time     `json:"created"`
 	CLIVersion string        `json:"cli_version"`
 	Apps       []ManifestApp `json:"apps"`
+}
+
+// Folder is the Project folder an archived App lives in: apps or extra.
+func (m Manifest) Folder(id string) string {
+	for _, a := range m.Apps {
+		if a.ID == id && a.Extra {
+			return "extra"
+		}
+	}
+	return "apps"
 }
 
 func (m Manifest) Has(id string) bool {
@@ -334,7 +346,7 @@ func hardlinkTarget(name string, h *tar.Header, previous map[string]EntryMetadat
 	}
 	link := path.Clean(h.Linkname)
 	parts, targetParts := strings.SplitN(name, "/", 3), strings.SplitN(link, "/", 3)
-	if len(parts) != 3 || len(targetParts) != 3 || parts[0] != "apps" || targetParts[0] != "apps" || parts[1] != targetParts[1] || name == link {
+	if len(parts) != 3 || len(targetParts) != 3 || (parts[0] != "apps" && parts[0] != "extra") || parts[0] != targetParts[0] || parts[1] != targetParts[1] || name == link {
 		return "", errors.New("unsafe hardlink target (type 0x31): target must be another file in the same selected App")
 	}
 	entry, found := previous[link]
@@ -643,7 +655,7 @@ func (r *Reader) AppMetadata(appID string) ([]EntryMetadata, error) {
 	if appID == "" || appID == "." || appID == ".." || strings.ContainsAny(appID, "/\\") || !r.Manifest.Has(appID) {
 		return nil, errors.New("backup metadata requires a selected manifest App")
 	}
-	prefix := "apps/" + appID
+	prefix := r.Manifest.Folder(appID) + "/" + appID
 	var entries []EntryMetadata
 	for name, entry := range r.metadata {
 		if name == prefix {

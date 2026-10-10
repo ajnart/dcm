@@ -2128,3 +2128,27 @@ func TestSetupDoesNotIgnoreOtherAssistantFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestSetupGivesAnExtraAppATileThatPingsItsService(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	fake.adminExists = true
+	fake.adminName = "admin"
+	fake.adminPassword = "pw"
+	fake.step = "finish"
+	srv := serve(t, fake)
+	h := homarrH(t, srv, allSecrets())
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) {
+		return []helpers.InstalledApp{{ID: "whoami", Name: "whoami", URL: "http://host.example:8099", Service: "whoami", ContainerPort: 80}}, nil
+	}
+
+	if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.apps) != 1 || fake.apps[0]["name"] != "whoami" || fake.apps[0]["href"] != "http://host.example:8099" || fake.apps[0]["pingUrl"] != "http://whoami:80" {
+		t.Fatalf("extra App tile = %v", fake.apps)
+	}
+}

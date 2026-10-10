@@ -73,7 +73,7 @@ func TestUnknownAppIsRejected(t *testing.T) {
 	}
 }
 
-func TestUnmanagedAppIsDiscoveredAndControlled(t *testing.T) {
+func TestUnmanagedAppInLegacyAppsFolderKeepsWorking(t *testing.T) {
 	deps, cat := installed(t, "one")
 	root := projectRoot(t, deps)
 	os.MkdirAll(filepath.Join(root, "apps", "whoami"), 0o755)
