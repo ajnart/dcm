@@ -1,0 +1,161 @@
+CONTEXT.md
+  s_59ffa5bfdcd3ba::t_51c9f546cf5d21 251
+README.md
+  s_59ffa5bfdcd3ba::t_0a4589ab5f6774 177-184,228-231,233-234,246-275,291-299,397-407,496-504
+internal/apps/cloudflaretunnel/cloudflaretunnel.go
+  s_59ffa5bfdcd3ba::t_f7e313fb545393 26,34
+internal/apps/cloudflaretunnel/cloudflaretunnel_test.go
+  s_8b1d5a69f175a9::t_2b9ead0ead0571 1-32
+internal/cli/cli.go
+  s_59ffa5bfdcd3ba::t_d0a79bdf116f2d 201
+internal/cli/cloudflare.go
+  s_8b1d5a69f175a9::t_9a73b68dc01d53 1-74
+internal/cli/cloudflare_test.go
+  s_59ffa5bfdcd3ba::t_8ce42ea51b712d 1-90
+internal/cloudflare/api.go
+  s_59ffa5bfdcd3ba::t_c6c0b7410f7984 204-207,238
+internal/cloudflare/cloudflaretest/server.go
+  s_59ffa5bfdcd3ba::t_7d4c3a38fe723a 29-31,238-241
+internal/cloudflare/publish.go
+  s_59ffa5bfdcd3ba::t_cdf9922358d22a 6-7,12,43,48,81,90-91,117-134,170-182,194,208,216-217,244,268-270,274-279,465-477
+internal/cloudflare/publish_test.go
+  s_59ffa5bfdcd3ba::t_83dfa0c0a6f0aa 4,7,85-112,217-238,269-290,336-354,364-393,519-535
+internal/service/cloudflare.go
+  s_59ffa5bfdcd3ba::t_b5d6aa7a1d1f2b 57-66,127-131,142-146,162,343,346,393,492,499-502
+internal/service/debug.go
+  s_59ffa5bfdcd3ba::t_2a4fef0f36bfbd 6,62
+internal/service/status.go
+  s_59ffa5bfdcd3ba::t_49b1535fdfd5e6 93-97,148-149
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_ef9d53346b57a2 34,58,100-129,155-165,170-183,223-226,232-233,236-307
+internal/tui/access.go
+  s_59ffa5bfdcd3ba::t_d635f2c1347b8b 108,110-111,124-127,133
+internal/tui/access_test.go
+  s_59ffa5bfdcd3ba::t_daba7eeaea1e50 35-36,119
+internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_774fd65a29a8e9 28-41,56,299-303
+internal/tui/cloudflare.go
+  s_8b1d5a69f175a9::t_07d6644de82ed5 1-227
+internal/tui/cloudflare_test.go
+  s_8b1d5a69f175a9::t_e2d60efaf73508 1-109
+internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_27814fa1a3405f 535
+internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_47ccf4fded8d6a 166-167,525-527,535-541
+internal/tui/onboarding.go
+  s_59ffa5bfdcd3ba::t_9bfc375540073c 49-50,634-639,678-680,948-949,965-969
+internal/tui/onboarding_test.go
+  s_59ffa5bfdcd3ba::t_53bbfa41287071 784,821,832,871,920,926
+internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_83722709ac07f1 81,110-112,135,154,186-188,332-338,466-469,558-560,660
+internal/tui/settings_test.go
+  s_59ffa5bfdcd3ba::t_be265bf6240c96 210,337
+internal/tui/testdata/cloudflare-begin-narrow.golden
+  s_59ffa5bfdcd3ba::t_4be5e75f5c7fd9 1-24
+internal/tui/testdata/cloudflare-begin.golden
+  s_59ffa5bfdcd3ba::t_a21f6387d09ddf 1-30
+internal/tui/testdata/cloudflare-media-narrow.golden
+  s_59ffa5bfdcd3ba::t_9e6ab14fd5965a 1-24
+internal/tui/testdata/cloudflare-media.golden
+  s_59ffa5bfdcd3ba::t_a7a17f8b3c776e 1-30
+internal/tui/testdata/cloudflare-private-app-narrow.golden
+  s_59ffa5bfdcd3ba::t_95438da2a0bf11 1-24
+internal/tui/testdata/cloudflare-private-app.golden
+  s_59ffa5bfdcd3ba::t_40494debeaf1cc 1-30
+internal/tui/testdata/cloudflare-review-narrow.golden
+  s_59ffa5bfdcd3ba::t_386ef6ce4a4183 1-24
+internal/tui/testdata/cloudflare-review.golden
+  s_59ffa5bfdcd3ba::t_291e7b3bf5e036 1-30
+internal/tui/testdata/cloudflare-token-narrow.golden
+  s_59ffa5bfdcd3ba::t_61b86cf851992b 1-24
+internal/tui/testdata/cloudflare-token.golden
+  s_59ffa5bfdcd3ba::t_06c923985ef8ea 1-30
+internal/tui/testdata/onboarding-access-cloudflare-help-narrow.golden
+  s_59ffa5bfdcd3ba::t_b169e24744691e 11,13-14,16-20
+internal/tui/testdata/onboarding-access-cloudflare-help.golden
+  s_59ffa5bfdcd3ba::t_a81122f1eafff0 11-26
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_59ffa5bfdcd3ba::t_5eb1a0d8a82d95 12,15,17-18
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_59ffa5bfdcd3ba::t_a8286f5f8eaa5f 12,15-18
+internal/tui/testdata/onboarding-access-coming-soon-note-narrow.golden
+  s_59ffa5bfdcd3ba::t_b78b4cf071c38e 12
+internal/tui/testdata/onboarding-access-coming-soon-note.golden
+  s_59ffa5bfdcd3ba::t_6ceff04797ec33 12
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_59ffa5bfdcd3ba::t_7bc7d2b1cdba87 12
+internal/tui/testdata/onboarding-access-custom.golden
+  s_59ffa5bfdcd3ba::t_d6badea88109f7 12
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_59ffa5bfdcd3ba::t_6b40d142ddb033 12
+internal/tui/testdata/onboarding-access-names.golden
+  s_59ffa5bfdcd3ba::t_5c6ac4efe5419b 12
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_59ffa5bfdcd3ba::t_2f6ac849f2fcae 12
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_59ffa5bfdcd3ba::t_178c560e12ea33 12
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_59ffa5bfdcd3ba::t_8d738a3b469cec 12
+internal/tui/testdata/onboarding-access.golden
+  s_59ffa5bfdcd3ba::t_1712b39e310b30 12
+internal/tui/testdata/settings-access-cloudflare-help-narrow.golden
+  s_59ffa5bfdcd3ba::t_e53ef2b0b5f835 11,13-14,16-20
+internal/tui/testdata/settings-access-cloudflare-help.golden
+  s_59ffa5bfdcd3ba::t_8aec0f506cebac 11-26
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  s_59ffa5bfdcd3ba::t_4aa921aa568a0f 7,10,12-14
+internal/tui/testdata/settings-access-cloudflare.golden
+  s_59ffa5bfdcd3ba::t_0ed0d882938b7a 7,10-12
+internal/tui/testdata/settings-access-coming-soon-note-narrow.golden
+  s_59ffa5bfdcd3ba::t_b39acea6b75d55 7
+internal/tui/testdata/settings-access-coming-soon-note.golden
+  s_59ffa5bfdcd3ba::t_874090ada31180 7
+internal/tui/testdata/settings-access-custom-narrow.golden
+  s_59ffa5bfdcd3ba::t_f2e1e1fdff4c56 7
+internal/tui/testdata/settings-access-custom.golden
+  s_59ffa5bfdcd3ba::t_27509d60fbe8b2 7
+internal/tui/testdata/settings-access-home-narrow.golden
+  s_59ffa5bfdcd3ba::t_7a1f8598111de5 7
+internal/tui/testdata/settings-access-home.golden
+  s_59ffa5bfdcd3ba::t_7bb1b41fd1c980 7
+internal/tui/testdata/settings-access-local-narrow.golden
+  s_59ffa5bfdcd3ba::t_f02b4f514c0713 8
+internal/tui/testdata/settings-access-local.golden
+  s_59ffa5bfdcd3ba::t_4b0773e6a014b3 8
+internal/tui/testdata/settings-access-names-narrow.golden
+  s_59ffa5bfdcd3ba::t_6896f35c474ba7 7
+internal/tui/testdata/settings-access-names.golden
+  s_59ffa5bfdcd3ba::t_c0b0b2b30cf648 7
+internal/tui/testdata/settings-access-pending-narrow.golden
+  s_59ffa5bfdcd3ba::t_6b71334b77f4ec 7
+internal/tui/testdata/settings-access-pending.golden
+  s_59ffa5bfdcd3ba::t_acb8a62349537f 7
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  s_59ffa5bfdcd3ba::t_da5a6416fe9d2f 7
+internal/tui/testdata/settings-access-tailscale.golden
+  s_59ffa5bfdcd3ba::t_780681d231d6e0 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d17d402107ec2d5c566e72299fb812562b1ddca8",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
