@@ -40,7 +40,6 @@ type Probe struct {
 
 // Hooks are the parts of Publish that are not API calls.
 type Hooks struct {
-	Prepare func(context.Context) error
 	// Progress reports each stage in plain words.
 	Progress func(msg string)
 	// StartConnector runs cloudflared with the tunnel's run token.
@@ -87,10 +86,8 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (res Result
 	if res.Team, err = c.team(ctx, account); err != nil {
 		return res, err
 	}
-	if hooks.Prepare != nil {
-		if err := hooks.Prepare(ctx); err != nil {
-			return res, err
-		}
+	if err := c.constrain(ctx, account, zone); err != nil {
+		return res, err
 	}
 	for _, name := range spec.Dropped {
 		if err := c.unpublish(ctx, zone, name, spec.Comment); err != nil {
@@ -109,8 +106,18 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (res Result
 	if err != nil {
 		return res, err
 	}
+	if found && tunnel != c.Ownership.TunnelID {
+		return res, fmt.Errorf("tunnel name collision: ownership is unproven; left untouched")
+	}
+	if !found && c.Ownership.TunnelID != "" {
+		return res, fmt.Errorf("owned tunnel is missing; ownership receipt retained for review")
+	}
 	if !found {
 		if tunnel, err = c.createTunnel(ctx, account, spec.TunnelName); err != nil {
+			return res, err
+		}
+		c.Ownership.TunnelID = tunnel
+		if err := c.remember(ctx); err != nil {
 			return res, err
 		}
 	}
@@ -174,7 +181,7 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (res Result
 			return res, err
 		}
 		for i, r := range records {
-			if r.Type != "CNAME" || r.Comment != spec.Comment {
+			if r.Type != "CNAME" || r.Comment != spec.Comment || c.Ownership.DNS[h.Name] != r.ID {
 				return res, &ForeignRecordError{Name: h.Name}
 			}
 			existing[h.Name] = &records[i]
@@ -233,11 +240,21 @@ func (c *Client) ensurePolicy(ctx context.Context, account string, spec Spec) (s
 	if err != nil {
 		return "", err
 	}
+	if policy != nil && policy.ID != c.Ownership.PolicyID {
+		return "", fmt.Errorf("policy name collision: ownership is unproven; left untouched")
+	}
+	if policy == nil && c.Ownership.PolicyID != "" {
+		return "", fmt.Errorf("owned policy is missing; ownership receipt retained for review")
+	}
 	path := "/accounts/" + account + "/access/policies"
 	switch {
 	case policy == nil:
 		var created idRef
 		if err := c.do(ctx, "POST", path, nil, policyBody(spec.PolicyName, spec.Emails), &created); err != nil {
+			return "", err
+		}
+		c.Ownership.PolicyID = created.ID
+		if err := c.remember(ctx); err != nil {
 			return "", err
 		}
 		return created.ID, nil
@@ -261,8 +278,15 @@ func (c *Client) ensureAccessApp(ctx context.Context, account string, h Host, po
 	}
 	path := "/accounts/" + account + "/access/apps"
 	if len(apps) == 0 {
+		if c.Ownership.Apps[h.Name] != "" {
+			return "", fmt.Errorf("owned Access app is missing; ownership receipt retained for review")
+		}
 		var created accessApp
 		if err := c.do(ctx, "POST", path, nil, accessAppBody(h.App, h.Name, policy, idp), &created); err != nil {
+			return "", err
+		}
+		c.Ownership.Apps[h.Name] = created.ID
+		if err := c.remember(ctx); err != nil {
 			return "", err
 		}
 		if created.AUD == "" {
@@ -271,7 +295,7 @@ func (c *Client) ensureAccessApp(ctx context.Context, account string, h Host, po
 		return created.AUD, nil
 	}
 	app := apps[0]
-	if len(apps) != 1 || app.Name != accessAppPrefix+h.App {
+	if len(apps) != 1 || app.Name != accessAppPrefix+h.App || app.ID != c.Ownership.Apps[h.Name] {
 		return "", fmt.Errorf("%s already has a login page managed by another tool; it was left alone", h.Name)
 	}
 	if app.AUD == "" {
@@ -291,8 +315,12 @@ func (c *Client) dropAccessApp(ctx context.Context, account, name string) error 
 		return err
 	}
 	for _, app := range apps {
-		if strings.HasPrefix(app.Name, accessAppPrefix) {
+		if app.ID == c.Ownership.Apps[name] {
 			if err := c.do(ctx, "DELETE", "/accounts/"+account+"/access/apps/"+app.ID, nil, nil, nil); err != nil {
+				return err
+			}
+			delete(c.Ownership.Apps, name)
+			if err := c.remember(ctx); err != nil {
 				return err
 			}
 		}
@@ -368,6 +396,10 @@ func (c *Client) ensureRecord(ctx context.Context, zone, name, tunnel, comment s
 		if err := c.do(ctx, "POST", path, nil, body, &created); err != nil {
 			return "", err
 		}
+		c.Ownership.DNS[name] = created.ID
+		if err := c.remember(ctx); err != nil {
+			return "", err
+		}
 		return created.ID, nil
 	}
 	if existing.Content != target || !existing.Proxied {
@@ -385,7 +417,7 @@ func (c *Client) unpublish(ctx context.Context, zone, name, comment string) erro
 		return err
 	}
 	for _, r := range records {
-		if r.Type == "CNAME" && r.Comment == comment {
+		if r.Type == "CNAME" && r.Comment == comment && c.Ownership.DNS[name] == r.ID {
 			if err := c.deleteRecord(ctx, zone, r.ID); err != nil {
 				return err
 			}
@@ -426,8 +458,12 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 	if err != nil {
 		return err
 	}
+	if err := c.constrain(ctx, account, zone); err != nil {
+		return err
+	}
+	ownedNames := slices.DeleteFunc(slices.Clone(spec.Names), func(name string) bool { return c.Ownership.Apps[name] == "" && c.Ownership.DNS[name] == "" })
 	progress("taking your web addresses off the internet")
-	for _, name := range spec.Names {
+	for _, name := range ownedNames {
 		if err := c.unpublish(ctx, zone, name, spec.Comment); err != nil {
 			return err
 		}
@@ -436,29 +472,48 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 	if err != nil {
 		return err
 	}
+	if found && tunnel != c.Ownership.TunnelID {
+		return fmt.Errorf("tunnel ownership is unproven; left untouched")
+	}
+	if !found && c.Ownership.TunnelID != "" {
+		return fmt.Errorf("owned tunnel is missing or renamed; retain its receipt and review Cloudflare before cleanup")
+	}
 	if found {
 		config, err := c.ingress(ctx, account, tunnel)
 		if err != nil {
 			return err
 		}
-		if merged, changed := mergeIngress(config, nil, spec.Names); changed {
+		if merged, changed := mergeIngress(config, nil, ownedNames); changed {
 			if err := c.setIngress(ctx, account, tunnel, merged); err != nil {
 				return err
 			}
 		}
 	}
 	progress("removing the login pages")
-	for _, name := range spec.Names {
+	for _, name := range ownedNames {
 		if err := c.dropAccessApp(ctx, account, name); err != nil {
 			return err
 		}
 	}
-	policy, err := c.policy(ctx, account, spec.PolicyName)
-	if err != nil {
-		return err
+	var policy *policyInfo
+	if c.Ownership.PolicyID != "" {
+		policy, err = c.policy(ctx, account, spec.PolicyName)
+		if err != nil {
+			return err
+		}
+		if policy == nil {
+			return fmt.Errorf("owned policy is missing or renamed; retain its receipt for review")
+		}
 	}
 	if policy != nil {
+		if policy.ID != c.Ownership.PolicyID {
+			return fmt.Errorf("policy ownership is unproven; left untouched")
+		}
 		if err := c.do(ctx, "DELETE", "/accounts/"+account+"/access/policies/"+policy.ID, nil, nil, nil); err != nil {
+			return err
+		}
+		c.Ownership.PolicyID = ""
+		if err := c.remember(ctx); err != nil {
 			return err
 		}
 	}
@@ -487,6 +542,10 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 			return err
 		}
 		if err := c.do(ctx, "DELETE", base, nil, nil, nil); err != nil {
+			return err
+		}
+		c.Ownership.TunnelID = ""
+		if err := c.remember(ctx); err != nil {
 			return err
 		}
 	}

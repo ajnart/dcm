@@ -323,6 +323,33 @@ internet; publishing needs the separate yes below.
    Cloudflare user seats stay assigned until the person removes them in its
    dashboard. App data and Home network Addresses remain untouched.
 
+Ownership is not a matching name or prefix. Each Project has its own random
+identity, independent of Telemetry, with account/zone constraints and receipts
+for the tunnel, policy, per-host Access apps and DNS IDs. Creation receipts are
+saved before later steps; publication/removal hold the Project mutation lock
+through API calls, verification, cleanup and persistence. Old records without
+receipts are not automatically adopted: keep their cleanup details and ask the
+person to review/remove their resources manually in Cloudflare.
+
+Backups include `cloudflare.json` with the ownership identity and resource IDs.
+Restore retains cleanup metadata but disables the public connector by default,
+for full, fresh and selected-App recovery. Generic Restore approval is **not**
+publication approval. Normal start/restart cannot release this hold. To activate,
+run `cloudflare plan`, show Current/Add/Remove Addresses and risk, ask the
+separate public-risk yes, then `cloudflare publish --accept-public` with a fresh
+private token. Restored copies carry the same logical Project identity; do not
+operate the original and restored copy independently against the same resources.
+Restoring onto another Project with live, different ownership is refused.
+Legacy backups may lack ownership; they stay disabled and require manual review.
+
+Ordinary App removal of the connector is refused while publication cleanup is
+pending: use `cloudflare remove` with a fresh private token. No ordinary action
+silently performs remote cleanup. On network failures cleanup is not guaranteed;
+receipts and last-known verified state are retained with `access_warnings` and
+`cloudflare_cleanup` in status. Read the warnings and retry cleanup once the API
+is reachable. A suspended/restored connector has only the Home network fallback
+Addresses advertised, not a dead preferred HTTPS Address.
+
 ## Doctor checks
 
 Without a Project, `self-host doctor` runs the Docker checks and stops at the

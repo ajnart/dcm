@@ -17,9 +17,9 @@ type cloudflarePane struct {
 	input                 textinput.Model
 	opts                  service.CloudflareOptions
 	apps                  []app.Info
-	warnings              []string
 	err                   string
 	remove                bool
+	plan                  service.CloudflarePlan
 }
 
 func newCloudflarePane(ctx *viewContext) *cloudflarePane {
@@ -54,22 +54,28 @@ func (p *cloudflarePane) field(stage int) tea.Cmd {
 	return textinput.Blink
 }
 
-func (p *cloudflarePane) nextApp() tea.Cmd {
+func (p *cloudflarePane) nextApp(ctx *viewContext) tea.Cmd {
 	p.stage, p.err = 4, ""
 	if p.cursor >= len(p.apps) {
+		opts := p.opts
+		opts.APIToken, opts.APITokenFile = "", ""
+		plan, err := ctx.backend.CloudflarePlan(opts)
+		p.plan = plan
+		if err != nil {
+			p.stage = 6
+			p.err = err.Error()
+			return nil
+		}
 		return p.field(6)
 	}
 	return nil
 }
 
-func (p *cloudflarePane) choose() tea.Cmd {
+func (p *cloudflarePane) choose(ctx *viewContext) tea.Cmd {
 	a := p.apps[p.cursor]
 	p.opts.Apps = append(p.opts.Apps, a.ID)
-	if warning, _ := service.CloudflarePublicationWarning(a); warning != "" {
-		p.warnings = append(p.warnings, warning)
-	}
 	p.cursor++
-	return p.nextApp()
+	return p.nextApp(ctx)
 }
 
 func (p *cloudflarePane) update(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, bool) {
@@ -78,7 +84,7 @@ func (p *cloudflarePane) update(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd,
 		return nil, true
 	}
 	if p.stage == 0 {
-		if msg.String() == "r" && slices.Contains(ctx.status.Access, "cloudflare") {
+		if msg.String() == "r" && (ctx.status.CloudflareCleanup || slices.Contains(ctx.status.Access, "cloudflare")) {
 			p.remove = true
 			return p.field(3), false
 		}
@@ -93,10 +99,10 @@ func (p *cloudflarePane) update(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd,
 			if _, private := service.CloudflarePublicationWarning(p.apps[p.cursor]); private {
 				return p.field(5), false
 			}
-			return p.choose(), false
+			return p.choose(ctx), false
 		case "n", "N":
 			p.cursor++
-			return p.nextApp(), false
+			return p.nextApp(ctx), false
 		}
 		return nil, false
 	}
@@ -135,20 +141,20 @@ func (p *cloudflarePane) update(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd,
 			if p.remove {
 				return p.field(6), false
 			}
-			return p.nextApp(), false
+			return p.nextApp(ctx), false
 		case 5:
 			if value != p.apps[p.cursor].ID {
 				p.err = "Type the App's exact name to accept this risk"
 				return nil, false
 			}
 			p.opts.Allow = append(p.opts.Allow, value)
-			return p.choose(), false
+			return p.choose(ctx), false
 		case 6:
 			word, action := "publish", ActionCloudflarePublish
 			if p.remove {
 				word, action = "remove", ActionCloudflareRemove
 			}
-			if !p.remove && len(p.opts.Apps) == 0 {
+			if !p.remove && len(p.plan.Publish) == 0 {
 				p.err = "No Apps chosen. Escape to cancel and choose again."
 				return nil, false
 			}
@@ -176,7 +182,7 @@ func (p *cloudflarePane) box(ctx *viewContext, width, height int) string {
 	case 0:
 		add("Before you begin: your main domain must be active on Cloudflare. Open one.dash.cloudflare.com, choose a team name, the Zero Trust Free plan (50 users), and a payment method that is not charged.")
 		add("Create a private API token with the five exact permissions in ? more. Nothing is published by default. Enter to choose Apps and allowed emails.")
-		if slices.Contains(ctx.status.Access, "cloudflare") {
+		if ctx.status.CloudflareCleanup || slices.Contains(ctx.status.Access, "cloudflare") {
 			add("To take the published Addresses down instead, press r. You will need the API token again.")
 		}
 	case 1:
@@ -201,13 +207,25 @@ func (p *cloudflarePane) box(ctx *viewContext, width, height int) string {
 		if p.remove {
 			add("Take every Cloudflare Address off the internet. The shared PIN provider and organization stay. The IP:port Addresses keep working. Type remove to confirm.")
 		} else {
-			for _, id := range p.opts.Apps {
-				add("https://" + id + "." + p.opts.Domain)
+			for _, a := range p.plan.Current {
+				add("Current " + a.Address)
 			}
-			for _, warning := range p.warnings {
-				add(warning)
+			for _, a := range p.plan.Additions {
+				add("Add " + a.Address)
 			}
-			add("This puts these Apps on the internet. Anyone in the world can reach the login page and try to get in. Only " + strings.Join(p.opts.Emails, ", ") + " get past it with an emailed PIN. A flaw in the login page or an App could let strangers in. Cloudflare sees the traffic. Type publish to give the separate yes.")
+			for _, name := range p.plan.Dropped {
+				add("Remove https://" + name)
+			}
+			for _, a := range p.plan.Publish {
+				if a.Warning != "" {
+					add(a.Warning)
+				}
+			}
+			for _, a := range p.plan.Refused {
+				add(a.Reason)
+			}
+			add(p.plan.Risk)
+			add("Type publish to give the separate yes.")
 		}
 	}
 	room := max(height-7, 3)

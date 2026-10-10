@@ -99,6 +99,15 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 					return err
 				}
 			}
+			if data, err := ss.p.ReadHomeFile(cloudflareRecordFile); err == nil {
+				if err := w.AddBytes(cloudflareRecordFile, data, 0o600); err != nil {
+					f.Close()
+					return err
+				}
+			} else if !errors.Is(err, os.ErrNotExist) {
+				f.Close()
+				return err
+			}
 			containers, err := ss.compose.Ps(ctx)
 			if err != nil {
 				f.Close()
@@ -386,7 +395,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		}
 	}
 	err = r.Extract(staging, func(name string) string {
-		if name == ".env" || name == "secrets.env" || name == "state.json" {
+		if name == ".env" || name == "secrets.env" || name == "state.json" || name == cloudflareRecordFile {
 			return filepath.Join(staging, name)
 		}
 		parts := strings.SplitN(name, "/", 3)
@@ -454,6 +463,9 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			return nil
 		},
 		edit: func(ctx context.Context, ss *session) (result error) {
+			if err := ss.restoreCloudflare(ctx, staging, targets); err != nil {
+				return err
+			}
 			replacements := map[string]string{}
 			for _, id := range targets {
 				content, err := os.ReadFile(filepath.Join(staged(id), "compose.yml"))
@@ -559,7 +571,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					}
 					// rm can partially succeed, so remember running services first.
 					for _, container := range containers {
-						if container.State == "running" && slices.Contains(services, container.Service) && !slices.Contains(recoverServices, container.Service) {
+						if container.Service != cloudflareConnector && container.State == "running" && slices.Contains(services, container.Service) && !slices.Contains(recoverServices, container.Service) {
 							recoverServices = append(recoverServices, container.Service)
 							if !slices.Contains(recoverApps, id) {
 								recoverApps = append(recoverApps, id)

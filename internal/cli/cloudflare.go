@@ -33,6 +33,15 @@ func (a *program) cloudflareCmd() *cobra.Command {
 					return json.NewEncoder(a.deps.Out).Encode(plan)
 				}
 				fmt.Fprintln(a.deps.Out, plan.Risk)
+				for _, app := range plan.Current {
+					fmt.Fprintln(a.deps.Out, "Current "+app.Address)
+				}
+				for _, app := range plan.Additions {
+					fmt.Fprintln(a.deps.Out, "Add "+app.Address)
+				}
+				for _, name := range plan.Dropped {
+					fmt.Fprintln(a.deps.Out, "Remove https://"+name)
+				}
 				for _, app := range plan.Publish {
 					fmt.Fprintln(a.deps.Out, app.Address)
 					if app.Warning != "" {

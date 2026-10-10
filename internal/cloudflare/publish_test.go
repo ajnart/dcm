@@ -50,7 +50,7 @@ type world struct {
 func newWorld(t *testing.T, opts cloudflaretest.Options) *world {
 	t.Helper()
 	server := newAccount(t, opts)
-	return &world{server: server, client: &cloudflare.Client{Base: server.Base(), Token: apiToken}, probes: map[string]cloudflare.Probe{}}
+	return &world{server: server, client: &cloudflare.Client{Base: server.Base(), Token: apiToken, Ownership: &cloudflare.Ownership{ProjectID: "project-one"}}, probes: map[string]cloudflare.Probe{}}
 }
 
 func (w *world) hooks() cloudflare.Hooks {
@@ -374,7 +374,7 @@ func TestAForeignDNSRecordIsRefusedAndTheNewResourcesRolledBack(t *testing.T) {
 
 func TestAnAccessAppOwnedByAnotherToolIsNeverOverwritten(t *testing.T) {
 	w := newWorld(t, cloudflaretest.Options{})
-	req, _ := http.NewRequest("POST", w.server.Base()+"/accounts/acct-1/access/apps", bytes.NewBufferString(`{"name":"someone else's login","domain":"jellyfin.example.com","policies":["foreign-policy"],"allowed_idps":["foreign-idp"]}`))
+	req, _ := http.NewRequest("POST", w.server.Base()+"/accounts/acct-1/access/apps", bytes.NewBufferString(`{"name":"self-host: jellyfin","domain":"jellyfin.example.com","policies":["foreign-policy"],"allowed_idps":["foreign-idp"]}`))
 	req.Header.Set("Authorization", "Bearer "+apiToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -530,6 +530,59 @@ func TestRemovalNeverDeletesATunnelStillServingForeignRoutes(t *testing.T) {
 	tunnels, policies, apps, _, records := w.server.Count()
 	if tunnels != 1 || policies != 0 || apps != 0 || records != 0 || len(w.server.Ingress()) != 2 {
 		t.Fatal("owned routes not removed or foreign route lost")
+	}
+}
+
+func TestMatchingTunnelNameWithoutCreationReceiptIsNotOwnership(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	w.server.Reset()
+	w.client.Ownership = &cloudflare.Ownership{ProjectID: "independent-project"}
+	_, err := cloudflare.Publish(t.Context(), w.client, spec("paperless-ngx"), w.hooks())
+	if err == nil || !strings.Contains(err.Error(), "ownership") {
+		t.Fatalf("name was adopted: %v", err)
+	}
+	if len(w.server.Writes()) != 0 {
+		t.Fatal(w.server.Writes())
+	}
+}
+
+func TestMatchingPolicyNameWithoutReceiptIsNotOwned(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	req, _ := http.NewRequest("POST", w.server.Base()+"/accounts/acct-1/access/policies", bytes.NewBufferString(`{"name":"self-host: allowed people","decision":"allow","include":[{"email":{"email":"other@example.org"}}]}`))
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	w.server.Reset()
+	_, err = cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks())
+	if err == nil || !strings.Contains(err.Error(), "ownership") {
+		t.Fatalf("policy was adopted: %v", err)
+	}
+	for _, call := range w.server.Writes() {
+		if strings.Contains(call, "/policies/policy-1") {
+			t.Fatal("unowned policy mutated", call)
+		}
+	}
+}
+
+func TestOwnershipCannotMoveToAnotherZone(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	w.server.AddZone("other.example")
+	w.server.Reset()
+	next := spec("paperless-ngx")
+	next.Domain = "other.example"
+	next.Hosts[0].Name = "paperless-ngx.other.example"
+	_, err := cloudflare.Publish(t.Context(), w.client, next, w.hooks())
+	if err == nil || !strings.Contains(err.Error(), "different account or zone") || len(w.server.Writes()) != 0 {
+		t.Fatalf("ownership crossed zone: %v %v", err, w.server.Writes())
 	}
 }
 

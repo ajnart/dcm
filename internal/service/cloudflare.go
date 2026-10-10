@@ -99,10 +99,12 @@ type CloudflareRefusal struct {
 
 // CloudflarePlan says, before anything happens, what would be published.
 type CloudflarePlan struct {
-	Domain  string              `json:"domain"`
-	Emails  []string            `json:"emails"`
-	Publish []CloudflareApp     `json:"publish"`
-	Refused []CloudflareRefusal `json:"refused,omitempty"`
+	Current   []CloudflareApp     `json:"current,omitempty"`
+	Additions []CloudflareApp     `json:"additions,omitempty"`
+	Domain    string              `json:"domain"`
+	Emails    []string            `json:"emails"`
+	Publish   []CloudflareApp     `json:"publish"`
+	Refused   []CloudflareRefusal `json:"refused,omitempty"`
 	// Dropped are names published before that this plan takes off the internet.
 	Dropped []string `json:"dropped,omitempty"`
 	// Risk is the sentence the separate yes is asked for.
@@ -124,10 +126,13 @@ type CloudflareResult struct {
 // no secret: the API token is never stored and the run token lives in
 // secrets.env.
 type cloudflareRecord struct {
-	Version      int      `json:"version"`
-	Domain       string   `json:"domain"`
-	Emails       []string `json:"emails"`
-	RemovalNames []string `json:"removal_names,omitempty"`
+	Ownership    cloudflare.Ownership `json:"ownership"`
+	Suspended    bool                 `json:"suspended,omitempty"`
+	Warning      string               `json:"warning,omitempty"`
+	Version      int                  `json:"version"`
+	Domain       string               `json:"domain"`
+	Emails       []string             `json:"emails"`
+	RemovalNames []string             `json:"removal_names,omitempty"`
 	Hosts        []struct {
 		App  string `json:"app"`
 		Name string `json:"name"`
@@ -140,6 +145,16 @@ func (r cloudflareRecord) names() []string {
 		out[i] = h.Name
 	}
 	for _, name := range r.RemovalNames {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	for name := range r.Ownership.Apps {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	for name := range r.Ownership.DNS {
 		if !slices.Contains(out, name) {
 			out = append(out, name)
 		}
@@ -159,18 +174,21 @@ func loadCloudflareRecord(p *project.Project) (cloudflareRecord, bool, error) {
 	if err := json.Unmarshal(data, &rec); err != nil {
 		return cloudflareRecord{}, false, fmt.Errorf("%s: %w", cloudflareRecordFile, err)
 	}
-	return rec, len(rec.Hosts) > 0 || len(rec.RemovalNames) > 0, nil
+	if rec.Version < 0 || rec.Version > 2 {
+		return cloudflareRecord{}, false, errors.New("unsupported Cloudflare ownership format; retain it for review")
+	}
+	return rec, len(rec.Hosts) > 0 || len(rec.RemovalNames) > 0 || rec.Ownership.TunnelID != "", nil
 }
 
 // cloudflareAddresses are the web addresses an App has through Cloudflare.
 func (ss *session) cloudflareAddresses(id string) []string {
 	rec, found, err := loadCloudflareRecord(ss.p)
-	if err != nil || !found {
+	if err != nil || !found || rec.Suspended || ss.state.Apps[cloudflareConnector] == nil {
 		return nil
 	}
 	var out []string
 	for _, h := range rec.Hosts {
-		if h.App != id {
+		if h.App != id || rec.Version >= 2 && rec.Ownership.DNS[h.Name] == "" {
 			continue
 		}
 		path := ""
@@ -183,12 +201,8 @@ func (ss *session) cloudflareAddresses(id string) []string {
 }
 
 // cloudflareNames derives what self-host calls its own things on Cloudflare.
-func cloudflareNames(p *project.Project) (tunnel, policy, comment string) {
-	tunnel = "self-host"
-	if p.ComposeName != project.Name {
-		tunnel += "-" + p.ComposeName
-	}
-	return tunnel, "self-host: allowed people (" + p.ComposeName + ")", "managed by self-host project=" + p.ComposeName
+func cloudflareNames(id string) (tunnel, policy, comment string) {
+	return "self-host-" + id, "self-host: allowed people (" + id + ")", "managed by self-host project=" + id
 }
 
 var domainName = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
@@ -252,6 +266,9 @@ func (s *Service) CloudflarePlan(ctx context.Context, opts CloudflareOptions) (C
 		return plan, fmt.Errorf("your Apps are already published under %s; remove that first with: self-host cloudflare remove", rec.Domain)
 	}
 	plan = CloudflarePlan{Domain: domain, Emails: emails, TokenScopes: cloudflare.Scopes}
+	for _, h := range rec.Hosts {
+		plan.Current = append(plan.Current, CloudflareApp{App: h.App, Name: h.Name, Address: "https://" + h.Name})
+	}
 	var chosen []string
 	for _, id := range opts.Apps {
 		if slices.Contains(chosen, id) {
@@ -287,6 +304,12 @@ func (s *Service) CloudflarePlan(ctx context.Context, opts CloudflareOptions) (C
 			plan.Dropped = append(plan.Dropped, name)
 		}
 	}
+	slices.Sort(plan.Dropped)
+	for _, a := range plan.Publish {
+		if !slices.ContainsFunc(plan.Current, func(c CloudflareApp) bool { return c.Name == a.Name }) {
+			plan.Additions = append(plan.Additions, a)
+		}
+	}
 	plan.Risk = cloudflareRisk(plan)
 	return plan, nil
 }
@@ -305,6 +328,15 @@ func cloudflareRisk(plan CloudflarePlan) string {
 // login page, then checks every address from this computer.
 func (s *Service) CloudflarePublish(ctx context.Context, opts CloudflareOptions) (CloudflareResult, error) {
 	var result CloudflareResult
+	p, err := s.Project()
+	if err != nil {
+		return result, err
+	}
+	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
+	if err != nil {
+		return result, err
+	}
+	defer unlock()
 	plan, err := s.CloudflarePlan(ctx, opts)
 	if err != nil {
 		return result, err
@@ -322,11 +354,27 @@ func (s *Service) CloudflarePublish(ctx context.Context, opts CloudflareOptions)
 	if err != nil {
 		return result, err
 	}
-	p, err := s.Project()
+	rec, existing, err := loadCloudflareRecord(p)
 	if err != nil {
 		return result, err
 	}
-	tunnel, policy, comment := cloudflareNames(p)
+	if (existing || rec.Suspended) && rec.Ownership.ProjectID == "" {
+		return result, errors.New("legacy Cloudflare ownership is unproven; keep the cleanup record and review/remove these resources manually in Cloudflare before starting a new publication")
+	}
+	if rec.Ownership.ProjectID == "" {
+		rec.Ownership.ProjectID = GenerateHex(16)
+	}
+	rec.Version, rec.Domain, rec.Emails = 2, plan.Domain, plan.Emails
+	if err := writeCloudflareRecord(p, rec); err != nil {
+		return result, err
+	}
+	tunnel, policy, comment := cloudflareNames(rec.Ownership.ProjectID)
+	client := s.cloudflareClient(token)
+	client.Ownership = &rec.Ownership
+	client.Remember = func(_ context.Context, owned cloudflare.Ownership) error {
+		rec.Ownership = owned
+		return writeCloudflareRecord(p, rec)
+	}
 	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "publish at your own web address"})
 	for _, a := range plan.Publish {
 		if a.Warning != "" {
@@ -336,18 +384,24 @@ func (s *Service) CloudflarePublish(ctx context.Context, opts CloudflareOptions)
 	for _, r := range plan.Refused {
 		s.Log.Emit(events.Event{Event: events.StepSkip, App: r.App, Step: "publish", Msg: r.Reason})
 	}
-	res, err := cloudflare.Publish(ctx, s.cloudflareClient(token), cloudflare.Spec{
+	res, err := cloudflare.Publish(ctx, client, cloudflare.Spec{
 		Domain: plan.Domain, TunnelName: tunnel, PolicyName: policy, Comment: comment,
 		Emails: plan.Emails, Hosts: plan.hosts, Dropped: plan.Dropped,
 	}, cloudflare.Hooks{
-		Prepare:        func(ctx context.Context) error { return s.saveCloudflareRecord(ctx, plan, nil) },
-		Progress:       func(msg string) { s.Log.Emit(events.Event{Event: events.Info, Msg: msg}) },
-		StartConnector: s.startCloudflareConnector,
-		StopConnector:  s.stopCloudflareConnector,
-		Probe:          s.probeLoginPage,
+		Progress: func(msg string) { s.Log.Emit(events.Event{Event: events.Info, Msg: msg}) },
+		StartConnector: func(ctx context.Context, runToken string) error {
+			rec.Suspended = false
+			if err := writeCloudflareRecord(p, rec); err != nil {
+				return err
+			}
+			return s.startCloudflareConnector(ctx, runToken, p)
+		},
+		StopConnector: func(ctx context.Context) error { return s.stopCloudflareConnector(ctx, p) },
+		Probe:         s.probeLoginPage,
 	})
 	if err != nil {
-		return result, s.endCloudflareRun(err)
+		rec.Warning = "Publication could not finish. Remote cleanup may be unreachable; retain ownership and review Cloudflare before retrying or removing."
+		return result, s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec)))
 	}
 	for _, a := range plan.Publish {
 		if slices.Contains(res.Verified, a.Name) {
@@ -432,12 +486,12 @@ func (s *Service) cloudflareToken(opts CloudflareOptions) (string, error) {
 
 // startCloudflareConnector installs the connector with the tunnel's run token,
 // which travels in memory to the Project's secret store and nowhere else.
-func (s *Service) startCloudflareConnector(ctx context.Context, runToken string) error {
+func (s *Service) startCloudflareConnector(ctx context.Context, runToken string, p *project.Project) error {
 	s.Log.Secret(runToken)
-	return s.Install(ctx, InstallOptions{
+	return s.install(ctx, InstallOptions{
 		Targets:       []string{cloudflareConnector},
 		PrivateInputs: map[string]map[string]string{cloudflareConnector: {"token": runToken}},
-	})
+	}, p)
 }
 
 const (
@@ -484,18 +538,17 @@ func (s *Service) saveCloudflareRecord(ctx context.Context, plan CloudflarePlan,
 	if err != nil {
 		return err
 	}
-	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
+	rec, _, err := loadCloudflareRecord(p)
 	if err != nil {
 		return err
 	}
-	defer unlock()
 	if len(plan.Publish) == 0 && len(plan.Dropped) == 0 {
-		if err := os.Remove(p.Path(cloudflareRecordFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		return nil
+		rec.Hosts, rec.RemovalNames = nil, nil
+		rec.Domain, rec.Emails, rec.Warning = "", nil, ""
+		return writeCloudflareRecord(p, rec)
 	}
-	rec := cloudflareRecord{Version: 1, Domain: plan.Domain, Emails: plan.Emails}
+	rec.Version, rec.Domain, rec.Emails, rec.Warning, rec.Suspended = 2, plan.Domain, plan.Emails, "", false
+	rec.Hosts, rec.RemovalNames = nil, nil
 	for _, a := range plan.Publish {
 		rec.RemovalNames = append(rec.RemovalNames, a.Name)
 	}
@@ -506,6 +559,10 @@ func (s *Service) saveCloudflareRecord(ctx context.Context, plan CloudflarePlan,
 			Name string `json:"name"`
 		}{a.App, a.Name})
 	}
+	return writeCloudflareRecord(p, rec)
+}
+
+func writeCloudflareRecord(p *project.Project, rec cloudflareRecord) error {
 	data, err := json.MarshalIndent(rec, "", "  ")
 	if err != nil {
 		return err
@@ -513,10 +570,58 @@ func (s *Service) saveCloudflareRecord(ctx context.Context, plan CloudflarePlan,
 	return p.WriteHomeFile(cloudflareRecordFile, append(data, '\n'), 0o644)
 }
 
+func (ss *session) restoreCloudflare(ctx context.Context, staging string, targets []string) error {
+	archived, hasArchived, err := loadCloudflareRecord(&project.Project{Root: staging})
+	if err != nil {
+		return err
+	}
+	current, hasCurrent, err := loadCloudflareRecord(ss.p)
+	if err != nil {
+		return err
+	}
+	hasArchived = hasArchived || archived.Ownership.ProjectID != ""
+	if !hasArchived && !hasCurrent && !slices.Contains(targets, cloudflareConnector) {
+		return nil
+	}
+	if hasCurrent && hasArchived && current.Ownership.ProjectID != archived.Ownership.ProjectID {
+		return errors.New("backup Cloudflare ownership belongs to another Project; remove the current publication separately before restoring")
+	}
+	rec := current
+	if hasArchived && !hasCurrent {
+		rec = archived
+	}
+	rec.Suspended = true
+	rec.Warning = "Restored public connector is disabled. Remote routes may still exist. Use cloudflare remove with a fresh private API token for cleanup, or cloudflare plan then publish after a separate publication-risk yes. Legacy backups without ownership require manual Cloudflare review."
+	if err := writeCloudflareRecord(ss.p, rec); err != nil {
+		return err
+	}
+	if ss.state.Apps[cloudflareConnector] != nil {
+		if err := ss.compose.Stop(ctx, cloudflareConnector); err != nil {
+			return err
+		}
+	}
+	ss.s.Log.Emit(events.Event{Event: events.StepWarn, Step: "cloudflare-restore", Msg: rec.Warning})
+	return nil
+}
+
+func (ss *session) cloudflareSuspended() (bool, error) {
+	rec, _, err := loadCloudflareRecord(ss.p)
+	return rec.Suspended, err
+}
+
 // CloudflareRemove takes everything self-host published through Cloudflare
 // back down, in reverse order. The one-time PIN login and the Zero Trust
 // organization are shared with other things and stay.
 func (s *Service) CloudflareRemove(ctx context.Context, opts CloudflareOptions) error {
+	p, err := s.Project()
+	if err != nil {
+		return err
+	}
+	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	ss, err := s.open(ctx)
 	if err != nil {
 		return err
@@ -532,16 +637,26 @@ func (s *Service) CloudflareRemove(ctx context.Context, opts CloudflareOptions) 
 	if err != nil {
 		return err
 	}
-	tunnel, policy, comment := cloudflareNames(ss.p)
+	if rec.Ownership.ProjectID == "" {
+		return errors.New("legacy Cloudflare ownership is unproven; retain this record and remove the resources manually after review")
+	}
+	tunnel, policy, comment := cloudflareNames(rec.Ownership.ProjectID)
+	client := s.cloudflareClient(token)
+	client.Ownership = &rec.Ownership
+	client.Remember = func(_ context.Context, owned cloudflare.Ownership) error {
+		rec.Ownership = owned
+		return writeCloudflareRecord(p, rec)
+	}
 	s.Log.Emit(events.Event{Event: events.RunStart, Msg: "remove your own web addresses"})
-	err = cloudflare.Remove(ctx, s.cloudflareClient(token), cloudflare.RemoveSpec{
+	err = cloudflare.Remove(ctx, client, cloudflare.RemoveSpec{
 		Domain: rec.Domain, TunnelName: tunnel, PolicyName: policy, Comment: comment, Names: rec.names(),
 	}, cloudflare.RemoveHooks{
 		Progress:      func(msg string) { s.Log.Emit(events.Event{Event: events.Info, Msg: msg}) },
-		StopConnector: s.stopCloudflareConnector,
+		StopConnector: func(ctx context.Context) error { return s.stopCloudflareConnector(ctx, p) },
 	})
 	if err != nil {
-		return s.endCloudflareRun(err)
+		rec.Warning = "Removal could not finish. Remote resources may remain; retain ownership and review Cloudflare or retry with a fresh private API token."
+		return s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec)))
 	}
 	if err := s.saveCloudflareRecord(ctx, CloudflarePlan{}, nil); err != nil {
 		return s.endCloudflareRun(err)
@@ -551,25 +666,16 @@ func (s *Service) CloudflareRemove(ctx context.Context, opts CloudflareOptions) 
 
 // stopCloudflareConnector removes the connector and forgets its run token,
 // which is dead once the tunnel is deleted.
-func (s *Service) stopCloudflareConnector(ctx context.Context) error {
+func (s *Service) stopCloudflareConnector(ctx context.Context, p *project.Project) error {
 	ss, err := s.open(ctx)
 	if err != nil {
 		return err
 	}
 	if ss.state.Apps[cloudflareConnector] != nil {
-		if err := s.Remove(ctx, []string{cloudflareConnector}, false); err != nil {
+		if err := s.runLocked(ctx, change{title: "remove Cloudflare connector", targets: func(ss *session) ([]string, error) { return ss.targets([]string{cloudflareConnector}) }, compose: composeRemove}, p); err != nil {
 			return err
 		}
 	}
-	p, err := s.Project()
-	if err != nil {
-		return err
-	}
-	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
-	if err != nil {
-		return err
-	}
-	defer unlock()
 	secrets, err := p.LoadSecrets()
 	if err != nil {
 		return err

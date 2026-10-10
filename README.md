@@ -241,7 +241,7 @@ its technical details (`esc` or `?` closes it); in a text input `?` types a
 question mark. Home network, Bring your own and Your own web address are available. The latter
 opens a guided Cloudflare flow in Settings after the Apps finish installing;
 it chooses Apps individually and asks a separate yes before publication.
-Options marked coming soon change nothing. In Settings, the
+Options marked coming soon change nothing.
 Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
 Traefik or their own Caddy; `enter` on it also changes nothing and points at
 `self-host access export`. In Settings, the
@@ -288,6 +288,17 @@ tunnel run token is saved. HTTPS Addresses appear only after an outside 302
 to the team's login page; a failed probe deletes DNS. `IP:port` stays available.
 The shared PIN provider and organization survive removal. Run `self-host skill`
 for the full procedure and warnings.
+
+Cloudflare ownership uses a random identity unique to this Project and receipts
+for the account, zone and resource IDs. Matching names are never ownership.
+Backups include these receipts. Restore keeps the cleanup information but holds
+the public connector disabled, even with `restore --yes`; a separate
+`cloudflare plan` and approved `cloudflare publish --accept-public` are needed
+to activate it again. Ordinary connector removal is refused while cleanup is
+pending. Older records/backups without receipts require manual Cloudflare
+review; they are never adopted automatically. A network failure can prevent
+remote cleanup: ownership is retained and `status --json` includes
+`access_warnings` and `cloudflare_cleanup`, not a guarantee of successful cleanup.
 
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The header names the Project, its LAN address, the host's health and the

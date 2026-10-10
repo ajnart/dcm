@@ -20,7 +20,8 @@ type Options struct {
 	// Token is the only bearer token the fake accepts.
 	Token string
 	// Domain is the zone that is active on the account.
-	Domain string
+	Domain  string
+	Domains []string
 	// Team is the Zero Trust team name; empty means onboarding was not done.
 	Team string
 	// OTP starts the account with a one-time-PIN identity provider.
@@ -144,6 +145,18 @@ func (s *Server) Reset() {
 	s.requests = nil
 }
 
+func (s *Server) AddZone(domain string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.opts.Domains = append(s.opts.Domains, domain)
+}
+
+func (s *Server) SetFailure(method, path string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.opts.FailMethod, s.opts.FailPath = method, path
+}
+
 // Records returns the DNS records now.
 func (s *Server) Records() []Record {
 	s.mu.Lock()
@@ -257,11 +270,18 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) zones(w http.ResponseWriter, req Request) {
-	if req.Query.Get("name") != s.opts.Domain || req.Query.Get("status") != "active" {
+	domain := req.Query.Get("name")
+	zone := zoneID
+	for i, candidate := range s.opts.Domains {
+		if domain == candidate {
+			zone = fmt.Sprintf("zone-%d", i+2)
+		}
+	}
+	if domain != s.opts.Domain && zone == zoneID || req.Query.Get("status") != "active" {
 		reply(w, http.StatusOK, []any{})
 		return
 	}
-	reply(w, http.StatusOK, []any{map[string]any{"id": zoneID, "name": s.opts.Domain, "status": "active", "account": map[string]any{"id": accountID}}})
+	reply(w, http.StatusOK, []any{map[string]any{"id": zone, "name": domain, "status": "active", "account": map[string]any{"id": accountID}}})
 }
 
 func (s *Server) account(w http.ResponseWriter, req Request, rest []string) {

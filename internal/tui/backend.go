@@ -58,6 +58,7 @@ type Request struct {
 
 // Backend is everything the dashboard needs from the Service.
 type Backend interface {
+	CloudflarePlan(service.CloudflareOptions) (service.CloudflarePlan, error)
 	Status(ctx context.Context) (service.Status, error)
 	Doctor(ctx context.Context) []host.Check
 	// Updates returns App ID → available, current or unknown.
@@ -239,6 +240,10 @@ func (b ServiceBackend) Restart() error {
 }
 
 func (b ServiceBackend) Catalog() *catalog.Catalog { return b.Apps }
+
+func (b ServiceBackend) CloudflarePlan(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
+	return b.quiet().CloudflarePlan(context.Background(), opts)
+}
 
 func (b ServiceBackend) Detect(context.Context) map[string]string {
 	settings, err := b.quiet().Defaults()

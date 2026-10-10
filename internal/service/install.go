@@ -174,6 +174,10 @@ func (s *Service) requireDocker(ctx context.Context) error {
 }
 
 func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
+	return s.install(ctx, opts, nil)
+}
+
+func (s *Service) install(ctx context.Context, opts InstallOptions, locked *project.Project) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -239,7 +243,11 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
-	return s.run(ctx, change{
+	run := s.run
+	if locked != nil {
+		run = func(ctx context.Context, c change) error { return s.runLocked(ctx, c, locked) }
+	}
+	return run(ctx, change{
 		title:      "install " + strings.Join(names, " "),
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {

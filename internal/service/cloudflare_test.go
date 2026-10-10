@@ -4,15 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/cloudflaretunnel"
 	"github.com/ajnart/self-host/internal/cloudflare/cloudflaretest"
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -163,5 +169,245 @@ func TestCloudflareFailedProbeIsNotAnAddressAndStillCanBeRemoved(t *testing.T) {
 	tunnels, policies, apps, idps, records := server.Count()
 	if tunnels != 0 || policies != 0 || apps != 0 || idps != 1 || records != 0 {
 		t.Fatal("failed publication could not be removed")
+	}
+}
+
+func TestIndependentDefaultProjectsDoNotShareCloudflareResources(t *testing.T) {
+	a, server, first := publicationHarness(t)
+	b, _, second := publicationHarness(t)
+	b.deps.HTTP = a.deps.HTTP
+	second.Domain = "other.example"
+	second.Emails = []string{"bob@example.org"}
+	server.AddZone("other.example")
+	if _, err := a.svc.CloudflarePublish(t.Context(), first); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.svc.CloudflarePublish(t.Context(), second); err != nil {
+		t.Fatal(err)
+	}
+	tunnels, policies, apps, _, records := server.Count()
+	if tunnels != 2 || policies != 2 || apps != 4 || records != 4 {
+		t.Fatalf("Projects shared resources: %d %d %d %d", tunnels, policies, apps, records)
+	}
+	server.Reset()
+	if _, err := a.svc.CloudflarePublish(t.Context(), first); err != nil {
+		t.Fatal(err)
+	}
+	for _, call := range server.Writes() {
+		if strings.HasPrefix(call, "POST") {
+			t.Fatalf("rerun duplicated resources: %s", call)
+		}
+	}
+	if err := a.svc.CloudflareRemove(t.Context(), first); err != nil {
+		t.Fatal(err)
+	}
+	tunnels, policies, apps, _, records = server.Count()
+	if tunnels != 1 || policies != 1 || apps != 2 || records != 2 {
+		t.Fatal("removal crossed Project ownership")
+	}
+}
+
+type publicationBarrier struct {
+	base        http.RoundTripper
+	enteredOnce atomic.Bool
+	entered     chan struct{}
+	release     chan struct{}
+}
+
+func (b *publicationBarrier) RoundTrip(req *http.Request) (*http.Response, error) {
+	if strings.HasSuffix(req.URL.Path, "/access/organizations") {
+		if b.enteredOnce.CompareAndSwap(false, true) {
+			close(b.entered)
+			<-b.release
+		}
+	}
+	return b.base.RoundTrip(req)
+}
+
+func TestCloudflareTransactionSerializesPublishAndRemove(t *testing.T) {
+	for _, remove := range []bool{false, true} {
+		t.Run(fmt.Sprint(remove), func(t *testing.T) {
+			h, server, opts := publicationHarness(t)
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			barrier := &publicationBarrier{base: h.deps.HTTP.Transport, entered: make(chan struct{}), release: make(chan struct{})}
+			h.deps.HTTP = &http.Client{Transport: barrier}
+			other := New(h.deps, events.Discard(), h.svc.Catalog)
+			first, second := make(chan error, 1), make(chan error, 1)
+			go func() { _, err := h.svc.CloudflarePublish(t.Context(), opts); first <- err }()
+			<-barrier.entered
+			go func() {
+				if remove {
+					second <- other.CloudflareRemove(t.Context(), opts)
+					return
+				}
+				next := opts
+				next.Apps = []string{"paperless-ngx"}
+				_, err := other.CloudflarePublish(t.Context(), next)
+				second <- err
+			}()
+			select {
+			case err := <-second:
+				close(barrier.release)
+				<-first
+				t.Fatalf("overlap was not held at Project lock: %v", err)
+			case <-time.After(40 * time.Millisecond):
+			}
+			close(barrier.release)
+			if err := <-first; err != nil {
+				t.Fatal(err)
+			}
+			if err := <-second; err != nil {
+				t.Fatal(err)
+			}
+			p, _ := h.svc.Project()
+			rec, _, err := loadCloudflareRecord(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := 1
+			if remove {
+				want = 0
+			}
+			if len(rec.Hosts) != want || len(server.Records()) != want {
+				t.Fatalf("lost publication receipt: record %+v DNS %v", rec, server.Records())
+			}
+		})
+	}
+}
+
+func TestEarlyCloudflareFailuresRetainVerifiedAddressesAndCleanupReceipts(t *testing.T) {
+	for _, fault := range []struct{ method, path string }{{"GET", "/zones"}, {"GET", "/accounts/acct-1/access/organizations"}, {"GET", "/accounts/acct-1/access/identity_providers"}, {"GET", "/accounts/acct-1/cfd_tunnel"}, {"GET", "/zones/zone-1/dns_records"}, {"DELETE", "/zones/zone-1/dns_records/dns-2"}} {
+		t.Run(fault.method+fault.path, func(t *testing.T) {
+			h, server, opts := publicationHarness(t)
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			p, _ := h.svc.Project()
+			before, _, _ := loadCloudflareRecord(p)
+			if strings.Contains(fault.path, "dns_records") {
+				opts.Apps = []string{"paperless-ngx"}
+			}
+			server.SetFailure(fault.method, fault.path)
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err == nil {
+				t.Fatal("fault not applied")
+			}
+			a := appStatus(t, h, "paperless-ngx")
+			if a.URL != "https://paperless-ngx.example.com" || len(server.Records()) != 2 {
+				t.Fatalf("truth lost: %+v DNS %v", a, server.Records())
+			}
+			after, _, _ := loadCloudflareRecord(p)
+			if before.Ownership.TunnelID != after.Ownership.TunnelID || len(after.Hosts) != 2 || after.Warning == "" {
+				t.Fatal("ownership or warning lost")
+			}
+			server.SetFailure("", "")
+			if err := h.svc.CloudflareRemove(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestOrdinaryConnectorRemovalCannotAbandonPublishedRoutes(t *testing.T) {
+	h, server, opts := publicationHarness(t)
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+		t.Fatal(err)
+	}
+	server.Reset()
+	err := h.svc.Remove(t.Context(), []string{cloudflareConnector}, false)
+	if err == nil || !strings.Contains(err.Error(), "cloudflare remove") {
+		t.Fatalf("connector removed: %v", err)
+	}
+	if len(server.Calls()) != 0 {
+		t.Fatal("unauthorized API cleanup", server.Calls())
+	}
+}
+
+func TestCloudflareBackupRestoreRetainsOwnershipButRequiresPublicationApproval(t *testing.T) {
+	for _, kind := range []string{"fresh", "full", "partial", "legacy", "legacy-partial"} {
+		t.Run(kind, func(t *testing.T) {
+			h, server, opts := publicationHarness(t)
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			p, _ := h.svc.Project()
+			before, _, _ := loadCloudflareRecord(p)
+			if kind == "legacy" || kind == "legacy-partial" {
+				if err := os.Remove(p.Path(cloudflareRecordFile)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			file, err := h.svc.Backup(t.Context(), nil, filepath.Join(t.TempDir(), "copy.tar.zst"), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if kind == "legacy-partial" {
+				if err := writeCloudflareRecord(p, before); err != nil {
+					t.Fatal(err)
+				}
+			}
+			restored := h
+			if kind == "fresh" || kind == "legacy" {
+				restored = newHarness(t)
+				restored.svc.Catalog = h.svc.Catalog
+				restored.deps.HTTP = h.deps.HTTP
+			}
+			var targets []string
+			if kind == "partial" || kind == "legacy-partial" {
+				targets = []string{"paperless-ngx"}
+			}
+			start := len(restored.runner.Calls())
+			server.Reset()
+			if err := restored.svc.Restore(t.Context(), file, targets, ""); err != nil {
+				t.Fatal(err)
+			}
+			for _, call := range restored.runner.Calls()[start:] {
+				if strings.Contains(call, "up -d") && strings.Contains(call, cloudflareConnector) {
+					t.Fatalf("restore approved public startup: %s", call)
+				}
+			}
+			if len(server.Calls()) != 0 {
+				t.Fatal("restore made remote changes")
+			}
+			p, _ = restored.svc.Project()
+			after, _, _ := loadCloudflareRecord(p)
+			if !after.Suspended {
+				t.Fatal("restored connector not held")
+			}
+			if kind != "legacy" && after.Ownership.TunnelID != before.Ownership.TunnelID {
+				t.Fatal("cleanup receipt lost")
+			}
+			status, err := restored.svc.Status(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, a := range status.Apps {
+				if strings.HasPrefix(a.URL, "https://") {
+					t.Fatal("suspended Address preferred", a)
+				}
+			}
+			start = len(restored.runner.Calls())
+			if err := restored.svc.Start(t.Context(), nil); err != nil {
+				t.Fatal(err)
+			}
+			for _, call := range restored.runner.Calls()[start:] {
+				if strings.Contains(call, "up -d") && strings.Contains(call, cloudflareConnector) {
+					t.Fatal("generic Start bypassed publication approval", call)
+				}
+			}
+			if kind == "legacy" {
+				if _, err := restored.svc.CloudflarePublish(t.Context(), opts); err == nil {
+					t.Fatal("legacy resources auto adopted")
+				}
+				return
+			}
+			if _, err := restored.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			if err := restored.svc.CloudflareRemove(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }

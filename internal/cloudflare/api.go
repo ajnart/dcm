@@ -293,7 +293,18 @@ func (c *Client) dnsRecords(ctx context.Context, zone, name string) ([]dnsRecord
 }
 
 func (c *Client) deleteRecord(ctx context.Context, zone, id string) error {
-	return c.do(ctx, http.MethodDelete, "/zones/"+zone+"/dns_records/"+id, nil, nil, nil)
+	if err := c.do(ctx, http.MethodDelete, "/zones/"+zone+"/dns_records/"+id, nil, nil, nil); err != nil {
+		return err
+	}
+	if c.Ownership != nil {
+		for name, owned := range c.Ownership.DNS {
+			if owned == id {
+				delete(c.Ownership.DNS, name)
+			}
+		}
+		return c.remember(ctx)
+	}
+	return nil
 }
 
 func tunnelTarget(tunnel string) string { return tunnel + ".cfargotunnel.com" }

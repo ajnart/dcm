@@ -7,6 +7,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/service"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -105,5 +106,33 @@ func TestGoldenCloudflarePrivateInputAndSeparateYes(t *testing.T) {
 			m = drive(t, m, press("enter"))
 			check("review")
 		})
+	}
+}
+
+func TestCloudflareReviewUsesServicePlanAndNamesDroppedAddressesBeforeYes(t *testing.T) {
+	m, backend := cloudflareSettings(t, 80, 24)
+	backend.cloudflarePlan = func(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
+		if opts.APIToken != "" {
+			t.Fatal("preview received private API token")
+		}
+		return service.CloudflarePlan{Current: []service.CloudflareApp{{Address: "https://old.example.com"}}, Publish: []service.CloudflareApp{{App: "jellyfin", Address: "https://new.example.com"}}, Additions: []service.CloudflareApp{{Address: "https://new.example.com"}}, Dropped: []string{"old.example.com"}, Risk: "Anyone in the world can reach the login. Type publish after review."}, nil
+	}
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, "example.com")
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, "alice@example.org")
+	m = drive(t, m, press("enter"))
+	m = typeText(t, m, "private-ui-token")
+	m = cloudflareKeys(t, m, "enter", "y", "n")
+	out := flat(screen(m))
+	for _, want := range []string{"Current https://old.example.com", "Add https://new.example.com", "Remove https://old.example.com"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("review hides %s: %s", want, out)
+		}
+	}
+	golden(t, "cloudflare-replacement-narrow", trimLines(screen(m)))
+	m = drive(t, m, press("esc"))
+	if len(backend.Actions()) != 0 {
+		t.Fatal("cancel published")
 	}
 }

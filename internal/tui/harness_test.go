@@ -27,11 +27,12 @@ import (
 )
 
 type fakeBackend struct {
-	mu      sync.Mutex
-	status  service.Status
-	checks  []host.Check
-	actions []string
-	opened  []string
+	cloudflarePlan func(service.CloudflareOptions) (service.CloudflarePlan, error)
+	mu             sync.Mutex
+	status         service.Status
+	checks         []host.Check
+	actions        []string
+	opened         []string
 	// tools maps a program name to its path on PATH; executed are the
 	// commands ExecTool was given, and toolErr is what they exit with.
 	tools       map[string]string
@@ -90,6 +91,22 @@ type fakeBackend struct {
 	restartErr  error
 	// telemetryNotice is what TelemetryNotice announces, once.
 	telemetryNotice string
+}
+
+func (b *fakeBackend) CloudflarePlan(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
+	if b.cloudflarePlan != nil {
+		return b.cloudflarePlan(opts)
+	}
+	p := service.CloudflarePlan{Risk: "Anyone in the world can reach the login page. A flaw could let strangers in. Cloudflare sees traffic."}
+	for _, id := range opts.Apps {
+		a := service.CloudflareApp{App: id, Name: id + "." + opts.Domain, Address: "https://" + id + "." + opts.Domain}
+		if candidate, ok := b.catalog.App(id); ok {
+			a.Warning, _ = service.CloudflarePublicationWarning(candidate.Info())
+		}
+		p.Publish = append(p.Publish, a)
+		p.Additions = append(p.Additions, a)
+	}
+	return p, nil
 }
 
 func (f *fakeBackend) TelemetryNotice() string {
