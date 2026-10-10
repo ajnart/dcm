@@ -1,0 +1,23 @@
+install.sh
+  s_8b1d5a69f175a9::t_f4c3dd9dc1aeb3 94
+internal/release/installsh_skill_test.go
+  s_8b1d5a69f175a9::t_085ebaa39fca45 18
+internal/release/installsh_test.go
+  s_8b1d5a69f175a9::t_e60415ff98b536 191-197,208,223,231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca2d67fb60000daf143baef32c4f44220701e9ee",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
