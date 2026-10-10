@@ -104,6 +104,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
 | `self-host status` | A plain summary, then Exposure, Host settings, every App's URL, state, Setup |
+| `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |
 | `self-host apps info <app>` | One App's image, port, inputs, Links |
@@ -169,7 +170,7 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `credentials`, `apps list`, `apps info`, `logs`)
+Document commands (`status`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
 print one result on stdout and only errors on stderr with `--json`.
 
 ## Exit codes
@@ -187,7 +188,11 @@ print one result on stdout and only errors on stderr with `--json`.
 
 ## When a step fails
 
-On `step.fail`, the event gives you everything to hand off:
+On `step.fail`, read `self-host debug <app> --json` first: it holds the App's
+state, Addresses, failed and manual steps with their hints and docs, the last
+100 log lines with secrets masked, and its health-check URL. Then look at the
+page with agent-browser if it is installed. The event gives you everything to
+hand off:
 
 1. Open `url`, sign in with the login named in `credential` (run
    `self-host credentials --json` to read it), and do what `hint` says.
