@@ -1,0 +1,21 @@
+internal/cli/skill_test.go
+  s_59ffa5bfdcd3ba::t_9c09ad6168dbfb 4-5,12,252-320
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_1fb430e385fa72 4-67,70-73,77-95,105-106,191-199,203,205-214,228,274-277,327-334,338-351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "427a8d76eb5f9f88ca08babae92599f7894f00e6",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
