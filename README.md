@@ -323,6 +323,11 @@ Changes and `self-host cloudflare remove --set-file
 cloudflare.api_token=/private/token --yes` need the API token afresh. Only the
 tunnel run token is saved. HTTPS Addresses appear only after an outside 302
 to the team's login page; a failed probe deletes DNS. `IP:port` stays available.
+Status and Homarr tiles prefer valid private Tailscale HTTPS, then verified
+Cloudflare HTTPS while its connector is observed running, then working Easy
+names, then `IP:port`. Homarr refreshes after publication is finalized. A stopped,
+missing or unknown connector suppresses public Addresses without discarding
+ownership or cleanup receipts. App checks and Links' API endpoints remain local.
 The shared PIN provider and organization survive removal. Run `self-host skill`
 for the full procedure and warnings.
 

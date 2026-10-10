@@ -18,6 +18,7 @@ import (
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/cloudflaretunnel"
 	tsapp "github.com/ajnart/self-host/internal/apps/tailscale"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/cloudflare/cloudflaretest"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/system"
@@ -28,17 +29,20 @@ type publicationApp struct {
 	testApp
 	category string
 	noWeb    bool
+	path     string
 }
 
 func (a *publicationApp) Info() app.Info {
 	info := a.testApp.Info()
 	info.Category, info.NoWebUI = a.category, a.noWeb
+	info.Path = a.path
 	return info
 }
 
 type cloudflareTransport struct {
-	server *cloudflaretest.Server
-	status int
+	server  *cloudflaretest.Server
+	status  int
+	onProbe func()
 }
 
 func (tr cloudflareTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -49,7 +53,45 @@ func (tr cloudflareTransport) RoundTrip(req *http.Request) (*http.Response, erro
 		return http.DefaultTransport.RoundTrip(copy)
 	}
 	tr.server.Mark("PROBE", "GET "+req.URL.String())
+	if tr.onProbe != nil {
+		tr.onProbe()
+	}
 	return &http.Response{StatusCode: tr.status, Header: http.Header{"Location": {"https://myteam.cloudflareaccess.com/login"}}, Body: http.NoBody, Request: req}, nil
+}
+
+func TestCloudflareCompletionRefreshesHomarrOnlyAfterVerifiedFinalization(t *testing.T) {
+	h, server, opts := publicationHarness(t)
+	dashboard := &inventoryProbeApp{testApp: &testApp{id: "homarr", done: map[string]bool{}}, inspect: true}
+	h.svc.Catalog = catalog.New(append(h.svc.Catalog.Apps(), dashboard), nil)
+	net := &tailnet{running: []string{"paperless-ngx", "jellyfin", "homarr", "cloudflare-tunnel"}}
+	net.install(h)
+	if err := h.install("homarr"); err != nil {
+		t.Fatal(err)
+	}
+	probes := 0
+	setups := dashboard.setups
+	h.deps.HTTP = &http.Client{Transport: cloudflareTransport{server: server, status: 302, onProbe: func() {
+		probes++
+		if dashboard.setups != setups {
+			t.Error("Homarr reconciled before publication was verified")
+		}
+		for _, item := range dashboard.installed {
+			if item.ID == "paperless-ngx" && item.URL != "http://192.168.1.20:9000" {
+				t.Errorf("unverified publication reached Homarr: %+v", item)
+			}
+		}
+	}}}
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+		t.Fatal(err)
+	}
+	if probes == 0 {
+		t.Fatal("publication was not probed")
+	}
+	for _, item := range dashboard.installed {
+		if item.ID == "paperless-ngx" && item.URL != "https://paperless-ngx.example.com" {
+			t.Fatalf("finalized publication not reconciled: %+v", item)
+		}
+	}
 }
 
 func publicationHarness(t *testing.T) (*harness, *cloudflaretest.Server, CloudflareOptions) {
@@ -60,6 +102,7 @@ func publicationHarness(t *testing.T) (*harness, *cloudflaretest.Server, Cloudfl
 		&publicationApp{testApp: testApp{id: "qbittorrent", done: map[string]bool{}}, category: "Downloads"},
 		&publicationApp{testApp: testApp{id: "postgresql", done: map[string]bool{}}, category: "Databases", noWeb: true},
 		cloudflaretunnel.App{}, tsapp.App{})
+	(&tailnet{trackStartup: true}).install(h)
 	if err := h.install("paperless-ngx", "jellyfin", "qbittorrent", "postgresql"); err != nil {
 		t.Fatal(err)
 	}
@@ -74,6 +117,60 @@ func TestCloudflareNeedsSeparatePublicationYes(t *testing.T) {
 	_, err := h.svc.CloudflarePublish(t.Context(), opts)
 	if !errors.Is(err, ErrPublicNotAccepted) || len(server.Calls()) != 0 {
 		t.Fatalf("err=%v calls=%v", err, server.Calls())
+	}
+}
+
+func TestCloudflareNavigationRequiresAnObservedRunningConnector(t *testing.T) {
+	h, server, opts := publicationHarness(t)
+	net := &tailnet{running: []string{"paperless-ngx", "jellyfin", "cloudflare-tunnel"}}
+	net.install(h)
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := h.svc.Project()
+	before, _ := p.ReadHomeFile(cloudflareRecordFile)
+	server.Reset()
+	for _, state := range []string{"running", "stopped", "missing", "unknown", "inventory-error"} {
+		t.Run(state, func(t *testing.T) {
+			net.running = []string{"paperless-ngx", "jellyfin"}
+			net.stopped, net.unknown = nil, nil
+			switch state {
+			case "running":
+				net.running = append(net.running, "cloudflare-tunnel")
+			case "stopped":
+				net.stopped = []string{"cloudflare-tunnel"}
+				if err := h.svc.Stop(t.Context(), []string{"cloudflare-tunnel"}); err != nil {
+					t.Fatal(err)
+				}
+			case "unknown":
+				net.unknown = []string{"cloudflare-tunnel"}
+			case "inventory-error":
+				h.runner.On("docker compose --project-directory", system.Result{ExitCode: 1, Stderr: []byte("inventory unavailable")})
+			}
+			status, err := h.svc.Status(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := []string{"http://192.168.1.20:9000"}
+			if state == "running" {
+				want = []string{"https://paperless-ngx.example.com", "http://192.168.1.20:9000"}
+			}
+			for _, a := range status.Apps {
+				if a.ID == "paperless-ngx" && (!slices.Equal(a.Addresses, want) || a.URL != want[0]) {
+					t.Fatalf("%s Addresses = %+v, want %v", state, a, want)
+				}
+			}
+			if slices.Contains(status.Access, "cloudflare") != (state == "running") || !status.CloudflareCleanup {
+				t.Fatalf("Access or cleanup receipt = %+v", status)
+			}
+			if state != "running" && len(status.AccessWarnings) == 0 {
+				t.Fatal("unavailable public Access has no safe inspection warning")
+			}
+			after, _ := p.ReadHomeFile(cloudflareRecordFile)
+			if string(after) != string(before) || len(server.Calls()) != 0 {
+				t.Fatal("read changed publication ownership or called Cloudflare")
+			}
+		})
 	}
 }
 
@@ -147,7 +244,7 @@ func TestForeignRouteReplacementKeepsPreviouslyVerifiedHostsAndReceipts(t *testi
 
 func TestCombinedAccessKeepsPrivatePublicAndLocalAddressesThroughPartialRestore(t *testing.T) {
 	h, server, opts := publicationHarness(t)
-	net := &tailnet{running: []string{"tailscale", "tailscale-paperless-ngx", "tailscale-jellyfin", "paperless-ngx", "jellyfin"}, status: map[string]string{"tailscale-paperless-ngx": runningNode("paperless-ngx-2.example.ts.net.", nil)}}
+	net := &tailnet{running: []string{"tailscale", "tailscale-paperless-ngx", "tailscale-jellyfin", "paperless-ngx", "jellyfin", "cloudflare-tunnel"}, status: map[string]string{"tailscale-paperless-ngx": runningNode("paperless-ngx-2.example.ts.net.", nil)}}
 	net.install(h)
 	if err := h.installTailscale(); err != nil {
 		t.Fatal(err)

@@ -748,6 +748,10 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	browser, err := browserAddress(ctx, from, to)
+	if err != nil {
+		return false, err
+	}
 	internal := t.internal(to)
 	id, found, err := findApp(ctx, from, internal)
 	if err != nil || !found {
@@ -758,7 +762,7 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 		return false, err
 	}
 	for _, item := range apps {
-		if appID(item) == id && stringField(item, "href") != to.URL {
+		if appID(item) == id && stringField(item, "href") != browser {
 			return false, nil
 		}
 	}
@@ -819,6 +823,10 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	browser, err := browserAddress(ctx, from, to)
+	if err != nil {
+		return err
+	}
 	internal := t.internal(to)
 	current, err := board(ctx, from)
 	if err != nil {
@@ -837,7 +845,7 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 			Method: "POST", Path: "/api/apps", Header: apiKeyHeader(from),
 			JSON: map[string]any{
 				"name": t.name, "description": installedTileMarker + t.id, "iconUrl": iconURL(t.id),
-				"href": to.URL, "pingUrl": internal,
+				"href": browser, "pingUrl": internal,
 			},
 		})
 		if err != nil {
@@ -857,11 +865,11 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 			return err
 		}
 		for _, item := range apps {
-			if appID(item) != id || stringField(item, "href") == to.URL {
+			if appID(item) != id || stringField(item, "href") == browser {
 				continue
 			}
 			_, err := from.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(from), JSON: map[string]any{
-				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": to.URL, "pingUrl": internal,
+				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": browser, "pingUrl": internal,
 			}})
 			if err != nil {
 				return err
@@ -887,6 +895,22 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		}
 	}
 	return ensureNotebook(ctx, from)
+}
+
+func browserAddress(ctx context.Context, from, to *helpers.H) (string, error) {
+	if from.InstalledApps == nil {
+		return to.URL, nil
+	}
+	installed, err := from.InstalledApps(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, item := range installed {
+		if item.ID == to.App {
+			return item.URL, nil
+		}
+	}
+	return to.URL, nil
 }
 
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {

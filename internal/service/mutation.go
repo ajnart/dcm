@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/project"
@@ -209,6 +210,9 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 	if err == nil && c.complete != nil {
 		err = c.complete(ss)
 	}
+	if c.compose == composeStop && slices.Contains(ids, cloudflareConnector) {
+		err = errors.Join(err, ss.refreshRunningDashboard(ctx))
+	}
 	return s.finish(err)
 }
 
@@ -356,7 +360,7 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 			}
 		}
 		err := ss.setupAll(ctx, apps)
-		if !slices.Contains(ids, "homarr") {
+		if !slices.Contains(ids, "homarr") || slices.Contains(ids, tailscaleID) || slices.Contains(ids, cloudflareConnector) {
 			err = errors.Join(err, ss.refreshDashboard(ctx))
 		}
 		return err
@@ -385,6 +389,43 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 
 // refreshDashboard lets its adapter reconcile the final Project inventory and URLs.
 func (ss *session) refreshDashboard(ctx context.Context) error {
+	if ss.deferDashboard {
+		return nil
+	}
+	ss.navigationAddresses, ss.navigationContainers = nil, nil
+	return ss.reconcileDashboard(ctx)
+}
+
+func (ss *session) refreshRunningDashboard(ctx context.Context) error {
+	a, found := ss.s.Catalog.App(dashboardAppID)
+	if !found || !ss.ready(dashboardAppID) {
+		return nil
+	}
+	ss.invalidateNavigation()
+	containers, err := ss.compose.Ps(ctx)
+	if err != nil {
+		return err
+	}
+	byService := map[string]compose.Container{}
+	for _, c := range containers {
+		byService[c.Service] = c
+	}
+	if byService[a.Info().Service].State != "running" {
+		return nil
+	}
+	ids, err := ss.p.AppIDs()
+	if err != nil {
+		return err
+	}
+	rec, _, err := loadCloudflareRecord(ss.p)
+	if err != nil {
+		return err
+	}
+	ss.observeNavigation(ctx, ids, byService, rec)
+	return ss.reconcileDashboard(ctx)
+}
+
+func (ss *session) reconcileDashboard(ctx context.Context) error {
 	a, found := ss.s.Catalog.App("homarr")
 	if !found || !ss.ready("homarr") {
 		return nil
