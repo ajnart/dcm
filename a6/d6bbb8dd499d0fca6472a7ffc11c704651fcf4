@@ -1,0 +1,33 @@
+internal/project/project.go
+  s_59ffa5bfdcd3ba::t_13bff7ffc9a454 229-233
+internal/service/install.go
+  s_8b1d5a69f175a9::t_5e524aa9097776 74-91,239,266
+internal/service/status.go
+  s_59ffa5bfdcd3ba::t_3ee5db510098a3 29-39,62-65,70-71,79,103,126-131
+internal/service/status_fields_test.go
+  s_59ffa5bfdcd3ba::t_4c1fb7f510b2f3 1-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6d6bbb8dd499d0fca6472a7ffc11c704651fcf4",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
