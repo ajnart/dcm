@@ -94,6 +94,79 @@ func TestInitializingBlocksFailuresUntilASuccessfulRecheck(t *testing.T) {
 	}
 }
 
+func TestInitializingFocusRefreshRestartsRevealWithoutARevisitLoop(t *testing.T) {
+	for _, revisit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "first run", true: "revisit"}[revisit], func(t *testing.T) {
+			failed := []host.Check{{ID: "docker", Title: "Docker", Level: host.Fail, Hint: "Start Docker."}}
+			m, backend := onboardingHost(t, 80, 24, failed...)
+			if revisit {
+				backend.checks = readyChecks
+				m = drive(t, m, press("r"))
+				m = frames(t, m, 60)
+				m = drive(t, m, press("esc"))
+				backend.checks = failed
+				m = drive(t, m, press("r"))
+			}
+			m = frames(t, m, 60)
+			next, cmd := m.Update(frameMsg{})
+			m = next.(Model)
+			if yieldsFrame(cmd) || !strings.Contains(screen(m), "Start Docker.") {
+				t.Fatal("a revealed failure must stay visible after its ticker stops")
+			}
+			backend.statusErr, backend.checks = service.ErrNoProject, readyChecks
+			next, cmd = m.Update(tea.FocusMsg{})
+			m = next.(Model)
+			var pending []tea.Msg
+			commands := []tea.Cmd{cmd}
+			for len(commands) > 0 {
+				command := commands[0]
+				commands = commands[1:]
+				if command == nil {
+					continue
+				}
+				msg := command()
+				if batch, ok := msg.(tea.BatchMsg); ok {
+					commands = append(commands, batch...)
+				} else if msg != nil {
+					pending = append(pending, msg)
+				}
+			}
+			var frame, doctor bool
+			for _, msg := range pending {
+				switch msg.(type) {
+				case frameMsg:
+					frame = true
+				case doctorMsg:
+					doctor = true
+				}
+			}
+			if !frame || !doctor {
+				t.Fatal("focus must refresh Doctor and restart the stopped frame ticker")
+			}
+			m = frames(t, m, 30)
+			if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Checking Docker…") {
+				t.Fatalf("focus refresh must not advance while Doctor is still working\n%s", screen(m))
+			}
+			for _, msg := range pending {
+				m = update(t, m, msg)
+			}
+			if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Docker") || strings.Contains(screen(m), "docker command found") || strings.Contains(screen(m), "This machine is ready") {
+				t.Fatalf("fresh results must start their reveal, not advance immediately\n%s", screen(m))
+			}
+			m = idle(t, m)
+			if revisit {
+				if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "This machine is ready") {
+					t.Fatalf("a focus refresh on revisited Initializing must remain readable\n%s", screen(m))
+				}
+				m = drive(t, m, press("enter"))
+			}
+			if m.onboarding.step != stepWelcome || len(backend.Actions()) != 0 {
+				t.Fatalf("ready results must continue to Welcome without applying a change\n%s", screen(m))
+			}
+		})
+	}
+}
+
 func TestInitializingContinuesAfterRevealingReadyChecks(t *testing.T) {
 	m, backend := onboardingHost(t, 80, 24, readyChecks...)
 	m = update(t, m, defaultsMsg{settings: map[string]string{"LAN_IP": "192.168.1.20"}})

@@ -394,7 +394,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.FocusMsg:
-		return m, tea.Batch(m.loadStatus(), m.loadDoctor())
+		var frame tea.Cmd
+		if m.onboardingShown() && m.onboarding.step == stepInitializing {
+			m.onboarding.checking = true
+			frame = m.startTicking()
+		}
+		return m, tea.Batch(m.loadStatus(), m.loadDoctor(), frame)
 
 	case tickMsg:
 		return m, tea.Batch(m.loadStatus(), tick())
