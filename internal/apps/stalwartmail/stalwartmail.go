@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "stalwart-mail", Name: "Stalwart Mail Server", Category: "Communication",
-		Description:   "Fast all-in-one mail server; this port publishes only the private admin UI",
+		Description:   "Run your own email service, managed from a private admin page",
 		Image:         "stalwartlabs/stalwart:v0.16.24",
 		Docs:          "https://stalw.art/docs/install/platform/docker",
 		Port:          8080,

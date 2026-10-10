@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "authelia", Name: "Authelia", Category: "Identity",
-		Description:   "Adds single sign-on and two-factor prompts in front of your self-hosted Apps",
+		Description:   "Add a login page with a second security step in front of your other apps",
 		Image:         "docker.io/authelia/authelia:4.39.25",
 		Docs:          "https://www.authelia.com/integration/deployment/docker/",
 		Port:          9091,

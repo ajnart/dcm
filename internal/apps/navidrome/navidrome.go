@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "navidrome", Name: "Navidrome", Category: "Media",
-		Description:   "Streams your own music library from a private web interface",
+		Description:   "Stream your music collection to your phone or computer",
 		Image:         "deluan/navidrome:0.64.0",
 		Docs:          "https://www.navidrome.org/docs/installation/docker/",
 		Port:          4533,

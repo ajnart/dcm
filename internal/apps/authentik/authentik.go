@@ -28,7 +28,7 @@ const (
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "authentik", Name: "Authentik", Category: "Identity",
-		Description:   "Single sign-on that protects your other self-hosted services",
+		Description:   "Sign in once to reach all your apps, with one login for the whole household",
 		Image:         "ghcr.io/goauthentik/server:2026.8.3",
 		Docs:          "https://docs.goauthentik.io/install-config/install/docker-compose/",
 		Port:          9000,

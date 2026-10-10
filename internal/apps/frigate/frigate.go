@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "frigate", Name: "Frigate", Category: "Cameras",
-		Description:   "Local network video recorder that detects objects on your cameras",
+		Description:   "Record your security cameras and get alerts when people or cars appear",
 		Image:         "ghcr.io/blakeblackshear/frigate:0.18.0",
 		Docs:          "https://docs.frigate.video/guides/getting_started/",
 		Port:          8971,

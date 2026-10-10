@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "netbird", Name: "NetBird", Category: "Remote access",
-		Description:   "WireGuard overlay network with a self-hosted control plane and dashboard",
+		Description:   "Connect your devices into one private network, wherever they are",
 		Image:         "netbirdio/dashboard:v2.94.0",
 		Docs:          "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
 		Port:          18080,

@@ -25,7 +25,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "umami", Name: "Umami", Category: "Analytics",
-		Description:   "Shows private, cookie-free traffic statistics for your websites",
+		Description:   "See how many people visit your websites, without tracking them",
 		Image:         "ghcr.io/umami-software/umami:3.4.0",
 		Docs:          "https://umami.is/docs/install",
 		Port:          3000,

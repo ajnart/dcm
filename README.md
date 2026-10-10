@@ -122,7 +122,6 @@ paste a token into commands or reports.
 To build the current development source from an authenticated checkout:
 
 ```bash
-cd new-cli
 go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
 /tmp/self-host --help
 ```

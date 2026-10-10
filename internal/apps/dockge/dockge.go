@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "dockge", Name: "Dockge", Category: "Containers",
-		Description:   "Manages your Compose stacks from a private web interface",
+		Description:   "Start, stop and edit your apps from a simple web page",
 		Image:         "docker.io/louislam/dockge:1.5.0",
 		Docs:          "https://github.com/louislam/dockge#how-to-install",
 		Port:          5001,

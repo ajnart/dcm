@@ -10,6 +10,9 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 
 ## Workflow
 
+In a new conversation, run `self-host status --json` first: it tells you what
+is installed, what each App is for, where to open it and where everything lives.
+
 1. `self-host doctor --json` checks the host (see "Doctor checks"). Fix every
    failed check first; each one carries a hint.
 2. `self-host apps list --json` lists Apps and Recipes (named bundles such as
@@ -27,7 +30,17 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    `self-host setup <app>`. Finished steps are skipped, so reruns are safe.
 6. `self-host status --json` is the source of truth: URL, state, health, Setup
    result and failed steps of every App. `self-host status --updates --json`
-   also asks registries whether newer images exist.
+   also asks registries whether newer images exist. Beyond those, it carries:
+   - per App: `description` (what it is for, in plain words), `recipe` (the
+     Recipe it was installed through, absent when it was installed directly:
+     with several Recipes naming one App, the first named on the command line
+     wins; the first install decides) and `addresses` (every way to open it,
+     friendliest first; `url` is the first);
+   - at the top: `home` (the Home folder, `~/.self-host` unless
+     `SELF_HOST_HOME` moves it) and `dashboard` (Homarr's address, present
+     only when Homarr is installed).
+   Plain `self-host status` opens with a short summary of the same facts, then
+   the table.
 
 ## Two kinds of users
 
@@ -90,7 +103,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | Exposure, Host settings, every App's URL, state, Setup |
+| `self-host status` | A plain summary, then Exposure, Host settings, every App's URL, state, Setup |
 | `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |

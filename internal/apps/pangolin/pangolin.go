@@ -22,7 +22,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "pangolin", Name: "Pangolin", Category: "Remote access",
-		Description:   "Private reverse proxy and dashboard for reaching self-hosted services by name",
+		Description:   "Reach your apps from outside your home by name, behind a login page",
 		Image:         "traefik:v3.7",
 		Docs:          "https://docs.pangolin.net/",
 		Port:          18086,

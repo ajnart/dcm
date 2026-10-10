@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "gluetun", Name: "Gluetun", Category: "Downloads",
-		Description:   "Routes your downloaders through a VPN with a kill switch, keeping their real IP hidden",
+		Description:   "Send your downloads through a VPN, and stop them if it disconnects",
 		Image:         "qmcgaw/gluetun:v3.41.3",
 		Docs:          "https://github.com/qdm12/gluetun-wiki",
 		Port:          8000,

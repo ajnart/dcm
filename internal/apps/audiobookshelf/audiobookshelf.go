@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "audiobookshelf", Name: "Audiobookshelf", Category: "Media",
-		Description:   "Self-hosted audiobook and podcast library with a private web player",
+		Description:   "Listen to your audiobooks and podcasts on your phone or in a browser",
 		Image:         "ghcr.io/advplyr/audiobookshelf:2.37.0",
 		Docs:          "https://www.audiobookshelf.org/docs",
 		Port:          13378,

@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "slskd", Name: "Slskd", Category: "Downloads",
-		Description:   "Web interface for the Soulseek peer-to-peer network",
+		Description:   "Share and find music with others on the Soulseek network, from a web page",
 		Image:         "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
 		Docs:          "https://github.com/slskd/slskd/tree/master/docs",
 		Port:          5030,

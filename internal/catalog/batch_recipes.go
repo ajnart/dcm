@@ -5,45 +5,45 @@ func init() {
 		Recipe{
 			ID:          "audio-library",
 			Name:        "Audiobooks and music",
-			Description: "Stream an owned audiobook and music library through focused private services.",
+			Description: "Listen to your audiobooks and music on your phone or computer",
 			Apps:        []string{"audiobookshelf", "navidrome"},
 		},
 		Recipe{
 			ID:          "backups",
 			Name:        "Backups and restore",
-			Description: "Capture app-consistent state into an off-host repository and prove recovery.",
+			Description: "Back up your important files safely, and check you can get them back",
 			Apps:        []string{"restic"},
 		},
 		Recipe{
 			ID:          "dns",
 			Name:        "DNS and network filtering",
-			Description: "Own LAN DNS deliberately with filtering, fallback, and port-conflict checks.",
+			Description: "Block ads across your whole home network, with a backup in case one stops",
 			// adguard-home forwards to unbound, so the resolver comes first.
 			Apps: []string{"unbound", "adguard-home"},
 		},
 		Recipe{
 			ID:          "documents",
 			Name:        "Documents, PDF, and OCR",
-			Description: "Ingest, OCR, search, transform, and recover private documents.",
+			Description: "Scan paper into a searchable archive, and edit PDFs without uploading them",
 			Apps:        []string{"paperless-ngx", "stirling-pdf"},
 		},
 		Recipe{
 			ID:          "download-privacy",
 			Name:        "Downloader privacy",
-			Description: "Route only an approved downloader through a VPN namespace and prove fail-closed egress.",
+			Description: "Download torrents through a VPN, and stop if the VPN drops",
 			// qbittorrent runs inside gluetun's namespace, so the gateway comes first.
 			Apps: []string{"gluetun", "qbittorrent"},
 		},
 		Recipe{
 			ID:          "files",
 			Name:        "Files and synchronization",
-			Description: "Replace Google Drive, Microsoft OneDrive, and Dropbox with one file service and explicit recovery.",
+			Description: "Your own cloud drive, replacing Google Drive, OneDrive and Dropbox",
 			Apps:        []string{"nextcloud"},
 		},
 		Recipe{
 			ID:          "full",
 			Name:        "Full private home server",
-			Description: "Set up one bounded household stack for owned media, photos, files, music, audiobooks, and passwords, with Homarr as the recommended dashboard and home automation available only when selected.",
+			Description: "Everything for a household: movies, photos, files, music, passwords and smart home",
 			// Downloaders and media sources first, then the Apps that consume
 			// them in turn, then the remaining independent services.
 			Apps: []string{"qbittorrent", "prowlarr", "sonarr", "radarr", "jellyfin", "seerr", "immich", "nextcloud", "navidrome", "audiobookshelf", "vaultwarden", "home-assistant"},
@@ -51,51 +51,51 @@ func init() {
 		Recipe{
 			ID:          "homarr-control-plane",
 			Name:        "Homarr control plane",
-			Description: "Add Homarr as a private dashboard and agent-facing control plane for selected self-hosted services.",
+			Description: "One home page for all your apps, that your AI assistant can use too",
 			Apps:        []string{"homarr"},
 		},
 		Recipe{
 			ID:          "home-automation",
 			Name:        "Home automation",
-			Description: "Run a private automation hub with deliberate LAN discovery, voice hardware, and device privileges.",
+			Description: "Automate your smart home, with cameras that spot people and cars",
 			Apps:        []string{"home-assistant", "node-red", "frigate"},
 		},
 		Recipe{
 			ID:          "local-ai",
 			Name:        "Local AI",
-			Description: "Serve selected local models through a private chat interface with hardware-aware storage.",
+			Description: "Chat with AI on your own computer, so your questions stay private",
 			// The model server precedes the chat UI; monitoring comes last.
 			Apps: []string{"ollama", "open-webui", "beszel"},
 		},
 		Recipe{
 			ID:          "monitoring",
 			Name:        "Monitoring and observability",
-			Description: "Cover process, application, and edge health with bounded retention and alerts.",
+			Description: "Watch your computers and apps and get alerts when something goes wrong",
 			// Metrics and logs are the backends; grafana is the dashboard last.
 			Apps: []string{"prometheus", "loki", "beszel", "uptime-kuma", "grafana"},
 		},
 		Recipe{
 			ID:          "owned-video-library",
 			Name:        "Owned movie and TV library",
-			Description: "Stream movies and shows you already own through Jellyfin, with Homarr as the recommended dashboard and no implied content subscription.",
+			Description: "Stream the movies and shows you already own to every screen",
 			Apps:        []string{"jellyfin"},
 		},
 		Recipe{
 			ID:          "passwords",
 			Name:        "Passwords",
-			Description: "Host a recovery-sensitive password vault behind private, authenticated TLS.",
+			Description: "Set up a password manager for the whole household",
 			Apps:        []string{"vaultwarden"},
 		},
 		Recipe{
 			ID:          "personal-finance",
 			Name:        "Personal finance",
-			Description: "Choose a private budget or finance tracker with explicit import, export, and recovery boundaries.",
+			Description: "Track your spending and budget privately",
 			Apps:        []string{"actual-budget"},
 		},
 		Recipe{
 			ID:          "personal-media",
 			Name:        "Personal media",
-			Description: "Request, organize, and play an authorized private movie and TV library.",
+			Description: "Watch movies and shows, with downloads, subtitles and requests handled for you",
 			// gluetun namespaces qbittorrent; seerr last, its Links need
 			// Jellyfin, Sonarr and Radarr ready.
 			Apps: []string{"qbittorrent", "gluetun", "sonarr", "radarr", "prowlarr", "bazarr", "jellyfin", "seerr"},
@@ -103,25 +103,25 @@ func init() {
 		Recipe{
 			ID:          "photos",
 			Name:        "Photos and mobile backup",
-			Description: "Keep original photos private while providing mobile backup, search, and recovery.",
+			Description: "Back up your family photos automatically from every phone",
 			Apps:        []string{"immich"},
 		},
 		Recipe{
 			ID:          "photos-and-files",
 			Name:        "Photos and cloud files",
-			Description: "Replace photo backup with Immich and general cloud files with one Nextcloud service.",
+			Description: "Back up your photos and keep your files in sync, replacing cloud drives",
 			Apps:        []string{"immich", "nextcloud"},
 		},
 		Recipe{
 			ID:          "private-notes",
 			Name:        "Private notes and knowledge",
-			Description: "Choose a private collaborative notes workspace and make its feature, secret, and backup boundaries explicit.",
+			Description: "A private place for your family or team to write and share notes",
 			Apps:        []string{"docmost"},
 		},
 		Recipe{
 			ID:          "remote-access",
 			Name:        "Remote access",
-			Description: "Expose selected services through a private overlay or separately approved public edge.",
+			Description: "Reach your apps from outside your home, privately or through your own web address",
 			Apps:        []string{"tailscale", "cloudflare-tunnel", "caddy"},
 		},
 	)

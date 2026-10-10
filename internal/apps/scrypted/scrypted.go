@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "scrypted", Name: "Scrypted", Category: "Cameras",
-		Description:   "Brings your cameras into HomeKit and other smart-home hubs",
+		Description:   "Bring your security cameras into Apple Home and other smart home apps",
 		Image:         "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
 		Docs:          "https://docs.scrypted.app/",
 		Port:          11080,

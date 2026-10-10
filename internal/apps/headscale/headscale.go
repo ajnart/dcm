@@ -22,7 +22,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "headscale", Name: "Headscale", Category: "Remote access",
-		Description:   "Runs your own Tailscale-compatible control server for a private mesh of devices",
+		Description:   "Connect your devices into one private network, without a Tailscale account",
 		Image:         "docker.io/headscale/headscale:0.29.4",
 		Docs:          "https://headscale.net/stable/setup/install/container/",
 		Port:          18082,

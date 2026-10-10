@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "valkey", Name: "Valkey", Category: "Databases",
-		Description:   "In-memory key-value store used as a fast cache or queue by other Apps",
+		Description:   "A fast short-term memory that your other apps use to run quicker",
 		Image:         "valkey/valkey:9.1.2",
 		Docs:          "https://valkey.io/topics/installation/",
 		Port:          6379,
