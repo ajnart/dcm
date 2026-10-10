@@ -1,0 +1,149 @@
+README.md
+  s_59ffa5bfdcd3ba::t_50061eecec6ec8 164-171,215-216,218-219,231-250,266-274,372-382,471-479
+docs/adr/0008-tailscale-per-app-nodes.md
+  s_59ffa5bfdcd3ba::t_afb6bdb826559f 1-35
+internal/app/app.go
+  s_8b1d5a69f175a9::t_cebf1c3740d324 47-58
+internal/apps/tailscale/tailscale.go
+  s_8b1d5a69f175a9::t_66ec8b2a2e1a3b 8-15,19,36,41,47,49-53,56-57,59-61,64,70-83,87,91-101,103-104,106-113,120,126,129-133,136-164,175-179,183-189
+internal/cli/tailscale_test.go
+  s_8b1d5a69f175a9::t_2507e1b67b39f5 1-55
+internal/service/doctor.go
+  s_59ffa5bfdcd3ba::t_32a2f8759eeb52 64,75-77
+internal/service/install.go
+  s_59ffa5bfdcd3ba::t_56a62c76271c77 302-304,307-312
+internal/service/lifecycle.go
+  s_59ffa5bfdcd3ba::t_de3c8482ed5521 171-173
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_24a954ef5dd276 220-222,235,245-247
+internal/service/status.go
+  s_59ffa5bfdcd3ba::t_e63005d41c0262 93-95,110,149
+internal/service/tailscale.go
+  s_59ffa5bfdcd3ba::t_e79772d24fe96d 1-195
+internal/service/tailscale_test.go
+  s_8b1d5a69f175a9::t_d1788e2f2d76f4 1-331
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_15e617f90156a7 42-45,102-108,110-127,153-163,168-181,224-225,231,237-265
+internal/tailscale/tailscale.go
+  s_8b1d5a69f175a9::t_7bd0034168023e 1-260
+internal/tui/access.go
+  s_59ffa5bfdcd3ba::t_faa8f89f5978e2 84,86,101-107,111-112
+internal/tui/access_test.go
+  s_59ffa5bfdcd3ba::t_4bd210b9df9759 35-36,118,142-151
+internal/tui/golden_test.go
+  s_8b1d5a69f175a9::t_95b337ea51f831 14,20-44
+internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_e11b3162efa61e 840-847
+internal/tui/onboarding.go
+  s_59ffa5bfdcd3ba::t_c90104b2934044 553-555,632-651,657,695-697,772-774,805-809,972-973,1015-1017
+internal/tui/onboarding_test.go
+  s_8b1d5a69f175a9::t_af21289298fd09 783,820,832,871,920,925-930
+internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_b3fc8c7db39bf5 447-453,645
+internal/tui/settings_test.go
+  s_59ffa5bfdcd3ba::t_367bdd55ccfa9a 209,337
+internal/tui/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_66590f9c17d514 1-56
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_bbd316bcf0a366 11
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_9823c525a0761d 11
+internal/tui/testdata/onboarding-access-coming-soon-note-narrow.golden
+  s_8b1d5a69f175a9::t_b79cecea1eb6eb 11
+internal/tui/testdata/onboarding-access-coming-soon-note.golden
+  s_8b1d5a69f175a9::t_23c64621d39085 11
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_eb682cf1f14f1b 11
+internal/tui/testdata/onboarding-access-custom.golden
+  s_8b1d5a69f175a9::t_e086750a2b0c75 11
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_7c154d2428ae2c 11
+internal/tui/testdata/onboarding-access-names.golden
+  s_8b1d5a69f175a9::t_d2413b17271b2f 11
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_8b1d5a69f175a9::t_14ba2e275057e4 11
+internal/tui/testdata/onboarding-access-tailscale-help-narrow.golden
+  s_8b1d5a69f175a9::t_a5086e346bf34f 11-13,19-21
+internal/tui/testdata/onboarding-access-tailscale-help.golden
+  s_8b1d5a69f175a9::t_ba825c5770719d 11-12,18-24,26
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_fed2a8858254af 11,15-17
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_8b1d5a69f175a9::t_77703f1078f575 11,15-16
+internal/tui/testdata/onboarding-access.golden
+  s_8b1d5a69f175a9::t_d333bf6c43486b 11
+internal/tui/testdata/onboarding-tailscale-input-narrow.golden
+  s_8b1d5a69f175a9::t_475013a4bb9798 1-24
+internal/tui/testdata/onboarding-tailscale-input.golden
+  s_8b1d5a69f175a9::t_97d644c42e7ef1 1-30
+internal/tui/testdata/overview-tailscale-expiry-narrow.golden
+  s_8b1d5a69f175a9::t_aae3190d71ac55 1-24
+internal/tui/testdata/overview-tailscale-expiry.golden
+  s_8b1d5a69f175a9::t_1998833f3c8a51 1-30
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_79c7bd0366c5a6 6
+internal/tui/testdata/settings-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_12062695b705eb 6
+internal/tui/testdata/settings-access-coming-soon-note-narrow.golden
+  s_8b1d5a69f175a9::t_9cfafaa34d900b 6
+internal/tui/testdata/settings-access-coming-soon-note.golden
+  s_8b1d5a69f175a9::t_c5d1347c319b65 6
+internal/tui/testdata/settings-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_ef7eb8977d4ce1 6
+internal/tui/testdata/settings-access-custom.golden
+  s_8b1d5a69f175a9::t_ff3585e591e09a 6
+internal/tui/testdata/settings-access-home-narrow.golden
+  s_8b1d5a69f175a9::t_cc9236cd623beb 6
+internal/tui/testdata/settings-access-home.golden
+  s_8b1d5a69f175a9::t_cf555cfefef1e7 6
+internal/tui/testdata/settings-access-local-narrow.golden
+  s_8b1d5a69f175a9::t_ac10a150e039f2 7
+internal/tui/testdata/settings-access-local.golden
+  s_8b1d5a69f175a9::t_e4e59414029146 7
+internal/tui/testdata/settings-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_36c19db62e6b94 6
+internal/tui/testdata/settings-access-names.golden
+  s_8b1d5a69f175a9::t_09ff693e6d5147 6
+internal/tui/testdata/settings-access-pending-narrow.golden
+  s_8b1d5a69f175a9::t_d98342ca49ebf8 6
+internal/tui/testdata/settings-access-pending.golden
+  s_8b1d5a69f175a9::t_6073eb1c799b1a 6
+internal/tui/testdata/settings-access-tailscale-help-narrow.golden
+  s_8b1d5a69f175a9::t_e01f473772566f 11-13,19-21
+internal/tui/testdata/settings-access-tailscale-help.golden
+  s_8b1d5a69f175a9::t_66be782777dc00 11-12,18-24,26
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_5ba6a63021e127 6,10-12
+internal/tui/testdata/settings-access-tailscale.golden
+  s_8b1d5a69f175a9::t_be6e68fdb848b9 6,10-11
+internal/tui/testdata/settings-tailscale-review-narrow.golden
+  s_8b1d5a69f175a9::t_4a6885cc89db57 1-24
+internal/tui/testdata/settings-tailscale-review.golden
+  s_8b1d5a69f175a9::t_c15bc2ef97013b 1-30
+internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_45eb37431f78e1 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b02d2f8b8dddb5f59f4a8db6e0b9a71842e9e257",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
