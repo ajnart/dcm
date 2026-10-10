@@ -1,0 +1,55 @@
+README.md
+  s_8b1d5a69f175a9::t_c2319e5e955480 201-206
+internal/apps/beszel/beszel.go
+  s_8b1d5a69f175a9::t_6ad1830cfca18d 44
+internal/apps/gotify/gotify.go
+  s_8b1d5a69f175a9::t_615e03b372abd1 26
+internal/apps/headscale/headscale.go
+  s_8b1d5a69f175a9::t_4ed30b43b0017c 30
+internal/cli/access.go
+  s_8b1d5a69f175a9::t_2f078e842c0bed 49,54-57
+internal/cli/access_test.go
+  s_59ffa5bfdcd3ba::t_d5f957e1625eba 15-16,158-324,343
+internal/cli/testdata/access-export-ambiguous-caddy.golden
+  s_59ffa5bfdcd3ba::t_0703ce5ddd92be 1-27
+internal/cli/testdata/access-export-ambiguous-json.golden
+  s_59ffa5bfdcd3ba::t_fb699e681af982 1-47
+internal/cli/testdata/access-export-ambiguous-nginx.golden
+  s_59ffa5bfdcd3ba::t_ed32107a5e2bc9 1-61
+internal/cli/testdata/access-export-ambiguous-traefik.golden
+  s_59ffa5bfdcd3ba::t_5806b038a76bad 1-40
+internal/cli/testdata/access-export-unmanaged-caddy.golden
+  s_59ffa5bfdcd3ba::t_116040f0145e6f 1-31
+internal/cli/testdata/access-export-unmanaged-json.golden
+  s_59ffa5bfdcd3ba::t_efd3f2baf44fc1 1-52
+internal/cli/testdata/access-export-unmanaged-nginx.golden
+  s_59ffa5bfdcd3ba::t_826beb19e48a89 1-74
+internal/cli/testdata/access-export-unmanaged-traefik.golden
+  s_59ffa5bfdcd3ba::t_4ac1f60151ab93 1-47
+internal/service/access.go
+  s_59ffa5bfdcd3ba::t_dbb5906cc54181 6-8,10-12,40-47,50,53,57-60,64-74,79-93,116-211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7f1d629de6b2f76a4c73d779f1840812d14e2245",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
