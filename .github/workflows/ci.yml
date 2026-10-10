@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
         with:
-          go-version-file: go.mod
+          go-version: "1.27.2"
           cache-dependency-path: go.sum
       - name: Format
         run: test -z "$(gofmt -l .)"
@@ -58,12 +58,12 @@ jobs:
       TARGET_ARCH: ${{ matrix.arch }}
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
         with:
-          go-version-file: go.mod
+          go-version: "1.27.2"
           cache-dependency-path: go.sum
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.x"
       - name: Build and execute native binary
@@ -144,7 +144,7 @@ jobs:
               server.shutdown()
               server.server_close()
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: native-smoke-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/native-smoke
