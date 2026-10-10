@@ -1,0 +1,26 @@
+README.md
+  h_d6e478ca18e517 304-307
+internal/cloudflare/client.go
+  h_d6e478ca18e517 32-43,61,71-73
+internal/cloudflare/publish.go
+  h_d6e478ca18e517 92-104,352-359,373-427,537-548,570-574,579-584,646-648
+internal/cloudflare/publish_test.go
+  h_d6e478ca18e517 6,537-603
+internal/service/cloudflare.go
+  h_d6e478ca18e517 162-166,185,551-553,556
+internal/service/cloudflare_test.go
+  h_d6e478ca18e517 80-147
+internal/skill/guide.md
+  h_d6e478ca18e517 336-344
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b04211ae2c1a69907e1e00f33c962c991207ac66",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
