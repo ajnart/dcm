@@ -19,6 +19,7 @@ type Transport struct {
 
 	mu     sync.Mutex
 	bodies []string
+	urls   []string
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -29,6 +30,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	t.mu.Lock()
 	t.bodies = append(t.bodies, string(body))
+	t.urls = append(t.urls, req.URL.String())
 	t.mu.Unlock()
 	if t.Hold != nil {
 		select {
@@ -54,6 +56,13 @@ func (t *Transport) Bodies() []string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return append([]string(nil), t.bodies...)
+}
+
+// URLs returns the address of every request sent so far.
+func (t *Transport) URLs() []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return append([]string(nil), t.urls...)
 }
 
 // Events returns every captured event, in the order sent.

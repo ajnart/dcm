@@ -54,3 +54,16 @@ func (c *Catalog) Recipe(id string) (Recipe, bool) {
 	}
 	return Recipe{}, false
 }
+
+// Expand resolves a name a person typed. A Recipe wins over an App of the same
+// name and answers its own ID with the IDs of its Apps; an App answers an empty
+// recipe ID with its own ID. found is false for any other name.
+func (c *Catalog) Expand(name string) (recipe string, appIDs []string, found bool) {
+	if r, ok := c.Recipe(name); ok {
+		return r.ID, r.Apps, true
+	}
+	if _, ok := c.App(name); ok {
+		return "", []string{name}, true
+	}
+	return "", nil, false
+}

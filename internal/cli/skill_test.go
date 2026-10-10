@@ -1,12 +1,15 @@
 package cli_test
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -244,5 +247,74 @@ func TestSkillGuideExitCodesMatchTheConstants(t *testing.T) {
 func TestSkillGuideMatchesTheBinaryVersion(t *testing.T) {
 	if guide := guideOutput(t); !strings.Contains(guide, "1.4.0") {
 		t.Errorf("guide does not name the binary version:\n%s", guide[:200])
+	}
+}
+
+func openingSection(t *testing.T, guide string) string {
+	t.Helper()
+	start := strings.Index(guide, "## Every conversation")
+	end := strings.Index(guide, "## Setting up")
+	if start < 0 || end < start {
+		t.Fatalf("guide has no \"## Every conversation\" section before \"## Setting up\":\n%.300s", guide)
+	}
+	return strings.Join(strings.Fields(guide[start:end]), " ")
+}
+
+func TestSkillGuideOpensWithTheRoutineEveryConversationFollows(t *testing.T) {
+	opening := openingSection(t, guideOutput(t))
+
+	wants := []string{
+		"`self-host status --json`",
+		"`self-host profile --json`",
+		"Have you run your own server or used Docker before, or is this all new to you?",
+		"`self-host profile set experience new`",
+		"`self-host profile set experience advanced`",
+		"one plain sentence",
+		"Never ask for or show a secret",
+		"`self-host doctor",
+		"the engine that runs your apps",
+		"agent-browser",
+		"`self-host debug <app> --json`",
+		"The Recap",
+		"`description`",
+		"`home`",
+		"`self-host credentials`",
+		"Want your own web address?",
+	}
+	rest := opening
+	for _, want := range wants {
+		at := strings.Index(rest, want)
+		if at < 0 {
+			t.Errorf("opening section never says %q after the previous item", want)
+			continue
+		}
+		rest = rest[at+len(want):]
+	}
+}
+
+func readSkillFile(t *testing.T) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "skills", "self-host", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+func TestSkillFileLoadsOnItsOwnAndStaysWithinTheIdleBudget(t *testing.T) {
+	skillFile := readSkillFile(t)
+
+	for _, explicitOnly := range []string{"disable-model-invocation", "allow_implicit_invocation"} {
+		if strings.Contains(skillFile, explicitOnly) {
+			t.Errorf("SKILL.md is explicit-only: it mentions %q", explicitOnly)
+		}
+	}
+	for _, want := range []string{"`self-host skill`", "install.sh"} {
+		if !strings.Contains(skillFile, want) {
+			t.Errorf("SKILL.md never mentions %q", want)
+		}
+	}
+	if tokens := utf8.RuneCountInString(skillFile) / 4; tokens > 200 {
+		t.Errorf("SKILL.md costs about %d tokens while idle, want 200 or fewer", tokens)
 	}
 }

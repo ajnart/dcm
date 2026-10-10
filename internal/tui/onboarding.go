@@ -48,7 +48,7 @@ type answers struct {
 	// exposure is the stored value of the Access chosen: lan, or local from the command line.
 	exposure string
 	// experience is the Experience level under the highlight at Welcome:
-	// new until the person chooses, or what the Profile already holds.
+	// new until the person chooses.
 	experience               string
 	picks                    picks
 	tz, lan, puid, pgid      string
@@ -80,6 +80,9 @@ type onboarding struct {
 	err  string
 	// notice announces Telemetry on the Welcome step, once per Home folder.
 	notice string
+	// experienceSaved is set when the Profile already holds an Experience
+	// level: Welcome does not ask, and Review does not save one.
+	experienceSaved bool
 }
 
 // plan is a reviewed install: what will happen, before anything is written.
@@ -570,7 +573,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		switch o.step {
 		case stepWelcome:
-			o.answers.experience = project.ExperienceNew
+			if !o.experienceSaved {
+				o.answers.experience = project.ExperienceNew
+			}
 		case stepLook:
 			o.look = max(o.look-1, 0)
 		case stepAccess:
@@ -580,7 +585,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "down", "j":
 		switch o.step {
 		case stepWelcome:
-			o.answers.experience = project.ExperienceAdvanced
+			if !o.experienceSaved {
+				o.answers.experience = project.ExperienceAdvanced
+			}
 		case stepLook:
 			o.look = min(o.look+1, len(glyphChoices)-1)
 		case stepAccess:
@@ -662,7 +669,11 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		m.preboot = newPrebootScreen()
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
-		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs), saveExperienceWithInstall(m.backend, o.answers.experience)))
+		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs)}
+		if !o.experienceSaved {
+			cmds = append(cmds, saveExperienceWithInstall(m.backend, o.answers.experience))
+		}
+		return next.focusActivity(tea.Batch(cmds...))
 	}
 	return m.openStep(o.step + 1)
 }
@@ -673,11 +684,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	o.step, o.form, o.list = s, nil, nil
 	switch s {
 	case stepWelcome:
+		o.experienceSaved = m.backend.Experience(context.Background()) != ""
 		if o.answers.experience == "" {
 			o.answers.experience = project.ExperienceNew
-			if saved := m.backend.Experience(context.Background()); saved == project.ExperienceAdvanced {
-				o.answers.experience = saved
-			}
 		}
 	case stepWhat:
 		if o.answers.picks == nil {
@@ -774,6 +783,9 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 		}
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack, moreKey}
 	case stepWelcome:
+		if m.onboarding.experienceSaved {
+			return quit, []key.Binding{onboardingContinue, onboardingBack}
+		}
 		return quit, []key.Binding{onboardingChoose, onboardingContinue, onboardingBack}
 	case stepLook:
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack}
@@ -920,13 +932,16 @@ func (m Model) renderWelcome() []string {
 		"  " + t.body().Render("Next you choose what to run, where it lives, who administers it and how"),
 		"  " + t.body().Render("it looks. Then you review the plan."), "",
 	}
-	for _, line := range strings.Split(wrap(experienceQuestion, min(max(m.width-4, 20), 96)), "\n") {
-		lines = append(lines, "  "+t.heading().Render(line))
+	if !m.onboarding.experienceSaved {
+		for _, line := range strings.Split(wrap(experienceQuestion, min(max(m.width-4, 20), 96)), "\n") {
+			lines = append(lines, "  "+t.heading().Render(line))
+		}
+		for _, c := range experienceChoices {
+			lines = append(lines, "  "+truncate(radioRow(t, c.level == m.onboarding.answers.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
+		}
+		lines = append(lines, "")
 	}
-	for _, c := range experienceChoices {
-		lines = append(lines, "  "+truncate(radioRow(t, c.level == m.onboarding.answers.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
-	}
-	lines = append(lines, "", "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
+	lines = append(lines, "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
 	if m.onboarding.notice != "" {
 		lines = append(lines, "", "  "+t.dim().Render(m.onboarding.notice))
 	}
