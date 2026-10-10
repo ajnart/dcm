@@ -234,6 +234,39 @@ func TestDownCancelsFailedStartupApproval(t *testing.T) {
 	}
 }
 
+func TestPendingCaddyConfigurationKeepsStoppedAccessStoppedUntilExplicitStart(t *testing.T) {
+	h := enabledNames(t)
+	if err := h.svc.Down(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	h.runner.On("docker compose --project-directory", system.Result{})
+	p, _ := h.svc.Project()
+	if _, err := p.WriteNamesCaddyfile(names.Caddyfile(nil)); err != nil {
+		t.Fatal(err)
+	}
+	before := len(h.composeCalls())
+	if err := h.svc.Setup(context.Background(), []string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, call := range h.composeCalls()[before:] {
+		if strings.Contains(call, "access-caddy") && (strings.HasPrefix(call, "up ") || strings.HasPrefix(call, "restart ")) {
+			t.Fatalf("pending config started stopped Access: %s", call)
+		}
+	}
+	status, err := h.svc.Status(context.Background())
+	if err != nil || status.Names.Working || len(status.Apps[0].Addresses) != 1 {
+		t.Fatalf("stopped pending config promoted: %+v %v", status.Names, err)
+	}
+	if err := h.svc.Start(context.Background(), []string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	h.ownCaddyRuns()
+	status, err = h.svc.Status(context.Background())
+	if err != nil || !status.Names.Working {
+		t.Fatalf("approved Start did not apply config: %+v %v", status.Names, err)
+	}
+}
+
 func TestInterruptedCaddyWriteIsPendingUntilRunningProxyReconciles(t *testing.T) {
 	h := enabledNames(t)
 	p, _ := h.svc.Project()
