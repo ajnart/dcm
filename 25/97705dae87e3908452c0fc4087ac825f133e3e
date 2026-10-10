@@ -1,0 +1,27 @@
+docs/releasing.md
+  s_8b1d5a69f175a9::t_54730319c09afb 25-29
+internal/project/homefile.go
+  s_8b1d5a69f175a9::t_fb79f79dd5fd6c 1-17
+internal/service/telemetry.go
+  s_8b1d5a69f175a9::t_ba2d8c877bd5ef 1-24
+internal/telemetry/telemetry_test.go
+  s_8b1d5a69f175a9::t_2426f18f4db3ca 1-355
+internal/telemetry/telemetrytest/telemetrytest.go
+  s_8b1d5a69f175a9::t_71745ab125b3bc 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2597705dae87e3908452c0fc4087ac825f133e3e",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
