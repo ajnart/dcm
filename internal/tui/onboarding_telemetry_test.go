@@ -31,7 +31,7 @@ func welcomeWithNotice(t *testing.T, width, height int) Model {
 	m = update(t, m, windowSize(width, height))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	return drive(t, frames(t, m, 60), press("enter"))
+	return frames(t, m, 60)
 }
 
 type telemetryWorkerRunner struct{}

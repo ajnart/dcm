@@ -262,8 +262,11 @@ remain explicit prerequisites.
 On a machine without a Project, `self-host` opens Onboarding. It checks Docker
 and Docker Compose (a failed check shows its fix and `r` checks again;
 warnings do not stop you), says that nothing is written until you approve the
-plan, then asks one thing at a time and says why. **What** picks Recipes and
-Apps and shows the highlighted item's description. Picking a Recipe picks its
+plan, then asks one thing at a time and says why. In **Welcome**, **Access** and
+**Look**, `↑`/`↓` moves focus, `space` selects without leaving the step, and
+`enter` continues the selected answer, not the focused option. **What** picks
+Recipes and Apps with `space` and shows the highlighted item's description.
+Text inputs still accept spaces. Picking a Recipe picks its
 Apps, which you can untick one by one, and its mark shows whether all, some or
 none are picked; an App that needs answers
 of its own asks them next. **Where** explains each field in a line while it is
@@ -279,11 +282,12 @@ opens a guided Cloudflare flow in Settings after the Apps finish installing;
 it chooses Apps individually and asks a separate yes before publication.
 Options marked coming soon change nothing.
 Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
-Traefik or their own Caddy; `enter` on it also changes nothing and points at
-`self-host access export`. In Settings, the
-Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
+Traefik or their own Caddy; `space` on it explains without changing the selected
+answer and points at `self-host access export`. In Settings, the Access sub-tab
+offers the same list; `enter` makes a choice pending and `ctrl+s`
 applies Home network changes; Your own web address has its own review and yes.
-Tailscale opens an install review with a concealed key field.
+Tailscale opens an install review with a concealed key field. In Settings,
+`enter` on Bring your own or a coming-soon option only explains it.
 **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.

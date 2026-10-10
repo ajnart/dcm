@@ -12,7 +12,9 @@ func TestOnboardingChoosesEasyNamesAndKeepsHomeNetwork(t *testing.T) {
 	m, _ := freshHost(t)
 	next, _ := m.openStep(stepAccess)
 	m = next.(Model)
-	m = drive(t, drive(t, m, press("down")), press("enter"))
+	for _, key := range []string{"down", "space", "enter"} {
+		m = drive(t, m, press(key))
+	}
 	if m.onboarding.step != stepWho {
 		t.Fatalf("step %v, want Who", m.onboarding.step)
 	}
@@ -93,7 +95,7 @@ func TestGoldenEasyNames(t *testing.T) {
 			o, _ := freshHost(t)
 			o = drive(t, o, windowSize(size.width, size.height))
 			o = atAccess(t, o)
-			for _, k := range []string{"down", "enter", "esc"} {
+			for _, k := range []string{"down", "space", "enter", "esc"} {
 				o = drive(t, o, press(k))
 			}
 			golden(t, "easy-names-onboarding"+size.suffix, trimLines(screen(o)))
