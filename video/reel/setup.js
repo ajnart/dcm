@@ -10,7 +10,7 @@ const APPS = [
   ["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["radarr", "Radarr"], ["prowlarr", "Prowlarr"],
   ["jellyfin", "Jellyfin"], ["seerr", "Seerr"], ["homarr", "Homarr"],
 ].map(([id, name], i) => ({ id, name, s: A + i * STEP, e: A + (i + 1) * STEP }));
-// the Links each App declares (new-cli/internal/apps/{arr,seerr,homarr})
+// the Links each App declares (internal/apps/{arr,seerr,homarr})
 export const LINKS = [
   ["sonarr", "Sonarr", "qbittorrent", "qBittorrent"],
   ["radarr", "Radarr", "qbittorrent", "qBittorrent"],

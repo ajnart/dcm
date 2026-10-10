@@ -176,6 +176,20 @@ async function lint(url, times) {
     for (const i of u) { if (undeclared++ < 40) console.log("UNDECLARED TEXT", JSON.stringify(i)); }
   }
   if (undeclared) { bad++; console.log(`undeclared text: ${undeclared} sighting(s)`); }
+  // 2b · retired wording: no rendered text, at any time, says "Exposure" (now Access) or points at "new-cli/"
+  const RETIRED = ["Exposure", "new-cli/"];
+  let retired = 0;
+  for (let t = 0.1; t < DUR; t += 0.25) {
+    await a.page.evaluate((x) => window.seek(x), +t.toFixed(3));
+    const text = await a.page.evaluate(() => {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (/^(SCRIPT|STYLE)$/.test(n.parentElement?.tagName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+      let s = "";
+      while (w.nextNode()) s += w.currentNode.nodeValue;
+      return s;
+    });
+    for (const word of RETIRED) if (text.includes(word)) { bad++; retired++; console.log(`RETIRED TEXT "${word}" at ${t.toFixed(2)} s`); }
+  }
+  console.log(`retired wording: ${retired} sighting(s) of ${RETIRED.map((w) => `"${w}"`).join(", ")}`);
 
   for (const t of times) {
     await a.page.evaluate((x) => window.seek(x), t);

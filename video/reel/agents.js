@@ -18,7 +18,7 @@ const AGENTS = [
 const ALL_ON = j(11);
 const until = (i) => (i + 1 < AGENTS.length ? AGENTS[i + 1].from : B);
 const active = (t) => AGENTS.reduce((k, a, i) => (t >= a.from ? i : k), 0);
-// new-cli/internal/skill/guide.md, "New users": recommend owned-video-library plus homarr, show the plan,
+// internal/skill/guide.md, "Every conversation": pick the Recipe or Apps from `apps list`, show the plan in goals and Apps,
 // get approval, run `self-host install <recipe> --yes --json`, point to `self-host credentials`.
 const T = { request: j(1), typed: j(1) + 0.4, tool: j(2), result: j(3), plan: j(3), hover: j(4), click: j(5), chips: [j(6), j(6) + b(0.5)], done: j(7), link: j(9) };
 const PROMPT = "I want to watch my movies on the TV.";

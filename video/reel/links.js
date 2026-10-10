@@ -2,7 +2,7 @@ import { $, $$, proc, scene, icon, read, cue, on, cut, drift, ICON } from "./lib
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.links;
-// What each Link really does, from new-cli/internal/apps:
+// What each Link really does, from internal/apps:
 //   arr/links.go    downloadClientLink: Sonarr/Radarr get qBittorrent as download client with the Admin login
 //   arr/links.go    applicationLink: Prowlarr syncs indexers to Sonarr/Radarr with their API keys
 //   seerr/seerr.go  serverLink: Seerr sends requests to Sonarr/Radarr with their API keys

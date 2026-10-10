@@ -50,13 +50,14 @@ integrated and a true peak below −1 dBTP.
 ## Facts and intentional preview
 
 - The media Recipe resolves to qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr;
-  Homarr adds the seventh App. Source: `new-cli/internal/catalog/default.go`.
-- Link descriptions follow `new-cli/internal/apps/arr/links.go`, `apps/seerr/seerr.go` and
-  `apps/homarr/links.go`.
-- The agent example follows the New-user flow in `new-cli/internal/skill/guide.md`: recommend
-  `owned-video-library` plus Homarr, show the plan, get approval, then install. The mock-up uses
-  the newer Access wording, “Home network.”
-- 93 Apps and 20 Recipes were checked against a fresh CLI build for the preceding cut.
+  Homarr adds the seventh App. Source on `main`: `internal/catalog/default.go`.
+- Link descriptions follow `internal/apps/arr/links.go`, `internal/apps/seerr/seerr.go` and
+  `internal/apps/homarr/links.go` on `main`.
+- The agent example follows `internal/skill/guide.md`, “Every conversation”: pick the Recipe or
+  Apps from `apps list`, show the plan in goals and Apps, get approval, then install. The example
+  uses `owned-video-library` plus Homarr, with Access shown as “Home network.”
+- 93 Apps and 20 Recipes were checked against a fresh CLI build from `origin/main` for the
+  preceding terminology update.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - **`npx selfhost install` is the maintainer-requested preview command.** It is not a claim that
@@ -78,6 +79,8 @@ Lint checks all declared reading holds at 30 Hz, undeclared text, safe-area boun
 cuts and deterministic seeking. Sentences need 0.4 seconds plus 0.25 seconds per word; phrases of
 up to three words need 0.4 seconds. Slow motion is limited per sample to 2.5% of text size, with a
 2.5 px minimum allowance. Missing beat events are informational, not failures.
+The retained terminology check rejects “Exposure” and obsolete `new-cli/` paths in rendered text;
+the actual lowercase `--exposure` CLI flag remains valid in the background commands.
 
 Review stills cover the corrected card, Setup, Links, board, chat, all four flurry compositions
 and the end card. Final-file verification reports codecs, equal stream durations, loudness,
