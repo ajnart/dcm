@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	ts "github.com/ajnart/self-host/internal/tailscale"
 )
@@ -26,8 +28,27 @@ var nodeReads = struct {
 }{byService: map[string]nodeRead{}}
 
 type nodeRead struct {
-	node ts.Node
-	at   time.Time
+	node  ts.Node
+	at    time.Time
+	known bool
+}
+
+func (ss *session) newTailscaleServices(previous, targets []string, containers []compose.Container) []string {
+	active := slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == tailscaleID && c.State == "running" })
+	if !active {
+		return nil
+	}
+	var nodes []string
+	for _, target := range ss.webTargets() {
+		service := ts.ServiceName(target.ID)
+		if slices.Contains(targets, target.ID) && !slices.Contains(previous, service) {
+			nodes = append(nodes, service)
+		}
+	}
+	if len(nodes) > 0 {
+		ss.s.Log.Emit(events.Event{Event: events.Info, App: tailscaleID, Msg: "Start private Access for the approved Apps: " + strings.Join(nodes, ", ")})
+	}
+	return nodes
 }
 
 // tailscaleOn reports whether the Tailscale Access is in use: its App is installed.
@@ -105,14 +126,14 @@ func contains(list []string, value string) bool {
 }
 
 // tailscaleNodes reads each running node's own view of the tailnet, by App.
-func (ss *session) tailscaleNodes(ctx context.Context, byService map[string]compose.Container) map[string]ts.Node {
+func (ss *session) tailscaleNodes(ctx context.Context, byService map[string]compose.Container) map[string]nodeRead {
 	if !ss.tailscaleOn() {
 		return nil
 	}
 	var (
 		wg    sync.WaitGroup
 		mu    sync.Mutex
-		nodes = map[string]ts.Node{}
+		nodes = map[string]nodeRead{}
 	)
 	for service, container := range byService {
 		id, found := ts.AppOf(service)
@@ -122,11 +143,10 @@ func (ss *session) tailscaleNodes(ctx context.Context, byService map[string]comp
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if node, ok := ss.readNode(ctx, service); ok {
-				mu.Lock()
-				nodes[id] = node
-				mu.Unlock()
-			}
+			node, known := ss.readNode(ctx, service)
+			mu.Lock()
+			nodes[id] = nodeRead{node: node, known: known}
+			mu.Unlock()
 		}()
 	}
 	wg.Wait()
@@ -140,20 +160,17 @@ func (ss *session) readNode(ctx context.Context, service string) (ts.Node, bool)
 	cached, found := nodeReads.byService[key]
 	nodeReads.Unlock()
 	if found && now.Sub(cached.at) < nodeReadsFor {
-		return cached.node, true
+		return cached.node, cached.known
 	}
 	result, err := ss.compose.Exec(ctx, service, nil, ts.StatusCommand()...)
-	if err != nil {
-		return ts.Node{}, false
-	}
-	node, err := ts.ParseStatus(result.Stdout)
-	if err != nil {
-		return ts.Node{}, false
+	var node ts.Node
+	if err == nil {
+		node, err = ts.ParseStatus(result.Stdout)
 	}
 	nodeReads.Lock()
-	nodeReads.byService[key] = nodeRead{node: node, at: now}
+	nodeReads.byService[key] = nodeRead{node: node, at: now, known: err == nil}
 	nodeReads.Unlock()
-	return node, true
+	return node, err == nil
 }
 
 // accessAddresses lists the Addresses each App has under the Access options
@@ -161,11 +178,14 @@ func (ss *session) readNode(ctx context.Context, service string) (ts.Node, bool)
 func (ss *session) accessAddresses(ctx context.Context, byService map[string]compose.Container) map[string][]string {
 	addresses := map[string][]string{}
 	for id, node := range ss.tailscaleNodes(ctx, byService) {
+		if !node.known {
+			continue
+		}
 		path := ""
 		if a, found := ss.s.Catalog.App(id); found {
 			path = a.Info().Path
 		}
-		if address := node.Address(path); address != "" {
+		if address := node.node.Address(path); address != "" {
 			addresses[id] = append(addresses[id], address)
 		}
 	}
@@ -175,14 +195,21 @@ func (ss *session) accessAddresses(ctx context.Context, byService map[string]com
 // tailscaleChecks turns what the nodes say into Needs attention items.
 func (ss *session) tailscaleChecks(ctx context.Context, byService map[string]compose.Container) []host.Check {
 	nodes := map[string]ts.Node{}
+	var checks []host.Check
 	for id, node := range ss.tailscaleNodes(ctx, byService) {
 		name := id
 		if a, found := ss.s.Catalog.App(id); found {
 			name = a.Info().Name
 		}
-		nodes[name] = node
+		if !node.known {
+			checks = append(checks, host.Check{ID: "tailscale-inspection-" + id, App: tailscaleID, Title: "Tailscale", Level: host.Warn,
+				Detail: name + ": private Access could not be inspected; its sign-in and HTTPS state are unknown.",
+				Hint:   "Inspect it with: self-host logs tailscale; docker compose --project-directory " + ss.p.Root + " exec -T " + ts.ServiceName(id) + " " + strings.Join(ts.StatusCommand(), " ")})
+			continue
+		}
+		nodes[name] = node.node
 	}
-	var checks []host.Check
+	sort.Slice(checks, func(i, j int) bool { return checks[i].ID < checks[j].ID })
 	for _, finding := range ts.Assess(nodes, ss.s.Deps.Now()) {
 		level := host.Warn
 		if finding.Broken {

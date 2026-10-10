@@ -248,8 +248,9 @@ TV have clients; other TVs may need the Home network Address.
    An OAuth client secret uses the same input; it must own `tag:self-host`.
 4. Read `self-host status --json`: each App with a web page gets an additional
    HTTPS Address, read from its node's real `Self.DNSName`, including collision
-   suffixes. Never build a ts.net name yourself. The existing `url` and first
-   Address stay unchanged; the IP:port fallback remains available.
+   suffixes. Never build a ts.net name yourself. Valid private HTTPS comes first
+   and becomes `url`; IP:port remains the fallback. Doctor and Debug health
+   observations still use the local Address.
 5. Read `self-host doctor --json` for sign-in expiry, signed-out nodes or HTTPS
    disabled. Follow its hints; node state alone does not prove a working page.
 
@@ -258,6 +259,11 @@ App under the Tailscale App folder. The shared credential is mounted as a 0600
 file, never passed as a credential argument. No Funnel or public route is enabled.
 Onboarding asks through a concealed field and waits for Review approval;
 Settings opens the Tailscale install review rather than changing Home network.
+When approving a later install or Restore, name the private nodes for its web
+Apps as part of the plan. Only new nodes start while Tailscale is already on;
+stopped Access remains stopped unless Tailscale itself is explicitly approved.
+Restore regenerates nodes against the merged inventory, including old Backups
+of Tailscale. Unknown inspection results produce a safe Doctor warning.
 
 ## Doctor checks
 

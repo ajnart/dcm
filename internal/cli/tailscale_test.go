@@ -45,7 +45,7 @@ func TestTailscaleFileInputAndAdditiveStatusJSON(t *testing.T) {
 		t.Fatalf("access %v exposure %q", status.Access, status.Exposure)
 	}
 	for _, a := range status.Apps {
-		if a.ID == "one" && (a.URL != "http://192.168.1.20:9000" || !slices.Equal(a.Addresses, []string{"http://192.168.1.20:9000", "https://one-1.example.ts.net"})) {
+		if a.ID == "one" && (a.URL != "https://one-1.example.ts.net" || !slices.Equal(a.Addresses, []string{"https://one-1.example.ts.net", "http://192.168.1.20:9000"})) {
 			t.Fatalf("legacy URL %q, addresses %v", a.URL, a.Addresses)
 		}
 	}

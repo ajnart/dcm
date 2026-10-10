@@ -106,12 +106,13 @@ func (s *Service) appChecks(ctx context.Context, app AppStatus, byService map[st
 			Detail: fmt.Sprintf("port %d bound to %s", app.Port, bind)})
 	}
 
-	if app.URL != "" {
-		if err := host.Reachable(ctx, s.Deps.HTTP, app.URL); err != nil {
+	url := app.observationURL()
+	if url != "" {
+		if err := host.Reachable(ctx, s.Deps.HTTP, url); err != nil {
 			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.Fail,
 				Detail: err.Error(), Hint: "Check the App's logs (self-host logs " + id + ") and the firewall check above."})
 		} else {
-			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.OK, Detail: "answers on " + app.URL})
+			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.OK, Detail: "answers on " + url})
 		}
 	}
 	return checks

@@ -21,9 +21,20 @@ connector node remains for compatibility. HTTPS must be enabled by the owner,
 with a plain warning that App names enter public certificate logs.
 
 Read each node's `Self.DNSName`, never infer a suffix or ignore collisions.
-Addresses are additive; the legacy `url` and IP:port fallback stay unchanged.
+Addresses are additive and friendliest first: valid private HTTPS precedes
+IP:port, and `url` equals the first Address. Local Doctor and Debug health
+observations continue to use IP:port rather than the preferred remote Address.
 `KeyExpiry` and `NeedsLogin` become plain Needs attention items. Auth-key expiry
 can block adding Apps after 90 days; untagged node sign-ins expire separately.
+
+Install and Restore reconcile nodes against the merged Project inventory.
+An unrelated install never pulls or starts the connector or existing nodes.
+Only new nodes for the approved Apps start, and only when the connector was
+already running. Stopped Access stays stopped; explicitly installing or
+restoring Tailscale approves starting its current nodes. The install Review
+names private Access for the selected Apps, conditional on Access remaining on.
+Failed status inspection is unknown, not healthy: Doctor warns with a diagnostic
+command and never repeats raw command output or parsing errors.
 
 Sources checked on 2026-10-10: [Docker parameters](https://tailscale.com/docs/features/containers/docker/docker-params),
 [HTTPS](https://tailscale.com/kb/1153/enabling-https),

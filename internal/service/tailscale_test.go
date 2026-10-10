@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,12 +16,34 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	tsapp "github.com/ajnart/self-host/internal/apps/tailscale"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 	ts "github.com/ajnart/self-host/internal/tailscale"
 )
 
 const authKey = "tskey-auth-kTestKey123-secretsecretsecret"
+
+type tailscaleHTTP func(*http.Request) (*http.Response, error)
+
+func (f tailscaleHTTP) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestDoctorObservesLocalPageNotPreferredPrivateAddress(t *testing.T) {
+	h, net := newTailnetHarness(t, "jellyfin")
+	if err := h.installTailscale("jellyfin"); err != nil {
+		t.Fatal(err)
+	}
+	net.status["tailscale-jellyfin"] = runningNode("jellyfin-1.example.ts.net.", nil)
+	var observed []string
+	h.deps.HTTP = &http.Client{Transport: tailscaleHTTP(func(r *http.Request) (*http.Response, error) {
+		observed = append(observed, r.URL.String())
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("local page")), Header: http.Header{}}, nil
+	})}
+	h.svc.Doctor(context.Background())
+	if !slices.Contains(observed, "http://192.168.1.20:9000") || slices.Contains(observed, "https://jellyfin-1.example.ts.net") {
+		t.Fatalf("Doctor observed %v instead of the local App page", observed)
+	}
+}
 
 type headlessApp struct{ testApp }
 
@@ -47,7 +72,8 @@ type tailnet struct {
 	enrolled bool
 	// status is the JSON of a node's status, by Compose service; a node
 	// without one answers as a running node named <app>.tail1234.ts.net.
-	status map[string]string
+	status     map[string]string
+	failStatus bool
 	// running lists the services `docker compose ps` reports.
 	running []string
 }
@@ -74,6 +100,9 @@ func (n *tailnet) install(h *harness) {
 			}
 			return system.Result{Stdout: []byte(out.String())}
 		case strings.Contains(line, " exec ") && strings.Contains(line, " tailscale "):
+			if n.failStatus && strings.Contains(line, "tailscale-jellyfin") {
+				return system.Result{ExitCode: 1, Stderr: []byte("sensitive diagnostic payload")}
+			}
 			if strings.HasSuffix(line, " up") || strings.Contains(line, " up ") {
 				n.enrolled = true
 				return system.Result{}
@@ -257,12 +286,154 @@ func TestStatusAddsTheRealTailscaleAddress(t *testing.T) {
 			jellyfin = a
 		}
 	}
-	want := []string{"http://192.168.1.20:9000", "https://jellyfin-1.tail1234.ts.net"}
+	want := []string{"https://jellyfin-1.tail1234.ts.net", "http://192.168.1.20:9000"}
 	if !slices.Equal(jellyfin.Addresses, want) || jellyfin.URL != want[0] {
 		t.Errorf("addresses %q url %q, want %q first", jellyfin.Addresses, jellyfin.URL, want)
 	}
 	if !slices.Equal(status.Access, []string{"home", "tailscale"}) {
 		t.Errorf("access = %q, want home and tailscale", status.Access)
+	}
+	report, err := h.svc.Debug(context.Background(), "jellyfin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.HealthCheck.URL != want[1] {
+		t.Fatalf("local health observation moved to %q", report.HealthCheck.URL)
+	}
+}
+
+func TestUnrelatedInstallsDoNotStartStoppedTailscale(t *testing.T) {
+	for _, target := range []string{"worker", "jellyfin", "immich"} {
+		t.Run(target, func(t *testing.T) {
+			h, net := newTailnetHarness(t, "jellyfin", "immich")
+			h.svc.Catalog = catalog.New(append(h.svc.Catalog.Apps(), &headlessApp{testApp: testApp{id: "worker", done: map[string]bool{}}}), nil)
+			if err := h.installTailscale("jellyfin"); err != nil {
+				t.Fatal(err)
+			}
+			net.running = []string{"jellyfin"}
+			before := len(h.composeCalls())
+			if err := h.install(target); err != nil {
+				t.Fatal(err)
+			}
+			for _, call := range h.composeCalls()[before:] {
+				if (strings.Contains(call, "pull ") || strings.HasPrefix(call, "up -d")) && strings.Contains(call, "tailscale") {
+					t.Fatalf("unapproved Access startup: %s", call)
+				}
+			}
+		})
+	}
+}
+
+func TestNewNodeDoesNotRestartUnrelatedStoppedNodes(t *testing.T) {
+	h, net := newTailnetHarness(t, "jellyfin", "immich")
+	if err := h.installTailscale("jellyfin"); err != nil {
+		t.Fatal(err)
+	}
+	net.running = []string{"tailscale", "immich"}
+	before := len(h.composeCalls())
+	if err := h.install("immich"); err != nil {
+		t.Fatal(err)
+	}
+	started := false
+	for _, call := range h.composeCalls()[before:] {
+		if strings.HasPrefix(call, "up -d") {
+			started = strings.Contains(call, "tailscale-immich")
+			if strings.Contains(call, "tailscale-jellyfin") || strings.HasSuffix(call, " tailscale") {
+				t.Fatalf("restarted unrelated Access: %s", call)
+			}
+		}
+	}
+	if !started {
+		t.Fatal("new App's approved node was not started")
+	}
+}
+
+func TestRestoreReconcilesPrivateAccess(t *testing.T) {
+	for _, restoreAccess := range []bool{false, true} {
+		for _, active := range []bool{false, true} {
+			t.Run(fmt.Sprintf("access=%v/active=%v", restoreAccess, active), func(t *testing.T) {
+				h, net := newTailnetHarness(t, "jellyfin", "immich")
+				if err := h.installTailscale("jellyfin"); err != nil {
+					t.Fatal(err)
+				}
+				id := "jellyfin"
+				if restoreAccess {
+					id = "tailscale"
+				}
+				archive, err := h.svc.Backup(context.Background(), []string{id}, filepath.Join(t.TempDir(), "backup.tar.zst"), "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if restoreAccess {
+					if err := h.svc.Remove(context.Background(), []string{"jellyfin"}, false); err != nil {
+						t.Fatal(err)
+					}
+					if err := h.install("immich"); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					if err := h.install("immich"); err != nil {
+						t.Fatal(err)
+					}
+					if err := h.svc.Remove(context.Background(), []string{"jellyfin"}, false); err != nil {
+						t.Fatal(err)
+					}
+				}
+				net.running = []string{"immich"}
+				if active {
+					net.running = append(net.running, "tailscale")
+				}
+				before := len(h.composeCalls())
+				if err := h.svc.Restore(context.Background(), archive, []string{id}, ""); err != nil {
+					t.Fatal(err)
+				}
+				fragment := h.readFile("apps", "tailscale", "compose.yml")
+				if !strings.Contains(fragment, "tailscale-immich") || strings.Contains(fragment, "tailscale-jellyfin") == restoreAccess {
+					t.Fatal("restore did not reconcile merged App inventory")
+				}
+				started := false
+				for _, call := range h.composeCalls()[before:] {
+					if strings.HasPrefix(call, "up -d") {
+						started = strings.Contains(call, "tailscale-jellyfin")
+						if !restoreAccess && strings.Contains(call, "tailscale-immich") {
+							t.Fatalf("restarted unrelated stopped node: %s", call)
+						}
+					}
+				}
+				if !restoreAccess && started != active {
+					t.Fatalf("node startup %v, Access active %v", started, active)
+				}
+				if !restoreAccess && started {
+					net.running = append(net.running, "jellyfin", "tailscale-jellyfin")
+					status, err := h.svc.Status(context.Background())
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, a := range status.Apps {
+						if a.ID == "jellyfin" && a.URL != "https://jellyfin.tail1234.ts.net" {
+							t.Fatalf("restored private Address = %q", a.URL)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestDoctorReportsUnknownPrivateAccessSafely(t *testing.T) {
+	for _, failed := range []bool{false, true} {
+		t.Run(fmt.Sprint(failed), func(t *testing.T) {
+			h, net := newTailnetHarness(t, "jellyfin")
+			if err := h.installTailscale("jellyfin"); err != nil {
+				t.Fatal(err)
+			}
+			net.failStatus = failed
+			net.status["tailscale-jellyfin"] = "sensitive diagnostic payload"
+			got := strings.Join(tailscaleChecks(t, h), "\n")
+			if !strings.Contains(got, "jellyfin: private Access could not be inspected") || !strings.Contains(got, "unknown") || !strings.Contains(got, "exec -T tailscale-jellyfin") || strings.Contains(got, "sensitive diagnostic payload") {
+				t.Fatalf("missing safe inspection warning: %s", got)
+			}
+		})
 	}
 }
 

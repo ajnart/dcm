@@ -39,6 +39,15 @@ func TestGoldenTailscaleFlows(t *testing.T) {
 		m = goldenModel(t, size.width, size.height)
 		m.checks = []host.Check{{ID: "tailscale-key-expires", App: "tailscale", Title: "Tailscale", Level: host.Warn, Detail: "The Tailscale sign-in of Jellyfin runs out in 12 days.", Hint: "Open https://login.tailscale.com/admin/machines, find the App's name and choose Disable key expiry."}}
 		golden(t, "overview-tailscale-expiry"+size.suffix, trimLines(screen(m)))
+		m.checks = []host.Check{{ID: "tailscale-inspection-jellyfin", App: "tailscale", Title: "Tailscale", Level: host.Warn, Detail: "Jellyfin: private Access could not be inspected; its sign-in and HTTPS state are unknown.", Hint: "Inspect it with: docker compose --project-directory ~/.self-host exec -T tailscale-jellyfin tailscale status --json"}}
+		golden(t, "overview-tailscale-unknown"+size.suffix, trimLines(screen(m)))
+		m, backend = sample(t, size.width, size.height)
+		backend.catalog = withTailscale(goldenCatalog())
+		m.status.Access = []string{"home", "tailscale"}
+		m = drive(t, m, press("4"))
+		m.install.picked = picks{"ntfy": true}
+		m = drive(t, m, press("enter"))
+		golden(t, "install-private-access-review"+size.suffix, trimLines(screen(m)))
 	}
 }
 

@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+
+  Review  nothing has been written yet
+
+  APP                 IMAGE                                         PORT
+  ● ntfy              binwiederhier/ntfy:latest                     2586
+
+  Access    Home network — other devices connect on
+            Private: ntfy (if Tailscale stays on)
+
+   enter  enter install · esc back
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit                                                    enter  install   esc  back

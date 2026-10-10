@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
@@ -239,10 +240,21 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
+	var nodes []string
 	return s.run(ctx, change{
+		services:   func() []string { return nodes },
 		title:      "install " + strings.Join(names, " "),
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
+			var containers []compose.Container
+			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
+				var err error
+				containers, err = ss.compose.Ps(ctx)
+				if err != nil {
+					return err
+				}
+			}
+			previousServices, _ := fragmentServices(ss.p.FragmentPath(tailscaleID))
 			previous := map[string]map[string]string{}
 			for id, st := range ss.state.Apps {
 				previous[id] = st.Inputs
@@ -297,17 +309,16 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 			}
-			if _, err := ss.renderTailscale(); err != nil {
+			changed, err := ss.renderTailscale()
+			if err != nil {
 				return err
+			}
+			if changed && !slices.Contains(names, tailscaleID) {
+				nodes = ss.newTailscaleServices(previousServices, names, containers)
 			}
 			return ss.ensureMediaFolders(apps)
 		},
-		targets: func(ss *session) ([]string, error) {
-			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
-				return append(slices.Clone(names), tailscaleID), nil
-			}
-			return names, nil
-		},
+		targets: func(*session) ([]string, error) { return names, nil },
 		compose: composePullUp,
 		after:   afterSetup,
 	})

@@ -67,3 +67,19 @@ func TestSettingsTailscaleOpensAnApprovedInstallReview(t *testing.T) {
 		t.Fatal("approved Settings install must carry the key only as a private input")
 	}
 }
+
+func TestInstallReviewNamesPrivateAccessBeforeApproval(t *testing.T) {
+	m, backend := sample(t, 120, 30)
+	backend.catalog = withTailscale(goldenCatalog())
+	m.status.Access = []string{"home", "tailscale"}
+	ctx := m.ctx()
+	v := newInstallView(ctx)
+	v.picked = picks{"ntfy": true}
+	v.planPicked(ctx)
+	if !strings.Contains(renderPlan(m.theme, v.plan, "approve"), "Private: ntfy (if Tailscale stays on)") {
+		t.Fatal("review must name the App whose private Access may start")
+	}
+	if len(backend.Actions()) != 0 {
+		t.Fatal("review must not start Access")
+	}
+}

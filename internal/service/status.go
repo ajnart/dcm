@@ -24,9 +24,10 @@ type StepStatus struct {
 }
 
 type AppStatus struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Managed bool   `json:"managed"`
+	localURL string
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Managed  bool   `json:"managed"`
 	// Description says in plain words what the App is for.
 	Description string `json:"description,omitempty"`
 	// Recipe is the Recipe the App was installed through; empty when it was
@@ -146,7 +147,11 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		if as.URL != "" {
 			as.Addresses = []string{as.URL}
 		}
-		as.Addresses = append(as.Addresses, addresses[id]...)
+		as.localURL = as.URL
+		as.Addresses = append(addresses[id], as.Addresses...)
+		if len(as.Addresses) > 0 {
+			as.URL = as.Addresses[0]
+		}
 		if id == dashboardAppID && len(as.Addresses) > 0 {
 			status.Dashboard = as.Addresses[0]
 		}
@@ -157,6 +162,13 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 // fillContainer sets state and health from the main service, and the
 // worst state among the App's other services.
+func (as AppStatus) observationURL() string {
+	if as.localURL != "" {
+		return as.localURL
+	}
+	return as.URL
+}
+
 func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, deferred []string, settings map[string]string) {
 	c, found := byService[main]
 	if !found && !as.Managed && len(services) > 0 {

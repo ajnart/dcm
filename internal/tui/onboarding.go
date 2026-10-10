@@ -87,11 +87,12 @@ type onboarding struct {
 
 // plan is a reviewed install: what will happen, before anything is written.
 type plan struct {
-	apps     []app.App
-	opts     service.InstallOptions
-	links    []string
-	settings map[string]string
-	fresh    bool
+	privateAccess bool
+	apps          []app.App
+	opts          service.InstallOptions
+	links         []string
+	settings      map[string]string
+	fresh         bool
 }
 
 func (m Model) newOnboarding() *onboarding {
@@ -1029,6 +1030,14 @@ func planLines(t theme, p *plan) []string {
 	lines = append(lines, row("Access", access))
 	if slices.Contains(p.opts.Targets, "tailscale") {
 		lines = append(lines, row("", "From anywhere, privately, with Tailscale"))
+	}
+	if p.privateAccess {
+		for _, a := range p.apps {
+			info := a.Info()
+			if info.Port > 0 && !info.NoWebUI {
+				lines = append(lines, row("", "Private: "+info.Name+" (if Tailscale stays on)"))
+			}
+		}
 	}
 	if p.fresh {
 		lines = append(lines, row("Settings", fmt.Sprintf("TZ=%s PUID=%s PGID=%s", p.settings["TZ"], p.settings["PUID"], p.settings["PGID"])))
