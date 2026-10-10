@@ -189,6 +189,10 @@ or rewritten lookups in plain words and keeps the numbered Addresses. Technical
 details are in `status --json` under `names`. Port 80 conflicts, rootless Docker
 and non-home network addresses are refused without changes.
 
+The port check tries binding on IPv4 and IPv6. If Linux denies the port-80
+inspection, names stay off even with rootful Docker: an unverified port is not
+treated as free. Point-to-point and `/32` interfaces are not home networks.
+
 Names contain the LAN address: when DHCP changes it, review Host settings with
 `self-host config review`, then update bookmarks. A router DHCP reservation
 avoids this. sslip.io sees the LAN address in name queries. HTTP is not encrypted
