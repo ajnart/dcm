@@ -1,0 +1,41 @@
+internal/cli/tailscale_test.go
+  s_8b1d5a69f175a9::t_653c20993317db 48
+internal/service/backup.go
+  s_8b1d5a69f175a9::t_6b5a9a104def67 440,442-443,596-602
+internal/service/debug.go
+  s_8b1d5a69f175a9::t_7580e85bfa0ebd 74
+internal/service/doctor.go
+  s_8b1d5a69f175a9::t_becb8da6589476 109-111,115
+internal/service/install.go
+  s_8b1d5a69f175a9::t_7894779de353b1 14,243,245,249-257,312-313,316-317,319,321
+internal/service/mutation.go
+  s_8b1d5a69f175a9::t_877576605b97b9 47-48,176-178,190-192
+internal/service/status.go
+  s_8b1d5a69f175a9::t_1f4173a77ae533 27-30,150-154,165-171
+internal/service/tailscale_test.go
+  s_8b1d5a69f175a9::t_4c9c17f9372b84 6-8,19,27-47,75-76,103-105,289,296-437
+internal/tui/testdata/install-private-access-review-narrow.golden
+  s_8b1d5a69f175a9::t_28fbd163b824e1 1-24
+internal/tui/testdata/install-private-access-review.golden
+  s_8b1d5a69f175a9::t_cb1b7995523521 1-30
+internal/tui/testdata/overview-tailscale-unknown-narrow.golden
+  s_8b1d5a69f175a9::t_8023e03e77f43d 1-24
+internal/tui/testdata/overview-tailscale-unknown.golden
+  s_8b1d5a69f175a9::t_136720b52eb799 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df35433ffef5236c08a732ae3ab819502bc1c04c",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
