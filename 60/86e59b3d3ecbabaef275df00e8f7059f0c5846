@@ -1,0 +1,162 @@
+CONTEXT.md
+  h_d6e478ca18e517 252-253
+README.md
+  h_d6e478ca18e517 241-245,250-251,264-308
+internal/apps/cloudflaretunnel/cloudflaretunnel.go
+  h_d6e478ca18e517 26,34
+internal/apps/cloudflaretunnel/cloudflaretunnel_test.go
+  h_d6e478ca18e517 1-32
+internal/cli/cli.go
+  h_d6e478ca18e517 201
+internal/cli/cloudflare.go
+  h_d6e478ca18e517 1-83
+internal/cli/cloudflare_test.go
+  h_d6e478ca18e517 1-124
+internal/cloudflare/api.go
+  h_d6e478ca18e517 1-310
+internal/cloudflare/client.go
+  h_d6e478ca18e517 1-220
+internal/cloudflare/cloudflaretest/server.go
+  h_d6e478ca18e517 1-500
+internal/cloudflare/publish.go
+  h_d6e478ca18e517 1-650
+internal/cloudflare/publish_test.go
+  h_d6e478ca18e517 1-672
+internal/service/backup.go
+  h_d6e478ca18e517 102-110,398,468-470,576
+internal/service/cloudflare.go
+  h_d6e478ca18e517 1-698
+internal/service/cloudflare_test.go
+  h_d6e478ca18e517 1-537
+internal/service/install.go
+  h_d6e478ca18e517 178-181,248-252
+internal/service/lifecycle.go
+  h_d6e478ca18e517 126-138
+internal/service/mutation.go
+  h_d6e478ca18e517 81-84,144-152
+internal/service/service.go
+  h_d6e478ca18e517 362-370
+internal/service/status.go
+  h_d6e478ca18e517 55-58,96-106,160,162-163
+internal/skill/guide.md
+  h_d6e478ca18e517 58,121-123,225-229,250-251,254-362
+internal/tui/access.go
+  h_d6e478ca18e517 118,120-121,134-138,144
+internal/tui/access_test.go
+  h_d6e478ca18e517 35-36,119
+internal/tui/backend.go
+  h_d6e478ca18e517 28-41,56,61,244-247,304-308
+internal/tui/cloudflare.go
+  h_d6e478ca18e517 1-245
+internal/tui/cloudflare_test.go
+  h_d6e478ca18e517 1-138
+internal/tui/harness_test.go
+  h_d6e478ca18e517 30-35,96-111,552
+internal/tui/model.go
+  h_d6e478ca18e517 166-167,525-527,535-541
+internal/tui/onboarding.go
+  h_d6e478ca18e517 49-50,665-670,712-714,998,1015-1019
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 811,848,898,986
+internal/tui/settings.go
+  h_d6e478ca18e517 81,110-112,135,154,186-188,332-338,473-476,565-567,667
+internal/tui/settings_test.go
+  h_d6e478ca18e517 210,337
+internal/tui/testdata/cloudflare-begin-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-begin.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/cloudflare-media-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-media.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/cloudflare-private-app-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-private-app.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/cloudflare-replacement-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-review-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-review.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/cloudflare-token-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/cloudflare-token.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-cloudflare-help-narrow.golden
+  h_d6e478ca18e517 11,13-14,16-20
+internal/tui/testdata/onboarding-access-cloudflare-help.golden
+  h_d6e478ca18e517 11-26
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 12,15,17-18
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  h_d6e478ca18e517 12,15-18
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-custom.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-names.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-narrow.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access-tailscale.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/onboarding-access.golden
+  h_d6e478ca18e517 12
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-cloudflare-help-narrow.golden
+  h_d6e478ca18e517 11,13-14,16-20
+internal/tui/testdata/settings-access-cloudflare-help.golden
+  h_d6e478ca18e517 11-26
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 7,10,12-14
+internal/tui/testdata/settings-access-cloudflare.golden
+  h_d6e478ca18e517 7,10-12
+internal/tui/testdata/settings-access-custom-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-custom.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-home-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-home.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-local-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-local.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-names-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-names.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-pending-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-pending.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-tailscale.golden
+  h_d6e478ca18e517 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6086e59b3d3ecbabaef275df00e8f7059f0c5846",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
