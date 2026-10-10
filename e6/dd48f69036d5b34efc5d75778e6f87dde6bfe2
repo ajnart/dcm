@@ -1,0 +1,20 @@
+internal/cli/cli.go
+  h_d6e478ca18e517 162-164,184
+internal/cli/updatenotice.go
+  h_d6e478ca18e517 18,28
+internal/updatecheck/acknowledgement_test.go
+  h_d6e478ca18e517 151-201
+internal/updatecheck/updatecheck.go
+  h_d6e478ca18e517 110-113,119-120,134-137,152,184,199-213,218-220,226-228,248-250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6dd48f69036d5b34efc5d75778e6f87dde6bfe2",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
