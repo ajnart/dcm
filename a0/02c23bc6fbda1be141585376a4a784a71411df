@@ -1,0 +1,14 @@
+internal/cli/cloudflare_test.go
+  h_d6e478ca18e517 13,53-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a002c23bc6fbda1be141585376a4a784a71411df",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
