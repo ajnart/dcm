@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "peanut", Name: "PeaNUT", Category: "Monitoring",
-		Description:   "Dashboard for the readings of your NUT-monitored UPS",
+		Description:   "Check on your battery backup (UPS) with a live dashboard",
 		Image:         "brandawg93/peanut:6.0.0",
 		Docs:          "https://github.com/Brandawg93/PeaNUT#readme",
 		Port:          8080,

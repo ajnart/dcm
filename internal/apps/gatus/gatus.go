@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "gatus", Name: "Gatus", Category: "Monitoring",
-		Description:   "Health dashboard that runs periodic checks against your services and shows their status",
+		Description:   "Check that your apps are working and see them on a status page",
 		Image:         "ghcr.io/twin/gatus:v5.37.0",
 		Docs:          "https://github.com/TwiN/gatus/blob/v5.37.0/README.md",
 		Port:          8080,

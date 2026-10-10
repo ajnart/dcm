@@ -21,7 +21,7 @@ const service = "linkwarden"
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "linkwarden", Name: "Linkwarden", Category: "Productivity",
-		Description:   "Save, archive and search the links you want to keep",
+		Description:   "Save web pages you care about and search them later",
 		Image:         "ghcr.io/linkwarden/linkwarden:v2.16.3",
 		Docs:          "https://docs.linkwarden.app/self-hosting/setup",
 		Port:          3000,

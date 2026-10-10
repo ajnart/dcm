@@ -22,7 +22,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "sabnzbd", Name: "SABnzbd", Category: "Downloads",
-		Description:   "Downloads Usenet files from a provider you choose",
+		Description:   "Automatically fetch files from Usenet, a paid file-sharing service",
 		Image:         "linuxserver/sabnzbd:version-5.1.3",
 		Docs:          "https://sabnzbd.org/wiki/",
 		Port:          8080,

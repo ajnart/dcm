@@ -226,8 +226,11 @@ type StepRecord struct {
 }
 
 type AppState struct {
-	Port   int                   `json:"port"`
-	Inputs map[string]string     `json:"inputs,omitempty"`
+	Port   int               `json:"port"`
+	Inputs map[string]string `json:"inputs,omitempty"`
+	// Recipe is the Recipe the App was first installed through; empty for an
+	// App installed directly.
+	Recipe string                `json:"recipe,omitempty"`
 	Setup  status.Setup          `json:"setup"`
 	Steps  map[string]StepRecord `json:"steps,omitempty"`
 	// StepOrder keeps steps in the order they last ran.

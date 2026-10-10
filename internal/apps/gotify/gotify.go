@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "gotify", Name: "Gotify", Category: "Communication",
-		Description:   "Sends push notifications to your phone and desktop from scripts and Apps",
+		Description:   "Collect notifications from your apps and send them to your phone",
 		Image:         "gotify/server:3.1.1",
 		Docs:          "https://gotify.net/docs/install",
 		Port:          8080,

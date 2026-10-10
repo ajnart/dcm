@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "postgresql", Name: "PostgreSQL", Category: "Databases",
-		Description:   "Relational database that stores data for other Apps and can be queried with any PostgreSQL client",
+		Description:   "A database where your other apps keep their information",
 		Image:         "docker.io/library/postgres:18.6",
 		Docs:          "https://www.postgresql.org/docs/current/",
 		Port:          5432,

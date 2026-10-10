@@ -92,6 +92,8 @@ func (a *program) statusCmd() *cobra.Command {
 			if a.json {
 				return writeJSON(a.deps.Out, status)
 			}
+			printSummary(a.deps.Out, status)
+			fmt.Fprintln(a.deps.Out)
 			printStatus(a.deps.Out, status)
 			return nil
 		},
@@ -105,6 +107,39 @@ func writeJSON(w io.Writer, v any) error {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// printSummary opens plain status with what a person needs to know first: how
+// many Apps, what each is for and where to open it, the dashboard, and where
+// everything lives.
+func printSummary(w io.Writer, s service.Status) {
+	switch len(s.Apps) {
+	case 0:
+		fmt.Fprintln(w, "You have no Apps yet.")
+	case 1:
+		fmt.Fprintln(w, "You have 1 App.")
+	default:
+		fmt.Fprintf(w, "You have %d Apps.\n", len(s.Apps))
+	}
+	var dashboard *service.AppStatus
+	for i, app := range s.Apps {
+		if len(app.Addresses) > 0 && app.Addresses[0] == s.Dashboard {
+			dashboard = &s.Apps[i]
+			continue
+		}
+		name := app.Name
+		if len(app.Addresses) > 0 {
+			name += " at " + app.Addresses[0]
+		}
+		if app.Description != "" {
+			name = app.Description + ": " + name
+		}
+		fmt.Fprintln(w, name)
+	}
+	if dashboard != nil {
+		fmt.Fprintf(w, "Dashboard: %s at %s\n", dashboard.Name, s.Dashboard)
+	}
+	fmt.Fprintf(w, "Everything lives in %s.\n", s.Home)
 }
 
 func printStatus(w io.Writer, s service.Status) {

@@ -26,7 +26,7 @@ const image = "quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4e
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "minio", Name: "MinIO AIStor", Category: "Storage",
-		Description:   "Private S3-compatible object storage with a web console, for backups and app data",
+		Description:   "Store files for your apps and backups, like your own private cloud drive",
 		Image:         image,
 		Docs:          "https://docs.min.io/aistor/installation/container/install/",
 		Port:          9000,

@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "node-red", Name: "Node-RED", Category: "Home automation",
-		Description:   "Wire together devices, APIs and services with a visual flow editor",
+		Description:   "Connect devices and services with simple drag-and-drop automations",
 		Image:         "nodered/node-red:5.0.7",
 		Docs:          "https://nodered.org/docs/getting-started/docker",
 		Port:          1880,

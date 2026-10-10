@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "actual-budget", Name: "Actual Budget", Category: "Productivity",
-		Description:   "A private budgeting server that syncs one budget across your devices.",
+		Description:   "Plan your spending and follow every dollar, with one budget on all your devices",
 		Image:         "ghcr.io/actualbudget/actual:26.9.0",
 		Docs:          "https://actualbudget.org/docs/install/docker/",
 		Port:          5006,

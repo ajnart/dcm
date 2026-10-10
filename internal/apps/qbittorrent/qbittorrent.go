@@ -35,7 +35,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "qbittorrent", Name: "qBittorrent", Category: "Downloads",
-		Description:   "Torrent client with a web interface",
+		Description:   "Download and share torrents from a clean web page",
 		Image:         "lscr.io/linuxserver/qbittorrent:latest",
 		Docs:          "https://github.com/qbittorrent/qBittorrent/wiki",
 		Port:          8080,
