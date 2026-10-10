@@ -49,8 +49,9 @@ type answers struct {
 	exposure     string
 	easyNames    bool
 	accessChosen bool
+	accessChoice string
 	cloudflare   bool
-	// experience is the Experience level under the highlight at Welcome:
+	// experience is the selected Experience level at Welcome:
 	// new until the person chooses.
 	experience               string
 	picks                    picks
@@ -72,8 +73,10 @@ type onboarding struct {
 	plan    *plan
 	// checking is set while the host checks are being read; checksFrom is
 	// the frame they started revealing at.
-	checking   bool
-	checksFrom int
+	checking     bool
+	checksFrom   int
+	autoContinue bool
+	experience   int
 	// look is the highlighted choice of the Look step, an index into glyphChoices.
 	look int
 	// access is the highlighted option of the Access step, an index into accessOptions.
@@ -100,7 +103,7 @@ type plan struct {
 
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		checking: len(m.checks) == 0, checksFrom: m.frame, notice: m.backend.TelemetryNotice()}
+		checking: len(m.checks) == 0, checksFrom: m.frame, autoContinue: true, notice: m.backend.TelemetryNotice()}
 	o.answers.fill(m.defaults)
 	o.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
 	return o
@@ -138,7 +141,18 @@ func (m Model) checksDone() bool {
 
 // onboardingAnimating reports that the host checks are still being read or revealed.
 func (m Model) onboardingAnimating() bool {
-	return m.onboardingShown() && m.onboarding.step == stepInitializing && !m.checksDone()
+	return m.onboardingShown() && m.onboarding.step == stepInitializing &&
+		(!m.checksDone() || m.onboarding.autoContinue && m.frame < m.onboarding.checksFrom+(len(m.checks)+1)*revealEvery)
+}
+
+func (m Model) advanceInitializing() Model {
+	if !m.onboardingShown() || m.onboarding.step != stepInitializing || !m.onboarding.autoContinue ||
+		!m.checksDone() || m.defaults == nil || host.Worst(m.checks) == host.Fail ||
+		m.frame < m.onboarding.checksFrom+(len(m.checks)+1)*revealEvery {
+		return m
+	}
+	next, _ := m.openStep(stepWelcome)
+	return next.(Model)
 }
 
 // checksArrived starts revealing the host checks when they are new to Onboarding.
@@ -267,6 +281,9 @@ func (m Model) stepIntro(s step) []string {
 	switch s {
 	case stepWhat:
 		text = "Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that work together. You can add more later from the Catalog."
+		if m.onboarding.answers.picks["homarr"] {
+			text += " Homarr is preselected as your Apps' home page; unpick its App row to skip it."
+		}
 	case stepWhere:
 		text = "This computer's address on your network, the settings your Apps share and where they keep their files."
 	case stepAccess:
@@ -407,7 +424,7 @@ func (m Model) whatDetail() []string {
 func (m Model) inputGroups(cat *catalog.Catalog) []*huh.Group {
 	v := m.onboarding.answers
 	var groups []*huh.Group
-	for _, a := range cat.Apps() {
+	for _, a := range v.picks.apps(cat) {
 		inputs := a.Inputs()
 		if len(inputs) == 0 {
 			continue
@@ -437,9 +454,7 @@ func (m Model) inputGroups(cat *catalog.Catalog) []*huh.Group {
 			}
 			fields = append(fields, field)
 		}
-		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own.").WithHideFunc(func() bool {
-			return !v.picks[id]
-		}))
+		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own."))
 	}
 	return groups
 }
@@ -582,7 +597,7 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		switch o.step {
 		case stepWelcome:
 			if !o.experienceSaved {
-				o.answers.experience = project.ExperienceNew
+				o.experience = max(o.experience-1, 0)
 			}
 		case stepLook:
 			o.look = max(o.look-1, 0)
@@ -594,12 +609,29 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		switch o.step {
 		case stepWelcome:
 			if !o.experienceSaved {
-				o.answers.experience = project.ExperienceAdvanced
+				o.experience = min(o.experience+1, len(experienceChoices)-1)
 			}
 		case stepLook:
 			o.look = min(o.look+1, len(glyphChoices)-1)
 		case stepAccess:
 			o.access = min(o.access+1, len(accessOptions)-1)
+			m.setFlash("", levelInfo)
+		}
+	case "space":
+		switch o.step {
+		case stepWelcome:
+			if !o.experienceSaved {
+				o.answers.experience = experienceChoices[o.experience].level
+			}
+		case stepLook:
+			m.glyphs = glyphChoices[o.look].glyphs
+		case stepAccess:
+			choice := accessOptions[o.access]
+			if choice.explainsOnly() {
+				m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
+				break
+			}
+			o.answers.accessChoice, o.answers.accessChosen = choice.id, true
 			m.setFlash("", levelInfo)
 		}
 	case "r":
@@ -643,7 +675,10 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case stepAccess:
-		choice := accessOptions[o.access]
+		choice, found := accessByID(o.answers.accessChoice)
+		if !found {
+			choice = accessOptions[0]
+		}
 		if choice.id == "tailscale" {
 			if _, found := m.backend.Catalog().App("tailscale"); !found {
 				m.setFlash("Tailscale is not in this Catalog", levelWarn)
@@ -678,7 +713,6 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		o.answers.easyNames, o.answers.accessChosen = choice.id == "names", true
 		delete(o.answers.picks, "tailscale")
 	case stepLook:
-		m.glyphs = glyphChoices[o.look].glyphs
 		return m.openStep(stepReview)
 	case stepReview:
 		m.preboot = newPrebootScreen()
@@ -699,10 +733,12 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	o.step, o.form, o.list = s, nil, nil
 	switch s {
 	case stepWelcome:
+		o.autoContinue = false
 		o.experienceSaved = m.backend.Experience(context.Background()) != ""
 		if o.answers.experience == "" {
 			o.answers.experience = project.ExperienceNew
 		}
+		o.experience = max(slices.IndexFunc(experienceChoices, func(c experienceChoice) bool { return c.level == o.answers.experience }), 0)
 	case stepWhat:
 		if o.answers.picks == nil {
 			o.answers.picks = picks{}
@@ -725,6 +761,10 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		if o.answers.picks["tailscale"] {
 			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "tailscale" })
 		}
+		if o.answers.accessChoice != "" {
+			o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == o.answers.accessChoice }), 0)
+		}
+		o.answers.accessChoice = accessOptions[o.access].id
 	case stepLook:
 		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == m.glyphs })
 		o.look = max(o.look, 0)
@@ -780,8 +820,8 @@ var (
 	onboardingNextKey  = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "next"))
 	onboardingApprove  = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "approve"))
 	onboardingBack     = key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back"))
-	onboardingChoose   = key.NewBinding(key.WithKeys("up", "down"), key.WithHelp("↑/↓", "choose"))
-	onboardingUse      = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "use"))
+	onboardingChoose   = key.NewBinding(key.WithKeys("up", "down"), key.WithHelp("↑/↓", "focus"))
+	onboardingSelect   = key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "select"))
 	onboardingRecheck  = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recheck"))
 )
 
@@ -802,14 +842,14 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 		if m.onboarding.form != nil {
 			return t.fg(t.accentText).Bold(true).Render("answering"), []key.Binding{onboardingNextKey, onboardingBack}
 		}
-		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack, moreKey}
+		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack, moreKey}
 	case stepWelcome:
 		if m.onboarding.experienceSaved {
 			return quit, []key.Binding{onboardingContinue, onboardingBack}
 		}
-		return quit, []key.Binding{onboardingChoose, onboardingContinue, onboardingBack}
+		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack}
 	case stepLook:
-		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack}
+		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack}
 	case stepReview:
 		return quit, []key.Binding{onboardingApprove, onboardingBack}
 	}
@@ -830,10 +870,23 @@ func (m Model) renderOnboarding() string {
 	o := m.onboarding
 	lines := []string{"", "  " + renderSteps(m.theme, o.step, m.width-4), ""}
 	switch o.step {
-	case stepInitializing:
-		lines = append(lines, m.renderChecks()...)
-	case stepWelcome:
-		lines = append(lines, m.renderWelcome()...)
+	case stepInitializing, stepWelcome:
+		body := m.renderChecks()
+		if o.step == stepWelcome {
+			body = m.renderWelcome()
+		}
+		room := max(m.mainHeight()-len(lines), 1)
+		for i := len(body) - 1; i >= 0 && len(body) > room; i-- {
+			if strings.TrimSpace(body[i]) == "" {
+				body = slices.Delete(body, i, i+1)
+			}
+		}
+		for i, line := range body {
+			body[i] = truncate(strings.TrimRight(strings.TrimPrefix(line, "  "), " "), max(m.width-4, 1))
+		}
+		block := strings.Join(body, "\n")
+		block = fit(block, lipgloss.Width(block), lipgloss.Height(block))
+		return strings.Join(lines, "\n") + "\n" + lipgloss.Place(m.width, room, lipgloss.Center, lipgloss.Center, block)
 	case stepAccess:
 		if o.form != nil {
 			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
@@ -945,24 +998,24 @@ func (m Model) renderChecks() []string {
 
 func (m Model) renderWelcome() []string {
 	t := m.theme
-	lines := []string{
-		"  " + t.title().Render("Welcome to self-host"), "",
-		"  " + t.body().Render("self-host runs the Apps you pick on this machine with Docker Compose, and"),
-		"  " + t.body().Render("sets them up for you: one Admin login, their API keys and the Links"),
-		"  " + t.body().Render("between them."), "",
-		"  " + t.body().Render("Next you choose what to run, where it lives, who administers it and how"),
-		"  " + t.body().Render("it looks. Then you review the plan."), "",
-	}
-	if !m.onboarding.experienceSaved {
-		for _, line := range strings.Split(wrap(experienceQuestion, min(max(m.width-4, 20), 96)), "\n") {
-			lines = append(lines, "  "+t.heading().Render(line))
+	lines := []string{"  " + t.title().Render("Welcome to self-host"), ""}
+	paragraph := func(text string, style lipgloss.Style) {
+		for _, line := range strings.Split(wrap(text, min(max(m.width-4, 1), 76)), "\n") {
+			lines = append(lines, "  "+style.Render(strings.TrimRight(line, " ")))
 		}
-		for _, c := range experienceChoices {
-			lines = append(lines, "  "+truncate(radioRow(t, c.level == m.onboarding.answers.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
+	}
+	paragraph("self-host runs the Apps you pick on this machine with Docker Compose, and sets them up for you: one Admin login, their API keys and the Links between them.", t.body())
+	lines = append(lines, "")
+	paragraph("Next you choose what to run, where it lives, who administers it and how it looks. Then you review the plan.", t.body())
+	lines = append(lines, "")
+	if !m.onboarding.experienceSaved {
+		paragraph(experienceQuestion, t.heading())
+		for i, c := range experienceChoices {
+			lines = append(lines, "  "+truncate(radioRow(t, i == m.onboarding.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
 		}
 		lines = append(lines, "")
 	}
-	lines = append(lines, "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
+	paragraph("Nothing is written until you approve the plan at Review.", t.active())
 	if m.onboarding.notice != "" {
 		lines = append(lines, "")
 		for _, line := range strings.Split(m.onboarding.notice, "\n") {
@@ -974,7 +1027,9 @@ func (m Model) renderWelcome() []string {
 
 const experienceQuestion = "Have you run your own server or used Docker before, or is this all new to you?"
 
-var experienceChoices = []struct{ level, label string }{
+type experienceChoice struct{ level, label string }
+
+var experienceChoices = []experienceChoice{
 	{project.ExperienceNew, "New: this is all new to me"},
 	{project.ExperienceAdvanced, "Advanced: I have run a server or used Docker"},
 }
@@ -990,7 +1045,7 @@ func (m Model) renderLook() []string {
 	}
 	lines = append(lines, "", truncate("  "+glyphSample(t, activity.NerdFont), m.width), "",
 		"  "+t.heading().Render("Do these icons look right?"))
-	answers := []string{"Yes, they look right: use Nerd Font icons", "No, I see boxes or gaps: use Simple symbols"}
+	answers := []string{"Nerd Font: use the icons shown above", "Simple (default): use plain symbols"}
 	for i, choice := range glyphChoices {
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.look, choice.glyphs == m.glyphs, answers[i]), m.width-2))
 	}
@@ -1008,7 +1063,7 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		selected := option.value != "" && option.value == o.answers.exposure && (option.id == "names") == o.answers.easyNames || option.id == "cloudflare" && o.answers.cloudflare || option.id == "tailscale" && o.answers.picks["tailscale"]
+		selected := option.id == o.answers.accessChoice
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line

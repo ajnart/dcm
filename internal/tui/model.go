@@ -224,6 +224,7 @@ func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 		m.tracker.Observe(s, m.frame)
 	}
 	m = m.advancePreboot(s)
+	m = m.advanceInitializing()
 	if m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, m.frameTick()
 	}
@@ -404,9 +405,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.onboarding.answers.fill(m.defaults)
 			if !m.onboarding.answers.accessChosen {
 				m.onboarding.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
+				m.onboarding.answers.accessChoice = ""
 			}
 		}
-		return m, nil
+		return m.advanceInitializing(), nil
 
 	case statusMsg:
 		return m.handleStatus(msg)

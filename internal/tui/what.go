@@ -26,12 +26,6 @@ func (m Model) newWhatList() *whatList {
 	l.search.Prompt = "/ "
 	l.search.Placeholder = "filter by name or description"
 	l.search.SetWidth(max(m.formWidth()-6, 10))
-	for i, it := range m.whatRows(l) {
-		if m.whatMark(it) != pickNone {
-			l.cursor = i
-			break
-		}
-	}
 	return l
 }
 
@@ -151,7 +145,7 @@ func (m Model) renderWhatList() []string {
 	l := m.onboarding.list
 	width := max(m.width-4, 20)
 	rows := m.whatRows(l)
-	head := t.heading().Render("Apps and Recipes")
+	head := t.heading().Render("Apps and Recipes") + t.dim().Render(" · ✓ all · ◐ some · ○ none of a Recipe's Apps")
 	if l.filtering || l.search.Value() != "" {
 		head = l.search.View()
 	}
@@ -176,12 +170,12 @@ func (m Model) renderWhatList() []string {
 	if len(rows) == 0 {
 		lines = append(lines, "  "+t.dim().Render("Nothing matches."))
 	}
-	footer := t.dim().Render("x toggle · / filter · ↑/↓ move")
+	footer := t.dim().Render("space toggle · / filter · ↑/↓ focus")
 	switch {
 	case l.err != "":
 		footer = t.fg(t.fail).Render("✗ " + l.err)
 	case len(rows) > avail:
-		footer = t.dim().Render("x toggle · / filter · ↑/↓ move · " + strconv.Itoa(len(rows)-avail) + " more")
+		footer = t.dim().Render("space toggle · / filter · ↑/↓ focus · " + strconv.Itoa(len(rows)-avail) + " more")
 	}
 	return append(lines, "  "+truncate(footer, width))
 }

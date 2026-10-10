@@ -20,13 +20,13 @@ func recipeCatalog() *catalog.Catalog {
 	}, []catalog.Recipe{{ID: "arr", Name: "Arr", Description: "Find and fetch your movies", Apps: []string{"radarr", "prowlarr"}}})
 }
 
-// atWhatWith is Onboarding at the What step over cat, the cursor on Homarr,
-// the one App that is picked from the start.
+// atWhatWith is Onboarding at the What step over cat, focused on its first
+// Recipe, with Homarr picked from the start.
 func atWhatWith(t *testing.T, cat *catalog.Catalog, width, height int) (Model, *fakeBackend) {
 	t.Helper()
 	m, backend := onboardingHost(t, width, height, readyChecks...)
 	backend.catalog = cat
-	m = drive(t, frames(t, m, 60), press("enter"))
+	m = frames(t, m, 60)
 	return drive(t, m, press("enter")), backend
 }
 
@@ -92,6 +92,7 @@ func TestPickingAHalfPickedRecipeInWhatPicksTheRest(t *testing.T) {
 	m, _ := atWhatWith(t, recipeCatalog(), 120, 30)
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Prowlarr alone
 	for range 3 {
 		m = drive(t, m, press("up"))
@@ -147,6 +148,7 @@ func TestWhatFiltersAndStillPicks(t *testing.T) {
 
 func TestWhatRequiresAPick(t *testing.T) {
 	m, _ := atWhatWith(t, recipeCatalog(), 120, 30)
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Homarr out
 
 	m = drive(t, m, press("enter"))
