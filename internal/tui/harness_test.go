@@ -55,6 +55,10 @@ type fakeBackend struct {
 	saved     []activity.Glyphs
 	// glyphErr is what SetGlyphs returns.
 	glyphErr error
+	// experience is the saved Experience level and savedExperience every
+	// level SetExperience received.
+	experience      string
+	savedExperience []string
 	// holdLogs makes Logs follow a never-ending stream until it is
 	// cancelled; logStarts counts the streams opened and logsRunning those
 	// still open.
@@ -132,6 +136,26 @@ func (f *fakeBackend) savedGlyphs() []activity.Glyphs {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]activity.Glyphs(nil), f.saved...)
+}
+
+func (f *fakeBackend) Experience(context.Context) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.experience
+}
+
+func (f *fakeBackend) SetExperience(_ context.Context, level string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.experience = level
+	f.savedExperience = append(f.savedExperience, level)
+	return nil
+}
+
+func (f *fakeBackend) savedExperiences() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.savedExperience...)
 }
 
 func (f *fakeBackend) ReviewSettings(context.Context) ([]service.SettingReview, error) {

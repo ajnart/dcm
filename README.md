@@ -309,7 +309,7 @@ existing tunnel enrollment and software licenses remain prerequisites. The CLI
 does not create provider accounts or establish those external approvals for you.
 
 With `--json`, mutations and `doctor` produce newline-delimited events;
-`status`, `apps list`, `apps info` and `credentials` produce JSON documents.
+`status`, `profile`, `apps list`, `apps info` and `credentials` produce JSON documents.
 Read each `step.fail` and its hint. Exit codes are `0` for success, `1` for an
 error and `2` for incomplete Setup. A failed Setup needs repair and
 `self-host setup <app>`; completed steps are skipped. Verify the App's intended

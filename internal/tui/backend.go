@@ -104,6 +104,12 @@ type Backend interface {
 	// SetGlyphs saves the glyph set with the Project. It works while the
 	// install that creates the Project runs, and after it.
 	SetGlyphs(ctx context.Context, g activity.Glyphs) error
+	// Experience is the Experience level in the Profile, or "" until the
+	// person answered.
+	Experience(ctx context.Context) string
+	// SetExperience saves the Experience level in the Profile. It works
+	// before any Project exists.
+	SetExperience(ctx context.Context, level string) error
 }
 
 // ServiceBackend runs every call on a fresh Service so each task gets its
@@ -258,6 +264,18 @@ func (b ServiceBackend) Glyphs(context.Context) activity.Glyphs {
 
 func (b ServiceBackend) SetGlyphs(_ context.Context, g activity.Glyphs) error {
 	return b.quiet().SetAppearance(project.Appearance{Glyphs: string(g)})
+}
+
+func (b ServiceBackend) Experience(context.Context) string {
+	profile, err := b.quiet().Profile()
+	if err != nil {
+		return ""
+	}
+	return profile.Experience
+}
+
+func (b ServiceBackend) SetExperience(_ context.Context, level string) error {
+	return b.quiet().SetExperience(level)
 }
 
 func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {

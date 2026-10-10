@@ -54,7 +54,7 @@ func TestStatusJSONKeepsLegacyStrings(t *testing.T) {
 			if err := os.WriteFile(p.Path("state.json"), []byte(legacy), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			expected := fmt.Sprintf(`{"project":%s,"exposure":"local","lan_ip":"","settings":{"EXPOSURE":"local"},"apps":[{"id":"one","name":"Echo one","managed":true,"image":"example/echo:latest","state":"missing","setup":%q,"steps":[{"id":"a","status":"ok"},{"id":"b","status":"skip"},{"id":"c","status":"fail"},{"id":"d","status":"manual"}],"services":["one"]}]}`, root, setup)
+			expected := fmt.Sprintf(`{"project":%s,"exposure":"local","lan_ip":"","settings":{"EXPOSURE":"local"},"apps":[{"id":"one","name":"Echo one","managed":true,"image":"example/echo:latest","state":"missing","setup":%q,"steps":[{"id":"a","status":"ok"},{"id":"b","status":"skip"},{"id":"c","status":"fail"},{"id":"d","status":"manual"}],"services":["one"]}],"profile":{"experience":""}}`, root, setup)
 			var want bytes.Buffer
 			if err := json.Indent(&want, []byte(expected), "", "  "); err != nil {
 				t.Fatal(err)
@@ -65,5 +65,29 @@ func TestStatusJSONKeepsLegacyStrings(t *testing.T) {
 				t.Fatalf("status JSON changed: exit %d\ngot %s\nwant %s", code, got, want.String())
 			}
 		})
+	}
+}
+
+func TestStatusJSONCarriesTheProfileOnceAProjectExists(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	owner, _ := deps.CurrentUser()
+	p := project.Open(owner)
+	if err := p.SaveSettings(map[string]string{"EXPOSURE": "lan", "TZ": "UTC"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.SaveProfile(project.Profile{Experience: "advanced"}); err != nil {
+		t.Fatal(err)
+	}
+
+	code, out := runWith(t, deps, testCatalog(&echoApp{id: "one"}), "status", "--json")
+
+	var got struct {
+		Profile map[string]string `json:"profile"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil || code != 0 {
+		t.Fatalf("exit %d, %v\n%s", code, err, out)
+	}
+	if len(got.Profile) != 1 || got.Profile["experience"] != "advanced" {
+		t.Fatalf("profile = %v, want map[experience:advanced]\n%s", got.Profile, out)
 	}
 }

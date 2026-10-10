@@ -27,7 +27,8 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    `self-host setup <app>`. Finished steps are skipped, so reruns are safe.
 6. `self-host status --json` is the source of truth: URL, state, health, Setup
    result and failed steps of every App. `self-host status --updates --json`
-   also asks registries whether newer images exist.
+   also asks registries whether newer images exist. It carries the person's
+   `profile` (`{"experience": "new"|"advanced"|""}`; empty until they answered).
 
 ## Two kinds of users
 
@@ -91,6 +92,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
 | `self-host status` | Exposure, Host settings, every App's URL, state, Setup |
+| `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |
 | `self-host apps info <app>` | One App's image, port, inputs, Links |
@@ -156,7 +158,7 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `credentials`, `apps list`, `apps info`, `logs`)
+Document commands (`status`, `profile`, `credentials`, `apps list`, `apps info`, `logs`)
 print one result on stdout and only errors on stderr with `--json`.
 
 ## Exit codes
