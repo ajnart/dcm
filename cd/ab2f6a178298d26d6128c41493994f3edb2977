@@ -1,0 +1,54 @@
+.github/workflows/release.yml
+  h_d6e478ca18e517 43-44
+.goreleaser.yaml
+  h_d6e478ca18e517 26
+README.md
+  h_d6e478ca18e517 132-153
+docs/releasing.md
+  h_d6e478ca18e517 25-29
+go.mod
+  h_d6e478ca18e517 12,27-29,36,45
+go.sum
+  h_d6e478ca18e517 13-14,44-49,62-63,73,83-84
+internal/cli/cli.go
+  h_d6e478ca18e517 53-55,70,86-88,90-93,95,97,99,102,104,147,153,159,166,169,171-172
+internal/cli/telemetry.go
+  h_d6e478ca18e517 1-108
+internal/cli/telemetry_test.go
+  h_d6e478ca18e517 1-203
+internal/project/homefile.go
+  h_d6e478ca18e517 1-17
+internal/service/telemetry.go
+  h_d6e478ca18e517 1-24
+internal/skill/guide.md
+  h_d6e478ca18e517 333-350
+internal/telemetry/telemetry.go
+  h_d6e478ca18e517 1-305
+internal/telemetry/telemetry_test.go
+  h_d6e478ca18e517 1-355
+internal/telemetry/telemetrytest/telemetrytest.go
+  h_d6e478ca18e517 1-104
+internal/tui/backend.go
+  h_d6e478ca18e517 21,114-116,129-135
+internal/tui/harness_test.go
+  h_d6e478ca18e517 91-100
+internal/tui/onboarding.go
+  h_d6e478ca18e517 80-81,95,915-919
+internal/tui/onboarding_telemetry_test.go
+  h_d6e478ca18e517 1-80
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  h_d6e478ca18e517 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cdab2f6a178298d26d6128c41493994f3edb2977",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
