@@ -1,0 +1,51 @@
+internal/tui/backups.go
+  s_8b1d5a69f175a9::t_b05fe20481caf6 407-408
+internal/tui/help.go
+  s_8b1d5a69f175a9::t_ed3c2159d5fcc1 22
+internal/tui/model.go
+  s_8b1d5a69f175a9::t_3012a053ca59f3 636-637
+internal/tui/settings_test.go
+  s_8b1d5a69f175a9::t_6cbaf5421bc036 9-10,13,35,41,46,71,79,81,85,91,93,183,202,205-206,208-216,218-221,223-233,235-242,244-248,250-258,262,264,269,275,281,283-284,287-288,292,298,303,323,328,330-332,336-342,344,346-354,358,366
+internal/tui/testdata/settings-backups-list-narrow.golden
+  s_8b1d5a69f175a9::t_0b4e63a08d9ad7 2
+internal/tui/testdata/settings-backups-list.golden
+  s_8b1d5a69f175a9::t_33a46384898fa5 2
+internal/tui/testdata/settings-backups-passphrase-again-narrow.golden
+  s_8b1d5a69f175a9::t_e015024d4f44c8 2
+internal/tui/testdata/settings-backups-passphrase-again.golden
+  s_8b1d5a69f175a9::t_5419389622832a 2
+internal/tui/testdata/settings-backups-passphrase-mismatch-narrow.golden
+  s_8b1d5a69f175a9::t_0c7381235d006a 2
+internal/tui/testdata/settings-backups-passphrase-mismatch.golden
+  s_8b1d5a69f175a9::t_119e1bb0b445db 2
+internal/tui/testdata/settings-backups-passphrase-narrow.golden
+  s_8b1d5a69f175a9::t_438aca95a96bdb 2
+internal/tui/testdata/settings-backups-passphrase.golden
+  s_8b1d5a69f175a9::t_8775e5a383de45 2
+internal/tui/testdata/settings-backups-restore-armed-narrow.golden
+  s_8b1d5a69f175a9::t_647f7d274edc41 2
+internal/tui/testdata/settings-backups-restore-armed.golden
+  s_8b1d5a69f175a9::t_6eaba8758e065a 2
+internal/tui/testdata/settings-backups-restore-narrow.golden
+  s_8b1d5a69f175a9::t_dce0dca69863ea 2
+internal/tui/testdata/settings-backups-restore.golden
+  s_8b1d5a69f175a9::t_94739a1aa9d4aa 2
+internal/tui/views_test.go
+  s_8b1d5a69f175a9::t_60099d33065645 69-72,77-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ba157310844c5344b26b429286e5047f9cc2f1d",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
