@@ -1,0 +1,309 @@
+.github/CODEOWNERS
+  s_59ffa5bfdcd3ba::t_3012da85093dc0 1
+.github/workflows/ci.yml
+  s_59ffa5bfdcd3ba::t_d88ce5177f837a 23-26,29-32
+.github/workflows/release.yml
+  s_59ffa5bfdcd3ba::t_811fc511101dc4 43-44
+.goreleaser.yaml
+  s_59ffa5bfdcd3ba::t_457ed300c0b6f8 26
+docs/adr/0007-one-repo-go-cli-only.md
+  s_59ffa5bfdcd3ba::t_dedd938f7be188 3
+docs/releasing.md
+  s_59ffa5bfdcd3ba::t_f8cf13e2c31bc4 25-29
+docs/spec.md
+  s_59ffa5bfdcd3ba::t_ceb912982062de 151
+go.mod
+  s_59ffa5bfdcd3ba::t_c629d631f0dc73 12,27-29,36,45
+go.sum
+  s_59ffa5bfdcd3ba::t_9aba7f770a2868 13-14,44-49,62-63,73,83-84
+internal/apps/actualbudget/actualbudget.go
+  s_59ffa5bfdcd3ba::t_9c63d9e9201318 21
+internal/apps/adguard/adguard.go
+  s_59ffa5bfdcd3ba::t_38ddfb10960f9b 23
+internal/apps/archiveteamwarrior/archiveteamwarrior.go
+  s_59ffa5bfdcd3ba::t_2ee00f6a929dd0 22
+internal/apps/aria2/aria2.go
+  s_59ffa5bfdcd3ba::t_e8ab08022ade39 21
+internal/apps/arr/arr.go
+  s_59ffa5bfdcd3ba::t_3d58672a5aee52 38,56,74
+internal/apps/audiobookshelf/audiobookshelf.go
+  s_59ffa5bfdcd3ba::t_b41e529d9acc74 21
+internal/apps/authelia/authelia.go
+  s_59ffa5bfdcd3ba::t_ae845fab97715e 23
+internal/apps/authentik/authentik.go
+  s_59ffa5bfdcd3ba::t_dc28ddc3573475 31
+internal/apps/bazarr/bazarr.go
+  s_59ffa5bfdcd3ba::t_c7ecf29fcce121 24
+internal/apps/beszel/beszel.go
+  s_59ffa5bfdcd3ba::t_c37ef25c7ba7d8 39
+internal/apps/bookstack/bookstack.go
+  s_59ffa5bfdcd3ba::t_ed79e3f0e3095f 44
+internal/apps/borgmatic/borgmatic.go
+  s_59ffa5bfdcd3ba::t_8aff37df457341 19
+internal/apps/caddy/caddy.go
+  s_59ffa5bfdcd3ba::t_7929ccb118008b 20
+internal/apps/cloudflaretunnel/cloudflaretunnel.go
+  s_59ffa5bfdcd3ba::t_bddcf83db79b5a 20
+internal/apps/dashdot/dashdot.go
+  s_59ffa5bfdcd3ba::t_67b96f339877c3 20
+internal/apps/deluge/deluge.go
+  s_59ffa5bfdcd3ba::t_92eb0d37ea836e 21
+internal/apps/dockge/dockge.go
+  s_59ffa5bfdcd3ba::t_7a1440db9c6c82 20
+internal/apps/docmost/docmost.go
+  s_59ffa5bfdcd3ba::t_04673d0367dfe6 27
+internal/apps/emby/emby.go
+  s_59ffa5bfdcd3ba::t_43bd4b1f34a7fc 22
+internal/apps/fireflyiii/fireflyiii.go
+  s_59ffa5bfdcd3ba::t_9ca6b61d2f279c 28
+internal/apps/forgejo/forgejo.go
+  s_59ffa5bfdcd3ba::t_c2fffd129091c5 22
+internal/apps/freshrss/freshrss.go
+  s_59ffa5bfdcd3ba::t_000bab1139dd95 22
+internal/apps/frigate/frigate.go
+  s_59ffa5bfdcd3ba::t_528a5793a85b08 24
+internal/apps/gatus/gatus.go
+  s_59ffa5bfdcd3ba::t_29b83a5a5c40e5 20
+internal/apps/glances/glances.go
+  s_59ffa5bfdcd3ba::t_c97e3b7890f9f0 20
+internal/apps/gluetun/gluetun.go
+  s_59ffa5bfdcd3ba::t_ad8ac01445953a 23
+internal/apps/gotify/gotify.go
+  s_59ffa5bfdcd3ba::t_323fda9c2e80ca 21
+internal/apps/grafana/grafana.go
+  s_59ffa5bfdcd3ba::t_1ff91de2830c6c 22
+internal/apps/haproxy/haproxy.go
+  s_59ffa5bfdcd3ba::t_35dfac9e996154 23
+internal/apps/headscale/headscale.go
+  s_59ffa5bfdcd3ba::t_7c7734102396a2 25
+internal/apps/homarr/homarr.go
+  s_59ffa5bfdcd3ba::t_a7011309e868c7 28
+internal/apps/homarr/homarr_test.go
+  s_59ffa5bfdcd3ba::t_0f7a6904a9b4cb 2131-2154
+internal/apps/homeassistant/homeassistant.go
+  s_59ffa5bfdcd3ba::t_f4fd7e5cbdb765 22
+internal/apps/homebridge/homebridge.go
+  s_59ffa5bfdcd3ba::t_a6d2882f33191c 21
+internal/apps/immich/immich.go
+  s_59ffa5bfdcd3ba::t_c17f8f5f6f6951 27
+internal/apps/jellyfin/jellyfin.go
+  s_59ffa5bfdcd3ba::t_390d807dfac1c9 36
+internal/apps/keycloak/keycloak.go
+  s_59ffa5bfdcd3ba::t_7b93838aff8792 25
+internal/apps/kopia/kopia.go
+  s_59ffa5bfdcd3ba::t_4b5a1bf2b0bb83 24
+internal/apps/lidarr/lidarr.go
+  s_59ffa5bfdcd3ba::t_c92d3835ac59de 24
+internal/apps/linkwarden/linkwarden.go
+  s_59ffa5bfdcd3ba::t_fe046d45188c61 24
+internal/apps/lldap/lldap.go
+  s_59ffa5bfdcd3ba::t_6e7dd94528dced 21
+internal/apps/loki/loki.go
+  s_59ffa5bfdcd3ba::t_1558093016888a 20
+internal/apps/mayanedms/mayanedms.go
+  s_59ffa5bfdcd3ba::t_59d1045990c0f7 24
+internal/apps/minio/minio.go
+  s_59ffa5bfdcd3ba::t_32d1e5f734c20d 29
+internal/apps/navidrome/navidrome.go
+  s_59ffa5bfdcd3ba::t_b0367ba5b5be35 22
+internal/apps/netbird/netbird.go
+  s_59ffa5bfdcd3ba::t_87083d36f41089 23
+internal/apps/netdata/netdata.go
+  s_59ffa5bfdcd3ba::t_78966d021c1744 19
+internal/apps/nextcloud/nextcloud.go
+  s_59ffa5bfdcd3ba::t_b3f783750b473f 23
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  s_59ffa5bfdcd3ba::t_63e22736fb241c 21
+internal/apps/nodered/nodered.go
+  s_59ffa5bfdcd3ba::t_2594bf86dd11a0 23
+internal/apps/ntfy/ntfy.go
+  s_59ffa5bfdcd3ba::t_fa840560e159c0 22
+internal/apps/nzbget/nzbget.go
+  s_59ffa5bfdcd3ba::t_58e3684d426d50 26
+internal/apps/ollama/ollama.go
+  s_59ffa5bfdcd3ba::t_306ccb5d947f2a 20
+internal/apps/openwebui/openwebui.go
+  s_59ffa5bfdcd3ba::t_4f5e6a13a0dc14 26
+internal/apps/pangolin/pangolin.go
+  s_59ffa5bfdcd3ba::t_211e274e84b587 25
+internal/apps/paperlessngx/paperlessngx.go
+  s_59ffa5bfdcd3ba::t_7334fe5fb70f27 23
+internal/apps/passbolt/passbolt.go
+  s_59ffa5bfdcd3ba::t_17e6a74fa6d5d9 23
+internal/apps/patchmon/patchmon.go
+  s_59ffa5bfdcd3ba::t_67b1a5820bce21 23
+internal/apps/peanut/peanut.go
+  s_59ffa5bfdcd3ba::t_bb425d4b6360bf 24
+internal/apps/photoprism/photoprism.go
+  s_59ffa5bfdcd3ba::t_d2dd96434ffd59 22
+internal/apps/pihole/pihole.go
+  s_59ffa5bfdcd3ba::t_158d910a680587 23
+internal/apps/plex/plex.go
+  s_59ffa5bfdcd3ba::t_3441ee49dd29f9 22
+internal/apps/portainer/portainer.go
+  s_59ffa5bfdcd3ba::t_7e49804605bd02 22
+internal/apps/postgresql/postgresql.go
+  s_59ffa5bfdcd3ba::t_2288bde128877b 22
+internal/apps/prometheus/prometheus.go
+  s_59ffa5bfdcd3ba::t_97f3ddf7146e70 20
+internal/apps/qbittorrent/qbittorrent.go
+  s_59ffa5bfdcd3ba::t_5c4a581381867b 38
+internal/apps/renovate/renovate.go
+  s_59ffa5bfdcd3ba::t_8f409a0cbc129a 19
+internal/apps/restic/restic.go
+  s_59ffa5bfdcd3ba::t_53591340592088 19
+internal/apps/sabnzbd/sabnzbd.go
+  s_59ffa5bfdcd3ba::t_265fc64277e021 25
+internal/apps/scrypted/scrypted.go
+  s_59ffa5bfdcd3ba::t_eccbc115f62ee5 21
+internal/apps/seafile/seafile.go
+  s_59ffa5bfdcd3ba::t_a3aeb105cb65b5 28
+internal/apps/seerr/seerr.go
+  s_59ffa5bfdcd3ba::t_275911d9161d71 36
+internal/apps/slskd/slskd.go
+  s_59ffa5bfdcd3ba::t_a6682391a66707 23
+internal/apps/speedtesttracker/speedtesttracker.go
+  s_59ffa5bfdcd3ba::t_1f05d6d86cbdd9 49
+internal/apps/stalwartmail/stalwartmail.go
+  s_59ffa5bfdcd3ba::t_739328352f28a0 20
+internal/apps/stirlingpdf/stirlingpdf.go
+  s_59ffa5bfdcd3ba::t_7ab615044c8ca0 20
+internal/apps/syncthing/syncthing.go
+  s_59ffa5bfdcd3ba::t_97fcb6763fa4f1 25
+internal/apps/tailscale/tailscale.go
+  s_59ffa5bfdcd3ba::t_07eedc0ec979d5 19
+internal/apps/tdarr/tdarr.go
+  s_59ffa5bfdcd3ba::t_ad6edd0eb969ba 22
+internal/apps/technitiumdns/technitiumdns.go
+  s_59ffa5bfdcd3ba::t_f999902945444c 23
+internal/apps/tracearr/tracearr.go
+  s_59ffa5bfdcd3ba::t_63d8ba46c5f7c3 26
+internal/apps/traefik/traefik.go
+  s_59ffa5bfdcd3ba::t_971da0afa095f9 27
+internal/apps/transmission/transmission.go
+  s_59ffa5bfdcd3ba::t_95767b0303cfd3 22
+internal/apps/umami/umami.go
+  s_59ffa5bfdcd3ba::t_e1dab6771423ec 28
+internal/apps/unbound/unbound.go
+  s_59ffa5bfdcd3ba::t_18b13acff0b7ac 22
+internal/apps/uptimekuma/uptimekuma.go
+  s_59ffa5bfdcd3ba::t_77d36093402f66 23
+internal/apps/valkey/valkey.go
+  s_59ffa5bfdcd3ba::t_ce627d42c36759 22
+internal/apps/vaultwarden/vaultwarden.go
+  s_59ffa5bfdcd3ba::t_e40e2a8d9fad10 23
+internal/apps/vector/vector.go
+  s_59ffa5bfdcd3ba::t_3044535b3bbd42 20
+internal/apps/victoriametrics/victoriametrics.go
+  s_59ffa5bfdcd3ba::t_74d0a37e9c4fa2 20
+internal/apps/wud/wud.go
+  s_59ffa5bfdcd3ba::t_e8ef54b19b0b19 29
+internal/apps/zerotier/zerotier.go
+  s_59ffa5bfdcd3ba::t_b5ab1f7e10fdaa 24
+internal/backup/backup.go
+  s_59ffa5bfdcd3ba::t_73ab9a5817841c 38-39,49-58,349,658
+internal/catalog/batch_recipes.go
+  s_59ffa5bfdcd3ba::t_a0d6deb499fa8f 8,14,20,27,33,40,46,54,60,66,73,80,86,92,98,106,112,118,124
+internal/catalog/default.go
+  s_59ffa5bfdcd3ba::t_bc2218acbcf03b 22
+internal/catalog/descriptions_test.go
+  s_59ffa5bfdcd3ba::t_fd1d67ac37cfd9 1-88
+internal/cli/cli.go
+  s_59ffa5bfdcd3ba::t_6a109f9f7f7e05 53-55,70,86-88,90-93,95,97,99,102,104,147,153,159,166,169,171-172,199
+internal/cli/debug.go
+  s_59ffa5bfdcd3ba::t_e2fdefff3bfa68 1-75
+internal/cli/debug_test.go
+  s_59ffa5bfdcd3ba::t_424288d8657c7b 1-117
+internal/cli/extra_apps_test.go
+  s_59ffa5bfdcd3ba::t_6045b99f0c14cb 1-148
+internal/cli/install.go
+  s_59ffa5bfdcd3ba::t_7412da517e1f81 95-96,112-144
+internal/cli/lifecycle_test.go
+  s_59ffa5bfdcd3ba::t_ef9a935ca2db09 76
+internal/cli/profile.go
+  s_59ffa5bfdcd3ba::t_8b8f187aaaec02 1-47
+internal/cli/profile_test.go
+  s_59ffa5bfdcd3ba::t_d02818432573b6 1-68
+internal/cli/telemetry.go
+  s_59ffa5bfdcd3ba::t_9780af8bba2e93 1-108
+internal/cli/telemetry_test.go
+  s_59ffa5bfdcd3ba::t_1012a063e52b0b 1-203
+internal/project/homefile.go
+  s_59ffa5bfdcd3ba::t_06b4a231410754 1-17
+internal/project/profile.go
+  s_59ffa5bfdcd3ba::t_0683537babb331 1-45
+internal/project/profile_test.go
+  s_59ffa5bfdcd3ba::t_75bda9f1b57ec5 1-32
+internal/project/project.go
+  s_59ffa5bfdcd3ba::t_c1ca2ee8b74184 229-233,317-341,347-349,366-367,369,371-373,376-386,401,408
+internal/service/backup.go
+  s_59ffa5bfdcd3ba::t_3528930bf06af2 49,71,171,179,347,360,382,393,403,431,459,501,546,576,583,586,596
+internal/service/backup_docker.go
+  s_59ffa5bfdcd3ba::t_f524bfc6de030d 182,189
+internal/service/debug.go
+  s_59ffa5bfdcd3ba::t_e53ae8230daf7a 1-117
+internal/service/debug_test.go
+  s_59ffa5bfdcd3ba::t_dab9078abb63d7 1-168
+internal/service/extra_apps_test.go
+  s_59ffa5bfdcd3ba::t_1cf1b68ec15b4c 1-89
+internal/service/install.go
+  s_59ffa5bfdcd3ba::t_a594f8c6fdc7f4 74-91,239,266
+internal/service/lifecycle.go
+  s_59ffa5bfdcd3ba::t_da5fb47ee39800 46
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_9f5a2bd5e1217c 40-42,227,232,234,276-281
+internal/service/profile.go
+  s_59ffa5bfdcd3ba::t_d2013d58949843 1-34
+internal/service/status_fields_test.go
+  s_59ffa5bfdcd3ba::t_cd0da0873759ca 1-133
+internal/service/telemetry.go
+  s_59ffa5bfdcd3ba::t_5ac7d00c4c5030 1-24
+internal/telemetry/telemetry.go
+  s_59ffa5bfdcd3ba::t_d2d67e55b021be 1-305
+internal/telemetry/telemetry_test.go
+  s_59ffa5bfdcd3ba::t_4d3faa34bb11f7 1-355
+internal/telemetry/telemetrytest/telemetrytest.go
+  s_59ffa5bfdcd3ba::t_31d1dc24cb1dd6 1-104
+internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_9d4746e974de78 21,108-116,129-135,280-291
+internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_4f3bdb242a874e 58-61,91-100,151-170
+internal/tui/onboarding_telemetry_test.go
+  s_59ffa5bfdcd3ba::t_7b2f453e5216d1 1-80
+internal/tui/onboarding_test.go
+  s_59ffa5bfdcd3ba::t_167b48bbf7bee2 252-312
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  s_8b1d5a69f175a9::t_92af01f1ee5c91 1-24
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  s_8b1d5a69f175a9::t_60b22f172a3b95 1-30
+internal/tui/testdata/onboarding-welcome.golden
+  s_8b1d5a69f175a9::t_278e2fdea70e80 14-16,18,30
+tools/appgen/main.go
+  s_59ffa5bfdcd3ba::t_d79031cdc42cba 113,118-121
+tools/appgen/overrides.json
+  s_59ffa5bfdcd3ba::t_7340fdbceea659 3,7,11,16,20,24,29,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18b08a2510b34bd2f21163ca1f6bb9dba2eff091",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
