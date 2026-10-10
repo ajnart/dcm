@@ -779,8 +779,12 @@ func TestRestoreRebuildsNamesWithoutSetupAndRejectsPortConflictBeforeReplacement
 				}
 			}
 			h.holdPort80("occupied")
+			beforeRefusal := len(h.composeCalls())
 			if err := h.svc.Restore(context.Background(), file, targets, ""); err == nil {
 				t.Fatal("restore accepted port conflict")
+			}
+			if len(h.composeCalls()) != beforeRefusal {
+				t.Fatal("Restore mutated containers on preflight refusal")
 			}
 			p, _ := h.svc.Project()
 			if fresh && p.Exists() {
@@ -798,8 +802,18 @@ func TestRestoreRebuildsNamesWithoutSetupAndRejectsPortConflictBeforeReplacement
 					t.Fatal(err)
 				}
 			}
+			beforeRestore := len(h.composeCalls())
 			if err := h.svc.Restore(context.Background(), file, targets, ""); err != nil {
 				t.Fatal(err)
+			}
+			startedNames := false
+			for _, call := range h.composeCalls()[beforeRestore:] {
+				if strings.HasPrefix(call, "up ") && strings.Contains(call, "access-caddy") {
+					startedNames = true
+				}
+			}
+			if startedNames != fresh {
+				t.Fatalf("Restore started Access=%v, fresh Project=%v", startedNames, fresh)
 			}
 			data, _ := os.ReadFile(p.NamesCaddyfilePath())
 			if !strings.Contains(string(data), "one.192-168-1-20.sslip.io") || !p.HasNames() {
