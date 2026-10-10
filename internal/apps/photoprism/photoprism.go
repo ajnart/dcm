@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "photoprism", Name: "PhotoPrism", Category: "Photos",
-		Description:   "Browse, organize and search a private photo library",
+		Description:   "Browse, organize and search your photo collection privately",
 		Image:         "docker.io/photoprism/photoprism:260728",
 		Docs:          "https://docs.photoprism.app/getting-started/docker-compose/",
 		Port:          2342,

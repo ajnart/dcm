@@ -23,7 +23,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "open-webui", Name: "Open WebUI", Category: "Local AI",
-		Description:   "Private chat interface for your own language models",
+		Description:   "Chat with AI models running on your own computer, in your browser",
 		Image:         "ghcr.io/open-webui/open-webui:v0.11.4",
 		Docs:          "https://docs.openwebui.com/getting-started/quick-start/",
 		Port:          8080,

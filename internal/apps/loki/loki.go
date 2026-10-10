@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "loki", Name: "Loki", Category: "Observability",
-		Description:   "A private log store you point your own collector at and search with Grafana.",
+		Description:   "Gather your apps' activity messages in one place to search through",
 		Image:         "grafana/loki:3.7.0",
 		Docs:          "https://grafana.com/docs/loki/latest/setup/install/docker/",
 		Port:          3100,

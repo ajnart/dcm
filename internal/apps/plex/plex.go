@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "plex", Name: "Plex", Category: "Media",
-		Description:   "Streams your read-only media library through a Plex server claimed with your own account.",
+		Description:   "Stream your movies and shows to any TV, phone or tablet, signed in with Plex",
 		Image:         "plexinc/pms-docker:1.43.4.10903-e5521bd8c",
 		Docs:          "https://support.plex.tv/articles/200288586-installation/",
 		Port:          32400,

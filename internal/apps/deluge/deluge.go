@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "deluge", Name: "Deluge", Category: "Downloads",
-		Description:   "A private BitTorrent client with a Web UI and owner-selected download storage.",
+		Description:   "Download torrents in the background, with a simple web page to manage them",
 		Image:         "lscr.io/linuxserver/deluge:2.2.0-ls381",
 		Docs:          "https://deluge.readthedocs.io/en/latest/",
 		Port:          8112,

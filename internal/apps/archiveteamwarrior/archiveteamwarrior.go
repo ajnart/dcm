@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "archive-team-warrior", Name: "ArchiveTeam Warrior", Category: "Downloads",
-		Description:   "Contributes idle capacity to ArchiveTeam's web archiving projects through a private control interface",
+		Description:   "Lend your spare internet time to help save websites before they disappear",
 		Image:         "atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca",
 		Docs:          "https://wiki.archiveteam.org/index.php/ArchiveTeam_Warrior",
 		Port:          8001,

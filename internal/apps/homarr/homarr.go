@@ -25,7 +25,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "homarr", Name: "Homarr", Category: "Dashboard",
-		Description:   "Dashboard that brings your self-hosted Apps, integrations and widgets onto one board",
+		Description:   "Put all your apps on one home page, each a click away",
 		Image:         "ghcr.io/homarr-labs/homarr:dev",
 		Docs:          "https://homarr.dev/docs/getting-started/",
 		Port:          7575,

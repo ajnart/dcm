@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "tailscale", Name: "Tailscale", Category: "Remote access",
-		Description:   "Joins this host to your tailnet so its services are reachable privately from anywhere.",
+		Description:   "Reach your home apps privately from anywhere, on any of your devices",
 		Image:         "ghcr.io/tailscale/tailscale:v1.102.4",
 		Docs:          "https://tailscale.com/docs/",
 		Port:          0,

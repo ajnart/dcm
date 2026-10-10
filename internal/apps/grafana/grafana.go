@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "grafana", Name: "Grafana", Category: "Observability",
-		Description:   "Dashboards and alerts for your metrics, logs and other sources",
+		Description:   "Turn numbers about your computers and apps into charts and alerts",
 		Image:         "grafana/grafana:13.2.2",
 		Docs:          "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
 		Port:          3000,

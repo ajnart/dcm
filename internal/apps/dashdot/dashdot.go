@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "dashdot", Name: "Dash.", Category: "Monitoring",
-		Description:   "A private dashboard for the CPU and memory your Docker host exposes to the container.",
+		Description:   "See your computer's processor, memory and disk use at a glance",
 		Image:         "mauricenino/dashdot:6.3.4",
 		Docs:          "https://getdashdot.com/docs/",
 		Port:          3001,

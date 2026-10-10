@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "portainer", Name: "Portainer", Category: "Containers",
-		Description:   "A web UI for the containers running on this host",
+		Description:   "See and manage your running apps from one web page",
 		Image:         "docker.io/portainer/portainer-ce:2.45.1",
 		Docs:          "https://docs.portainer.io/start/install-ce/server/docker/linux",
 		Port:          9000,

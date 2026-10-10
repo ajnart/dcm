@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "glances", Name: "Glances", Category: "Monitoring",
-		Description:   "A private web dashboard of the health and resource use of this container.",
+		Description:   "See your computer's health and workload in a web page",
 		Image:         "nicolargo/glances:4.5.6",
 		Docs:          "https://glances.readthedocs.io/en/latest/docker.html",
 		Port:          61208,

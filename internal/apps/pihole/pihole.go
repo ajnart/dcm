@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "pihole", Name: "Pi-hole", Category: "DNS",
-		Description:   "Blocks ads and trackers for every device on your network with a private admin UI.",
+		Description:   "Stop ads and trackers on all your devices at home, with a simple admin page",
 		Image:         "pihole/pihole:2026.09.0",
 		Docs:          "https://docs.pi-hole.net/docker/",
 		Port:          8080,
