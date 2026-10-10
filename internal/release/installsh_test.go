@@ -188,9 +188,13 @@ func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
 			break
 		}
 	}
-	for _, locale := range []string{"C", utf8Locale} {
-		t.Run(locale, func(t *testing.T) {
-			if locale == "" {
+	for index, locale := range []string{"C", utf8Locale, ""} {
+		name := locale
+		if index == 2 {
+			name = "default"
+		}
+		t.Run(name, func(t *testing.T) {
+			if index == 1 && locale == "" {
 				t.Skip("no representative UTF-8 locale installed")
 			}
 			for _, token := range []string{"", "fixture-token"} {
@@ -201,6 +205,7 @@ func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
 						name, list, metadata, failure string
 					}{
 						{name: "valid", list: list, metadata: metadata},
+						{name: "default_release_list", metadata: metadata},
 						{name: "truncated_list", list: strings.TrimSuffix(list, "]"), metadata: metadata, failure: "invalid release-list JSON"},
 						{name: "malformed_list", list: list + " trailing", metadata: metadata, failure: "invalid release-list JSON"},
 						{name: "truncated_metadata", list: list, metadata: strings.TrimSuffix(metadata, "}"), failure: "does not match requested stable CLI tag"},
@@ -215,7 +220,7 @@ func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
 							out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_GITHUB_TOKEN="+token, "LC_ALL="+locale)
 							if tc.failure != "" {
 								if err == nil || !strings.Contains(out, tc.failure) {
-									t.Fatalf("expected %q under %s: %v\n%s", tc.failure, locale, err, out)
+									t.Fatalf("expected %q under %s: %v\n%s", tc.failure, name, err, out)
 								}
 								if _, err := os.Stat(filepath.Join(dir, "self-host")); !os.IsNotExist(err) {
 									t.Fatalf("failed install wrote a binary: %v", err)
@@ -223,7 +228,7 @@ func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
 								return
 							}
 							if err != nil || installedBinary(dir) != "unicode-release" || !strings.Contains(out, "(1.3.0, checksum verified)") {
-								t.Fatalf("install under %s: %v\n%s", locale, err, out)
+								t.Fatalf("install under %s: %v\n%s", name, err, out)
 							}
 						})
 					}

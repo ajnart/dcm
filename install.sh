@@ -91,7 +91,7 @@ install_dir() {
 # Parse only scalar fields of JSON objects; nested assets cannot become tags.
 # This keeps the installer independent of jq, Python, Node and source checkout.
 json_values() {
-  LC_ALL=C awk -v wanted="${1:-}" -v mode="${2:-tags}" '
+  env LC_ALL=C awk -v wanted="${1:-}" -v mode="${2:-tags}" '
     function fail() { invalid=1; exit 1 }
     function ws() { while (substr(input,pos,1) ~ /[[:space:]]/) pos++ }
     function string_value( value,c,escape) {
