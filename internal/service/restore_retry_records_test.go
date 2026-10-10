@@ -103,6 +103,11 @@ func TestDownCancelsRestoreIntentBeforeProjectInitialization(t *testing.T) {
 			if p.Exists() || len(h.runner.Calls()) != before {
 				t.Fatal("pre-initialization retry created settings or called Docker")
 			}
+			for _, name := range []string{"secrets.env", "state.json", "compose.yml"} {
+				if _, err := os.Stat(p.Path(name)); !errors.Is(err, os.ErrNotExist) {
+					t.Fatal("pre-initialization retry created Project records")
+				}
+			}
 			if err := h.svc.Down(context.Background()); err != nil {
 				t.Fatal(err)
 			}
