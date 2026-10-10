@@ -1,0 +1,20 @@
+CONTEXT.md
+  h_d6e478ca18e517 248-251
+README.md
+  h_d6e478ca18e517 188-197,228,232,290,360
+docs/adr/0004-tabbed-command-center-action-chords.md
+  h_d6e478ca18e517 7
+internal/skill/guide.md
+  h_d6e478ca18e517 37,46-47,49,52,93,188-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b32a35ef8a54491ff05d22797c000c5e13bd9753",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
