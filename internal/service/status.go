@@ -10,6 +10,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
+	"github.com/ajnart/self-host/internal/project"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
 )
@@ -65,6 +66,8 @@ type Status struct {
 	Dashboard string `json:"dashboard,omitempty"`
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
+	// Profile is the person's Profile; present once a Project exists.
+	Profile *project.Profile `json:"profile,omitempty"`
 }
 
 const dashboardAppID = "homarr"
@@ -77,6 +80,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if profile, err := ss.p.LoadProfile(); err == nil {
+		status.Profile = &profile
+	}
 	if stale, current := s.lanStale(ss.settings); stale {
 		status.LANIPStale, status.HostIPs = true, current
 	}

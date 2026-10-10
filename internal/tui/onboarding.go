@@ -19,6 +19,7 @@ import (
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -44,6 +45,9 @@ const revealEvery = 6
 // every step's form, built afresh each time the step opens, shows them.
 type answers struct {
 	exposure string
+	// experience is the Experience level under the highlight at Welcome:
+	// new until the person chooses, or what the Profile already holds.
+	experience string
 	// highlight is the Exposure entry under the highlight, a coming-soon one
 	// included; exposure only ever takes lan or local from it.
 	highlight                string
@@ -597,11 +601,17 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m.openStep(o.step - 1)
 		}
 	case "up", "k":
-		if o.step == stepLook {
+		switch o.step {
+		case stepWelcome:
+			o.answers.experience = project.ExperienceNew
+		case stepLook:
 			o.look = max(o.look-1, 0)
 		}
 	case "down", "j":
-		if o.step == stepLook {
+		switch o.step {
+		case stepWelcome:
+			o.answers.experience = project.ExperienceAdvanced
+		case stepLook:
 			o.look = min(o.look+1, len(glyphChoices)-1)
 		}
 	case "r":
@@ -651,7 +661,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		m.preboot = newPrebootScreen()
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
-		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs)))
+		return next.focusActivity(tea.Batch(cmd, saveGlyphsWithInstall(m.backend, m.glyphs), saveExperienceWithInstall(m.backend, o.answers.experience)))
 	}
 	return m.openStep(o.step + 1)
 }
@@ -661,6 +671,13 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	o := m.onboarding
 	o.step, o.form, o.list = s, nil, nil
 	switch s {
+	case stepWelcome:
+		if o.answers.experience == "" {
+			o.answers.experience = project.ExperienceNew
+			if saved := m.backend.Experience(context.Background()); saved == project.ExperienceAdvanced {
+				o.answers.experience = saved
+			}
+		}
 	case stepWhat:
 		if o.answers.picks == nil {
 			o.answers.picks = picks{}
@@ -687,6 +704,17 @@ func saveGlyphsWithInstall(backend Backend, g activity.Glyphs) tea.Cmd {
 	return func() tea.Msg {
 		if err := backend.SetGlyphs(context.Background(), g); err != nil {
 			return flashMsg{text: "! could not save the icons choice (" + firstLine(err.Error()) + "); change it later in Settings", level: levelWarn}
+		}
+		return nil
+	}
+}
+
+// saveExperienceWithInstall saves the Experience level in the Profile in step
+// with the install. A failure only warns, and the install goes on.
+func saveExperienceWithInstall(backend Backend, level string) tea.Cmd {
+	return func() tea.Msg {
+		if err := backend.SetExperience(context.Background(), level); err != nil {
+			return flashMsg{text: "! could not save your Experience level (" + firstLine(err.Error()) + "); change it later with self-host profile", level: levelWarn}
 		}
 		return nil
 	}
@@ -737,6 +765,8 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 			chips = append(chips, moreKey)
 		}
 		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"), chips
+	case stepWelcome:
+		return quit, []key.Binding{onboardingChoose, onboardingContinue, onboardingBack}
 	case stepLook:
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack}
 	case stepReview:
@@ -762,7 +792,7 @@ func (m Model) renderOnboarding() string {
 	case stepInitializing:
 		lines = append(lines, m.renderChecks()...)
 	case stepWelcome:
-		lines = append(lines, renderWelcome(m.theme, o.notice)...)
+		lines = append(lines, m.renderWelcome()...)
 	case stepLook:
 		lines = append(lines, m.renderLook()...)
 	case stepReview:
@@ -866,7 +896,8 @@ func (m Model) renderChecks() []string {
 	return append(lines, "  "+t.fg(t.ok).Render("✓ This machine is ready."))
 }
 
-func renderWelcome(t theme, notice string) []string {
+func (m Model) renderWelcome() []string {
+	t := m.theme
 	lines := []string{
 		"  " + t.title().Render("Welcome to self-host"), "",
 		"  " + t.body().Render("self-host runs the Apps you pick on this machine with Docker Compose, and"),
@@ -874,12 +905,25 @@ func renderWelcome(t theme, notice string) []string {
 		"  " + t.body().Render("between them."), "",
 		"  " + t.body().Render("Next you choose what to run, where it lives, who administers it and how"),
 		"  " + t.body().Render("it looks. Then you review the plan."), "",
-		"  " + t.active().Render("Nothing is written until you approve the plan at Review."),
 	}
-	if notice != "" {
-		lines = append(lines, "", "  "+t.dim().Render(notice))
+	for _, line := range strings.Split(wrap(experienceQuestion, min(max(m.width-4, 20), 96)), "\n") {
+		lines = append(lines, "  "+t.heading().Render(line))
+	}
+	for _, c := range experienceChoices {
+		lines = append(lines, "  "+truncate(radioRow(t, c.level == m.onboarding.answers.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
+	}
+	lines = append(lines, "", "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
+	if m.onboarding.notice != "" {
+		lines = append(lines, "", "  "+t.dim().Render(m.onboarding.notice))
 	}
 	return lines
+}
+
+const experienceQuestion = "Have you run your own server or used Docker before, or is this all new to you?"
+
+var experienceChoices = []struct{ level, label string }{
+	{project.ExperienceNew, "New: this is all new to me"},
+	{project.ExperienceAdvanced, "Advanced: I have run a server or used Docker"},
 }
 
 // renderLook shows a sample of the Nerd Font icons, so the person can tell

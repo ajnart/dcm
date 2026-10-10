@@ -41,6 +41,8 @@ is installed, what each App is for, where to open it and where everything lives.
      only when Homarr is installed).
    Plain `self-host status` opens with a short summary of the same facts, then
    the table.
+   It also carries the person's `profile` (`{"experience": "new"|"advanced"|""}`;
+   empty until they answered, so ask the Experience level question).
 
 ## Two kinds of users
 
@@ -104,6 +106,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
 | `self-host status` | A plain summary, then Exposure, Host settings, every App's URL, state, Setup |
+| `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
 | `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |
@@ -170,7 +173,7 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
+Document commands (`status`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
 print one result on stdout and only errors on stderr with `--json`.
 
 ## Exit codes
