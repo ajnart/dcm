@@ -1,0 +1,37 @@
+internal/cloudflare/api.go
+  s_8b1d5a69f175a9::t_a329df9ea680f1 1-297
+internal/cloudflare/client.go
+  s_8b1d5a69f175a9::t_f7a580841f9a14 1-172
+internal/cloudflare/cloudflaretest/server.go
+  s_59ffa5bfdcd3ba::t_fcad602ba88297 1-474
+internal/cloudflare/publish.go
+  s_8b1d5a69f175a9::t_ac9b77023a6b53 1-446
+internal/cloudflare/publish_test.go
+  s_8b1d5a69f175a9::t_ef6cc2f146f380 1-414
+internal/service/cloudflare.go
+  s_8b1d5a69f175a9::t_d856a964eef02a 1-563
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f8fc4c581386d88fa82b4f9ec1b55653a129c77",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
