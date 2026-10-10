@@ -151,6 +151,16 @@ Onboarding, or in the first plain command), and the collected data is public:
   when `CI` is set, in development builds and in tests. Nothing is sent before
   the notice was shown, so a `--json` command never sends first.
 
+### Feedback
+
+When something breaks that an agent cannot fix, it can send the maintainers a
+report with `self-host feedback --message "…" [--app <id>]`. The CLI masks every
+known secret, shows exactly what it will send, and asks you y/n first; the
+message is at most 4096 bytes. It travels with Telemetry (same install ID, same
+endpoint) and obeys the same off switches. With Telemetry off nothing is sent
+and you are pointed to
+[GitHub Issues](https://github.com/ajnart/selfhost-skills/issues).
+
 ## Requirements and platforms
 
 Deployment needs a working Docker engine, the `docker compose` v2 plugin with
