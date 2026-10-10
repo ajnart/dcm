@@ -106,7 +106,8 @@ connect.
 
 **Home folder**:
 `~/.self-host`, the one folder holding everything self-host knows on a host:
-the Project, its Apps' files, Unmanaged apps under `extra/`, and the Profile.
+the Project, its Apps' files, Unmanaged apps under `extra/`, the Profile
+and the Telemetry install ID.
 `SELF_HOST_HOME` moves it for advanced users, who then pass it themselves.
 _Avoid_: install dir, config dir
 
@@ -142,10 +143,11 @@ a browser (agent-browser, when installed).
 **Telemetry**:
 Anonymous usage and error data sent to the project's PostHog (through
 `hog.ajnart.dev`), on by default, announced on first run, and published on a
-public dashboard. It carries an install ID, version, OS and architecture,
-command names, App and Recipe IDs, the Access choice, failed step IDs, and
-errors as PostHog exceptions; never host names, paths, inputs, secrets or
-App data. Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always
+public dashboard. It carries a random install ID (kept in the Home folder,
+never derived from the machine), version, OS and architecture, command names,
+App and Recipe IDs, the Access choice, failed step IDs, and errors as PostHog
+exceptions; never IPs, locations, host names, paths, inputs, secrets or App
+data. Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always
 off in CI and development builds.
 _Avoid_: analytics, tracking
 
