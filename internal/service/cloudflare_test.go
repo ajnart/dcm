@@ -17,6 +17,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/cloudflaretunnel"
+	tsapp "github.com/ajnart/self-host/internal/apps/tailscale"
 	"github.com/ajnart/self-host/internal/cloudflare/cloudflaretest"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/system"
@@ -58,7 +59,7 @@ func publicationHarness(t *testing.T) (*harness, *cloudflaretest.Server, Cloudfl
 		&publicationApp{testApp: testApp{id: "jellyfin", done: map[string]bool{}}, category: "Media"},
 		&publicationApp{testApp: testApp{id: "qbittorrent", done: map[string]bool{}}, category: "Downloads"},
 		&publicationApp{testApp: testApp{id: "postgresql", done: map[string]bool{}}, category: "Databases", noWeb: true},
-		cloudflaretunnel.App{})
+		cloudflaretunnel.App{}, tsapp.App{})
 	if err := h.install("paperless-ngx", "jellyfin", "qbittorrent", "postgresql"); err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +74,61 @@ func TestCloudflareNeedsSeparatePublicationYes(t *testing.T) {
 	_, err := h.svc.CloudflarePublish(t.Context(), opts)
 	if !errors.Is(err, ErrPublicNotAccepted) || len(server.Calls()) != 0 {
 		t.Fatalf("err=%v calls=%v", err, server.Calls())
+	}
+}
+
+func TestCombinedAccessKeepsPrivatePublicAndLocalAddressesThroughPartialRestore(t *testing.T) {
+	h, server, opts := publicationHarness(t)
+	net := &tailnet{running: []string{"tailscale", "tailscale-paperless-ngx", "tailscale-jellyfin", "paperless-ngx", "jellyfin"}, status: map[string]string{"tailscale-paperless-ngx": runningNode("paperless-ngx-2.example.ts.net.", nil)}}
+	net.install(h)
+	if err := h.installTailscale(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+		t.Fatal(err)
+	}
+	a := appStatus(t, h, "paperless-ngx")
+	want := []string{"https://paperless-ngx-2.example.ts.net", "https://paperless-ngx.example.com", "http://192.168.1.20:9000"}
+	if !slices.Equal(a.Addresses, want) || a.URL != want[0] || a.observationURL() != want[2] {
+		t.Fatalf("combined Addresses: %+v local %s", a, a.observationURL())
+	}
+	archive, err := h.svc.Backup(t.Context(), []string{"paperless-ngx"}, filepath.Join(t.TempDir(), "combined.tar.zst"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	net.running = []string{"tailscale", "paperless-ngx", "jellyfin", "cloudflare-tunnel"}
+	net.stopped = []string{"tailscale-jellyfin"}
+	net.trackStartup = true
+	before := len(h.composeCalls())
+	server.Reset()
+	if err := h.svc.Restore(t.Context(), archive, []string{"paperless-ngx"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(net.running, "tailscale-paperless-ngx") {
+		t.Fatal("approved absent private node not started")
+	}
+	for _, call := range h.composeCalls()[before:] {
+		if strings.HasPrefix(call, "up -d") && (strings.Contains(call, "cloudflare-tunnel") || strings.Contains(call, "tailscale-jellyfin") || strings.HasSuffix(call, " tailscale")) {
+			t.Fatalf("Restore started held or stopped Access: %s", call)
+		}
+	}
+	a = appStatus(t, h, "paperless-ngx")
+	if !slices.Equal(a.Addresses, []string{want[0], want[2]}) || a.URL != want[0] || a.observationURL() != want[2] {
+		t.Fatalf("restored Addresses: %+v", a)
+	}
+	status, err := h.svc.Status(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.CloudflareCleanup || len(status.AccessWarnings) == 0 || slices.Contains(status.Access, "cloudflare") || !slices.Contains(status.Access, "tailscale") {
+		t.Fatalf("restored ownership warnings: %+v", status)
+	}
+	opts.AcceptPublic = false
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); !errors.Is(err, ErrPublicNotAccepted) {
+		t.Fatal("Restore bypassed specific approval", err)
+	}
+	if len(server.Calls()) != 0 {
+		t.Fatal("Restore or missing approval called Cloudflare", server.Calls())
 	}
 }
 

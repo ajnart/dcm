@@ -459,6 +459,13 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 		v.accessCursor = min(v.accessCursor+1, len(accessOptions)-1)
 	case msg.String() == "enter", msg.String() == "space":
 		choice := accessOptions[v.accessCursor]
+		if choice.id == "tailscale" {
+			if slices.Contains(ctx.status.Access, "tailscale") {
+				ctx.setFlash("Tailscale is already on; Home network Addresses still work", levelInfo)
+				return v, nil, nav{}
+			}
+			return v, nil, nav{kind: navTo, to: surfaceInstall, app: "tailscale"}
+		}
 		if choice.explainsOnly() {
 			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
 			return v, nil, nav{}
@@ -657,7 +664,7 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 	}
 	for i, o := range accessOptions {
 		label := accessLabel(t, o)
-		selected := o.value != "" && o.value == current || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare")
+		selected := o.value != "" && o.value == current || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare") || o.id == "tailscale" && slices.Contains(ctx.status.Access, "tailscale")
 		if selected {
 			label = o.label
 			if v.accessChanged() {

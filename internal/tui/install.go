@@ -366,7 +366,8 @@ func (v *installView) planPicked(ctx *viewContext) (view, tea.Cmd, nav) {
 	for k, value := range ctx.status.Settings {
 		settings[k] = value
 	}
-	v.plan = &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, installed), settings: settings}
+	v.plan = &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, installed), settings: settings,
+		privateAccess: slices.Contains(ctx.status.Access, "tailscale") && !slices.Contains(opts.Targets, "tailscale")}
 	v.reqInputs, v.err, v.field = reqs, "", 0
 	if len(reqs) > 0 {
 		reqs[0].field.Focus()

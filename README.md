@@ -238,7 +238,8 @@ network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Home network, Bring your own and Your own web address are available. The latter
+question mark. Home network, From anywhere, privately, Bring your own and
+Your own web address are available. The latter
 opens a guided Cloudflare flow in Settings after the Apps finish installing;
 it chooses Apps individually and asks a separate yes before publication.
 Options marked coming soon change nothing.
@@ -247,6 +248,7 @@ Traefik or their own Caddy; `enter` on it also changes nothing and points at
 `self-host access export`. In Settings, the
 Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
 applies Home network changes; Your own web address has its own review and yes.
+Tailscale opens an install review with a concealed key field.
 **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
@@ -299,6 +301,26 @@ pending. Older records/backups without receipts require manual Cloudflare
 review; they are never adopted automatically. A network failure can prevent
 remote cleanup: ownership is retained and `status --json` includes
 `access_warnings` and `cloudflare_cleanup`, not a guarantee of successful cleanup.
+
+### From anywhere, privately
+
+Install Tailscale on your phone, laptop or TV and sign in to the same account
+(Apple TV and Android TV have apps). On the [DNS page](https://login.tailscale.com/admin/dns),
+enable HTTPS with MagicDNS on. **App names appear in a public certificate log;
+your Apps stay private.** At [Settings, Keys](https://login.tailscale.com/admin/settings/keys),
+make a **Reusable**, **Pre-approved** auth key with **Ephemeral** off. Save it
+privately on the host, never in chat, then approve:
+
+```bash
+self-host install tailscale --set-file tailscale.auth_key=/path/to/key
+```
+
+Each App with a web page gets its own persistent Tailscale node and HTTPS
+Address from that node's real name. Nothing enables Funnel. The existing
+IP:port Address stays available. The key lasts up to 90 days; adding Apps later
+may need a new one. `self-host doctor` warns about node sign-in expiry and
+signed-out nodes. An OAuth client secret also works in the same private input,
+with `tag:self-host` owned by that client. See [the decision](docs/adr/0008-tailscale-per-app-nodes.md).
 
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The header names the Project, its LAN address, the host's health and the

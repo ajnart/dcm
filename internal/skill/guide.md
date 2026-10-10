@@ -121,13 +121,13 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host cloudflare plan`                                      | Inspect individually chosen Apps, allowed emails, warnings and publication risk without network calls          |
 | `self-host cloudflare publish`                                   | Publish chosen Apps behind an emailed-PIN login, only after the separate public-risk yes                       |
 | `self-host cloudflare remove`                                    | Unpublish in reverse order, with a fresh private API token                                                     |
+| `self-host access export [--format caddy\|nginx\|traefik\|json]` | Print each App's upstream and a suggested hostname for your own reverse proxy; changes nothing                 |
 | `self-host logs <app>`                                           | Container logs                                                                                                 |
 | `self-host backup [app...]`                                      | Write one compressed archive, optionally encrypted                                                             |
 | `self-host restore <file> [app...]`                              | Restore every App in a Backup, or only those named                                                             |
 | `self-host self-update`                                          | Replace the binary with the latest verified release                                                            |
 | `self-host feedback --message <text> [--app <app>] [--yes]`      | Send the maintainers a report of what broke, after the person agrees (see "Feedback")                          |
 | `self-host skill`                                                | Print this guide                                                                                               |
-| `self-host access export [--format caddy\|nginx\|traefik\|json]` | Print each App's upstream and a suggested hostname for your own reverse proxy; changes nothing                 |
 
 Global flags: `--json` (one JSON event per line; document commands print one
 JSON document), `--verbose` or `-v` (also print every command and step start).
@@ -222,7 +222,8 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Your own web address is available through Cloudflare
+diagram and a help page. Home network, Tailscale, Bring your own and Your own
+web address are available. Your own web address uses Cloudflare
 Tunnel with a login page. Onboarding opens its guided Settings flow after the
 Apps finish installing; choosing it alone never publishes anything. Options
 marked "coming soon" change nothing. Bring your own is for people who
@@ -247,7 +248,7 @@ instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
 it first: `status --json` has `access` (a list including `home` or `local`, plus
-`cloudflare` when verified Addresses exist) beside the
+`tailscale` when installed and `cloudflare` when verified Addresses exist) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
 internet; publishing needs the separate yes below.
@@ -309,7 +310,8 @@ internet; publishing needs the separate yes below.
    fail closed; retry or remove to clean up any remembered resources.
 
 6. Read `self-host status --json`: verified `https://<app>.<domain>` Addresses
-   come first, with `IP:port` kept as fallback. The person opens the Address,
+   precede `IP:port`; valid private Tailscale HTTPS comes first when both are on.
+   The person opens the Address,
    requests the emailed PIN and signs in. Do not bypass the login for native
    clients. Upload limits and Cloudflare's terms still apply.
 7. To take the Addresses down, ask for approval and a fresh private token:
@@ -349,6 +351,42 @@ receipts and last-known verified state are retained with `access_warnings` and
 `cloudflare_cleanup` in status. Read the warnings and retry cleanup once the API
 is reachable. A suspended/restored connector has only the Home network fallback
 Addresses advertised, not a dead preferred HTTPS Address.
+
+### From anywhere, privately (Tailscale)
+
+Explain: "Install the Tailscale app on your phone or TV and sign in to the same
+account. Only your signed-in devices can open your Apps." Apple TV and Android
+TV have clients; other TVs may need the Home network Address.
+
+1. Ask the person to open <https://login.tailscale.com/admin/dns>, check MagicDNS
+   is on and enable HTTPS. Explain first that App names appear in a public
+   certificate log; the Apps themselves remain private.
+2. At <https://login.tailscale.com/admin/settings/keys>, generate an auth key
+   with **Reusable** and **Pre-approved** on and **Ephemeral** off. It lasts up
+   to 90 days, so adding Apps later may need a replacement. Have the person save
+   it privately on the host; never ask them to paste it into chat.
+3. Explain the change and get approval, then run
+   `self-host install tailscale --set-file tailscale.auth_key=PATH --yes --json`.
+   An OAuth client secret uses the same input; it must own `tag:self-host`.
+4. Read `self-host status --json`: each App with a web page gets an additional
+   HTTPS Address, read from its node's real `Self.DNSName`, including collision
+   suffixes. Never build a ts.net name yourself. Valid private HTTPS comes first
+   and becomes `url`; IP:port remains the fallback. Doctor and Debug health
+   observations still use the local Address.
+5. Read `self-host doctor --json` for sign-in expiry, signed-out nodes or HTTPS
+   disabled. Follow its hints; node state alone does not prove a working page.
+
+self-host generates one persistent userspace sidecar and `serve.json` per web
+App under the Tailscale App folder. The shared credential is mounted as a 0600
+file, never passed as a credential argument. No Funnel or public route is enabled.
+Onboarding asks through a concealed field and waits for Review approval;
+Settings opens the Tailscale install review rather than changing Home network.
+When approving a later install or Restore, name the private nodes for its web
+Apps as part of the plan. Only absent nodes start while Tailscale is already on;
+this includes retries after failed creation, not existing stopped containers.
+stopped Access remains stopped unless Tailscale itself is explicitly approved.
+Restore regenerates nodes against the merged inventory, including old Backups
+of Tailscale. Unknown inspection results produce a safe Doctor warning.
 
 ## Doctor checks
 

@@ -88,11 +88,12 @@ type onboarding struct {
 
 // plan is a reviewed install: what will happen, before anything is written.
 type plan struct {
-	apps     []app.App
-	opts     service.InstallOptions
-	links    []string
-	settings map[string]string
-	fresh    bool
+	privateAccess bool
+	apps          []app.App
+	opts          service.InstallOptions
+	links         []string
+	settings      map[string]string
+	fresh         bool
 }
 
 func (m Model) newOnboarding() *onboarding {
@@ -319,7 +320,7 @@ func (o *onboarding) focusedKey() string {
 // helpPage is the page `?` opens: the help page of the highlighted Access
 // option, on the Access step. A text input takes `?` itself.
 func (o *onboarding) helpPage() (helpPage, bool) {
-	if o.step != stepAccess {
+	if o.step != stepAccess || o.form != nil {
 		return helpPage{}, false
 	}
 	return accessPage(accessOptions[o.access], o.answers.lan), true
@@ -554,6 +555,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	if o.form != nil {
 		if msg.String() == "esc" && !takesEsc(o.form) {
+			if o.step == stepAccess {
+				return m.openStep(stepAccess)
+			}
 			if o.step == stepWhat {
 				return m.openStep(stepWhat)
 			}
@@ -634,6 +638,26 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		return m, nil
 	case stepAccess:
 		choice := accessOptions[o.access]
+		if choice.id == "tailscale" {
+			if _, found := m.backend.Catalog().App("tailscale"); !found {
+				m.setFlash("Tailscale is not in this Catalog", levelWarn)
+				return m, nil
+			}
+			o.answers.picks["tailscale"] = true
+			value := o.answers.inputs["tailscale.auth_key"]
+			if value == nil {
+				value = new(string)
+				o.answers.inputs["tailscale.auth_key"] = value
+			}
+			input := huh.NewInput().Title("Tailscale auth key").Description("First enable HTTPS at login.tailscale.com/admin/dns: App names appear in a public certificate log. Then make a reusable, pre-approved key at login.tailscale.com/admin/settings/keys. Paste it only here, never into chat.").Value(value).EchoMode(huh.EchoModePassword).Validate(func(s string) error {
+				if strings.TrimSpace(s) == "" {
+					return errors.New("required")
+				}
+				return nil
+			})
+			o.form = huh.NewForm(huh.NewGroup(input)).WithWidth(m.formWidth()).WithHeight(m.formHeight(stepAccess))
+			return m, o.form.Init()
+		}
 		if choice.explainsOnly() {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
@@ -645,6 +669,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		}
 		o.answers.cloudflare = false
 		o.answers.exposure = choice.value
+		delete(o.answers.picks, "tailscale")
 	case stepLook:
 		m.glyphs = glyphChoices[o.look].glyphs
 		return m.openStep(stepReview)
@@ -686,6 +711,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.value == o.answers.exposure }), 0)
 		if o.answers.cloudflare {
 			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "cloudflare" })
+		}
+		if o.answers.picks["tailscale"] {
+			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "tailscale" })
 		}
 	case stepLook:
 		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == m.glyphs })
@@ -761,6 +789,9 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 		}
 		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"), chips
 	case stepAccess:
+		if m.onboarding.form != nil {
+			return t.fg(t.accentText).Bold(true).Render("answering"), []key.Binding{onboardingNextKey, onboardingBack}
+		}
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack, moreKey}
 	case stepWelcome:
 		if m.onboarding.experienceSaved {
@@ -794,7 +825,11 @@ func (m Model) renderOnboarding() string {
 	case stepWelcome:
 		lines = append(lines, m.renderWelcome()...)
 	case stepAccess:
-		lines = append(lines, m.renderAccess()...)
+		if o.form != nil {
+			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
+		} else {
+			lines = append(lines, m.renderAccess()...)
+		}
 	case stepLook:
 		lines = append(lines, m.renderLook()...)
 	case stepReview:
@@ -960,7 +995,7 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		selected := option.value != "" && option.value == o.answers.exposure || option.id == "cloudflare" && o.answers.cloudflare
+		selected := option.value != "" && option.value == o.answers.exposure || option.id == "cloudflare" && o.answers.cloudflare || option.id == "tailscale" && o.answers.picks["tailscale"]
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
@@ -1007,6 +1042,17 @@ func planLines(t theme, p *plan) []string {
 		access = "This computer only — other devices cannot connect"
 	}
 	lines = append(lines, row("Access", access))
+	if slices.Contains(p.opts.Targets, "tailscale") {
+		lines = append(lines, row("", "From anywhere, privately, with Tailscale"))
+	}
+	if p.privateAccess {
+		for _, a := range p.apps {
+			info := a.Info()
+			if info.Port > 0 && !info.NoWebUI {
+				lines = append(lines, row("", "Private: "+info.Name+" (only missing nodes while Tailscale is on)"))
+			}
+		}
+	}
 	if p.fresh {
 		lines = append(lines, row("Settings", fmt.Sprintf("TZ=%s PUID=%s PGID=%s", p.settings["TZ"], p.settings["PUID"], p.settings["PGID"])))
 		if p.settings["MEDIA_ROOT"] != "" {
