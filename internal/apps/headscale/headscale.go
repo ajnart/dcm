@@ -27,6 +27,7 @@ func (App) Info() app.Info {
 		Docs:          "https://headscale.net/stable/setup/install/container/",
 		Port:          18082,
 		ContainerPort: 8080,
+		WebSockets:    true,
 		Service:       "headscale",
 	}
 }

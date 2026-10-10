@@ -23,6 +23,7 @@ func (App) Info() app.Info {
 		Docs:          "https://gotify.net/docs/install",
 		Port:          8080,
 		ContainerPort: 80,
+		WebSockets:    true,
 		Service:       "gotify",
 	}
 }

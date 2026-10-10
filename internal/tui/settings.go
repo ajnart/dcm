@@ -459,7 +459,7 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 		v.accessCursor = min(v.accessCursor+1, len(accessOptions)-1)
 	case msg.String() == "enter", msg.String() == "space":
 		choice := accessOptions[v.accessCursor]
-		if choice.soon {
+		if choice.explainsOnly() {
 			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
 			return v, nil, nav{}
 		}

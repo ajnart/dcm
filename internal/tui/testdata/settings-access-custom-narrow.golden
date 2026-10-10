@@ -5,18 +5,18 @@
 │   ○ Easy names at home · coming soon                                         │
 │   ○ From anywhere, privately · coming soon                                   │
 │   ○ Your own web address                                                     │
-│ > ○ Bring your own · coming soon                                             │
+│ > ○ Bring your own                                                           │
 │                                                                              │
-│   Already run a reverse proxy such as SWAG or Pangolin? self-host will tell  │
-│   it where each App lives, and you stay in charge of names, certificates and │
-│   who gets in. This one is for advanced users. It isn't available yet: your  │
-│   Apps stay on your network.                                                 │
+│   Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy    │
+│   Manager, Traefik or Caddy? Choosing this changes nothing here. Run self-   │
+│   host access export to print where each App lives, then give it to your     │
+│   proxy. You stay in charge of names, certificates and who gets in. Home     │
+│   network keeps working. This one is for advanced users.                     │
 │                                                                              │
 │   your devices ──── your proxy ──── this computer IP:port                    │
 │                          │                                                   │
 │                  you set the rules                                           │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-
 
 
 

@@ -24,6 +24,9 @@ type accessOption struct {
 	label, name string
 	// soon marks an option that is not built yet: it is dimmed and choosing it changes nothing.
 	soon bool
+	// note makes the option explain instead of choose: enter changes nothing and
+	// shows this, given the Access in use. It has no stored value.
+	note func(current string) string
 	// value is the stored EXPOSURE value choosing the option sets.
 	value string
 	// text says in plain words what the option does; diagram draws it.
@@ -133,10 +136,14 @@ var accessOptions = []accessOption{
 		facts: "A cloudflared container opens an outbound tunnel to Cloudflare. The PIN provider, tunnel, policy, Access app and merged ingress with originRequest.access are made before the connector starts. DNS is last. An outside probe must answer 302 to your cloudflareaccess.com login page, or that DNS record is deleted. The HTTPS Address and IP:port Address both stay available. Removal works in reverse and keeps the shared PIN provider and organization.",
 	},
 	{
-		id: "custom", label: "Bring your own", name: "Bring your own", soon: true,
+		id: "custom", label: "Bring your own", name: "Bring your own",
+		note: func(current string) string {
+			return "Nothing changes: your Apps stay " + accessStays(current) + ". Run: self-host access export"
+		},
 		text: func(string) string {
-			return "Already run a reverse proxy such as SWAG or Pangolin? self-host will tell it where each App lives, " +
-				"and you stay in charge of names, certificates and who gets in. This one is for advanced users."
+			return "Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy? " +
+				"Choosing this changes nothing here. Run self-host access export to print where each App lives, then give it to your proxy. " +
+				"You stay in charge of names, certificates and who gets in. Home network keeps working. This one is for advanced users."
 		},
 		diagram: func(string) accessDiagram {
 			return accessDiagram{
@@ -150,9 +157,15 @@ var accessOptions = []accessOption{
 		},
 		sections: []accessSection{
 			{"Who is this for?",
-				"People who already run a reverse proxy, or want to run one. You keep control of names, certificates and who gets in."},
+				"Advanced users who already run a reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or their own Caddy, or want to run one. You keep control of names, certificates and who gets in."},
+			{"Getting the settings",
+				"Run self-host access export --format caddy, nginx, traefik or json. It prints each App's name, where it lives and a hostname to replace with your own. It changes nothing: copy what it prints into your proxy."},
+			{"Home network keeps working",
+				"Choosing this changes nothing in your Project, and the Apps keep opening at their IP:port on your network. Nothing is set up on the internet either: that is up to your proxy."},
 		},
-		facts: "self-host will print each App's host and port for SWAG, Pangolin, nginx, Traefik or Caddy. You run the proxy, its certificates and its login.",
+		facts: "self-host access export --format caddy|nginx|traefik|json prints each App's Compose service and container port, " +
+			"for a proxy on the Project's Docker network, and the host IP:port for a proxy outside Docker. Traefik output is a file provider, " +
+			"so no Docker socket is needed. You run the proxy, its certificates and its login.",
 	},
 }
 
@@ -216,8 +229,15 @@ func accessStays(current string) string {
 	return "on your network"
 }
 
-// accessNote is the gentle note for enter on an option not built yet.
+// explainsOnly is an option that enter cannot choose: one not built yet, or
+// one that only explains.
+func (o accessOption) explainsOnly() bool { return o.soon || o.note != nil }
+
+// accessNote is the gentle note for enter on an option that cannot be chosen.
 func accessNote(o accessOption, current string) string {
+	if o.note != nil {
+		return o.note(current)
+	}
 	return o.name + " is coming soon; your Apps stay " + accessStays(current)
 }
 

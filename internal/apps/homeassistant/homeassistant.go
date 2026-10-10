@@ -24,6 +24,7 @@ func (App) Info() app.Info {
 		Docs:          "https://www.home-assistant.io/installation/",
 		Port:          8123,
 		ContainerPort: 8123,
+		WebSockets:    true,
 		Service:       "home-assistant",
 	}
 }

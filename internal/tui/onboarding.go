@@ -634,7 +634,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		return m, nil
 	case stepAccess:
 		choice := accessOptions[o.access]
-		if choice.soon {
+		if choice.explainsOnly() {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
 		}
