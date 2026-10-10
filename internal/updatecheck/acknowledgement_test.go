@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ajnart/self-host/internal/system"
 )
 
 type noticeStateCache struct {
@@ -197,5 +199,29 @@ func TestCompletedNoticeSurvivesLookupDeadlineUntilAcceptedOrAbandoned(t *testin
 				}
 			}
 		})
+	}
+}
+
+func TestCancelledNoticeDrainsAnAlreadyCapturedWorkerPanic(t *testing.T) {
+	lifecycle, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cache := &noticeStateCache{}
+	notice, done := startNoticeWorkerContext(lifecycle, "1.0.0", time.Now(), func(context.Context) (string, error) {
+		panic("synthetic cancelled lookup panic")
+	}, cache)
+	waitNoticeWorker(t, done)
+	cancel()
+	started := time.Now()
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		notice()
+	}()
+	crash, ok := recovered.(system.CapturedPanic)
+	if !ok || crash.Value != "synthetic cancelled lookup panic" || len(crash.Stack) == 0 {
+		t.Fatalf("captured worker panic was discarded: %v", recovered)
+	}
+	if time.Since(started) > 100*time.Millisecond || !cache.Load().NoticedAt.IsZero() {
+		t.Fatal("rejection waited or acknowledged a notice")
 	}
 }

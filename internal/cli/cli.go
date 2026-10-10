@@ -154,6 +154,10 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 }
 
 func (a *program) run(ctx context.Context) int {
+	return a.runWithNotice(ctx, a.startNotice)
+}
+
+func (a *program) runWithNotice(ctx context.Context, startNotice func(context.Context, *cobra.Command, []string) func() string) int {
 	deps, args := a.deps, a.args
 	root := a.root()
 	root.SetArgs(args)
@@ -161,7 +165,11 @@ func (a *program) run(ctx context.Context) int {
 	root.SetErr(deps.Err)
 	noticeCtx, abandonNotice := context.WithCancel(ctx)
 	defer abandonNotice()
-	notice := a.startNotice(noticeCtx, root, args)
+	notice := startNotice(noticeCtx, root, args)
+	rejectNotice := func() {
+		abandonNotice()
+		notice()
+	}
 	report := a.startTelemetry(root, args)
 	defer func() {
 		if crash := recover(); crash != nil {
@@ -169,11 +177,15 @@ func (a *program) run(ctx context.Context) int {
 			if captured, ok := crash.(system.CapturedPanic); ok {
 				crash, stack = captured.Value, telemetry.Stack(captured.Stack)
 			}
+			system.CatchPanic(rejectNotice)
 			a.reportPanic(report, crash, stack)
 			panic(crash)
 		}
 	}()
 	err := root.ExecuteContext(ctx)
+	if err != nil {
+		rejectNotice()
+	}
 	if a.terminal != nil {
 		a.terminal.Close()
 	}
