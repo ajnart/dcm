@@ -63,6 +63,7 @@ type Deps struct {
 	// CacheDir is the per-user cache directory (os.UserCacheDir).
 	CacheDir    func() (string, error)
 	ConfigDir   func() (string, error)
+	ConfigFiles ConfigFiles
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)
 	LookupUser  func(name string) (User, error)

@@ -73,16 +73,20 @@ func command(ctx context.Context, cmd Cmd) *exec.Cmd {
 // Real returns production dependencies.
 func Real(version string) *Deps {
 	return &Deps{
-		Version:      version,
-		GOOS:         runtime.GOOS,
-		GOARCH:       runtime.GOARCH,
-		Runner:       execRunner{},
-		HTTP:         &http.Client{Timeout: 30 * time.Second},
-		LookPath:     exec.LookPath,
-		Executable:   os.Executable,
-		Exec:         func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
-		CacheDir:     os.UserCacheDir,
-		ConfigDir:    os.UserConfigDir,
+		Version:    version,
+		GOOS:       runtime.GOOS,
+		GOARCH:     runtime.GOARCH,
+		Runner:     execRunner{},
+		HTTP:       &http.Client{Timeout: 30 * time.Second},
+		LookPath:   exec.LookPath,
+		Executable: os.Executable,
+		Exec:       func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
+		CacheDir:   os.UserCacheDir,
+		ConfigDir:  os.UserConfigDir,
+		ConfigFiles: configFiles{directory: func() (string, error) {
+			dir, err := os.UserConfigDir()
+			return filepath.Join(dir, "self-host"), err
+		}},
 		Getenv:       os.Getenv,
 		CurrentUser:  currentUser,
 		LookupUser:   lookupUser,

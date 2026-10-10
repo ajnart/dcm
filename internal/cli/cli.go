@@ -158,7 +158,11 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	report := a.startTelemetry(root, args)
 	defer func() {
 		if crash := recover(); crash != nil {
-			a.reportPanic(report, crash, telemetry.CaptureStack(1))
+			stack := telemetry.CaptureStack(1)
+			if captured, ok := crash.(system.CapturedPanic); ok {
+				crash, stack = captured.Value, telemetry.Stack(captured.Stack)
+			}
+			a.reportPanic(report, crash, stack)
 			panic(crash)
 		}
 	}()
@@ -166,11 +170,12 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	if a.terminal != nil {
 		a.terminal.Close()
 	}
+	line := notice()
 	var exit exitError
 	code := ExitOK
 	switch {
 	case err == nil:
-		if line := notice(); line != "" && !a.json {
+		if line != "" && !a.json {
 			fmt.Fprintln(deps.Err, line)
 		}
 	case errors.As(err, &exit):

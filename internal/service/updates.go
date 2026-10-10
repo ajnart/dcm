@@ -24,6 +24,7 @@ func (s *Service) CheckUpdates(ctx context.Context, status *Status) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	var wg sync.WaitGroup
+	crashes := make(chan system.CapturedPanic, 1)
 	for i := range status.Apps {
 		app := &status.Apps[i]
 		if app.Image == "" {
@@ -33,10 +34,21 @@ func (s *Service) CheckUpdates(ctx context.Context, status *Status) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			app.Update = s.imageUpdate(ctx, app.Image)
+			if crash := system.CatchPanic(func() { app.Update = s.imageUpdate(ctx, app.Image) }); crash != nil {
+				select {
+				case crashes <- *crash:
+				default:
+				}
+				cancel()
+			}
 		}()
 	}
 	wg.Wait()
+	select {
+	case crash := <-crashes:
+		panic(crash)
+	default:
+	}
 }
 
 func (s *Service) imageUpdate(ctx context.Context, image string) string {

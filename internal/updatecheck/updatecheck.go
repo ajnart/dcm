@@ -132,28 +132,44 @@ func StartNotice(deps *system.Deps, lookup Lookup) func() string {
 	if now.Sub(state.CheckedAt) < Interval {
 		return none
 	}
-	found := make(chan string, 1)
+	type result struct {
+		version string
+		crash   *system.CapturedPanic
+	}
+	found := make(chan result, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
 		defer cancel()
-		version, err := lookup(ctx)
-		if err != nil {
-			found <- ""
-			return
-		}
-		state := cache.Load()
-		state.CheckedAt, state.Latest = now, version
-		cache.Save(state)
-		found <- version
+		var answer result
+		answer.crash = system.CatchPanic(func() {
+			version, err := lookup(ctx)
+			if err != nil {
+				return
+			}
+			state := cache.Load()
+			state.CheckedAt, state.Latest = now, version
+			cache.Save(state)
+			answer.version = version
+		})
+		found <- answer
 	}()
 	return func() string {
+		defer cancel()
 		select {
-		case version := <-found:
-			if version == "" {
+		case answer := <-found:
+			if answer.crash != nil {
+				panic(*answer.crash)
+			}
+			if answer.version == "" {
 				return ""
 			}
-			return newer(version)
+			return newer(answer.version)
 		case <-time.After(waitBudget):
+			cancel()
+			answer := <-found
+			if answer.crash != nil {
+				panic(*answer.crash)
+			}
 			return ""
 		}
 	}

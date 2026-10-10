@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
@@ -30,6 +32,67 @@ func welcomeWithNotice(t *testing.T, width, height int) Model {
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
 	return drive(t, frames(t, m, 60), press("enter"))
+}
+
+type telemetryWorkerRunner struct{}
+
+func (telemetryWorkerRunner) Run(context.Context, system.Cmd) (system.Result, error) {
+	panic("synthetic-stream-secret /home/alice alice-laptop")
+}
+
+func (telemetryWorkerRunner) Stream(context.Context, system.Cmd, io.Writer) error {
+	panic("synthetic-stream-secret /home/alice alice-laptop")
+}
+
+func TestBackendStreamAndUpdatePanicsAreFlushedBeforeRethrowing(t *testing.T) {
+	key := telemetry.ProjectKey
+	telemetry.ProjectKey = "phc_test"
+	t.Cleanup(func() { telemetry.ProjectKey = key })
+	for _, operation := range []string{"updates", "logs", "usage"} {
+		t.Run(operation, func(t *testing.T) {
+			deps := systemtest.NewDeps(t)
+			deps.Version = "1.2.3"
+			net := &telemetrytest.Transport{}
+			deps.HTTP = net.Client()
+			b := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
+			b.TelemetryNotice()
+			if err := b.Run(context.Background(), Request{Action: ActionInstall, Install: &service.InstallOptions{Targets: []string{"ntfy"}, Exposure: "lan"}}, events.Discard()); err != nil {
+				t.Fatal(err)
+			}
+			deps.Runner = telemetryWorkerRunner{}
+			var recovered any
+			func() {
+				defer func() { recovered = recover() }()
+				switch operation {
+				case "updates":
+					b.Updates(context.Background(), service.Status{Apps: []service.AppStatus{{ID: "ntfy", Image: "ntfy:latest"}}})
+				case "logs":
+					b.Logs(context.Background(), "ntfy", io.Discard)
+				case "usage":
+					b.Usage(context.Background(), func([]service.ContainerUsage) {})
+				}
+			}()
+			if recovered != "synthetic-stream-secret /home/alice alice-laptop" {
+				t.Fatalf("original panic changed: %v", recovered)
+			}
+			var exception map[string]any
+			for _, e := range net.Events() {
+				if e["event"] == "$exception" {
+					exception = e["properties"].(map[string]any)
+				}
+			}
+			if exception == nil {
+				t.Fatal("stream panic was not flushed before rethrowing")
+			}
+			for _, payload := range net.Bodies() {
+				for _, forbidden := range []string{"synthetic-stream-secret", "/home/alice", "alice-laptop"} {
+					if strings.Contains(payload, forbidden) {
+						t.Fatalf("stream payload leaks %q", forbidden)
+					}
+				}
+			}
+		})
+	}
 }
 
 type telemetryPanicApp struct{ stubApp }

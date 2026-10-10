@@ -71,10 +71,14 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 // typed is dropped, so it can never travel.
 func (a *program) catalogIDs(args []string) (apps, recipes []string) {
 	for _, arg := range args {
-		if _, ok := a.catalog.App(arg); ok {
-			apps = append(apps, arg)
-		} else if _, ok := a.catalog.Recipe(arg); ok {
-			recipes = append(recipes, arg)
+		recipe, ids, found := a.catalog.Expand(arg)
+		if !found {
+			continue
+		}
+		if recipe != "" {
+			recipes = append(recipes, recipe)
+		} else {
+			apps = append(apps, ids...)
 		}
 	}
 	return apps, recipes

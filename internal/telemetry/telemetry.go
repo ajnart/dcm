@@ -74,8 +74,7 @@ type Store interface {
 }
 
 type ConfigStore interface {
-	ReadConfigFile(name string) ([]byte, error)
-	WriteConfigFile(name string, data []byte, mode os.FileMode) error
+	LoadOrCreateConfigFile(name string, create func() ([]byte, error)) ([]byte, error)
 }
 
 // Options say where and how a Client sends. The zero value sends nothing.
@@ -203,17 +202,20 @@ func (c *Client) installID() (string, bool) {
 	if c.o.Config == nil {
 		return "", false
 	}
-	if id, ok := validID(c.o.Config.ReadConfigFile(idFile)); ok {
-		return id, true
-	}
-	if id, ok := validID(c.o.Store.ReadHomeFile(idFile)); ok {
-		return id, c.o.Config.WriteConfigFile(idFile, []byte(id+"\n"), 0o600) == nil
-	}
-	id, err := newUUID()
-	if err != nil {
-		return "", false
-	}
-	return id, c.o.Config.WriteConfigFile(idFile, []byte(id+"\n"), 0o600) == nil
+	return validID(c.o.Config.LoadOrCreateConfigFile(idFile, func() ([]byte, error) {
+		data, err := c.o.Store.ReadHomeFile(idFile)
+		if err == nil {
+			if id, ok := validID(data, nil); ok {
+				return []byte(id + "\n"), nil
+			}
+			return nil, errors.New("unexpected legacy telemetry identity")
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		id, err := newUUID()
+		return []byte(id + "\n"), err
+	}))
 }
 
 func validID(data []byte, err error) (string, bool) {

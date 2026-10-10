@@ -11,6 +11,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 // tickSource starts a frame source and returns its channel and a stop
@@ -48,6 +49,7 @@ type TerminalSink struct {
 	// drawn, when set, is called after each tick is drawn, without the lock
 	// held. It lets a test wait for a frame; it must not block.
 	drawn func()
+	crash *system.CapturedPanic
 }
 
 func Terminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette) *TerminalSink {
@@ -127,17 +129,22 @@ func (t *TerminalSink) startTicker() {
 	go func() {
 		defer close(done)
 		defer stopTicks()
-		for {
-			select {
-			case <-stop:
-				return
-			case <-ticks:
-				t.tick()
-				if t.drawn != nil {
-					t.drawn()
+		crash := system.CatchPanic(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				case <-ticks:
+					t.tick()
+					if t.drawn != nil {
+						t.drawn()
+					}
 				}
 			}
-		}
+		})
+		t.mu.Lock()
+		t.crash = crash
+		t.mu.Unlock()
 	}()
 }
 
@@ -150,7 +157,16 @@ func (t *TerminalSink) stopTicker() func() {
 	close(t.stop)
 	done := t.done
 	t.stop, t.done = nil, nil
-	return func() { <-done }
+	return func() {
+		<-done
+		t.mu.Lock()
+		crash := t.crash
+		t.crash = nil
+		t.mu.Unlock()
+		if crash != nil {
+			panic(*crash)
+		}
+	}
 }
 
 // redraw replaces the block on screen with the Action's block, unless it

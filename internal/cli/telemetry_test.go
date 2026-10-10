@@ -2,9 +2,11 @@ package cli_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -12,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
@@ -33,6 +37,82 @@ func telemetryDeps(t *testing.T) (*system.Deps, *telemetrytest.Transport) {
 	net := &telemetrytest.Transport{}
 	deps.HTTP = &http.Client{Transport: net}
 	return deps, net
+}
+
+func TestUpdateWorkerPanicIsFlushedBeforeTheProcessCrashes(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "synthetic-payload.json")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestUpdateWorkerPanicChild$", "--", file)
+	cmd.Env = []string{"SELF_HOST_WORKER_PANIC_CHILD=1"}
+	out, err := cmd.CombinedOutput()
+	if err == nil || ctx.Err() != nil {
+		t.Fatalf("child did not crash promptly: %v\n%s", err, out)
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatalf("no payload was flushed before the worker crash: %v\n%s", err, out)
+	}
+	var sent []map[string]any
+	if err := json.Unmarshal(data, &sent); err != nil {
+		t.Fatal(err)
+	}
+	var exception map[string]any
+	for _, e := range sent {
+		if e["event"] == "$exception" {
+			exception = e["properties"].(map[string]any)
+		}
+	}
+	if exception == nil || exception["command"] != "status" {
+		t.Fatalf("no status exception: %s", data)
+	}
+	item := exception["$exception_list"].([]any)[0].(map[string]any)
+	if item["mechanism"].(map[string]any)["handled"] != false || item["value"] != "panic" {
+		t.Fatalf("not an unhandled panic: %v", item)
+	}
+	var originalWorker bool
+	for _, frame := range item["stacktrace"].(map[string]any)["frames"].([]any) {
+		f := frame.(map[string]any)
+		if f["function"] == "internal/service.(*Service).imageUpdate" && f["filename"] == "internal/service/updates.go" {
+			originalWorker = true
+		}
+	}
+	if !originalWorker {
+		t.Fatalf("original worker frames were lost: %v", item)
+	}
+	for _, forbidden := range []string{"synthetic-worker-secret", "/home/alice", "alice-laptop"} {
+		if strings.Contains(string(data), forbidden) {
+			t.Fatalf("panic payload leaks %q", forbidden)
+		}
+	}
+	if !strings.Contains(string(out), "synthetic-worker-secret /home/alice alice-laptop") {
+		t.Fatalf("original panic value did not reach the crash: %s", out)
+	}
+}
+
+func TestUpdateWorkerPanicChild(t *testing.T) {
+	if os.Getenv("SELF_HOST_WORKER_PANIC_CHILD") != "1" {
+		return
+	}
+	deps, net := telemetryDeps(t)
+	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
+	clitest.Run(t, deps, cat, "install", "one", "--yes")
+	deps.Runner.(*systemtest.Runner).OnFunc("docker image inspect", func(system.Cmd) system.Result {
+		panic("synthetic-worker-secret /home/alice alice-laptop")
+	})
+	defer func() {
+		if crash := recover(); crash != nil {
+			data, err := json.Marshal(net.Events())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(os.Args[len(os.Args)-1], data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			panic(crash)
+		}
+	}()
+	clitest.Run(t, deps, cat, "status", "--updates")
 }
 
 func commandEvents(net *telemetrytest.Transport) []map[string]any {
@@ -174,6 +254,20 @@ func TestTelemetryUsesTheHomeAccessIDForLAN(t *testing.T) {
 	}
 }
 
+func TestTelemetryResolvesAnOverlappingNameAsARecipeBeforeAnApp(t *testing.T) {
+	deps, net := telemetryDeps(t)
+	cat := catalog.New([]app.App{&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}}}, []catalog.Recipe{{ID: "one", Apps: []string{"two"}}})
+	r := clitest.Run(t, deps, cat, "install", "one", "--yes")
+	if r.Code != 0 {
+		t.Fatalf("install: %d\n%s", r.Code, r.Out)
+	}
+	events := commandEvents(net)
+	props := events[len(events)-1]
+	if !reflect.DeepEqual(props["recipes"], []any{"one"}) || props["apps"] != nil {
+		t.Fatalf("namespace overlap did not resolve as Recipe: %v", props)
+	}
+}
+
 func TestNoPathHostNameInputOrSecretIsSentByAnyCommand(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
@@ -252,8 +346,7 @@ func TestTheInstallIDSurvivesDeletingTheHomeFolder(t *testing.T) {
 	clitest.Run(t, deps, cat, "apps", "list")
 	clitest.Run(t, deps, cat, "apps", "list")
 
-	u, _ := deps.CurrentUser()
-	if _, err := os.Stat(filepath.Join(u.Home, ".config", "self-host", "telemetry-id")); err != nil {
+	if _, err := deps.ConfigFiles.(*systemtest.ConfigFiles).ReadConfigFile("telemetry-id"); err != nil {
 		t.Fatalf("no install ID in the user config folder: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(clitest.Root(t, deps), "telemetry-id")); err == nil {
@@ -284,9 +377,9 @@ func TestAnInstallIDInTheHomeFolderIsMigrated(t *testing.T) {
 	if got := net.Events()[0]["distinct_id"]; got != legacy {
 		t.Fatalf("distinct_id = %v, want the Home folder's %s", got, legacy)
 	}
-	u, _ := deps.CurrentUser()
-	if saved := clitest.Read(t, filepath.Join(u.Home, ".config", "self-host", "telemetry-id")); strings.TrimSpace(saved) != legacy {
-		t.Fatalf("config telemetry-id = %q, want %s", saved, legacy)
+	data, err := deps.ConfigFiles.(*systemtest.ConfigFiles).ReadConfigFile("telemetry-id")
+	if err != nil || strings.TrimSpace(string(data)) != legacy {
+		t.Fatalf("config telemetry-id = %q, %v, want %s", data, err, legacy)
 	}
 }
 
@@ -419,5 +512,18 @@ func TestNoAbsolutePathOrHostNameIsSentInAStackFrame(t *testing.T) {
 				t.Errorf("payload carries %q:\n%s", value, body)
 			}
 		}
+	}
+}
+
+func TestTelemetryDoesNotTouchConfigPathsWithFakeDependencies(t *testing.T) {
+	deps, net := telemetryDeps(t)
+	unused := filepath.Join(t.TempDir(), "must-not-be-created")
+	deps.ConfigDir = func() (string, error) { return unused, nil }
+	clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "apps", "list")
+	if len(net.Events()) != 1 {
+		t.Fatal("fake persistence did not allow reporting")
+	}
+	if _, err := os.Stat(unused); !os.IsNotExist(err) {
+		t.Fatalf("telemetry touched an OS config path with fake dependencies: %v", err)
 	}
 }

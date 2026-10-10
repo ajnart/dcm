@@ -11,9 +11,11 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
 )
@@ -197,8 +199,9 @@ func TestWithoutAConfigFolderNothingIsSent(t *testing.T) {
 
 type unwritableConfig struct{}
 
-func (unwritableConfig) ReadConfigFile(string) ([]byte, error)             { return nil, os.ErrNotExist }
-func (unwritableConfig) WriteConfigFile(string, []byte, os.FileMode) error { return os.ErrPermission }
+func (unwritableConfig) LoadOrCreateConfigFile(string, func() ([]byte, error)) ([]byte, error) {
+	return nil, os.ErrPermission
+}
 
 func TestMigrationSendsNothingUntilTheIDIsSaved(t *testing.T) {
 	s := enabled(t)
@@ -230,12 +233,41 @@ func TestInstallIDsDifferBetweenInstalls(t *testing.T) {
 	}
 }
 
-func TestAnInvalidIDFileIsReplaced(t *testing.T) {
-	s := enabled(t)
-	s.config.WriteConfigFile("telemetry-id", []byte("alice-laptop\n"), 0o644)
-	s.send(install)
-	if id := distinctIDs(s)[0]; id == "alice-laptop" {
-		t.Fatalf("kept a made-up ID %q", id)
+func TestUnexpectedIdentityStorageFailsClosedWithoutReplacement(t *testing.T) {
+	for _, existing := range []string{"", "partial", "alice-laptop\n"} {
+		s := enabled(t)
+		s.config.WriteConfigFile("telemetry-id", []byte(existing), 0o600)
+		s.send(install)
+		data, err := s.config.ReadConfigFile("telemetry-id")
+		if len(s.net.Bodies()) != 0 || err != nil || string(data) != existing {
+			t.Fatalf("unexpected identity %q was sent or replaced: %q, %v", existing, data, err)
+		}
+	}
+}
+
+func TestConcurrentInitializationAndMigrationUseOnePublishedUUID(t *testing.T) {
+	const legacy = "6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10"
+	for _, migrate := range []bool{false, true} {
+		s := enabled(t)
+		if migrate {
+			s.store.WriteHomeFile("telemetry-id", []byte(legacy+"\n"), 0o644)
+		}
+		dir := filepath.Join(t.TempDir(), "self-host")
+		s.opts.Config = system.ConfigFilesAt(dir)
+		var workers sync.WaitGroup
+		for range 16 {
+			workers.Go(func() { s.send(install) })
+		}
+		workers.Wait()
+		ids := distinctIDs(s)
+		if len(ids) != 16 {
+			t.Fatalf("migration %v: got %d events", migrate, len(ids))
+		}
+		for _, id := range ids {
+			if id != ids[0] || (migrate && id != legacy) {
+				t.Fatalf("migration %v: unstable identities %v", migrate, ids)
+			}
+		}
 	}
 }
 

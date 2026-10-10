@@ -86,6 +86,24 @@ func TestDisabled(t *testing.T) {
 	}
 }
 
+func TestNoticeWorkerPanicIsPropagatedToTheCaller(t *testing.T) {
+	started := make(chan struct{})
+	notice := updatecheck.StartNotice(depsAt(t, "1.0.0", nil), func(context.Context) (string, error) {
+		close(started)
+		panic("synthetic lookup panic")
+	})
+	<-started
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		notice()
+	}()
+	crash, ok := recovered.(system.CapturedPanic)
+	if !ok || crash.Value != "synthetic lookup panic" || len(crash.Stack) == 0 {
+		t.Fatalf("lookup panic was lost: %v", recovered)
+	}
+}
+
 type lookup struct {
 	version string
 	err     error

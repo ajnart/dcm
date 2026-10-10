@@ -177,18 +177,41 @@ func (ss *session) archiveDockerTree(ctx context.Context, w *backup.Writer, id s
 		}
 	}
 	reader, writer := io.Pipe()
-	done := make(chan error, 1)
+	type result struct {
+		err   error
+		crash *system.CapturedPanic
+	}
+	done := make(chan result, 1)
 	go func() {
-		err := w.AddTar(reader, ss.p.AppFolder(id)+"/"+id, ephemeralFIFOs...)
-		if err == nil {
-			_, err = io.Copy(io.Discard, reader)
+		var answer result
+		answer.crash = system.CatchPanic(func() {
+			answer.err = w.AddTar(reader, ss.p.AppFolder(id)+"/"+id, ephemeralFIFOs...)
+			if answer.err == nil {
+				_, answer.err = io.Copy(io.Discard, reader)
+			}
+		})
+		if answer.crash != nil {
+			answer.err = errors.New("backup worker panicked")
 		}
-		reader.CloseWithError(err)
-		done <- err
+		reader.CloseWithError(answer.err)
+		done <- answer
 	}()
-	err := ss.s.runBackupHelper(ctx, ss.p.AppDir(id), true, false, strings.NewReader("set -eu\ntar -c -C /owned .\n"), writer)
+	var err error
+	producerCrash := system.CatchPanic(func() {
+		err = ss.s.runBackupHelper(ctx, ss.p.AppDir(id), true, false, strings.NewReader("set -eu\ntar -c -C /owned .\n"), writer)
+	})
+	if producerCrash != nil {
+		err = errors.New("backup producer panicked")
+	}
 	writer.CloseWithError(err)
-	return errors.Join(err, <-done)
+	answer := <-done
+	if producerCrash != nil {
+		panic(*producerCrash)
+	}
+	if answer.crash != nil {
+		panic(*answer.crash)
+	}
+	return errors.Join(err, answer.err)
 }
 
 func (s *Service) applyDockerMetadata(ctx context.Context, dir string, entries []backup.EntryMetadata) error {

@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 // Transport is an http.RoundTripper that records request bodies.
@@ -169,12 +171,4 @@ func (s *Store) Remove(name string) {
 	delete(s.files, name)
 }
 
-type Config struct{ files Store }
-
-func (c *Config) ReadConfigFile(name string) ([]byte, error) { return c.files.ReadHomeFile(name) }
-
-func (c *Config) WriteConfigFile(name string, data []byte, mode os.FileMode) error {
-	return c.files.WriteHomeFile(name, data, mode)
-}
-
-func (c *Config) Remove(name string) { c.files.Remove(name) }
+type Config = systemtest.ConfigFiles
