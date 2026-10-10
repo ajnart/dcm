@@ -1,0 +1,41 @@
+docs/adr/0008-tailscale-per-app-nodes.md
+  s_8b1d5a69f175a9::t_c5a980fc159143 32-36
+internal/service/backup.go
+  s_8b1d5a69f175a9::t_c4788d88b66ba5 600
+internal/service/install.go
+  s_8b1d5a69f175a9::t_256ea407f210a7 311,315-316
+internal/service/tailscale.go
+  s_59ffa5bfdcd3ba::t_9436443706e425 36-39,47-48,144-152
+internal/service/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_eecce2e379bcdc 75-81,101-119,125-130,159-297,352-354
+internal/skill/guide.md
+  s_8b1d5a69f175a9::t_172bf74191a076 280-281
+internal/tui/testdata/install-private-access-review-narrow.golden
+  s_59ffa5bfdcd3ba::t_1f7281f3169492 9
+internal/tui/testdata/install-private-access-review.golden
+  s_59ffa5bfdcd3ba::t_aee9a01406159a 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f62abdb5817ac65d84897431e4b67045bc9a8b3",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
