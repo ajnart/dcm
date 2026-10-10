@@ -1,0 +1,55 @@
+internal/names/names.go
+  s_8b1d5a69f175a9::t_16b3748aff63ff 1-154
+internal/names/names_test.go
+  s_59ffa5bfdcd3ba::t_55b6aef8ee7968 1-146
+internal/project/project.go
+  s_59ffa5bfdcd3ba::t_580c691ef5ea7e 31,393-439,445-451,456,460-461
+internal/project/render_test.go
+  s_8b1d5a69f175a9::t_bf069cdf525ff9 64-106
+internal/service/install.go
+  s_59ffa5bfdcd3ba::t_2d7a2f2fcff4a5 32,239-246,321-323
+internal/service/installed_apps.go
+  s_59ffa5bfdcd3ba::t_ad7a8aa59e702a 25
+internal/service/lifecycle.go
+  s_59ffa5bfdcd3ba::t_4ebbda3bce189f 197-199,205-226,228-230
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_fc248f551a1520 128-132
+internal/service/names.go
+  s_8b1d5a69f175a9::t_63989fbb559dbe 1-284
+internal/service/names_test.go
+  s_59ffa5bfdcd3ba::t_142dffef0bf083 1-424
+internal/service/status.go
+  s_59ffa5bfdcd3ba::t_357d57391be98c 57-59,112-116,148-150
+internal/system/real.go
+  s_8b1d5a69f175a9::t_3384a8c8b955a3 94,196-197,199,206-216
+internal/system/real_test.go
+  s_8b1d5a69f175a9::t_ffc615000ea08f 5-6,34-44
+internal/system/system.go
+  s_8b1d5a69f175a9::t_2adfee3ac117ce 31-39,87-88,90
+internal/systemtest/systemtest.go
+  s_8b1d5a69f175a9::t_1dc002552bfd69 220,261-332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "27fad24da3251169c201e2175a5348b96c894021",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
