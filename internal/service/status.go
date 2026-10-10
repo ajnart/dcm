@@ -277,6 +277,7 @@ type Credentials struct {
 	Admin struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Email    string `json:"email,omitempty"`
 		// Aliases maps an App ID to the App-local Admin login username it needs
 		// when the shared username is reserved upstream.
 		Aliases map[string]string `json:"aliases,omitempty"`
@@ -293,6 +294,7 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 	var creds Credentials
 	creds.Admin.Username = ss.secrets.values["ADMIN_USER"]
 	creds.Admin.Password = ss.secrets.values["ADMIN_PASSWORD"]
+	creds.Admin.Email = ss.secrets.values["ADMIN_EMAIL"]
 	creds.Admin.Aliases = map[string]string{}
 	creds.Apps = map[string]map[string]string{}
 	ids, _ := ss.p.AppIDs()

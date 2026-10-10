@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Apps 3 ───────────────────╮╭─ Jellyfin logs ────────────────────────────────╮
+│ ● ◇ Jellyfin     running   ││  logs   setup   info   compose   containers    │
+│ ✗ ◇ Sonarr       running   ││ ────────────────────────────────────────────── │
+│ ✗ ◇ whoami       stopped   ││ jellyfin-1  | ready on :80                     │
+│     ╭──────────────────────────────────────────────────────────────────╮     │
+│     │ Copy credentials                                                 │     │
+│     │                                                                  │     │
+│     │ Could not read credentials. Close and try c again.               │     │
+│     │                                                                  │     │
+│     │ ──────────────────────────────────────────────────────────────── │     │
+│     │ Values stay hidden. Enter copies the selected credential.        │     │
+│     ╰──────────────────────────────────────────────────────────────────╯     │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+│                            ││                                                │
+╰────────────────────────────╯╰────────────────────────────────────────────────╯
+
+ copy credentials                        ↑/↓  select   enter  copy   esc  close

@@ -865,6 +865,9 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	if m.apps.copy != nil {
+		return m, nil
+	}
 	if m.upgrade != nil {
 		return m, nil
 	}

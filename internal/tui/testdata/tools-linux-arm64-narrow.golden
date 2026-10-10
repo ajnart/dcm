@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Host   Access   Appearance   Backups   Tools   About
+╭─ Tools ──────────────────────────────────────────────────────────────────────╮
+│ > ctop        live container metrics            not installed                │
+│   lazydocker  terminal UI for Docker            not installed                │
+│   btop        CPU, memory, disks and processes  not installed                │
+│   bottom      CPU, memory and network graphs    not installed                │
+│   ncdu        find large folders (read-only)    not installed                │
+│                                                                              │
+│   No install command for linux/arm64.                                        │
+│   Choose a package or matching release in docs.                              │
+│   docs  github.com/bcicen/ctop#install                                       │
+│                                                                              │
+│   self-host never installs these for you.                                    │
+│   enter runs installed tools; c copies an available install command.         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit            ↑/↓  select   enter  run …

@@ -23,6 +23,7 @@ func toolsHost(t *testing.T, goos string, installed map[string]string) (Model, *
 	m, backend := settingsHost(t)
 	backend.tools = installed
 	m.settings.goos = goos
+	m.settings.goarch = "amd64"
 	for range 4 {
 		m = drive(t, m, press("]"))
 	}
@@ -75,11 +76,12 @@ func TestAMissingToolIsDimmedWithItsInstallCommandAndCCopiesIt(t *testing.T) {
 func TestAMissingToolLinksItsREADMEAndIsDim(t *testing.T) {
 	m, _ := toolsHost(t, "linux", nil)
 
-	view := m.settings.View(m.ctx(), 120, 30)
 	for _, url := range []string{"https://github.com/bcicen/ctop#install", "https://github.com/jesseduffield/lazydocker#installation"} {
+		view := m.settings.View(m.ctx(), 120, 30)
 		if !strings.Contains(view, ansi.SetHyperlink(url)) {
 			t.Errorf("%s is not an OSC 8 hyperlink: %q", url, view)
 		}
+		m = drive(t, m, press("down"))
 	}
 	if bold := boldText(m.View().Content); strings.Contains(strings.Join(bold, "\n"), "not installed") {
 		t.Errorf("a missing tool is dim, not bold")
@@ -130,6 +132,7 @@ func TestLinuxInstallCommandsShowInFullWithinEightyColumns(t *testing.T) {
 	m, _ := sample(t, 80, 24)
 	m = drive(t, m, press("5"))
 	m.settings.goos = "linux"
+	m.settings.goarch = "amd64"
 	for range 4 {
 		m = drive(t, m, press("]"))
 	}
@@ -144,9 +147,11 @@ func TestLinuxInstallCommandsShowInFullWithinEightyColumns(t *testing.T) {
 		"sudo wget https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64 -O /usr/local/bin/ctop && sudo chmod +x /usr/local/bin/ctop",
 		"curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash",
 	} {
+		out = screen(m)
 		if !strings.Contains(installText(out), strings.ReplaceAll(command, " ", "")) {
 			t.Fatalf("the install command %q should be readable in full\n%s", command, out)
 		}
+		m = drive(t, m, press("down"))
 	}
 }
 
