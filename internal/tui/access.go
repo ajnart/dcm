@@ -115,10 +115,10 @@ var accessOptions = []accessOption{
 			"No Funnel is enabled. An OAuth client secret also works in the same private input with tag:self-host owned by that client. The IP:port Address keeps working.",
 	},
 	{
-		id: "cloudflare", label: "Your own web address", name: "Your own web address", soon: true,
+		id: "cloudflare", label: "Your own web address", name: "Your own web address",
 		text: func(string) string {
-			return "Your own web address, like movies.example.com, will open your Apps from anywhere through Cloudflare Tunnel, " +
-				"without opening any port on your router. A login page will stand in front, so only people you allow get in."
+			return "Your own web address, like movies.example.com, opens your chosen Apps from anywhere through Cloudflare Tunnel, " +
+				"without opening any port on your router. A login page stands in front, so only people you allow get in. Choose Apps after they are installed; nothing goes public without a separate yes."
 		},
 		diagram: func(string) accessDiagram {
 			return accessDiagram{
@@ -131,13 +131,17 @@ var accessOptions = []accessOption{
 			}
 		},
 		sections: []accessSection{
+			{"Before you begin", "Add your main domain to Cloudflare and wait until it is active. At one.dash.cloudflare.com choose a team name, the Zero Trust Free plan (50 users), and a payment method that is not charged. Use the main domain, not a sub-domain: deeper names need a paid certificate."},
+			{"Ownership and recovery", "Each Project keeps its own identity and resource IDs; matching names are never adopted. Backups keep this cleanup information. Restore disables the public connector until you review a plan and give a separate publication-risk yes. Use cloudflare remove with a fresh private API token for cleanup; ordinary connector removal is refused. Old backups without ownership need manual Cloudflare review. Network failures can prevent cleanup: retain the record and read the status warnings."},
+			{"Create one private API token", "In Cloudflare: My Profile > API Tokens > Create Token > Create Custom Token. Account permissions: Cloudflare Tunnel: Edit; Access: Apps and Policies: Edit; Access: Organizations, Identity Providers, and Groups: Edit. Zone permissions: DNS: Edit; Zone: Read. Limit resources to your one account and one zone. Enter the token privately; only the tunnel run token is saved. Changes and removal ask for the API token again."},
+			{"Choose Apps and people", "Nothing is chosen by default. Pick Apps individually, then give a separate yes naming the publication risk. Containers, Databases, Downloads, Identity, DNS, Ingress, Remote access, Backups, Monitoring, Observability, Cameras, Storage and Passwords stay private unless you name the App deliberately. Apps with no web page cannot be published. Check the allowed emails: a typo fails silently, and each signed-in email uses a seat."},
+			{"Watching away from home", "Cloudflare's terms restrict video streaming through public names. Phone and TV apps cannot pass the login page. Tailscale (From anywhere, privately) is the better route for streaming and native apps."},
 			{"Who can get in?",
 				"Anyone with the address reaches the login page, and only people you allow get past it. Anything reachable from the internet needs your own explicit yes first."},
 			{"Your router",
 				"Nothing on your router changes, and no port is opened."},
 		},
-		facts: "A cloudflared container will open an outbound tunnel to Cloudflare, DNS records will point your web address at it " +
-			"and a Cloudflare Access login policy will sit in front of every route. No router port is opened. The IP:port Address keeps working.",
+		facts: "A cloudflared container opens an outbound tunnel to Cloudflare. The PIN provider, tunnel, policy, Access app and merged ingress with originRequest.access are made before the connector starts. DNS is last. An outside probe must answer 302 to your cloudflareaccess.com login page, or that DNS record is deleted. The HTTPS Address and IP:port Address both stay available. Removal works in reverse and keeps the shared PIN provider and organization.",
 	},
 	{
 		id: "custom", label: "Bring your own", name: "Bring your own",

@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Your own web address ───────────────────────────────────────────────────────╮
+│   Before you begin: your main domain must be active on Cloudflare. Open      │
+│   one.dash.cloudflare.com, choose a team name, the Zero Trust Free plan (50  │
+│   users), and a payment method that is not charged.                          │
+│   Create a private API token with the five exact permissions in ? more.      │
+│   Nothing is published by default. Enter to choose Apps and allowed emails.  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit         enter  continue   esc  cancel

@@ -123,7 +123,19 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 		return fmt.Errorf("name the Apps to remove")
 	}
 	return s.run(ctx, change{
-		title:   "remove " + strings.Join(ids, " "),
+		title: "remove " + strings.Join(ids, " "),
+		edit: func(_ context.Context, ss *session) error {
+			if slices.Contains(ids, cloudflareConnector) {
+				_, published, err := loadCloudflareRecord(ss.p)
+				if err != nil {
+					return err
+				}
+				if published {
+					return errors.New("published Cloudflare routes still need cleanup; use self-host cloudflare remove with a fresh private API token, not ordinary App removal")
+				}
+			}
+			return nil
+		},
 		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
 		compose: composeRemove,
 		after:   afterDashboard,
