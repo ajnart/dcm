@@ -631,6 +631,12 @@ func (m Model) View() tea.View {
 	if m.menu != nil && !m.onboardingShown() {
 		all = append(all, m.menuLayers()...)
 	}
+	if m.apps.copy != nil && !m.onboardingShown() && (m.surface == surfaceDashboard || m.surface == surfaceApps) {
+		box := m.apps.copy.view(ctxView, m.width, m.mainHeight())
+		w, h := lipgloss.Width(box), lipgloss.Height(box)
+		x, y := max((m.width-w)/2, 0), max((m.height-h)/3, 0)
+		all = append(all, lipgloss.NewLayer(box).X(x).Y(y).Z(10).ID("overlay"))
+	}
 	comp := lipgloss.NewCompositor(all...)
 	v.SetContent(comp.Render())
 	v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {

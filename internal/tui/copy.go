@@ -20,6 +20,7 @@ type copyPicker struct {
 	rows    []copyChoice
 	cursor  int
 	loading bool
+	failed  bool
 }
 
 type copyOptionsMsg struct {
@@ -29,7 +30,7 @@ type copyOptionsMsg struct {
 }
 
 var copyHelp = []key.Binding{
-	hint("↑/↓", "select"), hint("enter", "copy"), hint("esc", "back"),
+	hint("↑/↓", "select"), hint("enter", "copy"), hint("esc", "close"),
 }
 
 func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
@@ -63,6 +64,12 @@ func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
 			}
 			rows = append(rows, copyChoice{app: app.ID, key: name, label: label})
 		}
+		if creds.Admin.Username != "" {
+			rows = append(rows, copyChoice{key: "ADMIN_USER", label: "Admin username"})
+		}
+		if creds.Admin.Email != "" {
+			rows = append(rows, copyChoice{key: "ADMIN_EMAIL", label: "Admin email"})
+		}
 		return copyOptionsMsg{picker: picker, rows: rows}
 	}
 }
@@ -75,8 +82,8 @@ func (v *appsView) copyOptions(ctx *viewContext, msg copyOptionsMsg) {
 	v.copy.loading = false
 	v.copy.rows = msg.rows
 	if msg.err != nil {
-		v.copy = nil
-		ctx.setFlash("could not read credentials", levelError)
+		v.copy.rows = nil
+		v.copy.failed = true
 	}
 }
 
@@ -106,6 +113,10 @@ func (v *appsView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 			switch {
 			case choice.username:
 				value = creds.Admin.Aliases[choice.app]
+			case choice.app == "" && choice.key == "ADMIN_USER":
+				value = creds.Admin.Username
+			case choice.app == "" && choice.key == "ADMIN_EMAIL":
+				value = creds.Admin.Email
 			case choice.key != "":
 				value = creds.Apps[choice.app][choice.key]
 			}
@@ -120,21 +131,28 @@ func (v *appsView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 
 func (p *copyPicker) view(ctx *viewContext, width, height int) string {
 	t := ctx.theme
-	lines := []string{"", "  " + t.heading().Render("Copy credentials"), ""}
+	inner := max(min(width-8, 64), 20)
+	lines := []string{t.active().Render("Copy credentials"), ""}
 	if p.loading {
-		lines = append(lines, "  "+t.dim().Render("Reading available credentials…"))
+		lines = append(lines, t.dim().Render("Reading available credentials…"))
+	} else if p.failed {
+		lines = append(lines, t.fg(t.fail).Render("Could not read credentials. Close and try c again."))
 	} else if len(p.rows) == 0 {
-		lines = append(lines, "  "+t.dim().Render("No saved password or API key."))
+		lines = append(lines, t.dim().Render("No saved credentials available."))
 	} else {
-		visible := max(height-6, 1)
+		visible := max(height-10, 1)
 		start := max(p.cursor-visible+1, 0)
 		for i := start; i < len(p.rows) && i-start < visible; i++ {
-			line := "  " + p.rows[i].label
+			line := "  " + t.body().Render(p.rows[i].label)
 			if i == p.cursor {
-				line = t.title().Render("> " + p.rows[i].label)
+				line = t.cursor() + t.active().Render(p.rows[i].label)
 			}
-			lines = append(lines, "  "+truncate(line, max(width-4, 1)))
+			lines = append(lines, truncate(line, inner))
 		}
 	}
-	return strings.Join(lines, "\n")
+	lines = append(lines, "", t.fg(t.faint).Render(strings.Repeat("─", inner)), t.dim().Render("Values stay hidden. Enter copies the selected credential."))
+	for i, line := range lines {
+		lines[i] = pad(line, inner)
+	}
+	return t.panel(true).Render(strings.Join(lines, "\n"))
 }

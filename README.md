@@ -382,7 +382,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                                                                                                                       |
 | [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
 | a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
-| enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy.                                                     |
+| enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its Address; choose a saved credential to copy.                                                    |
 | /               | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog.                                                                          |
 | ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
@@ -394,6 +394,12 @@ runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
 closes the menu. With the mouse, a click highlights an Action and a click on
 the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
 
+`c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
+`enter` copies and `esc` closes; background keys and clicks do not navigate.
+It offers the Admin password, the selected App's login alias and API keys,
+then Admin username and email when saved. Values stay hidden and are read
+again when copied.
+
 While a search or an edit takes text, every key goes to it; in the App list
 `/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
 five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
@@ -403,10 +409,20 @@ archives in `~/.self-host/backups` with date, size and whether each is encrypted
 is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore
 preview that offers the whole Project or one App, asks for the passphrase only when the
 archive is encrypted, and restores only once `enter` is pressed twice in the preview. Both
-run as Actions in Activity, and no key deletes an archive. Tools finds `ctop` and
-`lazydocker` on `PATH`: `enter` runs one and
-the TUI resumes when it exits; a missing one is dimmed with its install command for this
-platform and `c` copies it (self-host never installs a tool). About shows the version, the Project folder and whether a newer
+run as Actions in Activity, and no key deletes an archive. Tools finds
+[`ctop`](https://github.com/bcicen/ctop#install) (container metrics),
+[`lazydocker`](https://github.com/jesseduffield/lazydocker#installation) (Docker management),
+[`btop`](https://github.com/aristocratos/btop#installation) (machine resources),
+[`bottom`](https://github.com/ClementTsang/bottom#installation), whose executable is `btm`
+(resource history graphs), and [`ncdu`](https://dev.yorhel.nl/ncdu) (large folders).
+Arrows browse the list and show the selected tool's guidance within 80×24;
+`enter` runs an installed tool and the Dashboard resumes when it exits.
+ncdu runs with deletion and shell spawning disabled (`-r -r`, [upstream manual](https://dev.yorhel.nl/ncdu/man)).
+A missing tool shows a verified macOS install command or Linux package/release
+guidance; `c` copies a command only when available for the OS and architecture.
+No tools are installed automatically. Linux distributions use different packages,
+so the added tools link upstream rather than assume a package manager or binary architecture.
+About shows the version, the Project folder and whether a newer
 release exists; `c` opens Ko-fi and `s` GitHub Sponsors in the browser. Appearance
 chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
 in the terminal) or Simple Unicode symbols, the default. The choice is saved at
