@@ -1,0 +1,107 @@
+internal/catalog/homarr_recipe_test.go
+  s_8b1d5a69f175a9::t_f14a2ba36a8884 1-23
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  s_8b1d5a69f175a9::t_bddae453f1ad5b 24
+internal/tui/testdata/easy-names-onboarding.golden
+  s_8b1d5a69f175a9::t_999938a8fbb1e0 30
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  s_8b1d5a69f175a9::t_08c38ce0e5f0c0 24
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  s_8b1d5a69f175a9::t_a0f0be8f2a9e86 30
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_3022ac3ad72eb1 24
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_8b6a76c84ba6c8 30
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_f71810367d5a2e 24
+internal/tui/testdata/onboarding-access-custom.golden
+  s_8b1d5a69f175a9::t_58f026c95f43c3 30
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_272b343184606a 24
+internal/tui/testdata/onboarding-access-names.golden
+  s_8b1d5a69f175a9::t_937b302f914d56 30
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_8b1d5a69f175a9::t_e5f644fb42ad60 24
+internal/tui/testdata/onboarding-access-selected-narrow.golden
+  s_8b1d5a69f175a9::t_d227140ffe2ff8 1-24
+internal/tui/testdata/onboarding-access-selected.golden
+  s_8b1d5a69f175a9::t_bc1d1e2702605e 1-30
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_e663f1e85ed927 24
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_8b1d5a69f175a9::t_24181eabf46e8e 30
+internal/tui/testdata/onboarding-access.golden
+  s_8b1d5a69f175a9::t_ab05cf43503d72 30
+internal/tui/testdata/onboarding-initializing-done-narrow.golden
+  s_8b1d5a69f175a9::t_3d1f7900f014c4 5-7,14
+internal/tui/testdata/onboarding-initializing-done.golden
+  s_8b1d5a69f175a9::t_f5d9ec8a4d5efe 11-12,14-19,21
+internal/tui/testdata/onboarding-initializing-reveal-narrow.golden
+  s_8b1d5a69f175a9::t_5feaf3d29ea075 11-12,14-16
+internal/tui/testdata/onboarding-initializing-reveal.golden
+  s_8b1d5a69f175a9::t_80fba8053eb7cf 14-15,17-19
+internal/tui/testdata/onboarding-look-focus-narrow.golden
+  s_8b1d5a69f175a9::t_520a91e2883d61 1-24
+internal/tui/testdata/onboarding-look-focus.golden
+  s_8b1d5a69f175a9::t_8e9096123f0a25 1-30
+internal/tui/testdata/onboarding-look-narrow.golden
+  s_8b1d5a69f175a9::t_c69882c680d2d0 13-14,24
+internal/tui/testdata/onboarding-look-selected-narrow.golden
+  s_8b1d5a69f175a9::t_2d0bc8e0bd1721 1-24
+internal/tui/testdata/onboarding-look-selected.golden
+  s_8b1d5a69f175a9::t_3e1780f66cbf05 1-30
+internal/tui/testdata/onboarding-look.golden
+  s_8b1d5a69f175a9::t_c7a1f08c060b0f 12-13,30
+internal/tui/testdata/onboarding-welcome-focus-narrow.golden
+  s_8b1d5a69f175a9::t_69b0905edcc040 1-24
+internal/tui/testdata/onboarding-welcome-focus.golden
+  s_8b1d5a69f175a9::t_c2960903f14bbb 1-30
+internal/tui/testdata/onboarding-welcome-narrow.golden
+  s_8b1d5a69f175a9::t_e78bb365d271d4 5,9-10,12-13,24
+internal/tui/testdata/onboarding-welcome-saved-profile-narrow.golden
+  s_8b1d5a69f175a9::t_862455acbdc1c9 9,11-13,15-16,18
+internal/tui/testdata/onboarding-welcome-saved-profile.golden
+  s_8b1d5a69f175a9::t_309cf584466458 12,14-16,18-19,21
+internal/tui/testdata/onboarding-welcome-selected-narrow.golden
+  s_8b1d5a69f175a9::t_2bf7ce9f58dd7a 1-24
+internal/tui/testdata/onboarding-welcome-selected.golden
+  s_8b1d5a69f175a9::t_1ebc460f7750a7 1-30
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  s_8b1d5a69f175a9::t_42745e6293924d 8-9,11-12,24
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  s_8b1d5a69f175a9::t_03b6cbe254fd7a 8,10-12,14-15,17-20,22,24-25,30
+internal/tui/testdata/onboarding-welcome.golden
+  s_8b1d5a69f175a9::t_f177e8821060b0 9,11-13,15-16,18-21,23,30
+internal/tui/testdata/onboarding-what-default-focus-narrow.golden
+  s_8b1d5a69f175a9::t_92425dd5917d0f 1-24
+internal/tui/testdata/onboarding-what-default-focus.golden
+  s_8b1d5a69f175a9::t_3f1cac03769741 1-30
+internal/tui/testdata/onboarding-what-narrow.golden
+  s_8b1d5a69f175a9::t_3a5e9a2e484d8c 6-7,9-11,14,16-18
+internal/tui/testdata/onboarding-what-recipe-narrow.golden
+  s_8b1d5a69f175a9::t_8b849f355380a0 6-7,9,15
+internal/tui/testdata/onboarding-what-recipe.golden
+  s_8b1d5a69f175a9::t_a32ed67054fde6 6-7,9,15
+internal/tui/testdata/onboarding-what-selected-input-narrow.golden
+  s_8b1d5a69f175a9::t_da8f6c140ec975 1-24
+internal/tui/testdata/onboarding-what-selected-input.golden
+  s_8b1d5a69f175a9::t_cd13adcec04be7 1-30
+internal/tui/testdata/onboarding-what.golden
+  s_8b1d5a69f175a9::t_f8be17ffa2cd46 6-7,9-11,14,16-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eab31db77c8231a25858b137fe2ce71b668904d5",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
