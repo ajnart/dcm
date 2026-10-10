@@ -20,6 +20,26 @@ import (
 
 const authKey = "tskey-auth-kTestKey123-secretsecretsecret"
 
+type headlessApp struct{ testApp }
+
+func (a *headlessApp) Info() app.Info {
+	info := a.testApp.Info()
+	info.NoWebUI = true
+	return info
+}
+
+func TestTailscaleDoesNotGiveHeadlessAppsNodes(t *testing.T) {
+	h := newHarness(t, tsapp.App{}, &headlessApp{testApp: testApp{id: "worker", done: map[string]bool{}}})
+	net := &tailnet{running: []string{"tailscale", "worker"}}
+	net.install(h)
+	if err := h.installTailscale("worker"); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(h.readFile("apps", "tailscale", "compose.yml"), "tailscale-worker") {
+		t.Fatal("an App without a web page must not get a node")
+	}
+}
+
 // tailnet fakes the Tailscale containers behind docker compose: which services
 // run, and what `tailscale status --json` prints in each.
 type tailnet struct {

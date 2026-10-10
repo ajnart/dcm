@@ -28,12 +28,16 @@ func TestOnboardingTailscaleAsksPrivatelyBeforeReview(t *testing.T) {
 	if strings.Contains(screen(m), "synthetic-private-key") {
 		t.Fatal("private input is visible")
 	}
+	m = drive(t, m, press("?"))
+	if m.showHelp || *m.onboarding.answers.inputs["tailscale.auth_key"] != "synthetic-private-key?" {
+		t.Fatal("question mark must remain private input, not open help")
+	}
 	m = drive(t, m, press("enter"))
 	if m.onboarding.step != stepWho {
 		t.Fatalf("completed private input should reach Who, got %v", m.onboarding.step)
 	}
 	p := m.planFromAnswers(m.onboarding.answers)
-	if !slices.Contains(p.opts.Targets, "tailscale") || p.opts.PrivateInputs["tailscale"]["auth_key"] != "synthetic-private-key" || p.opts.Exposure != "lan" {
+	if !slices.Contains(p.opts.Targets, "tailscale") || p.opts.PrivateInputs["tailscale"]["auth_key"] != "synthetic-private-key?" || p.opts.Exposure != "lan" {
 		t.Fatalf("Access must add Tailscale without replacing Home network")
 	}
 	if len(backend.Actions()) != 0 {
@@ -52,5 +56,14 @@ func TestSettingsTailscaleOpensAnApprovedInstallReview(t *testing.T) {
 	}
 	if len(backend.Actions()) != 0 {
 		t.Fatal("opening review must not run an Action")
+	}
+	m = typeText(t, m, "synthetic-private-key")
+	if strings.Contains(screen(m), "synthetic-private-key") {
+		t.Fatal("Settings review must conceal its key")
+	}
+	m = drive(t, m, press("enter"))
+	installs := backend.installs()
+	if len(installs) != 1 || installs[0].PrivateInputs["tailscale"]["auth_key"] != "synthetic-private-key" || len(installs[0].Sets) != 0 {
+		t.Fatal("approved Settings install must carry the key only as a private input")
 	}
 }

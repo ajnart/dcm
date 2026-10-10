@@ -301,3 +301,16 @@ func TestSetupNeverPutsTheKeyInACommand(t *testing.T) {
 		t.Errorf("the OAuth secret should enroll from the key file with the tag, got %v", exec.calls)
 	}
 }
+
+func TestCheckReadsEachNodesStatusAfresh(t *testing.T) {
+	var records []helpers.StepResult
+	exec := &execFake{nodes: map[string]string{"tailscale-jellyfin": nodeStatus("jellyfin-1.example.ts.net.")}}
+	h := newH(t, &records, map[string]string{"auth_key": "synthetic-private-key"}, exec, jellyfin)
+	if err := (tailscale.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	exec.nodes["tailscale-jellyfin"] = `{"BackendState":"NeedsLogin"}`
+	if err := (tailscale.App{}).Check(context.Background(), h); err == nil {
+		t.Fatal("Check must notice that a previously running node signed out")
+	}
+}

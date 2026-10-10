@@ -3,10 +3,10 @@
   ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
 
   ┃ Tailscale auth key
-  ┃ Reusable, pre-approved key from login.tailscale.com/admin/settings/keys. Never paste it into chat.
+  ┃ First enable HTTPS at login.tailscale.com/admin/dns: App names appear in a public certificate log.
+  ┃ Then make a reusable, pre-approved key at login.tailscale.com/admin/settings/keys. Paste it only
+  ┃ here, never into chat.
   ┃ >
-
-
 
 
 

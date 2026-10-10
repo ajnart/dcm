@@ -318,7 +318,7 @@ func (o *onboarding) focusedKey() string {
 // helpPage is the page `?` opens: the help page of the highlighted Access
 // option, on the Access step. A text input takes `?` itself.
 func (o *onboarding) helpPage() (helpPage, bool) {
-	if o.step != stepAccess {
+	if o.step != stepAccess || o.form != nil {
 		return helpPage{}, false
 	}
 	return accessPage(accessOptions[o.access], o.answers.lan), true
@@ -647,7 +647,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 				value = new(string)
 				o.answers.inputs["tailscale.auth_key"] = value
 			}
-			input := huh.NewInput().Title("Tailscale auth key").Description("Reusable, pre-approved key from login.tailscale.com/admin/settings/keys. Never paste it into chat.").Value(value).EchoMode(huh.EchoModePassword).Validate(func(s string) error {
+			input := huh.NewInput().Title("Tailscale auth key").Description("First enable HTTPS at login.tailscale.com/admin/dns: App names appear in a public certificate log. Then make a reusable, pre-approved key at login.tailscale.com/admin/settings/keys. Paste it only here, never into chat.").Value(value).EchoMode(huh.EchoModePassword).Validate(func(s string) error {
 				if strings.TrimSpace(s) == "" {
 					return errors.New("required")
 				}
