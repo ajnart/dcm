@@ -88,6 +88,16 @@ type fakeBackend struct {
 	updateErr   error
 	restarts    int
 	restartErr  error
+	// telemetryNotice is what TelemetryNotice announces, once.
+	telemetryNotice string
+}
+
+func (f *fakeBackend) TelemetryNotice() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	notice := f.telemetryNotice
+	f.telemetryNotice = ""
+	return notice
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {

@@ -77,6 +77,8 @@ type onboarding struct {
 	// task is the approved install; while it is set Pre-boot or the Dashboard is on screen.
 	task int
 	err  string
+	// notice announces Telemetry on the Welcome step, once per Home folder.
+	notice string
 }
 
 // plan is a reviewed install: what will happen, before anything is written.
@@ -90,7 +92,7 @@ type plan struct {
 
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		checking: len(m.checks) == 0, checksFrom: m.frame}
+		checking: len(m.checks) == 0, checksFrom: m.frame, notice: m.backend.TelemetryNotice()}
 	o.answers.fill(m.defaults)
 	return o
 }
@@ -910,7 +912,11 @@ func (m Model) renderWelcome() []string {
 	for _, c := range experienceChoices {
 		lines = append(lines, "  "+truncate(radioRow(t, c.level == m.onboarding.answers.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
 	}
-	return append(lines, "", "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
+	lines = append(lines, "", "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
+	if m.onboarding.notice != "" {
+		lines = append(lines, "", "  "+t.dim().Render(m.onboarding.notice))
+	}
+	return lines
 }
 
 const experienceQuestion = "Have you run your own server or used Docker before, or is this all new to you?"
