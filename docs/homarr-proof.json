@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "kind": "homarr-functional-proof",
+  "head": "374bd1c813aa6f2d32580f1ae4fe2711a0ecb427",
+  "binary_sha256": "4a1329fe447ecffb7e799ba1f385311fb42fc2f95b0e0c25b290976b0be5d6bb",
+  "platform": "linux/amd64",
+  "started": "2026-10-07T16:59:50.789037454Z",
+  "finished": "2026-10-07T17:10:28.813126479Z",
+  "outcome": "pass",
+  "cleanup": "pass",
+  "apps": [
+    "homarr",
+    "ntfy",
+    "jellyfin"
+  ],
+  "recorded_images": [
+    {
+      "service": "homarr",
+      "id": "sha256:0330b79902f792d55c9ac0d9a573ce7ec1d0fc84410df4fc52f9594addb207b8",
+      "platform": "linux/amd64"
+    },
+    {
+      "service": "ntfy",
+      "id": "sha256:2a9ce4a61de215b23367af546f72e2f2a42cd0ba3573408cc0006f7096b4b6f1",
+      "platform": "linux/amd64"
+    },
+    {
+      "service": "jellyfin",
+      "id": "sha256:fbd967af0187a569b0c18d2db6cb311fdf0df4aeb520102c63f19320aadf964d",
+      "platform": "linux/amd64"
+    }
+  ],
+  "stages": [
+    {
+      "name": "install",
+      "outcome": "pass",
+      "assertion": "Isolated Homarr, ntfy and Jellyfin install and headless setup completed."
+    },
+    {
+      "name": "administrator-board",
+      "outcome": "pass",
+      "assertion": "Administrator session read private Home, made and reverted a benign edit; anonymous private reads denied or excluded. Upstream private seeded board adopted with null creator."
+    },
+    {
+      "name": "notification-roundtrip",
+      "outcome": "pass",
+      "assertion": "Authenticated ntfy publish/read matched exact ID and body; Homarr exposed that notification and current nonzero message statistics; anonymous topic access denied."
+    },
+    {
+      "name": "synthetic-media-release",
+      "outcome": "pass",
+      "assertion": "Jellyfin scanned owned generated PCM audio and Homarr media releases matched its exact item and integration IDs."
+    },
+    {
+      "name": "idempotency-restart",
+      "outcome": "pass",
+      "assertion": "Repeated setup and restart preserved dashboard resource identities without duplicates."
+    },
+    {
+      "name": "url-reconciliation",
+      "outcome": "pass",
+      "assertion": "Drifted browser URL repaired; LAN_IP=127.0.0.2 metadata change preserved loopback-only binding and resource identities."
+    },
+    {
+      "name": "credential-recovery",
+      "outcome": "pass",
+      "assertion": "Invalid owned ntfy token produced exit2 and targeted homarr/link-ntfy failure with retry hint. Restoring the original token and retrying preserved resources and recovered the real notification roundtrip."
+    },
+    {
+      "name": "add-remove",
+      "outcome": "pass",
+      "assertion": "Transient Gatus tile add/remove reconciled; ntfy removal/reinstall reconciled tiles/integration/widgets/notebook while preserving Jellyfin resources and shared administrator credentials."
+    },
+    {
+      "name": "browser-dashboard",
+      "outcome": "pass",
+      "assertion": "Real form administrator login, normal tour dismissal, live notification/media/notebook content and loaded App icons; root visually verified four readable native screenshots."
+    }
+  ],
+  "board_attribution": "adopted private seeded board; creator not assigned by upstream",
+  "visual_review": "Root viewed all four native PNGs: populated, unobstructed, readable, icons loaded; ntfy messages, synthetic Jellyfin release and secret-free notebook visible.",
+  "scope_limits": [
+    "127.0.0.2 is loopback configuration metadata, not proof of physical LAN reachability.",
+    "Selfhost E2E Tone is authorized generated 1-second mono16-bit PCM WAV audio; library and release visibility proved, playback or streaming not exercised.",
+    "App tiles, integration API data and visible widgets are separate observed claims.",
+    "Credential recovery restored the known valid owned token; the suggested ntfy repair command was not exercised in that negative-token stage.",
+    "Recorded image identities cover Homarr, ntfy and Jellyfin; transient Gatus was removed before final browser proof."
+  ],
+  "archive": {
+    "directory": "/tmp/selfhost-runtime-iterations/homarr-374bd1c",
+    "manifest_sha256": "675248d1e0ec2b9a5904fb57fecb8b7dc19996009617726daec27e6bca36d355",
+    "artifacts": [
+      {
+        "archive_path": "functional-homarr.json",
+        "sha256": "ff121653fedd8d9cd1ff6bdf40026b0ed0f130312d330a9de1cbd5d4ede23c89"
+      },
+      {
+        "archive_path": "browser/dashboard.png",
+        "sha256": "2bcf46f66af1e63c92e118589607c1cad8113da544435d5437d7e0d1a31e7f9c",
+        "repository_path": "docs/images/homarr-dashboard.png"
+      },
+      {
+        "archive_path": "browser/notifications.png",
+        "sha256": "cf7b5861fc284d46650c4673ee5200d49e55fee7de84f1399a2858576c3d159e",
+        "repository_path": "docs/images/homarr-notifications.png"
+      },
+      {
+        "archive_path": "browser/mediaReleases.png",
+        "sha256": "44bc3939896cc254b1be4966ae0f1c30e4253b255a29449e0697d134c80bbbd9",
+        "repository_path": "docs/images/homarr-media-releases.png"
+      },
+      {
+        "archive_path": "browser/notebook.png",
+        "sha256": "da7267b075dadffe1e52be43ee057fc1e7caf30f706dbfc39d5e903845fe9f0a",
+        "repository_path": "docs/images/homarr-notebook.png"
+      },
+      {
+        "archive_path": "tui/dashboard.png",
+        "sha256": "204b7b26dc08c7526f9f606bc72f9022a98d16efdb4faf16c7c554a9179601cc",
+        "repository_path": "docs/images/dashboard.png"
+      },
+      {
+        "archive_path": "tui/workflow.png",
+        "sha256": "7d8a57b0905a92726b737d4a5230b191970a55bdbd49382228521e1383e6adf6",
+        "repository_path": "docs/images/workflow.png"
+      },
+      {
+        "archive_path": "tui/install-search.png",
+        "sha256": "433b41ce5a39db9ff303e6a9a0dd97737058f02f6d4edab70f3b0d8bc2275449",
+        "repository_path": "docs/images/install-search.png"
+      },
+      {
+        "archive_path": "tui/demo.cast",
+        "sha256": "5dfb3891fc760ee9a619771f97fa54c34169b8eb977f8d0f2e43b44a829d1b06",
+        "repository_path": "docs/demos/self-host.cast"
+      },
+      {
+        "archive_path": "tui/capture.json",
+        "sha256": "5c0742e0f84c90dcbf61d0f5657d7574d225a2f2fe14623403be6e7db3292bb3",
+        "repository_path": "docs/demos/capture.json"
+      }
+    ]
+  },
+  "ci": {
+    "url": "https://github.com/ajnart/selfhost-skills/actions/runs/37655239987",
+    "head": "374bd1c813aa6f2d32580f1ae4fe2711a0ecb427",
+    "status": "success",
+    "scope": "Green CI and final functional/browser/TUI proof use the same immutable head374bd1c813aa6f2d32580f1ae4fe2711a0ecb427."
+  },
+  "actual_tui": {
+    "outcome": "pass",
+    "review": "Real native PTY session after all nine stages passed. Root viewed all three TUI PNGs; readable Dashboard, expanded Workflow and Install search. No logs/credentials UI/mutations.",
+    "source_head": "374bd1c813aa6f2d32580f1ae4fe2711a0ecb427",
+    "binary_sha256": "4a1329fe447ecffb7e799ba1f385311fb42fc2f95b0e0c25b290976b0be5d6bb",
+    "screens": [
+      "dashboard",
+      "workflow",
+      "install-search"
+    ],
+    "provenance": "docs/demos/capture.json",
+    "recording": "docs/demos/self-host.cast",
+    "chronology": "All nine API/browser stages passed before capture pause. Actual native PTY Dashboard, Space-expanded Workflow and Install search were captured read-only; root reviewed all seven PNGs, then the fixture resumed and owned cleanup passed."
+  }
+}

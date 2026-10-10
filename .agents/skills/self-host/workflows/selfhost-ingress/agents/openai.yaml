@@ -1,6 +1,0 @@
-interface:
-  display_name: "Extension · Private Ingress"
-  short_description: "Plan private and public ingress safely"
-  default_prompt: "Use $selfhost-ingress to plan a private-first route for this self-hosted service."
-policy:
-  allow_implicit_invocation: true

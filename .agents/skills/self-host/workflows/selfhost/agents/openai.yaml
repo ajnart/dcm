@@ -1,6 +1,0 @@
-interface:
-  display_name: "Support · Stack planner"
-  short_description: "Used by Self-host to choose services and topology"
-  default_prompt: "Use $selfhost for my self-hosting request and route the full lifecycle for me."
-policy:
-  allow_implicit_invocation: false

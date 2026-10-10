@@ -1,7 +1,0 @@
-# Glances safe shared-Compose candidate (2026-09-29)
-
-- [Official Docker guide](https://glances.readthedocs.io/en/latest/docker.html) documents `nicolargo/glances`, `GLANCES_OPT=-w`, and web port 61208. [Docker Hub's official image tags](https://hub.docker.com/r/nicolargo/glances/tags) include the fixed `4.5.6` tag.
-- The [Glances API guide](https://glances.readthedocs.io/en/develop/api/restful.html) identifies `/api/4/status` as its 200-status readiness endpoint. That is API reachability, not host-monitoring acceptance.
-- Official Docker examples add host PID and Docker/Podman sockets for host/container observations. The shared recipe deliberately omits these privileges and binds port 61208 to loopback. Its metrics describe only its own container. No public or LAN access is implied.
-- The [official password procedure](https://glances.readthedocs.io/en/latest/docker.html#how-to-protect-your-dockerized-server-or-web-server-with-a-login-password) interactively creates `glances.pwd`, copies it from a running container, mounts it as a Compose secret, and restarts with `--password`. The current shared secret input cannot safely reproduce that bootstrap. Thus this candidate is no-account and must remain private; authenticated or host-wide monitoring remains a separate guided/approved task.
-- No live Docker deployment, browser inspection, restart check, or host metrics were performed.

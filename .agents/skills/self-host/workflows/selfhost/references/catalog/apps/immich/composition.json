@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "appId": "immich",
-  "recipeSha256": "0e3fdfac42b4b8cde0c7bc97aea9e058e8a25e476f4c935a2adf05a6be85440a",
-  "dependencies": [
-    { "appId": "postgresql", "serviceId": "database", "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml" },
-    { "appId": "valkey", "serviceId": "redis", "officialUrl": "https://github.com/immich-app/immich/releases/download/v3.2.2/docker-compose.yml" }
-  ]
-}

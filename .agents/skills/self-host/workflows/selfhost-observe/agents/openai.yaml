@@ -1,6 +1,0 @@
-interface:
-  display_name: "Extension · Observability"
-  short_description: "Plan and validate private-first observability"
-  default_prompt: "Use $selfhost-observe to create a bounded observability plan from explicit redacted facts and evidence."
-policy:
-  allow_implicit_invocation: true

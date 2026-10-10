@@ -1,6 +1,0 @@
-interface:
-  display_name: "Support · Stack verification"
-  short_description: "Checks secret-free acceptance evidence"
-  default_prompt: "Use $selfhost-verify to evaluate a bounded acceptance evidence manifest without changing the system."
-policy:
-  allow_implicit_invocation: false

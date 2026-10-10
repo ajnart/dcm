@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "kind": "shared-pre-start-adapter",
-  "appId": "dockge",
-  "sourceFiles": ["pre-start.ts", "derived-recipe.ts", "configuration.ts", "setup.ts", "owner-directory.json", "docker-cli-tls.json", "docker-authority.json", "socketio-intents.json", "manifest.json"],
-  "effects": ["Before every start require separate host-wide Docker management mTLS approval, fresh exact endpoint/Engine identity, local Unix Engine identity equality and exact current-user-owned same-path private stack directory; no Docker socket mount."]
-}

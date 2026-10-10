@@ -1,7 +1,0 @@
-interface:
-  display_name: "Extension · Software Research"
-  short_description: "Research self-hosted apps with safe evidence"
-  default_prompt: "Use $selfhost-research to research current official deployment facts for a self-hosted application."
-
-policy:
-  allow_implicit_invocation: true

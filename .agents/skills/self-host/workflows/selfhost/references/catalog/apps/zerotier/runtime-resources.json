@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "kind": "shared-runtime-resources",
-  "appId": "zerotier",
-  "serviceId": "zerotier",
-  "profile": "tun-net-admin",
-  "officialUrl": "https://github.com/zerotier/ZeroTierOne/blob/185a3a2c76e6bf1b1c0415871f43076638eb007c/README.docker.md",
-  "imageTag": "zerotier/zerotier:1.14.2"
-}

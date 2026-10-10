@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "appId": "docmost",
-  "recipeSha256": "de5da520e0f998bcb1ecca7031b5fd290472cdd9dde347dcfa65201b9ee0eb9d",
-  "dependencies": [
-    { "appId": "postgresql", "serviceId": "db", "officialUrl": "https://github.com/docmost/docmost/blob/v0.96.0/docker-compose.yml" }
-  ]
-}

@@ -1,9 +1,0 @@
-# Netdata bounded Compose candidate — 2026-09-29
-
-Netdata's official Docker deployment for full host monitoring requires host PID and network namespaces, `SYS_PTRACE`, `SYS_ADMIN`, broad host filesystem mounts, and a Docker socket mount. Those cross the shared Compose recipe's safe boundary and are **not** included. The bundled v2 recipe is deliberately limited to observing its own container. It must not be described as host or sibling-container monitoring.
-
-The local Agent dashboard can run at HTTP port 19999 without a Netdata Cloud account. The recipe binds it to loopback, enables Netdata's documented anonymous-telemetry opt-out, retains the image-default user, and uses `init: true` because upstream requires an init when host PID mode is omitted. Three Docker-managed volumes hold configuration, library, and cache data. The setup adapter checks only the exact saved project's running state and the documented `/api/v1/info` HTTP endpoint; this is not evidence that metrics, host collection, persistence, or Cloud features work.
-
-Image tag `netdata/netdata:v2.11.0` is a version-specific upstream-published Docker tag. A live digest, fresh deployment, API response, chart values, and restart persistence remain unverified. A real host-monitoring route needs a distinct design and explicit approval for each required namespace, capability, host mount, and Docker API access; it cannot be silently promoted from this candidate.
-
-Sources: [official Docker installation](https://learn.netdata.cloud/docs/netdata-agent/installation/docker), [upstream Docker packaging and tag policy](https://github.com/netdata/netdata/blob/master/packaging/docker/README.md), [publisher's image tags](https://hub.docker.com/r/netdata/netdata/tags), [local installation guidance](https://learn.netdata.cloud/docs/netdata-agent/installation).
