@@ -33,7 +33,10 @@ type nodeRead struct {
 	known bool
 }
 
-func (ss *session) newTailscaleServices(previous, targets []string, containers []compose.Container) []string {
+func (ss *session) pendingTailscaleServices(targets []string, containers []compose.Container) []string {
+	if !ss.tailscaleOn() {
+		return nil
+	}
 	active := slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == tailscaleID && c.State == "running" })
 	if !active {
 		return nil
@@ -41,7 +44,8 @@ func (ss *session) newTailscaleServices(previous, targets []string, containers [
 	var nodes []string
 	for _, target := range ss.webTargets() {
 		service := ts.ServiceName(target.ID)
-		if slices.Contains(targets, target.ID) && !slices.Contains(previous, service) {
+		present := slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == service })
+		if slices.Contains(targets, target.ID) && !present {
 			nodes = append(nodes, service)
 		}
 	}
@@ -137,7 +141,15 @@ func (ss *session) tailscaleNodes(ctx context.Context, byService map[string]comp
 	)
 	for service, container := range byService {
 		id, found := ts.AppOf(service)
-		if !found || container.State != "running" {
+		if !found {
+			continue
+		}
+		if container.State == "unknown" || container.State == "" {
+			mu.Lock()
+			nodes[id] = nodeRead{}
+			mu.Unlock()
+		}
+		if container.State != "running" {
 			continue
 		}
 		wg.Add(1)

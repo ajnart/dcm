@@ -277,7 +277,8 @@ file, never passed as a credential argument. No Funnel or public route is enable
 Onboarding asks through a concealed field and waits for Review approval;
 Settings opens the Tailscale install review rather than changing Home network.
 When approving a later install or Restore, name the private nodes for its web
-Apps as part of the plan. Only new nodes start while Tailscale is already on;
+Apps as part of the plan. Only absent nodes start while Tailscale is already on;
+this includes retries after failed creation, not existing stopped containers.
 stopped Access remains stopped unless Tailscale itself is explicitly approved.
 Restore regenerates nodes against the merged inventory, including old Backups
 of Tailscale. Unknown inspection results produce a safe Doctor warning.

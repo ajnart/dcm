@@ -29,8 +29,11 @@ can block adding Apps after 90 days; untagged node sign-ins expire separately.
 
 Install and Restore reconcile nodes against the merged Project inventory.
 An unrelated install never pulls or starts the connector or existing nodes.
-Only new nodes for the approved Apps start, and only when the connector was
-already running. Stopped Access stays stopped; explicitly installing or
+Only absent nodes for the approved Apps start, and only when the connector was
+already running. Container inventory, not fragment novelty, decides whether
+a node is absent, so an approved retry recovers a declared node that a failed
+pull or startup never created. Any existing container, including stopped or
+unknown state, is left alone. Stopped Access stays stopped; explicitly installing or
 restoring Tailscale approves starting its current nodes. The install Review
 names private Access for the selected Apps, conditional on Access remaining on.
 Failed status inspection is unknown, not healthy: Doctor warns with a diagnostic

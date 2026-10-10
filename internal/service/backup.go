@@ -593,12 +593,11 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
 				return err
 			}
-			previousServices, _ := fragmentServices(ss.p.FragmentPath(tailscaleID))
 			if _, err := ss.renderTailscale(); err != nil {
 				return err
 			}
 			if !slices.Contains(targets, tailscaleID) {
-				nodes = ss.newTailscaleServices(previousServices, targets, containers)
+				nodes = ss.pendingTailscaleServices(targets, containers)
 			}
 			replaced = true
 			for _, id := range targets {

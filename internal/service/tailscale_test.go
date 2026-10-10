@@ -72,8 +72,13 @@ type tailnet struct {
 	enrolled bool
 	// status is the JSON of a node's status, by Compose service; a node
 	// without one answers as a running node named <app>.tail1234.ts.net.
-	status     map[string]string
-	failStatus bool
+	status       map[string]string
+	failStatus   bool
+	failPull     bool
+	failStartup  bool
+	trackStartup bool
+	stopped      []string
+	unknown      []string
 	// running lists the services `docker compose ps` reports.
 	running []string
 }
@@ -93,10 +98,35 @@ func (n *tailnet) install(h *harness) {
 		n.mu.Lock()
 		defer n.mu.Unlock()
 		switch {
+		case n.failPull && strings.Contains(line, " pull "):
+			return system.Result{ExitCode: 1, Stderr: []byte("pull failed")}
+		case strings.Contains(line, " up -d "):
+			if n.failStartup {
+				return system.Result{ExitCode: 1, Stderr: []byte("startup failed before creating containers")}
+			}
+			if n.trackStartup {
+				for i, arg := range cmd.Args {
+					if arg == "--remove-orphans" {
+						for _, service := range cmd.Args[i+1:] {
+							if !slices.Contains(n.running, service) {
+								n.running = append(n.running, service)
+							}
+						}
+						break
+					}
+				}
+			}
+			return system.Result{}
 		case strings.Contains(line, " ps "):
 			var out strings.Builder
 			for _, service := range n.running {
 				out.WriteString(`{"Service":"` + service + `","State":"running"}` + "\n")
+			}
+			for _, service := range n.stopped {
+				out.WriteString(`{"Service":"` + service + `","State":"exited"}` + "\n")
+			}
+			for _, service := range n.unknown {
+				out.WriteString(`{"Service":"` + service + `","State":"unknown"}` + "\n")
 			}
 			return system.Result{Stdout: []byte(out.String())}
 		case strings.Contains(line, " exec ") && strings.Contains(line, " tailscale "):
@@ -124,6 +154,145 @@ func (n *tailnet) install(h *harness) {
 		}
 		return system.Result{}
 	})
+}
+
+func TestApprovedInstallRetriesCreateAbsentPrivateNode(t *testing.T) {
+	for _, phase := range []string{"pull", "startup"} {
+		t.Run(phase, func(t *testing.T) {
+			h, net := newTailnetHarness(t, "jellyfin", "immich")
+			if err := h.installTailscale("immich"); err != nil {
+				t.Fatal(err)
+			}
+			net.running = []string{"tailscale", "immich"}
+			net.stopped = []string{"tailscale-immich"}
+			net.trackStartup = true
+			net.failPull, net.failStartup = phase == "pull", phase == "startup"
+			if err := h.install("jellyfin"); err == nil {
+				t.Fatal("expected failed install")
+			}
+			if !strings.Contains(h.readFile("apps", "tailscale", "compose.yml"), "tailscale-jellyfin") {
+				t.Fatal("failure must leave a declared node for this regression")
+			}
+			net.failPull, net.failStartup = false, false
+			before := len(h.composeCalls())
+			if err := h.install("jellyfin"); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Contains(net.running, "tailscale-jellyfin") {
+				t.Fatal("retry skipped the declared but absent node")
+			}
+			for _, call := range h.composeCalls()[before:] {
+				if strings.Contains(call, "pull ") || strings.HasPrefix(call, "up -d") {
+					if strings.Contains(call, "tailscale-immich") || strings.HasSuffix(call, " tailscale") {
+						t.Fatalf("retry touched stopped peer or connector: %s", call)
+					}
+				}
+			}
+			status, err := h.svc.Status(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, a := range status.Apps {
+				if a.ID == "jellyfin" && a.URL != "https://jellyfin.tail1234.ts.net" {
+					t.Fatalf("retry private Address = %q", a.URL)
+				}
+			}
+		})
+	}
+}
+
+func TestPartialRestoreStartsDeclaredAbsentPrivateNode(t *testing.T) {
+	h, net := newTailnetHarness(t, "jellyfin", "immich")
+	if err := h.installTailscale("jellyfin", "immich"); err != nil {
+		t.Fatal(err)
+	}
+	archive, err := h.svc.Backup(context.Background(), []string{"jellyfin"}, filepath.Join(t.TempDir(), "jellyfin.tar.zst"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	net.running = []string{"tailscale", "jellyfin", "immich"}
+	net.stopped = []string{"tailscale-immich"}
+	net.trackStartup = true
+	before := len(h.composeCalls())
+	if err := h.svc.Restore(context.Background(), archive, []string{"jellyfin"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(net.running, "tailscale-jellyfin") {
+		t.Fatal("Restore skipped the declared but absent node")
+	}
+	for _, call := range h.composeCalls()[before:] {
+		if strings.HasPrefix(call, "up -d") && (strings.Contains(call, "tailscale-immich") || strings.HasSuffix(call, " tailscale")) {
+			t.Fatalf("Restore restarted stopped peer or connector: %s", call)
+		}
+	}
+}
+
+func TestUnknownPrivateContainerIsNotTreatedAsAbsent(t *testing.T) {
+	h, net := newTailnetHarness(t, "jellyfin")
+	if err := h.installTailscale("jellyfin"); err != nil {
+		t.Fatal(err)
+	}
+	net.running = []string{"tailscale", "jellyfin"}
+	net.unknown = []string{"tailscale-jellyfin"}
+	net.trackStartup = true
+	before := len(h.composeCalls())
+	if err := h.install("jellyfin"); err != nil {
+		t.Fatal(err)
+	}
+	for _, call := range h.composeCalls()[before:] {
+		if (strings.Contains(call, "pull ") || strings.HasPrefix(call, "up -d")) && strings.Contains(call, "tailscale") {
+			t.Fatalf("unknown inventory caused invented startup: %s", call)
+		}
+	}
+	status, err := h.svc.Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range status.Apps {
+		if a.ID == "jellyfin" && strings.HasPrefix(a.URL, "https:") {
+			t.Fatal("unknown container invented a private Address")
+		}
+	}
+	if got := strings.Join(tailscaleChecks(t, h), "\n"); !strings.Contains(got, "jellyfin: private Access could not be inspected") {
+		t.Fatalf("unknown inventory needs a safe warning, got %q", got)
+	}
+}
+
+func TestExistingStoppedPrivateNodesStayStoppedDuringApprovedMutations(t *testing.T) {
+	for _, action := range []string{"install", "restore"} {
+		for _, target := range []string{"jellyfin", "immich"} {
+			t.Run(action+"/"+target, func(t *testing.T) {
+				h, net := newTailnetHarness(t, "jellyfin", "immich")
+				if err := h.installTailscale("jellyfin", "immich"); err != nil {
+					t.Fatal(err)
+				}
+				archive, err := h.svc.Backup(context.Background(), []string{target}, filepath.Join(t.TempDir(), "backup.tar.zst"), "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				net.running = []string{"tailscale", "jellyfin", "immich", "tailscale-immich"}
+				net.stopped = []string{"tailscale-jellyfin"}
+				net.trackStartup = true
+				before := len(h.composeCalls())
+				if action == "install" {
+					err = h.install(target)
+				} else {
+					err = h.svc.Restore(context.Background(), archive, []string{target}, "")
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, call := range h.composeCalls()[before:] {
+					if (strings.Contains(call, "pull ") || strings.HasPrefix(call, "up -d")) && strings.Contains(call, "tailscale") {
+						t.Fatalf("mutation started existing Access: %s", call)
+					}
+				}
+				if slices.Contains(net.running, "tailscale-jellyfin") {
+					t.Fatal("existing stopped node was treated as absent")
+				}
+			})
+		}
+	}
 }
 
 func newTailnetHarness(t *testing.T, web ...string) (*harness, *tailnet) {
@@ -180,7 +349,9 @@ func TestInstallGivesEachWebAppItsOwnTailscaleNode(t *testing.T) {
 }
 
 func TestInstallingAWebAppLaterStartsItsNode(t *testing.T) {
-	h, _ := newTailnetHarness(t, "jellyfin")
+	h, net := newTailnetHarness(t, "jellyfin")
+	net.running = []string{"tailscale"}
+	net.trackStartup = true
 	if err := h.installTailscale(); err != nil {
 		t.Fatalf("install tailscale: %v", err)
 	}

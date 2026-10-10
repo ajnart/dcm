@@ -254,7 +254,6 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 			}
-			previousServices, _ := fragmentServices(ss.p.FragmentPath(tailscaleID))
 			previous := map[string]map[string]string{}
 			for id, st := range ss.state.Apps {
 				previous[id] = st.Inputs
@@ -309,12 +308,12 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 			}
-			changed, err := ss.renderTailscale()
+			_, err = ss.renderTailscale()
 			if err != nil {
 				return err
 			}
-			if changed && !slices.Contains(names, tailscaleID) {
-				nodes = ss.newTailscaleServices(previousServices, names, containers)
+			if !slices.Contains(names, tailscaleID) {
+				nodes = ss.pendingTailscaleServices(names, containers)
 			}
 			return ss.ensureMediaFolders(apps)
 		},
