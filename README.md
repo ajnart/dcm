@@ -129,6 +129,28 @@ go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
 Source builds require Go 1.26.0 or newer and access to Go module downloads.
 Development builds cannot run `self-update`.
 
+## Telemetry
+
+self-host sends anonymous usage and error data to the project's PostHog
+(through `hog.ajnart.dev`), so the project can see which Apps people install
+and where Setup breaks. It is on by default, announced on first run (in
+Onboarding, or in the first plain command), and the collected data is public:
+**[public dashboard: link coming with #207](https://github.com/ajnart/selfhost-skills/issues/207)**.
+
+- **Sent:** a random install ID (kept in `~/.self-host/telemetry-id`, never
+  derived from your machine; delete the file for a new one), the self-host
+  version, OS and architecture, command names and how long they took, whether
+  they worked, App and Recipe IDs, the Access choice, failed step IDs, and
+  errors as PostHog `$exception` events (error type and failed step only).
+- **Never sent:** IP addresses or locations, host names, file paths, inputs,
+  secrets, App data, or error text that could carry them. Events create no
+  PostHog person profile and GeoIP is off.
+- **Never in your way:** it is sent in the background and dropped if the
+  network is slow.
+- **Off:** set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off
+  when `CI` is set, in development builds and in tests. Nothing is sent before
+  the notice was shown, so a `--json` command never sends first.
+
 ## Requirements and platforms
 
 Deployment needs a working Docker engine, the `docker compose` v2 plugin with

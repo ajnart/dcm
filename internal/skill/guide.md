@@ -327,6 +327,24 @@ command arguments. Missing required private inputs fail before a first Install
 creates a Project or its settings. Interactive private
 inputs are masked. Provider accounts and approvals remain prerequisites.
 
+## Telemetry
+
+`self-host` sends anonymous usage and error data to the project's PostHog (ADR
+0006): a random install ID (`~/.self-host/telemetry-id`), version, OS and
+architecture, command names and outcomes, App and Recipe IDs, the Access choice,
+failed step IDs, and errors as `$exception` events carrying the error type and
+failed step only. It never sends paths, host names, inputs, secrets, App data or
+error text. The data is published on a public dashboard (link: coming with
+#207).
+
+- It is on by default. The first plain command (not `--json`) prints one notice
+  line on stderr, and Onboarding shows it once; nothing is sent before that. A
+  person who asks about privacy gets the facts above and this switch.
+- Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, always off when `CI`
+  is set and on development builds. Set it for the person when they ask; do not
+  disable it on your own.
+- It never delays or fails a command and is dropped when the network is slow.
+
 ## Updating the binary
 
 `self-host self-update` selects the highest stable CLI release from
