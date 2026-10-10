@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "appId": "linkwarden",
-  "recipeSha256": "5080159afb16e894c9c112106164ac03a5b44fa0ad6446c12987f054429b2016",
-  "dependencies": [
-    { "appId": "postgresql", "serviceId": "postgres", "officialUrl": "https://github.com/linkwarden/linkwarden/blob/v2.16.3/docker-compose.yml" }
-  ]
-}

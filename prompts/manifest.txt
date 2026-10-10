@@ -1,9 +1,0 @@
-prompts/00-contract.md
-prompts/10-isolation-and-start.md
-prompts/20-bootstrap.md
-prompts/30-connect-arr.md
-prompts/40-seerr.md
-prompts/50-homarr.md
-prompts/60-homarr-api-mcp.md
-prompts/80-acceptance.md
-prompts/90-evidence.md

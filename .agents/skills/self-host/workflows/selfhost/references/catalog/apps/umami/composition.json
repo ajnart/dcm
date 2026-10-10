@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "appId": "umami",
-  "recipeSha256": "0ddb7e0d6414a11354f4d36e123a7f9accc07018f8db82546c71460efd54c561",
-  "dependencies": [
-    { "appId": "postgresql", "serviceId": "db", "officialUrl": "https://github.com/umami-software/umami/blob/v3.4.0/docker-compose.yml" }
-  ]
-}

@@ -1,8 +1,0 @@
-# LLDAP catalog evidence — 2026-09-29
-
-- Official installation documents `lldap/lldap`, `/data` persistence, port 17170 for web, optional LDAP port 3890, and image-default UID/GID handling: https://github.com/lldap/lldap/blob/main/docs/install.md
-- Official configuration documents `LLDAP_LDAP_USER_DN`, `LLDAP_LDAP_USER_PASS_FILE`, `LLDAP_JWT_SECRET_FILE`, and `LLDAP_KEY_SEED_FILE`; the admin password is first-create only and must be at least eight characters: https://github.com/lldap/lldap/blob/main/lldap_config.docker_template.toml
-- Docker Hub lists the fixed `2026-08-28` tag: https://hub.docker.com/r/lldap/lldap/tags?name=2026-08-28
-- The upstream recommended architecture keeps LDAP off the host unless a private client needs it. This recipe therefore binds only web to loopback by default; LDAP is an optional explicit port selection. No public exposure is implied: https://github.com/lldap/lldap#recommended-architecture
-
-The recipe generates private admin password, JWT secret, and key seed files. Upstream scripting docs specify the exact JSON `POST /auth/simple/login` payload, `token` response, bearer header, and authenticated GraphQL query shape: https://github.com/lldap/lldap/blob/main/docs/scripting.md . The checked schema specifies `Query.user(userId)` and `User.id`: https://github.com/lldap/lldap/blob/main/schema.graphql . The headless setup adapter therefore verifies the saved password by login and a read-only `admin` user query; it does not save the JWT. Live image behavior, LDAP bind, restart persistence, backup restore, and client integration remain unverified. The sample `dc=example,dc=com` base DN is a deliberate initial choice and must be reviewed before directory use; changing it later may require migration.

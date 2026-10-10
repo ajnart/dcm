@@ -1,7 +1,0 @@
-{
-  "version": 1,
-  "appId": "coolify",
-  "modes": ["docker-management-mtls"],
-  "sourceFiles": ["manifest.json"],
-  "additionalBoundaries": ["host-ssh"]
-}

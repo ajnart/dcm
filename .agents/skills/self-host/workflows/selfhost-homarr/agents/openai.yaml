@@ -1,6 +1,0 @@
-interface:
-  display_name: "Support · Homarr control plane"
-  short_description: "Connects the dashboard and read-only agent gateway"
-  default_prompt: "Use $selfhost-homarr to set up Homarr as my private dashboard and verify its read-only MCP access without exposing credentials."
-policy:
-  allow_implicit_invocation: false

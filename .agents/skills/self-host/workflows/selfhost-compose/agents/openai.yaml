@@ -1,6 +1,0 @@
-interface:
-  display_name: "Support · Compose apply"
-  short_description: "Applies one approved Compose project safely"
-  default_prompt: "Use $selfhost-compose to validate and plan this explicitly owned Compose project."
-policy:
-  allow_implicit_invocation: false

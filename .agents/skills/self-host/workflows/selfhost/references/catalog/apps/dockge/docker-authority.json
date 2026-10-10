@@ -1,7 +1,0 @@
-{
-  "version": 1,
-  "appId": "dockge",
-  "modes": ["docker-management-mtls"],
-  "sourceFiles": ["manifest.json", "configuration.ts", "derived-recipe.ts", "owner-directory.json", "docker-cli-tls.json", "setup.ts", "socketio-intents.json", "pre-start.ts", "pre-start-adapter.json"],
-  "additionalBoundaries": ["writable-stacks-tree"]
-}
