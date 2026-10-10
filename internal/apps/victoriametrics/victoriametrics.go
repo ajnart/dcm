@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "victoria-metrics", Name: "VictoriaMetrics", Category: "Observability",
-		Description:   "A private time-series database that stores and queries metrics.",
+		Description:   "Keep long histories of numbers about your computers and apps, stored compactly",
 		Image:         "victoriametrics/victoria-metrics:v1.153.0",
 		Docs:          "https://docs.victoriametrics.com/quick-start/",
 		Port:          8428,

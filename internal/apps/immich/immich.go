@@ -24,7 +24,7 @@ const (
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "immich", Name: "Immich", Category: "Photos",
-		Description:   "Private photo and video backup with mobile apps and search",
+		Description:   "Back up your phone's photos and find any of them by searching",
 		Image:         "ghcr.io/immich-app/immich-server:v3.2.2",
 		Docs:          "https://docs.immich.app/install/docker-compose/",
 		Port:          2283,

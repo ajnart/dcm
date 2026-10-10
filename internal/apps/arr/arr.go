@@ -35,7 +35,7 @@ func Sonarr() App {
 	return App{
 		info: app.Info{
 			ID: "sonarr", Name: "Sonarr", Category: "Requests",
-			Description:   "Finds, downloads and organizes TV series",
+			Description:   "Find, download and organize TV shows automatically",
 			Image:         "lscr.io/linuxserver/sonarr:latest",
 			Docs:          "https://wiki.servarr.com/sonarr",
 			Port:          8989,
@@ -53,7 +53,7 @@ func Radarr() App {
 	return App{
 		info: app.Info{
 			ID: "radarr", Name: "Radarr", Category: "Requests",
-			Description:   "Finds, downloads and organizes movies",
+			Description:   "Find, download and organize movies automatically",
 			Image:         "lscr.io/linuxserver/radarr:latest",
 			Docs:          "https://radarr.video/docs/",
 			Port:          7878,
@@ -71,7 +71,7 @@ func Prowlarr() App {
 	return App{
 		info: app.Info{
 			ID: "prowlarr", Name: "Prowlarr", Category: "Requests",
-			Description:   "Indexer manager that feeds Sonarr and Radarr",
+			Description:   "Manage the search sites that Sonarr and Radarr use to find your downloads",
 			Image:         "lscr.io/linuxserver/prowlarr:latest",
 			Docs:          "https://wiki.servarr.com/prowlarr",
 			Port:          9696,

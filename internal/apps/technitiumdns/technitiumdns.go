@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "technitium-dns", Name: "Technitium DNS Server", Category: "DNS",
-		Description:   "A self-hosted DNS server with a web console for blocklists and local records.",
+		Description:   "Run your home network's address book (DNS), blocking ads and unwanted sites",
 		Image:         "technitium/dns-server:15.5.1",
 		Docs:          "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
 		Port:          5380,

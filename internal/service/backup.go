@@ -46,7 +46,7 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 					return err
 				}
 				for _, id := range targets {
-					if err := s.validateBackupHelperDirectory(ss.p.Path("apps", id)); err != nil {
+					if err := s.validateBackupHelperDirectory(ss.p.AppDir(id)); err != nil {
 						return err
 					}
 				}
@@ -68,7 +68,7 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 			}
 			manifest := backup.Manifest{Version: 1, Created: s.Deps.Now().UTC(), CLIVersion: s.Deps.Version}
 			for _, id := range targets {
-				entry := backup.ManifestApp{ID: id}
+				entry := backup.ManifestApp{ID: id, Extra: ss.p.IsExtra(id)}
 				if rootless {
 					entry.OwnershipNamespace = backup.OwnershipDocker
 				}
@@ -168,7 +168,7 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	if rootless {
 		err = ss.archiveDockerTree(ctx, w, id)
 	} else {
-		err = w.AddTree(ss.p.Path("apps", id), "apps/"+id)
+		err = w.AddTree(ss.p.AppDir(id), ss.p.AppFolder(id)+"/"+id)
 	}
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	log.Emit(events.Event{Event: events.StepOK, App: id, Step: "archive", Msg: "archived apps/" + id + "/"})
+	log.Emit(events.Event{Event: events.StepOK, App: id, Step: "archive", Msg: "archived " + ss.p.AppFolder(id) + "/" + id + "/"})
 	if len(running) == 0 {
 		log.Emit(events.Event{Event: events.StepSkip, App: id, Step: StageStart, Msg: "was not running"})
 	}
@@ -344,6 +344,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	if err != nil {
 		return err
 	}
+	staged := func(id string) string { return filepath.Join(staging, r.Manifest.Folder(id), id) }
 	keepRecovery := false
 	defer func() {
 		if keepRecovery {
@@ -356,7 +357,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			if !dockerApps[id] {
 				continue
 			}
-			for _, dir := range []string{filepath.Join(staging, "apps", id), filepath.Join(staging, "replaced-"+id)} {
+			for _, dir := range []string{staged(id), filepath.Join(staging, "replaced-"+id)} {
 				if err := s.removeDockerAppDirectory(cleanup, dir); err != nil {
 					cleanupErrors = append(cleanupErrors, err)
 				}
@@ -378,7 +379,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				return err
 			}
 			parts := strings.SplitN(rel, string(filepath.Separator), 3)
-			if len(parts) > 1 && parts[0] == "apps" && dockerApps[parts[1]] {
+			if len(parts) > 1 && (parts[0] == "apps" || parts[0] == "extra") && dockerApps[parts[1]] {
 				return nil
 			}
 			return os.Lchown(p, uid, gid)
@@ -389,7 +390,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			return filepath.Join(staging, name)
 		}
 		parts := strings.SplitN(name, "/", 3)
-		if len(parts) >= 2 && parts[0] == "apps" && slices.Contains(targets, parts[1]) {
+		if len(parts) >= 2 && parts[0] == r.Manifest.Folder(parts[1]) && slices.Contains(targets, parts[1]) {
 			return filepath.Join(staging, filepath.FromSlash(path.Clean(name)))
 		}
 		return ""
@@ -399,7 +400,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	}
 	// Reject an incomplete archive before stopping containers or replacing data.
 	for _, id := range targets {
-		fragment := filepath.Join(staging, "apps", id, "compose.yml")
+		fragment := filepath.Join(staged(id), "compose.yml")
 		services, err := fragmentServices(fragment)
 		if err != nil {
 			return fmt.Errorf("backup is missing a valid replacement for %s: %w", id, err)
@@ -427,7 +428,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		if record == nil {
 			return fmt.Errorf("backup is missing the configuration record for %s", id)
 		}
-		h := helpers.New(helpers.Config{App: id, Dir: filepath.Join(staging, "apps", id), Inputs: publicInputs(a, record.Inputs), Log: s.Log})
+		h := helpers.New(helpers.Config{App: id, Dir: staged(id), Inputs: publicInputs(a, record.Inputs), Log: s.Log})
 		if err := preflight.Preflight(ctx, h); err != nil {
 			return fmt.Errorf("backup prerequisites for %s: %w", id, err)
 		}
@@ -455,7 +456,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		edit: func(ctx context.Context, ss *session) (result error) {
 			replacements := map[string]string{}
 			for _, id := range targets {
-				content, err := os.ReadFile(filepath.Join(staging, "apps", id, "compose.yml"))
+				content, err := os.ReadFile(filepath.Join(staged(id), "compose.yml"))
 				if err != nil {
 					return err
 				}
@@ -497,7 +498,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				var recoveryErrors []error
 				for i := len(changed) - 1; i >= 0; i-- {
 					item := changed[i]
-					dir := ss.p.Path("apps", item.id)
+					dir := ss.p.Path(r.Manifest.Folder(item.id), item.id)
 					if item.installed {
 						var err error
 						if dockerApps[item.id] {
@@ -542,7 +543,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				if err != nil {
 					return err
 				}
-				if err := s.applyDockerMetadata(ctx, filepath.Join(staging, "apps", id), entries); err != nil {
+				if err := s.applyDockerMetadata(ctx, staged(id), entries); err != nil {
 					return err
 				}
 			}
@@ -572,17 +573,17 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				old := filepath.Join(staging, "replaced-"+id)
 				item := &replacement{id: id}
 				changed = append(changed, item)
-				if err := os.Rename(ss.p.Path("apps", id), old); err != nil {
+				if err := os.Rename(ss.p.Path(r.Manifest.Folder(id), id), old); err != nil {
 					if !os.IsNotExist(err) {
 						return err
 					}
 				} else {
 					item.old = true
 				}
-				if err := ss.p.MkdirAll("apps"); err != nil {
+				if err := ss.p.MkdirAll(r.Manifest.Folder(id)); err != nil {
 					return err
 				}
-				if err := os.Rename(filepath.Join(staging, "apps", id), ss.p.Path("apps", id)); err != nil {
+				if err := os.Rename(staged(id), ss.p.Path(r.Manifest.Folder(id), id)); err != nil {
 					return err
 				}
 				item.installed = true
@@ -592,7 +593,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			}
 			replaced = true
 			for _, id := range targets {
-				s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "restore", Msg: "restored apps/" + id + "/"})
+				s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "restore", Msg: "restored " + r.Manifest.Folder(id) + "/" + id + "/"})
 			}
 			return nil
 		},

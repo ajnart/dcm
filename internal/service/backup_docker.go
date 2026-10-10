@@ -179,14 +179,14 @@ func (ss *session) archiveDockerTree(ctx context.Context, w *backup.Writer, id s
 	reader, writer := io.Pipe()
 	done := make(chan error, 1)
 	go func() {
-		err := w.AddTar(reader, "apps/"+id, ephemeralFIFOs...)
+		err := w.AddTar(reader, ss.p.AppFolder(id)+"/"+id, ephemeralFIFOs...)
 		if err == nil {
 			_, err = io.Copy(io.Discard, reader)
 		}
 		reader.CloseWithError(err)
 		done <- err
 	}()
-	err := ss.s.runBackupHelper(ctx, ss.p.Path("apps", id), true, false, strings.NewReader("set -eu\ntar -c -C /owned .\n"), writer)
+	err := ss.s.runBackupHelper(ctx, ss.p.AppDir(id), true, false, strings.NewReader("set -eu\ntar -c -C /owned .\n"), writer)
 	writer.CloseWithError(err)
 	return errors.Join(err, <-done)
 }

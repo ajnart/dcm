@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "homebridge", Name: "Homebridge", Category: "Home automation",
-		Description:   "Brings HomeKit support to smart home accessories that lack it",
+		Description:   "Make smart home gadgets work with Apple Home",
 		Image:         "homebridge/homebridge:2026-09-25",
 		Docs:          "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker",
 		Port:          8581,

@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "nginx-proxy-manager", Name: "Nginx Proxy Manager", Category: "Ingress",
-		Description:   "A web UI that puts TLS and hostnames in front of your self-hosted services.",
+		Description:   "Give your apps easy web addresses and secure padlocks from a web page",
 		Image:         "jc21/nginx-proxy-manager:2.16.0",
 		Docs:          "https://nginxproxymanager.com/guide/",
 		Port:          8181,

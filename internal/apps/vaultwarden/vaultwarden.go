@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "vaultwarden", Name: "Vaultwarden", Category: "Passwords",
-		Description:   "Password manager compatible with the Bitwarden apps and browser extensions",
+		Description:   "Keep all your passwords in one safe place, on every device",
 		Image:         "vaultwarden/server:latest",
 		Docs:          "https://github.com/dani-garcia/vaultwarden/wiki",
 		Port:          8222,

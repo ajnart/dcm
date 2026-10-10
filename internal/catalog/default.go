@@ -19,7 +19,7 @@ func Default() *Catalog {
 		append([]Recipe{{
 			ID:          "media",
 			Name:        "Media",
-			Description: "Watch, request, download and organize movies and TV",
+			Description: "Watch your movies and shows, and have new ones requested and downloaded for you",
 			// Seerr comes last: its Links need Jellyfin, Sonarr and Radarr ready.
 			Apps: []string{"qbittorrent", "sonarr", "radarr", "prowlarr", "jellyfin", "seerr"},
 		}}, portedRecipes...),

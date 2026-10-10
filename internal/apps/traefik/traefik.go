@@ -24,7 +24,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "traefik", Name: "Traefik", Category: "Ingress",
-		Description:   "Reverse proxy with a private, authenticated read-only management API",
+		Description:   "Send web visitors to the right app automatically, with a read-only status page",
 		Image:         "traefik:v3.6.22",
 		Docs:          "https://doc.traefik.io/traefik/",
 		Port:          8080,
