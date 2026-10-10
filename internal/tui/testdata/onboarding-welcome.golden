@@ -11,6 +11,10 @@
   Next you choose what to run, where it lives, who administers it and how
   it looks. Then you review the plan.
 
+  Have you run your own server or used Docker before, or is this all new to you?
+  > ● New: this is all new to me
+    ○ Advanced: I have run a server or used Docker
+
   Nothing is written until you approve the plan at Review.
 
 
@@ -23,8 +27,4 @@
 
 
 
-
-
-
-
- q quit                                                                                     enter  continue   esc  back
+ q quit                                                                       ↑/↓  choose   enter  continue   esc  back

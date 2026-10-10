@@ -122,13 +122,34 @@ paste a token into commands or reports.
 To build the current development source from an authenticated checkout:
 
 ```bash
-cd new-cli
 go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
 /tmp/self-host --help
 ```
 
 Source builds require Go 1.26.0 or newer and access to Go module downloads.
 Development builds cannot run `self-update`.
+
+## Telemetry
+
+self-host sends anonymous usage and error data to the project's PostHog
+(through `hog.ajnart.dev`), so the project can see which Apps people install
+and where Setup breaks. It is on by default, announced on first run (in
+Onboarding, or in the first plain command), and the collected data is public:
+**[public dashboard: link coming with #207](https://github.com/ajnart/selfhost-skills/issues/207)**.
+
+- **Sent:** a random install ID (kept in `~/.self-host/telemetry-id`, never
+  derived from your machine; delete the file for a new one), the self-host
+  version, OS and architecture, command names and how long they took, whether
+  they worked, App and Recipe IDs, the Access choice, failed step IDs, and
+  errors as PostHog `$exception` events (error type and failed step only).
+- **Never sent:** IP addresses or locations, host names, file paths, inputs,
+  secrets, App data, or error text that could carry them. Events create no
+  PostHog person profile and GeoIP is off.
+- **Never in your way:** it is sent in the background and dropped if the
+  network is slow.
+- **Off:** set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off
+  when `CI` is set, in development builds and in tests. Nothing is sent before
+  the notice was shown, so a `--json` command never sends first.
 
 ## Requirements and platforms
 
@@ -315,7 +336,7 @@ existing tunnel enrollment and software licenses remain prerequisites. The CLI
 does not create provider accounts or establish those external approvals for you.
 
 With `--json`, mutations and `doctor` produce newline-delimited events;
-`status`, `apps list`, `apps info` and `credentials` produce JSON documents.
+`status`, `profile`, `apps list`, `apps info` and `credentials` produce JSON documents.
 Read each `step.fail` and its hint. Exit codes are `0` for success, `1` for an
 error and `2` for incomplete Setup. A failed Setup needs repair and
 `self-host setup <app>`; completed steps are skipped. Verify the App's intended
@@ -356,7 +377,9 @@ retired without established ownership and approval.
 
 ## Cannot reach an App from another device
 
-Start with `self-host status` and `self-host doctor`. Check the recorded
+For one broken App, `self-host debug <app>` (or `--json`) prints its state,
+failed steps with hints, the last 100 log lines with secrets masked, and its
+health-check URL. Start with `self-host status` and `self-host doctor`. Check the recorded
 Access and URL, Docker availability, published ports, and the host firewall.
 `local` binds to loopback. To deliberately allow LAN access:
 
@@ -431,7 +454,7 @@ workload recovery remain distinct claims.
 | Dashboard/Activity | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
 | Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
 | Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps | Lifecycle/Backup for manually added Compose App folders. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
+| Unmanaged Apps | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
 | VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,

@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "zerotier", Name: "ZeroTier", Category: "Remote access",
-		Description:   "Joins this host to a ZeroTier virtual LAN with a persistent node identity.",
+		Description:   "Connect your devices into one private network, as if on the same Wi-Fi",
 		Image:         "zerotier/zerotier:1.14.2",
 		Docs:          "https://docs.zerotier.com/",
 		Port:          0,

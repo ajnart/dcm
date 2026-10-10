@@ -10,6 +10,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
+	"github.com/ajnart/self-host/internal/project"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
 )
@@ -26,9 +27,17 @@ type AppStatus struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Managed bool   `json:"managed"`
-	URL     string `json:"url,omitempty"`
-	Port    int    `json:"port,omitempty"`
-	Image   string `json:"image,omitempty"`
+	// Description says in plain words what the App is for.
+	Description string `json:"description,omitempty"`
+	// Recipe is the Recipe the App was installed through; empty when it was
+	// installed directly.
+	Recipe string `json:"recipe,omitempty"`
+	URL    string `json:"url,omitempty"`
+	// Addresses lists every way to reach the App, friendliest first; url is
+	// the first.
+	Addresses []string `json:"addresses,omitempty"`
+	Port      int      `json:"port,omitempty"`
+	Image     string   `json:"image,omitempty"`
 	// State is the container state (running, exited, …), "missing" when no
 	// container exists and "unknown" when Docker could not be asked.
 	State  string `json:"state"`
@@ -53,8 +62,14 @@ type Status struct {
 	HostIPs    []string          `json:"host_ips,omitempty"`
 	Settings   map[string]string `json:"settings"`
 	Apps       []AppStatus       `json:"apps"`
+	// Home is the Home folder, where self-host keeps everything.
+	Home string `json:"home"`
+	// Dashboard is Homarr's Address when Homarr is installed.
+	Dashboard string `json:"dashboard,omitempty"`
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
+	// Profile is the person's Profile; present once a Project exists.
+	Profile *project.Profile `json:"profile,omitempty"`
 }
 
 // accessIDs names the Access an Exposure value stands for.
@@ -65,6 +80,8 @@ func accessIDs(exposure string) []string {
 	return []string{"home"}
 }
 
+const dashboardAppID = "homarr"
+
 // Status reads the Project and asks Docker for container state. It does
 // not take the lock.
 func (s *Service) Status(ctx context.Context) (Status, error) {
@@ -72,7 +89,10 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings}
+	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if profile, err := ss.p.LoadProfile(); err == nil {
+		status.Profile = &profile
+	}
 	if stale, current := s.lanStale(ss.settings); stale {
 		status.LANIPStale, status.HostIPs = true, current
 	}
@@ -96,6 +116,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		if a, found := s.Catalog.App(id); found && ss.state.Apps[id] != nil {
 			info := a.Info()
 			st := ss.state.Apps[id]
+			as.Description, as.Recipe = info.Description, st.Recipe
 			as.Name, as.Managed, as.Port, as.Image, as.Setup = info.Name, true, st.Port, info.Image, st.Setup
 			if !info.NoWebUI && st.Port > 0 && info.ContainerPort > 0 {
 				as.URL = AppURL(ss.settings, st.Port, info.Path)
@@ -117,6 +138,12 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 				}
 			}
 			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
+		}
+		if as.URL != "" {
+			as.Addresses = []string{as.URL}
+		}
+		if id == dashboardAppID && len(as.Addresses) > 0 {
+			status.Dashboard = as.Addresses[0]
 		}
 		status.Apps = append(status.Apps, as)
 	}

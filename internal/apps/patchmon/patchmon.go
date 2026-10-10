@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "patchmon", Name: "PatchMon", Category: "Monitoring",
-		Description:   "Tracks which packages each host is missing and which updates are outstanding",
+		Description:   "See which of your computers are waiting for software updates",
 		Image:         "ghcr.io/patchmon/patchmon-server:2.1.3",
 		Docs:          "https://docs.patchmon.net/",
 		Port:          3000,

@@ -41,7 +41,7 @@ func (App) Files(_ app.RenderContext, _ func(string) string) []app.File {
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "bookstack", Name: "BookStack", Category: "Productivity",
-		Description:   "Organize notes and documentation into books, chapters and pages",
+		Description:   "Keep notes and how-to guides organized in books, chapters and pages",
 		Image:         "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
 		Docs:          "https://www.bookstackapp.com/docs/admin/installation/",
 		Port:          8080,

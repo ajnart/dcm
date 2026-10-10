@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "kopia", Name: "Kopia", Category: "Backups",
-		Description:   "Encrypted backups with a private web UI for the repository",
+		Description:   "Back up your files with encryption and check on them from a web page",
 		Image:         "docker.io/kopia/kopia:0.23.1",
 		Docs:          "https://kopia.io/docs/getting-started/",
 		Port:          51515,

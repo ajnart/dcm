@@ -33,7 +33,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "jellyfin", Name: "Jellyfin", Category: "Media",
-		Description:   "Streams your movies, shows and music to every screen",
+		Description:   "Stream your movies and shows to every screen in the house",
 		Image:         "lscr.io/linuxserver/jellyfin:latest",
 		Docs:          "https://jellyfin.org/docs/general/installation/container/",
 		Port:          8096,

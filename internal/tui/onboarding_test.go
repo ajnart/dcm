@@ -249,6 +249,67 @@ func TestWelcomeSaysNothingIsWrittenUntilReview(t *testing.T) {
 	}
 }
 
+func TestWelcomeAsksTheExperienceQuestionInPlainWords(t *testing.T) {
+	m, _ := freshHost(t)
+
+	out := screen(m)
+	for _, want := range []string{"Have you run your own server or used Docker before, or is this all new to you?",
+		"● New: this is all new to me", "○ Advanced: I have run a server or used Docker"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("Welcome lacks %q\n%s", want, out)
+		}
+	}
+}
+
+func TestSkippingTheExperienceQuestionStoresNewAtApproval(t *testing.T) {
+	m, backend := freshHost(t)
+	m = toReview(t, m)
+
+	if got := backend.savedExperiences(); len(got) != 0 {
+		t.Fatalf("nothing is saved before approval, saved %v", got)
+	}
+	m = drive(t, m, press("enter"))
+
+	if got := backend.savedExperiences(); len(got) != 1 || got[0] != "new" {
+		t.Fatalf("skipping should store new, saved %v", got)
+	}
+}
+
+func TestChoosingAdvancedAtWelcomeStoresAdvancedAtApproval(t *testing.T) {
+	m, backend := freshHost(t)
+	m = drive(t, m, press("down"))
+	if out := screen(m); !strings.Contains(out, "● Advanced: I have run a server or used Docker") || !strings.Contains(out, "○ New: this is all new to me") {
+		t.Fatalf("down should highlight Advanced\n%s", out)
+	}
+	m = toReview(t, m)
+
+	m = drive(t, m, press("enter"))
+
+	if got := backend.savedExperiences(); len(got) != 1 || got[0] != "advanced" {
+		t.Fatalf("saved %v, want [advanced]", got)
+	}
+}
+
+func TestWelcomeKeepsAnExperienceLevelAlreadyInTheProfile(t *testing.T) {
+	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks, experience: "advanced"}
+	m := New(backend, Options{Version: "1.0.0"})
+	m = update(t, m, windowSize(120, 40))
+	m = drive(t, m, statusMsgFor(service.ErrNoProject))
+	m = update(t, m, doctorMsg{checks: backend.checks})
+	m = frames(t, m, 60)
+	m = drive(t, m, press("enter"))
+
+	if !strings.Contains(screen(m), "● Advanced: I have run a server or used Docker") {
+		t.Fatalf("the saved level should be highlighted\n%s", screen(m))
+	}
+	m = toReview(t, m)
+	m = drive(t, m, press("enter"))
+
+	if got := backend.savedExperiences(); len(got) != 1 || got[0] != "advanced" {
+		t.Fatalf("saved %v, want [advanced]", got)
+	}
+}
+
 func TestStepIndicatorFollowsEveryStep(t *testing.T) {
 	m, _ := freshHost(t)
 	steps := []string{"Initializing", "Welcome", "What", "Where", "Access", "Who", "Look", "Review"}

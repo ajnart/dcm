@@ -22,7 +22,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "syncthing", Name: "Syncthing", Category: "Files",
-		Description:   "Keeps folders in sync between your own devices",
+		Description:   "Keep folders identical across your devices, with no cloud in between",
 		Image:         "syncthing/syncthing:2.1.4",
 		Docs:          "https://docs.syncthing.net/",
 		Port:          8384,

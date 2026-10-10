@@ -23,7 +23,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "nzbget", Name: "NZBGet", Category: "Downloads",
-		Description:   "Downloads articles from your Usenet provider",
+		Description:   "Download files from your Usenet provider, a paid file-sharing service",
 		Image:         "ghcr.io/nzbgetcom/nzbget:v26.3",
 		Docs:          "https://nzbget.com/documentation/",
 		Port:          6789,

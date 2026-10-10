@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "emby", Name: "Emby", Category: "Media",
-		Description:   "Serves your media library through a private web interface",
+		Description:   "Watch your own movies and shows on any TV, phone or computer",
 		Image:         "emby/embyserver:4.10.0.40",
 		Docs:          "https://emby.media/support/articles/Installation.html",
 		Port:          8096,

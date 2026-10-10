@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "lidarr", Name: "Lidarr", Category: "Requests",
-		Description:   "Finds, downloads and organizes music releases",
+		Description:   "Find, download and organize your music automatically",
 		Image:         "lscr.io/linuxserver/lidarr:version-3.1.0.4875",
 		Docs:          "https://wiki.servarr.com/lidarr",
 		Port:          8686,

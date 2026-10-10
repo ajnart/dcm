@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "haproxy", Name: "HAProxy", Category: "Ingress",
-		Description:   "Fronts your self-hosted Apps with one private HTTP listener and authenticated statistics",
+		Description:   "Give your apps one shared front door, with a page of usage statistics",
 		Image:         "haproxy:3.2.25",
 		Docs:          "https://docs.haproxy.org/",
 		Port:          18081,

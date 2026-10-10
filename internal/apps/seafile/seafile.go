@@ -25,7 +25,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "seafile", Name: "Seafile", Category: "Files",
-		Description:   "Syncs and shares your private file libraries from every device",
+		Description:   "Sync and share your files across all your devices",
 		Image:         "seafileltd/seafile-mc:13.0.28",
 		Docs:          "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/",
 		Port:          8080,

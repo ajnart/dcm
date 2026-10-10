@@ -10,6 +10,9 @@ version registers. Run `self-host skill` again after `self-host self-update`.
 
 ## Workflow
 
+In a new conversation, run `self-host status --json` first: it tells you what
+is installed, what each App is for, where to open it and where everything lives.
+
 1. `self-host doctor --json` checks the host (see "Doctor checks"). Fix every
    failed check first; each one carries a hint.
 2. `self-host apps list --json` lists Apps and Recipes (named bundles such as
@@ -27,7 +30,19 @@ version registers. Run `self-host skill` again after `self-host self-update`.
    `self-host setup <app>`. Finished steps are skipped, so reruns are safe.
 6. `self-host status --json` is the source of truth: URL, state, health, Setup
    result and failed steps of every App. `self-host status --updates --json`
-   also asks registries whether newer images exist.
+   also asks registries whether newer images exist. Beyond those, it carries:
+   - per App: `description` (what it is for, in plain words), `recipe` (the
+     Recipe it was installed through, absent when it was installed directly:
+     with several Recipes naming one App, the first named on the command line
+     wins; the first install decides) and `addresses` (every way to open it,
+     friendliest first; `url` is the first);
+   - at the top: `home` (the Home folder, `~/.self-host` unless
+     `SELF_HOST_HOME` moves it) and `dashboard` (Homarr's address, present
+     only when Homarr is installed).
+   Plain `self-host status` opens with a short summary of the same facts, then
+   the table.
+   It also carries the person's `profile` (`{"experience": "new"|"advanced"|""}`;
+   empty until they answered, so ask the Experience level question).
 
 ## Two kinds of users
 
@@ -90,7 +105,9 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | Access, Host settings, every App's URL, state, Setup |
+| `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
+| `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
+| `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |
 | `self-host apps info <app>` | One App's image, port, inputs, Links |
@@ -156,7 +173,7 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `credentials`, `apps list`, `apps info`, `logs`)
+Document commands (`status`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
 print one result on stdout and only errors on stderr with `--json`.
 
 ## Exit codes
@@ -174,7 +191,11 @@ print one result on stdout and only errors on stderr with `--json`.
 
 ## When a step fails
 
-On `step.fail`, the event gives you everything to hand off:
+On `step.fail`, read `self-host debug <app> --json` first: it holds the App's
+state, Addresses, failed and manual steps with their hints and docs, the last
+100 log lines with secrets masked, and its health-check URL. Then look at the
+page with agent-browser if it is installed. The event gives you everything to
+hand off:
 
 1. Open `url`, sign in with the login named in `credential` (run
    `self-host credentials --json` to read it), and do what `hint` says.
@@ -227,19 +248,32 @@ recreated.
 
 ## Unmanaged apps
 
-For software outside the Catalog, add an Unmanaged app. The CLI starts, stops,
-updates and backs it up, but runs no Setup for it.
+For software outside the Catalog, add an Unmanaged app in the Home folder's
+`extra/`. The CLI discovers it on its own: it shows in `status` with its
+Address, `start`, `stop`, `update` and `backup` work on it, and the Dashboard
+(Homarr) gets a tile for it once it runs. No Setup runs for it, so you do the
+configuring.
 
-1. Write `~/.self-host/apps/<id>/compose.yml` with one service. Do not publish
-   ports with a bare `"8080:80"`. Use the shared settings, which Compose reads
-   from the Project's `.env`:
+1. Write `~/.self-host/extra/<name>/compose.yml` with one service. The folder
+   name is the App's ID. Do not publish ports with a bare `"8080:80"`. Use the
+   shared settings, which Compose reads from the Project's `.env`:
    - `${BIND_IP}` for the published address, for example
      `"${BIND_IP}:8099:80"`
    - `${TZ}`, `${PUID}`, `${PGID}`, `${UMASK}`
    - `${MEDIA_ROOT}`, `${DOWNLOADS_ROOT}`
-2. Keep persistent data under `~/.self-host/apps/<id>/`, so backups include it.
-3. Run `self-host start <id>`, then `self-host status --json`: the App shows
-   with setup `unmanaged`.
+2. Keep persistent data in the same folder, with relative bind mounts such as
+   `./data:/data`, so backups include it. Do not use named volumes.
+3. Pick a name no Catalog App uses, and service names no other App uses.
+4. Run `self-host start <name>`, then `self-host status --json`: the App shows
+   with setup `unmanaged` and its `url`.
+
+An Unmanaged app joins the same Compose Project as every other App; the root
+`compose.yml` includes it. Its folder is under `self-host backup <name>`, and
+`self-host remove <name>` keeps the folder unless you add `--purge`.
+
+Apps added before `extra/` existed, in `~/.self-host/apps/<id>/compose.yml`,
+keep working where they are. Leave them there, or move the folder into
+`extra/` while the App is stopped.
 
 Never mount the Docker socket in an Unmanaged app.
 
@@ -300,6 +334,24 @@ CR/LF; values must be a single line without NUL bytes. Never put the value in
 command arguments. Missing required private inputs fail before a first Install
 creates a Project or its settings. Interactive private
 inputs are masked. Provider accounts and approvals remain prerequisites.
+
+## Telemetry
+
+`self-host` sends anonymous usage and error data to the project's PostHog (ADR
+0006): a random install ID (`~/.self-host/telemetry-id`), version, OS and
+architecture, command names and outcomes, App and Recipe IDs, the Access choice,
+failed step IDs, and errors as `$exception` events carrying the error type and
+failed step only. It never sends paths, host names, inputs, secrets, App data or
+error text. The data is published on a public dashboard (link: coming with
+#207).
+
+- It is on by default. The first plain command (not `--json`) prints one notice
+  line on stderr, and Onboarding shows it once; nothing is sent before that. A
+  person who asks about privacy gets the facts above and this switch.
+- Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, always off when `CI`
+  is set and on development builds. Set it for the person when they ask; do not
+  disable it on your own.
+- It never delays or fails a command and is dropped when the network is slow.
 
 ## Updating the binary
 

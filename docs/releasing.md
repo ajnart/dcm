@@ -22,6 +22,11 @@ releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. Create the release
    `go test -race ./internal/release ./internal/cli ./internal/tui`, `bash -n install.sh`.
 2. Pick the next version. Tags are plain `vX.Y.Z` with no leading zeros.
 
+The Telemetry project key (public; ADR 0006) is set at build time from
+`POSTHOG_PROJECT_KEY`: the CI release reads it from the repository variable of
+that name, and a local release needs it exported. Without it the binary is built
+with the placeholder key and sends nothing.
+
 ## Release from CI
 
 Push the tag. `.github/workflows/release.yml` validates the tag against
