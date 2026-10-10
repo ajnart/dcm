@@ -1,0 +1,164 @@
+CONTEXT.md
+  h_d6e478ca18e517 86-87
+README.md
+  h_d6e478ca18e517 244-256,277-281
+internal/app/app.go
+  h_d6e478ca18e517 27-30
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 44
+internal/apps/dockge/dockge.go
+  h_d6e478ca18e517 25
+internal/apps/gotify/gotify.go
+  h_d6e478ca18e517 26
+internal/apps/headscale/headscale.go
+  h_d6e478ca18e517 30
+internal/apps/homeassistant/homeassistant.go
+  h_d6e478ca18e517 27
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 32-33
+internal/apps/jellyfin/jellyfin.go
+  h_d6e478ca18e517 41
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 32
+internal/apps/nodered/nodered.go
+  h_d6e478ca18e517 28
+internal/apps/portainer/portainer.go
+  h_d6e478ca18e517 27
+internal/apps/uptimekuma/uptimekuma.go
+  h_d6e478ca18e517 28
+internal/apps/vaultwarden/vaultwarden.go
+  h_d6e478ca18e517 29
+internal/cli/access.go
+  h_d6e478ca18e517 1-138
+internal/cli/access_test.go
+  h_d6e478ca18e517 1-409
+internal/cli/cli.go
+  h_d6e478ca18e517 199
+internal/cli/testdata/access-export-ambiguous-caddy.golden
+  h_d6e478ca18e517 1-27
+internal/cli/testdata/access-export-ambiguous-json.golden
+  h_d6e478ca18e517 1-47
+internal/cli/testdata/access-export-ambiguous-nginx.golden
+  h_d6e478ca18e517 1-61
+internal/cli/testdata/access-export-ambiguous-traefik.golden
+  h_d6e478ca18e517 1-40
+internal/cli/testdata/access-export-caddy.golden
+  h_d6e478ca18e517 1-25
+internal/cli/testdata/access-export-json.golden
+  h_d6e478ca18e517 1-41
+internal/cli/testdata/access-export-nginx.golden
+  h_d6e478ca18e517 1-59
+internal/cli/testdata/access-export-traefik.golden
+  h_d6e478ca18e517 1-38
+internal/cli/testdata/access-export-unmanaged-caddy.golden
+  h_d6e478ca18e517 1-31
+internal/cli/testdata/access-export-unmanaged-json.golden
+  h_d6e478ca18e517 1-52
+internal/cli/testdata/access-export-unmanaged-nginx.golden
+  h_d6e478ca18e517 1-74
+internal/cli/testdata/access-export-unmanaged-traefik.golden
+  h_d6e478ca18e517 1-47
+internal/service/access.go
+  h_d6e478ca18e517 1-211
+internal/skill/guide.md
+  h_d6e478ca18e517 100-127,137,222-238
+internal/tui/access.go
+  h_d6e478ca18e517 27-29,142-145,147-149,163-167,169-171,235-239,241-243
+internal/tui/access_test.go
+  h_d6e478ca18e517 35-36,120,161-184
+internal/tui/golden_test.go
+  h_d6e478ca18e517 156
+internal/tui/harness_test.go
+  h_d6e478ca18e517 1063
+internal/tui/onboarding.go
+  h_d6e478ca18e517 642
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 621,811,841,849,859-860,898,922-948
+internal/tui/settings.go
+  h_d6e478ca18e517 467
+internal/tui/settings_test.go
+  h_d6e478ca18e517 210,337,358-377
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/easy-names-onboarding.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/easy-names-pending-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/easy-names-pending.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 13,15-19,23
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  h_d6e478ca18e517 13,15-18,29
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-custom-help-narrow.golden
+  h_d6e478ca18e517 11-15,18-20
+internal/tui/testdata/onboarding-access-custom-help.golden
+  h_d6e478ca18e517 11-14,17-19,21-24,26
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  h_d6e478ca18e517 13,15-19
+internal/tui/testdata/onboarding-access-custom.golden
+  h_d6e478ca18e517 13,15-18
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-names.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-narrow.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access-tailscale.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/onboarding-access.golden
+  h_d6e478ca18e517 13
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 8,10-14,23
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  h_d6e478ca18e517 8,10-12,29
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-cloudflare.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-custom-help-narrow.golden
+  h_d6e478ca18e517 11-15,18-20
+internal/tui/testdata/settings-access-custom-help.golden
+  h_d6e478ca18e517 11-14,17-19,21-24,26
+internal/tui/testdata/settings-access-custom-narrow.golden
+  h_d6e478ca18e517 8,10-14
+internal/tui/testdata/settings-access-custom.golden
+  h_d6e478ca18e517 8,10-12
+internal/tui/testdata/settings-access-home-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-home.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-local-narrow.golden
+  h_d6e478ca18e517 9
+internal/tui/testdata/settings-access-local.golden
+  h_d6e478ca18e517 9
+internal/tui/testdata/settings-access-names-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-names.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-pending-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-pending.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  h_d6e478ca18e517 8
+internal/tui/testdata/settings-access-tailscale.golden
+  h_d6e478ca18e517 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e5e90b78aff52cef2254d37a31c6a2b9617e8f1e",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
