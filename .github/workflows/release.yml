@@ -40,6 +40,8 @@ jobs:
       # OSS snapshot packaging never publishes from goreleaser itself.
       # The validated tag (vX.Y.Z or new-cli-vX.Y.Z) supplies the version; gh owns publication.
       - uses: goreleaser/goreleaser-action@v6
+        env:
+          POSTHOG_PROJECT_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
         with:
           distribution: goreleaser
           version: '~> v2'
