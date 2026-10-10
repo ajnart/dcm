@@ -168,6 +168,9 @@ func (ss *session) unlink(ctx context.Context, id string) []string {
 // a Link whose target was removed.
 func (ss *session) forgetStep(id, step string) {
 	st := ss.state.Apps[id]
+	if st == nil {
+		return
+	}
 	delete(st.Steps, step)
 	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(s string) bool { return s == step })
 }

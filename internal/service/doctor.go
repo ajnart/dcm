@@ -61,6 +61,7 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 	for _, app := range status.Apps {
 		checks = append(checks, s.appChecks(ctx, app, byService, lan)...)
 	}
+	checks = append(checks, ss.tailscaleChecks(ctx, byService)...)
 	return checks
 }
 
@@ -71,6 +72,9 @@ func (s *Service) appChecks(ctx context.Context, app AppStatus, byService map[st
 			Detail: "state " + app.State, Hint: "Start it with: self-host start " + id + " (logs: self-host logs " + id + ")"}}
 	}
 	checks := []host.Check{{ID: "running", App: id, Title: "Container", Level: host.OK, Detail: "running " + app.Health}}
+	if app.Port == 0 {
+		return checks
+	}
 
 	bind := ""
 	for _, name := range append([]string{mainService(app)}, app.Services...) {

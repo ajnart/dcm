@@ -90,6 +90,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if ss.tailscaleOn() {
+		status.Access = append(status.Access, tailscaleID)
+	}
 	if profile, err := ss.p.LoadProfile(); err == nil {
 		status.Profile = &profile
 	}
@@ -104,6 +107,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	for _, c := range containers {
 		byService[c.Service] = c
 	}
+	addresses := ss.accessAddresses(ctx, byService)
 	ids, err := ss.p.AppIDs()
 	if err != nil {
 		return Status{}, err
@@ -142,6 +146,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		if as.URL != "" {
 			as.Addresses = []string{as.URL}
 		}
+		as.Addresses = append(as.Addresses, addresses[id]...)
 		if id == dashboardAppID && len(as.Addresses) > 0 {
 			status.Dashboard = as.Addresses[0]
 		}

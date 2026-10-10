@@ -39,10 +39,10 @@ is installed, what each App is for, where to open it and where everything lives.
    - at the top: `home` (the Home folder, `~/.self-host` unless
      `SELF_HOST_HOME` moves it) and `dashboard` (Homarr's address, present
      only when Homarr is installed).
-   Plain `self-host status` opens with a short summary of the same facts, then
-   the table.
-   It also carries the person's `profile` (`{"experience": "new"|"advanced"|""}`;
-   empty until they answered, so ask the Experience level question).
+     Plain `self-host status` opens with a short summary of the same facts, then
+     the table.
+     It also carries the person's `profile` (`{"experience": "new"|"advanced"|""}`;
+     empty until they answered, so ask the Experience level question).
 
 ## Two kinds of users
 
@@ -99,32 +99,32 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `self-host` | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help |
-| `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
-| `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
-| `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
+| Command                                            | Purpose                                                                                                                                                                                                   |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `self-host`                                        | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help                                                                                                     |
+| `self-host doctor`                                 | Host, Docker and per-App checks (see "Doctor checks")                                                                                                                                                     |
+| `self-host install <app\|recipe>...`               | Install Apps or Recipes and run Setup                                                                                                                                                                     |
+| `self-host setup [app...]`                         | Rerun Setup; finished steps are skipped                                                                                                                                                                   |
+| `self-host status`                                 | A plain summary, then Access, Host settings, every App's URL, state, Setup                                                                                                                                |
 | `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
-| `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
-| `self-host credentials` | Admin login and per-App API keys |
-| `self-host apps list` | Catalog of Apps and Recipes |
-| `self-host apps info <app>` | One App's image, port, inputs, Links |
-| `self-host start [app...]` | Start Apps (all when none named) |
-| `self-host stop [app...]` | Stop Apps |
-| `self-host up` | Start every App in the Project |
-| `self-host down` | Take down the Project's containers and networks; App files, state and volumes stay |
-| `self-host restart [app...]` | Restart Apps |
-| `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
-| `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
-| `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
-| `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
-| `self-host logs <app>` | Container logs |
-| `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
-| `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
-| `self-host self-update` | Replace the binary with the latest verified release |
-| `self-host skill` | Print this guide |
+| `self-host debug <app>`                            | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check                                                                                                                 |
+| `self-host credentials`                            | Admin login and per-App API keys                                                                                                                                                                          |
+| `self-host apps list`                              | Catalog of Apps and Recipes                                                                                                                                                                               |
+| `self-host apps info <app>`                        | One App's image, port, inputs, Links                                                                                                                                                                      |
+| `self-host start [app...]`                         | Start Apps (all when none named)                                                                                                                                                                          |
+| `self-host stop [app...]`                          | Stop Apps                                                                                                                                                                                                 |
+| `self-host up`                                     | Start every App in the Project                                                                                                                                                                            |
+| `self-host down`                                   | Take down the Project's containers and networks; App files, state and volumes stay                                                                                                                        |
+| `self-host restart [app...]`                       | Restart Apps                                                                                                                                                                                              |
+| `self-host update [app...]`                        | Pull newer images, recreate Apps, rerun checks                                                                                                                                                            |
+| `self-host remove <app>...`                        | Remove Apps; data is kept unless `--purge`                                                                                                                                                                |
+| `self-host config set KEY=value...`                | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects)                                                                                                                                |
+| `self-host config review [--yes]`                  | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install                                                                                            |
+| `self-host logs <app>`                             | Container logs                                                                                                                                                                                            |
+| `self-host backup [app...]`                        | Write one compressed archive, optionally encrypted                                                                                                                                                        |
+| `self-host restore <file> [app...]`                | Restore every App in a Backup, or only those named                                                                                                                                                        |
+| `self-host self-update`                            | Replace the binary with the latest verified release                                                                                                                                                       |
+| `self-host skill`                                  | Print this guide                                                                                                                                                                                          |
 
 Global flags: `--json` (one JSON event per line; document commands print one
 JSON document), `--verbose` or `-v` (also print every command and step start).
@@ -150,25 +150,35 @@ With `--json`, `install`, `setup`, `start`, `stop`, `restart`, `update`,
 per line:
 
 ```json
-{"event":"step.fail","app":"sonarr","step":"download-client","msg":"…","error":"qBittorrent refused login","url":"http://192.168.1.20:8989","credential":"admin","hint":"Add qBittorrent under Settings › Download Clients.","docs":"https://…"}
+{
+  "event": "step.fail",
+  "app": "sonarr",
+  "step": "download-client",
+  "msg": "…",
+  "error": "qBittorrent refused login",
+  "url": "http://192.168.1.20:8989",
+  "credential": "admin",
+  "hint": "Add qBittorrent under Settings › Download Clients.",
+  "docs": "https://…"
+}
 ```
 
 Fields (all but `event` are omitted when empty):
 
-| Field | Meaning |
-| --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
-| `app`, `step` | What the event is about |
-| `msg` | Human summary |
-| `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
-| `url` | Where to finish the step by hand |
-| `credential` | Which login to use; read it with `self-host credentials` |
-| `hint` | The next action, in words |
-| `docs` | Upstream documentation |
-| `command` | The shell command run (`command` events) |
-| `image`, `layer` | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events) |
-| `status` | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled` |
-| `current`, `total` | Bytes done and expected for a `pull.progress` event |
+| Field              | Meaning                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `event`            | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
+| `app`, `step`      | What the event is about                                                                                                                   |
+| `msg`              | Human summary                                                                                                                             |
+| `error`            | Why a step or the run failed (`run.end` carries it when the run failed)                                                                   |
+| `url`              | Where to finish the step by hand                                                                                                          |
+| `credential`       | Which login to use; read it with `self-host credentials`                                                                                  |
+| `hint`             | The next action, in words                                                                                                                 |
+| `docs`             | Upstream documentation                                                                                                                    |
+| `command`          | The shell command run (`command` events)                                                                                                  |
+| `image`, `layer`   | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events)                                            |
+| `status`           | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled`                                                            |
+| `current`, `total` | Bytes done and expected for a `pull.progress` event                                                                                       |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
@@ -211,18 +221,47 @@ hand off:
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Only Home network exists yet; the others show "coming
-soon" and choosing one changes nothing. Home network is stored as `EXPOSURE=lan`
+diagram and a help page. Home network and Tailscale are available; unbuilt
+options show "coming soon" and choosing one changes nothing. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
 instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
-it first: `status --json` has `access` (a list: `home` or `local`) beside the
+it first: `status --json` has `access` (a list: `home` or `local`, plus `tailscale` when installed) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
 internet; public access is the user's decision and needs their own reverse
 proxy or VPN.
+
+### From anywhere, privately (Tailscale)
+
+Explain: "Install the Tailscale app on your phone or TV and sign in to the same
+account. Only your signed-in devices can open your Apps." Apple TV and Android
+TV have clients; other TVs may need the Home network Address.
+
+1. Ask the person to open <https://login.tailscale.com/admin/dns>, check MagicDNS
+   is on and enable HTTPS. Explain first that App names appear in a public
+   certificate log; the Apps themselves remain private.
+2. At <https://login.tailscale.com/admin/settings/keys>, generate an auth key
+   with **Reusable** and **Pre-approved** on and **Ephemeral** off. It lasts up
+   to 90 days, so adding Apps later may need a replacement. Have the person save
+   it privately on the host; never ask them to paste it into chat.
+3. Explain the change and get approval, then run
+   `self-host install tailscale --set-file tailscale.auth_key=PATH --yes --json`.
+   An OAuth client secret uses the same input; it must own `tag:self-host`.
+4. Read `self-host status --json`: each App with a web page gets an additional
+   HTTPS Address, read from its node's real `Self.DNSName`, including collision
+   suffixes. Never build a ts.net name yourself. The existing `url` and first
+   Address stay unchanged; the IP:port fallback remains available.
+5. Read `self-host doctor --json` for sign-in expiry, signed-out nodes or HTTPS
+   disabled. Follow its hints; node state alone does not prove a working page.
+
+self-host generates one persistent userspace sidecar and `serve.json` per web
+App under the Tailscale App folder. The shared credential is mounted as a 0600
+file, never passed as a credential argument. No Funnel or public route is enabled.
+Onboarding asks through a concealed field and waits for Review approval;
+Settings opens the Tailscale install review rather than changing Home network.
 
 ## Doctor checks
 

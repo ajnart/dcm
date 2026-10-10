@@ -550,6 +550,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	if o.form != nil {
 		if msg.String() == "esc" && !takesEsc(o.form) {
+			if o.step == stepAccess {
+				return m.openStep(stepAccess)
+			}
 			if o.step == stepWhat {
 				return m.openStep(stepWhat)
 			}
@@ -626,11 +629,32 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		return m, nil
 	case stepAccess:
 		choice := accessOptions[o.access]
+		if choice.id == "tailscale" {
+			if _, found := m.backend.Catalog().App("tailscale"); !found {
+				m.setFlash("Tailscale is not in this Catalog", levelWarn)
+				return m, nil
+			}
+			o.answers.picks["tailscale"] = true
+			value := o.answers.inputs["tailscale.auth_key"]
+			if value == nil {
+				value = new(string)
+				o.answers.inputs["tailscale.auth_key"] = value
+			}
+			input := huh.NewInput().Title("Tailscale auth key").Description("Reusable, pre-approved key from login.tailscale.com/admin/settings/keys. Never paste it into chat.").Value(value).EchoMode(huh.EchoModePassword).Validate(func(s string) error {
+				if strings.TrimSpace(s) == "" {
+					return errors.New("required")
+				}
+				return nil
+			})
+			o.form = huh.NewForm(huh.NewGroup(input)).WithWidth(m.formWidth()).WithHeight(m.formHeight(stepAccess))
+			return m, o.form.Init()
+		}
 		if choice.soon {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
 		}
 		o.answers.exposure = choice.value
+		delete(o.answers.picks, "tailscale")
 	case stepLook:
 		m.glyphs = glyphChoices[o.look].glyphs
 		return m.openStep(stepReview)
@@ -668,6 +692,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		return m, o.form.Init()
 	case stepAccess:
 		o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.value == o.answers.exposure }), 0)
+		if o.answers.picks["tailscale"] {
+			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "tailscale" })
+		}
 	case stepLook:
 		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == m.glyphs })
 		o.look = max(o.look, 0)
@@ -742,6 +769,9 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 		}
 		return t.fg(t.accentText).Bold(true).Render("answering") + t.dim().Render(" · keys go to the form"), chips
 	case stepAccess:
+		if m.onboarding.form != nil {
+			return t.fg(t.accentText).Bold(true).Render("answering"), []key.Binding{onboardingNextKey, onboardingBack}
+		}
 		return quit, []key.Binding{onboardingChoose, onboardingUse, onboardingBack, moreKey}
 	case stepWelcome:
 		return quit, []key.Binding{onboardingChoose, onboardingContinue, onboardingBack}
@@ -772,7 +802,11 @@ func (m Model) renderOnboarding() string {
 	case stepWelcome:
 		lines = append(lines, m.renderWelcome()...)
 	case stepAccess:
-		lines = append(lines, m.renderAccess()...)
+		if o.form != nil {
+			lines = append(lines, lipgloss.NewStyle().PaddingLeft(2).Render(o.form.View()))
+		} else {
+			lines = append(lines, m.renderAccess()...)
+		}
 	case stepLook:
 		lines = append(lines, m.renderLook()...)
 	case stepReview:
@@ -935,7 +969,8 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, option.value == o.answers.exposure, accessLabel(t, option)), m.width-2))
+		selected := option.value == o.answers.exposure || option.id == "tailscale" && o.answers.picks["tailscale"]
+		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
 	room := m.mainHeight() - above - len(lines)
@@ -977,6 +1012,9 @@ func planLines(t theme, p *plan) []string {
 		access = "This computer only — other devices cannot connect"
 	}
 	lines = append(lines, row("Access", access))
+	if slices.Contains(p.opts.Targets, "tailscale") {
+		lines = append(lines, row("", "From anywhere, privately, with Tailscale"))
+	}
 	if p.fresh {
 		lines = append(lines, row("Settings", fmt.Sprintf("TZ=%s PUID=%s PGID=%s", p.settings["TZ"], p.settings["PUID"], p.settings["PGID"])))
 		if p.settings["MEDIA_ROOT"] != "" {

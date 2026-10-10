@@ -837,6 +837,14 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 		m.surface = surfaceDashboard
 	case navTo:
 		next, open := m.openTab(nv.to)
+		if nv.app != "" && nv.to == surfaceInstall {
+			model := next.(Model)
+			model.install.picked = picks{nv.app: true}
+			ctx := model.ctx()
+			_, review, _ := model.install.planPicked(ctx)
+			model.absorb(ctx)
+			return model, tea.Batch(cmd, open, review)
+		}
 		return next, tea.Batch(cmd, open)
 	}
 	return m, cmd

@@ -63,6 +63,7 @@ const (
 type nav struct {
 	kind navKind
 	to   surface
+	app  string
 }
 
 // pane is one focusable part of a tab and the keys that act in it.

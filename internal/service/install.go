@@ -299,9 +299,17 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					return err
 				}
 			}
+			if _, err := ss.renderTailscale(); err != nil {
+				return err
+			}
 			return ss.ensureMediaFolders(apps)
 		},
-		targets: func(*session) ([]string, error) { return names, nil },
+		targets: func(ss *session) ([]string, error) {
+			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
+				return append(slices.Clone(names), tailscaleID), nil
+			}
+			return names, nil
+		},
 		compose: composePullUp,
 		after:   afterSetup,
 	})

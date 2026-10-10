@@ -11,10 +11,36 @@ import (
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
 )
 
 var updateGolden = flag.Bool("update", false, "rewrite golden files")
+
+func TestGoldenTailscaleFlows(t *testing.T) {
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		m, backend := freshHost(t)
+		backend.catalog = withTailscale(backend.Catalog())
+		m = atAccess(t, m)
+		m.width, m.height = size.width, size.height
+		for _, key := range []string{"down", "down", "enter"} {
+			m = drive(t, m, press(key))
+		}
+		golden(t, "onboarding-tailscale-input"+size.suffix, trimLines(screen(m)))
+		m, backend = sample(t, size.width, size.height)
+		backend.catalog = withTailscale(backend.Catalog())
+		for _, key := range []string{"5", "]", "down", "down", "enter"} {
+			m = drive(t, m, press(key))
+		}
+		golden(t, "settings-tailscale-review"+size.suffix, trimLines(screen(m)))
+		m = goldenModel(t, size.width, size.height)
+		m.checks = []host.Check{{ID: "tailscale-key-expires", App: "tailscale", Title: "Tailscale", Level: host.Warn, Detail: "The Tailscale sign-in of Jellyfin runs out in 12 days.", Hint: "Open https://login.tailscale.com/admin/machines, find the App's name and choose Disable key expiry."}}
+		golden(t, "overview-tailscale-expiry"+size.suffix, trimLines(screen(m)))
+	}
+}
 
 func golden(t *testing.T, name, got string) {
 	t.Helper()
