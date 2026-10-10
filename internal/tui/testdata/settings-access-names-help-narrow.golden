@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+
+  Easy names at home
+
+  ╭───────────────╮      ╭────────╮      ╭───────────────╮
+  │ phones        │──────│ router │──────│ this computer │
+  │ TVs · laptops │      ╰───┬────╯      │ movies.local  │
+  ╰───────────────╯      internet ✗      ╰───────────────╯
+
+  Easy names will let you open each App with a short name like movies.local
+  instead of numbers. A small web server on this computer, Caddy, will answer
+  to the names. They will work only on your home network.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and
+  choosing it changes nothing.
+
+  Which names?
+  Each App will get its own name, like movies.local, so you type words instead
+  of numbers. Phones, TVs and laptops on your network look the names up on
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                              ↑/↓  scroll   esc/?  close

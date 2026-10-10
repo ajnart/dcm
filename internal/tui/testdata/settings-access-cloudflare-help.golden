@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+
+  Your own web address
+
+  ╭─────────────╮      ╭────────────╮      ╭───────────────╮
+  │ anyone with │──────│ Cloudflare │──────│ this computer │
+  │ the address │      │ login page │      │ no open port  │
+  ╰─────────────╯      ╰─────┬──────╯      ╰───────────────╯
+                       login first ✓
+
+  Your own web address, like movies.example.com, will open your Apps from anywhere through
+  Cloudflare Tunnel, without opening any port on your router. A login page will stand in front, so
+  only people you allow get in.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and choosing it changes
+  nothing.
+
+  Who can get in?
+  Anyone with the address reaches the login page, and only people you allow get past it. Anything
+  reachable from the internet needs your own explicit yes first.
+
+  Your router
+  Nothing on your router changes, and no port is opened.
+
+  Changing it later
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                                                                      ↑/↓  scroll   esc/?  close

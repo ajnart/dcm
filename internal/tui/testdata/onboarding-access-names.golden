@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
+
+  How you'll open your Apps
+  Choose how phones, TVs and laptops will open your Apps. Home network needs nothing to set up.
+  You can change this later in Settings, under Access.
+
+    ● Home network (default)
+  > ○ Easy names at home · coming soon
+    ○ From anywhere, privately · coming soon
+    ○ Your own web address · coming soon
+    ○ Bring your own · coming soon
+
+  Easy names will let you open each App with a short name like movies.local instead of numbers. A
+  small web server on this computer, Caddy, will answer to the names. They will work only on your
+  home network. It isn't available yet: your Apps stay on your network.
+
+  phones · TVs · laptops ──── router ──── this computer movies.local
+                                 │
+                            internet ✗
+
+
+
+
+
+
+
+
+ q quit                                                                  ↑/↓  choose   enter  use   esc  back   ?  more

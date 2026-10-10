@@ -209,7 +209,6 @@ func TestTypedTextIsNotSwallowedByGlobalKeys(t *testing.T) {
 func TestSettingsEditTakesDigitsAndBrackets(t *testing.T) {
 	m, _ := settingsHost(t)
 
-	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down")) // TZ
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("ctrl+u"))
@@ -237,10 +236,10 @@ func TestActivitySearchTakesDigits(t *testing.T) {
 }
 
 func TestTabContentsPersistAcrossSwitches(t *testing.T) {
-	m, backend := settingsHost(t)
+	m, backend := settingsHostWith(t, service.ExposureLocal)
 	backend.catalog = wizardCatalog()
 
-	m = pickLocalExposure(t, m) // EXPOSURE: lan → local, pending
+	m = pickHomeNetwork(t, m) // access: this computer only → Home network, pending
 	m = drive(t, m, press("4"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
@@ -251,7 +250,7 @@ func TestTabContentsPersistAcrossSwitches(t *testing.T) {
 		t.Fatalf("the Catalog pick should survive a tab switch\n%s", screen(m))
 	}
 	m = drive(t, m, press("5"))
-	if out := screen(m); !strings.Contains(out, "Pending changes") || !strings.Contains(out, "lan → local") {
+	if out := screen(m); !strings.Contains(out, "Pending changes") || !strings.Contains(out, "This computer only → Home network") {
 		t.Fatalf("the pending Settings change should survive a tab switch\n%s", out)
 	}
 }

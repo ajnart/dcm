@@ -494,7 +494,7 @@ func TestKeybindAudit(t *testing.T) {
 		"coffee: c", "sponsor: s", "Ko-fi: c", "GitHub Sponsors: s", "skip: enter",
 		// Settings' Appearance pane saves the highlighted glyph set at once.
 		"choose: enter",
-		// ? opens the help page of Exposure, in Onboarding's Where and Settings' Host; esc or ? closes it.
+		// ? opens the help page of an Access option, in Onboarding's Access step and Settings' Access sub-tab; esc or ? closes it.
 		"more: ?", "close: esc/?",
 		// Settings' Backups sub-tab.
 		"back up: b", "restore: enter",
@@ -524,6 +524,13 @@ func TestKeybindAudit(t *testing.T) {
 	slices.Sort(got)
 	if !slices.Equal(got, want) {
 		t.Fatalf("keybinds changed:\n got %q\nwant %q", got, want)
+	}
+	var panes []string
+	for _, p := range newSettingsView(ctx).Panes() {
+		panes = append(panes, p.name)
+	}
+	if !slices.Contains(panes, "Access") || slices.Contains(panes, "Exposure row") || slices.Contains(panes, "Exposure choice") {
+		t.Fatalf("Settings has an Access pane and no Exposure panes: %q", panes)
 	}
 }
 
@@ -875,9 +882,17 @@ func TestInstallReviewAsksForRequiredInputs(t *testing.T) {
 
 func settingsHost(t *testing.T) (Model, *fakeBackend) {
 	t.Helper()
+	return settingsHostWith(t, service.ExposureLAN)
+}
+
+// settingsHostWith is Settings on a Project whose stored Exposure is the one given.
+func settingsHostWith(t *testing.T, exposure string) (Model, *fakeBackend) {
+	t.Helper()
 	m, backend := sample(t, 140, 40)
+	backend.status.Exposure = exposure
+	m = drive(t, m, statusMsg{status: backend.status})
 	backend.review = []service.SettingReview{
-		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
+		{Key: "EXPOSURE", Current: exposure, Choices: []string{"lan", "local"}},
 		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.1.20", Choices: []string{"192.168.1.20"}},
 		{Key: "TZ", Current: "Europe/Paris", Detected: "Europe/Paris"},
 		{Key: "PUID", Current: "1000", Detected: "1000"},
@@ -893,7 +908,7 @@ func settingsHost(t *testing.T) (Model, *fakeBackend) {
 func TestSettingsAppliesEveryChangeAtOnce(t *testing.T) {
 	m, backend := settingsHost(t)
 
-	for i := 0; i < 3; i++ { // EXPOSURE, LAN_IP, TZ → PUID
+	for i := 0; i < 2; i++ { // LAN_IP, TZ → PUID
 		m = drive(t, m, press("down"))
 	}
 	m = drive(t, m, press("enter"))
@@ -920,7 +935,7 @@ func TestSettingsAppliesEveryChangeAtOnce(t *testing.T) {
 func TestSettingsRejectsAnInvalidValueInline(t *testing.T) {
 	m, _ := settingsHost(t)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 2; i++ {
 		m = drive(t, m, press("down"))
 	}
 	m = drive(t, m, press("enter"))
@@ -937,9 +952,9 @@ func TestSettingsRejectsAnInvalidValueInline(t *testing.T) {
 }
 
 func TestSettingsEscapeWithPendingChangesAsksToDiscard(t *testing.T) {
-	m, backend := settingsHost(t)
+	m, backend := settingsHostWith(t, service.ExposureLocal)
 
-	m = pickLocalExposure(t, m) // EXPOSURE: lan → local
+	m = pickHomeNetwork(t, m) // access: this computer only → Home network
 	m = drive(t, m, press("esc"))
 
 	if !m.settings.confirmDiscard || !strings.Contains(screen(m), "discard 1 changes? y/n") {
@@ -994,7 +1009,7 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			check(string(set)+" "+label, drive(t, m, press(strconv.Itoa(i+1))))
 		}
 		settings := drive(t, m, press("5"))
-		for _, name := range []string{"Appearance", "Backups", "Tools", "About"} {
+		for _, name := range []string{"Access", "Appearance", "Backups", "Tools", "About"} {
 			settings = drive(t, settings, press("]"))
 			check(string(set)+" Settings "+name, settings)
 		}
@@ -1002,17 +1017,20 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 		check(string(set)+" Overview search", typeText(t, drive(t, m, press("/")), "son"))
 		check(string(set)+" Apps search", typeText(t, drive(t, drive(t, m, press("2")), press("/")), "son"))
 		check(string(set)+" help", drive(t, m, press("?")))
-		exposure := drive(t, m, press("5"))
-		check(string(set)+" Settings Exposure", exposure)
-		check(string(set)+" Settings Exposure help", drive(t, exposure, press("?")))
-		list := drive(t, exposure, press("enter"))
-		check(string(set)+" Settings Exposure list", list)
-		check(string(set)+" Settings Exposure coming soon", drive(t, drive(t, list, press("down")), press("down")))
-		soon := drive(t, drive(t, drive(t, list, press("down")), press("down")), press("enter"))
-		check(string(set)+" Settings Exposure coming soon note", soon)
-		local := pickLocalExposure(t, exposure)
-		check(string(set)+" Settings Exposure local", local)
-		check(string(set)+" Settings Exposure local help", drive(t, local, press("?")))
+		access := drive(t, drive(t, m, press("5")), press("]"))
+		check(string(set)+" Settings Access", access)
+		check(string(set)+" Settings Access help", drive(t, access, press("?")))
+		option := access
+		for i := range accessOptions[1:] {
+			option = drive(t, option, press("down"))
+			check(fmt.Sprintf("%s Settings Access option %d", set, i+1), option)
+			check(fmt.Sprintf("%s Settings Access option %d help", set, i+1), drive(t, option, press("?")))
+		}
+		check(string(set)+" Settings Access coming soon note", drive(t, option, press("enter")))
+		local, _ := settingsHostWith(t, service.ExposureLocal)
+		local = update(t, local, windowSize(80, 24))
+		check(string(set)+" Settings Access this computer only", drive(t, local, press("]")))
+		check(string(set)+" Settings Access pending", drive(t, pickHomeNetwork(t, local), press("]")))
 	}
 	task := m.tasks.start("update every App in a Project with a long name")
 	t.Cleanup(m.tasks.cancelAll)
@@ -1040,11 +1058,11 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 	}
 }
 
-// pickLocalExposure opens Settings' EXPOSURE choice list on its row and takes
-// "Only this computer".
-func pickLocalExposure(t *testing.T, m Model) Model {
+// pickHomeNetwork takes Home network on Settings' Access sub-tab, from the
+// Host sub-tab, and returns to the Host sub-tab.
+func pickHomeNetwork(t *testing.T, m Model) Model {
 	t.Helper()
+	m = drive(t, m, press("]"))
 	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("down"))
-	return drive(t, m, press("enter"))
+	return drive(t, m, press("["))
 }

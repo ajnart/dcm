@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ ✓ ✓ ✓ ● Access ○ ○ ○  5 of 8
+
+  How you'll open your Apps
+  Choose how phones, TVs and laptops will open your Apps. Home network needs
+  nothing to set up. You can change this later in Settings, under Access.
+
+    ● Home network (default)
+    ○ Easy names at home · coming soon
+    ○ From anywhere, privately · coming soon
+  > ○ Your own web address · coming soon
+    ○ Bring your own · coming soon
+
+  Your own web address, like movies.example.com, will open your Apps from
+  anywhere through Cloudflare Tunnel, without opening any port on your router.
+  A login page will stand in front, so only people you allow get in. It isn't
+  available yet: your Apps stay on your network.
+
+  anyone with the address ──── Cloudflare ──── this computer no open port
+                                    │
+                              login first ✓
+
+ q quit                          ↑/↓  choose   enter  use   esc  back   ?  more
