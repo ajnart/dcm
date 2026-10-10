@@ -1,0 +1,128 @@
+README.md
+  h_d6e478ca18e517 152-159,295-301,306-307,314-317,462-466
+docs/adr/0004-tabbed-command-center-action-chords.md
+  h_d6e478ca18e517 17-38
+internal/service/install.go
+  h_d6e478ca18e517 183-190
+internal/service/names.go
+  h_d6e478ca18e517 89-100,115-116,119
+internal/service/names_followup_test.go
+  h_d6e478ca18e517 1-92
+internal/skill/guide.md
+  h_d6e478ca18e517 377-393
+internal/tui/activity_view.go
+  h_d6e478ca18e517 46,217-219
+internal/tui/error_copy_test.go
+  h_d6e478ca18e517 1-150
+internal/tui/errors.go
+  h_d6e478ca18e517 1-39
+internal/tui/harness_test.go
+  h_d6e478ca18e517 534
+internal/tui/help.go
+  h_d6e478ca18e517 24-26,45-47,87-89,143-146
+internal/tui/model.go
+  h_d6e478ca18e517 739-741,752-761,916-927
+internal/tui/onboarding.go
+  h_d6e478ca18e517 643-658,734-737,793-795,800-806,884-890,916-923,1018-1025,1027,1032-1034,1092-1094,1126-1136,1163,1171-1173
+internal/tui/onboarding_flow_test.go
+  h_d6e478ca18e517 236,240,255,307-309,437-438
+internal/tui/onboarding_followup_test.go
+  h_d6e478ca18e517 1-214
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 427,1223,1229
+internal/tui/settings.go
+  h_d6e478ca18e517 60-64,98,123-125,403,477-479,487-502,684-687,714-717,725-729
+internal/tui/testdata/activity-action-error-120x30.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/activity-action-error-80x24.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/easy-names-pending-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/easy-names-pending.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/install-private-access-review-narrow.golden
+  h_d6e478ca18e517 8-9
+internal/tui/testdata/install-private-access-review.golden
+  h_d6e478ca18e517 8-9
+internal/tui/testdata/onboarding-error-120x30.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/onboarding-error-80x24.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-error-reader-120x30.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/onboarding-error-reader-80x24.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-initializing-done-narrow.golden
+  h_d6e478ca18e517 9-10,12-13,15-16
+internal/tui/testdata/onboarding-initializing-done.golden
+  h_d6e478ca18e517 8-9,11,14,17,20-22,24
+internal/tui/testdata/onboarding-initializing-reveal-narrow.golden
+  h_d6e478ca18e517 5-6,8,11,14
+internal/tui/testdata/onboarding-initializing-reveal.golden
+  h_d6e478ca18e517 8-9,11,14,17
+internal/tui/testdata/onboarding-look-focus-narrow.golden
+  h_d6e478ca18e517 10,12-13
+internal/tui/testdata/onboarding-look-focus.golden
+  h_d6e478ca18e517 9,11-12
+internal/tui/testdata/onboarding-look-narrow.golden
+  h_d6e478ca18e517 10,12-13
+internal/tui/testdata/onboarding-look-selected-narrow.golden
+  h_d6e478ca18e517 12-13
+internal/tui/testdata/onboarding-look-selected.golden
+  h_d6e478ca18e517 11-12
+internal/tui/testdata/onboarding-look.golden
+  h_d6e478ca18e517 9,11-12
+internal/tui/testdata/onboarding-review-narrow.golden
+  h_d6e478ca18e517 11-12
+internal/tui/testdata/onboarding-review.golden
+  h_d6e478ca18e517 11-12
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-cloudflare.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-custom-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-custom.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-home-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-home.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-local-narrow.golden
+  h_d6e478ca18e517 10,24
+internal/tui/testdata/settings-access-local.golden
+  h_d6e478ca18e517 10,30
+internal/tui/testdata/settings-access-names-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-names.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-pending-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-pending.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  h_d6e478ca18e517 9,24
+internal/tui/testdata/settings-access-tailscale.golden
+  h_d6e478ca18e517 9,30
+internal/tui/testdata/settings-tailscale-review-narrow.golden
+  h_d6e478ca18e517 8-9
+internal/tui/testdata/settings-tailscale-review.golden
+  h_d6e478ca18e517 8-9
+internal/tui/view.go
+  h_d6e478ca18e517 212,217-230,619-621
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c4ba5d6fe50fcd70ac09a42cd64ffc50d0f0438",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
