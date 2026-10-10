@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +23,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	ts "github.com/ajnart/self-host/internal/tailscale"
 )
 
 // BackupDir is where backups go when no output path is given.
@@ -447,9 +450,128 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	fresh = false
 	replaced := false
 	var nodes []string
+	var runningTargets []string
+	absFile, err := filepath.Abs(file)
+	if err != nil {
+		return err
+	}
+	identity, err := json.Marshal(struct {
+		File     string
+		Manifest backup.Manifest
+		Targets  []string
+	}{absFile, r.Manifest, targets})
+	if err != nil {
+		return err
+	}
+	scope := fmt.Sprintf("%x", sha256.Sum256(identity))
+	var startup *project.RestoreStartup
 	err = s.run(ctx, change{
-		services: func() []string { return nodes },
-		title:    "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		services:       func() []string { return nodes },
+		title:          "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		reconcileNames: true,
+		namesTargets:   func() []string { return targets },
+		namesStart:     func(ss *session) bool { return startup.Names && ss.namesOn() },
+		complete:       func(ss *session) error { return ss.p.ClearRestoreStartup(scope) },
+		preflight: func(ctx context.Context, p *project.Project) error {
+			archived := &project.Project{Root: staging}
+			settings, err := archived.LoadSettings()
+			if err != nil {
+				return err
+			}
+			state, err := archived.LoadState()
+			if err != nil {
+				return err
+			}
+			for _, id := range targets {
+				if r.Manifest.Folder(id) != "extra" && state.Apps[id] == nil {
+					return fmt.Errorf("backup is missing the configuration record for %s", id)
+				}
+			}
+			if p.Exists() {
+				settings, err = p.LoadSettings()
+				if err != nil {
+					return err
+				}
+				current, err := p.LoadState()
+				if err != nil {
+					return err
+				}
+				for _, id := range targets {
+					if st := state.Apps[id]; st != nil {
+						current.Apps[id] = st
+					}
+				}
+				state = current
+			}
+			if err := s.validateNames(ctx, settings, state); err != nil {
+				return err
+			}
+			replacements := map[string]string{}
+			for _, id := range targets {
+				content, err := os.ReadFile(filepath.Join(staged(id), "compose.yml"))
+				if err != nil {
+					return err
+				}
+				replacements[id] = string(content)
+			}
+			if err := p.ValidateServiceOwnership(replacements); err != nil {
+				return err
+			}
+			pending, err := p.LoadRestoreStartup()
+			if err != nil {
+				return err
+			}
+			if pending != nil {
+				if pending.Scope != scope {
+					return fmt.Errorf("another Restore has pending startup; retry that approved Restore or run self-host down to cancel it")
+				}
+				startup = pending
+			} else {
+				startup = &project.RestoreStartup{Scope: scope, Fresh: !p.Exists(), Names: !p.Exists() && settings[settingNames] == namesOn}
+				existing, err := p.AppIDs()
+				if err != nil {
+					return err
+				}
+				var containers []compose.Container
+				if p.Exists() {
+					containers, err = s.compose(p).Ps(ctx)
+					if err != nil {
+						return fmt.Errorf("cannot determine running Apps before restore: %w", err)
+					}
+				}
+				for _, id := range targets {
+					if !p.Exists() || !slices.Contains(existing, id) {
+						startup.Targets = append(startup.Targets, id)
+						continue
+					}
+					services, err := fragmentServices(p.FragmentPath(id))
+					if err != nil {
+						return err
+					}
+					if slices.ContainsFunc(containers, func(c compose.Container) bool { return c.State == "running" && slices.Contains(services, c.Service) }) {
+						startup.Targets = append(startup.Targets, id)
+					}
+				}
+				if !slices.Contains(targets, tailscaleID) && state.Apps[tailscaleID] != nil && slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == tailscaleID && c.State == "running" }) {
+					for _, id := range startup.Targets {
+						a, ok := s.Catalog.App(id)
+						if !ok || a.Info().NoWebUI || a.Info().ContainerPort == 0 {
+							continue
+						}
+						service := ts.ServiceName(id)
+						if !slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == service }) {
+							startup.Services = append(startup.Services, service)
+						}
+					}
+				}
+				if err := p.SaveRestoreStartup(*startup); err != nil {
+					return err
+				}
+			}
+			runningTargets = slices.Clone(startup.Targets)
+			nodes = slices.Clone(startup.Services)
+			return nil
+		},
 		initialize: func(p *project.Project) error {
 			if !all {
 				return fmt.Errorf("no Project yet; restore the whole backup first (self-host restore %s)", file)
@@ -486,6 +608,10 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				if err != nil {
 					return fmt.Errorf("cannot determine running Apps before restore: %w", err)
 				}
+			}
+			existing, err := ss.p.AppIDs()
+			if err != nil {
+				return err
 			}
 			oldApps := maps.Clone(ss.state.Apps)
 			oldSecrets := maps.Clone(ss.secrets.values)
@@ -561,10 +687,6 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					return err
 				}
 			}
-			existing, err := ss.p.AppIDs()
-			if err != nil {
-				return err
-			}
 			for _, id := range targets {
 				if slices.Contains(existing, id) {
 					services, err := ss.services(id)
@@ -602,14 +724,11 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				}
 				item.installed = true
 			}
-			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
+			if err := ss.restoreRecords(staging, targets, fresh || startup.Fresh); err != nil {
 				return err
 			}
 			if _, err := ss.renderTailscale(); err != nil {
 				return err
-			}
-			if !slices.Contains(targets, tailscaleID) {
-				nodes = ss.pendingTailscaleServices(targets, containers)
 			}
 			replaced = true
 			for _, id := range targets {
@@ -617,7 +736,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			}
 			return nil
 		},
-		targets: func(*session) ([]string, error) { return targets, nil },
+		targets: func(*session) ([]string, error) { return runningTargets, nil },
 		compose: composeUp,
 	})
 	if err != nil && replaced {
@@ -635,7 +754,7 @@ func validBackupAppID(id string) error {
 }
 
 // restoreRecords merges secrets and state for the restored Apps.
-func (ss *session) restoreRecords(staging string, targets []string, fresh bool) error {
+func (ss *session) restoreRecords(staging string, targets []string, initialAdmin bool) error {
 	backupProject := &project.Project{Root: staging}
 	secrets, err := backupProject.LoadSecrets()
 	if err != nil {
@@ -645,21 +764,24 @@ func (ss *session) restoreRecords(staging string, targets []string, fresh bool) 
 	if err != nil {
 		return err
 	}
-	if fresh {
-		ss.secrets.values = secrets
-	} else {
-		for key, value := range secrets {
-			for _, id := range targets {
-				if strings.HasPrefix(key, SecretKey(id, "")) {
-					ss.secrets.values[key] = value
-				}
+	if initialAdmin && ss.secrets.values["ADMIN_USER"] == "" && ss.secrets.values["ADMIN_PASSWORD"] == "" {
+		ss.secrets.values["ADMIN_USER"] = secrets["ADMIN_USER"]
+		ss.secrets.values["ADMIN_PASSWORD"] = secrets["ADMIN_PASSWORD"]
+	}
+	for key, value := range secrets {
+		if key == "ADMIN_USER" || key == "ADMIN_PASSWORD" {
+			continue
+		}
+		for _, id := range targets {
+			if strings.HasPrefix(key, SecretKey(id, "")) {
+				ss.secrets.values[key] = value
 			}
 		}
-		if secrets["ADMIN_PASSWORD"] != ss.secrets.values["ADMIN_PASSWORD"] {
-			ss.s.Log.Emit(events.Event{Event: events.StepWarn, Step: "admin-login",
-				Msg:  "the backup used a different Admin login than this Project",
-				Hint: "Run self-host setup " + strings.Join(targets, " ") + " to switch the restored Apps to the current Admin login."})
-		}
+	}
+	if secrets["ADMIN_USER"] != ss.secrets.values["ADMIN_USER"] || secrets["ADMIN_PASSWORD"] != ss.secrets.values["ADMIN_PASSWORD"] {
+		ss.s.Log.Emit(events.Event{Event: events.StepWarn, Step: "admin-login",
+			Msg:  "the backup used a different Admin login than this Project",
+			Hint: "Run self-host setup " + strings.Join(targets, " ") + " to switch the restored Apps to the current Admin login."})
 	}
 	registerSecrets(ss.s.Log, ss.secrets.values)
 	if err := ss.p.SaveSecrets(ss.secrets.values); err != nil {

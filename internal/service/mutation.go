@@ -56,7 +56,13 @@ type change struct {
 	// after runs once Compose succeeded: Setup (with Links), or only Check.
 	after afterStep // none, setup, check
 	// purge deletes the App's data folder when compose is remove.
-	purge bool
+	purge          bool
+	preflight      func(context.Context, *project.Project) error
+	namesStart     func(*session) bool
+	namesCancel    bool
+	reconcileNames bool
+	namesTargets   func() []string
+	complete       func(*session) error
 }
 
 // run owns every Project mutation: it takes the lock, opens the session,
@@ -70,7 +76,7 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if err != nil {
 		return err
 	}
-	if !p.Exists() && c.initialize == nil {
+	if !p.Exists() && c.initialize == nil && c.compose != composeDown {
 		return ErrNoProject
 	}
 	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
@@ -82,6 +88,34 @@ func (s *Service) run(ctx context.Context, c change) error {
 }
 
 func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !p.Exists() && c.compose == composeDown {
+		pending, err := p.LoadRestoreStartup()
+		if err != nil {
+			return err
+		}
+		if pending == nil {
+			return ErrNoProject
+		}
+		return s.finish(p.ClearRestoreStartup(""))
+	}
+	if c.preflight != nil {
+		if err := c.preflight(ctx, p); err != nil {
+			return err
+		}
+	} else if p.Exists() && c.after != afterNone && c.compose != composeStop && c.compose != composeDown {
+		settings, err := p.LoadSettings()
+		if err != nil {
+			return err
+		}
+		if settings[settingNames] == namesOn {
+			if check := s.CheckEasyNames(ctx); !check.Available {
+				return &NamesBlocked{check}
+			}
+		}
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -100,6 +134,30 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 	if err != nil {
 		return err
 	}
+	startNames := c.namesStart != nil && c.namesStart(ss)
+	namesRuntime, err := ss.p.LoadNamesRuntime()
+	if err != nil {
+		return s.finish(err)
+	}
+	if namesRuntime.StartAction != "" && namesRuntime.StartAction == c.title && ss.namesOn() {
+		startNames = true
+	}
+	if startNames {
+		namesRuntime.StartAction = c.title
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
+			return s.finish(err)
+		}
+	} else if (c.compose == composeDown || c.namesCancel) && namesRuntime.StartAction != "" {
+		namesRuntime.StartAction = ""
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
+			return s.finish(err)
+		}
+	}
+	if c.compose == composeDown {
+		if err := ss.p.ClearRestoreStartup(""); err != nil {
+			return s.finish(err)
+		}
+	}
 	if err := ss.migratePrivateInputs(); err != nil {
 		return s.finish(err)
 	}
@@ -111,6 +169,9 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 		if err := c.edit(ctx, ss); err != nil {
 			return s.finish(err)
 		}
+	}
+	if err := ctx.Err(); err != nil {
+		return s.finish(err)
 	}
 	if err := ss.p.WriteRoot(); err != nil {
 		return s.finish(err)
@@ -130,11 +191,23 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 	if werr := ss.p.WriteRoot(); werr != nil && err == nil {
 		err = werr
 	}
+	if (c.after != afterNone || c.reconcileNames) && err == nil {
+		if c.compose != composeStop && c.compose != composeDown {
+			var configured []string
+			if c.namesTargets != nil {
+				configured = c.namesTargets()
+			}
+			err = ss.syncNames(ctx, startNames, configured)
+		}
+	}
 	if c.after != afterNone && err == nil {
 		err = s.runAfter(ctx, ss, c.after, ids)
 	}
 	if serr := ss.p.SaveState(ss.state); serr != nil && err == nil {
 		err = serr
+	}
+	if err == nil && c.complete != nil {
+		err = c.complete(ss)
 	}
 	return s.finish(err)
 }

@@ -70,7 +70,7 @@ authorization, never a preview flag.
    Without `--yes` a non-terminal run refuses. Answer an App's inputs with
    `--set <app>.<key>=value` (repeatable; `--set jellyfin.port=8097` picks a port);
    private inputs use `--set-file` (see "Secrets"). Host choices for a new
-   Project: `--exposure`, `--media-root`, `--downloads-root`, `--admin-user`.
+   Project: `--exposure`, `--easy-names`, `--media-root`, `--downloads-root`, `--admin-user`.
    The Admin password comes from `SELF_HOST_ADMIN_PASSWORD` or is generated.
 4. Read the events (below). The run ends with `run.end`.
 5. When a step fails, finish it (see "When a step fails"), then rerun
@@ -134,7 +134,7 @@ JSON document), `--verbose` or `-v` (also print every command and step start).
 
 Command flags:
 
-- install: `--yes`, `--set`, `--set-file`, `--exposure`, `--media-root`, `--downloads-root`,
+- install: `--yes`, `--set`, `--set-file`, `--exposure`, `--easy-names`, `--media-root`, `--downloads-root`,
   `--admin-user`
 - status: `--updates`
 - access export: `--format caddy|nginx|traefik|json` (default `json`)
@@ -222,7 +222,7 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Home network, Tailscale, Bring your own and Your own
+diagram and a help page. Home network, Easy names at home, Tailscale, Bring your own and Your own
 web address are available. Your own web address uses Cloudflare
 Tunnel with a login page. Onboarding opens its guided Settings flow after the
 Apps finish installing; choosing it alone never publishes anything. Options
@@ -248,7 +248,7 @@ instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
 it first: `status --json` has `access` (a list including `home` or `local`, plus
-`tailscale` when installed and `cloudflare` when verified Addresses exist) beside the
+`names` when on, `tailscale` when installed and `cloudflare` when verified Addresses exist) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
 internet; publishing needs the separate yes below.
@@ -361,6 +361,63 @@ receipts and last-known verified state are retained with `access_warnings` and
 is reachable. A suspended/restored connector has only the Home network fallback
 Addresses advertised, not a dead preferred HTTPS Address.
 
+### Easy names at home
+
+After the person approves, use `self-host config set EASY_NAMES=on` (or `off`).
+For a new Project, `self-host install <app> --easy-names --yes --json` includes
+names in the approved install. Onboarding selects names by default only after
+port 80, Docker and name lookup checks pass; its Review still needs approval.
+One managed Caddy in the Compose Project routes HTTP by Host to Catalog Apps
+with web pages, at `http://<app>.<lan-ip-with-dashes>.sslip.io` on every OS.
+Port conflicts, rootless Docker and unsuitable networks refuse without changes.
+
+Read `status --json`: `addresses` lists only resolving names, first, followed
+by `IP:port`; `url` remains the first. Homarr tiles use that working name.
+The additive `names` section has `on`, `working` and, on failure, `problem`,
+`message`, `technical`. Give the plain `message` first and the numbered Address;
+do not change the router or disable its protection yourself. `blocked` compares
+the private probe with a public-IP control and a direct query to 1.1.1.1;
+`offline` and `rewritten` are different failures. A successful lookup is checked
+from this computer, not a phone or TV, and is not proof the App accepts requests.
+
+Names are promoted only when the LAN address is current and this Project's Caddy
+is configured and running with a home-network port-80 binding. A stopped Caddy
+or changed/unavailable LAN address keeps numbered Addresses and a warning in
+Needs attention. Removing Apps or retrying Setup after `down` does not start
+Access; an approved `start` does. Stopped Apps defer Access configuration until
+that start. Restore validates Access under the Project lock before replacement
+and regenerates routes without rerunning unrelated Setup.
+Restore reconciles Access configuration only for restored running targets;
+previously stopped targets stay stopped. Pending Caddy changes keep numbered
+Addresses until a successful apply. Retry the same approved Action after a
+failed startup; unrelated Actions cannot consume its persisted approval, and
+`down` cancels it. Status is read-only and never completes pending startup.
+Startup approval is persisted before settings edits. Restore records its
+approved targets and private nodes before initialization or file replacement,
+retaining them until successful apply or `down`. Retry the same backup and
+target selection; another Restore with pending startup requires completing or
+explicitly cancelling the original Action first. Previously stopped targets
+remain outside that startup approval.
+Fresh startup approval does not authorize replacing current credentials on
+retry. Only selected App records are merged; an initial Admin login is filled
+only while absent, preserving newer logins and unrelated App credentials.
+`down` can cancel pending Restore before Project initialization without
+creating settings or credentials or calling Compose.
+
+Config changes validate merged settings under the lock. If changing an origin
+would rewrite a customized Paperless-ngx or Vaultwarden fragment, the command
+refuses before changing settings or files; preserve the person's image pins,
+mounts and environment overrides. Offer manual origin editing or ask separately
+for reinstall approval, never silently reinstall to get around the refusal.
+
+sslip.io needs internet DNS and sees the LAN address in queries. A DHCP change
+breaks bookmarks: review `LAN_IP`, then update bookmarks; suggest a DHCP
+reservation. HTTP stays unencrypted; HTTPS-only Apps still need HTTPS. Nextcloud
+keeps existing trusted hosts when adding these names; Paperless-ngx and
+Vaultwarden receive the named origin. No `.local`, native daemon, host-network
+announcer or D-Bus socket is installed. Linux `.local` is follow-up #232 and needs
+an ADR before any socket mount.
+
 ### From anywhere, privately (Tailscale)
 
 Explain: "Install the Tailscale app on your phone or TV and sign in to the same
@@ -405,7 +462,7 @@ first failure: `docker` (CLI found), `docker-socket` (daemon answers),
 undetermined). With a Project it adds `project-lock`, `project-userns`
 (rootless with non-zero PUID/PGID), `project`, `exposure`, `lan-ip` and
 `firewall` (both only under `lan`), and per App `running`, `binding` and
-`reachable`.
+`reachable`, plus `easy-names` while Easy names at home are on.
 
 Doctor does not check that ports are free or how much disk is left (issue
 #140). `self-host install` takes the next free port from an App's default and

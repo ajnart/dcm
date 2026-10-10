@@ -133,6 +133,9 @@ func (h *harness) composeCalls() []string {
 	var out []string
 	for _, line := range h.runner.Calls() {
 		if _, rest, found := strings.Cut(line, "secrets.env "); found {
+			if strings.HasPrefix(rest, "ps ") {
+				continue
+			}
 			out = append(out, rest)
 		}
 	}

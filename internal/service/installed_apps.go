@@ -22,7 +22,7 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 			info := a.Info()
 			item.Name, item.Service, item.ContainerPort = info.Name, info.Service, info.ContainerPort
 			if !info.NoWebUI && ss.state.Apps[id].Port > 0 && info.ContainerPort > 0 {
-				item.URL = AppURL(ss.settings, ss.state.Apps[id].Port, info.Path)
+				item.URL = ss.friendlyAddress(ctx, id, AppURL(ss.settings, ss.state.Apps[id].Port, info.Path))
 			}
 		} else {
 			unmanaged = append(unmanaged, len(out))

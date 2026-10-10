@@ -807,7 +807,7 @@ func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testin
 		t.Fatalf("the step is called Access and asks how you'll open your Apps\n%s", out)
 	}
 	last := -1
-	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately",
+	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately",
 		"○ Your own web address", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
@@ -843,7 +843,7 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 		downs          int
 		words, diagram string
 	}{
-		{1, "Easy names will let you open each App with a short name like movies.local instead of numbers.", "phones · TVs · laptops ──── router ──── this computer movies.local"},
+		{1, "Open each App by name instead of a port number.", "phones · TVs · laptops ──── router ──── Caddy · App name"},
 		{2, "Tailscale lets you open each App with its own private HTTPS name", "your phone, anywhere ──── Tailscale ──── this computer private name"},
 		{3, "Your own web address, like movies.example.com, opens your chosen Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
 		{4, "Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy?", "your devices ──── your proxy ──── this computer IP:port"},
@@ -895,7 +895,11 @@ func TestEnterOnHomeNetworkMovesOnAndKeepsTheStoredValue(t *testing.T) {
 }
 
 func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
-	for downs, name := range map[int]string{1: "Easy names at home"} {
+	original := accessOptions
+	accessOptions = slices.Clone(original)
+	accessOptions[3].soon = true
+	defer func() { accessOptions = original }()
+	for downs, name := range map[int]string{3: "Your own web address"} {
 		m, backend := freshHost(t)
 		m = atAccess(t, m)
 		for range downs {

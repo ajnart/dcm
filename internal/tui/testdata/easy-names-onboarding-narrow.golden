@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ ✓ ✓ ✓ ● Access ○ ○ ○  5 of 8
+
+  How you'll open your Apps
+  Choose how phones, TVs and laptops will open your Apps. Home network needs
+  nothing to set up. You can change this later in Settings, under Access.
+
+    ○ Home network (default)
+  > ● Easy names at home
+    ○ From anywhere, privately
+    ○ Your own web address
+    ○ Bring your own
+
+  Open each App by name instead of a port number. Caddy answers the names on
+  your home network. The addresses with numbers keep working if a name
+  doesn't.
+
+  phones · TVs · laptops ──── router ──── Caddy · App name
+                                 │
+                            internet ✗
+
+
+ q quit                          ↑/↓  choose   enter  use   esc  back   ?  more

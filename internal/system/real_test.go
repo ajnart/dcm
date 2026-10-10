@@ -2,6 +2,8 @@ package system
 
 import (
 	"net"
+	"os"
+	"syscall"
 	"testing"
 )
 
@@ -27,5 +29,16 @@ func TestPortFreeOnAnUnusedPort(t *testing.T) {
 
 	if !portFree(port) {
 		t.Fatalf("port %d should be free", port)
+	}
+}
+
+func TestBindingAPrivilegedPortWithoutRightsDoesNotSayAnotherProgramHoldsIt(t *testing.T) {
+	denied := &net.OpError{Op: "listen", Err: os.NewSyscallError("bind", syscall.EACCES)}
+	if bindMeansBusy("tcp4", denied) {
+		t.Fatal("permission denied is not a busy port")
+	}
+	busy := &net.OpError{Op: "listen", Err: os.NewSyscallError("bind", syscall.EADDRINUSE)}
+	if !bindMeansBusy("tcp4", busy) || !bindMeansBusy("tcp6", busy) {
+		t.Fatal("address in use is a busy port")
 	}
 }

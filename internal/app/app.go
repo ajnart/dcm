@@ -46,8 +46,9 @@ type Input struct {
 
 // RenderContext is what an App needs to render its Compose fragment.
 type RenderContext struct {
-	Port   int
-	Inputs map[string]string
+	Port     int
+	Inputs   map[string]string
+	Settings map[string]string
 	// Web lists the installed Apps with a web page, by ID, for an Access App
 	// that fronts each of them.
 	Web []WebTarget
@@ -146,4 +147,8 @@ type DeferredStarter interface {
 // Restore checks safely extracted files using their archived public inputs.
 type PreflightChecker interface {
 	Preflight(context.Context, *helpers.H) error
+}
+
+type AccessConfigurer interface {
+	ConfigureAccess(context.Context, *helpers.H) error
 }

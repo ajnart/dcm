@@ -38,6 +38,13 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 	for _, c := range containers {
 		byService[c.Service] = c
 	}
+	if status.Names != nil {
+		check := host.Check{ID: "easy-names", Title: "Easy names at home", Level: host.OK, Detail: "Names resolve, checked from this computer, not your phone or TV."}
+		if !status.Names.Working {
+			check.Level, check.Detail, check.Hint = host.Warn, status.Names.Message, "Use the addresses with numbers; see self-host status --json for Technical details."
+		}
+		checks = append(checks, check)
+	}
 
 	lan := status.Exposure != ExposureLocal
 	if lan {
@@ -49,6 +56,9 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 			Hint:   "To reach Apps from other devices run: self-host config set EXPOSURE=lan"})
 	}
 	var ports []string
+	if ss.namesOn() {
+		ports = append(ports, "80")
+	}
 	for _, app := range status.Apps {
 		if app.Port != 0 {
 			ports = append(ports, strconv.Itoa(app.Port))

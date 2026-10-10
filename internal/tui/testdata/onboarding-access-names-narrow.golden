@@ -7,18 +7,18 @@
   nothing to set up. You can change this later in Settings, under Access.
 
     ● Home network (default)
-  > ○ Easy names at home · coming soon
+  > ○ Easy names at home
     ○ From anywhere, privately
     ○ Your own web address
     ○ Bring your own
 
-  Easy names will let you open each App with a short name like movies.local
-  instead of numbers. A small web server on this computer, Caddy, will answer
-  to the names. They will work only on your home network. It isn't available
-  yet: your Apps stay on your network.
+  Open each App by name instead of a port number. Caddy answers the names on
+  your home network. The addresses with numbers keep working if a name
+  doesn't.
 
-  phones · TVs · laptops ──── router ──── this computer movies.local
+  phones · TVs · laptops ──── router ──── Caddy · App name
                                  │
                             internet ✗
+
 
  q quit                          ↑/↓  choose   enter  use   esc  back   ?  more

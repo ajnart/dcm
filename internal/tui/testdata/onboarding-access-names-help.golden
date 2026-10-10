@@ -2,28 +2,28 @@
 
   Easy names at home
 
-  ╭───────────────╮      ╭────────╮      ╭───────────────╮
-  │ phones        │──────│ router │──────│ this computer │
-  │ TVs · laptops │      ╰───┬────╯      │ movies.local  │
-  ╰───────────────╯      internet ✗      ╰───────────────╯
+  ╭───────────────╮      ╭────────╮      ╭────────────────────────────────╮
+  │ phones        │──────│ router │──────│ Caddy                          │
+  │ TVs · laptops │      ╰───┬────╯      │ jellyfin.192-168-1-20.sslip.io │
+  ╰───────────────╯      internet ✗      ╰────────────────────────────────╯
 
-  Easy names will let you open each App with a short name like movies.local instead of numbers. A
-  small web server on this computer, Caddy, will answer to the names. They will work only on your
-  home network.
-
-  Not available yet
-  This option is coming soon. For now your Apps stay where they are, and choosing it changes
-  nothing.
+  Open each App by name instead of a port number. Caddy answers the names on your home network.
+  The addresses with numbers keep working if a name doesn't.
 
   Which names?
-  Each App will get its own name, like movies.local, so you type words instead of numbers. Phones,
-  TVs and laptops on your network look the names up on their own.
+  Each App with a web page gets a name like jellyfin.192-168-1-20.sslip.io. Names are checked from
+  this computer, not your phone or TV; their name lookup may differ. No .local names are
+  announced.
 
-  The internet
-  Nobody on the internet will be able to use these names to reach your Apps. They will work only
-  on your home network.
+  When names don't work
+  The names need internet name lookup. Some routers hide them, and a phone using its own name
+  lookup may behave differently. Use the addresses with numbers when a name fails.
 
-  Changing it later
+  If your network address changes
+  The names contain this computer's network address. If your router changes it, old bookmarks stop
+  working. Review the LAN address in Settings. Ask your router to keep the same address to avoid
+  this.
+
 
   ↑/↓ scroll · esc or ? closes · more below ↓
 

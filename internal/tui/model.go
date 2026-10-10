@@ -402,6 +402,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.defaults = msg.settings
 		if m.onboarding != nil {
 			m.onboarding.answers.fill(m.defaults)
+			if !m.onboarding.answers.accessChosen {
+				m.onboarding.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
+			}
 		}
 		return m, nil
 

@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+
+  Easy names at home
+
+  When names don't work
+  The names need internet name lookup. Some routers hide them, and a phone using its own name
+  lookup may behave differently. Use the addresses with numbers when a name fails.
+
+  If your network address changes
+  The names contain this computer's network address. If your router changes it, old bookmarks stop
+  working. Review the LAN address in Settings. Ask your router to keep the same address to avoid
+  this.
+
+  The internet
+  self-host opens no port on your router. Do not forward port 80 to this computer; these pages are
+  meant for your home network.
+
+  Changing it later
+  Everything here can be changed later in Settings, under Access.
+
+  Technical details
+  One managed Caddy in the Compose Project owns port 80 and routes HTTP requests by Host to each
+  App. Names are <app>.<lan-ip-with-dashes>.sslip.io on every OS. sslip.io sees the LAN address in
+  DNS queries. DNS-rebind protection can block names; the IP:port Address stays. Port conflicts
+  and rootless Docker are refused without changes. HTTP is not encrypted; Apps that require HTTPS
+  still require it. A DHCP reservation keeps bookmarks stable.
+
+  ↑/↓ scroll · esc or ? closes
+
+ help · esc or ? closes                                                                      ↑/↓  scroll   esc/?  close

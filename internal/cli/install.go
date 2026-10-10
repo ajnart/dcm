@@ -41,6 +41,7 @@ func (a *program) installCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&opts.Sets, "set", nil, "input as app.key=value or key=value (repeatable); app.port=N picks a port")
 	cmd.Flags().StringArrayVar(&opts.SetFiles, "set-file", nil, "private input as app.key=PATH to an owner-only file, or app.key=- for stdin (at most one; maximum 64 KiB)")
 	cmd.Flags().StringVar(&opts.Exposure, "exposure", "", "lan (default) or local, for a new Project")
+	cmd.Flags().BoolVar(&opts.EasyNames, "easy-names", false, "use Easy names at home, for a new Project; port 80 must be free")
 	cmd.Flags().StringVar(&opts.MediaRoot, "media-root", "", "media library folder, for a new Project")
 	cmd.Flags().StringVar(&opts.DownloadsRoot, "downloads-root", "", "downloads folder, for a new Project")
 	cmd.Flags().StringVar(&opts.AdminUser, "admin-user", "", "Admin login username (default admin)")
@@ -149,10 +150,20 @@ func printStatus(w io.Writer, s service.Status) {
 		access = "this machine only (other devices cannot connect)"
 	}
 	fmt.Fprintf(w, "Access    %s\n", access)
+	if s.Names != nil {
+		if s.Names.Working {
+			fmt.Fprintln(w, "          Easy names at home, checked from this computer (not your phone or TV).")
+		} else {
+			fmt.Fprintln(w, "          "+s.Names.Message)
+		}
+	}
 	fmt.Fprintf(w, "LAN IP    %s\n", s.LANIP)
 	if s.LANIPStale {
 		fmt.Fprintf(w, "          ⚠ not an address of this machine any more (now %s); App URLs do not work.\n", strings.Join(s.HostIPs, ", "))
 		fmt.Fprintf(w, "          Fix: self-host config set LAN_IP=auto\n")
+		if s.Names != nil {
+			fmt.Fprintln(w, "          Easy names contain the old address; bookmarks must change after the review.")
+		}
 	}
 	fmt.Fprintf(w, "Settings  TZ=%s PUID=%s PGID=%s UMASK=%s\n", s.Settings["TZ"], s.Settings["PUID"], s.Settings["PGID"], s.Settings["UMASK"])
 	if s.DockerError != "" {
@@ -169,6 +180,11 @@ func printStatus(w io.Writer, s service.Status) {
 		fmt.Fprintf(tw, "%s %s\t%s\t%s\t%s\t%s\t%s\n", dot(app), app.ID, app.URL, app.State, health, app.Setup, app.Update)
 	}
 	tw.Flush()
+	for _, app := range s.Apps {
+		if len(app.Addresses) > 1 {
+			fmt.Fprintf(w, "Fallback %s: %s\n", app.ID, app.Addresses[len(app.Addresses)-1])
+		}
+	}
 	for _, app := range s.Apps {
 		for _, step := range app.Steps {
 			if step.Status == stepstatus.StepManual {

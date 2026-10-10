@@ -63,25 +63,31 @@ var accessOptions = []accessOption{
 		facts: "Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links.",
 	},
 	{
-		id: "names", label: "Easy names at home", name: "Easy names at home", soon: true,
+		id: "names", label: "Easy names at home", name: "Easy names at home", value: "lan",
 		text: func(string) string {
-			return "Easy names will let you open each App with a short name like movies.local instead of numbers. " +
-				"A small web server on this computer, Caddy, will answer to the names. They will work only on your home network."
+			return "Open each App by name instead of a port number. Caddy answers the names on your home network. " +
+				"The addresses with numbers keep working if a name doesn't."
 		},
-		diagram: func(string) accessDiagram {
+		diagram: func(lanIP string) accessDiagram {
 			return accessDiagram{
-				nodes: []diagramNode{devicesNode, routerNode, {lines: []string{"this computer", "movies.local"}, accent: true}},
+				nodes: []diagramNode{devicesNode, routerNode, {lines: []string{"Caddy", "jellyfin." + strings.ReplaceAll(lanAddressOr(lanIP, "LAN-IP"), ".", "-") + ".sslip.io"}, short: "Caddy · App name", accent: true}},
 				under: 1, note: "internet", tone: toneClosed,
 			}
 		},
 		sections: []accessSection{
 			{"Which names?",
-				"Each App will get its own name, like movies.local, so you type words instead of numbers. Phones, TVs and laptops on your network look the names up on their own."},
+				"Each App with a web page gets a name like jellyfin.192-168-1-20.sslip.io. Names are checked from this computer, not your phone or TV; their name lookup may differ. No .local names are announced."},
+			{"When names don't work",
+				"The names need internet name lookup. Some routers hide them, and a phone using its own name lookup may behave differently. Use the addresses with numbers when a name fails."},
+			{"If your network address changes",
+				"The names contain this computer's network address. If your router changes it, old bookmarks stop working. Review the LAN address in Settings. Ask your router to keep the same address to avoid this."},
 			{"The internet",
-				"Nobody on the internet will be able to use these names to reach your Apps. They will work only on your home network."},
+				"self-host opens no port on your router. Do not forward port 80 to this computer; these pages are meant for your home network."},
 		},
-		facts: "A Caddy container on this computer will own port 80 and forward each name to the App's port. " +
-			"Names will be <app>.<lan-ip-with-dashes>.sslip.io and, on Linux, <app>.local announced over mDNS. The IP:port Address keeps working.",
+		facts: "One managed Caddy in the Compose Project owns port 80 and routes HTTP requests by Host to each App. " +
+			"Names are <app>.<lan-ip-with-dashes>.sslip.io on every OS. sslip.io sees the LAN address in DNS queries. " +
+			"DNS-rebind protection can block names; the IP:port Address stays. Port conflicts and rootless Docker are refused without changes. " +
+			"HTTP is not encrypted; Apps that require HTTPS still require it. A DHCP reservation keeps bookmarks stable.",
 	},
 	{
 		id: "tailscale", label: "From anywhere, privately", name: "From anywhere, privately",

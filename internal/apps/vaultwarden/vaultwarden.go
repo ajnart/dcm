@@ -13,6 +13,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/names"
 )
 
 type App struct{}
@@ -40,6 +41,12 @@ func (App) Secrets() []app.SecretSpec {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	address := "http://${LAN_IP}:" + port
+	if rc.Settings["EASY_NAMES"] == "on" {
+		if host, ok := names.Host("vaultwarden", rc.Settings["LAN_IP"]); ok {
+			address = "http://" + host
+		}
+	}
 	return `services:
   vaultwarden:
     image: vaultwarden/server:latest
@@ -47,7 +54,7 @@ func (App) Compose(rc app.RenderContext) string {
     user: ${PUID}:${PGID}
     environment:
       TZ: ${TZ}
-      DOMAIN: http://${LAN_IP}:` + port + `
+      DOMAIN: ` + address + `
       SIGNUPS_ALLOWED: "false"
       INVITATIONS_ALLOWED: "false"
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}

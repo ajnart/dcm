@@ -136,6 +136,69 @@ Development builds cannot run `self-update`.
 
 [Telemetry and Feedback: what is sent, privacy and controls](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
 
+## Easy names at home
+
+Choose **Easy names at home** in Onboarding or Settings, under Access. Onboarding
+selects it by default only when port 80 is available, Docker is not rootless,
+and this computer can look up the names. Review still needs your approval.
+For a new Project through the CLI, add `--easy-names` to `self-host install`;
+for an existing one, after approval:
+
+```bash
+self-host config set EASY_NAMES=on
+self-host status --json
+```
+
+One managed Caddy in the Compose Project serves HTTP names such as
+`http://jellyfin.192-168-1-20.sslip.io`, on Linux and macOS. Each Catalog App
+with a web page gets a route. Homarr tiles use the friendliest working Address.
+The published `IP:port` Address is always kept. Turning names off with
+`self-host config set EASY_NAMES=off` removes only the managed Caddy.
+
+Names are offered as Addresses only while the Project's Caddy has a running
+home-network port-80 binding and the stored LAN address is current. DNS success
+alone is not App acceptance. After `down`, removing an App or retrying Setup
+updates routes without starting Caddy; an explicit `start` starts Access too.
+Stopped Apps defer their Access configuration until an approved start.
+
+Saved routes are not treated as applied routes. Failed or interrupted Caddy
+updates keep names pending and numbered Addresses first until an approved
+retry succeeds. Failed initial startup can be retried with the same Action;
+unrelated Actions do not start Access, and `down` cancels that pending startup.
+Startup approval is saved before settings edits. Restore saves its original
+startup targets before initializing or replacing files, so a failed start can
+be retried without treating those targets as deliberately stopped. The retry
+is scoped to the same backup and targets; `down` cancels it.
+Retry merges only the selected Apps' records, preserving credentials, state and
+files of Apps installed in the meantime. The initial Admin login is restored
+only while absent; a newer login is kept. `down` also cancels pending Restore
+before a Project exists, without creating settings or starting containers.
+
+Access changes never silently reinstall Apps. If changing an origin would
+replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses
+before changing settings or files. Keep your image pins, mounts and environment
+overrides; update the origin manually or approve a reinstall separately. Restore
+checks Access before replacing App data and rebuilds routes without rerunning Setup.
+Restore updates Access configuration only for restored running Apps, preserving
+trusted hosts; previously stopped Apps stay stopped.
+
+Names are **checked from this computer**, not your phone or TV. They need
+internet name lookup; a router may hide them. Status explains blocked, offline
+or rewritten lookups in plain words and keeps the numbered Addresses. Technical
+details are in `status --json` under `names`. Port 80 conflicts, rootless Docker
+and non-home network addresses are refused without changes.
+
+The port check tries binding on IPv4 and IPv6. If Linux denies the port-80
+inspection, names stay off even with rootful Docker: an unverified port is not
+treated as free. Point-to-point and `/32` interfaces are not home networks.
+
+Names contain the LAN address: when DHCP changes it, review Host settings with
+`self-host config review`, then update bookmarks. A router DHCP reservation
+avoids this. sslip.io sees the LAN address in name queries. HTTP is not encrypted
+and does not satisfy Apps that require HTTPS, including Vaultwarden's web vault.
+Do not forward port 80 on your router. No `.local` announcer or host socket is
+installed; [Linux `.local` follow-up](https://github.com/ajnart/selfhost-skills/issues/232).
+
 ## Requirements and platforms
 
 Deployment needs a working Docker engine, the `docker compose` v2 plugin with
