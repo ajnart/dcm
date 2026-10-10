@@ -25,6 +25,7 @@ func (App) Info() app.Info {
 		Docs:          "https://github.com/dani-garcia/vaultwarden/wiki",
 		Port:          8222,
 		ContainerPort: 80,
+		WebSockets:    true,
 		Service:       "vaultwarden",
 	}
 }
