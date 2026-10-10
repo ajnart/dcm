@@ -1,23 +1,23 @@
  ◆ self-host                                                              v1.0.0
 
-  ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Who › ○ Look › ○ Review
+  ✓ ✓ ✓ ● Where ○ ○ ○ ○  4 of 8
 
-  Where your Apps keep their files, and which devices can open them.
+  This computer's address on your network, the settings your Apps share and
+  where they keep their files.
 
+  Host settings
+  Detected from this machine.
   ┃ LAN address
   ┃ > 192.168.1.20
 
-    Which devices can open your Apps?
-    > Other devices on your network
-      Only this computer
-      Tailscale: your devices, from anywhere · coming soon
-      Cloudflare Tunnel: a public address · coming soon
-      HTTPS with a reverse proxy: Caddy · coming soon
+    Time zone
+    > Europe/Paris
+
+    User ID (PUID)
+    > 1000
 
   App links use this address, so TVs and phones can open them. It only builds
-  links: the choice below decides who can connect.
-
-
+  links: the Access step decides who can connect.
 
 
 

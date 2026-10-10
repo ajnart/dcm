@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+  Host   Access   Appearance   Backups   Tools   About
+╭─ Access ─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   ● Home network (default)                                                                                           │
+│   ○ Easy names at home · coming soon                                                                                 │
+│   ○ From anywhere, privately · coming soon                                                                           │
+│ > ○ Your own web address · coming soon                                                                               │
+│   ○ Bring your own · coming soon                                                                                     │
+│                                                                                                                      │
+│   Your own web address, like movies.example.com, will open your Apps from anywhere through Cloudflare Tunnel,        │
+│   without opening any port on your router. A login page will stand in front, so only people you allow get in. It     │
+│   isn't available yet: your Apps stay on your network.                                                               │
+│                                                                                                                      │
+│   anyone with the address ──── Cloudflare ──── this computer no open port                                            │
+│                                     │                                                                                │
+│                               login first ✓                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  q quit      ?  more   ↑/↓  select   enter  choose   ctrl+s  apply   [/]  sub-tab   esc  back

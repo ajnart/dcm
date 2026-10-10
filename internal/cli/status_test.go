@@ -55,7 +55,7 @@ func TestStatusJSONKeepsLegacyStrings(t *testing.T) {
 			if err := os.WriteFile(p.Path("state.json"), []byte(legacy), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			expected := fmt.Sprintf(`{"project":%s,"exposure":"local","lan_ip":"","settings":{"EXPOSURE":"local"},"apps":[{"id":"one","name":"Echo one","managed":true,"description":"test app","image":"example/echo:latest","state":"missing","setup":%q,"steps":[{"id":"a","status":"ok"},{"id":"b","status":"skip"},{"id":"c","status":"fail"},{"id":"d","status":"manual"}],"services":["one"]}],"home":%s,"profile":{"experience":""}}`, root, setup, root)
+			expected := fmt.Sprintf(`{"project":%s,"exposure":"local","access":["local"],"lan_ip":"","settings":{"EXPOSURE":"local"},"apps":[{"id":"one","name":"Echo one","managed":true,"description":"test app","image":"example/echo:latest","state":"missing","setup":%q,"steps":[{"id":"a","status":"ok"},{"id":"b","status":"skip"},{"id":"c","status":"fail"},{"id":"d","status":"manual"}],"services":["one"]}],"home":%s,"profile":{"experience":""}}`, root, setup, root)
 			var want bytes.Buffer
 			if err := json.Indent(&want, []byte(expected), "", "  "); err != nil {
 				t.Fatal(err)
@@ -64,6 +64,31 @@ func TestStatusJSONKeepsLegacyStrings(t *testing.T) {
 			code, got := runWith(t, deps, testCatalog(&echoApp{id: "one"}), "status", "--json")
 			if code != 0 || got != want.String() {
 				t.Fatalf("status JSON changed: exit %d\ngot %s\nwant %s", code, got, want.String())
+			}
+		})
+	}
+}
+
+func TestStatusJSONNamesTheAccessInUse(t *testing.T) {
+	for _, tc := range []struct{ exposure, want string }{{"lan", "home"}, {"", "home"}, {"local", "local"}} {
+		t.Run(tc.exposure, func(t *testing.T) {
+			deps := systemtest.NewDeps(t)
+			owner, _ := deps.CurrentUser()
+			if err := project.Open(owner).SaveSettings(map[string]string{"EXPOSURE": tc.exposure}); err != nil {
+				t.Fatal(err)
+			}
+
+			code, out := runWith(t, deps, testCatalog(&echoApp{id: "one"}), "status", "--json")
+
+			var status struct {
+				Exposure string
+				Access   []string
+			}
+			if err := json.Unmarshal([]byte(out), &status); err != nil || code != 0 {
+				t.Fatalf("exit %d: %v\n%s", code, err, out)
+			}
+			if status.Exposure != tc.exposure || strings.Join(status.Access, ",") != tc.want {
+				t.Fatalf("exposure %q access %v, want exposure %q access %s", status.Exposure, status.Access, tc.exposure, tc.want)
 			}
 		})
 	}
@@ -107,6 +132,9 @@ func TestStatusJSONGoldenForAnAppInstalledThroughARecipe(t *testing.T) {
 	want := strings.NewReplacer("{HOME}", owner.Home, "{ROOT}", projectRoot(t, deps)).Replace(`{
   "project": "{ROOT}",
   "exposure": "lan",
+  "access": [
+    "home"
+  ],
   "lan_ip": "192.168.1.20",
   "settings": {
     "BIND_IP": "0.0.0.0",

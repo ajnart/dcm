@@ -245,7 +245,10 @@ single key changes an App or the Project.
 ## Flagged ambiguities
 
 - "Exposure" (`lan`/`local`) was the old name for part of **Access**; the
-  stored values and the `--exposure` flag keep the old word until renamed.
+  stored `EXPOSURE` setting, its values, the `--exposure` flag, the `exposure`
+  key of `status --json` and the `exposure` doctor check keep the old word.
+  Nothing a person reads says it; `status --json` also has `access`, a list
+  of `home` or `local`.
 
 - "recipe" in the previous CLI meant one app's compose definition; here it
   means a bundle of **Apps**.

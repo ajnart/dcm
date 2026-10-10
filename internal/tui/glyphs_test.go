@@ -93,6 +93,7 @@ func TestGoldenGlyphSets(t *testing.T) {
 func TestSettingsShowsTheAppearanceSampleChoiceAndLink(t *testing.T) {
 	m, _ := settingsHost(t)
 	m = drive(t, m, press("]"))
+	m = drive(t, m, press("]"))
 
 	out := screen(m)
 
@@ -111,6 +112,7 @@ func TestSettingsShowsTheAppearanceSampleChoiceAndLink(t *testing.T) {
 func TestChoosingAGlyphSetSavesAndRedrawsAtOnce(t *testing.T) {
 	m, backend := settingsHost(t)
 
+	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("up"))
 	m = drive(t, m, press("enter"))
@@ -144,6 +146,7 @@ func TestSettingsAppearanceGoldens(t *testing.T) {
 			m = drive(t, m, press("5"))
 
 			m = drive(t, m, press("]"))
+			m = drive(t, m, press("]"))
 
 			golden(t, "settings-appearance"+size.suffix, trimLines(screen(m)))
 		})
@@ -153,8 +156,10 @@ func TestSettingsAppearanceGoldens(t *testing.T) {
 func narrowSettings(t *testing.T) Model {
 	t.Helper()
 	m, backend := sample(t, 80, 24)
+	backend.status.Exposure = service.ExposureLocal
+	m = drive(t, m, statusMsg{status: backend.status})
 	backend.review = []service.SettingReview{
-		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
+		{Key: "EXPOSURE", Current: "local", Choices: []string{"lan", "local"}},
 		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.1.20", Choices: []string{"192.168.1.20"}},
 		{Key: "TZ", Current: "Europe/Paris", Detected: "Europe/Paris"},
 		{Key: "PUID", Current: "1000", Detected: "1000"},
@@ -164,8 +169,8 @@ func narrowSettings(t *testing.T) Model {
 		{Key: "DOWNLOADS_ROOT", Current: "/home/alice/downloads"},
 	}
 	m = drive(t, m, press("5"))
-	m = pickLocalExposure(t, m)
-	for i := 0; i < 3; i++ {
+	m = pickHomeNetwork(t, m)
+	for i := 0; i < 2; i++ {
 		m = drive(t, m, press("down"))
 	}
 	m = drive(t, m, press("enter"))
@@ -186,7 +191,7 @@ func TestSettingsKeepsTheCursorOnScreenWithPendingChanges(t *testing.T) {
 
 	out := screen(m)
 
-	for _, want := range []string{"Pending changes", "EXPOSURE", "PUID", "1000 → 1001", "PUID/PGID changes",
+	for _, want := range []string{"Pending changes", "Access", "PUID", "1000 → 1001", "PUID/PGID changes",
 		"> DOWNLOADS_ROOT", "(pending)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("Settings lacks %q at 80×24 with pending changes\n%s", want, out)
@@ -199,7 +204,7 @@ func TestSettingsKeepsTheCursorOnScreenWithPendingChanges(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		m = drive(t, m, press("up"))
 	}
-	if out := screen(m); !strings.Contains(out, "> EXPOSURE") || !strings.Contains(out, "(pending)") {
+	if out := screen(m); !strings.Contains(out, "> LAN_IP") || !strings.Contains(out, "(pending)") {
 		t.Fatalf("scrolling back up must keep the cursor on screen\n%s", out)
 	}
 }
@@ -245,7 +250,7 @@ func TestEachSettingsSubTabIsAFocusedBoxWithABoldTitle(t *testing.T) {
 	for _, size := range []struct{ width, height int }{{120, 30}, {80, 24}} {
 		m, _ := sample(t, size.width, size.height)
 		m = drive(t, m, press("5"))
-		for _, title := range []string{"Host settings", "Appearance", "Backups", "Tools", "About"} {
+		for _, title := range []string{"Host settings", "Access", "Appearance", "Backups", "Tools", "About"} {
 			row := -1
 			for i, line := range strings.Split(screen(m), "\n") {
 				if strings.Contains(line, "╭─ "+title) {

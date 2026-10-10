@@ -23,7 +23,7 @@ func toolsHost(t *testing.T, goos string, installed map[string]string) (Model, *
 	m, backend := settingsHost(t)
 	backend.tools = installed
 	m.settings.goos = goos
-	for range 3 {
+	for range 4 {
 		m = drive(t, m, press("]"))
 	}
 	return m, backend
@@ -130,7 +130,7 @@ func TestLinuxInstallCommandsShowInFullWithinEightyColumns(t *testing.T) {
 	m, _ := sample(t, 80, 24)
 	m = drive(t, m, press("5"))
 	m.settings.goos = "linux"
-	for range 3 {
+	for range 4 {
 		m = drive(t, m, press("]"))
 	}
 

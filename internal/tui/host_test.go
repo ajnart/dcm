@@ -43,8 +43,7 @@ func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T
 	if m.surface != surfaceSettings {
 		t.Fatalf("5 should open the Settings tab")
 	}
-	m = drive(t, m, press("down"))  // LAN_IP row
-	m = drive(t, m, press("enter")) // edit
+	m = drive(t, m, press("enter")) // edit the LAN_IP row
 	m = drive(t, m, press("tab"))   // cycle to the detected address
 	m = drive(t, m, press("enter")) // accept
 	m = drive(t, m, ctrlS())        // apply
@@ -60,11 +59,13 @@ func TestHostSettingsReviewAppliesTheDetectedLANIPWithoutInstalling(t *testing.T
 	}
 }
 
-func TestHostSettingsReviewCanChangeExposureAndGoBack(t *testing.T) {
+func TestHostSettingsReviewCanChangeAccessAndGoBack(t *testing.T) {
 	m, backend := movedHost(t)
+	backend.status.Exposure, backend.review[0].Current = service.ExposureLocal, service.ExposureLocal
+	m = drive(t, m, statusMsg{status: backend.status})
 
 	m = drive(t, m, press("5"))
-	m = pickLocalExposure(t, m)   // EXPOSURE: lan → local
+	m = pickHomeNetwork(t, m)     // access: this computer only → Home network
 	m = drive(t, m, press("esc")) // pending changes: ask to discard
 	if !m.settings.confirmDiscard || len(backend.Actions()) != 0 {
 		t.Fatal("esc with pending changes should ask before discarding")
@@ -75,7 +76,7 @@ func TestHostSettingsReviewCanChangeExposureAndGoBack(t *testing.T) {
 	}
 	m = drive(t, m, ctrlS())
 
-	if got := backend.Actions(); !slices.Equal(got, []string{"config EXPOSURE=local"}) {
+	if got := backend.Actions(); !slices.Equal(got, []string{"config EXPOSURE=lan"}) {
 		t.Fatalf("actions %v", got)
 	}
 }

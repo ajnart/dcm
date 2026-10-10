@@ -78,7 +78,7 @@ func (a *program) statusCmd() *cobra.Command {
 	var updates bool
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show Exposure, Host settings and every App's URL, state and Setup",
+		Short: "Show Access, Host settings and every App's URL, state and Setup",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a.document = true
@@ -144,11 +144,11 @@ func printSummary(w io.Writer, s service.Status) {
 
 func printStatus(w io.Writer, s service.Status) {
 	fmt.Fprintf(w, "Project   %s\n", s.Project)
-	exposure := "local network (other devices can connect)"
+	access := "Home network (other devices can connect)"
 	if s.Exposure == service.ExposureLocal {
-		exposure = "this machine only (other devices cannot connect)"
+		access = "this machine only (other devices cannot connect)"
 	}
-	fmt.Fprintf(w, "Exposure  %s\n", exposure)
+	fmt.Fprintf(w, "Access    %s\n", access)
 	fmt.Fprintf(w, "LAN IP    %s\n", s.LANIP)
 	if s.LANIPStale {
 		fmt.Fprintf(w, "          ⚠ not an address of this machine any more (now %s); App URLs do not work.\n", strings.Join(s.HostIPs, ", "))
