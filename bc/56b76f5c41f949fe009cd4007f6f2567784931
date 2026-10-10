@@ -1,0 +1,53 @@
+video/reel/audio/analyze.mjs
+  s_59ffa5bfdcd3ba::t_d6be7f781c8601 1-237
+video/reel/audio/mix.mjs
+  s_59ffa5bfdcd3ba::t_252cfe3c705af7 1-3,5-8,10,13-14,17-21,23,26-27,29-81,92-99,102,104-107,109,111-112,114-117,127,130-131,137,159,168,172
+video/reel/board.js
+  s_59ffa5bfdcd3ba::t_9dd91dcd28b508 1-2,6,10,12-14,21,29-34,37-38
+video/reel/end.js
+  s_59ffa5bfdcd3ba::t_a10a89bdd60134 1-2,7-10,13-14,17,19-20,22-33
+video/reel/flurry.js
+  s_59ffa5bfdcd3ba::t_c50219ab2bf524 1-28
+video/reel/hook.js
+  s_59ffa5bfdcd3ba::t_ccc1d1197d3049 1-2,11-18,21-25,30,33-34,36,38,41-56,58-70,72-76,78-81,83-92,95-98,101-104,106-109
+video/reel/index.html
+  s_59ffa5bfdcd3ba::t_6cdd599c5e095c 16,19-21,24,27,30,33,39,42,45,48,51,54,57,62-68,71
+video/reel/lib.js
+  s_59ffa5bfdcd3ba::t_0b03f91b55d44c 12-20,39-42,45-53,111-113,115-116
+video/reel/links.js
+  s_59ffa5bfdcd3ba::t_326a2eeaa9f188 1-2,14,16-18,20,23-24,29,32,34,37,39-44,46-52,54-56,58,60-65,68-69
+video/reel/pivot.js
+  s_59ffa5bfdcd3ba::t_19175120292f10 1-2,6,8,13-14,17-18,21,24-25,27,29-39,41-43,45,48-50
+video/reel/product.js
+  s_59ffa5bfdcd3ba::t_cb93a44dd232c4 1-2,7,9-12,16-17,19-20,22-24,27-28,30-32,34-40,42-47,51,60,62-65,67,69-76,81,83-86,88-90
+video/reel/render.mjs
+  s_8b1d5a69f175a9::t_a5f34644e86fae 4,7,138-167,206,226,257-258,283,292-346,397,402
+video/reel/setup.js
+  s_59ffa5bfdcd3ba::t_2ac7c1be4f7ee0 1-2,5-7,11,22,25,28-29,49,52,102,106-107,110-111
+video/reel/timeline.js
+  s_59ffa5bfdcd3ba::t_90d79242d054f6 1-2,4-9,11,13-21,24-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc56b76f5c41f949fe009cd4007f6f2567784931",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
