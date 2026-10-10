@@ -150,6 +150,11 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
 	a := &program{deps: deps, catalog: cat, args: args, steps: telemetry.Progress{Now: deps.Now, KnownApp: func(id string) bool { _, ok := cat.App(id); return ok }}}
+	return a.run(ctx)
+}
+
+func (a *program) run(ctx context.Context) int {
+	deps, args := a.deps, a.args
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
@@ -190,7 +195,7 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 
 func (a *program) reportPanic(report func(error, int), crash any, stack telemetry.Stack) {
 	if a.terminal != nil {
-		a.terminal.Close()
+		system.CatchPanic(a.terminal.Close)
 	}
 	a.panicked = crash
 	a.steps.Report.Stack = stack

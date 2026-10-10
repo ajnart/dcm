@@ -112,13 +112,17 @@ func StartNotice(deps *system.Deps, lookup Lookup) func() string {
 	if !ok {
 		return none
 	}
-	now := deps.Now()
-	state := cache.Load()
-	if now.Sub(state.NoticedAt) < Interval {
-		return none
-	}
+	return startNotice(deps.Version, deps.Now(), lookup, cache)
+}
+
+type noticeCache interface {
+	Load() State
+	Save(State) error
+}
+
+func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) func() string {
 	newer := func(version string) string {
-		if isNewer, err := release.Newer(deps.Version, version); err != nil || !isNewer {
+		if isNewer, err := release.Newer(currentVersion, version); err != nil || !isNewer {
 			return ""
 		}
 		state := cache.Load()
@@ -126,15 +130,9 @@ func StartNotice(deps *system.Deps, lookup Lookup) func() string {
 		cache.Save(state)
 		return Notice(version)
 	}
-	if now.Sub(state.CheckedAt) < Interval && state.Latest != "" {
-		return func() string { return newer(state.Latest) }
-	}
-	if now.Sub(state.CheckedAt) < Interval {
-		return none
-	}
 	type result struct {
-		version string
-		crash   *system.CapturedPanic
+		notice string
+		crash  *system.CapturedPanic
 	}
 	found := make(chan result, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
@@ -142,14 +140,24 @@ func StartNotice(deps *system.Deps, lookup Lookup) func() string {
 		defer cancel()
 		var answer result
 		answer.crash = system.CatchPanic(func() {
+			state := cache.Load()
+			if now.Sub(state.NoticedAt) < Interval {
+				return
+			}
+			if now.Sub(state.CheckedAt) < Interval {
+				if state.Latest != "" {
+					answer.notice = newer(state.Latest)
+				}
+				return
+			}
 			version, err := lookup(ctx)
 			if err != nil {
 				return
 			}
-			state := cache.Load()
+			state = cache.Load()
 			state.CheckedAt, state.Latest = now, version
 			cache.Save(state)
-			answer.version = version
+			answer.notice = newer(version)
 		})
 		found <- answer
 	}()
@@ -160,15 +168,15 @@ func StartNotice(deps *system.Deps, lookup Lookup) func() string {
 			if answer.crash != nil {
 				panic(*answer.crash)
 			}
-			if answer.version == "" {
-				return ""
-			}
-			return newer(answer.version)
+			return answer.notice
 		case <-time.After(waitBudget):
 			cancel()
-			answer := <-found
-			if answer.crash != nil {
-				panic(*answer.crash)
+			select {
+			case answer := <-found:
+				if answer.crash != nil {
+					panic(*answer.crash)
+				}
+			default:
 			}
 			return ""
 		}

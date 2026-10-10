@@ -48,8 +48,9 @@ type TerminalSink struct {
 	done chan struct{}
 	// drawn, when set, is called after each tick is drawn, without the lock
 	// held. It lets a test wait for a frame; it must not block.
-	drawn func()
-	crash *system.CapturedPanic
+	drawn  func()
+	crash  *system.CapturedPanic
+	failed bool
 }
 
 func Terminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palette) *TerminalSink {
@@ -63,7 +64,20 @@ func newTerminal(w io.Writer, verbose bool, width func() int, g Glyphs, p Palett
 }
 
 func (t *TerminalSink) Emit(e events.Event) {
+	if wait := t.emit(e); wait != nil {
+		wait()
+	}
+}
+
+func (t *TerminalSink) emit(e events.Event) (wait func()) {
 	t.mu.Lock()
+	completed := false
+	defer func() {
+		if !completed {
+			t.failed = true
+		}
+		t.mu.Unlock()
+	}()
 	if e.Event == events.RunStart {
 		t.evs = t.evs[:0]
 		t.shown = nil
@@ -74,12 +88,11 @@ func (t *TerminalSink) Emit(e events.Event) {
 	if e.Event == events.PullProgress {
 		t.redraw(s, t.tracker.Motion(t.frame))
 		t.flush()
-		t.mu.Unlock()
-		return
+		completed = true
+		return nil
 	}
 	t.erase()
 	t.human.Emit(e)
-	var wait func()
 	if e.Event == events.RunEnd {
 		// The final block is drawn at rest and left on screen.
 		t.redraw(s, Motion{Frame: t.frame})
@@ -92,10 +105,8 @@ func (t *TerminalSink) Emit(e events.Event) {
 		t.redraw(s, t.tracker.Motion(t.frame))
 	}
 	t.flush()
-	t.mu.Unlock()
-	if wait != nil {
-		wait()
-	}
+	completed = true
+	return wait
 }
 
 // Close stops the frame ticker; the block on screen stays.
@@ -109,7 +120,7 @@ func (t *TerminalSink) Close() {
 func (t *TerminalSink) tick() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.stop == nil {
+	if t.stop == nil || t.failed {
 		return
 	}
 	t.frame++
