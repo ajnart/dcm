@@ -25,6 +25,7 @@ func (App) Info() app.Info {
 		Docs:          "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
 		Port:          3001,
 		ContainerPort: 3001,
+		WebSockets:    true,
 		Service:       "uptime-kuma",
 	}
 }

@@ -25,6 +25,7 @@ func (App) Info() app.Info {
 		Docs:          "https://nodered.org/docs/getting-started/docker",
 		Port:          1880,
 		ContainerPort: 1880,
+		WebSockets:    true,
 		Service:       "node-red",
 	}
 }

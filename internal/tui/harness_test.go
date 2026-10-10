@@ -1060,7 +1060,7 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 			check(fmt.Sprintf("%s Settings Access option %d", set, i+1), option)
 			check(fmt.Sprintf("%s Settings Access option %d help", set, i+1), drive(t, option, press("?")))
 		}
-		check(string(set)+" Settings Access coming soon note", drive(t, option, press("enter")))
+		check(string(set)+" Settings Access Bring your own note", drive(t, option, press("enter")))
 		local, _ := settingsHostWith(t, service.ExposureLocal)
 		local = update(t, local, windowSize(80, 24))
 		check(string(set)+" Settings Access this computer only", drive(t, local, press("]")))

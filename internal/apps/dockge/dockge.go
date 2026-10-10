@@ -22,6 +22,7 @@ func (App) Info() app.Info {
 		Docs:          "https://github.com/louislam/dockge#how-to-install",
 		Port:          5001,
 		ContainerPort: 5001,
+		WebSockets:    true,
 		Service:       "dockge",
 	}
 }
