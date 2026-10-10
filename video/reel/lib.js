@@ -36,17 +36,16 @@ export const icon = (name, ext = "svg") => `assets/icons/${name}.${ext}`;
 export const agentLogo = (name) => `assets/agents/${name}.svg`;
 
 // Readability contract: every element meant to be read declares the window in which it must sit
-// fully legible, opaque, unoverlapped and still. lint (render.mjs) checks the window is long enough,
+// fully legible, opaque, unoverlapped and steady. lint (render.mjs) checks the window is long enough,
 // then samples it. A sentence needs 0.4 s + 0.25 s per word once it has landed; a phrase of one to
-// three words may hold for a single beat, which leaves it 0.4 s still after a 0.1 s entrance.
+// three words needs 0.4 s. Steady allows a slow camera drift, never a fast move (main.js lintRead).
 // Text that is not meant to be read sits under [data-deco].
 export const READS = [];
 export const countWords = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 export const needHold = (s) => (countWords(s) <= 3 ? 0.4 : 0.4 + 0.25 * countWords(s));
 
-// Beat contract: scenes declare what happens on each beat and where the picture cuts. lint checks
-// every beat up to the end card's still hold has an event and visibly changes the frame, and that
-// every cut and every sound cue sits on the beat grid.
+// Beat contract: scenes declare what happens on the beats and where the picture cuts. lint requires
+// every cut on the beat grid and reports beats with no event; sound cues may fall anywhere.
 export const BEATS = [];
 export const CUTS = [];
 export const on = (t, what) => BEATS.push({ t: +t.toFixed(4), what });
@@ -60,6 +59,21 @@ export function read(el, a, b, label) {
 // Sound cues: scenes register them while they build, render.mjs cues writes them to audio/cues.json.
 export const CUES = [];
 export const cue = (t, kind, o = {}) => CUES.push({ t: +t.toFixed(4), kind, ...o });
+let keyN = 0;
+export function typeCues(text, a, b) {
+  const n = text.length;
+  for (let i = 0; i < n; i++) if (text[i] !== " ") cue(a + ((i + 0.5) / n) * (b - a), "key", { i: keyN++ });
+}
+
+// a camera that never stops: a slow sine-eased push (and pan) over [a, b] on an element nothing else moves
+export function drift(el, a, b, { s0 = 1, s1 = 1.035, x0 = 0, x1 = 0, y0 = 0, y1 = 0, origin = "50% 50%" } = {}) {
+  el.style.transformOrigin = origin;
+  const e = gsap.parseEase("sine.inOut");
+  proc((t) => {
+    const p = e(prog(t, a, b));
+    el.style.transform = `translate(${lerp(x0, x1, p).toFixed(3)}px, ${lerp(y0, y1, p).toFixed(3)}px) scale(${lerp(s0, s1, p).toFixed(5)})`;
+  });
+}
 
 export function scene(id, a, b) {
   const el = document.getElementById(id);

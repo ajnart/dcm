@@ -1,4 +1,4 @@
-import { $, proc, scene, icon, read, cue, on, cut, ICON } from "./lib.js";
+import { $, $$, proc, scene, icon, read, cue, on, cut, drift, ICON } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.links;
@@ -13,15 +13,17 @@ const CARDS = [
   { from: "seerr", fromName: "Seerr", to: ["sonarr", "radarr"], toName: "Sonarr · Radarr", desc: "Sends your requests to Sonarr and Radarr", key: "Their API keys" },
   { from: "homarr", fromName: "Homarr", to: ["jellyfin"], toName: "Jellyfin", desc: "Adds Jellyfin’s tile and widgets to Homarr", key: "Jellyfin API key" },
 ];
-// beats: card k lands on beat k; its wire draws on beat k+1 and the credential travels to the App being
-// configured; it ticks green on beat k+3. Beat 7: the counter completes.
-const land = (k) => b(24 + k);
+// beats: 0 the cards open out of the push as one grid · 2 the four wires draw a sixteenth apart and each
+// credential travels to the App being configured · 4 they tick green a sixteenth apart · 5 4 of 4 linked ·
+// the last beat whips up into the board
+const T = { open: A, wire: A + b(2), tick: A + b(4), all: A + b(5), whip: B - 0.16 };
+const S16 = b(0.25);
 const wireEnd = (c) => 824 - 40 - c.to.length * 104 - (c.to.length - 1) * 12 - 22;
-const IN = 0.2;
 
 export function build(tl) {
-  scene("links", A, B);
+  const root = scene("links", A, B);
   cut(A, "Links");
+  drift($("#links-cam"), A, B, { s0: 1, s1: 1.03 });
   const grid = $("#lk-grid");
   grid.innerHTML = CARDS.map((c, k) => `
     <div class="lkc" id="lkc${k}">
@@ -34,37 +36,46 @@ export function build(tl) {
       <div class="key"><b>${ICON.key}</b><span class="kl">${c.key}</span> <span class="mask">••••••</span></div>
     </div>`).join("");
 
+  // the grid opens out of the setup scene's push: one scale-down, the cards resolving together
+  tl.fromTo(grid, { scale: 1.22, transformOrigin: "50% 40%" }, { scale: 1, duration: 0.6, ease: "expo.out" }, T.open);
+  $$(".lkc", grid).forEach((el, k) => tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out" }, T.open + k * 0.03));
+  on(T.open, "the four cards open out of the push");
+
   const count = $("#lk-count");
   CARDS.forEach((c, k) => {
-    const el = $(`#lkc${k}`), t0 = land(k), wire = t0 + b(1), tick = t0 + b(3);
-    tl.fromTo(el, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: IN, ease: "expo.out" }, t0);
-    on(t0, `card ${c.fromName} lands`);
+    const el = $(`#lkc${k}`), wire = T.wire + k * S16, tick = T.tick + k * S16;
     const w1 = $(".w1", el), pk = $(".pk", el), ok = $(".ok", el);
-    tl.fromTo(w1, { attr: { "stroke-dashoffset": 100 } }, { attr: { "stroke-dashoffset": 0 }, duration: 0.25, ease: "expo.out" }, wire);
-    on(wire, `wire ${c.fromName}`);
+    tl.fromTo(w1, { attr: { "stroke-dashoffset": 100 } }, { attr: { "stroke-dashoffset": 0 }, duration: 0.3, ease: "expo.out" }, wire);
+    cue(wire, "zip", { pan: k % 2 ? 0.4 : -0.4 });
     // the credential travels from the App that owns it to the App being configured
     const px = wireEnd(c) - 22;
-    tl.fromTo(pk, { x: px, opacity: 0 }, { x: px, opacity: 1, duration: 0.08 }, wire + 0.25);
+    tl.fromTo(pk, { x: px, opacity: 0, scale: 0.4 }, { x: px, opacity: 1, scale: 1, duration: 0.15, ease: "expo.out" }, wire + 0.2);
     tl.fromTo(pk, { x: px }, { x: 150, duration: 0.5, ease: "power3.inOut" }, wire + 0.3);
-    tl.fromTo(pk, { opacity: 1 }, { opacity: 0, duration: 0.08 }, tick - 0.1);
-    tl.fromTo(ok, { scale: 0 }, { scale: 1, duration: 0.15, ease: "expo.out" }, tick);
-    on(tick, `${c.fromName} linked`);
-    cue(tick, "check", { pan: k % 2 ? 0.3 : -0.3 });
+    tl.fromTo(pk, { opacity: 1 }, { opacity: 0, duration: 0.08 }, tick - 0.08);
+    tl.fromTo(ok, { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.3, ease: "expo.out" }, tick);
+    cue(tick, "check", { i: k + 2 });
     proc((t) => {
       const done = t >= tick;
       w1.setAttribute("stroke", done ? "#00d787" : "#a88df2");
       el.classList.toggle("on", done);
     });
-    read([$(".nm.l", el), $(".nm.r", el), $(".desc", el), $(".key", el)], t0 + IN, B - 0.01, `link ${c.fromName}`);
+    read([$(".nm.l", el), $(".nm.r", el), $(".desc", el), $(".key", el)], T.open + 0.6, T.whip - 0.01, `link ${c.fromName}`);
   });
+  on(T.wire, "the wires draw");
+  on(T.tick, "the Links tick green");
   proc((t) => {
-    const n = CARDS.filter((_, k) => t >= land(k) + b(3)).length;
-    count.innerHTML = t >= b(31) ? `${ICON.check}<span>4 of 4 linked</span>` : `<span>${n} of 4 linked</span>`;
-    count.classList.toggle("done", t >= b(31));
+    const n = CARDS.filter((_, k) => t >= T.tick + k * S16).length;
+    count.innerHTML = t >= T.all ? `${ICON.check}<span>4 of 4 linked</span>` : `<span>${n} of 4 linked</span>`;
+    count.classList.toggle("done", t >= T.all);
   });
-  on(b(31), "all four linked");
+  on(T.all, "all four linked");
+  cue(T.all, "success");
 
   const w = $("#cap-links .w");
-  tl.fromTo(w, { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, A);
-  read("#cap-links", A + IN, B - 0.01);
+  tl.fromTo(w, { yPercent: 110 }, { yPercent: 0, duration: 0.4, ease: "expo.out" }, A);
+  read("#cap-links", A + 0.4, T.whip - 0.01);
+
+  // a vertical whip into the board: this scene leaves upward, the board arrives from below
+  tl.fromTo(root, { y: 0 }, { y: -420, duration: 0.16, ease: "power2.in" }, T.whip);
+  cue(B, "whoosh", { dur: 0.4, pan: -0.3 });
 }

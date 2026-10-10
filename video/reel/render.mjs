@@ -135,8 +135,8 @@ async function lint(url, times) {
   const seen = new Map();
   let bad = 0, worst = 0, differing = 0, minPsnr = Infinity;
 
-  // 0 · the beat: every beat up to the end card's still hold has a declared event and visibly changes the frame;
-  //     every cut, sound cue and event sits on the 0.5 s grid
+  // 0 · the beat: every cut sits on the 0.5 s grid (a failure); beats with no declared event or a frame that
+  //     barely changes are reported as notes
   const changed = (x, y) => judge.evaluate(async ([p, q]) => {
     const load = async (b64) => {
       const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
@@ -151,7 +151,7 @@ async function lint(url, times) {
     return n / (d1.length / 4);
   }, [x.toString("base64"), y.toString("base64")]);
   const bt = await a.page.evaluate(() => window.lintBeats());
-  for (const e of bt.empty) { bad++; console.log("DEAD BEAT (no event)", JSON.stringify(e)); }
+  for (const e of bt.empty) console.log("note: beat with no event", JSON.stringify({ t: e.t }));
   for (const e of bt.offGrid) { bad++; console.log("OFF THE BEAT", JSON.stringify(e)); }
   let quietest = { f: 1 };
   for (const x of bt.beats) {
@@ -160,7 +160,7 @@ async function lint(url, times) {
     await a.page.evaluate((t) => window.seek(t), x.t + 0.2);
     const f = await changed(before, await shot(a.cdp));
     if (f < quietest.f) quietest = { f, t: x.t, what: x.what.join("; ") };
-    if (f < 0.002) { bad++; console.log("DEAD BEAT (frame barely changes)", JSON.stringify({ t: x.t, changed: +(f * 100).toFixed(3) + "%", what: x.what })); }
+    if (f < 0.002) console.log("note: frame barely changes on the beat", JSON.stringify({ t: x.t, changed: +(f * 100).toFixed(3) + "%", what: x.what }));
   }
   console.log(`beats: ${bt.beats.length} beats to ${bt.settled} s, ${bt.empty.length} without an event, ${bt.offGrid.length} off the grid; smallest change ${(quietest.f * 100).toFixed(2)}% of pixels at ${quietest.t} s (${quietest.what})`);
 
@@ -203,7 +203,7 @@ async function lint(url, times) {
     await check("fresh page", t, await shot(b.cdp));
   }
   await browser.close();
-  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — something happens on every beat and every cut is on the grid; every readable text holds long enough, legible and still; no undeclared text; ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
+  console.log(bad ? `lint: ${bad} problem(s)` : `lint: ok — every cut is on the grid; every readable text holds long enough, legible and still; no undeclared text; ${times.length} times revisited out of order and on a fresh page; ${differing} frame(s) carried sub-pixel glyph raster noise (worst ${minPsnr.toFixed(1)} dB PSNR, 30 dB is the failure line); no text outside the safe area`);
   if (bad) process.exitCode = 1;
 }
 

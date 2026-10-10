@@ -1,5 +1,5 @@
-/* Flat by rule: no gradients on chrome, no glows, no text shadows. Surfaces are solid fills with a
-   1.5 px hairline; UI glyphs share one 2 px stroke (lib.js ICON). */
+/* Technical and precise: two families (Inter Tight for words, JetBrains Mono for code and the wordmark),
+   sharp corners (2-6 px), flat fills with a 1.5 px hairline, one accent. UI glyphs share one 2 px stroke. */
 :root {
   --bg: #09080f;
   --panel: #14121e;
@@ -17,8 +17,6 @@
   --faint: #444;
   --bright: #f5f5f5;
   --display: "Inter Tight Variable", sans-serif;
-  --wide: "Unbounded Variable", sans-serif;
-  --serif: "Instrument Serif", serif;
   --mono: "JetBrains Mono Variable", monospace;
 }
 * {
@@ -50,6 +48,10 @@ body {
   overflow: hidden;
   background: var(--bg);
 }
+.cam {
+  position: absolute;
+  inset: 0;
+}
 .mk {
   display: inline-block;
   overflow: clip;
@@ -64,12 +66,6 @@ body {
   display: block;
   white-space: nowrap;
 }
-em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
 .gl {
   display: block;
   width: 100%;
@@ -81,11 +77,10 @@ em {
   height: 1.05em;
   margin-left: 4px;
   vertical-align: -0.16em;
-  background: var(--accentText);
+  background: var(--text);
 }
 #hook-t,
 #wallhead,
-#cap,
 #pivot-t,
 .ag-h,
 .hcap,
@@ -105,11 +100,8 @@ em {
   line-height: 0.96;
   letter-spacing: -0.055em;
 }
-#hook-t em {
-  font-size: 1.16em;
+#hook-t b {
   color: var(--accentText);
-  letter-spacing: -0.02em;
-  line-height: 0.8;
 }
 #tiles {
   position: absolute;
@@ -132,7 +124,7 @@ em {
 .face {
   position: absolute;
   inset: 0;
-  border-radius: 52px;
+  border-radius: 6px;
   backface-visibility: hidden;
   display: flex;
   flex-direction: column;
@@ -165,7 +157,7 @@ em {
   top: -16px;
   width: 64px;
   height: 64px;
-  border-radius: 20px;
+  border-radius: 4px;
   background: var(--tile);
   border: 1.5px solid var(--line2);
   display: flex;
@@ -186,8 +178,8 @@ em {
   font-weight: 800;
   font-size: 32px;
   line-height: 1;
-  padding: 6px 18px 7px;
-  border-radius: 99px;
+  padding: 6px 16px 7px;
+  border-radius: 2px;
   background: #2a1118;
   color: var(--fail);
   border: 1.5px solid rgba(255, 95, 95, 0.6);
@@ -205,7 +197,7 @@ em {
   width: 64px;
   height: 64px;
   padding: 15px;
-  border-radius: 50%;
+  border-radius: 4px;
   background: var(--fail);
   color: #fff;
 }
@@ -226,15 +218,6 @@ em {
 #wallhead .w {
   position: relative;
   white-space: nowrap;
-}
-#wh-x {
-  position: absolute;
-  left: -6px;
-  right: -6px;
-  top: 52%;
-  height: 10px;
-  background: var(--fail);
-  transform-origin: 0 50%;
 }
 #wh-b {
   color: var(--ok);
@@ -302,10 +285,10 @@ em {
   fill: var(--accent);
 }
 #wm {
-  font-family: var(--wide);
+  font-family: var(--mono);
   font-weight: 800;
   font-size: 230px;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.07em;
   line-height: 1;
   white-space: nowrap;
   color: #fff;
@@ -317,64 +300,65 @@ em {
 .e-wm .c {
   display: inline-block;
 }
-#cap {
-  position: absolute;
-  left: 112px;
-  top: 232px;
-  font-weight: 800;
-  font-size: 150px;
-  line-height: 1.02;
-  letter-spacing: -0.05em;
-}
-#cap .mk {
-  display: block;
-}
-#cap .w {
-  white-space: nowrap;
-}
-#cap em {
-  color: var(--accentText);
-  font-size: 1.14em;
-  line-height: 0.8;
-}
 #cmd {
   position: absolute;
   left: 112px;
-  top: 584px;
+  top: 262px;
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 66px;
+  font-size: 76px;
   letter-spacing: -0.03em;
   white-space: nowrap;
   color: var(--bright);
 }
-#cmd .pr,
-#cmd .acc {
-  color: var(--accentText);
+#cmd .pr {
+  color: var(--muted);
+  font-weight: 500;
 }
-#cmd .app {
-  color: var(--ok);
+#out {
+  position: absolute;
+  left: 112px;
+  top: 384px;
+  font-family: var(--mono);
+  font-size: 44px;
+  line-height: 64px;
+  color: var(--text);
+  white-space: nowrap;
+}
+#out .o {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+}
+#out b {
+  width: 6.2em;
+  color: var(--bright);
+  font-weight: 600;
+}
+#out .arw {
+  color: var(--muted);
+  margin-right: 0.1em;
 }
 #proj {
   position: absolute;
   left: 112px;
-  top: 718px;
+  top: 660px;
   width: 1696px;
-  height: 262px;
+  height: 300px;
 }
 #proj-box {
   position: absolute;
   left: 0;
   top: 0;
   width: 1696px;
-  height: 262px;
-  border-radius: 34px;
+  height: 300px;
+  border-radius: 4px;
   border: 2px solid rgba(168, 141, 242, 0.55);
-  background: rgba(122, 87, 211, 0.07);
+  background: #0d0b14;
 }
 .p-label {
   position: absolute;
-  left: 34px;
+  left: 32px;
   top: -24px;
   padding: 0 16px;
   background: var(--bg);
@@ -384,14 +368,21 @@ em {
   line-height: 46px;
   white-space: nowrap;
 }
-.pl-d {
-  color: var(--accent);
+#proj-row {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 75px;
+  height: 150px;
+  display: flex;
+  justify-content: space-between;
 }
 .pi {
-  position: absolute;
+  position: relative;
+  flex: none;
   width: 150px;
   height: 150px;
-  border-radius: 38px;
+  border-radius: 6px;
   background: var(--tile);
   border: 1.5px solid var(--line2);
   display: flex;
@@ -439,7 +430,7 @@ em {
   gap: 12px;
   height: 56px;
   padding: 0 22px;
-  border-radius: 99px;
+  border-radius: 3px;
   border: 1.5px solid var(--line2);
   font-family: var(--mono);
   font-weight: 700;
@@ -472,7 +463,7 @@ em {
   top: 270px;
   width: 1480px;
   height: 720px;
-  border-radius: 22px;
+  border-radius: 6px;
 }
 #win {
   background: #0d0b14;
@@ -494,9 +485,9 @@ em {
   position: relative;
 }
 .tb i {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
   background: #3a3646;
 }
 .tb span {
@@ -591,7 +582,7 @@ em {
   width: 701px;
   height: 372px;
   border: 1.5px solid rgba(168, 141, 242, 0.38);
-  border-radius: 14px;
+  border-radius: 3px;
   position: relative;
   padding: 24px 20px 10px;
 }
@@ -652,7 +643,7 @@ em {
   color: var(--okInk);
   font-weight: 700;
   padding: 0 8px;
-  border-radius: 3px;
+  border-radius: 2px;
   font-size: 15px;
 }
 .lk {
@@ -680,7 +671,6 @@ em {
   flex: 1;
   height: 4px;
   background: rgba(255, 255, 255, 0.09);
-  border-radius: 3px;
   margin: 0 14px;
   --c: #a88df2;
 }
@@ -691,7 +681,6 @@ em {
   bottom: 0;
   width: 0;
   background: var(--c);
-  border-radius: 3px;
 }
 .ln-line .head {
   position: absolute;
@@ -730,7 +719,7 @@ kbd {
   background: var(--accent);
   color: #fff;
   padding: 2px 8px;
-  border-radius: 5px;
+  border-radius: 2px;
   margin-right: 6px;
   font-size: 15px;
 }
@@ -748,7 +737,7 @@ kbd {
 .lkc {
   position: relative;
   height: 362px;
-  border-radius: 30px;
+  border-radius: 6px;
   background: #15121f;
   border: 1.5px solid rgba(168, 141, 242, 0.3);
 }
@@ -783,7 +772,7 @@ kbd {
 .lkc .sq {
   width: 104px;
   height: 104px;
-  border-radius: 28px;
+  border-radius: 6px;
   background: var(--tile);
   border: 1.5px solid var(--line2);
   display: flex;
@@ -805,7 +794,7 @@ kbd {
   width: 40px;
   height: 40px;
   padding: 8px;
-  border-radius: 50%;
+  border-radius: 3px;
   background: var(--ok);
   color: var(--okInk);
 }
@@ -830,7 +819,7 @@ kbd {
   width: 44px;
   height: 44px;
   padding: 9px;
-  border-radius: 50%;
+  border-radius: 3px;
   background: var(--accent);
   color: #fff;
 }
@@ -860,7 +849,7 @@ kbd {
   width: 44px;
   height: 44px;
   padding: 10px;
-  border-radius: 12px;
+  border-radius: 3px;
   background: rgba(0, 215, 135, 0.14);
   color: var(--ok);
 }
@@ -900,7 +889,7 @@ kbd {
   color: var(--accentText);
   border: 1px solid rgba(168, 141, 242, 0.4);
   padding: 6px 16px;
-  border-radius: 99px;
+  border-radius: 3px;
 }
 .btiles {
   display: flex;
@@ -910,7 +899,7 @@ kbd {
 .bt1 {
   width: 160px;
   height: 160px;
-  border-radius: 38px;
+  border-radius: 6px;
   background: var(--tile);
   border: 1.5px solid var(--line2);
   display: flex;
@@ -938,7 +927,7 @@ kbd {
   height: 262px;
   background: var(--panel2);
   border: 1.5px solid var(--line);
-  border-radius: 24px;
+  border-radius: 4px;
   padding: 18px 24px;
   position: relative;
   overflow: hidden;
@@ -984,7 +973,7 @@ kbd {
 .posters i {
   width: 72px;
   height: 94px;
-  border-radius: 10px;
+  border-radius: 2px;
 }
 .req {
   display: flex;
@@ -1057,15 +1046,6 @@ kbd {
   letter-spacing: -0.08em;
   color: var(--accentText);
 }
-#pivot-t .q {
-  color: var(--accentText);
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 1.18em;
-  letter-spacing: 0;
-  line-height: 0.8;
-}
 
 /* bars 10-12 · agents */
 #ag-strip {
@@ -1083,7 +1063,7 @@ kbd {
   gap: 14px;
   height: 76px;
   padding: 0 24px 0 16px;
-  border-radius: 22px;
+  border-radius: 4px;
   background: var(--panel);
   border: 1.5px solid var(--line);
 }
@@ -1091,7 +1071,7 @@ kbd {
   width: 44px;
   height: 44px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 .agp span {
   font-weight: 700;
@@ -1124,7 +1104,7 @@ kbd {
   color: var(--accentText);
   border: 1.5px solid rgba(168, 141, 242, 0.45);
   padding: 10px 24px;
-  border-radius: 99px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 .ed {
@@ -1150,11 +1130,11 @@ kbd {
   position: absolute;
   left: 0;
   top: 640px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 76px;
-  line-height: 1.05;
-  color: var(--text);
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--muted);
 }
 .ag-sub .mk {
   display: block;
@@ -1168,11 +1148,12 @@ kbd {
   height: 886px;
   background: #0e0c16;
   border: 1.5px solid color-mix(in srgb, var(--ag) 50%, transparent);
-  border-radius: 26px;
+  border-radius: 6px;
   overflow: hidden;
 }
 .cw-hd {
   position: relative;
+  overflow: hidden;
   height: 76px;
   background: color-mix(in srgb, var(--ag) 10%, #13111c);
   border-bottom: 1.5px solid color-mix(in srgb, var(--ag) 45%, transparent);
@@ -1191,7 +1172,7 @@ kbd {
   width: 42px;
   height: 42px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 .hdv b {
   font-size: 32px;
@@ -1209,7 +1190,7 @@ kbd {
   color: var(--accentText);
   border: 1px solid rgba(168, 141, 242, 0.4);
   padding: 5px 14px;
-  border-radius: 99px;
+  border-radius: 3px;
 }
 .cw-body {
   position: absolute;
@@ -1234,14 +1215,14 @@ kbd {
   font-weight: 600;
   letter-spacing: -0.01em;
   padding: 12px 26px;
-  border-radius: 26px 26px 6px 26px;
+  border-radius: 4px;
   line-height: 1.2;
   white-space: nowrap;
 }
 .tool {
   background: var(--panel);
   border: 1.5px solid var(--line);
-  border-radius: 18px;
+  border-radius: 4px;
   padding: 8px 22px;
   font-family: var(--mono);
   font-size: 32px;
@@ -1255,8 +1236,8 @@ kbd {
   white-space: nowrap;
 }
 .tln .pr {
-  color: var(--ag);
-  font-weight: 800;
+  color: var(--muted);
+  font-weight: 500;
 }
 .spin {
   margin-left: auto;
@@ -1277,7 +1258,7 @@ kbd {
 .plan {
   background: #15121f;
   border: 1.5px solid rgba(168, 141, 242, 0.4);
-  border-radius: 22px;
+  border-radius: 4px;
   padding: 12px 26px 18px;
 }
 .pl-h {
@@ -1314,8 +1295,8 @@ kbd {
 .pl-r code {
   font-family: var(--mono);
   font-size: 32px;
-  font-weight: 700;
-  color: var(--ok);
+  font-weight: 600;
+  color: var(--bright);
 }
 .pl-r img {
   width: 40px;
@@ -1332,7 +1313,7 @@ kbd {
   font-weight: 800;
   font-size: 32px;
   padding: 10px 30px;
-  border-radius: 14px;
+  border-radius: 3px;
   background: var(--accent);
   color: #fff;
   white-space: nowrap;
@@ -1360,7 +1341,7 @@ kbd {
   position: relative;
   width: 46px;
   height: 46px;
-  border-radius: 14px;
+  border-radius: 3px;
   background: var(--panel2);
   display: flex;
   align-items: center;
@@ -1379,7 +1360,7 @@ kbd {
   width: 24px;
   height: 24px;
   padding: 4px;
-  border-radius: 50%;
+  border-radius: 2px;
   background: var(--ok);
   color: var(--okInk);
 }
@@ -1402,7 +1383,7 @@ kbd {
   color: var(--ok);
   border: 1.5px solid rgba(0, 215, 135, 0.55);
   padding: 6px 20px;
-  border-radius: 14px;
+  border-radius: 3px;
 }
 .link.hover {
   background: var(--ok);
@@ -1417,8 +1398,8 @@ kbd {
 }
 .dn2 code {
   font-family: var(--mono);
-  color: var(--accentText);
-  font-weight: 700;
+  color: var(--bright);
+  font-weight: 600;
 }
 #cursor {
   position: absolute;
@@ -1437,19 +1418,25 @@ kbd {
   stroke-linejoin: round;
 }
 
-/* bar 13 · flurry */
+/* bar 14 · flurry: one composition per beat */
+#fl-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
 #fl-words {
   position: absolute;
   inset: 0;
 }
 .fp {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 300px;
-  text-align: center;
+  left: 112px;
+  right: 112px;
+  top: 0;
+  height: 1080px;
+  display: flex;
+  align-items: center;
   font-weight: 800;
-  font-size: 260px;
   line-height: 1;
   letter-spacing: -0.06em;
   white-space: nowrap;
@@ -1457,27 +1444,15 @@ kbd {
 }
 .fp b {
   font-weight: 800;
-  color: var(--accentText);
 }
-.fp.red b {
-  color: var(--fail);
+.fp.c {
+  justify-content: center;
 }
-#fl-bar {
-  position: absolute;
-  left: 112px;
-  right: 112px;
-  top: 760px;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.08);
-}
-#fl-bar i {
-  position: absolute;
-  inset: 0;
-  background: var(--accent);
-  transform-origin: 0 50%;
+.fp.r {
+  justify-content: flex-end;
 }
 
-/* bars 14-15 · end card */
+/* bars 15-16 · end card */
 #end {
   position: absolute;
   inset: 0;
@@ -1493,15 +1468,15 @@ kbd {
   gap: 44px;
 }
 .e-dia {
-  width: 140px;
-  height: 140px;
+  width: 132px;
+  height: 132px;
   flex: none;
 }
 .e-wm {
-  font-family: var(--wide);
+  font-family: var(--mono);
   font-weight: 800;
   font-size: 196px;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.07em;
   line-height: 1;
   white-space: nowrap;
   overflow: clip;
@@ -1512,36 +1487,43 @@ kbd {
   position: absolute;
   left: 0;
   right: 0;
-  top: 500px;
+  top: 486px;
   text-align: center;
 }
 .e-cmdin {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   text-align: left;
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 32px;
-  line-height: 1.45;
+  font-size: 64px;
+  line-height: 1;
   background: var(--panel);
   border: 1.5px solid rgba(168, 141, 242, 0.55);
   color: var(--bright);
-  padding: 18px 30px;
-  border-radius: 20px;
+  padding: 30px 44px;
+  border-radius: 4px;
   white-space: nowrap;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
 }
 .e-cmdin .pr {
-  color: var(--accentText);
+  color: var(--muted);
+  font-weight: 500;
+  margin-right: 0.6em;
+}
+.e-cmdin .caret {
+  height: 0.95em;
+  vertical-align: 0;
 }
 .e-ag {
   position: absolute;
   left: 0;
   right: 0;
-  top: 700px;
+  top: 712px;
   text-align: center;
   font-family: var(--mono);
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
   display: flex;
   justify-content: center;
@@ -1554,7 +1536,7 @@ kbd {
   top: 800px;
   text-align: center;
   font-size: 54px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
   display: flex;
   justify-content: center;
@@ -1563,12 +1545,14 @@ kbd {
   letter-spacing: -0.02em;
 }
 .e-stats b {
-  color: var(--accentText);
-  font-weight: 800;
-  font-size: 66px;
+  color: var(--bright);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 62px;
+  letter-spacing: -0.04em;
 }
 .e-stats i,
 .e-ag i {
   font-style: normal;
-  color: var(--muted);
+  color: var(--faint);
 }

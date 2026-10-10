@@ -1,4 +1,4 @@
-import { gsap, $, $$, proc, prog, scene, icon, read, cue, on, cut, ICON } from "./lib.js";
+import { gsap, $, $$, proc, prog, scene, icon, read, cue, on, cut, drift, rng, ICON } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 // Each rented service and the Catalog App that replaces it (self-host apps list --json):
@@ -18,15 +18,17 @@ export const TILES = [
   { id: "chatgpt", name: "ChatGPT", price: 20, rep: "open-webui", repName: "Open WebUI", edge: [1770, 910] },
 ];
 const [A, B] = SC.hook;
-// beats: 0 Stop · 1 renting · 2 your software. · 3 tiles in · 4 prices · 5 tiles step in · 6 the wall,
-// "Their servers." · 7 row 1 locks · 8 row 2 locks, $92 · 9 struck out · 10 flip, "Your servers.", $0 · 11 badges
-const T = { stop: b(0), renting: b(1), your: b(2), tilesIn: b(3), prices: b(4), step: b(5), wall: b(6), lock1: b(7), lock2: b(8), strike: b(9), flip: b(10), badges: b(11) };
-const IN = 0.2;
+// beats: 0 "Stop renting" · 1 "your software." · 2 the rented tiles fly in from beyond the frame · 5 the
+// headline leaves, the tiles snap into a wall, "Their servers." · 6 row 1 locks · 7 row 2 locks, $92 ·
+// 9 the flip wave: "Your servers.", $0 · 10 badges · 11 the wall collapses into the centre, into the drop
+const T = { stop: b(0), your: b(1), fly: b(2), wall: b(5), lock1: b(6), lock2: b(7), flip: b(9), badges: b(10), collapse: b(11) };
 const WALL = (i) => [960 + ((i % 4) - 1.5) * 322, 560 + (Math.floor(i / 4) - 0.5) * 318];
 
 export function build(tl) {
   scene("hook", A, B);
+  drift($("#hook-cam"), A, B, { s0: 1, s1: 1.045 });
   const layer = $("#tiles");
+  const r = rng(11);
   const nodes = TILES.map((tile, i) => {
     const el = document.createElement("div");
     el.className = "tile";
@@ -35,77 +37,81 @@ export function build(tl) {
       <div class="face back"><div class="was"><img src="${icon(tile.id)}"></div><img src="${icon(tile.rep, tile.repExt)}"><div class="nm">${tile.repName}</div><div class="price">yours</div></div>
     </div>`;
     layer.appendChild(el);
-    return { tile, i, el, flip: $(".flip", el), lock: $(".lock", el), price: $(".front .price", el), was: $(".was", el) };
+    return { tile, i, el, flip: $(".flip", el), lock: $(".lock", el), was: $(".was", el), rx: (r() - 0.5) * 70, ry: (r() - 0.5) * 80, rz: (r() - 0.5) * 30 };
   });
 
-  // tiles: in from beyond the frame edge on beat 3, prices on 4, one step inward on 5, the wall on 6
+  // one long flight in from beyond the frame, dim behind the headline; then one snap into the wall
   nodes.forEach((n) => {
     const [ex, ey] = n.tile.edge;
     const dx = ex - 960, dy = ey - 540, len = Math.hypot(dx, dy);
-    const sx = ex + (dx / len) * 700, sy = ey + (dy / len) * 700;
-    const ix = ex - (dx / len) * 70, iy = ey - (dy / len) * 50;
+    const sx = ex + (dx / len) * 900, sy = ey + (dy / len) * 900;
     const [wx, wy] = WALL(n.i);
-    tl.fromTo(n.el, { x: sx, y: sy, scale: 0.62, opacity: 0.5 }, { x: ex, y: ey, scale: 0.62, opacity: 0.5, duration: 0.4, ease: "expo.out" }, T.tilesIn + (n.i % 4) * 0.02);
-    tl.fromTo(n.price, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.15, ease: "expo.out" }, T.prices);
-    tl.fromTo(n.el, { x: ex, y: ey, scale: 0.62, opacity: 0.5 }, { x: ix, y: iy, scale: 0.7, opacity: 0.8, duration: 0.3, ease: "expo.out" }, T.step);
-    tl.fromTo(n.el, { x: ix, y: iy, scale: 0.7, opacity: 0.8 }, { x: wx, y: wy, scale: 1, opacity: 1, duration: 0.32, ease: "expo.inOut" }, T.wall);
-    const lockAt = n.i < 4 ? T.lock1 : T.lock2;
-    tl.fromTo(n.lock, { scale: 0 }, { scale: 1, duration: 0.15, ease: "expo.out" }, lockAt + (n.i % 4) * 0.02);
-    tl.fromTo(n.lock, { scale: 1 }, { scale: 0, duration: 0.1, ease: "power2.in" }, T.flip - 0.1);
-    tl.fromTo(n.flip, { rotationY: 0 }, { rotationY: 180, duration: 0.28, ease: "power3.inOut" }, T.flip + (n.i % 4) * 0.02);
-    tl.fromTo(n.was, { scale: 0 }, { scale: 1, duration: 0.15, ease: "expo.out" }, T.badges + (n.i % 4) * 0.02);
+    const col = n.i % 4, row = Math.floor(n.i / 4);
+    tl.fromTo(n.el, { x: sx, y: sy, scale: 0.9, rotationX: n.rx, rotationY: n.ry, rotation: n.rz, opacity: 0.45 },
+      { x: ex, y: ey, scale: 0.6, rotationX: n.rx * 0.25, rotationY: n.ry * 0.25, rotation: n.rz * 0.25, opacity: 0.45, duration: 1.3, ease: "expo.out" }, T.fly + col * 0.03);
+    tl.fromTo(n.el, { x: ex, y: ey, scale: 0.6, rotationX: n.rx * 0.25, rotationY: n.ry * 0.25, rotation: n.rz * 0.25, opacity: 0.45 },
+      { x: wx, y: wy, scale: 1, rotationX: 0, rotationY: 0, rotation: 0, opacity: 1, duration: 0.5, ease: "expo.inOut" }, T.wall - 0.12 + col * 0.02);
+    const lockAt = (row ? T.lock2 : T.lock1) + col * 0.03;
+    tl.fromTo(n.lock, { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.3, ease: "expo.out" }, lockAt);
+    tl.fromTo(n.lock, { scale: 1 }, { scale: 0, duration: 0.12, ease: "power2.in" }, T.flip - 0.12);
+    tl.fromTo(n.flip, { rotationY: 0 }, { rotationY: 180, duration: 0.5, ease: "power3.inOut" }, T.flip);
+    tl.fromTo(n.was, { scale: 0 }, { scale: 1, duration: 0.25, ease: "expo.out" }, T.badges + col * 0.03);
+    tl.fromTo(n.el, { x: wx, y: wy, scale: 1, opacity: 1 }, { x: 960, y: 540, scale: 0.12, opacity: 1, duration: 0.5, ease: "expo.in" }, T.collapse);
   });
-  on(T.tilesIn, "rented tiles fly in");
-  on(T.prices, "prices");
-  on(T.step, "tiles step in");
+  on(T.fly, "the rented tiles fly in");
   on(T.lock1, "row 1 locks");
   on(T.lock2, "row 2 locks, $92");
   on(T.badges, "was-badges");
-  cue(T.lock1, "lock");
-  cue(T.lock2, "lock");
+  on(T.collapse, "the wall collapses into the centre");
+  cue(T.fly + 0.15, "whoosh", { dur: 0.9, soft: true });
+  cue(T.wall, "whoosh", { dur: 0.45, pan: 0.4 });
+  [0, 1, 2, 3].forEach((c) => { cue(T.lock1 + c * 0.03, "lock", { i: c }); cue(T.lock2 + c * 0.03, "lock", { i: c + 4 }); });
   cue(T.flip, "flip");
-  read($$(".front .nm", layer), T.wall + 0.34, T.flip - 0.12, "rented tile names");
-  read($$(".front .price", layer), T.wall + 0.34, T.flip - 0.12, "rented prices");
-  read($$(".back .nm", layer), T.flip + 0.36, B - 0.01, "replacement names");
-  read($$(".back .price", layer), T.flip + 0.36, B - 0.01, "yours pills");
+  [0, 1, 2, 3].forEach((c) => cue(T.badges + c * 0.03, "pop", { i: c, soft: true }));
+  cue(T.collapse + 0.5, "suck", { dur: 0.5 });
+  read($$(".front .nm", layer), T.wall + 0.42, T.flip - 0.01, "rented tile names");
+  read($$(".front .price", layer), T.wall + 0.42, T.flip - 0.01, "rented prices");
+  read($$(".back .nm", layer), T.flip + 0.53, T.collapse - 0.01, "replacement names");
+  read($$(".back .price", layer), T.flip + 0.53, T.collapse - 0.01, "yours pills");
 
-  // "Stop / renting / your software." one beat each, out on beat 6 as the wall snaps
+  // the headline: two lines, each one gesture; the type tightens as it lands
   const ws = $$("#hook-t .w");
-  [T.stop, T.renting, T.your].forEach((at, i) => {
-    tl.fromTo(ws[i], { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, at);
-    tl.fromTo(ws[i], { yPercent: 0 }, { yPercent: -110, duration: 0.18, ease: "power3.in" }, T.wall);
+  [T.stop, T.your].forEach((at, i) => {
+    tl.fromTo(ws[i], { yPercent: 110, letterSpacing: "0.02em" }, { yPercent: 0, letterSpacing: "-0.055em", duration: 0.3, ease: "expo.out" }, at);
+    tl.fromTo(ws[i], { yPercent: 0 }, { yPercent: -110, duration: 0.3, ease: "power3.in" }, T.wall - 0.3);
+    cue(at, "slam", { g: 0.8 });
   });
-  cut(T.stop, "Stop");
-  on(T.renting, "renting");
+  cut(T.stop, "Stop renting");
   on(T.your, "your software.");
-  read("#hook-t", T.your + IN, T.wall, "hook");
+  read("#hook-t", T.your + 0.3, T.wall - 0.3, "hook");
 
-  const whA = $("#wh-a"), whB = $("#wh-b"), strike = $("#wh-x");
-  tl.fromTo(whA, { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, T.wall);
-  tl.fromTo(whA, { yPercent: 0 }, { yPercent: -110, duration: 0.14, ease: "power3.in" }, T.flip);
-  tl.fromTo(whB, { yPercent: 110 }, { yPercent: 0, duration: IN, ease: "expo.out" }, T.flip);
-  tl.fromTo(strike, { scaleX: 0 }, { scaleX: 1, duration: 0.2, ease: "expo.out" }, T.strike);
+  const whA = $("#wh-a"), whB = $("#wh-b");
+  tl.fromTo(whA, { yPercent: 110 }, { yPercent: 0, duration: 0.4, ease: "expo.out" }, T.wall);
+  tl.fromTo(whA, { yPercent: 0 }, { yPercent: -110, duration: 0.3, ease: "expo.inOut" }, T.flip);
+  tl.fromTo(whB, { yPercent: 110 }, { yPercent: 0, duration: 0.3, ease: "expo.inOut" }, T.flip);
+  tl.fromTo(whB, { yPercent: 0 }, { yPercent: -110, duration: 0.3, ease: "power3.in" }, T.collapse);
   on(T.wall, "the wall, Their servers.");
-  on(T.strike, "struck out");
   on(T.flip, "flip to Your servers.");
-  read(whA, T.wall + IN, T.flip - 0.01);
-  read(whB, T.flip + IN, B - 0.01);
+  read(whA, T.wall + 0.4, T.flip - 0.01);
+  read(whB, T.flip + 0.3, T.collapse - 0.01);
 
   const mN = $("#m-n"), l1 = $("#m-l1"), l2 = $("#m-l2");
-  tl.fromTo("#meter", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: IN, ease: "expo.out" }, T.lock1);
-  tl.fromTo(l1, { yPercent: 0 }, { yPercent: -120, duration: 0.14, ease: "power3.in" }, T.flip);
-  tl.fromTo(l2, { yPercent: 160 }, { yPercent: 0, duration: IN, ease: "expo.out" }, T.flip);
-  const lockedAt = (n) => (n.i < 4 ? T.lock1 : T.lock2) + (n.i % 4) * 0.02;
+  tl.fromTo("#meter", { yPercent: 40, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.4, ease: "expo.out" }, T.lock1);
+  tl.fromTo("#meter", { yPercent: 0, opacity: 1 }, { yPercent: -40, opacity: 0, duration: 0.3, ease: "power3.in" }, T.collapse);
+  tl.fromTo(l1, { yPercent: 0 }, { yPercent: -120, duration: 0.3, ease: "expo.inOut" }, T.flip);
+  tl.fromTo(l2, { yPercent: 160 }, { yPercent: 0, duration: 0.3, ease: "expo.inOut" }, T.flip);
+  // the meter counts up as the locks land and runs down to $0 through the flip
+  const lockedAt = (n) => (n.i < 4 ? T.lock1 : T.lock2) + (n.i % 4) * 0.03;
   proc((t) => {
     let sum = 0;
-    nodes.forEach((n) => { if (t >= lockedAt(n)) sum += n.tile.price; });
-    const down = gsap.parseEase("power3.out")(prog(t, T.flip, T.flip + 0.3));
+    nodes.forEach((n) => { sum += n.tile.price * gsap.parseEase("power3.out")(prog(t, lockedAt(n), lockedAt(n) + 0.25)); });
+    const down = gsap.parseEase("power3.inOut")(prog(t, T.flip, T.flip + 0.5));
     mN.textContent = `$${Math.round(sum * (1 - down))}`;
-    mN.style.color = t >= T.flip + 0.3 ? "#00d787" : "#ff5f5f";
+    mN.style.color = t >= T.flip + 0.25 ? "#00d787" : "#ff5f5f";
   });
-  read(mN, lockedAt(nodes[7]) + 0.02, T.flip - 0.01, "$92");
-  read(mN, T.flip + 0.31, B - 0.01, "$0");
-  read(l1, T.lock1 + IN, T.flip - 0.01);
-  read(l2, T.flip + IN, B - 0.01);
+  read(mN, lockedAt(nodes[7]) + 0.26, T.flip - 0.01, "$92");
+  read(mN, T.flip + 0.51, T.collapse - 0.01, "$0");
+  read(l1, T.lock1 + 0.4, T.flip - 0.01);
+  read(l2, T.flip + 0.3, T.collapse - 0.01);
   return nodes;
 }

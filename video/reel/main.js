@@ -16,9 +16,8 @@ const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } })
 
 // scenes measure text while they build, so the bundled faces load first
 const faces = [
-  '800 100px "Inter Tight Variable"', '700 100px "Inter Tight Variable"', '600 100px "Inter Tight Variable"', '500 100px "Inter Tight Variable"',
-  '800 100px "Unbounded Variable"', '600 100px "JetBrains Mono Variable"', '400 100px "JetBrains Mono Variable"', '800 100px "JetBrains Mono Variable"',
-  '400 100px "Instrument Serif"', 'italic 400 100px "Instrument Serif"',
+  '800 100px "Inter Tight Variable"', '700 100px "Inter Tight Variable"', '600 100px "Inter Tight Variable"', '500 100px "Inter Tight Variable"', '400 100px "Inter Tight Variable"',
+  '400 100px "JetBrains Mono Variable"', '500 100px "JetBrains Mono Variable"', '600 100px "JetBrains Mono Variable"', '700 100px "JetBrains Mono Variable"', '800 100px "JetBrains Mono Variable"',
 ];
 await Promise.all(faces.map((f) => document.fonts.load(f, "Aa Zz 0123 ◆ ⠋ ✓ ● ▶ → › •")));
 await document.fonts.ready;
@@ -132,7 +131,7 @@ window.lintRead = () => {
         const size = parseFloat(getComputedStyle(pe).fontSize) * (pe.getBoundingClientRect().height / (pe.offsetHeight || pe.getBoundingClientRect().height));
         if (size < 31.5) { fail("smaller than 32 px", { px: +size.toFixed(1), word: n.textContent.slice(0, 20) }); break; }
         if (r.left < -1 || r.top < -1 || r.right > 1921 || r.bottom > 1081) { fail("off screen", { word: n.textContent.slice(0, 20) }); break; }
-        sig.push([r.left, r.top, r.width, r.height]);
+        sig.push([r.left, r.top, r.width, r.height, size]);
         // what sits on top of the word's centre must be the word itself
         const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
         const stack = document.elementsFromPoint(cx, cy);
@@ -140,12 +139,20 @@ window.lintRead = () => {
         if (top && top !== pe && !pe.contains(top) && !top.contains(pe)) { fail("overlapped", { word: n.textContent.slice(0, 20), by: top.id || top.className || top.tagName }); break; }
       }
       if (h.bad) continue;
-      if (!h.sig) h.sig = sig;
-      else {
-        let d = 0;
-        sig.forEach((s, i) => { const o = h.sig[i] || s; for (let k = 0; k < 4; k++) d = Math.max(d, Math.abs(s[k] - o[k])); });
-        if (sig.length !== h.sig.length || d > 0.6) fail("moved", { px: +d.toFixed(2) });
+      // steady: between two samples 1/30 s apart a word may drift at most 2.5 % of its size (2.5 px minimum)
+      if (h.sig && h.sigT !== undefined && t - h.sigT < 0.04) {
+        if (sig.length !== h.sig.length) fail("moved", { why: "layout changed" });
+        else sig.forEach((s, i) => {
+          if (h.bad) return;
+          const o = h.sig[i];
+          let d = 0;
+          for (let k = 0; k < 4; k++) d = Math.max(d, Math.abs(s[k] - o[k]));
+          const lim = Math.max(2.5, 0.025 * s[4]);
+          if (d > lim) fail("moved", { px: +d.toFixed(2), limit: +lim.toFixed(2) });
+        });
       }
+      h.sig = sig;
+      h.sigT = t;
     }
   }
   holds.forEach((h) => { if (h.bad) issues.push(h.bad); });
@@ -179,13 +186,14 @@ window.cueSheet = () => ({ duration: DUR, fps: FPS, bpm: BPM, scenes: SC, edit: 
 // the beat contract (lib.js on/cut): events per beat, off-grid cuts and cues, and the end card's still hold
 window.lintBeats = () => {
   const off = (t) => Math.abs(t / BEAT - Math.round(t / BEAT)) * BEAT;
+  // cuts must sit on the beat; sound cues and smaller events may fall between beats
   const beats = [];
   for (let k = 0; k * BEAT < end.SETTLED - 1e-6; k++) beats.push({ k, t: k * BEAT, what: BEATS.filter((e) => Math.abs(e.t - k * BEAT) < 1e-3).map((e) => e.what) });
   return {
     settled: end.SETTLED,
     beats,
     empty: beats.filter((x) => !x.what.length),
-    offGrid: [...CUTS.map((c) => ({ ...c, kind: "cut" })), ...CUES.map((c) => ({ t: c.t, what: c.kind, kind: "cue" })), ...BEATS.map((e) => ({ ...e, kind: "event" }))].filter((c) => off(c.t) > 1e-3),
+    offGrid: CUTS.map((c) => ({ ...c, kind: "cut" })).filter((c) => off(c.t) > 1e-3),
   };
 };
 

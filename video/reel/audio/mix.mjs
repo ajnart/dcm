@@ -1,5 +1,5 @@
 // The reel's soundtrack: an edit of "Let's Move" (Michael Ramir C., Mixkit Stock Music Free License, see
-// audio/SOURCES.md) cut on its own bar lines, plus a few quiet UI sounds that land on beats, mastered to
+// audio/SOURCES.md) cut on its own bar lines, plus the UI sound design of audio/sfx.mjs, mastered to
 // -14 LUFS integrated under -1 dBTP. Deterministic: the same track and cues.json always give the same WAV.
 //   node render.mjs cues      (writes audio/cues.json from the scenes' own timeline)
 //   node audio/mix.mjs        (downloads and verifies the track if needed, writes audio/out/soundtrack.wav)
@@ -11,7 +11,8 @@ import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyze } from "./analyze.mjs";
-import { EDIT, DUR, BAR, BEAT } from "../timeline.js";
+import { EDIT, DUR, BAR } from "../timeline.js";
+import { render as renderSfx } from "./sfx.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const TRACK = {
@@ -78,43 +79,30 @@ EDIT.forEach((seg, k) => {
 for (let i = 0; i < at(0.002); i++) { const g = i / at(0.002); L[i] *= g; R[i] *= g; }
 for (let i = N - at(0.05); i < N; i++) { const g = (N - i) / at(0.05); L[i] *= g; R[i] *= g; }
 
-// ---------- UI sounds: short, quiet, and only on beats ----------
-function rng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let x = Math.imul(s ^ (s >>> 15), 1 | s);
-    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const noise = rng(1234);
-const add = (i, v, pan = 0) => { if (i >= 0 && i < N) { L[i] += v * (1 - Math.max(0, pan)); R[i] += v * (1 + Math.min(0, pan)); } };
-function tick(t0, g, f = 3600, pan = 0) {
-  // a hi-passed noise transient and a short sine body
-  let y1 = 0;
-  for (let i = 0; i < at(0.03); i++) {
-    const t = i / SR, n = noise() * 2 - 1, hp = n - y1;
-    y1 = n;
-    add(at(t0) + i, g * (hp * 0.35 * Math.exp(-t * 900) + Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 160) * 0.5), pan);
-  }
-}
-function thock(t0, g, f0 = 170, pan = 0) {
-  let ph = 0;
-  for (let i = 0; i < at(0.09); i++) {
-    const t = i / SR, f = f0 * (0.55 + 0.45 * Math.exp(-t * 40));
-    ph += (2 * Math.PI * f) / SR;
-    add(at(t0) + i, g * Math.sin(ph) * Math.exp(-t * 38) * Math.min(1, t / 0.0015), pan);
-  }
-  tick(t0, g * 0.5, 2400, pan);
-}
+// ---------- UI sounds: typing, ticks, whooshes and hits from the scenes' own cues (audio/sfx.mjs) ----------
 const SHEET = JSON.parse(await readFile(join(HERE, "cues.json"), "utf8"));
-const SFX = { lock: (c) => thock(c.t, dbg(-21), 190), flip: (c) => tick(c.t, dbg(-22), 2800), enter: (c) => thock(c.t, dbg(-19), 150), click: (c) => tick(c.t, dbg(-19), 3200), check: (c) => tick(c.t, dbg(-24), 4200, c.pan || 0) };
-for (const c of SHEET.cues) {
-  const off = Math.abs(c.t / BEAT - Math.round(c.t / BEAT)) * BEAT;
-  if (off > 1e-3) throw new Error(`cue ${c.kind} at ${c.t} s is ${(off * 1000).toFixed(1)} ms off the beat`);
-  if (!SFX[c.kind]) throw new Error(`no sound for cue kind ${c.kind}`);
-  SFX[c.kind](c);
+const fx = renderSfx(SHEET.cues, N, SR);
+const FX_DB = +(process.env.FX_DB ?? -4), VERB_DB = FX_DB - 2;
+const music = { L: L.slice(), R: R.slice() };
+for (let i = 0; i < N; i++) {
+  L[i] += fx.dry.L[i] * dbg(FX_DB) + fx.wet.L[i] * dbg(VERB_DB);
+  R[i] += fx.dry.R[i] * dbg(FX_DB) + fx.wet.R[i] * dbg(VERB_DB);
+}
+// how loud each cue sits against the music around it (RMS over 60 ms from the cue), median and range
+{
+  const w = at(0.06), rel = [];
+  for (const c of SHEET.cues) {
+    let m = 0, f = 0;
+    for (let i = at(c.t); i < Math.min(N, at(c.t) + w); i++) {
+      m += music.L[i] ** 2 + music.R[i] ** 2;
+      const a = fx.dry.L[i] * dbg(FX_DB) + fx.wet.L[i] * dbg(VERB_DB), z = fx.dry.R[i] * dbg(FX_DB) + fx.wet.R[i] * dbg(VERB_DB);
+      f += a * a + z * z;
+    }
+    rel.push({ kind: c.kind, db: 10 * Math.log10((f + 1e-12) / (m + 1e-12)) });
+  }
+  const by = {};
+  rel.forEach((r) => (by[r.kind] ||= []).push(r.db));
+  console.log(`sfx: ${SHEET.cues.length} cues at ${FX_DB} dB; level against the music, by kind: ` + Object.entries(by).map(([k, v]) => `${k} ${(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1)}`).join(", "));
 }
 
 // ---------- master: gain to the loudness target, then a look-ahead limiter under the true-peak ceiling ----------

@@ -4,74 +4,71 @@
 <meta charset="utf-8">
 <title>self-host — showreel</title>
 <link rel="stylesheet" href="node_modules/@fontsource-variable/inter-tight/index.css">
-<link rel="stylesheet" href="node_modules/@fontsource-variable/unbounded/index.css">
 <link rel="stylesheet" href="node_modules/@fontsource-variable/jetbrains-mono/index.css">
-<link rel="stylesheet" href="node_modules/@fontsource/instrument-serif/400.css">
-<link rel="stylesheet" href="node_modules/@fontsource/instrument-serif/400-italic.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div id="stage">
 
   <!-- bars 0-2 · hook, the rented wall, "Your servers." -->
-  <section class="scene" id="hook">
+  <section class="scene" id="hook"><div class="cam" id="hook-cam">
     <div id="tiles"></div>
-    <h1 id="hook-t"><span class="ln"><span class="mk"><span class="w">Stop</span></span> <span class="mk"><span class="w">renting</span></span></span><span class="ln"><span class="mk"><span class="w">your <em>software.</em></span></span></span></h1>
-    <div id="wallhead"><span class="mk"><span id="wh-a" class="w">Their servers.<i id="wh-x"></i></span></span><span class="mk"><span id="wh-b" class="w">Your servers.</span></span></div>
+    <h1 id="hook-t"><span class="ln"><span class="mk"><span class="w">Stop renting</span></span></span><span class="ln"><span class="mk"><span class="w">your <b>software.</b></span></span></span></h1>
+    <div id="wallhead"><span class="mk"><span id="wh-a" class="w">Their servers.</span></span><span class="mk"><span id="wh-b" class="w">Your servers.</span></span></div>
     <div id="meter"><div class="m-n" id="m-n" data-deco>$0</div><div class="m-ls"><div class="m-l" id="m-l1">per month, rented</div><div class="m-l" id="m-l2">per month, yours</div></div></div>
-  </section>
+  </div></section>
 
-  <!-- bars 3-4 · the drop, "One command. A whole stack." -->
-  <section class="scene" id="product">
+  <!-- bars 3-4 · the drop, the install command, the Compose Project -->
+  <section class="scene" id="product"><div class="cam" id="product-cam">
     <div id="dia"></div>
     <div id="lockup"><div id="mark"><svg viewBox="0 0 100 100"><path d="M50 2 98 50 50 98 2 50Z"/></svg></div><div id="wm"></div></div>
-    <div id="cap"><div class="mk"><div id="cap-a" class="w">One command.</div></div><div class="mk"><div id="cap-b" class="w">A whole <em>stack.</em></div></div></div>
     <div id="cmd"><span class="pr">$</span> <span id="cmd-t"></span><span class="caret" id="cmd-c"></span></div>
-    <div id="proj"><div id="proj-box"></div><div class="p-label" id="p-label"><span class="pl-d">◆</span> one Compose Project</div></div>
-  </section>
+    <div id="out"><div class="o" id="o1"><span class="okc">✓</span> <b>media</b><span class="arw">→</span>6 Apps</div><div class="o" id="o2"><span class="okc">✓</span> <b>homarr</b><span class="arw">→</span>1 App</div></div>
+    <div id="proj"><div id="proj-box"></div><div class="p-label" id="p-label">compose project <span class="dim">·</span> homelab</div><div id="proj-row"></div></div>
+  </div></section>
 
-  <!-- bar 5 · TUI: Setup -->
-  <section class="scene" id="setup">
+  <!-- bars 5-6 · TUI: Setup -->
+  <section class="scene" id="setup"><div class="cam" id="setup-drift">
     <div id="setup-cam"><div id="win" data-deco></div></div>
     <div class="hbar"><div class="hcap" id="cap-setup"><span class="mk"><span class="w">Sets up every App.</span></span></div></div>
-  </section>
+  </div></section>
 
-  <!-- bars 6-7 · Links -->
-  <section class="scene" id="links">
+  <!-- bars 7-8 · Links -->
+  <section class="scene" id="links"><div class="cam" id="links-cam">
     <div id="lk-grid"></div>
     <div class="hbar"><div class="hcap" id="cap-links"><span class="mk"><span class="w">Links them together.</span></span></div><div class="hcount" id="lk-count" data-deco></div></div>
-  </section>
+  </div></section>
 
-  <!-- bar 8 · Homarr board -->
-  <section class="scene" id="boardsc">
+  <!-- bars 8-9 · Homarr board -->
+  <section class="scene" id="boardsc"><div class="cam" id="board-drift">
     <div id="board-cam"><div id="board" data-deco></div></div>
     <div class="hbar"><div class="hcap" id="cap-board"><span class="mk"><span class="w">Builds your dashboard.</span></span></div></div>
-  </section>
+  </div></section>
 
-  <!-- bars 8-9 · pivot -->
-  <section class="scene" id="pivot">
+  <!-- bars 9-10 · pivot -->
+  <section class="scene" id="pivot"><div class="cam" id="pivot-cam">
     <div id="flags" data-deco></div>
-    <h2 id="pivot-t"><span class="ln"><span class="mk"><span class="w">Don’t want to learn</span></span></span><span class="ln"><span class="mk"><span class="w">the <span class="cli">CLI</span><span class="q">?</span></span></span></span></h2>
-  </section>
+    <h2 id="pivot-t"><span class="ln"><span class="mk"><span class="w">Don’t want to learn</span></span></span><span class="ln"><span class="mk"><span class="w">the <span class="cli">CLI</span>?</span></span></span></h2>
+  </div></section>
 
-  <!-- bars 10-12 · the skill in six agents -->
-  <section class="scene" id="agents">
+  <!-- bars 11-13 · the skill in six agents -->
+  <section class="scene" id="agents"><div class="cam" id="agents-cam">
     <div id="ag-strip"></div>
     <div id="ag-left"></div>
     <div id="chat"></div>
     <div id="cursor"><svg viewBox="0 0 24 24"><path d="M4 3 20 11.5l-7 2-3.5 6.5Z"/></svg></div>
-  </section>
+  </div></section>
 
-  <!-- bar 13 · the flurry -->
+  <!-- bar 14 · the flurry -->
   <section class="scene" id="flurry">
+    <div id="fl-bg"></div>
     <div id="fl-words"></div>
-    <div id="fl-bar"><i></i></div>
   </section>
 
-  <!-- bars 14-15 · end card -->
-  <section class="scene" id="endsc">
+  <!-- bars 15-16 · end card -->
+  <section class="scene" id="endsc"><div class="cam" id="end-cam">
     <div id="end"></div>
-  </section>
+  </div></section>
 
 </div>
 <script src="node_modules/gsap/dist/gsap.min.js"></script>

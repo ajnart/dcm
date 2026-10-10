@@ -1,10 +1,11 @@
-import { gsap, $, $$, proc, prog, scene, icon, read, on, cut } from "./lib.js";
+import { gsap, $, $$, proc, prog, scene, icon, read, cue, on, cut } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.setup;
 // beats: 0 the TUI (a match cut from the Compose Project box), "Sets up every App." · then one App ready
-// every eighth note from 0.5 · 3 the camera pushes into the Links box
-const STEP = 0.25;
+// on each beat from 1 while the camera eases in on the Apps box · 6 the Links start · 7 the camera pushes
+// into the Links box
+const STEP = 0.5;
 const APPS = [
   ["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["radarr", "Radarr"], ["prowlarr", "Prowlarr"],
   ["jellyfin", "Jellyfin"], ["seerr", "Seerr"], ["homarr", "Homarr"],
@@ -19,10 +20,10 @@ export const LINKS = [
   ["seerr", "Seerr", "sonarr", "Sonarr"],
   ["homarr", "Homarr", "jellyfin", "Jellyfin"],
 ];
-const L0 = APPS[6].e - 0.2, LSTEP = 0.04, LFILL = 0.18;
+const L0 = APPS[5].e, LSTEP = 0.06, LFILL = 0.22;
 const SPIN = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 const spin = (t) => SPIN[Math.floor(t * 14) % 10];
-const CAP_IN = A, PUSH = b(23);
+const CAP_IN = A, PUSH = b(27);
 
 export function build(tl) {
   scene("setup", A, B);
@@ -46,7 +47,13 @@ export function build(tl) {
   $("#links-rows").innerHTML = LINKS.map(([c, cn, tg, tn]) => `<div class="lk"><img src="${icon(c)}"><span class="ln1">${cn}</span><span class="ln-line"><i class="fillbar"></i><b class="head">▶</b></span><img src="${icon(tg)}"><span class="ln2">${tn}</span><span class="lst"></span></div>`).join("");
   const lkEls = $$("#links-rows .lk");
   const appsRows = $("#apps-rows");
-  APPS.forEach((a) => { if (Math.abs((a.e / 0.5) - Math.round(a.e / 0.5)) < 1e-6 && a.e < B) on(a.e, `${a.name} ready`); });
+  APPS.forEach((a, i) => {
+    on(a.e, `${a.name} ready`);
+    cue(a.e, "check", { i });
+    cue(a.s + STEP * 0.3, "tick", { soft: true, pan: 0.3 });
+    cue(a.s + STEP * 0.62, "tick", { soft: true, pan: -0.3 });
+  });
+  LINKS.forEach((_, k) => cue(L0 + k * LSTEP + LFILL, "tick", { pan: k % 2 ? 0.4 : -0.4 }));
 
   proc((t) => {
     if (t < A || t > B) return;
@@ -99,14 +106,17 @@ export function build(tl) {
     $("#a-narr").innerHTML = `<span class="text">${narr}</span>`;
   });
 
-  // a still camera; on beat 3 it pushes into the Links box, which the next scene opens out of
+  // the camera eases in on the Apps box while they set up, then pushes into the Links box, which the
+  // next scene opens out of
   const cam = $("#setup-cam");
   const view = (px, py, s) => ({ x: 960 - px * s, y: 540 - py * s, scale: s });
   gsap.set(cam, { transformOrigin: "0 0" });
-  tl.fromTo(cam, { ...view(960, 540, 1.0) }, { ...view(1310, 690, 2.4), duration: 0.5, ease: "expo.in" }, PUSH);
+  tl.fromTo(cam, { ...view(960, 540, 1.0) }, { ...view(840, 600, 1.16), duration: PUSH - A, ease: "power2.inOut" }, A);
+  tl.fromTo(cam, { ...view(840, 600, 1.16) }, { ...view(1310, 690, 2.6), duration: 0.5, ease: "expo.in" }, PUSH);
   on(PUSH, "push into the Links box");
+  cue(B - 0.08, "whoosh", { dur: 0.5, pan: 0.5 });
 
   const w = $("#cap-setup .w");
-  tl.fromTo(w, { yPercent: 110 }, { yPercent: 0, duration: 0.2, ease: "expo.out" }, CAP_IN);
-  read("#cap-setup", CAP_IN + 0.2, B - 0.01);
+  tl.fromTo(w, { yPercent: 110 }, { yPercent: 0, duration: 0.4, ease: "expo.out" }, CAP_IN);
+  read("#cap-setup", CAP_IN + 0.4, B - 0.01);
 }
