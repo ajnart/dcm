@@ -121,13 +121,15 @@ type noticeCache interface {
 }
 
 func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) func() string {
+	notice, _ := startNoticeWorker(currentVersion, now, lookup, cache)
+	return notice
+}
+
+func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) (func() string, <-chan struct{}) {
 	newer := func(version string) string {
 		if isNewer, err := release.Newer(currentVersion, version); err != nil || !isNewer {
 			return ""
 		}
-		state := cache.Load()
-		state.NoticedAt = now
-		cache.Save(state)
 		return Notice(version)
 	}
 	type result struct {
@@ -135,8 +137,12 @@ func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noti
 		crash  *system.CapturedPanic
 	}
 	found := make(chan result, 1)
+	accepted := make(chan bool, 1)
+	acknowledged := make(chan *system.CapturedPanic, 1)
+	done := make(chan struct{})
 	ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
 	go func() {
+		defer close(done)
 		defer cancel()
 		var answer result
 		answer.crash = system.CatchPanic(func() {
@@ -160,16 +166,56 @@ func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noti
 			answer.notice = newer(version)
 		})
 		found <- answer
+		if answer.crash != nil || answer.notice == "" {
+			return
+		}
+		var accept bool
+		select {
+		case accept = <-accepted:
+		case <-ctx.Done():
+			select {
+			case accept = <-accepted:
+			default:
+			}
+		}
+		if !accept {
+			return
+		}
+		acknowledged <- system.CatchPanic(func() {
+			state := cache.Load()
+			state.NoticedAt = now
+			cache.Save(state)
+		})
 	}()
 	return func() string {
 		defer cancel()
+		deadline := time.NewTimer(waitBudget)
+		defer deadline.Stop()
 		select {
 		case answer := <-found:
 			if answer.crash != nil {
 				panic(*answer.crash)
 			}
+			if answer.notice != "" {
+				accepted <- true
+				select {
+				case crash := <-acknowledged:
+					if crash != nil {
+						panic(*crash)
+					}
+				case <-deadline.C:
+					select {
+					case crash := <-acknowledged:
+						if crash != nil {
+							panic(*crash)
+						}
+					default:
+					}
+				}
+			}
 			return answer.notice
-		case <-time.After(waitBudget):
+		case <-deadline.C:
+			accepted <- false
 			cancel()
 			select {
 			case answer := <-found:
@@ -180,5 +226,5 @@ func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noti
 			}
 			return ""
 		}
-	}
+	}, done
 }

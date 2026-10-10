@@ -19,7 +19,6 @@ func TestNoticeDeadlineSurvivesUncancellableLookupAndCache(t *testing.T) {
 		t.Run(blocked, func(t *testing.T) {
 			release := make(chan struct{})
 			finished := make(chan struct{})
-			workerFinished := make(chan struct{})
 			returned := make(chan string, 1)
 			now := time.Now()
 			loads, saves := 0, 0
@@ -36,9 +35,6 @@ func TestNoticeDeadlineSurvivesUncancellableLookupAndCache(t *testing.T) {
 					if (blocked == "worker-save" && saves == 1) || (blocked == "notice-save" && saves == 2) {
 						<-release
 					}
-					if saves == 2 {
-						close(workerFinished)
-					}
 					return nil
 				},
 			}
@@ -48,14 +44,19 @@ func TestNoticeDeadlineSurvivesUncancellableLookupAndCache(t *testing.T) {
 				}
 				return "1.1.0", nil
 			}
+			notice, workerFinished := startNoticeWorker("1.0.0", now, lookup, cache)
 			go func() {
 				defer close(finished)
-				returned <- startNotice("1.0.0", now, lookup, cache)()
+				returned <- notice()
 			}()
 			var timedOut bool
 			select {
 			case got := <-returned:
-				if got != "" {
+				want := ""
+				if blocked == "notice-save" {
+					want = Notice("1.1.0")
+				}
+				if got != want {
 					t.Errorf("notice = %q", got)
 				}
 			case <-time.After(time.Second):
