@@ -24,7 +24,7 @@ func (s *Service) PrepareFeedback(ctx context.Context, message, appID string) (F
 		return FeedbackText{}, errors.New("the message is empty")
 	}
 	if len(f.Message) > telemetry.MaxFeedbackBytes {
-		return FeedbackText{}, fmt.Errorf("the message is %d bytes and the limit is %d; nothing was sent. Shorten it and run feedback again", len(f.Message), telemetry.MaxFeedbackBytes)
+		return FeedbackText{}, telemetry.ErrFeedbackTooLarge
 	}
 	if appID != "" {
 		report, err := s.Debug(ctx, appID)

@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	issuesURL     = "https://github.com/ajnart/selfhost-skills/issues"
-	feedbackAsk   = "Send this to the self-host maintainers? y/n "
-	maxFeedbackIn = 64 << 10
+	issuesURL   = "https://github.com/ajnart/selfhost-skills/issues"
+	feedbackAsk = "Send this to the self-host maintainers? y/n "
 )
 
 func (a *program) feedbackCmd() *cobra.Command {
@@ -38,7 +37,7 @@ func (a *program) feedbackCmd() *cobra.Command {
 			svc := a.service()
 			if !svc.Telemetry().Enabled() {
 				fmt.Fprintf(a.deps.Err, "Telemetry is off here, so nothing was sent. To send feedback another way, open an issue: %s\n", issuesURL)
-				return exitError{ExitManual}
+				return exitError{ExitError}
 			}
 			if !yes && !a.deps.Interactive {
 				return a.fail(errors.New("nothing was sent: there is no terminal to ask the person on. After they agree, run again with --yes"))
@@ -72,9 +71,12 @@ func (a *program) feedbackMessage(cmd *cobra.Command, message string) (string, e
 	if a.deps.Interactive || a.deps.In == nil {
 		return "", errors.New("give the message with --message, or pipe it in on stdin")
 	}
-	data, err := io.ReadAll(io.LimitReader(a.deps.In, maxFeedbackIn+1))
-	if err != nil || len(data) > maxFeedbackIn {
+	data, err := io.ReadAll(io.LimitReader(a.deps.In, telemetry.MaxFeedbackBytes+1))
+	if err != nil {
 		return "", fmt.Errorf("cannot read the message from stdin; the limit is %d bytes", telemetry.MaxFeedbackBytes)
+	}
+	if len(data) > telemetry.MaxFeedbackBytes {
+		return "", telemetry.ErrFeedbackTooLarge
 	}
 	return string(data), nil
 }

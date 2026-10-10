@@ -8,6 +8,7 @@ import (
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
+	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
 )
 
@@ -68,16 +69,18 @@ func TestFeedbackSendsOneFeedbackEventWithTheInstallsOwnIDAndEndpoint(t *testing
 		t.Fatalf("got %d feedback events, want 1: %v", len(events), net.Events())
 	}
 	want := map[string]any{
-		"$process_person_profile": false,
-		"$geoip_disable":          true,
-		"message":                 "Install of one stopped at the configure step.",
-		"app":                     "one",
-		"summary":                 "State: missing\nSetup: ok\nFailed step: configure (fail): Open the echo settings page and enable greetings.",
-		"version":                 "1.2.3",
-		"os":                      "linux",
-		"arch":                    "amd64",
+		"$geoip_disable": true,
+		"message":        "Install of one stopped at the configure step.",
+		"app":            "one",
+		"summary":        "State: missing\nSetup: ok\nFailed step: configure (fail): Open the echo settings page and enable greetings.",
+		"version":        "1.2.3",
+		"os":             "linux",
+		"arch":           "amd64",
 	}
 	props := events[0]["properties"].(map[string]any)
+	if _, found := props["$process_person_profile"]; found {
+		t.Error("feedback disables person profiles")
+	}
 	for key := range props {
 		if strings.HasPrefix(key, "$") {
 			continue
@@ -237,7 +240,7 @@ func TestFeedbackWithTelemetryOffSendsNothingAndSaysHowToReportElse(t *testing.T
 			code, out := run("feedback", "--message", "Pull failed twice.", "--yes")
 
 			want := "Telemetry is off here, so nothing was sent. To send feedback another way, open an issue: https://github.com/ajnart/selfhost-skills/issues\n"
-			if code != 3 || out != want {
+			if code != 1 || out != want {
 				t.Fatalf("exit %d\ngot:\n%s\nwant:\n%s", code, out, want)
 			}
 			if got := len(net.Bodies()); got != before {
@@ -252,7 +255,7 @@ func TestFeedbackMessageIsCappedAtFourKiB(t *testing.T) {
 
 	code, out := run("feedback", "--message", strings.Repeat("a", 4097), "--yes")
 
-	want := "error: the message is 4097 bytes and the limit is 4096; nothing was sent. Shorten it and run feedback again\n"
+	want := "error: the message exceeds the limit of 4096 bytes; nothing was sent. Shorten it and run feedback again\n"
 	if code != 1 || out != want {
 		t.Fatalf("exit %d\ngot:\n%s\nwant:\n%s", code, out, want)
 	}
@@ -263,6 +266,32 @@ func TestFeedbackMessageIsCappedAtFourKiB(t *testing.T) {
 	code, out = run("feedback", "--message", strings.Repeat("a", 4096), "--yes")
 	if code != 0 || len(feedbackEvents(net)) != 1 {
 		t.Fatalf("a message of exactly 4096 bytes: exit %d\n%s", code, out)
+	}
+}
+
+type countedFeedbackReader struct {
+	*strings.Reader
+	read int
+}
+
+func (r *countedFeedbackReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	r.read += n
+	return n, err
+}
+
+func TestFeedbackStdinStopsAfterTheLimitPlusOneByte(t *testing.T) {
+	deps, net, run := feedbackSetup(t)
+	in := &countedFeedbackReader{Reader: strings.NewReader(strings.Repeat("a", 65536))}
+	deps.In = in
+	code, out := run("feedback", "--yes")
+	want := "error: the message exceeds the limit of 4096 bytes; nothing was sent. Shorten it and run feedback again\n"
+	if code != 1 || out != want || in.read != 4097 || len(feedbackEvents(net)) != 0 {
+		t.Fatalf("exit %d, read %d bytes, output %q", code, in.read, out)
+	}
+	deps.In = strings.NewReader(strings.Repeat("a", telemetry.MaxFeedbackBytes))
+	if code, out := run("feedback", "--yes"); code != 0 || len(feedbackEvents(net)) != 1 {
+		t.Fatalf("exact limit: exit %d\n%s", code, out)
 	}
 }
 

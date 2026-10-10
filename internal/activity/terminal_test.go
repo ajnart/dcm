@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 // screen replays what a terminal shows for out, understanding the carriage
@@ -104,6 +105,29 @@ func testTerminal(out *bytes.Buffer, width func() int) (*TerminalSink, *clock) {
 }
 
 func fixed(n int) func() int { return func() int { return n } }
+
+func TestTerminalJoinsAndPropagatesTickerPanicsOnce(t *testing.T) {
+	var out bytes.Buffer
+	sink, clock := testTerminal(&out, fixed(60))
+	started := make(chan struct{})
+	sink.drawn = func() {
+		close(started)
+		panic("synthetic drawing panic")
+	}
+	sink.Emit(events.Event{Event: events.RunStart, Msg: "install"})
+	clock.c <- time.Time{}
+	<-started
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		sink.Close()
+	}()
+	crash, ok := recovered.(system.CapturedPanic)
+	if !ok || crash.Value != "synthetic drawing panic" || len(crash.Stack) == 0 || clock.stopped != 1 {
+		t.Fatalf("ticker panic or cleanup lost: %v, stopped %d", recovered, clock.stopped)
+	}
+	sink.Close()
+}
 
 func TestTerminalPrintsTheLogAboveTheLiveAction(t *testing.T) {
 	var out bytes.Buffer
