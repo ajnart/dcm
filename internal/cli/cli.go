@@ -50,6 +50,9 @@ type program struct {
 	svc      *service.Service
 	// terminal is the interactive sink, closed when the command returns.
 	terminal *activity.TerminalSink
+	// steps and failure are what Telemetry learns of a failed command.
+	steps   failedSteps
+	failure error
 }
 
 func (a *program) service() *service.Service {
@@ -64,6 +67,7 @@ func (a *program) fail(err error) error {
 	if err == nil {
 		return nil
 	}
+	a.failure = err
 	if errors.Is(err, service.ErrIncomplete) {
 		return exitError{ExitIncomplete}
 	}
@@ -79,22 +83,25 @@ func (a *program) fail(err error) error {
 }
 
 func (a *program) logger() *events.Logger {
-	if a.log != nil {
-		return a.log
-	}
-	if a.document {
-		a.log = events.New()
-		if a.verbose {
-			a.log.AddSink(a.human(a.deps.Err, true))
-		}
-		return a.log
-	}
-	if a.json {
-		a.log = events.New(events.JSON(a.deps.Out))
-	} else {
-		a.log = events.New(a.human(a.deps.Out, a.verbose))
+	if a.log == nil {
+		a.log = a.newLogger()
+		a.log.AddSink(&a.steps)
 	}
 	return a.log
+}
+
+func (a *program) newLogger() *events.Logger {
+	if a.document {
+		log := events.New()
+		if a.verbose {
+			log.AddSink(a.human(a.deps.Err, true))
+		}
+		return log
+	}
+	if a.json {
+		return events.New(events.JSON(a.deps.Out))
+	}
+	return events.New(a.human(a.deps.Out, a.verbose))
 }
 
 // human prints events as plain lines, or on an interactive terminal with the
@@ -137,29 +144,32 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
-	a := &program{deps: deps, catalog: cat, args: args}
+	a := &program{deps: deps, catalog: cat, args: args, steps: failedSteps{cat: cat}}
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
 	notice := a.startNotice(root, args)
+	report := a.startTelemetry(root, args)
 	err := root.ExecuteContext(ctx)
 	if a.terminal != nil {
 		a.terminal.Close()
 	}
 	var exit exitError
+	code := ExitOK
 	switch {
 	case err == nil:
 		if line := notice(); line != "" && !a.json {
 			fmt.Fprintln(deps.Err, line)
 		}
-		return ExitOK
 	case errors.As(err, &exit):
-		return exit.code
+		code = exit.code
 	default:
 		fmt.Fprintln(deps.Err, "error:", err)
-		return ExitError
+		code = ExitError
 	}
+	report(err, code)
+	return code
 }
 
 // NewRootCommand returns the cobra command tree, for tests that inspect what

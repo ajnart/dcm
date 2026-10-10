@@ -73,6 +73,8 @@ type onboarding struct {
 	// task is the approved install; while it is set Pre-boot or the Dashboard is on screen.
 	task int
 	err  string
+	// notice announces Telemetry on the Welcome step, once per Home folder.
+	notice string
 }
 
 // plan is a reviewed install: what will happen, before anything is written.
@@ -86,7 +88,7 @@ type plan struct {
 
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		checking: len(m.checks) == 0, checksFrom: m.frame}
+		checking: len(m.checks) == 0, checksFrom: m.frame, notice: m.backend.TelemetryNotice()}
 	o.answers.fill(m.defaults)
 	return o
 }
@@ -760,7 +762,7 @@ func (m Model) renderOnboarding() string {
 	case stepInitializing:
 		lines = append(lines, m.renderChecks()...)
 	case stepWelcome:
-		lines = append(lines, renderWelcome(m.theme)...)
+		lines = append(lines, renderWelcome(m.theme, o.notice)...)
 	case stepLook:
 		lines = append(lines, m.renderLook()...)
 	case stepReview:
@@ -864,8 +866,8 @@ func (m Model) renderChecks() []string {
 	return append(lines, "  "+t.fg(t.ok).Render("✓ This machine is ready."))
 }
 
-func renderWelcome(t theme) []string {
-	return []string{
+func renderWelcome(t theme, notice string) []string {
+	lines := []string{
 		"  " + t.title().Render("Welcome to self-host"), "",
 		"  " + t.body().Render("self-host runs the Apps you pick on this machine with Docker Compose, and"),
 		"  " + t.body().Render("sets them up for you: one Admin login, their API keys and the Links"),
@@ -874,6 +876,10 @@ func renderWelcome(t theme) []string {
 		"  " + t.body().Render("it looks. Then you review the plan."), "",
 		"  " + t.active().Render("Nothing is written until you approve the plan at Review."),
 	}
+	if notice != "" {
+		lines = append(lines, "", "  "+t.dim().Render(notice))
+	}
+	return lines
 }
 
 // renderLook shows a sample of the Nerd Font icons, so the person can tell

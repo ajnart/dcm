@@ -18,6 +18,7 @@ import (
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/updatecheck"
 )
 
@@ -104,6 +105,9 @@ type Backend interface {
 	// SetGlyphs saves the glyph set with the Project. It works while the
 	// install that creates the Project runs, and after it.
 	SetGlyphs(ctx context.Context, g activity.Glyphs) error
+	// TelemetryNotice is the one line that announces Telemetry the first
+	// time, and "" once it has been shown or while Telemetry is off.
+	TelemetryNotice() string
 }
 
 // ServiceBackend runs every call on a fresh Service so each task gets its
@@ -114,6 +118,13 @@ type ServiceBackend struct {
 	// Args are the command-line arguments after the program name, which
 	// Restart passes on to the new binary.
 	Args []string
+}
+
+func (b ServiceBackend) TelemetryNotice() string {
+	if b.quiet().Telemetry().Announce() {
+		return telemetry.NoticeShort
+	}
+	return ""
 }
 
 func (b ServiceBackend) quiet() *service.Service {
