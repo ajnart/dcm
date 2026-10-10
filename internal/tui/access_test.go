@@ -32,8 +32,8 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != !slices.Contains([]string{"home", "custom"}, o.id) {
-			t.Errorf("%s: only Home network and Bring your own are available yet, soon=%v", o.id, o.soon)
+		if o.soon != !slices.Contains([]string{"home", "tailscale", "custom"}, o.id) {
+			t.Errorf("%s: Home network, Tailscale and Bring your own are available, soon=%v", o.id, o.soon)
 		}
 	}
 }
@@ -115,7 +115,7 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 	}{
 		{"home", "Technical details Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links."},
 		{"names", "Technical details A Caddy container on this computer will own port 80 and forward each name to the App's port."},
-		{"tailscale", "Technical details Tailscale will run on this computer and join it to your tailnet."},
+		{"tailscale", "Technical details Each App with a web page gets its own Tailscale node"},
 		{"cloudflare", "Technical details A cloudflared container will open an outbound tunnel to Cloudflare"},
 		{"custom", "Technical details self-host access export --format caddy|nginx|traefik|json prints each App's Compose service and container port"},
 	} {
@@ -135,6 +135,16 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 		}
 		if o.soon != strings.Contains(text, "coming soon") {
 			t.Errorf("%s: only the options not built yet say coming soon\n%s", tc.id, text)
+		}
+	}
+}
+
+func TestTailscaleHelpExplainsThePrivateInputAndCertificateLog(t *testing.T) {
+	o, _ := accessByID("tailscale")
+	text := accessHelpText(o, "192.168.1.20", 76)
+	for _, want := range []string{"Install Tailscale", "phone", "TV", "sign in", "https://login.tailscale.com/admin/dns", "public certificate log", "https://login.tailscale.com/admin/settings/keys", "Reusable", "Pre-approved", "--set-file tailscale.auth_key=PATH", "IP:port"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("help lacks %q", want)
 		}
 	}
 }

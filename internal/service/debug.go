@@ -71,7 +71,7 @@ func debugReportOf(as AppStatus, dockerError string) DebugReport {
 		Setup: as.Setup, Image: as.Image, Addresses: slices.Clone(as.Addresses), DockerError: dockerError,
 		Logs: []string{}, LogLines: debugLogLines}
 	if as.URL != "" {
-		report.HealthCheck = DebugHealthCheck{URL: as.URL, Working: debugWorkingPage}
+		report.HealthCheck = DebugHealthCheck{URL: as.observationURL(), Working: debugWorkingPage}
 	}
 	for _, step := range as.Steps {
 		if step.Status.NeedsAttention() {

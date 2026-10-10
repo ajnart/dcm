@@ -437,8 +437,10 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	// recovery. Another command may have created the Project during extraction.
 	fresh = false
 	replaced := false
+	var nodes []string
 	err = s.run(ctx, change{
-		title: "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		services: func() []string { return nodes },
+		title:    "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
 		initialize: func(p *project.Project) error {
 			if !all {
 				return fmt.Errorf("no Project yet; restore the whole backup first (self-host restore %s)", file)
@@ -590,6 +592,12 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			}
 			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
 				return err
+			}
+			if _, err := ss.renderTailscale(); err != nil {
+				return err
+			}
+			if !slices.Contains(targets, tailscaleID) {
+				nodes = ss.pendingTailscaleServices(targets, containers)
 			}
 			replaced = true
 			for _, id := range targets {

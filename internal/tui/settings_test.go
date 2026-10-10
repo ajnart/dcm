@@ -206,7 +206,7 @@ func TestSettingsAccessSubTabListsTheFiveOptionsAndExplainsTheHighlightedOne(t *
 
 	out := screen(m)
 	last := -1
-	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately · coming soon",
+	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately",
 		"○ Your own web address · coming soon", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
@@ -334,7 +334,7 @@ func TestSettingsBarOffersMoreOnlyOnTheAccessSubTab(t *testing.T) {
 }
 
 func TestChoosingAnAccessOptionNotBuiltYetChangesNothingInSettings(t *testing.T) {
-	for downs, name := range map[int]string{1: "Easy names at home", 2: "From anywhere, privately", 3: "Your own web address"} {
+	for downs, name := range map[int]string{1: "Easy names at home", 3: "Your own web address"} {
 		m, backend := settingsHost(t)
 		m = drive(t, m, press("]"))
 		for range downs {

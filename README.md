@@ -174,14 +174,14 @@ Run `self-host doctor` before installation. With rootless Docker, compatible
 images may require container `PUID=0 PGID=0`; host filesystem ownership remains
 the invoking user. Images with fixed container UIDs need separate handling.
 
-| Platform | Binary target | Current validation |
-| --- | --- | --- |
-| Linux amd64 | Yes | Published host install/update and clean Alpine bootstrap/update passed. |
-| Linux arm64 | Yes | Native CLI/local archive checks passed; image support varies by App. |
-| macOS arm64 | Yes | Native CLI/local archive checks passed; deployment requires a Linux Docker VM. |
-| Intel macOS | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
-| WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
-| Native Windows | No | Unsupported. |
+| Platform       | Binary target           | Current validation                                                               |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| Linux amd64    | Yes                     | Published host install/update and clean Alpine bootstrap/update passed.          |
+| Linux arm64    | Yes                     | Native CLI/local archive checks passed; image support varies by App.             |
+| macOS arm64    | Yes                     | Native CLI/local archive checks passed; deployment requires a Linux Docker VM.   |
+| Intel macOS    | Yes                     | Native CLI execution, local checksummed install and corruption rejection passed. |
+| WSL2           | Linux binary inside WSL | Planned path; native WSL validation pending.                                     |
+| Native Windows | No                      | Unsupported.                                                                     |
 
 [Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
 and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
@@ -238,13 +238,14 @@ network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Home network and Bring your own exist: the other options are
+question mark. Home network, From anywhere, privately and Bring your own exist: unbuilt options are
 dimmed and marked coming soon, `enter` on one only says so, and nothing changes.
 Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
 Traefik or their own Caddy; `enter` on it also changes nothing and points at
 `self-host access export`. In Settings, the
 Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
-applies it. **Who** sets the one Admin login for every App: a password
+applies it. Tailscale instead opens an install review with a concealed key field.
+**Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look
@@ -255,6 +256,26 @@ comparing the time left to something small, then hands over to the Dashboard
 with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
 Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
 motion without colour. `esc` goes back one step and keeps your answers.
+
+### From anywhere, privately
+
+Install Tailscale on your phone, laptop or TV and sign in to the same account
+(Apple TV and Android TV have apps). On the [DNS page](https://login.tailscale.com/admin/dns),
+enable HTTPS with MagicDNS on. **App names appear in a public certificate log;
+your Apps stay private.** At [Settings, Keys](https://login.tailscale.com/admin/settings/keys),
+make a **Reusable**, **Pre-approved** auth key with **Ephemeral** off. Save it
+privately on the host, never in chat, then approve:
+
+```bash
+self-host install tailscale --set-file tailscale.auth_key=/path/to/key
+```
+
+Each App with a web page gets its own persistent Tailscale node and HTTPS
+Address from that node's real name. Nothing enables Funnel. The existing
+IP:port Address stays available. The key lasts up to 90 days; adding Apps later
+may need a new one. `self-host doctor` warns about node sign-in expiry and
+signed-out nodes. An OAuth client secret also works in the same private input,
+with `tag:self-host` owned by that client. See [the decision](docs/adr/0008-tailscale-per-app-nodes.md).
 
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The header names the Project, its LAN address, the host's health and the
@@ -271,15 +292,15 @@ that resolves it, such as `a r` (retry Setup), or the command to run. `tab`
 focuses Needs attention: `a` then opens the Action menu for that item's App
 with its Action highlighted, and `enter` opens the App on the Apps tab.
 
-| Dashboard key | Action |
-| --- | --- |
-| 1–5, ←/→ | Switch tabs. |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About). |
-| a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
-| enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
-| / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
-| ?, q | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
+| Dashboard key   | Action                                                                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1–5, ←/→        | Switch tabs.                                                                                                                                                              |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                                                                                                                       |
+| [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
+| a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
+| enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy.                                                     |
+| /               | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog.                                                                          |
+| ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
 Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
@@ -377,17 +398,17 @@ chat replies, screenshots and ordinary evidence.
 
 ## Daily commands
 
-| Command | Effect |
-| --- | --- |
-| `status [--updates]` | Show URLs, container state, health and Setup; optionally check image updates. |
-| `setup [app...]` | Retry unfinished Setup. |
-| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted. |
-| `update [app...]` | Pull images, recreate Apps and rerun checks. |
-| `logs <app> [--follow] [--tail N]` | Read container logs; default tail is 200 lines. |
-| `remove <app>... [--yes]` | Remove Apps while keeping data; `--purge` also deletes their data folders. |
-| `config set KEY=value...` | Change Host settings and recreate affected Apps. |
-| `config review [--yes]` | Review current host drift; `--yes` applies detected LAN IP/time zone fixes. |
-| `self-update` | Replace a release binary with the latest stable checksummed CLI release. |
+| Command                             | Effect                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `status [--updates]`                | Show URLs, container state, health and Setup; optionally check image updates. |
+| `setup [app...]`                    | Retry unfinished Setup.                                                       |
+| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted.                      |
+| `update [app...]`                   | Pull images, recreate Apps and rerun checks.                                  |
+| `logs <app> [--follow] [--tail N]`  | Read container logs; default tail is 200 lines.                               |
+| `remove <app>... [--yes]`           | Remove Apps while keeping data; `--purge` also deletes their data folders.    |
+| `config set KEY=value...`           | Change Host settings and recreate affected Apps.                              |
+| `config review [--yes]`             | Review current host drift; `--yes` applies detected LAN IP/time zone fixes.   |
+| `self-update`                       | Replace a release binary with the latest stable checksummed CLI release.      |
 
 Prefix each with `self-host`. `--verbose` (`-v`) adds command and step details.
 Use `--yes` for approved noninteractive install, remove and restore operations;
@@ -476,15 +497,15 @@ at one immutable head. The terminal screenshots above use that same fixture
 and binary. API payload checks, archive sentinels, browser review and full
 workload recovery remain distinct claims.
 
-| Capability | Available behavior | Evidence limit |
-| --- | --- | --- |
-| Catalog install | Compiled Compose definitions and App inputs. | All-catalog runtime acceptance is incomplete. |
-| Setup and Links | Per-App API/configuration routines; retry unfinished steps. | Browser-only tasks, external credentials and remote enrollment may need you. |
-| Dashboard/Activity | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
-| Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
-| Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
-| VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
+| Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Catalog install    | Compiled Compose definitions and App inputs.                                               | All-catalog runtime acceptance is incomplete.                                                  |
+| Setup and Links    | Per-App API/configuration routines; retry unfinished steps.                                | Browser-only tasks, external credentials and remote enrollment may need you.                   |
+| Dashboard/Activity | TUI, persisted stages, retry hints and live progress.                                      | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate.         |
+| Lifecycle/update   | Project-scoped commands and image refreshes.                                               | Update checks do not establish safe version-to-version migration.                              |
+| Backup/Restore     | Compressed archives, optional encryption, selected-App restore.                            | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
+| Unmanaged Apps     | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`.                                 |
+| VPN/public access  | App configuration where implemented.                                                       | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof.                  |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,
 per-target outcomes and the limits of generic checks. Manual, blocked,
