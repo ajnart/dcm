@@ -1,0 +1,22 @@
+internal/cli/install.go
+  h_d6e478ca18e517 81,112,114,116
+internal/cli/lifecycle.go
+  h_d6e478ca18e517 92
+internal/cli/status_test.go
+  h_d6e478ca18e517 8,58,71-95
+internal/service/doctor.go
+  h_d6e478ca18e517 44-45,47,95,98-99
+internal/service/status.go
+  h_d6e478ca18e517 47-49,60-67,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d7f4d73f188758ad375425b58f04cea35af3f6c",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
