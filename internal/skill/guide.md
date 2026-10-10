@@ -221,7 +221,14 @@ prints every App's upstream (the Compose service and container port for a proxy
 on the Project's Docker network, the host `IP:port` for one outside Docker), a
 `example.com` hostname to replace, and whether it needs WebSockets or long
 timeouts when known. Traefik output is a file provider, never Docker labels or
-the socket. The command changes nothing; the user runs the proxy, its
+the socket. Unmanaged apps in `extra/` and historical `apps/` folders are
+included when one literal published TCP port targets 80 or is marked
+`app_protocol: http`. Export does not interpolate Compose values or load secret
+env files or Compose env files. Unknown WebSocket and timeout requirements stay
+omitted. Ambiguous or unsupported fragments produce `warnings` entries with
+`id` and `reason` in JSON, or comments in snippets; configure those proxies
+manually instead of guessing an upstream.
+The command changes nothing; the user runs the proxy, its
 certificates and its login, and the `IP:port` Address keeps working. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`

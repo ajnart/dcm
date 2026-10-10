@@ -198,6 +198,12 @@ prints each App's name, internal upstream (the Compose service and container
 port, plus the host `IP:port` for a proxy outside Docker) and a hostname to
 replace, with a note when an App needs WebSockets or long timeouts. It changes
 nothing; Traefik output is a file provider, so no Docker socket is needed.
+Unmanaged apps in `extra/` (or historical `apps/` folders) are included when
+their Compose fragment identifies one literal published HTTP upstream: TCP
+port 80, or a port marked `app_protocol: http`. Unknown WebSocket and timeout
+requirements stay omitted. Ambiguous or unsupported fragments produce a
+warning (`warnings` with `id` and `reason` in JSON, comments in snippets), not
+a guessed upstream. Export never loads secret env files or Compose env files.
 
 Run `self-host` on a terminal to open the first-install flow or the existing
 Dashboard. Use `4` to open the Catalog and `/` to search. A Recipe chooses a

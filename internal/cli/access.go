@@ -46,11 +46,15 @@ func (a *program) accessCmd() *cobra.Command {
 }
 
 func exportHeader(tool string, e service.AccessExport) string {
-	return fmt.Sprintf("# self-host access export --format %s\n"+
+	header := fmt.Sprintf("# self-host access export --format %s\n"+
 		"# Replace each example.com hostname with your own.\n"+
 		"# Upstreams are Compose services: the proxy must join the Docker network %s.\n"+
 		"# A proxy outside Docker uses the host address in each comment instead.\n",
 		tool, e.Network)
+	for _, warning := range e.Warnings {
+		header += "# Skipped Unmanaged app: " + warning.ID + "\n# " + warning.Reason + "\n"
+	}
+	return header
 }
 
 // exportNotes are the lines of comment about what the App needs from a proxy.

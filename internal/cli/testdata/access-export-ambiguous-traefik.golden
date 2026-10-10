@@ -1,0 +1,40 @@
+# self-host access export --format traefik
+# Replace each example.com hostname with your own.
+# Upstreams are Compose services: the proxy must join the Docker network selfhost_default.
+# A proxy outside Docker uses the host address in each comment instead.
+# Skipped Unmanaged app: unsupported
+# No unambiguous supported HTTP upstream; configure the proxy manually.
+# Save as a file in the directory of Traefik's file provider.
+http:
+  routers:
+    selfhost-chat:
+      rule: Host(`chat.example.com`)
+      service: selfhost-chat
+    selfhost-media:
+      rule: Host(`media.example.com`)
+      service: selfhost-media
+    selfhost-notes:
+      rule: Host(`notes.example.com`)
+      service: selfhost-notes
+  services:
+    # Chat
+    # host: http://192.168.1.20:8080
+    # WebSockets: Traefik passes them through.
+    selfhost-chat:
+      loadBalancer:
+        servers:
+          - url: http://chat:8080
+    # Media Server
+    # host: http://192.168.1.20:8096
+    # WebSockets: Traefik passes them through.
+    # Long timeouts: raise respondingTimeouts on the entry point, in Traefik's static configuration.
+    selfhost-media:
+      loadBalancer:
+        servers:
+          - url: http://media:8096
+    # Notes
+    # host: http://192.168.1.20:3000
+    selfhost-notes:
+      loadBalancer:
+        servers:
+          - url: http://notes:3000
