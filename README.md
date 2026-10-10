@@ -301,6 +301,10 @@ pending. Older records/backups without receipts require manual Cloudflare
 review; they are never adopted automatically. A network failure can prevent
 remote cleanup: ownership is retained and `status --json` includes
 `access_warnings` and `cloudflare_cleanup`, not a guarantee of successful cleanup.
+Tunnel ownership does not own foreign routes inside it: existing hostnames need
+matching exact-rule receipts before replacement. Unproven routes are refused.
+Complete cleanup releases account/zone constraints while keeping the Project
+identity; partial cleanup retains both constraints and outstanding receipts.
 
 ### From anywhere, privately
 

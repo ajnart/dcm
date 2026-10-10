@@ -77,6 +77,74 @@ func TestCloudflareNeedsSeparatePublicationYes(t *testing.T) {
 	}
 }
 
+func TestCompleteCloudflareRemovalAllowsAnotherZoneWithTheSameProjectIdentity(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+			h, server, opts := publicationHarness(t)
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			p, _ := h.svc.Project()
+			before, _, _ := loadCloudflareRecord(p)
+			server.AddZone("other.example")
+			if fail {
+				server.SetFailure("DELETE", "/zones/zone-1/dns_records/dns-1")
+			}
+			err := h.svc.CloudflareRemove(t.Context(), opts)
+			after, _, _ := loadCloudflareRecord(p)
+			if fail {
+				if err == nil || after.Ownership.ZoneID != before.Ownership.ZoneID || after.Ownership.AccountID != before.Ownership.AccountID || len(after.Ownership.DNS) != 2 || after.Ownership.TunnelID == "" {
+					t.Fatalf("partial cleanup forgot ownership: %v %+v", err, after)
+				}
+				server.SetFailure("", "")
+				opts.Domain = "other.example"
+				server.Reset()
+				if _, err := h.svc.CloudflarePublish(t.Context(), opts); err == nil || len(server.Writes()) != 0 {
+					t.Fatal("partial cleanup crossed zone")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if after.Ownership.ProjectID != before.Ownership.ProjectID || after.Ownership.AccountID != "" || after.Ownership.ZoneID != "" {
+				t.Fatalf("complete cleanup did not release constraints: %+v", after.Ownership)
+			}
+			opts.Domain = "other.example"
+			if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			last, _, _ := loadCloudflareRecord(p)
+			if last.Ownership.ProjectID != before.Ownership.ProjectID || last.Ownership.ZoneID == before.Ownership.ZoneID {
+				t.Fatal("Project identity changed or new zone not used")
+			}
+		})
+	}
+}
+
+func TestForeignRouteReplacementKeepsPreviouslyVerifiedHostsAndReceipts(t *testing.T) {
+	h, server, opts := publicationHarness(t)
+	opts.Apps = []string{"jellyfin"}
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := h.svc.Project()
+	before, _, _ := loadCloudflareRecord(p)
+	server.AddForeignRule("paperless-ngx.example.com")
+	server.Reset()
+	opts.Apps = []string{"paperless-ngx"}
+	if _, err := h.svc.CloudflarePublish(t.Context(), opts); err == nil || !strings.Contains(err.Error(), "route ownership") {
+		t.Fatal("unowned route accepted", err)
+	}
+	after, _, _ := loadCloudflareRecord(p)
+	if len(after.Hosts) != 1 || after.Hosts[0] != before.Hosts[0] || after.Ownership.DNS["jellyfin.example.com"] != before.Ownership.DNS["jellyfin.example.com"] || after.Warning == "" || len(server.Writes()) != 0 {
+		t.Fatalf("replacement lost previous truth: %+v %v", after, server.Writes())
+	}
+	if a := appStatus(t, h, "jellyfin"); a.URL != "https://jellyfin.example.com" {
+		t.Fatalf("verified Address lost: %+v", a)
+	}
+}
+
 func TestCombinedAccessKeepsPrivatePublicAndLocalAddressesThroughPartialRestore(t *testing.T) {
 	h, server, opts := publicationHarness(t)
 	net := &tailnet{running: []string{"tailscale", "tailscale-paperless-ngx", "tailscale-jellyfin", "paperless-ngx", "jellyfin"}, status: map[string]string{"tailscale-paperless-ngx": runningNode("paperless-ngx-2.example.ts.net.", nil)}}

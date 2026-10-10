@@ -29,13 +29,18 @@ type Client struct {
 }
 
 type Ownership struct {
-	ProjectID string            `json:"project_id"`
-	AccountID string            `json:"account_id"`
-	ZoneID    string            `json:"zone_id"`
-	TunnelID  string            `json:"tunnel_id"`
-	PolicyID  string            `json:"policy_id"`
-	Apps      map[string]string `json:"apps"`
-	DNS       map[string]string `json:"dns"`
+	ProjectID string              `json:"project_id"`
+	AccountID string              `json:"account_id"`
+	ZoneID    string              `json:"zone_id"`
+	TunnelID  string              `json:"tunnel_id"`
+	PolicyID  string              `json:"policy_id"`
+	Apps      map[string]string   `json:"apps"`
+	DNS       map[string]string   `json:"dns"`
+	Routes    map[string][]string `json:"routes,omitempty"`
+}
+
+func (o Ownership) HasResources() bool {
+	return o.TunnelID != "" || o.PolicyID != "" || len(o.Apps) > 0 || len(o.DNS) > 0 || len(o.Routes) > 0
 }
 
 func (c *Client) remember(ctx context.Context) error {
@@ -53,7 +58,7 @@ func (c *Client) constrain(ctx context.Context, account, zone string) error {
 	if o.AccountID != "" && o.AccountID != account || o.ZoneID != "" && o.ZoneID != zone {
 		return fmt.Errorf("Cloudflare ownership belongs to a different account or zone")
 	}
-	if (o.TunnelID != "" || o.PolicyID != "" || len(o.Apps) > 0 || len(o.DNS) > 0) && (o.AccountID == "" || o.ZoneID == "") {
+	if o.HasResources() && (o.AccountID == "" || o.ZoneID == "") {
 		return fmt.Errorf("Cloudflare ownership receipt is missing account or zone constraints; retain it for manual review")
 	}
 	o.AccountID, o.ZoneID = account, zone
@@ -62,6 +67,9 @@ func (c *Client) constrain(ctx context.Context, account, zone string) error {
 	}
 	if o.DNS == nil {
 		o.DNS = map[string]string{}
+	}
+	if o.Routes == nil {
+		o.Routes = map[string][]string{}
 	}
 	return c.remember(ctx)
 }

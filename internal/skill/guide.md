@@ -333,6 +333,15 @@ through API calls, verification, cleanup and persistence. Old records without
 receipts are not automatically adopted: keep their cleanup details and ask the
 person to review/remove their resources manually in Cloudflare.
 
+Tunnel ownership does not own every route inside it. Before changing an existing
+tunnel, inspect desired and dropped hostnames against durable exact-rule receipts.
+An existing rule without matching proof, including legacy rules, is refused
+without mutation. Approved rule contents are remembered before a write, retaining
+prior proof across ambiguous responses; a hostname selection alone is never proof.
+After complete removal with no tunnel, policy, App, DNS or route receipts left,
+account/zone constraints clear so the same Project identity can use another active
+domain. Failed or partial cleanup retains those constraints and cleanup details.
+
 Backups include `cloudflare.json` with the ownership identity and resource IDs.
 Restore retains cleanup metadata but disables the public connector by default,
 for full, fresh and selected-App recovery. Generic Restore approval is **not**

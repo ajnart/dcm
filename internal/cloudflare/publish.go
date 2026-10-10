@@ -89,6 +89,19 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (res Result
 	if err := c.constrain(ctx, account, zone); err != nil {
 		return res, err
 	}
+	names := slices.Clone(spec.Dropped)
+	for _, h := range spec.Hosts {
+		names = append(names, h.Name)
+	}
+	if c.Ownership.TunnelID != "" {
+		config, err := c.ingress(ctx, account, c.Ownership.TunnelID)
+		if err != nil {
+			return res, err
+		}
+		if _, err := c.ownedRoutes(config, names); err != nil {
+			return res, err
+		}
+	}
 	for _, name := range spec.Dropped {
 		if err := c.unpublish(ctx, zone, name, spec.Comment); err != nil {
 			return res, err
@@ -336,9 +349,15 @@ func (c *Client) ensureIngress(ctx context.Context, account, tunnel string, spec
 		return err
 	}
 	ours := make([]map[string]any, len(spec.Hosts))
-	owned := slices.Clone(spec.Dropped)
+	names := slices.Clone(spec.Dropped)
+	for _, h := range spec.Hosts {
+		names = append(names, h.Name)
+	}
+	owned, err := c.ownedRoutes(config, names)
+	if err != nil {
+		return err
+	}
 	for i, h := range spec.Hosts {
-		owned = append(owned, h.Name)
 		ours[i] = map[string]any{
 			"hostname": h.Name,
 			"service":  h.Origin,
@@ -351,7 +370,61 @@ func (c *Client) ensureIngress(ctx context.Context, account, tunnel string, spec
 	if !changed {
 		return nil
 	}
-	return c.setIngress(ctx, account, tunnel, merged)
+	for _, rule := range ours {
+		name := rule["hostname"].(string)
+		proof, err := routeProof(rule)
+		if err != nil {
+			return err
+		}
+		if !slices.Contains(c.Ownership.Routes[name], proof) {
+			c.Ownership.Routes[name] = append(c.Ownership.Routes[name], proof)
+		}
+	}
+	if err := c.remember(ctx); err != nil {
+		return err
+	}
+	if err := c.setIngress(ctx, account, tunnel, merged); err != nil {
+		return err
+	}
+	for _, name := range spec.Dropped {
+		delete(c.Ownership.Routes, name)
+	}
+	return c.remember(ctx)
+}
+
+func routeProof(rule map[string]any) (string, error) {
+	data, err := json.Marshal(rule)
+	return string(data), err
+}
+
+func (c *Client) ownedRoutes(config map[string]any, names []string) ([]string, error) {
+	var owned []string
+	if config["ingress"] == nil {
+		return owned, nil
+	}
+	rules, ok := config["ingress"].([]any)
+	if !ok {
+		return nil, fmt.Errorf("route ownership cannot be inspected; ingress left untouched")
+	}
+	for _, item := range rules {
+		rule, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("route ownership cannot be inspected; ingress left untouched")
+		}
+		name, _ := rule["hostname"].(string)
+		if !slices.Contains(names, name) {
+			continue
+		}
+		proof, err := routeProof(rule)
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Contains(c.Ownership.Routes[name], proof) || slices.Contains(owned, name) {
+			return nil, fmt.Errorf("%s: route ownership is unproven or ambiguous; existing ingress left untouched", name)
+		}
+		owned = append(owned, name)
+	}
+	return owned, nil
 }
 
 // mergeIngress keeps every rule that is not in owned, then ours, then the
@@ -461,7 +534,18 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 	if err := c.constrain(ctx, account, zone); err != nil {
 		return err
 	}
-	ownedNames := slices.DeleteFunc(slices.Clone(spec.Names), func(name string) bool { return c.Ownership.Apps[name] == "" && c.Ownership.DNS[name] == "" })
+	ownedNames := slices.DeleteFunc(slices.Clone(spec.Names), func(name string) bool {
+		return c.Ownership.Apps[name] == "" && c.Ownership.DNS[name] == "" && len(c.Ownership.Routes[name]) == 0
+	})
+	if c.Ownership.TunnelID != "" {
+		config, err := c.ingress(ctx, account, c.Ownership.TunnelID)
+		if err != nil {
+			return err
+		}
+		if _, err := c.ownedRoutes(config, ownedNames); err != nil {
+			return err
+		}
+	}
 	progress("taking your web addresses off the internet")
 	for _, name := range ownedNames {
 		if err := c.unpublish(ctx, zone, name, spec.Comment); err != nil {
@@ -483,10 +567,20 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 		if err != nil {
 			return err
 		}
-		if merged, changed := mergeIngress(config, nil, ownedNames); changed {
+		ownedRoutes, err := c.ownedRoutes(config, ownedNames)
+		if err != nil {
+			return err
+		}
+		if merged, changed := mergeIngress(config, nil, ownedRoutes); changed {
 			if err := c.setIngress(ctx, account, tunnel, merged); err != nil {
 				return err
 			}
+		}
+		for _, name := range ownedNames {
+			delete(c.Ownership.Routes, name)
+		}
+		if err := c.remember(ctx); err != nil {
+			return err
 		}
 	}
 	progress("removing the login pages")
@@ -548,6 +642,9 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 		if err := c.remember(ctx); err != nil {
 			return err
 		}
+	}
+	if c.Ownership.HasResources() {
+		return fmt.Errorf("owned resource receipts remain; cleanup is incomplete and account/zone constraints were retained")
 	}
 	return nil
 }

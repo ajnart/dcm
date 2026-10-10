@@ -3,6 +3,7 @@ package cloudflare_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -530,6 +531,73 @@ func TestRemovalNeverDeletesATunnelStillServingForeignRoutes(t *testing.T) {
 	tunnels, policies, apps, _, records := w.server.Count()
 	if tunnels != 1 || policies != 0 || apps != 0 || records != 0 || len(w.server.Ingress()) != 2 {
 		t.Fatal("owned routes not removed or foreign route lost")
+	}
+}
+
+func TestSelectingANewAppNeverAdoptsAnExistingForeignRoute(t *testing.T) {
+	for _, fault := range []string{"", "/accounts/acct-1/access/apps", "/zones/zone-1/dns_records"} {
+		t.Run(fault, func(t *testing.T) {
+			w := newWorld(t, cloudflaretest.Options{})
+			if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+				t.Fatal(err)
+			}
+			w.server.AddForeignRule("paperless-ngx.example.com")
+			req, _ := http.NewRequest("POST", w.server.Base()+"/zones/zone-1/dns_records", bytes.NewBufferString(`{"type":"A","name":"paperless-ngx.example.com","content":"203.0.113.9"}`))
+			req.Header.Set("Authorization", "Bearer "+apiToken)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			beforeRoutes, _ := json.Marshal(w.server.Ingress())
+			beforeDNS, _ := json.Marshal(w.server.Records())
+			w.server.Reset()
+			w.server.SetFailure("POST", fault)
+			next := spec("paperless-ngx")
+			next.Dropped = []string{"jellyfin.example.com"}
+			_, err = cloudflare.Publish(t.Context(), w.client, next, w.hooks())
+			if err == nil || !strings.Contains(err.Error(), "route ownership") {
+				t.Fatalf("selection adopted route: %v", err)
+			}
+			afterRoutes, _ := json.Marshal(w.server.Ingress())
+			afterDNS, _ := json.Marshal(w.server.Records())
+			if !bytes.Equal(beforeRoutes, afterRoutes) || !bytes.Equal(beforeDNS, afterDNS) || len(w.server.Writes()) != 0 {
+				t.Fatalf("collision mutated routes or DNS: %v", w.server.Writes())
+			}
+			w.server.SetFailure("", "")
+			if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestLegacyIngressWithoutDurableRouteProofIsNeverAdoptedOrRemoved(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	w.client.Ownership.Routes = nil
+	w.server.Reset()
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err == nil || !strings.Contains(err.Error(), "route ownership") {
+		t.Fatal("legacy rule adopted", err)
+	}
+	err := cloudflare.Remove(t.Context(), w.client, cloudflare.RemoveSpec{Domain: "example.com", TunnelName: "self-host", PolicyName: "self-host: allowed people", Comment: "managed by self-host project=selfhost", Names: []string{"jellyfin.example.com"}}, cloudflare.RemoveHooks{})
+	if err == nil || !strings.Contains(err.Error(), "route ownership") || len(w.server.Writes()) != 0 || len(w.server.Records()) != 1 {
+		t.Fatalf("legacy rule removed: %v %v", err, w.server.Writes())
+	}
+}
+
+func TestRemovalCannotCrossAccountEvenWithResourceReceipts(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	w.client.Ownership.AccountID = "another-account"
+	w.server.Reset()
+	err := cloudflare.Remove(t.Context(), w.client, cloudflare.RemoveSpec{Domain: "example.com", TunnelName: "self-host", Names: []string{"jellyfin.example.com"}}, cloudflare.RemoveHooks{})
+	if err == nil || !strings.Contains(err.Error(), "different account or zone") || len(w.server.Writes()) != 0 || w.client.Ownership.TunnelID == "" {
+		t.Fatalf("cleanup crossed account: %v %v", err, w.server.Writes())
 	}
 }
 

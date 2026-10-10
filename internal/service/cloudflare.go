@@ -159,6 +159,11 @@ func (r cloudflareRecord) names() []string {
 			out = append(out, name)
 		}
 	}
+	for name := range r.Ownership.Routes {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
 	return out
 }
 
@@ -177,7 +182,7 @@ func loadCloudflareRecord(p *project.Project) (cloudflareRecord, bool, error) {
 	if rec.Version < 0 || rec.Version > 2 {
 		return cloudflareRecord{}, false, errors.New("unsupported Cloudflare ownership format; retain it for review")
 	}
-	return rec, len(rec.Hosts) > 0 || len(rec.RemovalNames) > 0 || rec.Ownership.TunnelID != "", nil
+	return rec, len(rec.Hosts) > 0 || len(rec.RemovalNames) > 0 || rec.Ownership.HasResources(), nil
 }
 
 // cloudflareAddresses are the web addresses an App has through Cloudflare.
@@ -543,8 +548,12 @@ func (s *Service) saveCloudflareRecord(ctx context.Context, plan CloudflarePlan,
 		return err
 	}
 	if len(plan.Publish) == 0 && len(plan.Dropped) == 0 {
+		if rec.Ownership.HasResources() {
+			return errors.New("owned Cloudflare resources remain; retain the cleanup record and account/zone constraints")
+		}
 		rec.Hosts, rec.RemovalNames = nil, nil
 		rec.Domain, rec.Emails, rec.Warning = "", nil, ""
+		rec.Ownership.AccountID, rec.Ownership.ZoneID, rec.Suspended = "", "", false
 		return writeCloudflareRecord(p, rec)
 	}
 	rec.Version, rec.Domain, rec.Emails, rec.Warning, rec.Suspended = 2, plan.Domain, plan.Emails, "", false
