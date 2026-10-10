@@ -6,7 +6,9 @@
 # throwaway HOME with SELF_HOST_INSTALL_DIR inside the sandbox, then asserts:
 #   1. self-host --version equals the latest published CLI release
 #   2. self-host skill works
-#   3. a pinned old version (SELF_HOST_VERSION, default 0.1.2) upgrades to the
+#   3. the installer never prompts or hangs without a terminal (it runs in a
+#      new session with no controlling terminal) and prints the skill hint
+#   4. a pinned old version (SELF_HOST_VERSION, default 0.1.2) upgrades to the
 #      latest through  self-host self-update
 #
 # Environment:
@@ -20,6 +22,7 @@
 #   SELF_HOST_RELEASE_REPO   repository that publishes the releases
 #   VERIFY_PINNED_VERSION    the old version to upgrade from (default 0.1.2)
 #   VERIFY_EXPECTED_VERSION  skip the release lookup and expect this version
+#   VERIFY_INSTALL_TIMEOUT   seconds before an install counts as hung (default 300)
 #
 # Needs curl, bash, tar and python3.
 set +x
@@ -62,12 +65,26 @@ sandboxed() {
   fi
 }
 
+# no_terminal.py runs a command in a new session, so /dev/tty cannot be opened,
+# and kills it when it hangs. This is how CI and cron see the installer.
+# PYTHONCOERCECLOCALE=0 stops Python turning the C locale into UTF-8 for it.
+no_terminal="$sandbox/no_terminal.py"
+cat >"$no_terminal" <<'PY'
+import subprocess, sys
+try:
+    sys.exit(subprocess.run(sys.argv[2:], start_new_session=True, timeout=int(sys.argv[1])).returncode)
+except subprocess.TimeoutExpired:
+    print("timed out: the command hung", file=sys.stderr)
+    sys.exit(124)
+PY
+
 # one_liner is the documented command, exactly, with the token header added
-# only for a private repository.
+# only for a private repository, and no terminal to ask anything on.
 one_liner() {
   local install_dir="$1"
   shift
   sandboxed SELF_HOST_INSTALL_DIR="$install_dir" "$@" \
+    PYTHONCOERCECLOCALE=0 python3 "$no_terminal" "${VERIFY_INSTALL_TIMEOUT:-300}" \
     bash -c 'curl -fsSL -K "$0" "$1" | bash' "$curl_config" "$URL"
 }
 
@@ -117,6 +134,11 @@ if [ -x "$latest_dir/self-host" ]; then
   got="$(sandboxed "$latest_dir/self-host" --version 2>&1 || true)"
   if [ "$got" = "$latest" ]; then pass "self-host --version is $got, the latest release"; else fail "self-host --version is '$got', want $latest"; fi
   if sandboxed "$latest_dir/self-host" skill 2>/dev/null | grep -q .; then pass "self-host skill prints the guide"; else fail "self-host skill printed nothing or failed"; fi
+  case "$output" in
+    *"y/n"*) fail "the installer prompted without a terminal" ;;
+    *"Install the self-host skill from github.com/${REPO} and help me run my own movie server."*) pass "no terminal: the installer did not prompt and printed the skill hint" ;;
+    *) fail "no terminal: the installer printed no skill hint" ;;
+  esac
   case "$output" in
     *"not on your PATH"*) pass "the installer said how to put $latest_dir on PATH" ;;
     *) fail "the installer did not explain PATH for a directory that is not on it" ;;
