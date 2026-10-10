@@ -1,0 +1,14 @@
+e2e/acceptance_fixture_test.go
+  h_d6e478ca18e517 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4bea39904c2f000f073630f8cb1d875e7ce54680",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
