@@ -61,3 +61,46 @@ func TestOwnershipValidationChecksPlannedUnionAndAllowsLegacyRepair(t *testing.T
 		t.Fatal("repaired composition was rejected")
 	}
 }
+
+func TestTheRootComposeFileIncludesTheEasyNamesCaddyWhenItExists(t *testing.T) {
+	p := testProject(t)
+	if err := p.WriteFragment("one", "services:\n  one:\n    image: example/one\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteNamesFragment("services:\n  access-caddy:\n    image: caddy\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteRoot(); err != nil {
+		t.Fatal(err)
+	}
+	root, _ := os.ReadFile(p.Path("compose.yml"))
+	want := "include:\n  - apps/one/compose.yml\n  - access/caddy/compose.yml\n"
+	if !strings.Contains(string(root), want) {
+		t.Fatalf("root:\n%s\nwant it to contain %q", root, want)
+	}
+
+	if err := p.RemoveNames(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteRoot(); err != nil {
+		t.Fatal(err)
+	}
+	root, _ = os.ReadFile(p.Path("compose.yml"))
+	if strings.Contains(string(root), "access") {
+		t.Fatalf("root still includes it:\n%s", root)
+	}
+}
+
+func TestTheRootComposeFileWithOnlyTheCaddyIncludesIt(t *testing.T) {
+	p := testProject(t)
+	if err := p.WriteNamesFragment("services:\n  access-caddy:\n    image: caddy\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteRoot(); err != nil {
+		t.Fatal(err)
+	}
+	root, _ := os.ReadFile(p.Path("compose.yml"))
+	if !strings.Contains(string(root), "include:\n  - access/caddy/compose.yml\n") || strings.Contains(string(root), "services: {}") {
+		t.Fatalf("root:\n%s", root)
+	}
+}

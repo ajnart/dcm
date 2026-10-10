@@ -91,6 +91,7 @@ func Real(version string) *Deps {
 		HostIPs:      hostIPs,
 		TimeZone:     timeZone,
 		PortFree:     portFree,
+		Resolver:     newResolver(),
 		ProcessAlive: processAlive,
 		PID:          os.Getpid(),
 		In:           os.Stdin,
@@ -192,15 +193,25 @@ func portFree(port int) bool {
 	for _, addr := range [][2]string{{"tcp4", "0.0.0.0:" + p}, {"tcp4", "127.0.0.1:" + p}, {"tcp6", "[::]:" + p}} {
 		listener, err := net.Listen(addr[0], addr[1])
 		if err != nil {
-			// A host without IPv6 cannot listen on [::]; that says nothing about the port.
-			if addr[0] == "tcp6" && !strings.Contains(err.Error(), "address already in use") {
-				continue
+			if bindMeansBusy(addr[0], err) {
+				return false
 			}
-			return false
+			continue
 		}
 		listener.Close()
 	}
 	return true
+}
+
+// bindMeansBusy reports whether a failed bind says another program holds the
+// port. A host without IPv6 cannot listen on [::], and a user cannot bind a
+// port below 1024 on Linux although the Docker daemon can publish it; neither
+// says anything about the port.
+func bindMeansBusy(network string, err error) bool {
+	if errors.Is(err, os.ErrPermission) {
+		return false
+	}
+	return network != "tcp6" || strings.Contains(err.Error(), "address already in use")
 }
 
 func processAlive(pid int) bool {

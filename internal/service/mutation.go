@@ -126,6 +126,11 @@ func (s *Service) run(ctx context.Context, c change) error {
 		err = werr
 	}
 	if c.after != afterNone && err == nil {
+		if c.compose != composeStop && c.compose != composeDown {
+			err = ss.syncNames(ctx)
+		}
+	}
+	if c.after != afterNone && err == nil {
 		err = s.runAfter(ctx, ss, c.after, ids)
 	}
 	if serr := ss.p.SaveState(ss.state); serr != nil && err == nil {

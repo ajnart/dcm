@@ -29,6 +29,7 @@ type InstallOptions struct {
 	PrivateInputs map[string]map[string]string
 	// Exposure, MediaRoot and DownloadsRoot apply when the Project is created.
 	Exposure      string
+	EasyNames     bool
 	MediaRoot     string
 	DownloadsRoot string
 	AdminUser     string
@@ -235,6 +236,14 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	if err := s.requireDocker(ctx); err != nil {
 		return err
 	}
+	if opts.EasyNames || opts.Settings[settingNames] == namesOn {
+		if opts.Exposure == ExposureLocal {
+			return fmt.Errorf("Easy names need Home network")
+		}
+		if err := s.requireEasyNames(ctx); err != nil {
+			return err
+		}
+	}
 
 	recipes := s.recipeOf(opts.Targets)
 	names := make([]string, len(apps))
@@ -309,6 +318,9 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 
 func (s *Service) createProject(ctx context.Context, p *project.Project, opts InstallOptions) error {
 	settings := s.detectSettings(ctx, p.Owner, opts.Exposure)
+	if opts.EasyNames {
+		settings[settingNames] = namesOn
+	}
 	for key, value := range opts.Settings {
 		if value != "" && key != "EXPOSURE" && key != "BIND_IP" {
 			settings[key] = value

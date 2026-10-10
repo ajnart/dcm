@@ -194,12 +194,40 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 			}
 			changes["BIND_IP"] = BindIP(value)
 		}
+		if key == settingNames && value != "on" && value != "off" {
+			return fmt.Errorf("EASY_NAMES must be on or off")
+		}
 		changes[key] = value
 	}
 	if len(changes) == 0 {
 		return fmt.Errorf("nothing to set; pass KEY=value")
 	}
+	if changes["EXPOSURE"] == ExposureLocal {
+		if changes[settingNames] == namesOn {
+			return fmt.Errorf("Easy names need Home network")
+		}
+		changes[settingNames] = "off"
+	}
+	if changes[settingNames] == namesOn {
+		p, err := s.Project()
+		if err != nil {
+			return err
+		}
+		settings, err := p.LoadSettings()
+		if err != nil {
+			return err
+		}
+		if settings["EXPOSURE"] == ExposureLocal && changes["EXPOSURE"] != ExposureLAN {
+			return fmt.Errorf("Easy names need Home network")
+		}
+		if err := s.requireEasyNames(ctx); err != nil {
+			return err
+		}
+	}
 	after := afterNone
+	if _, changed := changes[settingNames]; changed {
+		after = afterDashboard
+	}
 	if _, changed := changes["LAN_IP"]; changed {
 		after = afterDashboard
 	}

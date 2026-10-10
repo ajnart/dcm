@@ -54,8 +54,9 @@ type Status struct {
 	Project  string `json:"project"`
 	Exposure string `json:"exposure"`
 	// Access lists the ways the Apps can be reached, by id: "home" or "local".
-	Access []string `json:"access"`
-	LANIP  string   `json:"lan_ip"`
+	Access []string     `json:"access"`
+	Names  *NamesStatus `json:"names,omitempty"`
+	LANIP  string       `json:"lan_ip"`
 	// LANIPStale is true when LAN_IP is no longer an address of this
 	// machine; HostIPs then lists the addresses it has now.
 	LANIPStale bool              `json:"lan_ip_stale,omitempty"`
@@ -108,6 +109,11 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
+	working, failed := ss.workingNames(ctx, ids)
+	status.Names = ss.namesStatus(ctx, failed)
+	if ss.namesOn() {
+		status.Access = append(status.Access, "names")
+	}
 	for _, id := range ids {
 		as := AppStatus{ID: id, Name: id, Setup: stepstatus.SetupUnmanaged, State: "missing"}
 		services, _ := fragmentServices(ss.p.FragmentPath(id))
@@ -139,8 +145,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			}
 			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
 		}
-		if as.URL != "" {
-			as.Addresses = []string{as.URL}
+		as.Addresses = addresses(working[id], as.URL)
+		if len(as.Addresses) > 0 {
+			as.URL = as.Addresses[0]
 		}
 		if id == dashboardAppID && len(as.Addresses) > 0 {
 			status.Dashboard = as.Addresses[0]
