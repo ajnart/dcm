@@ -17,9 +17,10 @@ type Transport struct {
 	// PostHog that never answers.
 	Hold <-chan struct{}
 
-	mu     sync.Mutex
-	bodies []string
-	urls   []string
+	mu      sync.Mutex
+	bodies  []string
+	urls    []string
+	headers []http.Header
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -31,6 +32,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.mu.Lock()
 	t.bodies = append(t.bodies, string(body))
 	t.urls = append(t.urls, req.URL.String())
+	t.headers = append(t.headers, req.Header.Clone())
 	t.mu.Unlock()
 	if t.Hold != nil {
 		select {
@@ -63,6 +65,66 @@ func (t *Transport) URLs() []string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return append([]string(nil), t.urls...)
+}
+
+// LogRequests returns the OTLP log requests sent so far: their address,
+// headers and decoded body.
+func (t *Transport) LogRequests() []LogRequest {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var out []LogRequest
+	for i, u := range t.urls {
+		if !strings.HasSuffix(strings.SplitN(u, "?", 2)[0], "/i/v1/logs") {
+			continue
+		}
+		var body map[string]any
+		json.Unmarshal([]byte(t.bodies[i]), &body)
+		out = append(out, LogRequest{URL: u, Header: t.headers[i], Body: body})
+	}
+	return out
+}
+
+// LogRequest is one OTLP/HTTP JSON request to the logs endpoint.
+type LogRequest struct {
+	URL    string
+	Header http.Header
+	Body   map[string]any
+}
+
+// LogRecords returns the log records of every request, with each record's
+// attributes flattened into a map next to "body" and "severityText".
+func (t *Transport) LogRecords() []map[string]any {
+	var out []map[string]any
+	for _, r := range t.LogRequests() {
+		for _, rl := range list(r.Body["resourceLogs"]) {
+			for _, sl := range list(rl["scopeLogs"]) {
+				for _, rec := range list(sl["logRecords"]) {
+					flat := map[string]any{"severityText": rec["severityText"]}
+					if body, ok := rec["body"].(map[string]any); ok {
+						flat["body"] = body["stringValue"]
+					}
+					for _, attr := range list(rec["attributes"]) {
+						if value, ok := attr["value"].(map[string]any); ok {
+							flat[attr["key"].(string)] = value["stringValue"]
+						}
+					}
+					out = append(out, flat)
+				}
+			}
+		}
+	}
+	return out
+}
+
+func list(v any) []map[string]any {
+	var out []map[string]any
+	items, _ := v.([]any)
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // Events returns every captured event, in the order sent.
@@ -111,3 +173,15 @@ func (s *Store) Remove(name string) {
 	defer s.mu.Unlock()
 	delete(s.files, name)
 }
+
+// Config is an in-memory user config folder.
+type Config struct{ files Store }
+
+func (c *Config) ReadConfigFile(name string) ([]byte, error) { return c.files.ReadHomeFile(name) }
+
+func (c *Config) WriteConfigFile(name string, data []byte, mode os.FileMode) error {
+	return c.files.WriteHomeFile(name, data, mode)
+}
+
+// Remove deletes a file, as a person deleting it would.
+func (c *Config) Remove(name string) { c.files.Remove(name) }

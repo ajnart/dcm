@@ -205,6 +205,7 @@ func NewDeps(t *testing.T) *system.Deps {
 		Executable: func() (string, error) { return filepath.Join(home, "bin", "self-host"), nil },
 		Exec:       func(path string, argv []string) error { return fmt.Errorf("unexpected exec of %s", path) },
 		CacheDir:   func() (string, error) { return filepath.Join(home, ".cache"), nil },
+		ConfigDir:  func() (string, error) { return filepath.Join(home, ".config"), nil },
 		Getenv:     func(key string) string { return env[key] },
 		CurrentUser: func() (system.User, error) {
 			return system.User{Name: "alice", Home: home, UID: 1000, GID: 1000}, nil

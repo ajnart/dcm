@@ -894,7 +894,10 @@ func (m Model) renderWelcome() []string {
 	}
 	lines = append(lines, "", "  "+t.active().Render("Nothing is written until you approve the plan at Review."))
 	if m.onboarding.notice != "" {
-		lines = append(lines, "", "  "+t.dim().Render(m.onboarding.notice))
+		lines = append(lines, "")
+		for _, line := range strings.Split(m.onboarding.notice, "\n") {
+			lines = append(lines, "  "+t.dim().Render(truncate(line, m.width-4)))
+		}
 	}
 	return lines
 }

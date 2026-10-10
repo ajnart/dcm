@@ -1,3 +1,49 @@
-# Telemetry is on by default, anonymous, public, and off with one environment variable
+# Telemetry is on by default in releases, anonymous, and documented in the wiki
 
-We shape the CLI around what people actually install and where Setup actually breaks, and agents fixing a failure have no channel back to us. So the CLI sends Telemetry to the project's PostHog through `https://hog.ajnart.dev`: a random install ID, version, OS and architecture, command names, App and Recipe IDs, the Access choice, failed step IDs, and errors as PostHog `$exception` events. It never sends host names, file paths, inputs, secrets, App data or error text that could carry them. The install ID is a random UUID made on first send and kept in the Home folder (`telemetry-id`), so one install's events group together; it is never derived from the machine, and deleting the file starts a new one. Events are anonymous (no PostHog person profiles), GeoIP is off, and the PostHog project discards client IPs, so no IP or location is kept. `self-host feedback` lets an agent send a report on purpose, after the person agrees; the CLI masks every known secret in it before sending. Telemetry is announced on first run and in Onboarding, the collected data is published on a public dashboard, and it is off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always off in CI and development builds. On by default was chosen over opt-in because opt-in data from a self-hosting audience is too sparse to steer by; the never-sent list and the public dashboard are what make that acceptable, so widening either needs a new ADR.
+We shape the CLI around what people install and where Setup breaks. Releases
+send Telemetry to EU PostHog through `https://hog.ajnart.dev`, using the public,
+write-only project key embedded by GoReleaser. Development builds have no key
+and send nothing, even when a release key is supplied to a development build.
+
+The install ID is a random UUID in `os.UserConfigDir()/self-host/telemetry-id`.
+An existing Home-folder ID migrates there; deleting or reinstalling the Project
+does not change it. It is never derived from the machine. Person profiles are
+enabled to group usage and retention by this ID, with no extra person
+properties. GeoIP stays disabled and payloads carry no IP or location. The
+maintainer must enable PostHog's "Discard client IP data" setting; neither the
+CLI nor fake-transport tests verify server-side discard. Network requests still
+expose their source IP to the receiving infrastructure.
+
+Command events carry version, OS and architecture, command, outcome and
+duration, Catalog App and Recipe IDs, Access IDs (`home`/`local`), and step IDs,
+outcomes and durations. Errors are `$exception` events with stable fingerprints
+and only in-app function names, module-relative files and lines. Panic values
+are reduced to their type and a fixed message, sent as unhandled exceptions
+within the usage deadline before rethrowing. No host names, absolute paths,
+inputs, secrets, App data or raw error text are sent.
+
+Warning and error steps send fixed-text OTLP/HTTP JSON logs through the proxy's
+`/i/v1/logs`, authenticated with the project token. This is documented by
+[PostHog Logs](https://posthog.com/docs/logs/installation/other) and follows its
+[reverse-proxy routing](https://posthog.com/docs/advanced/proxy); live ingestion
+through this proxy is not verified by tests. There is no tracing claim. Usage
+and logs share a 500 ms deadline, with no retries and silent network failures.
+
+`self-host feedback` is the one event carrying person-approved free text,
+masked against known secrets again by the CLI. The person sees the text and
+agrees before sending. Messages and stdin are limited to 4096 bytes. Approved
+Feedback gets a separate five-second send deadline and reports delivery failure;
+when Telemetry is off it sends nothing and exits 1, not the Manual-step code.
+
+The first-run notice and Onboarding link the
+[Telemetry wiki](https://github.com/ajnart/selfhost-skills/wiki/Telemetry), with
+no toggle or off-switch advertising. Nothing is sent before that notice,
+except explicitly approved Feedback. Environment variables
+`SELF_HOST_NO_TELEMETRY=1` and `DO_NOT_TRACK=1` disable all sending, as do CI and
+development builds. Agents explain these switches only when the person asks.
+Wiki sources live in `wiki/`; publishing requires initializing the GitHub wiki
+in the UI first. A public dashboard may come later; none is promised today.
+
+On by default was chosen over opt-in because opt-in data from a self-hosting
+audience is too sparse to steer by. The documented scope and never-sent rules
+make that acceptable; widening either needs a new ADR.

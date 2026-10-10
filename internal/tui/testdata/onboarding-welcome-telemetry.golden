@@ -17,8 +17,8 @@
 
   Nothing is written until you approve the plan at Review.
 
-  Anonymous usage and error data is sent. Turn off: SELF_HOST_NO_TELEMETRY=1
-
+  Anonymous usage data helps improve self-host: no IP, no personal data.
+  Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry
 
 
 

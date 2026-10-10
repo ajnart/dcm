@@ -23,7 +23,7 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X main.version={{.Version}}
-      - -X github.com/ajnart/self-host/internal/telemetry.ProjectKey={{ if index .Env "POSTHOG_PROJECT_KEY" }}{{ index .Env "POSTHOG_PROJECT_KEY" }}{{ else }}development{{ end }}
+      - -X github.com/ajnart/self-host/internal/telemetry.ProjectKey={{ envOrDefault "POSTHOG_PROJECT_KEY" "phc_zY6Yg8ePwEfXC8FadEqkCcoCgzzy2u2VHjpaPTooBDfg" }}
 
 archives:
   - id: self-host

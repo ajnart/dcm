@@ -289,8 +289,48 @@ func (b ServiceBackend) SetExperience(_ context.Context, level string) error {
 	return b.quiet().SetExperience(level)
 }
 
-func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) error {
+func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger) (err error) {
 	s := service.New(b.Deps, log, b.Apps)
+	progress := &telemetry.Progress{Now: b.Deps.Now, KnownApp: func(id string) bool { _, ok := b.Apps.App(id); return ok }}
+	log.AddSink(progress)
+	started := b.Deps.Now()
+	defer func() {
+		crash := recover()
+		report := progress.Report
+		report.Command, report.Duration, report.Outcome, report.Failure = string(req.Action), b.Deps.Now().Sub(started), telemetry.OutcomeOK, err
+		if err != nil {
+			report.Outcome = telemetry.OutcomeFailed
+			if errors.Is(err, service.ErrIncomplete) {
+				report.Outcome = telemetry.OutcomeIncomplete
+			} else if errors.Is(err, service.ErrManual) {
+				report.Outcome = telemetry.OutcomeManual
+			}
+		}
+		if req.Install != nil {
+			switch req.Install.Exposure {
+			case service.ExposureLAN:
+				report.Access = "home"
+			case service.ExposureLocal:
+				report.Access = "local"
+			}
+		}
+		targets := req.IDs
+		if req.Install != nil {
+			targets = req.Install.Targets
+		}
+		for _, id := range targets {
+			if _, ok := b.Apps.App(id); ok {
+				report.Apps = append(report.Apps, id)
+			}
+		}
+		if crash != nil {
+			report.Outcome, report.Panic, report.Stack = telemetry.OutcomeFailed, crash, telemetry.CaptureStack(1)
+		}
+		s.Telemetry().Send(report)
+		if crash != nil {
+			panic(crash)
+		}
+	}()
 	ids := req.IDs
 	switch req.Action {
 	case ActionBackup:

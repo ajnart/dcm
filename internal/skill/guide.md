@@ -31,6 +31,7 @@ exactly the commands this version registers; run `self-host skill` again after
 
    A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
    and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
+
 4. **Docker**: a failed `docker` check means it is missing; a failed
    `docker-socket` check means it is installed but not running. Say Docker is
    "the engine that runs your apps", ask, then install it by the check's `docs`
@@ -96,33 +97,33 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `self-host` | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help |
-| `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
-| `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
-| `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
-| `self-host profile set experience <new\|advanced>` | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists |
-| `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
-| `self-host credentials` | Admin login and per-App API keys |
-| `self-host apps list` | Catalog of Apps and Recipes |
-| `self-host apps info <app>` | One App's image, port, inputs, Links |
-| `self-host start [app...]` | Start Apps (all when none named) |
-| `self-host stop [app...]` | Stop Apps |
-| `self-host up` | Start every App in the Project |
-| `self-host down` | Take down the Project's containers and networks; App files, state and volumes stay |
-| `self-host restart [app...]` | Restart Apps |
-| `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
-| `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
-| `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
-| `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
-| `self-host logs <app>` | Container logs |
-| `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
-| `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
-| `self-host self-update` | Replace the binary with the latest verified release |
-| `self-host feedback --message <text> [--app <app>] [--yes]` | Send the maintainers a report of what broke, after the person agrees (see "Feedback") |
-| `self-host skill` | Print this guide |
+| Command                                                     | Purpose                                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `self-host`                                                 | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help          |
+| `self-host doctor`                                          | Host, Docker and per-App checks (see "Doctor checks")                                                          |
+| `self-host install <app\|recipe>...`                        | Install Apps or Recipes and run Setup                                                                          |
+| `self-host setup [app...]`                                  | Rerun Setup; finished steps are skipped                                                                        |
+| `self-host status`                                          | A plain summary, then Access, Host settings, every App's URL, state, Setup                                     |
+| `self-host profile set experience <new\|advanced>`          | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists           |
+| `self-host debug <app>`                                     | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check                      |
+| `self-host credentials`                                     | Admin login and per-App API keys                                                                               |
+| `self-host apps list`                                       | Catalog of Apps and Recipes                                                                                    |
+| `self-host apps info <app>`                                 | One App's image, port, inputs, Links                                                                           |
+| `self-host start [app...]`                                  | Start Apps (all when none named)                                                                               |
+| `self-host stop [app...]`                                   | Stop Apps                                                                                                      |
+| `self-host up`                                              | Start every App in the Project                                                                                 |
+| `self-host down`                                            | Take down the Project's containers and networks; App files, state and volumes stay                             |
+| `self-host restart [app...]`                                | Restart Apps                                                                                                   |
+| `self-host update [app...]`                                 | Pull newer images, recreate Apps, rerun checks                                                                 |
+| `self-host remove <app>...`                                 | Remove Apps; data is kept unless `--purge`                                                                     |
+| `self-host config set KEY=value...`                         | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects)                                     |
+| `self-host config review [--yes]`                           | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
+| `self-host logs <app>`                                      | Container logs                                                                                                 |
+| `self-host backup [app...]`                                 | Write one compressed archive, optionally encrypted                                                             |
+| `self-host restore <file> [app...]`                         | Restore every App in a Backup, or only those named                                                             |
+| `self-host self-update`                                     | Replace the binary with the latest verified release                                                            |
+| `self-host feedback --message <text> [--app <app>] [--yes]` | Send the maintainers a report of what broke, after the person agrees (see "Feedback")                          |
+| `self-host skill`                                           | Print this guide                                                                                               |
 
 Global flags: `--json` (one JSON event per line; document commands print one
 JSON document), `--verbose` or `-v` (also print every command and step start).
@@ -148,25 +149,35 @@ With `--json`, `install`, `setup`, `start`, `stop`, `restart`, `update`,
 per line:
 
 ```json
-{"event":"step.fail","app":"sonarr","step":"download-client","msg":"…","error":"qBittorrent refused login","url":"http://192.168.1.20:8989","credential":"admin","hint":"Add qBittorrent under Settings › Download Clients.","docs":"https://…"}
+{
+  "event": "step.fail",
+  "app": "sonarr",
+  "step": "download-client",
+  "msg": "…",
+  "error": "qBittorrent refused login",
+  "url": "http://192.168.1.20:8989",
+  "credential": "admin",
+  "hint": "Add qBittorrent under Settings › Download Clients.",
+  "docs": "https://…"
+}
 ```
 
 Fields (all but `event` are omitted when empty):
 
-| Field | Meaning |
-| --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
-| `app`, `step` | What the event is about |
-| `msg` | Human summary |
-| `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
-| `url` | Where to finish the step by hand |
-| `credential` | Which login to use; read it with `self-host credentials` |
-| `hint` | The next action, in words |
-| `docs` | Upstream documentation |
-| `command` | The shell command run (`command` events) |
-| `image`, `layer` | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events) |
-| `status` | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled` |
-| `current`, `total` | Bytes done and expected for a `pull.progress` event |
+| Field              | Meaning                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `event`            | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
+| `app`, `step`      | What the event is about                                                                                                                   |
+| `msg`              | Human summary                                                                                                                             |
+| `error`            | Why a step or the run failed (`run.end` carries it when the run failed)                                                                   |
+| `url`              | Where to finish the step by hand                                                                                                          |
+| `credential`       | Which login to use; read it with `self-host credentials`                                                                                  |
+| `hint`             | The next action, in words                                                                                                                 |
+| `docs`             | Upstream documentation                                                                                                                    |
+| `command`          | The shell command run (`command` events)                                                                                                  |
+| `image`, `layer`   | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events)                                            |
+| `status`           | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled`                                                            |
+| `current`, `total` | Bytes done and expected for a `pull.progress` event                                                                                       |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
@@ -331,13 +342,18 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 
 `self-host` sends anonymous usage and error data to the project's PostHog (ADR
 0006): a random install ID, version, OS and architecture, command names and
-outcomes, App and Recipe IDs, the Access choice, failed step IDs, and error
-types. Never paths, host names, inputs, secrets, App data or error text. It is
-on by default, announced once, and never delays or fails a command.
+outcomes, App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
+and error types with module-relative in-app stack frames. Warning and error
+steps send fixed-text logs, never App logs. Never absolute paths, host names,
+inputs, secrets, App data or raw error text. It is on by default in releases,
+announced once, and usage sending waits at most 500 ms without failing a command.
+The random ID lives in the user config folder and survives Home-folder deletion.
+Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry.
 
-Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`; always off when `CI` is
-set and on development builds. Tell a person who asks about privacy these
-facts. Set the switch for them when they ask; never on your own.
+Only when the person asks how to turn Telemetry off, explain
+`SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set
+and on development builds. Set a switch only when asked; never on your own or
+as part of Onboarding.
 
 ## Feedback
 
@@ -350,7 +366,8 @@ text and refuses without a terminal unless `--yes` is set. Say which App
 (`--app <id>` adds its Status and failed steps with hints, never its logs) and
 what you tried. The message takes the text of `--message` or stdin, at most
 4096 bytes; a longer one is refused and nothing is sent. When Telemetry is off it
-sends nothing, exits 3 and prints how to open a GitHub issue instead.
+sends nothing, exits 1 and prints how to open a GitHub issue instead. Approved
+Feedback waits up to five seconds for delivery, separately from usage sending.
 
 ## Updating the binary
 

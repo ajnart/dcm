@@ -82,6 +82,7 @@ func Real(version string) *Deps {
 		Executable:   os.Executable,
 		Exec:         func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
 		CacheDir:     os.UserCacheDir,
+		ConfigDir:    os.UserConfigDir,
 		Getenv:       os.Getenv,
 		CurrentUser:  currentUser,
 		LookupUser:   lookupUser,

@@ -19,6 +19,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/tui"
 	"github.com/ajnart/self-host/internal/updatecheck"
 )
@@ -50,9 +51,10 @@ type program struct {
 	svc      *service.Service
 	// terminal is the interactive sink, closed when the command returns.
 	terminal *activity.TerminalSink
-	// steps and failure are what Telemetry learns of a failed command.
-	steps   failedSteps
-	failure error
+	// steps, failure and panicked are what Telemetry learns of a failed command.
+	steps    telemetry.Progress
+	failure  error
+	panicked any
 }
 
 func (a *program) service() *service.Service {
@@ -68,6 +70,9 @@ func (a *program) fail(err error) error {
 		return nil
 	}
 	a.failure = err
+	if a.steps.Report.Stack == nil {
+		a.steps.Report.Stack = telemetry.CaptureStack(1)
+	}
 	if errors.Is(err, service.ErrIncomplete) {
 		return exitError{ExitIncomplete}
 	}
@@ -144,13 +149,19 @@ func Run(ctx context.Context, deps *system.Deps, args []string) int {
 
 // RunWith is Run with an explicit catalog.
 func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args []string) int {
-	a := &program{deps: deps, catalog: cat, args: args, steps: failedSteps{cat: cat}}
+	a := &program{deps: deps, catalog: cat, args: args, steps: telemetry.Progress{Now: deps.Now, KnownApp: func(id string) bool { _, ok := cat.App(id); return ok }}}
 	root := a.root()
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
 	notice := a.startNotice(root, args)
 	report := a.startTelemetry(root, args)
+	defer func() {
+		if crash := recover(); crash != nil {
+			a.reportPanic(report, crash, telemetry.CaptureStack(1))
+			panic(crash)
+		}
+	}()
 	err := root.ExecuteContext(ctx)
 	if a.terminal != nil {
 		a.terminal.Close()
@@ -170,6 +181,17 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	}
 	report(err, code)
 	return code
+}
+
+// reportPanic sends a panic to Telemetry within its deadline and restores the
+// terminal, so the process can crash as it always did.
+func (a *program) reportPanic(report func(error, int), crash any, stack telemetry.Stack) {
+	if a.terminal != nil {
+		a.terminal.Close()
+	}
+	a.panicked = crash
+	a.steps.Report.Stack = stack
+	report(nil, ExitError)
 }
 
 // NewRootCommand returns the cobra command tree, for tests that inspect what
