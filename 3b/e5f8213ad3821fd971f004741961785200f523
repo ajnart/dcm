@@ -1,0 +1,27 @@
+video/reel/agents.js
+  s_53dd24c6f7d1b0::t_5fbb1e5e97a109 21,55
+video/reel/end.js
+  s_53dd24c6f7d1b0::t_c0f83f096b80a5 5-6
+video/reel/links.js
+  s_53dd24c6f7d1b0::t_e08225bdfd282e 5
+video/reel/render.mjs
+  s_53dd24c6f7d1b0::t_5805e0558b4de3 179-192
+video/reel/setup.js
+  s_53dd24c6f7d1b0::t_d498ca2e309ebb 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3be5f8213ad3821fd971f004741961785200f523",
+  "prompts": {},
+  "sessions": {
+    "s_53dd24c6f7d1b0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff3a-6463-7ee1-88dd-a90d7ae3353c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
