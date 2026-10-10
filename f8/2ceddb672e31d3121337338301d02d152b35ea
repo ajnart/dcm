@@ -1,0 +1,21 @@
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_3645381cee2881 63,119-125,138-148,169-173
+internal/service/names_retry_test.go
+  s_59ffa5bfdcd3ba::t_685e874f35a2fd 1-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f82ceddb672e31d3121337338301d02d152b35ea",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
