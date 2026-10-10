@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ajnart/self-host/internal/compose"
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -14,6 +15,25 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 	if err != nil {
 		return nil, err
 	}
+	if ss.navigationAddresses == nil {
+		containers, psErr := ss.compose.Ps(ctx)
+		ss.navigationError = psErr
+		if psErr != nil {
+			containers = nil
+		}
+		ss.navigationContainers = map[string]compose.Container{}
+		for _, c := range containers {
+			ss.navigationContainers[c.Service] = c
+		}
+		rec, _, err := loadCloudflareRecord(ss.p)
+		if err != nil {
+			return nil, err
+		}
+		ss.observeNavigation(ctx, ids, ss.navigationContainers, rec)
+		for _, warning := range ss.navigationWarnings {
+			ss.s.Log.Emit(events.Event{Event: events.StepWarn, App: dashboardAppID, Step: "access-inspection", Msg: warning})
+		}
+	}
 	var out []helpers.InstalledApp
 	var unmanaged []int
 	for _, id := range ids {
@@ -22,7 +42,7 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 			info := a.Info()
 			item.Name, item.Service, item.ContainerPort = info.Name, info.Service, info.ContainerPort
 			if !info.NoWebUI && ss.state.Apps[id].Port > 0 && info.ContainerPort > 0 {
-				item.URL = ss.friendlyAddress(ctx, id, AppURL(ss.settings, ss.state.Apps[id].Port, info.Path))
+				item.URL = ss.browserAddresses(id, AppURL(ss.settings, ss.state.Apps[id].Port, info.Path))[0]
 			}
 		} else {
 			unmanaged = append(unmanaged, len(out))
@@ -32,14 +52,10 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 	if len(unmanaged) == 0 {
 		return out, nil
 	}
-	containers, err := ss.compose.Ps(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("read unmanaged App endpoints; check Docker then retry Setup: %w", err)
+	if ss.navigationError != nil {
+		return nil, fmt.Errorf("read unmanaged App endpoints; check Docker then retry Setup: %w", ss.navigationError)
 	}
-	byService := map[string]compose.Container{}
-	for _, c := range containers {
-		byService[c.Service] = c
-	}
+	byService := ss.navigationContainers
 	for _, index := range unmanaged {
 		item := &out[index]
 		services, err := fragmentServices(ss.p.FragmentPath(item.ID))

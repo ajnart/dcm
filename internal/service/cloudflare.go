@@ -16,6 +16,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/cloudflare"
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/project"
 )
@@ -186,9 +187,8 @@ func loadCloudflareRecord(p *project.Project) (cloudflareRecord, bool, error) {
 }
 
 // cloudflareAddresses are the web addresses an App has through Cloudflare.
-func (ss *session) cloudflareAddresses(id string) []string {
-	rec, found, err := loadCloudflareRecord(ss.p)
-	if err != nil || !found || rec.Suspended || ss.state.Apps[cloudflareConnector] == nil {
+func (ss *session) cloudflareAddresses(id string, rec cloudflareRecord, byService map[string]compose.Container) []string {
+	if rec.Suspended || ss.state.Apps[cloudflareConnector] == nil || byService[cloudflareConnector].State != "running" {
 		return nil
 	}
 	var out []string
@@ -422,6 +422,13 @@ func (s *Service) CloudflarePublish(ctx context.Context, opts CloudflareOptions)
 	if err := s.saveCloudflareRecord(ctx, plan, result.Published); err != nil {
 		return result, s.endCloudflareRun(err)
 	}
+	ss, err := s.open(ctx)
+	if err != nil {
+		return result, s.endCloudflareRun(err)
+	}
+	if err := ss.refreshDashboard(ctx); err != nil {
+		return result, s.endCloudflareRun(err)
+	}
 	if len(res.Failed) > 0 {
 		return result, s.endCloudflareRun(fmt.Errorf("%w: %d of %d addresses did not show the login page and were taken back off the internet",
 			ErrIncomplete, len(res.Failed), len(plan.Publish)))
@@ -494,8 +501,9 @@ func (s *Service) cloudflareToken(opts CloudflareOptions) (string, error) {
 func (s *Service) startCloudflareConnector(ctx context.Context, runToken string, p *project.Project) error {
 	s.Log.Secret(runToken)
 	return s.install(ctx, InstallOptions{
-		Targets:       []string{cloudflareConnector},
-		PrivateInputs: map[string]map[string]string{cloudflareConnector: {"token": runToken}},
+		deferDashboard: true,
+		Targets:        []string{cloudflareConnector},
+		PrivateInputs:  map[string]map[string]string{cloudflareConnector: {"token": runToken}},
 	}, p)
 }
 
@@ -665,12 +673,18 @@ func (s *Service) CloudflareRemove(ctx context.Context, opts CloudflareOptions) 
 	})
 	if err != nil {
 		rec.Warning = "Removal could not finish. Remote resources may remain; retain ownership and review Cloudflare or retry with a fresh private API token."
-		return s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec)))
+		return s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec), s.refreshRunningDashboard(ctx)))
 	}
-	if err := s.saveCloudflareRecord(ctx, CloudflarePlan{}, nil); err != nil {
-		return s.endCloudflareRun(err)
+	err = s.saveCloudflareRecord(ctx, CloudflarePlan{}, nil)
+	return s.endCloudflareRun(errors.Join(err, s.refreshRunningDashboard(ctx)))
+}
+
+func (s *Service) refreshRunningDashboard(ctx context.Context) error {
+	ss, err := s.open(ctx)
+	if err != nil {
+		return err
 	}
-	return s.endCloudflareRun(nil)
+	return ss.refreshRunningDashboard(ctx)
 }
 
 // stopCloudflareConnector removes the connector and forgets its run token,

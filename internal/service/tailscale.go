@@ -187,9 +187,9 @@ func (ss *session) readNode(ctx context.Context, service string) (ts.Node, bool)
 
 // accessAddresses lists the Addresses each App has under the Access options
 // in use besides the Home network one, by App ID. Each option adds its own.
-func (ss *session) accessAddresses(ctx context.Context, byService map[string]compose.Container) map[string][]string {
+func (ss *session) accessAddresses(nodes map[string]nodeRead) map[string][]string {
 	addresses := map[string][]string{}
-	for id, node := range ss.tailscaleNodes(ctx, byService) {
+	for id, node := range nodes {
 		if !node.known {
 			continue
 		}
@@ -206,9 +206,13 @@ func (ss *session) accessAddresses(ctx context.Context, byService map[string]com
 
 // tailscaleChecks turns what the nodes say into Needs attention items.
 func (ss *session) tailscaleChecks(ctx context.Context, byService map[string]compose.Container) []host.Check {
+	return ss.tailscaleFindings(ss.tailscaleNodes(ctx, byService))
+}
+
+func (ss *session) tailscaleFindings(observations map[string]nodeRead) []host.Check {
 	nodes := map[string]ts.Node{}
 	var checks []host.Check
-	for id, node := range ss.tailscaleNodes(ctx, byService) {
+	for id, node := range observations {
 		name := id
 		if a, found := ss.s.Catalog.App(id); found {
 			name = a.Info().Name

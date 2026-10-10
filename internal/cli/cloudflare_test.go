@@ -10,6 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/cloudflaretunnel"
 	"github.com/ajnart/self-host/internal/cloudflare/cloudflaretest"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 	"github.com/ajnart/self-host/internal/tui"
 )
@@ -49,6 +50,12 @@ func (tr publicationTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 func TestCloudflarePrivateStdinPublicationJSONAndFreshTokenRemoval(t *testing.T) {
 	deps := systemtest.NewDeps(t)
+	deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		if strings.Contains(systemtest.Line(cmd), " ps ") {
+			return system.Result{Stdout: []byte(`[{"Service":"one","State":"running"},{"Service":"cloudflare-tunnel","State":"running"}]`)}
+		}
+		return system.Result{}
+	})
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, cloudflaretunnel.App{})
 	if code, out := runWith(t, deps, cat, "install", "one", "--yes", "--json"); code != 0 {
 		t.Fatal(out)
