@@ -55,7 +55,15 @@ func goldenCatalog() *catalog.Catalog {
 // update and a Host review that has drifted, so every tab has content.
 func goldenModel(t *testing.T, width, height int) Model {
 	t.Helper()
+	return goldenModelWith(t, width, height, service.ExposureLAN)
+}
+
+// goldenModelWith is goldenModel on a Project whose stored Exposure is the one given.
+func goldenModelWith(t *testing.T, width, height int, exposure string) Model {
+	t.Helper()
 	m, backend := sample(t, width, height)
+	backend.status.Exposure = exposure
+	m = drive(t, m, statusMsg{status: backend.status})
 	backend.catalog = goldenCatalog()
 	backend.containers = []service.ContainerStatus{
 		{App: "jellyfin", Service: "jellyfin", Image: "lscr.io/linuxserver/jellyfin:latest", State: "running", Health: "healthy", Status: "Up 2 hours", Ports: []string{"0.0.0.0:8096→8096"}},
@@ -69,7 +77,7 @@ func goldenModel(t *testing.T, width, height int) Model {
 	backend.updates = map[string]string{"jellyfin": "available"}
 	backend.tools = map[string]string{"ctop": "/usr/local/bin/ctop"}
 	backend.review = []service.SettingReview{
-		{Key: "EXPOSURE", Current: "lan", Choices: []string{"lan", "local"}},
+		{Key: "EXPOSURE", Current: exposure, Choices: []string{"lan", "local"}},
 		{Key: "LAN_IP", Current: "192.168.1.20", Detected: "192.168.0.12", Choices: []string{"192.168.1.20", "192.168.0.12"}, Drift: true, Note: "not an address of this machine any more"},
 		{Key: "TZ", Current: "Europe/Paris", Detected: "Europe/Paris"},
 		{Key: "PUID", Current: "1000", Detected: "1001", Drift: true},
@@ -101,7 +109,7 @@ func TestGoldenTabs(t *testing.T) {
 	}
 }
 
-// TestGoldenSettingsSubTabs is the Settings sub-tabs after Host and
+// TestGoldenSettingsSubTabs is the Settings sub-tabs after Host, Access and
 // Appearance: Backups, Tools and About.
 func TestGoldenSettingsSubTabs(t *testing.T) {
 	for _, size := range []struct {
@@ -114,7 +122,7 @@ func TestGoldenSettingsSubTabs(t *testing.T) {
 				m = drive(t, m, press("5"))
 				m.settings.goos = "darwin"
 
-				for range i + 2 {
+				for range i + 3 {
 					m = drive(t, m, press("]"))
 				}
 
@@ -124,40 +132,39 @@ func TestGoldenSettingsSubTabs(t *testing.T) {
 	}
 }
 
-// TestGoldenSettingsExposureHelp is the page ? opens on Settings' EXPOSURE row,
-// for the choice in use and for a pending change to this computer only.
-func TestGoldenSettingsExposureHelp(t *testing.T) {
+// TestGoldenSettingsAccess is Settings' Access sub-tab on each option, with
+// its help page, the note for an option not built yet, and the Access in use
+// being this computer only, alone and with Home network pending.
+func TestGoldenSettingsAccess(t *testing.T) {
 	for _, size := range []struct {
 		suffix        string
 		width, height int
 	}{{"", 120, 30}, {"-narrow", 80, 24}} {
-		t.Run("help"+size.suffix, func(t *testing.T) {
-			m := goldenModel(t, size.width, size.height)
+		for i, id := range []string{"home", "names", "tailscale", "cloudflare", "custom"} {
+			name := "settings-access-" + id
+			t.Run(id+size.suffix, func(t *testing.T) {
+				m := goldenModel(t, size.width, size.height)
+				m = drive(t, m, press("5"))
+				m = drive(t, m, press("]"))
+				for range i {
+					m = drive(t, m, press("down"))
+				}
+
+				golden(t, name+size.suffix, trimLines(screen(m)))
+				golden(t, name+"-help"+size.suffix, trimLines(screen(drive(t, m, press("?")))))
+				if id == "custom" {
+					golden(t, "settings-access-coming-soon-note"+size.suffix, trimLines(screen(drive(t, m, press("enter")))))
+				}
+			})
+		}
+		t.Run("local"+size.suffix, func(t *testing.T) {
+			m := goldenModelWith(t, size.width, size.height, service.ExposureLocal)
 			m = drive(t, m, press("5"))
+			golden(t, "settings-access-local"+size.suffix, trimLines(screen(drive(t, m, press("]")))))
 
-			m = drive(t, m, press("?"))
-
-			golden(t, "settings-exposure-help"+size.suffix, trimLines(screen(m)))
-		})
-		t.Run("pending"+size.suffix, func(t *testing.T) {
-			m := goldenModel(t, size.width, size.height)
+			m = goldenModelWith(t, size.width, size.height, service.ExposureLocal)
 			m = drive(t, m, press("5"))
-
-			m = pickLocalExposure(t, m)
-
-			golden(t, "settings-exposure-pending"+size.suffix, trimLines(screen(m)))
-		})
-		t.Run("coming-soon"+size.suffix, func(t *testing.T) {
-			m := goldenModel(t, size.width, size.height)
-			m = drive(t, m, press("5"))
-			m = drive(t, m, press("enter"))
-			for range 3 {
-				m = drive(t, m, press("down"))
-			}
-
-			golden(t, "settings-exposure-coming-soon"+size.suffix, trimLines(screen(m)))
-			m = drive(t, m, press("enter"))
-			golden(t, "settings-exposure-coming-soon-note"+size.suffix, trimLines(screen(m)))
+			golden(t, "settings-access-pending"+size.suffix, trimLines(screen(drive(t, pickHomeNetwork(t, m), press("]")))))
 		})
 	}
 }

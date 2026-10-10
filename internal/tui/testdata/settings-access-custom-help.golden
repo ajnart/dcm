@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+
+  Bring your own
+
+  ╭──────────────╮      ╭─────────────────╮      ╭───────────────╮
+  │ your devices │──────│ your proxy      │──────│ this computer │
+  ╰──────────────╯      │ SWAG · Pangolin │      │ IP:port       │
+                        ╰────────┬────────╯      ╰───────────────╯
+                         you set the rules
+
+  Already run a reverse proxy such as SWAG or Pangolin? self-host will tell it where each App
+  lives, and you stay in charge of names, certificates and who gets in. This one is for advanced
+  users.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and choosing it changes
+  nothing.
+
+  Who is this for?
+  People who already run a reverse proxy, or want to run one. You keep control of names,
+  certificates and who gets in.
+
+  Changing it later
+  Everything here can be changed later in Settings, under Access.
+
+  Technical details
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                                                                      ↑/↓  scroll   esc/?  close

@@ -404,12 +404,9 @@ func (b *backupsPane) previewBox(ctx *viewContext, width, avail int) string {
 	return t.box("Backups", "", strings.Join(lines, "\n"), width, len(lines)+2, true)
 }
 
-// BarMode is the bar's mode text while the restore preview or the Exposure
-// list holds the keys; they are choices, not typing.
+// BarMode is the bar's mode text while the restore preview holds the keys;
+// they are choices, not typing.
 func (v *settingsView) BarMode(t theme) string {
-	if v.choosing {
-		return t.fg(t.accentText).Bold(true).Render("choosing") + t.dim().Render(" · keys go to the list")
-	}
 	if v.tab != tabBackups || v.backups.mode != restorePreview {
 		return ""
 	}

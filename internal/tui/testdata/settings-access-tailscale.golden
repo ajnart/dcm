@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+  Host   Access   Appearance   Backups   Tools   About
+╭─ Access ─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   ● Home network (default)                                                                                           │
+│   ○ Easy names at home · coming soon                                                                                 │
+│ > ○ From anywhere, privately · coming soon                                                                           │
+│   ○ Your own web address · coming soon                                                                               │
+│   ○ Bring your own · coming soon                                                                                     │
+│                                                                                                                      │
+│   Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a private network   │
+│   only your devices join. It isn't available yet: your Apps stay on your network.                                    │
+│                                                                                                                      │
+│   your phone, anywhere ──── Tailscale ──── this computer private name                                                │
+│                                 │                                                                                    │
+│                            internet ✗                                                                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  q quit      ?  more   ↑/↓  select   enter  choose   ctrl+s  apply   [/]  sub-tab   esc  back

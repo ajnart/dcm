@@ -1,7 +1,6 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
-  Host   Appearance   Backups   Tools   About
+  Host   Access   Appearance   Backups   Tools   About
 ╭─ Host settings 3 pending ────────────────────────────────────────────────────╮
-│   EXPOSURE        local                  (pending)                           │
 │   LAN_IP          192.168.1.20                                               │
 │   TZ              Europe/Paris                                               │
 │   PUID            1001                  detected 1000 (pending)              │
@@ -11,12 +10,13 @@
 │ > DOWNLOADS_ROOT  /srv/downloads         (pending)                           │
 │                                                                              │
 │ Pending changes 3                                                            │
-│   EXPOSURE        lan → local                                                │
+│   Access          This computer only → Home network                          │
 │   PUID            1000 → 1001                                                │
 │   DOWNLOADS_ROOT  /home/alice/downloads → /srv/downloads                     │
 │   ! PUID/PGID changes who owns the installed Apps' files                     │
 │   Apps that use a changed setting are recreated.                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
 
 
 

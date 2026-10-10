@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  Bring your own
+
+  ╭──────────────╮      ╭─────────────────╮      ╭───────────────╮
+  │ your devices │──────│ your proxy      │──────│ this computer │
+  ╰──────────────╯      │ SWAG · Pangolin │      │ IP:port       │
+                        ╰────────┬────────╯      ╰───────────────╯
+                         you set the rules
+
+  Already run a reverse proxy such as SWAG or Pangolin? self-host will tell it
+  where each App lives, and you stay in charge of names, certificates and who
+  gets in. This one is for advanced users.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and
+  choosing it changes nothing.
+
+  Who is this for?
+  People who already run a reverse proxy, or want to run one. You keep control
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                              ↑/↓  scroll   esc/?  close

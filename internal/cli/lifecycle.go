@@ -89,7 +89,7 @@ func (a *program) configReviewCmd() *cobra.Command {
 		Use:   "review",
 		Short: "Compare Host settings with this machine now and fix what drifted (LAN IP, time zone)",
 		Long: "Re-confirms the onboarding choices of an existing Project. Installed Apps, their data and secrets are kept;\n" +
-			"only the Apps that use a changed setting are recreated. Change Exposure or folders with: self-host config set KEY=value",
+			"only the Apps that use a changed setting are recreated. Change Access or folders with: self-host config set KEY=value",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a.document = true
@@ -141,10 +141,15 @@ func printReview(w io.Writer, review []service.SettingReview, fixes []string) {
 
 // confirm asks a yes/no question on an interactive terminal.
 func (a *program) confirm(question string) bool {
+	return a.ask(question + " [y/N] ")
+}
+
+// ask prints prompt and reads a yes from the terminal; anything else is no.
+func (a *program) ask(prompt string) bool {
 	if !a.deps.Interactive || a.deps.In == nil {
 		return false
 	}
-	fmt.Fprintf(a.deps.Out, "%s [y/N] ", question)
+	fmt.Fprint(a.deps.Out, prompt)
 	line, _ := bufio.NewReader(a.deps.In).ReadString('\n')
 	answer := strings.ToLower(strings.TrimSpace(line))
 	return answer == "y" || answer == "yes"

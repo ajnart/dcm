@@ -19,7 +19,7 @@ type helpView struct {
 }
 
 // helpPage is a longer explanation of the focused thing, as the lines that
-// fit a width. Exposure has one, in Onboarding's Where and Settings' Host.
+// fit a width. Each Access option has one, in Onboarding's Access step and Settings' Access sub-tab.
 type helpPage struct {
 	title string
 	lines func(t theme, width int) []string

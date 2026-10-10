@@ -1,24 +1,24 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
-  Host   Appearance   Backups   Tools   About
+  Host   Access   Appearance   Backups   Tools   About
 ╭─ Host settings ──────────────────────────────────────────────────────────────╮
-│ > EXPOSURE        lan                                                        │
-│   LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an addr… │
+│ > LAN_IP          192.168.1.20          detected 192.168.0.12 ⚠ not an addr… │
 │   TZ              Europe/Paris                                               │
 │   PUID            1000                  detected 1001 ⚠ differs from this m… │
 │   PGID            1000                                                       │
 │   UMASK           022                                                        │
 │   MEDIA_ROOT      /home/alice/media                                          │
 │   DOWNLOADS_ROOT  /home/alice/downloads                                      │
-│                                                                              │
-│   Phones, TVs and laptops on the same Wi-Fi or router as this computer can   │
-│   open your Apps at 192.168.1.20. Nobody on the internet can.                │
-│                                                                              │
-│   phones · TVs · laptops ──── router ──── this computer 192.168.1.20         │
-│                                  │                                           │
-│                             internet ✗                                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
 
 
- 1-5 tabs  ←/→  A Project  q quit         ?  more   ↑/↓  select   enter  edit …
+
+
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  ? help  q quit           ↑/↓  select   enter  edit …
