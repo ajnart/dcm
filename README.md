@@ -349,7 +349,9 @@ retired without established ownership and approval.
 
 ## Cannot reach an App from another device
 
-Start with `self-host status` and `self-host doctor`. Check the recorded
+For one broken App, `self-host debug <app>` (or `--json`) prints its state,
+failed steps with hints, the last 100 log lines with secrets masked, and its
+health-check URL. Start with `self-host status` and `self-host doctor`. Check the recorded
 Exposure and URL, Docker availability, published ports, and the host firewall.
 `local` binds to loopback. To deliberately allow LAN access:
 
