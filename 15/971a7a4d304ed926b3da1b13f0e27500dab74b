@@ -1,0 +1,123 @@
+CONTEXT.md
+  s_59ffa5bfdcd3ba::t_c9b604ad6521f5 86-87
+README.md
+  s_59ffa5bfdcd3ba::t_3e7aef6cb59367 208-220,241,245-247
+internal/app/app.go
+  s_59ffa5bfdcd3ba::t_a8660feff6f38b 27-30
+internal/apps/beszel/beszel.go
+  s_59ffa5bfdcd3ba::t_c081e7ce342d0b 44
+internal/apps/dockge/dockge.go
+  s_59ffa5bfdcd3ba::t_d702c990b5acfe 25
+internal/apps/gotify/gotify.go
+  s_59ffa5bfdcd3ba::t_7830cfd4a8d3d5 26
+internal/apps/headscale/headscale.go
+  s_59ffa5bfdcd3ba::t_b7ac7c23857cd8 30
+internal/apps/homeassistant/homeassistant.go
+  s_59ffa5bfdcd3ba::t_857aa339d04037 27
+internal/apps/immich/immich.go
+  s_59ffa5bfdcd3ba::t_cf3937e9526ea3 32-33
+internal/apps/jellyfin/jellyfin.go
+  s_59ffa5bfdcd3ba::t_b55f2250fc925f 41
+internal/apps/nextcloud/nextcloud.go
+  s_59ffa5bfdcd3ba::t_69b384d44efcf5 28
+internal/apps/nodered/nodered.go
+  s_59ffa5bfdcd3ba::t_44f28d9e1f9b18 28
+internal/apps/portainer/portainer.go
+  s_59ffa5bfdcd3ba::t_77ae36f835b97a 27
+internal/apps/uptimekuma/uptimekuma.go
+  s_59ffa5bfdcd3ba::t_5006d0610511cc 28
+internal/apps/vaultwarden/vaultwarden.go
+  s_59ffa5bfdcd3ba::t_75c260c70c4b49 28
+internal/cli/access.go
+  s_59ffa5bfdcd3ba::t_a848d6b239a401 1-138
+internal/cli/access_test.go
+  s_59ffa5bfdcd3ba::t_05df67ecbc16b6 1-409
+internal/cli/cli.go
+  s_59ffa5bfdcd3ba::t_2f7e94d84d85c3 199
+internal/cli/testdata/access-export-ambiguous-caddy.golden
+  s_59ffa5bfdcd3ba::t_fd6fd5b33fe269 1-27
+internal/cli/testdata/access-export-ambiguous-json.golden
+  s_59ffa5bfdcd3ba::t_64805a3f08b386 1-47
+internal/cli/testdata/access-export-ambiguous-nginx.golden
+  s_59ffa5bfdcd3ba::t_9484bb392f454e 1-61
+internal/cli/testdata/access-export-ambiguous-traefik.golden
+  s_59ffa5bfdcd3ba::t_0d75a4d6305e42 1-40
+internal/cli/testdata/access-export-caddy.golden
+  s_59ffa5bfdcd3ba::t_abdc876b83da05 1-25
+internal/cli/testdata/access-export-json.golden
+  s_59ffa5bfdcd3ba::t_ff7029522f952d 1-41
+internal/cli/testdata/access-export-nginx.golden
+  s_59ffa5bfdcd3ba::t_f33ae5c8f6ccde 1-59
+internal/cli/testdata/access-export-traefik.golden
+  s_59ffa5bfdcd3ba::t_83429f2f3b31c7 1-38
+internal/cli/testdata/access-export-unmanaged-caddy.golden
+  s_59ffa5bfdcd3ba::t_22dc63dd3809b7 1-31
+internal/cli/testdata/access-export-unmanaged-json.golden
+  s_59ffa5bfdcd3ba::t_6d71c62d1479ce 1-52
+internal/cli/testdata/access-export-unmanaged-nginx.golden
+  s_59ffa5bfdcd3ba::t_460e97e45c2d67 1-74
+internal/cli/testdata/access-export-unmanaged-traefik.golden
+  s_59ffa5bfdcd3ba::t_9a7aa91acc1a56 1-47
+internal/service/access.go
+  s_59ffa5bfdcd3ba::t_23506ae1c3f521 1-211
+internal/tui/access.go
+  s_59ffa5bfdcd3ba::t_107f10bc351eae 27-29,139-142,144-146,160-164,166-168,232-236,238-240
+internal/tui/access_test.go
+  s_59ffa5bfdcd3ba::t_c5d3a60765c908 35,120,161-184
+internal/tui/golden_test.go
+  s_59ffa5bfdcd3ba::t_31324abe80b5f1 156
+internal/tui/harness_test.go
+  s_59ffa5bfdcd3ba::t_f6546327ec1aab 1064
+internal/tui/onboarding.go
+  s_59ffa5bfdcd3ba::t_ddca5219fee418 637
+internal/tui/onboarding_test.go
+  s_59ffa5bfdcd3ba::t_6912adec6fc85f 621,811,841,849,859-860,898,922-948
+internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_a4eb0ecae2f402 462
+internal/tui/settings_test.go
+  s_59ffa5bfdcd3ba::t_1277fe18436cc2 210,337,358-377
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  s_59ffa5bfdcd3ba::t_68e41f0f2218b2 13,15-19,23
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  s_59ffa5bfdcd3ba::t_7306dfa32d39ef 13,15-18,29
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_59ffa5bfdcd3ba::t_a22a16ec079b99 13
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_59ffa5bfdcd3ba::t_815a3eb5bd7261 13
+internal/tui/testdata/onboarding-access-custom-help-narrow.golden
+  s_59ffa5bfdcd3ba::t_6d0f5400d1082b 11-15,18-20
+internal/tui/testdata/onboarding-access-custom-help.golden
+  s_59ffa5bfdcd3ba::t_6e8c7973d04e90 11-14,17-19,21-24,26
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_59ffa5bfdcd3ba::t_ab6b856d224bb6 13,15-19
+internal/tui/testdata/onboarding-access-custom.golden
+  s_59ffa5bfdcd3ba::t_5c63f6b4e59f74 13,15-18
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_59ffa5bfdcd3ba::t_71686a0bc1ec41 13
+internal/tui/testdata/onboarding-access-names.golden
+  s_59ffa5bfdcd3ba::t_6fc0fbe300c629 13
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_59ffa5bfdcd3ba::t_969dcf68246dfa 13
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_59ffa5bfdcd3ba::t_f765a74cdaf7c6 13
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_59ffa5bfdcd3ba::t_6e453bb93f20e5 13
+internal/tui/testdata/onboarding-access.golden
+  s_59ffa5bfdcd3ba::t_f88fc2c133b945 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "15971a7a4d304ed926b3da1b13f0e27500dab74b",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
