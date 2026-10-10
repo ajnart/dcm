@@ -8,12 +8,12 @@
 
     ● Home network (default)
     ○ Easy names at home
-  > ○ From anywhere, privately · coming soon
+  > ○ From anywhere, privately
     ○ Your own web address · coming soon
     ○ Bring your own
 
-  Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a
-  private network only your devices join. It isn't available yet: your Apps stay on your network.
+  Tailscale lets you open each App with its own private HTTPS name from your phone, laptop or TV,
+  wherever you are. Your Home network Addresses keep working.
 
   your phone, anywhere ──── Tailscale ──── this computer private name
                                 │

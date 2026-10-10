@@ -44,7 +44,8 @@ const (
 
 // change is one mutation of the Project, declared by a verb.
 type change struct {
-	title string
+	services func() []string
+	title    string
 	// initialize creates a missing Project while holding the mutation lock.
 	initialize func(*project.Project) error
 	// edit changes the session before Compose runs: render Apps, settings, fragments, unlink.
@@ -196,6 +197,9 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 	if err != nil {
 		return err
 	}
+	if c.services != nil {
+		services = append(services, c.services()...)
+	}
 	if c.compose == composePullUp {
 		if err := ss.pull(ctx, ids, services); err != nil {
 			return err
@@ -206,6 +210,9 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 		startable, err := ss.startServices(ids...)
 		if err != nil {
 			return err
+		}
+		if c.services != nil {
+			startable = append(startable, c.services()...)
 		}
 		ss.emitStage(ids, events.Event{Event: events.StepStart, Step: StageStart, Msg: "start " + strings.Join(ids, ", ")})
 		if err := ss.up(ctx, startable); err != nil {
@@ -241,6 +248,9 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 	var unlinkFailed []string
 	for _, id := range ids {
 		unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
+		if err := ss.retireNode(ctx, id); err != nil {
+			return err
+		}
 		services, err := ss.services(id)
 		if err != nil {
 			return err
@@ -253,6 +263,7 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			return err
 		}
 		delete(ss.state.Apps, id)
+		ss.forgetStep(tailscaleID, "name-"+id)
 		msg := "removed " + id + "; data kept in " + dir
 		if purge {
 			if err := os.RemoveAll(dir); err != nil {
@@ -261,6 +272,9 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			msg = "removed " + id + " and deleted its data"
 		}
 		s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "remove", Msg: msg})
+	}
+	if _, err := ss.renderTailscale(); err != nil {
+		return err
 	}
 	if len(unlinkFailed) > 0 {
 		return fmt.Errorf("%w: removed, but %s still point at it; fix them using the hints above, then run: self-host setup %s",

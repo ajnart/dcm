@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
@@ -248,11 +249,21 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	for i, a := range apps {
 		names[i] = a.Info().ID
 	}
+	var nodes []string
 	return s.run(ctx, change{
 		namesStart: func(ss *session) bool { return len(ss.state.Apps) == 0 && ss.namesOn() },
+		services:   func() []string { return nodes },
 		title:      "install " + strings.Join(names, " "),
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
+			var containers []compose.Container
+			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
+				var err error
+				containers, err = ss.compose.Ps(ctx)
+				if err != nil {
+					return err
+				}
+			}
 			previous := map[string]map[string]string{}
 			for id, st := range ss.state.Apps {
 				previous[id] = st.Inputs
@@ -306,6 +317,13 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)}); err != nil {
 					return err
 				}
+			}
+			_, err = ss.renderTailscale()
+			if err != nil {
+				return err
+			}
+			if !slices.Contains(names, tailscaleID) {
+				nodes = ss.pendingTailscaleServices(names, containers)
 			}
 			return ss.ensureMediaFolders(apps)
 		},

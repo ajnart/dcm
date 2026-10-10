@@ -24,9 +24,10 @@ type StepStatus struct {
 }
 
 type AppStatus struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Managed bool   `json:"managed"`
+	localURL string
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Managed  bool   `json:"managed"`
 	// Description says in plain words what the App is for.
 	Description string `json:"description,omitempty"`
 	// Recipe is the Recipe the App was installed through; empty when it was
@@ -91,6 +92,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if ss.tailscaleOn() {
+		status.Access = append(status.Access, tailscaleID)
+	}
 	if profile, err := ss.p.LoadProfile(); err == nil {
 		status.Profile = &profile
 	}
@@ -105,6 +109,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	for _, c := range containers {
 		byService[c.Service] = c
 	}
+	accessAddresses := ss.accessAddresses(ctx, byService)
 	ids, err := ss.p.AppIDs()
 	if err != nil {
 		return Status{}, err
@@ -145,7 +150,12 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			}
 			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
 		}
+		as.localURL = as.URL
 		as.Addresses = addresses(working[id], as.URL)
+		if len(as.Addresses) > 0 {
+			as.URL = as.Addresses[0]
+		}
+		as.Addresses = append(accessAddresses[id], as.Addresses...)
 		if len(as.Addresses) > 0 {
 			as.URL = as.Addresses[0]
 		}
@@ -159,6 +169,13 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 // fillContainer sets state and health from the main service, and the
 // worst state among the App's other services.
+func (as AppStatus) observationURL() string {
+	if as.localURL != "" {
+		return as.localURL
+	}
+	return as.URL
+}
+
 func fillContainer(as *AppStatus, byService map[string]compose.Container, main string, services []string, completed map[string]bool, deferred []string, settings map[string]string) {
 	c, found := byService[main]
 	if !found && !as.Managed && len(services) > 0 {

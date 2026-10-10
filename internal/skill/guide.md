@@ -219,7 +219,7 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Home network, Easy names at home and Bring your own exist; the others show
+diagram and a help page. Home network, Easy names at home, Tailscale and Bring your own exist; unbuilt options show
 "coming soon" and choosing one changes nothing. Bring your own is for people who
 already run SWAG, Pangolin, Nginx Proxy Manager, Traefik or their own Caddy:
 choosing it changes nothing and points at `self-host access export`, which
@@ -241,7 +241,7 @@ can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
 instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
-it first: `status --json` has `access` (`home` or `local`, plus `names` when on) beside the
+it first: `status --json` has `access` (`home` or `local`, plus `names` when on and `tailscale` when installed) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
 internet; public access is the user's decision and needs their own reverse
@@ -287,6 +287,42 @@ keeps existing trusted hosts when adding these names; Paperless-ngx and
 Vaultwarden receive the named origin. No `.local`, native daemon, host-network
 announcer or D-Bus socket is installed. Linux `.local` is follow-up #232 and needs
 an ADR before any socket mount.
+
+### From anywhere, privately (Tailscale)
+
+Explain: "Install the Tailscale app on your phone or TV and sign in to the same
+account. Only your signed-in devices can open your Apps." Apple TV and Android
+TV have clients; other TVs may need the Home network Address.
+
+1. Ask the person to open <https://login.tailscale.com/admin/dns>, check MagicDNS
+   is on and enable HTTPS. Explain first that App names appear in a public
+   certificate log; the Apps themselves remain private.
+2. At <https://login.tailscale.com/admin/settings/keys>, generate an auth key
+   with **Reusable** and **Pre-approved** on and **Ephemeral** off. It lasts up
+   to 90 days, so adding Apps later may need a replacement. Have the person save
+   it privately on the host; never ask them to paste it into chat.
+3. Explain the change and get approval, then run
+   `self-host install tailscale --set-file tailscale.auth_key=PATH --yes --json`.
+   An OAuth client secret uses the same input; it must own `tag:self-host`.
+4. Read `self-host status --json`: each App with a web page gets an additional
+   HTTPS Address, read from its node's real `Self.DNSName`, including collision
+   suffixes. Never build a ts.net name yourself. Valid private HTTPS comes first
+   and becomes `url`; IP:port remains the fallback. Doctor and Debug health
+   observations still use the local Address.
+5. Read `self-host doctor --json` for sign-in expiry, signed-out nodes or HTTPS
+   disabled. Follow its hints; node state alone does not prove a working page.
+
+self-host generates one persistent userspace sidecar and `serve.json` per web
+App under the Tailscale App folder. The shared credential is mounted as a 0600
+file, never passed as a credential argument. No Funnel or public route is enabled.
+Onboarding asks through a concealed field and waits for Review approval;
+Settings opens the Tailscale install review rather than changing Home network.
+When approving a later install or Restore, name the private nodes for its web
+Apps as part of the plan. Only absent nodes start while Tailscale is already on;
+this includes retries after failed creation, not existing stopped containers.
+stopped Access remains stopped unless Tailscale itself is explicitly approved.
+Restore regenerates nodes against the merged inventory, including old Backups
+of Tailscale. Unknown inspection results produce a safe Doctor warning.
 
 ## Doctor checks
 

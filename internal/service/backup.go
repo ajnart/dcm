@@ -437,7 +437,9 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	// recovery. Another command may have created the Project during extraction.
 	fresh = false
 	replaced := false
+	var nodes []string
 	err = s.run(ctx, change{
+		services:       func() []string { return nodes },
 		title:          "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
 		reconcileNames: true,
 		namesStart:     func(*session) bool { return fresh },
@@ -452,7 +454,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				return err
 			}
 			for _, id := range targets {
-				if state.Apps[id] == nil {
+				if r.Manifest.Folder(id) != "extra" && state.Apps[id] == nil {
 					return fmt.Errorf("backup is missing the configuration record for %s", id)
 				}
 			}
@@ -466,7 +468,9 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					return err
 				}
 				for _, id := range targets {
-					current.Apps[id] = state.Apps[id]
+					if st := state.Apps[id]; st != nil {
+						current.Apps[id] = st
+					}
 				}
 				state = current
 			}
@@ -623,6 +627,12 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			}
 			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
 				return err
+			}
+			if _, err := ss.renderTailscale(); err != nil {
+				return err
+			}
+			if !slices.Contains(targets, tailscaleID) {
+				nodes = ss.pendingTailscaleServices(targets, containers)
 			}
 			replaced = true
 			for _, id := range targets {

@@ -32,8 +32,8 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != !slices.Contains([]string{"home", "names", "custom"}, o.id) {
-			t.Errorf("%s: Home network, Easy names and Bring your own are available, soon=%v", o.id, o.soon)
+		if o.soon != !slices.Contains([]string{"home", "names", "tailscale", "custom"}, o.id) {
+			t.Errorf("%s: Home network, Easy names, Tailscale and Bring your own are available, soon=%v", o.id, o.soon)
 		}
 	}
 }
@@ -115,7 +115,7 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 	}{
 		{"home", "Technical details Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links."},
 		{"names", "Technical details One managed Caddy in the Compose Project owns port 80 and routes HTTP requests by Host to each App."},
-		{"tailscale", "Technical details Tailscale will run on this computer and join it to your tailnet."},
+		{"tailscale", "Technical details Each App with a web page gets its own Tailscale node"},
 		{"cloudflare", "Technical details A cloudflared container will open an outbound tunnel to Cloudflare"},
 		{"custom", "Technical details self-host access export --format caddy|nginx|traefik|json prints each App's Compose service and container port"},
 	} {
@@ -135,6 +135,16 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 		}
 		if o.soon != strings.Contains(text, "coming soon") {
 			t.Errorf("%s: only the options not built yet say coming soon\n%s", tc.id, text)
+		}
+	}
+}
+
+func TestTailscaleHelpExplainsThePrivateInputAndCertificateLog(t *testing.T) {
+	o, _ := accessByID("tailscale")
+	text := accessHelpText(o, "192.168.1.20", 76)
+	for _, want := range []string{"Install Tailscale", "phone", "TV", "sign in", "https://login.tailscale.com/admin/dns", "public certificate log", "https://login.tailscale.com/admin/settings/keys", "Reusable", "Pre-approved", "--set-file tailscale.auth_key=PATH", "IP:port"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("help lacks %q", want)
 		}
 	}
 }
@@ -196,7 +206,7 @@ func TestTheLiveExplanationIsPlainWordsWithNoBindAddress(t *testing.T) {
 }
 
 func TestAnOptionNotBuiltYetSaysWhereYourAppsStay(t *testing.T) {
-	names, _ := accessByID("tailscale")
+	names, _ := accessByID("cloudflare")
 
 	for _, tc := range []struct{ current, want string }{
 		{"lan", "It isn't available yet: your Apps stay on your network."},
@@ -206,7 +216,7 @@ func TestAnOptionNotBuiltYetSaysWhereYourAppsStay(t *testing.T) {
 			t.Errorf("current %s: %q should end with %q", tc.current, got, tc.want)
 		}
 	}
-	if got := accessNote(names, "lan"); got != "From anywhere, privately is coming soon; your Apps stay on your network" {
+	if got := accessNote(names, "lan"); got != "Your own web address is coming soon; your Apps stay on your network" {
 		t.Errorf("note %q", got)
 	}
 }

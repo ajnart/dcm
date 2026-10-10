@@ -71,6 +71,7 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 	for _, app := range status.Apps {
 		checks = append(checks, s.appChecks(ctx, app, byService, lan)...)
 	}
+	checks = append(checks, ss.tailscaleChecks(ctx, byService)...)
 	return checks
 }
 
@@ -81,6 +82,9 @@ func (s *Service) appChecks(ctx context.Context, app AppStatus, byService map[st
 			Detail: "state " + app.State, Hint: "Start it with: self-host start " + id + " (logs: self-host logs " + id + ")"}}
 	}
 	checks := []host.Check{{ID: "running", App: id, Title: "Container", Level: host.OK, Detail: "running " + app.Health}}
+	if app.Port == 0 {
+		return checks
+	}
 
 	bind := ""
 	for _, name := range append([]string{mainService(app)}, app.Services...) {
@@ -112,12 +116,13 @@ func (s *Service) appChecks(ctx context.Context, app AppStatus, byService map[st
 			Detail: fmt.Sprintf("port %d bound to %s", app.Port, bind)})
 	}
 
-	if app.URL != "" {
-		if err := host.Reachable(ctx, s.Deps.HTTP, app.URL); err != nil {
+	url := app.observationURL()
+	if url != "" {
+		if err := host.Reachable(ctx, s.Deps.HTTP, url); err != nil {
 			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.Fail,
 				Detail: err.Error(), Hint: "Check the App's logs (self-host logs " + id + ") and the firewall check above."})
 		} else {
-			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.OK, Detail: "answers on " + app.URL})
+			checks = append(checks, host.Check{ID: "reachable", App: id, Title: "Reachable", Level: host.OK, Detail: "answers on " + url})
 		}
 	}
 	return checks

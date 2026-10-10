@@ -8,22 +8,22 @@
   ╰──────────────────╯      ╰────────┬────────╯      ╰───────────────╯
                                 internet ✗
 
-  Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a
-  private network only your devices join.
-
-  Not available yet
-  This option is coming soon. For now your Apps stay where they are, and choosing it changes
-  nothing.
+  Tailscale lets you open each App with its own private HTTPS name from your phone, laptop or TV,
+  wherever you are. Your Home network Addresses keep working.
 
   What is Tailscale?
   A service that joins your own devices into one private network, wherever they are. Only devices
   you sign in can see your Apps.
 
-  The internet
-  Your Apps stay closed to everyone else on the internet.
+  On your phone or TV
+  Install Tailscale on your phone, laptop or TV and sign in to the same account. Apple TV and
+  Android TV have apps; other TVs may need the Home network Address.
 
-  Changing it later
-  Everything here can be changed later in Settings, under Access.
+  Turn on HTTPS
+  Open https://login.tailscale.com/admin/dns, check MagicDNS is on and enable HTTPS. App names
+  will appear in a public certificate log. This publishes the names, not access to your Apps.
+
+  Give self-host a private key
 
   ↑/↓ scroll · esc or ? closes · more below ↓
 
