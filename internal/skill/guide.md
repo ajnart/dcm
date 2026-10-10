@@ -509,13 +509,18 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 
 `self-host` sends anonymous usage and error data to the project's PostHog (ADR
 0006): a random install ID, version, OS and architecture, command names and
-outcomes, App and Recipe IDs, the Access choice, failed step IDs, and error
-types. Never paths, host names, inputs, secrets, App data or error text. It is
-on by default, announced once, and never delays or fails a command.
+outcomes, App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
+and error types with module-relative in-app stack frames. Warning and error
+steps send fixed-text logs, never App logs. Never absolute paths, host names,
+inputs, secrets, App data or raw error text. It is on by default in releases,
+announced once, and usage sending waits at most 500 ms without failing a command.
+The random ID lives in the user config folder and survives Home-folder deletion.
+Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry.
 
-Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`; always off when `CI` is
-set and on development builds. Tell a person who asks about privacy these
-facts. Set the switch for them when they ask; never on your own.
+Only when the person asks how to turn Telemetry off, explain
+`SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set
+and on development builds. Set a switch only when asked; never on your own or
+as part of Onboarding.
 
 ## Feedback
 
@@ -528,7 +533,8 @@ text and refuses without a terminal unless `--yes` is set. Say which App
 (`--app <id>` adds its Status and failed steps with hints, never its logs) and
 what you tried. The message takes the text of `--message` or stdin, at most
 4096 bytes; a longer one is refused and nothing is sent. When Telemetry is off it
-sends nothing, exits 3 and prints how to open a GitHub issue instead.
+sends nothing, exits 1 and prints how to open a GitHub issue instead. Approved
+Feedback waits up to five seconds for delivery, separately from usage sending.
 
 ## Updating the binary
 

@@ -8,31 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/telemetry"
 )
-
-// failedSteps remembers the steps that failed, as "app/step".
-type failedSteps struct {
-	cat *catalog.Catalog
-	ids []string
-}
-
-func (f *failedSteps) Emit(e events.Event) {
-	if e.Event != events.StepFail || e.Step == "" {
-		return
-	}
-	id := e.Step
-	if e.App != "" {
-		if _, known := f.cat.App(e.App); !known {
-			return
-		}
-		id = e.App + "/" + e.Step
-	}
-	f.ids = append(f.ids, id)
-}
 
 // startTelemetry announces Telemetry before a plain command and returns the
 // function that reports the command once it is done. Nothing runs for help,
@@ -65,7 +44,10 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 			Command:     name,
 			Duration:    a.deps.Now().Sub(start),
 			Outcome:     outcomeOf(code),
-			FailedSteps: a.steps.ids,
+			FailedSteps: a.steps.Report.FailedSteps,
+			Steps:       a.steps.Report.Steps,
+			Stack:       a.steps.Report.Stack,
+			Panic:       a.panicked,
 		}
 		if report.Outcome != telemetry.OutcomeOK && report.Outcome != telemetry.OutcomeManual {
 			report.Failure = a.failure
@@ -77,6 +59,9 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 		if cmd.Name() == "install" || cmd.Name() == "setup" {
 			report.Apps, report.Recipes = a.catalogIDs(cmd.Flags().Args())
 			report.Access, _ = cmd.Flags().GetString("exposure")
+			if report.Access == service.ExposureLAN {
+				report.Access = "home"
+			}
 		}
 		tel.Send(report)
 	}
@@ -86,10 +71,14 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 // typed is dropped, so it can never travel.
 func (a *program) catalogIDs(args []string) (apps, recipes []string) {
 	for _, arg := range args {
-		if _, ok := a.catalog.App(arg); ok {
-			apps = append(apps, arg)
-		} else if _, ok := a.catalog.Recipe(arg); ok {
-			recipes = append(recipes, arg)
+		recipe, ids, found := a.catalog.Expand(arg)
+		if !found {
+			continue
+		}
+		if recipe != "" {
+			recipes = append(recipes, recipe)
+		} else {
+			apps = append(apps, ids...)
 		}
 	}
 	return apps, recipes

@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 // Transport is an http.RoundTripper that records request bodies.
@@ -17,9 +19,10 @@ type Transport struct {
 	// PostHog that never answers.
 	Hold <-chan struct{}
 
-	mu     sync.Mutex
-	bodies []string
-	urls   []string
+	mu      sync.Mutex
+	bodies  []string
+	urls    []string
+	headers []http.Header
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -31,6 +34,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.mu.Lock()
 	t.bodies = append(t.bodies, string(body))
 	t.urls = append(t.urls, req.URL.String())
+	t.headers = append(t.headers, req.Header.Clone())
 	t.mu.Unlock()
 	if t.Hold != nil {
 		select {
@@ -63,6 +67,61 @@ func (t *Transport) URLs() []string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return append([]string(nil), t.urls...)
+}
+
+func (t *Transport) LogRequests() []LogRequest {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var out []LogRequest
+	for i, u := range t.urls {
+		if !strings.HasSuffix(strings.SplitN(u, "?", 2)[0], "/i/v1/logs") {
+			continue
+		}
+		var body map[string]any
+		json.Unmarshal([]byte(t.bodies[i]), &body)
+		out = append(out, LogRequest{URL: u, Header: t.headers[i], Body: body})
+	}
+	return out
+}
+
+type LogRequest struct {
+	URL    string
+	Header http.Header
+	Body   map[string]any
+}
+
+func (t *Transport) LogRecords() []map[string]any {
+	var out []map[string]any
+	for _, r := range t.LogRequests() {
+		for _, rl := range list(r.Body["resourceLogs"]) {
+			for _, sl := range list(rl["scopeLogs"]) {
+				for _, rec := range list(sl["logRecords"]) {
+					flat := map[string]any{"severityText": rec["severityText"]}
+					if body, ok := rec["body"].(map[string]any); ok {
+						flat["body"] = body["stringValue"]
+					}
+					for _, attr := range list(rec["attributes"]) {
+						if value, ok := attr["value"].(map[string]any); ok {
+							flat[attr["key"].(string)] = value["stringValue"]
+						}
+					}
+					out = append(out, flat)
+				}
+			}
+		}
+	}
+	return out
+}
+
+func list(v any) []map[string]any {
+	var out []map[string]any
+	items, _ := v.([]any)
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // Events returns every captured event, in the order sent.
@@ -111,3 +170,5 @@ func (s *Store) Remove(name string) {
 	defer s.mu.Unlock()
 	delete(s.files, name)
 }
+
+type Config = systemtest.ConfigFiles

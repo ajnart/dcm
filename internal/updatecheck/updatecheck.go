@@ -107,54 +107,147 @@ type Lookup func(ctx context.Context) (string, error)
 // the line is announced at most once per 24 h, and a lookup that is not done
 // within a moment is dropped, so the command is never held up.
 func StartNotice(deps *system.Deps, lookup Lookup) func() string {
+	return StartNoticeContext(context.Background(), deps, lookup)
+}
+
+func StartNoticeContext(ctx context.Context, deps *system.Deps, lookup Lookup) func() string {
 	none := func() string { return "" }
 	cache, ok := Open(deps)
 	if !ok {
 		return none
 	}
-	now := deps.Now()
-	state := cache.Load()
-	if now.Sub(state.NoticedAt) < Interval {
-		return none
-	}
+	notice, _ := startNoticeWorkerContext(ctx, deps.Version, deps.Now(), lookup, cache)
+	return notice
+}
+
+type noticeCache interface {
+	Load() State
+	Save(State) error
+}
+
+func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) func() string {
+	notice, _ := startNoticeWorker(currentVersion, now, lookup, cache)
+	return notice
+}
+
+func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) (func() string, <-chan struct{}) {
+	return startNoticeWorkerContext(context.Background(), currentVersion, now, lookup, cache)
+}
+
+func startNoticeWorkerContext(lifecycle context.Context, currentVersion string, now time.Time, lookup Lookup, cache noticeCache) (func() string, <-chan struct{}) {
 	newer := func(version string) string {
-		if isNewer, err := release.Newer(deps.Version, version); err != nil || !isNewer {
+		if isNewer, err := release.Newer(currentVersion, version); err != nil || !isNewer {
 			return ""
 		}
-		state := cache.Load()
-		state.NoticedAt = now
-		cache.Save(state)
 		return Notice(version)
 	}
-	if now.Sub(state.CheckedAt) < Interval && state.Latest != "" {
-		return func() string { return newer(state.Latest) }
+	type result struct {
+		notice string
+		crash  *system.CapturedPanic
 	}
-	if now.Sub(state.CheckedAt) < Interval {
-		return none
-	}
-	found := make(chan string, 1)
+	found := make(chan result, 1)
+	accepted := make(chan bool, 1)
+	acknowledged := make(chan *system.CapturedPanic, 1)
+	done := make(chan struct{})
+	ctx, cancel := context.WithTimeout(lifecycle, lookupBudget)
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
+		defer close(done)
 		defer cancel()
-		version, err := lookup(ctx)
-		if err != nil {
-			found <- ""
+		var answer result
+		answer.crash = system.CatchPanic(func() {
+			state := cache.Load()
+			if now.Sub(state.NoticedAt) < Interval {
+				return
+			}
+			if now.Sub(state.CheckedAt) < Interval {
+				if state.Latest != "" {
+					answer.notice = newer(state.Latest)
+				}
+				return
+			}
+			version, err := lookup(ctx)
+			if err != nil {
+				return
+			}
+			state = cache.Load()
+			state.CheckedAt, state.Latest = now, version
+			cache.Save(state)
+			answer.notice = newer(version)
+		})
+		found <- answer
+		if answer.crash != nil || answer.notice == "" {
 			return
 		}
-		state := cache.Load()
-		state.CheckedAt, state.Latest = now, version
-		cache.Save(state)
-		found <- version
-	}()
-	return func() string {
+		var accept bool
 		select {
-		case version := <-found:
-			if version == "" {
-				return ""
+		case accept = <-accepted:
+		case <-lifecycle.Done():
+			select {
+			case accept = <-accepted:
+			default:
 			}
-			return newer(version)
-		case <-time.After(waitBudget):
-			return ""
 		}
+		if !accept {
+			return
+		}
+		acknowledged <- system.CatchPanic(func() {
+			state := cache.Load()
+			state.NoticedAt = now
+			cache.Save(state)
+		})
+	}()
+	reject := func() string {
+		select {
+		case accepted <- false:
+		default:
+		}
+		cancel()
+		select {
+		case answer := <-found:
+			if answer.crash != nil {
+				panic(*answer.crash)
+			}
+		default:
+		}
+		return ""
 	}
+	return func() string {
+		defer cancel()
+		deadline := time.NewTimer(waitBudget)
+		defer deadline.Stop()
+		if lifecycle.Err() != nil {
+			return reject()
+		}
+		select {
+		case answer := <-found:
+			if answer.crash != nil {
+				panic(*answer.crash)
+			}
+			if lifecycle.Err() != nil {
+				return reject()
+			}
+			if answer.notice != "" {
+				accepted <- true
+				select {
+				case crash := <-acknowledged:
+					if crash != nil {
+						panic(*crash)
+					}
+				case <-deadline.C:
+					select {
+					case crash := <-acknowledged:
+						if crash != nil {
+							panic(*crash)
+						}
+					default:
+					}
+				}
+			}
+			return answer.notice
+		case <-deadline.C:
+			return reject()
+		case <-lifecycle.Done():
+			return reject()
+		}
+	}, done
 }
