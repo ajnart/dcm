@@ -1,0 +1,34 @@
+README.md
+  h_d6e478ca18e517 133-154
+internal/cli/cli.go
+  h_d6e478ca18e517 53-55,70,86-88,90-93,95,97,99,102,104,147,153,159,166,169,171-172
+internal/cli/telemetry.go
+  h_d6e478ca18e517 1-108
+internal/cli/telemetry_test.go
+  h_d6e478ca18e517 1-203
+internal/skill/guide.md
+  h_d6e478ca18e517 299-316
+internal/tui/backend.go
+  h_d6e478ca18e517 21,108-110,123-129
+internal/tui/harness_test.go
+  h_d6e478ca18e517 87-96
+internal/tui/onboarding.go
+  h_d6e478ca18e517 76-77,91,765,869-870,879-882
+internal/tui/onboarding_telemetry_test.go
+  h_d6e478ca18e517 1-80
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  h_d6e478ca18e517 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "efeca53da71029b61a9584bd66adb2de3d31241d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
