@@ -673,12 +673,18 @@ func (s *Service) CloudflareRemove(ctx context.Context, opts CloudflareOptions) 
 	})
 	if err != nil {
 		rec.Warning = "Removal could not finish. Remote resources may remain; retain ownership and review Cloudflare or retry with a fresh private API token."
-		return s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec)))
+		return s.endCloudflareRun(errors.Join(err, writeCloudflareRecord(p, rec), s.refreshRunningDashboard(ctx)))
 	}
-	if err := s.saveCloudflareRecord(ctx, CloudflarePlan{}, nil); err != nil {
-		return s.endCloudflareRun(err)
+	err = s.saveCloudflareRecord(ctx, CloudflarePlan{}, nil)
+	return s.endCloudflareRun(errors.Join(err, s.refreshRunningDashboard(ctx)))
+}
+
+func (s *Service) refreshRunningDashboard(ctx context.Context) error {
+	ss, err := s.open(ctx)
+	if err != nil {
+		return err
 	}
-	return s.endCloudflareRun(nil)
+	return ss.refreshRunningDashboard(ctx)
 }
 
 // stopCloudflareConnector removes the connector and forgets its run token,

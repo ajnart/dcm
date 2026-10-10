@@ -8,18 +8,22 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/cloudflaretunnel"
 	"github.com/ajnart/self-host/internal/apps/homarr"
 	tsapp "github.com/ajnart/self-host/internal/apps/tailscale"
 	"github.com/ajnart/self-host/internal/apps/vaultwarden"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
+	"github.com/ajnart/self-host/internal/cloudflare/cloudflaretest"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/service"
@@ -1277,6 +1281,135 @@ func TestHomarrBeforeTailscaleFinishesWithFreshPrivateNavigation(t *testing.T) {
 		if a.ID == "vaultwarden" && (a.URL != "https://vaultwarden-2.example.ts.net/custom/path?view=all" || len(a.Addresses) != 2 || a.Addresses[1] != "http://192.168.1.20:8222/custom/path?view=all") {
 			t.Fatalf("final Status = %+v", a)
 		}
+	}
+}
+
+type navigationPublicationHTTP struct {
+	server      *cloudflaretest.Server
+	homarrCalls atomic.Int64
+}
+
+func (tr *navigationPublicationHTTP) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Hostname() == "127.0.0.1" {
+		tr.homarrCalls.Add(1)
+		return http.DefaultTransport.RoundTrip(req)
+	}
+	if req.URL.Hostname() == "api.cloudflare.com" {
+		copy := req.Clone(req.Context())
+		target, _ := url.Parse(tr.server.URL)
+		copy.URL.Scheme, copy.URL.Host = target.Scheme, target.Host
+		return http.DefaultTransport.RoundTrip(copy)
+	}
+	return &http.Response{StatusCode: 302, Header: http.Header{"Location": {"https://myteam.cloudflareaccess.com/login"}}, Body: http.NoBody, Request: req}, nil
+}
+
+func TestCloudflareShutdownReconcilesRunningHomarrNavigation(t *testing.T) {
+	for _, operation := range []string{"remove", "stop", "remove-stopped-homarr", "stop-project", "partial-remove", "partial-stop", "failed-stop-running"} {
+		t.Run(operation, func(t *testing.T) {
+			fake := newFake()
+			srv := serve(t, fake)
+			deps := systemtest.NewDeps(t)
+			connectorRunning := false
+			homarrRunning := true
+			deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+				line := systemtest.Line(cmd)
+				if strings.Contains(line, " up -d ") && strings.Contains(line, "cloudflare-tunnel") {
+					connectorRunning = true
+				}
+				if strings.Contains(line, " rm ") && strings.Contains(line, "cloudflare-tunnel") {
+					connectorRunning = false
+				}
+				if strings.Contains(line, " stop ") && strings.Contains(line, "cloudflare-tunnel") {
+					if operation == "failed-stop-running" {
+						return system.Result{ExitCode: 1, Stderr: []byte("stop failed before changing containers")}
+					}
+					connectorRunning = false
+					if operation == "stop-project" {
+						homarrRunning = false
+					}
+					if operation == "partial-stop" {
+						return system.Result{ExitCode: 1, Stderr: []byte("stop failed after stopping the connector")}
+					}
+				}
+				if strings.Contains(line, " ps ") {
+					state := "exited"
+					if connectorRunning {
+						state = "running"
+					}
+					homarrState := "exited"
+					if homarrRunning {
+						homarrState = "running"
+					}
+					return system.Result{Stdout: []byte(`[{"Service":"homarr","State":"` + homarrState + `"},{"Service":"vaultwarden","State":"running"},{"Service":"cloudflare-tunnel","State":"` + state + `"}]`)}
+				}
+				return system.Result{}
+			})
+			svc := service.New(deps, events.Discard(), catalog.New([]app.App{navigationTarget{}, homarr.App{}, cloudflaretunnel.App{}}, nil))
+			if err := svc.Install(t.Context(), service.InstallOptions{Targets: []string{"vaultwarden", "homarr"}, Sets: []string{"homarr.port=" + clitest.Port(srv)}}); err != nil {
+				t.Fatal(err)
+			}
+			server := cloudflaretest.New(t, cloudflaretest.Options{Token: "private-navigation-fixture", Domain: "example.com", Team: "myteam"})
+			transport := &navigationPublicationHTTP{server: server}
+			deps.HTTP = &http.Client{Transport: transport}
+			opts := service.CloudflareOptions{Domain: "example.com", Emails: []string{"alice@example.org"}, Apps: []string{"vaultwarden"}, Allow: []string{"vaultwarden"}, APIToken: "private-navigation-fixture", AcceptPublic: true}
+			if _, err := svc.CloudflarePublish(t.Context(), opts); err != nil {
+				t.Fatal(err)
+			}
+			fake.mu.Lock()
+			if len(fake.apps) != 1 || fake.apps[0]["href"] != "https://vaultwarden.example.com/custom/path?view=all" {
+				t.Fatalf("published tile = %v", fake.apps)
+			}
+			fake.mu.Unlock()
+			before := transport.homarrCalls.Load()
+			beforeCommands := len(deps.Runner.(*systemtest.Runner).Calls())
+			if operation == "remove-stopped-homarr" {
+				homarrRunning = false
+			}
+			if operation == "partial-remove" {
+				server.SetFailure("DELETE", "/accounts/acct-1/cfd_tunnel/tunnel-1/connections")
+			}
+			var shutdownErr error
+			if strings.Contains(operation, "remove") {
+				shutdownErr = svc.CloudflareRemove(t.Context(), opts)
+			} else if operation == "stop-project" {
+				shutdownErr = svc.Stop(t.Context(), nil)
+			} else {
+				shutdownErr = svc.Stop(t.Context(), []string{"cloudflare-tunnel"})
+			}
+			wantError := strings.HasPrefix(operation, "partial-") || operation == "failed-stop-running"
+			if (shutdownErr != nil) != wantError {
+				t.Fatalf("shutdown error = %v", shutdownErr)
+			}
+			for _, line := range deps.Runner.(*systemtest.Runner).Calls()[beforeCommands:] {
+				if strings.Contains(line, " up -d ") {
+					t.Fatalf("shutdown started containers: %s", line)
+				}
+			}
+			status, err := svc.Status(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := "http://192.168.1.20:8222/custom/path?view=all"
+			if operation == "failed-stop-running" {
+				want = "https://vaultwarden.example.com/custom/path?view=all"
+			}
+			for _, a := range status.Apps {
+				if a.ID == "vaultwarden" && a.URL != want {
+					t.Fatalf("removed Status = %+v", a)
+				}
+			}
+			fake.mu.Lock()
+			defer fake.mu.Unlock()
+			if !homarrRunning {
+				if transport.homarrCalls.Load() != before {
+					t.Fatal("shutdown configured stopped Homarr")
+				}
+				want = "https://vaultwarden.example.com/custom/path?view=all"
+			}
+			if len(fake.apps) != 1 || fake.apps[0]["href"] != want || fake.apps[0]["pingUrl"] != "http://vaultwarden:80" {
+				t.Fatalf("removed tile = %v", fake.apps)
+			}
+		})
 	}
 }
 
