@@ -754,7 +754,7 @@ func validBackupAppID(id string) error {
 }
 
 // restoreRecords merges secrets and state for the restored Apps.
-func (ss *session) restoreRecords(staging string, targets []string, fresh bool) error {
+func (ss *session) restoreRecords(staging string, targets []string, initialAdmin bool) error {
 	backupProject := &project.Project{Root: staging}
 	secrets, err := backupProject.LoadSecrets()
 	if err != nil {
@@ -764,21 +764,24 @@ func (ss *session) restoreRecords(staging string, targets []string, fresh bool) 
 	if err != nil {
 		return err
 	}
-	if fresh {
-		ss.secrets.values = secrets
-	} else {
-		for key, value := range secrets {
-			for _, id := range targets {
-				if strings.HasPrefix(key, SecretKey(id, "")) {
-					ss.secrets.values[key] = value
-				}
+	if initialAdmin && ss.secrets.values["ADMIN_USER"] == "" && ss.secrets.values["ADMIN_PASSWORD"] == "" {
+		ss.secrets.values["ADMIN_USER"] = secrets["ADMIN_USER"]
+		ss.secrets.values["ADMIN_PASSWORD"] = secrets["ADMIN_PASSWORD"]
+	}
+	for key, value := range secrets {
+		if key == "ADMIN_USER" || key == "ADMIN_PASSWORD" {
+			continue
+		}
+		for _, id := range targets {
+			if strings.HasPrefix(key, SecretKey(id, "")) {
+				ss.secrets.values[key] = value
 			}
 		}
-		if secrets["ADMIN_PASSWORD"] != ss.secrets.values["ADMIN_PASSWORD"] {
-			ss.s.Log.Emit(events.Event{Event: events.StepWarn, Step: "admin-login",
-				Msg:  "the backup used a different Admin login than this Project",
-				Hint: "Run self-host setup " + strings.Join(targets, " ") + " to switch the restored Apps to the current Admin login."})
-		}
+	}
+	if secrets["ADMIN_USER"] != ss.secrets.values["ADMIN_USER"] || secrets["ADMIN_PASSWORD"] != ss.secrets.values["ADMIN_PASSWORD"] {
+		ss.s.Log.Emit(events.Event{Event: events.StepWarn, Step: "admin-login",
+			Msg:  "the backup used a different Admin login than this Project",
+			Hint: "Run self-host setup " + strings.Join(targets, " ") + " to switch the restored Apps to the current Admin login."})
 	}
 	registerSecrets(ss.s.Log, ss.secrets.values)
 	if err := ss.p.SaveSecrets(ss.secrets.values); err != nil {

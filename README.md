@@ -197,6 +197,10 @@ Startup approval is saved before settings edits. Restore saves its original
 startup targets before initializing or replacing files, so a failed start can
 be retried without treating those targets as deliberately stopped. The retry
 is scoped to the same backup and targets; `down` cancels it.
+Retry merges only the selected Apps' records, preserving credentials, state and
+files of Apps installed in the meantime. The initial Admin login is restored
+only while absent; a newer login is kept. `down` also cancels pending Restore
+before a Project exists, without creating settings or starting containers.
 
 Access changes never silently reinstall Apps. If changing an origin would
 replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses

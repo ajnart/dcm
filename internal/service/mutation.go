@@ -76,7 +76,7 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if err != nil {
 		return err
 	}
-	if !p.Exists() && c.initialize == nil {
+	if !p.Exists() && c.initialize == nil && c.compose != composeDown {
 		return ErrNoProject
 	}
 	unlock, err := p.LockContext(ctx, s.Deps.PID, s.Deps.ProcessAlive)
@@ -90,6 +90,16 @@ func (s *Service) run(ctx context.Context, c change) error {
 func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if !p.Exists() && c.compose == composeDown {
+		pending, err := p.LoadRestoreStartup()
+		if err != nil {
+			return err
+		}
+		if pending == nil {
+			return ErrNoProject
+		}
+		return s.finish(p.ClearRestoreStartup(""))
 	}
 	if c.preflight != nil {
 		if err := c.preflight(ctx, p); err != nil {

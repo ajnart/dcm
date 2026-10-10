@@ -398,6 +398,11 @@ retaining them until successful apply or `down`. Retry the same backup and
 target selection; another Restore with pending startup requires completing or
 explicitly cancelling the original Action first. Previously stopped targets
 remain outside that startup approval.
+Fresh startup approval does not authorize replacing current credentials on
+retry. Only selected App records are merged; an initial Admin login is filled
+only while absent, preserving newer logins and unrelated App credentials.
+`down` can cancel pending Restore before Project initialization without
+creating settings or credentials or calling Compose.
 
 Config changes validate merged settings under the lock. If changing an origin
 would rewrite a customized Paperless-ngx or Vaultwarden fragment, the command
