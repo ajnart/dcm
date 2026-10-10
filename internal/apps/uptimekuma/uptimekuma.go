@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "uptime-kuma", Name: "Uptime Kuma", Category: "Monitoring",
-		Description:   "Checks your services and alerts you when they go down",
+		Description:   "Get an alert when one of your websites or apps stops working",
 		Image:         "louislam/uptime-kuma:2.5.5",
 		Docs:          "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
 		Port:          3001,

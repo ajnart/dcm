@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "aria2", Name: "Aria2", Category: "Downloads",
-		Description:   "A private download daemon that serves a token-authenticated JSON-RPC control API.",
+		Description:   "Download files and torrents in the background, controlled by other tools",
 		Image:         "snowdreamtech/aria2:1.37.0-debian",
 		Docs:          "https://aria2.github.io/manual/en/html/",
 		Port:          6800,

@@ -71,6 +71,24 @@ func (s *Service) Resolve(targets []string) ([]app.App, error) {
 	return apps, nil
 }
 
+// recipeOf maps each App to the first Recipe named in targets that includes
+// it; an App named only by its own ID has none.
+func (s *Service) recipeOf(targets []string) map[string]string {
+	out := map[string]string{}
+	for _, target := range targets {
+		recipe, found := s.Catalog.Recipe(target)
+		if !found {
+			continue
+		}
+		for _, id := range recipe.Apps {
+			if _, taken := out[id]; !taken {
+				out[id] = recipe.ID
+			}
+		}
+	}
+	return out
+}
+
 // resolveInputs applies sets and defaults and reports missing required inputs.
 func resolveInputs(apps []app.App, sets []string, previous map[string]map[string]string) (map[string]map[string]string, error) {
 	scoped := map[string]map[string]string{}
@@ -218,6 +236,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 		return err
 	}
 
+	recipes := s.recipeOf(opts.Targets)
 	names := make([]string, len(apps))
 	for i, a := range apps {
 		names[i] = a.Info().ID
@@ -244,7 +263,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 				info := a.Info()
 				st := ss.state.Apps[info.ID]
 				if st == nil {
-					st = &project.AppState{Setup: stepstatus.SetupPending}
+					st = &project.AppState{Setup: stepstatus.SetupPending, Recipe: recipes[info.ID]}
 					ss.state.Apps[info.ID] = st
 				}
 				values := inputs[info.ID]

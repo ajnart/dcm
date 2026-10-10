@@ -18,7 +18,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "lldap", Name: "LLDAP", Category: "Identity",
-		Description:   "Lightweight user directory that serves LDAP and a simple web admin to Apps on your network",
+		Description:   "Keep one list of users and passwords that your apps can share",
 		Image:         "lldap/lldap:2026-08-28",
 		Docs:          "https://github.com/lldap/lldap/blob/main/docs/install.md",
 		Port:          17170,

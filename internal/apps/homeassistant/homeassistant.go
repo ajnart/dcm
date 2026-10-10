@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "home-assistant", Name: "Home Assistant", Category: "Home automation",
-		Description:   "Open-source home automation hub that ties your smart devices together",
+		Description:   "Control and automate your lights, sensors and smart home devices",
 		Image:         "ghcr.io/home-assistant/home-assistant:2026.9.3",
 		Docs:          "https://www.home-assistant.io/installation/",
 		Port:          8123,

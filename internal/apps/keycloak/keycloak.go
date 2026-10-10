@@ -22,7 +22,7 @@ const service = "keycloak"
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "keycloak", Name: "Keycloak", Category: "Identity",
-		Description:   "OpenID Connect single sign-on with an administration console",
+		Description:   "Manage logins in one place, so people sign in once to reach many apps",
 		Image:         "quay.io/keycloak/keycloak:26.7.4",
 		Docs:          "https://www.keycloak.org/server/configuration-production",
 		Port:          8080,

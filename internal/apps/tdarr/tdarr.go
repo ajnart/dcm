@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "tdarr", Name: "Tdarr", Category: "Media",
-		Description:   "Monitors a media library and transcodes files you choose",
+		Description:   "Shrink and convert your video files automatically to save space",
 		Image:         "ghcr.io/haveagitgat/tdarr:2.92.01",
 		Docs:          "https://docs.tdarr.io/",
 		Port:          8265,

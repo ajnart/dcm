@@ -26,7 +26,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "wud", Name: "What's Up Docker", Category: "Containers",
-		Description:   "Tracks container image updates so you can choose when to upgrade",
+		Description:   "Tell you when new versions of your apps are available",
 		Image:         "getwud/wud:9.1.0",
 		Docs:          "https://getwud.app/docs/",
 		Port:          18083,

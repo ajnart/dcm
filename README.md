@@ -122,7 +122,6 @@ paste a token into commands or reports.
 To build the current development source from an authenticated checkout:
 
 ```bash
-cd new-cli
 go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
 /tmp/self-host --help
 ```
@@ -372,7 +371,9 @@ retired without established ownership and approval.
 
 ## Cannot reach an App from another device
 
-Start with `self-host status` and `self-host doctor`. Check the recorded
+For one broken App, `self-host debug <app>` (or `--json`) prints its state,
+failed steps with hints, the last 100 log lines with secrets masked, and its
+health-check URL. Start with `self-host status` and `self-host doctor`. Check the recorded
 Exposure and URL, Docker availability, published ports, and the host firewall.
 `local` binds to loopback. To deliberately allow LAN access:
 
@@ -447,7 +448,7 @@ workload recovery remain distinct claims.
 | Dashboard/Activity | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
 | Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
 | Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps | Lifecycle/Backup for manually added Compose App folders. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
+| Unmanaged Apps | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
 | VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,

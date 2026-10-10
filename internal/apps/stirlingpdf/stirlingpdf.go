@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "stirling-pdf", Name: "Stirling PDF", Category: "Documents",
-		Description:   "A private toolbox for editing, merging, converting and signing PDF files.",
+		Description:   "Edit, merge, convert and sign PDF files without uploading them anywhere",
 		Image:         "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
 		Docs:          "https://docs.stirlingpdf.com/",
 		Port:          8080,

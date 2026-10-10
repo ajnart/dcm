@@ -23,7 +23,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "tracearr", Name: "Tracearr", Category: "Media",
-		Description:   "Turns your media server's play history into private session analytics",
+		Description:   "See who watches what on your media server, and when",
 		Image:         "ghcr.io/connorgallopo/tracearr:2.6.0",
 		Docs:          "https://docs.tracearr.com/getting-started/installation",
 		Port:          3000,

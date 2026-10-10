@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "renovate", Name: "Renovate", Category: "Developer tools",
-		Description:   "Opens dependency-update pull requests on your Git forge from an explicit repository allowlist",
+		Description:   "Automatically suggest updates for the software your code projects depend on",
 		Image:         "ghcr.io/renovatebot/renovate:44.132.2",
 		Docs:          "https://docs.renovatebot.com/",
 		Port:          0,

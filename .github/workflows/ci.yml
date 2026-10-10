@@ -20,10 +20,16 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - name: Vet
-        run: go vet ./... && go vet -tags e2e ./e2e/
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Build and vet
+        run: go build ./... && go vet ./... && go vet -tags e2e ./e2e/
       - name: Test
         run: go test ./...
+      - name: Race
+        run: go test -race ./internal/tui/ ./internal/activity/
+      - name: Installer syntax
+        run: bash -n install.sh
 
   native-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'

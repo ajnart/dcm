@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "ollama", Name: "Ollama", Category: "Local AI",
-		Description:   "Run local language models and query them over a private HTTP API.",
+		Description:   "Run AI chat models on your own computer, with nothing sent to the cloud",
 		Image:         "ollama/ollama:0.34.1",
 		Docs:          "https://github.com/ollama/ollama/blob/main/docs/docker.md",
 		Port:          11434,

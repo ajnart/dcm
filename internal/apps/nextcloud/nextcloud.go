@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "nextcloud", Name: "Nextcloud", Category: "Files",
-		Description:   "Keeps your files, calendars and contacts in sync across your devices",
+		Description:   "Keep your files, calendars and contacts in sync across your devices",
 		Image:         "nextcloud:35.0.1-apache",
 		Docs:          "https://github.com/nextcloud/docker",
 		Port:          8080,

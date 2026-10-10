@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "adguard-home", Name: "AdGuard Home", Category: "DNS",
-		Description:   "Network-wide DNS ad blocking with a private administration UI",
+		Description:   "Block ads and trackers on every device at home, with a simple control page",
 		Image:         "adguard/adguardhome:v0.107.79",
 		Docs:          "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
 		Port:          3000,

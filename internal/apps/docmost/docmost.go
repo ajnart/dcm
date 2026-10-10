@@ -24,7 +24,7 @@ func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" 
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "docmost", Name: "Docmost", Category: "Productivity",
-		Description:   "Collaborative wiki and documentation workspace for your household",
+		Description:   "Write and share notes and documents with your family or team",
 		Image:         "docker.io/docmost/docmost:0.96.0",
 		Docs:          "https://docmost.com/docs/installation",
 		Port:          3000,

@@ -25,7 +25,7 @@ func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" 
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "firefly-iii", Name: "Firefly III", Category: "Productivity",
-		Description:   "Track your income, expenses and budgets in a private ledger",
+		Description:   "Track your income, expenses and budgets in one private place",
 		Image:         "fireflyiii/core:version-6.7.2",
 		Docs:          "https://docs.firefly-iii.org/how-to/firefly-iii/installation/docker/",
 		Port:          8080,

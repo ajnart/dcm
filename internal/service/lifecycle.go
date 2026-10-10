@@ -43,6 +43,7 @@ func (s *Service) Start(ctx context.Context, ids []string) error {
 		title:   strings.TrimSpace("start " + strings.Join(ids, " ")),
 		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
 		compose: composeUp,
+		after:   afterUnmanagedDashboard,
 	})
 }
 

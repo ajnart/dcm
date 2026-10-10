@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "borgmatic", Name: "Borgmatic", Category: "Backups",
-		Description:   "Runs Borg backups from a config file you review, keeping the passphrase in a private file",
+		Description:   "Back up your files on a schedule, safely encrypted",
 		Image:         "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
 		Docs:          "https://torsion.org/borgmatic/docs/",
 		Port:          0,
