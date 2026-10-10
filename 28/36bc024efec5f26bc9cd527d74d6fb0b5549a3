@@ -1,0 +1,18 @@
+README.md
+  h_d6e478ca18e517 265-269,285-287,289-290
+internal/tui/model.go
+  h_d6e478ca18e517 397-402
+internal/tui/onboarding_flow_test.go
+  h_d6e478ca18e517 97-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2836bc024efec5f26bc9cd527d74d6fb0b5549a3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
