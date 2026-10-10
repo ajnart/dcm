@@ -1,0 +1,57 @@
+internal/activity/terminal.go
+  s_59ffa5bfdcd3ba::t_5f16cfdce679f3 14,52,132-141,144-147,160-169
+internal/activity/terminal_test.go
+  s_59ffa5bfdcd3ba::t_fe56b7571531ae 13,109-131
+internal/cli/telemetry.go
+  s_59ffa5bfdcd3ba::t_113557cabdbe21 74-81
+internal/cli/telemetry_test.go
+  s_59ffa5bfdcd3ba::t_40f5d5112863a2 5,9,17-18,42-117,257-270,349,380-382,517-529
+internal/service/backup_docker.go
+  s_59ffa5bfdcd3ba::t_2097e18fdecf3a 180-184,186-194,196-197,199-205,207-214
+internal/service/telemetry.go
+  s_59ffa5bfdcd3ba::t_48903adbc6dc77 3,15
+internal/service/updates.go
+  s_59ffa5bfdcd3ba::t_85cef8ff0c7b9b 27,37-43,47-51
+internal/service/updates_test.go
+  s_59ffa5bfdcd3ba::t_b64070783a98bb 1-58
+internal/system/configfiles.go
+  s_59ffa5bfdcd3ba::t_35ba2ff3205dbe 1-119
+internal/system/configfiles_test.go
+  s_59ffa5bfdcd3ba::t_7eb2b89ccd94f5 1-155
+internal/system/panic.go
+  s_59ffa5bfdcd3ba::t_f68fb89d987d30 1-23
+internal/system/real.go
+  s_59ffa5bfdcd3ba::t_481b2dbb1759b6 76-89
+internal/system/system.go
+  s_59ffa5bfdcd3ba::t_849065a7fbb60c 66
+internal/systemtest/configfiles.go
+  s_59ffa5bfdcd3ba::t_71c5e56bb44b24 1-58
+internal/systemtest/systemtest.go
+  s_59ffa5bfdcd3ba::t_f4fcfbd24b3e36 199-210
+internal/telemetry/telemetry.go
+  s_59ffa5bfdcd3ba::t_68856f46f704eb 77,205-218
+internal/telemetry/telemetry_test.go
+  s_59ffa5bfdcd3ba::t_f8f4fd13a4d4b5 14,18,202-204,236-270
+internal/telemetry/telemetrytest/telemetrytest.go
+  s_59ffa5bfdcd3ba::t_a3755f0641fc69 12-13,174
+internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_d362fc43f30625 149,163,168,172-182,342-344
+internal/tui/onboarding_telemetry_test.go
+  s_59ffa5bfdcd3ba::t_6f1efff6266c06 6,18,37-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3f9395bac3d509d176f94e793d6e8847bfe795c",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
