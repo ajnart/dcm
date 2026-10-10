@@ -201,8 +201,10 @@ func (c *Client) setIngress(ctx context.Context, account, tunnel string, config 
 }
 
 type policyInfo struct {
-	ID, Name string
-	Include  []map[string]map[string]string
+	ID, Name         string
+	Include          []map[string]map[string]string
+	Decision         string
+	Exclude, Require []any
 }
 
 func (c *Client) policy(ctx context.Context, account, name string) (*policyInfo, error) {
@@ -233,7 +235,7 @@ func policyBody(name string, emails []string) map[string]any {
 	for i, e := range emails {
 		include[i] = map[string]any{"email": map[string]string{"email": e}}
 	}
-	return map[string]any{"name": name, "decision": "allow", "include": include, "session_duration": "24h"}
+	return map[string]any{"name": name, "decision": "allow", "include": include, "exclude": []any{}, "require": []any{}, "session_duration": "24h"}
 }
 
 type accessApp struct {

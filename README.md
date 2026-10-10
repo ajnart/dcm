@@ -174,14 +174,14 @@ Run `self-host doctor` before installation. With rootless Docker, compatible
 images may require container `PUID=0 PGID=0`; host filesystem ownership remains
 the invoking user. Images with fixed container UIDs need separate handling.
 
-| Platform | Binary target | Current validation |
-| --- | --- | --- |
-| Linux amd64 | Yes | Published host install/update and clean Alpine bootstrap/update passed. |
-| Linux arm64 | Yes | Native CLI/local archive checks passed; image support varies by App. |
-| macOS arm64 | Yes | Native CLI/local archive checks passed; deployment requires a Linux Docker VM. |
-| Intel macOS | Yes | Native CLI execution, local checksummed install and corruption rejection passed. |
-| WSL2 | Linux binary inside WSL | Planned path; native WSL validation pending. |
-| Native Windows | No | Unsupported. |
+| Platform       | Binary target           | Current validation                                                               |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| Linux amd64    | Yes                     | Published host install/update and clean Alpine bootstrap/update passed.          |
+| Linux arm64    | Yes                     | Native CLI/local archive checks passed; image support varies by App.             |
+| macOS arm64    | Yes                     | Native CLI/local archive checks passed; deployment requires a Linux Docker VM.   |
+| Intel macOS    | Yes                     | Native CLI execution, local checksummed install and corruption rejection passed. |
+| WSL2           | Linux binary inside WSL | Planned path; native WSL validation pending.                                     |
+| Native Windows | No                      | Unsupported.                                                                     |
 
 [Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
 and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
@@ -225,10 +225,13 @@ network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Only Home network exists yet: the others are dimmed and marked
-coming soon, `enter` on one only says so, and nothing changes. In Settings, the
+question mark. Home network and Your own web address are available. The latter
+opens a guided Cloudflare flow in Settings after the Apps finish installing;
+it chooses Apps individually and asks a separate yes before publication.
+Options marked coming soon change nothing. In Settings, the
 Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
-applies it. **Who** sets the one Admin login for every App: a password
+applies Home network changes; Your own web address has its own review and yes.
+**Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look
@@ -239,6 +242,36 @@ comparing the time left to something small, then hands over to the Dashboard
 with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
 Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
 motion without colour. `esc` goes back one step and keeps your answers.
+
+### Your own web address
+
+Use a main domain already **active** on Cloudflare. First finish Zero Trust
+onboarding at https://one.dash.cloudflare.com: a team name, the **Free plan**
+(50 users) and a required payment method that is **not charged**. Create a custom
+API token under My Profile > API Tokens, limited to one account and one zone:
+Account **Cloudflare Tunnel: Edit**, **Access: Apps and Policies: Edit**,
+**Access: Organizations, Identity Providers, and Groups: Edit**; Zone
+**DNS: Edit** and **Zone: Read**. Hand it over privately, never through chat.
+
+Settings > Access > Your own web address guides the domain, allowed emails,
+hidden token and individual App choices. Nothing is selected by default;
+normally private categories require naming the App and accepting its risk.
+Apps without a web page cannot be published. The separate final yes names
+the risk of strangers reaching the login page and Cloudflare seeing traffic.
+Cloudflare's terms restrict video streaming; phone and TV apps cannot pass
+the PIN login. **Use Tailscale for streaming and native clients instead.**
+
+For agents, `self-host cloudflare plan --domain example.com --email
+alice@example.org --app paperless-ngx --json` previews without network calls.
+After the person's separate yes, use `self-host cloudflare publish` with the
+same choices, `--set-file cloudflare.api_token=/private/token` and
+`--accept-public`. The file must be owner-only (0600); `=-` reads private stdin.
+Changes and `self-host cloudflare remove --set-file
+cloudflare.api_token=/private/token --yes` need the API token afresh. Only the
+tunnel run token is saved. HTTPS Addresses appear only after an outside 302
+to the team's login page; a failed probe deletes DNS. `IP:port` stays available.
+The shared PIN provider and organization survive removal. Run `self-host skill`
+for the full procedure and warnings.
 
 The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
 The header names the Project, its LAN address, the host's health and the
@@ -255,15 +288,15 @@ that resolves it, such as `a r` (retry Setup), or the command to run. `tab`
 focuses Needs attention: `a` then opens the Action menu for that item's App
 with its Action highlighted, and `enter` opens the App on the Apps tab.
 
-| Dashboard key | Action |
-| --- | --- |
-| 1–5, ←/→ | Switch tabs. |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About). |
-| a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
-| enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
-| / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
-| ?, q | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
+| Dashboard key   | Action                                                                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1–5, ←/→        | Switch tabs.                                                                                                                                                              |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                                                                                                                       |
+| [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
+| a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
+| enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy.                                                     |
+| /               | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog.                                                                          |
+| ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
 Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
@@ -361,17 +394,17 @@ chat replies, screenshots and ordinary evidence.
 
 ## Daily commands
 
-| Command | Effect |
-| --- | --- |
-| `status [--updates]` | Show URLs, container state, health and Setup; optionally check image updates. |
-| `setup [app...]` | Retry unfinished Setup. |
-| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted. |
-| `update [app...]` | Pull images, recreate Apps and rerun checks. |
-| `logs <app> [--follow] [--tail N]` | Read container logs; default tail is 200 lines. |
-| `remove <app>... [--yes]` | Remove Apps while keeping data; `--purge` also deletes their data folders. |
-| `config set KEY=value...` | Change Host settings and recreate affected Apps. |
-| `config review [--yes]` | Review current host drift; `--yes` applies detected LAN IP/time zone fixes. |
-| `self-update` | Replace a release binary with the latest stable checksummed CLI release. |
+| Command                             | Effect                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `status [--updates]`                | Show URLs, container state, health and Setup; optionally check image updates. |
+| `setup [app...]`                    | Retry unfinished Setup.                                                       |
+| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted.                      |
+| `update [app...]`                   | Pull images, recreate Apps and rerun checks.                                  |
+| `logs <app> [--follow] [--tail N]`  | Read container logs; default tail is 200 lines.                               |
+| `remove <app>... [--yes]`           | Remove Apps while keeping data; `--purge` also deletes their data folders.    |
+| `config set KEY=value...`           | Change Host settings and recreate affected Apps.                              |
+| `config review [--yes]`             | Review current host drift; `--yes` applies detected LAN IP/time zone fixes.   |
+| `self-update`                       | Replace a release binary with the latest stable checksummed CLI release.      |
 
 Prefix each with `self-host`. `--verbose` (`-v`) adds command and step details.
 Use `--yes` for approved noninteractive install, remove and restore operations;
@@ -460,15 +493,15 @@ at one immutable head. The terminal screenshots above use that same fixture
 and binary. API payload checks, archive sentinels, browser review and full
 workload recovery remain distinct claims.
 
-| Capability | Available behavior | Evidence limit |
-| --- | --- | --- |
-| Catalog install | Compiled Compose definitions and App inputs. | All-catalog runtime acceptance is incomplete. |
-| Setup and Links | Per-App API/configuration routines; retry unfinished steps. | Browser-only tasks, external credentials and remote enrollment may need you. |
-| Dashboard/Activity | TUI, persisted stages, retry hints and live progress. | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate. |
-| Lifecycle/update | Project-scoped commands and image refreshes. | Update checks do not establish safe version-to-version migration. |
-| Backup/Restore | Compressed archives, optional encryption, selected-App restore. | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`. |
-| VPN/public access | App configuration where implemented. | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof. |
+| Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Catalog install    | Compiled Compose definitions and App inputs.                                               | All-catalog runtime acceptance is incomplete.                                                  |
+| Setup and Links    | Per-App API/configuration routines; retry unfinished steps.                                | Browser-only tasks, external credentials and remote enrollment may need you.                   |
+| Dashboard/Activity | TUI, persisted stages, retry hints and live progress.                                      | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate.         |
+| Lifecycle/update   | Project-scoped commands and image refreshes.                                               | Update checks do not establish safe version-to-version migration.                              |
+| Backup/Restore     | Compressed archives, optional encryption, selected-App restore.                            | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
+| Unmanaged Apps     | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`.                                 |
+| VPN/public access  | App configuration where implemented.                                                       | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof.                  |
 
 [Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,
 per-target outcomes and the limits of generic checks. Manual, blocked,

@@ -26,7 +26,9 @@ type Options struct {
 	// OTP starts the account with a one-time-PIN identity provider.
 	OTP bool
 	// Records are DNS records that exist before self-host runs.
-	Records []Record
+	Records    []Record
+	FailMethod string
+	FailPath   string
 }
 
 // Record is one DNS record.
@@ -233,6 +235,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal(data, &req.Body)
 	}
 	s.requests = append(s.requests, req)
+	if req.Method == s.opts.FailMethod && req.Path == s.opts.FailPath {
+		fail(w, http.StatusServiceUnavailable, 1000, "temporary failure")
+		return
+	}
 	if r.Header.Get("Authorization") != "Bearer "+s.opts.Token {
 		fail(w, http.StatusForbidden, 10000, "Authentication error")
 		return

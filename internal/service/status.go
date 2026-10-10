@@ -90,6 +90,11 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if rec, _, err := loadCloudflareRecord(ss.p); err != nil {
+		return Status{}, err
+	} else if len(rec.Hosts) > 0 {
+		status.Access = append(status.Access, CloudflareAccess)
+	}
 	if profile, err := ss.p.LoadProfile(); err == nil {
 		status.Profile = &profile
 	}
@@ -140,7 +145,8 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
 		}
 		if as.URL != "" {
-			as.Addresses = []string{as.URL}
+			as.Addresses = append(ss.cloudflareAddresses(id), as.URL)
+			as.URL = as.Addresses[0]
 		}
 		if id == dashboardAppID && len(as.Addresses) > 0 {
 			status.Dashboard = as.Addresses[0]

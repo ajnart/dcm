@@ -3,10 +3,13 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Host is one App published at a name.
@@ -37,10 +40,12 @@ type Probe struct {
 
 // Hooks are the parts of Publish that are not API calls.
 type Hooks struct {
+	Prepare func(context.Context) error
 	// Progress reports each stage in plain words.
 	Progress func(msg string)
 	// StartConnector runs cloudflared with the tunnel's run token.
 	StartConnector func(ctx context.Context, runToken string) error
+	StopConnector  func(ctx context.Context) error
 	// Probe asks for a name from outside the Project, with no cookies.
 	Probe func(ctx context.Context, name string) (Probe, error)
 }
@@ -73,8 +78,7 @@ func Publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 	return res, explain(err)
 }
 
-func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, error) {
-	var res Result
+func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (res Result, runErr error) {
 	hooks.progress("checking your domain and Zero Trust on Cloudflare")
 	zone, account, err := c.zone(ctx, spec.Domain)
 	if err != nil {
@@ -83,20 +87,11 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 	if res.Team, err = c.team(ctx, account); err != nil {
 		return res, err
 	}
-	existing := map[string]*dnsRecord{}
-	for _, h := range spec.Hosts {
-		records, err := c.dnsRecords(ctx, zone, h.Name)
-		if err != nil {
+	if hooks.Prepare != nil {
+		if err := hooks.Prepare(ctx); err != nil {
 			return res, err
 		}
-		for i, r := range records {
-			if r.Type != "CNAME" || r.Comment != spec.Comment {
-				return res, &ForeignRecordError{Name: h.Name}
-			}
-			existing[h.Name] = &records[i]
-		}
 	}
-
 	for _, name := range spec.Dropped {
 		if err := c.unpublish(ctx, zone, name, spec.Comment); err != nil {
 			return res, err
@@ -119,6 +114,24 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 			return res, err
 		}
 	}
+	defer func() {
+		if runErr == nil {
+			return
+		}
+		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
+		names := slices.Clone(spec.Dropped)
+		for _, h := range spec.Hosts {
+			names = append(names, h.Name)
+		}
+		if !found {
+			runErr = errors.Join(runErr, Remove(cleanup, c, RemoveSpec{Domain: spec.Domain, TunnelName: spec.TunnelName, PolicyName: spec.PolicyName, Comment: spec.Comment, Names: names}, RemoveHooks{StopConnector: hooks.StopConnector}))
+		} else {
+			for _, name := range names {
+				runErr = errors.Join(runErr, c.unpublish(cleanup, zone, name, spec.Comment))
+			}
+		}
+	}()
 	runToken, err := c.tunnelToken(ctx, account, tunnel)
 	if err != nil {
 		return res, err
@@ -154,6 +167,19 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 	}
 
 	hooks.progress("pointing your web addresses at the tunnel")
+	existing := map[string]*dnsRecord{}
+	for _, h := range spec.Hosts {
+		records, err := c.dnsRecords(ctx, zone, h.Name)
+		if err != nil {
+			return res, err
+		}
+		for i, r := range records {
+			if r.Type != "CNAME" || r.Comment != spec.Comment {
+				return res, &ForeignRecordError{Name: h.Name}
+			}
+			existing[h.Name] = &records[i]
+		}
+	}
 	records := map[string]string{}
 	for _, h := range spec.Hosts {
 		id, err := c.ensureRecord(ctx, zone, h.Name, tunnel, spec.Comment, existing[h.Name])
@@ -165,7 +191,7 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 
 	hooks.progress("checking each address from outside")
 	for _, h := range spec.Hosts {
-		reason := checkLogin(ctx, hooks, h.Name)
+		reason := checkLogin(ctx, hooks, h.Name, res.Team)
 		if reason == "" {
 			res.Verified = append(res.Verified, h.Name)
 			continue
@@ -179,7 +205,7 @@ func publish(ctx context.Context, c *Client, spec Spec, hooks Hooks) (Result, er
 }
 
 // checkLogin is empty when the name answers with a redirect to the login page.
-func checkLogin(ctx context.Context, hooks Hooks, name string) string {
+func checkLogin(ctx context.Context, hooks Hooks, name, team string) string {
 	if hooks.Probe == nil {
 		return "it could not be checked from this computer"
 	}
@@ -187,8 +213,8 @@ func checkLogin(ctx context.Context, hooks Hooks, name string) string {
 	if err != nil {
 		return "it could not be reached from this computer: " + err.Error()
 	}
-	if probe.Status >= 300 && probe.Status < 400 {
-		if target, err := url.Parse(probe.Location); err == nil && strings.HasSuffix(strings.ToLower(target.Hostname()), TeamSuffix) {
+	if probe.Status == 302 {
+		if target, err := url.Parse(probe.Location); err == nil && target.Scheme == "https" && target.User == nil && strings.EqualFold(target.Host, team+TeamSuffix) {
 			return ""
 		}
 	}
@@ -215,7 +241,7 @@ func (c *Client) ensurePolicy(ctx context.Context, account string, spec Spec) (s
 			return "", err
 		}
 		return created.ID, nil
-	case !sameSet(policy.emails(), emails):
+	case !sameSet(policy.emails(), emails) || len(policy.Include) != len(policy.emails()) || policy.Decision != "allow" || len(policy.Exclude) != 0 || len(policy.Require) != 0:
 		return policy.ID, c.do(ctx, "PUT", path+"/"+policy.ID, nil, policyBody(spec.PolicyName, spec.Emails), nil)
 	}
 	return policy.ID, nil
@@ -239,9 +265,18 @@ func (c *Client) ensureAccessApp(ctx context.Context, account string, h Host, po
 		if err := c.do(ctx, "POST", path, nil, accessAppBody(h.App, h.Name, policy, idp), &created); err != nil {
 			return "", err
 		}
+		if created.AUD == "" {
+			return "", fmt.Errorf("%s has no Access audience tag; it cannot be published safely", h.Name)
+		}
 		return created.AUD, nil
 	}
 	app := apps[0]
+	if len(apps) != 1 || app.Name != accessAppPrefix+h.App {
+		return "", fmt.Errorf("%s already has a login page managed by another tool; it was left alone", h.Name)
+	}
+	if app.AUD == "" {
+		return "", fmt.Errorf("%s has no Access audience tag; it cannot be published safely", h.Name)
+	}
 	if !slices.Equal(ids(app.Policies), []string{policy}) || !slices.Equal(app.AllowedIDPs, []string{idp}) {
 		if err := c.do(ctx, "PUT", path+"/"+app.ID, nil, accessAppBody(h.App, h.Name, policy, idp), nil); err != nil {
 			return "", err
@@ -425,6 +460,19 @@ func remove(ctx context.Context, c *Client, spec RemoveSpec, hooks RemoveHooks) 
 	if policy != nil {
 		if err := c.do(ctx, "DELETE", "/accounts/"+account+"/access/policies/"+policy.ID, nil, nil, nil); err != nil {
 			return err
+		}
+	}
+	if found {
+		config, err := c.ingress(ctx, account, tunnel)
+		if err != nil {
+			return err
+		}
+		if rules, ok := config["ingress"].([]any); ok {
+			for _, rule := range rules {
+				if route, ok := rule.(map[string]any); ok && route["hostname"] != nil {
+					return fmt.Errorf("the tunnel still serves other routes; its connector and tunnel were left running")
+				}
+			}
 		}
 	}
 	progress("stopping the connector and deleting the tunnel")

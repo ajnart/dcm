@@ -23,6 +23,7 @@ func (App) Info() app.Info {
 		Port:          0,
 		ContainerPort: 0,
 		Service:       "cloudflare-tunnel",
+		NoWebUI:       true,
 	}
 }
 
@@ -30,7 +31,7 @@ func (App) Inputs() []app.Input {
 	return []app.Input{{
 		Key:      "token",
 		Prompt:   "Cloudflare Tunnel connector token",
-		Help:     "The token shown for an existing named tunnel in the Cloudflare Zero Trust dashboard (Networks > Tunnels)",
+		Help:     "The tunnel run token, not the API token; self-host cloudflare publish obtains it automatically",
 		Required: true,
 		Private:  true,
 	}}

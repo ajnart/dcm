@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	stepstatus "github.com/ajnart/self-host/internal/status"
@@ -58,7 +59,7 @@ func (s *Service) Debug(ctx context.Context, id string) (DebugReport, error) {
 	report := DebugReport{ID: as.ID, Name: as.Name, Managed: as.Managed, State: as.State, Health: as.Health,
 		Setup: as.Setup, Image: as.Image, DockerError: status.DockerError, Logs: []string{}}
 	if as.URL != "" {
-		report.Addresses = []string{as.URL}
+		report.Addresses = slices.Clone(as.Addresses)
 		report.HealthCheck = DebugHealthCheck{URL: as.URL, Working: debugWorkingPage}
 	}
 	for _, step := range as.Steps {

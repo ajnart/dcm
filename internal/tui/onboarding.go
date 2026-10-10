@@ -46,7 +46,8 @@ const revealEvery = 6
 // every step's form, built afresh each time the step opens, shows them.
 type answers struct {
 	// exposure is the stored value of the Access chosen: lan, or local from the command line.
-	exposure string
+	exposure   string
+	cloudflare bool
 	// experience is the Experience level under the highlight at Welcome:
 	// new until the person chooses, or what the Profile already holds.
 	experience               string
@@ -630,6 +631,12 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
 		}
+		if choice.id == "cloudflare" {
+			o.answers.cloudflare = true
+			m.setFlash("Choose your web addresses in Settings after the Apps are installed; nothing goes public yet", levelInfo)
+			return m.openStep(stepWho)
+		}
+		o.answers.cloudflare = false
 		o.answers.exposure = choice.value
 	case stepLook:
 		m.glyphs = glyphChoices[o.look].glyphs
@@ -668,6 +675,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		return m, o.form.Init()
 	case stepAccess:
 		o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.value == o.answers.exposure }), 0)
+		if o.answers.cloudflare {
+			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "cloudflare" })
+		}
 	case stepLook:
 		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == m.glyphs })
 		o.look = max(o.look, 0)
@@ -935,7 +945,8 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, option.value == o.answers.exposure, accessLabel(t, option)), m.width-2))
+		selected := option.value != "" && option.value == o.answers.exposure || option.id == "cloudflare" && o.answers.cloudflare
+		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
 	room := m.mainHeight() - above - len(lines)
@@ -951,7 +962,11 @@ func (m Model) renderReview() []string {
 		lines = append(lines, "", truncate("  "+t.fg(t.fail).Render("✗ "+firstLine(o.err)), m.width),
 			"  "+t.dim().Render("Nothing was installed. Change what you need with esc, then approve again."))
 	}
-	return append(lines, planLines(t, o.plan)...)
+	lines = append(lines, planLines(t, o.plan)...)
+	if o.answers.cloudflare {
+		lines = append(lines, "", "  "+t.body().Render("Your own web address: choose Apps in Settings after install; nothing public yet"))
+	}
+	return lines
 }
 
 // renderPlan is the Catalog's review of an install.

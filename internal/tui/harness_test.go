@@ -532,6 +532,7 @@ func TestKeybindAudit(t *testing.T) {
 		"more: ?", "close: esc/?",
 		// Settings' Backups sub-tab.
 		"back up: b", "restore: enter",
+		"continue: enter", "choose App: y/n", "confirm word: enter",
 	}
 	ctx := testViewContext(&fakeBackend{})
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctx), newSettingsView(ctx), newHelpView()}

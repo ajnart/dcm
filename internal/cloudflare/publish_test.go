@@ -1,8 +1,10 @@
 package cloudflare_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
@@ -80,6 +82,34 @@ func TestNothingBecomesReachableBeforeTheTunnelThePolicyTheAccessAppsAndTheIngre
 	}
 
 	calls := w.server.Calls()
+	want := []string{
+		"GET /zones?name=example.com&status=active",
+		"GET /accounts/acct-1/access/organizations",
+		"GET /accounts/acct-1/access/identity_providers",
+		"POST /accounts/acct-1/access/identity_providers",
+		"GET /accounts/acct-1/cfd_tunnel?is_deleted=false&name=self-host",
+		"POST /accounts/acct-1/cfd_tunnel",
+		"GET /accounts/acct-1/cfd_tunnel/tunnel-1/token",
+		"GET /accounts/acct-1/access/policies",
+		"POST /accounts/acct-1/access/policies",
+		"GET /accounts/acct-1/access/apps?domain=paperless-ngx.example.com&exact=true",
+		"POST /accounts/acct-1/access/apps",
+		"GET /accounts/acct-1/access/apps?domain=jellyfin.example.com&exact=true",
+		"POST /accounts/acct-1/access/apps",
+		"GET /accounts/acct-1/cfd_tunnel/tunnel-1/configurations",
+		"PUT /accounts/acct-1/cfd_tunnel/tunnel-1/configurations",
+		"LOCAL start the connector",
+		"GET /zones/zone-1/dns_records?name=paperless-ngx.example.com",
+		"GET /zones/zone-1/dns_records?name=jellyfin.example.com",
+		"POST /zones/zone-1/dns_records",
+		"POST /zones/zone-1/dns_records",
+		"PROBE GET https://paperless-ngx.example.com/",
+		"PROBE GET https://jellyfin.example.com/",
+	}
+	if !slices.Equal(calls, want) {
+		t.Fatalf("ordered call log differs:\n%s", strings.Join(calls, "\n"))
+	}
+	t.Log("ordered call log for two Apps:\n" + strings.Join(calls, "\n"))
 	zone := indexOfCall(calls, "GET /zones?")
 	org := indexOfCall(calls, "GET /accounts/acct-1/access/organizations")
 	idp := indexOfCall(calls, "POST /accounts/acct-1/access/identity_providers")
@@ -184,6 +214,28 @@ func TestRunningAgainCreatesNothingTwice(t *testing.T) {
 	}
 }
 
+func TestFailedConnectorRollsBackInReverseWithoutDeletingPIN(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	hooks := w.hooks()
+	hooks.StartConnector = func(context.Context, string) error { return errors.New("connector failed") }
+	hooks.StopConnector = func(context.Context) error { w.server.Mark("LOCAL", "stop the connector"); return nil }
+	_, err := cloudflare.Publish(t.Context(), w.client, spec("paperless-ngx", "jellyfin"), hooks)
+	if err == nil {
+		t.Fatal("failure lost")
+	}
+	tunnels, policies, apps, idps, records := w.server.Count()
+	if tunnels != 0 || policies != 0 || apps != 0 || idps != 1 || records != 0 {
+		t.Fatalf("counts %d %d %d %d %d", tunnels, policies, apps, idps, records)
+	}
+	writes := w.server.Writes()
+	appDelete := indexOfCall(writes, "DELETE /accounts/acct-1/access/apps/")
+	policyDelete := indexOfCall(writes, "DELETE /accounts/acct-1/access/policies/")
+	tunnelDelete := slices.Index(writes, "DELETE /accounts/acct-1/cfd_tunnel/tunnel-1")
+	if appDelete < 0 || policyDelete < appDelete || tunnelDelete < policyDelete {
+		t.Fatalf("rollback %v", writes)
+	}
+}
+
 func TestAnExistingOneTimePINLoginIsReused(t *testing.T) {
 	w := newWorld(t, cloudflaretest.Options{OTP: true})
 
@@ -211,6 +263,28 @@ func TestChangingTheAllowedEmailsUpdatesThePolicyInPlace(t *testing.T) {
 
 	if writes := w.server.Writes(); len(writes) != 1 || writes[0] != "PUT /accounts/acct-1/access/policies/policy-1" {
 		t.Errorf("writes %q, want one policy update", writes)
+	}
+}
+
+func TestRerunRemovesAnEveryoneRuleAddedToTheOwnedPolicy(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	req, _ := http.NewRequest("PUT", w.server.Base()+"/accounts/acct-1/access/policies/policy-1", bytes.NewBufferString(`{"include":[{"email":{"email":"alice@example.org"}},{"email":{"email":"bob@example.org"}},{"everyone":{}}]}`))
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	w.server.Reset()
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(w.server.Writes(), "PUT /accounts/acct-1/access/policies/policy-1") {
+		t.Fatalf("unsafe policy reused: %v", w.server.Calls())
 	}
 }
 
@@ -259,7 +333,25 @@ func TestAnAddressThatDoesNotAskForALoginIsTakenOffTheInternetAtOnce(t *testing.
 	}
 }
 
-func TestAForeignDNSRecordIsRefusedBeforeAnythingIsCreated(t *testing.T) {
+func TestOnlyAnHTTPS302ToTheExpectedTeamIsAcceptance(t *testing.T) {
+	for _, probe := range []cloudflare.Probe{
+		{Status: 301, Location: "https://myteam.cloudflareaccess.com/login"},
+		{Status: 302, Location: "http://myteam.cloudflareaccess.com/login"},
+		{Status: 302, Location: "https://another.cloudflareaccess.com/login"},
+		{Status: 302, Location: "https://myteam.cloudflareaccess.com.attacker.example/login"},
+	} {
+		t.Run(probe.Location+string(rune(probe.Status)), func(t *testing.T) {
+			w := newWorld(t, cloudflaretest.Options{})
+			w.probes["jellyfin.example.com"] = probe
+			res, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks())
+			if err != nil || len(res.Verified) != 0 || len(w.server.Records()) != 0 {
+				t.Fatalf("result %+v err %v records %v", res, err, w.server.Records())
+			}
+		})
+	}
+}
+
+func TestAForeignDNSRecordIsRefusedAndTheNewResourcesRolledBack(t *testing.T) {
 	w := newWorld(t, cloudflaretest.Options{Records: []cloudflaretest.Record{
 		{ID: "dns-x", Type: "A", Name: "jellyfin.example.com", Content: "203.0.113.9"},
 	}})
@@ -269,8 +361,36 @@ func TestAForeignDNSRecordIsRefusedBeforeAnythingIsCreated(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "jellyfin.example.com") || !strings.Contains(err.Error(), "already") {
 		t.Fatalf("error %v", err)
 	}
-	if writes := w.server.Writes(); len(writes) != 0 {
-		t.Errorf("created %q before refusing", writes)
+	for _, write := range w.server.Writes() {
+		if strings.Contains(write, "dns_records") {
+			t.Fatalf("foreign DNS touched: %s", write)
+		}
+	}
+	tunnels, policies, apps, _, records := w.server.Count()
+	if tunnels != 0 || policies != 0 || apps != 0 || records != 1 {
+		t.Fatal("rollback lost foreign record or left owned resources")
+	}
+}
+
+func TestAnAccessAppOwnedByAnotherToolIsNeverOverwritten(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	req, _ := http.NewRequest("POST", w.server.Base()+"/accounts/acct-1/access/apps", bytes.NewBufferString(`{"name":"someone else's login","domain":"jellyfin.example.com","policies":["foreign-policy"],"allowed_idps":["foreign-idp"]}`))
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	w.server.Reset()
+	_, err = cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks())
+	if err == nil || !strings.Contains(err.Error(), "another") {
+		t.Fatalf("foreign Access app accepted: %v", err)
+	}
+	for _, call := range w.server.Writes() {
+		if strings.Contains(call, "/access/apps/app-1") || strings.Contains(call, "dns_records") {
+			t.Fatalf("foreign app touched or published: %s", call)
+		}
 	}
 }
 
@@ -393,6 +513,23 @@ func TestRemovingKeepsDNSRecordsSelfHostDidNotCreate(t *testing.T) {
 	}
 	if len(w.server.Records()) != 1 {
 		t.Errorf("deleted a record that was not ours")
+	}
+}
+
+func TestRemovalNeverDeletesATunnelStillServingForeignRoutes(t *testing.T) {
+	w := newWorld(t, cloudflaretest.Options{})
+	if _, err := cloudflare.Publish(t.Context(), w.client, spec("jellyfin"), w.hooks()); err != nil {
+		t.Fatal(err)
+	}
+	w.server.AddForeignRule("other.example.com")
+	stopped := false
+	err := cloudflare.Remove(t.Context(), w.client, cloudflare.RemoveSpec{Domain: "example.com", TunnelName: "self-host", PolicyName: "self-host: allowed people", Comment: "managed by self-host project=selfhost", Names: []string{"jellyfin.example.com"}}, cloudflare.RemoveHooks{StopConnector: func(context.Context) error { stopped = true; return nil }})
+	if err == nil || !strings.Contains(err.Error(), "other routes") || stopped {
+		t.Fatalf("foreign route interrupted: stopped=%v err=%v", stopped, err)
+	}
+	tunnels, policies, apps, _, records := w.server.Count()
+	if tunnels != 1 || policies != 0 || apps != 0 || records != 0 || len(w.server.Ingress()) != 2 {
+		t.Fatal("owned routes not removed or foreign route lost")
 	}
 }
 

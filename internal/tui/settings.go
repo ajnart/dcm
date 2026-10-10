@@ -78,6 +78,7 @@ type settingsView struct {
 
 	err            string
 	confirmDiscard bool
+	cloudflare     *cloudflarePane
 }
 
 var (
@@ -106,6 +107,9 @@ func newSettingsView(ctx *viewContext) *settingsView {
 }
 
 func (v *settingsView) Keys() []key.Binding {
+	if v.cloudflare != nil {
+		return v.cloudflare.keys()
+	}
 	switch {
 	case v.editing && len(v.choices) > 1:
 		return append(slices.Clone(settingsEditKeys), settingsChoiceKey)
@@ -128,6 +132,7 @@ func (v *settingsView) Keys() []key.Binding {
 func (v *settingsView) Panes() []pane {
 	return []pane{{"Host settings", settingsHelp}, {"Access", accessKeys}, {"Appearance", appearanceKeys}, {"Backups", backupsKeys},
 		{"Restore", restorePreviewKey}, {"Tools", toolsKeys}, {"About", aboutKeys},
+		{"Cloudflare", (&cloudflarePane{}).keys()}, {"Cloudflare App", (&cloudflarePane{stage: 4}).keys()}, {"Cloudflare review", (&cloudflarePane{stage: 6}).keys()},
 		{"Editing", append(slices.Clone(settingsEditKeys), settingsChoiceKey)}}
 }
 
@@ -146,7 +151,7 @@ var glyphChoices = []glyphChoice{
 const nerdFontsURL = "https://www.nerdfonts.com"
 
 func (v *settingsView) Capturing() bool {
-	return v.editing || v.tab == tabBackups && v.backups.modal()
+	return v.cloudflare != nil && v.cloudflare.stage != 0 || v.editing || v.tab == tabBackups && v.backups.modal()
 }
 
 // valueOf is the current or pending value of a setting.
@@ -177,6 +182,9 @@ func (v *settingsView) accessChanged() bool { return v.access() != v.exposure }
 func (v *settingsView) helpPage() (helpPage, bool) {
 	if v.tab != tabAccess || v.editing || v.confirmDiscard {
 		return helpPage{}, false
+	}
+	if v.cloudflare != nil {
+		return accessPage(accessOptions[slices.IndexFunc(accessOptions, func(o accessOption) bool { return o.id == "cloudflare" })], v.valueOf("LAN_IP")), true
 	}
 	return accessPage(accessOptions[v.accessCursor], v.valueOf("LAN_IP")), true
 }
@@ -321,6 +329,13 @@ func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav
 }
 
 func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
+	if v.cloudflare != nil {
+		cmd, done := v.cloudflare.update(ctx, msg)
+		if done {
+			v.cloudflare = nil
+		}
+		return v, cmd, nav{}
+	}
 	if v.confirmDiscard {
 		switch msg.String() {
 		case "y", "Y":
@@ -448,6 +463,10 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
 			return v, nil, nav{}
 		}
+		if choice.id == "cloudflare" {
+			v.cloudflare = newCloudflarePane(ctx)
+			return v, nil, nav{}
+		}
 		v.edits[accessKey] = choice.value
 	}
 	return v, nil, nav{}
@@ -536,6 +555,9 @@ const minRows = 3
 // settings rows scroll to keep the cursor in view, and the pending changes
 // shrink before the rows do.
 func (v *settingsView) View(ctx *viewContext, width, height int) string {
+	if v.cloudflare != nil {
+		return v.cloudflare.box(ctx, width, height)
+	}
 	strip, layers := subTabStrip(ctx.theme, settingsTabs, int(v.tab), 1, 1)
 	ctx.layers = append(ctx.layers, layers...)
 	var body string
@@ -635,7 +657,7 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 	}
 	for i, o := range accessOptions {
 		label := accessLabel(t, o)
-		selected := o.value == current
+		selected := o.value != "" && o.value == current || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare")
 		if selected {
 			label = o.label
 			if v.accessChanged() {

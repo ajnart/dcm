@@ -54,6 +54,16 @@ var privateCategories = map[string]string{
 const mediaWarning = "Cloudflare's terms restrict serving video through its free network, and the phone and TV apps for this App cannot get past the login page. " +
 	"Tailscale (From anywhere, privately) is the better way to watch away from home."
 
+func CloudflarePublicationWarning(info app.Info) (string, bool) {
+	if why, private := privateCategories[info.Category]; private {
+		return fmt.Sprintf("%s is a %s App: %s. Publishing it lets strangers reach its login page; a flaw could let them in.", info.Name, info.Category, why), true
+	}
+	if info.Category == "Media" {
+		return mediaWarning, false
+	}
+	return "", false
+}
+
 // CloudflareOptions is what the person gives: the domain, who may sign in and
 // the Apps they chose one by one.
 type CloudflareOptions struct {
@@ -114,10 +124,11 @@ type CloudflareResult struct {
 // no secret: the API token is never stored and the run token lives in
 // secrets.env.
 type cloudflareRecord struct {
-	Version int      `json:"version"`
-	Domain  string   `json:"domain"`
-	Emails  []string `json:"emails"`
-	Hosts   []struct {
+	Version      int      `json:"version"`
+	Domain       string   `json:"domain"`
+	Emails       []string `json:"emails"`
+	RemovalNames []string `json:"removal_names,omitempty"`
+	Hosts        []struct {
 		App  string `json:"app"`
 		Name string `json:"name"`
 	} `json:"hosts"`
@@ -127,6 +138,11 @@ func (r cloudflareRecord) names() []string {
 	out := make([]string, len(r.Hosts))
 	for i, h := range r.Hosts {
 		out[i] = h.Name
+	}
+	for _, name := range r.RemovalNames {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
 	}
 	return out
 }
@@ -143,7 +159,7 @@ func loadCloudflareRecord(p *project.Project) (cloudflareRecord, bool, error) {
 	if err := json.Unmarshal(data, &rec); err != nil {
 		return cloudflareRecord{}, false, fmt.Errorf("%s: %w", cloudflareRecordFile, err)
 	}
-	return rec, len(rec.Hosts) > 0, nil
+	return rec, len(rec.Hosts) > 0 || len(rec.RemovalNames) > 0, nil
 }
 
 // cloudflareAddresses are the web addresses an App has through Cloudflare.
@@ -324,8 +340,10 @@ func (s *Service) CloudflarePublish(ctx context.Context, opts CloudflareOptions)
 		Domain: plan.Domain, TunnelName: tunnel, PolicyName: policy, Comment: comment,
 		Emails: plan.Emails, Hosts: plan.hosts, Dropped: plan.Dropped,
 	}, cloudflare.Hooks{
+		Prepare:        func(ctx context.Context) error { return s.saveCloudflareRecord(ctx, plan, nil) },
 		Progress:       func(msg string) { s.Log.Emit(events.Event{Event: events.Info, Msg: msg}) },
 		StartConnector: s.startCloudflareConnector,
+		StopConnector:  s.stopCloudflareConnector,
 		Probe:          s.probeLoginPage,
 	})
 	if err != nil {
@@ -372,7 +390,7 @@ func (s *Service) endCloudflareRun(err error) error {
 }
 
 func (s *Service) cloudflareClient(token string) *cloudflare.Client {
-	return &cloudflare.Client{Base: s.CloudflareBase, Token: token, HTTP: s.Deps.HTTP}
+	return &cloudflare.Client{Token: token, HTTP: s.Deps.HTTP}
 }
 
 // cloudflareToken reads the API token for this one run, never keeping it.
@@ -471,13 +489,17 @@ func (s *Service) saveCloudflareRecord(ctx context.Context, plan CloudflarePlan,
 		return err
 	}
 	defer unlock()
-	if len(published) == 0 {
+	if len(plan.Publish) == 0 && len(plan.Dropped) == 0 {
 		if err := os.Remove(p.Path(cloudflareRecordFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 		return nil
 	}
 	rec := cloudflareRecord{Version: 1, Domain: plan.Domain, Emails: plan.Emails}
+	for _, a := range plan.Publish {
+		rec.RemovalNames = append(rec.RemovalNames, a.Name)
+	}
+	rec.RemovalNames = append(rec.RemovalNames, plan.Dropped...)
 	for _, a := range published {
 		rec.Hosts = append(rec.Hosts, struct {
 			App  string `json:"app"`
@@ -559,5 +581,3 @@ func (s *Service) stopCloudflareConnector(ctx context.Context) error {
 	delete(secrets, key)
 	return p.SaveSecrets(secrets)
 }
-
-var _ app.App = nil

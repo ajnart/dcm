@@ -8,22 +8,22 @@
   ╰─────────────╯      ╰─────┬──────╯      ╰───────────────╯
                        login first ✓
 
-  Your own web address, like movies.example.com, will open your Apps from anywhere through
-  Cloudflare Tunnel, without opening any port on your router. A login page will stand in front, so
-  only people you allow get in.
+  Your own web address, like movies.example.com, opens your chosen Apps from anywhere through
+  Cloudflare Tunnel, without opening any port on your router. A login page stands in front, so
+  only people you allow get in. Choose Apps after they are installed; nothing goes public without
+  a separate yes.
 
-  Not available yet
-  This option is coming soon. For now your Apps stay where they are, and choosing it changes
-  nothing.
+  Before you begin
+  Add your main domain to Cloudflare and wait until it is active. At one.dash.cloudflare.com
+  choose a team name, the Zero Trust Free plan (50 users), and a payment method that is not
+  charged. Use the main domain, not a sub-domain: deeper names need a paid certificate.
 
-  Who can get in?
-  Anyone with the address reaches the login page, and only people you allow get past it. Anything
-  reachable from the internet needs your own explicit yes first.
-
-  Your router
-  Nothing on your router changes, and no port is opened.
-
-  Changing it later
+  Create one private API token
+  In Cloudflare: My Profile > API Tokens > Create Token > Create Custom Token. Account
+  permissions: Cloudflare Tunnel: Edit; Access: Apps and Policies: Edit; Access: Organizations,
+  Identity Providers, and Groups: Edit. Zone permissions: DNS: Edit; Zone: Read. Limit resources
+  to your one account and one zone. Enter the token privately; only the tunnel run token is saved.
+  Changes and removal ask for the API token again.
 
   ↑/↓ scroll · esc or ? closes · more below ↓
 

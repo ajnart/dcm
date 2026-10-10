@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Your own web address ───────────────────────────────────────────────────────╮
+│   https://jellyfin.example.com                                               │
+│   https://sonarr.example.com                                                 │
+│   Cloudflare's terms restrict serving video through its free network, and    │
+│   the phone and TV apps for this App cannot get past the login page.         │
+│   Tailscale (From anywhere, privately) is the better way to watch away from  │
+│   home.                                                                      │
+│   Sonarr is a Downloads App: its admin page often has a weak login or none.  │
+│   Publishing it lets strangers reach its login page; a flaw could let them   │
+│   in.                                                                        │
+│   This puts these Apps on the internet. Anyone in the world can reach the    │
+│   login page and try to get in. Only alice@example.org get past it with an   │
+│   emailed PIN. A flaw in the login page or an App could let strangers in.    │
+│   Cloudflare sees the traffic. Type publish to give the separate yes.        │
+│                                                                              │
+│                                                                            … │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+ typing · keys go to the input              enter  confirm word   ↑/↓  scroll …

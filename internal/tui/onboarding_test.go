@@ -781,7 +781,7 @@ func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testin
 	}
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately · coming soon",
-		"○ Your own web address · coming soon", "○ Bring your own · coming soon"} {
+		"○ Your own web address", "○ Bring your own · coming soon"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
@@ -818,7 +818,7 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 	}{
 		{1, "Easy names will let you open each App with a short name like movies.local instead of numbers.", "phones · TVs · laptops ──── router ──── this computer movies.local"},
 		{2, "Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are", "your phone, anywhere ──── Tailscale ──── this computer private name"},
-		{3, "Your own web address, like movies.example.com, will open your Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
+		{3, "Your own web address, like movies.example.com, opens your chosen Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
 		{4, "Already run a reverse proxy such as SWAG or Pangolin?", "your devices ──── your proxy ──── this computer IP:port"},
 	} {
 		m, _ := freshHost(t)
@@ -829,7 +829,7 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 
 		out := screen(m)
 
-		if !strings.Contains(flat(out), tc.words) || !strings.Contains(flat(out), stays) || !strings.Contains(out, tc.diagram) {
+		if !strings.Contains(flat(out), tc.words) || tc.downs != 3 && !strings.Contains(flat(out), stays) || !strings.Contains(out, tc.diagram) {
 			t.Fatalf("option %d shows its words, that it isn't available yet and its diagram\n%s", tc.downs, out)
 		}
 		if strings.Contains(flat(out), "can open your Apps at 192.168.1.20") {
@@ -868,7 +868,7 @@ func TestEnterOnHomeNetworkMovesOnAndKeepsTheStoredValue(t *testing.T) {
 }
 
 func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
-	for downs, name := range map[int]string{1: "Easy names at home", 2: "From anywhere, privately", 3: "Your own web address", 4: "Bring your own"} {
+	for downs, name := range map[int]string{1: "Easy names at home", 2: "From anywhere, privately", 4: "Bring your own"} {
 		m, backend := freshHost(t)
 		m = atAccess(t, m)
 		for range downs {
@@ -917,13 +917,13 @@ func TestQuestionMarkOpensAndClosesTheHelpPageOfEveryOption(t *testing.T) {
 		m = drive(t, m, press("?"))
 
 		page := flat(screen(m))
-		for _, want := range []string{title, "changed later in Settings, under Access", "╭"} {
+		for _, want := range []string{title, "╭"} {
 			if !strings.Contains(page, want) {
 				t.Fatalf("%s: the help page lacks %q\n%s", title, want, screen(m))
 			}
 		}
 		m = drive(t, m, press("enter"))
-		if !strings.Contains(flat(screen(m)), "changed later in Settings") || m.onboarding.step != stepAccess {
+		if !m.showHelp || m.onboarding.step != stepAccess {
 			t.Fatalf("%s: keys other than esc and ? must not leave the page or answer the step behind it\n%s", title, screen(m))
 		}
 		m = drive(t, m, press("esc"))

@@ -31,6 +31,7 @@ exactly the commands this version registers; run `self-host skill` again after
 
    A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
    and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
+
 4. **Docker**: a failed `docker` check means it is missing; a failed
    `docker-socket` check means it is installed but not running. Say Docker is
    "the engine that runs your apps", ask, then install it by the check's `docs`
@@ -54,7 +55,7 @@ exactly the commands this version registers; run `self-host skill` again after
    said to go ahead.
 
 Loading this guide conveys intent, never approval (ADR 0005). Inspect, plan,
-approval, apply, verify: the CLI has no plan command, so build the plan from
+approval, apply, verify: for installs build the plan from
 `self-host doctor --json`, `self-host apps info <app> --json` and
 `self-host status --json`, show it, and only then pass `--yes`. `--yes` is
 authorization, never a preview flag.
@@ -96,33 +97,36 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `self-host` | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help |
-| `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
-| `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
-| `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
-| `self-host profile set experience <new\|advanced>` | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists |
-| `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
-| `self-host credentials` | Admin login and per-App API keys |
-| `self-host apps list` | Catalog of Apps and Recipes |
-| `self-host apps info <app>` | One App's image, port, inputs, Links |
-| `self-host start [app...]` | Start Apps (all when none named) |
-| `self-host stop [app...]` | Stop Apps |
-| `self-host up` | Start every App in the Project |
-| `self-host down` | Take down the Project's containers and networks; App files, state and volumes stay |
-| `self-host restart [app...]` | Restart Apps |
-| `self-host update [app...]` | Pull newer images, recreate Apps, rerun checks |
-| `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
-| `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
-| `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
-| `self-host logs <app>` | Container logs |
-| `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
-| `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
-| `self-host self-update` | Replace the binary with the latest verified release |
-| `self-host feedback --message <text> [--app <app>] [--yes]` | Send the maintainers a report of what broke, after the person agrees (see "Feedback") |
-| `self-host skill` | Print this guide |
+| Command                                                     | Purpose                                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `self-host`                                                 | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help          |
+| `self-host doctor`                                          | Host, Docker and per-App checks (see "Doctor checks")                                                          |
+| `self-host install <app\|recipe>...`                        | Install Apps or Recipes and run Setup                                                                          |
+| `self-host setup [app...]`                                  | Rerun Setup; finished steps are skipped                                                                        |
+| `self-host status`                                          | A plain summary, then Access, Host settings, every App's URL, state, Setup                                     |
+| `self-host profile set experience <new\|advanced>`          | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists           |
+| `self-host debug <app>`                                     | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check                      |
+| `self-host credentials`                                     | Admin login and per-App API keys                                                                               |
+| `self-host apps list`                                       | Catalog of Apps and Recipes                                                                                    |
+| `self-host apps info <app>`                                 | One App's image, port, inputs, Links                                                                           |
+| `self-host start [app...]`                                  | Start Apps (all when none named)                                                                               |
+| `self-host stop [app...]`                                   | Stop Apps                                                                                                      |
+| `self-host up`                                              | Start every App in the Project                                                                                 |
+| `self-host down`                                            | Take down the Project's containers and networks; App files, state and volumes stay                             |
+| `self-host restart [app...]`                                | Restart Apps                                                                                                   |
+| `self-host update [app...]`                                 | Pull newer images, recreate Apps, rerun checks                                                                 |
+| `self-host remove <app>...`                                 | Remove Apps; data is kept unless `--purge`                                                                     |
+| `self-host config set KEY=value...`                         | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects)                                     |
+| `self-host config review [--yes]`                           | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
+| `self-host cloudflare plan`                                 | Inspect individually chosen Apps, allowed emails, warnings and publication risk without network calls          |
+| `self-host cloudflare publish`                              | Publish chosen Apps behind an emailed-PIN login, only after the separate public-risk yes                       |
+| `self-host cloudflare remove`                               | Unpublish in reverse order, with a fresh private API token                                                     |
+| `self-host logs <app>`                                      | Container logs                                                                                                 |
+| `self-host backup [app...]`                                 | Write one compressed archive, optionally encrypted                                                             |
+| `self-host restore <file> [app...]`                         | Restore every App in a Backup, or only those named                                                             |
+| `self-host self-update`                                     | Replace the binary with the latest verified release                                                            |
+| `self-host feedback --message <text> [--app <app>] [--yes]` | Send the maintainers a report of what broke, after the person agrees (see "Feedback")                          |
+| `self-host skill`                                           | Print this guide                                                                                               |
 
 Global flags: `--json` (one JSON event per line; document commands print one
 JSON document), `--verbose` or `-v` (also print every command and step start).
@@ -148,25 +152,35 @@ With `--json`, `install`, `setup`, `start`, `stop`, `restart`, `update`,
 per line:
 
 ```json
-{"event":"step.fail","app":"sonarr","step":"download-client","msg":"…","error":"qBittorrent refused login","url":"http://192.168.1.20:8989","credential":"admin","hint":"Add qBittorrent under Settings › Download Clients.","docs":"https://…"}
+{
+  "event": "step.fail",
+  "app": "sonarr",
+  "step": "download-client",
+  "msg": "…",
+  "error": "qBittorrent refused login",
+  "url": "http://192.168.1.20:8989",
+  "credential": "admin",
+  "hint": "Add qBittorrent under Settings › Download Clients.",
+  "docs": "https://…"
+}
 ```
 
 Fields (all but `event` are omitted when empty):
 
-| Field | Meaning |
-| --- | --- |
-| `event` | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
-| `app`, `step` | What the event is about |
-| `msg` | Human summary |
-| `error` | Why a step or the run failed (`run.end` carries it when the run failed) |
-| `url` | Where to finish the step by hand |
-| `credential` | Which login to use; read it with `self-host credentials` |
-| `hint` | The next action, in words |
-| `docs` | Upstream documentation |
-| `command` | The shell command run (`command` events) |
-| `image`, `layer` | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events) |
-| `status` | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled` |
-| `current`, `total` | Bytes done and expected for a `pull.progress` event |
+| Field              | Meaning                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `event`            | `run.start`, `run.end`, `step.start`, `step.ok`, `step.skip`, `step.warn`, `step.fail`, `step.manual`, `command`, `info`, `pull.progress` |
+| `app`, `step`      | What the event is about                                                                                                                   |
+| `msg`              | Human summary                                                                                                                             |
+| `error`            | Why a step or the run failed (`run.end` carries it when the run failed)                                                                   |
+| `url`              | Where to finish the step by hand                                                                                                          |
+| `credential`       | Which login to use; read it with `self-host credentials`                                                                                  |
+| `hint`             | The next action, in words                                                                                                                 |
+| `docs`             | Upstream documentation                                                                                                                    |
+| `command`          | The shell command run (`command` events)                                                                                                  |
+| `image`, `layer`   | The image and layer a `pull.progress` event is about (`layer` is empty for image-level events)                                            |
+| `status`           | Pull status: `Downloading`, `Extracting`, `Pull complete`, `Pulling`, `Pulled`                                                            |
+| `current`, `total` | Bytes done and expected for a `pull.progress` event                                                                                       |
 
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
@@ -206,18 +220,91 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Only Home network exists yet; the others show "coming
-soon" and choosing one changes nothing. Home network is stored as `EXPOSURE=lan`
+diagram and a help page. Your own web address is available through Cloudflare
+Tunnel with a login page. Onboarding opens its guided Settings flow after the
+Apps finish installing; choosing it alone never publishes anything. Options
+marked "coming soon" change nothing. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
 instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
-it first: `status --json` has `access` (a list: `home` or `local`) beside the
+it first: `status --json` has `access` (a list including `home` or `local`, plus
+`cloudflare` when verified Addresses exist) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
-internet; public access is the user's decision and needs their own reverse
-proxy or VPN.
+internet; publishing needs the separate yes below.
+
+### Your own web address (Cloudflare)
+
+1. The person adds their main domain (zone apex, like `example.com`) to
+   Cloudflare, changes its nameservers and waits until it shows **active**.
+   Do not accept `home.example.com`: deeper names need a paid certificate.
+2. They open https://one.dash.cloudflare.com, choose a team name, the **Zero
+   Trust Free plan**, and add a payment method. It is required but **not charged**.
+   Free has 50 seats; each signed-in email uses a seat. We never create an
+   organization or change the plan for them.
+3. In Cloudflare, **My Profile > API Tokens > Create Token > Create Custom
+   Token**, add exactly these permissions:
+   - Account > Cloudflare Tunnel > Edit
+   - Account > Access: Apps and Policies > Edit
+   - Account > Access: Organizations, Identity Providers, and Groups > Edit
+   - Zone > DNS > Edit
+   - Zone > Zone > Read
+     Limit account resources to that one account and zone resources to that one
+     zone. Have the person place it in an owner-only file (0600), outside chat.
+     Use `--set-file cloudflare.api_token=PATH`, or `=-` for private stdin.
+     Never put the token in arguments or chat. It is held only for this run;
+     only `CLOUDFLARE_TUNNEL_TOKEN` is saved in the Project's secret store.
+4. Ask who may sign in (email addresses) and pick installed Apps **one by one**.
+   Check spelling: the login page silently withholds PIN emails for a typo.
+   Nothing is chosen by default. Plan without a token or network calls:
+
+   ```sh
+   self-host cloudflare plan --domain example.com --email alice@example.org --app paperless-ngx --json
+   ```
+
+   These categories stay private unless explicitly named with
+   `--allow-private <app>`: Containers, Databases, Downloads, Identity, DNS,
+   Ingress, Remote access, Backups, Monitoring, Observability, Cameras, Storage
+   and Passwords. Apps without a web page are **always refused**.
+   For Media Apps, explain before publication: Cloudflare's terms restrict
+   video streaming through public hostnames; phone and TV apps cannot pass
+   this login page. Recommend **Tailscale (From anywhere, privately)** for
+   streaming and native clients. This route is for browsers only.
+
+5. Show the plan's `risk`, every warning and any dropped Addresses. Ask a
+   **separate explicit yes**: strangers anywhere can reach the login page,
+   a flaw could let them into an App, and Cloudflare sees the traffic. Only
+   after that yes:
+
+   ```sh
+   self-host cloudflare publish --domain example.com --email alice@example.org --app paperless-ngx --set-file cloudflare.api_token=/private/token --accept-public --json
+   ```
+
+   `--app` is repeatable and is the full desired list. Repeating creates no
+   duplicates; omitting a previously chosen App unpublishes it. Changes ask
+   for the API token again. No DNS write happens before PIN, tunnel/run token,
+   policy, per-host Access app, READ/MERGE ingress with `originRequest.access`,
+   and connector start. A cookie-free external probe must answer **302 to the
+   team's HTTPS cloudflareaccess.com login**; HTTP 200 and connector liveness
+   are not acceptance. Failed probes delete that DNS record. Failed changes
+   fail closed; retry or remove to clean up any remembered resources.
+
+6. Read `self-host status --json`: verified `https://<app>.<domain>` Addresses
+   come first, with `IP:port` kept as fallback. The person opens the Address,
+   requests the emailed PIN and signs in. Do not bypass the login for native
+   clients. Upload limits and Cloudflare's terms still apply.
+7. To take the Addresses down, ask for approval and a fresh private token:
+
+   ```sh
+   self-host cloudflare remove --set-file cloudflare.api_token=/private/token --yes --json
+   ```
+
+   DNS goes first, then ingress, Access apps, policy, connector, connections
+   and tunnel. The shared PIN provider and organization are never deleted.
+   Cloudflare user seats stay assigned until the person removes them in its
+   dashboard. App data and Home network Addresses remain untouched.
 
 ## Doctor checks
 

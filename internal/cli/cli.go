@@ -198,6 +198,7 @@ func (a *program) root() *cobra.Command {
 	root.PersistentFlags().BoolVarP(&a.verbose, "verbose", "v", false, "show every command and step start")
 	root.AddCommand(a.doctorCmd(), a.installCmd(), a.setupCmd(), a.statusCmd(), a.profileCmd(), a.debugCmd(), a.credentialsCmd(), a.appsCmd(), a.skillCmd(), a.feedbackCmd(), a.selfUpdateCmd())
 	root.AddCommand(a.lifecycleCmds()...)
+	root.AddCommand(a.cloudflareCmd())
 	root.AddCommand(a.backupCmds()...)
 	return root
 }
