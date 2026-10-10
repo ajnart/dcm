@@ -1,0 +1,55 @@
+internal/apps/dockge/dockge.go
+  s_59ffa5bfdcd3ba::t_7005d75a9a211a 25
+internal/apps/homeassistant/homeassistant.go
+  s_59ffa5bfdcd3ba::t_3d3852780e53d2 27
+internal/apps/jellyfin/jellyfin.go
+  s_59ffa5bfdcd3ba::t_a5ea0da94b1038 41
+internal/apps/nextcloud/nextcloud.go
+  s_59ffa5bfdcd3ba::t_7a6ebef2b85ba9 28
+internal/apps/nodered/nodered.go
+  s_59ffa5bfdcd3ba::t_e686072cec107c 28
+internal/apps/portainer/portainer.go
+  s_59ffa5bfdcd3ba::t_8a0aade99ee5d8 27
+internal/apps/uptimekuma/uptimekuma.go
+  s_59ffa5bfdcd3ba::t_0bb62d411099ad 28
+internal/apps/vaultwarden/vaultwarden.go
+  s_59ffa5bfdcd3ba::t_6eb0c7faf11704 28
+internal/cli/access.go
+  s_8b1d5a69f175a9::t_5d4e765329db78 1-134
+internal/cli/access_test.go
+  s_59ffa5bfdcd3ba::t_54854341f57ef3 1-240
+internal/cli/cli.go
+  s_8b1d5a69f175a9::t_1089aa4cf15bf6 199
+internal/cli/testdata/access-export-caddy.golden
+  s_8b1d5a69f175a9::t_e73d3566be1649 1-25
+internal/cli/testdata/access-export-json.golden
+  s_8b1d5a69f175a9::t_8be2e8ab3ccfcd 1-41
+internal/cli/testdata/access-export-nginx.golden
+  s_8b1d5a69f175a9::t_b27ac19379577e 1-59
+internal/cli/testdata/access-export-traefik.golden
+  s_8b1d5a69f175a9::t_4c5673ad2550bc 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9cc011db4bf61463713f9bfa834cb8073327ba2",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
