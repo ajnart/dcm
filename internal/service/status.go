@@ -44,7 +44,9 @@ type AppStatus struct {
 type Status struct {
 	Project  string `json:"project"`
 	Exposure string `json:"exposure"`
-	LANIP    string `json:"lan_ip"`
+	// Access lists the ways the Apps can be reached, by id: "home" or "local".
+	Access []string `json:"access"`
+	LANIP  string   `json:"lan_ip"`
 	// LANIPStale is true when LAN_IP is no longer an address of this
 	// machine; HostIPs then lists the addresses it has now.
 	LANIPStale bool              `json:"lan_ip_stale,omitempty"`
@@ -55,6 +57,14 @@ type Status struct {
 	DockerError string `json:"docker_error,omitempty"`
 }
 
+// accessIDs names the Access an Exposure value stands for.
+func accessIDs(exposure string) []string {
+	if exposure == ExposureLocal {
+		return []string{"local"}
+	}
+	return []string{"home"}
+}
+
 // Status reads the Project and asks Docker for container state. It does
 // not take the lock.
 func (s *Service) Status(ctx context.Context) (Status, error) {
@@ -62,7 +72,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], LANIP: ss.settings["LAN_IP"], Settings: ss.settings}
+	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings}
 	if stale, current := s.lanStale(ss.settings); stale {
 		status.LANIPStale, status.HostIPs = true, current
 	}
