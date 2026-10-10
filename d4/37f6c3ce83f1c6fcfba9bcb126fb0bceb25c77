@@ -1,0 +1,154 @@
+CONTEXT.md
+  h_d6e478ca18e517 258
+README.md
+  h_d6e478ca18e517 213,219-220,232-251
+docs/adr/0008-tailscale-per-app-nodes.md
+  h_d6e478ca18e517 1-49
+internal/app/app.go
+  h_d6e478ca18e517 51-62
+internal/apps/tailscale/tailscale.go
+  h_d6e478ca18e517 8-15,19,36,41,47,49-53,56-57,59-61,64,70-83,87,91-101,103-104,106-113,120,126,129-133,136-164,175-179,183-189
+internal/apps/tailscale/tailscale_test.go
+  h_d6e478ca18e517 6-8,13,32-33,37-39,42,45-58,60-61,70-80,83-92,94,96,105,128,143-316
+internal/cli/tailscale_test.go
+  h_d6e478ca18e517 1-55
+internal/service/backup.go
+  h_d6e478ca18e517 440,442-443,596-601
+internal/service/debug.go
+  h_d6e478ca18e517 74
+internal/service/doctor.go
+  h_d6e478ca18e517 64,75-77,109-111,115
+internal/service/install.go
+  h_d6e478ca18e517 14,243,245,249-256,311-317
+internal/service/lifecycle.go
+  h_d6e478ca18e517 171-173
+internal/service/mutation.go
+  h_d6e478ca18e517 47-48,176-178,190-192,227-229,242,252-254
+internal/service/status.go
+  h_d6e478ca18e517 27-30,94-96,111,150-154,165-171
+internal/service/tailscale.go
+  h_d6e478ca18e517 1-234
+internal/service/tailscale_test.go
+  h_d6e478ca18e517 1-693
+internal/skill/guide.md
+  h_d6e478ca18e517 222,244,250-285
+internal/tailscale/tailscale.go
+  h_d6e478ca18e517 1-260
+internal/tui/access.go
+  h_d6e478ca18e517 87,89,104-110,114-115
+internal/tui/access_test.go
+  h_d6e478ca18e517 35-36,118,142-151
+internal/tui/golden_test.go
+  h_d6e478ca18e517 14,20-53
+internal/tui/install.go
+  h_d6e478ca18e517 369-370
+internal/tui/model.go
+  h_d6e478ca18e517 840-847
+internal/tui/onboarding.go
+  h_d6e478ca18e517 90-95,322,557-559,640-659,665,705-707,782-784,818-822,991-992,1034-1044
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 810,847,859,898,974,979-984
+internal/tui/settings.go
+  h_d6e478ca18e517 447-453,645
+internal/tui/settings_test.go
+  h_d6e478ca18e517 209,337
+internal/tui/tailscale_test.go
+  h_d6e478ca18e517 1-85
+internal/tui/testdata/install-private-access-review-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/install-private-access-review.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-custom.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-names.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-narrow.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-access-tailscale-help-narrow.golden
+  h_d6e478ca18e517 11-13,19-21
+internal/tui/testdata/onboarding-access-tailscale-help.golden
+  h_d6e478ca18e517 11-12,18-24,26
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  h_d6e478ca18e517 11,15-17
+internal/tui/testdata/onboarding-access-tailscale.golden
+  h_d6e478ca18e517 11,15-16
+internal/tui/testdata/onboarding-access.golden
+  h_d6e478ca18e517 11
+internal/tui/testdata/onboarding-tailscale-input-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-tailscale-input.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/overview-tailscale-expiry-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/overview-tailscale-expiry.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/overview-tailscale-unknown-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/overview-tailscale-unknown.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-cloudflare.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-custom-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-custom.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-home-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-home.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-local-narrow.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-local.golden
+  h_d6e478ca18e517 7
+internal/tui/testdata/settings-access-names-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-names.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-pending-narrow.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-pending.golden
+  h_d6e478ca18e517 6
+internal/tui/testdata/settings-access-tailscale-help-narrow.golden
+  h_d6e478ca18e517 11-13,19-21
+internal/tui/testdata/settings-access-tailscale-help.golden
+  h_d6e478ca18e517 11-12,18-24,26
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  h_d6e478ca18e517 6,10-12
+internal/tui/testdata/settings-access-tailscale.golden
+  h_d6e478ca18e517 6,10-11
+internal/tui/testdata/settings-tailscale-review-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/settings-tailscale-review.golden
+  h_d6e478ca18e517 1-30
+internal/tui/view.go
+  h_d6e478ca18e517 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d437f6c3ce83f1c6fcfba9bcb126fb0bceb25c77",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
