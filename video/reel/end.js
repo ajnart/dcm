@@ -2,8 +2,8 @@ import { $, scene, chars, read, on, cut } from "./lib.js";
 import { SC, DUR, b } from "./timeline.js";
 
 const [A] = SC.end;
-// the README's one-liner, split with a shell line continuation so it reads at 32 px
-export const END_INSTALL = "curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh";
+// the README's one-liner, split with a shell line continuation so it reads at 32 px; the only place the repository name appears
+export const END_INSTALL = "curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh";
 // beats: 0 the final hit, the logo · 1 the install line · 2 the agents · 3 the counts; still from SETTLED
 const T = { logo: b(56), cmd: b(57), agents: b(58), stats: b(59) };
 const IN = 0.2;
