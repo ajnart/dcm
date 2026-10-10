@@ -1,0 +1,22 @@
+.github/workflows/ci.yml
+  h_d6e478ca18e517 18-19,21,61-62,64,66,147
+.github/workflows/e2e.yml
+  h_d6e478ca18e517 24-25,27,34,49-50,52,59
+.github/workflows/release.yml
+  h_d6e478ca18e517 21,24,26,42,47,61
+go.mod
+  h_d6e478ca18e517 6-23,25,27-28,30,35-36,41,45-47
+go.sum
+  h_d6e478ca18e517 1-2,5-6,15-18,21-24,27-36,39-40,47-48,54-63,74-75,80-81,90-96,101-110,112-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3edcc3261ead252dfe5aa6ba74b8c7aff0766aab",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
