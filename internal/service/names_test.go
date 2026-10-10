@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/paperlessngx"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -51,7 +53,7 @@ func TestWhenNobodyCanSayWhoHoldsPort80TheMessageStillSaysSo(t *testing.T) {
 
 	check := h.svc.CheckEasyNames(context.Background())
 
-	if want := "Another program already uses port 80, so nothing was changed. The addresses with numbers keep working."; check.Message != want {
+	if want := "Port 80 is already in use or cannot be checked by binding, so nothing was changed. The addresses with numbers keep working."; check.Message != want {
 		t.Fatalf("message %q, want %q", check.Message, want)
 	}
 }
@@ -99,6 +101,14 @@ func TestAHotspotStyleAddressIsNotAHomeNetwork(t *testing.T) {
 
 	if check.Available || check.Problem != "network" || !strings.Contains(check.Message, "192.0.0.2") {
 		t.Fatalf("check %+v, want a refusal that names the address", check)
+	}
+}
+
+func TestAPrivatePointToPointAddressIsNotOfferedForEasyNames(t *testing.T) {
+	h := newHarness(t)
+	h.deps.HomeNetwork = func(string) bool { return false }
+	if check := h.svc.CheckEasyNames(context.Background()); check.Available || check.Problem != "network" {
+		t.Fatalf("check %+v", check)
 	}
 }
 
@@ -420,5 +430,137 @@ func TestStatusHasNoNamesSectionWhileEasyNamesAreOff(t *testing.T) {
 	}
 	if access := out["access"].([]any); len(access) != 1 || access[0] != "home" {
 		t.Fatalf("access %v", access)
+	}
+}
+
+func TestEasyNamesFollowAChangedLANAddressAndDropOldBookmarks(t *testing.T) {
+	h := enabledNames(t)
+	if err := h.svc.ConfigSet(context.Background(), []string{"LAN_IP=10.0.0.7"}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(h.root(), "access/caddy/config/Caddyfile"))
+	if err != nil || strings.Contains(string(data), "192-168-1-20") || !strings.Contains(string(data), "one.10-0-0-7.sslip.io") {
+		t.Fatalf("Caddyfile %s error %v", data, err)
+	}
+	one := appStatus(t, h, "one")
+	if one.URL != "http://one.10-0-0-7.sslip.io" || one.Addresses[1] != "http://10.0.0.7:9000" {
+		t.Fatalf("status %+v", one)
+	}
+}
+
+func TestAnAppWithNoWebPageGetsNoNameAndNoRoute(t *testing.T) {
+	h := newHarness(t, noPageApp{&testApp{id: "renovate", done: map[string]bool{}}}, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one", "renovate"); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(filepath.Join(h.root(), "access/caddy/config/Caddyfile"))
+	if strings.Contains(string(data), "renovate") {
+		t.Fatalf("Caddyfile %s", data)
+	}
+	if got := appStatus(t, h, "renovate"); got.URL != "" || len(got.Addresses) != 0 {
+		t.Fatalf("no web page: %+v", got)
+	}
+}
+
+type noPageApp struct{ *testApp }
+
+func (a noPageApp) Info() app.Info {
+	info := a.testApp.Info()
+	info.NoWebUI = true
+	return info
+}
+
+func TestHomarrInventoryUsesTheFriendliestWorkingAddress(t *testing.T) {
+	dashboard := &inventoryProbeApp{testApp: &testApp{id: "homarr", done: map[string]bool{}}, inspect: true}
+	h := newHarness(t, dashboard, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one", "homarr"); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range dashboard.installed {
+		if item.ID == "one" && item.URL != "http://one.192-168-1-20.sslip.io" {
+			t.Fatalf("tile %+v", item)
+		}
+	}
+}
+
+func TestInvalidEasyNamesLANAddressIsRefusedBeforeWriting(t *testing.T) {
+	h := enabledNames(t)
+	p, _ := h.svc.Project()
+	before, _ := p.LoadSettings()
+	err := h.svc.ConfigSet(context.Background(), []string{"LAN_IP=192.0.0.2"})
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+	after, _ := p.LoadSettings()
+	if after["LAN_IP"] != before["LAN_IP"] {
+		t.Fatal("settings changed")
+	}
+}
+
+func TestEasyNamesReservePort80FromApps(t *testing.T) {
+	a := &testApp{id: "one", done: map[string]bool{}}
+	h := newHarness(t, a)
+	err := h.svc.Install(context.Background(), InstallOptions{Targets: []string{"one"}, Sets: []string{"one.port=80"}, EasyNames: true})
+	if err == nil || !strings.Contains(err.Error(), "port 80") {
+		t.Fatalf("error %v", err)
+	}
+}
+
+func TestChangingEasyNamesRecreatesOnlyAppsWhoseOriginsChange(t *testing.T) {
+	h := newHarness(t, renderOnlyApp{paperlessngx.App{}}, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("paperless-ngx", "one"); err != nil {
+		t.Fatal(err)
+	}
+	before := len(h.composeCalls())
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(filepath.Join(h.root(), "apps/paperless-ngx/compose.yml"))
+	if !strings.Contains(string(data), "PAPERLESS_URL: http://paperless-ngx.192-168-1-20.sslip.io") {
+		t.Fatalf("fragment %s", data)
+	}
+	assertCalls(t, h.composeCalls()[before:], []string{"up -d --remove-orphans paperless-ngx paperless-ngx-broker paperless-ngx-db", "up -d --remove-orphans access-caddy"})
+}
+
+func TestDoctorExplainsBlockedEasyNamesInPlainWords(t *testing.T) {
+	h := enabledNames(t)
+	h.deps.Resolver = &systemtest.Resolver{Blocked: true}
+	for _, check := range h.svc.Doctor(context.Background()) {
+		if check.ID == "easy-names" {
+			if !strings.Contains(check.Detail, "Your router hides the easy names") {
+				t.Fatalf("check %+v", check)
+			}
+			return
+		}
+	}
+	t.Fatal("no Easy names check")
+}
+
+func TestInstallIntoNamesProjectRefusesPortConflictBeforeAddingAnApp(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}}, &testApp{id: "two", done: map[string]bool{}})
+	if err := h.install("one"); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	h.holdPort80("another program")
+	before := len(h.composeCalls())
+	if err := h.install("two"); err == nil {
+		t.Fatal("expected refusal")
+	}
+	if _, err := os.Stat(filepath.Join(h.root(), "apps/two/compose.yml")); !os.IsNotExist(err) {
+		t.Fatalf("App was added: %v", err)
+	}
+	for _, call := range h.composeCalls()[before:] {
+		if !strings.HasPrefix(call, "ps ") {
+			t.Fatalf("Compose mutation ran: %s", call)
+		}
 	}
 }

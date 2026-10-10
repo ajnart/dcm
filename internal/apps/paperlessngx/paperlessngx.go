@@ -13,6 +13,7 @@ import (
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/names"
 )
 
 type App struct{}
@@ -48,12 +49,18 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	origin := ""
+	if rc.Settings["EASY_NAMES"] == "on" {
+		if host, ok := names.Host("paperless-ngx", rc.Settings["LAN_IP"]); ok {
+			origin = "      PAPERLESS_URL: http://" + host + "\n"
+		}
+	}
 	return `services:
   paperless-ngx:
     image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
     restart: unless-stopped
     environment:
-      PAPERLESS_REDIS: redis://paperless-ngx-broker:6379
+` + origin + `      PAPERLESS_REDIS: redis://paperless-ngx-broker:6379
       PAPERLESS_DBHOST: paperless-ngx-db
       PAPERLESS_DBENGINE: postgresql
       PAPERLESS_ADMIN_USER: ${ADMIN_USER}

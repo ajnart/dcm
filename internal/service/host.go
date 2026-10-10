@@ -49,10 +49,14 @@ func (s *Service) lanCheck(settings map[string]string) host.Check {
 		return host.Check{ID: "lan-ip", Title: "LAN IP", Level: host.OK,
 			Detail: "local network: other devices connect to " + settings["LAN_IP"]}
 	}
+	hint := lanHint
+	if settings[settingNames] == namesOn {
+		hint += "; Easy names contain the LAN address, so update bookmarks afterward. A DHCP reservation avoids another change."
+	}
 	return host.Check{ID: "lan-ip", Title: "LAN IP", Level: host.Warn,
 		Detail: fmt.Sprintf("Apps use %s, which is not an address of this machine any more (now %s); their URLs do not work",
 			settings["LAN_IP"], strings.Join(current, ", ")),
-		Hint: lanHint}
+		Hint: hint}
 }
 
 // SettingReview is one Host setting next to what the host looks like now.
@@ -101,6 +105,7 @@ func (s *Service) ReviewSettings(ctx context.Context) ([]SettingReview, error) {
 	}
 	review := []SettingReview{
 		{Key: "EXPOSURE", Current: settings["EXPOSURE"], Choices: choices(settings["EXPOSURE"], ExposureLAN, ExposureLocal)},
+		{Key: settingNames, Current: settings[settingNames], Choices: []string{"off", "on"}},
 		lan,
 	}
 	for _, key := range []string{"TZ", "PUID", "PGID"} {

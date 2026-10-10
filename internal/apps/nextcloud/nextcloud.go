@@ -6,13 +6,17 @@ package nextcloud
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/names"
 )
 
 type App struct{}
@@ -158,6 +162,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
+	if err := (App{}).ConfigureAccess(ctx, h); err != nil {
+		return err
+	}
 	return h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
@@ -169,7 +176,44 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	})
 }
 
+func (App) ConfigureAccess(ctx context.Context, h *helpers.H) error {
+	if h.Settings["EASY_NAMES"] == "on" {
+		if err := h.Step(ctx, "trusted-hosts", "allow the App's home addresses", helpers.StepSpec{
+			Check: func(ctx context.Context) (bool, error) { return trustedHostsWork(ctx, h) },
+			Do: func(ctx context.Context) error {
+				domains, err := trustedHosts(ctx, h)
+				if err != nil {
+					return err
+				}
+				for _, host := range homeHosts(h) {
+					if !slices.Contains(domains, host) {
+						domains = append(domains, host)
+					}
+				}
+				data, err := json.Marshal(domains)
+				if err != nil {
+					return err
+				}
+				_, err = h.Exec(ctx, map[string]string{"SELF_HOST_TRUSTED_DOMAINS": string(data)},
+					"su", "-m", "-s", "/bin/sh", "www-data", "-c", `php occ config:system:set trusted_domains --type json --value "$SELF_HOST_TRUSTED_DOMAINS"`)
+				return err
+			},
+			Hint: "Check self-host logs nextcloud, then run self-host setup nextcloud.",
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (App) Check(ctx context.Context, h *helpers.H) error {
+	if h.Settings["EASY_NAMES"] == "on" {
+		if ok, err := trustedHostsWork(ctx, h); err != nil {
+			return err
+		} else if !ok {
+			return fmt.Errorf("Nextcloud does not trust its home addresses; run self-host setup nextcloud")
+		}
+	}
 	ok, err := adminWorks(ctx, h)
 	if err != nil {
 		return err
@@ -178,6 +222,35 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return fmt.Errorf("the administrator %s cannot sign in to Nextcloud", h.AdminUser())
 	}
 	return nil
+}
+
+func homeHosts(h *helpers.H) []string {
+	hosts := []string{h.Settings["LAN_IP"]}
+	if host, ok := names.Host("nextcloud", h.Settings["LAN_IP"]); ok {
+		hosts = append(hosts, host)
+	}
+	return hosts
+}
+
+func trustedHosts(ctx context.Context, h *helpers.H) ([]string, error) {
+	result, err := h.Exec(ctx, nil, "su", "-s", "/bin/sh", "www-data", "-c", "php occ config:system:get trusted_domains")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(string(result.Stdout)), nil
+}
+
+func trustedHostsWork(ctx context.Context, h *helpers.H) (bool, error) {
+	domains, err := trustedHosts(ctx, h)
+	if err != nil {
+		return false, err
+	}
+	for _, host := range homeHosts(h) {
+		if !slices.Contains(domains, host) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (App) Links() []app.Link { return nil }

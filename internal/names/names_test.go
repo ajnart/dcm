@@ -144,3 +144,27 @@ func TestTheRouterFixIsATechnicalDetail(t *testing.T) {
 		t.Fatalf("technical details %q", got)
 	}
 }
+
+type controlAnswer struct {
+	*systemtest.Resolver
+	answer []string
+}
+
+func (r controlAnswer) LookupHost(ctx context.Context, host string) ([]string, error) {
+	if host == "selfhost-control.1-1-1-1.sslip.io" {
+		return r.answer, nil
+	}
+	return r.Resolver.LookupHost(ctx, host)
+}
+
+func TestThePublicControlMustActuallyResolveToItsPublicIP(t *testing.T) {
+	for _, tc := range []struct {
+		answer []string
+		want   names.Verdict
+	}{{nil, names.Offline}, {[]string{"10.0.0.1"}, names.Rewritten}} {
+		r := controlAnswer{Resolver: &systemtest.Resolver{Blocked: true}, answer: tc.answer}
+		if got := names.Diagnose(context.Background(), r, "192.168.1.20"); got != tc.want {
+			t.Fatalf("control %v verdict %s, want %s", tc.answer, got, tc.want)
+		}
+	}
+}

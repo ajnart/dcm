@@ -104,3 +104,11 @@ func TestTheRootComposeFileWithOnlyTheCaddyIncludesIt(t *testing.T) {
 		t.Fatalf("root:\n%s", root)
 	}
 }
+
+func TestAppsCannotReuseTheManagedEasyNamesService(t *testing.T) {
+	p := testProject(t)
+	err := p.ValidateFragment("one", "services:\n  access-caddy:\n    image: example/one\n")
+	if err == nil || !strings.Contains(err.Error(), "Easy names") {
+		t.Fatalf("error %v", err)
+	}
+}

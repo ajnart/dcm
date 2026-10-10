@@ -79,8 +79,8 @@ _Avoid_: stack, deployment
 **Access**:
 How people reach the Apps and what they type to open them, chosen in one
 place with a diagram per option: **Home network** (default, an Address like
-`http://192.168.1.20:8096`), **Easy names at home** (a local Caddy serving
-names such as `movies.local` or `movies.192-168-1-20.sslip.io`), **From
+`http://192.168.1.20:8096`), **Easy names at home** (one Caddy in the Project
+serving `http://jellyfin.192-168-1-20.sslip.io` on every OS), **From
 anywhere, privately** (Tailscale), **Your own web address** (Cloudflare
 Tunnel, plus a login page in front) and **Bring your own** (SWAG, Pangolin or
 an existing proxy, for advanced users). Options combine: Easy names at home
@@ -92,7 +92,7 @@ _Avoid_: exposure, ingress, remote access
 
 **Address**:
 What a person types to open one App under the current Access, such as
-`http://192.168.1.20:8096`, `http://movies.local` or
+`http://192.168.1.20:8096`, `http://jellyfin.192-168-1-20.sslip.io` or
 `https://movies.example.com`. An App can have several; the Links in `status`
 and the Dashboard show the friendliest one that works, and the `IP:port` one
 is always kept as a fallback.
@@ -248,7 +248,9 @@ single key changes an App or the Project.
   stored `EXPOSURE` setting, its values, the `--exposure` flag, the `exposure`
   key of `status --json` and the `exposure` doctor check keep the old word.
   Nothing a person reads says it; `status --json` also has `access`, a list
-  of `home` or `local`.
+  of `home` or `local`, plus `names` when Easy names at home are on. The
+  additive `EASY_NAMES=on|off` Host setting does not replace `EXPOSURE`.
+  Linux `.local` announcements are deferred to #232 and need a socket ADR.
 
 - "recipe" in the previous CLI meant one app's compose definition; here it
   means a bundle of **Apps**.

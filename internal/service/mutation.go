@@ -55,7 +55,8 @@ type change struct {
 	// after runs once Compose succeeded: Setup (with Links), or only Check.
 	after afterStep // none, setup, check
 	// purge deletes the App's data folder when compose is remove.
-	purge bool
+	purge        bool
+	namesChecked bool
 }
 
 // run owns every Project mutation: it takes the lock, opens the session,
@@ -79,6 +80,17 @@ func (s *Service) run(ctx context.Context, c change) error {
 	defer unlock()
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if p.Exists() && !c.namesChecked && c.after != afterNone && c.compose != composeStop && c.compose != composeDown {
+		settings, err := p.LoadSettings()
+		if err != nil {
+			return err
+		}
+		if settings[settingNames] == namesOn {
+			if check := s.CheckEasyNames(ctx); !check.Available {
+				return &NamesBlocked{check}
+			}
+		}
 	}
 	if !p.Exists() {
 		if c.initialize == nil {

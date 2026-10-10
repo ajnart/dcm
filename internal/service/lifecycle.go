@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -179,7 +181,7 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 		key, value, found := strings.Cut(pair, "=")
 		key = strings.ToUpper(strings.TrimSpace(key))
 		if !found || !slices.Contains(project.SettingKeys, key) || key == "BIND_IP" {
-			return fmt.Errorf("%q: settable keys are TZ, PUID, PGID, UMASK, LAN_IP, EXPOSURE, MEDIA_ROOT, DOWNLOADS_ROOT", pair)
+			return fmt.Errorf("%q: settable keys are TZ, PUID, PGID, UMASK, LAN_IP, EXPOSURE, EASY_NAMES, MEDIA_ROOT, DOWNLOADS_ROOT", pair)
 		}
 		value, err := s.resolveAuto(key, strings.TrimSpace(value))
 		if err != nil {
@@ -208,20 +210,29 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 		}
 		changes[settingNames] = "off"
 	}
-	if changes[settingNames] == namesOn {
-		p, err := s.Project()
-		if err != nil {
-			return err
-		}
-		settings, err := p.LoadSettings()
-		if err != nil {
-			return err
-		}
+	p, err := s.Project()
+	if err != nil {
+		return err
+	}
+	settings, err := p.LoadSettings()
+	if err != nil {
+		return err
+	}
+	if changes[settingNames] == namesOn || changes[settingNames] != "off" && settings[settingNames] == namesOn {
 		if settings["EXPOSURE"] == ExposureLocal && changes["EXPOSURE"] != ExposureLAN {
 			return fmt.Errorf("Easy names need Home network")
 		}
-		if err := s.requireEasyNames(ctx); err != nil {
+		if check := s.checkEasyNames(ctx, changes["LAN_IP"]); !check.Available {
+			return &NamesBlocked{check}
+		}
+		state, err := p.LoadState()
+		if err != nil {
 			return err
+		}
+		for id, st := range state.Apps {
+			if st.Port == 80 {
+				return fmt.Errorf("%s already uses port 80; Easy names need it, so nothing was changed", id)
+			}
 		}
 	}
 	after := afterNone
@@ -234,14 +245,35 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 	if _, changed := changes["EXPOSURE"]; changed {
 		after = afterDashboard
 	}
+	var rendered []string
 	return s.run(ctx, change{
-		title: "config set " + strings.Join(pairs, " "),
+		title:        "config set " + strings.Join(pairs, " "),
+		namesChecked: true,
 		edit: func(_ context.Context, ss *session) error {
+			previous := maps.Clone(ss.settings)
 			for key, value := range changes {
 				if old := ss.settings[key]; old != value {
 					s.Log.Emit(events.Event{Event: events.Info, Step: "config", Msg: key + ": " + old + " → " + value})
 				}
 				ss.settings[key] = value
+			}
+			for _, a := range s.Catalog.Apps() {
+				id := a.Info().ID
+				st := ss.state.Apps[id]
+				if st == nil || ss.p.IsExtra(id) {
+					continue
+				}
+				rc := app.RenderContext{Port: st.Port, Inputs: st.Inputs, Settings: previous}
+				old := a.Compose(rc)
+				rc.Settings = ss.settings
+				fragment := a.Compose(rc)
+				if old == fragment {
+					continue
+				}
+				if err := ss.p.WriteFragment(id, fragment); err != nil {
+					return err
+				}
+				rendered = append(rendered, id)
 			}
 			if err := ss.p.SaveSettings(ss.settings); err != nil {
 				return err
@@ -254,7 +286,7 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 			if err != nil {
 				return nil, err
 			}
-			var affected []string
+			affected := slices.Clone(rendered)
 			for _, id := range ids {
 				data, err := os.ReadFile(ss.p.FragmentPath(id))
 				if err != nil {
@@ -262,7 +294,9 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 				}
 				for key := range changes {
 					if strings.Contains(string(data), "${"+key+"}") {
-						affected = append(affected, id)
+						if !slices.Contains(affected, id) {
+							affected = append(affected, id)
+						}
 						break
 					}
 				}

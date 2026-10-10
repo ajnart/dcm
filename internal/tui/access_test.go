@@ -32,8 +32,8 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != (o.id != "home") {
-			t.Errorf("%s: only Home network is available yet, soon=%v", o.id, o.soon)
+		if o.soon != (o.id != "home" && o.id != "names") {
+			t.Errorf("%s: Home network and Easy names are available, soon=%v", o.id, o.soon)
 		}
 	}
 }
@@ -44,7 +44,7 @@ func TestEveryOptionDrawsItsWayFromYourDevicesToThisComputerInBothSizes(t *testi
 		want []string
 	}{
 		{"home", []string{"phones", "router", "this computer", "192.168.1.20", "internet ✗"}},
-		{"names", []string{"phones", "router", "this computer", "movies.local", "internet ✗"}},
+		{"names", []string{"phones", "router", "Caddy", "internet ✗"}},
 		{"tailscale", []string{"anywhere", "Tailscale", "this computer", "internet ✗"}},
 		{"cloudflare", []string{"anyone", "Cloudflare", "login first", "this computer"}},
 		{"custom", []string{"your devices", "your proxy", "this computer"}},
@@ -114,7 +114,7 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 		details string
 	}{
 		{"home", "Technical details Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links."},
-		{"names", "Technical details A Caddy container on this computer will own port 80 and forward each name to the App's port."},
+		{"names", "Technical details One managed Caddy in the Compose Project owns port 80 and routes HTTP requests by Host to each App."},
 		{"tailscale", "Technical details Tailscale will run on this computer and join it to your tailnet."},
 		{"cloudflare", "Technical details A cloudflared container will open an outbound tunnel to Cloudflare"},
 		{"custom", "Technical details self-host will print each App's host and port for SWAG, Pangolin, nginx, Traefik or Caddy."},
@@ -172,7 +172,7 @@ func TestTheLiveExplanationIsPlainWordsWithNoBindAddress(t *testing.T) {
 }
 
 func TestAnOptionNotBuiltYetSaysWhereYourAppsStay(t *testing.T) {
-	names, _ := accessByID("names")
+	names, _ := accessByID("tailscale")
 
 	for _, tc := range []struct{ current, want string }{
 		{"lan", "It isn't available yet: your Apps stay on your network."},
@@ -182,7 +182,7 @@ func TestAnOptionNotBuiltYetSaysWhereYourAppsStay(t *testing.T) {
 			t.Errorf("current %s: %q should end with %q", tc.current, got, tc.want)
 		}
 	}
-	if got := accessNote(names, "lan"); got != "Easy names at home is coming soon; your Apps stay on your network" {
+	if got := accessNote(names, "lan"); got != "From anywhere, privately is coming soon; your Apps stay on your network" {
 		t.Errorf("note %q", got)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -61,9 +60,16 @@ func (e *NamesBlocked) Error() string {
 // rather than a look at who listens. This Project's own Caddy already holding
 // the port is fine. It changes nothing.
 func (s *Service) CheckEasyNames(ctx context.Context) NamesCheck {
-	lan, ownCaddy := "", false
+	return s.checkEasyNames(ctx, "")
+}
+
+func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
+	ownCaddy := false
 	if p, err := s.Project(); err == nil && p.Exists() {
-		if settings, err := p.LoadSettings(); err == nil {
+		if err := p.ValidateServiceOwnership(nil); err != nil {
+			return NamesCheck{Problem: "ownership", Message: "An App uses a reserved service name, so nothing was changed.", Technical: err.Error()}
+		}
+		if settings, err := p.LoadSettings(); err == nil && lan == "" {
 			lan = settings["LAN_IP"]
 		}
 		ownCaddy = s.ownCaddyRuns(ctx, p)
@@ -71,31 +77,31 @@ func (s *Service) CheckEasyNames(ctx context.Context) NamesCheck {
 	if lan == "" {
 		lan, _ = s.Deps.LANIP()
 	}
-	if ip := net.ParseIP(lan); ip == nil || !ip.IsPrivate() {
+	if ip := net.ParseIP(lan); ip == nil || ip.To4() == nil || !ip.IsPrivate() {
 		return NamesCheck{Problem: problemNetwork, Message: fmt.Sprintf(
 			"This computer's network address (%s) doesn't look like a home network, so easy names can't be made from it.", lan) + keepsWorking}
 	}
-	if rootless, err := host.Rootless(ctx, s.Deps); err == nil && rootless {
+	if s.Deps.HomeNetwork != nil && !s.Deps.HomeNetwork(lan) {
+		return NamesCheck{Problem: problemNetwork, Message: "This computer's address is not on an active home network, so nothing was changed." + keepsWorking}
+	}
+	rootless, err := host.Rootless(ctx, s.Deps)
+	if err != nil {
+		return NamesCheck{Problem: "inspection", Message: "Docker could not be checked, so nothing was changed.", Technical: err.Error()}
+	}
+	if rootless {
 		return NamesCheck{Problem: problemRootless, Technical: rootlessFix,
 			Message: "Docker on this computer runs without administrator rights, so it can't use port 80 and nothing was changed." + keepsWorking}
 	}
 	if !ownCaddy && !s.Deps.PortFree(80) {
 		holder := host.PortHolder(ctx, s.Deps, 80)
-		who := "Another program"
+		message := "Port 80 is already in use or cannot be checked by binding, so nothing was changed."
 		if holder != "" {
-			who += " (" + holder + ")"
+			message = "Another program (" + holder + ") already uses port 80, so nothing was changed."
 		}
 		return NamesCheck{Problem: problemPortHeld, Holder: holder,
-			Message: who + " already uses port 80, so nothing was changed." + keepsWorking}
+			Message: message + keepsWorking}
 	}
 	return NamesCheck{Available: true}
-}
-
-func (s *Service) requireEasyNames(ctx context.Context) error {
-	if check := s.CheckEasyNames(ctx); !check.Available {
-		return &NamesBlocked{check}
-	}
-	return nil
 }
 
 // ownCaddyRuns reports whether this Project's Caddy is up and so holds port 80.
@@ -109,7 +115,11 @@ func (s *Service) ownCaddyRuns(ctx context.Context, p *project.Project) bool {
 	}
 	for _, c := range containers {
 		if c.Service == names.Service && c.State == "running" {
-			return true
+			for _, pub := range c.Publishers {
+				if pub.PublishedPort == 80 && pub.TargetPort == 80 && pub.Protocol == "tcp" {
+					return true
+				}
+			}
 		}
 	}
 	return false
@@ -159,6 +169,13 @@ func (ss *session) syncNames(ctx context.Context) error {
 	var routes []names.Route
 	for _, id := range ss.webApps() {
 		info, _ := ss.webApp(id)
+		if a, _ := ss.s.Catalog.App(id); ss.ready(id) {
+			if configurer, ok := a.(app.AccessConfigurer); ok {
+				if err := configurer.ConfigureAccess(ctx, ss.helpers(a)); err != nil {
+					return err
+				}
+			}
+		}
 		if host, ok := names.Host(id, ss.settings["LAN_IP"]); ok {
 			routes = append(routes, names.Route{Host: host, Upstream: fmt.Sprintf("%s:%d", info.Service, info.ContainerPort)})
 		}
@@ -252,8 +269,7 @@ func (ss *session) namesStatus(ctx context.Context, failed bool) *NamesStatus {
 	if failed {
 		verdict := names.Diagnose(ctx, ss.s.Deps.Resolver, ss.settings["LAN_IP"])
 		if verdict == names.Working {
-			status.Working = true
-			return status
+			verdict = names.Unreachable
 		}
 		status.Problem, status.Message, status.Technical = string(verdict), verdict.Sentence(), verdict.Technical()
 	}
@@ -280,5 +296,3 @@ func (ss *session) friendlyAddress(ctx context.Context, id, ipURL string) string
 	working, _ := ss.workingNames(ctx, []string{id})
 	return addresses(working[id], ipURL)[0]
 }
-
-func hasWord(s, word string) bool { return strings.Contains(s, word) }

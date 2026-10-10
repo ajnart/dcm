@@ -101,8 +101,12 @@ func Diagnose(ctx context.Context, r system.Resolver, lan string) Verdict {
 	if err == nil && len(addresses) > 0 {
 		return Rewritten
 	}
-	if _, err := r.LookupHost(ctx, controlHost); err != nil {
+	control, err := r.LookupHost(ctx, controlHost)
+	if err != nil || len(control) == 0 {
 		return Offline
+	}
+	if !slices.Contains(control, "1.1.1.1") {
+		return Rewritten
 	}
 	if direct, err := r.LookupHostVia(ctx, directDNS, probe); err == nil && slices.Contains(direct, lan) {
 		return Blocked

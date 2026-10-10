@@ -240,8 +240,8 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 		if opts.Exposure == ExposureLocal {
 			return fmt.Errorf("Easy names need Home network")
 		}
-		if err := s.requireEasyNames(ctx); err != nil {
-			return err
+		if check := s.checkEasyNames(ctx, opts.Settings["LAN_IP"]); !check.Available {
+			return &NamesBlocked{check}
 		}
 	}
 
@@ -292,12 +292,12 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 					}
 				}
 				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: StageRender, Msg: "render " + info.ID})
-				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values})
+				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values, Settings: ss.settings})
 				if err := ss.p.ValidateFragment(info.ID, fragment); err != nil {
 					st.Port, st.Inputs = previousPort, previousInputs
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
-				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values}); err != nil {
+				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values, Settings: ss.settings}); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
 				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {
@@ -440,6 +440,9 @@ func (ss *session) allocatePort(info app.Info, requested string, current int) (i
 		if err != nil || port < 1 || port > 65535 {
 			return 0, fmt.Errorf("%s.port: %q is not a port", info.ID, requested)
 		}
+		if port == 80 && ss.namesOn() {
+			return 0, fmt.Errorf("port 80 belongs to Easy names; choose another App port")
+		}
 		return port, nil
 	}
 	if current != 0 {
@@ -452,7 +455,7 @@ func (ss *session) allocatePort(info app.Info, requested string, current int) (i
 		}
 	}
 	for port := info.Port; port <= 65535; port++ {
-		if !used[port] && ss.s.Deps.PortFree(port) {
+		if !used[port] && !(port == 80 && ss.namesOn()) && ss.s.Deps.PortFree(port) {
 			if port != info.Port {
 				ss.s.Log.Emit(events.Event{Event: events.StepWarn, App: info.ID, Step: "port",
 					Msg: fmt.Sprintf("port %d is taken, using %d", info.Port, port)})

@@ -32,6 +32,9 @@ func (p *Project) ValidateFragment(id, content string) error {
 	}
 	proposed := map[string]bool{}
 	for _, name := range names {
+		if name == "access-caddy" {
+			return fmt.Errorf("Compose service access-caddy belongs to Easy names, not App %s", id)
+		}
 		proposed[name] = true
 	}
 	ids, err := p.AppIDs()
@@ -98,6 +101,9 @@ func (p *Project) ValidateServiceOwnership(replacements map[string]string) error
 			return err
 		}
 		for _, name := range names {
+			if name == "access-caddy" {
+				return fmt.Errorf("Compose service access-caddy belongs to Easy names, not App %s", id)
+			}
 			if other, exists := owners[name]; exists {
 				return fmt.Errorf("Compose service %s is defined by both Apps %s and %s; use distinct App-owned service names", name, other, id)
 			}

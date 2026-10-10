@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Host   Access   Appearance   Backups   Tools   About
+╭─ Access 1 pending ───────────────────────────────────────────────────────────╮
+│   ○ Home network (default)                                                   │
+│ > ● Easy names at home (pending)                                             │
+│   ○ From anywhere, privately · coming soon                                   │
+│   ○ Your own web address · coming soon                                       │
+│   ○ Bring your own · coming soon                                             │
+│                                                                              │
+│   Open each App by name instead of a port number. Caddy answers the names on │
+│   your home network. The addresses with numbers keep working if a name       │
+│   doesn't.                                                                   │
+│                                                                              │
+│   phones · TVs · laptops ──── router ──── Caddy · App name                   │
+│                                  │                                           │
+│                             internet ✗                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  q quit       ?  more   ↑/↓  select   enter  choose …

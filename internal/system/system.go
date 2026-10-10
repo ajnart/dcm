@@ -81,7 +81,8 @@ type Deps struct {
 	LANIP func() (string, error)
 	// HostIPs returns the IPv4 addresses of this machine's active network
 	// interfaces, without loopback and container bridges.
-	HostIPs func() ([]string, error)
+	HostIPs     func() ([]string, error)
+	HomeNetwork func(ip string) bool
 	// TimeZone returns the host's IANA time zone.
 	TimeZone func() string
 	// PortFree reports whether a TCP port can be bound on the host, tested with

@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+
+  Easy names at home
+
+
+  The internet
+  self-host opens no port on your router. Do not forward port 80 to this
+  computer; these pages are meant for your home network.
+
+  Changing it later
+  Everything here can be changed later in Settings, under Access.
+
+  Technical details
+  One managed Caddy in the Compose Project owns port 80 and routes HTTP
+  requests by Host to each App. Names are <app>.<lan-ip-with-dashes>.sslip.io
+  on every OS. sslip.io sees the LAN address in DNS queries. DNS-rebind
+  protection can block names; the IP:port Address stays. Port conflicts and
+  rootless Docker are refused without changes. HTTP is not encrypted; Apps
+  that require HTTPS still require it. A DHCP reservation keeps bookmarks
+  stable.
+
+  ↑/↓ scroll · esc or ? closes
+
+ help · esc or ? closes                              ↑/↓  scroll   esc/?  close
