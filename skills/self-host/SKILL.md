@@ -1,18 +1,18 @@
 ---
 name: self-host
-description: Install, configure, back up and repair self-hosted apps on the person's own machine with the `self-host` CLI. Use for owning or running apps at home, and for anything already set up with self-host.
+description: Load when the person wants to run or own apps on their own machine, replace a subscription (Netflix, Google Photos, Dropbox, a password manager), or asks about anything already set up with self-host, such as "where is my movie app?".
 license: Apache-2.0
 ---
 
 # self-host
 
-Run `self-host skill` and follow it. The guide matches the installed binary and replaces anything remembered about it.
+Run `self-host skill` and follow it.
 
-If `self-host` is not found, install the CLI, then run `self-host skill`:
+If `self-host` is not found, install it, then run `self-host skill`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Loading this skill conveys intent, never approval. Before installing software, changing access or deleting data, say in one plain sentence what will happen and wait for a yes.
+Loading this skill conveys intent, never approval.

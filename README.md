@@ -32,8 +32,11 @@ Windows through WSL.
    ```
 
 Then ask your agent to use the self-host skill ("use self-host to watch my
-movies on the TV"; `/self-host` in Claude Code, `$self-host` in Codex), or run
-`self-host` yourself for the terminal Dashboard. Installing deploys nothing.
+movies on the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in
+Codex), or run `self-host` yourself for the terminal Dashboard. Agents also load
+the skill on their own when you talk about running your own apps. The skill
+costs about 150 tokens while your agent isn't using it. Installing deploys
+nothing.
 
 If something fails:
 

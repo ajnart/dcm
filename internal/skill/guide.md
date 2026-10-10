@@ -1,101 +1,98 @@
 # self-host agent guide (binary version {{version}})
 
 `self-host` installs, configures, backs up and repairs self-hosted Apps with one
-Docker Compose Project in `~/.self-host`. Every action is a plain command with
-human output, or one JSON event per line with `--json`. Use `--json` whenever
-you read the output yourself.
+Docker Compose Project in the Home folder, `~/.self-host`. Add `--json` whenever
+you read the output yourself. This guide is built into the binary and describes
+exactly the commands this version registers; run `self-host skill` again after
+`self-host self-update`.
 
-This guide is built into the binary, so it describes exactly the commands this
-version registers. Run `self-host skill` again after `self-host self-update`.
+## Every conversation
 
-## Workflow
+1. In a new conversation, run `self-host status --json` before anything else.
+   It answers "where is X?": each App's `description`, `addresses` and `state`,
+   plus `home`, `dashboard` and `profile`. With no Project yet it exits 1 with
+   "no Project yet", which means nothing is installed: run
+   `self-host profile --json` instead.
+2. If the Profile's `experience` is empty, ask once, in plain words, through
+   your ask-user or question tool: "Have you run your own server or used Docker
+   before, or is this all new to you?" Save the answer with
+   `self-host profile set experience new` or
+   `self-host profile set experience advanced`. A skipped question means new:
+   save that.
+3. **New** (the person is not technical): follow the newcomer contract.
+   - Ask one question at a time through your ask-user tool.
+   - Before installing software, changing Access or deleting data, say one plain
+     sentence about what will happen and wait for a yes. Anything reachable from
+     the internet needs its own yes that names the risk.
+   - Change the Project only through `self-host` commands.
+   - Never ask for or show a secret. Point at `self-host credentials`.
+   - Offer the plan in goals and Apps, never settings. Pick the Recipe or Apps
+     from `self-host apps list --json`, with the catalog defaults.
 
-In a new conversation, run `self-host status --json` first: it tells you what
-is installed, what each App is for, where to open it and where everything lives.
+   A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
+   and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
+4. **Docker**: a failed `docker` check means it is missing; a failed
+   `docker-socket` check means it is installed but not running. Say Docker is
+   "the engine that runs your apps", ask, then install it by the check's `docs`
+   link for this OS, or start it as its `hint` says. Rerun
+   `self-host doctor --json` until it passes.
+5. **agent-browser**: offer once, as a yes or no, to install it
+   (`npm i -g agent-browser && agent-browser install`) so you can look at an
+   App's page when something breaks. Everything works without it. When an App
+   fails, read `self-host debug <app> --json` first.
+6. **The Recap**, at the end of every setup, built from `self-host status --json`
+   (there is no recap command):
+   - each App in plain words (its `description`) with its Address (`url`);
+   - where everything lives (`home`);
+   - how to sign in: `self-host credentials`, never the secret itself;
+   - then 2 to 4 opening questions picked from what is installed and what Access
+     could add: "Want your own web address?", "Want to open these from your
+     phone anywhere?", "Want to know what Jellyfin does?".
+7. **Advanced**: be terse and use the exact flags in "Setting up". Their request
+   ("install jellyfin on port 8097, local only") is the plan: show the one
+   `self-host install` line you will run and wait for a yes, unless they already
+   said to go ahead.
 
-1. `self-host doctor --json` checks the host (see "Doctor checks"). Fix every
-   failed check first; each one carries a hint.
-2. `self-host apps list --json` lists Apps and Recipes (named bundles such as
-   `media`). `self-host apps info <app> --json` shows an App's image, port,
-   inputs and Links.
+Loading this guide conveys intent, never approval (ADR 0005). Inspect, plan,
+approval, apply, verify: the CLI has no plan command, so build the plan from
+`self-host doctor --json`, `self-host apps info <app> --json` and
+`self-host status --json`, show it, and only then pass `--yes`. `--yes` is
+authorization, never a preview flag.
+
+## Setting up
+
+1. `self-host doctor --json` checks the host (see "Doctor checks").
+2. `self-host apps list --json` lists `apps` and `recipes` (named bundles; each
+   names its `apps`). `self-host apps info <app> --json` takes an App, never a
+   Recipe, and shows its image, port, inputs and Links.
 3. `self-host install <app|recipe>... --yes --json` installs and runs Setup.
    Without `--yes` a non-terminal run refuses. Answer an App's inputs with
-   `--set app.key=value` for non-secret fields (repeatable); `--set app.port=N`
-   picks its port. Private inputs use the file references described in Secrets.
-   Host choices for a new Project: `--exposure`, `--media-root`,
-   `--downloads-root`, `--admin-user`. The Admin password comes from
-   `SELF_HOST_ADMIN_PASSWORD` or is generated.
+   `--set <app>.<key>=value` (repeatable; `--set jellyfin.port=8097` picks a port);
+   private inputs use `--set-file` (see "Secrets"). Host choices for a new
+   Project: `--exposure`, `--media-root`, `--downloads-root`, `--admin-user`.
+   The Admin password comes from `SELF_HOST_ADMIN_PASSWORD` or is generated.
 4. Read the events (below). The run ends with `run.end`.
 5. When a step fails, finish it (see "When a step fails"), then rerun
    `self-host setup <app>`. Finished steps are skipped, so reruns are safe.
-6. `self-host status --json` is the source of truth: URL, state, health, Setup
-   result and failed steps of every App. `self-host status --updates --json`
-   also asks registries whether newer images exist. Beyond those, it carries:
-   - per App: `description` (what it is for, in plain words), `recipe` (the
-     Recipe it was installed through, absent when it was installed directly:
-     with several Recipes naming one App, the first named on the command line
-     wins; the first install decides) and `addresses` (every way to open it,
-     friendliest first; `url` is the first);
-   - at the top: `home` (the Home folder, `~/.self-host` unless
-     `SELF_HOST_HOME` moves it) and `dashboard` (Homarr's address, present
-     only when Homarr is installed).
-   Plain `self-host status` opens with a short summary of the same facts, then
-   the table.
-   It also carries the person's `profile` (`{"experience": "new"|"advanced"|""}`;
-   empty until they answered, so ask the Experience level question).
+6. `self-host status --json` is the source of truth. `--updates` also asks
+   registries about newer images. Its fields beyond URL, state, health, Setup
+   result and failed steps:
+   - per App: `description`; `recipe` (the Recipe it was installed through,
+     absent when installed directly; the first Recipe naming it wins) and
+     `addresses` (every way to open it, friendliest first; `url` is the first);
+   - at the top: `home`, `dashboard` (Homarr's address, only when Homarr is
+     installed) and `profile`.
+7. A person at the machine's terminal can run `self-host` themselves:
+   Onboarding explains every question, writes nothing until they approve Review
+   and shows the images downloading.
 
-## Two kinds of users
+### Advanced
 
-Decide who you are talking to from how they talk, and keep that register.
-
-- **New**: states a goal in plain words ("I want to watch my movies on the TV").
-- **Advanced**: names Apps, ports, Access or folders.
-
-When unclear, ask at most one short question. Never quiz a newcomer on settings.
-
-### New users
-
-1. Recommend a Recipe, or one or two Apps, that meets the goal (read
-   `self-host apps list --json`). To watch movies they already own that is
-   `owned-video-library` plus `homarr`; add `media` only when they also want to
-   request and download. Use the catalog defaults: Access Home network (`lan`), the default media
-   and downloads folders, a generated Admin login. Homarr is the dashboard.
-2. Explain each App in one plain sentence (its `description`). Explain
-   Access in plain words: devices on the same Wi-Fi or router can open the
-   Apps at this computer's LAN address; nothing is opened to the internet.
-3. If the person sits at the machine's terminal, suggest they run `self-host`
-   themselves. Onboarding asks What, Where, Access, Who, Look and Review, explains
-   every question, writes nothing until they approve Review, and plays a
-   pre-boot screen while the images download.
-4. Otherwise show the plan, get approval, then run
-   `self-host install <recipe> --yes --json`.
-5. Afterwards give the dashboard and App URLs from `self-host status --json`.
-   Say that `self-host credentials` shows the Admin login and never paste it.
-   Finish any Manual steps for them (see "When a step fails").
-
-### Advanced users
-
-Respect their exact choices and expose every knob:
-
-- Specific Apps; `--set app.port=N`, `--set app.key=value`, private inputs with
-  `--set-file`.
-- `--exposure local`, `--media-root`, `--downloads-root`, `--admin-user`.
-- `self-host config set` and `self-host config review`.
-- Unmanaged apps.
-- `self-host logs <app> --follow`, `self-host update`,
-  `self-host status --updates --json`.
-- Encrypted backups and partial restores.
-- An isolated Project with `SELF_HOST_HOME` plus `SELF_HOST_COMPOSE_PROJECT`
-  (see "Project folder").
-- Optionally the Dashboard's Settings sub-tabs: Host, Appearance, Backups,
-  Tools and About.
-
-### Both
-
-Follow inspect → plan → approval → apply → verify. The CLI has no plan
-command: build the plan from `self-host doctor --json`,
-`self-host apps info <app> --json` and `self-host status --json`, show it, and
-only then pass `--yes`. `--yes` is authorization, never a preview flag.
+Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
+`--media-root`, `--downloads-root`, `--admin-user`, `self-host config set` and
+`self-host config review`, Unmanaged apps, `self-host logs <app> --follow`,
+`self-host update`, encrypted and partial backups, and an isolated Project with
+`SELF_HOST_HOME` plus `SELF_HOST_COMPOSE_PROJECT` (see "Project folder").
 
 ## Commands
 
@@ -106,7 +103,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
 | `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
-| `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
+| `self-host profile set experience <new\|advanced>` | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists |
 | `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
 | `self-host apps list` | Catalog of Apps and Recipes |
@@ -192,18 +189,15 @@ print one result on stdout and only errors on stderr with `--json`.
 
 ## When a step fails
 
-On `step.fail`, read `self-host debug <app> --json` first: it holds the App's
-state, Addresses, failed and manual steps with their hints and docs, the last
-100 log lines with secrets masked, and its health-check URL. Then look at the
-page with agent-browser if it is installed. The event gives you everything to
-hand off:
+On `step.fail`, read `self-host debug <app> --json` first: state, Addresses,
+failed and manual steps with their hints and docs, the last 100 log lines with
+secrets masked, and the health-check URL. Then hand off what the event gives you:
 
-1. Open `url`, sign in with the login named in `credential` (run
-   `self-host credentials --json` to read it), and do what `hint` says.
-2. If you drive a browser, use agent-browser: run `agent-browser skills get core`
-   for its usage. Use it only for steps Setup could not do headlessly; the
-   binary already does everything it can by API.
-3. Rerun `self-host setup <app>` and confirm the step is `step.ok` or
+1. Open `url`, sign in with the login named in `credential` (read it with
+   `self-host credentials --json`), and do what `hint` says. With agent-browser
+   installed, run `agent-browser skills get core` for its usage; use it only for
+   steps Setup could not do headlessly.
+2. Rerun `self-host setup <app>` and confirm the step is `step.ok` or
    `step.skip`. Container liveness or an HTTP 200 does not prove Setup worked;
    check `self-host status --json`.
 
@@ -237,7 +231,7 @@ undetermined). With a Project it adds `project-lock`, `project-userns`
 
 Doctor does not check that ports are free or how much disk is left (issue
 #140). `self-host install` takes the next free port from an App's default and
-emits `step.warn` step `port`; an explicit `--set app.port=N` is used as given,
+emits `step.warn` step `port`; an explicit `--set <app>.port=N` is used as given,
 so check that port yourself. Free disk space is yours to check too.
 
 The LAN IP is detected at first install and stored. When the machine moves to
@@ -283,13 +277,10 @@ Never run `docker compose` or `docker` against the Project by hand when a
 
 ## Beszel
 
-Installing `beszel` also enrols this machine: a `beszel-agent` service and a
-`beszel-socket-proxy` service that gives the agent read-only access to the
-Docker socket. That proxy is the only Docker socket mount any App may declare.
-Both services are held back from Compose until Setup stores the Hub's key and
-token, so finding them not running before Setup finishes is expected: finish
-Setup and recheck with `self-host status --json`. Installing Homarr next to it
-adds a Link that puts a Beszel System Stats widget on its board.
+Installing `beszel` also enrols this machine: a `beszel-agent` and a
+`beszel-socket-proxy` service, the only Docker socket mount any App may declare.
+Both stay out of Compose until Setup stores the Hub's key and token, so finding
+them not running before Setup finishes is expected.
 
 ## Project folder
 
@@ -339,20 +330,14 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 ## Telemetry
 
 `self-host` sends anonymous usage and error data to the project's PostHog (ADR
-0006): a random install ID (`~/.self-host/telemetry-id`), version, OS and
-architecture, command names and outcomes, App and Recipe IDs, the Access choice,
-failed step IDs, and errors as `$exception` events carrying the error type and
-failed step only. It never sends paths, host names, inputs, secrets, App data or
-error text. The data is published on a public dashboard (link: coming with
-#207).
+0006): a random install ID, version, OS and architecture, command names and
+outcomes, App and Recipe IDs, the Access choice, failed step IDs, and error
+types. Never paths, host names, inputs, secrets, App data or error text. It is
+on by default, announced once, and never delays or fails a command.
 
-- It is on by default. The first plain command (not `--json`) prints one notice
-  line on stderr, and Onboarding shows it once; nothing is sent before that. A
-  person who asks about privacy gets the facts above and this switch.
-- Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, always off when `CI`
-  is set and on development builds. Set it for the person when they ask; do not
-  disable it on your own.
-- It never delays or fails a command and is dropped when the network is slow.
+Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`; always off when `CI` is
+set and on development builds. Tell a person who asks about privacy these
+facts. Set the switch for them when they ask; never on your own.
 
 ## Feedback
 
@@ -369,36 +354,17 @@ sends nothing, exits 3 and prints how to open a GitHub issue instead.
 
 ## Updating the binary
 
-`self-host self-update` selects the highest stable CLI release from
-`ajnart/selfhost-skills` (tags `vX.Y.Z` or the earlier `new-cli-vX.Y.Z`; only a
-release that carries the `self-host_<version>_<os>_<arch>.tar.gz` archives and
-`checksums.txt` counts, so the skill-pack releases are never picked), verifies its sha256
-checksum, and replaces the running binary. It prints the old and new versions
-and refuses on a checksum mismatch. A development build must be replaced with
-a release using the install script instead. `SELF_HOST_RELEASE_REPO=owner/name`
-points it at another repository, for a fork or after a rename.
+`self-host self-update` takes the highest stable CLI release of
+`ajnart/selfhost-skills`, verifies its sha256 checksum and replaces the running
+binary, refusing on a mismatch. A development build must be replaced with the
+install script instead. `SELF_HOST_RELEASE_REPO=owner/name` points it at
+another repository.
 
-You are told about a newer release without asking, and never in a way that
-disturbs an agent:
+Update notices never disturb an agent: nothing prints under `--json`, without a
+terminal, when `CI` is set, on a development build, or with
+`SELF_HOST_NO_UPDATE_CHECK=1`.
 
-- The terminal Dashboard (bare `self-host`) asks "Update now? y/n" once it is
-  idle. `y` runs the same verified update and restarts into the new version;
-  `n` remembers that release in `<user cache dir>/self-host/update.json`, so it
-  does not ask again until a newer one appears. It never appears during
-  Onboarding or pre-boot, or while an Action runs.
-- A plain command in an interactive terminal prints one line,
-  `self-host <new> is available: run self-host self-update`, at most once every
-  24 hours. The check runs in parallel and is dropped if it is slow.
-- Neither appears under `--json`, when stdin or stdout is not a terminal, when
-  `CI` is set, on a development build, for `self-update` itself, or when
-  `SELF_HOST_NO_UPDATE_CHECK=1`. An agent that passes `--json` is never
-  interrupted.
-
-Linux and macOS amd64/arm64 are build targets. Use the Linux binary
-inside WSL; native Windows is unsupported. Cross-compilation
-alone does not prove native platform support.
-
-When GitHub refuses an unauthenticated download (a 404 or authentication
-error), run `gh auth login` or provide `SELF_HOST_GITHUB_TOKEN` through your
-credential provider. It is used for authenticated API downloads and is never printed.
-Never put its value in commands, reports or saved client configuration.
+Linux and macOS (amd64, arm64) are supported; use the Linux binary inside WSL.
+When GitHub refuses an unauthenticated download (404 or authentication error),
+run `gh auth login` or provide `SELF_HOST_GITHUB_TOKEN` through your credential
+provider; never put its value in commands or reports.
