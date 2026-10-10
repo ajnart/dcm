@@ -42,3 +42,16 @@ func (ss *session) browserAddresses(id, local string) []string {
 	}
 	return out
 }
+
+func (ss *session) invalidateNavigation() {
+	ss.navigationAddresses, ss.navigationContainers = nil, nil
+	ss.navigationError, ss.navigationWarnings = nil, nil
+	prefix := ss.p.Root + "\x00" + ss.p.ComposeName + "\x00"
+	nodeReads.Lock()
+	for key := range nodeReads.byService {
+		if strings.HasPrefix(key, prefix) {
+			delete(nodeReads.byService, key)
+		}
+	}
+	nodeReads.Unlock()
+}

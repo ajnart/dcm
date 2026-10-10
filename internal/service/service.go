@@ -412,6 +412,9 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool { return !IsStage(step) })
 	h := ss.helpers(a)
 	err := a.Setup(ctx, h)
+	if id == tailscaleID || id == cloudflareConnector {
+		ss.invalidateNavigation()
+	}
 	if err == nil {
 		err = h.Step(ctx, "check", "verify "+a.Info().Name+" works", helpers.StepSpec{
 			Do:   func(ctx context.Context) error { return a.Check(ctx, h) },

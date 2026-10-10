@@ -16,10 +16,13 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/homarr"
+	tsapp "github.com/ajnart/self-host/internal/apps/tailscale"
+	"github.com/ajnart/self-host/internal/apps/vaultwarden"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/clitest"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/service"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
@@ -1199,6 +1202,80 @@ func TestDedicatedLinkUsesInventoryNavigationAndKeepsLocalEndpoints(t *testing.T
 		fake.mu.Unlock()
 		if to.URL != local || to.BaseURL != srv.URL || from.BaseURL != srv.URL {
 			t.Fatal("navigation changed local API metadata")
+		}
+	}
+}
+
+type navigationTarget struct{ vaultwarden.App }
+
+func (navigationTarget) Info() app.Info {
+	info := (vaultwarden.App{}).Info()
+	info.Path = "/custom/path?view=all"
+	return info
+}
+
+func (navigationTarget) Setup(context.Context, *helpers.H) error { return nil }
+func (navigationTarget) Check(context.Context, *helpers.H) error { return nil }
+
+func TestHomarrBeforeTailscaleFinishesWithFreshPrivateNavigation(t *testing.T) {
+	fake := newFake()
+	srv := serve(t, fake)
+	deps := systemtest.NewDeps(t)
+	var mu sync.Mutex
+	enrolled := false
+	earlyHref := ""
+	deps.Runner.(*systemtest.Runner).OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		mu.Lock()
+		defer mu.Unlock()
+		line := systemtest.Line(cmd)
+		if strings.Contains(line, " ps ") {
+			return system.Result{Stdout: []byte(`[{"Service":"homarr","State":"running"},{"Service":"vaultwarden","State":"running"},{"Service":"tailscale","State":"running"},{"Service":"tailscale-homarr","State":"running"},{"Service":"tailscale-vaultwarden","State":"running"}]`)}
+		}
+		if !strings.Contains(line, " exec ") {
+			return system.Result{}
+		}
+		if strings.Contains(line, " up --hostname=self-host") {
+			enrolled = true
+			fake.mu.Lock()
+			if len(fake.apps) == 1 {
+				earlyHref, _ = fake.apps[0]["href"].(string)
+			}
+			fake.mu.Unlock()
+			return system.Result{}
+		}
+		if !enrolled {
+			return system.Result{Stdout: []byte(`{"BackendState":"Stopped"}`)}
+		}
+		_, rest, _ := strings.Cut(line, "exec -T ")
+		node, _, _ := strings.Cut(rest, " ")
+		name := strings.TrimPrefix(node, "tailscale-") + "-2.example.ts.net"
+		return system.Result{Stdout: []byte(`{"BackendState":"Running","Self":{"DNSName":"` + name + `."},"CertDomains":["` + name + `"]}`)}
+	})
+	svc := service.New(deps, events.Discard(), catalog.New([]app.App{navigationTarget{}, homarr.App{}, tsapp.App{}}, nil))
+	if err := svc.Install(t.Context(), service.InstallOptions{Targets: []string{"vaultwarden"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Install(t.Context(), service.InstallOptions{
+		Targets: []string{"homarr", "tailscale"}, Sets: []string{"homarr.port=" + clitest.Port(srv)},
+		PrivateInputs: map[string]map[string]string{"tailscale": {"auth_key": "tskey-auth-fake-regression"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if earlyHref != "http://192.168.1.20:8222/custom/path?view=all" {
+		t.Fatalf("did not observe the pre-enrollment tile: %q", earlyHref)
+	}
+	fake.mu.Lock()
+	if len(fake.apps) != 1 || fake.apps[0]["href"] != "https://vaultwarden-2.example.ts.net/custom/path?view=all" || fake.apps[0]["pingUrl"] != "http://vaultwarden:80" {
+		t.Fatalf("final dedicated tile = %v", fake.apps)
+	}
+	fake.mu.Unlock()
+	status, err := svc.Status(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range status.Apps {
+		if a.ID == "vaultwarden" && (a.URL != "https://vaultwarden-2.example.ts.net/custom/path?view=all" || len(a.Addresses) != 2 || a.Addresses[1] != "http://192.168.1.20:8222/custom/path?view=all") {
+			t.Fatalf("final Status = %+v", a)
 		}
 	}
 }

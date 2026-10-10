@@ -356,7 +356,7 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 			}
 		}
 		err := ss.setupAll(ctx, apps)
-		if !slices.Contains(ids, "homarr") {
+		if !slices.Contains(ids, "homarr") || slices.Contains(ids, tailscaleID) || slices.Contains(ids, cloudflareConnector) {
 			err = errors.Join(err, ss.refreshDashboard(ctx))
 		}
 		return err
