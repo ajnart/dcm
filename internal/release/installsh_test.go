@@ -157,6 +157,9 @@ func runInstaller(t *testing.T, server *httptest.Server, env ...string) (string,
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	cmd.Env = append([]string{
 		"PATH=" + os.Getenv("PATH"),
+		"LANG=" + os.Getenv("LANG"),
+		"LC_ALL=" + os.Getenv("LC_ALL"),
+		"LC_CTYPE=" + os.Getenv("LC_CTYPE"),
 		"SELF_HOST_RELEASES_URL=" + server.URL + "/api",
 		"SELF_HOST_WEB_URL=" + server.URL + "/web",
 	}, env...)
@@ -170,6 +173,68 @@ func TestInstallScriptSyntax(t *testing.T) {
 	}
 	if out, err := exec.Command("bash", "-n", "../../install.sh").CombinedOutput(); err != nil {
 		t.Fatalf("bash -n: %v\n%s", err, out)
+	}
+}
+
+func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
+	locales, err := exec.Command("locale", "-a").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	utf8Locale := ""
+	for _, candidate := range []string{"en_US.UTF-8", "C.UTF-8", "C.utf8"} {
+		if strings.Contains("\n"+string(locales), "\n"+candidate+"\n") {
+			utf8Locale = candidate
+			break
+		}
+	}
+	for index, locale := range []string{"C", utf8Locale, ""} {
+		name := locale
+		if index == 2 {
+			name = "default"
+		}
+		t.Run(name, func(t *testing.T) {
+			if index == 1 && locale == "" {
+				t.Skip("no representative UTF-8 locale installed")
+			}
+			for _, token := range []string{"", "fixture-token"} {
+				t.Run("token="+token, func(t *testing.T) {
+					metadata := fmt.Sprintf(`{"name":"Café 日本語 🚀","body":"Résumé \u00e9 \ud83d\ude80 before assets","tag_name":"v1.3.0","assets":[{"id":99,"name":"説明.txt"},{"id":11,"name":"checksums.txt"},{"id":12,"name":%q,"label":"更新 \u65e5"}],"description":"Après assets 🎉"}`, hostAsset("1.3.0"))
+					list := "[" + metadata + "]"
+					for _, tc := range []struct {
+						name, list, metadata, failure string
+					}{
+						{name: "valid", list: list, metadata: metadata},
+						{name: "default_release_list", metadata: metadata},
+						{name: "truncated_list", list: strings.TrimSuffix(list, "]"), metadata: metadata, failure: "invalid release-list JSON"},
+						{name: "malformed_list", list: list + " trailing", metadata: metadata, failure: "invalid release-list JSON"},
+						{name: "truncated_metadata", list: list, metadata: strings.TrimSuffix(metadata, "}"), failure: "does not match requested stable CLI tag"},
+						{name: "invalid_escape", list: list, metadata: strings.Replace(metadata, `\u00e9`, `\u00xz`, 1), failure: "does not match requested stable CLI tag"},
+						{name: "wrong_tag", list: list, metadata: strings.Replace(metadata, `"tag_name":"v1.3.0"`, `"tag_name":"v9.0.0"`, 1), failure: "does not match requested stable CLI tag"},
+						{name: "wrong_asset", list: list, metadata: strings.Replace(metadata, hostAsset("1.3.0"), "説明.tar.gz", 1), failure: "not a CLI release"},
+						{name: "legacy_only", list: `[{"tag_name":"v99.0.0","name":"旧版 🚀","assets":[{"name":"selfhost-skills-99.0.0.zip"},{"name":"checksums.txt"}]}]`, metadata: metadata, failure: "no CLI release is published"},
+					} {
+						t.Run(tc.name, func(t *testing.T) {
+							dir := filepath.Join(t.TempDir(), "bin")
+							fake := &installFake{tag: "v1.3.0", binary: "unicode-release", token: token, metadata: tc.metadata, releaseList: tc.list}
+							out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir, "SELF_HOST_GITHUB_TOKEN="+token, "LC_ALL="+locale)
+							if tc.failure != "" {
+								if err == nil || !strings.Contains(out, tc.failure) {
+									t.Fatalf("expected %q under %s: %v\n%s", tc.failure, name, err, out)
+								}
+								if _, err := os.Stat(filepath.Join(dir, "self-host")); !os.IsNotExist(err) {
+									t.Fatalf("failed install wrote a binary: %v", err)
+								}
+								return
+							}
+							if err != nil || installedBinary(dir) != "unicode-release" || !strings.Contains(out, "(1.3.0, checksum verified)") {
+								t.Fatalf("install under %s: %v\n%s", name, err, out)
+							}
+						})
+					}
+				})
+			}
+		})
 	}
 }
 

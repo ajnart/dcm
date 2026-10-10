@@ -58,9 +58,11 @@ fi
 sandboxed() {
   if [ -n "$TOKEN" ]; then
     env -i HOME="$sandbox/home" PATH="$PATH" SHELL=/bin/bash TMPDIR="$sandbox" \
+      LANG="${LANG:-}" LC_ALL="${LC_ALL:-}" LC_CTYPE="${LC_CTYPE:-}" \
       SELF_HOST_GITHUB_TOKEN="$TOKEN" SELF_HOST_RELEASE_REPO="$REPO" "$@"
   else
     env -i HOME="$sandbox/home" PATH="$PATH" SHELL=/bin/bash TMPDIR="$sandbox" \
+      LANG="${LANG:-}" LC_ALL="${LC_ALL:-}" LC_CTYPE="${LC_CTYPE:-}" \
       GH_HOST=gh.invalid SELF_HOST_RELEASE_REPO="$REPO" "$@"
   fi
 }
