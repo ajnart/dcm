@@ -124,6 +124,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
 | `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
 | `self-host self-update` | Replace the binary with the latest verified release |
+| `self-host feedback --message <text> [--app <app>] [--yes]` | Send the maintainers a report of what broke, after the person agrees (see "Feedback") |
 | `self-host skill` | Print this guide |
 
 Global flags: `--json` (one JSON event per line; document commands print one
@@ -347,6 +348,19 @@ error text. The data is published on a public dashboard (link: coming with
   is set and on development builds. Set it for the person when they ask; do not
   disable it on your own.
 - It never delays or fails a command and is dropped when the network is slow.
+
+## Feedback
+
+When something breaks that you cannot fix, `self-host feedback` sends the
+maintainers a report through Telemetry. Ask the person first, in plain words,
+and run it with `--yes` only after they agree. Write the message yourself and
+redact anything personal: names, paths, host names, addresses, anything you
+would not post publicly. The CLI masks every known secret again, shows the exact
+text and refuses without a terminal unless `--yes` is set. Say which App
+(`--app <id>` adds its Status and failed steps with hints, never its logs) and
+what you tried. The message takes the text of `--message` or stdin, at most
+4096 bytes; a longer one is refused and nothing is sent. When Telemetry is off it
+sends nothing, exits 3 and prints how to open a GitHub issue instead.
 
 ## Updating the binary
 

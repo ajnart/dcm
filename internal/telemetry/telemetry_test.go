@@ -353,3 +353,72 @@ func TestNoPathHostNameInputOrSecretIsEverSent(t *testing.T) {
 		t.Errorf("apps = %v, want only the clean ID", props["apps"])
 	}
 }
+
+func TestFeedbackIsOneAnonymousFeedbackEventAndNothingElse(t *testing.T) {
+	s := enabled(t)
+
+	sent := telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "Pull failed.", App: "one", Summary: "State: missing"})
+
+	events := s.net.Events()
+	if !sent || len(events) != 1 || events[0]["event"] != "feedback" {
+		t.Fatalf("sent=%v events=%v, want one feedback event", sent, events)
+	}
+	props := events[0]["properties"].(map[string]any)
+	want := map[string]any{
+		"$process_person_profile": false,
+		"$geoip_disable":          true,
+		"message":                 "Pull failed.",
+		"app":                     "one",
+		"summary":                 "State: missing",
+		"version":                 "1.2.3",
+		"os":                      "linux",
+		"arch":                    "amd64",
+	}
+	for key, value := range want {
+		if props[key] != value {
+			t.Errorf("properties[%q] = %v, want %v", key, props[key], value)
+		}
+	}
+}
+
+func TestFeedbackDropsAnAppThatIsNotACatalogID(t *testing.T) {
+	s := enabled(t)
+
+	telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x", App: "/Users/ada/my app"})
+
+	if props := s.net.Events()[0]["properties"].(map[string]any); props["app"] != nil {
+		t.Errorf("app = %v, want none", props["app"])
+	}
+}
+
+func TestFeedbackObeysTheOffSwitchesButNotTheNoticeMarker(t *testing.T) {
+	s := enabled(t)
+	s.store.Remove("telemetry-notice")
+	if !telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x"}) {
+		t.Fatal("feedback waited for the notice")
+	}
+	for _, off := range []func(){
+		func() { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
+		func() { s.env["SELF_HOST_NO_TELEMETRY"], s.env["DO_NOT_TRACK"] = "", "1" },
+		func() { s.env["DO_NOT_TRACK"], s.env["CI"] = "", "true" },
+		func() { s.env["CI"], s.opts.Version = "", "dev" },
+	} {
+		off()
+		before := len(s.net.Bodies())
+		if telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x"}) || len(s.net.Bodies()) != before {
+			t.Fatalf("feedback sent while off: %v", s.env)
+		}
+	}
+}
+
+func TestFeedbackReportsFailureWhenPostHogDoesNotAnswerInTime(t *testing.T) {
+	s := enabled(t)
+	hold := make(chan struct{})
+	defer close(hold)
+	s.net.Hold = hold
+	s.opts.Deadline = 100 * time.Millisecond
+
+	if telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x"}) {
+		t.Fatal("reported success without an answer")
+	}
+}
