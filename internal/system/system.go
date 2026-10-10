@@ -28,6 +28,15 @@ type Result struct {
 	ExitCode int
 }
 
+// Resolver looks names up for the Easy names check.
+type Resolver interface {
+	// LookupHost asks this computer's own resolver, as a browser here would.
+	LookupHost(ctx context.Context, name string) ([]string, error)
+	// LookupHostVia asks one DNS server directly, such as "1.1.1.1:53",
+	// bypassing the router's resolver.
+	LookupHostVia(ctx context.Context, server, name string) ([]string, error)
+}
+
 type Runner interface {
 	Run(ctx context.Context, cmd Cmd) (Result, error)
 	// Stream runs cmd and writes its combined output to w until it exits or ctx ends.
@@ -74,11 +83,14 @@ type Deps struct {
 	LANIP func() (string, error)
 	// HostIPs returns the IPv4 addresses of this machine's active network
 	// interfaces, without loopback and container bridges.
-	HostIPs func() ([]string, error)
+	HostIPs     func() ([]string, error)
+	HomeNetwork func(ip string) bool
 	// TimeZone returns the host's IANA time zone.
 	TimeZone func() string
-	// PortFree reports whether a TCP port can be bound on the host.
+	// PortFree reports whether a TCP port can be bound on the host, tested with
+	// a real bind.
 	PortFree func(port int) bool
+	Resolver Resolver
 	// ProcessAlive reports whether a PID belongs to a running process.
 	ProcessAlive func(pid int) bool
 	PID          int

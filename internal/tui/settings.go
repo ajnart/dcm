@@ -58,6 +58,7 @@ type settingsView struct {
 	// exposure is the stored Access in use; accessCursor is Access's highlighted
 	// option, an index into accessOptions. Pending changes of both are in edits.
 	exposure     string
+	names        string
 	accessCursor int
 	edits        map[string]string
 
@@ -100,6 +101,7 @@ var (
 
 func newSettingsView(ctx *viewContext) *settingsView {
 	v := &settingsView{edits: map[string]string{}, goos: runtime.GOOS, exposure: cmp.Or(ctx.status.Exposure, service.ExposureLAN)}
+	v.names = cmp.Or(ctx.status.Settings["EASY_NAMES"], "off")
 	for _, key := range settingsKeys {
 		v.rows = append(v.rows, service.SettingReview{Key: key, Current: settingCurrent(ctx, key)})
 	}
@@ -177,6 +179,15 @@ func (v *settingsView) access() string {
 
 func (v *settingsView) accessChanged() bool { return v.access() != v.exposure }
 
+func (v *settingsView) namesValue() string {
+	if value, found := v.edits["EASY_NAMES"]; found {
+		return value
+	}
+	return v.names
+}
+
+func (v *settingsView) namesChanged() bool { return v.namesValue() != v.names }
+
 // helpPage is the page `?` opens on the Access sub-tab: the one Onboarding's
 // Access step has, for the highlighted option.
 func (v *settingsView) helpPage() (helpPage, bool) {
@@ -214,6 +225,9 @@ func (v *settingsView) apply(rows []service.SettingReview, err error) {
 	if row, found := byKey[accessKey]; found && row.Current != "" && !v.accessChanged() {
 		v.exposure = row.Current
 	}
+	if row, found := byKey["EASY_NAMES"]; found && !v.namesChanged() {
+		v.names = cmp.Or(row.Current, "off")
+	}
 	for i := range v.rows {
 		row, found := byKey[v.rows[i].Key]
 		if !found {
@@ -249,6 +263,9 @@ func (v *settingsView) pairs() []string {
 	var out []string
 	if v.accessChanged() {
 		out = append(out, accessKey+"="+v.access())
+	}
+	if v.namesChanged() {
+		out = append(out, "EASY_NAMES="+v.namesValue())
 	}
 	for i := range v.rows {
 		if value, found := v.edits[v.rows[i].Key]; found && value != v.rows[i].Current {
@@ -409,6 +426,9 @@ func (v *settingsView) show(ctx *viewContext, tab settingsTab) {
 	v.tab = tab
 	if tab == tabAccess {
 		v.accessCursor = max(slices.IndexFunc(accessOptions, func(o accessOption) bool { return o.value == v.access() }), 0)
+		if v.namesValue() == "on" {
+			v.accessCursor = 1
+		}
 	}
 	if tab == tabAppearance {
 		v.glyphCursor = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
@@ -475,6 +495,11 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 			return v, nil, nav{}
 		}
 		v.edits[accessKey] = choice.value
+		if choice.id == "names" {
+			v.edits["EASY_NAMES"] = "on"
+		} else if choice.id == "home" {
+			v.edits["EASY_NAMES"] = "off"
+		}
 	}
 	return v, nil, nav{}
 }
@@ -664,10 +689,10 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 	}
 	for i, o := range accessOptions {
 		label := accessLabel(t, o)
-		selected := o.value != "" && o.value == current || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare") || o.id == "tailscale" && slices.Contains(ctx.status.Access, "tailscale")
+		selected := o.value != "" && o.value == current && (o.id == "names") == (v.namesValue() == "on") || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare") || o.id == "tailscale" && slices.Contains(ctx.status.Access, "tailscale")
 		if selected {
 			label = o.label
-			if v.accessChanged() {
+			if v.accessChanged() || v.namesChanged() {
 				label += t.fg(t.accentText).Render(" (pending)")
 			}
 		}
@@ -719,6 +744,9 @@ func (v *settingsView) pendingLines(ctx *viewContext, limit int) []string {
 	if v.accessChanged() {
 		changes = append(changes, "  "+t.body().Render(pad("Access", 16))+
 			t.dim().Render(accessInUse(v.exposure).name+" → ")+t.fg(t.accentText).Render(accessInUse(v.access()).name))
+	}
+	if v.namesChanged() {
+		changes = append(changes, "  "+t.body().Render(pad("Easy names", 16))+t.dim().Render(v.names+" → ")+t.fg(t.accentText).Render(v.namesValue()))
 	}
 	for i := range v.rows {
 		if v.changed(i) {

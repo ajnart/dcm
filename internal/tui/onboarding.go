@@ -46,8 +46,10 @@ const revealEvery = 6
 // every step's form, built afresh each time the step opens, shows them.
 type answers struct {
 	// exposure is the stored value of the Access chosen: lan, or local from the command line.
-	exposure   string
-	cloudflare bool
+	exposure     string
+	easyNames    bool
+	accessChosen bool
+	cloudflare   bool
 	// experience is the Experience level under the highlight at Welcome:
 	// new until the person chooses.
 	experience               string
@@ -100,6 +102,7 @@ func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
 		checking: len(m.checks) == 0, checksFrom: m.frame, notice: m.backend.TelemetryNotice()}
 	o.answers.fill(m.defaults)
+	o.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
 	return o
 }
 
@@ -452,7 +455,7 @@ func numeric(s string) error {
 func (m Model) planFromAnswers(v *answers) *plan {
 	cat := m.backend.Catalog()
 	apps := v.picks.apps(cat)
-	opts := service.InstallOptions{Exposure: v.exposure, AdminUser: v.adminUser, AdminPassword: v.adminPassword,
+	opts := service.InstallOptions{Exposure: v.exposure, EasyNames: v.easyNames, AdminUser: v.adminUser, AdminPassword: v.adminPassword,
 		Settings: map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid}}
 	needsMedia := false
 	for _, a := range apps {
@@ -472,6 +475,9 @@ func (m Model) planFromAnswers(v *answers) *plan {
 		opts.MediaRoot, opts.DownloadsRoot = v.media, v.downloads
 	}
 	settings := map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid, "EXPOSURE": v.exposure}
+	if v.easyNames {
+		settings["EASY_NAMES"] = "on"
+	}
 	if needsMedia {
 		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = v.media, v.downloads
 	}
@@ -669,6 +675,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		}
 		o.answers.cloudflare = false
 		o.answers.exposure = choice.value
+		o.answers.easyNames, o.answers.accessChosen = choice.id == "names", true
 		delete(o.answers.picks, "tailscale")
 	case stepLook:
 		m.glyphs = glyphChoices[o.look].glyphs
@@ -709,6 +716,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		return m, o.form.Init()
 	case stepAccess:
 		o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.value == o.answers.exposure }), 0)
+		if o.answers.easyNames {
+			o.access = 1
+		}
 		if o.answers.cloudflare {
 			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "cloudflare" })
 		}
@@ -998,7 +1008,7 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		selected := option.value != "" && option.value == o.answers.exposure || option.id == "cloudflare" && o.answers.cloudflare || option.id == "tailscale" && o.answers.picks["tailscale"]
+		selected := option.value != "" && option.value == o.answers.exposure && (option.id == "names") == o.answers.easyNames || option.id == "cloudflare" && o.answers.cloudflare || option.id == "tailscale" && o.answers.picks["tailscale"]
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
@@ -1041,6 +1051,9 @@ func planLines(t theme, p *plan) []string {
 	lines = append(lines, "")
 	row := func(k, v string) string { return "  " + t.dim().Render(pad(k, 10)) + t.body().Render(v) }
 	access := "Home network — other devices connect on " + p.settings["LAN_IP"]
+	if p.opts.EasyNames {
+		access = "Easy names at home · addresses with numbers kept"
+	}
 	if p.settings["EXPOSURE"] == service.ExposureLocal {
 		access = "This computer only — other devices cannot connect"
 	}

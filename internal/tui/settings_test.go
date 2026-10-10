@@ -206,7 +206,7 @@ func TestSettingsAccessSubTabListsTheFiveOptionsAndExplainsTheHighlightedOne(t *
 
 	out := screen(m)
 	last := -1
-	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately",
+	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately",
 		"○ Your own web address", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
@@ -280,7 +280,7 @@ func TestQuestionMarkOpensTheHelpPageOfTheHighlightedAccessOptionAndEscCloses(t 
 	}
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("?"))
-	if page = flat(screen(m)); !strings.Contains(page, "Easy names at home") || !strings.Contains(page, "A Caddy container on this computer will own port 80") {
+	if page = flat(screen(m)); !strings.Contains(page, "Easy names at home") || !strings.Contains(page, "checked from") {
 		t.Fatalf("the page follows the highlight\n%s", screen(m))
 	}
 	m = drive(t, m, press("?"))
@@ -334,7 +334,11 @@ func TestSettingsBarOffersMoreOnlyOnTheAccessSubTab(t *testing.T) {
 }
 
 func TestChoosingAnAccessOptionNotBuiltYetChangesNothingInSettings(t *testing.T) {
-	for downs, name := range map[int]string{1: "Easy names at home"} {
+	original := accessOptions
+	accessOptions = slices.Clone(original)
+	accessOptions[3].soon = true
+	defer func() { accessOptions = original }()
+	for downs, name := range map[int]string{3: "Your own web address"} {
 		m, backend := settingsHost(t)
 		m = drive(t, m, press("]"))
 		for range downs {

@@ -219,6 +219,7 @@ func NewDeps(t *testing.T) *system.Deps {
 		LANIP:        func() (string, error) { return "192.168.1.20", nil },
 		TimeZone:     func() string { return "Europe/Paris" },
 		PortFree:     func(int) bool { return true },
+		Resolver:     &Resolver{},
 		ProcessAlive: func(int) bool { return false },
 		PID:          4242,
 		Out:          io.Discard,
@@ -258,4 +259,76 @@ func (c *Clock) Sleep(ctx context.Context, d time.Duration) error {
 	defer c.mu.Unlock()
 	c.now = c.now.Add(d)
 	return nil
+}
+
+// Resolver is a fake Resolver that behaves like sslip.io: a name such as
+// jellyfin.192-168-1-20.sslip.io answers 192.168.1.20. The router's resolver
+// can be made to block, rewrite or lose its answers.
+type Resolver struct {
+	mu sync.Mutex
+	// Blocked makes this computer's resolver drop answers that point at a
+	// private address, as router DNS-rebind protection does.
+	Blocked bool
+	// Offline makes every lookup fail.
+	Offline bool
+	// Rewrite makes this computer's resolver answer this address for every name.
+	Rewrite string
+	// NoDirect makes direct queries to a public DNS server fail, as a
+	// firewall that only lets the router's resolver through does.
+	NoDirect bool
+	// Asked lists the names this computer's resolver was asked, in order.
+	Asked []string
+	// Via lists "server name" for each direct query, in order.
+	Via []string
+}
+
+func sslipAddress(name string) (string, bool) {
+	labels := strings.Split(name, ".")
+	if len(labels) < 4 || strings.Join(labels[len(labels)-2:], ".") != "sslip.io" {
+		return "", false
+	}
+	parts := strings.Split(labels[len(labels)-3], "-")
+	if len(parts) != 4 {
+		return "", false
+	}
+	return strings.Join(parts, "."), true
+}
+
+func isPrivate(ip string) bool {
+	return strings.HasPrefix(ip, "10.") || strings.HasPrefix(ip, "192.168.") || strings.HasPrefix(ip, "172.16.")
+}
+
+func (r *Resolver) LookupHost(_ context.Context, name string) ([]string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Asked = append(r.Asked, name)
+	if r.Offline {
+		return nil, fmt.Errorf("lookup %s: no such host", name)
+	}
+	if r.Rewrite != "" {
+		return []string{r.Rewrite}, nil
+	}
+	ip, ok := sslipAddress(name)
+	if !ok || r.Blocked && isPrivate(ip) {
+		return nil, fmt.Errorf("lookup %s: no such host", name)
+	}
+	return []string{ip}, nil
+}
+
+func (r *Resolver) LookupHostVia(_ context.Context, server, name string) ([]string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Via = append(r.Via, server+" "+name)
+	ip, ok := sslipAddress(name)
+	if r.Offline || r.NoDirect || !ok {
+		return nil, fmt.Errorf("lookup %s: no such host", name)
+	}
+	return []string{ip}, nil
+}
+
+// Queries is a copy of Asked.
+func (r *Resolver) Queries() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.Asked...)
 }

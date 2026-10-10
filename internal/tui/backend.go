@@ -14,6 +14,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/names"
 	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
@@ -259,10 +260,13 @@ func (b ServiceBackend) CloudflarePlan(opts service.CloudflareOptions) (service.
 	return b.quiet().CloudflarePlan(context.Background(), opts)
 }
 
-func (b ServiceBackend) Detect(context.Context) map[string]string {
+func (b ServiceBackend) Detect(ctx context.Context) map[string]string {
 	settings, err := b.quiet().Defaults()
 	if err != nil {
 		return map[string]string{}
+	}
+	if b.quiet().CheckEasyNames(ctx).Available && names.Diagnose(ctx, b.Deps.Resolver, settings["LAN_IP"]) == names.Working {
+		settings["EASY_NAMES"] = "on"
 	}
 	return settings
 }

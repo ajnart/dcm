@@ -12,6 +12,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	stepstatus "github.com/ajnart/self-host/internal/status"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -118,5 +119,46 @@ func TestFailedLoginHintNamesTheApp(t *testing.T) {
 	}
 	if fail == nil || !strings.Contains(fail.Hint, srv.URL) {
 		t.Fatalf("failing step hint should name the App page, got %+v", fail)
+	}
+}
+
+type trustedExec struct {
+	helpers.Executor
+	domains []string
+	reads   int
+}
+
+func (e *trustedExec) Exec(_ context.Context, _ string, env map[string]string, command ...string) (system.Result, error) {
+	if strings.Contains(strings.Join(command, " "), "config:system:get trusted_domains") {
+		e.reads++
+		return system.Result{Stdout: []byte(strings.Join(e.domains, "\n") + "\n")}, nil
+	}
+	if err := json.Unmarshal([]byte(env["SELF_HOST_TRUSTED_DOMAINS"]), &e.domains); err != nil {
+		return system.Result{}, err
+	}
+	return system.Result{}, nil
+}
+
+func TestEasyNamesSetupPreservesTrustedHostsAndCheckProbesAfresh(t *testing.T) {
+	srv := httptest.NewServer((&fakeNextcloud{}).handler())
+	defer srv.Close()
+	h, _ := newH(t, srv)
+	h.Settings = map[string]string{"EASY_NAMES": "on", "LAN_IP": "192.168.1.20"}
+	exec := &trustedExec{domains: []string{"127.0.0.1", "existing.example.com"}}
+	h.Config.Exec = exec
+	if err := (nextcloud.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatal(err)
+	}
+	want := "127.0.0.1,existing.example.com,192.168.1.20,nextcloud.192-168-1-20.sslip.io"
+	if strings.Join(exec.domains, ",") != want {
+		t.Fatalf("domains %v", exec.domains)
+	}
+	before := exec.reads
+	if err := (nextcloud.App{}).Check(context.Background(), h); err != nil || exec.reads <= before {
+		t.Fatalf("Check error %v reads %d before %d", err, exec.reads, before)
+	}
+	exec.domains = []string{"127.0.0.1"}
+	if err := (nextcloud.App{}).Check(context.Background(), h); err == nil {
+		t.Fatal("Check must notice the missing trusted hosts")
 	}
 }
