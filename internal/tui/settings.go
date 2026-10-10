@@ -451,7 +451,7 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 			}
 			return v, nil, nav{kind: navTo, to: surfaceInstall, app: "tailscale"}
 		}
-		if choice.soon {
+		if choice.explainsOnly() {
 			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
 			return v, nil, nav{}
 		}

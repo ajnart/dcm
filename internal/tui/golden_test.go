@@ -188,7 +188,7 @@ func TestGoldenSettingsAccess(t *testing.T) {
 				golden(t, name+size.suffix, trimLines(screen(m)))
 				golden(t, name+"-help"+size.suffix, trimLines(screen(drive(t, m, press("?")))))
 				if id == "custom" {
-					golden(t, "settings-access-coming-soon-note"+size.suffix, trimLines(screen(drive(t, m, press("enter")))))
+					golden(t, "settings-access-bring-your-own-note"+size.suffix, trimLines(screen(drive(t, m, press("enter")))))
 				}
 			})
 		}

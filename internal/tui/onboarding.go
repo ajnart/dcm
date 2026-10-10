@@ -657,7 +657,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			o.form = huh.NewForm(huh.NewGroup(input)).WithWidth(m.formWidth()).WithHeight(m.formHeight(stepAccess))
 			return m, o.form.Init()
 		}
-		if choice.soon {
+		if choice.explainsOnly() {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
 		}

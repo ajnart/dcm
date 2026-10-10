@@ -83,7 +83,8 @@ place with a diagram per option: **Home network** (default, an Address like
 names such as `movies.local` or `movies.192-168-1-20.sslip.io`), **From
 anywhere, privately** (Tailscale), **Your own web address** (Cloudflare
 Tunnel, plus a login page in front) and **Bring your own** (SWAG, Pangolin or
-an existing proxy, for advanced users). Options combine: Easy names at home
+an existing proxy, for advanced users: `self-host access export` prints each App's
+upstream and choosing it changes nothing). Options combine: Easy names at home
 and Tailscale can both be on. Always shown in the recap, since it explains most
 "can't reach it from my TV" reports. Anything reachable from the internet needs
 its own explicit yes that names the risk. Binding to this computer only

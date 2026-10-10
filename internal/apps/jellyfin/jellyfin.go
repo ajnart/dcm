@@ -38,6 +38,7 @@ func (App) Info() app.Info {
 		Docs:          "https://jellyfin.org/docs/general/installation/container/",
 		Port:          8096,
 		ContainerPort: ContainerPort,
+		WebSockets:    true,
 		Service:       "jellyfin",
 		UsesMedia:     true,
 	}
