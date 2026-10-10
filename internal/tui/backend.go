@@ -25,18 +25,20 @@ import (
 type Action string
 
 const (
-	ActionStart   Action = "start"
-	ActionStop    Action = "stop"
-	ActionUp      Action = "up"
-	ActionDown    Action = "down"
-	ActionRestart Action = "restart"
-	ActionUpdate  Action = "update"
-	ActionSetup   Action = "setup"
-	ActionBackup  Action = "backup"
-	ActionRemove  Action = "remove"
-	ActionInstall Action = "install"
-	ActionConfig  Action = "config"
-	ActionRestore Action = "restore"
+	ActionStart             Action = "start"
+	ActionStop              Action = "stop"
+	ActionUp                Action = "up"
+	ActionDown              Action = "down"
+	ActionRestart           Action = "restart"
+	ActionUpdate            Action = "update"
+	ActionSetup             Action = "setup"
+	ActionBackup            Action = "backup"
+	ActionRemove            Action = "remove"
+	ActionInstall           Action = "install"
+	ActionConfig            Action = "config"
+	ActionRestore           Action = "restore"
+	ActionCloudflarePublish Action = "cloudflare-publish"
+	ActionCloudflareRemove  Action = "cloudflare-remove"
 )
 
 // Request is one mutating Action.
@@ -51,10 +53,12 @@ type Request struct {
 	// Passphrase opens or encrypts a backup; it reaches only the Service and
 	// is never shown or logged.
 	Passphrase string
+	Cloudflare *service.CloudflareOptions
 }
 
 // Backend is everything the dashboard needs from the Service.
 type Backend interface {
+	CloudflarePlan(service.CloudflareOptions) (service.CloudflarePlan, error)
 	Status(ctx context.Context) (service.Status, error)
 	Doctor(ctx context.Context) []host.Check
 	// Updates returns App ID → available, current or unknown.
@@ -237,6 +241,10 @@ func (b ServiceBackend) Restart() error {
 
 func (b ServiceBackend) Catalog() *catalog.Catalog { return b.Apps }
 
+func (b ServiceBackend) CloudflarePlan(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
+	return b.quiet().CloudflarePlan(context.Background(), opts)
+}
+
 func (b ServiceBackend) Detect(context.Context) map[string]string {
 	settings, err := b.quiet().Defaults()
 	if err != nil {
@@ -293,6 +301,11 @@ func (b ServiceBackend) Run(ctx context.Context, req Request, log *events.Logger
 	s := service.New(b.Deps, log, b.Apps)
 	ids := req.IDs
 	switch req.Action {
+	case ActionCloudflarePublish:
+		_, err := s.CloudflarePublish(ctx, *req.Cloudflare)
+		return err
+	case ActionCloudflareRemove:
+		return s.CloudflareRemove(ctx, *req.Cloudflare)
 	case ActionBackup:
 		_, err := s.Backup(ctx, ids, "", req.Passphrase)
 		return err

@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+╭─ Your own web address ───────────────────────────────────────────────────────────────────────────────────────────────╮
+│   App 2 of 2: Sonarr                                                                                                 │
+│   Address: https://sonarr.example.com                                                                                │
+│   Sonarr is a Downloads App: its admin page often has a weak login or none. Publishing it lets strangers reach its   │
+│   login page; a flaw could let them in.                                                                              │
+│   This App normally stays private. To deliberately publish it, type sonarr                                           │
+│                                                                                                                      │
+│                                                                                                                    … │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ typing · keys go to the input                                                            enter  continue   esc  cancel
