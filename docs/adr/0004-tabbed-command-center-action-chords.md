@@ -14,6 +14,28 @@ An Access answer is pending only. `space` on Bring your own or an unavailable op
 
 Initializing reveals Doctor results, leaves the last result visible briefly, then automatically continues once Host settings are ready and no check fails. Failure stays visible with `r` to recheck. After reaching Welcome, revisiting Initializing does not auto-continue, even after recheck; `enter` continues it. Initializing and Welcome center their content below the step indicator, leaving the header, status line and key hints in place.
 
+Doctor centers fixed container bounds, not the current text: its heading and
+check-title column do not move as results, warnings, hints or completion arrive,
+including rechecks and focus refreshes. Look previews the selected symbol set
+immediately, never the merely focused one, and persists it only at approval.
+
+Settings Access also exposes Space selection separately from focus. Space keeps
+the choice pending; Enter confirms it, while Enter without Space retains the
+legacy focused-choice shortcut. Home network/Easy names still require Ctrl+S.
+Space on Tailscale or Cloudflare never opens private input or publishes: Enter
+opens the separate review. The LAN address editor remains text input, with Tab
+to fill another detected address and Space to type.
+
+Onboarding rejects unsupported Easy names address eligibility before approval,
+without probing or writing from renders, Space or typing. It preserves answers
+and offers `a` Access and `w` LAN address recovery. The locked service preflight
+remains authoritative; retaining numbered Addresses is not proof of reachability.
+Review install failures and Activity failures expose `c` full masked error copy
+and `e` scrollable inspection, reusing the help-page viewport and clipboard path.
+The reader owns focus, `esc` closes it and Ctrl+C quits; input and credential-copy
+scopes stay separate. Known pending request secrets are registered with the event
+logger before a task runs, and returned errors are masked before display or copy.
+
 ## Considered options
 
 - **Keep direct keys per Action** (ADR 0002): fastest for experts, but a stray key started, stopped or took down Apps, and every new Action needed a new letter.

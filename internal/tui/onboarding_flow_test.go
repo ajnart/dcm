@@ -233,11 +233,11 @@ func TestLookSpaceSelectsWithoutAdvancingAndEnterUsesSelectionNotFocus(t *testin
 	m, backend := freshHost(t)
 	m = atStep(t, m, "Look")
 	m = drive(t, m, press("up"))
-	if out := screen(m); !strings.Contains(out, "> ○ Nerd Font: use the icons shown above") || !strings.Contains(out, "● Simple (default): use plain symbols") {
+	if out := screen(m); !strings.Contains(out, "> ○ Nerd Font: use extra font icons") || !strings.Contains(out, "● Simple (default): use plain symbols") {
 		t.Fatalf("the truthful Simple default must stay selected while Nerd Font is focused\n%s", out)
 	}
 	m = drive(t, m, press("space"))
-	if out := screen(m); m.onboarding.step != stepLook || !strings.Contains(out, "> ● Nerd Font: use the icons shown above") || !strings.Contains(out, "○ Simple (default): use plain symbols") {
+	if out := screen(m); m.onboarding.step != stepLook || !strings.Contains(out, "> ● Nerd Font: use extra font icons") || !strings.Contains(out, "○ Simple (default): use plain symbols") {
 		t.Fatalf("Space should select Nerd Font without advancing\n%s", out)
 	}
 	m = drive(t, m, press("down"))
@@ -252,7 +252,7 @@ func TestLookSpaceSelectsWithoutAdvancingAndEnterUsesSelectionNotFocus(t *testin
 		t.Fatalf("Enter must continue the selected Appearance, not the focused answer\n%s", screen(m))
 	}
 	m = drive(t, m, press("esc"))
-	if out := screen(m); !strings.Contains(out, "> ● Nerd Font: use the icons shown above") {
+	if out := screen(m); !strings.Contains(out, "> ● Nerd Font: use extra font icons") {
 		t.Fatalf("revisiting Look must retain the chosen Appearance\n%s", out)
 	}
 }
@@ -304,6 +304,9 @@ func TestInitializingAndWelcomeAreCenteredBelowTheStepIndicator(t *testing.T) {
 				t.Fatalf("%dx%d: heading, step indicator and key hints must stay visible\n%s", size.width, size.height, out)
 			}
 			body := lines[4 : size.height-2]
+			if !welcome {
+				continue
+			}
 			top, bottom, left, right := -1, -1, size.width, 0
 			for i, line := range body {
 				if ansi.StringWidth(line) > size.width {
@@ -431,8 +434,8 @@ func TestOnboardingSelectionReadsByMarkAndWeightInBothThemes(t *testing.T) {
 		}{
 			{stepWelcome, "Advanced: I have run a server or used Docker", "New: this is all new to me", []string{"down"}},
 			{stepAccess, "Easy names at home", "Home network (default)", []string{"down"}},
-			{stepLook, "Nerd Font: use the icons shown above", "Simple (default): use plain symbols", []string{"up"}},
-			{stepLook, "Simple (default): use plain symbols", "Nerd Font: use the icons shown above", []string{"up", "space", "down"}},
+			{stepLook, "Nerd Font: use extra font icons", "Simple (default): use plain symbols", []string{"up"}},
+			{stepLook, "Simple (default): use plain symbols", "Nerd Font: use extra font icons", []string{"up", "space", "down"}},
 		} {
 			m, _ := freshHost(t)
 			m.theme = newTheme(dark)

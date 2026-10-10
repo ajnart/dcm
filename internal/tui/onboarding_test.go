@@ -424,7 +424,7 @@ func TestReviewShowsThePlanAndInstallsNothingBeforeApproval(t *testing.T) {
 
 	out := screen(m)
 	for _, want := range []string{"Review", "Homarr", "ghcr.io/homarr-labs/homarr:latest", "7575", "ntfy", "binwiederhier/ntfy:latest",
-		"Access", "Home network — other devices connect on 192.168.1.20", "Europe/Paris", "admin", "••••••••", "show ntfy in Homarr", "approve", "back"} {
+		"Access", "Home network — addresses use 192.168.1.20", "Europe/Paris", "admin", "••••••••", "show ntfy in Homarr", "approve", "back"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("review lacks %q\n%s", want, out)
 		}
@@ -1220,13 +1220,13 @@ func TestWhoExplainsTheSharedLoginAndMasksThePassword(t *testing.T) {
 	}
 }
 
-func TestLookShowsTheNerdFontSampleTheQuestionAndTheLink(t *testing.T) {
+func TestLookShowsTheSelectedSampleTheQuestionAndTheLink(t *testing.T) {
 	m, _ := freshHost(t)
 
 	m = atStep(t, m, "Look")
 
 	out := screen(m)
-	for _, want := range []string{activity.NerdFont.Brand(), activity.NerdFont.Docker(), "Do these icons look right?",
+	for _, want := range []string{"◆ self-host", "▣ Docker", "Choose your symbols; the sample shows your selection.",
 		"Nerd Font", "Simple", "https://www.nerdfonts.com"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("Look lacks %q\n%s", want, out)

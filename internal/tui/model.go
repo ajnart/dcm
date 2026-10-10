@@ -736,6 +736,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
 	case m.showHelp:
+		if m.helpView.page != nil && m.helpView.page.copyText != "" && msg.String() == "ctrl+c" {
+			return m.quit()
+		}
 		return m.dispatchHelp(msg)
 	case m.onboardingShown():
 		return m.handleOnboardingKey(msg)
@@ -745,6 +748,16 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.menuKey(msg)
 	case m.activeView().Capturing():
 		return m.dispatchActive(msg)
+	}
+	if m.surface == surfaceActivity && m.activity != nil {
+		if text := m.activity.errorText(m.ctx()); text != "" {
+			switch msg.String() {
+			case "c":
+				return m, copyError(text)
+			case "e":
+				return m.openError(text)
+			}
+		}
 	}
 	k := m.keys
 	switch {
@@ -900,7 +913,18 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 
 // run starts a background Action; the status line shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
-	cmd := m.ctx().run(req, title)
+	var secrets []string
+	if o := m.onboarding; o != nil && o.answers != nil {
+		secrets = append(secrets, o.answers.adminPassword)
+		for _, a := range m.backend.Catalog().Apps() {
+			for _, input := range a.Inputs() {
+				if value := o.answers.inputs[a.Info().ID+"."+input.Key]; input.Private && value != nil {
+					secrets = append(secrets, *value)
+				}
+			}
+		}
+	}
+	cmd := m.ctx().run(req, title, secrets...)
 	tick := m.startTicking()
 	return m, tea.Batch(cmd, tick)
 }

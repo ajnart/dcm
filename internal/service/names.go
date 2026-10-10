@@ -86,6 +86,18 @@ func (s *Service) CheckEasyNames(ctx context.Context) NamesCheck {
 	return s.checkEasyNames(ctx, "")
 }
 
+func EasyNamesAddressCheck(lan string) NamesCheck {
+	ip := net.ParseIP(lan)
+	if ip != nil && ip.To4() != nil && ip.IsPrivate() {
+		return NamesCheck{Available: true}
+	}
+	message := fmt.Sprintf("Easy names need a private home-network IPv4 address; %s is not one.", lan)
+	if v4 := ip.To4(); v4 != nil && v4[0] == 192 && v4[1] == 0 && v4[2] == 0 && v4[3] < 8 {
+		message = fmt.Sprintf("%s is an IPv4 service-continuity address used by CLAT on IPv6 networks, not a private home-network IPv4 address. Easy names do not support it or IPv6 yet.", lan)
+	}
+	return NamesCheck{Problem: problemNetwork, Message: message + " Change the LAN address to this computer's private home-network IPv4 address, or choose another Access option. Reachability of addresses with numbers is not verified."}
+}
+
 func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
 	ownCaddy := false
 	if p, err := s.Project(); err == nil && p.Exists() {
@@ -100,12 +112,11 @@ func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
 	if lan == "" {
 		lan, _ = s.Deps.LANIP()
 	}
-	if ip := net.ParseIP(lan); ip == nil || ip.To4() == nil || !ip.IsPrivate() {
-		return NamesCheck{Problem: problemNetwork, Message: fmt.Sprintf(
-			"This computer's network address (%s) doesn't look like a home network, so easy names can't be made from it.", lan) + keepsWorking}
+	if check := EasyNamesAddressCheck(lan); !check.Available {
+		return check
 	}
 	if s.Deps.HomeNetwork != nil && !s.Deps.HomeNetwork(lan) {
-		return NamesCheck{Problem: problemNetwork, Message: "This computer's address is not on an active home network, so nothing was changed." + keepsWorking}
+		return NamesCheck{Problem: problemNetwork, Message: "This computer's address is not on an active home network, so nothing was changed. Change the LAN address or choose another Access option. Reachability of addresses with numbers is not verified."}
 	}
 	rootless, err := host.Rootless(ctx, s.Deps)
 	if err != nil {

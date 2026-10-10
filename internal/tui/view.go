@@ -209,12 +209,25 @@ func (ctx *viewContext) setFlash(text string, l level) {
 }
 
 // run starts a background Action; the status line shows its progress.
-func (ctx *viewContext) run(req Request, title string) tea.Cmd {
+func (ctx *viewContext) run(req Request, title string, pendingSecrets ...string) tea.Cmd {
 	t := ctx.tasks.start(title)
 	backend := ctx.backend
 	return func() tea.Msg {
 		log := events.New(events.SinkFunc(t.append))
-		err := backend.Run(t.ctx, req, log)
+		log.Secret(pendingSecrets...)
+		log.Secret(req.Passphrase)
+		if req.Install != nil {
+			log.Secret(req.Install.AdminPassword)
+			for _, inputs := range req.Install.PrivateInputs {
+				for _, value := range inputs {
+					log.Secret(value)
+				}
+			}
+		}
+		if req.Cloudflare != nil {
+			log.Secret(req.Cloudflare.APIToken)
+		}
+		err := log.RedactError(backend.Run(t.ctx, req, log))
 		return taskDoneMsg{id: t.id, title: title, action: req.Action, err: err}
 	}
 }
@@ -603,6 +616,9 @@ func (m Model) View() tea.View {
 				main, layers = m.helpView.pageView(ctxView), nil
 			}
 			chips = active.Keys()
+			if m.surface == surfaceActivity && !active.Capturing() && m.activity.errorText(ctxView) != "" {
+				chips = append(slices.Clone(errorKeys), chips...)
+			}
 			if active.Capturing() {
 				mode = m.theme.fg(m.theme.accentText).Bold(true).Render("typing") + m.theme.dim().Render(" · keys go to the input")
 				if chooser, ok := active.(interface{ BarMode(theme) string }); ok && chooser.BarMode(m.theme) != "" {

@@ -149,6 +149,14 @@ self-host config set EASY_NAMES=on
 self-host status --json
 ```
 
+Easy names need an active private home-network IPv4 address. The
+[IPv4 Service Continuity Prefix](https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml)
+used by CLAT on IPv6 networks is not such an address; Easy names do not yet
+support it or IPv6. Onboarding checks the entered address before approval.
+If blocked, `w` returns to the LAN address and `a` to Access, preserving answers.
+Choosing Home network or another Access option is deliberate, not automatic;
+keeping a numbered Address does not verify that other devices can reach it.
+
 One managed Caddy in the Compose Project serves HTTP names such as
 `http://jellyfin.192-168-1-20.sslip.io`, on Linux and macOS. Each Catalog App
 with a web page gets a route. Homarr tiles use the friendliest working Address.
@@ -284,21 +292,29 @@ Options marked coming soon change nothing.
 Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
 Traefik or their own Caddy; `space` on it explains without changing the selected
 answer and points at `self-host access export`. In Settings, the Access sub-tab
-offers the same list; `enter` makes a choice pending and `ctrl+s`
-applies Home network changes; Your own web address has its own review and yes.
-Tailscale opens an install review with a concealed key field. In Settings,
+offers the same list; arrows focus, `space` selects a pending choice, and
+`ctrl+s` applies Home network or Easy names changes. `enter` confirms a
+Space-selected choice, or chooses the focused option if Space was not used.
+For Tailscale and Your own web address, Space only selects; Enter opens their
+separate install or publication review. Tailscale uses a concealed key field.
+In Settings' LAN address text editor, `tab` fills the next detected address;
+Space still types. In Settings,
 `enter` on Bring your own or a coming-soon option only explains it.
 **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
-**Look** shows a sample of the Nerd Font icons and asks whether they look
-right, then saves the choice as the appearance setting. **Review** lists the
+**Look** immediately previews the selected Simple or Nerd Font symbols;
+arrows alone do not change them, and approval saves the choice. **Review** lists the
 plan; approving it plays the pre-boot screen while the first install pulls its
 images, a parallax starfield with the overall bar, "N of M images" and a line
 comparing the time left to something small, then hands over to the Dashboard
 with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
 Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
 motion without colour. `esc` goes back one step and keeps your answers.
+Doctor reserves a centered area so its heading and check titles stay in place
+as results arrive or checks refresh. A failed install before the Project exists
+returns to Review: `c` copies its full masked error, `e` opens a scrollable reader,
+and `a` or `w` returns to Access or the LAN address without discarding answers.
 
 ### Your own web address
 
@@ -443,6 +459,11 @@ says what is happening now. The finished Action stays until the next one;
 below it are remembered render/pull/start, Setup, Links and checks. Space
 expands an App, `/` filters, and enter expands a failed step's error and
 recovery hint.
+For a selected failed step, or otherwise the latest failed Action, `c` copies
+the full masked error and `e` opens its scrollable reader—even for failures
+outside an App's steps. The reader also supports `c`; `esc` closes it and
+Ctrl+C still quits. App credential copying remains separate. Keyboard copying
+does not depend on the terminal's modifier-key mouse selection behavior.
 While an Action pulls images, Activity, the status line and the CLI in a
 terminal show one overall bar, a slim bar per image and "N of M images"; piped
 output keeps one `✓ pulled` line per image. In a terminal the CLI prints its

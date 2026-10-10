@@ -640,6 +640,22 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			tick := m.startTicking()
 			return m, tea.Batch(m.loadDoctor(), tick)
 		}
+	case "a":
+		if o.step == stepReview && o.err != "" {
+			return m.openStep(stepAccess)
+		}
+	case "w":
+		if o.step == stepReview && o.err != "" {
+			return m.openStep(stepWhere)
+		}
+	case "c":
+		if o.step == stepReview && o.err != "" {
+			return m, copyError(o.err)
+		}
+	case "e":
+		if o.step == stepReview && o.err != "" {
+			return m.openError(o.err)
+		}
 	case "enter":
 		return m.onboardingNext()
 	}
@@ -715,6 +731,10 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 	case stepLook:
 		return m.openStep(stepReview)
 	case stepReview:
+		if check := m.reviewNamesCheck(); !check.Available {
+			o.err = check.Message
+			return m, nil
+		}
 		m.preboot = newPrebootScreen()
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
@@ -770,8 +790,18 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		o.look = max(o.look, 0)
 	case stepReview:
 		o.plan, o.err = m.planFromAnswers(o.answers), ""
+		if check := m.reviewNamesCheck(); !check.Available {
+			o.err = check.Message
+		}
 	}
 	return m, nil
+}
+
+func (m Model) reviewNamesCheck() service.NamesCheck {
+	if m.onboarding.plan != nil && m.onboarding.plan.opts.EasyNames {
+		return service.EasyNamesAddressCheck(m.onboarding.plan.opts.Settings["LAN_IP"])
+	}
+	return service.NamesCheck{Available: true}
 }
 
 // saveGlyphsWithInstall saves the glyph set with the Project in step with
@@ -851,6 +881,13 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 	case stepLook:
 		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack}
 	case stepReview:
+		if m.onboarding.err != "" {
+			chips := []key.Binding{hint("c", "copy error"), hint("e", "full error"), hint("a", "Access"), hint("w", "LAN address")}
+			if m.reviewNamesCheck().Available {
+				chips = append(chips, onboardingApprove)
+			}
+			return quit, append(chips, onboardingBack)
+		}
 		return quit, []key.Binding{onboardingApprove, onboardingBack}
 	}
 	return quit, []key.Binding{onboardingContinue, onboardingBack}
@@ -876,6 +913,14 @@ func (m Model) renderOnboarding() string {
 			body = m.renderWelcome()
 		}
 		room := max(m.mainHeight()-len(lines), 1)
+		if o.step == stepInitializing {
+			width := min(max(m.width-4, 1), 96)
+			for i, line := range body {
+				body[i] = truncate(strings.TrimPrefix(line, "  "), width)
+			}
+			block := fit(strings.Join(body, "\n"), width, min(room, 18))
+			return strings.Join(lines, "\n") + "\n" + lipgloss.Place(m.width, room, lipgloss.Center, lipgloss.Center, block)
+		}
 		for i := len(body) - 1; i >= 0 && len(body) > room; i-- {
 			if strings.TrimSpace(body[i]) == "" {
 				body = slices.Delete(body, i, i+1)
@@ -970,20 +1015,23 @@ func (m Model) renderChecks() []string {
 			glyph, colour = "✗", t.fail
 		}
 		lines = append(lines, truncate("  "+t.fg(colour).Render(glyph)+" "+t.body().Render(pad(c.Title, 16))+"  "+t.dim().Render(c.Detail), m.width))
-		if c.Level == host.OK {
-			continue
+		hint, docs := "", ""
+		if c.Level != host.OK {
+			if c.Hint != "" {
+				hint = "    " + t.fg(t.warn).Render("→ "+c.Hint)
+			}
+			if c.Docs != "" {
+				docs = "    " + t.dim().Render(c.Docs)
+			}
 		}
-		if c.Hint != "" {
-			lines = append(lines, truncate("    "+t.fg(t.warn).Render("→ "+c.Hint), m.width))
-		}
-		if c.Docs != "" {
-			lines = append(lines, truncate("    "+t.dim().Render(c.Docs), m.width))
-		}
+		lines = append(lines, hint, docs)
 	}
 	if !m.checksDone() {
 		return lines
 	}
-	lines = append(lines, "")
+	for len(lines) < 16 {
+		lines = append(lines, "")
+	}
 	switch {
 	case host.Worst(m.checks) == host.Fail:
 		return append(lines, "  "+t.fg(t.fail).Render("Fix the failed check above, then press r to check again."),
@@ -1034,8 +1082,6 @@ var experienceChoices = []experienceChoice{
 	{project.ExperienceAdvanced, "Advanced: I have run a server or used Docker"},
 }
 
-// renderLook shows a sample of the Nerd Font icons, so the person can tell
-// whether their terminal draws them, and asks which set to use.
 func (m Model) renderLook() []string {
 	t := m.theme
 	o := m.onboarding
@@ -1043,9 +1089,9 @@ func (m Model) renderLook() []string {
 	for _, line := range m.stepIntro(stepLook) {
 		lines = append(lines, "  "+t.body().Render(line))
 	}
-	lines = append(lines, "", truncate("  "+glyphSample(t, activity.NerdFont), m.width), "",
-		"  "+t.heading().Render("Do these icons look right?"))
-	answers := []string{"Nerd Font: use the icons shown above", "Simple (default): use plain symbols"}
+	lines = append(lines, "", truncate("  "+glyphSample(t, m.glyphs), m.width), "",
+		"  "+t.heading().Render("Choose your symbols; the sample shows your selection."))
+	answers := []string{"Nerd Font: use extra font icons", "Simple (default): use plain symbols"}
 	for i, choice := range glyphChoices {
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.look, choice.glyphs == m.glyphs, answers[i]), m.width-2))
 	}
@@ -1077,8 +1123,17 @@ func (m Model) renderReview() []string {
 	o := m.onboarding
 	lines := []string{"  " + t.title().Render("Review") + t.dim().Render("  nothing has been written yet")}
 	if o.err != "" {
-		lines = append(lines, "", truncate("  "+t.fg(t.fail).Render("✗ "+firstLine(o.err)), m.width),
-			"  "+t.dim().Render("Nothing was installed. Change what you need with esc, then approve again."))
+		lines = append(lines, "")
+		preview := strings.Split(wrap("✗ "+o.err, max(m.width-4, 20)), "\n")
+		for _, line := range preview[:min(len(preview), 4)] {
+			lines = append(lines, "  "+t.fg(t.fail).Render(line))
+		}
+		lines = append(lines, "  "+t.dim().Render("c copies · e full error · a Access · w LAN address. Nothing installed."))
+		if m.reviewNamesCheck().Available {
+			lines = append(lines, "  "+t.dim().Render("Enter approves another attempt; esc goes back."))
+		} else {
+			lines = append(lines, "  "+t.dim().Render("Change Access or the LAN address before approval."))
+		}
 	}
 	lines = append(lines, planLines(t, o.plan)...)
 	if o.answers.cloudflare {
@@ -1105,7 +1160,7 @@ func planLines(t theme, p *plan) []string {
 	}
 	lines = append(lines, "")
 	row := func(k, v string) string { return "  " + t.dim().Render(pad(k, 10)) + t.body().Render(v) }
-	access := "Home network — other devices connect on " + p.settings["LAN_IP"]
+	access := "Home network — addresses use " + p.settings["LAN_IP"]
 	if p.opts.EasyNames {
 		access = "Easy names at home · addresses with numbers kept"
 	}
@@ -1113,6 +1168,9 @@ func planLines(t theme, p *plan) []string {
 		access = "This computer only — other devices cannot connect"
 	}
 	lines = append(lines, row("Access", access))
+	if !p.opts.EasyNames && p.settings["EXPOSURE"] != service.ExposureLocal {
+		lines = append(lines, row("", "Reachability is not verified; check from another device."))
+	}
 	if slices.Contains(p.opts.Targets, "tailscale") {
 		lines = append(lines, row("", "From anywhere, privately, with Tailscale"))
 	}

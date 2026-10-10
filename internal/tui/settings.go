@@ -57,10 +57,11 @@ type settingsView struct {
 	rows        []service.SettingReview
 	// exposure is the stored Access in use; accessCursor is Access's highlighted
 	// option, an index into accessOptions. Pending changes of both are in edits.
-	exposure     string
-	names        string
-	accessCursor int
-	edits        map[string]string
+	exposure      string
+	names         string
+	accessCursor  int
+	pendingAccess string
+	edits         map[string]string
 
 	editing bool
 	key     string
@@ -94,7 +95,7 @@ var (
 		hint("c", "coffee"), hint("s", "sponsor"), hint("[/]", "sub-tab"), hint("esc", "back"),
 	}
 	accessKeys = []key.Binding{
-		moreKey, hint("↑/↓", "select"), hint("enter", "choose"), hint("ctrl+s", "apply"), hint("[/]", "sub-tab"), hint("esc", "back"),
+		hint("space", "select"), hint("ctrl+s", "apply"), moreKey, hint("↑/↓", "focus"), hint("enter", "choose"), hint("[/]", "sub-tab"), hint("esc", "back"),
 	}
 	settingsEditKeys  = []key.Binding{hint("enter", "accept"), hint("esc", "cancel")}
 	settingsChoiceKey = hint("tab", "next choice")
@@ -119,6 +120,9 @@ func (v *settingsView) Keys() []key.Binding {
 	case v.editing:
 		return settingsEditKeys
 	case v.tab == tabAccess:
+		if v.pendingAccess == "tailscale" || v.pendingAccess == "cloudflare" {
+			return []key.Binding{hint("space", "select"), hint("enter", "options"), moreKey, hint("↑/↓", "focus"), hint("esc", "back")}
+		}
 		return accessKeys
 	case v.tab == tabAppearance:
 		return appearanceKeys
@@ -396,7 +400,7 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 		v.show(ctx, (v.tab+settingsTab(len(settingsTabs))-1)%settingsTab(len(settingsTabs)))
 		return v, nil, nav{}
 	case msg.String() == "esc":
-		if len(v.pairs()) > 0 {
+		if len(v.pairs()) > 0 || v.pendingAccess == "tailscale" || v.pendingAccess == "cloudflare" {
 			v.tab, v.confirmDiscard = tabHost, true
 			return v, nil, nav{}
 		}
@@ -464,15 +468,15 @@ func (v *settingsView) applyPending(ctx *viewContext) (view, tea.Cmd, nav) {
 	return v, ctx.run(Request{Action: ActionConfig, Pairs: pairs}, "config "+strings.Join(pairs, " ")), nav{kind: navDone}
 }
 
-// accessTabKey moves the highlight between the Access options; enter takes the
-// highlighted one as a pending change, and says one not built yet is coming
-// soon without changing anything.
 func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view, tea.Cmd, nav) {
 	if ctx.flash != "" {
 		ctx.setFlash("", levelInfo)
 	}
 	switch {
 	case key.Matches(msg, ctx.keys.Apply):
+		if v.pendingAccess == "tailscale" || v.pendingAccess == "cloudflare" {
+			return v.accessTabKey(ctx, tea.KeyPressMsg{Code: tea.KeyEnter})
+		}
 		return v.applyPending(ctx)
 	case key.Matches(msg, ctx.keys.Up):
 		v.accessCursor = max(v.accessCursor-1, 0)
@@ -480,16 +484,28 @@ func (v *settingsView) accessTabKey(ctx *viewContext, msg tea.KeyPressMsg) (view
 		v.accessCursor = min(v.accessCursor+1, len(accessOptions)-1)
 	case msg.String() == "enter", msg.String() == "space":
 		choice := accessOptions[v.accessCursor]
+		if msg.String() == "enter" && v.pendingAccess != "" {
+			choice, _ = accessByID(v.pendingAccess)
+		}
+		if choice.explainsOnly() {
+			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
+			return v, nil, nav{}
+		}
+		if msg.String() == "space" && (choice.id == "tailscale" || choice.id == "cloudflare") {
+			v.pendingAccess = choice.id
+			ctx.setFlash("Pending Access; enter opens its options. Nothing has changed.", levelInfo)
+			return v, nil, nav{}
+		}
+		v.pendingAccess = ""
+		if msg.String() == "space" {
+			v.pendingAccess = choice.id
+		}
 		if choice.id == "tailscale" {
 			if slices.Contains(ctx.status.Access, "tailscale") {
 				ctx.setFlash("Tailscale is already on; Home network Addresses still work", levelInfo)
 				return v, nil, nav{}
 			}
 			return v, nil, nav{kind: navTo, to: surfaceInstall, app: "tailscale"}
-		}
-		if choice.explainsOnly() {
-			ctx.setFlash(accessNote(choice, v.access()), levelInfo)
-			return v, nil, nav{}
 		}
 		if choice.id == "cloudflare" {
 			v.cloudflare = newCloudflarePane(ctx)
@@ -665,6 +681,10 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	v.offset = scrolled(v.cursor, v.offset, window, len(v.rows))
 
 	lines := head
+	if v.editing && len(v.choices) > 1 {
+		lines = append(lines, truncate(t.dim().Render("Text input: space types; tab fills next detected address."), inner))
+		window = max(window-1, 1)
+	}
 	for i := v.offset; i < v.offset+window && i < len(v.rows); i++ {
 		lines = append(lines, v.renderRow(ctx, i, inner))
 	}
@@ -691,7 +711,10 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 	for i, o := range accessOptions {
 		label := accessLabel(t, o)
 		selected := o.value != "" && o.value == current && (o.id == "names") == (v.namesValue() == "on") || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare") || o.id == "tailscale" && slices.Contains(ctx.status.Access, "tailscale")
-		if selected {
+		if o.id == v.pendingAccess && (o.id == "tailscale" || o.id == "cloudflare") {
+			selected = true
+			label = o.label + t.fg(t.accentText).Render(" (pending)")
+		} else if selected {
 			label = o.label
 			if v.accessChanged() || v.namesChanged() {
 				label += t.fg(t.accentText).Render(" (pending)")
@@ -699,6 +722,11 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 		}
 		lines = append(lines, truncate(radioRow(t, i == v.accessCursor, selected, label), inner))
 	}
+	selectionHint := "↑/↓ focus · space selects · enter confirms choice · ctrl+s applies"
+	if v.pendingAccess == "tailscale" || v.pendingAccess == "cloudflare" {
+		selectionHint = "↑/↓ focus · space selects · enter opens pending Access options"
+	}
+	lines = append(lines, "  "+t.dim().Render(selectionHint))
 	lines = append(lines, accessBlock(t, accessOptions[v.accessCursor], v.exposure, v.valueOf("LAN_IP"), inner-2, avail-len(lines))...)
 	note := ""
 	if n := len(v.pairs()); n > 0 {

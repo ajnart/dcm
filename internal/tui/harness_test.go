@@ -531,7 +531,7 @@ func TestKeybindAudit(t *testing.T) {
 		// The App's Action menu and the read-only keys.
 		"actions: a", "resolve: a", "open: o", "copy: c", "search: /", "back: esc", "go to App: enter", "details: enter",
 		// Settings applies its pending changes.
-		"apply: ctrl+s",
+		"apply: ctrl+s", "select: space", "focus: ↑/↓", "copy error: c", "full error: e",
 		// The open Action menu.
 		"highlight an Action: letter", "run: enter", "run; destructive Actions need it twice: enter", "close: esc",
 		// Pane hints for the bar and help.

@@ -5,14 +5,14 @@
   APP                 IMAGE                                         PORT
   ● Tailscale         ghcr.io/tailscale/tailscale:v1.102.4          0
 
-  Access    Home network — other devices connect on
+  Access    Home network — addresses use
+            Reachability is not verified; check from another device.
             From anywhere, privately, with Tailscale
 
    enter  enter install · esc back
   Required inputs
   > Tailscale · Tailscale auth key
     Tailscale auth key
-
 
 
 

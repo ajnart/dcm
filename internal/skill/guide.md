@@ -374,6 +374,23 @@ port 80, Docker and name lookup checks pass; its Review still needs approval.
 One managed Caddy in the Compose Project routes HTTP by Host to Catalog Apps
 with web pages, at `http://<app>.<lan-ip-with-dashes>.sslip.io` on every OS.
 Port conflicts, rootless Docker and unsuitable networks refuse without changes.
+Names require an active private home-network IPv4 address. CLAT's
+[IPv4 Service Continuity Prefix](https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml)
+is not private LAN IPv4; Easy names do not yet support it or IPv6. Onboarding
+checks the entered address before approval; `a` returns to Access and `w` to
+the LAN address with answers kept. Never substitute a public IPv6 address or
+promise that numbered Addresses are reachable without verification. The
+service still checks the active network, Docker and port ownership before writes.
+
+In Settings' Access list, arrows focus and Space selects without applying.
+Enter confirms that selection (or chooses focus if Space was not used);
+Ctrl+S applies Home network/Easy names changes. Remote Access still opens its
+separate private-input or publication review. Space in a text editor types;
+Tab fills the next detected LAN address when there are several choices.
+Review's failed install and Activity's selected failed step/latest failed Action
+offer `c` to copy the full masked error and `e` to read it with scrolling.
+These diagnostics may contain personal network or path data even after secret
+masking: review them before sharing. Copy confirmation never echoes the error.
 
 Read `status --json`: `addresses` lists only working Easy names ahead of
 `IP:port`, after valid private Tailscale and available verified Cloudflare

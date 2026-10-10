@@ -6,10 +6,10 @@
   self-host can draw its icons with a Nerd Font, a terminal font with extra symbols, or with plain
   symbols every font has. Bars and spinners look the same either way.
 
-  󰜋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring
+  ◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  ♥ Monitoring
 
-  Do these icons look right?
-  > ○ Nerd Font: use the icons shown above
+  Choose your symbols; the sample shows your selection.
+  > ○ Nerd Font: use extra font icons
     ● Simple (default): use plain symbols
 
   Learn about Nerd Fonts: https://www.nerdfonts.com
