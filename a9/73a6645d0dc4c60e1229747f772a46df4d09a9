@@ -1,0 +1,45 @@
+video/reel/assets/agents/SOURCES.md
+  s_48e530b71600df::t_259190d88738fe 1-18
+video/reel/assets/agents/claude-code.svg
+  s_c149705afa028b::t_46d2be8923d292 1
+video/reel/assets/agents/hermes-agent.svg
+  s_c149705afa028b::t_9591b8b201e475 1-7
+video/reel/assets/agents/openai.svg
+  s_c149705afa028b::t_0f65ee386e5f27 1
+video/reel/assets/agents/openchamber.svg
+  s_c149705afa028b::t_6d70f706d3b6e4 1-47
+video/reel/assets/agents/opencode.svg
+  s_c149705afa028b::t_601e2a2d7e29b9 1
+video/reel/assets/agents/pi.svg
+  s_c149705afa028b::t_6e1354104fdf34 1
+video/reel/index.html
+  s_c149705afa028b::t_6288e94c7c674e 16-18,20-22,26-27,31,33,37,40,42,45-49,52-56,59-77,82-84
+video/reel/lib.js
+  s_c149705afa028b::t_be71a716bb3777 28-44,93,95,98-106
+video/reel/product.js
+  s_c149705afa028b::t_3678f01acdf712 1-2,7,9-10,13,29-32,35,37-39,41-42,44-45,47-52,56,62,65,67,69-73,76-77,80,84,88-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a973a6645d0dc4c60e1229747f772a46df4d09a9",
+  "prompts": {},
+  "sessions": {
+    "s_48e530b71600df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f49ad48-3b48-4f9e-be24-7dfb7235f07a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_c149705afa028b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6610d68b-75e5-4ed1-883f-78617497ba4c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
