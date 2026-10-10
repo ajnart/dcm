@@ -110,11 +110,15 @@ type generated struct {
 
 func main() {
 	factsPath := flag.String("facts", "tools/catalog-import/facts.json", "path to facts.json")
-	catalogPath := flag.String("catalog", "../.agents/skills/self-host/workflows/selfhost/references/catalog", "path to the legacy catalog references")
+	catalogPath := flag.String("catalog", "", "path to the legacy catalog references (removed in #192; check one out from git history)")
 	overridesPath := flag.String("overrides", "tools/appgen/overrides.json", "path to overrides.json")
 	appsDir := flag.String("apps", "internal/apps", "directory for generated App packages")
 	catalogFile := flag.String("catalog-file", "internal/catalog/generated.go", "path for the generated catalog registration")
 	flag.Parse()
+	if *catalogPath == "" {
+		fmt.Fprintln(os.Stderr, "appgen: -catalog is required; the legacy catalog was removed in #192 (git show e979269a:.agents/skills/self-host/workflows/selfhost/references/catalog)")
+		os.Exit(2)
+	}
 
 	facts := readFacts(*factsPath)
 	overrides := readOverrides(*overridesPath)
