@@ -1,0 +1,21 @@
+internal/activity/terminal.go
+  s_59ffa5bfdcd3ba::t_24da0b8a134350 51-53,67-72,74-80,91-92,108-109,123
+internal/cli/cli.go
+  s_59ffa5bfdcd3ba::t_59307778ef1644 153-157,198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "04a6650a49b90d9ba604a0e061e746ae2f7d2407",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
