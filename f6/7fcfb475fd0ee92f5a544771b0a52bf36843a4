@@ -1,0 +1,19 @@
+internal/skill/guide.md
+  s_8b1d5a69f175a9::t_ee6abe35e2ac04 4-68,71-74,78-96,100-126,203-211,274,320-323,373-393,397-410
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f67fcfb475fd0ee92f5a544771b0a52bf36843a4",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
