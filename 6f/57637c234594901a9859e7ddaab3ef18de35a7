@@ -1,0 +1,25 @@
+README.md
+  s_59ffa5bfdcd3ba::t_c1b50acbb00bbf 196-199
+internal/project/restore_startup.go
+  s_59ffa5bfdcd3ba::t_629bec87799416 1-52
+internal/service/backup.go
+  s_59ffa5bfdcd3ba::t_1f4cbc91cc4625 5-6,26,445-458,464-465,497-564,715
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_a67903a3c62a6e 281-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6f57637c234594901a9859e7ddaab3ef18de35a7",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
