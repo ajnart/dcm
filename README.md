@@ -297,13 +297,17 @@ network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Home network, From anywhere, privately and Bring your own exist: unbuilt options are
-dimmed and marked coming soon, `enter` on one only says so, and nothing changes.
+question mark. Home network, From anywhere, privately, Bring your own and
+Your own web address are available. The latter
+opens a guided Cloudflare flow in Settings after the Apps finish installing;
+it chooses Apps individually and asks a separate yes before publication.
+Options marked coming soon change nothing.
 Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
 Traefik or their own Caddy; `enter` on it also changes nothing and points at
 `self-host access export`. In Settings, the
 Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
-applies it. Tailscale instead opens an install review with a concealed key field.
+applies Home network changes; Your own web address has its own review and yes.
+Tailscale opens an install review with a concealed key field.
 **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
@@ -315,6 +319,51 @@ comparing the time left to something small, then hands over to the Dashboard
 with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
 Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
 motion without colour. `esc` goes back one step and keeps your answers.
+
+### Your own web address
+
+Use a main domain already **active** on Cloudflare. First finish Zero Trust
+onboarding at https://one.dash.cloudflare.com: a team name, the **Free plan**
+(50 users) and a required payment method that is **not charged**. Create a custom
+API token under My Profile > API Tokens, limited to one account and one zone:
+Account **Cloudflare Tunnel: Edit**, **Access: Apps and Policies: Edit**,
+**Access: Organizations, Identity Providers, and Groups: Edit**; Zone
+**DNS: Edit** and **Zone: Read**. Hand it over privately, never through chat.
+
+Settings > Access > Your own web address guides the domain, allowed emails,
+hidden token and individual App choices. Nothing is selected by default;
+normally private categories require naming the App and accepting its risk.
+Apps without a web page cannot be published. The separate final yes names
+the risk of strangers reaching the login page and Cloudflare seeing traffic.
+Cloudflare's terms restrict video streaming; phone and TV apps cannot pass
+the PIN login. **Use Tailscale for streaming and native clients instead.**
+
+For agents, `self-host cloudflare plan --domain example.com --email
+alice@example.org --app paperless-ngx --json` previews without network calls.
+After the person's separate yes, use `self-host cloudflare publish` with the
+same choices, `--set-file cloudflare.api_token=/private/token` and
+`--accept-public`. The file must be owner-only (0600); `=-` reads private stdin.
+Changes and `self-host cloudflare remove --set-file
+cloudflare.api_token=/private/token --yes` need the API token afresh. Only the
+tunnel run token is saved. HTTPS Addresses appear only after an outside 302
+to the team's login page; a failed probe deletes DNS. `IP:port` stays available.
+The shared PIN provider and organization survive removal. Run `self-host skill`
+for the full procedure and warnings.
+
+Cloudflare ownership uses a random identity unique to this Project and receipts
+for the account, zone and resource IDs. Matching names are never ownership.
+Backups include these receipts. Restore keeps the cleanup information but holds
+the public connector disabled, even with `restore --yes`; a separate
+`cloudflare plan` and approved `cloudflare publish --accept-public` are needed
+to activate it again. Ordinary connector removal is refused while cleanup is
+pending. Older records/backups without receipts require manual Cloudflare
+review; they are never adopted automatically. A network failure can prevent
+remote cleanup: ownership is retained and `status --json` includes
+`access_warnings` and `cloudflare_cleanup`, not a guarantee of successful cleanup.
+Tunnel ownership does not own foreign routes inside it: existing hostnames need
+matching exact-rule receipts before replacement. Unproven routes are refused.
+Complete cleanup releases account/zone constraints while keeping the Project
+identity; partial cleanup retains both constraints and outstanding receipts.
 
 ### From anywhere, privately
 

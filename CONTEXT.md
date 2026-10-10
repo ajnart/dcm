@@ -250,7 +250,8 @@ single key changes an App or the Project.
   key of `status --json` and the `exposure` doctor check keep the old word.
   Nothing a person reads says it; `status --json` also has `access`, a list
   of `home` or `local`, plus `names` when Easy names at home are on and
-  `tailscale` when its private Access is installed. The
+  `tailscale` when its private Access is installed and `cloudflare` when
+  verified public Addresses exist. The
   additive `EASY_NAMES=on|off` Host setting does not replace `EXPOSURE`.
   Linux `.local` announcements are deferred to #232 and need a socket ADR.
 

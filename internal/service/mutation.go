@@ -84,6 +84,10 @@ func (s *Service) run(ctx context.Context, c change) error {
 		return err
 	}
 	defer unlock()
+	return s.runLocked(ctx, c, p)
+}
+
+func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -200,6 +204,15 @@ func (s *Service) run(ctx context.Context, c change) error {
 
 // runCompose resolves the targets' services and runs the declared verb.
 func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []string) error {
+	if c.compose == composeRestart {
+		blocked, err := ss.cloudflareSuspended()
+		if err != nil {
+			return err
+		}
+		if blocked {
+			ids = slices.DeleteFunc(slices.Clone(ids), func(id string) bool { return id == cloudflareConnector })
+		}
+	}
 	if c.compose == composeRemove {
 		return s.removeApps(ctx, ss, ids, c.purge)
 	}

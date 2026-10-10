@@ -52,8 +52,10 @@ type AppStatus struct {
 }
 
 type Status struct {
-	Project  string `json:"project"`
-	Exposure string `json:"exposure"`
+	AccessWarnings    []string `json:"access_warnings,omitempty"`
+	CloudflareCleanup bool     `json:"cloudflare_cleanup,omitempty"`
+	Project           string   `json:"project"`
+	Exposure          string   `json:"exposure"`
 	// Access lists the ways the Apps can be reached, by id: "home" or "local".
 	Access []string     `json:"access"`
 	Names  *NamesStatus `json:"names,omitempty"`
@@ -92,6 +94,17 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	if rec, cleanup, err := loadCloudflareRecord(ss.p); err != nil {
+		return Status{}, err
+	} else {
+		status.CloudflareCleanup = cleanup || rec.Suspended
+		if rec.Warning != "" {
+			status.AccessWarnings = append(status.AccessWarnings, rec.Warning)
+		}
+		if len(rec.Hosts) > 0 && !rec.Suspended && ss.state.Apps[cloudflareConnector] != nil {
+			status.Access = append(status.Access, CloudflareAccess)
+		}
+	}
 	if ss.tailscaleOn() {
 		status.Access = append(status.Access, tailscaleID)
 	}
@@ -152,9 +165,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		}
 		as.localURL = as.URL
 		as.Addresses = addresses(working[id], as.URL)
-		if len(as.Addresses) > 0 {
-			as.URL = as.Addresses[0]
-		}
+		as.Addresses = append(ss.cloudflareAddresses(id), as.Addresses...)
 		as.Addresses = append(accessAddresses[id], as.Addresses...)
 		if len(as.Addresses) > 0 {
 			as.URL = as.Addresses[0]

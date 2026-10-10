@@ -49,6 +49,7 @@ type answers struct {
 	exposure     string
 	easyNames    bool
 	accessChosen bool
+	cloudflare   bool
 	// experience is the Experience level under the highlight at Welcome:
 	// new until the person chooses.
 	experience               string
@@ -667,6 +668,12 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			m.setFlash(accessNote(choice, o.answers.exposure), levelInfo)
 			return m, nil
 		}
+		if choice.id == "cloudflare" {
+			o.answers.cloudflare = true
+			m.setFlash("Choose your web addresses in Settings after the Apps are installed; nothing goes public yet", levelInfo)
+			return m.openStep(stepWho)
+		}
+		o.answers.cloudflare = false
 		o.answers.exposure = choice.value
 		o.answers.easyNames, o.answers.accessChosen = choice.id == "names", true
 		delete(o.answers.picks, "tailscale")
@@ -711,6 +718,9 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 		o.access = max(slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.value == o.answers.exposure }), 0)
 		if o.answers.easyNames {
 			o.access = 1
+		}
+		if o.answers.cloudflare {
+			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "cloudflare" })
 		}
 		if o.answers.picks["tailscale"] {
 			o.access = slices.IndexFunc(accessOptions, func(a accessOption) bool { return a.id == "tailscale" })
@@ -995,7 +1005,7 @@ func (m Model) renderAccess() []string {
 	}
 	lines = append(lines, "")
 	for i, option := range accessOptions {
-		selected := option.value == o.answers.exposure && (option.id == "names") == o.answers.easyNames || option.id == "tailscale" && o.answers.picks["tailscale"]
+		selected := option.value != "" && option.value == o.answers.exposure && (option.id == "names") == o.answers.easyNames || option.id == "cloudflare" && o.answers.cloudflare || option.id == "tailscale" && o.answers.picks["tailscale"]
 		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
@@ -1012,7 +1022,11 @@ func (m Model) renderReview() []string {
 		lines = append(lines, "", truncate("  "+t.fg(t.fail).Render("✗ "+firstLine(o.err)), m.width),
 			"  "+t.dim().Render("Nothing was installed. Change what you need with esc, then approve again."))
 	}
-	return append(lines, planLines(t, o.plan)...)
+	lines = append(lines, planLines(t, o.plan)...)
+	if o.answers.cloudflare {
+		lines = append(lines, "", "  "+t.body().Render("Your own web address: choose Apps in Settings after install; nothing public yet"))
+	}
+	return lines
 }
 
 // renderPlan is the Catalog's review of an install.

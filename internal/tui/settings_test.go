@@ -207,7 +207,7 @@ func TestSettingsAccessSubTabListsTheFiveOptionsAndExplainsTheHighlightedOne(t *
 	out := screen(m)
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately",
-		"○ Your own web address · coming soon", "○ Bring your own"} {
+		"○ Your own web address", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
@@ -334,6 +334,10 @@ func TestSettingsBarOffersMoreOnlyOnTheAccessSubTab(t *testing.T) {
 }
 
 func TestChoosingAnAccessOptionNotBuiltYetChangesNothingInSettings(t *testing.T) {
+	original := accessOptions
+	accessOptions = slices.Clone(original)
+	accessOptions[3].soon = true
+	defer func() { accessOptions = original }()
 	for downs, name := range map[int]string{3: "Your own web address"} {
 		m, backend := settingsHost(t)
 		m = drive(t, m, press("]"))

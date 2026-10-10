@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Your own web address ───────────────────────────────────────────────────────╮
+│   App 1 of 2: Jellyfin                                                       │
+│   Address: https://jellyfin.example.com                                      │
+│   Cloudflare's terms restrict serving video through its free network, and    │
+│   the phone and TV apps for this App cannot get past the login page.         │
+│   Tailscale (From anywhere, privately) is the better way to watch away from  │
+│   home.                                                                      │
+│   Choose this App? y/n (nothing selected by default)                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+ typing · keys go to the input                    y/n  choose App   esc  cancel

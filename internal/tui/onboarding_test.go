@@ -808,7 +808,7 @@ func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testin
 	}
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately",
-		"○ Your own web address · coming soon", "○ Bring your own"} {
+		"○ Your own web address", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
@@ -845,7 +845,7 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 	}{
 		{1, "Open each App by name instead of a port number.", "phones · TVs · laptops ──── router ──── Caddy · App name"},
 		{2, "Tailscale lets you open each App with its own private HTTPS name", "your phone, anywhere ──── Tailscale ──── this computer private name"},
-		{3, "Your own web address, like movies.example.com, will open your Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
+		{3, "Your own web address, like movies.example.com, opens your chosen Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
 		{4, "Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy?", "your devices ──── your proxy ──── this computer IP:port"},
 	} {
 		m, _ := freshHost(t)
@@ -895,6 +895,10 @@ func TestEnterOnHomeNetworkMovesOnAndKeepsTheStoredValue(t *testing.T) {
 }
 
 func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
+	original := accessOptions
+	accessOptions = slices.Clone(original)
+	accessOptions[3].soon = true
+	defer func() { accessOptions = original }()
 	for downs, name := range map[int]string{3: "Your own web address"} {
 		m, backend := freshHost(t)
 		m = atAccess(t, m)
@@ -983,7 +987,7 @@ func TestQuestionMarkOpensAndClosesTheHelpPageOfEveryOption(t *testing.T) {
 			t.Fatalf("help must say where to change Access\n%s", screen(m))
 		}
 		m = drive(t, m, press("enter"))
-		if !strings.Contains(flat(screen(m)), "changed later in Settings") || m.onboarding.step != stepAccess {
+		if !m.showHelp || m.onboarding.step != stepAccess {
 			t.Fatalf("%s: keys other than esc and ? must not leave the page or answer the step behind it\n%s", title, screen(m))
 		}
 		m = drive(t, m, press("esc"))

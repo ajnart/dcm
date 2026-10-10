@@ -163,7 +163,8 @@ type Model struct {
 	menu      *actionMenu
 
 	// onboarding is set from the first run until the Project exists.
-	onboarding *onboarding
+	onboarding             *onboarding
+	cloudflareAfterInstall bool
 	// preboot is set while the first install's pre-boot screen is on screen.
 	preboot *prebootScreen
 }
@@ -524,6 +525,9 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		m.statusErr = msg.err.Error()
 		return m, nil
 	}
+	if m.onboarding != nil && m.onboarding.answers != nil && m.onboarding.answers.cloudflare {
+		m.cloudflareAfterInstall = true
+	}
 	m.onboarding = nil
 	m.statusErr = ""
 	m.status = msg.status
@@ -531,6 +535,13 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	m.applyUpdates()
 	m.refreshed = m.opts.Now()
 	ctxView := m.ctx()
+	if m.cloudflareAfterInstall && m.tasks.running() == 0 && m.tasks.latest() != nil && m.tasks.latest().snapshot().state == taskOK {
+		m.cloudflareAfterInstall = false
+		m.settings = newSettingsView(ctxView)
+		m.settings.tab = tabAccess
+		m.settings.cloudflare = newCloudflarePane(ctxView)
+		m.surface, m.preboot = surfaceSettings, nil
+	}
 	m.apps.clampCursor(ctxView)
 	m.relayout()
 	return m, m.apps.syncDetails(ctxView)
