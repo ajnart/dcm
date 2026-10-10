@@ -37,6 +37,9 @@ const (
 	afterSetup
 	afterCheck
 	afterDashboard
+	// afterUnmanagedDashboard refreshes the dashboard only when a target is an
+	// Unmanaged app, whose tile no Link creates.
+	afterUnmanagedDashboard
 )
 
 // change is one mutation of the Project, declared by a verb.
@@ -221,13 +224,14 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 		if err := ss.compose.Remove(ctx, services...); err != nil {
 			return err
 		}
+		dir := ss.p.AppDir(id)
 		if err := os.Remove(ss.p.FragmentPath(id)); err != nil {
 			return err
 		}
 		delete(ss.state.Apps, id)
-		msg := "removed " + id + "; data kept in " + ss.p.Path("apps", id)
+		msg := "removed " + id + "; data kept in " + dir
 		if purge {
-			if err := os.RemoveAll(ss.p.Path("apps", id)); err != nil {
+			if err := os.RemoveAll(dir); err != nil {
 				return err
 			}
 			msg = "removed " + id + " and deleted its data"
@@ -269,6 +273,12 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 		return nil
 	case afterDashboard:
 		return ss.refreshDashboard(ctx)
+	case afterUnmanagedDashboard:
+		for _, id := range ids {
+			if _, managed := ss.s.Catalog.App(id); !managed || ss.state.Apps[id] == nil {
+				return ss.refreshDashboard(ctx)
+			}
+		}
 	}
 	return nil
 }
