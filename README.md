@@ -189,11 +189,18 @@ alone is not App acceptance. After `down`, removing an App or retrying Setup
 updates routes without starting Caddy; an explicit `start` starts Access too.
 Stopped Apps defer their Access configuration until an approved start.
 
+Saved routes are not treated as applied routes. Failed or interrupted Caddy
+updates keep names pending and numbered Addresses first until an approved
+retry succeeds. Failed initial startup can be retried with the same Action;
+unrelated Actions do not start Access, and `down` cancels that pending startup.
+
 Access changes never silently reinstall Apps. If changing an origin would
 replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses
 before changing settings or files. Keep your image pins, mounts and environment
 overrides; update the origin manually or approve a reinstall separately. Restore
 checks Access before replacing App data and rebuilds routes without rerunning Setup.
+Restore updates Access configuration only for restored running Apps, preserving
+trusted hosts; previously stopped Apps stay stopped.
 
 Names are **checked from this computer**, not your phone or TV. They need
 internet name lookup; a router may hide them. Status explains blocked, offline

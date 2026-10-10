@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"os"
@@ -174,13 +175,12 @@ func (ss *session) webApps() []string {
 // syncNames makes the Caddy match the settings: written and started with a
 // route per App while Easy names are on, removed otherwise. It touches Compose
 // only when there is a Caddy to start or to remove.
-func (ss *session) syncNames(ctx context.Context, start, configure bool) error {
+func (ss *session) syncNames(ctx context.Context, start bool, configured []string) error {
 	if !ss.namesOn() {
-		if !ss.p.HasNames() {
-			return nil
-		}
-		if err := ss.compose.Remove(ctx, names.Service); err != nil {
-			return err
+		if ss.p.HasNames() {
+			if err := ss.compose.Remove(ctx, names.Service); err != nil {
+				return err
+			}
 		}
 		if err := ss.p.RemoveNames(); err != nil {
 			return err
@@ -198,7 +198,7 @@ func (ss *session) syncNames(ctx context.Context, start, configure bool) error {
 	}
 	for _, id := range ss.webApps() {
 		info, _ := ss.webApp(id)
-		if a, _ := ss.s.Catalog.App(id); configure && ss.ready(id) && running[info.Service] {
+		if a, _ := ss.s.Catalog.App(id); (configured == nil || slices.Contains(configured, id)) && ss.ready(id) && running[info.Service] {
 			if configurer, ok := a.(app.AccessConfigurer); ok {
 				if err := configurer.ConfigureAccess(ctx, ss.helpers(a)); err != nil {
 					return err
@@ -209,11 +209,11 @@ func (ss *session) syncNames(ctx context.Context, start, configure bool) error {
 			routes = append(routes, names.Route{Host: host, Upstream: fmt.Sprintf("%s:%d", info.Service, info.ContainerPort)})
 		}
 	}
-	changed, err := ss.p.WriteNamesCaddyfile(names.Caddyfile(routes))
+	content := names.Caddyfile(routes)
+	_, err = ss.p.WriteNamesCaddyfile(content)
 	if err != nil {
 		return err
 	}
-	fresh := !ss.p.HasNames()
 	if err := ss.p.WriteNamesFragment(names.Fragment()); err != nil {
 		return err
 	}
@@ -225,8 +225,22 @@ func (ss *session) syncNames(ctx context.Context, start, configure bool) error {
 			return err
 		}
 	}
-	if changed && !fresh && ss.s.ownCaddyRuns(ctx, ss.p) {
-		return ss.compose.Restart(ctx, names.Service)
+	runtime, err := ss.p.LoadNamesRuntime()
+	if err != nil {
+		return err
+	}
+	generation := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+	if start || runtime.Applied != generation && ss.s.ownCaddyRuns(ctx, ss.p) {
+		if runtime.Applied != generation && (!start || running[names.Service]) {
+			if err := ss.compose.Restart(ctx, names.Service); err != nil {
+				return err
+			}
+		}
+		runtime.Applied = generation
+		if start {
+			runtime.StartAction = ""
+		}
+		return ss.p.SaveNamesRuntime(runtime)
 	}
 	return nil
 }
@@ -306,6 +320,8 @@ func (ss *session) namesStatus(ctx context.Context, failed bool) *NamesStatus {
 			status.Message = "This computer's network address changed. Review the LAN address in Settings, then update bookmarks; use the addresses with numbers."
 		} else if problem == "lan-unavailable" {
 			status.Message = "This computer's current network address cannot be checked. Easy names are not offered; use the addresses with numbers."
+		} else if problem == "pending" {
+			status.Message = "Easy names have changes waiting to be applied. Retry the approved Action; use the addresses with numbers until it finishes."
 		} else {
 			status.Message = "Easy names are stopped or port 80 is unavailable. Use the addresses with numbers, or explicitly start the Project."
 		}
@@ -322,6 +338,10 @@ func (ss *session) namesStatus(ctx context.Context, failed bool) *NamesStatus {
 }
 
 func (ss *session) namesRuntimeProblem(ctx context.Context) string {
+	runtime, err := ss.p.LoadNamesRuntime()
+	if err != nil || runtime.StartAction != "" {
+		return "pending"
+	}
 	current := ss.s.addresses()
 	if len(current) == 0 {
 		return "lan-unavailable"
@@ -335,6 +355,9 @@ func (ss *session) namesRuntimeProblem(ctx context.Context) string {
 	data, err := os.ReadFile(ss.p.NamesCaddyfilePath())
 	if err != nil {
 		return "binding"
+	}
+	if runtime.Applied != fmt.Sprintf("%x", sha256.Sum256(data)) {
+		return "pending"
 	}
 	for _, id := range ss.webApps() {
 		host, ok := names.Host(id, ss.settings["LAN_IP"])

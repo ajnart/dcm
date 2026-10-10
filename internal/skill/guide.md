@@ -273,6 +273,11 @@ Needs attention. Removing Apps or retrying Setup after `down` does not start
 Access; an approved `start` does. Stopped Apps defer Access configuration until
 that start. Restore validates Access under the Project lock before replacement
 and regenerates routes without rerunning unrelated Setup.
+Restore reconciles Access configuration only for restored running targets;
+previously stopped targets stay stopped. Pending Caddy changes keep numbered
+Addresses until a successful apply. Retry the same approved Action after a
+failed startup; unrelated Actions cannot consume its persisted approval, and
+`down` cancels it. Status is read-only and never completes pending startup.
 
 Config changes validate merged settings under the lock. If changing an origin
 would rewrite a customized Paperless-ngx or Vaultwarden fragment, the command

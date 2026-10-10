@@ -199,6 +199,9 @@ func TestRestoreStartFailureRetainsOriginalRecoveryCopy(t *testing.T) {
 		if strings.Contains(systemtest.Line(cmd), " up -d --remove-orphans one") {
 			return system.Result{ExitCode: 1, Stderr: []byte("start refused")}
 		}
+		if strings.Contains(systemtest.Line(cmd), " ps ") {
+			return system.Result{Stdout: []byte(`{"Service":"one","State":"running"}`)}
+		}
 		return system.Result{}
 	})
 	r := clitest.Run(t, deps, cat, "restore", archive, "--yes")

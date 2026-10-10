@@ -423,6 +423,14 @@ func (p *Project) WriteNamesCaddyfile(content string) (bool, error) {
 	if err := p.MkdirAll("access", "caddy", "config"); err != nil {
 		return false, err
 	}
+	runtime, err := p.LoadNamesRuntime()
+	if err != nil {
+		return false, err
+	}
+	runtime.Applied = ""
+	if err := p.SaveNamesRuntime(runtime); err != nil {
+		return false, err
+	}
 	return true, p.writeFile(p.NamesCaddyfilePath(), []byte(content), 0o644)
 }
 

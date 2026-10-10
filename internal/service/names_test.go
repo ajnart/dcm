@@ -679,8 +679,11 @@ func TestNamesFallBackWhenCaddyStopsOrLANChangesDespiteWorkingDNS(t *testing.T) 
 			t.Fatal(err)
 		}
 		want := problem
-		if problem == "down" || problem == "configuration" {
+		if problem == "down" {
 			want = "binding"
+		}
+		if problem == "configuration" {
+			want = "pending"
 		}
 		if status.Names.Working || status.Names.Problem != want || status.Apps[0].URL != "http://192.168.1.20:9000" || len(status.Apps[0].Addresses) != 1 {
 			t.Fatalf("status %+v", status)

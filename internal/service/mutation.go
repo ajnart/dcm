@@ -60,6 +60,7 @@ type change struct {
 	preflight      func(context.Context, *project.Project) error
 	namesStart     func(*session) bool
 	reconcileNames bool
+	namesTargets   func() []string
 }
 
 // run owns every Project mutation: it takes the lock, opens the session,
@@ -115,6 +116,13 @@ func (s *Service) run(ctx context.Context, c change) error {
 		return err
 	}
 	startNames := c.namesStart != nil && c.namesStart(ss)
+	namesRuntime, err := ss.p.LoadNamesRuntime()
+	if err != nil {
+		return s.finish(err)
+	}
+	if namesRuntime.StartAction != "" && namesRuntime.StartAction == c.title && ss.namesOn() {
+		startNames = true
+	}
 	if err := ss.migratePrivateInputs(); err != nil {
 		return s.finish(err)
 	}
@@ -124,6 +132,17 @@ func (s *Service) run(ctx context.Context, c change) error {
 	s.Log.Emit(events.Event{Event: events.RunStart, Msg: c.title})
 	if c.edit != nil {
 		if err := c.edit(ctx, ss); err != nil {
+			return s.finish(err)
+		}
+	}
+	if startNames && ss.namesOn() {
+		namesRuntime.StartAction = c.title
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
+			return s.finish(err)
+		}
+	} else if c.compose == composeDown && namesRuntime.StartAction != "" {
+		namesRuntime.StartAction = ""
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
 			return s.finish(err)
 		}
 	}
@@ -147,7 +166,11 @@ func (s *Service) run(ctx context.Context, c change) error {
 	}
 	if (c.after != afterNone || c.reconcileNames) && err == nil {
 		if c.compose != composeStop && c.compose != composeDown {
-			err = ss.syncNames(ctx, startNames, !c.reconcileNames)
+			var configured []string
+			if c.namesTargets != nil {
+				configured = c.namesTargets()
+			}
+			err = ss.syncNames(ctx, startNames, configured)
 		}
 	}
 	if c.after != afterNone && err == nil {

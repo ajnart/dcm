@@ -438,10 +438,12 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	fresh = false
 	replaced := false
 	var nodes []string
+	var runningTargets []string
 	err = s.run(ctx, change{
 		services:       func() []string { return nodes },
 		title:          "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
 		reconcileNames: true,
+		namesTargets:   func() []string { return targets },
 		namesStart:     func(*session) bool { return fresh },
 		preflight: func(ctx context.Context, p *project.Project) error {
 			archived := &project.Project{Root: staging}
@@ -508,6 +510,26 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				containers, err = ss.compose.Ps(ctx)
 				if err != nil {
 					return fmt.Errorf("cannot determine running Apps before restore: %w", err)
+				}
+			}
+			existing, err := ss.p.AppIDs()
+			if err != nil {
+				return err
+			}
+			for _, id := range targets {
+				if fresh || !slices.Contains(existing, id) {
+					runningTargets = append(runningTargets, id)
+					continue
+				}
+				services, err := ss.services(id)
+				if err != nil {
+					return err
+				}
+				for _, container := range containers {
+					if container.State == "running" && slices.Contains(services, container.Service) {
+						runningTargets = append(runningTargets, id)
+						break
+					}
 				}
 			}
 			oldApps := maps.Clone(ss.state.Apps)
@@ -584,10 +606,6 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 					return err
 				}
 			}
-			existing, err := ss.p.AppIDs()
-			if err != nil {
-				return err
-			}
 			for _, id := range targets {
 				if slices.Contains(existing, id) {
 					services, err := ss.services(id)
@@ -632,7 +650,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				return err
 			}
 			if !slices.Contains(targets, tailscaleID) {
-				nodes = ss.pendingTailscaleServices(targets, containers)
+				nodes = ss.pendingTailscaleServices(runningTargets, containers)
 			}
 			replaced = true
 			for _, id := range targets {
@@ -640,7 +658,7 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			}
 			return nil
 		},
-		targets: func(*session) ([]string, error) { return targets, nil },
+		targets: func(*session) ([]string, error) { return runningTargets, nil },
 		compose: composeUp,
 	})
 	if err != nil && replaced {
