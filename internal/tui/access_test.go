@@ -32,8 +32,8 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != !slices.Contains([]string{"home", "tailscale", "custom"}, o.id) {
-			t.Errorf("%s: Home network, Tailscale and Bring your own are available, soon=%v", o.id, o.soon)
+		if o.soon != !slices.Contains([]string{"home", "tailscale", "custom", "cloudflare"}, o.id) {
+			t.Errorf("%s: availability soon=%v", o.id, o.soon)
 		}
 	}
 }
@@ -116,7 +116,7 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 		{"home", "Technical details Apps are published on 0.0.0.0, every address of this computer. The LAN address only builds links."},
 		{"names", "Technical details A Caddy container on this computer will own port 80 and forward each name to the App's port."},
 		{"tailscale", "Technical details Each App with a web page gets its own Tailscale node"},
-		{"cloudflare", "Technical details A cloudflared container will open an outbound tunnel to Cloudflare"},
+		{"cloudflare", "Technical details A cloudflared container opens an outbound tunnel to Cloudflare"},
 		{"custom", "Technical details self-host access export --format caddy|nginx|traefik|json prints each App's Compose service and container port"},
 	} {
 		o, _ := accessByID(tc.id)

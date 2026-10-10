@@ -359,6 +359,15 @@ func (ss *session) services(ids ...string) ([]string, error) {
 func (ss *session) startServices(ids ...string) ([]string, error) {
 	var all []string
 	for _, id := range ids {
+		if id == cloudflareConnector {
+			blocked, err := ss.cloudflareSuspended()
+			if err != nil {
+				return nil, err
+			}
+			if blocked {
+				continue
+			}
+		}
 		names, err := ss.services(id)
 		if err != nil {
 			return nil, err

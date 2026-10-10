@@ -255,7 +255,8 @@ single key changes an App or the Project.
   stored `EXPOSURE` setting, its values, the `--exposure` flag, the `exposure`
   key of `status --json` and the `exposure` doctor check keep the old word.
   Nothing a person reads says it; `status --json` also has `access`, a list
-  of `home` or `local`, plus `tailscale` when its private Access is installed.
+  of `home` or `local`, plus `tailscale` when its private Access is installed
+  and `cloudflare` when verified public Addresses exist.
 
 - "recipe" in the previous CLI meant one app's compose definition; here it
   means a bundle of **Apps**.

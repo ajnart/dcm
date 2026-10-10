@@ -55,7 +55,7 @@ exactly the commands this version registers; run `self-host skill` again after
    said to go ahead.
 
 Loading this guide conveys intent, never approval (ADR 0005). Inspect, plan,
-approval, apply, verify: the CLI has no plan command, so build the plan from
+approval, apply, verify: for installs build the plan from
 `self-host doctor --json`, `self-host apps info <app> --json` and
 `self-host status --json`, show it, and only then pass `--yes`. `--yes` is
 authorization, never a preview flag.
@@ -118,6 +118,9 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host remove <app>...`                                      | Remove Apps; data is kept unless `--purge`                                                                     |
 | `self-host config set KEY=value...`                              | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects)                                     |
 | `self-host config review [--yes]`                                | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
+| `self-host cloudflare plan`                                      | Inspect individually chosen Apps, allowed emails, warnings and publication risk without network calls          |
+| `self-host cloudflare publish`                                   | Publish chosen Apps behind an emailed-PIN login, only after the separate public-risk yes                       |
+| `self-host cloudflare remove`                                    | Unpublish in reverse order, with a fresh private API token                                                     |
 | `self-host access export [--format caddy\|nginx\|traefik\|json]` | Print each App's upstream and a suggested hostname for your own reverse proxy; changes nothing                 |
 | `self-host logs <app>`                                           | Container logs                                                                                                 |
 | `self-host backup [app...]`                                      | Write one compressed archive, optionally encrypted                                                             |
@@ -219,8 +222,11 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Home network, Tailscale and Bring your own exist; unbuilt options show
-"coming soon" and choosing one changes nothing. Bring your own is for people who
+diagram and a help page. Home network, Tailscale, Bring your own and Your own
+web address are available. Your own web address uses Cloudflare
+Tunnel with a login page. Onboarding opens its guided Settings flow after the
+Apps finish installing; choosing it alone never publishes anything. Options
+marked "coming soon" change nothing. Bring your own is for people who
 already run SWAG, Pangolin, Nginx Proxy Manager, Traefik or their own Caddy:
 choosing it changes nothing and points at `self-host access export`, which
 prints every App's upstream (the Compose service and container port for a proxy
@@ -241,11 +247,119 @@ can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
 instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
-it first: `status --json` has `access` (a list: `home` or `local`, plus `tailscale` when installed) beside the
+it first: `status --json` has `access` (a list including `home` or `local`, plus
+`tailscale` when installed and `cloudflare` when verified Addresses exist) beside the
 older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
-internet; public access is the user's decision and needs their own reverse
-proxy or VPN.
+internet; publishing needs the separate yes below.
+
+### Your own web address (Cloudflare)
+
+1. The person adds their main domain (zone apex, like `example.com`) to
+   Cloudflare, changes its nameservers and waits until it shows **active**.
+   Do not accept `home.example.com`: deeper names need a paid certificate.
+2. They open https://one.dash.cloudflare.com, choose a team name, the **Zero
+   Trust Free plan**, and add a payment method. It is required but **not charged**.
+   Free has 50 seats; each signed-in email uses a seat. We never create an
+   organization or change the plan for them.
+3. In Cloudflare, **My Profile > API Tokens > Create Token > Create Custom
+   Token**, add exactly these permissions:
+   - Account > Cloudflare Tunnel > Edit
+   - Account > Access: Apps and Policies > Edit
+   - Account > Access: Organizations, Identity Providers, and Groups > Edit
+   - Zone > DNS > Edit
+   - Zone > Zone > Read
+     Limit account resources to that one account and zone resources to that one
+     zone. Have the person place it in an owner-only file (0600), outside chat.
+     Use `--set-file cloudflare.api_token=PATH`, or `=-` for private stdin.
+     Never put the token in arguments or chat. It is held only for this run;
+     only `CLOUDFLARE_TUNNEL_TOKEN` is saved in the Project's secret store.
+4. Ask who may sign in (email addresses) and pick installed Apps **one by one**.
+   Check spelling: the login page silently withholds PIN emails for a typo.
+   Nothing is chosen by default. Plan without a token or network calls:
+
+   ```sh
+   self-host cloudflare plan --domain example.com --email alice@example.org --app paperless-ngx --json
+   ```
+
+   These categories stay private unless explicitly named with
+   `--allow-private <app>`: Containers, Databases, Downloads, Identity, DNS,
+   Ingress, Remote access, Backups, Monitoring, Observability, Cameras, Storage
+   and Passwords. Apps without a web page are **always refused**.
+   For Media Apps, explain before publication: Cloudflare's terms restrict
+   video streaming through public hostnames; phone and TV apps cannot pass
+   this login page. Recommend **Tailscale (From anywhere, privately)** for
+   streaming and native clients. This route is for browsers only.
+
+5. Show the plan's `risk`, every warning and any dropped Addresses. Ask a
+   **separate explicit yes**: strangers anywhere can reach the login page,
+   a flaw could let them into an App, and Cloudflare sees the traffic. Only
+   after that yes:
+
+   ```sh
+   self-host cloudflare publish --domain example.com --email alice@example.org --app paperless-ngx --set-file cloudflare.api_token=/private/token --accept-public --json
+   ```
+
+   `--app` is repeatable and is the full desired list. Repeating creates no
+   duplicates; omitting a previously chosen App unpublishes it. Changes ask
+   for the API token again. No DNS write happens before PIN, tunnel/run token,
+   policy, per-host Access app, READ/MERGE ingress with `originRequest.access`,
+   and connector start. A cookie-free external probe must answer **302 to the
+   team's HTTPS cloudflareaccess.com login**; HTTP 200 and connector liveness
+   are not acceptance. Failed probes delete that DNS record. Failed changes
+   fail closed; retry or remove to clean up any remembered resources.
+
+6. Read `self-host status --json`: verified `https://<app>.<domain>` Addresses
+   precede `IP:port`; valid private Tailscale HTTPS comes first when both are on.
+   The person opens the Address,
+   requests the emailed PIN and signs in. Do not bypass the login for native
+   clients. Upload limits and Cloudflare's terms still apply.
+7. To take the Addresses down, ask for approval and a fresh private token:
+
+   ```sh
+   self-host cloudflare remove --set-file cloudflare.api_token=/private/token --yes --json
+   ```
+
+   DNS goes first, then ingress, Access apps, policy, connector, connections
+   and tunnel. The shared PIN provider and organization are never deleted.
+   Cloudflare user seats stay assigned until the person removes them in its
+   dashboard. App data and Home network Addresses remain untouched.
+
+Ownership is not a matching name or prefix. Each Project has its own random
+identity, independent of Telemetry, with account/zone constraints and receipts
+for the tunnel, policy, per-host Access apps and DNS IDs. Creation receipts are
+saved before later steps; publication/removal hold the Project mutation lock
+through API calls, verification, cleanup and persistence. Old records without
+receipts are not automatically adopted: keep their cleanup details and ask the
+person to review/remove their resources manually in Cloudflare.
+
+Tunnel ownership does not own every route inside it. Before changing an existing
+tunnel, inspect desired and dropped hostnames against durable exact-rule receipts.
+An existing rule without matching proof, including legacy rules, is refused
+without mutation. Approved rule contents are remembered before a write, retaining
+prior proof across ambiguous responses; a hostname selection alone is never proof.
+After complete removal with no tunnel, policy, App, DNS or route receipts left,
+account/zone constraints clear so the same Project identity can use another active
+domain. Failed or partial cleanup retains those constraints and cleanup details.
+
+Backups include `cloudflare.json` with the ownership identity and resource IDs.
+Restore retains cleanup metadata but disables the public connector by default,
+for full, fresh and selected-App recovery. Generic Restore approval is **not**
+publication approval. Normal start/restart cannot release this hold. To activate,
+run `cloudflare plan`, show Current/Add/Remove Addresses and risk, ask the
+separate public-risk yes, then `cloudflare publish --accept-public` with a fresh
+private token. Restored copies carry the same logical Project identity; do not
+operate the original and restored copy independently against the same resources.
+Restoring onto another Project with live, different ownership is refused.
+Legacy backups may lack ownership; they stay disabled and require manual review.
+
+Ordinary App removal of the connector is refused while publication cleanup is
+pending: use `cloudflare remove` with a fresh private token. No ordinary action
+silently performs remote cleanup. On network failures cleanup is not guaranteed;
+receipts and last-known verified state are retained with `access_warnings` and
+`cloudflare_cleanup` in status. Read the warnings and retry cleanup once the API
+is reachable. A suspended/restored connector has only the Home network fallback
+Addresses advertised, not a dead preferred HTTPS Address.
 
 ### From anywhere, privately (Tailscale)
 
