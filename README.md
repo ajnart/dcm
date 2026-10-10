@@ -192,6 +192,13 @@ Interactive install reviews Host settings and the selection. The example uses
 which publishes ports on all host interfaces. Review network/firewall scope
 before choosing LAN access. Public ingress is a separate decision.
 
+To front the Apps with your own reverse proxy, run
+`self-host access export --format caddy` (or `nginx`, `traefik`, `json`). It
+prints each App's name, internal upstream (the Compose service and container
+port, plus the host `IP:port` for a proxy outside Docker) and a hostname to
+replace, with a note when an App needs WebSockets or long timeouts. It changes
+nothing; Traefik output is a file provider, so no Docker socket is needed.
+
 Run `self-host` on a terminal to open the first-install flow or the existing
 Dashboard. Use `4` to open the Catalog and `/` to search. A Recipe chooses a
 bundle: inspect `self-host apps list`, then install it by ID, for example
@@ -212,8 +219,11 @@ network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Only Home network exists yet: the others are dimmed and marked
-coming soon, `enter` on one only says so, and nothing changes. In Settings, the
+question mark. Home network and Bring your own exist: the other options are
+dimmed and marked coming soon, `enter` on one only says so, and nothing changes.
+Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
+Traefik or their own Caddy; `enter` on it also changes nothing and points at
+`self-host access export`. In Settings, the
 Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
 applies it. **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the

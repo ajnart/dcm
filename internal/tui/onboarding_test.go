@@ -591,7 +591,7 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 		m = drive(t, m, press("?"))
 	}
 	m = drive(t, m, press("enter"))
-	see("Access coming soon note", m)
+	see("Access Bring your own note", m)
 	for range 4 {
 		m = drive(t, m, press("up"))
 	}
@@ -781,7 +781,7 @@ func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testin
 	}
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home · coming soon", "○ From anywhere, privately · coming soon",
-		"○ Your own web address · coming soon", "○ Bring your own · coming soon"} {
+		"○ Your own web address · coming soon", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
@@ -811,7 +811,7 @@ func TestTheAccessStepExplainsHomeNetworkWithTheDetectedLANAddressAndItsDiagram(
 }
 
 func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testing.T) {
-	stays := "It isn't available yet: your Apps stay on your network."
+	const stays = "It isn't available yet: your Apps stay on your network."
 	for _, tc := range []struct {
 		downs          int
 		words, diagram string
@@ -819,7 +819,7 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 		{1, "Easy names will let you open each App with a short name like movies.local instead of numbers.", "phones · TVs · laptops ──── router ──── this computer movies.local"},
 		{2, "Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are", "your phone, anywhere ──── Tailscale ──── this computer private name"},
 		{3, "Your own web address, like movies.example.com, will open your Apps from anywhere through Cloudflare Tunnel", "anyone with the address ──── Cloudflare ──── this computer no open port"},
-		{4, "Already run a reverse proxy such as SWAG or Pangolin?", "your devices ──── your proxy ──── this computer IP:port"},
+		{4, "Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy?", "your devices ──── your proxy ──── this computer IP:port"},
 	} {
 		m, _ := freshHost(t)
 		m = atAccess(t, m)
@@ -829,8 +829,8 @@ func TestMovingTheAccessHighlightShowsEachOptionsExplanationAndDiagram(t *testin
 
 		out := screen(m)
 
-		if !strings.Contains(flat(out), tc.words) || !strings.Contains(flat(out), stays) || !strings.Contains(out, tc.diagram) {
-			t.Fatalf("option %d shows its words, that it isn't available yet and its diagram\n%s", tc.downs, out)
+		if available := tc.downs == 4; !strings.Contains(flat(out), tc.words) || strings.Contains(flat(out), stays) == available || !strings.Contains(out, tc.diagram) {
+			t.Fatalf("option %d shows its words, whether it isn't available yet and its diagram\n%s", tc.downs, out)
 		}
 		if strings.Contains(flat(out), "can open your Apps at 192.168.1.20") {
 			t.Fatalf("option %d must not show Home network's explanation\n%s", tc.downs, out)
@@ -868,7 +868,7 @@ func TestEnterOnHomeNetworkMovesOnAndKeepsTheStoredValue(t *testing.T) {
 }
 
 func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
-	for downs, name := range map[int]string{1: "Easy names at home", 2: "From anywhere, privately", 3: "Your own web address", 4: "Bring your own"} {
+	for downs, name := range map[int]string{1: "Easy names at home", 2: "From anywhere, privately", 3: "Your own web address"} {
 		m, backend := freshHost(t)
 		m = atAccess(t, m)
 		for range downs {
@@ -889,6 +889,33 @@ func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
 		if out := screen(m); !strings.Contains(out, "● Home network (default)") {
 			t.Fatalf("%s: Home network stays the selected option\n%s", name, out)
 		}
+	}
+}
+
+func TestChoosingBringYourOwnExplainsAndChangesNothing(t *testing.T) {
+	m, backend := freshHost(t)
+	m = atAccess(t, m)
+	for range 4 {
+		m = drive(t, m, press("down"))
+	}
+
+	m = drive(t, m, press("enter"))
+
+	if m.onboarding.step != stepAccess || m.onboarding.answers.exposure != service.ExposureLAN {
+		t.Fatalf("enter stays on Access with Home network, step %v exposure %q", m.onboarding.step, m.onboarding.answers.exposure)
+	}
+	if note := flat(screen(m)); !strings.Contains(note, "Nothing changes: your Apps stay on your network. Run: self-host access export") {
+		t.Fatalf("enter points at the command\n%s", screen(m))
+	}
+	if len(backend.Actions()) != 0 || len(backend.installs()) != 0 {
+		t.Fatalf("nothing is dispatched, actions %v", backend.Actions())
+	}
+	if out := screen(m); !strings.Contains(out, "● Home network (default)") || strings.Contains(out, "coming soon;") {
+		t.Fatalf("Home network stays the selected option and Bring your own is not coming soon\n%s", out)
+	}
+	m = drive(t, m, press("enter"))
+	if m.onboarding.step != stepAccess {
+		t.Fatalf("still on Access, step %v", m.onboarding.step)
 	}
 }
 
