@@ -48,6 +48,18 @@ type Input struct {
 type RenderContext struct {
 	Port   int
 	Inputs map[string]string
+	// Web lists the installed Apps with a web page, by ID, for an Access App
+	// that fronts each of them.
+	Web []WebTarget
+}
+
+// WebTarget is one installed App with a web page: the Compose service and
+// container port an Access App forwards to, and the path the App opens at.
+type WebTarget struct {
+	ID            string
+	Service       string
+	ContainerPort int
+	Path          string
 }
 
 type App interface {

@@ -84,9 +84,9 @@ var accessOptions = []accessOption{
 			"Names will be <app>.<lan-ip-with-dashes>.sslip.io and, on Linux, <app>.local announced over mDNS. The IP:port Address keeps working.",
 	},
 	{
-		id: "tailscale", label: "From anywhere, privately", name: "From anywhere, privately", soon: true,
+		id: "tailscale", label: "From anywhere, privately", name: "From anywhere, privately",
 		text: func(string) string {
-			return "Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a private network only your devices join."
+			return "Tailscale lets you open each App with its own private HTTPS name from your phone, laptop or TV, wherever you are. Your Home network Addresses keep working."
 		},
 		diagram: func(string) accessDiagram {
 			return accessDiagram{
@@ -101,11 +101,18 @@ var accessOptions = []accessOption{
 		sections: []accessSection{
 			{"What is Tailscale?",
 				"A service that joins your own devices into one private network, wherever they are. Only devices you sign in can see your Apps."},
+			{"On your phone or TV",
+				"Install Tailscale on your phone, laptop or TV and sign in to the same account. Apple TV and Android TV have apps; other TVs may need the Home network Address."},
+			{"Turn on HTTPS",
+				"Open https://login.tailscale.com/admin/dns, check MagicDNS is on and enable HTTPS. App names will appear in a public certificate log. This publishes the names, not access to your Apps."},
+			{"Give self-host a private key",
+				"At https://login.tailscale.com/admin/settings/keys, generate an auth key with Reusable and Pre-approved on. Leave Ephemeral off so names survive restarts. The key lasts up to 90 days; adding Apps later may need a new one. Paste it only into the hidden Tailscale field, never into chat."},
+			{"For agents", "--set-file tailscale.auth_key=PATH reads the private key from a file, never from command arguments."},
 			{"The internet",
 				"Your Apps stay closed to everyone else on the internet."},
 		},
-		facts: "Tailscale will run on this computer and join it to your tailnet. Apps will be reached at this computer's tailnet name. " +
-			"Nothing is published to the internet. The IP:port Address keeps working.",
+		facts: "Each App with a web page gets its own Tailscale node and HTTPS proxy, with persistent state. Addresses come from Self.DNSName in tailscale status --json, not a guessed name. " +
+			"No Funnel is enabled. An OAuth client secret also works in the same private input with tag:self-host owned by that client. The IP:port Address keeps working.",
 	},
 	{
 		id: "cloudflare", label: "Your own web address", name: "Your own web address", soon: true,

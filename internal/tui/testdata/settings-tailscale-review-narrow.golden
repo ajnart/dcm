@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+
+  Review  nothing has been written yet
+
+  APP                 IMAGE                                         PORT
+  ● Tailscale         ghcr.io/tailscale/tailscale:v1.102.4          0
+
+  Access    Home network — other devices connect on
+            From anywhere, privately, with Tailscale
+
+   enter  enter install · esc back
+  Required inputs
+  > Tailscale · Tailscale auth key
+    Tailscale auth key
+
+
+
+
+
+
+
+
+
+ typing · keys go to the input                       enter  install   esc  back
