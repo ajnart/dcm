@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ● Welcome › ○ What › ○ Where › ○ Access › ○ Who › ○ Look › ○ Review
+
+  Welcome to self-host
+
+  self-host runs the Apps you pick on this machine with Docker Compose, and
+  sets them up for you: one Admin login, their API keys and the Links
+  between them.
+
+  Next you choose what to run, where it lives, who administers it and how
+  it looks. Then you review the plan.
+
+  Nothing is written until you approve the plan at Review.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ q quit                                                                                     enter  continue   esc  back

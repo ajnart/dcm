@@ -98,7 +98,7 @@ func TestDebugReportsAFailedApp(t *testing.T) {
 		Docs: "https://example.test/docs/echo",
 		FailedSteps: []StepStatus{{ID: "configure", Status: "fail", Msg: "configure echo",
 			Error: "greetings endpoint returned 500", Hint: "Open the echo settings page and enable greetings."}},
-		Logs: []string{"one-1  | starting", "one-1  | POST /greetings 500"},
+		Logs: []string{"one-1  | starting", "one-1  | POST /greetings 500"}, LogLines: 100,
 		HealthCheck: DebugHealthCheck{URL: "http://192.168.1.20:9000/web",
 			Working: "any answer below HTTP 500, such as the app's page or a sign-in page; HTTP 5xx, a timeout or an empty reply means it is not up"},
 	}
@@ -164,5 +164,33 @@ func TestDebugRejectsAnAppOutsideTheProject(t *testing.T) {
 
 	if err == nil || err.Error() != "ghost is not in the Project (see: self-host status)" {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestDebugReportListsEveryAddressOfTheApp(t *testing.T) {
+	as := AppStatus{ID: "one", Name: "Echo", URL: "http://one.192-168-1-20.sslip.io",
+		Addresses: []string{"http://one.192-168-1-20.sslip.io", "http://192.168.1.20:9000"}}
+
+	report := debugReportOf(as, "")
+
+	want := []string{"http://one.192-168-1-20.sslip.io", "http://192.168.1.20:9000"}
+	if !reflect.DeepEqual(report.Addresses, want) {
+		t.Fatalf("addresses = %q, want %q", report.Addresses, want)
+	}
+	if report.HealthCheck.URL != "http://one.192-168-1-20.sslip.io" {
+		t.Fatalf("health check URL = %q", report.HealthCheck.URL)
+	}
+}
+
+func TestDebugReportCarriesTheNumberOfLogLinesItKeeps(t *testing.T) {
+	h := failedDebugHarness(t, false)
+
+	report, err := h.svc.Debug(context.Background(), "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if report.LogLines != 100 {
+		t.Fatalf("LogLines = %d, want 100", report.LogLines)
 	}
 }

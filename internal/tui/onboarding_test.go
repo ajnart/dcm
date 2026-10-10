@@ -290,23 +290,50 @@ func TestChoosingAdvancedAtWelcomeStoresAdvancedAtApproval(t *testing.T) {
 	}
 }
 
-func TestWelcomeKeepsAnExperienceLevelAlreadyInTheProfile(t *testing.T) {
-	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks, experience: "advanced"}
+func welcomeWithSavedExperience(t *testing.T, level string, width, height int) (Model, *fakeBackend) {
+	t.Helper()
+	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks, experience: level}
 	m := New(backend, Options{Version: "1.0.0"})
-	m = update(t, m, windowSize(120, 40))
+	m = update(t, m, windowSize(width, height))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
 	m = frames(t, m, 60)
-	m = drive(t, m, press("enter"))
+	return drive(t, m, press("enter")), backend
+}
 
-	if !strings.Contains(screen(m), "● Advanced: I have run a server or used Docker") {
-		t.Fatalf("the saved level should be highlighted\n%s", screen(m))
+func TestWelcomeSkipsTheExperienceQuestionWhenTheProfileHoldsALevel(t *testing.T) {
+	for _, level := range []string{"new", "advanced"} {
+		m, _ := welcomeWithSavedExperience(t, level, 120, 40)
+
+		out := screen(m)
+		if !strings.Contains(out, "Welcome to self-host") || strings.Contains(out, "Have you run your own server") ||
+			strings.Contains(out, "New: this is all new to me") || strings.Contains(out, "Advanced: I have run a server") {
+			t.Fatalf("saved %s: Welcome should not ask the Experience question\n%s", level, out)
+		}
 	}
+}
+
+func TestWelcomeKeepsASavedExperienceLevelUntouched(t *testing.T) {
+	m, backend := welcomeWithSavedExperience(t, "advanced", 120, 40)
+	m = drive(t, m, press("up"))
 	m = toReview(t, m)
 	m = drive(t, m, press("enter"))
 
-	if got := backend.savedExperiences(); len(got) != 1 || got[0] != "advanced" {
-		t.Fatalf("saved %v, want [advanced]", got)
+	if got := backend.savedExperiences(); len(got) != 0 {
+		t.Fatalf("a saved level is never rewritten, saved %v", got)
+	}
+	if got := backend.Experience(context.Background()); got != "advanced" {
+		t.Fatalf("experience = %q, want advanced", got)
+	}
+}
+
+func TestWelcomeWithASavedProfileGolden(t *testing.T) {
+	for _, size := range []struct {
+		suffix        string
+		width, height int
+	}{{"", 120, 30}, {"-narrow", 80, 24}} {
+		m, _ := welcomeWithSavedExperience(t, "advanced", size.width, size.height)
+		golden(t, "onboarding-welcome-saved-profile"+size.suffix, trimLines(screen(m)))
 	}
 }
 
