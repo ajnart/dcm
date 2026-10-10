@@ -1,0 +1,93 @@
+CONTEXT.md
+  s_59ffa5bfdcd3ba::t_644fa7066ca8a5 252-253
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_b0a79777a76eb8 222,244,291-326
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  s_59ffa5bfdcd3ba::t_bad31658bdfa6b 11
+internal/tui/testdata/easy-names-onboarding.golden
+  s_59ffa5bfdcd3ba::t_9b25c1f4606edf 11
+internal/tui/testdata/easy-names-pending-narrow.golden
+  s_59ffa5bfdcd3ba::t_3a60dfa6109fbc 6
+internal/tui/testdata/easy-names-pending.golden
+  s_59ffa5bfdcd3ba::t_1b27780414d03f 6
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  s_59ffa5bfdcd3ba::t_39dfbf8a8628f5 11
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  s_59ffa5bfdcd3ba::t_1de1200a5e9fa2 11
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_59ffa5bfdcd3ba::t_a42ea937a5c0c6 11
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_59ffa5bfdcd3ba::t_346d7c69d7a83d 11
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_59ffa5bfdcd3ba::t_ed10f1d2cbe967 11
+internal/tui/testdata/onboarding-access-custom.golden
+  s_59ffa5bfdcd3ba::t_9e7e95729dffa7 11
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_59ffa5bfdcd3ba::t_d3436538d01f83 11
+internal/tui/testdata/onboarding-access-names.golden
+  s_59ffa5bfdcd3ba::t_14d722396a25dd 11
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_59ffa5bfdcd3ba::t_4cc63925f5817c 11
+internal/tui/testdata/onboarding-access-tailscale-help-narrow.golden
+  s_59ffa5bfdcd3ba::t_145427a6c25f20 11-13,19-21
+internal/tui/testdata/onboarding-access-tailscale-help.golden
+  s_59ffa5bfdcd3ba::t_c0d3119ccd442c 11-12,18-24,26
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_59ffa5bfdcd3ba::t_55fc6523bc16a7 11,15-17
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_59ffa5bfdcd3ba::t_1dbfcc10bbaf08 11,15-16
+internal/tui/testdata/onboarding-access.golden
+  s_59ffa5bfdcd3ba::t_d6854a56b66d3a 11
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  s_59ffa5bfdcd3ba::t_782b80c34854f3 6
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  s_59ffa5bfdcd3ba::t_e04b0492a90c06 6
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  s_59ffa5bfdcd3ba::t_d6ec82aed82013 6
+internal/tui/testdata/settings-access-cloudflare.golden
+  s_59ffa5bfdcd3ba::t_a328020bf0491e 6
+internal/tui/testdata/settings-access-custom-narrow.golden
+  s_59ffa5bfdcd3ba::t_9fb63e248321f5 6
+internal/tui/testdata/settings-access-custom.golden
+  s_59ffa5bfdcd3ba::t_941cf73164ba9b 6
+internal/tui/testdata/settings-access-home-narrow.golden
+  s_59ffa5bfdcd3ba::t_5b815617d5efa0 6
+internal/tui/testdata/settings-access-home.golden
+  s_59ffa5bfdcd3ba::t_c4f3adda43c214 6
+internal/tui/testdata/settings-access-local-narrow.golden
+  s_59ffa5bfdcd3ba::t_4b05903f513cf0 7
+internal/tui/testdata/settings-access-local.golden
+  s_59ffa5bfdcd3ba::t_b5cc91df6415dd 7
+internal/tui/testdata/settings-access-names-narrow.golden
+  s_59ffa5bfdcd3ba::t_3307893a17d9d4 6
+internal/tui/testdata/settings-access-names.golden
+  s_59ffa5bfdcd3ba::t_b3411ef3924677 6
+internal/tui/testdata/settings-access-pending-narrow.golden
+  s_59ffa5bfdcd3ba::t_c19762b37831c8 6
+internal/tui/testdata/settings-access-pending.golden
+  s_59ffa5bfdcd3ba::t_6768adbd40de68 6
+internal/tui/testdata/settings-access-tailscale-help-narrow.golden
+  s_59ffa5bfdcd3ba::t_1c0cc1c7a7e11a 11-13,19-21
+internal/tui/testdata/settings-access-tailscale-help.golden
+  s_59ffa5bfdcd3ba::t_70a75e154a7b2c 11-12,18-24,26
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  s_59ffa5bfdcd3ba::t_b6e84b800539bc 6,10-12
+internal/tui/testdata/settings-access-tailscale.golden
+  s_59ffa5bfdcd3ba::t_fd1a244cdb7212 6,10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46172b14fdabd0262a76ba1e05eb33511b1b9608",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
