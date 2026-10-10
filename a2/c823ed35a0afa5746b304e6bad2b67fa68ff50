@@ -1,0 +1,21 @@
+.gitignore
+  s_8b1d5a69f175a9::t_8f68ffc812e970 25-29
+.ignore
+  s_8b1d5a69f175a9::t_34437ae2fb24c1 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a2c823ed35a0afa5746b304e6bad2b67fa68ff50",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
