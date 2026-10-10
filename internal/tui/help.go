@@ -21,8 +21,9 @@ type helpView struct {
 // helpPage is a longer explanation of the focused thing, as the lines that
 // fit a width. Each Access option has one, in Onboarding's Access step and Settings' Access sub-tab.
 type helpPage struct {
-	title string
-	lines func(t theme, width int) []string
+	title    string
+	lines    func(t theme, width int) []string
+	copyText string
 }
 
 const (
@@ -41,6 +42,9 @@ func newHelpView() *helpView { return &helpView{vp: viewport.New()} }
 
 func (v *helpView) Keys() []key.Binding {
 	if v.page != nil {
+		if v.page.copyText != "" {
+			return []key.Binding{hint("c", "copy error"), hint("↑/↓", "scroll"), hint("esc", "close")}
+		}
 		return pageKeys
 	}
 	return helpKeys
@@ -80,6 +84,9 @@ func (v *helpView) layoutPage(ctx *viewContext) {
 func (v *helpView) pageView(ctx *viewContext) string {
 	t := ctx.theme
 	closing := "↑/↓ scroll · esc or ? closes"
+	if v.page.copyText != "" {
+		closing = "c copies full error · ↑/↓ scroll · esc closes"
+	}
 	if !v.vp.AtBottom() {
 		closing += " · more below ↓"
 	}
@@ -133,6 +140,10 @@ func (v *helpView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		return v, nil, nav{}
 	}
 	k := ctx.keys
+	if v.page != nil && v.page.copyText != "" && press.String() == "c" {
+		text := v.page.copyText
+		return v, copyError(text), nav{}
+	}
 	closes := key.Matches(press, k.Help) || press.String() == "esc" || press.String() == "ctrl+c"
 	switch {
 	case v.page != nil && closes:

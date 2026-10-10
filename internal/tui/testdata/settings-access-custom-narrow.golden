@@ -6,6 +6,7 @@
 │   ○ From anywhere, privately                                                 │
 │   ○ Your own web address                                                     │
 │ > ○ Bring your own                                                           │
+│   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies         │
 │                                                                              │
 │   Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy    │
 │   Manager, Traefik or Caddy? Choosing this changes nothing here. Run self-   │
@@ -20,5 +21,4 @@
 
 
 
-
- 1-5 tabs  ←/→  A Project  q quit       ?  more   ↑/↓  select   enter  choose …
+ 1-5 tabs  ←/→  A Project  q quit     space  select   ctrl+s  apply   ?  more …

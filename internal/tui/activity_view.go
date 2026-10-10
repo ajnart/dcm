@@ -43,7 +43,7 @@ func (v *activityView) Keys() []key.Binding {
 }
 
 func (v *activityView) Panes() []pane {
-	return []pane{{"Steps", activityKeys}, {"Search", activitySearchKeys}}
+	return []pane{{"Steps", activityKeys}, {"Errors", errorKeys}, {"Search", activitySearchKeys}}
 }
 
 func (v *activityView) Capturing() bool { return v.searching }
@@ -214,6 +214,9 @@ func (v *activityView) View(ctx *viewContext, width, height int) string {
 		plural(s.Counts.AppsSetUp, "App fully set up", "Apps fully set up") + " · " +
 		plural(s.Counts.StepsFailed, "step failed", "steps failed") + " · " +
 		plural(s.Counts.StepsRunning, "step running", "steps running"), ""}
+	if !v.searching && v.errorText(ctx) != "" {
+		lines[1] = "  " + t.dim().Render("c copies full error · e inspects it · selected failed step, else latest Action")
+	}
 	// The Action leaves room for a few of every App's remembered steps.
 	if block := activity.Render(s, ctx.motion, width-2, ctx.glyphs, t.palette()); len(block) > 0 {
 		if limit := max(height-8, 6); len(block) > limit {

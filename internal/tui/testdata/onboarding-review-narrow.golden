@@ -8,13 +8,13 @@
   ● Homarr            ghcr.io/homarr-labs/homarr:latest             7575
   ● ntfy              binwiederhier/ntfy:latest                     2586
 
-  Access    Home network — other devices connect on 192.168.1.20
+  Access    Home network — addresses use 192.168.1.20
+            Reachability is not verified; check from another device.
   Settings  TZ=Europe/Paris PUID=1000 PGID=1000
   Admin     admin · •••••••• your own password
 
   Links
   ⇄ ntfy → Homarr: show ntfy in Homarr
-
 
 
 

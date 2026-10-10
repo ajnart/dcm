@@ -180,7 +180,14 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 	return s.install(ctx, opts, nil)
 }
 
-func (s *Service) install(ctx context.Context, opts InstallOptions, locked *project.Project) error {
+func (s *Service) install(ctx context.Context, opts InstallOptions, locked *project.Project) (err error) {
+	s.Log.Secret(opts.AdminPassword)
+	for _, inputs := range opts.PrivateInputs {
+		for _, value := range inputs {
+			s.Log.Secret(value)
+		}
+	}
+	defer func() { err = s.Log.RedactError(err) }()
 	if err := ctx.Err(); err != nil {
 		return err
 	}

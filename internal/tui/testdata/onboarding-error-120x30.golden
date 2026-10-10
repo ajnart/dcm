@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ✓ Access › ✓ Who › ✓ Look › ● Review
+
+  Review  nothing has been written yet
+
+  ✗ Provider refused [redacted]
+
+  Technical details:
+  key [redacted] rejected
+  c copies · e full error · a Access · w LAN address. Nothing installed.
+  Enter approves another attempt; esc goes back.
+
+  APP                 IMAGE                                         PORT
+  ● Homarr            ghcr.io/homarr-labs/homarr:latest             7575
+
+  Access    Home network — addresses use 192.168.1.20
+            Reachability is not verified; check from another device.
+  Settings  TZ=Europe/Paris PUID=1000 PGID=1000
+  Admin     admin · •••••••• your own password
+
+
+
+
+
+
+
+
+✗ install homarr: Provider refused [redacted]
+ q quit                         c  copy error   e  full error   a  Access   w  LAN address   enter  approve   esc  back
