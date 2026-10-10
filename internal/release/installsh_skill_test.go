@@ -15,7 +15,7 @@ const skillSentence = "Install the self-host skill from github.com/ajnart/selfho
 func skillTools(t *testing.T, fakes map[string]string) (path, log string) {
 	t.Helper()
 	dir := t.TempDir()
-	for _, name := range []string{"bash", "curl", "tar", "uname", "awk", "sed", "sort", "tail", "cut", "tr", "mktemp", "rm", "cp", "chmod", "mv", "mkdir", "id", "basename", "cat", "head", "grep", "sha256sum", "shasum"} {
+	for _, name := range []string{"bash", "curl", "tar", "uname", "env", "awk", "sed", "sort", "tail", "cut", "tr", "mktemp", "rm", "cp", "chmod", "mv", "mkdir", "id", "basename", "cat", "head", "grep", "sha256sum", "shasum"} {
 		if real, err := exec.LookPath(name); err == nil {
 			if err := os.Symlink(real, filepath.Join(dir, name)); err != nil {
 				t.Fatal(err)
