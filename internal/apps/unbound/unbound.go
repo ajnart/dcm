@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "unbound", Name: "Unbound", Category: "DNS",
-		Description:   "Recursive DNS resolver that answers queries locally and caches results for your network",
+		Description:   "Look up website addresses for your whole network, privately and quickly",
 		Image:         "madnuttah/unbound:1.26.0-0",
 		Docs:          "https://unbound.docs.nlnetlabs.nl/",
 		Port:          5335,

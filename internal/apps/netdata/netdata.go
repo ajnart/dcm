@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "netdata", Name: "Netdata", Category: "Monitoring",
-		Description:   "A private real-time dashboard for the health and performance of this container.",
+		Description:   "Watch your computer's performance live, second by second",
 		Image:         "netdata/netdata:v2.11.0",
 		Docs:          "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
 		Port:          19999,

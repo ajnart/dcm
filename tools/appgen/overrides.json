@@ -1,36 +1,36 @@
 {
   "dashdot": {
-    "description": "A private dashboard for the CPU and memory your Docker host exposes to the container.",
+    "description": "See your computer's processor, memory and disk use at a glance",
     "probe": "/config"
   },
   "glances": {
-    "description": "A private web dashboard of the health and resource use of this container.",
+    "description": "See your computer's health and workload in a web page",
     "probe": "/api/4/status"
   },
   "loki": {
-    "description": "A private log store you point your own collector at and search with Grafana.",
+    "description": "Gather your apps' activity messages in one place to search through",
     "probe": "/ready",
     "user": "${PUID}:${PGID}"
   },
   "netdata": {
-    "description": "A private real-time dashboard for the health and performance of this container.",
+    "description": "Watch your computer's performance live, second by second",
     "probe": "/api/v1/info"
   },
   "ollama": {
-    "description": "Run local language models and query them over a private HTTP API.",
+    "description": "Run AI chat models on your own computer, with nothing sent to the cloud",
     "probe": "/api/version"
   },
   "prometheus": {
-    "description": "A private time-series database that scrapes and stores metrics.",
+    "description": "Record numbers about how your computers and apps are doing over time",
     "probe": "/-/ready",
     "user": "${PUID}:${PGID}"
   },
   "stirling-pdf": {
-    "description": "A private toolbox for editing, merging, converting and signing PDF files.",
+    "description": "Edit, merge, convert and sign PDF files without uploading them anywhere",
     "probe": "/api/v1/info/status"
   },
   "victoria-metrics": {
-    "description": "A private time-series database that stores and queries metrics.",
+    "description": "Keep long histories of numbers about your computers and apps, stored compactly",
     "probe": "/health"
   }
 }

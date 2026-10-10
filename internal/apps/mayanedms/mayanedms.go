@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "mayan-edms", Name: "Mayan EDMS", Category: "Documents",
-		Description:   "Stores, OCRs and routes scanned documents through review workflows",
+		Description:   "Store scanned paper documents, make them searchable and route them for review",
 		Image:         "mayanedms/mayanedms:v4.12.2",
 		Docs:          "https://docs.mayan-edms.com/",
 		Port:          8080,

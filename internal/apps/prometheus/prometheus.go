@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "prometheus", Name: "Prometheus", Category: "Observability",
-		Description:   "A private time-series database that scrapes and stores metrics.",
+		Description:   "Record numbers about how your computers and apps are doing over time",
 		Image:         "prom/prometheus:v3.15.0",
 		Docs:          "https://prometheus.io/docs/prometheus/latest/installation/",
 		Port:          9090,

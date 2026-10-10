@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "vector", Name: "Vector", Category: "Observability",
-		Description:   "Collects and routes logs and metrics from sources you configure to the sinks you choose",
+		Description:   "Collect your apps' activity messages and send them where you choose",
 		Image:         "ghcr.io/vectordotdev/vector:0.58.0-debian",
 		Docs:          "https://vector.dev/docs/setup/installation/platforms/docker/",
 		Port:          8686,

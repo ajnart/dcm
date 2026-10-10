@@ -36,7 +36,7 @@ const (
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "beszel", Name: "Beszel", Category: "Monitoring",
-		Description:   "A lightweight dashboard for the CPU, memory and disk of the machines you monitor.",
+		Description:   "See how busy your computers are: processor, memory and disk space",
 		Image:         "henrygd/beszel:" + version,
 		Docs:          "https://www.beszel.dev/guide/hub-installation",
 		Port:          8090,

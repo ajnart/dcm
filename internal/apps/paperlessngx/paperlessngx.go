@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "paperless-ngx", Name: "Paperless-ngx", Category: "Documents",
-		Description:   "Turns scanned and downloaded documents into a searchable, tagged archive",
+		Description:   "Scan paper and files into a searchable, tagged filing cabinet",
 		Image:         "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
 		Docs:          "https://docs.paperless-ngx.com/setup/",
 		Port:          8000,

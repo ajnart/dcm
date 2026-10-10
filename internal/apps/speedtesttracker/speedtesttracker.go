@@ -46,7 +46,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "speedtest-tracker", Name: "Speedtest Tracker", Category: "Monitoring",
-		Description:   "Records your internet speed measurements and their history",
+		Description:   "Check your internet speed on a schedule and keep the history",
 		Image:         "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
 		Docs:          "https://docs.speedtest-tracker.dev/getting-started/installation/using-docker-compose",
 		Port:          8080,

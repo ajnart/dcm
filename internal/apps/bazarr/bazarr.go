@@ -21,7 +21,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "bazarr", Name: "Bazarr", Category: "Requests",
-		Description:   "Downloads and manages subtitles for your movie and TV library",
+		Description:   "Automatically find subtitles for your movies and shows",
 		Image:         "lscr.io/linuxserver/bazarr:version-v1.6.0",
 		Docs:          "https://wiki.bazarr.media/",
 		Port:          6767,

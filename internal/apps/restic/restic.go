@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "restic", Name: "restic", Category: "Backups",
-		Description:   "Creates encrypted, deduplicated snapshots that you schedule yourself and restore on demand",
+		Description:   "Back up your files with encryption, and restore them when you need them",
 		Image:         "ghcr.io/restic/restic:0.19.1",
 		Docs:          "https://restic.readthedocs.io/en/stable/",
 		Port:          0,

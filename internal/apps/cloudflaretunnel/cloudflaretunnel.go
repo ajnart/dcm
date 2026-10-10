@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "cloudflare-tunnel", Name: "Cloudflare Tunnel", Category: "Remote access",
-		Description:   "Reaches a private App from the internet through an existing Cloudflare tunnel, without opening a router port",
+		Description:   "Open your app to the internet safely through Cloudflare, with no router changes",
 		Image:         "cloudflare/cloudflared:2026.9.1",
 		Docs:          "https://developers.cloudflare.com/tunnel/",
 		Port:          0,

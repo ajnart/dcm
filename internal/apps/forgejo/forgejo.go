@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "forgejo", Name: "Forgejo", Category: "Developer tools",
-		Description:   "Self-hosted Git service for private repositories, issues and CI",
+		Description:   "Store and track your software code privately, like a private GitHub",
 		Image:         "codeberg.org/forgejo/forgejo:16.0.5",
 		Docs:          "https://forgejo.org/docs/latest/admin/installation-docker/",
 		Port:          3000,

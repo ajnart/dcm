@@ -20,7 +20,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "passbolt", Name: "Passbolt", Category: "Passwords",
-		Description:   "Team password manager with client-side OpenPGP encryption and a browser extension",
+		Description:   "Share passwords safely with your team, with a browser add-on",
 		Image:         "passbolt/passbolt:5.16.0-1-ce",
 		Docs:          "https://www.passbolt.com/docs/hosting/install/ce/docker/",
 		Port:          18085,

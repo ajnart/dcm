@@ -17,7 +17,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "caddy", Name: "Caddy", Category: "Ingress",
-		Description:   "Web server and reverse proxy with automatic TLS, used as the single owner of ingress ports",
+		Description:   "Give your apps their own web addresses, with the secure padlock set up for you",
 		Image:         "caddy:2.11.4",
 		Docs:          "https://caddyserver.com/docs/",
 		Port:          2015,

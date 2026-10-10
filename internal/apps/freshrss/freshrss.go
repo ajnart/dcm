@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "freshrss", Name: "FreshRSS", Category: "Productivity",
-		Description:   "Self-hosted RSS reader that keeps your feeds and reading state private",
+		Description:   "Read news from all your favorite websites in one place",
 		Image:         "ghcr.io/freshrss/freshrss:1.30.0",
 		Docs:          "https://github.com/FreshRSS/FreshRSS/tree/edge/Docker",
 		Port:          8080,

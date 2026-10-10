@@ -19,7 +19,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "transmission", Name: "Transmission", Category: "Downloads",
-		Description:   "A lightweight BitTorrent client with a private web interface",
+		Description:   "Download torrents in the background, light on your computer's resources",
 		Image:         "linuxserver/transmission:version-4.1.3-r0",
 		Docs:          "https://github.com/transmission/transmission/tree/main/docs",
 		Port:          9091,
