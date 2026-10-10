@@ -385,6 +385,10 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 
 // refreshDashboard lets its adapter reconcile the final Project inventory and URLs.
 func (ss *session) refreshDashboard(ctx context.Context) error {
+	if ss.deferDashboard {
+		return nil
+	}
+	ss.navigationAddresses, ss.navigationContainers = nil, nil
 	a, found := ss.s.Catalog.App("homarr")
 	if !found || !ss.ready("homarr") {
 		return nil

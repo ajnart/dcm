@@ -20,6 +20,7 @@ import (
 )
 
 type InstallOptions struct {
+	deferDashboard bool
 	// Targets are App or Recipe IDs.
 	Targets []string
 	// Sets are "app.key=value" or "key=value" inputs.
@@ -264,6 +265,7 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 		title:      "install " + strings.Join(names, " "),
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
+			ss.deferDashboard = opts.deferDashboard
 			var containers []compose.Container
 			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
 				var err error

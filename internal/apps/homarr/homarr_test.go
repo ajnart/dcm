@@ -1171,6 +1171,38 @@ func TestLinkRerunRepairsMissingTileAndChangedBrowserURL(t *testing.T) {
 	}
 }
 
+func TestDedicatedLinkUsesInventoryNavigationAndKeepsLocalEndpoints(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	from.URL = "https://homarr-2.example.ts.net"
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	local := to.URL
+	browser := "https://sonarr-2.example.ts.net/custom/path?view=all"
+	from.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) {
+		return []helpers.InstalledApp{{ID: "sonarr", URL: browser, Service: "sonarr", ContainerPort: 8989}}, nil
+	}
+	link := linkFor(t, "sonarr")
+	for _, address := range []string{browser, "https://sonarr.example.com/custom/path?view=all", "http://sonarr.192-168-1-20.sslip.io/custom/path?view=all", local} {
+		browser = address
+		if err := link.Apply(t.Context(), from, to); err != nil {
+			t.Fatal(err)
+		}
+		fake.mu.Lock()
+		if len(fake.apps) != 1 || fake.apps[0]["href"] != address || fake.apps[0]["pingUrl"] != "http://sonarr:8989" {
+			t.Fatalf("browser tile or ping endpoint = %v", fake.apps)
+		}
+		if len(fake.integrations) != 1 || fake.integrations[0]["url"] != "http://sonarr:8989" {
+			t.Fatalf("integration endpoint = %v", fake.integrations)
+		}
+		fake.mu.Unlock()
+		if to.URL != local || to.BaseURL != srv.URL || from.BaseURL != srv.URL {
+			t.Fatal("navigation changed local API metadata")
+		}
+	}
+}
+
 func TestRemovalReconcilesPartiallyMissingWidgets(t *testing.T) {
 	fake := newFake()
 	fake.apiKey = "keyid.secret"

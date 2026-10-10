@@ -213,12 +213,18 @@ func SecretKey(appID, name string) string {
 
 // session is one locked, loaded Project.
 type session struct {
-	s        *Service
-	p        *project.Project
-	settings map[string]string
-	secrets  *secretStore
-	state    *project.State
-	compose  *compose.Compose
+	s                    *Service
+	p                    *project.Project
+	settings             map[string]string
+	secrets              *secretStore
+	state                *project.State
+	compose              *compose.Compose
+	navigationAddresses  map[string][]string
+	nameFailure          bool
+	navigationContainers map[string]compose.Container
+	navigationError      error
+	navigationWarnings   []string
+	deferDashboard       bool
 }
 
 func (s *Service) open(ctx context.Context) (*session, error) {

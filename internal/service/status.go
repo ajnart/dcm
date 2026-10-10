@@ -94,19 +94,14 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		return Status{}, err
 	}
 	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
-	if rec, cleanup, err := loadCloudflareRecord(ss.p); err != nil {
+	rec, cleanup, err := loadCloudflareRecord(ss.p)
+	if err != nil {
 		return Status{}, err
 	} else {
 		status.CloudflareCleanup = cleanup || rec.Suspended
 		if rec.Warning != "" {
 			status.AccessWarnings = append(status.AccessWarnings, rec.Warning)
 		}
-		if len(rec.Hosts) > 0 && !rec.Suspended && ss.state.Apps[cloudflareConnector] != nil {
-			status.Access = append(status.Access, CloudflareAccess)
-		}
-	}
-	if ss.tailscaleOn() {
-		status.Access = append(status.Access, tailscaleID)
 	}
 	if profile, err := ss.p.LoadProfile(); err == nil {
 		status.Profile = &profile
@@ -115,20 +110,28 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		status.LANIPStale, status.HostIPs = true, current
 	}
 	containers, psErr := ss.compose.Ps(ctx)
+	ss.navigationError = psErr
 	if psErr != nil {
 		status.DockerError = s.Log.Redact(psErr.Error())
+		containers = nil
 	}
 	byService := map[string]compose.Container{}
 	for _, c := range containers {
 		byService[c.Service] = c
 	}
-	accessAddresses := ss.accessAddresses(ctx, byService)
+	if len(rec.Hosts) > 0 && !rec.Suspended && ss.state.Apps[cloudflareConnector] != nil && byService[cloudflareConnector].State == "running" {
+		status.Access = append(status.Access, CloudflareAccess)
+	}
+	if ss.tailscaleOn() {
+		status.Access = append(status.Access, tailscaleID)
+	}
 	ids, err := ss.p.AppIDs()
 	if err != nil {
 		return Status{}, err
 	}
-	working, failed := ss.workingNames(ctx, ids)
-	status.Names = ss.namesStatus(ctx, failed)
+	ss.observeNavigation(ctx, ids, byService, rec)
+	status.AccessWarnings = append(status.AccessWarnings, ss.navigationWarnings...)
+	status.Names = ss.namesStatus(ctx, ss.nameFailure)
 	if ss.namesOn() {
 		status.Access = append(status.Access, "names")
 	}
@@ -164,9 +167,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			fillContainer(&as, byService, mainService, services, completed, deferred, ss.settings)
 		}
 		as.localURL = as.URL
-		as.Addresses = addresses(working[id], as.URL)
-		as.Addresses = append(ss.cloudflareAddresses(id), as.Addresses...)
-		as.Addresses = append(accessAddresses[id], as.Addresses...)
+		as.Addresses = ss.browserAddresses(id, as.URL)
 		if len(as.Addresses) > 0 {
 			as.URL = as.Addresses[0]
 		}

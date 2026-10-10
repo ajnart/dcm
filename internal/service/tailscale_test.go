@@ -120,6 +120,10 @@ func (n *tailnet) install(h *harness) {
 		case strings.Contains(line, " ps "):
 			var out strings.Builder
 			for _, service := range n.running {
+				if service == "access-caddy" {
+					out.WriteString(`{"Service":"access-caddy","State":"running","Publishers":[{"URL":"0.0.0.0","TargetPort":80,"PublishedPort":80,"Protocol":"tcp"}]}` + "\n")
+					continue
+				}
 				out.WriteString(`{"Service":"` + service + `","State":"running"}` + "\n")
 			}
 			for _, service := range n.stopped {
