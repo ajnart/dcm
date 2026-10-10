@@ -1,0 +1,31 @@
+README.md
+  s_8b1d5a69f175a9::t_f8c5b1818c57a1 352-354
+internal/cli/cli.go
+  s_8b1d5a69f175a9::t_2d4fc608e25483 189
+internal/cli/debug.go
+  s_8b1d5a69f175a9::t_c5ca4c2a4fdc93 1-75
+internal/cli/debug_test.go
+  s_8b1d5a69f175a9::t_f1c752923244f5 1-117
+internal/service/debug.go
+  s_8b1d5a69f175a9::t_5e041debfe2ae3 1-117
+internal/service/debug_test.go
+  s_8b1d5a69f175a9::t_aeac7c9258c34a 1-168
+internal/skill/guide.md
+  s_8b1d5a69f175a9::t_95aa535958628d 110,176,194-198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7b6a54ffaf1ba6397189b0d695f871ded3d0de23",
+  "prompts": {},
+  "sessions": {
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
