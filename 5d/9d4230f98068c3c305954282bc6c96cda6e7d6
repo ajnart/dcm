@@ -1,0 +1,65 @@
+.github/PULL_REQUEST_TEMPLATE.md
+  s_59ffa5bfdcd3ba::t_9d8c8825e1c605 3,5,7,11-13
+.github/dependabot.yml
+  s_59ffa5bfdcd3ba::t_48be376f6b9c4f 3-7
+.github/workflows/ci.yml
+  s_59ffa5bfdcd3ba::t_5297a1f023b916 1,21-22,58-59,68,91,144
+.github/workflows/e2e.yml
+  s_59ffa5bfdcd3ba::t_5b92ba23dd4f66 1,27,52
+.github/workflows/release.yml
+  s_59ffa5bfdcd3ba::t_dde291a4edabe1 1,11,26-27,54-58,61,63-64,76-77,79,81
+AGENTS.md
+  s_59ffa5bfdcd3ba::t_d9e5bce8c749da 3,5,7-13,17,19-23,25,27-32,34,36,39-44,47,49,51,55-58
+CONTRIBUTING.md
+  s_59ffa5bfdcd3ba::t_aec0f470631fd9 3,5,7-10,12,14,17-22,25,27,29
+README.md
+  s_59ffa5bfdcd3ba::t_2842c429236906 23,44,85,92,96,281
+SECURITY.md
+  s_59ffa5bfdcd3ba::t_d83b1140d48423 5,7,11-22
+THIRD_PARTY_NOTICES.md
+  s_59ffa5bfdcd3ba::t_9f5a7aadd22450 3,5,7
+docs/adr/0005-agents-load-the-skill-on-their-own.md
+  s_59ffa5bfdcd3ba::t_497f633ad4fe54 3
+docs/adr/0007-one-repo-go-cli-only.md
+  s_59ffa5bfdcd3ba::t_686c01183cbe40 3
+docs/agents/domain.md
+  s_59ffa5bfdcd3ba::t_cbffe29bd8830d 5,9-10,12-14,18-19,21-22,26-27
+docs/agents/implementing.md
+  s_59ffa5bfdcd3ba::t_72daf48a3ff882 11,15,17,64
+docs/handoff.md
+  s_59ffa5bfdcd3ba::t_f55b31d5477afe 3-4,12-13,18
+docs/homarr-proof.json
+  s_59ffa5bfdcd3ba::t_51b70f8bd51fd6 100,105,110,115,120,125,130,135,140,160-161
+docs/legacy-catalog.md
+  s_59ffa5bfdcd3ba::t_98d3766fa20453 3-4,7
+docs/releasing.md
+  s_59ffa5bfdcd3ba::t_007364879473e8 20,27,40,65-66,74-77
+docs/where-to-look.md
+  s_59ffa5bfdcd3ba::t_50e42e42fff4c0 3-4,83,179,187-190,192-193
+install.sh
+  s_59ffa5bfdcd3ba::t_08c9b4fddf7fac 4
+internal/release/release.go
+  s_59ffa5bfdcd3ba::t_947e4be557369b 44
+scripts/verify-install.sh
+  s_59ffa5bfdcd3ba::t_21402ffc270f89 29
+skills/self-host/LICENSE
+  s_59ffa5bfdcd3ba::t_7502729ced00d7 1-202
+skills/self-host/SKILL.md
+  s_59ffa5bfdcd3ba::t_ae7c4ebed46d71 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5d9d4230f98068c3c305954282bc6c96cda6e7d6",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
