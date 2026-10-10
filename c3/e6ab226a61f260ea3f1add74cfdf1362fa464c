@@ -1,0 +1,31 @@
+prototype/local-names/cmd/announce/main.go
+  s_59ffa5bfdcd3ba::t_0587e5469b58af 1-67
+prototype/local-names/go.mod
+  s_59ffa5bfdcd3ba::t_aded2e7370d848 1-3
+prototype/local-names/run.sh
+  s_8b1d5a69f175a9::t_0aa4c769a1309c 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3e6ab226a61f260ea3f1add74cfdf1362fa464c",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
