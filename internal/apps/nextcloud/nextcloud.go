@@ -29,6 +29,7 @@ func (App) Info() app.Info {
 		Docs:          "https://github.com/nextcloud/docker",
 		Port:          8080,
 		ContainerPort: 80,
+		LongTimeouts:  true,
 		Service:       "nextcloud",
 	}
 }

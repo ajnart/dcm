@@ -41,6 +41,7 @@ func (App) Info() app.Info {
 		Docs:          "https://www.beszel.dev/guide/hub-installation",
 		Port:          8090,
 		ContainerPort: 8090,
+		WebSockets:    true,
 		Service:       "beszel",
 	}
 }

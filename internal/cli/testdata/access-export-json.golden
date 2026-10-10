@@ -1,0 +1,41 @@
+{
+  "network": "selfhost_default",
+  "apps": [
+    {
+      "id": "chat",
+      "name": "Chat",
+      "hostname": "chat.example.com",
+      "service": "chat",
+      "container_port": 8080,
+      "upstream": "chat:8080",
+      "host": "192.168.1.20",
+      "host_port": 8080,
+      "host_upstream": "192.168.1.20:8080",
+      "websockets": true
+    },
+    {
+      "id": "media",
+      "name": "Media Server",
+      "hostname": "media.example.com",
+      "service": "media",
+      "container_port": 8096,
+      "upstream": "media:8096",
+      "host": "192.168.1.20",
+      "host_port": 8096,
+      "host_upstream": "192.168.1.20:8096",
+      "websockets": true,
+      "long_timeouts": true
+    },
+    {
+      "id": "notes",
+      "name": "Notes",
+      "hostname": "notes.example.com",
+      "service": "notes",
+      "container_port": 3000,
+      "upstream": "notes:3000",
+      "host": "192.168.1.20",
+      "host_port": 3000,
+      "host_upstream": "192.168.1.20:3000"
+    }
+  ]
+}

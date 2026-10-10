@@ -29,6 +29,8 @@ func (App) Info() app.Info {
 		Docs:          "https://docs.immich.app/install/docker-compose/",
 		Port:          2283,
 		ContainerPort: 2283,
+		WebSockets:    true,
+		LongTimeouts:  true,
 		Service:       service,
 	}
 }

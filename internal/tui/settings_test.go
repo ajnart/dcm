@@ -207,7 +207,7 @@ func TestSettingsAccessSubTabListsTheFiveOptionsAndExplainsTheHighlightedOne(t *
 	out := screen(m)
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately · coming soon",
-		"○ Your own web address · coming soon", "○ Bring your own · coming soon"} {
+		"○ Your own web address · coming soon", "○ Bring your own"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
@@ -334,7 +334,7 @@ func TestSettingsBarOffersMoreOnlyOnTheAccessSubTab(t *testing.T) {
 }
 
 func TestChoosingAnAccessOptionNotBuiltYetChangesNothingInSettings(t *testing.T) {
-	for downs, name := range map[int]string{2: "From anywhere, privately", 3: "Your own web address", 4: "Bring your own"} {
+	for downs, name := range map[int]string{2: "From anywhere, privately", 3: "Your own web address"} {
 		m, backend := settingsHost(t)
 		m = drive(t, m, press("]"))
 		for range downs {
@@ -352,6 +352,26 @@ func TestChoosingAnAccessOptionNotBuiltYetChangesNothingInSettings(t *testing.T)
 		if out := screen(m); !strings.Contains(out, "● Home network (default)") || strings.Contains(out, "(pending)") {
 			t.Fatalf("%s: Home network stays the selected option\n%s", name, out)
 		}
+	}
+}
+
+func TestChoosingBringYourOwnInSettingsExplainsAndChangesNothing(t *testing.T) {
+	m, backend := settingsHost(t)
+	m = drive(t, m, press("]"))
+	for range 4 {
+		m = drive(t, m, press("down"))
+	}
+
+	m = drive(t, m, press("enter"))
+
+	if out := flat(screen(m)); !strings.Contains(out, "Nothing changes: your Apps stay on your network. Run: self-host access export") {
+		t.Fatalf("enter points at the command\n%s", screen(m))
+	}
+	if len(m.settings.pairs()) != 0 || len(backend.Actions()) != 0 {
+		t.Fatalf("enter changes nothing, pairs %v actions %v", m.settings.pairs(), backend.Actions())
+	}
+	if out := screen(m); !strings.Contains(out, "● Home network (default)") || strings.Contains(out, "(pending)") {
+		t.Fatalf("Home network stays the selected option\n%s", out)
 	}
 }
 

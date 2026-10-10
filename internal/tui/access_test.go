@@ -32,8 +32,8 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != (o.id != "home" && o.id != "names") {
-			t.Errorf("%s: Home network and Easy names are available, soon=%v", o.id, o.soon)
+		if o.soon != !slices.Contains([]string{"home", "names", "custom"}, o.id) {
+			t.Errorf("%s: Home network, Easy names and Bring your own are available, soon=%v", o.id, o.soon)
 		}
 	}
 }
@@ -117,7 +117,7 @@ func TestEveryHelpPageEndsWithTechnicalDetailsAndDrawsTheLargerDiagram(t *testin
 		{"names", "Technical details One managed Caddy in the Compose Project owns port 80 and routes HTTP requests by Host to each App."},
 		{"tailscale", "Technical details Tailscale will run on this computer and join it to your tailnet."},
 		{"cloudflare", "Technical details A cloudflared container will open an outbound tunnel to Cloudflare"},
-		{"custom", "Technical details self-host will print each App's host and port for SWAG, Pangolin, nginx, Traefik or Caddy."},
+		{"custom", "Technical details self-host access export --format caddy|nginx|traefik|json prints each App's Compose service and container port"},
 	} {
 		o, _ := accessByID(tc.id)
 		lines := accessHelp(newTheme(true), o, "192.168.1.20", 70)
@@ -155,6 +155,30 @@ func TestTheHomeNetworkHelpPageExplainsTheLANAddressTheInternetAndTheFirewall(t 
 	}
 	if local := accessHelpText(accessLocal, "192.168.1.20", 70); !strings.Contains(local, "published on 127.0.0.1") {
 		t.Errorf("the page for this computer only names 127.0.0.1\n%s", local)
+	}
+}
+
+func TestBringYourOwnNamesTheProxiesAndThePrintingCommandAndKeepsHomeNetworkWorking(t *testing.T) {
+	o, _ := accessByID("custom")
+
+	for name, text := range map[string]string{
+		"live explanation": accessExplanation(o, "lan", "192.168.1.20"),
+		"help page":        accessHelpText(o, "192.168.1.20", 70),
+	} {
+		for _, want := range []string{"SWAG", "Pangolin", "Nginx Proxy Manager", "Traefik", "Caddy", "self-host access export", "advanced users"} {
+			if !strings.Contains(flat(text), want) {
+				t.Errorf("%s lacks %q\n%s", name, want, text)
+			}
+		}
+		if strings.Contains(text, "coming soon") || strings.Contains(text, "isn't available") {
+			t.Errorf("%s: Bring your own is available\n%s", name, text)
+		}
+	}
+	if help := accessHelpText(o, "192.168.1.20", 70); !strings.Contains(help, "Home network keeps working") || !strings.Contains(help, "changes nothing") {
+		t.Errorf("the help page says Home network keeps working and nothing changes\n%s", help)
+	}
+	if got := accessNote(o, "local"); got != "Nothing changes: your Apps stay on this computer. Run: self-host access export" {
+		t.Errorf("note %q", got)
 	}
 }
 
