@@ -1,0 +1,16 @@
+prototype/tailscale-names/PROTOTYPE.md
+  h_d6e478ca18e517 1-239
+prototype/tailscale-names/main.go
+  h_d6e478ca18e517 1-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d7ec0c19c7dbe3101b9776e848525b50c5816402",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
