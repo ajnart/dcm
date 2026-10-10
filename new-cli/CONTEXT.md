@@ -11,13 +11,15 @@ automatic setup built into the binary.
 _Avoid_: service, recipe (for a single app)
 
 **Unmanaged app**:
-An app an agent or user added to the Project by writing its own Compose file.
-The CLI starts, stops, updates and backs it up but runs no Setup for it.
+An app an agent or user added to the Project by writing its own Compose file
+under `~/.self-host/extra/<name>/`, usually because it is not in the Catalog.
+The CLI lists it with its Address and starts, stops, updates and backs it up,
+but runs no Setup for it.
 _Avoid_: custom app
 
 **Host settings**:
 Values detected once and shared by every App: time zone, user and group IDs,
-umask, media and downloads folders, LAN address and Exposure. They can drift
+umask, media and downloads folders, LAN address and Access. They can drift
 from the host (a laptop changes network); a review re-confirms them on an
 existing Project without touching installed Apps.
 
@@ -74,20 +76,87 @@ The single Docker Compose project on a host that holds every App the CLI
 manages. Nothing outside it is touched.
 _Avoid_: stack, deployment
 
-**Exposure**:
-Who can reach the Apps: **Other devices on your network** (default, stored as
-`lan`) or **Only this computer** (stored as `local`). Always shown in the
-recap, since it explains most "can't reach it from my TV" reports. Other
-devices on your network publishes the Apps' ports on `0.0.0.0`; Only this
-computer publishes them on `127.0.0.1`. The choice also lists coming-soon
-entries (Tailscale, Cloudflare Tunnel, HTTPS with a reverse proxy) that cannot
-be picked yet; the Apps stay where they are. Onboarding's Where and Settings
-explain the highlighted choice live, with a diagram and a help page on `?`.
+**Access**:
+How people reach the Apps and what they type to open them, chosen in one
+place with a diagram per option: **Home network** (default, an Address like
+`http://192.168.1.20:8096`), **Easy names at home** (a local Caddy serving
+names such as `movies.local` or `movies.192-168-1-20.sslip.io`), **From
+anywhere, privately** (Tailscale), **Your own web address** (Cloudflare
+Tunnel, plus a login page in front) and **Bring your own** (SWAG, Pangolin or
+an existing proxy, for advanced users). Options combine: Easy names at home
+and Tailscale can both be on. Always shown in the recap, since it explains most
+"can't reach it from my TV" reports. Anything reachable from the internet needs
+its own explicit yes that names the risk. Binding to this computer only
+(`127.0.0.1`, stored as `local`) remains a CLI flag, not an Onboarding choice.
+_Avoid_: exposure, ingress, remote access
+
+**Address**:
+What a person types to open one App under the current Access, such as
+`http://192.168.1.20:8096`, `http://movies.local` or
+`https://movies.example.com`. An App can have several; the Links in `status`
+and the Dashboard show the friendliest one that works, and the `IP:port` one
+is always kept as a fallback.
+_Avoid_: URL (in user-facing text), domain
 
 **LAN address**:
 The address of this machine on the local network, such as `192.168.1.20`,
-detected when the Project is made and kept as a Host setting. It only builds
-the Links and URLs people open; Exposure alone decides who can connect.
+detected when the Project is made and kept as a Host setting. It builds the
+Home network Addresses and the Links between Apps; Access decides who can
+connect.
+
+**Home folder**:
+`~/.self-host`, the one folder holding everything self-host knows on a host:
+the Project, its Apps' files, Unmanaged apps under `extra/`, the Profile
+and the Telemetry install ID.
+`SELF_HOST_HOME` moves it for advanced users, who then pass it themselves.
+_Avoid_: install dir, config dir
+
+**Profile**:
+The non-secret facts about the person kept in the Home folder
+(`profile.json`), readable by any agent through the CLI: their Experience
+level, and later other preferences. It exists before the first install, since
+the first question comes before any Project.
+_Avoid_: preferences (the legacy skill's word), settings (those are Host settings)
+
+**Experience level**:
+**New** or **Advanced**, asked once in plain words at the start of the first
+conversation ("Have you run your own server or used Docker before, or is this
+all new to you?") and saved in the Profile; New when skipped. New gets plain
+explanations, one question at a time through the agent's ask-user tool, and a
+plain-words line before and after every change. The person can switch at any
+time.
+_Avoid_: persona, mode, beginner
+
+**Recap**:
+What the agent tells the person when a setup finishes: each App in plain words
+with its Address, where the Home folder is, how to sign in (pointing at
+`self-host credentials`, never quoting a secret), and a few opening questions
+to explore next ("Want your own web address?", "Want to know what Jellyfin
+does?"). The agent builds it from `status --json`; there is no recap command.
+
+**Debug report**:
+What `self-host debug <app>` prints for an agent fixing a broken App: Status,
+Addresses, failed steps with their hints, recent logs with secrets masked, and
+what a working page should show. The agent reads it before opening the App in
+a browser (agent-browser, when installed).
+
+**Telemetry**:
+Anonymous usage and error data sent to the project's PostHog (through
+`hog.ajnart.dev`), on by default, announced on first run, and published on a
+public dashboard. It carries a random install ID (kept in the Home folder,
+never derived from the machine), version, OS and architecture, command names,
+App and Recipe IDs, the Access choice, failed step IDs, and errors as PostHog
+exceptions; never IPs, locations, host names, paths, inputs, secrets or App
+data. Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always
+off in CI and development builds.
+_Avoid_: analytics, tracking
+
+**Feedback**:
+A report an agent sends on purpose with `self-host feedback`, written by the
+agent to explain what broke, already redacted by it, and masked again by the
+CLI against every known secret before sending. The person sees it and says yes
+first. It travels with Telemetry and obeys the same off switch.
+_Avoid_: bug report (those go to GitHub Issues)
 
 **Admin login**:
 The one username and password shared by every App's administrator account.
@@ -170,7 +239,13 @@ single key changes an App or the Project.
 - The **Dashboard** shows every **App** with one **Status**; each **Needs attention** item points at one **App** (or the host) and one **Action**
 - A failing **Link** makes its consuming **App** need attention, not its target
 
+- One **Home folder** holds one **Project**, its **Unmanaged apps** and one **Profile**
+- **Access** decides each **App**'s **Addresses**; the **LAN address** builds the Home network ones
+
 ## Flagged ambiguities
+
+- "Exposure" (`lan`/`local`) was the old name for part of **Access**; the
+  stored values and the `--exposure` flag keep the old word until renamed.
 
 - "recipe" in the previous CLI meant one app's compose definition; here it
   means a bundle of **Apps**.

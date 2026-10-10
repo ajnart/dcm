@@ -131,3 +131,9 @@ Before triaging, read `docs/agents/triage-labels.md`.
 
 Use a single context in `.agents/CONTEXT.md` with ADRs in `.agents/adr/`.
 Before codebase exploration or domain changes, read `docs/agents/domain.md`.
+The Go CLI has its own context, `new-cli/CONTEXT.md`, with ADRs in
+`new-cli/docs/adr/`.
+
+### Implementing spec #191
+
+Before working on any of its tickets, read `docs/agents/implementing.md`.

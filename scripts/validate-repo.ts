@@ -32,6 +32,7 @@ const SKILL_REGISTRY_SCHEMA_PATH = join(
 );
 const ROOT_TOOLING_OUTSIDE_MEDIA_BUNDLE = new Set([
   "docs/agents/domain.md",
+  "docs/agents/implementing.md",
   "docs/agents/issue-tracker.md",
   "docs/agents/triage-labels.md",
   "docs/cli.md",
