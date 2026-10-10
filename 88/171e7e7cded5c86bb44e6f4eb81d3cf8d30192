@@ -1,0 +1,49 @@
+README.md
+  s_8b1d5a69f175a9::t_c0e998eb649aaa 186-197
+internal/cli/names_test.go
+  s_8b1d5a69f175a9::t_4e661a89c4d23b 9,18
+internal/service/backup.go
+  s_8b1d5a69f175a9::t_a1d755c1950de3 441-474
+internal/service/install.go
+  s_59ffa5bfdcd3ba::t_ba874e5cd634a5 252
+internal/service/lifecycle.go
+  s_8b1d5a69f175a9::t_0d5b9720625556 45-49,225,227-241,245-246,251,256-275,281
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_472a81222e0fd9 58-61,86-90,116,147,149
+internal/service/mutation_test.go
+  s_59ffa5bfdcd3ba::t_7433e34536b9d5 136-138
+internal/service/names.go
+  s_59ffa5bfdcd3ba::t_285518acdf7ff5 7-9,24-41,140,177,191-198,201,223-226,228,256-258,303-313,324-347
+internal/service/names_test.go
+  s_8b1d5a69f175a9::t_46199ddf57caa0 7,11,16-17,31,308,382,444-445,490,540-814
+internal/skill/guide.md
+  s_8b1d5a69f175a9::t_0276197fbb8f80 269-282
+internal/tui/dashboard.go
+  s_59ffa5bfdcd3ba::t_75d9ee8ecf1a39 366-368,376
+internal/tui/easy_names_test.go
+  s_8b1d5a69f175a9::t_9693d4299ca61a 103-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "88171e7e7cded5c86bb44e6f4eb81d3cf8d30192",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
