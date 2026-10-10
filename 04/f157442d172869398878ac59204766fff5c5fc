@@ -1,0 +1,73 @@
+CONTEXT.md
+  s_59ffa5bfdcd3ba::t_b37ad76e7ac1a9 252-253
+README.md
+  s_59ffa5bfdcd3ba::t_3aaaf0149e6ab5 241-242,251,305-324
+docs/adr/0008-tailscale-per-app-nodes.md
+  s_59ffa5bfdcd3ba::t_11e07689cf63cd 1-49
+internal/app/app.go
+  s_59ffa5bfdcd3ba::t_cccb2ab33d69bb 51-62
+internal/apps/tailscale/tailscale.go
+  s_59ffa5bfdcd3ba::t_690374a2c2d343 8-15,19,36,41,47,49-53,56-57,59-61,64,70-83,87,91-101,103-104,106-113,120,126,129-133,136-164,175-179,183-189
+internal/apps/tailscale/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_184694b3bd5945 6-8,13,32-33,37-39,42,45-58,60-61,70-80,83-92,94,96,105,128,143-316
+internal/cli/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_d829de92881e3c 1-55
+internal/service/backup.go
+  s_59ffa5bfdcd3ba::t_063665a77e27a7 449,451-452,608-613
+internal/service/debug.go
+  s_59ffa5bfdcd3ba::t_694232abb2fa96 74
+internal/service/doctor.go
+  s_59ffa5bfdcd3ba::t_3234eef05bf6c6 64,75-77,109-111,115
+internal/service/install.go
+  s_59ffa5bfdcd3ba::t_7bcd3fa1c1ab50 14,247,253,257-264,319-325
+internal/service/lifecycle.go
+  s_59ffa5bfdcd3ba::t_15befc8c897b7a 183-185
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_c09abf9ef4eed0 47-48,189-191,203-205,240-242,255,265-267
+internal/service/status.go
+  s_59ffa5bfdcd3ba::t_8e13e8cb2f7cfe 27-30,107-109,124,160,165-168,179-185
+internal/service/tailscale.go
+  s_59ffa5bfdcd3ba::t_7b7b30fafdb5a1 1-234
+internal/service/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_c3bfe81fd8b515 1-693
+internal/tailscale/tailscale.go
+  s_59ffa5bfdcd3ba::t_aa0c274124cf2e 1-260
+internal/tui/access.go
+  s_59ffa5bfdcd3ba::t_843bfedc2b8136 87,89,104-110,114-115
+internal/tui/access_test.go
+  s_59ffa5bfdcd3ba::t_fdf611f6f6b65d 35,118,142-151
+internal/tui/golden_test.go
+  s_59ffa5bfdcd3ba::t_a7907deaadada0 14,20-53
+internal/tui/install.go
+  s_59ffa5bfdcd3ba::t_e2bb7f7eb97160 369-370
+internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_cafc41b51fcc41 851-858
+internal/tui/onboarding.go
+  s_59ffa5bfdcd3ba::t_2513316a74b4a0 91-96,323,558-560,641-660,672,715-717,792-794,828-832,998,1045-1055
+internal/tui/onboarding_test.go
+  s_59ffa5bfdcd3ba::t_057a222f3de82c 810,847,859,898,979-984
+internal/tui/settings.go
+  s_59ffa5bfdcd3ba::t_758ce2a0b56532 462-468,667
+internal/tui/settings_test.go
+  s_59ffa5bfdcd3ba::t_63bc20cae6ddd9 209,337
+internal/tui/tailscale_test.go
+  s_59ffa5bfdcd3ba::t_3dae4f0648330c 1-85
+internal/tui/view.go
+  s_59ffa5bfdcd3ba::t_4701c1e76eba13 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "04f157442d172869398878ac59204766fff5c5fc",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
