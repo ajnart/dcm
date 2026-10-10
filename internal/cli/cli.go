@@ -183,8 +183,6 @@ func RunWith(ctx context.Context, deps *system.Deps, cat *catalog.Catalog, args 
 	return code
 }
 
-// reportPanic sends a panic to Telemetry within its deadline and restores the
-// terminal, so the process can crash as it always did.
 func (a *program) reportPanic(report func(error, int), crash any, stack telemetry.Stack) {
 	if a.terminal != nil {
 		a.terminal.Close()

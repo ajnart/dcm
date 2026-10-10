@@ -30,10 +30,8 @@ type echoApp struct {
 	fail     error
 	// baseURL makes the Compose file use ${LAN_IP}, like ntfy's base URL.
 	baseURL bool
-	// slow runs inside the setup step, for a duration on the clock.
-	slow func(context.Context)
-	// crash makes the setup step panic with this value.
-	crash any
+	slow    func(context.Context)
+	crash   any
 }
 
 func (e *echoApp) Info() app.Info {

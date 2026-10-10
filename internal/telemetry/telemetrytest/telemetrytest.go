@@ -67,8 +67,6 @@ func (t *Transport) URLs() []string {
 	return append([]string(nil), t.urls...)
 }
 
-// LogRequests returns the OTLP log requests sent so far: their address,
-// headers and decoded body.
 func (t *Transport) LogRequests() []LogRequest {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -84,15 +82,12 @@ func (t *Transport) LogRequests() []LogRequest {
 	return out
 }
 
-// LogRequest is one OTLP/HTTP JSON request to the logs endpoint.
 type LogRequest struct {
 	URL    string
 	Header http.Header
 	Body   map[string]any
 }
 
-// LogRecords returns the log records of every request, with each record's
-// attributes flattened into a map next to "body" and "severityText".
 func (t *Transport) LogRecords() []map[string]any {
 	var out []map[string]any
 	for _, r := range t.LogRequests() {
@@ -174,7 +169,6 @@ func (s *Store) Remove(name string) {
 	delete(s.files, name)
 }
 
-// Config is an in-memory user config folder.
 type Config struct{ files Store }
 
 func (c *Config) ReadConfigFile(name string) ([]byte, error) { return c.files.ReadHomeFile(name) }
@@ -183,5 +177,4 @@ func (c *Config) WriteConfigFile(name string, data []byte, mode os.FileMode) err
 	return c.files.WriteHomeFile(name, data, mode)
 }
 
-// Remove deletes a file, as a person deleting it would.
 func (c *Config) Remove(name string) { c.files.Remove(name) }

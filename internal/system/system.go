@@ -61,8 +61,7 @@ type Deps struct {
 	// failure; tests replace it so nothing is exec'd.
 	Exec func(path string, argv []string) error
 	// CacheDir is the per-user cache directory (os.UserCacheDir).
-	CacheDir func() (string, error)
-	// ConfigDir is the per-user config directory (os.UserConfigDir).
+	CacheDir    func() (string, error)
 	ConfigDir   func() (string, error)
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)

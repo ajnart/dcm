@@ -32,7 +32,6 @@ func (s *Service) Telemetry() *telemetry.Client {
 	return telemetry.New(opts)
 }
 
-// configFolder is the self-host folder of the user config folder.
 type configFolder struct{ dir string }
 
 func (c configFolder) ReadConfigFile(name string) ([]byte, error) {

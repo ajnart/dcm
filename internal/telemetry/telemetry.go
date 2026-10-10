@@ -38,8 +38,7 @@ const (
 	NoKey = "development"
 	// EnvOptOut turns Telemetry off when it is 1, like DO_NOT_TRACK.
 	EnvOptOut = "SELF_HOST_NO_TELEMETRY"
-	// WikiURL is the page that says what is sent and what never is.
-	WikiURL = "https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
+	WikiURL   = "https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
 
 	// Notice is the sentence a plain command prints once; NoticeShort is the
 	// two lines Onboarding's Welcome step shows. Neither names an off switch.
@@ -74,8 +73,6 @@ type Store interface {
 	WriteHomeFile(name string, data []byte, mode os.FileMode) error
 }
 
-// ConfigStore is the self-host folder of the user config folder, which
-// outlives the Home folder: the install ID lives there.
 type ConfigStore interface {
 	ReadConfigFile(name string) ([]byte, error)
 	WriteConfigFile(name string, data []byte, mode os.FileMode) error
@@ -88,9 +85,8 @@ type Options struct {
 	Version, OS, Arch string
 	Getenv            func(key string) string
 	Store             Store
-	// Config holds the install ID. Without it nothing is sent.
-	Config    ConfigStore
-	Transport http.RoundTripper
+	Config            ConfigStore
+	Transport         http.RoundTripper
 	// Deadline is all the time a command waits for the send; the rest is dropped.
 	Deadline time.Duration
 }
@@ -106,18 +102,13 @@ type Report struct {
 	Access        string
 	// FailedSteps are "app/step" IDs of steps that failed.
 	FailedSteps []string
-	// Steps are the steps the command ran, with outcome and duration.
-	Steps []Step
+	Steps       []Step
 	// Failure is why the command failed; only its type is ever sent.
 	Failure error
-	// Panic is the value a command panicked with; only its type is ever sent.
-	Panic any
-	// Stack is where the command failed or panicked; without one the
-	// exception is stamped with the stack at the time of sending.
-	Stack Stack
+	Panic   any
+	Stack   Stack
 }
 
-// StepOutcome is how a step ended.
 type StepOutcome string
 
 const (
@@ -128,7 +119,6 @@ const (
 	StepManual  StepOutcome = "manual"
 )
 
-// Step is one step of a command, named "app/step" or just "step".
 type Step struct {
 	ID       string
 	Outcome  StepOutcome
@@ -346,16 +336,12 @@ wait:
 	return taken.sent == len(messages)
 }
 
-// logRecord is one OTLP log record: a severity, a fixed message and the
-// attributes that go with it.
 type logRecord struct {
 	severity   int
 	text, body string
 	attributes [][2]string
 }
 
-// logRecords are the warning and error log records of a command: one per step
-// that warned or failed, naming the step and nothing else.
 func (c *Client) logRecords(id string, r Report) []logRecord {
 	var records []logRecord
 	command := clean(r.Command, commandWords)
@@ -384,9 +370,6 @@ func (c *Client) logRecords(id string, r Report) []logRecord {
 	return records
 }
 
-// postLogs sends records to PostHog's OTLP/HTTP logs endpoint
-// (https://posthog.com/docs/logs/installation/other) through the same proxy
-// as events, once and without retry.
 func (c *Client) postLogs(ctx context.Context, records []logRecord) {
 	now := strconv.FormatInt(time.Now().UnixNano(), 10)
 	var out []map[string]any
@@ -478,7 +461,6 @@ func (c *Client) properties(r Report) posthog.Properties {
 
 var stepOutcomes = []StepOutcome{StepOK, StepSkipped, StepWarned, StepFailed, StepManual}
 
-// cleanSteps keeps the steps with a catalog-shaped ID and a known outcome.
 func cleanSteps(steps []Step) []Step {
 	var out []Step
 	for _, step := range steps {
@@ -554,11 +536,8 @@ func (c *Client) exception(id string, r Report, props posthog.Properties) postho
 	}
 }
 
-// Stack is a call stack, as program counters.
 type Stack []uintptr
 
-// CaptureStack records the calling goroutine's stack. skip 0 starts at the
-// caller of CaptureStack.
 func CaptureStack(skip int) Stack {
 	pcs := make([]uintptr, 64)
 	return pcs[:runtime.Callers(skip+2, pcs)]
@@ -570,9 +549,6 @@ var (
 	packageDir = regexp.MustCompile(`^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$`)
 )
 
-// frames turns the stack into PostHog frames, outermost first: only the
-// program's own functions, each with a path relative to the module (built
-// from the package, never from where the source sat on the build machine).
 func (s Stack) frames() []posthog.StackFrame {
 	if len(s) == 0 {
 		return nil
@@ -607,7 +583,6 @@ func (s Stack) frames() []posthog.StackFrame {
 	return innermostFirst
 }
 
-// valueType names the Go type of a panic value, such as "runtime.boundsError".
 func valueType(v any) string {
 	if name := fmt.Sprintf("%T", v); typePattern.MatchString(name) {
 		return name
