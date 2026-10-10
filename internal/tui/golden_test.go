@@ -26,7 +26,7 @@ func TestGoldenTailscaleFlows(t *testing.T) {
 		backend.catalog = withTailscale(backend.Catalog())
 		m = atAccess(t, m)
 		m.width, m.height = size.width, size.height
-		for _, key := range []string{"down", "down", "enter"} {
+		for _, key := range []string{"down", "down", "space", "enter"} {
 			m = drive(t, m, press(key))
 		}
 		golden(t, "onboarding-tailscale-input"+size.suffix, trimLines(screen(m)))

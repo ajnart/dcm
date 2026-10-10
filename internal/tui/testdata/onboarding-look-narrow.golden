@@ -10,8 +10,8 @@
   󰜋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring
 
   Do these icons look right?
-    ○ Yes, they look right: use Nerd Font icons
-  > ● No, I see boxes or gaps: use Simple symbols
+    ○ Nerd Font: use the icons shown above
+  > ● Simple (default): use plain symbols
 
   Learn about Nerd Fonts: https://www.nerdfonts.com
 
@@ -21,4 +21,4 @@
 
 
 
- q quit                                    ↑/↓  choose   enter  use   esc  back
+ q quit                ↑/↓  focus   space  select   enter  continue   esc  back

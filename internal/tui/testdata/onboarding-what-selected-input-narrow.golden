@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ ✓ ● What ○ ○ ○ ○ ○  3 of 8
+
+  Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that
+  work together. You can add more later from the Catalog. Homarr is
+  preselected as your Apps' home page; unpick its App row to skip it.
+
+  qBittorrent
+  qBittorrent needs a few answers of its own.
+  ┃ Torrent peer port
+  ┃ TCP and UDP peer port, separate from the private WebUI
+  ┃ > 6881
+
+
+
+
+
+
+
+
+  enter submit
+
+ answering · keys go to the form                        enter  next   esc  back

@@ -64,7 +64,6 @@ func freshHost(t *testing.T) (Model, *fakeBackend) {
 	t.Helper()
 	m, backend := onboardingHost(t, 120, 40, readyChecks...)
 	m = frames(t, m, 60)
-	m = drive(t, m, press("enter"))
 	return m, backend
 }
 
@@ -174,15 +173,16 @@ func TestHostChecksRevealOneAtATime(t *testing.T) {
 		t.Fatalf("Docker should be done and the daemon checking\n%s", out)
 	}
 
-	m = frames(t, m, 60)
+	m = frames(t, m, 12)
 	out = screen(m)
 	for _, want := range []string{"✓ Docker daemon", "✓ Docker Compose", "This machine is ready"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("after the reveal the screen lacks %q\n%s", want, out)
 		}
 	}
+	m = frames(t, m, 6)
 	if _, cmd := m.Update(frameMsg{}); yieldsFrame(cmd) {
-		t.Fatal("frames must stop once the checks are revealed")
+		t.Fatal("frames must stop once the checks have continued to Welcome")
 	}
 }
 
@@ -208,22 +208,21 @@ func TestFailingCheckBlocksWithItsHintAndRecheckClearsIt(t *testing.T) {
 	backend.checks = readyChecks
 	m = drive(t, m, press("r"))
 	m = frames(t, m, 60)
-	m = drive(t, m, press("enter"))
 
 	if !strings.Contains(indicator(t, m), "● Welcome") {
-		t.Fatalf("after a clean recheck enter should continue\n%s", screen(m))
+		t.Fatalf("a clean recheck should automatically continue\n%s", screen(m))
 	}
 }
 
 func TestWarningDoesNotBlock(t *testing.T) {
 	m, _ := onboardingHost(t, 120, 30, append(readyChecks[:3:3],
 		host.Check{ID: "docker-userns", Title: "Container IDs", Level: host.Warn, Detail: "user namespace unknown", Hint: "Inspect docker info."})...)
-	m = frames(t, m, 60)
+	m = frames(t, m, 24)
 	if out := screen(m); !strings.Contains(out, "! Container IDs") || !strings.Contains(out, "→ Inspect docker info.") {
 		t.Fatalf("the warning should show with its hint\n%s", out)
 	}
 
-	m = drive(t, m, press("enter"))
+	m = frames(t, m, 6)
 
 	if !strings.Contains(indicator(t, m), "● Welcome") {
 		t.Fatalf("a warning must not block\n%s", screen(m))
@@ -255,7 +254,7 @@ func TestWelcomeAsksTheExperienceQuestionInPlainWords(t *testing.T) {
 	out := screen(m)
 	for _, want := range []string{"Have you run your own server or used Docker before, or is this all new to you?",
 		"● New: this is all new to me", "○ Advanced: I have run a server or used Docker"} {
-		if !strings.Contains(out, want) {
+		if !strings.Contains(flat(out), want) {
 			t.Fatalf("Welcome lacks %q\n%s", want, out)
 		}
 	}
@@ -278,6 +277,7 @@ func TestSkippingTheExperienceQuestionStoresNewAtApproval(t *testing.T) {
 func TestChoosingAdvancedAtWelcomeStoresAdvancedAtApproval(t *testing.T) {
 	m, backend := freshHost(t)
 	m = drive(t, m, press("down"))
+	m = drive(t, m, press("space"))
 	if out := screen(m); !strings.Contains(out, "● Advanced: I have run a server or used Docker") || !strings.Contains(out, "○ New: this is all new to me") {
 		t.Fatalf("down should highlight Advanced\n%s", out)
 	}
@@ -298,7 +298,7 @@ func welcomeWithSavedExperience(t *testing.T, level string, width, height int) (
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
 	m = frames(t, m, 60)
-	return drive(t, m, press("enter")), backend
+	return m, backend
 }
 
 func TestWelcomeSkipsTheExperienceQuestionWhenTheProfileHoldsALevel(t *testing.T) {
@@ -560,6 +560,7 @@ func TestOnboardingAsksForMediaFoldersOnlyWhenNeeded(t *testing.T) {
 	m, _ := freshHost(t)
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("down"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin, right after the pre-selected Homarr
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("enter")) // Jellyfin's server name
@@ -591,9 +592,9 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 	see("loading", update(t, loading, appearanceMsg{glyphs: glyphs}))
 	m, _ := onboardingHost(t, width, height, readyChecks...)
 	m = update(t, m, appearanceMsg{glyphs: glyphs})
-	m = frames(t, m, 60)
+	m = frames(t, m, 18)
 	see("Initializing", m)
-	m = drive(t, m, press("enter"))
+	m = frames(t, m, 6)
 	see("Welcome", m)
 	m = drive(t, m, press("enter"))
 	see("What", m)
@@ -617,7 +618,7 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 		see("Access"+suffix+" help", m)
 		m = drive(t, m, press("?"))
 	}
-	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("space"))
 	see("Access Bring your own note", m)
 	for range 4 {
 		m = drive(t, m, press("up"))
@@ -648,7 +649,7 @@ func TestGoldenOnboarding(t *testing.T) {
 		t.Run("initializing"+size.suffix, func(t *testing.T) {
 			m, _ := onboardingHost(t, size.width, size.height, checks...)
 			golden(t, "onboarding-initializing-reveal"+size.suffix, trimLines(screen(frames(t, m, 14))))
-			golden(t, "onboarding-initializing-done"+size.suffix, trimLines(screen(frames(t, m, 60))))
+			golden(t, "onboarding-initializing-done"+size.suffix, trimLines(screen(frames(t, m, 24))))
 		})
 		t.Run("steps"+size.suffix, func(t *testing.T) {
 			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
@@ -659,7 +660,7 @@ func TestGoldenOnboarding(t *testing.T) {
 		})
 		t.Run("welcome-review"+size.suffix, func(t *testing.T) {
 			m, _ := onboardingHost(t, size.width, size.height, checks...)
-			m = drive(t, frames(t, m, 60), press("enter"))
+			m = frames(t, m, 60)
 			golden(t, "onboarding-welcome"+size.suffix, trimLines(screen(m)))
 			golden(t, "onboarding-review"+size.suffix, trimLines(screen(toReview(t, m))))
 		})
@@ -699,7 +700,7 @@ func TestWhatExplainsItselfAndShowsTheHoveredDescription(t *testing.T) {
 	m = atStep(t, m, "What")
 
 	out := screen(m)
-	for _, want := range []string{"Pick the Apps you want to run", "Recipe", "add more later", "Homarr", "Dashboard"} {
+	for _, want := range []string{"Pick the Apps you want to run", "Recipe", "add more later", "Homarr", "Watch your movies"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("What lacks %q\n%s", want, out)
 		}
@@ -708,6 +709,7 @@ func TestWhatExplainsItselfAndShowsTheHoveredDescription(t *testing.T) {
 		t.Fatalf("only the hovered item's description shows\n%s", out)
 	}
 
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
 
 	out = screen(m)
@@ -727,7 +729,6 @@ func TestWhatWrapsALongDescriptionAtWordBoundaries(t *testing.T) {
 	m, backend := onboardingHost(t, 80, 24, readyChecks...)
 	backend.catalog = onlyApps(stubApp{info: app.Info{ID: "homarr", Name: "Homarr", Description: long, Image: "x", Port: 1}})
 	m = frames(t, m, 60)
-	m = drive(t, m, press("enter")) // Initializing -> Welcome
 	m = atStep(t, m, "What")
 
 	out := screen(m)
@@ -754,6 +755,7 @@ func TestWhatAsksOnlyTheChosenAppsInputs(t *testing.T) {
 	}
 
 	m = drive(t, m, press("esc"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin
 	m = drive(t, m, press("enter"))
@@ -906,13 +908,13 @@ func TestChoosingAnOptionNotBuiltYetChangesNothing(t *testing.T) {
 			m = drive(t, m, press("down"))
 		}
 
-		m = drive(t, m, press("enter"))
+		m = drive(t, m, press("space"))
 
 		if m.onboarding.step != stepAccess || m.onboarding.answers.exposure != service.ExposureLAN {
-			t.Fatalf("%s: enter stays on Access with Home network, step %v exposure %q", name, m.onboarding.step, m.onboarding.answers.exposure)
+			t.Fatalf("%s: Space stays on Access with Home network, step %v exposure %q", name, m.onboarding.step, m.onboarding.answers.exposure)
 		}
 		if note := flat(screen(m)); !strings.Contains(note, name+" is coming soon; your Apps stay on your network") {
-			t.Fatalf("%s: enter says it is coming soon\n%s", name, screen(m))
+			t.Fatalf("%s: Space says it is coming soon\n%s", name, screen(m))
 		}
 		if len(backend.Actions()) != 0 || len(backend.installs()) != 0 {
 			t.Fatalf("%s: nothing is dispatched, actions %v", name, backend.Actions())
@@ -930,13 +932,13 @@ func TestChoosingBringYourOwnExplainsAndChangesNothing(t *testing.T) {
 		m = drive(t, m, press("down"))
 	}
 
-	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("space"))
 
 	if m.onboarding.step != stepAccess || m.onboarding.answers.exposure != service.ExposureLAN {
-		t.Fatalf("enter stays on Access with Home network, step %v exposure %q", m.onboarding.step, m.onboarding.answers.exposure)
+		t.Fatalf("Space stays on Access with Home network, step %v exposure %q", m.onboarding.step, m.onboarding.answers.exposure)
 	}
 	if note := flat(screen(m)); !strings.Contains(note, "Nothing changes: your Apps stay on your network. Run: self-host access export") {
-		t.Fatalf("enter points at the command\n%s", screen(m))
+		t.Fatalf("Space points at the command\n%s", screen(m))
 	}
 	if len(backend.Actions()) != 0 || len(backend.installs()) != 0 {
 		t.Fatalf("nothing is dispatched, actions %v", backend.Actions())
@@ -944,7 +946,7 @@ func TestChoosingBringYourOwnExplainsAndChangesNothing(t *testing.T) {
 	if out := screen(m); !strings.Contains(out, "● Home network (default)") || strings.Contains(out, "coming soon;") {
 		t.Fatalf("Home network stays the selected option and Bring your own is not coming soon\n%s", out)
 	}
-	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("space"))
 	if m.onboarding.step != stepAccess {
 		t.Fatalf("still on Access, step %v", m.onboarding.step)
 	}
@@ -1021,6 +1023,7 @@ func TestEveryWhereFieldExplainsItselfWhileFocused(t *testing.T) {
 	m, _ := freshHost(t)
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("down"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("enter")) // its server name
@@ -1062,6 +1065,7 @@ func TestQuestionMarkTypesInTextInputsOfTheWizard(t *testing.T) {
 
 	m, _ = freshHost(t)
 	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin
 	m = drive(t, m, press("enter"))
@@ -1113,7 +1117,7 @@ func TestTheMoreChipShowsOnlyWhereQuestionMarkOpensAHelpPage(t *testing.T) {
 
 func TestTheAccessStepAndItsHelpPageFitEightyByTwentyFourAndNothingIsCut(t *testing.T) {
 	m, _ := onboardingHost(t, 80, 24, readyChecks...)
-	m = drive(t, frames(t, m, 60), press("enter"))
+	m = frames(t, m, 60)
 	m = atAccess(t, m)
 	if lines := strings.Split(screen(m), "\n"); len(lines) > 24 || !strings.Contains(flat(screen(m)), "internet ✗") || !strings.Contains(flat(lines[23]), "? more") {
 		t.Fatalf("the Access step with its explanation and diagram fits 80x24 with its bar, %d lines\n%s", len(lines), screen(m))
@@ -1133,8 +1137,9 @@ func TestTheAccessStepAndItsHelpPageFitEightyByTwentyFourAndNothingIsCut(t *test
 
 func TestWhereFoldersFitTheScreenAtEightyByTwentyFour(t *testing.T) {
 	m, _ := onboardingHost(t, 80, 24, readyChecks...)
-	m = drive(t, frames(t, m, 60), press("enter"))
+	m = frames(t, m, 60)
 	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin
 	m = drive(t, m, press("enter"))
@@ -1161,7 +1166,7 @@ func TestRecipeIconFollowsTheGlyphSetInTheCatalogAndOnboarding(t *testing.T) {
 
 		o, _ := onboardingHost(t, 120, 30, readyChecks...)
 		o = withGlyphs(t, o, set)
-		o = drive(t, frames(t, o, 60), press("enter"))
+		o = frames(t, o, 60)
 		what := screen(drive(t, o, press("enter")))
 		if !strings.Contains(what, set.Recipe()+" Media (Recipe)") || strings.Contains(what, "📦") {
 			t.Errorf("%s: What should mark the Recipe with %q\n%s", set, set.Recipe(), what)
@@ -1181,6 +1186,7 @@ func TestWhereAsksForFoldersOnlyWhenAMediaAppIsChosen(t *testing.T) {
 
 	m, _ = freshHost(t)
 	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("x")) // Jellyfin
 	m = drive(t, m, press("enter"))
@@ -1236,6 +1242,7 @@ func TestChoosingNerdFontDrawsReviewWithItAndSavesAtApproval(t *testing.T) {
 	m = atStep(t, m, "Look")
 
 	m = drive(t, m, press("up"))
+	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 
 	if !strings.Contains(indicator(t, m), "● Review") || !strings.Contains(strings.Split(screen(m), "\n")[0], activity.NerdFont.Brand()) {
@@ -1259,12 +1266,13 @@ func TestEscBackToLookKeepsTheChoice(t *testing.T) {
 	m, _ := freshHost(t)
 	m = atStep(t, m, "Look")
 	m = drive(t, m, press("up"))
+	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 
 	m = drive(t, m, press("esc"))
 
 	out := screen(m)
-	if !strings.Contains(indicator(t, m), "● Look") || !strings.Contains(out, "> ● Yes") {
+	if !strings.Contains(indicator(t, m), "● Look") || !strings.Contains(out, "> ● Nerd Font") {
 		t.Fatalf("going back should keep the chosen icons highlighted\n%s", out)
 	}
 }
@@ -1274,6 +1282,7 @@ func TestFailingToSaveTheChoiceOnlyFlashesAWarning(t *testing.T) {
 	backend.glyphErr = errors.New("read-only file system")
 	m = atStep(t, m, "Look")
 	m = drive(t, m, press("up"))
+	m = drive(t, m, press("space"))
 	m = drive(t, m, press("enter"))
 
 	m = drive(t, m, press("enter"))
@@ -1287,7 +1296,7 @@ func TestFailingToSaveTheChoiceOnlyFlashesAWarning(t *testing.T) {
 }
 
 func TestEveryStepShowsItsKeysInTheBar(t *testing.T) {
-	want := map[string]string{"What": "enter next", "Where": "enter next", "Access": "enter use", "Who": "enter next", "Look": "enter use", "Review": "enter approve"}
+	want := map[string]string{"What": "enter next", "Where": "enter next", "Access": "enter continue", "Who": "enter next", "Look": "enter continue", "Review": "enter approve"}
 	walkOnboarding(t, 80, 24, activity.Simple, func(name string, m Model) {
 		chips, ok := want[name]
 		if !ok {
@@ -1309,7 +1318,6 @@ func TestWhatScrollsAFortyAppListAndKeepsTheDescriptionOnScreen(t *testing.T) {
 	m, backend := onboardingHost(t, 80, 24, readyChecks...)
 	backend.catalog = onlyApps(apps...)
 	m = frames(t, m, 60)
-	m = drive(t, m, press("enter"))
 	m = atStep(t, m, "What")
 
 	for range 39 {

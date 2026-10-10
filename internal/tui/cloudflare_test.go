@@ -64,7 +64,7 @@ func TestCloudflareSettingsConcealsTokenAndRequiresSeparatePublicationYes(t *tes
 func TestOnboardingCloudflareSelectionWaitsForInstalledApps(t *testing.T) {
 	m, backend := freshHost(t)
 	m = atAccess(t, m)
-	m = cloudflareKeys(t, m, "down", "down", "down", "enter")
+	m = cloudflareKeys(t, m, "down", "down", "down", "space", "enter")
 	if m.onboarding.step != stepWho || !m.onboarding.answers.cloudflare || len(backend.Actions()) != 0 {
 		t.Fatal("choice should defer until Apps exist", screen(m))
 	}

@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  ✓ ✓ ● What ○ ○ ○ ○ ○  3 of 8
+
+  Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that
+  work together. You can add more later from the Catalog. Homarr is
+  preselected as your Apps' home page; unpick its App row to skip it.
+
+  Apps and Recipes · ✓ all · ◐ some · ○ none of a Recipe's Apps
+  > ○ ❖ Media (Recipe)
+    ○ ❖ Audiobooks and music (Recipe)
+    ○ ❖ Backups and restore (Recipe)
+    ○ ❖ DNS and network filtering (Recipe)
+    ○ ❖ Documents, PDF, and OCR (Recipe)
+    ○ ❖ Downloader privacy (Recipe)
+  space toggle · / filter · ↑/↓ focus · 106 more
+
+  Media (Recipe)
+  Watch your movies and shows, and have new ones requested and downloaded for
+  you
+  Includes qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr
+
+
+ answering · keys go to the form                        enter  next   esc  back

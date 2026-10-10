@@ -18,7 +18,7 @@ func TestOnboardingTailscaleAsksPrivatelyBeforeReview(t *testing.T) {
 	m, backend := freshHost(t)
 	backend.catalog = withTailscale(backend.Catalog())
 	m = atAccess(t, m)
-	for _, key := range []string{"down", "down", "enter"} {
+	for _, key := range []string{"down", "down", "space", "enter"} {
 		m = drive(t, m, press(key))
 	}
 	if !strings.Contains(screen(m), "Tailscale auth key") || m.onboarding.form == nil {

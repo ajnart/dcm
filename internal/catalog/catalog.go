@@ -44,7 +44,15 @@ func (c *Catalog) Apps() []app.App {
 	return apps
 }
 
-func (c *Catalog) Recipes() []Recipe { return c.recipes }
+func (c *Catalog) Recipes() []Recipe {
+	var recipes []Recipe
+	for _, r := range c.recipes {
+		if r.ID != "homarr-control-plane" {
+			recipes = append(recipes, r)
+		}
+	}
+	return recipes
+}
 
 func (c *Catalog) Recipe(id string) (Recipe, bool) {
 	for _, r := range c.recipes {
