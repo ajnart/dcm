@@ -120,6 +120,17 @@ func TestRestoreFailedStartupRetainsOriginalTargetsAcrossServiceRecreation(t *te
 			}
 			h.runner.On("docker compose --project-directory", system.Result{})
 			h.svc = New(h.deps, events.New(h.rec), h.svc.Catalog)
+			otherArchive, err := source.svc.Backup(context.Background(), nil, filepath.Join(t.TempDir(), "different.tar.zst"), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeOther := len(h.composeCalls())
+			if err := h.svc.Restore(context.Background(), otherArchive, targets, ""); err == nil || !strings.Contains(err.Error(), "pending startup") {
+				t.Fatalf("different Restore consumed approval: %v", err)
+			}
+			if len(h.composeCalls()) != beforeOther {
+				t.Fatal("different Restore mutated containers")
+			}
 			before := len(h.composeCalls())
 			if err := h.svc.Restore(context.Background(), archive, targets, ""); err != nil {
 				t.Fatal(err)
