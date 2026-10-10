@@ -222,19 +222,32 @@ recreated.
 
 ## Unmanaged apps
 
-For software outside the Catalog, add an Unmanaged app. The CLI starts, stops,
-updates and backs it up, but runs no Setup for it.
+For software outside the Catalog, add an Unmanaged app in the Home folder's
+`extra/`. The CLI discovers it on its own: it shows in `status` with its
+Address, `start`, `stop`, `update` and `backup` work on it, and the Dashboard
+(Homarr) gets a tile for it once it runs. No Setup runs for it, so you do the
+configuring.
 
-1. Write `~/.self-host/apps/<id>/compose.yml` with one service. Do not publish
-   ports with a bare `"8080:80"`. Use the shared settings, which Compose reads
-   from the Project's `.env`:
+1. Write `~/.self-host/extra/<name>/compose.yml` with one service. The folder
+   name is the App's ID. Do not publish ports with a bare `"8080:80"`. Use the
+   shared settings, which Compose reads from the Project's `.env`:
    - `${BIND_IP}` for the published address, for example
      `"${BIND_IP}:8099:80"`
    - `${TZ}`, `${PUID}`, `${PGID}`, `${UMASK}`
    - `${MEDIA_ROOT}`, `${DOWNLOADS_ROOT}`
-2. Keep persistent data under `~/.self-host/apps/<id>/`, so backups include it.
-3. Run `self-host start <id>`, then `self-host status --json`: the App shows
-   with setup `unmanaged`.
+2. Keep persistent data in the same folder, with relative bind mounts such as
+   `./data:/data`, so backups include it. Do not use named volumes.
+3. Pick a name no Catalog App uses, and service names no other App uses.
+4. Run `self-host start <name>`, then `self-host status --json`: the App shows
+   with setup `unmanaged` and its `url`.
+
+An Unmanaged app joins the same Compose Project as every other App; the root
+`compose.yml` includes it. Its folder is under `self-host backup <name>`, and
+`self-host remove <name>` keeps the folder unless you add `--purge`.
+
+Apps added before `extra/` existed, in `~/.self-host/apps/<id>/compose.yml`,
+keep working where they are. Leave them there, or move the folder into
+`extra/` while the App is stopped.
 
 Never mount the Docker socket in an Unmanaged app.
 
