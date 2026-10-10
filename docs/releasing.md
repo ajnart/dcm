@@ -17,14 +17,14 @@ releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. Create the release
 
 ## Prepare
 
-1. Work from a clean `main` that passes the gate in `new-cli/`:
+1. Work from a clean `main` that passes the gate:
    `gofmt -l .`, `go vet ./... && go vet -tags e2e ./e2e/`, `go test ./...`,
    `go test -race ./internal/release ./internal/cli ./internal/tui`, `bash -n install.sh`.
 2. Pick the next version. Tags are plain `vX.Y.Z` with no leading zeros.
 
 ## Release from CI
 
-Push the tag. `.github/workflows/new-cli-release.yml` validates the tag against
+Push the tag. `.github/workflows/release.yml` validates the tag against
 `^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`, packages with
 goreleaser in snapshot mode (`SELF_HOST_RELEASE_VERSION` supplies `X.Y.Z`),
 smoke-tests the Linux binary, creates a **draft** release, downloads it, compares
@@ -37,7 +37,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 ## Release locally (when CI is unavailable)
 
-From `new-cli/`, build the same archives with the same pinned goreleaser:
+Build the same archives with the same pinned goreleaser:
 
 ```bash
 SELF_HOST_RELEASE_VERSION=X.Y.Z go run github.com/goreleaser/goreleaser/v2@v2.12.7 release --snapshot --clean
@@ -62,8 +62,8 @@ release is published; no separate `git tag` is needed.
 ## Verify
 
 ```bash
-SELF_HOST_GITHUB_TOKEN="$(gh auth token)" new-cli/scripts/verify-install.sh   # private repository
-new-cli/scripts/verify-install.sh                                              # public repository
+SELF_HOST_GITHUB_TOKEN="$(gh auth token)" scripts/verify-install.sh   # private repository
+scripts/verify-install.sh                                              # public repository
 ```
 
 It runs the documented `curl | bash` install in a throwaway `HOME` and checks
@@ -71,15 +71,10 @@ It runs the documented `curl | bash` install in a throwaway `HOME` and checks
 
 ## Tag triggers
 
-Two workflows react to release tags: `new-cli-release.yml` (the release) and
-`new-cli-e2e.yml` (the end-to-end suite); both fire on `v*` and `new-cli-v*`.
-`validate.yml` is `workflow_dispatch` only, so its `refs/tags/v` publish jobs run
-only if someone dispatches it on a tag. `new-cli.yml` has no tag trigger.
-
-`v*` is now also the skill pack's tag namespace (`docs/release.md` tags
-`v${release_version}`). Any plain `vX.Y.Z` tag, including one meant for the skill
-pack, starts a CLI release at that version from the tagged commit. Decide before
-the next skill-pack release whether it moves to another prefix.
+Two workflows react to release tags: `release.yml` (the release) and `e2e.yml`
+(the end-to-end suite); both fire on `v*` and `new-cli-v*`. `ci.yml` has no tag
+trigger. The legacy skill pack no longer exists, so a plain `vX.Y.Z` tag is
+always a CLI release at that version from the tagged commit.
 
 ## Repository rename
 

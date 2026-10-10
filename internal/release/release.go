@@ -41,7 +41,7 @@ const (
 )
 
 // InstallCommand is the one-line installer, for messages that point at it.
-const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/" + Repo + "/main/new-cli/install.sh | bash"
+const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/" + Repo + "/main/install.sh | bash"
 
 const (
 	binaryName    = "self-host"

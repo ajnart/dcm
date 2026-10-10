@@ -20,7 +20,7 @@ Windows through WSL.
 1. **Install the CLI:**
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    self-host --version
    ```
@@ -41,7 +41,7 @@ If something fails:
 - The agent's guide has no New and Advanced paths: run `self-host self-update`.
 - Docker missing or stopped: install or start it, then run `self-host doctor`.
 - A 404 or authentication error: run `gh auth login`, then
-  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/new-cli/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
 - `curl` reports an error but the command seems to succeed: a pipe hides
   curl's exit status. In scripts run `set -o pipefail` first.
 - Windows: use WSL; native Windows is unsupported.
@@ -82,18 +82,18 @@ updater follow the redirect.
 
 The one-liner's URL is the only thing a domain changes. Point the domain at the
 raw `install.sh` (a redirect or a proxy to
-`https://raw.githubusercontent.com/<owner>/<repo>/main/new-cli/install.sh` works);
+`https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh` works);
 the script, the updater and the releases stay where they are.
 
 ```bash
 curl -fsSL https://your.domain/install.sh | bash
 ```
 
-Check any URL with `new-cli/scripts/verify-install.sh`: it runs the one-liner in
+Check any URL with `scripts/verify-install.sh`: it runs the one-liner in
 a throwaway `HOME`, then asserts `self-host --version` is the latest release,
 `self-host skill` works, and a pinned old version upgrades through
 `self-update`. While the repository is private, give it a token without printing
-it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" new-cli/scripts/verify-install.sh`.
+it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" scripts/verify-install.sh`.
 Once the repository is public, run it with no token. Set `VERIFY_INSTALL_URL`
 to test a different URL, or a local script as `file:///path/to/install.sh`.
 
@@ -278,7 +278,7 @@ The equivalent commands are `self-host up`, `self-host down` and
 ## Agents and automation
 
 Run `self-host skill` to get the guide matching the installed binary.
-The repository's one public skill, `.agents/skills/self-host/SKILL.md`, is the
+The repository's one public skill, `skills/self-host/SKILL.md`, is the
 agent entry point and routes to that guide.
 
 Inspect first, agree on the Apps and Exposure, then apply the approved selection:

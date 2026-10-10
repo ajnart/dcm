@@ -1,4 +1,4 @@
-name: new-cli release
+name: release
 
 on:
   push:
@@ -8,12 +8,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: new-cli-release-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
-
-defaults:
-  run:
-    working-directory: new-cli
 
 jobs:
   release:
@@ -27,8 +23,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version-file: new-cli/go.mod
-          cache-dependency-path: new-cli/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Validate CLI channel and version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -47,7 +43,6 @@ jobs:
         with:
           distribution: goreleaser
           version: '~> v2'
-          workdir: new-cli
           args: release --snapshot --clean
       - name: Verify exact archive set and native Linux binary
         run: |
@@ -56,17 +51,17 @@ jobs:
           actual=$(find dist -maxdepth 1 -name 'self-host_*.tar.gz' -printf '%f\n' | sort)
           test "$expected" = "$actual"
           (cd dist && sha256sum --check checksums.txt)
-          mkdir -p "$RUNNER_TEMP/new-cli-release-check"
-          tar -xzf "dist/self-host_${version}_linux_amd64.tar.gz" -C "$RUNNER_TEMP/new-cli-release-check" self-host
-          test "$("$RUNNER_TEMP/new-cli-release-check/self-host" --version)" = "$version"
-          "$RUNNER_TEMP/new-cli-release-check/self-host" apps list --json >/dev/null
-          "$RUNNER_TEMP/new-cli-release-check/self-host" skill >/dev/null
+          mkdir -p "$RUNNER_TEMP/release-check"
+          tar -xzf "dist/self-host_${version}_linux_amd64.tar.gz" -C "$RUNNER_TEMP/release-check" self-host
+          test "$("$RUNNER_TEMP/release-check/self-host" --version)" = "$version"
+          "$RUNNER_TEMP/release-check/self-host" apps list --json >/dev/null
+          "$RUNNER_TEMP/release-check/self-host" skill >/dev/null
       - uses: actions/upload-artifact@v4
         with:
-          name: new-cli-${{ github.ref_name }}
+          name: self-host-${{ github.ref_name }}
           path: |
-            new-cli/dist/self-host_*.tar.gz
-            new-cli/dist/checksums.txt
+            dist/self-host_*.tar.gz
+            dist/checksums.txt
           if-no-files-found: error
       - name: Publish and verify immutable CLI assets
         env:
@@ -78,10 +73,10 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries; native WSL validation is pending. Native Windows is unsupported."
           fi
-          mkdir -p "$RUNNER_TEMP/new-cli-release-download"
-          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/new-cli-release-download"
+          mkdir -p "$RUNNER_TEMP/release-download"
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/release-download"
           for asset in "${assets[@]}"; do
-            cmp "$asset" "$RUNNER_TEMP/new-cli-release-download/${asset##*/}"
+            cmp "$asset" "$RUNNER_TEMP/release-download/${asset##*/}"
           done
-          (cd "$RUNNER_TEMP/new-cli-release-download" && sha256sum --check checksums.txt)
+          (cd "$RUNNER_TEMP/release-download" && sha256sum --check checksums.txt)
           gh release edit "$RELEASE_TAG" --draft=false --latest=false

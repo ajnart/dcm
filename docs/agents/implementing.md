@@ -8,14 +8,13 @@ hotspots. One ticket per branch, per worktree, per pull request.
 
 1. The spec and your ticket: `gh issue view <n> --repo ajnart/selfhost-skills`,
    plus every ticket it is blocked by.
-2. `new-cli/CONTEXT.md`: the glossary. Use its words exactly (App, Recipe,
+2. `CONTEXT.md`: the glossary. Use its words exactly (App, Recipe,
    Project, Access, Address, Home folder, Profile, Experience level, Recap,
    Debug report, Telemetry, Feedback, Unmanaged app, Setup, Link, Onboarding,
    Dashboard, Activity). "Exposure" survives only in stored values and flags.
-3. The ADRs in `new-cli/docs/adr/`, especially 0005 (agents load the skill;
+3. The ADRs in `docs/adr/`, especially 0005 (agents load the skill;
    approval guards changes), 0006 (Telemetry) and 0007 (one repo, Go only).
-4. The code and tests you will change. After the restructure ticket lands,
-   `new-cli/` is the repository root: adjust every path in this file.
+4. The code and tests you will change.
 
 ## Settled decisions (do not reopen)
 
@@ -62,7 +61,7 @@ hotspots. One ticket per branch, per worktree, per pull request.
 
 ## Finishing
 
-1. From `new-cli/` with `GOFLAGS=-buildvcs=false`: `gofmt -l .` empty,
+1. From the repository root with `GOFLAGS=-buildvcs=false`: `gofmt -l .` empty,
    `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`, and
    `go test -race` on every package with goroutines you touched.
    CI cannot run (account billing), so these local runs are the gate.

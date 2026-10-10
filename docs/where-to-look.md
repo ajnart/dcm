@@ -1,5 +1,7 @@
 # Where to look — a routing index for the legacy repo
 
+> Historical: the legacy tree this index describes was removed in #192. Read its paths with `git show e979269a:<path>`.
+
 Purpose: **stop exploring.** Every fact the rewrite needs already exists in this repo.
 This file maps "I need X" → "read exactly this path". Sub-agents should use it instead of
 crawling the tree; that is what inflated turns and context.
@@ -78,7 +80,7 @@ instead: `archive-team-warrior`, `authelia`, `cloudflare-tunnel`, `dockge`, `glu
 | The old dashboard/TUI | `$CLI/control-panel/` (`dashboard-recap.ts`, `flow.ts`, `catalog-picker.ts`, `setup-engine.ts`) |
 | Workflow-skill boundaries | `$WF/selfhost-*/GUIDE.md`, registry `$CAT/skills.json` |
 | Media harness (7 services) | `$WF/selfhost-media/` — canonical; generated bundle under `.../assets/harness/` |
-| Media API facts (Jellyfin/Seerr/Homarr) | `new-cli/docs/research/media-apis.md` (new repo, upstream-sourced) |
+| Media API facts (Jellyfin/Seerr/Homarr) | `docs/research/media-apis.md` (new repo, upstream-sourced) |
 | Distribution/release facts | `$DOCS/release.md`, `$DOCS/plugin-audit.md`, `$DOCS/migration-v1.md` |
 
 ---
@@ -174,7 +176,7 @@ Repo-wide prose (19 files in `$DOCS/` + `FINDINGS.md`):
 | `$WF/selfhost-*/GUIDE.md` | 14 workflow skills; boundaries + who owns what |
 | `$CAT/skills.json` | The workflow registry (kind, risk, activation, delegatesTo) |
 
-**Port facts, not code** (`new-cli/docs/adr/0001-compiled-apps-compose-is-truth.md`).
+**Port facts, not code** (`docs/adr/0001-compiled-apps-compose-is-truth.md`).
 
 ---
 
@@ -182,13 +184,13 @@ Repo-wide prose (19 files in `$DOCS/` + `FINDINGS.md`):
 
 | Need | Path |
 |---|---|
-| App contract | `new-cli/internal/app/app.go` |
-| Helpers (`h`) | `new-cli/internal/helpers/helpers.go` |
-| Catalog + recipes | `new-cli/internal/catalog/catalog.go`, `default.go` (currently 2 Apps, 0 Recipes) |
-| Existing Apps | `new-cli/internal/apps/ntfy`, `.../vaultwarden` |
+| App contract | `internal/app/app.go` |
+| Helpers (`h`) | `internal/helpers/helpers.go` |
+| Catalog + recipes | `internal/catalog/catalog.go`, `default.go` (currently 2 Apps, 0 Recipes) |
+| Existing Apps | `internal/apps/ntfy`, `.../vaultwarden` |
 | Media Recipe (unmerged) | `new-cli-wt-24/internal/apps/{qbittorrent,prowlarr,sonarr,radarr}` |
-| API research | `new-cli/docs/research/media-apis.md` |
-| This index's companion | `new-cli/docs/legacy-catalog.md` (what each artifact is) |
+| API research | `docs/research/media-apis.md` |
+| This index's companion | `docs/legacy-catalog.md` (what each artifact is) |
 
 ---
 

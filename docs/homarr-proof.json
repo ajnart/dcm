@@ -97,47 +97,47 @@
       {
         "archive_path": "browser/dashboard.png",
         "sha256": "2bcf46f66af1e63c92e118589607c1cad8113da544435d5437d7e0d1a31e7f9c",
-        "repository_path": "new-cli/docs/images/homarr-dashboard.png"
+        "repository_path": "docs/images/homarr-dashboard.png"
       },
       {
         "archive_path": "browser/notifications.png",
         "sha256": "cf7b5861fc284d46650c4673ee5200d49e55fee7de84f1399a2858576c3d159e",
-        "repository_path": "new-cli/docs/images/homarr-notifications.png"
+        "repository_path": "docs/images/homarr-notifications.png"
       },
       {
         "archive_path": "browser/mediaReleases.png",
         "sha256": "44bc3939896cc254b1be4966ae0f1c30e4253b255a29449e0697d134c80bbbd9",
-        "repository_path": "new-cli/docs/images/homarr-media-releases.png"
+        "repository_path": "docs/images/homarr-media-releases.png"
       },
       {
         "archive_path": "browser/notebook.png",
         "sha256": "da7267b075dadffe1e52be43ee057fc1e7caf30f706dbfc39d5e903845fe9f0a",
-        "repository_path": "new-cli/docs/images/homarr-notebook.png"
+        "repository_path": "docs/images/homarr-notebook.png"
       },
       {
         "archive_path": "tui/dashboard.png",
         "sha256": "204b7b26dc08c7526f9f606bc72f9022a98d16efdb4faf16c7c554a9179601cc",
-        "repository_path": "new-cli/docs/images/dashboard.png"
+        "repository_path": "docs/images/dashboard.png"
       },
       {
         "archive_path": "tui/workflow.png",
         "sha256": "7d8a57b0905a92726b737d4a5230b191970a55bdbd49382228521e1383e6adf6",
-        "repository_path": "new-cli/docs/images/workflow.png"
+        "repository_path": "docs/images/workflow.png"
       },
       {
         "archive_path": "tui/install-search.png",
         "sha256": "433b41ce5a39db9ff303e6a9a0dd97737058f02f6d4edab70f3b0d8bc2275449",
-        "repository_path": "new-cli/docs/images/install-search.png"
+        "repository_path": "docs/images/install-search.png"
       },
       {
         "archive_path": "tui/demo.cast",
         "sha256": "5dfb3891fc760ee9a619771f97fa54c34169b8eb977f8d0f2e43b44a829d1b06",
-        "repository_path": "new-cli/docs/demos/self-host.cast"
+        "repository_path": "docs/demos/self-host.cast"
       },
       {
         "archive_path": "tui/capture.json",
         "sha256": "5c0742e0f84c90dcbf61d0f5657d7574d225a2f2fe14623403be6e7db3292bb3",
-        "repository_path": "new-cli/docs/demos/capture.json"
+        "repository_path": "docs/demos/capture.json"
       }
     ]
   },
@@ -157,8 +157,8 @@
       "workflow",
       "install-search"
     ],
-    "provenance": "new-cli/docs/demos/capture.json",
-    "recording": "new-cli/docs/demos/self-host.cast",
+    "provenance": "docs/demos/capture.json",
+    "recording": "docs/demos/self-host.cast",
     "chronology": "All nine API/browser stages passed before capture pause. Actual native PTY Dashboard, Space-expanded Workflow and Install search were captured read-only; root reviewed all seven PNGs, then the fixture resumed and owned cleanup passed."
   }
 }

@@ -1,20 +1,16 @@
 ## Change
 
-Describe the user-visible outcome and affected skills.
+Describe the user-visible outcome. End with `Closes #<n>`.
 
-## Evidence
+## Gate
 
-- Primary sources:
-- Focused deterministic scenario:
-- Commands run:
-- Checks intentionally not run:
+Paste the result of the local gate in `AGENTS.md` (CI cannot run).
 
 ## Safety
 
-- [ ] The change preserves `inspect -> plan -> approval -> apply -> verify`.
-- [ ] No secret, session, private host, or client-install material is included.
-- [ ] Public exposure, Compose mutation, and evidence ownership remain separate.
-- [ ] Generated indexes and package projections are refreshed when required.
+- [ ] No secret, session, private host, or credential material is included.
+- [ ] Access changes keep their own explicit approval.
+- [ ] Existing `--json` keys, non-TTY output and persisted formats still work.
 
 ## Provenance
 

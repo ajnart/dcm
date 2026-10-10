@@ -1,23 +1,13 @@
-name: new-cli
+name: ci
 
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - "new-cli/**"
-      - ".github/workflows/new-cli.yml"
   push:
     branches: [main]
-    paths:
-      - "new-cli/**"
-      - ".github/workflows/new-cli.yml"
 
 permissions:
   contents: read
-
-defaults:
-  run:
-    working-directory: new-cli
 
 jobs:
   test:
@@ -28,8 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: new-cli/go.mod
-          cache-dependency-path: new-cli/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Vet
         run: go vet ./... && go vet -tags e2e ./e2e/
       - name: Test
@@ -65,8 +55,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: new-cli/go.mod
-          cache-dependency-path: new-cli/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -75,7 +65,7 @@ jobs:
         run: |
           test "$(go env GOHOSTOS)" = "$TARGET_OS"
           test "$(go env GOHOSTARCH)" = "$TARGET_ARCH"
-          smoke_root="$RUNNER_TEMP/new-cli-native-smoke"
+          smoke_root="$RUNNER_TEMP/native-smoke"
           mkdir -p "$smoke_root"
           go build -trimpath -ldflags="-s -w -X main.version=$SMOKE_VERSION" -o "$smoke_root/self-host" ./cmd/self-host
           export SELF_HOST_HOME="$smoke_root/project"
@@ -98,7 +88,7 @@ jobs:
           import subprocess
           import threading
 
-          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "new-cli-native-smoke"
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "native-smoke"
           version = os.environ["SMOKE_VERSION"]
           tag = "new-cli-v" + version
           archive_name = "self-host_{}_{}_{}.tar.gz".format(version, os.environ["TARGET_OS"], os.environ["TARGET_ARCH"])
@@ -151,5 +141,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: native-smoke-${{ matrix.os }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/new-cli-native-smoke
+          path: ${{ runner.temp }}/native-smoke
           if-no-files-found: error

@@ -1,139 +1,58 @@
 # Repository agent guide
 
+`self-host` is one Go binary that installs and operates self-hosted apps with Docker Compose, for people through a terminal Dashboard and for agents through plain commands. The module is at the repository root. Read `CONTEXT.md` first and use its words exactly.
+
 ## Map
 
-- `.agents/skills/self-host/workflows/selfhost/` owns intent routing, catalog, stack selection,
-  non-secret preferences, and the exact packaged-skill registry at
-  `references/catalog/skills.json`.
-- Internal `self-host/workflows/selfhost-*` modules own one operational boundary each.
-- `.agents/CONTEXT.md`, `invocation.md`, and `install.md` define shared product
-  vocabulary, composition, and packaging.
-- `packaging/agent-plugin.json` owns the portable Agent Plugins 1.0 manifest;
-  `packaging/claude-plugin.json` is the Claude Code compatibility manifest.
-- `.agents/adr/` records stable architecture and support decisions.
-- Root `PROMPT.md`, `docker-compose.yml`, `prompts/`, `docs/`, and their
-  `scripts/` are the canonical media harness.
-- `.agents/skills/self-host/workflows/selfhost-media/assets/harness/` is its generated portable
-  bundle. `generations/` and `research/` are evidence, not runtime input.
-
-Read the owning `GUIDE.md` (or the public `SKILL.md`) and its directly linked references before changing a
-capability.
-
-## Protected invariants
-
-- Inspect -> plan -> approval -> apply -> verify.
-- Private or loopback exposure is the default outside the explicit media-harness
-  exception. The media harness defaults to short Compose port mappings on all
-  host interfaces, requiring router or Docker-aware firewall scope before apply.
-  Its explicit host-only mode binds all seven ports to 127.0.0.1 and needs a
-  separate private route for other devices. Show the selected mode in the plan.
-  Public ingress remains a separate approval with one
-  DNS/TLS/80/443/auth owner.
-- Facts, choices, derived values, secret references, and evidence keep distinct
-  provenance.
-- Preferences contain no secrets. Secret payloads stay at the narrow apply
-  boundary and out of commands, screenshots, fixtures, and client configuration.
-  An explicitly requested private credential handoff may save passwords and API
-  keys in the adapter-owned mode-0600 file. Ordinary reports and benchmark
-  evidence contain only its path. Re-export on upkeep only when requested.
-- One Compose project is the mutation boundary. No broad Docker teardown,
-  prune, volume deletion, unowned network/proxy edit, or casual socket mount.
-- Container liveness and HTTP 200 are narrow observations, not acceptance.
-- VPN safety requires a recorded tunnel-break fail-closed test. Backup
-  verification requires an isolated restore.
-- Support level and T0/T1/T2 priority remain independent.
-- The only discoverable skill is `.agents/skills/self-host/SKILL.md`. Internal
-  workflows use `GUIDE.md`; their IDs plus `self-host` exactly match the sorted registry. Specialized adapters use `adapter: true` with scope
-  `application` or `stack`; only application-scoped adapters may appear in an
-  app's `adapterSkill`, while stack-scoped adapters are invoked directly.
-- App tiles, Homarr integrations, and widgets are separate claims.
-- The media adapter uses exactly
-  `ghcr.io/homarr-labs/homarr:dev` and only authorized content.
+- `cmd/self-host/`: entry point. `internal/cli/` maps subcommands onto `internal/service/`, which implements every Project operation; `internal/tui/` is the Dashboard over the same service.
+- `internal/apps/<id>/` and `internal/catalog/`: each App compiled into the binary, and the Catalog and Recipes. `internal/app/` is the App contract; `internal/helpers/` is the toolkit every Setup uses.
+- `internal/skill/guide.md`: the agent guide embedded in the binary, printed by `self-host skill`.
+- `skills/self-host/SKILL.md`: the one discoverable skill, a router to `self-host skill`.
+- `internal/system/` holds every outside dependency; `internal/systemtest/` and `internal/clitest/` fake it for tests.
+- `e2e/` (build tag `e2e`, runs Docker), `tools/` (development generators), `scripts/verify-install.sh`, `install.sh`, `.goreleaser.yaml`.
+- `docs/`: `adr/` decisions, `agents/` briefs for agents, `releasing.md`, `spec.md`, and proofs under `docs/*-proof.*`. Files named `legacy-*`, `where-to-look.md` and `handoff.md` describe the removed TypeScript product and are historical.
 
 ## Ownership
 
-- Catalog facts and goal routing: `selfhost`.
-- Host discovery and path advice: `selfhost-host`.
-- Compose render/apply lifecycle: `selfhost-compose`.
-- Edge access: `selfhost-ingress`.
-- Downloader egress: `selfhost-vpn`.
-- Recovery policy: `selfhost-backup`.
-- Monitoring plans: `selfhost-observe`.
-- Upgrades/migrations/recovery: `selfhost-operations`.
-- Current external evidence: `selfhost-research`.
-- Acceptance aggregation: `selfhost-verify`.
-- Seven-service harness: `selfhost-media`.
-- Homarr API/UI/MCP behavior: `selfhost-homarr`.
+One package owns one boundary. Do not reach around it.
 
-Do not duplicate another owner's implementation. Add an app-specific workflow only
-for reusable special behavior beyond declarative catalog data. Add, remove, or
-rename a workflow together with its exact registry entry.
+- Running `docker compose`: `internal/compose/` only.
+- Machine inspection and Host settings: `internal/host/`.
+- Project directory, secrets, state: `internal/project/`.
+- Backup archives: `internal/backup/`. Release lookup, install and self-update: `internal/release/`.
+- Progress reporting: `internal/events/`; what a person sees of it: `internal/activity/`.
 
-## Safety while working
+## Protected invariants
 
-Treat `.sessions/`, `.env*`, credential stores, browser profiles, cookies,
-client sessions, and secret files as out of scope. Do not read or print them.
-Use bounded source paths and redacted fixtures.
+- Inspect, plan, approval, apply, verify. Loading the skill conveys intent, never approval (ADR 0005).
+- Apps share one Compose Project, the mutation boundary. No broad Docker teardown, prune, volume deletion or casual socket mount.
+- Secrets live only in the Project's `secrets.env`. Keep them out of arguments, output, fixtures and screenshots. Treat `.sessions/`, `.env*`, credential stores and browser profiles as out of scope: never read or print them.
+- Container liveness and HTTP 200 are narrow observations, not acceptance.
+- Existing `--json` keys, non-TTY output and persisted formats keep working; new fields are additive.
+- Telemetry follows ADR 0006.
 
-Preserve concurrent work. Inspect status before and after edits, stage only
-owned files when staging is requested, and never repair unrelated changes.
+## Local gate
 
-Exploration subagents are read-only GPT-5.6 Luna. Implementation subagents use
-GPT-5.6 Sol. Keep exploration reports concise and source-backed.
-
-## Generated media bundle
-
-The root media harness is canonical; the packaged media asset and manifest are
-generated. Never fix drift by editing only the bundle or by changing hashes.
-Regenerate through the owning workflow after a canonical harness change. If no
-approved generator is available, stop and report the bundle refresh as blocked.
-Repository tooling added under root `scripts/` is not media runtime input.
-Refresh the generated bundle only with
-`bun scripts/refresh-media-bundle.ts`; the command accepts no paths and
-verifies the complete source/bundle relationship after writing.
-
-## Focused commands
+CI cannot run (account billing), so these runs from the repository root are the gate:
 
 ```bash
-bun scripts/validate-repo.ts
-bun scripts/validate-repo.ts --json
-bun .agents/skills/self-host/workflows/selfhost/scripts/selfhost.ts catalog validate --json
-bun .agents/skills/self-host/workflows/selfhost-media/scripts/verify-bundle.ts
+export GOFLAGS=-buildvcs=false
+gofmt -l .                       # must print nothing
+go build ./... && go vet ./... && go vet -tags e2e ./e2e/
+go test ./...
+go test -race ./internal/tui/ ./internal/activity/   # plus any package with goroutines you touched
+bash -n install.sh
 ```
 
-Use `bun build path/to/changed.ts --target=bun --outfile=/dev/null` and `bash -n
-path/to/changed.sh` for changed scripts. Run only the minimal new or affected
-fixture. Do not run Docker, browser, installer, full-stack, or broad test suites
-for a focused source change.
+Never run Docker, the e2e runtime, a browser or the installer for a focused change. Add dependencies only after checking `go.mod`, and say why in the PR.
 
-`scripts/smoke-install.sh` is an explicit Bun 1.4.0+ release check. It resolves
-the `skills` package through `bunx` and verifies both default symlink and
-explicit copy layouts in disposable projects. Keep it out of ordinary local
-and CI validation.
+## Working rules
 
-When commits are requested, make small continuous commits that each leave the
-targeted gate coherent. Do not commit generated runtime, evidence, secret, or
-client-install state.
+Preserve concurrent work: check `git status` before and after edits and stage only files you own. Use conventional commits. Exploration subagents are read-only; keep their reports short and source-backed.
 
 ## Agent skills
 
-### Issue tracker
-
-Track issues and specs in GitHub Issues for `ajnart/selfhost-skills`.
-Before tracker operations, read `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use the five default triage labels.
-Before triaging, read `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Use a single context in `.agents/CONTEXT.md` with ADRs in `.agents/adr/`.
-Before codebase exploration or domain changes, read `docs/agents/domain.md`.
-The Go CLI has its own context, `new-cli/CONTEXT.md`, with ADRs in
-`new-cli/docs/adr/`.
-
-### Implementing spec #191
-
-Before working on any of its tickets, read `docs/agents/implementing.md`.
+- Issue tracker: GitHub Issues for `ajnart/selfhost-skills`. Read `docs/agents/issue-tracker.md` before tracker operations.
+- Triage labels: the five defaults. Read `docs/agents/triage-labels.md` before triaging.
+- Domain docs: one context, `CONTEXT.md`, with ADRs in `docs/adr/`. Read `docs/agents/domain.md` before exploring the code or changing the domain.
+- Spec #191 tickets: read `docs/agents/implementing.md` before working on any of them.

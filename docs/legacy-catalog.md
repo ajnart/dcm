@@ -1,8 +1,10 @@
 # The legacy catalog — what exists, where it is, and how to port it
 
+> Historical: the legacy tree this index describes was removed in #192. Read its paths with `git show e979269a:<path>`.
+
 Read this before writing any new App. The previous repo is **not dead code**. It is a
 large, verified body of knowledge about ~94 self-hosted applications, and most of it is
-machine-readable. The Go rewrite (`new-cli/`) has so far ignored it and hand-written two
+machine-readable. The Go rewrite (the Go module) has so far ignored it and hand-written two
 Apps, re-deriving facts that already exist.
 
 This document is the index to that knowledge and the porting map into the new format.

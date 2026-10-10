@@ -1,5 +1,7 @@
 # Remote Codex handoff
 
+> Historical snapshot (2026-10-07). #192 moved the Go module to the repository root and removed `.agents/`, `packages/` and the legacy `docs/`; read those paths with `git show e979269a:<path>`.
+
 Snapshot: 2026-10-07. Continue on `feat/new-cli` in private
 `ajnart/selfhost-skills`, [PR #31](https://github.com/ajnart/selfhost-skills/pull/31).
 Repository access is required. Preserve the private repository and open PR boundary;
@@ -7,13 +9,13 @@ this handoff authorizes neither merging nor changing visibility.
 
 ## Start here
 
-Fetch the branch and inspect status before editing. `new-cli/` is the Go module
-tracked by the outer repository. Use the Go version declared in `new-cli/go.mod`.
+Fetch the branch and inspect status before editing. The Go module (the `new-cli` directory until #192)
+is now the repository root. Use the Go version declared in `go.mod`.
 Read these bounded references when resuming:
 
 - `AGENTS.md`, `docs/agents/domain.md`, and `.agents/CONTEXT.md` for repository
   ownership and safety; consult the relevant `.agents/adr/` decision before changing a boundary.
-- `new-cli/CONTEXT.md` and [ADR 0002](adr/0002-one-dashboard-fixed-keybinds.md)
+- `CONTEXT.md` and [ADR 0002](adr/0002-one-dashboard-fixed-keybinds.md)
   for the agreed Go product model and TUI scope. Preserve explicit user-approved
   Go vocabulary and exposure choices where the older skill model differs.
 - [Where to look](where-to-look.md) and [legacy catalog](legacy-catalog.md)
