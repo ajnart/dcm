@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -153,6 +154,7 @@ func runInstaller(t *testing.T, server *httptest.Server, env ...string) (string,
 		t.Skipf("no release is built for %s/%s", runtime.GOOS, runtime.GOARCH)
 	}
 	cmd := exec.Command("bash", "../../install.sh")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	cmd.Env = append([]string{
 		"PATH=" + os.Getenv("PATH"),
 		"SELF_HOST_RELEASES_URL=" + server.URL + "/api",

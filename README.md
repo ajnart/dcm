@@ -1,9 +1,31 @@
 # self-host CLI
 
+Run your own apps at home, like a movie server, without learning Docker.
+
+**Using an AI assistant?** Paste this into it:
+
+> Install the self-host skill from github.com/ajnart/selfhost-skills and help me run my own movie server.
+
+**Using a terminal?** Two steps. Deploying needs Docker with the Compose v2
+plugin. Linux, macOS, or Windows through WSL.
+
+1. **Install the CLI** (it then offers to add the skill to your AI agent):
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
+2. **Run `self-host`** for the terminal Dashboard.
+
+The skill costs about 150 tokens while idle, and installing deploys nothing.
+What anonymous usage data is collected:
+[Telemetry](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
+
 Choose an App. Review its ports and folders. Let `self-host` install it, create
 its administrator account where supported, and connect it to the other Apps
-in your Project. Come back to the terminal Dashboard to open Apps, check health,
-retry Setup, update images, or make a Backup.
+in your Project. Come back to the Dashboard to open Apps, check health, retry
+Setup, update images, or make a Backup.
 
 One Go binary runs both the terminal interface and plain commands for agents.
 Apps share one Docker Compose Project, normally in `~/.self-host`. The Catalog,
@@ -12,31 +34,9 @@ Bun, checkout, or AI account. A Project made by a pre-release build in
 `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
 at one.
 
-## Quick start
-
-Two steps. Deploying needs Docker with the Compose v2 plugin. Linux, macOS, or
-Windows through WSL.
-
-1. **Install the CLI:**
-
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
-   export PATH="$HOME/.local/bin:$PATH"
-   self-host --version
-   ```
-
-2. **Add the skill to your agent** (needs Git and Bun 1.4+):
-
-   ```bash
-   bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host
-   ```
-
-Then ask your agent to use the self-host skill ("use self-host to watch my
-movies on the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in
-Codex), or run `self-host` yourself for the terminal Dashboard. Agents also load
-the skill on their own when you talk about running your own apps. The skill
-costs about 150 tokens while your agent isn't using it. Installing deploys
-nothing.
+Ask your agent to use the self-host skill ("use self-host to watch my movies on
+the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). Agents
+also load the skill on their own when you talk about running your own apps.
 
 If something fails:
 
