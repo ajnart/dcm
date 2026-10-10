@@ -363,6 +363,9 @@ func (v *dashboardView) needsAttention(ctx *viewContext) []need {
 	if ctx.status.LANIPStale {
 		items = append(items, need{broken: true, text: "LAN IP " + ctx.status.LANIP + " is not on this machine", key: "5", desc: "Host settings"})
 	}
+	if names := ctx.status.Names; names != nil && !names.Working {
+		items = append(items, need{text: names.Message, command: "self-host status --json"})
+	}
 	for _, a := range ctx.status.Apps {
 		if a.Update == service.UpdateAvailable {
 			items = append(items, appNeed(false, a.Name+" has an update", "u", "update", a.ID))
@@ -370,7 +373,7 @@ func (v *dashboardView) needsAttention(ctx *viewContext) []need {
 	}
 	for _, c := range ctx.checks {
 		// Stopped containers and a stale LAN IP are already listed above.
-		if c.Level == host.OK || c.ID == "running" || c.ID == "lan-ip" {
+		if c.Level == host.OK || c.ID == "running" || c.ID == "lan-ip" || c.ID == "easy-names" && ctx.status.Names != nil && !ctx.status.Names.Working {
 			continue
 		}
 		command := c.Hint

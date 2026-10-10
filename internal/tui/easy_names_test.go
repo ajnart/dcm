@@ -100,3 +100,12 @@ func TestGoldenEasyNames(t *testing.T) {
 		})
 	}
 }
+
+func TestStoppedNamesAppearInNeedsAttentionWithoutDoctorResults(t *testing.T) {
+	m, _ := sample(t, 120, 30)
+	m.checks = nil
+	m.status.Names = &service.NamesStatus{On: true, Problem: "binding", Message: "Easy names are stopped"}
+	if !strings.Contains(screen(m), "Easy names are stopped") {
+		t.Fatal(screen(m))
+	}
+}

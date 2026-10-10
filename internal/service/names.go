@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -17,6 +20,24 @@ import (
 const settingNames = "EASY_NAMES"
 
 const namesOn = "on"
+
+func (s *Service) validateNames(ctx context.Context, settings map[string]string, state *project.State) error {
+	if settings[settingNames] != namesOn {
+		return nil
+	}
+	if settings["EXPOSURE"] == ExposureLocal {
+		return fmt.Errorf("Easy names need Home network")
+	}
+	if check := s.checkEasyNames(ctx, settings["LAN_IP"]); !check.Available {
+		return &NamesBlocked{check}
+	}
+	for id, st := range state.Apps {
+		if st.Port == 80 {
+			return fmt.Errorf("%s already uses port 80; Easy names need it, so nothing was changed", id)
+		}
+	}
+	return nil
+}
 
 // Why Easy names cannot be turned on.
 const (
@@ -116,7 +137,7 @@ func (s *Service) ownCaddyRuns(ctx context.Context, p *project.Project) bool {
 	for _, c := range containers {
 		if c.Service == names.Service && c.State == "running" {
 			for _, pub := range c.Publishers {
-				if pub.PublishedPort == 80 && pub.TargetPort == 80 && pub.Protocol == "tcp" {
+				if pub.PublishedPort == 80 && pub.TargetPort == 80 && pub.Protocol == "tcp" && pub.URL != "127.0.0.1" && pub.URL != "::1" {
 					return true
 				}
 			}
@@ -153,7 +174,7 @@ func (ss *session) webApps() []string {
 // syncNames makes the Caddy match the settings: written and started with a
 // route per App while Easy names are on, removed otherwise. It touches Compose
 // only when there is a Caddy to start or to remove.
-func (ss *session) syncNames(ctx context.Context) error {
+func (ss *session) syncNames(ctx context.Context, start, configure bool) error {
 	if !ss.namesOn() {
 		if !ss.p.HasNames() {
 			return nil
@@ -167,9 +188,17 @@ func (ss *session) syncNames(ctx context.Context) error {
 		return ss.p.WriteRoot()
 	}
 	var routes []names.Route
+	containers, err := ss.compose.Ps(ctx)
+	if err != nil {
+		return err
+	}
+	running := map[string]bool{}
+	for _, container := range containers {
+		running[container.Service] = container.State == "running"
+	}
 	for _, id := range ss.webApps() {
 		info, _ := ss.webApp(id)
-		if a, _ := ss.s.Catalog.App(id); ss.ready(id) {
+		if a, _ := ss.s.Catalog.App(id); configure && ss.ready(id) && running[info.Service] {
 			if configurer, ok := a.(app.AccessConfigurer); ok {
 				if err := configurer.ConfigureAccess(ctx, ss.helpers(a)); err != nil {
 					return err
@@ -191,10 +220,12 @@ func (ss *session) syncNames(ctx context.Context) error {
 	if err := ss.p.WriteRoot(); err != nil {
 		return err
 	}
-	if err := ss.compose.Up(ctx, names.Service); err != nil {
-		return err
+	if start {
+		if err := ss.compose.Up(ctx, names.Service); err != nil {
+			return err
+		}
 	}
-	if changed && !fresh {
+	if changed && !fresh && ss.s.ownCaddyRuns(ctx, ss.p) {
 		return ss.compose.Restart(ctx, names.Service)
 	}
 	return nil
@@ -222,6 +253,9 @@ func (ss *session) nameHosts(ids []string) map[string]string {
 // and returns the Addresses of the ones that lead to the LAN address, by App ID.
 func (ss *session) workingNames(ctx context.Context, ids []string) (working map[string]string, failed bool) {
 	hosts := ss.nameHosts(ids)
+	if len(hosts) > 0 && ss.namesRuntimeProblem(ctx) != "" {
+		return map[string]string{}, true
+	}
 	results := make(map[string]bool, len(hosts))
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -266,6 +300,17 @@ func (ss *session) namesStatus(ctx context.Context, failed bool) *NamesStatus {
 		return nil
 	}
 	status := &NamesStatus{On: true, Working: !failed}
+	if problem := ss.namesRuntimeProblem(ctx); problem != "" {
+		status.Working, status.Problem = false, problem
+		if problem == "lan-changed" {
+			status.Message = "This computer's network address changed. Review the LAN address in Settings, then update bookmarks; use the addresses with numbers."
+		} else if problem == "lan-unavailable" {
+			status.Message = "This computer's current network address cannot be checked. Easy names are not offered; use the addresses with numbers."
+		} else {
+			status.Message = "Easy names are stopped or port 80 is unavailable. Use the addresses with numbers, or explicitly start the Project."
+		}
+		return status
+	}
 	if failed {
 		verdict := names.Diagnose(ctx, ss.s.Deps.Resolver, ss.settings["LAN_IP"])
 		if verdict == names.Working {
@@ -274,6 +319,30 @@ func (ss *session) namesStatus(ctx context.Context, failed bool) *NamesStatus {
 		status.Problem, status.Message, status.Technical = string(verdict), verdict.Sentence(), verdict.Technical()
 	}
 	return status
+}
+
+func (ss *session) namesRuntimeProblem(ctx context.Context) string {
+	current := ss.s.addresses()
+	if len(current) == 0 {
+		return "lan-unavailable"
+	}
+	if !slices.Contains(current, ss.settings["LAN_IP"]) {
+		return "lan-changed"
+	}
+	if !ss.p.HasNames() || !ss.s.ownCaddyRuns(ctx, ss.p) {
+		return "binding"
+	}
+	data, err := os.ReadFile(ss.p.NamesCaddyfilePath())
+	if err != nil {
+		return "binding"
+	}
+	for _, id := range ss.webApps() {
+		host, ok := names.Host(id, ss.settings["LAN_IP"])
+		if !ok || !strings.Contains(string(data), "http://"+host+" {") {
+			return "binding"
+		}
+	}
+	return ""
 }
 
 // addresses lists every way to open an App, friendliest first. name is its

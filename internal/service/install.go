@@ -249,6 +249,7 @@ func (s *Service) Install(ctx context.Context, opts InstallOptions) error {
 		names[i] = a.Info().ID
 	}
 	return s.run(ctx, change{
+		namesStart: func(ss *session) bool { return len(ss.state.Apps) == 0 && ss.namesOn() },
 		title:      "install " + strings.Join(names, " "),
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {

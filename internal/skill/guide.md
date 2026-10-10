@@ -266,6 +266,20 @@ the private probe with a public-IP control and a direct query to 1.1.1.1;
 `offline` and `rewritten` are different failures. A successful lookup is checked
 from this computer, not a phone or TV, and is not proof the App accepts requests.
 
+Names are promoted only when the LAN address is current and this Project's Caddy
+is configured and running with a home-network port-80 binding. A stopped Caddy
+or changed/unavailable LAN address keeps numbered Addresses and a warning in
+Needs attention. Removing Apps or retrying Setup after `down` does not start
+Access; an approved `start` does. Stopped Apps defer Access configuration until
+that start. Restore validates Access under the Project lock before replacement
+and regenerates routes without rerunning unrelated Setup.
+
+Config changes validate merged settings under the lock. If changing an origin
+would rewrite a customized Paperless-ngx or Vaultwarden fragment, the command
+refuses before changing settings or files; preserve the person's image pins,
+mounts and environment overrides. Offer manual origin editing or ask separately
+for reinstall approval, never silently reinstall to get around the refusal.
+
 sslip.io needs internet DNS and sees the LAN address in queries. A DHCP change
 breaks bookmarks: review `LAN_IP`, then update bookmarks; suggest a DHCP
 reservation. HTTP stays unencrypted; HTTPS-only Apps still need HTTPS. Nextcloud

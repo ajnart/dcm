@@ -55,8 +55,10 @@ type change struct {
 	// after runs once Compose succeeded: Setup (with Links), or only Check.
 	after afterStep // none, setup, check
 	// purge deletes the App's data folder when compose is remove.
-	purge        bool
-	namesChecked bool
+	purge          bool
+	preflight      func(context.Context, *project.Project) error
+	namesStart     func(*session) bool
+	reconcileNames bool
 }
 
 // run owns every Project mutation: it takes the lock, opens the session,
@@ -81,7 +83,11 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if p.Exists() && !c.namesChecked && c.after != afterNone && c.compose != composeStop && c.compose != composeDown {
+	if c.preflight != nil {
+		if err := c.preflight(ctx, p); err != nil {
+			return err
+		}
+	} else if p.Exists() && c.after != afterNone && c.compose != composeStop && c.compose != composeDown {
 		settings, err := p.LoadSettings()
 		if err != nil {
 			return err
@@ -107,6 +113,7 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if err != nil {
 		return err
 	}
+	startNames := c.namesStart != nil && c.namesStart(ss)
 	if err := ss.migratePrivateInputs(); err != nil {
 		return s.finish(err)
 	}
@@ -137,9 +144,9 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if werr := ss.p.WriteRoot(); werr != nil && err == nil {
 		err = werr
 	}
-	if c.after != afterNone && err == nil {
+	if (c.after != afterNone || c.reconcileNames) && err == nil {
 		if c.compose != composeStop && c.compose != composeDown {
-			err = ss.syncNames(ctx)
+			err = ss.syncNames(ctx, startNames, !c.reconcileNames)
 		}
 	}
 	if c.after != afterNone && err == nil {

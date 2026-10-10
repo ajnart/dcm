@@ -183,6 +183,18 @@ with a web page gets a route. Homarr tiles use the friendliest working Address.
 The published `IP:port` Address is always kept. Turning names off with
 `self-host config set EASY_NAMES=off` removes only the managed Caddy.
 
+Names are offered as Addresses only while the Project's Caddy has a running
+home-network port-80 binding and the stored LAN address is current. DNS success
+alone is not App acceptance. After `down`, removing an App or retrying Setup
+updates routes without starting Caddy; an explicit `start` starts Access too.
+Stopped Apps defer their Access configuration until an approved start.
+
+Access changes never silently reinstall Apps. If changing an origin would
+replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses
+before changing settings or files. Keep your image pins, mounts and environment
+overrides; update the origin manually or approve a reinstall separately. Restore
+checks Access before replacing App data and rebuilds routes without rerunning Setup.
+
 Names are **checked from this computer**, not your phone or TV. They need
 internet name lookup; a router may hide them. Status explains blocked, offline
 or rewritten lookups in plain words and keeps the numbered Addresses. Technical

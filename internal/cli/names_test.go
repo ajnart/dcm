@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -14,6 +15,7 @@ func TestEasyNamesStatusJSONKeepsTheFallbackAndLegacyFields(t *testing.T) {
 	if code, out := runWith(t, deps, cat, "config", "set", "EASY_NAMES=on"); code != 0 {
 		t.Fatalf("enable %d: %s", code, out)
 	}
+	deps.Runner.(*systemtest.Runner).On("docker compose --project-directory", system.Result{Stdout: []byte(`{"Service":"access-caddy","State":"running","Publishers":[{"URL":"0.0.0.0","TargetPort":80,"PublishedPort":80,"Protocol":"tcp"}]}`)})
 	code, out := runWith(t, deps, cat, "status", "--json")
 	var status service.Status
 	if code != 0 || json.Unmarshal([]byte(out), &status) != nil {

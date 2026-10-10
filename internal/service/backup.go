@@ -438,7 +438,40 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	fresh = false
 	replaced := false
 	err = s.run(ctx, change{
-		title: "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		title:          "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
+		reconcileNames: true,
+		namesStart:     func(*session) bool { return fresh },
+		preflight: func(ctx context.Context, p *project.Project) error {
+			archived := &project.Project{Root: staging}
+			settings, err := archived.LoadSettings()
+			if err != nil {
+				return err
+			}
+			state, err := archived.LoadState()
+			if err != nil {
+				return err
+			}
+			for _, id := range targets {
+				if state.Apps[id] == nil {
+					return fmt.Errorf("backup is missing the configuration record for %s", id)
+				}
+			}
+			if p.Exists() {
+				settings, err = p.LoadSettings()
+				if err != nil {
+					return err
+				}
+				current, err := p.LoadState()
+				if err != nil {
+					return err
+				}
+				for _, id := range targets {
+					current.Apps[id] = state.Apps[id]
+				}
+				state = current
+			}
+			return s.validateNames(ctx, settings, state)
+		},
 		initialize: func(p *project.Project) error {
 			if !all {
 				return fmt.Errorf("no Project yet; restore the whole backup first (self-host restore %s)", file)

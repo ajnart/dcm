@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/paperlessngx"
+	"github.com/ajnart/self-host/internal/apps/vaultwarden"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -24,7 +28,7 @@ func (h *harness) holdPort80(by string) {
 }
 
 func (h *harness) ownCaddyRuns() {
-	h.runner.OnFunc("docker compose", func(cmd system.Cmd) system.Result {
+	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
 		if strings.Contains(systemtest.Line(cmd), " ps --all") {
 			return system.Result{Stdout: []byte(`{"Service":"access-caddy","State":"running","Publishers":[{"URL":"0.0.0.0","TargetPort":80,"PublishedPort":80,"Protocol":"tcp"}]}` + "\n")}
 		}
@@ -301,6 +305,7 @@ func TestInstallingAndRemovingAppsKeepsTheCaddyfileInStep(t *testing.T) {
 		data, _ := os.ReadFile(filepath.Join(h.root(), "access", "caddy", "config", "Caddyfile"))
 		return string(data)
 	}
+	h.ownCaddyRuns()
 
 	if err := h.install("two"); err != nil {
 		t.Fatal(err)
@@ -374,6 +379,7 @@ func enabledNames(t *testing.T) *harness {
 	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
 		t.Fatal(err)
 	}
+	h.ownCaddyRuns()
 	return h
 }
 
@@ -435,6 +441,8 @@ func TestStatusHasNoNamesSectionWhileEasyNamesAreOff(t *testing.T) {
 
 func TestEasyNamesFollowAChangedLANAddressAndDropOldBookmarks(t *testing.T) {
 	h := enabledNames(t)
+	h.deps.LANIP = func() (string, error) { return "10.0.0.7", nil }
+	h.deps.HostIPs = func() ([]string, error) { return []string{"10.0.0.7"}, nil }
 	if err := h.svc.ConfigSet(context.Background(), []string{"LAN_IP=10.0.0.7"}); err != nil {
 		t.Fatal(err)
 	}
@@ -479,6 +487,7 @@ func TestHomarrInventoryUsesTheFriendliestWorkingAddress(t *testing.T) {
 	if err := h.install("one", "homarr"); err != nil {
 		t.Fatal(err)
 	}
+	h.ownCaddyRuns()
 	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
 		t.Fatal(err)
 	}
@@ -526,6 +535,281 @@ func TestChangingEasyNamesRecreatesOnlyAppsWhoseOriginsChange(t *testing.T) {
 		t.Fatalf("fragment %s", data)
 	}
 	assertCalls(t, h.composeCalls()[before:], []string{"up -d --remove-orphans paperless-ngx paperless-ngx-broker paperless-ngx-db", "up -d --remove-orphans access-caddy"})
+}
+
+func TestCustomizedOriginFragmentsRefuseAccessChangesBeforeAnyWrites(t *testing.T) {
+	for _, a := range []app.App{paperlessngx.App{}, vaultwarden.App{}} {
+		for _, tc := range []struct {
+			on    bool
+			pairs []string
+		}{{false, []string{"EASY_NAMES=on"}}, {true, []string{"EASY_NAMES=off"}}, {true, []string{"LAN_IP=10.0.0.7"}}} {
+			h := newHarness(t, renderOnlyApp{a}, &testApp{id: "one", done: map[string]bool{}})
+			if err := h.install(a.Info().ID, "one"); err != nil {
+				t.Fatal(err)
+			}
+			if tc.on {
+				if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			p, _ := h.svc.Project()
+			file := p.FragmentPath(a.Info().ID)
+			data, _ := os.ReadFile(file)
+			custom := strings.Replace(string(data), a.Info().Image, "example/custom:pin", 1)
+			custom = strings.Replace(custom, "    volumes:", "      CUSTOM_ENV: keep\n    volumes:\n      - ./custom:/custom", 1)
+			if err := os.WriteFile(file, []byte(custom), 0644); err != nil {
+				t.Fatal(err)
+			}
+			before, _ := p.LoadSettings()
+			beforeNames, _ := os.ReadFile(p.NamesCaddyfilePath())
+			err := h.svc.ConfigSet(context.Background(), tc.pairs)
+			if err == nil || !strings.Contains(err.Error(), "customized") {
+				t.Fatalf("error %v", err)
+			}
+			after, _ := p.LoadSettings()
+			got, _ := os.ReadFile(file)
+			afterNames, _ := os.ReadFile(p.NamesCaddyfilePath())
+			if string(got) != custom || after["LAN_IP"] != before["LAN_IP"] || after["EASY_NAMES"] != before["EASY_NAMES"] || string(afterNames) != string(beforeNames) {
+				t.Fatal("changed Project on refusal")
+			}
+		}
+	}
+}
+
+func TestDownThenRemoveOrRetryDoesNotStartEasyNames(t *testing.T) {
+	for _, action := range []string{"remove", "setup", "reinstall"} {
+		t.Run(action, func(t *testing.T) {
+			h := enabledNames(t)
+			if err := h.svc.Down(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			h.runner.On("docker compose --project-directory", system.Result{})
+			before := len(h.composeCalls())
+			var err error
+			switch action {
+			case "remove":
+				err = h.svc.Remove(context.Background(), []string{"one"}, false)
+			case "setup":
+				err = h.svc.Setup(context.Background(), []string{"one"})
+			case "reinstall":
+				err = h.install("one")
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, call := range h.composeCalls()[before:] {
+				if strings.Contains(call, "up ") && strings.Contains(call, "access-caddy") {
+					t.Fatalf("started stopped Access: %s", call)
+				}
+			}
+			data, _ := os.ReadFile(filepath.Join(h.root(), "access/caddy/config/Caddyfile"))
+			if action == "remove" && strings.Contains(string(data), "one.") {
+				t.Fatal("route retained")
+			}
+		})
+	}
+}
+
+type accessProbeApp struct {
+	*testApp
+	configure int
+}
+
+func (a *accessProbeApp) ConfigureAccess(context.Context, *helpers.H) error {
+	a.configure++
+	return nil
+}
+
+func TestStoppedNextcloudDefersAccessConfigurationUntilExplicitStart(t *testing.T) {
+	a := &accessProbeApp{testApp: &testApp{id: "nextcloud", done: map[string]bool{}}}
+	h := newHarness(t, a, &testApp{id: "two", done: map[string]bool{}})
+	if err := h.install("nextcloud"); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.Stop(context.Background(), []string{"nextcloud"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.install("two"); err != nil {
+		t.Fatal(err)
+	}
+	if a.configure != 0 {
+		t.Fatalf("configured stopped Nextcloud %d times", a.configure)
+	}
+	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		if strings.Contains(systemtest.Line(cmd), " ps --all") {
+			return system.Result{Stdout: []byte(`{"Service":"nextcloud","State":"running"}`)}
+		}
+		return system.Result{}
+	})
+	if err := h.svc.Start(context.Background(), []string{"nextcloud"}); err != nil {
+		t.Fatal(err)
+	}
+	if a.configure != 1 {
+		t.Fatalf("pending Access not configured: %d", a.configure)
+	}
+}
+
+func TestNamesFallBackWhenCaddyStopsOrLANChangesDespiteWorkingDNS(t *testing.T) {
+	for _, problem := range []string{"binding", "down", "configuration", "lan-changed", "lan-unavailable"} {
+		h := enabledNames(t)
+		h.ownCaddyRuns()
+		if problem == "binding" {
+			h.runner.On("docker compose --project-directory", system.Result{})
+		} else if problem == "down" {
+			if err := h.svc.Down(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			h.runner.On("docker compose --project-directory", system.Result{})
+		} else if problem == "configuration" {
+			if err := os.WriteFile(filepath.Join(h.root(), "access/caddy/config/Caddyfile"), []byte("old configuration"), 0644); err != nil {
+				t.Fatal(err)
+			}
+		} else if problem == "lan-changed" {
+			h.deps.LANIP = func() (string, error) { return "10.0.0.7", nil }
+			h.deps.HostIPs = func() ([]string, error) { return []string{"10.0.0.7"}, nil }
+		} else {
+			h.deps.LANIP = func() (string, error) { return "", errors.New("unavailable") }
+			h.deps.HostIPs = func() ([]string, error) { return nil, errors.New("unavailable") }
+		}
+		status, err := h.svc.Status(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := problem
+		if problem == "down" || problem == "configuration" {
+			want = "binding"
+		}
+		if status.Names.Working || status.Names.Problem != want || status.Apps[0].URL != "http://192.168.1.20:9000" || len(status.Apps[0].Addresses) != 1 {
+			t.Fatalf("status %+v", status)
+		}
+	}
+}
+
+func TestHomarrInventoryKeepsNumberedAddressesWhenCaddyIsUnavailable(t *testing.T) {
+	dashboard := &inventoryProbeApp{testApp: &testApp{id: "homarr", done: map[string]bool{}}, inspect: true}
+	h := newHarness(t, dashboard, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one", "homarr"); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range dashboard.installed {
+		if item.ID == "one" && item.URL != "http://192.168.1.20:9000" {
+			t.Fatalf("tile %+v", item)
+		}
+	}
+}
+
+func TestQueuedLANChangeRevalidatesNamesEnabledByTheLockOwner(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one"); err != nil {
+		t.Fatal(err)
+	}
+	inspecting, release, waiting := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var inspected sync.Once
+	h.deps.PortFree = func(port int) bool {
+		if port == 80 {
+			inspected.Do(func() { close(inspecting); <-release })
+		}
+		return true
+	}
+	ctx := &queuedNamesContext{Context: context.Background(), entered: waiting}
+	enabled, invalid := make(chan error, 1), make(chan error, 1)
+	go func() { enabled <- h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}) }()
+	<-inspecting
+	go func() { invalid <- h.svc.ConfigSet(ctx, []string{"LAN_IP=192.0.0.2"}) }()
+	<-waiting
+	close(release)
+	if err := <-enabled; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-invalid; err == nil {
+		t.Fatal("queued invalid LAN change succeeded")
+	}
+	p, _ := h.svc.Project()
+	settings, _ := p.LoadSettings()
+	if settings["EASY_NAMES"] != "on" || settings["LAN_IP"] != "192.168.1.20" {
+		t.Fatalf("settings %v", settings)
+	}
+}
+
+type queuedNamesContext struct {
+	context.Context
+	entered chan struct{}
+	once    sync.Once
+}
+
+func (c *queuedNamesContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.entered) })
+	return c.Context.Done()
+}
+
+func TestRestoreRebuildsNamesWithoutSetupAndRejectsPortConflictBeforeReplacement(t *testing.T) {
+	for _, fresh := range []bool{true, false} {
+		t.Run(fmt.Sprint(fresh), func(t *testing.T) {
+			source := newHarness(t, &testApp{id: "one", done: map[string]bool{}}, &testApp{id: "two", done: map[string]bool{}})
+			if err := source.install("one", "two"); err != nil {
+				t.Fatal(err)
+			}
+			if err := source.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+				t.Fatal(err)
+			}
+			file, err := source.svc.Backup(context.Background(), nil, filepath.Join(t.TempDir(), "names.tar.zst"), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			h := newHarness(t, &testApp{id: "one", done: map[string]bool{}}, &testApp{id: "two", done: map[string]bool{}})
+			var targets []string
+			if !fresh {
+				targets = []string{"one"}
+			}
+			if !fresh {
+				if err := h.install("one"); err != nil {
+					t.Fatal(err)
+				}
+				if err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"}); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(h.root(), "apps/one/marker"), []byte("preserve"), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			h.holdPort80("occupied")
+			if err := h.svc.Restore(context.Background(), file, targets, ""); err == nil {
+				t.Fatal("restore accepted port conflict")
+			}
+			p, _ := h.svc.Project()
+			if fresh && p.Exists() {
+				t.Fatal("fresh Project initialized on refusal")
+			}
+			if !fresh {
+				data, _ := os.ReadFile(filepath.Join(h.root(), "apps/one/marker"))
+				if string(data) != "preserve" {
+					t.Fatal("data replaced on refusal")
+				}
+			}
+			h.deps.PortFree = func(int) bool { return true }
+			if !fresh {
+				if err := h.svc.Remove(context.Background(), []string{"one"}, false); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := h.svc.Restore(context.Background(), file, targets, ""); err != nil {
+				t.Fatal(err)
+			}
+			data, _ := os.ReadFile(p.NamesCaddyfilePath())
+			if !strings.Contains(string(data), "one.192-168-1-20.sslip.io") || !p.HasNames() {
+				t.Fatalf("routes %s", data)
+			}
+			if e := h.rec.find("one", "configure"); fresh && e != nil {
+				t.Fatal("Restore reran Setup")
+			}
+		})
+	}
 }
 
 func TestDoctorExplainsBlockedEasyNamesInPlainWords(t *testing.T) {
