@@ -69,6 +69,8 @@ The end card holds 4 s (bars 14-15) on the final hit and its ring-out, and every
   less than fully opaque, overlapped, off screen, outside the 56 px safe margin, changing text or moving by
   more than 0.6 px. Every other visible text sits under `[data-deco]` (the TUI and Homarr mock-ups, the flag
   wall, the meter while it counts, spinners) or lint fails on it.
+- **Retired wording.** No rendered text, at any time, contains "Exposure" (now Access) or "new-cli/". The real
+  `--exposure` flag in the flag wall is lower case and stays.
 - **Determinism.** Frames revisited out of order and on a fresh page must match (30 dB PSNR floor).
 
 | Hold (s)    | Have ≥ need | Text                                                                                                  |
@@ -94,12 +96,12 @@ The end card holds 4 s (bars 14-15) on the final hit and its ring-out, and every
 | 20.26-25.99 | 5.73 ≥ 1.40 | Just ask your agent. · One skill. Every agent. (20.76) · the six agent names                          |
 | 20.70-25.99 | 5.29 ≥ 2.65 | I want to watch my movies on the TV.                                                                  |
 | 21.20-25.99 | 4.79 ≥ 1.40 | self-host apps list --json · 20 Recipes (21.65)                                                       |
-| 21.70-25.99 | 4.29 ≥ 1.40 | The plan: Recipe owned-video-library · Dashboard Homarr · Exposure Local network only                 |
+| 21.70-25.99 | 4.29 ≥ 1.40 | The plan: Recipe owned-video-library · Dashboard Homarr · Access Home network                          |
 | 21.70-22.49 | 0.79 ≥ 0.40 | Approve & install, then Approved (22.50-25.99)                                                        |
 | 22.70-25.99 | 3.29 ≥ 1.40 | $ self-host install owned-video-library homarr --yes --json                                           |
 | 23.70-25.99 | 2.29 ≥ 1.40 | All set. · http://192.168.1.20:7575 · Admin login: self-host credentials                              |
 | each 0.41   | 0.41 ≥ 0.40 | Your hardware. · Your rules. · No rent. · Your data.                                                  |
-| 28.70-32.00 | 3.30 ≥ 1.40 | $ curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/new-cli/install.sh \| bash |
+| 28.70-32.00 | 3.30 ≥ 1.40 | $ curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh \| bash            |
 | 29.20-32.00 | 2.80 ≥ 2.40 | Claude Code · Codex · OpenChamber · Hermes Agent · OpenCode · Pi                                      |
 | 29.70-32.00 | 2.30 ≥ 1.90 | 93 Apps · 20 Recipes · 1 binary                                                                       |
 
@@ -107,21 +109,22 @@ Each agent's name in the chat header holds its two beats (Pi: 25.00-25.99).
 
 ## Facts on screen, and where they come from
 
-- **93 Apps, 20 Recipes:** `self-host apps list --json` from a binary built from `new-cli/` on 2026-10-10
+- **93 Apps, 20 Recipes:** `self-host apps list --json` from a binary built from `origin/main` (repository root) on 2026-10-10
   (93 `apps`, 20 `recipes`).
 - **Replacements:** each pairing matches the App's Catalog description. Netflix → Jellyfin, Spotify → Navidrome,
   Drive → Nextcloud (the `files` Recipe replaces Google Drive and Dropbox), Dropbox → Syncthing, Google Photos →
   Immich, 1Password → Vaultwarden, Notion → Docmost, ChatGPT → Open WebUI. Prices are the ones the previous cut
   showed; their sum, $92, is what the meter counts.
-- **Links:** `new-cli/internal/apps/arr/links.go` (Sonarr and Radarr add qBittorrent as their download client
+- **Links:** `internal/apps/arr/links.go` (Sonarr and Radarr add qBittorrent as their download client
   with the Admin login; Prowlarr syncs indexers to Sonarr and Radarr with their API keys), `apps/seerr/seerr.go`
   (Seerr sends requests to Sonarr and Radarr with their API keys) and `apps/homarr/links.go` (Homarr adds a
   Jellyfin app tile, an integration holding its API key, and its widgets).
-- **Agent demo:** `new-cli/internal/skill/guide.md`, "New users": to watch movies they own, recommend
-  `owned-video-library` plus `homarr`, Exposure `lan` (shown as "Local network only"), show the plan, get
-  approval, run `self-host install <recipe> --yes --json`, and point to `self-host credentials` rather than
-  pasting the login.
-- **Install line:** `new-cli/install.sh` on `main`, as in the README.
+- **Agent demo:** `internal/skill/guide.md`, "Every conversation": pick the Recipe or Apps from `self-host apps list`,
+  show the plan in goals and Apps, get approval, run `self-host install <app|recipe>... --yes --json`, and point to
+  `self-host credentials` rather than pasting the login. Both `owned-video-library` and `homarr` are in the Catalog
+  on `main`. Access is shown as "Home network" (the default, stored as `EXPOSURE=lan`; `CONTEXT.md`, Access).
+- **Install line:** `install.sh` at the repository root on `main`, as in the README. The repository name lives in one
+  constant, `END_INSTALL` in `end.js`, so the planned rename to `ajnart/selfhost` is a one-line change.
 - **Agent logos:** `assets/agents/SOURCES.md`.
 
 ## Sound
