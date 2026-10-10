@@ -1,0 +1,169 @@
+CONTEXT.md
+  s_59ffa5bfdcd3ba::t_4d13c9d84ccec9 82-83,95,251-253
+README.md
+  s_59ffa5bfdcd3ba::t_de750345ca14d0 167-198,209-216,290-298,396-406,495-503
+internal/app/app.go
+  s_8b1d5a69f175a9::t_739befce5628fb 45-47,135-138
+internal/apps/nextcloud/nextcloud.go
+  s_8b1d5a69f175a9::t_55e481eb883990 9,11,13,19,165-167,179-208,210-216,227-255
+internal/apps/nextcloud/nextcloud_test.go
+  s_59ffa5bfdcd3ba::t_aafa396713deae 15,124-164
+internal/apps/paperlessngx/access_test.go
+  s_8b1d5a69f175a9::t_452105baa5b5a9 1-18
+internal/apps/paperlessngx/paperlessngx.go
+  s_8b1d5a69f175a9::t_971c11968fedec 16,52-57,63
+internal/apps/vaultwarden/access_test.go
+  s_59ffa5bfdcd3ba::t_de484364ad30f2 1-18
+internal/apps/vaultwarden/vaultwarden.go
+  s_8b1d5a69f175a9::t_2064cb45cb270f 16,43-48,56
+internal/cli/install.go
+  s_59ffa5bfdcd3ba::t_bace6471275d87 44,153-159,164-166,183-187
+internal/cli/names_test.go
+  s_8b1d5a69f175a9::t_76080030c6872b 1-37
+internal/names/names.go
+  s_8b1d5a69f175a9::t_4685eb6c02ea65 104-105,108-110
+internal/names/names_test.go
+  s_59ffa5bfdcd3ba::t_8abf218683e2f7 147-170
+internal/project/render.go
+  s_59ffa5bfdcd3ba::t_77a68e3a0612ee 35-37,104-106
+internal/project/render_test.go
+  s_59ffa5bfdcd3ba::t_beada7c99487aa 107-114
+internal/service/doctor.go
+  s_8b1d5a69f175a9::t_59e9cccad7096c 41-47,59-61
+internal/service/host.go
+  s_8b1d5a69f175a9::t_a58c34a82add93 52-55,59,108
+internal/service/install.go
+  s_8b1d5a69f175a9::t_6185418cd9e50a 243-244,295,300,443-445,458
+internal/service/lifecycle.go
+  s_59ffa5bfdcd3ba::t_42db77503dc882 8,14,184,213-221,225-229,232-236,248,250-251,253,260-277,289,297-299
+internal/service/mutation.go
+  s_59ffa5bfdcd3ba::t_aeb3adb82c3dc6 58-59,84-94
+internal/service/names.go
+  s_59ffa5bfdcd3ba::t_588912348678fe 63-67,69-72,80,84-91,97,99,102,118-122,172-178,272
+internal/service/names_test.go
+  s_59ffa5bfdcd3ba::t_42d00fa0882606 12-13,56,107-114,435-566
+internal/skill/guide.md
+  s_59ffa5bfdcd3ba::t_0bb3a6c393d3b5 34,73,100-126,133,152-162,167-180,220-221,227,233-259,268
+internal/system/real.go
+  s_59ffa5bfdcd3ba::t_28b1c5c38ffd7e 92,189-211,220-222
+internal/system/system.go
+  s_8b1d5a69f175a9::t_b174bca136e01a 84-85
+internal/tui/access.go
+  s_59ffa5bfdcd3ba::t_1af038cd401f9b 63,65-66,68,70,76-80,82,84-87
+internal/tui/access_test.go
+  s_8b1d5a69f175a9::t_a2f34824a3a774 35-36,47,117,175,185
+internal/tui/backend.go
+  s_59ffa5bfdcd3ba::t_d5e8063c622c6b 17,241,246-248
+internal/tui/easy_names_test.go
+  s_59ffa5bfdcd3ba::t_f86b0e97e128c5 1-102
+internal/tui/model.go
+  s_59ffa5bfdcd3ba::t_b6baaa2d67e7e0 404-406
+internal/tui/onboarding.go
+  s_59ffa5bfdcd3ba::t_b2b5a23dbc3eee 49-51,100,453,473-475,640,678-680,948-949,987-989
+internal/tui/onboarding_test.go
+  s_8b1d5a69f175a9::t_b3e157eb46b580 783,819,832,871
+internal/tui/settings.go
+  s_8b1d5a69f175a9::t_6c0d53b432edb2 61,103,177-185,220-222,259-261,414-416,472-476,663,666,719-721
+internal/tui/settings_test.go
+  s_8b1d5a69f175a9::t_eea888c74fc163 209,283,337
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  s_8b1d5a69f175a9::t_3bd6395ffd5f18 1-24
+internal/tui/testdata/easy-names-onboarding.golden
+  s_8b1d5a69f175a9::t_4bd61a52b65eda 1-30
+internal/tui/testdata/easy-names-pending-narrow.golden
+  s_8b1d5a69f175a9::t_56a8f5c9ee66c4 1-24
+internal/tui/testdata/easy-names-pending.golden
+  s_59ffa5bfdcd3ba::t_0a42d4d4ec0c6b 1-30
+internal/tui/testdata/easy-names-technical-narrow.golden
+  s_8b1d5a69f175a9::t_d4ea3b71579c3d 1-24
+internal/tui/testdata/easy-names-technical.golden
+  s_59ffa5bfdcd3ba::t_faa8acdcc7f8f2 1-30
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_3e406d7d9c5ab2 10
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_bc30ca68da3cbe 10
+internal/tui/testdata/onboarding-access-coming-soon-note-narrow.golden
+  s_8b1d5a69f175a9::t_56166efc682702 10
+internal/tui/testdata/onboarding-access-coming-soon-note.golden
+  s_8b1d5a69f175a9::t_ed6cdf6ff716fe 10
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_1316b763171e3b 10
+internal/tui/testdata/onboarding-access-custom.golden
+  s_8b1d5a69f175a9::t_8d100eb839897e 10
+internal/tui/testdata/onboarding-access-names-help-narrow.golden
+  s_8b1d5a69f175a9::t_56443e96bd9bca 5-8,10-12,15-20
+internal/tui/testdata/onboarding-access-names-help.golden
+  s_8b1d5a69f175a9::t_f193bacf9593d0 5-8,10-11,14-20,22-25
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_de2985f732cb68 10,15-17,19,23
+internal/tui/testdata/onboarding-access-names.golden
+  s_8b1d5a69f175a9::t_2bcca0afb5310f 10,15-16,18,29
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_8b1d5a69f175a9::t_0bdb7fe9de4f73 10
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_db878a6cad41d9 10
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_8b1d5a69f175a9::t_7e9640cb6a5183 10
+internal/tui/testdata/onboarding-access.golden
+  s_8b1d5a69f175a9::t_68267982996f94 10
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_be909b3522e844 5
+internal/tui/testdata/settings-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_d61af1ba0e8e0b 5
+internal/tui/testdata/settings-access-coming-soon-note-narrow.golden
+  s_8b1d5a69f175a9::t_43b02f353c79a4 5
+internal/tui/testdata/settings-access-coming-soon-note.golden
+  s_8b1d5a69f175a9::t_31de9b768ece31 5
+internal/tui/testdata/settings-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_9bab3306bc7065 5
+internal/tui/testdata/settings-access-custom.golden
+  s_8b1d5a69f175a9::t_c367ffcd4e642a 5
+internal/tui/testdata/settings-access-home-narrow.golden
+  s_8b1d5a69f175a9::t_16c72986a90357 5
+internal/tui/testdata/settings-access-home.golden
+  s_8b1d5a69f175a9::t_0682ca3c213502 5
+internal/tui/testdata/settings-access-local-narrow.golden
+  s_8b1d5a69f175a9::t_89b2707641d6a1 6
+internal/tui/testdata/settings-access-local.golden
+  s_8b1d5a69f175a9::t_dc668e8d8eca83 6
+internal/tui/testdata/settings-access-names-help-narrow.golden
+  s_8b1d5a69f175a9::t_7d32b761d096aa 5-8,10-12,15-20
+internal/tui/testdata/settings-access-names-help.golden
+  s_8b1d5a69f175a9::t_83a29e60194816 5-8,10-11,14-20,22-25
+internal/tui/testdata/settings-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_470484becf0fc7 5,10-12,14,23
+internal/tui/testdata/settings-access-names.golden
+  s_8b1d5a69f175a9::t_92be5120db1c30 5,10-11,13,29
+internal/tui/testdata/settings-access-pending-narrow.golden
+  s_8b1d5a69f175a9::t_68bfd74997dc24 5
+internal/tui/testdata/settings-access-pending.golden
+  s_8b1d5a69f175a9::t_d42d12c33d945a 5
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_237afe7be06091 5
+internal/tui/testdata/settings-access-tailscale.golden
+  s_8b1d5a69f175a9::t_08ca6b9a77e810 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1bb392ef9de8de75a84fb5f23850a24023029f43",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
