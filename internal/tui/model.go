@@ -633,8 +633,8 @@ func (m Model) openHelp() (tea.Model, tea.Cmd) {
 }
 
 // contextHelp is the help page of what has the focus, where there is one and
-// the focus is not a text input: Exposure, in Onboarding's Where and in
-// Settings' Host.
+// the focus is not a text input: an Access option, in Onboarding's Access
+// step and Settings' Access sub-tab.
 func (m Model) contextHelp() (helpPage, bool) {
 	if m.onboardingShown() {
 		return m.onboarding.helpPage()

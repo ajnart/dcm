@@ -1,0 +1,24 @@
+ ◆ self-host                                                              v1.0.0
+
+  From anywhere, privately
+
+  ╭──────────────────╮      ╭─────────────────╮      ╭───────────────╮
+  │ your phone or    │──────│ Tailscale       │──────│ this computer │
+  │ laptop, anywhere │      │ private network │      │ private name  │
+  ╰──────────────────╯      ╰────────┬────────╯      ╰───────────────╯
+                                internet ✗
+
+  Tailscale will let you open your Apps from your own phone, laptop or TV
+  wherever you are, over a private network only your devices join.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and
+  choosing it changes nothing.
+
+  What is Tailscale?
+  A service that joins your own devices into one private network, wherever
+  they are. Only devices you sign in can see your Apps.
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                              ↑/↓  scroll   esc/?  close

@@ -89,7 +89,7 @@ func (a *program) configReviewCmd() *cobra.Command {
 		Use:   "review",
 		Short: "Compare Host settings with this machine now and fix what drifted (LAN IP, time zone)",
 		Long: "Re-confirms the onboarding choices of an existing Project. Installed Apps, their data and secrets are kept;\n" +
-			"only the Apps that use a changed setting are recreated. Change Exposure or folders with: self-host config set KEY=value",
+			"only the Apps that use a changed setting are recreated. Change Access or folders with: self-host config set KEY=value",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a.document = true

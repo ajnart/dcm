@@ -49,7 +49,7 @@ is installed, what each App is for, where to open it and where everything lives.
 Decide who you are talking to from how they talk, and keep that register.
 
 - **New**: states a goal in plain words ("I want to watch my movies on the TV").
-- **Advanced**: names Apps, ports, Exposure or folders.
+- **Advanced**: names Apps, ports, Access or folders.
 
 When unclear, ask at most one short question. Never quiz a newcomer on settings.
 
@@ -58,13 +58,13 @@ When unclear, ask at most one short question. Never quiz a newcomer on settings.
 1. Recommend a Recipe, or one or two Apps, that meets the goal (read
    `self-host apps list --json`). To watch movies they already own that is
    `owned-video-library` plus `homarr`; add `media` only when they also want to
-   request and download. Use the catalog defaults: Exposure `lan`, the default media and
-   downloads folders, a generated Admin login. Homarr is the dashboard.
+   request and download. Use the catalog defaults: Access Home network (`lan`), the default media
+   and downloads folders, a generated Admin login. Homarr is the dashboard.
 2. Explain each App in one plain sentence (its `description`). Explain
-   Exposure in plain words: devices on the same Wi-Fi or router can open the
+   Access in plain words: devices on the same Wi-Fi or router can open the
    Apps at this computer's LAN address; nothing is opened to the internet.
 3. If the person sits at the machine's terminal, suggest they run `self-host`
-   themselves. Onboarding asks What, Where, Who, Look and Review, explains
+   themselves. Onboarding asks What, Where, Access, Who, Look and Review, explains
    every question, writes nothing until they approve Review, and plays a
    pre-boot screen while the images download.
 4. Otherwise show the plan, get approval, then run
@@ -105,7 +105,7 @@ only then pass `--yes`. `--yes` is authorization, never a preview flag.
 | `self-host doctor` | Host, Docker and per-App checks (see "Doctor checks") |
 | `self-host install <app\|recipe>...` | Install Apps or Recipes and run Setup |
 | `self-host setup [app...]` | Rerun Setup; finished steps are skipped |
-| `self-host status` | A plain summary, then Exposure, Host settings, every App's URL, state, Setup |
+| `self-host status` | A plain summary, then Access, Host settings, every App's URL, state, Setup |
 | `self-host profile set experience <new\|advanced>` | Save the person's Experience level in the Profile. `self-host profile` shows the Profile (`--json` for agents; `experience` is empty until answered, treat it as new); it works before any Project exists |
 | `self-host debug <app>` | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check |
 | `self-host credentials` | Admin login and per-App API keys |
@@ -206,15 +206,20 @@ hand off:
    `step.skip`. Container liveness or an HTTP 200 does not prove Setup worked;
    check `self-host status --json`.
 
-## Reachability and Exposure
+## Reachability and Access
 
-Exposure is `lan` (the default) or `local`. `lan` publishes every App's port on
-`0.0.0.0`, so other devices on the network can connect; `local` publishes on
-`127.0.0.1`, so only this machine can. `LAN_IP` only builds the links people
-open; it never decides who can connect. Exposure explains most "I can't reach
-it from my TV or phone" reports, and `self-host status` shows it first.
-Tailscale, Cloudflare Tunnel and HTTPS with Caddy appear in the Dashboard as
-"coming soon" and cannot be set. To switch, run
+Access is how people open the Apps. Onboarding's Access step and Settings'
+Access sub-tab offer Home network (the default), Easy names at home, From
+anywhere privately, Your own web address and Bring your own, each with a
+diagram and a help page. Only Home network exists yet; the others show "coming
+soon" and choosing one changes nothing. Home network is stored as `EXPOSURE=lan`
+and publishes every App's port on `0.0.0.0`, so other devices on the network
+can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
+instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
+builds the links people open; it never decides who can connect. Access explains
+most "I can't reach it from my TV or phone" reports, and `self-host status` shows
+it first: `status --json` has `access` (a list: `home` or `local`) beside the
+older `exposure` (`lan` or `local`). To switch, run
 `self-host config set EXPOSURE=lan` (or `local`). Never open ports to the
 internet; public access is the user's decision and needs their own reverse
 proxy or VPN.

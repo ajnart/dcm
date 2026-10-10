@@ -83,6 +83,7 @@ func backupsHost(t *testing.T, width, height int) (Model, *fakeBackend) {
 	m = drive(t, m, press("5"))
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
+	m = drive(t, m, press("]"))
 	return m, backend
 }
 
@@ -105,6 +106,7 @@ func TestBackupsListShowsDateSizeAndWhetherEachIsEncrypted(t *testing.T) {
 func TestBackupsListSaysWhenThereAreNone(t *testing.T) {
 	m, _ := sample(t, 120, 30)
 	m = drive(t, m, press("5"))
+	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
 
@@ -482,6 +484,7 @@ func TestALongArchiveListScrollsToKeepTheCursorInView(t *testing.T) {
 			Created: time.Date(2026, 9, 10+i, 9, 0, 0, 0, time.Local), Apps: []string{"jellyfin"}})
 	}
 	m = drive(t, m, press("5"))
+	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
 	m = drive(t, m, press("]"))
 

@@ -41,10 +41,10 @@ func (s *Service) Doctor(ctx context.Context) []host.Check {
 
 	lan := status.Exposure != ExposureLocal
 	if lan {
-		checks = append(checks, host.Check{ID: "exposure", Title: "Exposure", Level: host.OK,
-			Detail: "local network: other devices connect to " + status.LANIP}, s.lanCheck(ss.settings))
+		checks = append(checks, host.Check{ID: "exposure", Title: "Access", Level: host.OK,
+			Detail: "Home network: other devices connect to " + status.LANIP}, s.lanCheck(ss.settings))
 	} else {
-		checks = append(checks, host.Check{ID: "exposure", Title: "Exposure", Level: host.Warn,
+		checks = append(checks, host.Check{ID: "exposure", Title: "Access", Level: host.Warn,
 			Detail: "this machine only: other devices cannot connect (TVs, phones, other computers)",
 			Hint:   "To reach Apps from other devices run: self-host config set EXPOSURE=lan"})
 	}
@@ -92,11 +92,11 @@ func (s *Service) appChecks(ctx context.Context, app AppStatus, byService map[st
 	case lan && loopback:
 		checks = append(checks, host.Check{ID: "binding", App: id, Title: "Port", Level: host.Fail,
 			Detail: fmt.Sprintf("port %d is bound to %s, so other devices cannot connect", app.Port, bind),
-			Hint:   "Recreate it with the current Exposure: self-host start " + id})
+			Hint:   "Recreate it with the current Access: self-host start " + id})
 	case !lan && !loopback:
 		checks = append(checks, host.Check{ID: "binding", App: id, Title: "Port", Level: host.Warn,
-			Detail: fmt.Sprintf("port %d is bound to %s although Exposure is this machine only", app.Port, bind),
-			Hint:   "Recreate it with the current Exposure: self-host start " + id})
+			Detail: fmt.Sprintf("port %d is bound to %s although Access is this machine only", app.Port, bind),
+			Hint:   "Recreate it with the current Access: self-host start " + id})
 	default:
 		checks = append(checks, host.Check{ID: "binding", App: id, Title: "Port", Level: host.OK,
 			Detail: fmt.Sprintf("port %d bound to %s", app.Port, bind)})

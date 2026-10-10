@@ -206,10 +206,16 @@ Apps and shows the highlighted item's description. Picking a Recipe picks its
 Apps, which you can untick one by one, and its mark shows whether all, some or
 none are picked; an App that needs answers
 of its own asks them next. **Where** explains each field in a line while it is
-focused: the LAN address, Exposure (a plain explanation and a small diagram that
-follow the highlighted choice), the Host settings and, only for media Apps, the
-media and downloads folders. On the Exposure choice `?` opens a longer help page
-(`esc` or `?` closes it); in a text input `?` types a question mark. Exposure also lists Tailscale, Cloudflare Tunnel and HTTPS with Caddy, dimmed and marked coming soon: the highlight explains them, `enter` only says they are coming soon, and Exposure stays `lan` or `local`. In Settings, `enter` on the EXPOSURE row opens the same list. **Who** sets the one Admin login for every App: a password
+focused: the LAN address, the Host settings and, only for media Apps, the
+media and downloads folders. **Access** ("How you'll open your Apps") lists Home
+network (the default), Easy names at home, From anywhere privately, Your own web
+address and Bring your own, each with a plain explanation and a small diagram
+that follow the highlighted option. `?` opens a longer help page that ends with
+its technical details (`esc` or `?` closes it); in a text input `?` types a
+question mark. Only Home network exists yet: the others are dimmed and marked
+coming soon, `enter` on one only says so, and nothing changes. In Settings, the
+Access sub-tab offers the same list; `enter` makes a choice pending and `ctrl+s`
+applies it. **Who** sets the one Admin login for every App: a password
 of your own, or leave it empty and self-host generates one, kept with the
 Project and shown by `self-host credentials`; the password is always masked.
 **Look** shows a sample of the Nerd Font icons and asks whether they look
@@ -240,11 +246,11 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | --- | --- |
 | 1–5, ←/→ | Switch tabs. |
 | ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. |
-| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Appearance, Backups, Tools, About). |
+| [ and ] | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About). |
 | a, A | Open the Action menu for the selected App (or Needs attention item), or for the whole Project. |
 | enter, o, c | Open the selected App in the Apps tab (there, focus its details); open its URL; choose a password or API key to copy. |
 | / | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog. |
-| ?, q | Help; quit. On Settings' Host sub-tab, `?` on the EXPOSURE row opens the Exposure help page instead of the key reference (`esc` or `?` closes it). |
+| ?, q | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
 Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
@@ -302,7 +308,7 @@ Run `self-host skill` to get the guide matching the installed binary.
 The repository's one public skill, `skills/self-host/SKILL.md`, is the
 agent entry point and routes to that guide.
 
-Inspect first, agree on the Apps and Exposure, then apply the approved selection:
+Inspect first, agree on the Apps and Access, then apply the approved selection:
 
 ```bash
 self-host doctor --json
@@ -374,7 +380,7 @@ retired without established ownership and approval.
 For one broken App, `self-host debug <app>` (or `--json`) prints its state,
 failed steps with hints, the last 100 log lines with secrets masked, and its
 health-check URL. Start with `self-host status` and `self-host doctor`. Check the recorded
-Exposure and URL, Docker availability, published ports, and the host firewall.
+Access and URL, Docker availability, published ports, and the host firewall.
 `local` binds to loopback. To deliberately allow LAN access:
 
 ```bash

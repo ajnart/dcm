@@ -1,0 +1,30 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings   ◐ 1 warning   LAN 192.168.1.20  .self-host 12:00:00
+
+  From anywhere, privately
+
+  ╭──────────────────╮      ╭─────────────────╮      ╭───────────────╮
+  │ your phone or    │──────│ Tailscale       │──────│ this computer │
+  │ laptop, anywhere │      │ private network │      │ private name  │
+  ╰──────────────────╯      ╰────────┬────────╯      ╰───────────────╯
+                                internet ✗
+
+  Tailscale will let you open your Apps from your own phone, laptop or TV wherever you are, over a
+  private network only your devices join.
+
+  Not available yet
+  This option is coming soon. For now your Apps stay where they are, and choosing it changes
+  nothing.
+
+  What is Tailscale?
+  A service that joins your own devices into one private network, wherever they are. Only devices
+  you sign in can see your Apps.
+
+  The internet
+  Your Apps stay closed to everyone else on the internet.
+
+  Changing it later
+  Everything here can be changed later in Settings, under Access.
+
+  ↑/↓ scroll · esc or ? closes · more below ↓
+
+ help · esc or ? closes                                                                      ↑/↓  scroll   esc/?  close

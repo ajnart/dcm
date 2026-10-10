@@ -66,13 +66,16 @@ func TestSettingsViewWithoutAModel(t *testing.T) {
 	ctx := testViewContext(&fakeBackend{})
 	v := newSettingsView(ctx)
 
-	for _, k := range []string{"space", "down", "enter"} {
+	ctx.status.Exposure = service.ExposureLocal
+	v = newSettingsView(ctx)
+
+	for _, k := range []string{"]", "enter"} {
 		next, _, _ := v.Update(ctx, press(k))
 		v = next.(*settingsView)
 	}
 
-	if pairs := v.pairs(); len(pairs) != 1 || pairs[0] != "EXPOSURE=local" {
-		t.Fatalf("choosing Only this computer on EXPOSURE should pend local: %v", pairs)
+	if pairs := v.pairs(); len(pairs) != 1 || pairs[0] != "EXPOSURE=lan" {
+		t.Fatalf("choosing Home network on the Access sub-tab should pend lan: %v", pairs)
 	}
 }
 

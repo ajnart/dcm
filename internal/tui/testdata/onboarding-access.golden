@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
+
+  How you'll open your Apps
+  Choose how phones, TVs and laptops will open your Apps. Home network needs nothing to set up.
+  You can change this later in Settings, under Access.
+
+  > ● Home network (default)
+    ○ Easy names at home · coming soon
+    ○ From anywhere, privately · coming soon
+    ○ Your own web address · coming soon
+    ○ Bring your own · coming soon
+
+  Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
+  192.168.1.20. Nobody on the internet can.
+
+  phones · TVs · laptops ──── router ──── this computer 192.168.1.20
+                                 │
+                            internet ✗
+
+
+
+
+
+
+
+
+
+ q quit                                                                  ↑/↓  choose   enter  use   esc  back   ?  more

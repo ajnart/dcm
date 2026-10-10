@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+  Host   Access   Appearance   Backups   Tools   About
+╭─ Access ─────────────────────────────────────────────────────────────────────╮
+│   ● Home network (default)                                                   │
+│   ○ Easy names at home · coming soon                                         │
+│   ○ From anywhere, privately · coming soon                                   │
+│   ○ Your own web address · coming soon                                       │
+│ > ○ Bring your own · coming soon                                             │
+│                                                                              │
+│   Already run a reverse proxy such as SWAG or Pangolin? self-host will tell  │
+│   it where each App lives, and you stay in charge of names, certificates and │
+│   who gets in. This one is for advanced users. It isn't available yet: your  │
+│   Apps stay on your network.                                                 │
+│                                                                              │
+│   your devices ──── your proxy ──── this computer IP:port                    │
+│                          │                                                   │
+│                  you set the rules                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+ 1-5 tabs  ←/→  A Project  q quit       ?  more   ↑/↓  select   enter  choose …
