@@ -107,12 +107,17 @@ type Lookup func(ctx context.Context) (string, error)
 // the line is announced at most once per 24 h, and a lookup that is not done
 // within a moment is dropped, so the command is never held up.
 func StartNotice(deps *system.Deps, lookup Lookup) func() string {
+	return StartNoticeContext(context.Background(), deps, lookup)
+}
+
+func StartNoticeContext(ctx context.Context, deps *system.Deps, lookup Lookup) func() string {
 	none := func() string { return "" }
 	cache, ok := Open(deps)
 	if !ok {
 		return none
 	}
-	return startNotice(deps.Version, deps.Now(), lookup, cache)
+	notice, _ := startNoticeWorkerContext(ctx, deps.Version, deps.Now(), lookup, cache)
+	return notice
 }
 
 type noticeCache interface {
@@ -126,6 +131,10 @@ func startNotice(currentVersion string, now time.Time, lookup Lookup, cache noti
 }
 
 func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cache noticeCache) (func() string, <-chan struct{}) {
+	return startNoticeWorkerContext(context.Background(), currentVersion, now, lookup, cache)
+}
+
+func startNoticeWorkerContext(lifecycle context.Context, currentVersion string, now time.Time, lookup Lookup, cache noticeCache) (func() string, <-chan struct{}) {
 	newer := func(version string) string {
 		if isNewer, err := release.Newer(currentVersion, version); err != nil || !isNewer {
 			return ""
@@ -140,7 +149,7 @@ func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cach
 	accepted := make(chan bool, 1)
 	acknowledged := make(chan *system.CapturedPanic, 1)
 	done := make(chan struct{})
-	ctx, cancel := context.WithTimeout(context.Background(), lookupBudget)
+	ctx, cancel := context.WithTimeout(lifecycle, lookupBudget)
 	go func() {
 		defer close(done)
 		defer cancel()
@@ -172,7 +181,7 @@ func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cach
 		var accept bool
 		select {
 		case accept = <-accepted:
-		case <-ctx.Done():
+		case <-lifecycle.Done():
 			select {
 			case accept = <-accepted:
 			default:
@@ -187,14 +196,35 @@ func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cach
 			cache.Save(state)
 		})
 	}()
-	return func() string {
-		defer cancel()
-		deadline := time.NewTimer(waitBudget)
-		defer deadline.Stop()
+	reject := func() string {
+		select {
+		case accepted <- false:
+		default:
+		}
+		cancel()
 		select {
 		case answer := <-found:
 			if answer.crash != nil {
 				panic(*answer.crash)
+			}
+		default:
+		}
+		return ""
+	}
+	return func() string {
+		defer cancel()
+		deadline := time.NewTimer(waitBudget)
+		defer deadline.Stop()
+		if lifecycle.Err() != nil {
+			return reject()
+		}
+		select {
+		case answer := <-found:
+			if answer.crash != nil {
+				panic(*answer.crash)
+			}
+			if lifecycle.Err() != nil {
+				return reject()
 			}
 			if answer.notice != "" {
 				accepted <- true
@@ -215,16 +245,9 @@ func startNoticeWorker(currentVersion string, now time.Time, lookup Lookup, cach
 			}
 			return answer.notice
 		case <-deadline.C:
-			accepted <- false
-			cancel()
-			select {
-			case answer := <-found:
-				if answer.crash != nil {
-					panic(*answer.crash)
-				}
-			default:
-			}
-			return ""
+			return reject()
+		case <-lifecycle.Done():
+			return reject()
 		}
 	}, done
 }

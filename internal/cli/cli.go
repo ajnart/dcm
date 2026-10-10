@@ -159,7 +159,9 @@ func (a *program) run(ctx context.Context) int {
 	root.SetArgs(args)
 	root.SetOut(deps.Out)
 	root.SetErr(deps.Err)
-	notice := a.startNotice(root, args)
+	noticeCtx, abandonNotice := context.WithCancel(ctx)
+	defer abandonNotice()
+	notice := a.startNotice(noticeCtx, root, args)
 	report := a.startTelemetry(root, args)
 	defer func() {
 		if crash := recover(); crash != nil {
@@ -175,12 +177,11 @@ func (a *program) run(ctx context.Context) int {
 	if a.terminal != nil {
 		a.terminal.Close()
 	}
-	line := notice()
 	var exit exitError
 	code := ExitOK
 	switch {
 	case err == nil:
-		if line != "" && !a.json {
+		if line := notice(); line != "" && !a.json {
 			fmt.Fprintln(deps.Err, line)
 		}
 	case errors.As(err, &exit):

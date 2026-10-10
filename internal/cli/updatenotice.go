@@ -15,7 +15,7 @@ import (
 // the function that yields the one line to print once the command succeeds.
 // Nothing runs for the dashboard (which asks for itself), for self-update,
 // for --json, off a terminal, in CI, on a development build or when opted out.
-func (a *program) startNotice(root *cobra.Command, args []string) func() string {
+func (a *program) startNotice(ctx context.Context, root *cobra.Command, args []string) func() string {
 	none := func() string { return "" }
 	if !a.deps.Interactive || updatecheck.Disabled(a.deps) || jsonRequested(args) {
 		return none
@@ -25,7 +25,7 @@ func (a *program) startNotice(root *cobra.Command, args []string) func() string 
 		return none
 	}
 	client := release.NewClient(a.deps)
-	return updatecheck.StartNotice(a.deps, func(ctx context.Context) (string, error) {
+	return updatecheck.StartNoticeContext(ctx, a.deps, func(ctx context.Context) (string, error) {
 		rel, err := client.Latest(ctx)
 		return rel.Version(), err
 	})

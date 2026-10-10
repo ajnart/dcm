@@ -148,3 +148,54 @@ func TestAcceptedNoticeAcknowledgementStaysBoundedDuringCacheSave(t *testing.T) 
 		})
 	}
 }
+
+func TestCompletedNoticeSurvivesLookupDeadlineUntilAcceptedOrAbandoned(t *testing.T) {
+	for _, accept := range []bool{true, false} {
+		t.Run(map[bool]string{true: "accepted", false: "abandoned"}[accept], func(t *testing.T) {
+			lifecycle, abandon := context.WithCancel(context.Background())
+			defer abandon()
+			cache := &noticeStateCache{}
+			lookupContext := make(chan context.Context, 1)
+			now := time.Now()
+			notice, done := startNoticeWorkerContext(lifecycle, "1.0.0", now, func(ctx context.Context) (string, error) {
+				lookupContext <- ctx
+				return "1.1.0", nil
+			}, cache)
+			t.Cleanup(func() { abandon(); waitNoticeWorker(t, done) })
+			ctx := <-lookupContext
+			<-ctx.Done()
+			select {
+			case <-done:
+				t.Fatal("completed offer stopped awaiting acceptance at lookup deadline")
+			default:
+			}
+			if accept {
+				if got := notice(); got != Notice("1.1.0") {
+					t.Fatalf("completed offer was lost after lookup deadline: %q", got)
+				}
+				waitNoticeWorker(t, done)
+				if !cache.Load().NoticedAt.Equal(now) {
+					t.Fatal("delayed accepted notice was not acknowledged")
+				}
+				again, againDone := startNoticeWorker("1.0.0", now, func(context.Context) (string, error) {
+					t.Error("cached release triggered a lookup")
+					return "", nil
+				}, cache)
+				if got := again(); got != "" {
+					t.Fatalf("delayed accepted notice was repeated: %q", got)
+				}
+				waitNoticeWorker(t, againDone)
+			} else {
+				abandon()
+				waitNoticeWorker(t, done)
+				if !cache.Load().NoticedAt.IsZero() {
+					t.Fatal("abandoned notice was acknowledged")
+				}
+				started := time.Now()
+				if got := notice(); got != "" || time.Since(started) > 100*time.Millisecond {
+					t.Fatalf("abandoned callback returned %q after %v", got, time.Since(started))
+				}
+			}
+		})
+	}
+}
