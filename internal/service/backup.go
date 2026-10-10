@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +23,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
+	ts "github.com/ajnart/self-host/internal/tailscale"
 )
 
 // BackupDir is where backups go when no output path is given.
@@ -439,12 +442,27 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 	replaced := false
 	var nodes []string
 	var runningTargets []string
+	absFile, err := filepath.Abs(file)
+	if err != nil {
+		return err
+	}
+	identity, err := json.Marshal(struct {
+		File     string
+		Manifest backup.Manifest
+		Targets  []string
+	}{absFile, r.Manifest, targets})
+	if err != nil {
+		return err
+	}
+	scope := fmt.Sprintf("%x", sha256.Sum256(identity))
+	var startup *project.RestoreStartup
 	err = s.run(ctx, change{
 		services:       func() []string { return nodes },
 		title:          "restore " + strings.Join(targets, " ") + " from " + filepath.Base(file),
 		reconcileNames: true,
 		namesTargets:   func() []string { return targets },
-		namesStart:     func(*session) bool { return fresh },
+		namesStart:     func(ss *session) bool { return startup.Names && ss.namesOn() },
+		complete:       func(ss *session) error { return ss.p.ClearRestoreStartup(scope) },
 		preflight: func(ctx context.Context, p *project.Project) error {
 			archived := &project.Project{Root: staging}
 			settings, err := archived.LoadSettings()
@@ -476,7 +494,74 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				}
 				state = current
 			}
-			return s.validateNames(ctx, settings, state)
+			if err := s.validateNames(ctx, settings, state); err != nil {
+				return err
+			}
+			replacements := map[string]string{}
+			for _, id := range targets {
+				content, err := os.ReadFile(filepath.Join(staged(id), "compose.yml"))
+				if err != nil {
+					return err
+				}
+				replacements[id] = string(content)
+			}
+			if err := p.ValidateServiceOwnership(replacements); err != nil {
+				return err
+			}
+			pending, err := p.LoadRestoreStartup()
+			if err != nil {
+				return err
+			}
+			if pending != nil {
+				if pending.Scope != scope {
+					return fmt.Errorf("another Restore has pending startup; retry that approved Restore or run self-host down to cancel it")
+				}
+				startup = pending
+			} else {
+				startup = &project.RestoreStartup{Scope: scope, Fresh: !p.Exists(), Names: !p.Exists() && settings[settingNames] == namesOn}
+				existing, err := p.AppIDs()
+				if err != nil {
+					return err
+				}
+				var containers []compose.Container
+				if p.Exists() {
+					containers, err = s.compose(p).Ps(ctx)
+					if err != nil {
+						return fmt.Errorf("cannot determine running Apps before restore: %w", err)
+					}
+				}
+				for _, id := range targets {
+					if !p.Exists() || !slices.Contains(existing, id) {
+						startup.Targets = append(startup.Targets, id)
+						continue
+					}
+					services, err := fragmentServices(p.FragmentPath(id))
+					if err != nil {
+						return err
+					}
+					if slices.ContainsFunc(containers, func(c compose.Container) bool { return c.State == "running" && slices.Contains(services, c.Service) }) {
+						startup.Targets = append(startup.Targets, id)
+					}
+				}
+				if !slices.Contains(targets, tailscaleID) && state.Apps[tailscaleID] != nil && slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == tailscaleID && c.State == "running" }) {
+					for _, id := range startup.Targets {
+						a, ok := s.Catalog.App(id)
+						if !ok || a.Info().NoWebUI || a.Info().ContainerPort == 0 {
+							continue
+						}
+						service := ts.ServiceName(id)
+						if !slices.ContainsFunc(containers, func(c compose.Container) bool { return c.Service == service }) {
+							startup.Services = append(startup.Services, service)
+						}
+					}
+				}
+				if err := p.SaveRestoreStartup(*startup); err != nil {
+					return err
+				}
+			}
+			runningTargets = slices.Clone(startup.Targets)
+			nodes = slices.Clone(startup.Services)
+			return nil
 		},
 		initialize: func(p *project.Project) error {
 			if !all {
@@ -515,22 +600,6 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 			existing, err := ss.p.AppIDs()
 			if err != nil {
 				return err
-			}
-			for _, id := range targets {
-				if fresh || !slices.Contains(existing, id) {
-					runningTargets = append(runningTargets, id)
-					continue
-				}
-				services, err := ss.services(id)
-				if err != nil {
-					return err
-				}
-				for _, container := range containers {
-					if container.State == "running" && slices.Contains(services, container.Service) {
-						runningTargets = append(runningTargets, id)
-						break
-					}
-				}
 			}
 			oldApps := maps.Clone(ss.state.Apps)
 			oldSecrets := maps.Clone(ss.secrets.values)
@@ -643,14 +712,11 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 				}
 				item.installed = true
 			}
-			if err := ss.restoreRecords(staging, targets, fresh); err != nil {
+			if err := ss.restoreRecords(staging, targets, fresh || startup.Fresh); err != nil {
 				return err
 			}
 			if _, err := ss.renderTailscale(); err != nil {
 				return err
-			}
-			if !slices.Contains(targets, tailscaleID) {
-				nodes = ss.pendingTailscaleServices(runningTargets, containers)
 			}
 			replaced = true
 			for _, id := range targets {

@@ -193,6 +193,10 @@ Saved routes are not treated as applied routes. Failed or interrupted Caddy
 updates keep names pending and numbered Addresses first until an approved
 retry succeeds. Failed initial startup can be retried with the same Action;
 unrelated Actions do not start Access, and `down` cancels that pending startup.
+Startup approval is saved before settings edits. Restore saves its original
+startup targets before initializing or replacing files, so a failed start can
+be retried without treating those targets as deliberately stopped. The retry
+is scoped to the same backup and targets; `down` cancels it.
 
 Access changes never silently reinstall Apps. If changing an origin would
 replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses

@@ -278,6 +278,12 @@ previously stopped targets stay stopped. Pending Caddy changes keep numbered
 Addresses until a successful apply. Retry the same approved Action after a
 failed startup; unrelated Actions cannot consume its persisted approval, and
 `down` cancels it. Status is read-only and never completes pending startup.
+Startup approval is persisted before settings edits. Restore records its
+approved targets and private nodes before initialization or file replacement,
+retaining them until successful apply or `down`. Retry the same backup and
+target selection; another Restore with pending startup requires completing or
+explicitly cancelling the original Action first. Previously stopped targets
+remain outside that startup approval.
 
 Config changes validate merged settings under the lock. If changing an origin
 would rewrite a customized Paperless-ngx or Vaultwarden fragment, the command

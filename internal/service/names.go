@@ -177,6 +177,13 @@ func (ss *session) webApps() []string {
 // only when there is a Caddy to start or to remove.
 func (ss *session) syncNames(ctx context.Context, start bool, configured []string) error {
 	if !ss.namesOn() {
+		runtime, err := ss.p.LoadNamesRuntime()
+		if err != nil {
+			return err
+		}
+		if runtime.StartAction != "" {
+			return nil
+		}
 		if ss.p.HasNames() {
 			if err := ss.compose.Remove(ctx, names.Service); err != nil {
 				return err

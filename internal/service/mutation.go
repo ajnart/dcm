@@ -59,8 +59,10 @@ type change struct {
 	purge          bool
 	preflight      func(context.Context, *project.Project) error
 	namesStart     func(*session) bool
+	namesCancel    bool
 	reconcileNames bool
 	namesTargets   func() []string
+	complete       func(*session) error
 }
 
 // run owns every Project mutation: it takes the lock, opens the session,
@@ -100,6 +102,9 @@ func (s *Service) run(ctx context.Context, c change) error {
 			}
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if !p.Exists() {
 		if c.initialize == nil {
 			return ErrNoProject
@@ -123,6 +128,22 @@ func (s *Service) run(ctx context.Context, c change) error {
 	if namesRuntime.StartAction != "" && namesRuntime.StartAction == c.title && ss.namesOn() {
 		startNames = true
 	}
+	if startNames {
+		namesRuntime.StartAction = c.title
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
+			return s.finish(err)
+		}
+	} else if (c.compose == composeDown || c.namesCancel) && namesRuntime.StartAction != "" {
+		namesRuntime.StartAction = ""
+		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
+			return s.finish(err)
+		}
+	}
+	if c.compose == composeDown {
+		if err := ss.p.ClearRestoreStartup(""); err != nil {
+			return s.finish(err)
+		}
+	}
 	if err := ss.migratePrivateInputs(); err != nil {
 		return s.finish(err)
 	}
@@ -135,16 +156,8 @@ func (s *Service) run(ctx context.Context, c change) error {
 			return s.finish(err)
 		}
 	}
-	if startNames && ss.namesOn() {
-		namesRuntime.StartAction = c.title
-		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
-			return s.finish(err)
-		}
-	} else if c.compose == composeDown && namesRuntime.StartAction != "" {
-		namesRuntime.StartAction = ""
-		if err := ss.p.SaveNamesRuntime(namesRuntime); err != nil {
-			return s.finish(err)
-		}
+	if err := ctx.Err(); err != nil {
+		return s.finish(err)
 	}
 	if err := ss.p.WriteRoot(); err != nil {
 		return s.finish(err)
@@ -178,6 +191,9 @@ func (s *Service) run(ctx context.Context, c change) error {
 	}
 	if serr := ss.p.SaveState(ss.state); serr != nil && err == nil {
 		err = serr
+	}
+	if err == nil && c.complete != nil {
+		err = c.complete(ss)
 	}
 	return s.finish(err)
 }

@@ -42,7 +42,7 @@ func (ss *session) targets(ids []string) ([]string, error) {
 
 func (s *Service) Start(ctx context.Context, ids []string) error {
 	return s.run(ctx, change{
-		namesStart: func(*session) bool { return true },
+		namesStart: func(ss *session) bool { return ss.namesOn() },
 		title:      strings.TrimSpace("start " + strings.Join(ids, " ")),
 		targets:    func(ss *session) ([]string, error) { return ss.targets(ids) },
 		compose:    composeUp,
@@ -227,8 +227,9 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 	var rendered []string
 	fragments := map[string]string{}
 	return s.run(ctx, change{
-		title:      "config set " + strings.Join(pairs, " "),
-		namesStart: func(ss *session) bool { return changes[settingNames] == namesOn && !ss.namesOn() },
+		title:       "config set " + strings.Join(pairs, " "),
+		namesStart:  func(ss *session) bool { return changes[settingNames] == namesOn && !ss.namesOn() },
+		namesCancel: changes[settingNames] == "off",
 		preflight: func(ctx context.Context, p *project.Project) error {
 			previous, err := p.LoadSettings()
 			if err != nil {
