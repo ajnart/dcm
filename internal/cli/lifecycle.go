@@ -141,10 +141,15 @@ func printReview(w io.Writer, review []service.SettingReview, fixes []string) {
 
 // confirm asks a yes/no question on an interactive terminal.
 func (a *program) confirm(question string) bool {
+	return a.ask(question + " [y/N] ")
+}
+
+// ask prints prompt and reads a yes from the terminal; anything else is no.
+func (a *program) ask(prompt string) bool {
 	if !a.deps.Interactive || a.deps.In == nil {
 		return false
 	}
-	fmt.Fprintf(a.deps.Out, "%s [y/N] ", question)
+	fmt.Fprint(a.deps.Out, prompt)
 	line, _ := bufio.NewReader(a.deps.In).ReadString('\n')
 	answer := strings.ToLower(strings.TrimSpace(line))
 	return answer == "y" || answer == "yes"

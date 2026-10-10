@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/posthog/posthog-go"
@@ -87,6 +88,18 @@ type Report struct {
 	FailedSteps []string
 	// Failure is why the command failed; only its type is ever sent.
 	Failure error
+}
+
+// MaxFeedbackBytes is the most a Feedback message may hold.
+const MaxFeedbackBytes = 4096
+
+// Feedback is a report written on purpose by an agent, already masked and
+// approved by the person.
+type Feedback struct {
+	Message string
+	// App is the catalog ID the Feedback is about; Summary is the short
+	// Debug report summary of that App. Both are optional.
+	App, Summary string
 }
 
 // Client sends Reports.
@@ -178,29 +191,65 @@ func (c *Client) Send(r Report) {
 	if !c.Enabled() || !c.announced() {
 		return
 	}
+	c.deliver(func(id string) []posthog.Message {
+		props := c.properties(r)
+		messages := []posthog.Message{posthog.Capture{DistinctId: id, Event: "command", Properties: props}}
+		if r.Outcome == OutcomeFailed || r.Outcome == OutcomeIncomplete {
+			messages = append(messages, c.exception(id, r, props))
+		}
+		return messages
+	})
+}
+
+// SendFeedback sends one Feedback as a "feedback" event, with the same install
+// ID, anonymity and endpoint as every other event, and reports whether
+// PostHog took it before the deadline. The person has just seen and agreed to
+// exactly this text, so it does not wait for the notice; every off switch
+// still applies.
+func (c *Client) SendFeedback(f Feedback) bool {
+	if !c.Enabled() {
+		return false
+	}
+	return c.deliver(func(id string) []posthog.Message {
+		return []posthog.Message{posthog.Capture{DistinctId: id, Event: "feedback", Properties: c.feedbackProperties(f)}}
+	})
+}
+
+type delivery struct {
+	mu   sync.Mutex
+	sent int
+}
+
+func (d *delivery) Success(posthog.APIMessage)        { d.mu.Lock(); d.sent++; d.mu.Unlock() }
+func (d *delivery) Failure(posthog.APIMessage, error) {}
+
+// deliver sends what build makes of the install ID and waits up to the
+// deadline for PostHog to answer.
+func (c *Client) deliver(build func(id string) []posthog.Message) bool {
 	id, ok := c.installID()
 	if !ok {
-		return
+		return false
 	}
 	deadline := c.o.Deadline
 	if deadline <= 0 {
 		deadline = defaultDeadline
 	}
 	retries := 0
+	taken := &delivery{}
 	client, err := posthog.NewWithConfig(c.o.key(), posthog.Config{
 		Endpoint:           Endpoint,
 		Transport:          c.o.Transport,
 		Logger:             silent{},
 		MaxRetries:         &retries,
 		BatchUploadTimeout: deadline,
+		Callback:           taken,
 	})
 	if err != nil {
-		return
+		return false
 	}
-	props := c.properties(r)
-	client.Enqueue(posthog.Capture{DistinctId: id, Event: "command", Properties: props})
-	if r.Outcome == OutcomeFailed || r.Outcome == OutcomeIncomplete {
-		client.Enqueue(c.exception(id, r, props))
+	messages := build(id)
+	for _, m := range messages {
+		client.Enqueue(m)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
@@ -213,6 +262,26 @@ func (c *Client) Send(r Report) {
 	case <-done:
 	case <-ctx.Done():
 	}
+	taken.mu.Lock()
+	defer taken.mu.Unlock()
+	return taken.sent == len(messages)
+}
+
+func (c *Client) feedbackProperties(f Feedback) posthog.Properties {
+	props := posthog.Properties{
+		"$process_person_profile": false,
+		"message":                 f.Message,
+		"version":                 c.o.Version,
+		"os":                      c.o.OS,
+		"arch":                    c.o.Arch,
+	}
+	if idPattern.MatchString(f.App) {
+		props["app"] = f.App
+	}
+	if f.Summary != "" {
+		props["summary"] = f.Summary
+	}
+	return props
 }
 
 func (c *Client) properties(r Report) posthog.Properties {
