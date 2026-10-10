@@ -1,0 +1,25 @@
+# self-host access export --format caddy
+# Replace each example.com hostname with your own.
+# Upstreams are Compose services: the proxy must join the Docker network selfhost_default.
+# A proxy outside Docker uses the host address in each comment instead.
+
+# Chat
+# host: 192.168.1.20:8080
+# WebSockets: Caddy passes them through.
+chat.example.com {
+	reverse_proxy chat:8080
+}
+
+# Media Server
+# host: 192.168.1.20:8096
+# WebSockets: Caddy passes them through.
+# Long timeouts: Caddy sets no response timeout.
+media.example.com {
+	reverse_proxy media:8096
+}
+
+# Notes
+# host: 192.168.1.20:3000
+notes.example.com {
+	reverse_proxy notes:3000
+}

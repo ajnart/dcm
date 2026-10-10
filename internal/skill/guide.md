@@ -117,6 +117,7 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host remove <app>...` | Remove Apps; data is kept unless `--purge` |
 | `self-host config set KEY=value...` | Change Host settings and recreate affected Apps (`LAN_IP=auto` re-detects) |
 | `self-host config review [--yes]` | Compare Host settings with this machine now; `--yes` fixes drifted LAN IP and time zone, keeping every install |
+| `self-host access export [--format caddy\|nginx\|traefik\|json]` | Print each App's upstream and a suggested hostname for your own reverse proxy; changes nothing |
 | `self-host logs <app>` | Container logs |
 | `self-host backup [app...]` | Write one compressed archive, optionally encrypted |
 | `self-host restore <file> [app...]` | Restore every App in a Backup, or only those named |
@@ -132,6 +133,7 @@ Command flags:
 - install: `--yes`, `--set`, `--set-file`, `--exposure`, `--media-root`, `--downloads-root`,
   `--admin-user`
 - status: `--updates`
+- access export: `--format caddy|nginx|traefik|json` (default `json`)
 - remove: `--purge` (also deletes the App's data folder), `--yes`
 - logs: `--follow`, `--tail N` (default 200)
 - backup: `--output <path>` or `-o` (default `~/.self-host/backups/selfhost-DATE.tar.zst`,
@@ -206,8 +208,23 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
 anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Only Home network exists yet; the others show "coming
-soon" and choosing one changes nothing. Home network is stored as `EXPOSURE=lan`
+diagram and a help page. Home network and Bring your own exist; the others show
+"coming soon" and choosing one changes nothing. Bring your own is for people who
+already run SWAG, Pangolin, Nginx Proxy Manager, Traefik or their own Caddy:
+choosing it changes nothing and points at `self-host access export`, which
+prints every App's upstream (the Compose service and container port for a proxy
+on the Project's Docker network, the host `IP:port` for one outside Docker), a
+`example.com` hostname to replace, and whether it needs WebSockets or long
+timeouts when known. Traefik output is a file provider, never Docker labels or
+the socket. Unmanaged apps in `extra/` and historical `apps/` folders are
+included when one literal published TCP port targets 80 or is marked
+`app_protocol: http`. Export does not interpolate Compose values or load secret
+env files or Compose env files. Unknown WebSocket and timeout requirements stay
+omitted. Ambiguous or unsupported fragments produce `warnings` entries with
+`id` and `reason` in JSON, or comments in snippets; configure those proxies
+manually instead of guessing an upstream.
+The command changes nothing; the user runs the proxy, its
+certificates and its login, and the `IP:port` Address keeps working. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
 instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only

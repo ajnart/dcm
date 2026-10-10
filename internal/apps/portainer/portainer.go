@@ -24,6 +24,7 @@ func (App) Info() app.Info {
 		Docs:          "https://docs.portainer.io/start/install-ce/server/docker/linux",
 		Port:          9000,
 		ContainerPort: 9000,
+		WebSockets:    true,
 		Service:       "portainer",
 	}
 }
