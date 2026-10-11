@@ -1,0 +1,18 @@
+docs/homarr-gatus-implementation.md
+  h_d6e478ca18e517 28-29,34-40,46-49,87-92,96-98,112-113
+internal/apps/gatus/gatus.go
+  h_d6e478ca18e517 91,95,99-101,105,116-117,119-124,127-138,141-142,169,177,179-180
+internal/apps/gatus/gatus_test.go
+  h_d6e478ca18e517 46,48,51,107-110,118-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3aca1a6d3a8cff2d5d39ca96913960e9ce4b2c8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
