@@ -1,0 +1,21 @@
+internal/apps/nextcloud/nextcloud.go
+  s_01e8d17f7740df::t_8b6949df46e741 10-11,13,69,117-120,122-128,130-131,134-135,137,141-147,153-171,174-185,188-196,215,226-230,245,257-259,281-545
+internal/apps/nextcloud/nextcloud_test.go
+  s_01e8d17f7740df::t_c8dc99070e36e3 26,28,30,34-56,73-74,154-159,176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c10a64ecd3c215c4111fcda1d1b4657d938eaac",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
