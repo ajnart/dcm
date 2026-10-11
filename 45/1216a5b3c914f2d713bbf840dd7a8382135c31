@@ -1,0 +1,21 @@
+internal/apps/homarr/homarr.go
+  s_01e8d17f7740df::t_ed849f2b880ccb 29,49,378-384,447-449
+internal/apps/homarr/links.go
+  s_01e8d17f7740df::t_4b47667683b41d 73-79,244-247,588,611,658,971-981,1007-1033
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "451216a5b3c914f2d713bbf840dd7a8382135c31",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
