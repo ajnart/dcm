@@ -33,6 +33,8 @@ agent through inspect, plan, approval, apply, verify.
   the same recorded Apps for read-only inspection. Single-App installs have
   matching event labels and credentials. The reported Home folder exists only
   inside the run's sandbox. Both tools log every call with its turn.
+  Runtime folders use random identifiers so paths in Recaps and commands do
+  not reveal the guide configuration to the blind judge.
 - **Guard.** Claude's Bash replays the tester's shell snapshot, so PATH and HOME
   would reach the real binary and `~/.self-host`. The runner passes external
   settings containing a fail-closed PreToolUse hook. It rewrites

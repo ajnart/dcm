@@ -56,6 +56,8 @@ if is_preflight:
     result["result"] = "READY"
 elif is_stream:
     reply = "Ready."
+    if mode == "recap-home":
+        reply = "Home folder: " + str(Path.cwd() / ".home" / ".self-host")
     if mode == "empty-task":
         reply = ""
     if mode == "manual-wsl":

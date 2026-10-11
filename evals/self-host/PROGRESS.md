@@ -31,7 +31,7 @@ No percentage estimate: each gate requires evidence.
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                             |
 | Complete real-model batch with both guides and three repetitions       | Iteration 10 invalid; fresh smoke needed after fixture corrections |
 | Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending              |
-| Independent Standards and Spec review                                  | Fixture fixes reviewed; combined release-audit review pending      |
+| Independent Standards and Spec review                                  | Combined Standards passed; Spec finding fixed and re-review passed |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -135,8 +135,12 @@ The audit launched no additional real-model run.
 
 The parent session reconciled the audit commits with the four fixture-fidelity
 corrections without dropping either change. The combined offline suite passes
-59 regressions. A fresh smoke comparison and combined independent review are
-required before the full batch can establish acceptance.
+60 regressions, Ruff lint/format including extensionless stubs, and Pyright.
+Combined Standards review passed; Spec review caught configuration
+labels in the synthetic Home folder revealing treatment to the blind judge.
+A red-to-green runner regression now requires neutral runtime folder identifiers;
+run artifacts still retain their configuration mapping. Spec re-review passed.
+A fresh smoke comparison is required before the full batch can establish acceptance.
 
 ### Earlier review evidence
 

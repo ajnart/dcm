@@ -36,6 +36,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 
 from processes import run_process
 from validity import check_cli, check_model, require_result
@@ -154,7 +155,7 @@ def install_stubs(stubs):
 def prepare(ws, iteration, ev, config, k):
     tag = "eval-%d-%s/%s/run-%d" % (ev["id"], ev["name"], config["name"], k)
     run = os.path.join(ws, "iteration-%d" % iteration, tag)
-    slug = tag.replace("/", "--")
+    slug = uuid.uuid4().hex
     sandbox = os.path.join(ws, "_sandboxes", "iteration-%d" % iteration, slug)
     harness = os.path.join(ws, "_harness", "iteration-%d" % iteration, slug)
     for d in (run, sandbox, harness):

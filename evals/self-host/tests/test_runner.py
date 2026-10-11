@@ -71,6 +71,15 @@ class RunnerCLI(unittest.TestCase):
         source.write_text("changed after execution")
         self.assertEqual((snapshot / "apps-list.json").read_text(), original)
 
+    def test_recap_runtime_path_does_not_reveal_configuration(self):
+        result = self.execute("recap-home", config="new_skill=skills/self-host")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        replies = (run / "outputs" / "replies.md").read_text()
+        self.assertIn("Home folder:", replies)
+        self.assertNotIn("new_skill", replies)
+        self.assertEqual(run.parent.name, "new_skill")
+
     def test_turn_limit_is_not_silent_completion(self):
         result = self.execute("turn-cap")
         self.assertNotEqual(result.returncode, 0)
