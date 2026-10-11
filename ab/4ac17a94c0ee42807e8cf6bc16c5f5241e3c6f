@@ -1,0 +1,21 @@
+internal/apps/tracearr/homarr.go
+  s_01e8d17f7740df::t_f9aa340331f91a 1-205
+internal/apps/tracearr/tracearr.go
+  s_01e8d17f7740df::t_0ded8a322db2bb 134,161,189-193,261,349-357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab4ac17a94c0ee42807e8cf6bc16c5f5241e3c6f",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
