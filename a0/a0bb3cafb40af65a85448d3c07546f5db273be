@@ -1,0 +1,16 @@
+internal/service/service.go
+  h_d6e478ca18e517 405-408,418,431,455,468,470,485,490
+internal/service/status.go
+  h_d6e478ca18e517 154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a0a0bb3cafb40af65a85448d3c07546f5db273be",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
