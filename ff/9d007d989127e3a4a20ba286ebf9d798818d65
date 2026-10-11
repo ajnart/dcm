@@ -1,0 +1,18 @@
+docs/homarr-integration-contract.md
+  h_d6e478ca18e517 72-80
+internal/apps/homarr/installed.go
+  h_d6e478ca18e517 12
+internal/apps/homarr/links.go
+  h_d6e478ca18e517 1003-1004,1008,1035-1039,1043
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff9d007d989127e3a4a20ba286ebf9d798818d65",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
