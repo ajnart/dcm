@@ -66,7 +66,7 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 			if marker != "" {
 				continue
 			}
-			for _, t := range targets() {
+			for _, t := range existingTargets() {
 				candidate, wanted := desired[installedTileMarker+t.id]
 				if !wanted || stringField(existing, "name") != t.name || stringField(existing, "pingUrl") != genericPing(candidate) {
 					continue

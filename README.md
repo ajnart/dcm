@@ -633,6 +633,12 @@ at one immutable head. The terminal screenshots above use that same fixture
 and binary. API payload checks, archive sentinels, browser review and full
 workload recovery remain distinct claims.
 
+Homarr Links support version **2.4.1**. Immich Setup prepares a dedicated
+read-only statistics key; retry with `self-host setup immich`, then
+`self-host setup homarr`. Server statistics are enabled, not album slideshows.
+Other Homarr versions stop with a recovery hint; back up before changing versions.
+See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
+
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | Catalog install    | Compiled Compose definitions and App inputs.                                               | All-catalog runtime acceptance is incomplete.                                                  |

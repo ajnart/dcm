@@ -65,6 +65,7 @@ type target struct {
 	internal func(to *helpers.H) string
 	secrets  func(from, to *helpers.H) []secret
 	widgets  []widget
+	verify   func(ctx context.Context, from, to *helpers.H, integrationID string) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -84,7 +85,7 @@ func ntfySecret(_, to *helpers.H) []secret {
 
 // targets are the Apps Homarr supports here, in the order they are declared.
 // Other Apps are reached by Compose service name, never localhost.
-func targets() []target {
+func existingTargets() []target {
 	return []target{
 		{
 			id: "sonarr", name: "Sonarr", kind: "sonarr", internal: fixed("http://sonarr:8989"), secrets: apiKeySecret,
@@ -214,13 +215,14 @@ func listApps(ctx context.Context, h *helpers.H) ([]map[string]any, error) {
 	return apps, resp.Decode(&apps)
 }
 
-func findApp(ctx context.Context, h *helpers.H, pingURL string) (string, bool, error) {
+func (t target) findApp(ctx context.Context, h *helpers.H, pingURL string) (string, bool, error) {
 	apps, err := listApps(ctx, h)
 	if err != nil {
 		return "", false, err
 	}
 	for _, item := range apps {
-		if stringField(item, "pingUrl") == pingURL {
+		owned := stringField(item, "description") == installedTileMarker+t.id || appID(item) == managedAppIDs(h)[t.id]
+		if owned && stringField(item, "pingUrl") == pingURL {
 			return appID(item), true, nil
 		}
 	}
@@ -244,17 +246,21 @@ func listIntegrations(ctx context.Context, h *helpers.H) ([]map[string]any, erro
 
 // createIntegration tests the connection before saving. Homarr answers HTTP
 // 200 with data.json.error when the test fails, so the body decides.
-func createIntegration(ctx context.Context, h *helpers.H, body map[string]any) error {
+func createIntegration(ctx context.Context, h *helpers.H, body map[string]any) (string, error) {
 	value, err := apiKeyWrite(ctx, h, "integration.create", body)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if record, ok := value.(map[string]any); ok {
 		if failure, found := record["error"]; found && failure != nil {
-			return fmt.Errorf("Homarr could not reach the integration: %v", failure)
+			return "", fmt.Errorf("Homarr could not reach the integration: %v", failure)
+		}
+		integration, _ := record["integration"].(map[string]any)
+		if id := stringField(integration, "id"); id != "" {
+			return id, nil
 		}
 	}
-	return nil
+	return "", errors.New("Homarr did not return the created integration ID; inspect integrations before retrying Setup")
 }
 
 func deleteIntegration(ctx context.Context, h *helpers.H, id string) error {
@@ -545,9 +551,10 @@ func removeAppTiles(ctx context.Context, h *helpers.H, appID string) error {
 // listed integrations do not already match by kind and internal URL.
 func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID string) (string, error) {
 	internal := t.internal(to)
+	previous := from.Secret(from.Key("linked_" + t.id))
 	match := func(integrations []map[string]any) string {
 		for _, item := range integrations {
-			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+			if stringField(item, "id") == previous && stringField(item, "kind") == t.kind {
 				return stringField(item, "id")
 			}
 		}
@@ -566,10 +573,7 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 		}
 	}
 	if id := match(integrations); id != "" {
-		if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
-			return "", err
-		}
-		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) {
+		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) || !integrationAddressCurrent(integrations, id, internal) {
 			value, err := apiKeyWrite(ctx, from, "integration.update", map[string]any{
 				"id": id, "name": t.name, "url": internal, "secrets": t.secrets(from, to), "appId": appID,
 			})
@@ -587,33 +591,38 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 		}
 		return id, nil
 	}
-	if previous := from.Secret(from.Key("linked_" + t.id)); previous != "" {
+	if previous != "" {
 		if err := removeWidgets(ctx, from, previous, t.widgets); err != nil {
 			return "", err
 		}
 	}
-	if err := createIntegration(ctx, from, map[string]any{
+	id, err := createIntegration(ctx, from, map[string]any{
 		"name": t.name, "url": internal, "kind": t.kind,
 		"secrets": t.secrets(from, to), "attemptSearchEngineCreation": false,
 		"app": map[string]any{"id": appID},
-	}); err != nil {
-		return "", err
-	}
-	integrations, err = listIntegrations(ctx, from)
+	})
 	if err != nil {
-		return "", err
-	}
-	id := match(integrations)
-	if id == "" {
-		return "", errors.New("Homarr did not keep the " + t.name + " integration")
-	}
-	if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
 		return "", err
 	}
 	if err := from.SetSecret(from.Key("linked_"+t.id), id); err != nil {
 		return "", err
 	}
+	if err := from.SetSecret(from.Key("widgets_"+id), "{}"); err != nil {
+		return "", err
+	}
+	if err := from.SetSecret(integrationFingerprintKey(from, id), integrationFingerprint(t, from, to)); err != nil {
+		return "", err
+	}
 	return id, nil
+}
+
+func integrationAddressCurrent(integrations []map[string]any, id, address string) bool {
+	for _, item := range integrations {
+		if stringField(item, "id") == id {
+			return stringField(item, "url") == address
+		}
+	}
+	return false
 }
 
 func verifyNTFYToken(ctx context.Context, to *helpers.H) error {
@@ -748,12 +757,15 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	if err := t.compatible(ctx, from, to); err != nil {
+		return false, err
+	}
 	browser, err := browserAddress(ctx, from, to)
 	if err != nil {
 		return false, err
 	}
 	internal := t.internal(to)
-	id, found, err := findApp(ctx, from, internal)
+	id, found, err := t.findApp(ctx, from, internal)
 	if err != nil || !found {
 		return false, err
 	}
@@ -782,7 +794,7 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	}
 	integrationID := ""
 	for _, item := range integrations {
-		if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+		if stringField(item, "id") == from.Secret(from.Key("linked_"+t.id)) && stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
 			integrationID = stringField(item, "id")
 			break
 		}
@@ -792,6 +804,11 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	}
 	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
 		return false, nil
+	}
+	if t.verify != nil {
+		if err := t.verify(ctx, from, to, integrationID); err != nil {
+			return false, err
+		}
 	}
 	if len(t.widgets) == 0 {
 		return true, nil
@@ -823,6 +840,9 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	if err := t.compatible(ctx, from, to); err != nil {
+		return err
+	}
 	browser, err := browserAddress(ctx, from, to)
 	if err != nil {
 		return err
@@ -833,7 +853,7 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	boardID := stringField(current, "id")
-	id, found, err := findApp(ctx, from, internal)
+	id, found, err := t.findApp(ctx, from, internal)
 	if err != nil {
 		return err
 	}
@@ -890,6 +910,11 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if err != nil {
 			return err
 		}
+		if t.verify != nil {
+			if err := t.verify(ctx, from, to, integrationID); err != nil {
+				return err
+			}
+		}
 		if err := t.addWidgets(ctx, from, to, boardID, integrationID, items); err != nil {
 			return err
 		}
@@ -926,7 +951,7 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 			return err
 		}
 		for _, item := range integrations {
-			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+			if stringField(item, "id") == from.Secret(from.Key("linked_"+t.id)) && stringField(item, "kind") == t.kind {
 				id := stringField(item, "id")
 				if len(t.widgets) > 0 {
 					if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
@@ -939,7 +964,7 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 			}
 		}
 	}
-	id, found, err := findApp(ctx, from, internal)
+	id, found, err := t.findApp(ctx, from, internal)
 	if err != nil {
 		return err
 	}
@@ -960,7 +985,7 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 
 func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
 	internal := t.internal(to)
-	_, found, err := findApp(ctx, from, internal)
+	_, found, err := t.findApp(ctx, from, internal)
 	if err != nil || found {
 		return false, err
 	}
@@ -979,7 +1004,7 @@ func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
 			return false, err
 		}
 		for _, item := range integrations {
-			if stringField(item, "kind") == t.kind && stringField(item, "url") == internal {
+			if stringField(item, "id") == from.Secret(from.Key("linked_"+t.id)) && stringField(item, "kind") == t.kind {
 				return false, nil
 			}
 		}
