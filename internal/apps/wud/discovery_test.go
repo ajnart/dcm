@@ -32,7 +32,7 @@ func TestSetupWaitsForApprovedDiscoveryInsteadOfAuthenticationAlone(t *testing.T
 				w.Write([]byte(`[]`))
 				return
 			}
-			w.Write([]byte(`[{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
+			w.Write([]byte(`[{"id":"owned-fixture","name":"owned-fixture","watcher":"approved","updateAvailable":false,"image":{"id":"sha256:owned-image"}}]`))
 			return
 		}
 		base.ServeHTTP(w, r)
@@ -136,7 +136,7 @@ func TestSetupWaitsForFreshIdentityAfterRestoredInventoryCache(t *testing.T) {
 			if refreshed {
 				id = "restored-new"
 			}
-			w.Write([]byte(`[{"id":"` + id + `","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
+			w.Write([]byte(`[{"id":"` + id + `","name":"owned-fixture","watcher":"approved","updateAvailable":false,"image":{"id":"sha256:owned-image"}}]`))
 			return
 		case "POST /api/containers/restored-old/watch":
 			oldScans++

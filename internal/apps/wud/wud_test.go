@@ -52,7 +52,7 @@ func handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "watcher": "approved", "image": map[string]string{"id": "sha256:owned-image"}}})
+		json.NewEncoder(w).Encode([]map[string]any{{"id": "owned-fixture", "name": "owned-fixture", "watcher": "approved", "updateAvailable": false, "image": map[string]string{"id": "sha256:owned-image"}}})
 	})
 	mux.HandleFunc("GET /api/watchers", func(w http.ResponseWriter, r *http.Request) {
 		if !authOK(r) {
