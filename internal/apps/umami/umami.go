@@ -6,6 +6,7 @@ package umami
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -80,14 +81,19 @@ func (App) Compose(rc app.RenderContext) string {
 type signIn struct {
 	ID    string
 	Token string
+	Teams []json.RawMessage
 }
 
 // signIn posts the login and returns the authenticated administrator identity,
 // or ok=false when the credentials are rejected.
 func signInAs(ctx context.Context, h *helpers.H, password string) (signIn, bool, error) {
+	return signInAsUser(ctx, h, username, password, "admin")
+}
+
+func signInAsUser(ctx context.Context, h *helpers.H, user, password, role string) (signIn, bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/auth/login",
-		JSON: map[string]string{"username": username, "password": password},
+		JSON: map[string]string{"username": user, "password": password}, NoRedirect: true,
 	})
 	if err != nil {
 		return signIn{}, false, err
@@ -101,19 +107,21 @@ func signInAs(ctx context.Context, h *helpers.H, password string) (signIn, bool,
 	var out struct {
 		Token string `json:"token"`
 		User  struct {
-			ID       string `json:"id"`
-			Username string `json:"username"`
-			Role     string `json:"role"`
-			IsAdmin  bool   `json:"isAdmin"`
+			ID       string            `json:"id"`
+			Username string            `json:"username"`
+			Role     string            `json:"role"`
+			IsAdmin  *bool             `json:"isAdmin"`
+			Teams    []json.RawMessage `json:"teams"`
 		} `json:"user"`
 	}
 	if err := resp.Decode(&out); err != nil {
-		return signIn{}, false, err
+		return signIn{}, false, fmt.Errorf("Umami returned an invalid login response")
 	}
-	if out.Token == "" || out.User.Username != username || out.User.Role != "admin" || !out.User.IsAdmin || out.User.ID == "" {
+	h.Log.Secret(out.Token)
+	if out.Token == "" || out.User.Username != user || out.User.Role != role || out.User.IsAdmin == nil || *out.User.IsAdmin != (role == "admin") || out.User.ID == "" {
 		return signIn{}, false, nil
 	}
-	return signIn{ID: out.User.ID, Token: out.Token}, true, nil
+	return signIn{ID: out.User.ID, Token: out.Token, Teams: out.User.Teams}, true, nil
 }
 
 func generatedWorks(ctx context.Context, h *helpers.H) (bool, error) {
@@ -154,7 +162,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "rotate-admin", "the seeded administrator password is replaced", helpers.StepSpec{
+	if err := h.Step(ctx, "rotate-admin", "the seeded administrator password is replaced", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			ok, err := generatedWorks(ctx, h)
 			if err != nil || !ok {
@@ -167,7 +175,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Hint: "Open " + h.URL + " and change the admin password to the one shown by `self-host credentials`; " +
 			"if it was already changed by hand, run: self-host setup umami",
 		Credential: "admin",
-	})
+	}); err != nil {
+		return err
+	}
+	return setupHomarr(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
@@ -185,7 +196,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if seeded {
 		return fmt.Errorf("Umami still accepts its seeded administrator password")
 	}
-	return nil
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }
