@@ -16,7 +16,14 @@ func frigateTarget() target {
 			return []secret{{Kind: "username", Value: to.AdminUser()}, {Kind: "password", Value: to.AdminPassword()}}
 		},
 		widgets: []widget{statWidget("cameras", "uptime", "version")},
-		verify:  verifyFrigate,
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			err := verifyFrigate(ctx, from, to, "")
+			if errors.Is(err, helpers.ErrManual) {
+				from.Info(err.Error())
+			}
+			return err
+		},
+		verify: verifyFrigate,
 	}
 }
 

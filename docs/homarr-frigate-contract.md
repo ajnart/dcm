@@ -33,8 +33,11 @@ The internal integration Address is `https://frigate:8971`, separately from
 the person's browser Address. The current read-only camera-free bootstrap
 serves authenticated HTTP on 8971 and is intentionally unchanged. Its Homarr
 preflight must remain an actionable Manual step before creating resources.
-The descriptor is ready for the reference-owned preflight seam; without that
-registration/seam, it is not an enabled or accepted Link.
+The descriptor wires the reference-owned preflight seam from commit
+`dce263ef822dc056558a648f8f59ea795a3e56d9`. Both the existing-Link check and
+creation probe afresh before Homarr requests or mutations; removal and absence
+are ungated. Registry registration is still reference-owned and pending.
+Without registration and live proof, this is not an enabled or accepted Link.
 
 Approve a Project-scoped TLS configuration and certificate trust separately.
 Certificates must cover the internal Compose service name for Homarr and the
@@ -64,8 +67,12 @@ three, with deterministic IDs supplied by the shared implementation.
 
 The existing focused Frigate and Homarr tests cover the revised API fixture
 and reference behavior; no new test files or dependencies were added.
-Source verification is not live acceptance. Registration, preflight wiring,
-both installation orders, restart/retry, credential changes, removal and
+The full local gate passed: `gofmt -l .` was empty, `go build ./...`,
+`go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`, the TUI/Activity
+and Frigate/Homarr race checks, and `bash -n install.sh` all succeeded with
+`GOFLAGS=-buildvcs=false`.
+Source verification is not live acceptance. Registration, both installation
+orders, restart/retry, credential changes, removal and
 reinstallation need the parent-scheduled disposable Project runtime.
 Record actual image digests and rendered native Stats results there.
 No Docker, browser, installer, personal Project, private footage, new camera

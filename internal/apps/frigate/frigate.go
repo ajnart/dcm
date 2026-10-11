@@ -305,6 +305,13 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) (Statistics, error) {
 	if err != nil || address.Scheme != "https" {
 		return Statistics{}, fmt.Errorf("%w: Homarr requires trusted HTTPS on Frigate's authenticated port 8971. The current HTTP starter cannot be linked; approve a Project-scoped TLS configuration and certificate trust in Homarr and the CLI before retrying self-host setup frigate and self-host setup homarr. Do not disable authentication or use port 5000", helpers.ErrManual)
 	}
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/profile", NoRedirect: true})
+	if err != nil {
+		return Statistics{}, fmt.Errorf("%w: Frigate's HTTPS API is unreachable or its certificate is not trusted by the CLI; finish the approved private TLS and certificate-trust configuration, then retry self-host setup frigate and self-host setup homarr", helpers.ErrManual)
+	}
+	if response.Status != http.StatusUnauthorized && response.Status != http.StatusForbidden {
+		return Statistics{}, fmt.Errorf("Frigate's HTTPS API did not deny anonymous profile access (HTTP %d); keep authentication enabled on port 8971 and retry Setup", response.Status)
+	}
 	return ReadStatistics(ctx, h)
 }
 
