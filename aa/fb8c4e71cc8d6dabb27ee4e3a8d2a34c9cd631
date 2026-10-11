@@ -1,0 +1,20 @@
+docs/catalog/traps/technitium-dns.md
+  h_d6e478ca18e517 12-75
+internal/apps/homarr/target_technitium_dns.go
+  h_d6e478ca18e517 1-82
+internal/apps/technitiumdns/technitiumdns.go
+  h_d6e478ca18e517 7,9,74,78-118,121,123-241,243-259,262-265,269-283,285-286,288-290,293-294,296-394,416-431,444
+internal/apps/technitiumdns/technitiumdns_test.go
+  h_d6e478ca18e517 30-34,39-47,53-59,64-107,109-111,116-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aafb8c4e71cc8d6dabb27ee4e3a8d2a34c9cd631",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
