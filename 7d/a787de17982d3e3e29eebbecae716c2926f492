@@ -1,0 +1,46 @@
+internal/app/app.go
+  h_d6e478ca18e517 101-104
+internal/apps/authentik/authentik.go
+  h_d6e478ca18e517 20-21
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 20-21,99
+internal/apps/bookstack/bookstack.go
+  h_d6e478ca18e517 24-25,105,150
+internal/apps/docmost/docmost.go
+  h_d6e478ca18e517 20-21,24
+internal/apps/fireflyiii/fireflyiii.go
+  h_d6e478ca18e517 21-22,25
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 19-20
+internal/apps/netbird/netbird.go
+  h_d6e478ca18e517 20-21,138
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  h_d6e478ca18e517 18-19,50
+internal/apps/openwebui/openwebui.go
+  h_d6e478ca18e517 18,23-24
+internal/apps/pangolin/pangolin.go
+  h_d6e478ca18e517 22-23,170
+internal/apps/passbolt/passbolt.go
+  h_d6e478ca18e517 20-21,189
+internal/apps/seafile/seafile.go
+  h_d6e478ca18e517 21,25-26
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 25,46-47
+internal/cli/install.go
+  h_d6e478ca18e517 235-242,249
+internal/service/status.go
+  h_d6e478ca18e517 278-281,302-315,330-335
+internal/tui/copy.go
+  h_d6e478ca18e517 53-55,119-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7da787de17982d3e3e29eebbecae716c2926f492",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
