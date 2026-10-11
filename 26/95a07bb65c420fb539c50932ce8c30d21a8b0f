@@ -1,0 +1,16 @@
+docs/adguard-homarr-prerequisites.md
+  h_d6e478ca18e517 1-117
+docs/catalog/traps/adguard-home.md
+  h_d6e478ca18e517 6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2695a07bb65c420fb539c50932ce8c30d21a8b0f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
