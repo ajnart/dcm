@@ -28,8 +28,10 @@ agent through inspect, plan, approval, apply, verify.
   nothing. Only project settings load (`--setting-sources project`); strict MCP
   configuration loads only the harness's `ask_user` server. Built-in Claude
   tools are limited to Bash, Read and Skill; bundled skills are disabled.
-- **Stubs.** `bin/self-host` replays `scenarios/<name>/`; `bin/docker` pretends
-  to be an empty engine. Both log every call with its turn.
+- **Stubs.** `bin/self-host` replays `scenarios/<name>/`; `bin/docker` reports
+  the same recorded Apps for read-only inspection. Single-App installs have
+  matching event labels and credentials. The reported Home folder exists only
+  inside the run's sandbox. Both tools log every call with its turn.
 - **Guard.** Claude's Bash replays the tester's shell snapshot, so PATH and HOME
   would reach the real binary and `~/.self-host`. The runner passes external
   settings containing a fail-closed PreToolUse hook. It rewrites

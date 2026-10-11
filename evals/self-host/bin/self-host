@@ -120,6 +120,11 @@ class Harness:
                 line = line.rstrip("\n")
                 if not line:
                     continue
+                if name == "install":
+                    event = json.loads(line)
+                    if event.get("event") == "run.start":
+                        event["msg"] = "install " + " ".join(self.positionals[1:])
+                        line = json.dumps(event)
                 if only_apps:
                     try:
                         app = json.loads(line).get("app")
@@ -143,6 +148,12 @@ class Harness:
         if not self.has(name + ".json"):
             return False
         with open(self.path(name + ".json")) as f:
+            if name.startswith("status") and self.cfg.get("home"):
+                doc = json.load(f)
+                doc["home"] = self.cfg["home"]
+                doc["project"] = self.cfg["home"]
+                print(json.dumps(doc, indent=2))
+                return True
             print(f.read().rstrip("\n"))
         return True
 
@@ -195,6 +206,9 @@ def installed_ids(h, requested):
 
 def emit_installed_status(h):
     doc = json.load(open(h.path("status-installed.json")))
+    if h.cfg.get("home"):
+        doc["home"] = h.cfg["home"]
+        doc["project"] = h.cfg["home"]
     wanted = set(open(os.path.join(h.state, "installed")).read().split())
     if wanted and wanted != {"1"} and isinstance(doc.get("apps"), list):
         doc["apps"] = [a for a in doc["apps"] if a.get("id") in wanted or a.get("id") == "homarr"]
@@ -296,6 +310,16 @@ def main():
         return h.missing("debug " + app)
 
     if cmd == "credentials":
+        installed = os.path.join(h.state, "installed")
+        if h.has("credentials.json") and os.path.exists(installed):
+            with open(installed) as source:
+                wanted = set(source.read().split())
+            with open(h.path("credentials.json")) as source:
+                doc = json.load(source)
+            if wanted != {"1"}:
+                doc["apps"] = [app for app in doc.get("apps", []) if app.get("app") in wanted]
+            print(json.dumps(doc, indent=2))
+            return h.finish("credentials")
         if h.emit_doc("credentials"):
             return h.finish("credentials")
         return h.missing("credentials")
@@ -339,6 +363,8 @@ def main():
             return h.missing("install")
         with open(os.path.join(h.state, "installed"), "w") as f:
             f.write("\n".join(installed_ids(h, pos[1:])) + "\n")
+        if h.cfg.get("home"):
+            os.makedirs(h.cfg["home"], exist_ok=True)
         return h.finish("install")
 
     if cmd == "setup":

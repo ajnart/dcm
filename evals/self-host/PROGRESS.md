@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                   |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                     |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                  |
-| Complete real-model batch with both guides and three repetitions       | Iteration 10 running after valid iteration 9 smoke                      |
+| Complete real-model batch with both guides and three repetitions       | Iteration 10 invalid; fresh smoke needed after fixture corrections      |
 | Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending                   |
 | Independent Standards and Spec review                                  | Code passed both axes after review fixes; real-model acceptance pending |
 
@@ -75,9 +75,16 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   One run is not a general improvement claim. Both plain-language failures cite
   Docker in the required experience question, partially conflicting with the
   prescribed wording. Grades are unchanged and this caveat is in viewer notes.
-- **Iteration 10: running.** Seven scenarios × two guides × three repetitions,
-  using the same frozen guides and 16-turn conversation budget as the smoke.
-  No full-batch score or acceptance is claimed before execution and judgments finish.
+- **Iteration 10: invalid.** Nineteen runs completed; the remaining 23 failed or
+  were cancelled after revised MacBook run 3 exhausted its 16-turn budget.
+  No grading or aggregate score was produced. That conversation chased
+  contradictory fixtures: Jellyfin-only install labelled Media, Sonarr
+  credentials, permanently empty Docker observations, and a nonexistent
+  placeholder Home folder. Four red-to-green shell/fixture regressions now
+  cover those inconsistencies. The full offline suite has 40 passing tests;
+  Ruff, Pyright (including both extensionless fixture scripts), and independent
+  Standards/Spec re-review passed. Guides, assertions, and budget are unchanged.
+  Corrections apply only to future frozen inputs; iteration 10 remains untouched.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
@@ -99,7 +106,7 @@ they remain unchanged to keep this fix focused.
 
 Both review axes rechecked the fixes and returned code-ready verdicts. The
 Spec follow-up also caught a container command's `--help` argument being mistaken
-for Docker help; that regression now passes. The offline gate is 36 tests,
+for Docker help; that regression now passes. The offline gate is 40 tests,
 Ruff lint/format, and Pyright. This does not clear the pending real-model batch
 or human viewer gates, and PR #259 stays draft.
 

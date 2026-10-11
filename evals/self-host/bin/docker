@@ -3,14 +3,35 @@
 
 Shadows the real Docker so an agent that bypasses self-host cannot touch the
 machine. Every call is logged to the run's docker.jsonl, which is how the
-checks see an agent going around self-host. Answers just enough to look like
-an empty, working engine.
+checks see an agent going around self-host. Read-only observations reflect the
+scenario's recorded Apps instead of touching a real engine.
 """
 
 import json
 import os
 import sys
 import time
+
+
+def project_apps(harness):
+    if not harness:
+        return []
+    scenario = os.path.join(harness, "scenario")
+    installed = os.path.join(harness, "state", "installed")
+    name = "status.json"
+    wanted = None
+    if os.path.isfile(installed):
+        name = "status-installed.json"
+        with open(installed) as source:
+            wanted = set(source.read().split())
+    path = os.path.join(scenario, name)
+    if not os.path.isfile(path):
+        return []
+    with open(path) as source:
+        apps = json.load(source).get("apps", [])
+    if wanted is not None and wanted != {"1"}:
+        apps = [app for app in apps if app.get("id") in wanted or app.get("id") == "homarr"]
+    return apps
 
 
 def main():
@@ -44,10 +65,28 @@ def main():
         print("Docker version 29.4.0, build eval")
         return 0
     if words[:1] == ["ps"] or words[:2] == ["compose", "ps"]:
-        print("CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES")
+        template = None
+        for i, word in enumerate(argv):
+            if word == "--format" and i + 1 < len(argv):
+                template = argv[i + 1]
+            elif word.startswith("--format="):
+                template = word.split("=", 1)[1]
+        if template is None:
+            print("CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES")
+        for app in project_apps(harness):
+            row = {"Names": "self-host-%s-1" % app["id"], "Status": "Up (healthy)", "State": app.get("state", "running")}
+            if template == "{{json .}}" or template == "json":
+                print(json.dumps(row))
+            elif template is not None:
+                rendered = template
+                for key, value in row.items():
+                    rendered = rendered.replace("{{.%s}}" % key, value)
+                print(rendered)
+            else:
+                print("fixture   fixture   fixture   now   %s   -   %s" % (row["Status"], row["Names"]))
         return 0
     if words[:1] == ["info"]:
-        print("Server Version: 29.4.0\nContainers: 0")
+        print("Server Version: 29.4.0\nContainers: %d" % len(project_apps(harness)))
         return 0
     if words[:1] == ["run"]:
         print("4f1c2d3e5a6b7c8d9e0f")

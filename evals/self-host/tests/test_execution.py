@@ -135,6 +135,74 @@ class ShellBoundary(unittest.TestCase):
         events = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(events[-1]["event"], "run.end")
 
+    def test_single_app_install_has_only_its_credentials(self):
+        shutil.copytree(
+            ROOT / "scenarios" / "newbie-install",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
+        (self.stubs / "base" / "self-host").chmod(0o755)
+        installed = self.invoke("self-host install jellyfin --yes --json")
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        credentials = self.invoke("self-host credentials --json")
+        self.assertEqual(credentials.returncode, 0, credentials.stderr)
+        apps = json.loads(credentials.stdout)["apps"]
+        self.assertEqual([app["app"] for app in apps], ["jellyfin"])
+
+    def test_single_app_install_is_not_labelled_as_media_recipe(self):
+        shutil.copytree(
+            ROOT / "scenarios" / "newbie-install",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
+        (self.stubs / "base" / "self-host").chmod(0o755)
+        installed = self.invoke("self-host install jellyfin --yes --json")
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        events = [json.loads(line) for line in installed.stdout.splitlines()]
+        self.assertEqual(events[0]["msg"], "install jellyfin")
+
+    def test_docker_observation_agrees_with_installed_apps(self):
+        shutil.copytree(
+            ROOT / "scenarios" / "newbie-install",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
+        (self.stubs / "base" / "self-host").chmod(0o755)
+        (self.stubs / "docker").mkdir()
+        shutil.copy(ROOT / "bin" / "docker", self.stubs / "docker" / "docker")
+        shutil.copy(
+            ROOT / "bin" / "dockerstate.py", self.stubs / "docker" / "dockerstate.py"
+        )
+        (self.stubs / "docker" / "docker").chmod(0o755)
+        installed = self.invoke("self-host install jellyfin --yes --json")
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        result = self.invoke("docker ps --format '{{.Names}} {{.Status}}'")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("jellyfin", result.stdout)
+        self.assertIn("Up", result.stdout)
+        self.assertNotIn("sonarr", result.stdout)
+
+    def test_installed_project_home_exists_only_in_sandbox(self):
+        shutil.copytree(
+            ROOT / "scenarios" / "newbie-install",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        home = self.sandbox / ".home" / ".self-host"
+        (self.harness / "config.json").write_text(
+            json.dumps({"version": "dev-eval", "home": str(home)})
+        )
+        (self.stubs / "base" / "self-host").chmod(0o755)
+        installed = self.invoke("self-host install jellyfin --yes --json")
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        result = self.invoke("self-host status --json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["home"], str(home))
+        self.assertEqual(self.invoke('test -d "$HOME/.self-host"').returncode, 0)
+
     def test_shell_cannot_execute_binary_outside_allowed_roots(self):
         outside = self.root / "host-binary"
         shutil.copy("/bin/echo", outside)

@@ -199,10 +199,13 @@ def prepare(ws, iteration, ev, config, k):
             "guide": os.path.join(harness, "guide.md"),
             "version": "dev-eval",
             "stubs": stubs,
+            "home": os.path.join(sandbox, ".home", ".self-host"),
         },
     )
     scenario = os.path.join(run, "raw", "scenario")
     shutil.copytree(ev["scenario_path"], scenario)
+    if os.path.isfile(os.path.join(scenario, "status.json")):
+        os.makedirs(os.path.join(sandbox, ".home", ".self-host"))
     os.symlink(scenario, os.path.join(harness, "scenario"))
     open(os.path.join(harness, "invocations.jsonl"), "w").close()
     write_json(
