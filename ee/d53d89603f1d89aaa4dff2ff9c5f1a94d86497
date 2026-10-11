@@ -1,0 +1,19 @@
+internal/apps/emby/emby.go
+  s_01e8d17f7740df::t_3e6ca7b9524745 6,53-55,57-60,63,66-67,70,73,76,79-82,89-123,125,139-153,164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eed53d89603f1d89aaa4dff2ff9c5f1a94d86497",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
