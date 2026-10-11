@@ -1,0 +1,24 @@
+README.md
+  h_d6e478ca18e517 524-530
+docs/homarr-gluetun-contract.md
+  h_d6e478ca18e517 1-83
+internal/apps/gluetun/gluetun.go
+  h_d6e478ca18e517 10,102,115-119,121-122,124-125,127-140,145,147-148,155,158,160,162-169,172,178-190,193-215
+internal/apps/gluetun/gluetun_test.go
+  h_d6e478ca18e517 5,51-58,89,95-96,100
+internal/apps/homarr/target_gluetun.go
+  h_d6e478ca18e517 1-28
+internal/skill/guide.md
+  h_d6e478ca18e517 418-424
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d70c832c426eb1485ef8f072d461a621cfcabb1",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
