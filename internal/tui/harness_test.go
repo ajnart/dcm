@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+	"io/fs"
 	"os/exec"
 	"reflect"
 	"slices"
@@ -24,11 +25,14 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 type fakeBackend struct {
 	cloudflarePlan func(service.CloudflareOptions) (service.CloudflarePlan, error)
 	mu             sync.Mutex
+	folders        *systemtest.Folders
+	home           string
 	status         service.Status
 	checks         []host.Check
 	actions        []string
@@ -108,6 +112,15 @@ func (b *fakeBackend) CloudflarePlan(opts service.CloudflareOptions) (service.Cl
 	}
 	return p, nil
 }
+
+func (f *fakeBackend) ListFolders(dir string) ([]string, error) {
+	if f.folders == nil {
+		return nil, fs.ErrNotExist
+	}
+	return f.folders.List(dir)
+}
+
+func (f *fakeBackend) UserHome() string { return f.home }
 
 func (f *fakeBackend) TelemetryNotice() string {
 	f.mu.Lock()

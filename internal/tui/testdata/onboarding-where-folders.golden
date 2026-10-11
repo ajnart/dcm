@@ -1,0 +1,30 @@
+ ◆ self-host                                                                                                      v1.0.0
+
+  ✓ Initializing › ✓ Welcome › ✓ What › ● Where › ○ Access › ○ Who › ○ Look › ○ Review
+
+  This computer's address on your network, the settings your Apps share and where they keep their
+  files.
+
+  Folders
+  Used by Jellyfin.
+  ┃ Media folder
+  ┃ > /media/anime/
+
+    Downloads folder
+    > /home/alice/downloads
+
+  Where movies, shows and music live. The folder must exist or sit inside one that does. Tab
+  completes, ↑ ↓ choose.
+  In /media/: anime  books  comics  docs  films  games  +2 more
+
+
+
+
+
+
+
+
+
+
+
+ answering · keys go to the form                                                                enter  next   esc  back

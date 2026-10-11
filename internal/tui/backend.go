@@ -119,6 +119,10 @@ type Backend interface {
 	// TelemetryNotice is the one line that announces Telemetry the first
 	// time, and "" once it has been shown or while Telemetry is off.
 	TelemetryNotice() string
+	// ListFolders returns the names of the folders inside dir.
+	ListFolders(dir string) ([]string, error)
+	// UserHome is the person's own home directory, such as /home/alice.
+	UserHome() string
 }
 
 // ServiceBackend runs every call on a fresh Service so each task gets its
@@ -183,6 +187,18 @@ func (b ServiceBackend) reportWorkerPanic(command string) {
 		b.quiet().Telemetry().Send(telemetry.Report{Command: command, Outcome: telemetry.OutcomeFailed, Panic: crash, Stack: stack})
 		panic(crash)
 	}
+}
+
+func (b ServiceBackend) ListFolders(dir string) ([]string, error) {
+	return b.Deps.ListFolders(dir)
+}
+
+func (b ServiceBackend) UserHome() string {
+	user, err := b.Deps.CurrentUser()
+	if err != nil {
+		return ""
+	}
+	return user.Home
 }
 
 func (b ServiceBackend) LookTool(name string) (string, bool) {

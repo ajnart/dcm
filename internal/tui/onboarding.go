@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -84,6 +82,8 @@ type onboarding struct {
 	// task is the approved install; while it is set Pre-boot or the Dashboard is on screen.
 	task int
 	err  string
+	// folders suggests and lists the folders of the Where step's folder fields.
+	folders *folderPicker
 	// notice announces Telemetry on the Welcome step, once per Home folder.
 	notice string
 	// experienceSaved is set when the Profile already holds an Experience
@@ -103,7 +103,8 @@ type plan struct {
 
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		checking: len(m.checks) == 0, checksFrom: m.frame, autoContinue: true, notice: m.backend.TelemetryNotice()}
+		checking: len(m.checks) == 0, checksFrom: m.frame, autoContinue: true, notice: m.backend.TelemetryNotice(),
+		folders: newFolderPicker(m.backend)}
 	o.answers.fill(m.defaults)
 	o.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
 	return o
@@ -164,26 +165,6 @@ func (m *Model) checksArrived() tea.Cmd {
 	return m.startTicking()
 }
 
-func validFolder(path string) error {
-	if !filepath.IsAbs(path) {
-		return errors.New("use an absolute path, e.g. /srv/media")
-	}
-	parent := path
-	for {
-		if info, err := os.Stat(parent); err == nil {
-			if !info.IsDir() {
-				return errors.New(parent + " is a file, not a folder")
-			}
-			return nil
-		}
-		next := filepath.Dir(parent)
-		if next == parent {
-			return errors.New("no existing parent folder")
-		}
-		parent = next
-	}
-}
-
 func validPassword(s string) error {
 	if s == "" {
 		return nil
@@ -214,6 +195,8 @@ func mediaApps(cat *catalog.Catalog, p picks) []string {
 func (m Model) buildForm(s step) *huh.Form {
 	v := m.onboarding.answers
 	cat := m.backend.Catalog()
+	folders := m.onboarding.folders
+	media, downloads := folders.input(&v.media), folders.input(&v.downloads)
 	var groups []*huh.Group
 	height := m.formHeight(s)
 	switch s {
@@ -229,8 +212,8 @@ func (m Model) buildForm(s step) *huh.Form {
 				huh.NewInput().Key(wherePGID).Title("Group ID (PGID)").Value(&v.pgid).Validate(numeric),
 			).Title("Host settings").Description("Detected from this machine."),
 			huh.NewGroup(
-				huh.NewInput().Key(whereMedia).Title("Media folder").Value(&v.media).Validate(validFolder),
-				huh.NewInput().Key(whereDownloads).Title("Downloads folder").Value(&v.downloads).Validate(validFolder),
+				media.Key(whereMedia).Title("Media folder"),
+				downloads.Key(whereDownloads).Title("Downloads folder"),
 			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.picks)) == 0 }))
 		groups[1].Description("Used by " + strings.Join(mediaApps(cat, v.picks), ", ") + ".")
 	case stepWho:
@@ -250,6 +233,8 @@ func (m Model) buildForm(s step) *huh.Form {
 	if s != stepWhere {
 		return form.WithHeight(height)
 	}
+	media.WithKeyMap(folderKeyMap())
+	downloads.WithKeyMap(folderKeyMap())
 	// Where's pages are as tall as their own fields, so the explanation of
 	// the focused field sits right under them, and scroll only past height.
 	for _, g := range groups {
@@ -271,6 +256,9 @@ func (m Model) formHeight(s step) int {
 	room := m.mainHeight() - 3 - len(m.stepIntro(s)) - 1
 	if s == stepWhere {
 		room -= whereExplainLines
+		if len(mediaApps(m.backend.Catalog(), m.onboarding.answers.picks)) > 0 {
+			room -= folderListLines
+		}
 	}
 	return max(room, 6)
 }
@@ -315,6 +303,10 @@ const (
 // two lines a failed validation adds to the form.
 const whereExplainLines = 5
 
+// folderListLines is the room the folder fields add under their explanation
+// for the folders inside the typed path.
+const folderListLines = 2
+
 // whereExplanations are the one-line explanations of the Where fields that
 // do not change with the answers.
 var whereExplanations = map[string]string{
@@ -322,8 +314,8 @@ var whereExplanations = map[string]string{
 	whereTZ:        "The clock your Apps use for schedules and logs, for example Europe/Paris.",
 	wherePUID:      "The user ID that owns the files your Apps write, so you can open them. Detected from this machine.",
 	wherePGID:      "The group ID that owns those files. Detected from this machine.",
-	whereMedia:     "Where movies, shows and music live. The folder must exist or sit inside one that does.",
-	whereDownloads: "Where downloads land before they move to media. The folder must exist or sit inside one that does.",
+	whereMedia:     "Where movies, shows and music live. The folder must exist or sit inside one that does. " + folderKeysHint,
+	whereDownloads: "Where downloads land before they move to media. The folder must exist or sit inside one that does. " + folderKeysHint,
 }
 
 // focusedKey is the key of the focused form field, or "" off a form.
@@ -335,6 +327,27 @@ func (o *onboarding) focusedKey() string {
 		return f.GetKey()
 	}
 	return ""
+}
+
+// tabAsEnter makes Tab on a folder field with nothing to complete move on, as
+// it does on the other Where fields.
+func (o *onboarding) tabAsEnter(msg tea.Msg) tea.Msg {
+	press, ok := msg.(tea.KeyPressMsg)
+	if !ok || press.Code != tea.KeyTab || press.Mod != 0 {
+		return msg
+	}
+	typed := o.answers.media
+	switch o.focusedKey() {
+	case whereMedia:
+	case whereDownloads:
+		typed = o.answers.downloads
+	default:
+		return msg
+	}
+	if len(o.folders.suggestions(typed)) > 0 {
+		return msg
+	}
+	return tea.KeyPressMsg{Code: tea.KeyEnter}
 }
 
 // helpPage is the page `?` opens: the help page of the highlighted Access
@@ -357,7 +370,23 @@ func (m Model) whereExplanation() []string {
 	for _, line := range strings.Split(wrap(whereExplanations[key], width), "\n") {
 		lines = append(lines, "  "+m.theme.body().Render(strings.TrimRight(line, " ")))
 	}
-	return append([]string{""}, lines...)
+	lines = append([]string{""}, lines...)
+	for _, line := range m.folderListing(key, width) {
+		lines = append(lines, "  "+m.theme.dim().Render(line))
+	}
+	return lines
+}
+
+// folderListing lists the folders inside what the focused folder field holds.
+func (m Model) folderListing(key string, width int) []string {
+	o := m.onboarding
+	switch key {
+	case whereMedia:
+		return o.folders.listing(o.answers.media, width, folderListLines)
+	case whereDownloads:
+		return o.folders.listing(o.answers.downloads, width, folderListLines)
+	}
+	return nil
 }
 
 // whatDetailLines is the room for the hovered item's description on What:
@@ -469,6 +498,7 @@ func numeric(s string) error {
 // planFromAnswers turns completed answers into a reviewed install.
 func (m Model) planFromAnswers(v *answers) *plan {
 	cat := m.backend.Catalog()
+	folders := newFolderPicker(m.backend)
 	apps := v.picks.apps(cat)
 	opts := service.InstallOptions{Exposure: v.exposure, EasyNames: v.easyNames, AdminUser: v.adminUser, AdminPassword: v.adminPassword,
 		Settings: map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid}}
@@ -487,14 +517,14 @@ func (m Model) planFromAnswers(v *answers) *plan {
 		}
 	}
 	if needsMedia {
-		opts.MediaRoot, opts.DownloadsRoot = v.media, v.downloads
+		opts.MediaRoot, opts.DownloadsRoot = folders.expand(v.media), folders.expand(v.downloads)
 	}
 	settings := map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid, "EXPOSURE": v.exposure}
 	if v.easyNames {
 		settings["EASY_NAMES"] = "on"
 	}
 	if needsMedia {
-		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = v.media, v.downloads
+		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = folders.expand(v.media), folders.expand(v.downloads)
 	}
 	return &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, nil), settings: settings, fresh: true}
 }
@@ -834,6 +864,7 @@ func (m Model) backToWelcome() (tea.Model, tea.Cmd) {
 
 func (m Model) updateOnboardingForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
+	msg = o.tabAsEnter(msg)
 	next, cmd := o.form.Update(msg)
 	o.form = next.(*huh.Form)
 	switch o.form.State {

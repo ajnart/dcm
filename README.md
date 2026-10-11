@@ -279,7 +279,8 @@ Apps, which you can untick one by one, and its mark shows whether all, some or
 none are picked; an App that needs answers
 of its own asks them next. **Where** explains each field in a line while it is
 focused: the LAN address, the Host settings and, only for media Apps, the
-media and downloads folders. **Access** ("How you'll open your Apps") lists Home
+media and downloads folders. Typing a folder path lists the folders inside it,
+`tab` completes it and `~` expands to your home folder. **Access** ("How you'll open your Apps") lists Home
 network (the default), Easy names at home, From anywhere privately, Your own web
 address and Bring your own, each with a plain explanation and a small diagram
 that follow the highlighted option. `?` opens a longer help page that ends with
@@ -404,7 +405,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | Dashboard key   | Action                                                                                                                                                                    |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1–5, ←/→        | Switch tabs.                                                                                                                                                              |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                                                                                                                       |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. In Onboarding's folder inputs, `tab` completes the typed path.                                                        |
 | [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
 | a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
 | enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its Address; choose a saved credential to copy.                                                    |
