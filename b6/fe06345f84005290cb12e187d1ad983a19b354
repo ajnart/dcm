@@ -1,0 +1,25 @@
+docs/homarr-umami-source-proof.md
+  s_01e8d17f7740df::t_06a6587be2143e 1-137
+internal/apps/homarr/target_umami.go
+  s_01e8d17f7740df::t_370d3f4daa864a 1-109
+internal/apps/umami/homarr.go
+  s_01e8d17f7740df::t_73e0eebd60607e 1-310
+internal/apps/umami/umami.go
+  s_01e8d17f7740df::t_203b913feb2f1d 9,84,90-93,96,110-114,118,120-121,124,165,178-181,199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b6fe06345f84005290cb12e187d1ad983a19b354",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
