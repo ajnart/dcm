@@ -1,0 +1,327 @@
+evals/self-host/bin/ask_user_mcp.py
+  s_58511ba1025e54::t_ffff9ff643e5ee 1-112
+evals/self-host/bin/docker
+  s_58511ba1025e54::t_a143ba2397f737 1-62
+evals/self-host/bin/dockerstate.py
+  s_58511ba1025e54::t_6e36e3d560e4b1 1-22
+evals/self-host/bin/guard.py
+  s_58511ba1025e54::t_ff287a5913a066 1-124
+evals/self-host/bin/hosttool
+  s_58511ba1025e54::t_f8473d027883ae 1-111
+evals/self-host/bin/self-host
+  s_58511ba1025e54::t_7b4705c1c882a7 1-395
+evals/self-host/evals/evals.json
+  s_58511ba1025e54::t_1de2821072a468 1-356
+evals/self-host/evals/trigger-queries.json
+  s_58511ba1025e54::t_aa144d0858db10 1-22
+evals/self-host/scenarios/cant-reach-tv/config-review.json
+  s_58511ba1025e54::t_304417d9f6b9b1 1-6
+evals/self-host/scenarios/cant-reach-tv/profile.json
+  s_58511ba1025e54::t_532298f57946dd 1
+evals/self-host/scenarios/failed-setup/profile.json
+  s_58511ba1025e54::t_4ed9cbb139c1a3 1
+evals/self-host/scenarios/newbie-debian/apps-info
+  s_58511ba1025e54::t_26c8f69b74be23 1
+evals/self-host/scenarios/newbie-debian/apps-list.json
+  s_58511ba1025e54::t_596c0e6fa91fd6 1
+evals/self-host/scenarios/newbie-debian/credentials.json
+  s_58511ba1025e54::t_5d52f03cc5fefe 1
+evals/self-host/scenarios/newbie-debian/doctor-docker-missing.jsonl
+  s_58511ba1025e54::t_8a0ee685fa78c5 1-3
+evals/self-host/scenarios/newbie-debian/doctor.jsonl
+  s_58511ba1025e54::t_f1c6985c4c2281 1
+evals/self-host/scenarios/newbie-debian/install.jsonl
+  s_58511ba1025e54::t_da0ed545bafad4 1
+evals/self-host/scenarios/newbie-debian/os-release
+  s_58511ba1025e54::t_ead75405303341 1-5
+evals/self-host/scenarios/newbie-debian/platform.json
+  s_58511ba1025e54::t_ffb91f8b8d8e87 1-18
+evals/self-host/scenarios/newbie-debian/profile-set.json
+  s_58511ba1025e54::t_b0ca0306971618 1
+evals/self-host/scenarios/newbie-debian/profile.json
+  s_58511ba1025e54::t_0ba7c945c44f62 1
+evals/self-host/scenarios/newbie-debian/status-installed.json
+  s_58511ba1025e54::t_bb0923b00d72f4 1
+evals/self-host/scenarios/newbie-debian/status.exit
+  s_58511ba1025e54::t_f0c0262ac4955e 1
+evals/self-host/scenarios/newbie-install/apps-info/actual-budget.json
+  s_58511ba1025e54::t_fe7bf8de37e5f8 1-10
+evals/self-host/scenarios/newbie-install/apps-info/adguard-home.json
+  s_58511ba1025e54::t_ca44efa94c1446 1-10
+evals/self-host/scenarios/newbie-install/apps-info/archive-team-warrior.json
+  s_58511ba1025e54::t_52364bd854db14 1-17
+evals/self-host/scenarios/newbie-install/apps-info/aria2.json
+  s_58511ba1025e54::t_9b7c7f905db778 1-10
+evals/self-host/scenarios/newbie-install/apps-info/audiobookshelf.json
+  s_58511ba1025e54::t_797aed9c3e2ce0 1-10
+evals/self-host/scenarios/newbie-install/apps-info/authelia.json
+  s_58511ba1025e54::t_31cd499492e086 1-17
+evals/self-host/scenarios/newbie-install/apps-info/authentik.json
+  s_58511ba1025e54::t_9ab7c756eeae49 1-10
+evals/self-host/scenarios/newbie-install/apps-info/bazarr.json
+  s_58511ba1025e54::t_672e8c3ca3ab7c 1-10
+evals/self-host/scenarios/newbie-install/apps-info/beszel.json
+  s_58511ba1025e54::t_86454158986121 1-10
+evals/self-host/scenarios/newbie-install/apps-info/bookstack.json
+  s_58511ba1025e54::t_ba865721a0fb35 1-10
+evals/self-host/scenarios/newbie-install/apps-info/borgmatic.json
+  s_58511ba1025e54::t_02c89a04fb7c52 1-17
+evals/self-host/scenarios/newbie-install/apps-info/caddy.json
+  s_58511ba1025e54::t_45c09495eb768f 1-10
+evals/self-host/scenarios/newbie-install/apps-info/cloudflare-tunnel.json
+  s_58511ba1025e54::t_bc5111edffc9d7 1-18
+evals/self-host/scenarios/newbie-install/apps-info/dashdot.json
+  s_58511ba1025e54::t_18c481226a56d5 1-10
+evals/self-host/scenarios/newbie-install/apps-info/deluge.json
+  s_58511ba1025e54::t_89ed1f50b4f853 1-10
+evals/self-host/scenarios/newbie-install/apps-info/dockge.json
+  s_58511ba1025e54::t_5424fe95a1d656 1-10
+evals/self-host/scenarios/newbie-install/apps-info/docmost.json
+  s_58511ba1025e54::t_7aba76c615e957 1-10
+evals/self-host/scenarios/newbie-install/apps-info/emby.json
+  s_58511ba1025e54::t_30df11f10a7421 1-10
+evals/self-host/scenarios/newbie-install/apps-info/firefly-iii.json
+  s_58511ba1025e54::t_5b9b82e56fbbc8 1-10
+evals/self-host/scenarios/newbie-install/apps-info/forgejo.json
+  s_58511ba1025e54::t_a68bc059cc5f29 1-10
+evals/self-host/scenarios/newbie-install/apps-info/freshrss.json
+  s_58511ba1025e54::t_d349a00f0905e1 1-10
+evals/self-host/scenarios/newbie-install/apps-info/frigate.json
+  s_58511ba1025e54::t_99b454d0f0cb38 1-10
+evals/self-host/scenarios/newbie-install/apps-info/gatus.json
+  s_58511ba1025e54::t_e952ad4284b377 1-10
+evals/self-host/scenarios/newbie-install/apps-info/glances.json
+  s_58511ba1025e54::t_a75eef6cfbae05 1-10
+evals/self-host/scenarios/newbie-install/apps-info/gluetun.json
+  s_58511ba1025e54::t_62e582c3b27191 1-38
+evals/self-host/scenarios/newbie-install/apps-info/gotify.json
+  s_58511ba1025e54::t_908b4fc23a0c7f 1-10
+evals/self-host/scenarios/newbie-install/apps-info/grafana.json
+  s_58511ba1025e54::t_ae8b880b3432e5 1-10
+evals/self-host/scenarios/newbie-install/apps-info/haproxy.json
+  s_58511ba1025e54::t_4a9061ea993c0a 1-23
+evals/self-host/scenarios/newbie-install/apps-info/headscale.json
+  s_58511ba1025e54::t_c07375dacb2f26 1-23
+evals/self-host/scenarios/newbie-install/apps-info/homarr.json
+  s_58511ba1025e54::t_3ca3da14794304 1-21
+evals/self-host/scenarios/newbie-install/apps-info/home-assistant.json
+  s_58511ba1025e54::t_663780c27278b0 1-10
+evals/self-host/scenarios/newbie-install/apps-info/homebridge.json
+  s_58511ba1025e54::t_ff9e311e33c575 1-10
+evals/self-host/scenarios/newbie-install/apps-info/immich.json
+  s_58511ba1025e54::t_0ae3cf93163d7e 1-10
+evals/self-host/scenarios/newbie-install/apps-info/jellyfin.json
+  s_58511ba1025e54::t_ec9310c2fe7795 1-10
+evals/self-host/scenarios/newbie-install/apps-info/keycloak.json
+  s_58511ba1025e54::t_07f6030b2803e1 1-10
+evals/self-host/scenarios/newbie-install/apps-info/kopia.json
+  s_58511ba1025e54::t_8612d8b55804da 1-10
+evals/self-host/scenarios/newbie-install/apps-info/lidarr.json
+  s_58511ba1025e54::t_3d3ec5d5b8447e 1-10
+evals/self-host/scenarios/newbie-install/apps-info/linkwarden.json
+  s_58511ba1025e54::t_c5fd0a34c91e55 1-10
+evals/self-host/scenarios/newbie-install/apps-info/lldap.json
+  s_58511ba1025e54::t_7e9fd61d8108cb 1-10
+evals/self-host/scenarios/newbie-install/apps-info/loki.json
+  s_58511ba1025e54::t_a04d78a546f727 1-10
+evals/self-host/scenarios/newbie-install/apps-info/mayan-edms.json
+  s_58511ba1025e54::t_3d6ae3e13ee388 1-10
+evals/self-host/scenarios/newbie-install/apps-info/minio.json
+  s_58511ba1025e54::t_5afd48f95aeeb0 1-17
+evals/self-host/scenarios/newbie-install/apps-info/navidrome.json
+  s_58511ba1025e54::t_ef9bcbca191e9c 1-10
+evals/self-host/scenarios/newbie-install/apps-info/netbird.json
+  s_58511ba1025e54::t_d786df0a8b1426 1-17
+evals/self-host/scenarios/newbie-install/apps-info/netdata.json
+  s_58511ba1025e54::t_1c4f75978e815e 1-10
+evals/self-host/scenarios/newbie-install/apps-info/nextcloud.json
+  s_58511ba1025e54::t_a67552c305f38a 1-10
+evals/self-host/scenarios/newbie-install/apps-info/nginx-proxy-manager.json
+  s_58511ba1025e54::t_e29138c04627bd 1-10
+evals/self-host/scenarios/newbie-install/apps-info/node-red.json
+  s_58511ba1025e54::t_5c54ce372d1f93 1-10
+evals/self-host/scenarios/newbie-install/apps-info/ntfy.json
+  s_58511ba1025e54::t_e8bc0dcebaa5b5 1-10
+evals/self-host/scenarios/newbie-install/apps-info/nzbget.json
+  s_58511ba1025e54::t_39a3d30eabfe5e 1-10
+evals/self-host/scenarios/newbie-install/apps-info/ollama.json
+  s_58511ba1025e54::t_284ba10ca2d6d3 1-10
+evals/self-host/scenarios/newbie-install/apps-info/open-webui.json
+  s_58511ba1025e54::t_38ac8efa968cab 1-10
+evals/self-host/scenarios/newbie-install/apps-info/pangolin.json
+  s_58511ba1025e54::t_af5f72c9ac7c36 1-23
+evals/self-host/scenarios/newbie-install/apps-info/paperless-ngx.json
+  s_58511ba1025e54::t_6b5be85a6e24d2 1-10
+evals/self-host/scenarios/newbie-install/apps-info/passbolt.json
+  s_58511ba1025e54::t_e40ab25ed53e91 1-53
+evals/self-host/scenarios/newbie-install/apps-info/patchmon.json
+  s_58511ba1025e54::t_567eb4b245d5b1 1-16
+evals/self-host/scenarios/newbie-install/apps-info/peanut.json
+  s_58511ba1025e54::t_28afe3277c972c 1-10
+evals/self-host/scenarios/newbie-install/apps-info/photoprism.json
+  s_58511ba1025e54::t_9cbbc0ceb8c4ef 1-10
+evals/self-host/scenarios/newbie-install/apps-info/pihole.json
+  s_58511ba1025e54::t_acb322b4469b09 1-18
+evals/self-host/scenarios/newbie-install/apps-info/plex.json
+  s_58511ba1025e54::t_582b18c0254a46 1-18
+evals/self-host/scenarios/newbie-install/apps-info/portainer.json
+  s_58511ba1025e54::t_0609ddcf0709ff 1-10
+evals/self-host/scenarios/newbie-install/apps-info/postgresql.json
+  s_58511ba1025e54::t_8420bc37d8dd27 1-10
+evals/self-host/scenarios/newbie-install/apps-info/prometheus.json
+  s_58511ba1025e54::t_42d775b51404fb 1-10
+evals/self-host/scenarios/newbie-install/apps-info/prowlarr.json
+  s_58511ba1025e54::t_8285660f19b0dc 1-14
+evals/self-host/scenarios/newbie-install/apps-info/qbittorrent.json
+  s_58511ba1025e54::t_33d3b12729a8c4 1-18
+evals/self-host/scenarios/newbie-install/apps-info/radarr.json
+  s_58511ba1025e54::t_83d52905d0d91d 1-13
+evals/self-host/scenarios/newbie-install/apps-info/renovate.json
+  s_58511ba1025e54::t_d8dfc5fceeac15 1-18
+evals/self-host/scenarios/newbie-install/apps-info/restic.json
+  s_58511ba1025e54::t_c86a3a639ada01 1-17
+evals/self-host/scenarios/newbie-install/apps-info/sabnzbd.json
+  s_58511ba1025e54::t_03af97f37fc66a 1-10
+evals/self-host/scenarios/newbie-install/apps-info/scrypted.json
+  s_58511ba1025e54::t_df235110976f2c 1-10
+evals/self-host/scenarios/newbie-install/apps-info/seafile.json
+  s_58511ba1025e54::t_b83e218638baf4 1-10
+evals/self-host/scenarios/newbie-install/apps-info/seerr.json
+  s_58511ba1025e54::t_817752f67a021b 1-15
+evals/self-host/scenarios/newbie-install/apps-info/slskd.json
+  s_58511ba1025e54::t_b35af60e5dbd2f 1-10
+evals/self-host/scenarios/newbie-install/apps-info/sonarr.json
+  s_58511ba1025e54::t_bc51edd097fb11 1-13
+evals/self-host/scenarios/newbie-install/apps-info/speedtest-tracker.json
+  s_58511ba1025e54::t_d797b31e025c8a 1-10
+evals/self-host/scenarios/newbie-install/apps-info/stalwart-mail.json
+  s_58511ba1025e54::t_9edae7d99f6979 1-23
+evals/self-host/scenarios/newbie-install/apps-info/stirling-pdf.json
+  s_58511ba1025e54::t_c19c5e9e59ea13 1-10
+evals/self-host/scenarios/newbie-install/apps-info/syncthing.json
+  s_58511ba1025e54::t_60903dc189fe0a 1-10
+evals/self-host/scenarios/newbie-install/apps-info/tailscale.json
+  s_58511ba1025e54::t_20806feed6e502 1-18
+evals/self-host/scenarios/newbie-install/apps-info/tdarr.json
+  s_58511ba1025e54::t_0d6851dcacb253 1-10
+evals/self-host/scenarios/newbie-install/apps-info/technitium-dns.json
+  s_58511ba1025e54::t_04597542305537 1-18
+evals/self-host/scenarios/newbie-install/apps-info/tracearr.json
+  s_58511ba1025e54::t_f1c886409480a8 1-17
+evals/self-host/scenarios/newbie-install/apps-info/traefik.json
+  s_58511ba1025e54::t_c9876c1b031a8e 1-10
+evals/self-host/scenarios/newbie-install/apps-info/transmission.json
+  s_58511ba1025e54::t_580a18f080ba98 1-10
+evals/self-host/scenarios/newbie-install/apps-info/umami.json
+  s_58511ba1025e54::t_a93a8d4fa2e76f 1-10
+evals/self-host/scenarios/newbie-install/apps-info/unbound.json
+  s_58511ba1025e54::t_b4909ae1e06890 1-10
+evals/self-host/scenarios/newbie-install/apps-info/uptime-kuma.json
+  s_58511ba1025e54::t_77797a3c997f80 1-10
+evals/self-host/scenarios/newbie-install/apps-info/valkey.json
+  s_58511ba1025e54::t_e0abbdc8f33e44 1-10
+evals/self-host/scenarios/newbie-install/apps-info/vaultwarden.json
+  s_58511ba1025e54::t_8c0081f60e9cef 1-10
+evals/self-host/scenarios/newbie-install/apps-info/vector.json
+  s_58511ba1025e54::t_f00c0d81c006cf 1-10
+evals/self-host/scenarios/newbie-install/apps-info/victoria-metrics.json
+  s_58511ba1025e54::t_1b6d4bb445dcec 1-10
+evals/self-host/scenarios/newbie-install/apps-info/wud.json
+  s_58511ba1025e54::t_1a571b170a04f9 1-30
+evals/self-host/scenarios/newbie-install/apps-info/zerotier.json
+  s_58511ba1025e54::t_c4c303c60b75ed 1-10
+evals/self-host/scenarios/newbie-install/profile-set.json
+  s_58511ba1025e54::t_2cf4c88cafd46d 1
+evals/self-host/scenarios/newbie-macbook/apps-info
+  s_58511ba1025e54::t_cf02aeb868af3f 1
+evals/self-host/scenarios/newbie-macbook/apps-list.json
+  s_58511ba1025e54::t_c7b0fb27b5b215 1
+evals/self-host/scenarios/newbie-macbook/credentials.json
+  s_58511ba1025e54::t_94378dab1e2419 1
+evals/self-host/scenarios/newbie-macbook/doctor-docker-missing.jsonl
+  s_58511ba1025e54::t_16e91c905e48fe 1-3
+evals/self-host/scenarios/newbie-macbook/doctor.jsonl
+  s_58511ba1025e54::t_f102a2e36db72a 1
+evals/self-host/scenarios/newbie-macbook/install.jsonl
+  s_58511ba1025e54::t_c0e36c57d465be 1
+evals/self-host/scenarios/newbie-macbook/platform.json
+  s_58511ba1025e54::t_ad647e8955cc89 1-16
+evals/self-host/scenarios/newbie-macbook/profile-set.json
+  s_58511ba1025e54::t_649dee0ce22d64 1
+evals/self-host/scenarios/newbie-macbook/profile.json
+  s_58511ba1025e54::t_9bfcf2905a921c 1
+evals/self-host/scenarios/newbie-macbook/status-installed.json
+  s_58511ba1025e54::t_a7fdf0f2e2ead2 1
+evals/self-host/scenarios/newbie-macbook/status.exit
+  s_58511ba1025e54::t_4218efa2b3fd6d 1
+evals/self-host/scenarios/newbie-mint/apps-info
+  s_58511ba1025e54::t_59a4863986eb62 1
+evals/self-host/scenarios/newbie-mint/apps-list.json
+  s_58511ba1025e54::t_d7a87ec503c3ba 1
+evals/self-host/scenarios/newbie-mint/credentials.json
+  s_58511ba1025e54::t_92a97d1b92219e 1
+evals/self-host/scenarios/newbie-mint/doctor-docker-permission.jsonl
+  s_58511ba1025e54::t_2e8e47aca84cbf 1-4
+evals/self-host/scenarios/newbie-mint/doctor.jsonl
+  s_58511ba1025e54::t_432df5f3375eb4 1
+evals/self-host/scenarios/newbie-mint/install.jsonl
+  s_58511ba1025e54::t_782ecac8b6a78a 1
+evals/self-host/scenarios/newbie-mint/os-release
+  s_58511ba1025e54::t_ea6e8db7900246 1-6
+evals/self-host/scenarios/newbie-mint/platform.json
+  s_58511ba1025e54::t_5a1918246d6942 1-18
+evals/self-host/scenarios/newbie-mint/profile-set.json
+  s_58511ba1025e54::t_916bd814665e05 1
+evals/self-host/scenarios/newbie-mint/profile.json
+  s_58511ba1025e54::t_fd2af699ec722b 1
+evals/self-host/scenarios/newbie-mint/status-installed.json
+  s_58511ba1025e54::t_9132f0fd775607 1
+evals/self-host/scenarios/newbie-mint/status.exit
+  s_58511ba1025e54::t_4debb72e00f5a0 1
+evals/self-host/scenarios/newbie-wsl/apps-info
+  s_58511ba1025e54::t_a8cc468dea32cc 1
+evals/self-host/scenarios/newbie-wsl/apps-list.json
+  s_58511ba1025e54::t_14c0493dd628f5 1
+evals/self-host/scenarios/newbie-wsl/credentials.json
+  s_58511ba1025e54::t_1eea4408e0bfb5 1
+evals/self-host/scenarios/newbie-wsl/doctor-docker-missing.jsonl
+  s_58511ba1025e54::t_61568974dd7eb4 1-3
+evals/self-host/scenarios/newbie-wsl/doctor.jsonl
+  s_58511ba1025e54::t_17b30d80aa24c4 1
+evals/self-host/scenarios/newbie-wsl/install.jsonl
+  s_58511ba1025e54::t_fcdce8d9b80be6 1
+evals/self-host/scenarios/newbie-wsl/os-release
+  s_58511ba1025e54::t_dad17623459eeb 1-5
+evals/self-host/scenarios/newbie-wsl/platform.json
+  s_58511ba1025e54::t_02e98f5c7e37c4 1-18
+evals/self-host/scenarios/newbie-wsl/profile-set.json
+  s_58511ba1025e54::t_639a270d5c0e89 1
+evals/self-host/scenarios/newbie-wsl/profile.json
+  s_58511ba1025e54::t_ca3dfb3d9b6865 1
+evals/self-host/scenarios/newbie-wsl/status-installed.json
+  s_58511ba1025e54::t_0d3424266da57b 1
+evals/self-host/scenarios/newbie-wsl/status.exit
+  s_58511ba1025e54::t_b1e3c360ad77d1 1
+evals/self-host/scenarios/public-access/cloudflare-plan.json
+  s_58511ba1025e54::t_21823e5899d778 1-20
+evals/self-host/scenarios/public-access/cloudflare-publish-ok.jsonl
+  s_58511ba1025e54::t_3748891dff3190 1-6
+evals/self-host/scenarios/public-access/profile.json
+  s_58511ba1025e54::t_bd0d752a7006a7 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73b2908ae55cf4cb962f750463587d5226125cbd",
+  "prompts": {},
+  "sessions": {
+    "s_58511ba1025e54": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10209288-d313-4e1f-8ce7-100e92872c1b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
