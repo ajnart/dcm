@@ -1,0 +1,20 @@
+internal/apps/homarr/target_tdarr.go
+  h_d6e478ca18e517 1-164
+internal/apps/tdarr/homarr.go
+  h_d6e478ca18e517 1-246
+internal/apps/tdarr/tdarr.go
+  h_d6e478ca18e517 33-36,55-56,99,114-115,120,134,140,145-148,176-219,221-239
+internal/apps/tdarr/tdarr_test.go
+  h_d6e478ca18e517 26-54,59,96,107-109,117,125-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "21d3624b86411b9011a4e9ad3cacc94b60174279",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
