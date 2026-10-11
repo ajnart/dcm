@@ -107,6 +107,21 @@ func TestRenderingIsAFunctionOfItsInputs(t *testing.T) {
 	if slices.Equal(a, Render(41, 120, 30, pulling(2, 0), Dark(), false)) {
 		t.Fatal("the next frame must move")
 	}
+	for _, size := range sizes {
+		for n := 0; n <= 12; n++ {
+			a := RenderEntrance(n, size.w, size.h, pulling(2, 0), Dark(), false)
+			b := RenderEntrance(n, size.w, size.h, pulling(2, 0), Dark(), false)
+			if !slices.Equal(a, b) {
+				t.Fatalf("entrance frame %d must render identically", n)
+			}
+			if !strings.Contains(strings.Join(stripAll(a), "\n"), "2 of 7 images") {
+				t.Fatalf("entrance frame %d must retain progress", n)
+			}
+		}
+		if !slices.Equal(RenderEntrance(12, size.w, size.h, pulling(2, 0), Dark(), false), Render(12, size.w, size.h, pulling(2, 0), Dark(), false)) {
+			t.Fatal("entrance must join the unchanged scene at frame 12")
+		}
+	}
 }
 
 func TestWithoutColourTheMotionKeepsItsWeight(t *testing.T) {

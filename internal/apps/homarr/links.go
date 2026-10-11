@@ -61,11 +61,12 @@ type target struct {
 	id   string
 	name string
 	// kind is the Homarr integration kind; empty means tile only.
-	kind     string
-	internal func(to *helpers.H) string
-	secrets  func(from, to *helpers.H) []secret
-	widgets  []widget
-	verify   func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	kind      string
+	internal  func(to *helpers.H) string
+	secrets   func(from, to *helpers.H) []secret
+	widgets   []widget
+	preflight func(ctx context.Context, from, to *helpers.H) error
+	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -767,6 +768,11 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return false, err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return false, err
 	}
@@ -850,6 +856,11 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return err
 	}
@@ -950,6 +961,7 @@ func browserAddress(ctx context.Context, from, to *helpers.H) (string, error) {
 
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 	internal := t.internal(to)
+	keepIntegration := false
 	if t.kind != "" {
 		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
 			if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
@@ -974,9 +986,7 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 				}
 				if used {
 					from.Info("keeping the " + t.name + " integration because other widgets still use it")
-					if err := from.SetSecret(from.Key("linked_"+t.id), ""); err != nil {
-						return err
-					}
+					keepIntegration = true
 					continue
 				}
 				if err := deleteIntegration(ctx, from, id); err != nil {
@@ -993,15 +1003,53 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
 			return err
 		}
+		if keepIntegration {
+			if err := t.releaseApp(ctx, from, ""); err != nil {
+				return err
+			}
+		}
 		return ensureNotebook(ctx, from)
 	}
 	if err := removeAppTiles(ctx, from, id); err != nil {
 		return err
 	}
+	if keepIntegration {
+		if err := t.releaseApp(ctx, from, id); err != nil {
+			return err
+		}
+		return ensureNotebook(ctx, from)
+	}
 	if _, err = from.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(from)}); err != nil {
 		return err
 	}
 	return ensureNotebook(ctx, from)
+}
+
+func (t target) releaseApp(ctx context.Context, h *helpers.H, id string) error {
+	apps, err := listApps(ctx, h)
+	if err != nil {
+		return err
+	}
+	for _, item := range apps {
+		if appID(item) != id || stringField(item, "description") != installedTileMarker+t.id {
+			continue
+		}
+		if _, err := h.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(h), JSON: map[string]any{
+			"name": item["name"], "description": "", "iconUrl": item["iconUrl"], "href": item["href"], "pingUrl": item["pingUrl"],
+		}}); err != nil {
+			return err
+		}
+	}
+	ids := managedAppIDs(h)
+	delete(ids, t.id)
+	raw, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+	if err := h.SetSecret(h.Key("app_ids"), string(raw)); err != nil {
+		return err
+	}
+	return h.SetSecret(h.Key("linked_"+t.id), "")
 }
 
 func integrationUsedByWidgets(ctx context.Context, h *helpers.H, integrationID string) (bool, error) {
