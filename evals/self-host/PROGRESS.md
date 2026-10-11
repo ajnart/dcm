@@ -31,7 +31,7 @@ No percentage estimate: each gate requires evidence.
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
 | Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
 | Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
-| Independent Standards and Spec review                                  | Fresh findings corrected; parent re-review remains pending            |
+| Independent Standards and Spec review                                  | Both pass with zero findings at pinned source `467cd06a`              |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -219,6 +219,24 @@ judgments/aggregation, human viewer feedback and final parent review remain
 required; the scenario-boundary decision recorded for iteration 12 is also open.
 This correction uses no paid model/preflight call, browser, Docker runtime,
 live Project, real secret, protected-file read or child agent. PR #259 stays draft.
+
+### Pinned parent review verdict
+
+The parent's [independent Standards and Spec verdict](https://github.com/ajnart/selfhost-skills/pull/259#issuecomment-6114075345)
+records both axes passing with zero findings at source
+`467cd06a2b59b189d9c269e4f89d14997ef992f6`, against fixed base
+`3800111d292005af38221da47845956694956185`. Spec independently ran nine existing
+focused offline regressions and diff checks; Standards checked fixture/production
+contracts and the owned-process boundary. These reviews accessed no active raw
+runs and made no new paid calls.
+
+This clears the source-review gate for that pin only, not comparison acceptance.
+The install-Recap versus browser boundary and consistent synthetic machine/media
+observations remain unresolved. Boundary or fixture logic changes need approval,
+offline verification and a fresh source review before any authorized comparison.
+All historical evidence remains unchanged; full corrected-input execution,
+complete judgments/aggregation and viewer/human feedback are still pending.
+This documentary update changes no guide, router, assertion, fixture or runtime.
 
 ### Earlier review evidence
 
