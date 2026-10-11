@@ -46,6 +46,20 @@ func handler() http.Handler {
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 	})
+	for path, body := range map[string]string{
+		"/api/v0/application/version": `"0.26.1"`,
+		"/api/v0/server":              `{"isConnected":true,"isLoggedIn":true}`,
+		"/api/v0/transfers/downloads": `[]`,
+	} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-API-Key") != apiKey {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(body))
+		})
+	}
 	return mux
 }
 
