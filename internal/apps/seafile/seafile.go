@@ -22,7 +22,12 @@ func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) 
 
 type App struct{}
 
-func (App) AdminEmail(username string) string { return username + "@selfhost.local" }
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
 
 func (App) Info() app.Info {
 	return app.Info{

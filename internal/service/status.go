@@ -308,10 +308,14 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 		if !ok {
 			continue
 		}
+		email := provider.AdminEmail(creds.Admin.Username)
+		if email == "" {
+			continue
+		}
 		if creds.Admin.Emails == nil {
 			creds.Admin.Emails = map[string]string{}
 		}
-		creds.Admin.Emails[id] = provider.AdminEmail(creds.Admin.Username)
+		creds.Admin.Emails[id] = email
 	}
 	sort.Slice(ids, func(i, j int) bool { return len(ids[i]) > len(ids[j]) })
 	for key, value := range ss.secrets.values {

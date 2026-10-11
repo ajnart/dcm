@@ -15,7 +15,12 @@ import (
 
 type App struct{}
 
-func (App) AdminEmail(username string) string { return username + emailSuffix }
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + emailSuffix
+}
 
 func (App) Info() app.Info {
 	return app.Info{

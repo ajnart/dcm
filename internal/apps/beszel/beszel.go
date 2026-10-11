@@ -17,7 +17,12 @@ import (
 
 type App struct{}
 
-func (App) AdminEmail(username string) string { return username + emailSuffix }
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + emailSuffix
+}
 
 const (
 	// version is the Hub's version; the agent runs the same one.

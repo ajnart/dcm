@@ -43,7 +43,12 @@ exec /usr/sbin/php-fpm85 -F
 // App is Speedtest Tracker. Traps: docs/catalog/traps/speedtest-tracker.md.
 type App struct{}
 
-func (App) AdminEmail(username string) string { return username + "@selfhost.local" }
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
 
 func (App) Info() app.Info {
 	return app.Info{
