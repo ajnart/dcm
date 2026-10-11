@@ -1,0 +1,18 @@
+internal/apps/adguard/adguard.go
+  h_d6e478ca18e517 11,53-67,71-86,92,96-107,111-112,120-126,138-142,147,163-204
+internal/apps/adguard/adguard_test.go
+  h_d6e478ca18e517 46-65
+internal/apps/homarr/integration_adguard.go
+  h_d6e478ca18e517 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dacc3065025075f9beb816a81b01d82f96db4351",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
