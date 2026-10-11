@@ -1,0 +1,19 @@
+internal/apps/linkwarden/linkwarden_test.go
+  s_01e8d17f7740df::t_b4e5ab52cdf625 30-31,62-64,71-101,147-149,163,171-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da21eda483dce6afbd1bfb9bbf1b4454f329d1d3",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
