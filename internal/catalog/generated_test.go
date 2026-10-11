@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -102,12 +103,35 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 	for _, a := range generatedApps() {
 		a := a
 		t.Run(a.Info().ID, func(t *testing.T) {
+			info := a.Info()
+			deps := systemtest.NewDeps(t)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if info.ID == "netdata" {
+					w.Header().Set("Content-Type", "application/json")
+					if r.Method != http.MethodGet {
+						w.WriteHeader(http.StatusMethodNotAllowed)
+						return
+					}
+					switch r.URL.Path {
+					case "/api/v1/info":
+						fmt.Fprint(w, `{"version":"v2.11.0","alarms":{"normal":0,"warning":0,"critical":0}}`)
+					case "/api/v1/charts":
+						fmt.Fprint(w, `{"charts":{"netdata.server_cpu":{"id":"netdata.server_cpu","context":"netdata.server_cpu","plugin":"netdata","module":"pulse","units":"milliseconds/s","dimensions":{"user":{"name":"user"},"system":{"name":"system"}}}}}`)
+					case "/api/v1/data":
+						query := r.URL.Query()
+						if query.Get("chart") != "netdata.server_cpu" || query.Get("after") != "-60" || query.Get("points") != "1" || query.Get("format") != "json" {
+							w.WriteHeader(http.StatusBadRequest)
+							return
+						}
+						fmt.Fprintf(w, `{"labels":["time","user","system"],"data":[[%d,1,0]]}`, deps.Now().Unix())
+					default:
+						w.WriteHeader(http.StatusNotFound)
+					}
+					return
+				}
 				w.WriteHeader(http.StatusOK)
 			}))
 			defer srv.Close()
-			info := a.Info()
-			deps := systemtest.NewDeps(t)
 			h := helpers.New(helpers.Config{
 				App:     info.ID,
 				Service: info.Service,

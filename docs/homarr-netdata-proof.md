@@ -97,12 +97,32 @@ tests do not constitute that live acceptance proof.
   passed, with `GOFLAGS=-buildvcs=false`.
 - `gofmt -l .` was empty; `git diff --check`, `go build ./...`,
   `go vet ./...`, `go vet -tags e2e ./e2e/`, and `bash -n install.sh` passed.
-- `go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/netdata/ ./internal/apps/homarr/`
+- The complete `go test ./...` gate passes after the authorized fixture
+  correction, with `GOFLAGS=-buildvcs=false`.
+- `go test -race ./internal/tui/ ./internal/activity/ ./internal/catalog/ ./internal/apps/netdata/ ./internal/apps/homarr/`
   passed, with `GOFLAGS=-buildvcs=false`.
-- The full `go test ./...` gate exposed one obsolete shared fixture:
-  `TestGeneratedAppsOnboard/netdata` in `internal/catalog/generated_test.go`
-  responds with empty HTTP 200 bodies. The new readiness contract correctly
-  rejects these instead of claiming metric data. All other packages passed.
-  The reference owner must replace that Netdata fixture with explicit alarm
-  JSON, discovered pulse chart metadata and timestamped samples; this lane
-  leaves shared files untouched. No tests were added or weakened.
+- Before the authorized fixture correction,
+  `go test ./internal/catalog/ -run '^TestGeneratedAppsOnboard/netdata$' -count=1`
+  failed on the empty-200 fixture. It passes with the corrected fixture;
+  production readiness remains unchanged.
+
+The parent authorized a precise central test exception in the existing
+`internal/catalog/generated_test.go`, restricted to Netdata's routes:
+
+- `GET /api/v1/info` returns version `v2.11.0` and explicit integer alarm
+  counts `{normal: 0, warning: 0, critical: 0}`. Zero is a valid alarm dataset.
+- `GET /api/v1/charts` returns the native `netdata.server_cpu` chart with its
+  actual identifier, matching context, `netdata` plugin, `pulse` module,
+  `milliseconds/s` units and `user`/`system` dimensions.
+- `GET /api/v1/data` requires `chart=netdata.server_cpu`, `after=-60`,
+  `points=1` and `format=json`. Its literal `time`/`user`/`system` labels pair
+  with one `[timestamp, 1, 0]` sample: timestamp is Unix seconds from the
+  existing `deps.Now` clock seam; user/system values are milliseconds/s.
+  Wrong query values return 400, unknown Netdata routes 404 and methods
+  other than GET 405. There is no Netdata empty-200 fallback.
+
+Other App fixture behavior is unchanged; no tests, test files, skips or
+production seam changes were added. Independent Dashdot work was not imported
+from dirty files. These synthetic responses validate the existing Setup/Check
+contract only, not native Homarr/widget or runtime acceptance. The no-host-CPU,
+unchanged authority and unsupported System Resources caveats remain in force.
