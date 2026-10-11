@@ -1,0 +1,81 @@
+CONTEXT.md
+  s_01e8d17f7740df::t_0f60b54dc6a5a3 92
+README.md
+  s_8b1d5a69f175a9::t_aed6619a157865 284-286,288,415-416,422-426
+docs/agents/implementing.md
+  s_8b1d5a69f175a9::t_470aa2ee67f6ed 28-29
+internal/skill/guide.md
+  s_8b1d5a69f175a9::t_3b26edcec96226 235-236,257-258
+internal/tui/keys.go
+  s_8b1d5a69f175a9::t_b9337388016428 14,53
+internal/tui/onboarding_selection_golden_test.go
+  s_8b1d5a69f175a9::t_7c55a0f9ea7975 22
+internal/tui/testdata/onboarding-access-local-focus-narrow.golden
+  s_01e8d17f7740df::t_23e283848857fb 1-24
+internal/tui/testdata/onboarding-access-local-focus.golden
+  s_01e8d17f7740df::t_bb269b729a1f54 1-30
+internal/tui/actionmenu.go
+  s_668057ad6d193a::t_d156e96ed67c51 34-35,87,249-251
+internal/tui/apps.go
+  s_668057ad6d193a::t_786e1392cee5eb 39,42,65-68,106,207,213
+internal/tui/harness_test.go
+  s_668057ad6d193a::t_110e92e3e1a585 527
+internal/tui/model.go
+  s_668057ad6d193a::t_f330800b716a12 888
+internal/tui/onboarding.go
+  s_668057ad6d193a::t_d07bc88bc906db 1106,1108,1110,1113,1117-1126
+internal/tui/qr.go
+  s_668057ad6d193a::t_a85e4da2f6fc6d 22-24,37-38,42,44,135
+internal/tui/qr_test.go
+  s_668057ad6d193a::t_87377c6e4e1753 8-14,19,21,26,28-33,41-50,54,56-88,94
+internal/tui/testdata/apps-qr-small.golden
+  s_668057ad6d193a::t_6af1df106a3f9a 9,20
+internal/tui/testdata/apps-qr-tiny.golden
+  s_668057ad6d193a::t_b0d529fb68efb8 1-15
+internal/tui/testdata/apps-qr.golden
+  s_668057ad6d193a::t_15025f9232f2b1 60
+internal/tui/testdata/menu-app-qr-local-narrow.golden
+  s_668057ad6d193a::t_3647d4d1b1e3a9 1-24
+internal/tui/testdata/menu-app-qr-local.golden
+  s_668057ad6d193a::t_f3a4814f95c96e 1-30
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  s_668057ad6d193a::t_91306709fa22bd 20-22
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_668057ad6d193a::t_73e532e705f985 19
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_668057ad6d193a::t_44f34c53e66dc7 20-22
+internal/tui/view.go
+  s_668057ad6d193a::t_d8f007c53d95b3 656
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bd3eabb37a2cb4bc0535732308beeebb328fa14",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_668057ad6d193a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5ef8747-6592-44e4-b48a-219bb7cc0214",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

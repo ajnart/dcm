@@ -1,0 +1,145 @@
+CONTEXT.md
+  s_01e8d17f7740df::t_33b38b9461d997 87-94
+go.mod
+  s_01e8d17f7740df::t_2c350f573bea54 21
+go.sum
+  s_01e8d17f7740df::t_d3cfcdb75dcae1 114-115
+internal/tui/access.go
+  s_8b1d5a69f175a9::t_9c158c9c131eaf 184,188,212
+internal/tui/access_test.go
+  s_01e8d17f7740df::t_876f07709073d8 19,30,36
+internal/tui/actionmenu.go
+  s_8b1d5a69f175a9::t_4d0b34f51a4f37 29-30,68,75-77,83-92,253-256
+internal/tui/apps.go
+  s_8b1d5a69f175a9::t_ba646eccb8e2c6 32,39,42,51-52,62,65,71-73,106,201-204,207,213,268-269
+internal/tui/dashboard.go
+  s_8b1d5a69f175a9::t_65c336bdd5f7d2 43-44,100-103
+internal/tui/keys.go
+  s_8b1d5a69f175a9::t_cb4f6958559388 14,39,54
+internal/tui/model.go
+  s_8b1d5a69f175a9::t_e6f7a373bd8a60 888
+internal/tui/qr.go
+  s_8b1d5a69f175a9::t_9197310adb2ddd 1-151
+internal/tui/qr_test.go
+  s_8b1d5a69f175a9::t_b95f8d22a5fe80 1-54
+internal/tui/settings_test.go
+  s_01e8d17f7740df::t_60d84a1f0e7fca 241-242,244,252
+internal/tui/testdata/apps-qr-small.golden
+  s_8b1d5a69f175a9::t_98bc51c96e2bfe 1-20
+internal/tui/testdata/apps-qr.golden
+  s_8b1d5a69f175a9::t_e180269f18ce08 1-60
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  s_8b1d5a69f175a9::t_beffc15f75a66e 14
+internal/tui/testdata/easy-names-onboarding.golden
+  s_8b1d5a69f175a9::t_5704269c600dda 14
+internal/tui/testdata/easy-names-pending-narrow.golden
+  s_8b1d5a69f175a9::t_f172afc465ce29 9
+internal/tui/testdata/easy-names-pending.golden
+  s_8b1d5a69f175a9::t_d705c127471b92 9
+internal/tui/testdata/menu-app-narrow.golden
+  s_8b1d5a69f175a9::t_8356ea06fe90fa 12-17
+internal/tui/testdata/menu-app.golden
+  s_8b1d5a69f175a9::t_82de2c2a57ab7e 14
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  s_8b1d5a69f175a9::t_ab858b60f9c1ba 14,21-22
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  s_8b1d5a69f175a9::t_7fab67094a54fd 14
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_d770804a80c5d0 14
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_4fa499a2a2fece 14
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_ea9c55338d1048 14,21-22
+internal/tui/testdata/onboarding-access-custom.golden
+  s_8b1d5a69f175a9::t_42d8feb0a3466c 14
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_8efbfae742c0fd 14
+internal/tui/testdata/onboarding-access-names.golden
+  s_8b1d5a69f175a9::t_07ff88aca9a371 14
+internal/tui/testdata/onboarding-access-narrow.golden
+  s_8b1d5a69f175a9::t_7d78f2d9667c01 14
+internal/tui/testdata/onboarding-access-selected-narrow.golden
+  s_8b1d5a69f175a9::t_29acf41b748850 14
+internal/tui/testdata/onboarding-access-selected.golden
+  s_8b1d5a69f175a9::t_61cd2ed96c9326 14
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_538d022ba76550 14
+internal/tui/testdata/onboarding-access-tailscale.golden
+  s_8b1d5a69f175a9::t_e2e360938b6208 14
+internal/tui/testdata/onboarding-access.golden
+  s_8b1d5a69f175a9::t_b962171a5efa41 14
+internal/tui/testdata/settings-access-bring-your-own-note-narrow.golden
+  s_8b1d5a69f175a9::t_e104c8bf5e2887 9
+internal/tui/testdata/settings-access-bring-your-own-note.golden
+  s_8b1d5a69f175a9::t_143eb3eb22bbdf 9
+internal/tui/testdata/settings-access-cloudflare-narrow.golden
+  s_8b1d5a69f175a9::t_630324b80fe690 9
+internal/tui/testdata/settings-access-cloudflare.golden
+  s_8b1d5a69f175a9::t_306c1aaa935022 9
+internal/tui/testdata/settings-access-custom-narrow.golden
+  s_8b1d5a69f175a9::t_717ff220abcb9e 9
+internal/tui/testdata/settings-access-custom.golden
+  s_8b1d5a69f175a9::t_23543294cd1696 9
+internal/tui/testdata/settings-access-home-narrow.golden
+  s_8b1d5a69f175a9::t_b1889d72b60525 9
+internal/tui/testdata/settings-access-home.golden
+  s_8b1d5a69f175a9::t_3c2b47a6f2af02 9
+internal/tui/testdata/settings-access-local-narrow.golden
+  s_8b1d5a69f175a9::t_531a0d20c1562f 4,9,12-13,15
+internal/tui/testdata/settings-access-local.golden
+  s_8b1d5a69f175a9::t_50a1b5b9a8d9f8 4,9,12,14,29
+internal/tui/testdata/settings-access-names-narrow.golden
+  s_8b1d5a69f175a9::t_b5d5072770e59f 9
+internal/tui/testdata/settings-access-names.golden
+  s_8b1d5a69f175a9::t_e4a9471faa031f 9
+internal/tui/testdata/settings-access-pending-narrow.golden
+  s_8b1d5a69f175a9::t_7b2e29f6d34fc0 9
+internal/tui/testdata/settings-access-pending.golden
+  s_8b1d5a69f175a9::t_664987b1d9b9a4 9
+internal/tui/testdata/settings-access-tailscale-narrow.golden
+  s_8b1d5a69f175a9::t_e3d6f340a353eb 9
+internal/tui/testdata/settings-access-tailscale.golden
+  s_8b1d5a69f175a9::t_4343c2d3009135 9
+internal/tui/view.go
+  s_8b1d5a69f175a9::t_3c62a2e7976c62 650-662
+internal/tui/actionmenu_test.go
+  s_668057ad6d193a::t_2a9dbf32125dbf 46,48,50,52,54,56
+internal/tui/harness_test.go
+  s_668057ad6d193a::t_49a4e70af73dc5 527,1117,1121-1129
+internal/tui/onboarding_test.go
+  s_668057ad6d193a::t_4719a8bfa55e9e 802,813
+internal/tui/views_test.go
+  s_668057ad6d193a::t_91a29adb6b2f21 5,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62bf6b32b32ed7cc514c12c4a2b1b0f8a63d8ba3",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_668057ad6d193a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5ef8747-6592-44e4-b48a-219bb7cc0214",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b1d5a69f175a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ff0d-51af-74b0-a648-dd404bc11429",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
