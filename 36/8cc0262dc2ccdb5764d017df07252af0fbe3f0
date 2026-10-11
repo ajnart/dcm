@@ -1,0 +1,24 @@
+docs/catalog/traps/paperless-ngx.md
+  h_d6e478ca18e517 11-13
+docs/homarr-paperless-proof.md
+  h_d6e478ca18e517 1-72
+internal/apps/homarr/integration_paperless.go
+  h_d6e478ca18e517 1-13
+internal/apps/paperlessngx/paperlessngx.go
+  h_d6e478ca18e517 10,105,145,153-159,171-177
+internal/apps/paperlessngx/paperlessngx_test.go
+  h_d6e478ca18e517 20-21,35-74,76-88
+internal/apps/paperlessngx/token.go
+  h_d6e478ca18e517 1-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "368cc0262dc2ccdb5764d017df07252af0fbe3f0",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
