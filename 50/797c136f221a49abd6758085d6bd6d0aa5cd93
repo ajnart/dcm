@@ -1,0 +1,31 @@
+evals/self-host/checks.py
+  s_01e8d17f7740df::t_e95103b34e90f6 19,111,317-327,349-356,432-437,439-470,507-514,523,525-530,573-576,592,597,613-617,622,624,627,629-630,632-635
+evals/self-host/scenarios/cant-reach-tv/status-fixed.json
+  s_01e8d17f7740df::t_ef533056409bf5 9
+evals/self-host/scenarios/cant-reach-tv/status.json
+  s_01e8d17f7740df::t_c9047b19a39cf2 10
+evals/self-host/scenarios/public-access/status-installed.json
+  s_01e8d17f7740df::t_672f6d1aa2d6b5 8
+evals/self-host/scenarios/public-access/status.json
+  s_01e8d17f7740df::t_c64ffc81e9e5fa 8
+evals/self-host/tests/fake_claude.py
+  s_01e8d17f7740df::t_38f3ccc67283d7 7,17-36,59-60,95-98,122,127-138
+evals/self-host/tests/test_runner.py
+  s_01e8d17f7740df::t_b6fefb0e44595e 7,187-260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "50797c136f221a49abd6758085d6bd6d0aa5cd93",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
