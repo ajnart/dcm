@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution              |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                             |
-| Complete real-model batch with both guides and three repetitions       | Iteration 12 running after corrected iteration 11 smoke            |
+| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; scenario boundary decision required          |
 | Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending              |
 | Independent Standards and Spec review                                  | Combined Standards passed; Spec finding fixed and re-review passed |
 
@@ -98,8 +98,21 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   Both plain-language failures partly conflict with the prescribed experience
   question and also cite other confusing wording. Verdicts remain unchanged;
   viewer notes flag both caveats for human review.
-- **Iteration 12: running.** Seven scenarios × two frozen guides × three
-  repetitions, with the same 16-turn budget and corrected harness as iteration 11. No full-batch grading or acceptance is claimed before it finishes.
+- **Iteration 12: invalid.** Six runs completed; 36 failed or were cancelled
+  after revised MacBook run 3 exhausted the unchanged 16-turn budget. No grades
+  or aggregate score were produced. The simulated person selected an optional
+  library follow-up after the install Recap and then invented browser failure
+  observations absent from its persona. Unsupported debug/logs/Setup/feedback
+  fixtures prolonged the troubleshooting. An original-guide run also followed
+  placeholder zero-byte media into drive troubleshooting and observed real
+  host mount/device metadata through read-only shell commands. This is not
+  evidence of real drive state or native platform behavior; do not publish the
+  raw transcript without redaction. The current shell sandbox protects files
+  and network but does not virtualize every read-only machine observation.
+  Further model runs are paused pending the decision whether the install
+  scenario ends at the Recap or must include an explicitly modeled browser
+  acceptance flow. Either way, machine/media observations need consistent
+  synthetic coverage; merely raising the turn limit would hide the problem.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
