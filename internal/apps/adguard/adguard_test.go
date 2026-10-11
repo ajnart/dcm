@@ -43,7 +43,26 @@ func (f *fakeAdGuard) handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"version": "v0.107.79", "running": true})
+		json.NewEncoder(w).Encode(map[string]any{"version": "v0.107.79", "running": true, "dns_port": 53, "http_port": 3000})
+	})
+	mux.HandleFunc("GET /control/profile", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if !ok || !f.configured || user != adminUser || pass != f.password {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"name": user})
+	})
+	mux.HandleFunc("GET /control/stats", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"time_units": "days", "dns_queries": []int{0}, "blocked_filtering": []int{0},
+			"num_dns_queries": 0, "num_blocked_filtering": 0,
+		})
+	})
+	mux.HandleFunc("GET /control/filtering/status", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"filters": []any{}})
 	})
 	mux.HandleFunc("GET /control/install/get_addresses", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
