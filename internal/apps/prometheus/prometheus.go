@@ -3,6 +3,7 @@ package prometheus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -64,6 +65,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			})
 			if manual != nil {
 				return manual
+			}
+			if errors.Is(err, errDiscoveryPending) {
+				h.Info(recoveryHint)
+				return fmt.Errorf("%w: Prometheus still has no active scrape targets after waiting one minute; review the existing configuration without replacing it", helpers.ErrManual)
 			}
 			return err
 		},

@@ -62,9 +62,13 @@ finite 0/1 values, and the latest timestamp must be at most 60 seconds old
 and at most five seconds ahead. The latest value must match the current
 starter target's up/down health. A fresh `0` is a valid failed-scrape observation;
 an empty result, missing sample, malformed response, JSON error, or stale sample
-is not zero. A valid empty target list stops as Manual because it does not
-establish the chosen starter time series. Customized configurations without
-that self-scrape require an explicit person-owned decision; Setup never adds it.
+is not zero. A valid empty target list is a retryable startup observation:
+Prometheus can answer before its asynchronous scrape-pool initialization finishes.
+Setup polls within its existing one-minute deadline; only target absence that
+remains at the deadline becomes Manual. An already populated configuration
+without a unique starter self-scrape remains a distinct Manual prerequisite.
+Missing target arrays, malformed responses, query errors and stale samples are
+not reclassified as target absence. Setup never adds or replaces a self-scrape.
 
 The no-auth starter selects Homarr's exact empty credential alternative and
 sends explicit `[]`. Optional private inputs `prometheus.username` and
@@ -73,12 +77,16 @@ for an already protected HTTP Basic endpoint. Both are required together and
 are reused without generation, rotation, or a fallback after rejection. They
 do not configure server authentication or create accounts.
 
-After a separately approved reinstall, existing read-only Basic credentials
-can be supplied with `--set-file prometheus.username=PATH` and
-`--set-file prometheus.password=PATH`, using owner-only files; then retry
-`self-host setup prometheus` and `self-host setup homarr`. Reinstallation renders
-the App's Compose fragment: review any customized fragment before approving it.
-No credentials belong in arguments or proof output.
+There is no credential-only private-input update command for an installed
+Prometheus App. Its missing or rejected credentials remain a Manual boundary;
+do not reinstall for credential recovery. The install private-input path renders
+and replaces the App's Compose fragment, potentially dropping protected web
+configuration, arguments, mounts and scrape settings. Preserve that configuration
+and require its review and separate approval before any operation that might
+replace it. A manually configured authenticated Homarr connection is not adopted
+as an owned Link and does not establish unattended acceptance. No generic secret
+setter or alternate recovery command is introduced, and no credentials belong
+in arguments or proof output.
 
 Partial/rejected credentials, forbidden endpoints, redirects and an HTTPS
 Address are actionable Manual boundaries. Unsupported authentication must stay
@@ -89,16 +97,22 @@ tested claims about every secured configuration.
 
 ## Evidence and remaining acceptance
 
-The existing Prometheus storage-user install test and generated Catalog Setup
-fixture now supply only the exact target discovery/query responses required by
-this App. The other generated fixtures are unchanged; empty HTTP 200 is no
-longer Prometheus acceptance. No new test cases, dependencies, Docker runs,
-browser runs, installer runs or person's Project access were added.
+The existing Prometheus storage-user install fixture now returns valid empty
+target discovery for its first five fake-clock seconds, then the exact starter
+target/query data. It fails with premature Manual completion before this
+correction and passes afterward, without adding test cases. A source check also
+rejects the old reinstall hint and requires separate-approval guidance.
+The generated Catalog fixture still supplies only this App's exact required
+responses; other generated fixtures are unchanged. Empty HTTP 200 is not
+Prometheus acceptance. No new files, test cases, dependencies, Docker runs,
+browser runs, installer runs or person's Project access were added by the
+correction.
 
 Local gate passed with `GOFLAGS=-buildvcs=false`: focused Prometheus/Homarr/
 Catalog tests, `gofmt -l .` (empty), `go build ./...`, `go vet ./...`,
 `go vet -tags e2e ./e2e/`, `go test ./...`,
-`go test -race ./internal/tui/ ./internal/activity/`, and `bash -n install.sh`.
+`go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/prometheus/ ./internal/apps/homarr/ ./internal/catalog/`,
+`bash -n install.sh`, and `git diff --check`.
 The untagged Go gate does not launch the Docker e2e runtime.
 
 Source/fake verification cannot prove native rendering. Pending the parent's

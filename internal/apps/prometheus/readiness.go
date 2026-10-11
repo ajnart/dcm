@@ -14,9 +14,11 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-const recoveryHint = "Keep existing authentication and scrape configuration. For HTTP Basic, provide both existing read-only credentials using self-host install prometheus --set-file prometheus.username=PATH --set-file prometheus.password=PATH --yes with owner-only files, then retry self-host setup prometheus and self-host setup homarr. Other authentication or HTTPS requires a Manual connection. The starter self-scrape must remain enabled; inspect self-host logs prometheus if data is absent or stale."
+const recoveryHint = "Keep existing authentication, Compose arguments, mounts and scrape configuration. Missing or rejected HTTP Basic credentials need Manual recovery: this CLI has no credential-only update for an installed Prometheus App. Do not reinstall for credential recovery. Review the protected configuration and obtain separate approval before any operation that might replace it. Other authentication or HTTPS requires a Manual connection. If discovery stays empty or data is stale, inspect self-host logs prometheus and review the existing self-scrape configuration without replacing it; then retry self-host setup prometheus and self-host setup homarr."
 
 const selfQuery = `up{job="prometheus",instance="localhost:9090"}[1m]`
+
+var errDiscoveryPending = errors.New("Prometheus target discovery has no active scrape targets yet")
 
 type Counts struct {
 	Total int
@@ -77,6 +79,9 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) (Counts, error) {
 		return Counts{}, errors.New("Prometheus returned incomplete target discovery data")
 	}
 	counts := Counts{Total: len(data.Active)}
+	if len(data.Active) == 0 {
+		return counts, errDiscoveryPending
+	}
 	selfHealth := ""
 	selfCount := 0
 	for _, target := range data.Active {
@@ -96,7 +101,7 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) (Counts, error) {
 	}
 	if selfCount != 1 {
 		h.Info(recoveryHint)
-		return counts, fmt.Errorf("%w: Prometheus has no unique starter self-scrape target; an empty target list is not a zero-valued time series", helpers.ErrManual)
+		return counts, fmt.Errorf("%w: Prometheus has no unique starter self-scrape target in its active configuration", helpers.ErrManual)
 	}
 	if selfHealth != "up" && selfHealth != "down" {
 		return counts, errors.New("Prometheus has not completed its starter self-scrape; retry self-host setup prometheus")
