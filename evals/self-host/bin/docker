@@ -34,7 +34,10 @@ def main():
 
     # The CLI answers --version locally; anything that talks to the daemon is
     # refused until the agent adds the user to the docker group.
-    if docker_state(harness) == "permission" and argv[:1] not in (["--version"], ["-v"]):
+    if docker_state(harness) == "permission" and argv[:1] not in (
+        ["--version"],
+        ["-v"],
+    ):
         sys.stderr.write(
             "permission denied while trying to connect to the Docker daemon socket at "
             "unix:///var/run/docker.sock: connect: permission denied\n"

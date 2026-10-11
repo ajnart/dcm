@@ -7,7 +7,7 @@
   "lan_ip": "192.168.1.50",
   "lan_ip_stale": true,
   "host_ips": ["192.168.0.31"],
-  "profile": {"experience": "advanced"},
+  "profile": {"experience": "new"},
   "apps": [
     {
       "id": "jellyfin",

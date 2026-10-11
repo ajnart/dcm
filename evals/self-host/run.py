@@ -34,8 +34,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
+from processes import run_process
 from validity import check_cli, check_model, require_result
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -249,7 +251,9 @@ def prepare(ws, iteration, ev, config, k):
     return run, sandbox, harness
 
 
-def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeout):
+def claude_turn(
+    message, sandbox, harness, turn, model, session, out_path, timeout, stop
+):
     env = {
         k: v
         for k, v in os.environ.items()
@@ -288,17 +292,17 @@ def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeo
     ]
     if session:
         cmd += ["--resume", session]
-    started = time.time()
+    started = time.monotonic()
     stderr_path = out_path.replace(".jsonl", ".stderr.txt")
     with open(out_path, "w") as out, open(stderr_path, "w") as stderr:
-        proc = subprocess.run(
+        code = run_process(
             cmd,
             cwd=sandbox,
             env=env,
             stdout=out,
             stderr=stderr,
-            text=True,
             timeout=timeout,
+            stop=stop,
         )
     events = []
     with open(out_path) as f:
@@ -311,7 +315,7 @@ def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeo
                 events.append(event)
     with open(stderr_path) as stderr:
         detail = stderr.read()[-2000:]
-    return events, time.time() - started, proc.returncode, detail
+    return events, time.monotonic() - started, code, detail
 
 
 def text_of(content):
@@ -438,7 +442,7 @@ Reply with only JSON:
 """
 
 
-def person_reply(ev, conversation, turn, model, raw, timeout):
+def person_reply(ev, conversation, turn, model, raw, timeout, stop):
     """Play the person: answer what the agent actually asked, from the persona."""
     env = {
         k: v
@@ -450,7 +454,7 @@ def person_reply(ev, conversation, turn, model, raw, timeout):
     stderr_path = os.path.join(raw, "person-%d.stderr.txt" % turn)
     with tempfile.TemporaryDirectory() as cwd:
         with open(output_path, "w") as output, open(stderr_path, "w") as stderr:
-            proc = subprocess.run(
+            code = run_process(
                 [
                     shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
                     "-p",
@@ -473,11 +477,11 @@ def person_reply(ev, conversation, turn, model, raw, timeout):
                 env=env,
                 stdout=output,
                 stderr=stderr,
-                text=True,
                 timeout=timeout,
+                stop=stop,
             )
     with open(output_path) as output, open(stderr_path) as stderr:
-        result = require_result(json.load(output), proc.returncode, stderr.read())
+        result = require_result(json.load(output), code, stderr.read())
     answer = result.get("structured_output")
     if not isinstance(answer, dict) or not isinstance(answer.get("reply"), str):
         raise ValueError("simulated person returned no reply string")
@@ -492,7 +496,7 @@ def person_reply(ev, conversation, turn, model, raw, timeout):
         raise ValueError("simulated person returned invalid completed steps")
     answer["turn"] = turn
     answer["usage"] = result.get("usage", {})
-    answer["cost_usd"] = result.get("total_cost_usd", 0.0)
+    answer["cost_usd"] = result.get("total_cost_usd")
     return answer
 
 
@@ -509,7 +513,9 @@ def read_jsonl(path):
         return [json.loads(line) for line in f if line.strip()]
 
 
-def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_timeout):
+def run_one(
+    ws, iteration, ev, config, k, model, timeout, person_model, person_timeout, stop
+):
     run, sandbox, harness = prepare(ws, iteration, ev, config, k)
     session, turns_log = None, []
     total = {
@@ -518,6 +524,7 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
         "cost_usd": 0.0,
         "denials": [],
         "errors": [],
+        "tool_calls": 0,
     }
     person_log = []
     msg, i = ev["first_message"], 0
@@ -534,27 +541,53 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
                 session,
                 os.path.join(run, "raw", "turn-%d.jsonl" % i),
                 timeout,
+                stop,
             )
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            stop.set()
             total["errors"].append({"turn": i, "source": "agent", "error": str(error)})
             break
         turns_log.append({"turn": i, "message": msg, "events": events})
+        total["tool_calls"] += sum(
+            block.get("type") == "tool_use"
+            for event in events
+            if event.get("type") == "assistant"
+            for block in event.get("message", {}).get("content", [])
+        )
         result = next((e for e in reversed(events) if e.get("type") == "result"), None)
-        init = next((e for e in events if e.get("type") == "system"), None)
+        init = next(
+            (
+                e
+                for e in events
+                if e.get("type") == "system" and e.get("subtype") == "init"
+            ),
+            None,
+        )
         session = (result or init or {}).get("session_id", session)
         try:
             require_result(result, code, err)
+            generated = [
+                block
+                for event in events
+                if event.get("type") == "assistant"
+                for block in event.get("message", {}).get("content", [])
+                if block.get("type") == "tool_use"
+                or (block.get("type") == "text" and block.get("text", "").strip())
+            ]
+            if not generated:
+                raise ValueError("task stream contains no assistant reply or tool call")
             visible = "self-host" in (init or {}).get("skills", [])
             if visible != bool(config["skill"]):
                 raise ValueError(
                     "router discovery does not match the selected configuration"
                 )
         except ValueError as error:
+            stop.set()
             total["errors"].append({"turn": i, "source": "agent", "error": str(error)})
             break
         if result:
             u = result.get("usage", {})
-            total["duration_ms"] += result.get("duration_ms", int(secs * 1000))
+            total["duration_ms"] += result.get("duration_ms") or int(secs * 1000)
             total["tokens"] += sum(
                 u.get(x, 0)
                 for x in (
@@ -564,13 +597,18 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
                     "cache_read_input_tokens",
                 )
             )
-            total["cost_usd"] += result.get("total_cost_usd", 0.0) or 0.0
+            cost = result.get("total_cost_usd")
+            if cost is None or total["cost_usd"] is None:
+                total["cost_usd"] = None
+            else:
+                total["cost_usd"] += cost
             total["denials"] += [
                 dict(d, turn=i) for d in result.get("permission_denials") or []
             ]
         else:
             total["duration_ms"] += int(secs * 1000)
         if session is None:
+            stop.set()
             total["errors"].append(
                 {"turn": i, "source": "agent", "error": "missing session ID"}
             )
@@ -584,6 +622,7 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
                 person_model,
                 os.path.join(run, "raw"),
                 person_timeout,
+                stop,
             )
             if "docker_desktop_wsl" in answer["completed_steps"]:
                 with open(os.path.join(harness, "scenario", "platform.json")) as source:
@@ -602,12 +641,14 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
                 with open(os.path.join(harness, "state", "docker_installed"), "w"):
                     pass
         except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
+            stop.set()
             total["errors"].append(
                 {"turn": i + 1, "source": "person", "error": str(error)}
             )
             break
         person_log.append(answer)
         if not answer["done"] and i >= ev.get("max_turns", MAX_TURNS):
+            stop.set()
             total["errors"].append(
                 {
                     "turn": i,
@@ -651,7 +692,9 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_t
             "total_tokens": total["tokens"],
             "duration_ms": total["duration_ms"],
             "total_duration_seconds": round(total["duration_ms"] / 1000, 1),
-            "cost_usd": round(total["cost_usd"], 4),
+            "cost_usd": None
+            if total["cost_usd"] is None
+            else round(total["cost_usd"], 4),
         },
     )
     if not total["valid"]:
@@ -721,11 +764,21 @@ def main():
     if args.max_conversation_turns is not None and args.max_conversation_turns < 1:
         ap.error("--max-conversation-turns must be positive")
     configs = parse_configs(args.configs)
+    evals = json.load(open(os.path.join(HERE, "evals", "evals.json")))
+    wanted = {int(x) for x in args.evals.split(",") if x.strip()}
+    unknown = wanted - {ev["id"] for ev in evals["evals"]}
+    if unknown:
+        ap.error("unknown eval ids: %s" % sorted(unknown))
+    for config in configs:
+        if not os.path.isfile(config["guide"]):
+            ap.error("configuration guide does not exist")
+        if config["skill"] and not os.path.isfile(
+            os.path.join(config["skill"], "SKILL.md")
+        ):
+            ap.error("configuration router does not exist")
     cli_version = check_cli()
     for model in dict.fromkeys((args.model, args.person_model)):
         check_model(model)
-    evals = json.load(open(os.path.join(HERE, "evals", "evals.json")))
-    wanted = {int(x) for x in args.evals.split(",") if x.strip()}
     inputs = os.path.join(iteration_dir, "inputs")
     for config in configs:
         frozen = os.path.join(inputs, config["name"])
@@ -795,6 +848,7 @@ def main():
         {"valid": False, "planned": len(jobs), "completed": 0},
     )
     install_stubs(os.path.join(inputs, "stubs"))
+    stop = threading.Event()
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         futs = [
             pool.submit(
@@ -808,6 +862,7 @@ def main():
                 args.timeout,
                 args.person_model,
                 args.person_timeout,
+                stop,
             )
             for ev, c, k in jobs
         ]
@@ -821,6 +876,7 @@ def main():
                 print(fut.result(), flush=True)
                 completed += 1
             except Exception as e:  # keep the batch going, but fail the command
+                stop.set()
                 failed += 1
                 print("run failed: %r" % (e,), flush=True)
                 for pending in futs:

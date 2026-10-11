@@ -23,8 +23,10 @@ def platform(h):
     path = os.path.join(h, "scenario", "platform.json") if h else ""
     if path and os.path.exists(path):
         return json.load(open(path))
-    return {"uname": {"s": "Darwin", "r": "24.6.0", "m": "arm64", "n": "mac"},
-            "sw_vers": "ProductName:\tmacOS\nProductVersion:\t15.6\nBuildVersion:\t24G84"}
+    return {
+        "uname": {"s": "Darwin", "r": "24.6.0", "m": "arm64", "n": "mac"},
+        "sw_vers": "ProductName:\tmacOS\nProductVersion:\t15.6\nBuildVersion:\t24G84",
+    }
 
 
 def mark(h, name):
@@ -35,19 +37,36 @@ def mark(h, name):
 def log(h, tool, argv):
     if h:
         with open(os.path.join(h, "host.jsonl"), "a") as f:
-            f.write(json.dumps({"ts": time.time(),
-                                "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
-                                "argv": [tool] + argv}) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "ts": time.time(),
+                        "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
+                        "argv": [tool] + argv,
+                    }
+                )
+                + "\n"
+            )
 
 
 def effects(h, words):
     text = " ".join(words).lower()
-    installing = any(w in words for w in ("install", "-S")) or "get.docker.com" in text or "get-docker" in text
-    if installing and any(k in text for k in ("docker", "orbstack", "get.docker.com", "get-docker")):
+    installing = (
+        any(w in words for w in ("install", "-S"))
+        or "get.docker.com" in text
+        or "get-docker" in text
+    )
+    if installing and any(
+        k in text for k in ("docker", "orbstack", "get.docker.com", "get-docker")
+    ):
         mark(h, "docker_installed")
     if "usermod" in text and "docker" in text:
         mark(h, "docker_group")
-    if "systemctl" in text and ("start" in text or "enable" in text) and "docker" in text:
+    if (
+        "systemctl" in text
+        and ("start" in text or "enable" in text)
+        and "docker" in text
+    ):
         mark(h, "docker_started")
 
 
@@ -61,8 +80,15 @@ def uname(p, argv):
     elif "-a" in argv:
         print(" ".join(full))
     else:
-        keys = {"-s": u["s"], "-n": u.get("n", "host"), "-r": u["r"], "-v": u.get("v", "#1 SMP"),
-                "-m": u["m"], "-p": u["m"], "-o": "GNU/Linux" if u["s"] == "Linux" else u["s"]}
+        keys = {
+            "-s": u["s"],
+            "-n": u.get("n", "host"),
+            "-r": u["r"],
+            "-v": u.get("v", "#1 SMP"),
+            "-m": u["m"],
+            "-p": u["m"],
+            "-o": "GNU/Linux" if u["s"] == "Linux" else u["s"],
+        }
         print(" ".join(keys.get(a, "") for a in argv if a in keys))
     return 0
 
@@ -91,7 +117,14 @@ def main():
             return 127
         print(p["lsb_release"])
         return 0
-    if tool in ("apt", "apt-get", "brew", "winget", "dnf", "pacman") and tool not in p.get("tools", []):
+    if tool in (
+        "apt",
+        "apt-get",
+        "brew",
+        "winget",
+        "dnf",
+        "pacman",
+    ) and tool not in p.get("tools", []):
         sys.stderr.write("%s: command not found\n" % tool)
         return 127
 

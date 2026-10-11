@@ -30,11 +30,30 @@ def isolated_command(command, sandbox, stubs, harness):
     paths = " ".join(
         "(subpath %s)" % json.dumps(os.path.realpath(path)) for path in readable
     )
+    host_commands = (
+        "/usr/bin/sudo",
+        "/usr/bin/curl",
+        "/usr/bin/osascript",
+        "/usr/bin/open",
+        "/usr/bin/ssh",
+        "/usr/bin/scp",
+        "/usr/bin/sftp",
+        "/usr/bin/nc",
+        "/usr/bin/security",
+        "/usr/bin/defaults",
+        "/bin/launchctl",
+        "/usr/sbin/installer",
+        "/sbin/shutdown",
+        "/sbin/reboot",
+        "/usr/bin/killall",
+    )
     profile = "\n".join(
         [
             "(version 1)",
             "(deny default)",
             "(allow process-exec process-fork sysctl-read)",
+            "(deny process-exec %s)"
+            % " ".join("(literal %s)" % json.dumps(path) for path in host_commands),
             "(allow file-map-executable)",
             "(allow file-read-metadata)",
             '(allow file-read* %s (literal %s) (literal %s) (literal "/") '

@@ -120,6 +120,68 @@ class ShellBoundary(unittest.TestCase):
         decision = self.decision("WebFetch", {"url": "https://example.com"})
         self.assertEqual(decision.get("permissionDecision"), "deny")
 
+    def test_background_tool_execution_is_refused(self):
+        decision = self.decision(
+            "Bash", {"command": "sleep 10", "run_in_background": True}
+        )
+        self.assertEqual(decision.get("permissionDecision"), "deny")
+
+    def test_file_tool_reads_only_current_session_tool_results(self):
+        home = self.root / "fake-home"
+        self.env["HOME"] = str(home)
+        slug = (
+            str(self.sandbox.resolve())
+            .replace("/", "-")
+            .replace(".", "-")
+            .replace("_", "-")
+        )
+        own = home / ".claude/projects" / slug
+        for relative, expected in (
+            ("current/tool-results/result.txt", None),
+            ("other/tool-results/result.txt", "deny"),
+            ("current.jsonl", "deny"),
+        ):
+            with self.subTest(path=relative):
+                hook = subprocess.run(
+                    [sys.executable, str(ROOT / "bin/guard.py")],
+                    input=json.dumps(
+                        {
+                            "tool_name": "Read",
+                            "tool_input": {"file_path": str(own / relative)},
+                            "session_id": "current",
+                        }
+                    ),
+                    env=self.env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(hook.returncode, 0, hook.stderr)
+                decision = json.loads(hook.stdout or "{}").get("hookSpecificOutput", {})
+                self.assertEqual(decision.get("permissionDecision"), expected)
+
+    def test_fixture_accepts_equals_flags_and_preserves_profile_changes(self):
+        shutil.copytree(
+            ROOT / "scenarios/public-access",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
+        (self.stubs / "base/self-host").chmod(0o755)
+        result = self.invoke(
+            "self-host cloudflare publish "
+            "--set-file=cloudflare.api_token=./token --accept-public --json"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("cloudflare publish: ok", result.stdout)
+        result = self.invoke(
+            "self-host profile set experience new && self-host profile --json"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout.splitlines()[-1])["experience"], "new"
+        )
+
     def test_fixture_supports_connecting_media_after_install(self):
         shutil.copytree(
             ROOT / "scenarios" / "newbie-macbook",
@@ -141,6 +203,24 @@ class ShellBoundary(unittest.TestCase):
         result = self.invoke(str(outside) + " EXECUTED-HOST-BINARY")
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("EXECUTED-HOST-BINARY", result.stdout)
+
+    def test_shell_cannot_bypass_stub_with_absolute_host_tool(self):
+        result = self.invoke("/usr/bin/osascript -e 'return \"REAL-HOST-TOOL\"'")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("REAL-HOST-TOOL", result.stdout)
+
+    def test_workspace_symlink_cannot_read_host_file(self):
+        outside = self.root / "host-file"
+        outside.write_text("PRIVATE-HOST-CANARY")
+        link = self.sandbox / "linked-file"
+        link.symlink_to(outside)
+        self.assertEqual(
+            self.decision("Read", {"file_path": str(link)}).get("permissionDecision"),
+            "deny",
+        )
+        result = self.invoke("cat linked-file")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("PRIVATE-HOST-CANARY", result.stdout)
 
 
 if __name__ == "__main__":
