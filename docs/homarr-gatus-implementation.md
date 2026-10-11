@@ -25,22 +25,37 @@ selector identifier is invented.
 ## Readiness and verification
 
 Gatus Setup retains `/health` readiness and additionally polls its status API
-for the starter `local_gatus-self` endpoint. Its recorded latest result must
-explicitly succeed, have HTTP status 200, a nonzero timestamp, and report the
-starter loopback hostname `127.0.0.1`. Checks probe afresh. The starter config
+for the starter `local_gatus-self` endpoint. The existing `ConfigValue` helper
+reads the Project's App configuration: that monitor must be uniquely configured,
+enabled (including Gatus's enabled-by-default mode), and use GET at the exact
+starter destination `http://127.0.0.1:8080/health`. A matching name or loopback
+hostname alone is insufficient; other ports and paths are not adopted.
+Its recorded latest result must explicitly succeed, have HTTP status 200, and
+report the starter loopback hostname `127.0.0.1`. Its timestamp must not be in
+the future or older than the configured monitor interval, using `h.Now()`;
+omitted/zero intervals use Gatus's one-minute default. Stale records poll during
+Setup and otherwise return an actionable retry, including retained SQLite
+results for disabled monitors. The API's ten-second cache can cause a temporary
+wait near the interval boundary; no guessed freshness allowance is applied.
+Checks probe afresh. The starter config
 and image `ghcr.io/twin/gatus:v5.37.0` are unchanged: one local health check,
 one-minute interval, SQLite history, no external monitor traffic.
 
-The Link verifies Gatus directly, then requests `widget.stats.refresh` through
-Homarr with its owned integration ID. It requires a successful, non-stale,
-timestamped snapshot, all four explicit nonnegative integer counts, and
+The Link verifies Gatus directly, reads `widget.stats.snapshot`, then requests
+`widget.stats.refresh` through Homarr with its owned integration ID. It requires
+a successful, non-stale snapshot with a timestamp strictly advanced from the
+before-snapshot (or a positive timestamp when the before-snapshot was unfilled).
+A forced refresh that returns without updating because of a distributed lock
+or unavailable queue slot is an actionable wait, not acceptance of Homarr's
+one-hour cache. It also requires all four explicit nonnegative integer counts and
 `up + down + unknown == total`. Zero down/unknown counts are valid. A valid
 empty dataset is distinct from an API error, but cannot establish this Setup's
 required local monitored result; it remains actionable, not tile-only success.
 Snapshots are observations, not proof that unrelated monitored Apps work.
 
-Existing Projects lacking the local check receive a retry hint to preserve
-their monitors and add the starter loopback check; Setup does not rewrite their
+Existing Projects lacking or changing the local check receive a retry hint to
+preserve their monitors and review the starter loopback check; Setup does not
+create an unsolicited monitor, name-only adopt another target, or rewrite their
 configuration or remove authentication. No new dependencies or secrets are used.
 
 ## Evidence and acceptance gaps
@@ -51,6 +66,13 @@ Existing Gatus tests cover recorded local data and repeat Setup; the existing
 failure test additionally rejects a protected API, HTML navigation page, empty
 data, absent success field, failed result and nonlocal result. These are fake
 transport fixtures, not live integration proof.
+
+The source correction for the three review findings adds configuration and
+interval validation plus snapshot timestamp advancement. Only the existing
+Gatus fixture was aligned with its fake clock and Project config contract; no
+new test cases/files were added. The three corrected boundaries still need
+fresh independent source review and approved runtime evidence; compilation and
+the existing fixture suite are not claimed as dedicated live regression proof.
 
 The descriptor is deliberately not registered here: `targets.go` belongs to
 #262. Parent registration, corrected common version/credential-shape gates,
@@ -69,3 +91,6 @@ claimed. The old Gatus navigation proof is not native integration proof.
 - [v2.4.1 Stats snapshot semantics](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/request-handler/src/stats.ts)
 - [Gatus v5.37.0 status API](https://github.com/TwiN/gatus/blob/v5.37.0/api/endpoint_status.go)
 - [Gatus v5.37.0 endpoint result](https://github.com/TwiN/gatus/blob/v5.37.0/config/endpoint/result.go)
+- [Gatus v5.37.0 enabled and interval defaults](https://github.com/TwiN/gatus/blob/v5.37.0/config/endpoint/endpoint.go)
+- [Gatus v5.37.0 monitoring and retained results](https://github.com/TwiN/gatus/blob/v5.37.0/watchdog/endpoint.go)
+- [Gatus v5.37.0 API cache lifetime](https://github.com/TwiN/gatus/blob/v5.37.0/api/cache.go)

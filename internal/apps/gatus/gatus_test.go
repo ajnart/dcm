@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/gatus"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -24,8 +26,12 @@ func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
 func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "config"), []byte((gatus.App{}).Files(app.RenderContext{}, nil)[0].Content), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	return helpers.New(helpers.Config{
-		App: "gatus", Service: "gatus", BaseURL: srv.URL, URL: srv.URL,
+		App: "gatus", Service: "gatus", Dir: dir, BaseURL: srv.URL, URL: srv.URL,
 		HTTP:    srv.Client(),
 		Secrets: fakeSecrets{},
 		Log:     events.Discard(),
@@ -41,7 +47,7 @@ func healthServer(status int) *httptest.Server {
 			w.WriteHeader(status)
 			json.NewEncoder(w).Encode([]map[string]any{{
 				"key": "local_gatus-self", "name": "gatus-self", "group": "local",
-				"results": []map[string]any{{"success": true, "status": 200, "hostname": "127.0.0.1", "timestamp": time.Now().UTC()}},
+				"results": []map[string]any{{"success": true, "status": 200, "hostname": "127.0.0.1", "timestamp": "2026-10-06T12:00:00Z"}},
 			}})
 			return
 		}
