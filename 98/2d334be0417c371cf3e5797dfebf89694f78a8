@@ -1,0 +1,23 @@
+internal/apps/homarr/target_transmission.go
+  s_01e8d17f7740df::t_f8dcec367b07f1 1-91
+internal/apps/transmission/transmission.go
+  s_01e8d17f7740df::t_938b17e5abe146 9,11,59-111,113-116,120-124,126-127,130-131,133-135,137-138,141-178,185-189,192-193
+internal/apps/transmission/transmission_test.go
+  s_01e8d17f7740df::t_ce1d437f31ad18 5,53-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "982d334be0417c371cf3e5797dfebf89694f78a8",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
