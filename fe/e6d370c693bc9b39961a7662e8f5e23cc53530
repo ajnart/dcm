@@ -1,0 +1,23 @@
+docs/catalog/traps/gotify.md
+  s_01e8d17f7740df::t_aa34e056f085c0 8-14
+internal/apps/gotify/gotify_test.go
+  s_01e8d17f7740df::t_1718f30b14ed65 5,45,51-54,61-102
+internal/apps/homarr/target_gotify.go
+  s_01e8d17f7740df::t_b915a544e4c72c 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fee6d370c693bc9b39961a7662e8f5e23cc53530",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
