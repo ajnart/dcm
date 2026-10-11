@@ -1,0 +1,23 @@
+evals/self-host/PROGRESS.md
+  s_01e8d17f7740df::t_380603542a5a8c 1-89
+evals/self-host/README.md
+  s_01e8d17f7740df::t_8290d04eea6afe 94-127
+evals/self-host/run.py
+  s_01e8d17f7740df::t_54615f4addd05a 30,83-87,222-229,638,654,656-658
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "349abbc775a9de2e028f1c3a34dd0985ed8bfbee",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
