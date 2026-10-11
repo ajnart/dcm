@@ -110,6 +110,24 @@ func setup() firstadmin.FirstAdmin {
 	}
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error { return setup().Setup(ctx, h) }
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := setup().Setup(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-api", "verify music library and listening data", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			err := verifyHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return verifyHomarr(ctx, h) },
+		Hint:       "Review the saved Admin login, Subsonic access and music library scan; do not reset accounts or delete data. Run self-host setup navidrome, then self-host setup homarr.",
+		Credential: "admin",
+	})
+}
 
-func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if err := setup().Check(ctx, h); err != nil {
+		return err
+	}
+	return verifyHomarr(ctx, h)
+}

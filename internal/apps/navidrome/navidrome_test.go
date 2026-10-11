@@ -2,8 +2,10 @@ package navidrome_test
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -52,6 +54,7 @@ type fakeNavidrome struct {
 	logins, creates int
 	window          time.Time
 	now             func() time.Time
+	subsonicCalls   int
 }
 
 func (f *fakeNavidrome) handler() http.Handler {
@@ -96,6 +99,47 @@ func (f *fakeNavidrome) handler() http.Handler {
 		f.password = body.Password
 		json.NewEncoder(w).Encode(map[string]any{"username": "admin", "isAdmin": true, "id": "abc", "token": "a.b.c"})
 	})
+	mux.HandleFunc("POST /rest/{endpoint}", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		f.subsonicCalls++
+		if r.URL.RawQuery != "" || r.ParseForm() != nil || r.Form.Get("p") != "" || r.Form.Get("jwt") != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		body := map[string]any{"status": "ok", "version": "1.16.1", "type": "navidrome", "serverVersion": "0.64.0 (1072e9f7)"}
+		write := func() { json.NewEncoder(w).Encode(map[string]any{"subsonic-response": body}) }
+		token := fmt.Sprintf("%x", md5.Sum([]byte(f.password+r.Form.Get("s"))))
+		if f.password == "" || r.Form.Get("u") != "admin" || r.Form.Get("t") != token || len(r.Form.Get("s")) != 32 || r.Form.Get("v") != "1.16.1" || r.Form.Get("c") != "self-host" || r.Form.Get("f") != "json" {
+			body["status"] = "failed"
+			body["error"] = map[string]any{"code": 40, "message": "Wrong username or password"}
+			write()
+			return
+		}
+		switch r.PathValue("endpoint") {
+		case "ping.view":
+		case "getMusicFolders.view":
+			body["musicFolders"] = map[string]any{"musicFolder": []any{map[string]any{"id": 1, "name": "Music"}}}
+		case "getScanStatus.view":
+			body["scanStatus"] = map[string]any{"scanning": false, "count": 0, "lastScan": "2026-10-11T12:00:00Z"}
+		case "getAlbumList2.view":
+			if r.Form.Get("type") != "alphabeticalByName" || r.Form.Get("size") != "500" || r.Form.Get("offset") != "0" {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("X-Total-Count", "0")
+			body["albumList2"] = map[string]any{}
+		case "getArtists.view":
+			body["status"] = "failed"
+			body["error"] = map[string]any{"code": 70, "message": "Library not found or empty"}
+		case "getNowPlaying.view":
+			body["nowPlaying"] = map[string]any{}
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		write()
+	})
 	return mux
 }
 
@@ -126,6 +170,9 @@ func TestCreatesTheFirstAdministratorThenProvesTheLogin(t *testing.T) {
 	if rec.status("admin") != stepstatus.StepOK {
 		t.Fatalf("admin step = %q, want ok", rec.status("admin"))
 	}
+	if fake.subsonicCalls != 12 || rec.status("homarr-api") != stepstatus.StepSkip {
+		t.Fatal("Setup and Check did not freshly verify the explicit empty music library and listening sessions")
+	}
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
@@ -139,8 +186,8 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (navidrome.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip {
-		t.Fatalf("rerun should skip both steps: ready=%q admin=%q", rec.status("ready"), rec.status("admin"))
+	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip || rec.status("homarr-api") != stepstatus.StepSkip {
+		t.Fatalf("rerun should skip every step: ready=%q admin=%q homarr-api=%q", rec.status("ready"), rec.status("admin"), rec.status("homarr-api"))
 	}
 }
 
@@ -182,6 +229,9 @@ func TestRepeatedSetupWaitsForLoginRateLimitWithoutRecreatingAdmin(t *testing.T)
 	}
 	if fake.creates != 1 || fake.password != saved["ADMIN_PASSWORD"] {
 		t.Fatal("repeated Setup recreated or changed the saved administrator")
+	}
+	if fake.subsonicCalls != 36 {
+		t.Fatal("repeated Setup or Check reused stale music library or session data")
 	}
 }
 
