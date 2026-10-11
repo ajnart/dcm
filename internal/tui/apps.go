@@ -29,6 +29,7 @@ type appsView struct {
 	detailsFocused bool
 	details        *appDetails
 	copy           *copyPicker
+	qr             *qrModal
 }
 
 func newAppsView() *appsView { return &appsView{details: newAppDetails()} }
@@ -47,6 +48,8 @@ func (v *appsView) Keys() []key.Binding {
 	switch {
 	case v.copy != nil:
 		return copyHelp
+	case v.qr != nil:
+		return qrKeys
 	case v.searching:
 		return appsSearchKeys
 	case v.detailsFocused:
@@ -56,10 +59,13 @@ func (v *appsView) Keys() []key.Binding {
 }
 
 func (v *appsView) Panes() []pane {
-	return []pane{{"List", appsListKeys}, {"Details", appsDetailsKeys}, {"Search", appsSearchKeys}, {"Copy picker", copyHelp}}
+	return []pane{{"List", appsListKeys}, {"Details", appsDetailsKeys}, {"Search", appsSearchKeys}, {"Copy picker", copyHelp}, {"QR code", qrKeys}}
 }
 
-func (v *appsView) Capturing() bool { return v.searching || v.copy != nil }
+// overlayOpen is a modal over the Apps list: the copy picker or the QR code.
+func (v *appsView) overlayOpen() bool { return v.copy != nil || v.qr != nil }
+
+func (v *appsView) Capturing() bool { return v.searching || v.overlayOpen() }
 
 func (v *appsView) BarMode(t theme) string {
 	if v.copy != nil {
@@ -97,7 +103,7 @@ func (v *appsView) selected(ctx *viewContext) (service.AppStatus, bool) {
 // selectedApp is the App the Action menu opens for; none while the copy
 // picker is open.
 func (v *appsView) selectedApp(ctx *viewContext) (service.AppStatus, bool) {
-	if v.copy != nil {
+	if v.overlayOpen() {
 		return service.AppStatus{}, false
 	}
 	return v.selected(ctx)
@@ -192,15 +198,19 @@ func (v *appsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 		if v.copy != nil {
 			return v, v.copyKey(ctx, msg), nav{}
 		}
+		if v.qr != nil {
+			v.qrKey(msg)
+			return v, nil, nav{}
+		}
 		return v.key(ctx, msg)
 	case tea.MouseWheelMsg:
-		if v.copy != nil {
+		if v.overlayOpen() {
 			return v, nil, nav{}
 		}
 		v.wheel(msg)
 		return v, nil, nav{}
 	case clickMsg:
-		if v.copy != nil {
+		if v.overlayOpen() {
 			return v, nil, nav{}
 		}
 		return v, v.click(ctx, msg.id), nav{}

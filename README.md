@@ -282,11 +282,11 @@ focused: the LAN address, the Host settings and, only for media Apps, the
 media and downloads folders. Typing a folder path lists the folders inside it,
 `tab` completes it and `~` expands to your home folder. **Access** ("How you'll open your Apps") lists Home
 network (the default), Easy names at home, From anywhere privately, Your own web
-address and Bring your own, each with a plain explanation and a small diagram
-that follow the highlighted option. `?` opens a longer help page that ends with
+address, Bring your own and This computer only (Apps open only on this
+computer), each with a plain explanation and a small diagram that follow the
+highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Home network, From anywhere, privately, Bring your own and
-Your own web address are available. The latter
+question mark. All six options are available. Your own web address
 opens a guided Cloudflare flow in Settings after the Apps finish installing;
 it chooses Apps individually and asks a separate yes before publication.
 Options marked coming soon change nothing.
@@ -413,12 +413,17 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
-Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
-Remove for an App; Up all, Down all, Restart all, Update all and Backup for
+Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup, QR code
+and Remove for an App; Up all, Down all, Restart all, Update all and Backup for
 the Project. A letter highlights an Action and shows what it will do; `enter`
 runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
 closes the menu. With the mouse, a click highlights an Action and a click on
 the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
+
+QR code shows the App's Address as a QR code over the Overview or Apps tab, to
+scan with a phone; `esc` closes it. It is unavailable for an App with no web
+page and under This computer only, where a phone cannot reach the Address;
+`enter` on the greyed row says so and points at Settings > Access.
 
 `c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
 `enter` copies and `esc` closes; background keys and clicks do not navigate.

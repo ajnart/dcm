@@ -19,6 +19,7 @@ func TestGoldenOnboardingSelectionAndFocus(t *testing.T) {
 			{"welcome-focus", stepWelcome, []string{"down"}},
 			{"welcome-selected", stepWelcome, []string{"down", "space", "up"}},
 			{"access-selected", stepAccess, []string{"down", "space", "up"}},
+			{"access-local-focus", stepAccess, []string{"down", "down", "down", "down", "down"}},
 			{"look-focus", stepLook, []string{"up"}},
 			{"look-selected", stepLook, []string{"up", "space", "down"}},
 		} {

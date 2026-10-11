@@ -25,7 +25,8 @@ hotspots. One ticket per branch, per worktree, per pull request.
 - Access replaces Exposure in everything a person sees: Home network
   (default), Easy names at home (Caddy; sslip.io and `.local` names), From
   anywhere privately (Tailscale), Your own web address (Cloudflare Tunnel with
-  a login page in front), Bring your own (SWAG, Pangolin, an existing proxy).
+  a login page in front), Bring your own (SWAG, Pangolin, an existing proxy) and
+  This computer only (`127.0.0.1`), offered in both Onboarding and Settings.
   Each has a diagram, like Onboarding's network step. Anything reachable from
   the internet needs its own explicit yes naming the risk.
 - The `IP:port` Address always keeps working as a fallback.

@@ -232,9 +232,8 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
-anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Home network, Easy names at home, Tailscale, Bring your own and Your own
-web address are available. Your own web address uses Cloudflare
+anywhere privately, Your own web address, Bring your own and This computer only,
+each with a diagram and a help page. All six are available. Your own web address uses Cloudflare
 Tunnel with a login page. Onboarding opens its guided Settings flow after the
 Apps finish installing; choosing it alone never publishes anything. Options
 marked "coming soon" change nothing. Bring your own is for people who
@@ -255,7 +254,8 @@ The command changes nothing; the user runs the proxy, its
 certificates and its login, and the `IP:port` Address keeps working. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
-instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
+instead, so only this machine can; Onboarding and Settings offer it as "This
+computer only". `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
 it first: `status --json` has `access` (a list including `home` or `local`, plus

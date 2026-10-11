@@ -16,7 +16,7 @@ func accessHelpText(o accessOption, lanIP string, width int) string {
 	return flat(ansi.Strip(strings.Join(accessHelp(newTheme(true), o, lanIP, width), "\n")))
 }
 
-func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
+func TestTheAccessOptionsAreTheSixWaysToOpenYourApps(t *testing.T) {
 	var got []string
 	for _, o := range accessOptions {
 		got = append(got, o.id+"|"+o.label)
@@ -27,12 +27,13 @@ func TestTheAccessOptionsAreTheFiveWaysToOpenYourApps(t *testing.T) {
 		"tailscale|From anywhere, privately",
 		"cloudflare|Your own web address",
 		"custom|Bring your own",
+		"local|This computer only",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("options %q, want %q", got, want)
 	}
 	for _, o := range accessOptions {
-		if o.soon != !slices.Contains([]string{"home", "names", "tailscale", "custom", "cloudflare"}, o.id) {
+		if o.soon != !slices.Contains([]string{"home", "names", "tailscale", "custom", "cloudflare", "local"}, o.id) {
 			t.Errorf("%s: availability soon=%v", o.id, o.soon)
 		}
 	}

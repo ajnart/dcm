@@ -6,6 +6,7 @@
 │   ○ From anywhere, privately                                                                                         │
 │   ○ Your own web address                                                                                             │
 │   ○ Bring your own                                                                                                   │
+│   ○ This computer only                                                                                               │
 │   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies                                                 │
 │                                                                                                                      │
 │   Open each App by name instead of a port number. Caddy answers the names on your home network. The addresses with   │
@@ -15,7 +16,6 @@
 │                                  │                                                                                   │
 │                             internet ✗                                                                               │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
 
 
 

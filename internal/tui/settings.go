@@ -705,9 +705,6 @@ func (v *settingsView) accessBox(ctx *viewContext, width, avail int) string {
 	inner := max(width-4, 12)
 	current := v.access()
 	var lines []string
-	if current == accessLocal.value {
-		lines = append(lines, "  "+t.dim().Render("Now ")+t.body().Render(accessLocal.label)+t.dim().Render(" · other devices can't reach your Apps"))
-	}
 	for i, o := range accessOptions {
 		label := accessLabel(t, o)
 		selected := o.value != "" && o.value == current && (o.id == "names") == (v.namesValue() == "on") || o.id == "cloudflare" && slices.Contains(ctx.status.Access, "cloudflare") || o.id == "tailscale" && slices.Contains(ctx.status.Access, "tailscale")

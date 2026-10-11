@@ -1127,7 +1127,15 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 // Host sub-tab, and returns to the Host sub-tab.
 func pickHomeNetwork(t *testing.T, m Model) Model {
 	t.Helper()
-	m = drive(t, m, press("]"))
+	m = focusHomeNetwork(t, drive(t, m, press("]")))
 	m = drive(t, m, press("enter"))
 	return drive(t, m, press("["))
+}
+
+func focusHomeNetwork(t *testing.T, m Model) Model {
+	t.Helper()
+	for range accessOptions {
+		m = drive(t, m, press("up"))
+	}
+	return m
 }

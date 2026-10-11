@@ -11,6 +11,7 @@
   > ○ From anywhere, privately
     ○ Your own web address
     ○ Bring your own
+    ○ This computer only
 
   Tailscale lets you open each App with its own private HTTPS name from your
   phone, laptop or TV, wherever you are. Your Home network Addresses keep
@@ -19,6 +20,5 @@
   your phone, anywhere ──── Tailscale ──── this computer private name
                                 │
                            internet ✗
-
 
  q quit      ↑/↓  focus   space  select   enter  continue   esc  back   ?  more

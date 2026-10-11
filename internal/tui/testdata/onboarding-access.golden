@@ -11,6 +11,7 @@
     ○ From anywhere, privately
     ○ Your own web address
     ○ Bring your own
+    ○ This computer only
 
   Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at
   192.168.1.20. Nobody on the internet can.
@@ -18,7 +19,6 @@
   phones · TVs · laptops ──── router ──── this computer 192.168.1.20
                                  │
                             internet ✗
-
 
 
 

@@ -1,21 +1,21 @@
  ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning   LOCAL ONLY  .self-host 12:00:00 v1.0.0
   Host   Access   Appearance   Backups   Tools   About
 ╭─ Access ─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│   Now This computer only · other devices can't reach your Apps                                                       │
-│ > ○ Home network (default)                                                                                           │
+│   ○ Home network (default)                                                                                           │
 │   ○ Easy names at home                                                                                               │
 │   ○ From anywhere, privately                                                                                         │
 │   ○ Your own web address                                                                                             │
 │   ○ Bring your own                                                                                                   │
+│ > ● This computer only                                                                                               │
 │   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies                                                 │
 │                                                                                                                      │
-│   Phones, TVs and laptops on the same Wi-Fi or router as this computer can open your Apps at 192.168.1.20. Nobody on │
-│   the internet can.                                                                                                  │
+│   Your Apps open only in a browser on this computer. Other devices can't reach them.                                 │
 │                                                                                                                      │
-│   phones · TVs · laptops ──── router ──── this computer 192.168.1.20                                                 │
+│   phones · TVs · laptops ──── router ──✗── this computer                                                             │
 │                                  │                                                                                   │
 │                             internet ✗                                                                               │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
 
 
 

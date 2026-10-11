@@ -9,12 +9,12 @@
 │ ● ♫ │   Update        no update known (checked every 30 minutes)       │     │
 │ ✗ ↓ │   Retry Setup                                                    │     │
 │ ✗ ◇ │   Backup                                                         │     │
-╰─────│   Remove                                                         │─────╯
-╭─ Nee│                                                                  │─────╮
-│ ✗ So│ ──────────────────────────────────────────────────────────────── │etup │
-│ ✗ wh│ Stops Jellyfin's containers. Its data, settings and Setup stay.  │tart │
-│ ! Fi╰──────────────────────────────────────────────────────────────────╯     │
-│   → sudo ufw allow from 192.168.0.0/16 to any port 8096                      │
+╰─────│   QR code                                                        │─────╯
+╭─ Nee│   Remove                                                         │─────╮
+│ ✗ So│                                                                  │etup │
+│ ✗ wh│ ──────────────────────────────────────────────────────────────── │tart │
+│ ! Fi│ Stops Jellyfin's containers. Its data, settings and Setup stay.  │     │
+│   → ╰──────────────────────────────────────────────────────────────────╯     │
 │                                                                              │
 │                                                                              │
 │                                                                              │

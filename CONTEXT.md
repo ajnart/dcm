@@ -84,11 +84,14 @@ serving `http://jellyfin.192-168-1-20.sslip.io` on every OS), **From
 anywhere, privately** (Tailscale), **Your own web address** (Cloudflare
 Tunnel, plus a login page in front) and **Bring your own** (SWAG, Pangolin or
 an existing proxy, for advanced users: `self-host access export` prints each App's
-upstream and choosing it changes nothing). Options combine: Easy names at home
-and Tailscale can both be on. Always shown in the recap, since it explains most
-"can't reach it from my TV" reports. Anything reachable from the internet needs
-its own explicit yes that names the risk. Binding to this computer only
-(`127.0.0.1`, stored as `local`) remains a CLI flag, not an Onboarding choice.
+upstream and choosing it changes nothing) and **This computer only**
+(`127.0.0.1`, stored as `local`, with its own diagram; also `install --exposure
+local`). Options combine: Easy names at home and Tailscale can both be on. Always
+shown in the recap, since it explains most "can't reach it from my TV" reports.
+Anything reachable from the internet needs its own explicit yes that names the
+risk. In the Dashboard, an App's Action menu can show its Address as a QR code to
+scan with a phone; it is unavailable under This computer only, since a phone
+cannot reach `127.0.0.1`.
 _Avoid_: exposure, ingress, remote access
 
 **Address**:

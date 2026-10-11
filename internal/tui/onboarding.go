@@ -1134,19 +1134,27 @@ func (m Model) renderLook() []string {
 func (m Model) renderAccess() []string {
 	t := m.theme
 	o := m.onboarding
-	lines := []string{"  " + t.title().Render("How you'll open your Apps")}
+	head := []string{"  " + t.title().Render("How you'll open your Apps")}
 	for _, line := range m.stepIntro(stepAccess) {
-		lines = append(lines, "  "+t.body().Render(line))
+		head = append(head, "  "+t.body().Render(line))
 	}
-	lines = append(lines, "")
+	var options []string
 	for i, option := range accessOptions {
 		selected := option.id == o.answers.accessChoice
-		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
+		options = append(options, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
-	room := m.mainHeight() - above - len(lines)
 	width := min(max(m.width-4, 20), 96)
-	return append(lines, accessBlock(t, accessOptions[o.access], o.answers.exposure, o.answers.lan, width, room)...)
+	block := func(lines []string) []string {
+		room := m.mainHeight() - above - len(lines)
+		return accessBlock(t, accessOptions[o.access], o.answers.exposure, o.answers.lan, width, room)
+	}
+	spaced := slices.Concat(head, []string{""}, options)
+	packed := slices.Concat(head, options)
+	if len(block(packed)) > len(block(spaced)) {
+		return append(packed, block(packed)...)
+	}
+	return append(spaced, block(spaced)...)
 }
 
 func (m Model) renderReview() []string {

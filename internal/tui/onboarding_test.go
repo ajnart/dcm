@@ -799,7 +799,7 @@ func TestWhereAsksForTheHostSettingsAndNotWhoCanOpenTheApps(t *testing.T) {
 	}
 }
 
-func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testing.T) {
+func TestTheAccessStepListsTheSixOptionsIncludingComputerOnly(t *testing.T) {
 	m, _ := freshHost(t)
 
 	m = atAccess(t, m)
@@ -810,17 +810,12 @@ func TestTheAccessStepListsTheFiveOptionsAndOffersNoComputerOnlyChoice(t *testin
 	}
 	last := -1
 	for _, want := range []string{"● Home network (default)", "○ Easy names at home", "○ From anywhere, privately",
-		"○ Your own web address", "○ Bring your own"} {
+		"○ Your own web address", "○ Bring your own", "○ This computer only"} {
 		at := strings.Index(out, want)
 		if at <= last {
 			t.Fatalf("%q should follow the options before it\n%s", want, out)
 		}
 		last = at
-	}
-	for _, gone := range []string{"Only this computer", "This computer only"} {
-		if strings.Contains(out, gone) {
-			t.Fatalf("Onboarding no longer offers %q\n%s", gone, out)
-		}
 	}
 }
 

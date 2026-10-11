@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -69,7 +70,7 @@ func TestSettingsViewWithoutAModel(t *testing.T) {
 	ctx.status.Exposure = service.ExposureLocal
 	v = newSettingsView(ctx)
 
-	for _, k := range []string{"]", "enter"} {
+	for _, k := range append([]string{"]"}, append(slices.Repeat([]string{"up"}, len(accessOptions)), "enter")...) {
 		next, _, _ := v.Update(ctx, press(k))
 		v = next.(*settingsView)
 	}

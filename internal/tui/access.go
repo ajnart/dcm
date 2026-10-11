@@ -181,10 +181,11 @@ var accessOptions = []accessOption{
 			"for a proxy on the Project's Docker network, and the host IP:port for a proxy outside Docker. Traefik output is a file provider, " +
 			"so no Docker socket is needed. You run the proxy, its certificates and its login.",
 	},
+	accessLocal,
 }
 
 // accessLocal is what the stored value local means: the Apps open only on
-// this computer. It is a command-line flag, not a choice in the lists.
+// this computer.
 var accessLocal = accessOption{
 	id: "local", label: "This computer only", name: "This computer only", value: "local",
 	text: func(string) string {
@@ -208,11 +209,8 @@ var (
 	routerNode  = diagramNode{lines: []string{"router"}, heading: true}
 )
 
-// accessByID is the option with an id, listed or not.
+// accessByID is the option with an id.
 func accessByID(id string) (accessOption, bool) {
-	if id == accessLocal.id {
-		return accessLocal, true
-	}
 	i := slices.IndexFunc(accessOptions, func(o accessOption) bool { return o.id == id })
 	if i < 0 {
 		return accessOption{}, false

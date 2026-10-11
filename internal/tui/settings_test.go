@@ -238,10 +238,10 @@ func TestSettingsAccessSubTabShowsTheComputerOnlyAccessInUse(t *testing.T) {
 	m = drive(t, m, press("]"))
 
 	out := screen(m)
-	if !strings.Contains(out, "Now This computer only") || strings.Contains(out, "● Home network") || !strings.Contains(out, "○ Home network (default)") {
-		t.Fatalf("the sub-tab says what is in use and offers Home network\n%s", out)
+	if !strings.Contains(out, "> ● This computer only") || strings.Contains(out, "● Home network") || !strings.Contains(out, "○ Home network (default)") {
+		t.Fatalf("the sub-tab marks what is in use and offers Home network\n%s", out)
 	}
-	m = drive(t, m, press("enter"))
+	m = drive(t, focusHomeNetwork(t, m), press("enter"))
 	if got := m.settings.pairs(); len(got) != 1 || got[0] != "EXPOSURE=lan" || !strings.Contains(screen(m), "Home network (default) (pending)") {
 		t.Fatalf("choosing Home network pends EXPOSURE=lan, pairs %v\n%s", got, screen(m))
 	}
@@ -249,7 +249,7 @@ func TestSettingsAccessSubTabShowsTheComputerOnlyAccessInUse(t *testing.T) {
 
 func TestSettingsAccessAppliesTheChosenOptionWithCtrlS(t *testing.T) {
 	m, backend := settingsHostWith(t, service.ExposureLocal)
-	m = drive(t, m, press("]"))
+	m = focusHomeNetwork(t, drive(t, m, press("]")))
 	m = drive(t, m, press("enter"))
 
 	m = drive(t, m, ctrlS())

@@ -11,12 +11,12 @@
 │ ✗ ◇ whoami              │   Update        no update known (checked every 30 minutes)       │                         │
 │                         │   Retry Setup                                                    │2.168.0.0/16 to any por… │
 │                         │   Backup                                                         │                         │
+│                         │   QR code                                                        │                         │
 │                         │   Remove                                                         │                         │
 │                         │                                                                  │                         │
 │                         │ ──────────────────────────────────────────────────────────────── │                         │
 │                         │ Stops Jellyfin's containers. Its data, settings and Setup stay.  │                         │
 │                         ╰──────────────────────────────────────────────────────────────────╯                         │
-│                                                                ││                                                    │
 │                                                                ││                                                    │
 │                                                                ││                                                    │
 │                                                                ││                                                    │
