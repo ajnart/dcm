@@ -1,0 +1,26 @@
+docs/catalog/traps/dashdot.md
+  h_d6e478ca18e517 6-7
+docs/homarr-dashdot-contract.md
+  h_d6e478ca18e517 1-119
+internal/apps/dashdot/dashdot.go
+  h_d6e478ca18e517 6,19,51-64,68
+internal/apps/dashdot/metrics.go
+  h_d6e478ca18e517 1-90
+internal/apps/dashdot/metrics_test.go
+  h_d6e478ca18e517 1-112
+internal/apps/homarr/target_dashdot.go
+  h_d6e478ca18e517 1-50
+internal/apps/homarr/target_dashdot_test.go
+  h_d6e478ca18e517 1-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "25d31a3974ef0b1e67cdfeb93be3998ec3575284",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
