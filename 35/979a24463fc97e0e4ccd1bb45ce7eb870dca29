@@ -1,0 +1,25 @@
+internal/apps/archiveteamwarrior/archiveteamwarrior.go
+  s_01e8d17f7740df::t_a6c12394dc7f70 89-90,94,99-102,108
+internal/apps/archiveteamwarrior/archiveteamwarrior_test.go
+  s_01e8d17f7740df::t_cda7538d5bbddd 297-310
+internal/apps/archiveteamwarrior/status.go
+  s_01e8d17f7740df::t_6d28da3b8e1592 1-119
+internal/apps/homarr/target_archive_team_warrior.go
+  s_01e8d17f7740df::t_97dff1913b82bd 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35979a24463fc97e0e4ccd1bb45ce7eb870dca29",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
