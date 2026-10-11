@@ -1,0 +1,23 @@
+docs/catalog/traps/pihole.md
+  s_01e8d17f7740df::t_fc44dbeccd7ca0 12-98
+internal/apps/pihole/homarr.go
+  s_01e8d17f7740df::t_a84d22a43845d8 1-279
+internal/apps/pihole/pihole.go
+  s_01e8d17f7740df::t_6a21dcd6e47807 92-93,179-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "64be8d4ba38fb0e6f92e7f7d00d560603da37f87",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
