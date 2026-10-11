@@ -144,10 +144,15 @@ and the user list is nonempty. No album widget or fabricated album ID is added.
 The [real API/browser proof](homarr-immich-proof.md) records its source, resolved
 image identities, rendered values and ownership lifecycle, with explicit gaps.
 At production `89301aff17c86b767f5a45076881f2bb7b41db39`, the updated attempt
-verified the freshness guard and edited-ping Immich lifecycle. Retained
-original-descriptor cycles and final post-lifecycle browser stages remain
-unverified after a temporary board-name validation failure; this is not a
-complete final acceptance or permission to register peers.
+verified the freshness guard and edited-ping Immich lifecycle. The final bounded
+attempt additionally passed retained original-descriptor exclusion through two
+reinstall/remove cycles and post-lifecycle preserved-board/Home rendering, with
+reviewed native/shared statistics and the preserved user metric. The legacy
+record is ownership-only, not native ntfy/Sonarr acceptance. Prior partial evidence
+is retained separately. PR #309 stays draft pending both parent-owned independent
+Standards/Spec reviews; this is not a contract freeze or permission to register
+peers. Populated media, Manual key recovery, migration/restore, physical LAN,
+actual refresh contention and non-nil Frigate prerequisites remain proof gaps.
 
 Sources:
 

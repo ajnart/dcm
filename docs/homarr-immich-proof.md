@@ -1,5 +1,133 @@
 # Immich native Homarr proof
 
+## Final bounded attempt
+
+**The required reference runtime checks passed; independent reviews remain pending.**
+The final attempt used unchanged production
+`89301aff17c86b767f5a45076881f2bb7b41db39`, reconciled through main `a6f3bd4b`.
+The checkout head during execution was
+`95ae938033d58b50cc3c9975298e14072a28599e`; its only differences from production
+were README, this proof, the contract and the screenshot. This evidence update
+also changes no production source. PR #309 remains draft until both parent-owned
+Standards and Spec reviews pass. No peer registration or merge is authorized by
+this result; common registry custody remains with the reference lane.
+
+Runtime record `sh_12d59c75f001bCCbssfeRfSldT` started at
+`2026-10-11T23:43:41Z` (12 October locally), exited **0**, and completed in
+**1m40s** including owned teardown/browser closure. The supervisor recorded
+100.576 seconds through the independent cleanup readback, ending at
+`2026-10-11T23:45:21.527186Z`. Disposable root:
+`/private/var/folders/kx/hccbvbyd6sb61s6lrr2jyt2m0000gn/T/opencode/immich-proof-262-2078002045`.
+
+### Preflight, containment and provenance
+
+- The restored owned `main-next.go` differed only by fresh namespace
+  `i262r8` → `i262r9`. Its `Legacy-fixture` correction was retained; no production
+  request or source changed. The previous failed harness, logs, data and screenshot
+  remain preserved independently below and at the prior documentation head.
+- Before startup, all requested board/resource names were checked against the
+  actual image revision's validation schemas. Boards `Home`, `Fixture` and
+  `Legacy-fixture` satisfy the 1–255 character board-name regex; App names satisfy
+  the trimmed 1–64 character limit and integration names the nonempty 127 character
+  limit. Existing server-returned IDs/layouts were reused; no album IDs were invented.
+  The fresh scoped container/network inventory was empty and the browser inactive.
+  Sources: pinned [board validation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/validation/src/board.ts),
+  [App validation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/validation/src/app.ts),
+  [integration validation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/validation/src/integration.ts)
+  and [shared item validation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/validation/src/shared.ts).
+- Actual browser socket
+  `/Users/ajnart/.agent-browser/namespaces/i262r9/run/i262r9.sock` measured 62 bytes
+  against macOS's 103-byte limit. Only `127.0.0.1` was browser-allowlisted, with
+  generated login credentials passed through stdin, never arguments or output.
+- Unique Project/Home/media/downloads folders and loopback ports **58294/58295**;
+  Telemetry off through `SELF_HOST_NO_TELEMETRY=1` and `DO_NOT_TRACK=1`.
+  Immich and Homarr Debug reports preceded browser use. No protected files,
+  provider credentials, user Project/browser session, TLS bypass or new dependencies.
+- Exactly five installed containers were inspected: Homarr, Immich, its database,
+  machine-learning container and Valkey. Each retained hard **1 GiB/1 CPU/512 PID**
+  limits, aggregate **5 GiB/5 CPUs**. A 13-minute work deadline reserved 30 seconds
+  for diagnostics and one minute for owned cleanup; signals cancel work, and the
+  supervisor adds bounded cancellation before the 15-minute attempt ceiling.
+- All five captured local image IDs and inspected RepoDigests match the identities
+  below. Homarr API `2.4.1`, image index/platform/local ID, OCI revision
+  `3d4150e59f600876b7e308f857b2f21572b75348`, OCI version `main` and tagged baseline
+  `ebbd4876d25a51151444a009ab596e1154d62880` remain distinct. The recorded 22-file
+  public-source comparison was reused, not expanded into whole-revision equivalence.
+
+### Final results
+
+The controlled authenticated library still contained **one administrator and zero
+photos, videos and storage bytes**. No media, provider, account or hardware scope
+was added.
+
+| Check                               | Final observation                                                                                                                                                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native data and key scope           | Exactly `user.read` and `server.statistics`; native values Users 1, Photos 0, Videos 0, Storage 0 bytes.                                                                                                                   |
+| Real refresh negative control       | Unchanged non-stale Homarr snapshot rejected during Check and apply; genuine forced refresh advanced `1791762239630` → `1791762241890` with the controlled values.                                                         |
+| Authentication                      | Anonymous/wrong-key statistics and scoped-key album access rejected with 401/403.                                                                                                                                          |
+| Rerun and credential update         | Valid key reused; key replacement retained owned integration/widget IDs and correct native data.                                                                                                                           |
+| User resources and Immich lifecycle | Matching unowned integration/widget/shared metric preserved; owned removal and repeated reinstall/remove passed, with distinct new owned App/integration IDs.                                                              |
+| Edited App ownership                | Recorded-ID release worked after edited ping Address; name/icon/browser/ping fields and cross-board binding stayed unchanged; retained marker was not reclaimed.                                                           |
+| Original-descriptor regression      | Legitimate unmarked ntfy navigation migration passed; retained App exclusion, cross-board binding and linked opaque record survived **two reinstall/remove cycles**. This is ownership-only, not native ntfy/Sonarr proof. |
+| Post-lifecycle browser              | Preserved private `Fixture` board displayed native Users 1, Photos 0, Videos 0, Used Storage 0.0 B; final `Home` displayed native widgets, shared Stats and preserved `Fixture user metric: 1`.                            |
+| Cleanup                             | Production Project teardown and isolated browser closure passed; subsequent scoped container/network listings empty and browser `active: false`; all disposable data kept.                                                 |
+
+The final Home screenshot was actually read and reviewed: two native server-stat
+widgets show the controlled values, the owned Stats view shows Users 1/Photos 0/
+Videos 0/Storage 0 B, and the retained user metric shows 1 in its preserved view.
+These are two Immich integration bindings, not two different verified peer Apps.
+External icons were blocked, the assistant remained unconfigured, and the seed
+weather widget is outside this acceptance scope.
+
+```text
+LEGITIMATE LEGACY MIGRATION PASSED
+LEGACY RETAINED APP/TWO REINSTALL-REMOVE CYCLES PASSED (OWNERSHIP ONLY)
+PRESERVED RENDERED BOARD
+FINAL RENDERED BOARD
+FUNCTIONAL PROOF PASSED
+OWNED CLEANUP PASSED
+OWNED BROWSER CLEANUP PASSED
+```
+
+### Reproduction and artifacts
+
+Final evidence directory:
+`/private/var/folders/kx/hccbvbyd6sb61s6lrr2jyt2m0000gn/T/opencode/immich-final-proof-evidence-262-r9-RqxILo/`.
+It retains `main.go`, the compiled harness, `preflight.py/out`, `run.py`,
+`runtime.out`, `attempt.json`, `cleanup.out`, `image-identities.out`, the prior
+partial screenshot/docs/PR body and `final-post-lifecycle.png`. The disposable
+root separately retains the pre-lifecycle screenshot and data.
+
+| Artifact                  | SHA-256                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| Final `main.go`           | `0e6768807a39b8f822aba3a6d2b1a4bd8337e9376ec989c4af6090d747e1a44d` |
+| `runtime.out`             | `e117618f65b18cdac126da466aef57a703ade1582bd84d09371f0c5e41f90b63` |
+| `preflight.out`           | `75738ce1fbf2720c2ff851db829d6d12525965340a98f5f2c5ab9552f4921f68` |
+| `cleanup.out`             | `010cc22201444f755247a8fe2f3645cac7b5b0e25fe66de5397f5a441576677b` |
+| `image-identities.out`    | `c581a61c670148ea78eac4f261acd23fb23ed88cb5e11cef6f6a5a291b296ec6` |
+| `attempt.json`            | `40176d2753ff3fff7167a1512b022f40c7c7ea98c5b7be4d9173ef92e501314e` |
+| Final reviewed screenshot | `d77def86d5c90798a60cf582e9aa7373ceb5a9a6e0673581e0fdc8a2da09054a` |
+
+To reproduce, obtain fresh explicit runtime authorization, restore this final
+source temporarily as `tools/immich-proof/main.go` at the recorded production
+tree, choose another short inactive namespace, repeat the static name/socket/
+inventory preflight and run the recorded command below within the same hard
+bounds. The harness is not shipped or staged as a test. Its formatting/build/vet
+and tracked production identity checks passed; the full local production gate
+below remains unchanged and was not needlessly rerun for this fixture/doc delta.
+
+**Genuine limits:** populated media, lost/rejected-key Manual recovery,
+migration/restore, physical LAN, actual refresh lock/queue contention, non-nil
+Frigate preflight/trusted HTTPS and all other peer native/rendered/lifecycle
+acceptance remain unverified. The required legacy cycles and final browser stages
+are no longer runtime gaps. Parent-owned independent Standards/Spec reviews and
+the subsequent contract freeze/peer normalization/guide #278 refresh remain gates.
+
+![Final post-lifecycle native Immich statistics, shared Stats and preserved user metric](images/immich-homarr-proof.png)
+
+<details>
+<summary>Historical partial attempt, as recorded at documentation head 95ae9380</summary>
+
 **Partial acceptance, not a final pass.** The ownership corrections and common
 Stats freshness guard are at production source
 `89301aff17c86b767f5a45076881f2bb7b41db39`, reconciled through main `a6f3bd4b`.
@@ -207,4 +335,6 @@ before the ownership lifecycle, not a final post-lifecycle capture.
 `images/immich-homarr-proof.png` SHA-256:
 `a40ff000e96773df5cf0f560074f4bc9f2bae5c91d58a74aa601cc6f66ff559c`.
 
-![Native Immich server statistics and shared Stats on the private Home board](images/immich-homarr-proof.png)
+![Historical pre-lifecycle native Immich server statistics and shared Stats](https://github.com/ajnart/selfhost-skills/blob/95ae938033d58b50cc3c9975298e14072a28599e/docs/images/immich-homarr-proof.png?raw=1)
+
+</details>

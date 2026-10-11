@@ -653,7 +653,9 @@ bookmarks with user-edited ping Addresses.
 See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
 The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
 empty-library statistics, rendered widgets and preservation/removal/reinstall
-at its exact source and image identities; it does not verify other peers.
+at its exact source and image identities, including retained legacy-App exclusion
+through two cycles and final post-lifecycle native/shared rendering. It does not
+verify populated media or other peers.
 
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
