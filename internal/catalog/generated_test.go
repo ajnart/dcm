@@ -102,11 +102,25 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 	for _, a := range generatedApps() {
 		a := a
 		t.Run(a.Info().ID, func(t *testing.T) {
+			info := a.Info()
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if info.ID == "glances" {
+					w.Header().Set("Content-Type", "application/json")
+					switch r.URL.Path {
+					case "/api/4/status":
+						w.Write([]byte(`{"version":"4.5.6"}`))
+					case "/api/4/version":
+						w.Write([]byte(`"4.5.6"`))
+					case "/api/4/all":
+						w.Write([]byte(`{"cpu":{"total":0},"mem":{"total":0,"used":0,"free":0},"network":[],"fs":[],"uptime":"0:00:00"}`))
+					default:
+						http.NotFound(w, r)
+					}
+					return
+				}
 				w.WriteHeader(http.StatusOK)
 			}))
 			defer srv.Close()
-			info := a.Info()
 			deps := systemtest.NewDeps(t)
 			h := helpers.New(helpers.Config{
 				App:     info.ID,
