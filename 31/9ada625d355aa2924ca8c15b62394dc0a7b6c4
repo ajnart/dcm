@@ -1,0 +1,22 @@
+docs/catalog/traps/frigate.md
+  h_d6e478ca18e517 6,8-9
+docs/homarr-frigate-contract.md
+  h_d6e478ca18e517 1-86
+internal/apps/frigate/frigate.go
+  h_d6e478ca18e517 9,13,81-90,93,96,101,104-136,145,152-161,164,167-168,172,174,180-185,204-207,210,212-218,228,233-254,258-270,272,275,277-323
+internal/apps/frigate/frigate_test.go
+  h_d6e478ca18e517 63-66,69-82,96
+internal/apps/homarr/target_frigate.go
+  h_d6e478ca18e517 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "319ada625d355aa2924ca8c15b62394dc0a7b6c4",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
