@@ -1,0 +1,23 @@
+docs/catalog/traps/caddy.md
+  s_01e8d17f7740df::t_f0bd386afc692a 7-9
+internal/apps/caddy/caddy.go
+  s_01e8d17f7740df::t_8d61e16fe89246 7-8,72-115
+internal/apps/caddy/caddy_test.go
+  s_01e8d17f7740df::t_90c927d0e88fa2 38-43,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2cf41e1301fc3fb55eb1e5c00f5edaf8f52332bc",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
