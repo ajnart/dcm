@@ -18,9 +18,11 @@ import (
 
 // adminEmail is the first administrator's login, built from the shared Admin
 // user so it matches the recipe's email convention.
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 type App struct{}
+
+func (App) AdminEmail(username string) string { return username + "@selfhost.local" }
 
 func (App) Info() app.Info {
 	return app.Info{

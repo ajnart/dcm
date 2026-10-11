@@ -16,6 +16,8 @@ import (
 // App is Immich. Traps: docs/catalog/traps/immich.md.
 type App struct{}
 
+func (App) AdminEmail(string) string { return email }
+
 const (
 	service = "immich"
 	email   = "admin@example.test"

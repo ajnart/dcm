@@ -22,7 +22,7 @@ import (
 )
 
 // adminEmail is the shared Admin login's email form.
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 // verifyScript reads the seeded administrator from the exact pinned Laravel
 // container. The email and password arrive through private environment
@@ -42,6 +42,8 @@ exec /usr/sbin/php-fpm85 -F
 
 // App is Speedtest Tracker. Traps: docs/catalog/traps/speedtest-tracker.md.
 type App struct{}
+
+func (App) AdminEmail(username string) string { return username + "@selfhost.local" }
 
 func (App) Info() app.Info {
 	return app.Info{

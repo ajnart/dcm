@@ -17,9 +17,11 @@ import (
 // App is Docmost. Traps: docs/catalog/traps/docmost.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string { return username + "@selfhost.local" }
+
 const service = "docmost"
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 func (App) Info() app.Info {
 	return app.Info{
