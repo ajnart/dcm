@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -112,11 +113,19 @@ func (c *Compose) Pull(ctx context.Context, services ...string) error {
 	return err
 }
 
-// PullProgress runs `--progress json pull` (--progress is a global Compose
-// flag; `pull` itself has none) and reports per-image, per-layer
-// progress as pull.progress events. Unknown output lines are ignored.
+// PullProgress reports JSON progress when supported. Older Compose versions
+// fall back to plain output if they reject JSON before starting the pull.
 func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
-	args := append([]string{"--progress", "json", "pull"}, services...)
+	err := c.pullProgress(ctx, "json", services...)
+	var pullErr *PullError
+	if ctx.Err() == nil && errors.As(err, &pullErr) && pullErr.Output == `unsupported --progress value "json"` {
+		return c.pullProgress(ctx, "plain", services...)
+	}
+	return err
+}
+
+func (c *Compose) pullProgress(ctx context.Context, mode string, services ...string) error {
+	args := append([]string{"--progress", mode, "pull"}, services...)
 	cmd := system.Cmd{Name: "docker", Args: c.args(args...), Dir: c.root}
 	c.log.Emit(events.Event{Event: events.Command, Command: "docker " + strings.Join(cmd.Args, " ")})
 	parser := newPullParser(c.log, c.deps.Now)
