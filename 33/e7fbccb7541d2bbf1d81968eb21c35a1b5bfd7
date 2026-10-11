@@ -1,0 +1,18 @@
+README.md
+  h_d6e478ca18e517 656-658
+docs/homarr-immich-proof.md
+  h_d6e478ca18e517 3-130,338-340
+docs/homarr-integration-contract.md
+  h_d6e478ca18e517 147-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33e7fbccb7541d2bbf1d81968eb21c35a1b5bfd7",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
