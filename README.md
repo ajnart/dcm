@@ -34,6 +34,13 @@ Bun, checkout, or AI account. A Project made by a pre-release build in
 `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
 at one.
 
+The Dashboard opens with a brief, skippable entrance; any key continues with its
+usual meaning. The existing Pre-boot scene animates in during the approved first
+install, with `enter` to skip to Activity and `q` or `ctrl+c` to quit.
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips these decorative transitions and
+shows that first Action directly in Activity. Loading and installation never
+wait for motion; plain commands, non-TTY output and `--json` do not animate.
+
 Ask your agent to use the self-host skill ("use self-host to watch my movies on
 the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). Agents
 also load the skill on their own when you talk about running your own apps.
