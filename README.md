@@ -647,6 +647,9 @@ read-only statistics key; retry with `self-host setup immich`, then
 `self-host setup homarr`. Server statistics are enabled, not album slideshows.
 Other Homarr versions stop with a recovery hint; back up before changing versions.
 See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
+The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
+empty-library statistics, rendered widgets and preservation/removal/reinstall
+at its exact source and image identities; it does not verify other peers.
 
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |

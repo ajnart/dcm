@@ -106,6 +106,8 @@ The Link uses `http://immich:2283`, verifies authenticated
 entries `userCount`, `photoCount`, `videoCount`, `totalLibraryUsageInBytes`.
 An empty library is valid when authenticated statistics explicitly report zeros
 and the user list is nonempty. No album widget or fabricated album ID is added.
+The [real API/browser proof](homarr-immich-proof.md) records its source, resolved
+image identities, rendered values and ownership lifecycle, with explicit gaps.
 
 Sources:
 
@@ -114,3 +116,4 @@ Sources:
 - [Homarr integration operations](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/integration/integration-router.ts)
 - [Homarr widget options](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/widgets/src/immich/server-stats/index.ts)
 - [Immich key API](https://github.com/immich-app/immich/blob/v3.2.2/server/src/controllers/api-key.controller.ts)
+- [Homarr Frigate Stats authentication](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/providers/frigate.ts)
