@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Run the self-host skill evals as real `claude -p` conversations.
 
-Each run gets an empty sandbox outside the repository, so no AGENTS.md,
-CLAUDE.md, guide file or fixture is reachable from the agent's working
-directory. `self-host` and `docker` on PATH are the stubs in bin/; the real
-binaries are not on PATH and Bash is limited to a short allowlist, so the real
-Project cannot be touched. Turns are sent one by one with --resume.
+Each run gets an empty working folder outside the repository and frozen inputs.
+File tools are guarded; Bash runs with a clean environment inside macOS
+sandbox-exec. Only fixture App operations are supported. Turns are sent one
+by one with --resume.
 
 Output follows the skill-creator workspace layout, so its aggregate_benchmark
 and generate_review scripts work unchanged:
@@ -30,13 +29,14 @@ import concurrent.futures as cf
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
 
-from validity import check_model, require_result
+from validity import check_cli, check_model, require_result
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -60,6 +60,15 @@ def parse_configs(specs):
     out = []
     for spec in specs:
         name, _, src = spec.partition("=")
+        if not re.fullmatch(r"[a-z][a-z0-9_-]*", name) or name in (
+            "stubs",
+            "scenarios",
+        ):
+            raise ValueError(
+                "configuration name must be a simple, nonreserved directory name"
+            )
+        if any(c["name"] == name for c in out):
+            raise ValueError("configuration names must be unique")
         src = src or "none"
         guide = os.path.join(REPO, "internal", "skill", "guide.md")
         if ":" in src:
@@ -110,15 +119,12 @@ HOST_TOOLS = (
 )
 
 
-def install_stubs(ws):
+def install_stubs(stubs):
     """Copy the stubs out of the repository, so `which` does not point at it.
 
     base/ is always on PATH; docker/ only once the scenario's machine has
     Docker (bin/guard.py decides per command).
     """
-    stubs = os.path.join(ws, "_stubs")
-    if os.path.isdir(stubs):
-        shutil.rmtree(stubs)
     base, dock = os.path.join(stubs, "base"), os.path.join(stubs, "docker")
     for d in (base, dock):
         os.makedirs(d, exist_ok=True)
@@ -128,6 +134,7 @@ def install_stubs(ws):
         "guard.py",
         "dockerstate.py",
         "ask_user_mcp.py",
+        "isolation.py",
     ):
         shutil.copy(os.path.join(STUBS, name), os.path.join(base, name))
     for name in ("docker", "dockerstate.py"):
@@ -159,38 +166,44 @@ def prepare(ws, iteration, ev, config, k):
     )
     os.makedirs(os.path.join(sandbox, ".home"))
     os.makedirs(os.path.join(harness, "state"))
-    stubs = os.path.join(ws, "_stubs")  # installed once by main()
+    stubs = os.path.join(ws, "iteration-%d" % iteration, "inputs", "stubs")
     write_json(
-        os.path.join(sandbox, ".claude", "settings.json"),
+        os.path.join(harness, "settings.json"),
         {
+            "disableBundledSkills": True,
             "hooks": {
                 "PreToolUse": [
                     {
-                        "matcher": "Bash|Read|Write|Edit|MultiEdit|Glob|Grep|NotebookEdit",
+                        "matcher": "*",
                         "hooks": [
                             {
                                 "type": "command",
-                                "command": "/usr/bin/python3 %s"
-                                % os.path.join(stubs, "base", "guard.py"),
+                                "command": "/usr/bin/python3",
+                                "args": [os.path.join(stubs, "base", "guard.py")],
+                                "onFailure": "block",
                             }
                         ],
                     }
                 ]
-            }
+            },
         },
     )
 
     # The harness owns a frozen copy of the guide so editing guide.md mid-run
     # cannot change what earlier runs saw.
-    shutil.copy(config["guide"], os.path.join(harness, "guide.md"))
+    shutil.copy(config["guide"], os.path.join(run, "raw", "guide.md"))
+    shutil.copy(os.path.join(run, "raw", "guide.md"), os.path.join(harness, "guide.md"))
     write_json(
         os.path.join(harness, "config.json"),
-        {"guide": os.path.join(harness, "guide.md"), "version": "dev-eval"},
+        {
+            "guide": os.path.join(harness, "guide.md"),
+            "version": "dev-eval",
+            "stubs": stubs,
+        },
     )
-    os.symlink(
-        os.path.join(HERE, "scenarios", ev["scenario"]),
-        os.path.join(harness, "scenario"),
-    )
+    scenario = os.path.join(run, "raw", "scenario")
+    shutil.copytree(ev["scenario_path"], scenario)
+    os.symlink(scenario, os.path.join(harness, "scenario"))
     open(os.path.join(harness, "invocations.jsonl"), "w").close()
     write_json(
         os.path.join(harness, "mcp.json"),
@@ -206,7 +219,7 @@ def prepare(ws, iteration, ev, config, k):
 
     # The person's drives, under .root; bin/guard.py maps /media, /mnt and
     # /Volumes there so `ls /media/...` works on the eval Mac.
-    plat = os.path.join(HERE, "scenarios", ev["scenario"], "platform.json")
+    plat = os.path.join(scenario, "platform.json")
     for d in json.load(open(plat)).get("dirs", []) if os.path.exists(plat) else []:
         folder = os.path.join(sandbox, ".root", d.lstrip("/"))
         os.makedirs(folder)
@@ -219,13 +232,16 @@ def prepare(ws, iteration, ev, config, k):
     if config["skill"]:
         dest = os.path.join(sandbox, ".claude", "skills", "self-host")
         shutil.copytree(config["skill"], dest)
+        shutil.copytree(config["skill"], os.path.join(run, "raw", "router"))
     inputs = {
         "scenario": ev["scenario"],
         "guide_sha256": file_digest(os.path.join(harness, "guide.md")),
         "router_sha256": None,
     }
     if config["skill"]:
-        inputs["router_sha256"] = file_digest(os.path.join(dest, "SKILL.md"))
+        inputs["router_sha256"] = file_digest(
+            os.path.join(run, "raw", "router", "SKILL.md")
+        )
     write_json(os.path.join(run, "raw", "inputs.json"), inputs)
     with open(os.path.join(sandbox, "cloudflare-token"), "w") as f:
         f.write(TOKEN_SENTINEL + "\n")
@@ -242,10 +258,8 @@ def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeo
     }
     # bin/guard.py rewrites every Bash call to run under env -i with these.
     env["EVAL_SANDBOX"] = sandbox
-    env["EVAL_STUBS"] = os.path.join(
-        os.path.dirname(os.path.dirname(harness.rstrip("/"))), "..", "_stubs"
-    )
-    env["EVAL_STUBS"] = os.path.realpath(env["EVAL_STUBS"])
+    with open(os.path.join(harness, "config.json")) as config:
+        env["EVAL_STUBS"] = json.load(config)["stubs"]
     env["SELF_HOST_EVAL_HARNESS"] = harness
     env["SELF_HOST_EVAL_TURN"] = str(turn)
     cmd = [
@@ -259,22 +273,30 @@ def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeo
         model,
         "--setting-sources",
         "project",
+        "--settings",
+        os.path.join(harness, "settings.json"),
+        "--tools",
+        "Bash,Read,Skill",
+        "--allowedTools",
+        "Bash,Read,Skill,mcp__person__ask_user",
+        "--no-chrome",
         "--strict-mcp-config",
         "--mcp-config",
         os.path.join(harness, "mcp.json"),
         "--permission-mode",
-        "bypassPermissions",
+        "dontAsk",
     ]
     if session:
         cmd += ["--resume", session]
     started = time.time()
-    with open(out_path, "w") as out:
+    stderr_path = out_path.replace(".jsonl", ".stderr.txt")
+    with open(out_path, "w") as out, open(stderr_path, "w") as stderr:
         proc = subprocess.run(
             cmd,
             cwd=sandbox,
             env=env,
             stdout=out,
-            stderr=subprocess.PIPE,
+            stderr=stderr,
             text=True,
             timeout=timeout,
         )
@@ -282,12 +304,14 @@ def claude_turn(message, sandbox, harness, turn, model, session, out_path, timeo
     with open(out_path) as f:
         for line in f:
             line = line.strip()
-            if line.startswith("{"):
-                try:
-                    events.append(json.loads(line))
-                except json.JSONDecodeError:
-                    pass
-    return events, time.time() - started, proc.returncode, proc.stderr[-2000:]
+            if line:
+                event = json.loads(line)
+                if not isinstance(event, dict):
+                    raise ValueError("task stream contains a non-object event")
+                events.append(event)
+    with open(stderr_path) as stderr:
+        detail = stderr.read()[-2000:]
+    return events, time.time() - started, proc.returncode, detail
 
 
 def text_of(content):
@@ -368,6 +392,16 @@ def render(turns_log):
 
 
 MAX_TURNS = 8
+PERSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reply": {"type": "string"},
+        "approves": {"type": "boolean"},
+        "done": {"type": "boolean"},
+    },
+    "required": ["reply", "approves", "done"],
+    "additionalProperties": False,
+}
 
 PERSON_PROMPT = """You are playing a person chatting with an AI assistant that can
 run commands on your computer. Stay in character.
@@ -395,7 +429,7 @@ Reply with only JSON:
 """
 
 
-def person_reply(ev, conversation, turn, model):
+def person_reply(ev, conversation, turn, model, raw):
     """Play the person: answer what the agent actually asked, from the persona."""
     env = {
         k: v
@@ -411,6 +445,8 @@ def person_reply(ev, conversation, turn, model):
                 prompt,
                 "--output-format",
                 "json",
+                "--json-schema",
+                json.dumps(PERSON_SCHEMA),
                 "--model",
                 model,
                 "--setting-sources",
@@ -427,11 +463,12 @@ def person_reply(ev, conversation, turn, model):
             text=True,
             timeout=300,
         )
+    with open(os.path.join(raw, "person-%d.json" % turn), "w") as output:
+        output.write(proc.stdout)
+    with open(os.path.join(raw, "person-%d.stderr.txt" % turn), "w") as output:
+        output.write(proc.stderr)
     result = require_result(json.loads(proc.stdout), proc.returncode, proc.stderr)
-    text = result["result"].strip()
-    if text.startswith("```json") and text.endswith("```"):
-        text = text[7:-3].strip()
-    answer = json.loads(text)
+    answer = result.get("structured_output")
     if not isinstance(answer, dict) or not isinstance(answer.get("reply"), str):
         raise ValueError("simulated person returned no reply string")
     if type(answer.get("approves")) is not bool or type(answer.get("done")) is not bool:
@@ -483,7 +520,7 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model):
                 os.path.join(run, "raw", "turn-%d.jsonl" % i),
                 timeout,
             )
-        except (OSError, subprocess.TimeoutExpired) as error:
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             total["errors"].append({"turn": i, "source": "agent", "error": str(error)})
             break
         turns_log.append({"turn": i, "message": msg, "events": events})
@@ -492,6 +529,11 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model):
         session = (result or init or {}).get("session_id", session)
         try:
             require_result(result, code, err)
+            visible = "self-host" in (init or {}).get("skills", [])
+            if visible != bool(config["skill"]):
+                raise ValueError(
+                    "router discovery does not match the selected configuration"
+                )
         except ValueError as error:
             total["errors"].append({"turn": i, "source": "agent", "error": str(error)})
             break
@@ -518,17 +560,26 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model):
                 {"turn": i, "source": "agent", "error": "missing session ID"}
             )
             break
-        if i >= ev.get("max_turns", MAX_TURNS):
-            break
         _, replies_so_far = render(turns_log)
         try:
-            answer = person_reply(ev, replies_so_far, i + 1, person_model)
+            answer = person_reply(
+                ev, replies_so_far, i + 1, person_model, os.path.join(run, "raw")
+            )
         except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             total["errors"].append(
                 {"turn": i + 1, "source": "person", "error": str(error)}
             )
             break
         person_log.append(answer)
+        if not answer["done"] and i >= ev.get("max_turns", MAX_TURNS):
+            total["errors"].append(
+                {
+                    "turn": i,
+                    "source": "runner",
+                    "error": "conversation exceeded turn limit",
+                }
+            )
+            break
         msg = None if answer.get("done") else answer.get("reply") or None
 
     write_jsonl(os.path.join(run, "raw", "person.jsonl"), person_log)
@@ -602,6 +653,11 @@ def main():
     )
     ap.add_argument("--parallel", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=900, help="seconds per turn")
+    ap.add_argument(
+        "--max-conversation-turns",
+        type=int,
+        help="override the conversation budget for all configurations",
+    )
     args = ap.parse_args()
 
     if os.path.realpath(args.workspace).startswith(os.path.realpath(REPO)):
@@ -611,19 +667,41 @@ def main():
     iteration_dir = os.path.join(args.workspace, "iteration-%d" % args.iteration)
     if os.path.exists(iteration_dir):
         ap.error(
-            "iteration already exists; choose a new --iteration to preserve its evidence"
+            "iteration already exists; choose a new --iteration "
+            "to preserve its evidence"
         )
     if args.runs < 1 or args.parallel < 1:
         ap.error("--runs and --parallel must be positive")
+    if sys.platform != "darwin" or not shutil.which("sandbox-exec"):
+        ap.error("task evaluations require macOS sandbox-exec")
+    if args.max_conversation_turns is not None and args.max_conversation_turns < 1:
+        ap.error("--max-conversation-turns must be positive")
+    configs = parse_configs(args.configs)
+    cli_version = check_cli()
     for model in dict.fromkeys((args.model, args.person_model)):
         check_model(model)
     evals = json.load(open(os.path.join(HERE, "evals", "evals.json")))
     wanted = {int(x) for x in args.evals.split(",") if x.strip()}
-    configs = parse_configs(args.configs)
+    inputs = os.path.join(iteration_dir, "inputs")
+    for config in configs:
+        frozen = os.path.join(inputs, config["name"])
+        os.makedirs(frozen)
+        shutil.copy(config["guide"], os.path.join(frozen, "guide.md"))
+        config["guide"] = os.path.join(frozen, "guide.md")
+        if config["skill"]:
+            shutil.copytree(config["skill"], os.path.join(frozen, "router"))
+            config["skill"] = os.path.join(frozen, "router")
     jobs = []
     for ev in evals["evals"]:
         if wanted and ev["id"] not in wanted:
             continue
+        if args.max_conversation_turns is not None:
+            ev["max_turns"] = args.max_conversation_turns
+        ev["scenario_path"] = os.path.join(inputs, "scenarios", ev["scenario"])
+        if not os.path.exists(ev["scenario_path"]):
+            shutil.copytree(
+                os.path.join(HERE, "scenarios", ev["scenario"]), ev["scenario_path"]
+            )
         edir = os.path.join(
             args.workspace,
             "iteration-%d" % args.iteration,
@@ -651,11 +729,13 @@ def main():
         ),
         {
             "model": args.model,
+            "claude_code_version": cli_version,
             "person_model": args.person_model,
             "runs": args.runs,
             "eval_ids": sorted({ev["id"] for ev, _, _ in jobs}),
             "parallel": args.parallel,
             "timeout_seconds": args.timeout,
+            "max_conversation_turns": args.max_conversation_turns,
             "configs": [
                 {"name": c["name"], "skill": c["skill"], "guide": c["guide"]}
                 for c in configs
@@ -669,7 +749,7 @@ def main():
         os.path.join(iteration_dir, "execution.json"),
         {"valid": False, "planned": len(jobs), "completed": 0},
     )
-    install_stubs(args.workspace)
+    install_stubs(os.path.join(inputs, "stubs"))
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         futs = [
             pool.submit(

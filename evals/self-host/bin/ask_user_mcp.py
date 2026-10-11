@@ -97,8 +97,9 @@ def main():
                         {
                             "type": "text",
                             "text": (
-                                "The question is on the person's screen. Their answer arrives as "
-                                "their next message: end your turn now without assuming it."
+                                "The question is on the person's screen. "
+                                "Their answer arrives as their next message: "
+                                "end your turn now without assuming it."
                             ),
                         }
                     ]

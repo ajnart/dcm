@@ -36,8 +36,9 @@ Assertions to grade:
 === Commands that ran (turn: tool argv) ===
 {commands}
 
-Answer with only a JSON array, one object per assertion in the same order:
-[{{"text": "<assertion text, verbatim>", "passed": true|false, "evidence": "<short quote or reason>"}}]
+Return a JSON object with a verdicts array, one object per assertion in order:
+{{"verdicts": [{{"text": "<assertion text, verbatim>", "passed": true|false,
+"evidence": "<short quote or reason>"}}]}}
 """
 
 
@@ -49,6 +50,28 @@ def judge_run(run, model):
     items = [a["text"] for a in meta["assertions"] if a["check"] == "judge"]
     if not items:
         return run, "no judge assertions"
+    schema = {
+        "type": "object",
+        "properties": {
+            "verdicts": {
+                "type": "array",
+                "minItems": len(items),
+                "maxItems": len(items),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "enum": items},
+                        "passed": {"type": "boolean"},
+                        "evidence": {"type": "string", "minLength": 1},
+                    },
+                    "required": ["text", "passed", "evidence"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["verdicts"],
+        "additionalProperties": False,
+    }
 
     def read(path):
         with open(os.path.join(run, "outputs", path), errors="ignore") as f:
@@ -64,6 +87,9 @@ def judge_run(run, model):
         for k, v in os.environ.items()
         if k not in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
     }
+    metrics = {"model": model, "valid": False}
+    with open(os.path.join(run, "raw", "judge-metrics.json"), "w") as output:
+        json.dump(metrics, output, indent=2)
     with tempfile.TemporaryDirectory() as cwd:
         proc = subprocess.run(
             [
@@ -72,6 +98,8 @@ def judge_run(run, model):
                 prompt,
                 "--output-format",
                 "json",
+                "--json-schema",
+                json.dumps(schema),
                 "--model",
                 model,
                 "--setting-sources",
@@ -88,11 +116,24 @@ def judge_run(run, model):
             text=True,
             timeout=600,
         )
+    with open(os.path.join(run, "raw", "judge.json"), "w") as output:
+        output.write(proc.stdout)
+    with open(os.path.join(run, "raw", "judge.stderr.txt"), "w") as output:
+        output.write(proc.stderr)
     result = require_result(json.loads(proc.stdout), proc.returncode, proc.stderr)
-    text = result["result"].strip()
-    if text.startswith("```json") and text.endswith("```"):
-        text = text[7:-3].strip()
-    verdicts = json.loads(text)
+    metrics = {
+        "model": model,
+        "valid": False,
+        "usage": result.get("usage", {}),
+        "cost_usd": result.get("total_cost_usd"),
+        "duration_ms": result.get("duration_ms"),
+    }
+    with open(os.path.join(run, "raw", "judge-metrics.json"), "w") as output:
+        json.dump(metrics, output, indent=2)
+    structured = result.get("structured_output")
+    if not isinstance(structured, dict):
+        raise ValueError("judge returned no structured output")
+    verdicts = structured.get("verdicts")
     if not isinstance(verdicts, list) or len(verdicts) != len(items):
         raise ValueError("judge returned an incomplete verdict list")
     out = []
@@ -115,6 +156,9 @@ def judge_run(run, model):
         )
     with open(os.path.join(run, "judged.json"), "w") as f:
         json.dump(out, f, indent=2)
+    metrics["valid"] = True
+    with open(os.path.join(run, "raw", "judge-metrics.json"), "w") as output:
+        json.dump(metrics, output, indent=2)
     return run, "%d/%d" % (sum(o["passed"] for o in out), len(out))
 
 

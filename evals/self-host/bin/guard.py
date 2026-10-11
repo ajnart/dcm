@@ -36,6 +36,16 @@ def main():
     inp = data.get("tool_input", {}) or {}
     sandbox = os.environ["EVAL_SANDBOX"]
     home = os.path.join(sandbox, ".home")
+    if tool not in (
+        "Bash",
+        "Read",
+        "Skill",
+        "mcp__person__ask_user",
+        "EndConversation",
+    ):
+        return deny("This tool is not available in fixture evaluations.")
+    if tool == "Skill" and inp.get("skill") != "self-host":
+        return deny("Only the project-local self-host router is under evaluation.")
 
     if tool == "Bash":
         # Absolute paths into the real home (the real binary, ~/.self-host,
@@ -58,6 +68,7 @@ def main():
         path = [os.path.join(stubs, "base")]
         if docker_state(harness) != "missing":
             path.append(os.path.join(stubs, "docker"))
+        path.append(os.path.dirname(os.path.realpath(sys.executable)))
         root = os.path.join(sandbox, ".root")
         if os.path.isdir(root):
             for mount in ("/media/", "/mnt/", "/Volumes/"):
@@ -65,22 +76,31 @@ def main():
         os_release = os.path.join(harness or "", "scenario", "os-release")
         if os.path.exists(os_release):
             cmd = cmd.replace("/etc/os-release", os_release)
+        temporary = os.path.join(sandbox, ".tmp")
+        os.makedirs(temporary, exist_ok=True)
         env = {
             "HOME": home,
             "PATH": ":".join(path) + ":/usr/bin:/bin:/usr/sbin:/sbin",
             "DOCKER_HOST": "unix:///nonexistent/docker.sock",
             "TERM": "dumb",
             "LANG": "en_US.UTF-8",
+            "TMPDIR": temporary,
             "SELF_HOST_NO_UPDATE_CHECK": "1",
         }
         for k, v in os.environ.items():
             if k.startswith("SELF_HOST_EVAL_"):
                 env[k] = v
         prefix = " ".join("%s=%s" % (k, shlex.quote(v)) for k, v in sorted(env.items()))
-        wrapped = "cd %s && env -i %s /bin/bash -c %s" % (
+        from isolation import isolated_command
+
+        try:
+            isolated = isolated_command(cmd, sandbox, stubs, harness)
+        except ValueError as error:
+            return deny(str(error))
+        wrapped = "cd %s && env -i %s %s" % (
             shlex.quote(sandbox),
             prefix,
-            shlex.quote(cmd),
+            isolated,
         )
         print(
             json.dumps(
@@ -111,12 +131,18 @@ def main():
             .replace("_", "-")
         )
         own = os.path.join(os.environ.get("HOME", ""), ".claude", "projects", slug)
-        if real.startswith(own):
+        if tool == "Read" and os.path.commonpath(
+            (real, os.path.realpath(own))
+        ) == os.path.realpath(own):
             return 0
-        if not real.startswith(os.path.realpath(sandbox)):
+        if os.path.commonpath((real, os.path.realpath(sandbox))) != os.path.realpath(
+            sandbox
+        ):
             return deny(
                 "Outside this machine's working folder; stay inside %s." % sandbox
             )
+    if tool == "Read" and not path:
+        return deny("Read requires a path inside the working folder.")
     return 0
 
 

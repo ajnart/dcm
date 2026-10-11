@@ -1,89 +1,92 @@
 # self-host skill evaluation progress
 
-## What this is
+## Scope
 
-A development harness for improving the operator skill, not another installer
-and not the proposed Catalog contributor skill. It evaluates the complete path:
+The harness is tracked in [PR #259](https://github.com/ajnart/selfhost-skills/pull/259).
+The operator guide changes stay in [PR #257](https://github.com/ajnart/selfhost-skills/pull/257).
+The proposed Catalog contributor skill is separate and remains unimplemented.
 
 ```text
-person's request → skills/self-host/SKILL.md → self-host skill
-                                               ↓
-                                  internal/skill/guide.md
-                                               ↓
-                          inspect → plan → approval → apply → verify
+person's request → project-local router → self-host skill → frozen guide
+                              ↓
+           inspect → plan → approval → apply → verify
+                              ↓
+       raw evidence → validity gate → grading → skill-creator viewer
 ```
 
-All App operations run against fixtures. The harness uses Claude's `skill-creator`
-workflow for a frozen baseline, repeated runs, scripted and blind grading, and
-its supplied benchmark aggregator and review viewer. The skill-creator tools
-are installed separately; this repository does not vendor them.
+App operations use fixtures. This does not prove real installation, native
+platform behavior, or correct authorization scope for every Action.
 
-## Status: approximately 70%
+## Harness acceptance gates
 
-`[███████░░░]` is a planning estimate, not a measured score or acceptance claim.
+No percentage estimate: each gate requires evidence.
 
-| Area                                                        | State                                          |
-| ----------------------------------------------------------- | ---------------------------------------------- |
-| Router-to-guide execution and command logs                  | Implemented                                    |
-| Seven scenarios, including four simulated operating systems | Implemented                                    |
-| Multi-turn questions and simulated person                   | Implemented; needs review in a valid batch     |
-| Newcomer guide changes                                      | Implemented; effectiveness not yet established |
-| Failure rejection and grading validity gates                | Offline replay checks passed                   |
-| Local repository validation                                 | Passed before the initial commits              |
-| Valid edited-guide versus frozen-guide comparison           | Pending                                        |
-| Human review and another improvement pass                   | Pending                                        |
-| Router description optimization                             | Query set drafted; not approved or run         |
-| Disposable execution environment                            | Required; the hook is not sufficient isolation |
-| Catalog contributor skill                                   | Design questions outstanding; not implemented  |
+| Gate                                                                   | Status                                                |
+| ---------------------------------------------------------------------- | ----------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                 |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                 |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                               |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+   |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                |
+| Complete real-model batch with both guides and three repetitions       | Pending                                               |
+| Complete blind judgments, aggregation and supplied review viewer       | Pending                                               |
+| Independent Standards and Spec review                                  | Pending                                               |
+
+The user approved tests at three seams: runner CLI → saved artifacts, grading
+CLI → accepted/rejected grades, and execution boundary → blocked host/network
+access. Tests use a fake Claude executable only at the external model boundary;
+shell canaries exercise the real OS sandbox. See [README.md](README.md) for commands.
 
 ## Evidence ledger
 
-- **Iteration 1: invalid.** Agents authored their own transcripts; approval and
-  repetition accounting were wrong. Its apparent perfect scores are not evidence.
-- **Iteration 2: historical fixture result.** Real CLI streams and command logs
-  produced approximately 96% with the skill versus 34% without. This used four
-  scenarios and scripted replies. It does not establish real installation success
-  or validate the later guide edits.
-- **Iteration 3: invalid.** All 42 task runs hit the five-hour Claude quota before
-  generating output. The apparent 42.7% score came from grading empty runs and
-  must not be used. The harness now rejects this captured failure at execution
-  and grading, rather than counting safety checks on empty runs as passes.
-- **Offline verification:** captured quota responses invalidate runs and block
-  grading; a failed person call raises instead of silently ending; model preflight
-  stops before starting a batch. Python syntax, fixture JSON, core Ruff lint,
-  formatting and whitespace checks passed. The Go local gate also passed.
+- **Iteration 1: invalid.** Agent-authored transcripts and wrong approval/repetition
+  accounting. Its scores are not evidence.
+- **Iteration 2: historical fixture result.** Approximately 96% with the skill
+  versus 34% without, using four scenarios and scripted replies. Not comparable
+  with the later seven-scenario, model-person conversations.
+- **Iteration 3: invalid.** All 42 runs hit the Claude quota. The old 42.7% score
+  was produced from empty runs and must not be used.
+- **Iteration 4: invalid.** Restricted mode suppressed project skill discovery;
+  the router was absent. One conversation also exhausted its turn budget.
+  Discovery is now explicitly checked; restricted mode is not used because it
+  prevents evaluating the real project-local router.
+- **Iteration 5: invalid.** The original-guide conversation encountered a missing
+  media-folder config fixture and exhausted its budget. Added the fixture and
+  a regression test.
+- **Iteration 6: invalid.** Both routers loaded, but the original-guide conversation
+  needed more than eight turns. Kept the failure; added an explicit recorded
+  conversation-budget override. Later comparisons give both guides 16 turns.
+- **Iteration 7: invalid.** Two person calls returned prose preceding their JSON;
+  strict parsing rejected them and pending runs were cancelled. Person and judge
+  calls now use schema-validated structured output rather than relaxing parsing.
+- **Iteration 8: invalid.** Both task runs hit the session quota after preflight
+  succeeded. No score was produced. Claude reports a reset at 22:00 Europe/Paris.
+  A fresh comparison remains pending after that reset.
 
-Iteration 2 and later persona-driven scenarios are not directly comparable:
-the requests, assertions and conversation method changed.
+Attempts are retained, not patched into successful runs or silently dropped from
+a benchmark. Changes to fixtures, models or budgets define a new comparison.
 
-The original guide snapshot matches commit `86246cfe` exactly. Its SHA-256 is
+The original guide comes from `86246cfe`; SHA-256:
 `b6f7e41a27aa706a00dc062c1166ccc7abea5874653f55bd84e3e9cb2fb195c1`.
-Recover that baseline from Git rather than depending on another agent's local
-cache. The router was unchanged by this PR.
+The revised guide comes from `665cfd1f`. The router is unchanged. Each run keeps
+its actual guide, router and flattened scenario, with guide/router fingerprints;
+each iteration keeps independent frozen stubs. Judge usage/cost is now retained.
 
-## Changes prompted by review
+## Limits and remaining work
 
-- Corrected the metadata layout that made the viewer say "No prompt found".
-- Added a real question-tool stand-in and clickable experience options.
-- Offered Jellyfin alone or the fuller Media Recipe, and asked where files live.
-- Removed unnecessary newcomer jargon while retaining prerequisite explanations.
-- Added macOS, Debian, Linux Mint and WSL fixture coverage.
-- Preserved actual conversations, command logs, questions, approval labels,
-  timing, errors and input fingerprints; see the [log map](README.md#inspecting-what-happened).
-
-## Next steps before calling this done
-
-1. Use a disposable environment without a live Project or unrelated credentials.
-2. Confirm model access, retain the original guide snapshot, and run a small
-   new-guide versus old-guide smoke comparison into a fresh iteration.
-3. Complete all seven scenarios, both configurations and three repetitions;
-   require successful execution and complete judgments before aggregation.
-4. Generate the supplied skill-creator viewer, review real replies and failure
-   evidence with the user, then revise the guide only from valid findings.
-5. Review trigger-query labels before running description optimization.
-6. Confirm contributor-skill boundaries separately before implementing it.
-
-Known limitations: the shell hook is not OS-level containment; fixtures do not
-prove native-platform behavior; simulated approval labels do not verify the
-scope of every later action; scenario fixtures are not frozen per batch; judge
-usage and cost are not recorded. Raw artifacts require review before sharing.
+- Execution supports macOS only. Debian, Mint and WSL remain fixture simulations.
+- The Claude transport needs account authentication/network access and is not
+  inside the shell's OS sandbox. File access is guarded through hooks.
+- Fixtures and their writable state/logs are not tamper-proof against a hostile
+  model. Evaluate only the trusted router; use a disposable account/machine for
+  untrusted skills. Raw logs are private and require redaction before sharing.
+- Model-generated approval labels establish timing, not permission scope. The
+  public-Access check requires an approval after its plan; the judge and human
+  review must still assess the explanation and the requested Action.
+- Agent timing excludes person and judge calls; their reported usage/cost lives
+  in separate raw artifacts. No audience or real-installation claim follows.
+- Finish the full batch, judgments, viewer and independent review before merging
+  the harness. Improve the guide from valid findings and human feedback afterward.
+- Trigger labels need user review before description optimization. Contributor
+  skill design questions remain separate.
