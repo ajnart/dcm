@@ -29,8 +29,8 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                  |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                    |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                 |
-| Complete real-model batch with both guides and three repetitions       | Pending                                                                |
-| Complete blind judgments, aggregation and supplied review viewer       | Pending                                                                |
+| Complete real-model batch with both guides and three repetitions       | Iteration 10 recorded as running after valid iteration 9 smoke         |
+| Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending                  |
 | Independent Standards and Spec review                                  | Earlier review passed; fresh parent review after this audit is pending |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
@@ -63,6 +63,21 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
 - **Iteration 8: invalid.** Both task runs hit the session quota after preflight
   succeeded. No score was produced. Claude reports a reset at 22:00 Europe/Paris.
   A fresh comparison remains pending after that reset.
+- **Iteration 9: valid smoke.** After the 22:00 Europe/Paris reset, both model
+  preflights passed. The MacBook scenario completed once per guide within the
+  shared 16-turn budget, with no execution errors or permission denials.
+  Complete blind Opus judgments and scripted grading gave revised **11/12**
+  and original **10/12**; all eight scripted assertions passed in both. The
+  revised guide offered the media choice and asked for the folder before install;
+  the original did not. Supplied aggregation and static viewer were generated;
+  model/repetition placeholders were corrected to actual smoke provenance.
+  Evidence: `~/.cache/self-host-skill-evals/iteration-9/`.
+  One run is not a general improvement claim. Both plain-language failures cite
+  Docker in the required experience question, partially conflicting with the
+  prescribed wording. Grades are unchanged and this caveat is in viewer notes.
+- **Iteration 10: running.** Seven scenarios × two guides × three repetitions,
+  using the same frozen guides and 16-turn conversation budget as the smoke.
+  No full-batch score or acceptance is claimed before execution and judgments finish.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
@@ -106,6 +121,10 @@ installer execution, a live Project, or real provider calls. The connected
 catalog lists Sonnet/Opus 5.5 as active; account access was not tested.
 No dependency was added. No source-worktree edits or child reviewers were used.
 Fresh independent review is delegated to the parent session, not claimed here.
+The concurrent smoke-evidence commit `0d09773f` is preserved. Its iteration 9
+result predates these audit corrections; the iteration 10 status above is the
+recorded upstream status, not a live check by this audit. Neither is acceptance
+evidence for changed harness inputs. No additional real-model run was launched.
 
 ### Earlier review evidence
 
