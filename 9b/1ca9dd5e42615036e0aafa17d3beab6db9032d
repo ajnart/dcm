@@ -1,0 +1,21 @@
+internal/apps/homarr/target_nzbget.go
+  s_01e8d17f7740df::t_3acd0f60fdbd74 1-101
+internal/apps/nzbget/nzbget_test.go
+  s_01e8d17f7740df::t_8da2b41cac92f3 29,33-56,67-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9b1ca9dd5e42615036e0aafa17d3beab6db9032d",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
