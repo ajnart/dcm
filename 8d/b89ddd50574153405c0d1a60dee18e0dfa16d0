@@ -1,0 +1,23 @@
+docs/catalog/traps/plex.md
+  s_01e8d17f7740df::t_7f4ef93758b54f 16-118
+internal/apps/homarr/target_plex.go
+  s_01e8d17f7740df::t_5a4cc4af30e2b6 1-112
+internal/apps/plex/plex.go
+  s_01e8d17f7740df::t_6405d666e60e3c 7,34-41,75,79,83,85-86,89,93,96,101,105,107-124,128,131,133,135,137-145,148-248,250-270,290-297,307-309,313-321,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8db89ddd50574153405c0d1a60dee18e0dfa16d0",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
