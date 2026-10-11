@@ -427,14 +427,16 @@ page and under This computer only, where a phone cannot reach the Address;
 
 `c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
 `enter` copies and `esc` closes; background keys and clicks do not navigate.
-It offers the Admin password, the selected App's login alias and API keys,
+It offers the Admin password, the selected App's login alias, admin email and API keys,
 then Admin username and email when saved. Values stay hidden and are read
-again when copied.
+again when copied. App emails come from saved credentials or the App's automatic
+Setup definition; they do not detect accounts changed directly inside an App.
 
 While a search or an edit takes text, every key goes to it; in the App list
 `/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
 five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
-Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
+Host folder edits list matching folders; `tab` completes, arrows select a suggestion
+and `~` expands to your home folder. Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
 archives in `~/.self-host/backups` with date, size and whether each is encrypted:
 `b` asks for an optional passphrase (typed as dots; empty means unencrypted, otherwise it
 is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore

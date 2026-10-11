@@ -21,6 +21,13 @@ import (
 // App is BookStack. Traps: docs/catalog/traps/bookstack.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 const service = "bookstack"
 
 // The pinned image inherits Alpine nginx 3.24's PHP 8.5 pool for abc,
@@ -100,7 +107,7 @@ func (App) Compose(rc app.RenderContext) string {
 // login signs in through the pinned email form and proves administrator access
 // by opening the users settings page.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
-	email := h.AdminUser() + "@selfhost.local"
+	email := (App{}).AdminEmail(h.AdminUser())
 	session := h.Session()
 	token, err := session.FormToken(ctx, "/login", "_token")
 	if err != nil {
@@ -145,7 +152,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/login"); err != nil {
 		return errors.Join(err, startupStatus(ctx, h))
 	}
-	email := h.AdminUser() + "@selfhost.local"
+	email := (App{}).AdminEmail(h.AdminUser())
 	return h.Step(ctx, "admin", "create the administrator "+email, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
 		Do: func(ctx context.Context) error {

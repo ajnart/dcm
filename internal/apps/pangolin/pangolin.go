@@ -19,6 +19,13 @@ import (
 // App is Pangolin. Traps: docs/catalog/traps/pangolin.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "pangolin", Name: "Pangolin", Category: "Remote access",
@@ -165,7 +172,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 const managementHint = "Set the external URL with: self-host install pangolin --yes --set pangolin.PANGOLIN_CANONICAL_ORIGIN=https://pangolin.example.com " +
 	"(see https://docs.pangolin.net/)"
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 var setupTokenPattern = regexp.MustCompile(`^[a-z0-9]{32}$`)
 
