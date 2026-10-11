@@ -1,4 +1,4 @@
-# self-host showreel v5: 34 seconds, motion and sound
+# self-host showreel: v5 canonical-domain release candidate
 
 1920×1080 · 60 fps · 17 bars at 120 BPM · H.264 `yuv420p`, `+faststart` · AAC stereo.
 Every frame is determined by `window.seek(t)`. `timeline.js` owns scene windows and music edits;
@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `npx selfhost install` types, agent names appear and the counts resolve. A slow push and caret keep the card alive.                                                                                                |
+| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://selfhost.ajnart.dev/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -42,12 +42,12 @@ See `audio/SOURCES.md` for source, licence and download verification. The raw tr
 The source grid is measured by `audio/analyze.mjs`: approximately 119.997 BPM, first downbeat
 0.0297 seconds. Track edits use a 4 ms equal-power crossfade beginning around 6 ms before the attack.
 
-`audio/sfx.mjs` synthesises 184 cues: keys, enter/click sounds, lock thocks, flips, pops, checks,
+`audio/sfx.mjs` synthesises 218 cues: keys, enter/click sounds, lock thocks, flips, pops, checks,
 success chimes, whooshes, zips and impacts. These are mixed with the music, including a small reverb
 bus, rather than replacing it. `audio/mix.mjs` measures and masters the result toward −14 LUFS
 integrated and a true peak below −1 dBTP.
 
-## Facts and intentional preview
+## Facts and release gate
 
 - The media Recipe resolves to qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr;
   Homarr adds the seventh App. Source on `main`: `internal/catalog/default.go`.
@@ -60,8 +60,15 @@ integrated and a true peak below −1 dBTP.
   preceding terminology update.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
-- **`npx selfhost install` is the maintainer-requested preview command.** It is not a claim that
-  the npm installer currently exists; the repository README describes the available installer.
+- The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
+  **`https://selfhost.ajnart.dev/install.sh`**, and repository **`ajnart/selfhost`**. It supersedes the
+  approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
+  command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
+- **Publication is held pending live release verification.** On 2026-10-11 the domain did not resolve,
+  `ajnart/selfhost` was unavailable through authenticated GitHub lookup, and `ajnart/selfhost-skills`
+  was private. [Issue #193](https://github.com/ajnart/selfhost-skills/issues/193) records the rename and
+  visibility gate. [Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks publication
+  acceptance. A successful mock render does not establish working installer or public binaries.
 - Agent logo provenance is in `assets/agents/SOURCES.md`.
 
 ## Validation and reproduction
@@ -96,3 +103,29 @@ The luminance scan is a limited automated check, not a comprehensive photosensit
 - 102 reading holds pass; deterministic-seek and safe-area checks pass.
 - JavaScript syntax checks and all 12 repository validation checks pass. The reel has no configured
   TypeScript typecheck; it is a JavaScript project.
+
+### Verified canonical-domain candidate, 2026-10-11
+
+- Regenerated `audio/cues.json` (218 cues), mixed the original verified track, and rendered all 34
+  chunks with eight workers and eight sub-frames. No renderer or timeline changes, no new dependencies.
+- Final MP4: 2,040 frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo.
+  Video, audio and container all measure 34.000 seconds; file size 7.72 MB.
+- Final-file integrated loudness −13.8 LUFS, true peak −2.0 dBTP, loudness range 6.0 LU.
+- No flashes detected by the limited frame-average luminance scan; 17 cuts have a maximum and mean
+  absolute beat offset of 1.00 ms.
+- All 103 reading holds pass at 30 Hz, with zero overlap, bounds, undeclared-text or terminology
+  failures. The installer holds 2.74 seconds at 40 px nominal size; the repository holds 2.05 seconds
+  at 36 px. At 33.95 seconds the repository text retains 97 px of bottom clearance.
+- All 68 default out-of-order seek samples and 23 fresh-page samples pass. Twenty-seven comparisons
+  contain only sub-pixel glyph raster noise
+  (worst 53.4 dB PSNR, versus the 30 dB failure threshold). All 13 targeted transition/end samples
+  are pixel-identical when revisited out of order; all five fresh-page samples are also identical.
+- Inspected nine affected source stills, sixteen quarter-second samples extracted from the rendered
+  end card, and the new 34-frame final contact sheet. Entrances, typing, count resolution and the
+  final reading hold preserve the approved motion, with no new text clipping or overlap observed.
+- JavaScript syntax checks and the reel's full lint pass. No TypeScript typecheck is configured;
+  product code is unchanged and the Go/Docker runtime gates were not invoked for this video-only edit.
+- MP4 SHA-256: `488d1241c70ebe3c1a4b34a51836fce5af746f5cb2bcafd8126cedef7801ffb5`.
+
+These measurements belong to the release candidate, not a new creative approval or public installer
+acceptance. Publication remains gated by #268.

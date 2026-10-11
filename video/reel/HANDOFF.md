@@ -6,7 +6,7 @@ The maintainer approved **v5**: “perfect … I really like what it looks like 
 creative revision. Preserve this cut as the starting point for subsequent requests.
 
 - Branch: `feat/showreel-v2`.
-- Review: [PR #190](https://github.com/ajnart/selfhost-skills/pull/190), left open and unmerged.
+- Review: [PR #190](https://github.com/ajnart/selfhost-skills/pull/190), merged on 2026-10-11.
 - Implementation: `de8e68ca`; concurrent Access terminology integration: `3d7546ab`.
 - Delivered MP4: `out/selfhost-reel.mp4`; review sheet: `out/contact.png`.
 - Taildrop of the approved cut to `iphone:` succeeded.
@@ -25,10 +25,28 @@ The detailed direction and 34-second scene map live in [STORYBOARD.md](STORYBOAR
 strict “something on every beat” and banned-animation brief is superseded by the approved v5 direction.
 Keep reading holds meaningful while allowing controlled movement.
 
-The end command **`npx selfhost install` is intentional**, specifically requested by the maintainer
-as a preview of the planned npm installer. Retain it in this video; actual installation documentation
-must be verified separately. Catalog counts and product behaviour should be rechecked before changing
-those claims. Provenance is recorded in the storyboard and asset source files.
+The approved v5 end command was **`npx selfhost install`**, specifically requested by the maintainer
+as a preview of the planned npm installer. The later canonical-domain request supersedes that copy:
+the current release candidate uses **`curl -fsSL https://selfhost.ajnart.dev/install.sh | bash`** and
+shows **`github.com/ajnart/selfhost`**. The approved motion, music and other product copy are unchanged.
+Catalog counts and product behaviour should be rechecked before changing those claims. Provenance is
+recorded in the storyboard and asset source files.
+
+## Canonical-domain release candidate
+
+This revision is not a new creative approval or proof that installation works. On 2026-10-11,
+`selfhost.ajnart.dev` did not resolve, GitHub could not resolve `ajnart/selfhost`, and
+`ajnart/selfhost-skills` was still private. The rename/publication gate remains
+[issue #193](https://github.com/ajnart/selfhost-skills/issues/193). Verify the canonical script and
+public release assets before publishing this candidate; do not deploy the private source or raw music.
+[Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks this candidate's publication
+checks separately from the rename and installer implementation. The candidate MP4 and contact sheet
+have been regenerated: 34.000 seconds, 2,040 frames at 1920×1080/60 fps, 7.72 MB, −13.8 LUFS and
+−2.0 dBTP. All 103 reading holds, full and targeted seek checks pass; the storyboard records the
+measurements and review samples separately from the approved v5 history below.
+
+No release URL was found in the existing self-host OpenChamber scheduled task. Its Claude harness
+retry instructions and model selection were left unchanged, as were the repository workflows.
 
 ## Where to work
 
