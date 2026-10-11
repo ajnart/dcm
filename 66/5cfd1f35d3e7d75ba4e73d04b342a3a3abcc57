@@ -1,0 +1,19 @@
+internal/skill/guide.md
+  s_58511ba1025e54::t_140527fffd69ae 16-21,26-27,34-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "665cfd1f35d3e7d75ba4e73d04b342a3a3abcc57",
+  "prompts": {},
+  "sessions": {
+    "s_58511ba1025e54": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10209288-d313-4e1f-8ce7-100e92872c1b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
