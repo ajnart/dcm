@@ -1,0 +1,21 @@
+internal/tui/harness_test.go
+  s_01e8d17f7740df::t_e9e43f20b37cb3 358
+internal/tui/preboot_test.go
+  s_01e8d17f7740df::t_2849e3a4b4a713 4,6-8,22-51,122-148,188-201,205-210,307-316,335,343-353,398-419,423-442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83d11077ee1853a8d7ed77f71bab0fc7a035bf47",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
