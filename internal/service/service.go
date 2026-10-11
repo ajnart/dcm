@@ -402,6 +402,10 @@ func (ss *session) up(ctx context.Context, services []string) error {
 // other ready Apps declare towards it. A Link failure is recorded on the App
 // that declares the Link. It returns every App whose Setup is now incomplete.
 func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
+	installed, err := ss.p.AppIDs()
+	if err != nil {
+		return nil, err
+	}
 	id := a.Info().ID
 	st := ss.state.Apps[id]
 	for step := range st.Steps {
@@ -411,7 +415,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	}
 	st.StepOrder = slices.DeleteFunc(st.StepOrder, func(step string) bool { return !IsStage(step) })
 	h := ss.helpers(a)
-	err := a.Setup(ctx, h)
+	err = a.Setup(ctx, h)
 	if id == tailscaleID || id == cloudflareConnector {
 		ss.invalidateNavigation()
 	}
@@ -424,7 +428,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 	ss.reportUnexpected(h, "setup", err)
 	if err == nil {
 		for _, link := range a.Links() {
-			ss.applyLink(ctx, a, link)
+			ss.applyLink(ctx, a, link, installed)
 		}
 	}
 	st.Setup = setupResult(st)
@@ -448,7 +452,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 				if link.Target != id && !ss.failed(otherID, link.ID) {
 					continue
 				}
-				ss.applyLink(ctx, other, link)
+				ss.applyLink(ctx, other, link, installed)
 				otherState := ss.state.Apps[otherID]
 				otherState.Setup = setupResult(otherState)
 				if otherState.Setup == stepstatus.SetupIncomplete {
@@ -461,9 +465,9 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 }
 
 // applyLink runs one Link of from, or reports that it waits for its target.
-func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link) {
+func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link, installed []string) {
 	h := ss.helpers(from)
-	if !ss.hasInstalledApp(link.Target) {
+	if !slices.Contains(installed, link.Target) {
 		return
 	}
 	to := ss.readyPeer(link.Target)
@@ -478,17 +482,12 @@ func linkWaitingMessage(target string) string {
 	return "waiting for " + target + " to finish Setup"
 }
 
-func (ss *session) hasInstalledApp(id string) bool {
-	_, found := ss.s.Catalog.App(id)
-	return found && ss.state.Apps[id] != nil
-}
-
-func (ss *session) omitAbsentPeerWait(owner app.App, stepID string, record project.StepRecord) bool {
+func omitAbsentPeerWait(owner app.App, stepID string, record project.StepRecord, installed []string) bool {
 	if record.Status != stepstatus.StepSkip {
 		return false
 	}
 	for _, link := range owner.Links() {
-		if link.ID != stepID || ss.hasInstalledApp(link.Target) {
+		if link.ID != stepID || slices.Contains(installed, link.Target) {
 			continue
 		}
 		return record.Msg == linkWaitingMessage(link.Target) || record.Msg == "waiting for "+link.Target+" (install it, or finish its Setup)"
