@@ -28,6 +28,16 @@ The existing nine descriptors remain in `existingTargets()`.
 
 A descriptor supplies Catalog ID/name, upstream integration kind, internal
 Compose service Address, credential resolver and useful widgets. Its optional
+`preflight(context.Context, from, to *helpers.H) error` runs first in both
+`linked` and `add`, before compatibility requests or any board, tile or
+integration mutation. It must probe afresh, remain read-only, and return
+`helpers.ErrManual` for a person-owned prerequisite. Emit the specific recovery
+instructions through `from.Info` before returning Manual; the step retains its
+normal descriptor hint. Nil preserves existing behavior. Removal and absence
+checks never call it, so unavailable credentials or prerequisites cannot block
+owned cleanup. It is not an Address resolver or a TLS bypass.
+
+The optional
 `verify(context.Context, from, to *helpers.H, integrationID string) error`
 probes authenticated useful data; verification must fail on missing fields or
 authentication failures and accept legitimate zero values. Use a real identifier
@@ -36,6 +46,10 @@ website or machine. `stats` and `calendar` remain shared, with per-integration
 ownership and deterministic per-integration metric entry IDs.
 No-auth kinds may omit the credential resolver: the common transport sends an
 explicit empty secrets array and validates it against the upstream empty alternative.
+Frigate is not a no-auth kind: Homarr 2.4.1 needs administrator username/password
+over trusted HTTPS. The Catalog's authenticated HTTP starter cannot meet that
+contract; its peer-owned preflight must stop as Manual before mutation, not
+submit an empty credential alternative or disable TLS verification.
 
 Credentials belong to the peer's Setup and are saved with `h.SetSecret`.
 Use `h.Secret`, `h.Key`, shared Admin login and existing helper interfaces;

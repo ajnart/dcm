@@ -61,11 +61,12 @@ type target struct {
 	id   string
 	name string
 	// kind is the Homarr integration kind; empty means tile only.
-	kind     string
-	internal func(to *helpers.H) string
-	secrets  func(from, to *helpers.H) []secret
-	widgets  []widget
-	verify   func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	kind      string
+	internal  func(to *helpers.H) string
+	secrets   func(from, to *helpers.H) []secret
+	widgets   []widget
+	preflight func(ctx context.Context, from, to *helpers.H) error
+	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -767,6 +768,11 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return false, err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return false, err
 	}
@@ -850,6 +856,11 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return err
 	}
