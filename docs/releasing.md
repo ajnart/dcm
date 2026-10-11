@@ -164,3 +164,33 @@ and [custom domains](https://developers.cloudflare.com/workers/configuration/rou
 - [Artifact distribution blocker #295](https://github.com/ajnart/selfhost-skills/issues/295)
   tracks that failure separately. No archives or release metadata were published.
   Issue #194's token-free acceptance and live old-name redirect remain unmet.
+
+### Normal-client follow-up, October 11, 2026
+
+The parent session independently repeated the anonymous reads with normal-host
+`curl --disable`, no authorization and valid TLS, without `--resolve`:
+
+| Address                                         | HTTP status | Body bytes |
+| ----------------------------------------------- | ----------- | ---------- |
+| `https://selfhost.ajnart.dev/`                  | 200         | 1604       |
+| `https://selfhost.ajnart.dev/install.sh`        | 200         | 15983      |
+| `https://selfhost.ajnart.dev/install.sh.sha256` | 200         | 77         |
+| `https://selfhost.ajnart.dev/AGENTS.md`         | 404         | 0          |
+| `https://selfhost.ajnart.dev/go.mod`            | 404         | 0          |
+
+The served installer SHA256 matched the served checksum:
+`d4e064cbc5d1df531697a03bf303d8bf241f3c8246e1f6382f1aa5c9214398fe`.
+This resolves only the initial normal-client DNS observation; the earlier
+negative lookup and `--resolve` evidence above remain historical facts.
+
+Both `https://api.github.com/repos/ajnart/selfhost-skills/releases/latest` and
+`https://api.github.com/repos/ajnart/selfhost/releases/latest` returned anonymous 404. Authenticated metadata still identified `ajnart/selfhost-skills` as private
+with default branch `main`; the intended `ajnart/selfhost` returned 404. The
+parent recorded this follow-up on #295.
+
+These were transport and script-checksum reads, not installer execution or
+anonymous release-archive acceptance. Artifact distribution, rename, token-free
+install, self-update and publication holds remain. No deployment, installer,
+binary, build, runtime or source changes accompany this documentation refresh.
+The reviewed production commit remains
+`d3d3e78c48c7b5004372c396f5483faaf40c2bed`.
