@@ -59,15 +59,16 @@ in `bind` when needed, or leave that widget out. Do not invent an album, entity,
 website or machine. `stats` and `calendar` remain shared, with per-integration
 ownership and deterministic per-integration metric entry IDs.
 For non-nil verifiers with Stats metrics, common `verifyData` additionally calls
-`freshStatsSnapshot(context.Context, *helpers.H, integrationID string)
+`freshStatsSnapshot(ctx context.Context, h *helpers.H, integrationID string)
 (map[string]any, error)` in both Check and apply. It reads `widget.stats.snapshot`,
 requests `widget.stats.refresh` with `force: true`, and requires `error: false`,
 `stale: false`, a positive `updatedAt` advancing from the prior timestamp, and
 non-null values for every descriptor metric. It returns the refreshed values.
 Homarr's refresh can no-op on lock contention or queue timeout while a cached
 snapshot remains non-stale for an hour; neither HTTP success nor `stale: false`
-alone is acceptance. No-op refreshes fail with a Setup retry hint, not automatic
-retry. Nil verifiers keep legacy behavior; removal never refreshes Stats.
+alone is acceptance. No-op refreshes fail with a Setup retry hint; the helper
+does not loop. The existing Step boundary may run Check followed by apply.
+Nil verifiers keep legacy behavior; removal never refreshes Stats.
 Peers keep their own semantic/destination checks without editing the common
 guard or widening its signature.
 No-auth kinds may omit the credential resolver: the common transport sends an
@@ -142,6 +143,11 @@ An empty library is valid when authenticated statistics explicitly report zeros
 and the user list is nonempty. No album widget or fabricated album ID is added.
 The [real API/browser proof](homarr-immich-proof.md) records its source, resolved
 image identities, rendered values and ownership lifecycle, with explicit gaps.
+At production `89301aff17c86b767f5a45076881f2bb7b41db39`, the updated attempt
+verified the freshness guard and edited-ping Immich lifecycle. Retained
+original-descriptor cycles and final post-lifecycle browser stages remain
+unverified after a temporary board-name validation failure; this is not a
+complete final acceptance or permission to register peers.
 
 Sources:
 
