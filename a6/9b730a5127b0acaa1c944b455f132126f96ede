@@ -1,0 +1,33 @@
+evals/self-host/bin/ask_user_mcp.py
+  s_01e8d17f7740df::t_890ef01d38dcd4 100-102
+evals/self-host/bin/guard.py
+  s_01e8d17f7740df::t_d4dbd61a503963 39-48,71,79-80,87,94-100,103,134-136,138-140,144-145
+evals/self-host/checks.py
+  s_01e8d17f7740df::t_29da0fa143a81d 144,366,394,403-407,409,415-421,445-446
+evals/self-host/scenarios/newbie-debian/config-set.jsonl
+  s_01e8d17f7740df::t_37cdc3c5c795c7 1-4
+evals/self-host/scenarios/newbie-install/config-set.jsonl
+  s_01e8d17f7740df::t_61f83671fe1ebd 1-4
+evals/self-host/scenarios/newbie-macbook/config-set.jsonl
+  s_01e8d17f7740df::t_3a72ca0c72befc 1-4
+evals/self-host/scenarios/newbie-mint/config-set.jsonl
+  s_01e8d17f7740df::t_ac5c061c7bb4cd 1-4
+evals/self-host/scenarios/newbie-wsl/config-set.jsonl
+  s_01e8d17f7740df::t_d5bd76bf25ff3a 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a69b730a5127b0acaa1c944b455f132126f96ede",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
