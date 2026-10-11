@@ -1,0 +1,16 @@
+docs/catalog/traps/traefik.md
+  h_d6e478ca18e517 5-7,12-130
+internal/apps/homarr/target_traefik.go
+  h_d6e478ca18e517 1-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3ecd50a434613b649e072cd33917d22e4d780e93",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
