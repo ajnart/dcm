@@ -1,0 +1,25 @@
+internal/apps/glances/glances.go
+  s_01e8d17f7740df::t_66625b34e4c11e 18,43-53,57
+internal/apps/glances/homarr.go
+  s_01e8d17f7740df::t_54a45ccb598ed5 1-98
+internal/apps/homarr/target_glances.go
+  s_01e8d17f7740df::t_ea865e488d5612 1-88
+internal/catalog/generated_test.go
+  s_01e8d17f7740df::t_41e9fe5c9d0750 105,107-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e257bbf025168027a038ac6b901208cb34a3e879",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
