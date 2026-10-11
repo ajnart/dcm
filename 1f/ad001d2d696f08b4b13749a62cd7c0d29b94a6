@@ -1,0 +1,21 @@
+internal/apps/deluge/deluge_test.go
+  s_01e8d17f7740df::t_f211cbc064466b 6,8,32-38,48-50,53-59,62-63,65-71,73-77,79-83,86-108,141-143,157-187
+internal/apps/homarr/target_deluge.go
+  s_01e8d17f7740df::t_41e48443e2e249 1-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fad001d2d696f08b4b13749a62cd7c0d29b94a6",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
