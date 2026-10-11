@@ -1,0 +1,23 @@
+evals/self-host/judge.py
+  s_01e8d17f7740df::t_82d9a4e548d606 45,90,93-94,96-124,128,172,174-175,181-183
+evals/self-host/run.py
+  s_01e8d17f7740df::t_39d22bb0e28707 401-405,407,428-430,436-437,441,449-450,452-480,488-492,512,581-586,588-603,692-697,717-718,782,810
+evals/self-host/tests/test_runner.py
+  s_01e8d17f7740df::t_e7ae2439dcf960 94-101,113-126,176-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7425b1160ec92a952f3e7dff95335572c2dd2044",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
