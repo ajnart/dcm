@@ -231,8 +231,8 @@ func readHistory(ctx context.Context, h *helpers.H) (resultCollection, error) {
 		if err := result.Validate(); err != nil {
 			return history, err
 		}
-		if result.Status == "completed" && result.Measured() && !result.conversionCurrent() {
-			return history, errors.New("Speedtest Tracker history has inconsistent byte/bit rate fields; use the supported version and retry Setup")
+		if result.Status == "completed" && !result.conversionCurrent() {
+			return history, errors.New("Speedtest Tracker completed history is missing measurement fields or has inconsistent byte/bit rates; use the supported version and retry self-host setup speedtest-tracker")
 		}
 		created, _ := result.Timestamp(time.UTC)
 		if seen[*result.ID] || !previous.IsZero() && created.After(previous) {
