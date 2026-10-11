@@ -10,6 +10,7 @@ or the docker group was joined, which the self-host and docker stubs read.
 
 import json
 import os
+import shlex
 import sys
 import time
 
@@ -93,12 +94,86 @@ def uname(p, argv):
     return 0
 
 
+def media_metadata(h, p, tool, argv):
+    media = p.get("media", {})
+    if not h or not media.get("metadata_only"):
+        return None
+    root = os.environ.get("SELF_HOST_EVAL_ROOT", "")
+    if not root:
+        return None
+    folders = [os.path.join(root, folder.lstrip("/")) for folder in p.get("dirs", [])]
+    positional = [arg for arg in argv if not arg.startswith("-")]
+    if (
+        tool == "ls"
+        and len(positional) == 1
+        and os.path.realpath(positional[0]) in folders
+    ):
+        if any(
+            arg not in ("-l", "-a", "-la", "-al", "-lh", "-lah")
+            for arg in argv
+            if arg.startswith("-")
+        ):
+            return None
+        print(
+            "Synthetic media metadata-only listing; no payload or playback is modeled."
+        )
+        for film in media["files"]:
+            if any("l" in arg for arg in argv if arg.startswith("-")):
+                print("%d\t%s" % (film["bytes"], film["name"]))
+            else:
+                print(film["name"])
+        return 0
+    if tool == "stat" and len(argv) == 3 and argv[:2] in (["-f", "%z"], ["-c", "%s"]):
+        path = os.path.realpath(argv[2])
+        for folder in folders:
+            for film in media["files"]:
+                if path == os.path.join(folder, film["name"]):
+                    sys.stderr.write(
+                        "Synthetic metadata-only size; "
+                        "payload/playback is not modeled.\n"
+                    )
+                    print(film["bytes"])
+                    return 0
+    return None
+
+
 def main():
     tool = os.path.basename(sys.argv[0])
     argv = sys.argv[1:]
     h = harness()
     p = platform(h)
     log(h, tool, argv)
+    if tool in (
+        "ls",
+        "stat",
+        "file",
+        "du",
+        "df",
+        "mount",
+        "diskutil",
+        "sysctl",
+        "system_profiler",
+        "ioreg",
+        "ifconfig",
+        "scutil",
+        "ps",
+        "top",
+        "arch",
+        "id",
+        "whoami",
+        "groups",
+        "getconf",
+        "networksetup",
+        "vm_stat",
+    ):
+        code = media_metadata(h, p, tool, argv)
+        if code is not None:
+            return code
+        sys.stderr.write(
+            "%s: this observation is not modeled; relay probes are unavailable\n"
+            % shlex.join([tool] + argv)
+        )
+        return 1
 
     if tool == "uname":
         return uname(p, argv)

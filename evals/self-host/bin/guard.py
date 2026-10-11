@@ -84,6 +84,7 @@ def main():
         temporary = os.path.join(sandbox, ".tmp")
         os.makedirs(temporary, exist_ok=True)
         env = {
+            "SELF_HOST_EVAL_ROOT": os.path.realpath(root),
             "HOME": home,
             "PATH": ":".join(path) + ":/usr/bin:/bin:/usr/sbin:/sbin",
             "DOCKER_HOST": "unix:///nonexistent/docker.sock",

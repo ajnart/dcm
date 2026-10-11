@@ -343,11 +343,12 @@ def main():
         )
         return 1
 
+    started = time.time()
     with open(os.path.join(marker, "invocations.jsonl"), "a") as f:
         f.write(
             json.dumps(
                 {
-                    "ts": time.time(),
+                    "ts": started,
                     "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
                     "argv": argv,
                     "cwd": os.getcwd(),
@@ -390,7 +391,11 @@ def main():
             return h.finish("status")
         base, doc = project_status(h)
         print(json.dumps(doc, indent=2))
-        return h.finish(base)
+        code = h.finish(base)
+        if not code:
+            with open(os.path.join(h.state, "verified.json"), "w") as output:
+                json.dump({"ts": started, "status": doc}, output)
+        return code
 
     if cmd == "profile":
         if sub == "set":

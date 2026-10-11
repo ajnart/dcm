@@ -7,6 +7,8 @@
       "id": 0,
       "name": "newbie-macbook",
       "scenario": "newbie-macbook",
+      "completion": "install",
+      "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",
       "expected_output": "Turn 1: inspects read-only, asks the one experience question with options. Turn 2: proposes the plan as a choice (Jellyfin alone or the Media Recipe), asks where the films are, and the Docker step this machine needs, then waits. Turn 3: fixes Docker for this platform and installs, then recaps with an address per App and a pointer to self-host credentials.",
       "assertions": [
         {
@@ -66,6 +68,8 @@
       "id": 1,
       "name": "cant-reach-from-tv",
       "scenario": "cant-reach-tv",
+      "completion": "lan",
+      "completion_criteria": "Fix the stale stored LAN address safely, then have the assistant verify the changed Jellyfin Address with self-host status and give the new Address to use on the TV. Do not infer real TV connectivity or invent a browser result. A generic install Recap does not finish this goal.",
       "expected_output": "Turn 1: diagnoses with status/doctor, finds the stored LAN IP is stale, explains it in plain words and asks before changing. Turn 2: fixes with config set LAN_IP=auto or config review --yes, then gives the new address.",
       "assertions": [
         {
@@ -109,6 +113,8 @@
       "id": 2,
       "name": "sonarr-failed-step",
       "scenario": "failed-setup",
+      "completion": "setup",
+      "completion_criteria": "Receive the qBittorrent Address, exact Sonarr download-client instructions and credential pointer, perform only the manual action explicitly allowed by your description, then have the assistant retry self-host setup sonarr and verify Sonarr's Setup result with self-host status. Do not invent other browser failures or claim native acceptance. A generic install Recap does not finish this goal.",
       "expected_output": "Turn 1: runs self-host debug sonarr, hands off the browser step with the failed step's address and hint and points at self-host credentials. Turn 2: reruns self-host setup sonarr (not install or remove) and verifies with status.",
       "assertions": [
         {
@@ -148,6 +154,8 @@
       "id": 3,
       "name": "expose-jellyfin-and-paperless-publicly",
       "scenario": "public-access",
+      "completion": "public",
+      "completion_criteria": "After the explained public risk and separate approval, publish Paperless only with the token file, have the assistant verify its public Address and Cloudflare Access with self-host status, and receive that Address plus the private alternative for Jellyfin. Jellyfin stays private. Do not claim a real browser, email-PIN or travelling-phone test. A generic install Recap does not finish this goal.",
       "expected_output": "Turn 1: explains Jellyfin cannot go through the public Cloudflare route and suggests Tailscale, runs cloudflare plan for Paperless only, shows the risk, asks a separate public-risk yes and the token as a file. Turn 2: publishes Paperless with --set-file cloudflare.api_token=./cloudflare-token --accept-public, never reading the token into chat.",
       "assertions": [
         {
@@ -187,6 +195,8 @@
       "id": 4,
       "name": "newbie-debian-server",
       "scenario": "newbie-debian",
+      "completion": "install",
+      "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",
       "expected_output": "Turn 1: inspects read-only, asks the one experience question with options. Turn 2: proposes the plan as a choice (Jellyfin alone or the Media Recipe), asks where the films are, and the Docker step this machine needs, then waits. Turn 3: fixes Docker for this platform and installs, then recaps with an address per App and a pointer to self-host credentials.",
       "assertions": [
         {
@@ -246,6 +256,8 @@
       "id": 5,
       "name": "newbie-mint-laptop",
       "scenario": "newbie-mint",
+      "completion": "install",
+      "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",
       "expected_output": "Turn 1: inspects read-only, asks the one experience question with options. Turn 2: proposes the plan as a choice (Jellyfin alone or the Media Recipe), asks where the films are, and the Docker step this machine needs, then waits. Turn 3: fixes Docker for this platform and installs, then recaps with an address per App and a pointer to self-host credentials.",
       "assertions": [
         {
@@ -305,6 +317,8 @@
       "id": 6,
       "name": "newbie-windows-wsl",
       "scenario": "newbie-wsl",
+      "completion": "install",
+      "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",
       "expected_output": "Turn 1: inspects read-only, asks the one experience question with options. Turn 2: proposes the plan as a choice (Jellyfin alone or the Media Recipe), asks where the films are, and the Docker step this machine needs, then waits. Turn 3: fixes Docker for this platform and installs, then recaps with an address per App and a pointer to self-host credentials.",
       "assertions": [
         {

@@ -31,7 +31,7 @@ No percentage estimate: each gate requires evidence.
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
 | Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
 | Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
-| Independent Standards and Spec review                                  | Both pass with zero findings at pinned source `467cd06a`              |
+| Independent Standards and Spec review                                  | `467cd06a` passed; new boundary logic requires both fresh axes        |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -237,6 +237,52 @@ offline verification and a fresh source review before any authorized comparison.
 All historical evidence remains unchanged; full corrected-input execution,
 complete judgments/aggregation and viewer/human feedback are still pending.
 This documentary update changes no guide, router, assertion, fixture or runtime.
+
+### Approved offline scenario boundary corrections
+
+The parent approved install, actual CLI verification, then an adequate Recap
+for newcomer scenarios. Optional library/browser follow-ups are declined after
+that handoff, not expanded into invented browser failures. This resolves the
+source-boundary decision recorded after iteration 12, without reinterpreting
+that failed attempt. Native/browser functional acceptance remains separate.
+
+Each scenario now records its own completion criteria. Successful CLI Status
+records an observation through the existing fixture state boundary; completion
+requires that observation after the latest change and checks the relevant goal:
+installed Apps, fixed LAN Address, retried Sonarr Setup, or Paperless's published
+Address/Cloudflare Access with Jellyfin private. Missing, failed or stale CLI
+verification cannot be overridden by a person's `done`. Completion does not
+pass assertions or replace the blind judge's assessment of an inadequate Recap,
+missing approval or other guide failures. All original assertions are unchanged.
+
+The four existing platform fixtures declare metadata-only movie names and sizes.
+Preparation creates folders, not zero-byte counterfeit movies. Bounded listing
+and size observations are explicitly synthetic; payload, playback and other
+unmodeled observations are refused. Relay probe binaries are denied, broad
+kernel-query permission is removed, and file metadata access is restricted to
+runtime/working paths and literal ancestors. This does not claim full machine
+virtualization or tamper-proof containment of hostile code.
+
+Existing runner, execution and grading tests are extended at these seams, with
+no new testcases/files, comments, dependencies or framework. Guide snapshots
+`86246cfe`/`665cfd1f`, their fingerprints, the router, all original assertions,
+equal 16-turn comparison budgets and historical frozen evidence stay unchanged.
+The final offline gate passes all 60 existing tests, Ruff lint/format, Pyright,
+the documented Go build/vet/tests/race/installer-syntax checks and diff checks.
+Regressions cover absent, stale and failed verification for every scenario,
+successful goal-specific verification, unchanged assertion failure despite a
+person's `done`, media metadata without fake payloads and denied relay probes.
+Only newly frozen inputs use these corrections. No paid model/preflight/account
+call, browser, Docker runtime, installer, live Project, protected-file access,
+child agent or external process intervention is authorized or performed.
+
+The earlier clean source verdict at `467cd06a` does not cover this new logic.
+Fresh independent Standards and Spec reviews are required at the new source
+head. The 42-conversation comparison remains separately unauthorized: the
+proposed Sonnet 5.5 agent/person and Opus 5.5 judge selection, at most 1,388 CLI
+model invocations including preflights, and an enforceable spend cap still need
+explicit approval. Complete judgments/aggregation, viewer and human acceptance
+remain pending; PR #259 stays draft.
 
 ### Earlier review evidence
 

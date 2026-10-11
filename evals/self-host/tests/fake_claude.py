@@ -38,6 +38,51 @@ def interrupt_parent():
     os.kill(os.getppid(), signal.Signals(int(number)))
 
 
+def verify_goal():
+    harness = Path(os.environ["SELF_HOST_EVAL_HARNESS"])
+    binary = Path(os.environ["EVAL_STUBS"]) / "base/self-host"
+    initial = harness / "scenario/status.json"
+    operations = [["install", "jellyfin", "--yes", "--json"]]
+    if initial.is_file():
+        apps = {app["id"]: app for app in json.loads(initial.read_text())["apps"]}
+        if "paperless-ngx" in apps:
+            operations = [
+                [
+                    "cloudflare",
+                    "publish",
+                    "--app=paperless-ngx",
+                    "--domain=example.com",
+                    "--email=me@example.org",
+                    "--set-file=cloudflare.api_token=./cloudflare-token",
+                    "--accept-public",
+                    "--json",
+                ]
+            ]
+        elif apps.get("sonarr", {}).get("setup") == "incomplete":
+            operations = [["setup", "sonarr", "--json"]]
+        else:
+            operations = [["config", "set", "LAN_IP=auto", "--yes", "--json"]]
+    if os.environ["EVAL_TEST_MODE"] != "missing-verification":
+        operations.append(["status", "--json"])
+    if os.environ["EVAL_TEST_MODE"] == "stale-verification":
+        operations.append(operations[0])
+    if os.environ["EVAL_TEST_MODE"] == "failed-verification":
+        for name in ("status-installed.exit", "status-fixed.exit", "status.exit"):
+            (harness / "scenario" / name).write_text(json.dumps({"code": 1}))
+    for operation in operations:
+        command = subprocess.run(
+            [sys.executable, str(binary), *operation],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if command.returncode and not (
+            os.environ["EVAL_TEST_MODE"] == "failed-verification"
+            and operation[0] == "status"
+        ):
+            sys.exit(command.stderr or "fake goal command failed")
+
+
 args = sys.argv[1:]
 mode = os.environ.get("EVAL_TEST_MODE", "success")
 if args == ["--version"]:
@@ -84,6 +129,8 @@ if is_preflight:
     result["result"] = "READY"
 elif is_stream:
     reply = "Ready."
+    if mode != "manual-wsl" or "--resume" in args:
+        verify_goal()
     if mode == "recap-home":
         reply = "Home folder: " + str(Path.cwd() / ".home" / ".self-host")
     if mode == "empty-task":
@@ -165,7 +212,11 @@ elif prompt.startswith("You are grading"):
     )
     result["result"] = json.dumps(
         [
-            {"text": line.split(". ", 1)[1], "passed": True, "evidence": "Ready."}
+            {
+                "text": line.split(". ", 1)[1],
+                "passed": mode != "judge-inadequate-recap",
+                "evidence": "Ready.",
+            }
             for line in assertions
         ]
     )
@@ -235,6 +286,12 @@ if "--json-schema" in args and not result["is_error"]:
         value.setdefault("completed_steps", [])
     result["structured_output"] = value
 if mode == "person-preamble" and not is_preflight and not is_stream:
+    if (
+        '"verified": true' not in prompt
+        or "Decline optional library or browser" not in prompt
+        or "Do not coach the assistant" not in prompt
+    ):
+        sys.exit("missing verified install boundary in person prompt")
     if (
         "The fuller setup: Automatically fetch shows and films you request."
         not in prompt

@@ -68,12 +68,24 @@ agent through inspect, plan, approval, apply, verify.
   independently verified proof that each later action had appropriate approval.
   Question options retain both labels and descriptions in the conversation
   given to the simulated person and blind judge.
+  Completion criteria are recorded per scenario and given to the person with
+  the last successful CLI Status observation. A person's `done` cannot bypass
+  missing, failed or stale verification after a change. It never passes an
+  assertion: Recap quality, approval and guide failures still require grading.
 - **Platforms.** Stub host tools simulate OS details and installer commands.
   Drive folders are mapped into the workspace. These are fixture scenarios,
   not installation proofs on those operating systems. A schema-validated
   `completed_steps` label lets the simulated person finish Docker Desktop with
   WSL integration after the assistant requests it; only the WSL fixture's
   Docker state changes. Saying yes alone does not apply that step.
+  Newcomer media folders contain no pretend movie payloads. The existing
+  platform fixtures declare metadata-only names and sizes; bounded `ls` and
+  size-only `stat` calls report those values, explicitly labeled synthetic.
+  File formats, scans, playback, capacity and device/network probes are not
+  modeled and are refused, rather than answered from the relay machine.
+  Absolute probe binaries are denied, broad `sysctl-read` is removed, and
+  metadata reads outside the runtime/working paths and their literal ancestors
+  are denied. This is still not a general machine emulator or hostile-code VM.
 - **Validity.** Model access is checked before a batch. Failed, quota-limited
   or empty model calls invalidate the run; malformed streams, person replies and judge
   verdicts are errors, not silent completion or failed assertions. The batch
@@ -215,6 +227,22 @@ wording. That is skill-creator's description loop (`scripts/run_loop.py`) with
 the query set in `evals/trigger-queries.json`.
 
 ## Scenarios
+
+Newcomer scenarios end at install, actual fixture-CLI verification, and an
+adequate Recap: each selected App's purpose and Address, the Home folder and
+the credential pointer without secrets. The person declines optional library
+or browser follow-ups after that handoff. No browser/native success or failure
+is inferred from CLI observations. Both guides retain the same authorized
+16-turn conversation budget; unfinished conversations remain invalid.
+
+The other goals have separate verification criteria: the changed Jellyfin
+Address after a LAN fix; Sonarr's Setup result after its retry and the described
+manual action; Paperless's public Address and Cloudflare Access with Jellyfin
+kept private. A generic Recap cannot finish those goals. Manual steps may be
+claimed only where the persona explicitly permits them. Original assertions,
+guide/router snapshots and historical frozen attempts are unchanged. These
+boundary/metadata corrections apply only to a new comparison; paid execution
+still requires separate bounded authorization and an enforceable spend cap.
 
 - `newbie-install`: shared no-Project catalog fixtures.
 - `newbie-macbook`: macOS, Docker missing.

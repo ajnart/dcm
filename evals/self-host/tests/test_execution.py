@@ -252,6 +252,35 @@ class ShellBoundary(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         events = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(events[-1]["event"], "run.end")
+        platform = json.loads((self.harness / "scenario/platform.json").read_text())
+        root = self.sandbox / ".root"
+        (root / platform["dirs"][0].lstrip("/")).mkdir(parents=True)
+        for tool in ("ls", "stat", "file", "df", "mount", "diskutil", "sysctl"):
+            (self.stubs / "base" / tool).symlink_to("hosttool")
+        (self.stubs / "base/hosttool").chmod(0o755)
+        films = platform["media"]["files"]
+        listed = self.invoke("ls -l /Volumes/FILMS/Movies")
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertIn("metadata-only", listed.stdout)
+        for film in films:
+            self.assertIn(film["name"], listed.stdout)
+            self.assertIn(str(film["bytes"]), listed.stdout)
+            sized = self.invoke(
+                "stat -f %z '/Volumes/FILMS/Movies/" + film["name"] + "'"
+            )
+            self.assertEqual(sized.returncode, 0, sized.stderr)
+            self.assertEqual(sized.stdout.strip(), str(film["bytes"]))
+        self.assertFalse(list((root / platform["dirs"][0].lstrip("/")).iterdir()))
+        for command in (
+            "file '/Volumes/FILMS/Movies/" + films[0]["name"] + "'",
+            "df -h /Volumes/FILMS/Movies",
+            "mount",
+            "diskutil list",
+            "sysctl kern.osrelease",
+        ):
+            denied = self.invoke(command)
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertIn("not modeled", denied.stderr)
 
     def test_single_app_install_has_only_its_credentials(self):
         for fixture in sorted((ROOT / "scenarios").glob("*/credentials.json")):
@@ -391,6 +420,20 @@ class ShellBoundary(unittest.TestCase):
         self.assertNotIn("EXECUTED-HOST-BINARY", result.stdout)
 
     def test_shell_cannot_bypass_stub_with_absolute_host_tool(self):
+        isolated = self.decision("Bash", {"command": "true"})["updatedInput"]["command"]
+        self.assertNotIn("process-fork sysctl-read", isolated)
+        self.assertNotIn("(allow file-read-metadata)", isolated)
+        for command in (
+            "/usr/bin/uname -a",
+            "/bin/df -h /",
+            "/sbin/mount",
+            "/usr/sbin/diskutil list",
+            "/usr/sbin/sysctl kern.osrelease",
+        ):
+            with self.subTest(command=command):
+                result = self.invoke(command)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(result.stdout.strip())
         result = self.invoke("/usr/bin/osascript -e 'return \"REAL-HOST-TOOL\"'")
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("REAL-HOST-TOOL", result.stdout)

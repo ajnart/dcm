@@ -251,10 +251,10 @@ class GradingCLI(unittest.TestCase):
             ]
         )
 
-    def judge(self, mode="success", extra=(), env=None):
-        self.metadata["assertions"] = [
-            {"text": "Explains the outcome", "check": "judge"}
-        ]
+    def judge(self, mode="success", extra=(), env=None, assertions=None):
+        if assertions is None:
+            assertions = [{"text": "Explains the outcome", "check": "judge"}]
+        self.metadata["assertions"] = assertions
         self.write("../../eval_metadata.json", self.metadata)
         (self.run_dir / "outputs" / "commands.md").write_text("no commands")
         self.write(
@@ -392,6 +392,19 @@ class GradingCLI(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         verdicts = json.loads((self.run_dir / "judged.json").read_text())
         self.assertEqual(verdicts[0]["text"], "Explains the outcome")
+        assertions = json.loads((ROOT / "evals/evals.json").read_text())["evals"][0][
+            "assertions"
+        ]
+        recap = [assertions[-1]]
+        self.log("person.jsonl", [{"turn": 2, "done": True, "reply": ""}])
+        result = self.judge("judge-inadequate-recap", assertions=recap)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.grade().returncode, 0)
+        expectations = json.loads((self.run_dir / "grading.json").read_text())[
+            "expectations"
+        ]
+        self.assertEqual(expectations[0]["text"], recap[0]["text"])
+        self.assertFalse(expectations[0]["passed"])
 
     def test_failed_regrading_removes_previous_score(self):
         result = self.grade()

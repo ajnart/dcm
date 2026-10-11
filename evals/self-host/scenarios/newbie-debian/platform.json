@@ -12,7 +12,15 @@
   "apt-get"
  ],
  "docker": "missing",
- "dirs": [
+  "media": {
+    "metadata_only": true,
+    "files": [
+      {"name": "Arrival (2016).mkv", "bytes": 134217728},
+      {"name": "Paddington 2 (2017).mkv", "bytes": 268435456},
+      {"name": "The Iron Giant (1999).mp4", "bytes": 67108864}
+    ]
+  },
+  "dirs": [
   "/media/usb/Movies"
  ]
 }

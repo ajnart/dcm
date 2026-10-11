@@ -38,6 +38,7 @@ import threading
 import time
 import uuid
 
+from checks import commands, is_mutating, selected_apps
 from processes import cancellation_signals, run_process
 from validity import check_cli, check_model, require_result
 
@@ -119,6 +120,27 @@ HOST_TOOLS = (
     "xdg-open",
     "osascript",
     "service",
+    "ls",
+    "stat",
+    "file",
+    "du",
+    "df",
+    "mount",
+    "diskutil",
+    "sysctl",
+    "system_profiler",
+    "ioreg",
+    "ifconfig",
+    "scutil",
+    "ps",
+    "top",
+    "arch",
+    "id",
+    "whoami",
+    "groups",
+    "getconf",
+    "networksetup",
+    "vm_stat",
 )
 
 
@@ -229,12 +251,6 @@ def prepare(ws, iteration, ev, config, k):
     for d in json.load(open(plat)).get("dirs", []) if os.path.exists(plat) else []:
         folder = os.path.join(sandbox, ".root", d.lstrip("/"))
         os.makedirs(folder)
-        for film in (
-            "Arrival (2016).mkv",
-            "Paddington 2 (2017).mkv",
-            "The Iron Giant (1999).mp4",
-        ):
-            open(os.path.join(folder, film), "w").close()
     if config["skill"]:
         dest = os.path.join(sandbox, ".claude", "skills", "self-host")
         shutil.copytree(config["skill"], dest)
@@ -424,6 +440,12 @@ run commands on your computer. Stay in character.
 Who you are and what you know:
 {persona}
 
+Scenario completion criteria:
+{completion_criteria}
+
+Recorded CLI verification (synthetic observations, not browser/native acceptance):
+{verification}
+
 The conversation so far (your messages are "Person", the assistant's are "Agent";
 "Asks:" lines are questions shown to you with buttons):
 {conversation}
@@ -431,14 +453,22 @@ The conversation so far (your messages are "Person", the assistant's are "Agent"
 Write your next message. Rules:
 - Answer only what the assistant asked, briefly and in your own plain words, as
   this person would. When it offered buttons, answer with one button's label.
-- Use only facts from your description. If asked something you don't know, say so.
+- Use only facts from your description and recorded CLI observations.
+  If asked something you don't know, say so.
 - If it asks to do something on your machine and the plan fits what you want,
   agree clearly. Refuse anything you said you don't want.
-- If it asks you to do something yourself (in a browser, in Windows), say you did it.
+- Only claim a manual action when your description explicitly permits that action.
+  Never invent browser failures, library scans, playback or device/network observations.
+  Say "I haven't checked that" when those facts are not supplied.
 - completed_steps is [] unless you just finished installing Docker Desktop in
   Windows and enabling WSL integration at the assistant's request. Only then
   include "docker_desktop_wsl". Permission alone does not complete a step.
-- If the assistant has finished and asked you nothing, you are done.
+- Finish only when the scenario completion criteria are met and CLI verification
+  is recorded. Ask for missing verification or handoff details rather than accepting
+  an unsupported success claim. Decline optional follow-ups outside this scenario.
+- Do not coach the assistant with command names, guide rules or assertion wording.
+  Ask for missing outcomes in this person's plain words, not an evaluator's hints.
+- done ends the conversation only; it never passes an assertion or proves acceptance.
 
 Reply with only JSON:
 {{"reply": "<your message, empty when done>",
@@ -448,14 +478,19 @@ Reply with only JSON:
 """
 
 
-def person_reply(ev, conversation, turn, model, raw, timeout, stop):
+def person_reply(ev, conversation, verification, turn, model, raw, timeout, stop):
     """Play the person: answer what the agent actually asked, from the persona."""
     env = {
         k: v
         for k, v in os.environ.items()
         if k not in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
     }
-    prompt = PERSON_PROMPT.format(persona=ev["persona"], conversation=conversation)
+    prompt = PERSON_PROMPT.format(
+        persona=ev["persona"],
+        conversation=conversation,
+        completion_criteria=ev["completion_criteria"],
+        verification=json.dumps(verification),
+    )
     output_path = os.path.join(raw, "person-%d.json" % turn)
     stderr_path = os.path.join(raw, "person-%d.stderr.txt" % turn)
     with tempfile.TemporaryDirectory() as cwd:
@@ -517,6 +552,84 @@ def read_jsonl(path):
         return []
     with open(path) as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+def completion_evidence(ev, harness):
+    path = os.path.join(harness, "state", "verified.json")
+    if not os.path.isfile(path):
+        return {"verified": False, "reason": "no successful CLI Status observation"}
+    with open(path) as source:
+        observation = json.load(source)
+    calls = commands(read_jsonl(os.path.join(harness, "invocations.jsonl")))
+    changes = [call for call in calls if is_mutating(call)]
+    statuses = [call for call in calls if call["cmd"] == "status"]
+    if (
+        not changes
+        or not statuses
+        or statuses[-1]["ts"] != observation["ts"]
+        or max(call["ts"] for call in changes) >= observation["ts"]
+    ):
+        return {"verified": False, "reason": "CLI Status must succeed after the change"}
+    status = observation["status"]
+    apps = {app["id"]: app for app in status["apps"]}
+    kind = ev["completion"]
+    verified = False
+    if kind == "install":
+        verified = (
+            any(call["cmd"] == "install" for call in changes)
+            and "jellyfin" in apps
+            and bool(apps)
+            and all(
+                app.get("url")
+                and app.get("state") == "running"
+                and app.get("health") in (None, "", "ok", "healthy")
+                and app.get("setup") == "ok"
+                for app in apps.values()
+            )
+        )
+    elif kind == "lan":
+        verified = (
+            any(call["cmd"] == "config" for call in changes)
+            and os.path.isfile(os.path.join(harness, "state", "lan_fixed"))
+            and apps.get("jellyfin", {})
+            .get("url", "")
+            .startswith("http://" + status.get("lan_ip", "") + ":")
+        )
+    elif kind == "setup":
+        verified = (
+            any(call["cmd"] == "setup" and "sonarr" in call["pos"] for call in changes)
+            and apps.get("sonarr", {}).get("setup") == "ok"
+        )
+    elif kind == "public":
+        publication = os.path.join(harness, "state", "publication.json")
+        if os.path.isfile(publication):
+            with open(publication) as source:
+                published = json.load(source)["publish"]
+            verified = (
+                any(
+                    call["cmd"] == "cloudflare"
+                    and call["sub"] == "publish"
+                    and "paperless-ngx" in selected_apps(call["argv"])
+                    for call in changes
+                )
+                and "cloudflare" in status.get("access", [])
+                and any(app["app"] == "paperless-ngx" for app in published)
+                and all(
+                    apps.get(app["app"], {}).get("url") == app["address"]
+                    and app["address"] in apps[app["app"]].get("addresses", [])
+                    for app in published
+                )
+                and apps.get("jellyfin", {}).get("url", "").startswith("http://")
+            )
+    return {
+        "verified": bool(verified),
+        "reason": "CLI observations match the scenario goal"
+        if verified
+        else "CLI observations do not match the scenario goal",
+        "status": {
+            key: status[key] for key in ("home", "access", "apps") if key in status
+        },
+    }
 
 
 def run_one(
@@ -621,9 +734,11 @@ def run_one(
             break
         _, replies_so_far = render(turns_log)
         try:
+            verification = completion_evidence(ev, harness)
             answer = person_reply(
                 ev,
                 replies_so_far,
+                verification,
                 i + 1,
                 person_model,
                 os.path.join(run, "raw"),
@@ -653,6 +768,17 @@ def run_one(
             )
             break
         person_log.append(answer)
+        if answer["done"] and not verification["verified"]:
+            stop.set()
+            total["errors"].append(
+                {
+                    "turn": i,
+                    "source": "completion",
+                    "error": "conversation ended without scenario CLI verification: "
+                    + verification["reason"],
+                }
+            )
+            break
         if not answer["done"] and i >= ev.get("max_turns", MAX_TURNS):
             stop.set()
             total["errors"].append(
@@ -820,6 +946,8 @@ def main(stop):
                 "prompt": "%s\n\n---\nThe person (played by a model):\n%s"
                 % (ev["first_message"], ev["persona"]),
                 "assertions": ev["assertions"],
+                "completion": ev["completion"],
+                "completion_criteria": ev["completion_criteria"],
             },
         )
         for config in configs:

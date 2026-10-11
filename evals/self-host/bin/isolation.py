@@ -11,7 +11,8 @@ def isolated_command(command, sandbox, stubs, harness):
             "OS shell isolation requires macOS sandbox-exec; "
             "unsupported hosts are refused"
         )
-    sandbox, stubs, harness = map(os.path.realpath, (sandbox, stubs, harness))
+    original_paths = (sandbox, stubs, harness)
+    sandbox, stubs, harness = map(os.path.realpath, original_paths)
     readable = [
         "/System/Library",
         "/System/Volumes/Preboot/Cryptexes/OS",
@@ -30,6 +31,12 @@ def isolated_command(command, sandbox, stubs, harness):
     paths = " ".join(
         "(subpath %s)" % json.dumps(os.path.realpath(path)) for path in readable
     )
+    parents = set()
+    for path in (*readable, *original_paths):
+        parent = os.path.dirname(path)
+        while parent != "/":
+            parents.add(parent)
+            parent = os.path.dirname(parent)
     host_commands = (
         "/usr/bin/sudo",
         "/usr/bin/curl",
@@ -46,16 +53,41 @@ def isolated_command(command, sandbox, stubs, harness):
         "/sbin/shutdown",
         "/sbin/reboot",
         "/usr/bin/killall",
+        "/usr/bin/uname",
+        "/bin/hostname",
+        "/usr/bin/sw_vers",
+        "/usr/bin/arch",
+        "/bin/ls",
+        "/usr/bin/stat",
+        "/usr/bin/file",
+        "/usr/bin/du",
+        "/bin/df",
+        "/sbin/mount",
+        "/usr/sbin/diskutil",
+        "/usr/sbin/sysctl",
+        "/usr/sbin/system_profiler",
+        "/usr/sbin/ioreg",
+        "/sbin/ifconfig",
+        "/usr/sbin/scutil",
+        "/bin/ps",
+        "/usr/bin/top",
+        "/usr/bin/id",
+        "/usr/bin/whoami",
+        "/usr/bin/groups",
+        "/usr/bin/getconf",
+        "/usr/sbin/networksetup",
+        "/usr/bin/vm_stat",
     )
     profile = "\n".join(
         [
             "(version 1)",
             "(deny default)",
-            "(allow process-exec process-fork sysctl-read)",
+            "(allow process-exec process-fork)",
             "(deny process-exec %s)"
             % " ".join("(literal %s)" % json.dumps(path) for path in host_commands),
             "(allow file-map-executable)",
-            "(allow file-read-metadata)",
+            "(allow file-read-metadata %s)"
+            % " ".join("(literal %s)" % json.dumps(path) for path in sorted(parents)),
             '(allow file-read* %s (literal %s) (literal %s) (literal "/") '
             '(literal "/dev/null") (literal "/dev/urandom"))'
             % (

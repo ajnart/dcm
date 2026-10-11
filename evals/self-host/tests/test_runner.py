@@ -68,6 +68,13 @@ class RunnerCLI(unittest.TestCase):
         snapshot = run / "raw" / "scenario"
         self.assertTrue((snapshot / "apps-list.json").is_file())
         self.assertFalse(any(path.is_symlink() for path in snapshot.rglob("*")))
+        platform = json.loads((snapshot / "platform.json").read_text())
+        self.assertTrue(platform["media"]["metadata_only"])
+        self.assertTrue(all(film["bytes"] > 0 for film in platform["media"]["files"]))
+        sandbox = next((self.workspace / "_sandboxes/iteration-1").iterdir())
+        movies = sandbox / ".root" / platform["dirs"][0].lstrip("/")
+        self.assertTrue(movies.is_dir())
+        self.assertFalse(list(movies.iterdir()))
         source = self.harness / "scenarios" / "newbie-macbook" / "apps-list.json"
         original = (snapshot / "apps-list.json").read_text()
         source.write_text("changed after execution")
@@ -81,6 +88,41 @@ class RunnerCLI(unittest.TestCase):
         self.assertIn("Home folder:", replies)
         self.assertNotIn("new_skill", replies)
         self.assertEqual(run.parent.name, "new_skill")
+        for ev in json.loads((self.harness / "evals/evals.json").read_text())["evals"]:
+            with self.subTest(scenario=ev["scenario"]):
+                for mode in (
+                    "missing-verification",
+                    "stale-verification",
+                    "failed-verification",
+                ):
+                    workspace = self.root / (ev["scenario"] + "-" + mode)
+                    failed = self.execute(
+                        mode,
+                        extra=("--workspace", str(workspace), "--evals", str(ev["id"])),
+                    )
+                    self.assertNotEqual(failed.returncode, 0)
+                    failed_run = next(
+                        (workspace / "iteration-1").glob("eval-*/*/run-*")
+                    )
+                    metrics = json.loads((failed_run / "raw/metrics.json").read_text())
+                    self.assertFalse(metrics["valid"])
+                    self.assertIn("CLI verification", json.dumps(metrics["errors"]))
+                    person = json.loads((failed_run / "raw/person.jsonl").read_text())
+                    self.assertTrue(person["done"])
+                    self.assertEqual(
+                        json.loads((failed_run / "eval_metadata.json").read_text())[
+                            "assertions"
+                        ],
+                        ev["assertions"],
+                    )
+                workspace = self.root / (ev["scenario"] + "-verified")
+                completed = self.execute(
+                    "completion-scopes",
+                    extra=("--workspace", str(workspace), "--evals", str(ev["id"])),
+                )
+                self.assertEqual(
+                    completed.returncode, 0, completed.stdout + completed.stderr
+                )
 
     def test_turn_limit_is_not_silent_completion(self):
         result = self.execute("turn-cap")
@@ -184,6 +226,9 @@ class RunnerCLI(unittest.TestCase):
         run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
         response = json.loads((run / "raw" / "person-2.json").read_text())
         self.assertTrue(response["structured_output"]["done"])
+        metadata = json.loads((run / "eval_metadata.json").read_text())
+        self.assertEqual(metadata["completion"], "install")
+        self.assertIn("Recap", metadata["completion_criteria"])
         for name in ("replies.md", "conversation.md"):
             self.assertIn(
                 "The fuller setup: Automatically fetch shows and films you request.",
