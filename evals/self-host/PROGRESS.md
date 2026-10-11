@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                                  |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                   |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                   |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                                 |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                   |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                     |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                                  |
-| Complete real-model batch with both guides and three repetitions       | Iteration 10 invalid; fresh smoke needed after fixture corrections      |
-| Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending                   |
-| Independent Standards and Spec review                                  | Code passed both axes after review fixes; real-model acceptance pending |
+| Gate                                                                   | Status                                                             |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                              |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                              |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                            |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution              |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                             |
+| Complete real-model batch with both guides and three repetitions       | Iteration 10 invalid; fresh smoke needed after fixture corrections |
+| Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending              |
+| Independent Standards and Spec review                                  | Fixture fixes reviewed; combined release-audit review pending      |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -97,6 +97,49 @@ each iteration keeps independent frozen stubs. Judge usage/cost is now retained.
 
 ## Limits and remaining work
 
+### Release audit follow-up (October 11, 2026)
+
+Reviewed the complete PR against pinned `origin/main`
+`5aafb4c1833fd4cd9caf0f7beaac31e625aafe22`, its body and comments, and the
+repository standards. Corrections are limited to the fixture harness:
+
+- Active model calls and their process-group children now terminate when a
+  parallel batch fails, a call times out, or a call finishes. Background Bash
+  requests are refused; deliberately detached hostile code remains out of scope.
+- Read access outside the workspace is restricted to the current session's
+  tool-results folder. Shell canaries cover absolute host automation tools and
+  workspace symlink escapes as well as host reads, writes and network access.
+- Regrading clears old scores before validation; judge preflight failure clears
+  old verdicts. Cached judgments require matching assertion/conversation hashes,
+  and positional grading cannot bypass incomplete judgments elsewhere in a batch.
+- Guide-before-change checks now include host and Docker mutations; synthetic
+  secret checks include host/Docker arguments and actual Bash inputs. Every
+  publication needs a matching nonempty domain plan and later approval.
+- Empty task streams and malformed usage are invalid. Cache tokens are included
+  without counting person calls; missing reported cost is unknown, not free.
+  Stream tool calls and fixture command invocations have separate metrics.
+- The fake CLI accepts value flags using `=`, retains Profile changes and does
+  not mark failed installs complete. Existing-Project fixture Profiles agree
+  with their Status. Ruff and Pyright now include extensionless Python stubs.
+
+The offline gate passes **55 focused regressions**, Ruff lint/format and Pyright.
+The repository Go gate was rerun successfully, without Docker runtime, browser,
+installer execution, a live Project, or real provider calls. The connected
+catalog lists Sonnet/Opus 5.5 as active; account access was not tested.
+No dependency was added. No source-worktree edits or child reviewers were used.
+Fresh independent review is delegated to the parent session, not claimed here.
+The concurrent smoke-evidence commit `0d09773f` is preserved. Its iteration 9
+result predates these audit corrections. Iteration 10 subsequently failed as
+recorded above. Neither is acceptance evidence for changed harness inputs.
+The audit launched no additional real-model run.
+
+The parent session reconciled the audit commits with the four fixture-fidelity
+corrections without dropping either change. The combined offline suite passes
+59 regressions. A fresh smoke comparison and combined independent review are
+required before the full batch can establish acceptance.
+
+### Earlier review evidence
+
 Review follow-up fixes cover positional grading's batch gate, option-prefixed
 Docker mutations, matching Paperless publication plans, explicit model success
 envelopes, timeout diagnostics, and simulated manual Windows/WSL completion.
@@ -106,7 +149,7 @@ they remain unchanged to keep this fix focused.
 
 Both review axes rechecked the fixes and returned code-ready verdicts. The
 Spec follow-up also caught a container command's `--help` argument being mistaken
-for Docker help; that regression now passes. The offline gate is 40 tests,
+for Docker help; that regression now passes. The earlier offline gate was 36 tests,
 Ruff lint/format, and Pyright. This does not clear the pending real-model batch
 or human viewer gates, and PR #259 stays draft.
 

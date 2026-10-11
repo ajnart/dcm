@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -182,6 +183,80 @@ class RunnerCLI(unittest.TestCase):
         self.assertNotIn('"Docker: docker command not found"', replies)
         person = json.loads((run / "raw" / "person.jsonl").read_text().splitlines()[0])
         self.assertEqual(person["completed_steps"], ["docker_desktop_wsl"])
+
+    def test_model_children_are_terminated_before_collecting_artifacts(self):
+        marker = self.root / "late-child"
+        self.env["EVAL_TEST_MARKER"] = str(marker)
+        result = self.execute("task-child")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        time.sleep(2.2)
+        self.assertFalse(marker.exists())
+
+    def test_task_timeout_terminates_children_and_retains_diagnostics(self):
+        marker = self.root / "late-child"
+        self.env["EVAL_TEST_MARKER"] = str(marker)
+        result = self.execute("task-timeout", extra=("--timeout", "1"))
+        self.assertNotEqual(result.returncode, 0)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertIn("partial task stdout", (run / "raw/turn-1.jsonl").read_text())
+        self.assertIn(
+            "partial task stderr", (run / "raw/turn-1.stderr.txt").read_text()
+        )
+        time.sleep(1.2)
+        self.assertFalse(marker.exists())
+
+    def test_failed_batch_terminates_active_parallel_model_calls(self):
+        marker = self.root / "late-child"
+        self.env["EVAL_TEST_MARKER"] = str(marker)
+        started = time.monotonic()
+        result = self.execute(
+            "parallel-failure",
+            extra=(
+                "--parallel",
+                "2",
+                "--configs",
+                "with_skill=skills/self-host",
+                "without_skill=none",
+            ),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertLess(time.monotonic() - started, 5)
+        runs = list((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertEqual(len(runs), 2)
+        self.assertTrue(
+            all(
+                not json.loads((run / "raw/metrics.json").read_text())["valid"]
+                for run in runs
+            )
+        )
+        time.sleep(2.2)
+        self.assertFalse(marker.exists())
+
+    def test_tokens_include_cache_but_exclude_person_calls(self):
+        result = self.execute("cache-usage")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertEqual(
+            json.loads((run / "timing.json").read_text())["total_tokens"], 31
+        )
+
+    def test_missing_reported_cost_is_not_zero(self):
+        result = self.execute("missing-cost")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertIsNone(json.loads((run / "timing.json").read_text())["cost_usd"])
+
+    def test_invalid_usage_is_not_accepted_as_metrics(self):
+        result = self.execute("invalid-usage")
+        self.assertNotEqual(result.returncode, 0)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertFalse(json.loads((run / "raw/metrics.json").read_text())["valid"])
+
+    def test_empty_task_is_not_valid_just_because_tokens_are_reported(self):
+        result = self.execute("empty-task")
+        self.assertNotEqual(result.returncode, 0)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertFalse(json.loads((run / "raw/metrics.json").read_text())["valid"])
 
 
 if __name__ == "__main__":

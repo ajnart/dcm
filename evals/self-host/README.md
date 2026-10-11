@@ -1,8 +1,9 @@
 # self-host skill eval harness
 
-Measures whether the `self-host` skill makes an agent better at self-hosting,
-using the `skill-creator` loop: run with and without the skill, grade, review in
-its viewer, improve, rerun.
+Evaluates fixture conversations with and without the `self-host` skill, using
+the `skill-creator` loop: run, grade, review in its viewer, improve, rerun.
+A valid comparison and human review are still pending; this is not real App
+installation evidence.
 
 ## What is under test
 
@@ -37,8 +38,10 @@ agent through inspect, plan, approval, apply, verify.
   settings containing a fail-closed PreToolUse hook. It rewrites
   every Bash command to run under `env -i` and macOS `sandbox-exec`, with a fake
   HOME, fixture PATH, writable working folder and fixture state, read-only
-  runtime/fixture files, and no network access. Read is limited to the working
-  folder and its own tool-output folder; other tools are refused. No
+  runtime/fixture files, and no network access. Absolute host installer, remote
+  shell and macOS automation tools are refused, not dispatched by the stubs.
+  Read is limited to the working folder and the current session's tool-results
+  folder; other tools and background Bash requests are refused. No
   `bypassPermissions` is used. The Claude transport itself is not OS-sandboxed:
   it still needs authentication and network access. This is a fixture evaluation
   boundary, not a general sandbox for hostile code; use a disposable account
@@ -62,10 +65,19 @@ agent through inspect, plan, approval, apply, verify.
 - **Validity.** Model access is checked before a batch. Failed, quota-limited
   or empty model calls invalidate the run; malformed streams, person replies and judge
   verdicts are errors, not silent completion or failed assertions. The batch
-  exits non-zero, cancels pending runs, and records `execution.json`. Both
+  exits non-zero, cancels pending runs and active model calls, and records
+  `execution.json`. Each model process owns a process group; its remaining
+  children are killed before artifacts are collected, also on timeout. This
+  does not establish containment of hostile code that deliberately detaches.
+  Both
   grading commands reject invalid or incomplete execution, including positional
   run arguments belonging to a failed batch. `checks.py` also
-  requires every judge assertion to have a complete verdict. Use a new
+  requires every judge assertion in the batch to have a complete verdict,
+  even for positional run arguments. Regrading invalidates old score files
+  before validation; a failed judge preflight cannot reuse old verdicts.
+  Judgments are tied to hashes of their assertions and conversation inputs.
+  Older judgments without these fingerprints must be judged again, not
+  backfilled by hand. Use a new
   iteration number for every attempt; existing evidence is not overwritten.
   A router-present run must advertise `self-host` in the real CLI init event;
   a no-router baseline must not. Both configurations use batch-frozen guides,
@@ -84,10 +96,14 @@ Offline regression gate (no model calls or Docker):
 
 ```bash
 python3 -m unittest discover -s evals/self-host/tests -v
-ruff check evals/self-host --select E,F,I
-ruff format --check evals/self-host
-uvx pyright evals/self-host
+ruff check evals/self-host evals/self-host/bin/{docker,hosttool,self-host} --select E,F,I
+ruff format --check evals/self-host evals/self-host/bin/{docker,hosttool,self-host}
+uvx pyright evals/self-host evals/self-host/bin/{docker,hosttool,self-host}
 ```
+
+The following commands consume model usage, including preflight. Obtain an
+explicit bounded authorization for the selected scenarios, repetitions, turn
+limits and spend before running them; the defaults are not approval.
 
 ```bash
 set -euo pipefail
@@ -120,6 +136,11 @@ python3 run.py --iteration 3 --configs \
 `--person-model` selects the simulated person (same default). `judge.py`
 defaults to `claude-opus-5-5`. Agent timing and tokens exclude simulated-person
 calls; their usage and cost are recorded separately in `raw/person.jsonl`.
+These model families were listed as active in the connected model catalog on
+October 11, 2026; that is not an account-access or quota check. Missing reported
+cost stays `null`, not zero; malformed token, duration or cost values invalidate
+the call. Total tool calls count stream tool-use events; fixture command calls
+are reported separately.
 `run.py --timeout` limits each task turn (900 seconds by default),
 `--person-timeout` limits each person call (300 seconds), and `judge.py --timeout`
 limits each judgment (600 seconds). All must be positive. Partial stdout/stderr
@@ -158,7 +179,7 @@ only prove a simulated command ran, not that a real App works. Judge usage and
 cost are recorded separately from agent timing. A failed judge attempt cannot
 reuse an older verdict. Approval checks establish order, not authorization scope;
 the public-Access check additionally requires a yes after the latest public plan
-and matching App/domain selections, including Paperless.
+and matching App/domain selections, including Paperless, for every publication.
 Iteration-level `inputs/` retains the shared frozen stubs and source inputs.
 
 Raw logs are private development artifacts, not automatically redacted reports.

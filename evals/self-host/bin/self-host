@@ -2,8 +2,7 @@
 """Stub `self-host` for skill evaluation.
 
 Replays canned fixtures instead of touching a real Docker Project. The scenario
-is resolved from the working directory: the stub walks up from $PWD looking for a
-".self-host-eval" directory, which setup_run.py writes per run. Every invocation
+is selected through SELF_HOST_EVAL_HARNESS, which run.py sets per run. Every invocation
 is appended to that run's invocations.jsonl so assertions have ground truth for
 what the agent actually ran.
 """
@@ -44,8 +43,6 @@ BOOL_FLAGS = {
 
 
 def find_marker():
-    # run.py keeps the harness directory outside the agent's working directory
-    # and names it here, so the agent cannot read fixtures or the guide's path.
     env = os.environ.get("SELF_HOST_EVAL_HARNESS")
     if env:
         return env if os.path.isdir(env) else None
@@ -66,6 +63,11 @@ def parse(argv):
     i = 0
     while i < len(argv):
         tok = argv[i]
+        name, equal, value = tok.partition("=")
+        if equal and name in VALUE_FLAGS:
+            flags[name] = value
+            i += 1
+            continue
         if tok in VALUE_FLAGS:
             flags[tok] = argv[i + 1] if i + 1 < len(argv) else ""
             i += 2
@@ -211,7 +213,9 @@ def emit_installed_status(h):
         doc["project"] = h.cfg["home"]
     wanted = set(open(os.path.join(h.state, "installed")).read().split())
     if wanted and wanted != {"1"} and isinstance(doc.get("apps"), list):
-        doc["apps"] = [a for a in doc["apps"] if a.get("id") in wanted or a.get("id") == "homarr"]
+        doc["apps"] = [
+            a for a in doc["apps"] if a.get("id") in wanted or a.get("id") == "homarr"
+        ]
     print(json.dumps(doc, indent=2))
 
 
@@ -253,7 +257,10 @@ def main():
         if h.has(os.path.join("help", cmd + ".txt")):
             sys.stdout.write(open(h.path(os.path.join("help", cmd + ".txt"))).read())
         else:
-            print("Usage: self-host %s [flags]. Run `self-host skill` for the full guide." % cmd)
+            print(
+                "Usage: self-host %s [flags]. "
+                "Run `self-host skill` for the full guide." % cmd
+            )
         return 0
 
     if cmd == "skill":
@@ -261,8 +268,14 @@ def main():
         return 0
 
     if cmd == "status":
-        base = "status-installed" if (h.has("status-installed.json") and os.path.exists(os.path.join(h.state, "installed"))) else "status"
-        if h.has("status-fixed.json") and os.path.exists(os.path.join(h.state, "lan_fixed")):
+        base = "status"
+        if h.has("status-installed.json") and os.path.exists(
+            os.path.join(h.state, "installed")
+        ):
+            base = "status-installed"
+        if h.has("status-fixed.json") and os.path.exists(
+            os.path.join(h.state, "lan_fixed")
+        ):
             base = "status-fixed"
         if base == "status-installed":
             emit_installed_status(h)
@@ -277,7 +290,12 @@ def main():
                 for p in pos[2:]:
                     f.write(p + "\n")
             return h.finish("profile-set")
-        h.emit_doc("profile")
+        experience = os.path.join(h.state, "experience")
+        if os.path.isfile(experience):
+            values = open(experience).read().splitlines()
+            print(json.dumps({"experience": values[-1] if values else ""}))
+        else:
+            h.emit_doc("profile")
         return h.finish("profile")
 
     if cmd == "doctor":
@@ -317,7 +335,9 @@ def main():
             with open(h.path("credentials.json")) as source:
                 doc = json.load(source)
             if wanted != {"1"}:
-                doc["apps"] = [app for app in doc.get("apps", []) if app.get("app") in wanted]
+                doc["apps"] = [
+                    app for app in doc.get("apps", []) if app.get("app") in wanted
+                ]
             print(json.dumps(doc, indent=2))
             return h.finish("credentials")
         if h.emit_doc("credentials"):
@@ -361,11 +381,14 @@ def main():
         ids = set(installed_ids(h, pos[1:]))
         if not h.emit_events("install", only_apps=ids):
             return h.missing("install")
+        code = h.finish("install")
+        if code:
+            return code
         with open(os.path.join(h.state, "installed"), "w") as f:
             f.write("\n".join(installed_ids(h, pos[1:])) + "\n")
         if h.cfg.get("home"):
             os.makedirs(h.cfg["home"], exist_ok=True)
-        return h.finish("install")
+        return 0
 
     if cmd == "setup":
         if not h.emit_events("setup"):
@@ -411,8 +434,12 @@ def main():
 
 def print_help():
     print("self-host (eval harness)")
-    print("Commands: doctor, install, setup, status, profile, apps, debug, credentials,")
-    print("  start, stop, restart, up, down, update, remove, config, cloudflare, backup,")
+    print(
+        "Commands: doctor, install, setup, status, profile, apps, debug, credentials,"
+    )
+    print(
+        "  start, stop, restart, up, down, update, remove, config, cloudflare, backup,"
+    )
     print("  restore, access, logs, feedback, self-update, skill")
     return 0
 

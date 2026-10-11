@@ -17,10 +17,17 @@ import json
 import os
 import random
 import shutil
-import subprocess
 import tempfile
+import threading
 
-from validity import check_model, require_iteration, require_result, require_run
+from processes import run_process
+from validity import (
+    check_model,
+    judgment_digest,
+    require_iteration,
+    require_result,
+    require_run,
+)
 
 PROMPT = """You are grading one conversation between an assistant and a person
 who wants to self-host apps on their own computer. Judge only from the material
@@ -42,7 +49,7 @@ Return a JSON object with a verdicts array, one object per assertion in order:
 """
 
 
-def judge_run(run, model, timeout):
+def judge_run(run, model, timeout, stop):
     require_run(run)
     meta = json.load(
         open(os.path.join(os.path.dirname(os.path.dirname(run)), "eval_metadata.json"))
@@ -77,6 +84,7 @@ def judge_run(run, model, timeout):
         with open(os.path.join(run, "outputs", path), errors="ignore") as f:
             return f.read()
 
+    digest = judgment_digest(run)
     prompt = PROMPT.format(
         assertions="\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(items)),
         replies=read("replies.md"),
@@ -94,7 +102,7 @@ def judge_run(run, model, timeout):
     stderr_path = os.path.join(run, "raw", "judge.stderr.txt")
     with tempfile.TemporaryDirectory() as cwd:
         with open(output_path, "w") as output, open(stderr_path, "w") as stderr:
-            proc = subprocess.run(
+            code = run_process(
                 [
                     shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
                     "-p",
@@ -117,11 +125,11 @@ def judge_run(run, model, timeout):
                 env=env,
                 stdout=output,
                 stderr=stderr,
-                text=True,
                 timeout=timeout,
+                stop=stop,
             )
     with open(output_path) as output, open(stderr_path) as stderr:
-        result = require_result(json.load(output), proc.returncode, stderr.read())
+        result = require_result(json.load(output), code, stderr.read())
     metrics = {
         "model": model,
         "valid": False,
@@ -129,6 +137,7 @@ def judge_run(run, model, timeout):
         "usage": result.get("usage", {}),
         "cost_usd": result.get("total_cost_usd"),
         "duration_ms": result.get("duration_ms"),
+        "input_sha256": digest,
     }
     with open(os.path.join(run, "raw", "judge-metrics.json"), "w") as output:
         json.dump(metrics, output, indent=2)
@@ -156,6 +165,8 @@ def judge_run(run, model, timeout):
                 "evidence": v.get("evidence", ""),
             }
         )
+    if judgment_digest(run) != digest:
+        raise ValueError("judge inputs changed during the attempt")
     with open(os.path.join(run, "judged.json"), "w") as f:
         json.dump(out, f, indent=2)
     metrics["valid"] = True
@@ -174,16 +185,41 @@ def main():
     if args.parallel < 1 or args.timeout < 1:
         ap.error("--parallel and --timeout must be positive")
     runs = sorted(glob.glob(os.path.join(args.iteration_dir, "eval-*", "*", "run-*")))
+    for run in runs:
+        for name in ("judged.json", "grading.json"):
+            path = os.path.join(run, name)
+            if os.path.isfile(path):
+                os.unlink(path)
+        path = os.path.join(run, "raw", "judge-metrics.json")
+        if os.path.isfile(path):
+            with open(path, "w") as output:
+                json.dump({"model": args.model, "valid": False}, output)
     require_iteration(args.iteration_dir, runs)
     check_model(args.model)
     random.shuffle(runs)
+    stop = threading.Event()
+    failed = False
     with cf.ThreadPoolExecutor(args.parallel) as pool:
-        for run, msg in pool.map(
-            lambda r: judge_run(r, args.model, args.timeout), runs
-        ):
-            print(
-                "%s: %s" % (os.path.relpath(run, args.iteration_dir), msg), flush=True
-            )
+        futures = [
+            pool.submit(judge_run, run, args.model, args.timeout, stop) for run in runs
+        ]
+        for future in cf.as_completed(futures):
+            if future.cancelled():
+                continue
+            try:
+                run, msg = future.result()
+                print(
+                    "%s: %s" % (os.path.relpath(run, args.iteration_dir), msg),
+                    flush=True,
+                )
+            except Exception as error:
+                failed = True
+                stop.set()
+                for pending in futures:
+                    pending.cancel()
+                print("judgment failed: %r" % error, flush=True)
+    if failed:
+        raise SystemExit("judging failed; no partial iteration may be graded")
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ SELF_HOST_EVAL_*.
 
 import json
 import os
+import re
 import shlex
 import sys
 
@@ -48,6 +49,10 @@ def main():
         return deny("Only the project-local self-host router is under evaluation.")
 
     if tool == "Bash":
+        if inp.get("run_in_background"):
+            return deny(
+                "Background commands cannot be collected as completed evidence."
+            )
         # Absolute paths into the real home (the real binary, ~/.self-host,
         # the repository) are refused; only the sandbox and stubs are allowed.
         cmd = inp.get("command", "")
@@ -130,10 +135,22 @@ def main():
             .replace(".", "-")
             .replace("_", "-")
         )
-        own = os.path.join(os.environ.get("HOME", ""), ".claude", "projects", slug)
-        if tool == "Read" and os.path.commonpath(
-            (real, os.path.realpath(own))
-        ) == os.path.realpath(own):
+        session = data.get("session_id")
+        own = os.path.join(
+            os.environ.get("HOME", ""),
+            ".claude",
+            "projects",
+            slug,
+            str(session),
+            "tool-results",
+        )
+        if (
+            tool == "Read"
+            and isinstance(session, str)
+            and re.fullmatch(r"[a-zA-Z0-9_-]+", session)
+            and os.path.commonpath((real, os.path.realpath(own)))
+            == os.path.realpath(own)
+        ):
             return 0
         if os.path.commonpath((real, os.path.realpath(sandbox))) != os.path.realpath(
             sandbox

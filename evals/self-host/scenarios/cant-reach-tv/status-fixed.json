@@ -6,7 +6,7 @@
   "access": ["home"],
   "lan_ip": "192.168.0.31",
   "host_ips": ["192.168.0.31"],
-  "profile": {"experience": "advanced"},
+  "profile": {"experience": "new"},
   "apps": [
     {
       "id": "jellyfin",

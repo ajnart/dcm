@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 args = sys.argv[1:]
 mode = os.environ.get("EVAL_TEST_MODE", "success")
@@ -13,6 +14,26 @@ if args == ["--version"]:
 prompt = args[args.index("-p") + 1]
 is_preflight = prompt == "Reply with only the word READY."
 is_stream = args[args.index("--output-format") + 1] == "stream-json"
+if is_stream and mode in ("task-child", "task-timeout", "parallel-failure"):
+    marker = os.environ["EVAL_TEST_MARKER"]
+    subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import time; from pathlib import Path; time.sleep(2); "
+            "Path(%r).write_text('late child')" % marker,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if mode == "task-timeout":
+        print("partial task stdout", flush=True)
+        print("partial task stderr", file=sys.stderr, flush=True)
+        time.sleep(10)
+    if mode == "parallel-failure":
+        if not Path(".claude/skills/self-host/SKILL.md").is_file():
+            time.sleep(10)
+        time.sleep(0.3)
 if mode == "person-timeout" and not is_preflight and not is_stream:
     print("partial person stdout", flush=True)
     print("partial person stderr", file=sys.stderr, flush=True)
@@ -35,6 +56,8 @@ if is_preflight:
     result["result"] = "READY"
 elif is_stream:
     reply = "Ready."
+    if mode == "empty-task":
+        reply = ""
     if mode == "manual-wsl":
         reply = (
             "Please install Docker Desktop in Windows and enable WSL integration, "
@@ -69,7 +92,10 @@ elif is_stream:
                 "subtype": "init",
                 "session_id": result["session_id"],
                 "tools": ["Bash", "Read", "Skill", "mcp__person__ask_user"],
-                "skills": ["self-host"] if mode != "missing-router" else [],
+                "skills": ["self-host"]
+                if mode != "missing-router"
+                and Path(".claude/skills/self-host/SKILL.md").is_file()
+                else [],
             }
         )
     )
@@ -93,11 +119,23 @@ elif prompt.startswith("You are grading"):
     )
 else:
     result["result"] = json.dumps({"reply": "", "done": True, "approves": False})
-if mode == "task-error" and is_stream:
+if mode in ("task-error", "parallel-failure") and is_stream:
     result.update(
         is_error=True, subtype="error_during_execution", result="captured quota failure"
     )
     result["usage"]["output_tokens"] = 0
+if mode == "preflight-error" and is_preflight:
+    result.update(
+        is_error=True,
+        subtype="error_during_execution",
+        result="preflight quota failure",
+    )
+if mode == "cache-usage" and is_stream:
+    result["usage"].update(cache_creation_input_tokens=11, cache_read_input_tokens=13)
+if mode == "missing-cost" and is_stream:
+    result.pop("total_cost_usd")
+if mode == "invalid-usage" and is_stream:
+    result["usage"]["output_tokens"] = -2
 if mode == "turn-cap" and not is_preflight and not is_stream:
     result["result"] = json.dumps(
         {"reply": "Please continue", "done": False, "approves": False}
