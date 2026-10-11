@@ -104,6 +104,7 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 	if body.Response.Token == "" {
 		return false, nil
 	}
+	h.Log.Secret(body.Response.Token)
 	me, err := h.HTTP(ctx, helpers.Request{
 		Path:   "/api/v1/users/me",
 		Header: map[string]string{"Authorization": "Bearer " + body.Response.Token},
@@ -127,14 +128,22 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstadmin.FirstAdmin{
+	if err := (firstadmin.FirstAdmin{
 		// v2.16.3 has no health route. The protected current-user route proves
 		// API routing before signup; Login separately verifies authenticated identity.
 		Ready:  firstadmin.Probe{Path: "/api/v1/users/me", Want: []int{http.StatusUnauthorized}, Contains: `"response":"You must be logged in."`},
 		Create: create,
 		Login:  login,
 		Manual: "Linkwarden signs up its first account on the private instance.",
-	}.Setup(ctx, h)
+	}).Setup(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-token", "prepare Linkwarden statistics access", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
+		Do:         func(ctx context.Context) error { return createHomarrToken(ctx, h) },
+		Hint:       "Run self-host setup linkwarden to prepare its Homarr token. If the managed token expires or its saved secret is lost, restore its credential through the Project secret boundary or revoke only self-host Homarr statistics in Linkwarden Settings > Access Tokens, then retry. Unknown saved credentials require an ownership review before replacement. Linkwarden does not support read-only token scopes.",
+		Credential: "admin",
+	})
 }
 
 func create(ctx context.Context, h *helpers.H, user, password string) error {
@@ -146,7 +155,10 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return firstadmin.FirstAdmin{Create: create, Login: login}.Check(ctx, h)
+	if err := (firstadmin.FirstAdmin{Create: create, Login: login}).Check(ctx, h); err != nil {
+		return err
+	}
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

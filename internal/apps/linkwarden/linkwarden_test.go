@@ -27,6 +27,8 @@ type fakeLinkwarden struct {
 	pass    string
 	created bool
 	signups int
+	token   bool
+	issued  int
 }
 
 func (f *fakeLinkwarden) handler() http.Handler {
@@ -57,12 +59,45 @@ func (f *fakeLinkwarden) handler() http.Handler {
 		json.NewEncoder(w).Encode(map[string]any{"response": map[string]string{"token": "tok"}})
 	})
 	mux.HandleFunc("GET /api/v1/users/me", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer tok" {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("Authorization") != "Bearer tok" && (!f.token || r.Header.Get("Authorization") != "Bearer homarr-token") {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte(`{"response":"You must be logged in."}`))
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"response": map[string]any{"id": 1, "username": f.user}})
+	})
+	mux.HandleFunc("GET /api/v1/tokens", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("Authorization") != "Bearer tok" && (!f.token || r.Header.Get("Authorization") != "Bearer homarr-token") {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		tokens := []map[string]any{}
+		if f.token {
+			tokens = append(tokens, map[string]any{"id": 2, "name": "self-host Homarr statistics", "isSession": false, "expires": "2026-12-31T12:00:00.000Z"})
+		}
+		json.NewEncoder(w).Encode(map[string]any{"response": tokens})
+	})
+	mux.HandleFunc("POST /api/v1/tokens", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		var body struct {
+			Name    string `json:"name"`
+			Expires int    `json:"expires"`
+		}
+		if r.Header.Get("Authorization") != "Bearer tok" || json.NewDecoder(r.Body).Decode(&body) != nil || body.Name != "self-host Homarr statistics" || body.Expires != 3 || f.token {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.token = true
+		f.issued++
+		json.NewEncoder(w).Encode(map[string]any{"response": map[string]any{
+			"secretKey": "homarr-token",
+			"token":     map[string]any{"id": 2, "userId": 1, "name": body.Name, "isSession": false, "expires": "2026-12-31T12:00:00.000Z"},
+		}})
 	})
 	return mux
 }
@@ -109,6 +144,9 @@ func TestSetupCreatesTheFirstAdminThenCheck(t *testing.T) {
 	if fake.signups != 1 {
 		t.Fatalf("signups = %d, want 1", fake.signups)
 	}
+	if fake.issued != 1 || box.h.Secret(box.h.Key("homarr_api_key")) == "" || box.h.Secret(box.h.Key("homarr_token_ownership")) == "" {
+		t.Fatal("Setup did not record one owned Homarr token")
+	}
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
@@ -122,13 +160,16 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := app.Setup(context.Background(), box.h); err != nil {
 		t.Fatalf("second Setup: %v", err)
 	}
-	for _, id := range []string{"ready", "admin"} {
+	for _, id := range []string{"ready", "admin", "homarr-token"} {
 		if got := box.step(id); got.Status != stepstatus.StepSkip {
 			t.Errorf("step %s on rerun = %q, want skip", id, got.Status)
 		}
 	}
 	if fake.signups != 1 {
 		t.Errorf("signups = %d, want 1", fake.signups)
+	}
+	if fake.issued != 1 {
+		t.Errorf("token creations = %d, want 1", fake.issued)
 	}
 }
 
