@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
@@ -54,57 +56,141 @@ func (App) Links() []app.Link { return nil }
 
 const rpcPath = "/transmission/rpc"
 
-// rpcSession reads the pinned session version. Transmission answers 409 with a
-// CSRF session id until the caller echoes it back.
+var errRPCAuthentication = errors.New("Transmission rejected the Project's Admin login; restore its RPC login and retry self-host setup transmission")
+
+func rpcRead(ctx context.Context, h *helpers.H, user, password, method string, arguments map[string]any) (map[string]any, error) {
+	request := helpers.Request{
+		Method: "POST", Path: rpcPath, NoRedirect: true,
+		JSON:   map[string]any{"method": method, "arguments": arguments},
+		Header: map[string]string{}, User: user, Password: password,
+	}
+	for attempt := 0; attempt < 3; attempt++ {
+		resp, err := h.HTTP(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		switch resp.Status {
+		case 401:
+			return nil, errRPCAuthentication
+		case 403:
+			return nil, errors.New("Transmission denied RPC access; review its existing IP whitelist or brute-force lockout, then retry Setup without disabling authentication or widening the whitelist")
+		case 421:
+			return nil, errors.New("Transmission denied the RPC Host; review its existing host policy, then retry Setup without disabling authentication or host protection")
+		case 409:
+			session := resp.Header.Get("X-Transmission-Session-Id")
+			if session == "" {
+				return nil, errors.New("Transmission returned no RPC session ID; retry self-host setup transmission")
+			}
+			request.Header["X-Transmission-Session-Id"] = session
+			continue
+		case 200:
+			var payload struct {
+				Result    string         `json:"result"`
+				Arguments map[string]any `json:"arguments"`
+			}
+			if err := resp.Decode(&payload); err != nil || payload.Result != "success" || payload.Arguments == nil {
+				return nil, errors.New("Transmission returned incomplete or failed RPC data; use Transmission 4.1.3 and retry self-host setup transmission")
+			}
+			return payload.Arguments, nil
+		default:
+			return nil, fmt.Errorf("Transmission RPC returned HTTP %d; retry self-host setup transmission", resp.Status)
+		}
+	}
+	return nil, errors.New("Transmission RPC session negotiation did not finish; retry self-host setup transmission")
+}
+
+func rpcNumbers(value map[string]any, keys ...string) bool {
+	for _, key := range keys {
+		number, ok := value[key].(float64)
+		if !ok || number < 0 || math.IsNaN(number) || math.IsInf(number, 0) {
+			return false
+		}
+	}
+	return true
+}
+
 func rpcSession(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	body := []byte(`{"jsonrpc":"2.0","method":"session_get","params":{"fields":["version"]},"id":1}`)
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: rpcPath, Body: body,
-		Header: map[string]string{"Content-Type": "application/json"},
-		User:   user, Password: password,
-	})
+	if user == "" || password == "" {
+		return false, nil
+	}
+	challenge, err := h.HTTP(ctx, helpers.Request{Path: "/transmission/web/", NoRedirect: true})
 	if err != nil {
 		return false, err
 	}
-	if resp.Status == 409 {
-		session := resp.Header.Get("X-Transmission-Session-Id")
-		if session == "" {
-			return false, errors.New("Transmission returned no CSRF session id")
-		}
-		resp, err = h.HTTP(ctx, helpers.Request{
-			Method: "POST", Path: rpcPath, Body: body,
-			Header: map[string]string{"Content-Type": "application/json", "X-Transmission-Session-Id": session},
-			User:   user, Password: password,
-		})
-		if err != nil {
-			return false, err
-		}
+	if challenge.Status == 200 {
+		return false, errors.New("Transmission RPC authentication is not enabled; restore the Project's Admin login through its existing container environment and retry self-host setup transmission")
 	}
-	if resp.Status == 401 {
+	if challenge.Status != 401 {
+		return false, fmt.Errorf("Transmission authentication check returned HTTP %d; review its existing access policy and retry Setup", challenge.Status)
+	}
+	session, err := rpcRead(ctx, h, user, password, "session-get", map[string]any{"fields": []string{"version", "rpc-version-semver"}})
+	if errors.Is(err, errRPCAuthentication) {
 		return false, nil
 	}
-	if !resp.OK() {
-		return false, fmt.Errorf("RPC returned HTTP %d", resp.Status)
-	}
-	var payload struct {
-		Result struct {
-			Version string `json:"version"`
-		} `json:"result"`
-	}
-	if err := resp.Decode(&payload); err != nil {
+	if err != nil {
 		return false, err
 	}
-	return payload.Result.Version != "", nil
+	version, _ := session["version"].(string)
+	if version != "4.1.3" && !strings.HasPrefix(version, "4.1.3 (") || session["rpc-version-semver"] != "6.0.1" {
+		return false, errors.New("Transmission's version or RPC contract is unsupported; back up Transmission before using 4.1.3, then retry self-host setup transmission")
+	}
+	statistics, err := rpcRead(ctx, h, user, password, "session-stats", map[string]any{})
+	if err != nil {
+		return false, err
+	}
+	if !rpcNumbers(statistics, "downloadSpeed", "uploadSpeed", "torrentCount", "activeTorrentCount", "pausedTorrentCount") {
+		return false, errors.New("Transmission did not return explicit transfer rates and queue counts; retry self-host setup transmission")
+	}
+	queue, err := rpcRead(ctx, h, user, password, "torrent-get", map[string]any{"fields": []string{"hashString", "queuePosition", "status", "rateDownload", "rateUpload", "percentDone"}})
+	if err != nil {
+		return false, err
+	}
+	torrents, ok := queue["torrents"].([]any)
+	if !ok {
+		return false, errors.New("Transmission did not return its torrent queue; an explicit empty array is required for an empty queue")
+	}
+	for _, raw := range torrents {
+		torrent, _ := raw.(map[string]any)
+		hash, _ := torrent["hashString"].(string)
+		if hash == "" || !rpcNumbers(torrent, "queuePosition", "status", "rateDownload", "rateUpload", "percentDone") {
+			return false, errors.New("Transmission returned incomplete torrent queue data; retry self-host setup transmission")
+		}
+		state := torrent["status"].(float64)
+		position := torrent["queuePosition"].(float64)
+		if state > 6 || math.Trunc(state) != state || math.Trunc(position) != position || torrent["percentDone"].(float64) > 1 {
+			return false, errors.New("Transmission returned unsupported torrent queue data; retry self-host setup transmission")
+		}
+	}
+	return true, nil
+}
+
+func VerifyHomarr(ctx context.Context, h *helpers.H) error {
+	if h.AdminUser() == "" || h.AdminPassword() == "" {
+		return errors.New("Transmission's Project Admin login is missing; restore it through the Project secret boundary and retry self-host setup transmission, then self-host setup homarr")
+	}
+	ok, err := rpcSession(ctx, h, h.AdminUser(), h.AdminPassword())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errRPCAuthentication
+	}
+	return nil
 }
 
 func setup() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
 		Ready: firstadmin.Probe{Path: "/transmission/web/", Want: []int{200, 401}},
 		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-			return rpcSession(ctx, h, user, password)
+			ok, err := rpcSession(ctx, h, user, password)
+			if err != nil {
+				h.Info(err.Error())
+			}
+			return ok, err
 		},
 		Manual: "Transmission reads USER and PASS from the container environment on first start; " +
-			"if you changed them, reset the RPC login under Settings.",
+			"restore the Project's Admin login if it changed, keep RPC authentication enabled and preserve existing RPC IP/host whitelists. " +
+			"Setup must verify Transmission 4.1.3, session negotiation, queue data and transfer rates.",
 	}
 }
 

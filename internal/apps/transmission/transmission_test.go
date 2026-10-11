@@ -2,6 +2,7 @@ package transmission_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,7 +50,23 @@ func (f *fakeTransmission) handler() http.Handler {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
-		w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"version":"4.1.3"}}`))
+		var request struct {
+			Method string `json:"method"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		switch request.Method {
+		case "session-get":
+			w.Write([]byte(`{"result":"success","arguments":{"version":"4.1.3","rpc-version-semver":"6.0.1"}}`))
+		case "session-stats":
+			w.Write([]byte(`{"result":"success","arguments":{"downloadSpeed":0,"uploadSpeed":0,"torrentCount":0,"activeTorrentCount":0,"pausedTorrentCount":0}}`))
+		case "torrent-get":
+			w.Write([]byte(`{"result":"success","arguments":{"torrents":[]}}`))
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+		}
 	})
 	return mux
 }
