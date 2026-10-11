@@ -1,0 +1,21 @@
+docs/homarr-patchmon-contract.md
+  s_01e8d17f7740df::t_3a7d834880c082 1-127
+internal/apps/patchmon/patchmon.go
+  s_01e8d17f7740df::t_25914bd8abaa4a 146-148,160-161,166-167,172-174,189,227-241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05f68f3bd937bdec2bb0efd32c0e171c08a794c2",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
