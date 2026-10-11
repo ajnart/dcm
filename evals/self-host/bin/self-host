@@ -1,0 +1,395 @@
+#!/usr/bin/env python3
+"""Stub `self-host` for skill evaluation.
+
+Replays canned fixtures instead of touching a real Docker Project. The scenario
+is resolved from the working directory: the stub walks up from $PWD looking for a
+".self-host-eval" directory, which setup_run.py writes per run. Every invocation
+is appended to that run's invocations.jsonl so assertions have ground truth for
+what the agent actually ran.
+"""
+
+import json
+import os
+import sys
+import time
+
+VALUE_FLAGS = {
+    "--set",
+    "--set-file",
+    "--exposure",
+    "--media-root",
+    "--downloads-root",
+    "--admin-user",
+    "--domain",
+    "--email",
+    "--app",
+    "--format",
+    "--tail",
+    "--output",
+    "-o",
+    "--allow-private",
+}
+BOOL_FLAGS = {
+    "--json",
+    "--verbose",
+    "-v",
+    "--yes",
+    "--updates",
+    "--purge",
+    "--encrypt",
+    "--follow",
+    "--accept-public",
+    "--easy-names",
+}
+
+
+def find_marker():
+    # run.py keeps the harness directory outside the agent's working directory
+    # and names it here, so the agent cannot read fixtures or the guide's path.
+    env = os.environ.get("SELF_HOST_EVAL_HARNESS")
+    if env:
+        return env if os.path.isdir(env) else None
+    d = os.getcwd()
+    while True:
+        marker = os.path.join(d, ".self-host-eval")
+        if os.path.isdir(marker):
+            return marker
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
+def parse(argv):
+    positionals = []
+    flags = {}
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok in VALUE_FLAGS:
+            flags[tok] = argv[i + 1] if i + 1 < len(argv) else ""
+            i += 2
+            continue
+        if tok in BOOL_FLAGS:
+            flags[tok] = True
+            i += 1
+            continue
+        if tok.startswith("-"):
+            flags[tok] = True
+            i += 1
+            continue
+        positionals.append(tok)
+        i += 1
+    return positionals, flags
+
+
+class Harness:
+    def __init__(self, marker, argv):
+        self.marker = marker
+        self.scenario = os.path.join(marker, "scenario")
+        self.cfg = json.load(open(os.path.join(marker, "config.json")))
+        self.argv = argv
+        self.state = os.path.join(marker, "state")
+        os.makedirs(self.state, exist_ok=True)
+        self.positionals, self.flags = parse(argv)
+        self.json = bool(self.flags.get("--json"))
+
+    def path(self, name):
+        return os.path.join(self.scenario, name)
+
+    def has(self, name):
+        return os.path.exists(self.path(name))
+
+    def exit_code(self, name):
+        if self.has(name + ".exit"):
+            spec = json.load(open(self.path(name + ".exit")))
+            if spec.get("stderr"):
+                sys.stderr.write(spec["stderr"].rstrip("\n") + "\n")
+            return spec.get("code", 0)
+        return None
+
+    def emit_events(self, name, only_apps=None):
+        """Print a JSONL fixture; returns True when one existed.
+
+        only_apps drops events about Apps this run did not ask for.
+        """
+        if not self.has(name + ".jsonl"):
+            return False
+        with open(self.path(name + ".jsonl")) as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if not line:
+                    continue
+                if only_apps:
+                    try:
+                        app = json.loads(line).get("app")
+                    except json.JSONDecodeError:
+                        app = None
+                    if app and app not in only_apps:
+                        continue
+                if self.json:
+                    print(line)
+                else:
+                    try:
+                        ev = json.loads(line)
+                    except json.JSONDecodeError:
+                        print(line)
+                        continue
+                    print(ev.get("msg") or ev.get("event", ""))
+        return True
+
+    def emit_doc(self, name):
+        """Print a JSON document fixture; returns True when one existed."""
+        if not self.has(name + ".json"):
+            return False
+        with open(self.path(name + ".json")) as f:
+            print(f.read().rstrip("\n"))
+        return True
+
+    def finish(self, name, default_code=0):
+        code = self.exit_code(name)
+        if code is None:
+            code = default_code
+        return code
+
+    def missing(self, what):
+        sys.stderr.write(
+            "eval-harness: no fixture for %r in scenario %s\n"
+            % (what, os.path.basename(self.scenario))
+        )
+        if self.json:
+            print(
+                json.dumps(
+                    {
+                        "event": "step.fail",
+                        "step": "eval-harness",
+                        "msg": "eval harness has no fixture for this command",
+                        "error": "no fixture for %s" % what,
+                    }
+                )
+            )
+        return 1
+
+
+def guide_text(cfg):
+    path = cfg.get("guide")
+    if not path or not os.path.exists(path):
+        return "# self-host agent guide (eval harness: guide.md not found)\n"
+    with open(path) as f:
+        return f.read().replace("{{version}}", cfg.get("version", "dev-eval"))
+
+
+def installed_ids(h, requested):
+    """Expand Recipes so status shows only what this run installed."""
+    recipes = {}
+    if h.has("apps-list.json"):
+        data = json.load(open(h.path("apps-list.json")))
+        recipes = {r["id"]: r.get("apps", []) for r in data.get("recipes", [])}
+    out = []
+    for item in requested:
+        for app in recipes.get(item, [item]):
+            if app not in out:
+                out.append(app)
+    return out
+
+
+def emit_installed_status(h):
+    doc = json.load(open(h.path("status-installed.json")))
+    wanted = set(open(os.path.join(h.state, "installed")).read().split())
+    if wanted and wanted != {"1"} and isinstance(doc.get("apps"), list):
+        doc["apps"] = [a for a in doc["apps"] if a.get("id") in wanted or a.get("id") == "homarr"]
+    print(json.dumps(doc, indent=2))
+
+
+def main():
+    argv = sys.argv[1:]
+    marker = find_marker()
+    if marker is None:
+        sys.stderr.write(
+            "self-host: eval harness: run this from inside an eval run directory\n"
+        )
+        return 1
+
+    with open(os.path.join(marker, "invocations.jsonl"), "a") as f:
+        f.write(
+            json.dumps(
+                {
+                    "ts": time.time(),
+                    "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
+                    "argv": argv,
+                    "cwd": os.getcwd(),
+                }
+            )
+            + "\n"
+        )
+
+    h = Harness(marker, argv)
+    pos = h.positionals
+
+    if not pos:
+        return h.missing("(no command)") if h.json else print_help()
+    if pos[0] in ("--version", "version", "-version"):
+        print(h.cfg.get("version", "dev-eval"))
+        return 0
+
+    cmd = pos[0]
+    sub = pos[1] if len(pos) > 1 else ""
+
+    if "--help" in argv or "-h" in argv:
+        if h.has(os.path.join("help", cmd + ".txt")):
+            sys.stdout.write(open(h.path(os.path.join("help", cmd + ".txt"))).read())
+        else:
+            print("Usage: self-host %s [flags]. Run `self-host skill` for the full guide." % cmd)
+        return 0
+
+    if cmd == "skill":
+        sys.stdout.write(guide_text(h.cfg))
+        return 0
+
+    if cmd == "status":
+        base = "status-installed" if (h.has("status-installed.json") and os.path.exists(os.path.join(h.state, "installed"))) else "status"
+        if h.has("status-fixed.json") and os.path.exists(os.path.join(h.state, "lan_fixed")):
+            base = "status-fixed"
+        if base == "status-installed":
+            emit_installed_status(h)
+        else:
+            h.emit_doc(base)
+        return h.finish(base)
+
+    if cmd == "profile":
+        if sub == "set":
+            h.emit_doc("profile-set")
+            with open(os.path.join(h.state, "experience"), "w") as f:
+                for p in pos[2:]:
+                    f.write(p + "\n")
+            return h.finish("profile-set")
+        h.emit_doc("profile")
+        return h.finish("profile")
+
+    if cmd == "doctor":
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        from dockerstate import docker_state
+
+        state = docker_state(h.marker)
+        if state != "ok" and h.emit_events("doctor-docker-" + state):
+            return 1
+        if not h.emit_events("doctor"):
+            return h.missing("doctor")
+        return h.finish("doctor")
+
+    if cmd == "apps":
+        if sub == "info":
+            app = pos[2] if len(pos) > 2 else ""
+            name = os.path.join("apps-info", app)
+            if h.emit_doc(name):
+                return h.finish(name)
+            return h.missing("apps info " + app)
+        if h.emit_doc("apps-list"):
+            return h.finish("apps-list")
+        return h.missing("apps list")
+
+    if cmd == "debug":
+        app = pos[1] if len(pos) > 1 else ""
+        name = os.path.join("debug", app)
+        if h.emit_doc(name):
+            return h.finish(name)
+        return h.missing("debug " + app)
+
+    if cmd == "credentials":
+        if h.emit_doc("credentials"):
+            return h.finish("credentials")
+        return h.missing("credentials")
+
+    if cmd == "logs":
+        app = pos[1] if len(pos) > 1 else ""
+        name = os.path.join("logs", app + ".txt")
+        if h.has(name):
+            sys.stdout.write(open(h.path(name)).read())
+            return h.finish(os.path.join("logs", app))
+        return h.missing("logs " + app)
+
+    if cmd == "access":
+        if sub == "export":
+            if h.emit_doc("access-export"):
+                return h.finish("access-export")
+            print(json.dumps({"apps": [], "warnings": []}))
+            return 0
+        return h.missing("access " + sub)
+
+    if cmd == "cloudflare":
+        if sub == "plan":
+            if h.emit_doc("cloudflare-plan"):
+                return h.finish("cloudflare-plan")
+            return h.missing("cloudflare plan")
+        if (
+            sub == "publish"
+            and h.flags.get("--set-file", "").startswith("cloudflare.api_token=")
+            and h.flags.get("--accept-public")
+            and h.has("cloudflare-publish-ok.jsonl")
+        ):
+            h.emit_events("cloudflare-publish-ok")
+            return 0
+        if not h.emit_events("cloudflare-" + sub):
+            return h.missing("cloudflare " + sub)
+        return h.finish("cloudflare-" + sub)
+
+    if cmd == "install":
+        ids = set(installed_ids(h, pos[1:]))
+        if not h.emit_events("install", only_apps=ids):
+            return h.missing("install")
+        with open(os.path.join(h.state, "installed"), "w") as f:
+            f.write("\n".join(installed_ids(h, pos[1:])) + "\n")
+        return h.finish("install")
+
+    if cmd == "setup":
+        if not h.emit_events("setup"):
+            return h.missing("setup")
+        with open(os.path.join(h.state, "installed"), "w") as f:
+            f.write("1\n")
+        return h.finish("setup")
+
+    if cmd == "config":
+        if sub == "review" and not h.flags.get("--yes"):
+            if h.emit_doc("config-review"):
+                return h.finish("config-review")
+            return h.missing("config review")
+        name = "config-" + (sub or "set")
+        if sub == "review":
+            name = "config-set"
+        if not h.emit_events(name):
+            return h.missing("config " + sub)
+        if sub == "review" or "LAN_IP=auto" in pos or "LAN_IP=auto" in h.argv:
+            with open(os.path.join(h.state, "lan_fixed"), "w") as f:
+                f.write("1\n")
+        return h.finish("config-" + (sub or "set"))
+
+    if cmd in (
+        "start",
+        "stop",
+        "restart",
+        "up",
+        "down",
+        "update",
+        "remove",
+        "backup",
+        "restore",
+        "self-update",
+        "feedback",
+    ):
+        if not h.emit_events(cmd):
+            return h.missing(cmd)
+        return h.finish(cmd)
+
+    return h.missing(cmd)
+
+
+def print_help():
+    print("self-host (eval harness)")
+    print("Commands: doctor, install, setup, status, profile, apps, debug, credentials,")
+    print("  start, stop, restart, up, down, update, remove, config, cloudflare, backup,")
+    print("  restore, access, logs, feedback, self-update, skill")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,1406 @@
+{
+  "apps": [
+    {
+      "id": "actual-budget",
+      "name": "Actual Budget",
+      "description": "Plan your spending and follow every dollar, with one budget on all your devices",
+      "category": "Productivity",
+      "image": "ghcr.io/actualbudget/actual:26.9.0",
+      "docs": "https://actualbudget.org/docs/install/docker/",
+      "port": 5006,
+      "inputs": []
+    },
+    {
+      "id": "adguard-home",
+      "name": "AdGuard Home",
+      "description": "Block ads and trackers on every device at home, with a simple control page",
+      "category": "DNS",
+      "image": "adguard/adguardhome:v0.107.79",
+      "docs": "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "archive-team-warrior",
+      "name": "ArchiveTeam Warrior",
+      "description": "Lend your spare internet time to help save websites before they disappear",
+      "category": "Downloads",
+      "image": "atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca",
+      "docs": "https://wiki.archiveteam.org/index.php/ArchiveTeam_Warrior",
+      "port": 8001,
+      "inputs": [
+        {
+          "key": "nickname",
+          "prompt": "Warrior contribution nickname",
+          "help": "A 3-30 character public nickname shown on the ArchiveTeam HQ leaderboard",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "aria2",
+      "name": "Aria2",
+      "description": "Download files and torrents in the background, controlled by other tools",
+      "category": "Downloads",
+      "image": "snowdreamtech/aria2:1.37.0-debian",
+      "docs": "https://aria2.github.io/manual/en/html/",
+      "port": 6800,
+      "inputs": []
+    },
+    {
+      "id": "audiobookshelf",
+      "name": "Audiobookshelf",
+      "description": "Listen to your audiobooks and podcasts on your phone or in a browser",
+      "category": "Media",
+      "image": "ghcr.io/advplyr/audiobookshelf:2.37.0",
+      "docs": "https://www.audiobookshelf.org/docs",
+      "port": 13378,
+      "inputs": []
+    },
+    {
+      "id": "authelia",
+      "name": "Authelia",
+      "description": "Add a login page with a second security step in front of your other apps",
+      "category": "Identity",
+      "image": "docker.io/authelia/authelia:4.39.25",
+      "docs": "https://www.authelia.com/integration/deployment/docker/",
+      "port": 9091,
+      "inputs": [
+        {
+          "key": "origin",
+          "prompt": "Canonical HTTPS portal origin",
+          "help": "The exact approved HTTPS origin Authelia serves, e.g. https://auth.example.com (TLS and DNS are a separate ingress decision)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "authentik",
+      "name": "Authentik",
+      "description": "Sign in once to reach all your apps, with one login for the whole household",
+      "category": "Identity",
+      "image": "ghcr.io/goauthentik/server:2026.8.3",
+      "docs": "https://docs.goauthentik.io/install-config/install/docker-compose/",
+      "port": 9000,
+      "inputs": []
+    },
+    {
+      "id": "bazarr",
+      "name": "Bazarr",
+      "description": "Automatically find subtitles for your movies and shows",
+      "category": "Requests",
+      "image": "lscr.io/linuxserver/bazarr:version-v1.6.0",
+      "docs": "https://wiki.bazarr.media/",
+      "port": 6767,
+      "inputs": []
+    },
+    {
+      "id": "beszel",
+      "name": "Beszel",
+      "description": "See how busy your computers are: processor, memory and disk space",
+      "category": "Monitoring",
+      "image": "henrygd/beszel:0.20.0",
+      "docs": "https://www.beszel.dev/guide/hub-installation",
+      "port": 8090,
+      "inputs": []
+    },
+    {
+      "id": "bookstack",
+      "name": "BookStack",
+      "description": "Keep notes and how-to guides organized in books, chapters and pages",
+      "category": "Productivity",
+      "image": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
+      "docs": "https://www.bookstackapp.com/docs/admin/installation/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "borgmatic",
+      "name": "Borgmatic",
+      "description": "Back up your files on a schedule, safely encrypted",
+      "category": "Backups",
+      "image": "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
+      "docs": "https://torsion.org/borgmatic/docs/",
+      "port": 0,
+      "inputs": [
+        {
+          "key": "repository",
+          "prompt": "Borg repository destination",
+          "help": "The repository Borgmatic backs up to, e.g. /mnt/borg-repository or user@host:/path",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "caddy",
+      "name": "Caddy",
+      "description": "Give your apps their own web addresses, with the secure padlock set up for you",
+      "category": "Ingress",
+      "image": "caddy:2.11.4",
+      "docs": "https://caddyserver.com/docs/",
+      "port": 2015,
+      "inputs": []
+    },
+    {
+      "id": "cloudflare-tunnel",
+      "name": "Cloudflare Tunnel",
+      "description": "Open your app to the internet safely through Cloudflare, with no router changes",
+      "category": "Remote access",
+      "image": "cloudflare/cloudflared:2026.9.1",
+      "docs": "https://developers.cloudflare.com/tunnel/",
+      "port": 0,
+      "inputs": [
+        {
+          "key": "token",
+          "prompt": "Cloudflare Tunnel connector token",
+          "help": "The tunnel run token, not the API token; self-host cloudflare publish obtains it automatically",
+          "required": true,
+          "private": true
+        }
+      ]
+    },
+    {
+      "id": "dashdot",
+      "name": "Dash.",
+      "description": "See your computer's processor, memory and disk use at a glance",
+      "category": "Monitoring",
+      "image": "mauricenino/dashdot:6.3.4",
+      "docs": "https://getdashdot.com/docs/",
+      "port": 3001,
+      "inputs": []
+    },
+    {
+      "id": "deluge",
+      "name": "Deluge",
+      "description": "Download torrents in the background, with a simple web page to manage them",
+      "category": "Downloads",
+      "image": "lscr.io/linuxserver/deluge:2.2.0-ls381",
+      "docs": "https://deluge.readthedocs.io/en/latest/",
+      "port": 8112,
+      "inputs": []
+    },
+    {
+      "id": "dockge",
+      "name": "Dockge",
+      "description": "Start, stop and edit your apps from a simple web page",
+      "category": "Containers",
+      "image": "docker.io/louislam/dockge:1.5.0",
+      "docs": "https://github.com/louislam/dockge#how-to-install",
+      "port": 5001,
+      "inputs": []
+    },
+    {
+      "id": "docmost",
+      "name": "Docmost",
+      "description": "Write and share notes and documents with your family or team",
+      "category": "Productivity",
+      "image": "docker.io/docmost/docmost:0.96.0",
+      "docs": "https://docmost.com/docs/installation",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "emby",
+      "name": "Emby",
+      "description": "Watch your own movies and shows on any TV, phone or computer",
+      "category": "Media",
+      "image": "emby/embyserver:4.10.0.40",
+      "docs": "https://emby.media/support/articles/Installation.html",
+      "port": 8096,
+      "inputs": []
+    },
+    {
+      "id": "firefly-iii",
+      "name": "Firefly III",
+      "description": "Track your income, expenses and budgets in one private place",
+      "category": "Productivity",
+      "image": "fireflyiii/core:version-6.7.2",
+      "docs": "https://docs.firefly-iii.org/how-to/firefly-iii/installation/docker/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "forgejo",
+      "name": "Forgejo",
+      "description": "Store and track your software code privately, like a private GitHub",
+      "category": "Developer tools",
+      "image": "codeberg.org/forgejo/forgejo:16.0.5",
+      "docs": "https://forgejo.org/docs/latest/admin/installation-docker/",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "freshrss",
+      "name": "FreshRSS",
+      "description": "Read news from all your favorite websites in one place",
+      "category": "Productivity",
+      "image": "ghcr.io/freshrss/freshrss:1.30.0",
+      "docs": "https://github.com/FreshRSS/FreshRSS/tree/edge/Docker",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "frigate",
+      "name": "Frigate",
+      "description": "Record your security cameras and get alerts when people or cars appear",
+      "category": "Cameras",
+      "image": "ghcr.io/blakeblackshear/frigate:0.18.0",
+      "docs": "https://docs.frigate.video/guides/getting_started/",
+      "port": 8971,
+      "inputs": []
+    },
+    {
+      "id": "gatus",
+      "name": "Gatus",
+      "description": "Check that your apps are working and see them on a status page",
+      "category": "Monitoring",
+      "image": "ghcr.io/twin/gatus:v5.37.0",
+      "docs": "https://github.com/TwiN/gatus/blob/v5.37.0/README.md",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "glances",
+      "name": "Glances",
+      "description": "See your computer's health and workload in a web page",
+      "category": "Monitoring",
+      "image": "nicolargo/glances:4.5.6",
+      "docs": "https://glances.readthedocs.io/en/latest/docker.html",
+      "port": 61208,
+      "inputs": []
+    },
+    {
+      "id": "gluetun",
+      "name": "Gluetun",
+      "description": "Send your downloads through a VPN, and stop them if it disconnects",
+      "category": "Downloads",
+      "image": "qmcgaw/gluetun:v3.41.3",
+      "docs": "https://github.com/qdm12/gluetun-wiki",
+      "port": 8000,
+      "inputs": [
+        {
+          "key": "provider",
+          "prompt": "VPN provider",
+          "help": "A supported OpenVPN provider: protonvpn or purevpn",
+          "default": "protonvpn",
+          "required": true
+        },
+        {
+          "key": "server-country",
+          "prompt": "VPN server country",
+          "help": "One provider-supported country name, e.g. Netherlands",
+          "required": true
+        },
+        {
+          "key": "openvpn-user",
+          "prompt": "Provider OpenVPN username",
+          "help": "The OpenVPN username issued by the provider (not your web-account login)",
+          "required": true,
+          "private": true
+        },
+        {
+          "key": "openvpn-password",
+          "prompt": "Provider OpenVPN password",
+          "help": "The OpenVPN password issued by the provider",
+          "required": true,
+          "private": true
+        }
+      ]
+    },
+    {
+      "id": "gotify",
+      "name": "Gotify",
+      "description": "Collect notifications from your apps and send them to your phone",
+      "category": "Communication",
+      "image": "gotify/server:3.1.1",
+      "docs": "https://gotify.net/docs/install",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "description": "Turn numbers about your computers and apps into charts and alerts",
+      "category": "Observability",
+      "image": "grafana/grafana:13.2.2",
+      "docs": "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "haproxy",
+      "name": "HAProxy",
+      "description": "Give your apps one shared front door, with a page of usage statistics",
+      "category": "Ingress",
+      "image": "haproxy:3.2.25",
+      "docs": "https://docs.haproxy.org/",
+      "port": 18081,
+      "inputs": [
+        {
+          "key": "target-app",
+          "prompt": "Backend application",
+          "help": "The catalog App id to proxy to, e.g. ntfy",
+          "required": true
+        },
+        {
+          "key": "target-port",
+          "prompt": "Backend container port",
+          "help": "The container port of the selected App, e.g. 80",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "headscale",
+      "name": "Headscale",
+      "description": "Connect your devices into one private network, without a Tailscale account",
+      "category": "Remote access",
+      "image": "docker.io/headscale/headscale:0.29.4",
+      "docs": "https://headscale.net/stable/setup/install/container/",
+      "port": 18082,
+      "inputs": [
+        {
+          "key": "canonical-origin",
+          "prompt": "Canonical HTTPS origin",
+          "help": "The exact HTTPS origin clients use, e.g. https://headscale.example.com (DNS, TLS and the control-protocol proxy are a separate ingress decision)",
+          "required": true
+        },
+        {
+          "key": "magic-dns-domain",
+          "prompt": "MagicDNS base domain",
+          "help": "A distinct domain for mesh device names, e.g. mesh.example.com; it must differ from the origin host",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "homarr",
+      "name": "Homarr",
+      "description": "Put all your apps on one home page, each a click away",
+      "category": "Dashboard",
+      "image": "ghcr.io/homarr-labs/homarr:dev",
+      "docs": "https://homarr.dev/docs/getting-started/",
+      "port": 7575,
+      "inputs": [],
+      "links": [
+        "sonarr",
+        "radarr",
+        "prowlarr",
+        "jellyfin",
+        "seerr",
+        "qbittorrent",
+        "beszel",
+        "ntfy",
+        "vaultwarden"
+      ]
+    },
+    {
+      "id": "home-assistant",
+      "name": "Home Assistant",
+      "description": "Control and automate your lights, sensors and smart home devices",
+      "category": "Home automation",
+      "image": "ghcr.io/home-assistant/home-assistant:2026.9.3",
+      "docs": "https://www.home-assistant.io/installation/",
+      "port": 8123,
+      "inputs": []
+    },
+    {
+      "id": "homebridge",
+      "name": "Homebridge",
+      "description": "Make smart home gadgets work with Apple Home",
+      "category": "Home automation",
+      "image": "homebridge/homebridge:2026-09-25",
+      "docs": "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker",
+      "port": 8581,
+      "inputs": []
+    },
+    {
+      "id": "immich",
+      "name": "Immich",
+      "description": "Back up your phone's photos and find any of them by searching",
+      "category": "Photos",
+      "image": "ghcr.io/immich-app/immich-server:v3.2.2",
+      "docs": "https://docs.immich.app/install/docker-compose/",
+      "port": 2283,
+      "inputs": []
+    },
+    {
+      "id": "jellyfin",
+      "name": "Jellyfin",
+      "description": "Stream your movies and shows to every screen in the house",
+      "category": "Media",
+      "image": "lscr.io/linuxserver/jellyfin:latest",
+      "docs": "https://jellyfin.org/docs/general/installation/container/",
+      "port": 8096,
+      "inputs": []
+    },
+    {
+      "id": "keycloak",
+      "name": "Keycloak",
+      "description": "Manage logins in one place, so people sign in once to reach many apps",
+      "category": "Identity",
+      "image": "quay.io/keycloak/keycloak:26.7.4",
+      "docs": "https://www.keycloak.org/server/configuration-production",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "kopia",
+      "name": "Kopia",
+      "description": "Back up your files with encryption and check on them from a web page",
+      "category": "Backups",
+      "image": "docker.io/kopia/kopia:0.23.1",
+      "docs": "https://kopia.io/docs/getting-started/",
+      "port": 51515,
+      "inputs": []
+    },
+    {
+      "id": "lidarr",
+      "name": "Lidarr",
+      "description": "Find, download and organize your music automatically",
+      "category": "Requests",
+      "image": "lscr.io/linuxserver/lidarr:version-3.1.0.4875",
+      "docs": "https://wiki.servarr.com/lidarr",
+      "port": 8686,
+      "inputs": []
+    },
+    {
+      "id": "linkwarden",
+      "name": "Linkwarden",
+      "description": "Save web pages you care about and search them later",
+      "category": "Productivity",
+      "image": "ghcr.io/linkwarden/linkwarden:v2.16.3",
+      "docs": "https://docs.linkwarden.app/self-hosting/setup",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "lldap",
+      "name": "LLDAP",
+      "description": "Keep one list of users and passwords that your apps can share",
+      "category": "Identity",
+      "image": "lldap/lldap:2026-08-28",
+      "docs": "https://github.com/lldap/lldap/blob/main/docs/install.md",
+      "port": 17170,
+      "inputs": []
+    },
+    {
+      "id": "loki",
+      "name": "Loki",
+      "description": "Gather your apps' activity messages in one place to search through",
+      "category": "Observability",
+      "image": "grafana/loki:3.7.0",
+      "docs": "https://grafana.com/docs/loki/latest/setup/install/docker/",
+      "port": 3100,
+      "inputs": []
+    },
+    {
+      "id": "mayan-edms",
+      "name": "Mayan EDMS",
+      "description": "Store scanned paper documents, make them searchable and route them for review",
+      "category": "Documents",
+      "image": "mayanedms/mayanedms:v4.12.2",
+      "docs": "https://docs.mayan-edms.com/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "minio",
+      "name": "MinIO AIStor",
+      "description": "Store files for your apps and backups, like your own private cloud drive",
+      "category": "Storage",
+      "image": "quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4ef74f03d6f2",
+      "docs": "https://docs.min.io/aistor/installation/container/install/",
+      "port": 9000,
+      "inputs": [
+        {
+          "key": "MINIO_LICENSE_FILE",
+          "prompt": "Path to the AIStor license file you obtained from MinIO",
+          "help": "Download the license from MinIO and pass its absolute path. See https://docs.min.io/aistor/installation/container/install/",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "navidrome",
+      "name": "Navidrome",
+      "description": "Stream your music collection to your phone or computer",
+      "category": "Media",
+      "image": "deluan/navidrome:0.64.0",
+      "docs": "https://www.navidrome.org/docs/installation/docker/",
+      "port": 4533,
+      "inputs": []
+    },
+    {
+      "id": "netbird",
+      "name": "NetBird",
+      "description": "Connect your devices into one private network, wherever they are",
+      "category": "Remote access",
+      "image": "netbirdio/dashboard:v2.94.0",
+      "docs": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+      "port": 18080,
+      "inputs": [
+        {
+          "key": "NETBIRD_CANONICAL_ORIGIN",
+          "prompt": "Public HTTPS URL for the NetBird management API and dashboard",
+          "help": "The exact https://host reverse-proxied to this control plane. See https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "netdata",
+      "name": "Netdata",
+      "description": "Watch your computer's performance live, second by second",
+      "category": "Monitoring",
+      "image": "netdata/netdata:v2.11.0",
+      "docs": "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
+      "port": 19999,
+      "inputs": []
+    },
+    {
+      "id": "nextcloud",
+      "name": "Nextcloud",
+      "description": "Keep your files, calendars and contacts in sync across your devices",
+      "category": "Files",
+      "image": "nextcloud:35.0.1-apache",
+      "docs": "https://github.com/nextcloud/docker",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "nginx-proxy-manager",
+      "name": "Nginx Proxy Manager",
+      "description": "Give your apps easy web addresses and secure padlocks from a web page",
+      "category": "Ingress",
+      "image": "jc21/nginx-proxy-manager:2.16.0",
+      "docs": "https://nginxproxymanager.com/guide/",
+      "port": 8181,
+      "inputs": []
+    },
+    {
+      "id": "node-red",
+      "name": "Node-RED",
+      "description": "Connect devices and services with simple drag-and-drop automations",
+      "category": "Home automation",
+      "image": "nodered/node-red:5.0.7",
+      "docs": "https://nodered.org/docs/getting-started/docker",
+      "port": 1880,
+      "inputs": []
+    },
+    {
+      "id": "ntfy",
+      "name": "ntfy",
+      "description": "Get instant pop-up alerts on your phone from your apps and scripts",
+      "category": "Communication",
+      "image": "binwiederhier/ntfy:latest",
+      "docs": "https://docs.ntfy.sh/install/",
+      "port": 2586,
+      "inputs": []
+    },
+    {
+      "id": "nzbget",
+      "name": "NZBGet",
+      "description": "Download files from your Usenet provider, a paid file-sharing service",
+      "category": "Downloads",
+      "image": "ghcr.io/nzbgetcom/nzbget:v26.3",
+      "docs": "https://nzbget.com/documentation/",
+      "port": 6789,
+      "inputs": []
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "description": "Run AI chat models on your own computer, with nothing sent to the cloud",
+      "category": "Local AI",
+      "image": "ollama/ollama:0.34.1",
+      "docs": "https://github.com/ollama/ollama/blob/main/docs/docker.md",
+      "port": 11434,
+      "inputs": []
+    },
+    {
+      "id": "open-webui",
+      "name": "Open WebUI",
+      "description": "Chat with AI models running on your own computer, in your browser",
+      "category": "Local AI",
+      "image": "ghcr.io/open-webui/open-webui:v0.11.4",
+      "docs": "https://docs.openwebui.com/getting-started/quick-start/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "pangolin",
+      "name": "Pangolin",
+      "description": "Reach your apps from outside your home by name, behind a login page",
+      "category": "Remote access",
+      "image": "traefik:v3.7",
+      "docs": "https://docs.pangolin.net/",
+      "port": 18086,
+      "inputs": [
+        {
+          "key": "PANGOLIN_CANONICAL_ORIGIN",
+          "prompt": "Private HTTPS URL for the Pangolin dashboard and API",
+          "help": "The exact https://host reverse-proxied to this router. See https://docs.pangolin.net/",
+          "required": true
+        },
+        {
+          "key": "PANGOLIN_BASE_DOMAIN",
+          "prompt": "Base domain for resources",
+          "help": "Defaults to the administrative origin's host",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "paperless-ngx",
+      "name": "Paperless-ngx",
+      "description": "Scan paper and files into a searchable, tagged filing cabinet",
+      "category": "Documents",
+      "image": "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
+      "docs": "https://docs.paperless-ngx.com/setup/",
+      "port": 8000,
+      "inputs": []
+    },
+    {
+      "id": "passbolt",
+      "name": "Passbolt",
+      "description": "Share passwords safely with your team, with a browser add-on",
+      "category": "Passwords",
+      "image": "passbolt/passbolt:5.16.0-1-ce",
+      "docs": "https://www.passbolt.com/docs/hosting/install/ce/docker/",
+      "port": 18085,
+      "inputs": [
+        {
+          "key": "PASSBOLT_CANONICAL_ORIGIN",
+          "prompt": "Stable private HTTPS URL for Passbolt",
+          "help": "The exact https://host clients will use, e.g. https://passbolt.selfhost.local. See https://www.passbolt.com/docs/hosting/install/ce/docker/",
+          "required": true
+        },
+        {
+          "key": "PASSBOLT_SMTP_HOST",
+          "prompt": "No-auth STARTTLS SMTP relay hostname",
+          "help": "An owner-approved relay; authenticated SMTP needs separate credential transport",
+          "required": true
+        },
+        {
+          "key": "PASSBOLT_SMTP_PORT",
+          "prompt": "SMTP relay port",
+          "default": "587",
+          "required": false
+        },
+        {
+          "key": "PASSBOLT_FROM_EMAIL",
+          "prompt": "Notification sender email",
+          "default": "passbolt@selfhost.local",
+          "required": false
+        },
+        {
+          "key": "PASSBOLT_FROM_NAME",
+          "prompt": "Notification sender name",
+          "default": "Passbolt",
+          "required": false
+        },
+        {
+          "key": "PASSBOLT_SERVER_KEY_EMAIL",
+          "prompt": "Initial server OpenPGP key email",
+          "default": "passbolt@selfhost.local",
+          "required": false
+        },
+        {
+          "key": "PASSBOLT_SERVER_KEY_NAME",
+          "prompt": "Initial server OpenPGP key name",
+          "default": "Passbolt",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "patchmon",
+      "name": "PatchMon",
+      "description": "See which of your computers are waiting for software updates",
+      "category": "Monitoring",
+      "image": "ghcr.io/patchmon/patchmon-server:2.1.3",
+      "docs": "https://docs.patchmon.net/",
+      "port": 3000,
+      "inputs": [
+        {
+          "key": "admin_email",
+          "prompt": "Administrator email",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "peanut",
+      "name": "PeaNUT",
+      "description": "Check on your battery backup (UPS) with a live dashboard",
+      "category": "Monitoring",
+      "image": "brandawg93/peanut:6.0.0",
+      "docs": "https://github.com/Brandawg93/PeaNUT#readme",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "photoprism",
+      "name": "PhotoPrism",
+      "description": "Browse, organize and search your photo collection privately",
+      "category": "Photos",
+      "image": "docker.io/photoprism/photoprism:260728",
+      "docs": "https://docs.photoprism.app/getting-started/docker-compose/",
+      "port": 2342,
+      "inputs": []
+    },
+    {
+      "id": "pihole",
+      "name": "Pi-hole",
+      "description": "Stop ads and trackers on all your devices at home, with a simple admin page",
+      "category": "DNS",
+      "image": "pihole/pihole:2026.09.0",
+      "docs": "https://docs.pi-hole.net/docker/",
+      "port": 8080,
+      "inputs": [
+        {
+          "key": "dns-port",
+          "prompt": "Published DNS port",
+          "help": "TCP and UDP host port; LAN DNS clients normally require port 53",
+          "default": "53",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "plex",
+      "name": "Plex",
+      "description": "Stream your movies and shows to any TV, phone or tablet, signed in with Plex",
+      "category": "Media",
+      "image": "plexinc/pms-docker:1.43.4.10903-e5521bd8c",
+      "docs": "https://support.plex.tv/articles/200288586-installation/",
+      "port": 32400,
+      "inputs": [
+        {
+          "key": "claim_token",
+          "prompt": "Plex claim token",
+          "help": "Create a claim token at https://www.plex.tv/claim and paste it here.",
+          "required": true,
+          "private": true
+        }
+      ]
+    },
+    {
+      "id": "portainer",
+      "name": "Portainer",
+      "description": "See and manage your running apps from one web page",
+      "category": "Containers",
+      "image": "docker.io/portainer/portainer-ce:2.45.1",
+      "docs": "https://docs.portainer.io/start/install-ce/server/docker/linux",
+      "port": 9000,
+      "inputs": []
+    },
+    {
+      "id": "postgresql",
+      "name": "PostgreSQL",
+      "description": "A database where your other apps keep their information",
+      "category": "Databases",
+      "image": "docker.io/library/postgres:18.6",
+      "docs": "https://www.postgresql.org/docs/current/",
+      "port": 5432,
+      "inputs": []
+    },
+    {
+      "id": "prometheus",
+      "name": "Prometheus",
+      "description": "Record numbers about how your computers and apps are doing over time",
+      "category": "Observability",
+      "image": "prom/prometheus:v3.15.0",
+      "docs": "https://prometheus.io/docs/prometheus/latest/installation/",
+      "port": 9090,
+      "inputs": []
+    },
+    {
+      "id": "prowlarr",
+      "name": "Prowlarr",
+      "description": "Manage the search sites that Sonarr and Radarr use to find your downloads",
+      "category": "Requests",
+      "image": "lscr.io/linuxserver/prowlarr:latest",
+      "docs": "https://wiki.servarr.com/prowlarr",
+      "port": 9696,
+      "inputs": [],
+      "links": [
+        "sonarr",
+        "radarr"
+      ]
+    },
+    {
+      "id": "qbittorrent",
+      "name": "qBittorrent",
+      "description": "Download and share torrents from a clean web page",
+      "category": "Downloads",
+      "image": "lscr.io/linuxserver/qbittorrent:latest",
+      "docs": "https://github.com/qbittorrent/qBittorrent/wiki",
+      "port": 8080,
+      "inputs": [
+        {
+          "key": "torrent-port",
+          "prompt": "Torrent peer port",
+          "help": "TCP and UDP peer port, separate from the private WebUI",
+          "default": "6881",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "radarr",
+      "name": "Radarr",
+      "description": "Find, download and organize movies automatically",
+      "category": "Requests",
+      "image": "lscr.io/linuxserver/radarr:latest",
+      "docs": "https://radarr.video/docs/",
+      "port": 7878,
+      "inputs": [],
+      "links": [
+        "qbittorrent"
+      ]
+    },
+    {
+      "id": "renovate",
+      "name": "Renovate",
+      "description": "Automatically suggest updates for the software your code projects depend on",
+      "category": "Developer tools",
+      "image": "ghcr.io/renovatebot/renovate:44.132.2",
+      "docs": "https://docs.renovatebot.com/",
+      "port": 0,
+      "inputs": [
+        {
+          "key": "token",
+          "prompt": "Forgejo Personal Access Token",
+          "help": "A dedicated Renovate account's token with repository read and pull-request write scope",
+          "required": true,
+          "private": true
+        }
+      ]
+    },
+    {
+      "id": "restic",
+      "name": "restic",
+      "description": "Back up your files with encryption, and restore them when you need them",
+      "category": "Backups",
+      "image": "ghcr.io/restic/restic:0.19.1",
+      "docs": "https://restic.readthedocs.io/en/stable/",
+      "port": 0,
+      "inputs": [
+        {
+          "key": "repository",
+          "prompt": "restic repository destination",
+          "help": "The repository restic writes snapshots to, e.g. /repository or s3:s3.example.com/bucket",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "sabnzbd",
+      "name": "SABnzbd",
+      "description": "Automatically fetch files from Usenet, a paid file-sharing service",
+      "category": "Downloads",
+      "image": "linuxserver/sabnzbd:version-5.1.3",
+      "docs": "https://sabnzbd.org/wiki/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "scrypted",
+      "name": "Scrypted",
+      "description": "Bring your security cameras into Apple Home and other smart home apps",
+      "category": "Cameras",
+      "image": "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
+      "docs": "https://docs.scrypted.app/",
+      "port": 11080,
+      "inputs": []
+    },
+    {
+      "id": "seafile",
+      "name": "Seafile",
+      "description": "Sync and share your files across all your devices",
+      "category": "Files",
+      "image": "seafileltd/seafile-mc:13.0.28",
+      "docs": "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "seerr",
+      "name": "Seerr",
+      "description": "Let your family ask for movies and shows to be added",
+      "category": "Requests",
+      "image": "ghcr.io/seerr-team/seerr:latest",
+      "docs": "https://docs.seerr.dev/getting-started/docker/",
+      "port": 5055,
+      "inputs": [],
+      "links": [
+        "jellyfin",
+        "sonarr",
+        "radarr"
+      ]
+    },
+    {
+      "id": "slskd",
+      "name": "Slskd",
+      "description": "Share and find music with others on the Soulseek network, from a web page",
+      "category": "Downloads",
+      "image": "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
+      "docs": "https://github.com/slskd/slskd/tree/master/docs",
+      "port": 5030,
+      "inputs": []
+    },
+    {
+      "id": "sonarr",
+      "name": "Sonarr",
+      "description": "Find, download and organize TV shows automatically",
+      "category": "Requests",
+      "image": "lscr.io/linuxserver/sonarr:latest",
+      "docs": "https://wiki.servarr.com/sonarr",
+      "port": 8989,
+      "inputs": [],
+      "links": [
+        "qbittorrent"
+      ]
+    },
+    {
+      "id": "speedtest-tracker",
+      "name": "Speedtest Tracker",
+      "description": "Check your internet speed on a schedule and keep the history",
+      "category": "Monitoring",
+      "image": "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
+      "docs": "https://docs.speedtest-tracker.dev/getting-started/installation/using-docker-compose",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "stalwart-mail",
+      "name": "Stalwart Mail Server",
+      "description": "Run your own email service, managed from a private admin page",
+      "category": "Communication",
+      "image": "stalwartlabs/stalwart:v0.16.24",
+      "docs": "https://stalw.art/docs/install/platform/docker",
+      "port": 8080,
+      "inputs": [
+        {
+          "key": "STALWART_HOSTNAME",
+          "prompt": "Server hostname for the admin UI",
+          "help": "The FQDN this server answers on, e.g. mail.selfhost.local. See https://stalw.art/docs/install/platform/docker",
+          "required": true
+        },
+        {
+          "key": "STALWART_DOMAIN",
+          "prompt": "Administrative account domain",
+          "help": "The domain the first administrator belongs to, e.g. selfhost.local",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "stirling-pdf",
+      "name": "Stirling PDF",
+      "description": "Edit, merge, convert and sign PDF files without uploading them anywhere",
+      "category": "Documents",
+      "image": "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
+      "docs": "https://docs.stirlingpdf.com/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "syncthing",
+      "name": "Syncthing",
+      "description": "Keep folders identical across your devices, with no cloud in between",
+      "category": "Files",
+      "image": "syncthing/syncthing:2.1.4",
+      "docs": "https://docs.syncthing.net/",
+      "port": 8384,
+      "inputs": []
+    },
+    {
+      "id": "tailscale",
+      "name": "Tailscale",
+      "description": "Reach your home apps privately from anywhere, on any of your devices",
+      "category": "Remote access",
+      "image": "ghcr.io/tailscale/tailscale:v1.102.4",
+      "docs": "https://tailscale.com/docs/",
+      "port": 0,
+      "inputs": [
+        {
+          "key": "auth_key",
+          "prompt": "Tailscale auth key",
+          "help": "Make one reusable, pre-approved key at https://login.tailscale.com/admin/settings/keys and paste it here. An OAuth client secret works too.",
+          "required": true,
+          "private": true
+        }
+      ]
+    },
+    {
+      "id": "tdarr",
+      "name": "Tdarr",
+      "description": "Shrink and convert your video files automatically to save space",
+      "category": "Media",
+      "image": "ghcr.io/haveagitgat/tdarr:2.92.01",
+      "docs": "https://docs.tdarr.io/",
+      "port": 8265,
+      "inputs": []
+    },
+    {
+      "id": "technitium-dns",
+      "name": "Technitium DNS Server",
+      "description": "Run your home network's address book (DNS), blocking ads and unwanted sites",
+      "category": "DNS",
+      "image": "technitium/dns-server:15.5.1",
+      "docs": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
+      "port": 5380,
+      "inputs": [
+        {
+          "key": "dns-port",
+          "prompt": "Published DNS port",
+          "help": "TCP and UDP host port; LAN DNS clients normally require port 53",
+          "default": "53",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "tracearr",
+      "name": "Tracearr",
+      "description": "See who watches what on your media server, and when",
+      "category": "Media",
+      "image": "ghcr.io/connorgallopo/tracearr:2.6.0",
+      "docs": "https://docs.tracearr.com/getting-started/installation",
+      "port": 3000,
+      "inputs": [
+        {
+          "key": "email",
+          "prompt": "First owner's email",
+          "default": "admin@selfhost.local",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "traefik",
+      "name": "Traefik",
+      "description": "Send web visitors to the right app automatically, with a read-only status page",
+      "category": "Ingress",
+      "image": "traefik:v3.6.22",
+      "docs": "https://doc.traefik.io/traefik/",
+      "port": 8080,
+      "inputs": []
+    },
+    {
+      "id": "transmission",
+      "name": "Transmission",
+      "description": "Download torrents in the background, light on your computer's resources",
+      "category": "Downloads",
+      "image": "linuxserver/transmission:version-4.1.3-r0",
+      "docs": "https://github.com/transmission/transmission/tree/main/docs",
+      "port": 9091,
+      "inputs": []
+    },
+    {
+      "id": "umami",
+      "name": "Umami",
+      "description": "See how many people visit your websites, without tracking them",
+      "category": "Analytics",
+      "image": "ghcr.io/umami-software/umami:3.4.0",
+      "docs": "https://umami.is/docs/install",
+      "port": 3000,
+      "inputs": []
+    },
+    {
+      "id": "unbound",
+      "name": "Unbound",
+      "description": "Look up website addresses for your whole network, privately and quickly",
+      "category": "DNS",
+      "image": "madnuttah/unbound:1.26.0-0",
+      "docs": "https://unbound.docs.nlnetlabs.nl/",
+      "port": 5335,
+      "inputs": []
+    },
+    {
+      "id": "uptime-kuma",
+      "name": "Uptime Kuma",
+      "description": "Get an alert when one of your websites or apps stops working",
+      "category": "Monitoring",
+      "image": "louislam/uptime-kuma:2.5.5",
+      "docs": "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
+      "port": 3001,
+      "inputs": []
+    },
+    {
+      "id": "valkey",
+      "name": "Valkey",
+      "description": "A fast short-term memory that your other apps use to run quicker",
+      "category": "Databases",
+      "image": "valkey/valkey:9.1.2",
+      "docs": "https://valkey.io/topics/installation/",
+      "port": 6379,
+      "inputs": []
+    },
+    {
+      "id": "vaultwarden",
+      "name": "Vaultwarden",
+      "description": "Keep all your passwords in one safe place, on every device",
+      "category": "Passwords",
+      "image": "vaultwarden/server:latest",
+      "docs": "https://github.com/dani-garcia/vaultwarden/wiki",
+      "port": 8222,
+      "inputs": []
+    },
+    {
+      "id": "vector",
+      "name": "Vector",
+      "description": "Collect your apps' activity messages and send them where you choose",
+      "category": "Observability",
+      "image": "ghcr.io/vectordotdev/vector:0.58.0-debian",
+      "docs": "https://vector.dev/docs/setup/installation/platforms/docker/",
+      "port": 8686,
+      "inputs": []
+    },
+    {
+      "id": "victoria-metrics",
+      "name": "VictoriaMetrics",
+      "description": "Keep long histories of numbers about your computers and apps, stored compactly",
+      "category": "Observability",
+      "image": "victoriametrics/victoria-metrics:v1.153.0",
+      "docs": "https://docs.victoriametrics.com/quick-start/",
+      "port": 8428,
+      "inputs": []
+    },
+    {
+      "id": "wud",
+      "name": "What's Up Docker",
+      "description": "Tell you when new versions of your apps are available",
+      "category": "Containers",
+      "image": "getwud/wud:9.1.0",
+      "docs": "https://getwud.app/docs/",
+      "port": 18083,
+      "inputs": [
+        {
+          "key": "WUD_DOCKER_HOST",
+          "prompt": "DNS name of the approved remote Docker TLS endpoint",
+          "help": "A Docker socket proxy or TLS endpoint whose mutating operations are denied. See https://getwud.app/docs/",
+          "required": true
+        },
+        {
+          "key": "WUD_DOCKER_PORT",
+          "prompt": "Remote Docker TLS port",
+          "default": "2376",
+          "required": false
+        },
+        {
+          "key": "WUD_DOCKER_TLS_CLIENT_AUTH",
+          "prompt": "Require Docker TLS client authentication (true or false)",
+          "help": "Prepare tls/ca.pem inside this App directory. When true, also prepare tls/client-cert.pem and private mode-0600 tls/client-key.pem. No external file paths are accepted.",
+          "default": "false",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "zerotier",
+      "name": "ZeroTier",
+      "description": "Connect your devices into one private network, as if on the same Wi-Fi",
+      "category": "Remote access",
+      "image": "zerotier/zerotier:1.14.2",
+      "docs": "https://docs.zerotier.com/",
+      "port": 0,
+      "inputs": []
+    }
+  ],
+  "recipes": [
+    {
+      "id": "media",
+      "name": "Media",
+      "description": "Watch your movies and shows, and have new ones requested and downloaded for you",
+      "apps": [
+        "qbittorrent",
+        "sonarr",
+        "radarr",
+        "prowlarr",
+        "jellyfin",
+        "seerr"
+      ]
+    },
+    {
+      "id": "audio-library",
+      "name": "Audiobooks and music",
+      "description": "Listen to your audiobooks and music on your phone or computer",
+      "apps": [
+        "audiobookshelf",
+        "navidrome"
+      ]
+    },
+    {
+      "id": "backups",
+      "name": "Backups and restore",
+      "description": "Back up your important files safely, and check you can get them back",
+      "apps": [
+        "restic"
+      ]
+    },
+    {
+      "id": "dns",
+      "name": "DNS and network filtering",
+      "description": "Block ads across your whole home network, with a backup in case one stops",
+      "apps": [
+        "unbound",
+        "adguard-home"
+      ]
+    },
+    {
+      "id": "documents",
+      "name": "Documents, PDF, and OCR",
+      "description": "Scan paper into a searchable archive, and edit PDFs without uploading them",
+      "apps": [
+        "paperless-ngx",
+        "stirling-pdf"
+      ]
+    },
+    {
+      "id": "download-privacy",
+      "name": "Downloader privacy",
+      "description": "Download torrents through a VPN, and stop if the VPN drops",
+      "apps": [
+        "gluetun",
+        "qbittorrent"
+      ]
+    },
+    {
+      "id": "files",
+      "name": "Files and synchronization",
+      "description": "Your own cloud drive, replacing Google Drive, OneDrive and Dropbox",
+      "apps": [
+        "nextcloud"
+      ]
+    },
+    {
+      "id": "full",
+      "name": "Full private home server",
+      "description": "Everything for a household: movies, photos, files, music, passwords and smart home",
+      "apps": [
+        "qbittorrent",
+        "prowlarr",
+        "sonarr",
+        "radarr",
+        "jellyfin",
+        "seerr",
+        "immich",
+        "nextcloud",
+        "navidrome",
+        "audiobookshelf",
+        "vaultwarden",
+        "home-assistant"
+      ]
+    },
+    {
+      "id": "home-automation",
+      "name": "Home automation",
+      "description": "Automate your smart home, with cameras that spot people and cars",
+      "apps": [
+        "home-assistant",
+        "node-red",
+        "frigate"
+      ]
+    },
+    {
+      "id": "local-ai",
+      "name": "Local AI",
+      "description": "Chat with AI on your own computer, so your questions stay private",
+      "apps": [
+        "ollama",
+        "open-webui",
+        "beszel"
+      ]
+    },
+    {
+      "id": "monitoring",
+      "name": "Monitoring and observability",
+      "description": "Watch your computers and apps and get alerts when something goes wrong",
+      "apps": [
+        "prometheus",
+        "loki",
+        "beszel",
+        "uptime-kuma",
+        "grafana"
+      ]
+    },
+    {
+      "id": "owned-video-library",
+      "name": "Owned movie and TV library",
+      "description": "Stream the movies and shows you already own to every screen",
+      "apps": [
+        "jellyfin"
+      ]
+    },
+    {
+      "id": "passwords",
+      "name": "Passwords",
+      "description": "Set up a password manager for the whole household",
+      "apps": [
+        "vaultwarden"
+      ]
+    },
+    {
+      "id": "personal-finance",
+      "name": "Personal finance",
+      "description": "Track your spending and budget privately",
+      "apps": [
+        "actual-budget"
+      ]
+    },
+    {
+      "id": "personal-media",
+      "name": "Personal media",
+      "description": "Watch movies and shows, with downloads, subtitles and requests handled for you",
+      "apps": [
+        "qbittorrent",
+        "gluetun",
+        "sonarr",
+        "radarr",
+        "prowlarr",
+        "bazarr",
+        "jellyfin",
+        "seerr"
+      ]
+    },
+    {
+      "id": "photos",
+      "name": "Photos and mobile backup",
+      "description": "Back up your family photos automatically from every phone",
+      "apps": [
+        "immich"
+      ]
+    },
+    {
+      "id": "photos-and-files",
+      "name": "Photos and cloud files",
+      "description": "Back up your photos and keep your files in sync, replacing cloud drives",
+      "apps": [
+        "immich",
+        "nextcloud"
+      ]
+    },
+    {
+      "id": "private-notes",
+      "name": "Private notes and knowledge",
+      "description": "A private place for your family or team to write and share notes",
+      "apps": [
+        "docmost"
+      ]
+    },
+    {
+      "id": "remote-access",
+      "name": "Remote access",
+      "description": "Reach your apps from outside your home, privately or through your own web address",
+      "apps": [
+        "tailscale",
+        "cloudflare-tunnel",
+        "caddy"
+      ]
+    }
+  ]
+}

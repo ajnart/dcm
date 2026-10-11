@@ -1,0 +1,18 @@
+{
+ "uname": {
+  "s": "Linux",
+  "n": "mint-laptop",
+  "r": "6.8.0-60-generic",
+  "v": "#63~22.04.1-Ubuntu SMP",
+  "m": "x86_64"
+ },
+ "lsb_release": "Distributor ID:\tLinuxmint\nDescription:\tLinux Mint 22.1\nRelease:\t22.1\nCodename:\txia",
+ "tools": [
+  "apt",
+  "apt-get"
+ ],
+ "docker": "permission",
+ "dirs": [
+  "/media/sam/FILMS/Movies"
+ ]
+}

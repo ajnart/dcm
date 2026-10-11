@@ -1,0 +1,26 @@
+{
+  "app": "sonarr",
+  "state": "running",
+  "health": "ok",
+  "url": "http://192.168.1.50:8989",
+  "addresses": ["http://192.168.1.50:8989"],
+  "failed_steps": [
+    {
+      "step": "download-client",
+      "status": "fail",
+      "msg": "Could not add qBittorrent as a download client",
+      "error": "qBittorrent refused login",
+      "url": "http://192.168.1.50:8080",
+      "credential": "admin",
+      "hint": "Open qBittorrent, sign in, then add it under Settings > Download Clients with host qbittorrent, port 8080.",
+      "docs": "https://wiki.servarr.com/sonarr/settings#download-clients"
+    }
+  ],
+  "manual_steps": [],
+  "health_check": "http://192.168.1.50:8989/ping",
+  "logs": [
+    "2026-10-10 10:01:22 [Info] Sonarr starting",
+    "2026-10-10 10:01:31 [Warn] Download client qBittorrent: login failed (401)",
+    "2026-10-10 10:01:31 [Info] Setup step download-client failed"
+  ]
+}

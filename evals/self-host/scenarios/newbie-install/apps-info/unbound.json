@@ -1,0 +1,10 @@
+{
+  "id": "unbound",
+  "name": "Unbound",
+  "description": "Look up website addresses for your whole network, privately and quickly",
+  "category": "DNS",
+  "image": "madnuttah/unbound:1.26.0-0",
+  "docs": "https://unbound.docs.nlnetlabs.nl/",
+  "port": 5335,
+  "inputs": []
+}

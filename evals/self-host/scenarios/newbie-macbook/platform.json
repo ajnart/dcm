@@ -1,0 +1,16 @@
+{
+ "uname": {
+  "s": "Darwin",
+  "n": "MacBook-Air",
+  "r": "24.6.0",
+  "m": "arm64"
+ },
+ "sw_vers": "ProductName:\tmacOS\nProductVersion:\t15.6\nBuildVersion:\t24G84",
+ "tools": [
+  "brew"
+ ],
+ "docker": "missing",
+ "dirs": [
+  "/Volumes/FILMS/Movies"
+ ]
+}

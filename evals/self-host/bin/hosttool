@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Stub host tools for skill evaluation, dispatched on the name it runs as.
+
+The eval machine is a Mac, but a scenario can be a Debian server, a Mint
+laptop or Windows with WSL. These stand-ins answer from the scenario's
+platform.json, log every call to host.jsonl (so checks see a host change made
+before the person said yes), and record when Docker was installed, started
+or the docker group was joined, which the self-host and docker stubs read.
+"""
+
+import json
+import os
+import sys
+import time
+
+
+def harness():
+    h = os.environ.get("SELF_HOST_EVAL_HARNESS")
+    return h if h and os.path.isdir(h) else None
+
+
+def platform(h):
+    path = os.path.join(h, "scenario", "platform.json") if h else ""
+    if path and os.path.exists(path):
+        return json.load(open(path))
+    return {"uname": {"s": "Darwin", "r": "24.6.0", "m": "arm64", "n": "mac"},
+            "sw_vers": "ProductName:\tmacOS\nProductVersion:\t15.6\nBuildVersion:\t24G84"}
+
+
+def mark(h, name):
+    if h:
+        open(os.path.join(h, "state", name), "w").close()
+
+
+def log(h, tool, argv):
+    if h:
+        with open(os.path.join(h, "host.jsonl"), "a") as f:
+            f.write(json.dumps({"ts": time.time(),
+                                "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
+                                "argv": [tool] + argv}) + "\n")
+
+
+def effects(h, words):
+    text = " ".join(words).lower()
+    installing = any(w in words for w in ("install", "-S")) or "get.docker.com" in text or "get-docker" in text
+    if installing and any(k in text for k in ("docker", "orbstack", "get.docker.com", "get-docker")):
+        mark(h, "docker_installed")
+    if "usermod" in text and "docker" in text:
+        mark(h, "docker_group")
+    if "systemctl" in text and ("start" in text or "enable" in text) and "docker" in text:
+        mark(h, "docker_started")
+
+
+def uname(p, argv):
+    u = p["uname"]
+    full = [u["s"], u.get("n", "host"), u["r"], u.get("v", "#1 SMP"), u["m"]]
+    if u["s"] == "Linux":
+        full.append("GNU/Linux")
+    if not argv:
+        print(u["s"])
+    elif "-a" in argv:
+        print(" ".join(full))
+    else:
+        keys = {"-s": u["s"], "-n": u.get("n", "host"), "-r": u["r"], "-v": u.get("v", "#1 SMP"),
+                "-m": u["m"], "-p": u["m"], "-o": "GNU/Linux" if u["s"] == "Linux" else u["s"]}
+        print(" ".join(keys.get(a, "") for a in argv if a in keys))
+    return 0
+
+
+def main():
+    tool = os.path.basename(sys.argv[0])
+    argv = sys.argv[1:]
+    h = harness()
+    p = platform(h)
+    log(h, tool, argv)
+
+    if tool == "uname":
+        return uname(p, argv)
+    if tool == "hostname":
+        print(p["uname"].get("n", "host"))
+        return 0
+    if tool == "sw_vers":
+        if not p.get("sw_vers"):
+            sys.stderr.write("sw_vers: command not found\n")
+            return 127
+        print(p["sw_vers"])
+        return 0
+    if tool == "lsb_release":
+        if not p.get("lsb_release"):
+            sys.stderr.write("lsb_release: command not found\n")
+            return 127
+        print(p["lsb_release"])
+        return 0
+    if tool in ("apt", "apt-get", "brew", "winget", "dnf", "pacman") and tool not in p.get("tools", []):
+        sys.stderr.write("%s: command not found\n" % tool)
+        return 127
+
+    effects(h, [tool] + argv)
+    if tool == "sudo":
+        if argv and argv[0] == "-v":
+            return 0
+        print("[sudo] ran: %s" % " ".join(argv))
+        return 0
+    if tool in ("curl", "wget"):
+        return 0
+    print("%s: ok" % tool)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

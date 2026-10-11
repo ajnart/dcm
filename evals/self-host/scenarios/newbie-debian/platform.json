@@ -1,0 +1,18 @@
+{
+ "uname": {
+  "s": "Linux",
+  "n": "optiplex",
+  "r": "6.1.0-37-amd64",
+  "v": "#1 SMP PREEMPT_DYNAMIC Debian 6.1.140-1",
+  "m": "x86_64"
+ },
+ "lsb_release": "Distributor ID:\tDebian\nDescription:\tDebian GNU/Linux 12 (bookworm)\nRelease:\t12\nCodename:\tbookworm",
+ "tools": [
+  "apt",
+  "apt-get"
+ ],
+ "docker": "missing",
+ "dirs": [
+  "/media/usb/Movies"
+ ]
+}

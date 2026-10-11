@@ -1,0 +1,3 @@
+{"event":"run.start","msg":"doctor"}
+{"event":"step.fail","step":"docker","msg":"Docker: docker command not found","hint":"Install OrbStack, start it once, then run self-host again.","docs":"https://orbstack.dev/download"}
+{"event":"run.end","msg":"doctor: failed"}

@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""Stub `docker` for skill evaluation.
+
+Shadows the real Docker so an agent that bypasses self-host cannot touch the
+machine. Every call is logged to the run's docker.jsonl, which is how the
+checks see an agent going around self-host. Answers just enough to look like
+an empty, working engine.
+"""
+
+import json
+import os
+import sys
+import time
+
+
+def main():
+    argv = sys.argv[1:]
+    harness = os.environ.get("SELF_HOST_EVAL_HARNESS")
+    if harness and os.path.isdir(harness):
+        with open(os.path.join(harness, "docker.jsonl"), "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "ts": time.time(),
+                        "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
+                        "argv": argv,
+                    }
+                )
+                + "\n"
+            )
+    words = [a for a in argv if not a.startswith("-")]
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    from dockerstate import docker_state
+
+    # The CLI answers --version locally; anything that talks to the daemon is
+    # refused until the agent adds the user to the docker group.
+    if docker_state(harness) == "permission" and argv[:1] not in (["--version"], ["-v"]):
+        sys.stderr.write(
+            "permission denied while trying to connect to the Docker daemon socket at "
+            "unix:///var/run/docker.sock: connect: permission denied\n"
+        )
+        return 1
+    if not argv or argv[0] in ("--version", "-v", "version"):
+        print("Docker version 29.4.0, build eval")
+        return 0
+    if words[:1] == ["ps"] or words[:2] == ["compose", "ps"]:
+        print("CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES")
+        return 0
+    if words[:1] == ["info"]:
+        print("Server Version: 29.4.0\nContainers: 0")
+        return 0
+    if words[:1] == ["run"]:
+        print("4f1c2d3e5a6b7c8d9e0f")
+        return 0
+    if words[:2] == ["compose", "up"]:
+        print("Container started")
+        return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

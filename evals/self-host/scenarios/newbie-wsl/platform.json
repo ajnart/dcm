@@ -1,0 +1,18 @@
+{
+ "uname": {
+  "s": "Linux",
+  "n": "GAMING-PC",
+  "r": "6.6.87.2-microsoft-standard-WSL2",
+  "v": "#1 SMP PREEMPT_DYNAMIC",
+  "m": "x86_64"
+ },
+ "lsb_release": "Distributor ID:\tUbuntu\nDescription:\tUbuntu 24.04.2 LTS\nRelease:\t24.04\nCodename:\tnoble",
+ "tools": [
+  "apt",
+  "apt-get"
+ ],
+ "docker": "missing",
+ "dirs": [
+  "/mnt/d/Movies"
+ ]
+}
