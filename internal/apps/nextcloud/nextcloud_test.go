@@ -23,20 +23,37 @@ type fakeNextcloud struct {
 func (f *fakeNextcloud) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /status.php", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{"installed": true})
+		json.NewEncoder(w).Encode(map[string]any{"installed": true, "maintenance": false, "needsDbUpgrade": false, "versionstring": "35.0.1"})
 	})
-	mux.HandleFunc("GET /ocs/v1.php/cloud/users", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /ocs/v2.php/cloud/user", func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		if f.reject || !ok || user != "admin" || pass != "adminpass" {
+		if f.reject || !ok || user != "admin" || pass != "adminpass" && pass != "homarr-test-password" || r.Header.Get("OCS-APIRequest") != "true" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"ocs": map[string]any{
-				"meta": map[string]any{"statuscode": 100},
-				"data": map[string]any{"users": []string{"admin"}},
-			},
-		})
+		json.NewEncoder(w).Encode(map[string]any{"ocs": map[string]any{
+			"meta": map[string]any{"status": "ok", "statuscode": 200},
+			"data": map[string]any{"id": "admin", "groups": []string{"admin"}},
+		}})
+	})
+	mux.HandleFunc("GET /ocs/v2.php/apps/notifications/api/v2/notifications", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if f.reject || !ok || user != "admin" || pass != "homarr-test-password" || r.Header.Get("OCS-APIRequest") != "true" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"ocs": map[string]any{
+			"meta": map[string]any{"status": "ok", "statuscode": 200}, "data": []any{},
+		}})
+	})
+	mux.HandleFunc("PROPFIND /remote.php/dav/principals/users/admin/", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if f.reject || !ok || user != "admin" || pass != "homarr-test-password" || r.Header.Get("Depth") != "0" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusMultiStatus)
+		w.Write([]byte(`<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:response><d:propstat><d:prop><c:calendar-home-set><d:href>/remote.php/dav/calendars/admin/</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>`))
 	})
 	return mux
 }
@@ -53,7 +70,8 @@ func newH(t *testing.T, srv *httptest.Server) (*helpers.H, *[]helpers.StepResult
 	h := helpers.New(helpers.Config{
 		App: "nextcloud", Service: "nextcloud",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass"},
+		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass", "NEXTCLOUD_HOMARR_APP_PASSWORD": "homarr-test-password", "NEXTCLOUD_HOMARR_APP_PASSWORD_ID": "7"},
+		Exec:    &trustedExec{domains: []string{"127.0.0.1", "nextcloud"}},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { recorded = append(recorded, r) },
 	})
@@ -133,6 +151,12 @@ func (e *trustedExec) Exec(_ context.Context, _ string, env map[string]string, c
 		e.reads++
 		return system.Result{Stdout: []byte(strings.Join(e.domains, "\n") + "\n")}, nil
 	}
+	if strings.Contains(strings.Join(command, " "), "user:auth-tokens:list") {
+		return system.Result{Stdout: []byte(`[{"id":7,"name":"self-host Homarr","type":1,"scope":{"filesystem":true}}]`)}, nil
+	}
+	if strings.Contains(strings.Join(command, " "), "twofactorauth:state") {
+		return system.Result{Stdout: []byte("Two-factor authentication is not enabled for user admin\n")}, nil
+	}
 	if err := json.Unmarshal([]byte(env["SELF_HOST_TRUSTED_DOMAINS"]), &e.domains); err != nil {
 		return system.Result{}, err
 	}
@@ -149,7 +173,7 @@ func TestEasyNamesSetupPreservesTrustedHostsAndCheckProbesAfresh(t *testing.T) {
 	if err := (nextcloud.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatal(err)
 	}
-	want := "127.0.0.1,existing.example.com,192.168.1.20,nextcloud.192-168-1-20.sslip.io"
+	want := "127.0.0.1,existing.example.com,192.168.1.20,nextcloud.192-168-1-20.sslip.io,nextcloud"
 	if strings.Join(exec.domains, ",") != want {
 		t.Fatalf("domains %v", exec.domains)
 	}
