@@ -1,0 +1,22 @@
+docs/homarr-navidrome-contract.md
+  h_d6e478ca18e517 1-122
+internal/apps/homarr/target_navidrome.go
+  h_d6e478ca18e517 1-102
+internal/apps/navidrome/homarr.go
+  h_d6e478ca18e517 1-239
+internal/apps/navidrome/navidrome.go
+  h_d6e478ca18e517 113-126,128-133
+internal/apps/navidrome/navidrome_test.go
+  h_d6e478ca18e517 5,8,57,102-142,173-175,189-190,233-235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "711336d08e238e3bab37907e972079b4af4d45ea",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
