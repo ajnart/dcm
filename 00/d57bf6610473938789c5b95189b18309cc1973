@@ -1,0 +1,27 @@
+docs/homarr-wud-proof.md
+  s_01e8d17f7740df::t_f8c6a15212fc6c 1-115
+internal/apps/homarr/target_wud.go
+  s_01e8d17f7740df::t_aabdb606f507d5 1-126
+internal/apps/wud/discovery_test.go
+  s_01e8d17f7740df::t_e676b981f0b82a 35,139
+internal/apps/wud/preflight_test.go
+  s_01e8d17f7740df::t_fd0a83359bc2a0 116
+internal/apps/wud/wud_test.go
+  s_01e8d17f7740df::t_9234559f903454 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00d57bf6610473938789c5b95189b18309cc1973",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
