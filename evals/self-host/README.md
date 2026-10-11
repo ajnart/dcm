@@ -92,6 +92,40 @@ python3 run.py --iteration 3 --configs \
 defaults to `claude-opus-5-5`. Agent timing and tokens exclude simulated-person
 calls; their usage and cost are recorded separately in `raw/person.jsonl`.
 
+## Inspecting what happened
+
+Start with [PROGRESS.md](PROGRESS.md) for the current scope, evidence and remaining
+work. At the iteration root, `run_config.json` records the agent and person
+models, selected evals, repetitions, parallelism, timeout and start time;
+`execution.json` says whether the entire batch is valid.
+
+Each `eval-*/<configuration>/run-*` contains:
+
+| File                                        | What to inspect                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `eval_metadata.json`                        | Request, simulated-person facts, turn limit and assertions shown in the viewer            |
+| `raw/inputs.json`                           | Scenario and SHA-256 fingerprints of the copied guide and router; absent router is `null` |
+| `raw/turn-N.jsonl`                          | Actual Claude stream: tool calls, results, model usage and errors                         |
+| `raw/invocations.jsonl`                     | Stub `self-host` calls with arguments, timestamps and turns                               |
+| `raw/docker.jsonl`, `raw/host.jsonl`        | Stub engine and host-tool calls, when used                                                |
+| `raw/ask.jsonl`                             | Questions and clickable options, when used                                                |
+| `raw/person.jsonl`                          | Simulated replies, approval labels, usage and cost                                        |
+| `raw/metrics.json`                          | Execution validity, errors, permission denials and agent usage                            |
+| `outputs/conversation.md`                   | Readable conversation including tool calls and results; long tool output is truncated     |
+| `outputs/replies.md`, `outputs/commands.md` | Material given to the blind judge                                                         |
+| `judged.json`, `grading.json`               | Judge verdicts, scripted checks and their evidence                                        |
+| `timing.json`                               | Agent-only duration, tokens including cache usage, and reported cost                      |
+
+Follow a turn from the request to `raw/turn-N.jsonl`, then compare its tool call
+with the timestamped stub log. Judge evidence is interpretation; command logs
+only prove a simulated command ran, not that a real App works. Judge usage and
+cost are not currently recorded. Fingerprints identify the inputs but do not
+freeze the scenario fixtures, which remain linked to the checkout.
+
+Raw logs are private development artifacts, not automatically redacted reports.
+Keep them outside Git; inspect and redact before sharing. Only synthetic
+credential sentinels belong in fixtures.
+
 Iteration 3 is invalid: all 42 runs hit the five-hour quota before generating
 output. Its benchmark and review are retained as failed-attempt artifacts,
 not a comparison of the guides. Iteration 2 used different scenarios and

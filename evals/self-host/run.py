@@ -27,6 +27,7 @@ Usage:
 
 import argparse
 import concurrent.futures as cf
+import hashlib
 import json
 import os
 import shutil
@@ -77,6 +78,11 @@ def write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def file_digest(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
 
 
 HOST_TOOLS = (
@@ -213,6 +219,14 @@ def prepare(ws, iteration, ev, config, k):
     if config["skill"]:
         dest = os.path.join(sandbox, ".claude", "skills", "self-host")
         shutil.copytree(config["skill"], dest)
+    inputs = {
+        "scenario": ev["scenario"],
+        "guide_sha256": file_digest(os.path.join(harness, "guide.md")),
+        "router_sha256": None,
+    }
+    if config["skill"]:
+        inputs["router_sha256"] = file_digest(os.path.join(dest, "SKILL.md"))
+    write_json(os.path.join(run, "raw", "inputs.json"), inputs)
     with open(os.path.join(sandbox, "cloudflare-token"), "w") as f:
         f.write(TOKEN_SENTINEL + "\n")
     os.chmod(os.path.join(sandbox, "cloudflare-token"), 0o600)
@@ -621,6 +635,7 @@ def main():
                 "eval_id": ev["id"],
                 "eval_name": ev["name"],
                 "scenario": ev["scenario"],
+                "max_turns": ev.get("max_turns", MAX_TURNS),
                 "prompt": "%s\n\n---\nThe person (played by a model):\n%s"
                 % (ev["first_message"], ev["persona"]),
                 "assertions": ev["assertions"],
@@ -636,7 +651,11 @@ def main():
         ),
         {
             "model": args.model,
+            "person_model": args.person_model,
             "runs": args.runs,
+            "eval_ids": sorted({ev["id"] for ev, _, _ in jobs}),
+            "parallel": args.parallel,
+            "timeout_seconds": args.timeout,
             "configs": [
                 {"name": c["name"], "skill": c["skill"], "guide": c["guide"]}
                 for c in configs
