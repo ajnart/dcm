@@ -9,6 +9,7 @@ what the agent actually ran.
 
 import json
 import os
+import re
 import sys
 import time
 
@@ -110,7 +111,7 @@ class Harness:
             return spec.get("code", 0)
         return None
 
-    def emit_events(self, name, only_apps=None):
+    def emit_events(self, name, only_apps=None, domain=None):
         """Print a JSONL fixture; returns True when one existed.
 
         only_apps drops events about Apps this run did not ask for.
@@ -122,6 +123,8 @@ class Harness:
                 line = line.rstrip("\n")
                 if not line:
                     continue
+                if domain:
+                    line = line.replace("example.com", domain)
                 if name == "install":
                     event = json.loads(line)
                     if event.get("event") == "run.start":
@@ -206,17 +209,129 @@ def installed_ids(h, requested):
     return out
 
 
-def emit_installed_status(h):
-    doc = json.load(open(h.path("status-installed.json")))
+def project_status(h):
+    name = "status"
+    installed = os.path.join(h.state, "installed")
+    publication = os.path.join(h.state, "publication.json")
+    if h.has("status-installed.json") and (
+        os.path.isfile(installed)
+        or os.path.isfile(os.path.join(h.state, "setup"))
+        or os.path.isfile(publication)
+    ):
+        name = "status-installed"
+    if h.has("status-fixed.json") and os.path.isfile(
+        os.path.join(h.state, "lan_fixed")
+    ):
+        name = "status-fixed"
+    doc = json.load(open(h.path(name + ".json")))
     if h.cfg.get("home"):
         doc["home"] = h.cfg["home"]
         doc["project"] = h.cfg["home"]
-    wanted = set(open(os.path.join(h.state, "installed")).read().split())
-    if wanted and wanted != {"1"} and isinstance(doc.get("apps"), list):
-        doc["apps"] = [
-            a for a in doc["apps"] if a.get("id") in wanted or a.get("id") == "homarr"
-        ]
-    print(json.dumps(doc, indent=2))
+    if os.path.isfile(installed):
+        wanted = set(open(installed).read().split())
+        if wanted != {"1"}:
+            doc["apps"] = [a for a in doc["apps"] if a["id"] in wanted]
+    recipes = os.path.join(h.state, "recipes.json")
+    if os.path.isfile(recipes):
+        selected = json.load(open(recipes))
+        for app in doc["apps"]:
+            if app["id"] in selected:
+                app.pop("recipe", None)
+                if selected[app["id"]]:
+                    app["recipe"] = selected[app["id"]]
+    if os.path.isfile(publication):
+        published = json.load(open(publication))["publish"]
+        addresses = {app["app"]: app["address"] for app in published}
+        for app in doc["apps"]:
+            if app["id"] in addresses:
+                app["addresses"] = list(
+                    dict.fromkeys([addresses[app["id"]]] + app.get("addresses", []))
+                )
+                app["url"] = addresses[app["id"]]
+        if addresses and "cloudflare" not in doc["access"]:
+            doc["access"].append("cloudflare")
+    doc.pop("dashboard", None)
+    for app in doc["apps"]:
+        if app["id"] == "homarr" and app.get("addresses"):
+            doc["dashboard"] = app["addresses"][0]
+    return name, doc
+
+
+def flag_values(argv, name):
+    values = []
+    for i, word in enumerate(argv):
+        value = None
+        if word == name and i + 1 < len(argv):
+            value = argv[i + 1]
+        elif word.startswith(name + "="):
+            value = word.split("=", 1)[1]
+        if value is not None:
+            values.extend(item.strip() for item in value.split(",") if item.strip())
+    return list(dict.fromkeys(values))
+
+
+def publication_plan(h):
+    plan = json.load(open(h.path("cloudflare-plan.json")))
+    domain = h.flags.get("--domain", "").strip().lower().rstrip(".")
+    if not re.fullmatch(r"([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}", domain):
+        raise ValueError("give a main domain on its own (--domain)")
+    apps = flag_values(h.argv, "--app")
+    emails = flag_values(h.argv, "--email")
+    if not apps or not emails:
+        raise ValueError(
+            "choose Apps individually (--app) and allowed emails (--email)"
+        )
+    _, status = project_status(h)
+    if set(apps) - {app["id"] for app in status["apps"]}:
+        raise ValueError("chosen App is not installed")
+    supported = {app["app"] for app in plan["publish"] + plan.get("refused", [])}
+    if set(apps) - supported:
+        raise ValueError("no publication fixture for chosen App")
+    current = []
+    path = os.path.join(h.state, "publication.json")
+    if os.path.isfile(path):
+        previous = json.load(open(path))
+        if previous["domain"] != domain:
+            raise ValueError("Apps are already published under " + previous["domain"])
+        current = previous["publish"]
+    plan["domain"], plan["emails"] = domain, emails
+    plan["publish"] = [
+        {
+            "app": app["app"],
+            "name": app["app"] + "." + domain,
+            "address": "https://" + app["app"] + "." + domain,
+        }
+        for app in plan["publish"]
+        if app["app"] in apps
+    ]
+    plan["refused"] = [app for app in plan.get("refused", []) if app["app"] in apps]
+    plan["current"] = current
+    plan["additions"] = [
+        app
+        for app in plan["publish"]
+        if app["name"] not in {p["name"] for p in current}
+    ]
+    plan["dropped"] = sorted(
+        app["name"]
+        for app in current
+        if app["name"] not in {p["name"] for p in plan["publish"]}
+    )
+    plan["risk"] = (
+        "This puts "
+        + ", ".join(app["address"] for app in plan["publish"])
+        + " on the internet. Anyone in the world can reach the login page "
+        "and try to get in; "
+        + "only "
+        + ", ".join(emails)
+        + " get past it, with a code sent to their email. "
+        "If the login page or an App has a flaw, "
+        "strangers could get in, and everything that passes through "
+        "is visible to Cloudflare."
+    )
+    for name in ("refused", "current", "additions", "dropped"):
+        if not plan[name]:
+            plan.pop(name)
+    return plan
 
 
 def main():
@@ -268,19 +383,13 @@ def main():
         return 0
 
     if cmd == "status":
-        base = "status"
-        if h.has("status-installed.json") and os.path.exists(
+        if not h.has("status.json") and not os.path.isfile(
             os.path.join(h.state, "installed")
         ):
-            base = "status-installed"
-        if h.has("status-fixed.json") and os.path.exists(
-            os.path.join(h.state, "lan_fixed")
-        ):
-            base = "status-fixed"
-        if base == "status-installed":
-            emit_installed_status(h)
-        else:
-            h.emit_doc(base)
+            h.emit_doc("status")
+            return h.finish("status")
+        base, doc = project_status(h)
+        print(json.dumps(doc, indent=2))
         return h.finish(base)
 
     if cmd == "profile":
@@ -323,7 +432,18 @@ def main():
     if cmd == "debug":
         app = pos[1] if len(pos) > 1 else ""
         name = os.path.join("debug", app)
-        if h.emit_doc(name):
+        if h.has(name + ".json"):
+            doc = json.load(open(h.path(name + ".json")))
+            _, status = project_status(h)
+            for current in status["apps"]:
+                if current["id"] == app:
+                    doc["setup"] = current["setup"]
+                    doc["failed_steps"] = [
+                        step
+                        for step in current.get("steps", [])
+                        if step["status"] in ("fail", "manual")
+                    ]
+            print(json.dumps(doc, indent=2))
             return h.finish(name)
         return h.missing("debug " + app)
 
@@ -335,9 +455,11 @@ def main():
             with open(h.path("credentials.json")) as source:
                 doc = json.load(source)
             if wanted != {"1"}:
-                doc["apps"] = [
-                    app for app in doc.get("apps", []) if app.get("app") in wanted
-                ]
+                doc["apps"] = {
+                    app: secrets
+                    for app, secrets in doc["apps"].items()
+                    if app in wanted
+                }
             print(json.dumps(doc, indent=2))
             return h.finish("credentials")
         if h.emit_doc("credentials"):
@@ -362,30 +484,68 @@ def main():
 
     if cmd == "cloudflare":
         if sub == "plan":
-            if h.emit_doc("cloudflare-plan"):
-                return h.finish("cloudflare-plan")
-            return h.missing("cloudflare plan")
+            if not h.has("cloudflare-plan.json"):
+                return h.missing("cloudflare plan")
+            try:
+                plan = publication_plan(h)
+            except ValueError as error:
+                sys.stderr.write(str(error) + "\n")
+                return 1
+            print(json.dumps(plan, indent=2))
+            return h.finish("cloudflare-plan")
         if (
             sub == "publish"
             and h.flags.get("--set-file", "").startswith("cloudflare.api_token=")
+            and h.flags.get("--set-file", "").partition("=")[2]
             and h.flags.get("--accept-public")
             and h.has("cloudflare-publish-ok.jsonl")
         ):
-            h.emit_events("cloudflare-publish-ok")
+            try:
+                plan = publication_plan(h)
+                if not plan["publish"]:
+                    raise ValueError("no chosen App may be published by this fixture")
+            except ValueError as error:
+                sys.stderr.write(str(error) + "\n")
+                return 1
+            h.emit_events("cloudflare-publish-ok", domain=plan["domain"])
+            code = h.finish("cloudflare-publish-ok")
+            if code:
+                return code
+            with open(os.path.join(h.state, "publication.json"), "w") as output:
+                json.dump(plan, output)
             return 0
         if not h.emit_events("cloudflare-" + sub):
             return h.missing("cloudflare " + sub)
         return h.finish("cloudflare-" + sub)
 
     if cmd == "install":
+        before = []
+        if h.has("status.json") or os.path.isfile(os.path.join(h.state, "installed")):
+            _, status = project_status(h)
+            before = status["apps"]
         ids = set(installed_ids(h, pos[1:]))
         if not h.emit_events("install", only_apps=ids):
             return h.missing("install")
         code = h.finish("install")
         if code:
             return code
+        existing = [app["id"] for app in before]
+        selected = {app["id"]: app.get("recipe", "") for app in before}
+        catalog_recipes = json.load(open(h.path("apps-list.json"))).get("recipes", [])
+        recipes = {}
+        for target in pos[1:]:
+            for recipe in catalog_recipes:
+                if recipe["id"] == target:
+                    for app in recipe["apps"]:
+                        recipes.setdefault(app, target)
+        for app in installed_ids(h, pos[1:]):
+            selected.setdefault(app, recipes.get(app, ""))
+            if app not in existing:
+                existing.append(app)
         with open(os.path.join(h.state, "installed"), "w") as f:
-            f.write("\n".join(installed_ids(h, pos[1:])) + "\n")
+            f.write("\n".join(existing) + "\n")
+        with open(os.path.join(h.state, "recipes.json"), "w") as output:
+            json.dump(selected, output)
         if h.cfg.get("home"):
             os.makedirs(h.cfg["home"], exist_ok=True)
         return 0
@@ -393,9 +553,12 @@ def main():
     if cmd == "setup":
         if not h.emit_events("setup"):
             return h.missing("setup")
-        with open(os.path.join(h.state, "installed"), "w") as f:
+        code = h.finish("setup")
+        if code:
+            return code
+        with open(os.path.join(h.state, "setup"), "w") as f:
             f.write("1\n")
-        return h.finish("setup")
+        return 0
 
     if cmd == "config":
         if sub == "review" and not h.flags.get("--yes"):

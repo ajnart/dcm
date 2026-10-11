@@ -1,6 +1,6 @@
 {"event":"run.start","msg":"cloudflare publish"}
 {"event":"step.ok","step":"cloudflare-auth","msg":"Cloudflare token accepted"}
 {"event":"step.ok","step":"tunnel","msg":"Tunnel self-host ready"}
-{"event":"step.ok","step":"dns","msg":"paperless.example.com points at the tunnel"}
-{"event":"step.ok","step":"access","msg":"Emailed-PIN sign-in required for paperless.example.com"}
-{"event":"run.end","msg":"cloudflare publish: ok","addresses":["https://paperless.example.com"]}
+{"event":"step.ok","step":"dns","msg":"paperless-ngx.example.com points at the tunnel"}
+{"event":"step.ok","step":"access","msg":"Emailed-PIN sign-in required for paperless-ngx.example.com"}
+{"event":"run.end","msg":"cloudflare publish: ok","addresses":["https://paperless-ngx.example.com"]}

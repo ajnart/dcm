@@ -1,20 +1,15 @@
 {
   "domain": "example.com",
   "emails": ["me@example.org"],
-  "current": [],
-  "add": [
-    {"app": "paperless-ngx", "hostname": "paperless.example.com", "url": "http://192.168.1.50:8000"}
+  "additions": [
+    {"app": "paperless-ngx", "name": "paperless-ngx.example.com", "address": "https://paperless-ngx.example.com"}
   ],
-  "remove": [],
+  "publish": [
+    {"app": "paperless-ngx", "name": "paperless-ngx.example.com", "address": "https://paperless-ngx.example.com"}
+  ],
   "risk": "Strangers anywhere can reach this login page; a flaw in the App or login could let them in; Cloudflare sees the traffic.",
-  "warnings": [
-    {
-      "id": "media-terms",
-      "reason": "Jellyfin is a streaming App. Cloudflare's terms restrict video streaming through public hostnames, and TV and phone apps cannot pass the emailed-PIN login page."
-    }
-  ],
   "refused": [
     {"app": "jellyfin", "reason": "Media apps are not published; recommend Tailscale for streaming and native clients."}
   ],
-  "dropped_addresses": []
+  "token_scopes": ["Account > Cloudflare Tunnel > Edit", "Account > Access: Apps and Policies > Edit", "Account > Access: Organizations, Identity Providers, and Groups > Edit", "Zone > DNS > Edit", "Zone > Zone > Read"]
 }

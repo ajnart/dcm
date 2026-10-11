@@ -20,6 +20,10 @@ def project_apps(harness):
     installed = os.path.join(harness, "state", "installed")
     name = "status.json"
     wanted = None
+    if os.path.isfile(os.path.join(harness, "state", "setup")) or os.path.isfile(
+        os.path.join(harness, "state", "publication.json")
+    ):
+        name = "status-installed.json"
     if os.path.isfile(installed):
         name = "status-installed.json"
         with open(installed) as source:
@@ -30,9 +34,7 @@ def project_apps(harness):
     with open(path) as source:
         apps = json.load(source).get("apps", [])
     if wanted is not None and wanted != {"1"}:
-        apps = [
-            app for app in apps if app.get("id") in wanted or app.get("id") == "homarr"
-        ]
+        apps = [app for app in apps if app.get("id") in wanted]
     return apps
 
 

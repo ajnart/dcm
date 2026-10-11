@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                             |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                              |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                              |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                            |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution              |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                             |
-| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; scenario boundary decision required          |
-| Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending              |
-| Independent Standards and Spec review                                  | Combined Standards passed; Spec finding fixed and re-review passed |
+| Gate                                                                   | Status                                                                |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                 |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                 |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                               |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
+| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
+| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
+| Independent Standards and Spec review                                  | Fresh findings corrected; parent re-review remains pending            |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -168,8 +168,57 @@ Combined Standards review passed; Spec review caught configuration
 labels in the synthetic Home folder revealing treatment to the blind judge.
 A red-to-green runner regression now requires neutral runtime folder identifiers;
 run artifacts still retain their configuration mapping. Spec re-review passed.
-Iteration 11 cleared the corrected smoke gate. The full batch and human viewer
-feedback remain required for acceptance.
+Iteration 11 was recorded as clearing that earlier smoke gate. It predates the
+fresh fixture-contract and cancellation findings below and does not establish
+acceptance of the corrected harness. Its raw evidence and grades remain unchanged.
+
+### Fresh independent review corrections (October 11, 2026)
+
+The clean release-audit worktree preserved `0668395f` and concurrent `0c3df2d5`
+by fast-forward, without accessing or modifying the source worktree. Fresh
+Standards and Spec findings are corrected at the existing fixture/CLI seams:
+
+- All tracked credential fixtures, including the four linked platform fixtures,
+  retain the production `apps` object: App IDs map to secret-name/string-value
+  objects. Filtering retains that shape. Shared Admin login stays under `admin`.
+- Sonarr's Debug report uses `id`, `name`, `managed`, `setup`, real StepStatus
+  fields, `log_lines`, and a `{url, working}` health-check object. Successful
+  Setup changes its result only; qBittorrent and the other current Apps remain
+  in Status and Docker observations. Setup does not overwrite the installed selection.
+- Direct App installation does not invent a Recipe or a Homarr Dashboard.
+  Recipe installation records the named Recipe for newly installed Apps and
+  preserves earlier selections and their Recipe attribution.
+- Question-option descriptions are retained alongside labels for the simulated
+  person, conversation output and blind judge.
+- Successful synthetic publication persists only after the success fixture,
+  with production-shaped plan fields and selected App/domain Addresses. Status
+  retains Home network fallback and shows Cloudflare Access and its connector;
+  later plans show current publication. Missing approval/token input, refused
+  Apps and failed publication do not replace the remembered state.
+- SIGINT/KeyboardInterrupt and SIGTERM set shared cancellation and cancel queued
+  futures before executor shutdown. Owned active process groups terminate,
+  raw diagnostics survive, and execution/judgments remain invalid with a nonzero
+  exit. Partial judgments cannot be reused. No external comparison process is
+  inspected or terminated.
+
+Existing tests were extended, not new testcases or files. Red-to-green checks
+cover credential/debug contracts, selection and publication consistency, full
+option rendering, and disposable signal interruption of runner and judge batches.
+Each signal check has six planned calls and two active fake calls; cancellation
+prevents the four queued calls, retains partial diagnostics, and prevents the
+owned child from writing its delayed marker. The final gate passed all 60 existing
+offline tests, Ruff lint/format, Pyright and the documented Go build/vet/tests/race
+and installer-syntax checks; `gofmt -l .` was empty and `git diff --check` passed.
+No dependency or production JSON contract changed.
+
+All earlier batches, including iterations 9 and 11 and the invalid iteration 12,
+used earlier frozen fixtures/rendering and do not prove the corrected inputs are
+valid. Historical raw evidence, grades and viewer notes are not edited or
+reinterpreted as new results. A new bounded-authorized comparison, complete
+judgments/aggregation, human viewer feedback and final parent review remain
+required; the scenario-boundary decision recorded for iteration 12 is also open.
+This correction uses no paid model/preflight call, browser, Docker runtime,
+live Project, real secret, protected-file read or child agent. PR #259 stays draft.
 
 ### Earlier review evidence
 

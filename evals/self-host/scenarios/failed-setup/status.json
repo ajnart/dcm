@@ -15,8 +15,7 @@
       "state": "running",
       "health": "ok",
       "recipe": "media",
-      "setup": "ok",
-      "failed_steps": []
+      "setup": "ok"
     },
     {
       "id": "qbittorrent",
@@ -26,8 +25,7 @@
       "state": "running",
       "health": "ok",
       "recipe": "media",
-      "setup": "ok",
-      "failed_steps": []
+      "setup": "ok"
     },
     {
       "id": "sonarr",
@@ -37,8 +35,16 @@
       "state": "running",
       "health": "ok",
       "recipe": "media",
-      "setup": "failed",
-      "failed_steps": ["download-client"]
+      "setup": "incomplete",
+      "steps": [
+        {
+          "id": "download-client",
+          "status": "fail",
+          "msg": "Could not add qBittorrent as a download client",
+          "error": "qBittorrent refused login",
+          "hint": "Open qBittorrent, sign in, then add it under Settings > Download Clients with host qbittorrent, port 8080."
+        }
+      ]
     }
   ]
 }

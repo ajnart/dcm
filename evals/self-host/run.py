@@ -38,7 +38,7 @@ import threading
 import time
 import uuid
 
-from processes import run_process
+from processes import cancellation_signals, run_process
 from validity import check_cli, check_model, require_result
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -361,7 +361,9 @@ def render(turns_log):
                     ):
                         q = c.get("input", {})
                         opts = "".join(
-                            "\n  - [ ] %s" % o.get("label", "")
+                            "\n  - [ ] "
+                            + o.get("label", "")
+                            + (": " + o["description"] if o.get("description") else "")
                             for o in q.get("options") or []
                         )
                         conv.append(
@@ -716,7 +718,7 @@ def run_one(
     )
 
 
-def main():
+def main(stop):
     ap = argparse.ArgumentParser()
     ap.add_argument("--iteration", type=int, required=True)
     ap.add_argument("--workspace", default=DEFAULT_WORKSPACE)
@@ -782,7 +784,7 @@ def main():
             ap.error("configuration router does not exist")
     cli_version = check_cli()
     for model in dict.fromkeys((args.model, args.person_model)):
-        check_model(model)
+        check_model(model, stop=stop)
     inputs = os.path.join(iteration_dir, "inputs")
     for config in configs:
         frozen = os.path.join(inputs, config["name"])
@@ -852,49 +854,62 @@ def main():
         {"valid": False, "planned": len(jobs), "completed": 0},
     )
     install_stubs(os.path.join(inputs, "stubs"))
-    stop = threading.Event()
+    failed = 0
+    completed = 0
+    interrupted = None
     with cf.ThreadPoolExecutor(args.parallel) as pool:
-        futs = [
-            pool.submit(
-                run_one,
-                args.workspace,
-                args.iteration,
-                ev,
-                c,
-                k,
-                args.model,
-                args.timeout,
-                args.person_model,
-                args.person_timeout,
-                stop,
-            )
-            for ev, c, k in jobs
-        ]
-        failed = 0
-        completed = 0
-        for fut in cf.as_completed(futs):
-            if fut.cancelled():
-                failed += 1
-                continue
-            try:
-                print(fut.result(), flush=True)
-                completed += 1
-            except Exception as e:  # keep the batch going, but fail the command
-                stop.set()
-                failed += 1
-                print("run failed: %r" % (e,), flush=True)
-                for pending in futs:
-                    pending.cancel()
+        futs = []
+        try:
+            for ev, c, k in jobs:
+                futs.append(
+                    pool.submit(
+                        run_one,
+                        args.workspace,
+                        args.iteration,
+                        ev,
+                        c,
+                        k,
+                        args.model,
+                        args.timeout,
+                        args.person_model,
+                        args.person_timeout,
+                        stop,
+                    )
+                )
+            for fut in cf.as_completed(futs):
+                if fut.cancelled():
+                    failed += 1
+                    continue
+                try:
+                    print(fut.result(), flush=True)
+                    completed += 1
+                except Exception as e:
+                    stop.set()
+                    failed += 1
+                    print("run failed: %r" % (e,), flush=True)
+                    for pending in futs:
+                        pending.cancel()
+        except KeyboardInterrupt as error:
+            interrupted = str(error) or "KeyboardInterrupt"
+        finally:
+            stop.set()
+            for pending in futs:
+                pending.cancel()
+    if interrupted:
+        failed = len(jobs) - completed
     write_json(
         os.path.join(iteration_dir, "execution.json"),
         {
-            "valid": not failed,
+            "valid": not failed and not interrupted,
             "planned": len(jobs),
             "completed": completed,
             "failed": failed,
+            "interrupted": interrupted,
         },
     )
     print(os.path.join(args.workspace, "iteration-%d" % args.iteration))
+    if interrupted:
+        sys.exit("%s; cancelled batch, not grading a partial iteration" % interrupted)
     if failed:
         sys.exit(
             "%d of %d runs failed; not grading a partial iteration"
@@ -903,4 +918,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    stop = threading.Event()
+    with cancellation_signals(stop):
+        try:
+            main(stop)
+        except KeyboardInterrupt as error:
+            sys.exit(str(error) or "batch interrupted")

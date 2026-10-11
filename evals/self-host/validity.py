@@ -113,7 +113,7 @@ def judgment_digest(run):
     return hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
 
 
-def check_model(model):
+def check_model(model, stop=None):
     env = {
         k: v
         for k, v in os.environ.items()
@@ -149,6 +149,7 @@ def check_model(model):
                 stdout=output,
                 stderr=stderr,
                 timeout=120,
+                stop=stop,
             )
             output.seek(0)
             stderr.seek(0)

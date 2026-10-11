@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -57,6 +58,7 @@ class RunnerCLI(unittest.TestCase):
             capture_output=True,
             text=True,
             check=False,
+            timeout=15,
         )
 
     def test_run_preserves_fixture_inputs_without_symlinks(self):
@@ -182,6 +184,11 @@ class RunnerCLI(unittest.TestCase):
         run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
         response = json.loads((run / "raw" / "person-2.json").read_text())
         self.assertTrue(response["structured_output"]["done"])
+        for name in ("replies.md", "conversation.md"):
+            self.assertIn(
+                "The fuller setup: Automatically fetch shows and films you request.",
+                (run / "outputs" / name).read_text(),
+            )
 
     def test_manual_windows_step_makes_docker_available_in_wsl(self):
         result = self.execute("manual-wsl", extra=("--evals", "6"))
@@ -200,6 +207,52 @@ class RunnerCLI(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         time.sleep(2.2)
         self.assertFalse(marker.exists())
+
+        for number in (signal.SIGINT, signal.SIGTERM):
+            with self.subTest(signal=number.name):
+                workspace = self.root / number.name
+                marker = self.root / (number.name + "-child")
+                self.env["EVAL_TEST_MARKER"] = str(marker)
+                self.env["EVAL_TEST_SIGNAL"] = str(number.value)
+                started = time.monotonic()
+                result = self.execute(
+                    "task-timeout",
+                    extra=(
+                        "--workspace",
+                        str(workspace),
+                        "--parallel",
+                        "2",
+                        "--runs",
+                        "3",
+                        "--configs",
+                        "with_skill=skills/self-host",
+                        "without_skill=none",
+                    ),
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertLess(time.monotonic() - started, 3)
+                manifest = json.loads(
+                    (workspace / "iteration-1/execution.json").read_text()
+                )
+                self.assertFalse(manifest["valid"])
+                self.assertEqual(manifest["failed"], 6)
+                runs = list((workspace / "iteration-1").glob("eval-*/*/run-*"))
+                for run in runs:
+                    self.assertIn(
+                        "partial task stdout", (run / "raw/turn-1.jsonl").read_text()
+                    )
+                    self.assertIn(
+                        "partial task stderr",
+                        (run / "raw/turn-1.stderr.txt").read_text(),
+                    )
+                    self.assertFalse(
+                        json.loads((run / "raw/metrics.json").read_text())["valid"]
+                    )
+                time.sleep(2.2)
+                self.assertFalse(marker.exists())
+                self.assertEqual(
+                    len(Path(str(marker) + ".calls").read_text().splitlines()), 2
+                )
 
     def test_task_timeout_terminates_children_and_retains_diagnostics(self):
         marker = self.root / "late-child"

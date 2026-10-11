@@ -168,12 +168,68 @@ class ShellBoundary(unittest.TestCase):
         )
         (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
         (self.stubs / "base/self-host").chmod(0o755)
+        initial = self.invoke("self-host status --json")
+        self.assertEqual(initial.returncode, 0, initial.stderr)
+        before = json.loads(initial.stdout)
+        planned = self.invoke(
+            "self-host cloudflare plan --app=paperless-ngx "
+            "--domain=review.example.com --email=me@example.org --json"
+        )
+        self.assertEqual(planned.returncode, 0, planned.stderr)
+        publication = {
+            "app": "paperless-ngx",
+            "name": "paperless-ngx.review.example.com",
+            "address": "https://paperless-ngx.review.example.com",
+        }
+        self.assertEqual(json.loads(planned.stdout)["publish"], [publication])
+        denied = self.invoke(
+            "self-host cloudflare publish --app=paperless-ngx "
+            "--domain=review.example.com --email=me@example.org --json"
+        )
+        self.assertNotEqual(denied.returncode, 0)
+        self.assertEqual(
+            json.loads(self.invoke("self-host status --json").stdout), before
+        )
         result = self.invoke(
-            "self-host cloudflare publish "
+            "self-host cloudflare publish --app=paperless-ngx "
+            "--domain=review.example.com --email=me@example.org "
             "--set-file=cloudflare.api_token=./token --accept-public --json"
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("cloudflare publish: ok", result.stdout)
+        self.assertIn(publication["address"], result.stdout)
+        status = json.loads(self.invoke("self-host status --json").stdout)
+        self.assertEqual(status["access"], ["home", "cloudflare"])
+        apps = {app["id"]: app for app in status["apps"]}
+        self.assertEqual(apps["paperless-ngx"]["url"], publication["address"])
+        self.assertEqual(
+            apps["paperless-ngx"]["addresses"],
+            [publication["address"], "http://192.168.1.50:8000"],
+        )
+        self.assertEqual(apps["jellyfin"]["addresses"], ["http://192.168.1.50:8096"])
+        self.assertNotIn("dashboard", status)
+        planned = self.invoke(
+            "self-host cloudflare plan --app=paperless-ngx "
+            "--domain=review.example.com --email=me@example.org --json"
+        )
+        self.assertEqual(planned.returncode, 0, planned.stderr)
+        plan = json.loads(planned.stdout)
+        self.assertEqual(plan["current"], [publication])
+        self.assertFalse(plan.get("additions"))
+        for flags in (
+            "--app=paperless-ngx --domain=other.example.com --email=me@example.org",
+            "--app=jellyfin --domain=review.example.com "
+            "--email=me@example.org --accept-public",
+        ):
+            denied = self.invoke(
+                "self-host cloudflare publish "
+                + flags
+                + " --set-file=cloudflare.api_token=./token --json"
+            )
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertEqual(
+                json.loads(self.invoke("self-host status --json").stdout), status
+            )
         result = self.invoke(
             "self-host profile set experience new && self-host profile --json"
         )
@@ -198,6 +254,18 @@ class ShellBoundary(unittest.TestCase):
         self.assertEqual(events[-1]["event"], "run.end")
 
     def test_single_app_install_has_only_its_credentials(self):
+        for fixture in sorted((ROOT / "scenarios").glob("*/credentials.json")):
+            with self.subTest(fixture=fixture.parent.name):
+                document = json.loads(fixture.read_text())
+                self.assertIsInstance(document["admin"]["username"], str)
+                self.assertIsInstance(document["admin"]["password"], str)
+                self.assertIsInstance(document["apps"], dict)
+                for app, secrets in document["apps"].items():
+                    self.assertIsInstance(app, str)
+                    self.assertIsInstance(secrets, dict)
+                    self.assertTrue(
+                        all(isinstance(value, str) for value in secrets.values())
+                    )
         shutil.copytree(
             ROOT / "scenarios" / "newbie-install",
             self.harness / "scenario",
@@ -210,7 +278,8 @@ class ShellBoundary(unittest.TestCase):
         credentials = self.invoke("self-host credentials --json")
         self.assertEqual(credentials.returncode, 0, credentials.stderr)
         apps = json.loads(credentials.stdout)["apps"]
-        self.assertEqual([app["app"] for app in apps], ["jellyfin"])
+        self.assertEqual(list(apps), ["jellyfin"])
+        self.assertEqual(list(apps["jellyfin"]), ["JELLYFIN_API_KEY"])
 
     def test_single_app_install_is_not_labelled_as_media_recipe(self):
         shutil.copytree(
@@ -224,6 +293,17 @@ class ShellBoundary(unittest.TestCase):
         self.assertEqual(installed.returncode, 0, installed.stderr)
         events = [json.loads(line) for line in installed.stdout.splitlines()]
         self.assertEqual(events[0]["msg"], "install jellyfin")
+        status = json.loads(self.invoke("self-host status --json").stdout)
+        self.assertEqual([app["id"] for app in status["apps"]], ["jellyfin"])
+        self.assertNotIn("recipe", status["apps"][0])
+        self.assertNotIn("dashboard", status)
+        installed = self.invoke("self-host install media --yes --json")
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        status = json.loads(self.invoke("self-host status --json").stdout)
+        apps = {app["id"]: app for app in status["apps"]}
+        self.assertNotIn("recipe", apps["jellyfin"])
+        self.assertEqual(apps["sonarr"]["recipe"], "media")
+        self.assertNotIn("dashboard", status)
 
     def test_docker_observation_agrees_with_installed_apps(self):
         shutil.copytree(
@@ -246,6 +326,44 @@ class ShellBoundary(unittest.TestCase):
         self.assertIn("jellyfin", result.stdout)
         self.assertIn("Up", result.stdout)
         self.assertNotIn("sonarr", result.stdout)
+        (self.harness / "state" / "installed").unlink()
+        (self.harness / "state" / "recipes.json").unlink()
+        shutil.copytree(
+            ROOT / "scenarios" / "failed-setup",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        before = json.loads(self.invoke("self-host status --json").stdout)
+        before_apps = {app["id"]: app for app in before["apps"]}
+        self.assertEqual(set(before_apps), {"jellyfin", "qbittorrent", "sonarr"})
+        debug = self.invoke("self-host debug sonarr --json")
+        self.assertEqual(debug.returncode, 0, debug.stderr)
+        report = json.loads(debug.stdout)
+        self.assertEqual(report["id"], "sonarr")
+        self.assertEqual(report["setup"], "incomplete")
+        self.assertEqual(report["failed_steps"][0]["id"], "download-client")
+        self.assertEqual(report["health_check"]["url"], before_apps["sonarr"]["url"])
+        self.assertIsInstance(report["health_check"]["working"], str)
+        setup = self.invoke("self-host setup sonarr --json")
+        self.assertEqual(setup.returncode, 0, setup.stderr)
+        after = json.loads(self.invoke("self-host status --json").stdout)
+        after_apps = {app["id"]: app for app in after["apps"]}
+        self.assertEqual(set(after_apps), set(before_apps))
+        for app in ("jellyfin", "qbittorrent"):
+            self.assertEqual(after_apps[app], before_apps[app])
+        self.assertEqual(before_apps["sonarr"]["setup"], "incomplete")
+        self.assertEqual(after_apps["sonarr"]["setup"], "ok")
+        for key in before_apps["sonarr"].keys() - {"setup", "steps"}:
+            self.assertEqual(after_apps["sonarr"][key], before_apps["sonarr"][key])
+        self.assertEqual(after_apps["sonarr"]["steps"][0]["status"], "ok")
+        repaired = self.invoke("self-host debug sonarr --json")
+        self.assertEqual(repaired.returncode, 0, repaired.stderr)
+        self.assertEqual(json.loads(repaired.stdout)["setup"], "ok")
+        self.assertFalse(json.loads(repaired.stdout).get("failed_steps"))
+        result = self.invoke("docker ps --format '{{.Names}}'")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for app in before_apps:
+            self.assertIn("self-host-%s-1" % app, result.stdout)
 
     def test_installed_project_home_exists_only_in_sandbox(self):
         shutil.copytree(

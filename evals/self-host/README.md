@@ -31,7 +31,15 @@ agent through inspect, plan, approval, apply, verify.
   tools are limited to Bash, Read and Skill; bundled skills are disabled.
 - **Stubs.** `bin/self-host` replays `scenarios/<name>/`; `bin/docker` reports
   the same recorded Apps for read-only inspection. Single-App installs have
-  matching event labels and credentials. The reported Home folder exists only
+  matching event labels, Recipe selection and credentials. Credentials keep the
+  real CLI's App-ID-keyed maps of secret names to strings; Debug reports keep
+  the real health-check object. Retrying Sonarr Setup retains the other Apps
+  and updates its Status and Debug report without changing the installed selection.
+  The synthetic public-Access scenario remembers successful publication and
+  reports the same selected App/domain in Status, Addresses and later plans;
+  refused or failed publication does not change that state. Unsupported public
+  selections remain refused, not a general Cloudflare emulator.
+  The reported Home folder exists only
   inside the run's sandbox. Both tools log every call with its turn.
   Runtime folders use random identifiers so paths in Recaps and commands do
   not reveal the guide configuration to the blind judge.
@@ -58,6 +66,8 @@ agent through inspect, plan, approval, apply, verify.
   batch rather than silently completing. `raw/person.jsonl`
   records replies and approval flags; these are model-generated labels, not
   independently verified proof that each later action had appropriate approval.
+  Question options retain both labels and descriptions in the conversation
+  given to the simulated person and blind judge.
 - **Platforms.** Stub host tools simulate OS details and installer commands.
   Drive folders are mapped into the workspace. These are fixture scenarios,
   not installation proofs on those operating systems. A schema-validated
@@ -70,7 +80,11 @@ agent through inspect, plan, approval, apply, verify.
   exits non-zero, cancels pending runs and active model calls, and records
   `execution.json`. Each model process owns a process group; its remaining
   children are killed before artifacts are collected, also on timeout. This
-  does not establish containment of hostile code that deliberately detaches.
+  includes SIGINT/KeyboardInterrupt and SIGTERM: cancellation is signaled and
+  queued futures are cancelled before executor shutdown waits. Interrupted
+  execution and judgments stay invalid, with partial stdout/stderr retained.
+  Only process groups launched by this invocation are terminated.
+  This does not establish containment of hostile code that deliberately detaches.
   Both
   grading commands reject invalid or incomplete execution, including positional
   run arguments belonging to a failed batch. `checks.py` also

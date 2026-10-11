@@ -1,9 +1,11 @@
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -249,7 +251,7 @@ class GradingCLI(unittest.TestCase):
             ]
         )
 
-    def judge(self, mode="success", extra=()):
+    def judge(self, mode="success", extra=(), env=None):
         self.metadata["assertions"] = [
             {"text": "Explains the outcome", "check": "judge"}
         ]
@@ -257,7 +259,12 @@ class GradingCLI(unittest.TestCase):
         (self.run_dir / "outputs" / "commands.md").write_text("no commands")
         self.write(
             "../../../execution.json",
-            {"planned": 1, "completed": 1, "failed": 0, "valid": True},
+            {
+                "planned": len(list(self.iteration.glob("eval-*/*/run-*"))),
+                "completed": len(list(self.iteration.glob("eval-*/*/run-*"))),
+                "failed": 0,
+                "valid": True,
+            },
         )
         binary = Path(self.workspace.name) / "bin"
         binary.mkdir(exist_ok=True)
@@ -275,10 +282,12 @@ class GradingCLI(unittest.TestCase):
                 os.environ,
                 PATH=str(binary) + os.pathsep + os.environ["PATH"],
                 EVAL_TEST_MODE=mode,
+                **(env or {}),
             ),
             capture_output=True,
             text=True,
             check=False,
+            timeout=15,
         )
         return result
 
@@ -320,6 +329,47 @@ class GradingCLI(unittest.TestCase):
             ]
         )
         self.assertFalse((self.run_dir / "judged.json").exists())
+        for k in range(2, 7):
+            shutil.copytree(self.run_dir, self.run_dir.with_name("run-%d" % k))
+        for number in (signal.SIGINT, signal.SIGTERM):
+            with self.subTest(signal=number.name):
+                marker = Path(self.workspace.name) / (number.name + "-child")
+                started = time.monotonic()
+                result = self.judge(
+                    "judge-timeout",
+                    extra=("--parallel", "2"),
+                    env={
+                        "EVAL_TEST_MARKER": str(marker),
+                        "EVAL_TEST_SIGNAL": str(number.value),
+                    },
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertLess(time.monotonic() - started, 3)
+                diagnostics = [
+                    run
+                    for run in self.iteration.glob("eval-*/*/run-*")
+                    if (run / "raw/judge.json").is_file()
+                ]
+                for run in diagnostics:
+                    self.assertIn(
+                        "partial judge stdout", (run / "raw/judge.json").read_text()
+                    )
+                    self.assertIn(
+                        "partial judge stderr",
+                        (run / "raw/judge.stderr.txt").read_text(),
+                    )
+                for run in self.iteration.glob("eval-*/*/run-*"):
+                    self.assertFalse((run / "judged.json").exists())
+                    self.assertFalse(
+                        json.loads((run / "raw/judge-metrics.json").read_text())[
+                            "valid"
+                        ]
+                    )
+                time.sleep(2.2)
+                self.assertFalse(marker.exists())
+                self.assertEqual(
+                    len(Path(str(marker) + ".calls").read_text().splitlines()), 2
+                )
 
     def test_failed_judge_attempt_cannot_reuse_stale_verdict(self):
         self.metadata["assertions"] = [

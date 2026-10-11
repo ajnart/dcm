@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-args = sys.argv[1:]
-mode = os.environ.get("EVAL_TEST_MODE", "success")
-if args == ["--version"]:
-    print("2.1.100 (Claude Code)" if mode == "old-cli" else "2.1.296 (Claude Code)")
-    sys.exit(0)
-prompt = args[args.index("-p") + 1]
-is_preflight = prompt == "Reply with only the word READY."
-is_stream = args[args.index("--output-format") + 1] == "stream-json"
-if is_stream and mode in ("task-child", "task-timeout", "parallel-failure"):
+
+def start_child():
     marker = os.environ["EVAL_TEST_MARKER"]
     subprocess.Popen(
         [
@@ -26,10 +20,39 @@ if is_stream and mode in ("task-child", "task-timeout", "parallel-failure"):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+
+def interrupt_parent():
+    number = os.environ.get("EVAL_TEST_SIGNAL")
+    if number is None:
+        return
+    marker = os.environ["EVAL_TEST_MARKER"]
+    with open(marker + ".calls", "a") as output:
+        output.write(str(os.getpid()) + "\n")
+    try:
+        fd = os.open(marker + ".signalled", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return
+    os.close(fd)
+    time.sleep(0.3)
+    os.kill(os.getppid(), signal.Signals(int(number)))
+
+
+args = sys.argv[1:]
+mode = os.environ.get("EVAL_TEST_MODE", "success")
+if args == ["--version"]:
+    print("2.1.100 (Claude Code)" if mode == "old-cli" else "2.1.296 (Claude Code)")
+    sys.exit(0)
+prompt = args[args.index("-p") + 1]
+is_preflight = prompt == "Reply with only the word READY."
+is_stream = args[args.index("--output-format") + 1] == "stream-json"
+if is_stream and mode in ("task-child", "task-timeout", "parallel-failure"):
+    start_child()
     if mode == "task-timeout":
         print("partial task stdout", flush=True)
         print("partial task stderr", file=sys.stderr, flush=True)
-        time.sleep(10)
+        interrupt_parent()
+        time.sleep(3 if "EVAL_TEST_SIGNAL" in os.environ else 10)
     if mode == "parallel-failure":
         if not Path(".claude/skills/self-host/SKILL.md").is_file():
             time.sleep(10)
@@ -41,7 +64,12 @@ if mode == "person-timeout" and not is_preflight and not is_stream:
 if mode == "judge-timeout" and prompt.startswith("You are grading"):
     print("partial judge stdout", flush=True)
     print("partial judge stderr", file=sys.stderr, flush=True)
-    time.sleep(10)
+    if "EVAL_TEST_SIGNAL" in os.environ:
+        start_child()
+        interrupt_parent()
+        time.sleep(3)
+    else:
+        time.sleep(10)
 result = {
     "type": "result",
     "subtype": "success",
@@ -101,11 +129,33 @@ elif is_stream:
             }
         )
     )
+    content: list[dict[str, object]] = [{"type": "text", "text": reply}]
+    if mode == "person-preamble":
+        content.append(
+            {
+                "type": "tool_use",
+                "name": "mcp__person__ask_user",
+                "input": {
+                    "question": "What would you like?",
+                    "options": [
+                        {
+                            "label": "Just watching",
+                            "description": "Play your own files.",
+                        },
+                        {
+                            "label": "The fuller setup",
+                            "description": "Automatically fetch shows and films "
+                            "you request.",
+                        },
+                    ],
+                },
+            }
+        )
     print(
         json.dumps(
             {
                 "type": "assistant",
-                "message": {"content": [{"type": "text", "text": reply}]},
+                "message": {"content": content},
             }
         )
     )
@@ -185,6 +235,11 @@ if "--json-schema" in args and not result["is_error"]:
         value.setdefault("completed_steps", [])
     result["structured_output"] = value
 if mode == "person-preamble" and not is_preflight and not is_stream:
+    if (
+        "The fuller setup: Automatically fetch shows and films you request."
+        not in prompt
+    ):
+        sys.exit("option description missing from the person's conversation")
     result["result"] = (
         'Yes please.\n\n```json\n{"reply":"","done":true,"approves":false}\n```'
     )

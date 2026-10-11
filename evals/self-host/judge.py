@@ -20,7 +20,7 @@ import shutil
 import tempfile
 import threading
 
-from processes import run_process
+from processes import cancellation_signals, run_process
 from validity import (
     check_model,
     judgment_digest,
@@ -175,7 +175,23 @@ def judge_run(run, model, timeout, stop):
     return run, "%d/%d" % (sum(o["passed"] for o in out), len(out))
 
 
-def main():
+def invalidate_judgments(runs, model, retain_metrics=False):
+    for run in runs:
+        for name in ("judged.json", "grading.json"):
+            path = os.path.join(run, name)
+            if os.path.isfile(path):
+                os.unlink(path)
+        path = os.path.join(run, "raw", "judge-metrics.json")
+        metrics = {"model": model, "valid": False}
+        if retain_metrics and os.path.isfile(path):
+            with open(path) as source:
+                metrics = json.load(source)
+            metrics["valid"] = False
+        with open(path, "w") as output:
+            json.dump(metrics, output)
+
+
+def main(stop):
     ap = argparse.ArgumentParser()
     ap.add_argument("--iteration-dir", required=True)
     ap.add_argument("--model", default="claude-opus-5-5")
@@ -185,42 +201,49 @@ def main():
     if args.parallel < 1 or args.timeout < 1:
         ap.error("--parallel and --timeout must be positive")
     runs = sorted(glob.glob(os.path.join(args.iteration_dir, "eval-*", "*", "run-*")))
-    for run in runs:
-        for name in ("judged.json", "grading.json"):
-            path = os.path.join(run, name)
-            if os.path.isfile(path):
-                os.unlink(path)
-        path = os.path.join(run, "raw", "judge-metrics.json")
-        if os.path.isfile(path):
-            with open(path, "w") as output:
-                json.dump({"model": args.model, "valid": False}, output)
+    invalidate_judgments(runs, args.model)
     require_iteration(args.iteration_dir, runs)
-    check_model(args.model)
+    check_model(args.model, stop=stop)
     random.shuffle(runs)
-    stop = threading.Event()
     failed = False
     with cf.ThreadPoolExecutor(args.parallel) as pool:
-        futures = [
-            pool.submit(judge_run, run, args.model, args.timeout, stop) for run in runs
-        ]
-        for future in cf.as_completed(futures):
-            if future.cancelled():
-                continue
-            try:
-                run, msg = future.result()
-                print(
-                    "%s: %s" % (os.path.relpath(run, args.iteration_dir), msg),
-                    flush=True,
+        futures = []
+        try:
+            for run in runs:
+                futures.append(
+                    pool.submit(judge_run, run, args.model, args.timeout, stop)
                 )
-            except Exception as error:
-                failed = True
-                stop.set()
-                for pending in futures:
-                    pending.cancel()
-                print("judgment failed: %r" % error, flush=True)
+            for future in cf.as_completed(futures):
+                if future.cancelled():
+                    continue
+                try:
+                    run, msg = future.result()
+                    print(
+                        "%s: %s" % (os.path.relpath(run, args.iteration_dir), msg),
+                        flush=True,
+                    )
+                except Exception as error:
+                    failed = True
+                    stop.set()
+                    for pending in futures:
+                        pending.cancel()
+                    print("judgment failed: %r" % error, flush=True)
+        except KeyboardInterrupt as error:
+            failed = True
+            print("judgment interrupted: %s" % error, flush=True)
+        finally:
+            stop.set()
+            for pending in futures:
+                pending.cancel()
     if failed:
+        invalidate_judgments(runs, args.model, retain_metrics=True)
         raise SystemExit("judging failed; no partial iteration may be graded")
 
 
 if __name__ == "__main__":
-    main()
+    stop = threading.Event()
+    with cancellation_signals(stop):
+        try:
+            main(stop)
+        except KeyboardInterrupt as error:
+            raise SystemExit(str(error) or "judgment interrupted")
