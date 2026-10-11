@@ -1,0 +1,14 @@
+docs/homarr-paperless-proof.md
+  h_d6e478ca18e517 3,51-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "19f502a1816248fdfc339621fc5b7c420bba7094",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
