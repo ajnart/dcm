@@ -2,7 +2,7 @@
 
 ## Supported upstream
 
-The compiled definition pins `ghcr.io/homarr-labs/homarr:2.4.1`.
+The compiled definition pins `ghcr.io/homarr-labs/homarr:v2.4.1`.
 The API contract is Homarr v2.4.1, source
 `ebbd4876d25a51151444a009ab596e1154d62880`. A release tag is not an
 immutable digest; runtime proofs must record the resolved digest separately.
@@ -34,6 +34,8 @@ authentication failures and accept legitimate zero values. Use a real identifier
 in `bind` when needed, or leave that widget out. Do not invent an album, entity,
 website or machine. `stats` and `calendar` remain shared, with per-integration
 ownership and deterministic per-integration metric entry IDs.
+No-auth kinds may omit the credential resolver: the common transport sends an
+explicit empty secrets array and validates it against the upstream empty alternative.
 
 Credentials belong to the peer's Setup and are saved with `h.SetSecret`.
 Use `h.Secret`, `h.Key`, shared Admin login and existing helper interfaces;
@@ -49,6 +51,10 @@ Link creates a separate owned integration and records Homarr's returned ID.
 New integration widget ownership starts with `{}`; existing user widgets are
 not inferred as owned. Only recorded widget IDs are removed. Shared widgets
 lose just the removed integration's entries/binding.
+If any remaining widget on any visible board still uses the integration,
+removal preserves that integration and releases the Link's recorded ownership,
+rather than destroying a user widget's connection. A later Link creates its own
+integration again; it does not reclaim the preserved record.
 
 Existing recorded Links retain their conservative legacy widget migration:
 only a complete unique generated set with deterministic Stats IDs is eligible;

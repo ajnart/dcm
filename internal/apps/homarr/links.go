@@ -70,6 +70,13 @@ type target struct {
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
 
+func (t target) credentials(from, to *helpers.H) []secret {
+	if t.secrets == nil {
+		return []secret{}
+	}
+	return t.secrets(from, to)
+}
+
 func apiKeySecret(_, to *helpers.H) []secret {
 	return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("api_key"))}}
 }
@@ -234,7 +241,10 @@ func listIntegrations(ctx context.Context, h *helpers.H) ([]map[string]any, erro
 	if err != nil {
 		return nil, err
 	}
-	items, _ := value.([]any)
+	items, ok := value.([]any)
+	if !ok {
+		return nil, errors.New("Homarr did not return an integration list; inspect its connection before retrying Setup")
+	}
 	integrations := make([]map[string]any, 0, len(items))
 	for _, item := range items {
 		if record, ok := item.(map[string]any); ok {
@@ -575,7 +585,7 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	if id := match(integrations); id != "" {
 		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) || !integrationAddressCurrent(integrations, id, internal) {
 			value, err := apiKeyWrite(ctx, from, "integration.update", map[string]any{
-				"id": id, "name": t.name, "url": internal, "secrets": t.secrets(from, to), "appId": appID,
+				"id": id, "name": t.name, "url": internal, "secrets": t.credentials(from, to), "appId": appID,
 			})
 			if err != nil {
 				return "", err
@@ -598,7 +608,7 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	}
 	id, err := createIntegration(ctx, from, map[string]any{
 		"name": t.name, "url": internal, "kind": t.kind,
-		"secrets": t.secrets(from, to), "attemptSearchEngineCreation": false,
+		"secrets": t.credentials(from, to), "attemptSearchEngineCreation": false,
 		"app": map[string]any{"id": appID},
 	})
 	if err != nil {
@@ -645,7 +655,7 @@ func verifyNTFYToken(ctx context.Context, to *helpers.H) error {
 func integrationFingerprintKey(h *helpers.H, id string) string { return h.Key("integration_" + id) }
 
 func integrationFingerprint(t target, from, to *helpers.H) string {
-	raw, _ := json.Marshal(t.secrets(from, to))
+	raw, _ := json.Marshal(t.credentials(from, to))
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
 }
@@ -958,6 +968,17 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 						return err
 					}
 				}
+				used, err := integrationUsedByWidgets(ctx, from, id)
+				if err != nil {
+					return err
+				}
+				if used {
+					from.Info("keeping the " + t.name + " integration because other widgets still use it")
+					if err := from.SetSecret(from.Key("linked_"+t.id), ""); err != nil {
+						return err
+					}
+					continue
+				}
 				if err := deleteIntegration(ctx, from, id); err != nil {
 					return err
 				}
@@ -981,6 +1002,33 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	return ensureNotebook(ctx, from)
+}
+
+func integrationUsedByWidgets(ctx context.Context, h *helpers.H, integrationID string) (bool, error) {
+	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/boards", Header: apiKeyHeader(h)})
+	if err != nil {
+		return false, err
+	}
+	var boards []map[string]any
+	if err := resp.Decode(&boards); err != nil {
+		return false, err
+	}
+	for _, candidate := range boards {
+		value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": stringField(candidate, "name")})
+		if err != nil {
+			return false, err
+		}
+		current, ok := value.(map[string]any)
+		if !ok {
+			return false, errors.New("Homarr did not return a board while checking remaining integration bindings")
+		}
+		for _, item := range itemsOf(current) {
+			if wiredTo(item, stringField(item, "kind"), integrationID) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
