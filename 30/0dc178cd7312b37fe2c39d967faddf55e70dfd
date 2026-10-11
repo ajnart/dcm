@@ -1,0 +1,26 @@
+docs/catalog/traps/home-assistant.md
+  h_d6e478ca18e517 9-10
+docs/home-assistant-homarr-contract.md
+  h_d6e478ca18e517 1-137
+internal/apps/homarr/target_home_assistant.go
+  h_d6e478ca18e517 1-87
+internal/apps/homeassistant/homarr.go
+  h_d6e478ca18e517 1-264
+internal/apps/homeassistant/homarr_auth.go
+  h_d6e478ca18e517 1-154
+internal/apps/homeassistant/homeassistant.go
+  h_d6e478ca18e517 6,33-44,94-101,156-158,173-176,187-188
+internal/apps/homeassistant/homeassistant_test.go
+  h_d6e478ca18e517 16,34,37-50,59-61,90-110,132,151-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "300dc178cd7312b37fe2c39d967faddf55e70dfd",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
