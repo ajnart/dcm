@@ -151,6 +151,9 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			mainService = info.Service
 			for _, stepID := range st.StepOrder {
 				r := st.Steps[stepID]
+				if ss.omitAbsentPeerWait(a, stepID, r) {
+					continue
+				}
 				as.Steps = append(as.Steps, StepStatus{ID: stepID, Status: r.Status, Msg: s.Log.Redact(r.Msg), Error: s.Log.Redact(r.Error), Hint: s.Log.Redact(r.Hint)})
 			}
 		}

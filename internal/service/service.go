@@ -463,12 +463,37 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 // applyLink runs one Link of from, or reports that it waits for its target.
 func (ss *session) applyLink(ctx context.Context, from app.App, link app.Link) {
 	h := ss.helpers(from)
+	if !ss.hasInstalledApp(link.Target) {
+		return
+	}
 	to := ss.readyPeer(link.Target)
 	if to == nil {
-		h.Skip(link.ID, "waiting for "+link.Target+" (install it, or finish its Setup)")
+		h.Skip(link.ID, linkWaitingMessage(link.Target))
 		return
 	}
 	ss.reportUnexpected(h, link.ID, link.Apply(ctx, h, to))
+}
+
+func linkWaitingMessage(target string) string {
+	return "waiting for " + target + " to finish Setup"
+}
+
+func (ss *session) hasInstalledApp(id string) bool {
+	_, found := ss.s.Catalog.App(id)
+	return found && ss.state.Apps[id] != nil
+}
+
+func (ss *session) omitAbsentPeerWait(owner app.App, stepID string, record project.StepRecord) bool {
+	if record.Status != stepstatus.StepSkip {
+		return false
+	}
+	for _, link := range owner.Links() {
+		if link.ID != stepID || ss.hasInstalledApp(link.Target) {
+			continue
+		}
+		return record.Msg == linkWaitingMessage(link.Target) || record.Msg == "waiting for "+link.Target+" (install it, or finish its Setup)"
+	}
+	return false
 }
 
 // reportUnexpected records an error that did not come from a failed step,
