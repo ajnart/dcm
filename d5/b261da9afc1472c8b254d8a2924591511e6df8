@@ -1,0 +1,14 @@
+docs/homarr-external-coverage-plan.md
+  h_d6e478ca18e517 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5b261da9afc1472c8b254d8a2924591511e6df8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
