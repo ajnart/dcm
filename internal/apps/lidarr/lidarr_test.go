@@ -17,12 +17,13 @@ import (
 )
 
 type fakeLidarr struct {
-	mu        sync.Mutex
-	key       string
-	forms     bool
-	user      string
-	password  string
-	rejectPut bool
+	mu         sync.Mutex
+	key        string
+	forms      bool
+	user       string
+	password   string
+	rejectPut  bool
+	statusBody string
 }
 
 func (f *fakeLidarr) host() map[string]any {
@@ -37,13 +38,21 @@ func (f *fakeLidarr) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("pong")) })
 	mux.HandleFunc("GET /api/v1/system/status", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
 		if r.Header.Get("X-Api-Key") != f.key {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		w.Write([]byte("{}"))
+		if f.statusBody != "" {
+			w.Write([]byte(f.statusBody))
+			return
+		}
+		w.Write([]byte(`{"appName":"Lidarr","version":"3.1.0.4875"}`))
 	})
 	mux.HandleFunc("GET /api/v1/config/host", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
 		if r.Header.Get("X-Api-Key") != f.key {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -90,7 +99,8 @@ func writeConfig(t *testing.T, dir, key string) {
 func TestReadsTheAPIKeyAndRequiresFormsAuth(t *testing.T) {
 	dir := t.TempDir()
 	writeConfig(t, dir, "0123456789abcdef0123456789abcdef")
-	server := httptest.NewServer((&fakeLidarr{key: "0123456789abcdef0123456789abcdef"}).handler())
+	fake := &fakeLidarr{key: "0123456789abcdef0123456789abcdef"}
+	server := httptest.NewServer(fake.handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "lidarr", Service: "lidarr", Dir: dir,
@@ -104,6 +114,20 @@ func TestReadsTheAPIKeyAndRequiresFormsAuth(t *testing.T) {
 	}
 	if rec.Status("api-key") != stepstatus.StepOK || rec.Status("auth") != stepstatus.StepOK {
 		t.Fatalf("api-key=%q auth=%q, want ok", rec.Status("api-key"), rec.Status("auth"))
+	}
+	for _, body := range []string{`{}`, `null`, `[]`, `<html>sign in</html>`, `{"appName":"Sonarr","version":"3.1.0.4875"}`, `{"appName":"Lidarr"}`} {
+		fake.mu.Lock()
+		fake.statusBody = body
+		fake.mu.Unlock()
+		if err := (lidarr.App{}).Check(context.Background(), h); err == nil {
+			t.Fatalf("Check accepted invalid API status: %s", body)
+		}
+	}
+	fake.mu.Lock()
+	fake.statusBody, fake.forms = "", false
+	fake.mu.Unlock()
+	if err := (lidarr.App{}).Check(context.Background(), h); err == nil {
+		t.Fatal("Check accepted disabled Forms authentication")
 	}
 }
 

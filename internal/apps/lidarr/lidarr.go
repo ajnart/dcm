@@ -72,7 +72,23 @@ func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
 		return false, nil
 	}
 	resp, err := h.HTTP(ctx, request(h, helpers.Request{Path: "/system/status"}))
-	return err == nil && resp.Status == 200, err
+	if err != nil {
+		return false, err
+	}
+	if resp.Status != 200 {
+		return false, fmt.Errorf("Lidarr API key verification returned HTTP %d", resp.Status)
+	}
+	var status struct {
+		AppName string `json:"appName"`
+		Version string `json:"version"`
+	}
+	if err := resp.Decode(&status); err != nil {
+		return false, fmt.Errorf("Lidarr API key verification returned invalid status data")
+	}
+	if status.AppName != "Lidarr" || strings.TrimSpace(status.Version) == "" {
+		return false, fmt.Errorf("Lidarr API key verification returned incomplete status data")
+	}
+	return true, nil
 }
 
 // readAPIKey waits for the key Lidarr writes to config.xml on first start.
@@ -169,7 +185,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := keyWorks(ctx, h); !ok {
 		return fmt.Errorf("the Lidarr API key is not accepted: %v", err)
 	}
-	if ok, err := loginWorks(ctx, h); !ok {
+	if ok, err := authConfigured(ctx, h); !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Lidarr: %v", h.AdminUser(), err)
 	}
 	return nil
