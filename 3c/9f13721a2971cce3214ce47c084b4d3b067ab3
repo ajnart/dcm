@@ -1,0 +1,44 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 34,241-286
+evals/self-host/README.md
+  h_d6e478ca18e517 71-74,81-88,231-246
+evals/self-host/bin/guard.py
+  h_d6e478ca18e517 87
+evals/self-host/bin/hosttool
+  h_d6e478ca18e517 13,97-139,146-176
+evals/self-host/bin/isolation.py
+  h_d6e478ca18e517 14-15,34-39,56-79,85,89-90
+evals/self-host/bin/self-host
+  h_d6e478ca18e517 346,351,394-398
+evals/self-host/evals/evals.json
+  h_d6e478ca18e517 10-11,71-72,116-117,157-158,198-199,259-260,320-321,370
+evals/self-host/run.py
+  h_d6e478ca18e517 41,123-143,443-448,456-457,460-462,466-471,481,488-493,557-634,737,741,771-781,949-950
+evals/self-host/scenarios/newbie-debian/platform.json
+  h_d6e478ca18e517 15-23,26
+evals/self-host/scenarios/newbie-macbook/platform.json
+  h_d6e478ca18e517 13-21,24
+evals/self-host/scenarios/newbie-mint/platform.json
+  h_d6e478ca18e517 15-23,26
+evals/self-host/scenarios/newbie-wsl/platform.json
+  h_d6e478ca18e517 15-23,26
+evals/self-host/tests/fake_claude.py
+  h_d6e478ca18e517 41-85,132-133,215-219,289-294
+evals/self-host/tests/test_execution.py
+  h_d6e478ca18e517 255-283,423-436
+evals/self-host/tests/test_grading.py
+  h_d6e478ca18e517 254-257,395-407
+evals/self-host/tests/test_runner.py
+  h_d6e478ca18e517 71-77,91-125,229-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c9f13721a2971cce3214ce47c084b4d3b067ab3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
