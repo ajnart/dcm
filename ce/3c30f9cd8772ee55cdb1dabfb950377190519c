@@ -1,0 +1,52 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 24-34,100-142,152
+evals/self-host/README.md
+  h_d6e478ca18e517 3-6,41-44,68-72,75-80,99-101,104-107,139-143,182
+evals/self-host/bin/docker
+  h_d6e478ca18e517 33-35,60-63,82-86,95-98
+evals/self-host/bin/guard.py
+  h_d6e478ca18e517 14,52-55,138-153
+evals/self-host/bin/hosttool
+  h_d6e478ca18e517 26-29,40-49,54-61,65-69,83-91,120-127
+evals/self-host/bin/isolation.py
+  h_d6e478ca18e517 33-49,55-56
+evals/self-host/bin/self-host
+  h_d6e478ca18e517 5,66-70,216-218,260-263,271-278,293-298,338-340,384-386,391,437-442
+evals/self-host/checks.py
+  h_d6e478ca18e517 19,111,317-327,349-356,432-437,439-470,507-514,523,525-530,573-576,592,597,613-617,622,624,627,629-630,632-635
+evals/self-host/judge.py
+  h_d6e478ca18e517 21,23-30,52,87,105,129,132,140,168-169,188-196,200-201,203-222
+evals/self-host/processes.py
+  h_d6e478ca18e517 1-33
+evals/self-host/run.py
+  h_d6e478ca18e517 37,40,257-259,298,301,308,321,448,460,484,487,502,519-521,530,547,550,554-559,561-568,572-581,588,593,603-607,614,628,647,654,698-700,770-781,854,868,882
+evals/self-host/scenarios/cant-reach-tv/status-fixed.json
+  h_d6e478ca18e517 9
+evals/self-host/scenarios/cant-reach-tv/status.json
+  h_d6e478ca18e517 10
+evals/self-host/scenarios/public-access/status-installed.json
+  h_d6e478ca18e517 8
+evals/self-host/scenarios/public-access/status.json
+  h_d6e478ca18e517 8
+evals/self-host/tests/fake_claude.py
+  h_d6e478ca18e517 7,17-36,59-60,95-98,122,127-138
+evals/self-host/tests/test_execution.py
+  h_d6e478ca18e517 123-184,275-292
+evals/self-host/tests/test_grading.py
+  h_d6e478ca18e517 160-169,177-178,191-251,263,346-446
+evals/self-host/tests/test_runner.py
+  h_d6e478ca18e517 7,187-260
+evals/self-host/validity.py
+  h_d6e478ca18e517 1,3,10-11,50-64,103-115,126-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce3c30f9cd8772ee55cdb1dabfb950377190519c",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
