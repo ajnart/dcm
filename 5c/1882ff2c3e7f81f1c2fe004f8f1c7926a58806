@@ -1,0 +1,38 @@
+internal/apps/authentik/authentik.go
+  h_d6e478ca18e517 20-25
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 20-25
+internal/apps/bookstack/bookstack.go
+  h_d6e478ca18e517 24-29
+internal/apps/docmost/docmost.go
+  h_d6e478ca18e517 20-25
+internal/apps/fireflyiii/fireflyiii.go
+  h_d6e478ca18e517 21-26
+internal/apps/netbird/netbird.go
+  h_d6e478ca18e517 20-25
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  h_d6e478ca18e517 18-23
+internal/apps/openwebui/openwebui.go
+  h_d6e478ca18e517 23-28
+internal/apps/pangolin/pangolin.go
+  h_d6e478ca18e517 22-27
+internal/apps/passbolt/passbolt.go
+  h_d6e478ca18e517 20-25
+internal/apps/seafile/seafile.go
+  h_d6e478ca18e517 25-30
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 46-51
+internal/service/status.go
+  h_d6e478ca18e517 311-314,318
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c1882ff2c3e7f81f1c2fe004f8f1c7926a58806",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
