@@ -30,14 +30,15 @@ const downloads = "/var/lib/aria2/downloads"
 
 func fakeRPC(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Method string   `json:"method"`
-		Params []string `json:"params"`
-		ID     int      `json:"id"`
+		Method string            `json:"method"`
+		Params []json.RawMessage `json:"params"`
+		ID     int               `json:"id"`
 	}
 	json.NewDecoder(r.Body).Decode(&req)
 	token := ""
 	if len(req.Params) > 0 {
-		token = strings.TrimPrefix(req.Params[0], "token:")
+		json.Unmarshal(req.Params[0], &token)
+		token = strings.TrimPrefix(token, "token:")
 	}
 	if token != rpcToken {
 		w.WriteHeader(http.StatusBadRequest)
@@ -45,12 +46,16 @@ func fakeRPC(w http.ResponseWriter, r *http.Request) {
 			"error": map[string]any{"code": 1, "message": "Unauthorized"}})
 		return
 	}
-	result := map[string]any{}
+	var result any = map[string]any{}
 	switch req.Method {
 	case "aria2.getVersion":
 		result = map[string]any{"version": "1.37.0"}
 	case "aria2.getGlobalOption":
 		result = map[string]any{"dir": downloads}
+	case "aria2.getGlobalStat":
+		result = map[string]string{"downloadSpeed": "0", "uploadSpeed": "0", "numActive": "0", "numWaiting": "0", "numStopped": "0", "numStoppedTotal": "0"}
+	case "aria2.tellActive", "aria2.tellWaiting", "aria2.tellStopped":
+		result = []any{}
 	}
 	json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": result})
 }

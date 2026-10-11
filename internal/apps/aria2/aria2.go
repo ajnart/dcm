@@ -4,6 +4,7 @@ package aria2
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -65,23 +66,62 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-func call(ctx context.Context, h *helpers.H, method, token string) (helpers.Response, error) {
-	params := []string{}
+func call(ctx context.Context, h *helpers.H, method, token string, args ...any) (helpers.Response, error) {
+	params := []any{}
 	if token != "" {
-		params = []string{"token:" + token}
+		params = append(params, "token:"+token)
 	}
+	params = append(params, args...)
 	return h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/jsonrpc",
-		JSON: map[string]any{"jsonrpc": "2.0", "id": 1, "method": method, "params": params}})
+		JSON: map[string]any{"jsonrpc": "2.0", "id": 1, "method": method, "params": params}, NoRedirect: true})
 }
 
-// tokenWorks rejects unauthenticated RPC and verifies the saved token, the
-// pinned version and the owned download directory.
+type rpcResponse struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      int             `json:"id"`
+	Result  json.RawMessage `json:"result"`
+	Error   *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+func decodeRPC(response helpers.Response) (rpcResponse, error) {
+	var body rpcResponse
+	if response.Decode(&body) != nil || body.JSONRPC != "2.0" || body.ID != 1 {
+		return body, errors.New("aria2 did not return a valid JSON-RPC response on /jsonrpc")
+	}
+	return body, nil
+}
+
+func (r rpcResponse) unauthorized() bool {
+	return r.Error != nil && r.Error.Code == 1 && r.Error.Message == "Unauthorized"
+}
+
+func rpcResult(response helpers.Response, result any) error {
+	body, err := decodeRPC(response)
+	if err != nil {
+		return err
+	}
+	if response.Status != http.StatusOK || body.Error != nil || len(body.Result) == 0 || string(body.Result) == "null" {
+		return errors.New("aria2 rejected the authenticated RPC request")
+	}
+	if json.Unmarshal(body.Result, result) != nil {
+		return errors.New("aria2 returned an unexpected RPC result")
+	}
+	return nil
+}
+
 func tokenWorks(ctx context.Context, h *helpers.H, token string) (bool, error) {
 	anonymous, err := call(ctx, h, "aria2.getVersion", "")
 	if err != nil {
 		return false, err
 	}
-	if anonymous.Status == http.StatusOK {
+	body, err := decodeRPC(anonymous)
+	if err != nil {
+		return false, err
+	}
+	if !body.unauthorized() || (anonymous.Status != http.StatusBadRequest && anonymous.Status != http.StatusOK) {
 		return false, nil
 	}
 	if token == "" {
@@ -91,48 +131,89 @@ func tokenWorks(ctx context.Context, h *helpers.H, token string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if authorized.Status != http.StatusOK {
-		return false, nil
+	var installed struct {
+		Version string `json:"version"`
 	}
-	var body struct {
-		Error  any `json:"error"`
-		Result struct {
-			Version string `json:"version"`
-		} `json:"result"`
-	}
-	if err := authorized.Decode(&body); err != nil {
+	if err := rpcResult(authorized, &installed); err != nil {
 		return false, err
 	}
-	if body.Error != nil || body.Result.Version != version {
+	if installed.Version != version {
 		return false, nil
 	}
 	options, err := call(ctx, h, "aria2.getGlobalOption", token)
 	if err != nil {
 		return false, err
 	}
-	if options.Status != http.StatusOK {
-		return false, nil
-	}
 	var global struct {
-		Result struct {
-			Dir string `json:"dir"`
-		} `json:"result"`
+		Dir string `json:"dir"`
 	}
-	if err := options.Decode(&global); err != nil {
+	if err := rpcResult(options, &global); err != nil {
 		return false, err
 	}
-	return global.Result.Dir == downloads, nil
+	return global.Dir == downloads, nil
 }
 
-func ready(ctx context.Context, h *helpers.H, path string) error {
-	probe := func(ctx context.Context) (bool, error) {
-		resp, err := h.HTTP(ctx, helpers.Request{Path: path})
+func downloadsWork(ctx context.Context, h *helpers.H, token string) (bool, error) {
+	response, err := call(ctx, h, "aria2.getGlobalStat", token)
+	if err != nil {
+		return false, err
+	}
+	var stats map[string]string
+	if err := rpcResult(response, &stats); err != nil {
+		return false, err
+	}
+	for _, key := range []string{"downloadSpeed", "uploadSpeed", "numActive", "numWaiting", "numStopped", "numStoppedTotal"} {
+		if _, err := strconv.ParseUint(stats[key], 10, 64); err != nil {
+			return false, errors.New("aria2 did not return valid queue counts and transfer rates")
+		}
+	}
+	keys := []string{"gid", "status"}
+	for _, method := range []string{"aria2.tellActive", "aria2.tellWaiting", "aria2.tellStopped"} {
+		args := []any{0, 1, keys}
+		if method == "aria2.tellActive" {
+			args = []any{keys}
+		}
+		response, err := call(ctx, h, method, token, args...)
 		if err != nil {
 			return false, err
 		}
-		return resp.Status < 500, nil
+		var queue []struct {
+			GID    string `json:"gid"`
+			Status string `json:"status"`
+		}
+		if err := rpcResult(response, &queue); err != nil {
+			return false, err
+		}
+		for _, item := range queue {
+			if item.GID == "" {
+				return false, errors.New("aria2 returned a queue item without its identifier")
+			}
+			switch item.Status {
+			case "active", "waiting", "paused", "complete", "error", "removed":
+			default:
+				return false, errors.New("aria2 returned a queue item without a supported status")
+			}
+		}
 	}
-	return h.Step(ctx, "ready", "wait for the web server on "+path, helpers.StepSpec{
+	return true, nil
+}
+
+func ready(ctx context.Context, h *helpers.H) error {
+	probe := func(ctx context.Context) (bool, error) {
+		resp, err := call(ctx, h, "aria2.getVersion", "")
+		if err != nil {
+			return false, err
+		}
+		body, err := decodeRPC(resp)
+		if err != nil {
+			return false, err
+		}
+		if body.unauthorized() && (resp.Status == http.StatusBadRequest || resp.Status == http.StatusOK) {
+			return true, nil
+		}
+		return resp.Status == http.StatusOK && body.Error == nil && len(body.Result) > 0, nil
+	}
+	return h.Step(ctx, "ready", "wait for aria2's RPC listener on /jsonrpc", helpers.StepSpec{
 		Check: probe,
 		Do:    func(ctx context.Context) error { return h.Poll(ctx, 2*time.Minute, probe) },
 		Hint:  "Check the App's logs: self-host logs " + h.App,
@@ -140,15 +221,21 @@ func ready(ctx context.Context, h *helpers.H, path string) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := ready(ctx, h, "/jsonrpc"); err != nil {
+	if err := ready(ctx, h); err != nil {
 		return err
 	}
 	token := h.Secret(h.Key("rpc_token"))
-	return h.Step(ctx, "rpc-token", "authenticate aria2's RPC token", helpers.StepSpec{
+	if err := h.Step(ctx, "rpc-token", "authenticate aria2's RPC token", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return tokenWorks(ctx, h, token) },
-		Hint: "Recreate the container so aria2 reads its RPC token from ./rpc-config: " +
-			"self-host start aria2",
+		Hint: "Run self-host install aria2 --yes to restore its saved RPC token and private configuration, " +
+			"then self-host start aria2 and self-host setup aria2.",
 		Credential: h.Key("rpc_token"),
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "rpc-data", "verify aria2's queue and transfer information", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return downloadsWork(ctx, h, token) },
+		Hint:  "Run self-host debug aria2, repair its authenticated RPC listener, then self-host setup aria2.",
 	})
 }
 
@@ -160,7 +247,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return errors.New("aria2 did not accept its saved RPC token or reports a different version or download directory")
 	}
-	return nil
+	_, err = downloadsWork(ctx, h, h.Secret(h.Key("rpc_token")))
+	return err
 }
 
 func (App) Links() []app.Link { return nil }
