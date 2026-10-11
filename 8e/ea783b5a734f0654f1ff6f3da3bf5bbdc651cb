@@ -1,0 +1,14 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 34,223-240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8eea783b5a734f0654f1ff6f3da3bf5bbdc651cb",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
