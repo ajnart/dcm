@@ -104,6 +104,18 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 		t.Run(a.Info().ID, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
+				if a.Info().ID == "dashdot" {
+					switch r.URL.Path {
+					case "/config":
+						w.Write([]byte(`{"config":{"widget_list":["cpu","ram"],"running_in_docker":false,"disable_background_stats_collection":true,"disable_integrations":false,"enable_cpu_temps":false}}`))
+					case "/info":
+						w.Write([]byte(`{"cpu":{"brand":"Kernel CPU","model":"Model","threads":2},"ram":{"size":8192}}`))
+					case "/load/cpu":
+						w.Write([]byte(`[{"load":0,"temp":0},{"load":0,"temp":0}]`))
+					case "/load/ram":
+						w.Write([]byte(`{"load":0}`))
+					}
+				}
 			}))
 			defer srv.Close()
 			info := a.Info()
