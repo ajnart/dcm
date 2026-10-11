@@ -62,14 +62,14 @@ func rpc() map[string]any {
 // adminWorks proves the RPC interface rejects anonymous reads and accepts the
 // saved administrator's Basic credentials with the pinned version.
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	anonymous, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/jsonrpc", JSON: rpc()})
+	anonymous, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/jsonrpc", JSON: rpc(), NoRedirect: true})
 	if err != nil {
 		return false, err
 	}
 	if anonymous.Status != http.StatusUnauthorized {
 		return false, nil
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/jsonrpc", JSON: rpc(), User: h.AdminUser(), Password: h.AdminPassword()})
+	resp, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/jsonrpc", JSON: rpc(), NoRedirect: true, User: h.AdminUser(), Password: h.AdminPassword()})
 	if err != nil {
 		return false, err
 	}
@@ -91,13 +91,23 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-rpc", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
+	if err := h.Step(ctx, "admin-rpc", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("NZBGet reads NZBGET_USER and NZBGET_PASS only when the container starts")
 		},
-		Hint: "NZBGet applies the Admin login on first start. Recreate the container: self-host start nzbget, " +
+		Hint: "NZBGet applies the Admin login when the container starts. Recreate the container: self-host start nzbget, " +
 			"then open " + h.URL + " and sign in with the password from `self-host credentials`.",
+		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-rpc", "prepare restricted NZBGet access for Homarr", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return VerifyHomarr(ctx, h) == nil, nil },
+		Do:    func(ctx context.Context) error { return prepareHomarr(ctx, h) },
+		Hint: "Run self-host setup nzbget to prepare its Homarr login. If restricted access already exists, keep it unchanged: " +
+			"restore the managed login through the Project secret boundary or explicitly clear only the restricted-user slot in NZBGet settings, then retry. " +
+			"A Usenet provider is separate and is not created by Setup.",
 		Credential: "admin",
 	})
 }
@@ -106,7 +116,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the Admin login %s cannot read NZBGet's version over RPC: %v", h.AdminUser(), err)
 	}
-	return nil
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

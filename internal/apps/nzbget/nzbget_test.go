@@ -26,11 +26,34 @@ func handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /jsonrpc", func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		if !ok || user != "admin" || pass != password {
+		if !ok || !(user == "admin" && pass == password || user == "self-host-homarr" && pass == "restricted-password") {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"id": "selfhost-version", "error": nil, "result": "26.3"})
+		var request struct{ ID, Method string }
+		json.NewDecoder(r.Body).Decode(&request)
+		var result any
+		switch request.Method {
+		case "version":
+			result = "26.3"
+		case "config", "loadconfig":
+			if user != "admin" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			result = []map[string]string{
+				{"Name": "RestrictedUsername", "Value": "self-host-homarr"},
+				{"Name": "RestrictedPassword", "Value": "restricted-password"},
+			}
+		case "status":
+			result = map[string]any{"DownloadPaused": false, "DownloadRate": 0}
+		case "listgroups", "history":
+			result = []any{}
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"id": request.ID, "error": nil, "result": result})
 	})
 	return mux
 }
@@ -41,10 +64,13 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 	return helpers.New(helpers.Config{
 		App: "nzbget", Service: "nzbget",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": password},
-		Log:     events.Discard(),
-		Record:  func(r helpers.StepResult) { *results = append(*results, r) },
-		Now:     deps.Now, Sleep: deps.Sleep,
+		Secrets: secrets{
+			"ADMIN_USER": "admin", "ADMIN_PASSWORD": password,
+			"NZBGET_HOMARR_USERNAME": "self-host-homarr", "NZBGET_HOMARR_PASSWORD": "restricted-password",
+		},
+		Log:    events.Discard(),
+		Record: func(r helpers.StepResult) { *results = append(*results, r) },
+		Now:    deps.Now, Sleep: deps.Sleep,
 	})
 }
 
