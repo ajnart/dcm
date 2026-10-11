@@ -113,7 +113,10 @@ func firstAdmin() firstadmin.FirstAdmin {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstAdmin().Setup(ctx, h)
+	if err := firstAdmin().Setup(ctx, h); err != nil {
+		return err
+	}
+	return setupHomarrCredential(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
@@ -124,5 +127,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Audiobookshelf", h.AdminUser())
 	}
-	return nil
+	return VerifyHomarrCredential(ctx, h)
 }
