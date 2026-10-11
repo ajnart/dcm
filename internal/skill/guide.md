@@ -13,21 +13,32 @@ exactly the commands this version registers; run `self-host skill` again after
    plus `home`, `dashboard` and `profile`. With no Project yet it exits 1 with
    "no Project yet", which means nothing is installed: run
    `self-host profile --json` instead.
-2. If the Profile's `experience` is empty, ask once, in plain words, through
-   your ask-user or question tool: "Have you run your own server or used Docker
-   before, or is this all new to you?" Save the answer with
+2. If the Profile's `experience` is empty, ask once through your ask-user or
+   question tool: "Have you run your own server or used Docker before, or is
+   this all new to you?", with two options to click so nobody has to describe
+   themselves: "This is all new to me" and "I've done this before". Skip the
+   question only when they already said which. Without such a tool, ask it
+   with the two choices in one line. Save the answer with
    `self-host profile set experience new` or
    `self-host profile set experience advanced`. A skipped question means new:
    save that.
 3. **New** (the person is not technical): follow the newcomer contract.
-   - Ask one question at a time through your ask-user tool.
+   - Ask one question at a time through your ask-user tool, with 2 to 4 options
+     to click, so the person types as little as possible.
    - Before installing software, changing Access or deleting data, say one plain
      sentence about what will happen and wait for a yes. Anything reachable from
      the internet needs its own yes that names the risk.
    - Change the Project only through `self-host` commands.
    - Never ask for or show a secret. Point at `self-host credentials`.
    - Offer the plan in goals and Apps, never settings. Pick the Recipe or Apps
-     from `self-host apps list --json`, with the catalog defaults.
+     from `self-host apps list --json`, with the catalog defaults. When a goal
+     has a small and a fuller answer, offer both as options. For films and
+     shows: Jellyfin alone plays what they already have; the Media Recipe also
+     finds and downloads new ones and lets the household ask for them. Ask
+     where their files live now (a folder, a USB drive) and pass that folder
+     as `--media-root`.
+   - Leave Docker, ports, containers and Compose out of what you say. Mention
+     Docker only when it must be installed or started, in one phrase (4).
 
    A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
    and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
