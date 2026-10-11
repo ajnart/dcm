@@ -55,6 +55,9 @@ If any remaining widget on any visible board still uses the integration,
 removal preserves that integration and releases the Link's recorded ownership,
 rather than destroying a user widget's connection. A later Link creates its own
 integration again; it does not reclaim the preserved record.
+Its linked Homarr App record is preserved too, with its generated marker and
+recorded ownership removed; Homarr cannot delete an App still linked to an
+integration. Only the managed Home tile placement is removed.
 
 Existing recorded Links retain their conservative legacy widget migration:
 only a complete unique generated set with deterministic Stats IDs is eligible;
