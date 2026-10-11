@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                |
-| ---------------------------------------------------------------------- | ----------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                 |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                 |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                               |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+   |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                |
-| Complete real-model batch with both guides and three repetitions       | Pending                                               |
-| Complete blind judgments, aggregation and supplied review viewer       | Pending                                               |
-| Independent Standards and Spec review                                  | Pending                                               |
+| Gate                                                                   | Status                                                                  |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                   |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                   |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                                 |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                   |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                     |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                                  |
+| Complete real-model batch with both guides and three repetitions       | Pending                                                                 |
+| Complete blind judgments, aggregation and supplied review viewer       | Pending                                                                 |
+| Independent Standards and Spec review                                  | Code passed both axes after review fixes; real-model acceptance pending |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -74,6 +74,19 @@ its actual guide, router and flattened scenario, with guide/router fingerprints;
 each iteration keeps independent frozen stubs. Judge usage/cost is now retained.
 
 ## Limits and remaining work
+
+Review follow-up fixes cover positional grading's batch gate, option-prefixed
+Docker mutations, matching Paperless publication plans, explicit model success
+envelopes, timeout diagnostics, and simulated manual Windows/WSL completion.
+Each has an offline regression through the agreed CLI seams. Catalog fixture
+duplication and historical unused checks are non-blocking review observations;
+they remain unchanged to keep this fix focused.
+
+Both review axes rechecked the fixes and returned code-ready verdicts. The
+Spec follow-up also caught a container command's `--help` argument being mistaken
+for Docker help; that regression now passes. The offline gate is 36 tests,
+Ruff lint/format, and Pyright. This does not clear the pending real-model batch
+or human viewer gates, and PR #259 stays draft.
 
 - Execution supports macOS only. Debian, Mint and WSL remain fixture simulations.
 - The Claude transport needs account authentication/network access and is not

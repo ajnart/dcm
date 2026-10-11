@@ -31,7 +31,11 @@ def require_result(result, code=0, stderr=""):
             else "missing result event"
         )
         raise ValueError("Claude call failed (exit %s): %s" % (code, detail or stderr))
-    if result.get("is_error") or result.get("subtype") not in (None, "success"):
+    if (
+        result.get("type") != "result"
+        or result.get("is_error") is not False
+        or result.get("subtype") != "success"
+    ):
         raise ValueError(
             "Claude call failed: %s"
             % (result.get("result") or result.get("errors") or result.get("subtype"))

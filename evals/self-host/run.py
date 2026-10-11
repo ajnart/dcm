@@ -398,8 +398,13 @@ PERSON_SCHEMA = {
         "reply": {"type": "string"},
         "approves": {"type": "boolean"},
         "done": {"type": "boolean"},
+        "completed_steps": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["docker_desktop_wsl"]},
+            "uniqueItems": True,
+        },
     },
-    "required": ["reply", "approves", "done"],
+    "required": ["reply", "approves", "done", "completed_steps"],
     "additionalProperties": False,
 }
 
@@ -420,16 +425,20 @@ Write your next message. Rules:
 - If it asks to do something on your machine and the plan fits what you want,
   agree clearly. Refuse anything you said you don't want.
 - If it asks you to do something yourself (in a browser, in Windows), say you did it.
+- completed_steps is [] unless you just finished installing Docker Desktop in
+  Windows and enabling WSL integration at the assistant's request. Only then
+  include "docker_desktop_wsl". Permission alone does not complete a step.
 - If the assistant has finished and asked you nothing, you are done.
 
 Reply with only JSON:
 {{"reply": "<your message, empty when done>",
   "approves": <true when this message gives permission to change something>,
-  "done": <true when there is nothing left to answer>}}
+  "done": <true when there is nothing left to answer>,
+  "completed_steps": []}}
 """
 
 
-def person_reply(ev, conversation, turn, model, raw):
+def person_reply(ev, conversation, turn, model, raw, timeout):
     """Play the person: answer what the agent actually asked, from the persona."""
     env = {
         k: v
@@ -437,37 +446,38 @@ def person_reply(ev, conversation, turn, model, raw):
         if k not in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
     }
     prompt = PERSON_PROMPT.format(persona=ev["persona"], conversation=conversation)
+    output_path = os.path.join(raw, "person-%d.json" % turn)
+    stderr_path = os.path.join(raw, "person-%d.stderr.txt" % turn)
     with tempfile.TemporaryDirectory() as cwd:
-        proc = subprocess.run(
-            [
-                shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
-                "-p",
-                prompt,
-                "--output-format",
-                "json",
-                "--json-schema",
-                json.dumps(PERSON_SCHEMA),
-                "--model",
-                model,
-                "--setting-sources",
-                "project",
-                "--strict-mcp-config",
-                "--tools",
-                "",
-                "--disable-slash-commands",
-                "--no-session-persistence",
-            ],
-            cwd=cwd,
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-    with open(os.path.join(raw, "person-%d.json" % turn), "w") as output:
-        output.write(proc.stdout)
-    with open(os.path.join(raw, "person-%d.stderr.txt" % turn), "w") as output:
-        output.write(proc.stderr)
-    result = require_result(json.loads(proc.stdout), proc.returncode, proc.stderr)
+        with open(output_path, "w") as output, open(stderr_path, "w") as stderr:
+            proc = subprocess.run(
+                [
+                    shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
+                    "-p",
+                    prompt,
+                    "--output-format",
+                    "json",
+                    "--json-schema",
+                    json.dumps(PERSON_SCHEMA),
+                    "--model",
+                    model,
+                    "--setting-sources",
+                    "project",
+                    "--strict-mcp-config",
+                    "--tools",
+                    "",
+                    "--disable-slash-commands",
+                    "--no-session-persistence",
+                ],
+                cwd=cwd,
+                env=env,
+                stdout=output,
+                stderr=stderr,
+                text=True,
+                timeout=timeout,
+            )
+    with open(output_path) as output, open(stderr_path) as stderr:
+        result = require_result(json.load(output), proc.returncode, stderr.read())
     answer = result.get("structured_output")
     if not isinstance(answer, dict) or not isinstance(answer.get("reply"), str):
         raise ValueError("simulated person returned no reply string")
@@ -475,6 +485,11 @@ def person_reply(ev, conversation, turn, model, raw):
         raise ValueError("simulated person returned invalid approval/completion flags")
     if not answer["done"] and not answer["reply"].strip():
         raise ValueError("simulated person returned an empty unfinished reply")
+    steps = answer.get("completed_steps")
+    if not isinstance(steps, list) or any(
+        step != "docker_desktop_wsl" for step in steps
+    ):
+        raise ValueError("simulated person returned invalid completed steps")
     answer["turn"] = turn
     answer["usage"] = result.get("usage", {})
     answer["cost_usd"] = result.get("total_cost_usd", 0.0)
@@ -494,7 +509,7 @@ def read_jsonl(path):
         return [json.loads(line) for line in f if line.strip()]
 
 
-def run_one(ws, iteration, ev, config, k, model, timeout, person_model):
+def run_one(ws, iteration, ev, config, k, model, timeout, person_model, person_timeout):
     run, sandbox, harness = prepare(ws, iteration, ev, config, k)
     session, turns_log = None, []
     total = {
@@ -563,8 +578,29 @@ def run_one(ws, iteration, ev, config, k, model, timeout, person_model):
         _, replies_so_far = render(turns_log)
         try:
             answer = person_reply(
-                ev, replies_so_far, i + 1, person_model, os.path.join(run, "raw")
+                ev,
+                replies_so_far,
+                i + 1,
+                person_model,
+                os.path.join(run, "raw"),
+                person_timeout,
             )
+            if "docker_desktop_wsl" in answer["completed_steps"]:
+                with open(os.path.join(harness, "scenario", "platform.json")) as source:
+                    platform = json.load(source)
+                _, latest = render([turns_log[-1]])
+                agent_reply = latest.split("## Agent (turn %d)\n" % i, 1)[1].lower()
+                if (
+                    "microsoft" not in platform.get("uname", {}).get("r", "").lower()
+                    or "docker desktop" not in agent_reply
+                    or "wsl" not in agent_reply
+                    or not answer["reply"].strip()
+                ):
+                    raise ValueError(
+                        "manual Docker completion does not match a WSL request"
+                    )
+                with open(os.path.join(harness, "state", "docker_installed"), "w"):
+                    pass
         except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             total["errors"].append(
                 {"turn": i + 1, "source": "person", "error": str(error)}
@@ -654,6 +690,12 @@ def main():
     ap.add_argument("--parallel", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=900, help="seconds per turn")
     ap.add_argument(
+        "--person-timeout",
+        type=int,
+        default=300,
+        help="seconds per simulated-person call",
+    )
+    ap.add_argument(
         "--max-conversation-turns",
         type=int,
         help="override the conversation budget for all configurations",
@@ -672,6 +714,8 @@ def main():
         )
     if args.runs < 1 or args.parallel < 1:
         ap.error("--runs and --parallel must be positive")
+    if args.timeout < 1 or args.person_timeout < 1:
+        ap.error("model timeouts must be positive")
     if sys.platform != "darwin" or not shutil.which("sandbox-exec"):
         ap.error("task evaluations require macOS sandbox-exec")
     if args.max_conversation_turns is not None and args.max_conversation_turns < 1:
@@ -735,6 +779,7 @@ def main():
             "eval_ids": sorted({ev["id"] for ev, _, _ in jobs}),
             "parallel": args.parallel,
             "timeout_seconds": args.timeout,
+            "person_timeout_seconds": args.person_timeout,
             "max_conversation_turns": args.max_conversation_turns,
             "configs": [
                 {"name": c["name"], "skill": c["skill"], "guide": c["guide"]}
@@ -762,6 +807,7 @@ def main():
                 args.model,
                 args.timeout,
                 args.person_model,
+                args.person_timeout,
             )
             for ev, c, k in jobs
         ]

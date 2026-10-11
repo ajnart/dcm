@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import json
 import os
+import subprocess
 import sys
+import time
 
 args = sys.argv[1:]
 mode = os.environ.get("EVAL_TEST_MODE", "success")
@@ -11,6 +13,14 @@ if args == ["--version"]:
 prompt = args[args.index("-p") + 1]
 is_preflight = prompt == "Reply with only the word READY."
 is_stream = args[args.index("--output-format") + 1] == "stream-json"
+if mode == "person-timeout" and not is_preflight and not is_stream:
+    print("partial person stdout", flush=True)
+    print("partial person stderr", file=sys.stderr, flush=True)
+    time.sleep(10)
+if mode == "judge-timeout" and prompt.startswith("You are grading"):
+    print("partial judge stdout", flush=True)
+    print("partial judge stderr", file=sys.stderr, flush=True)
+    time.sleep(10)
 result = {
     "type": "result",
     "subtype": "success",
@@ -24,6 +34,25 @@ result = {
 if is_preflight:
     result["result"] = "READY"
 elif is_stream:
+    reply = "Ready."
+    if mode == "manual-wsl":
+        reply = (
+            "Please install Docker Desktop in Windows and enable WSL integration, "
+            "then tell me when done."
+        )
+        if "--resume" in args:
+            doctor = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.environ["EVAL_STUBS"], "base", "self-host"),
+                    "doctor",
+                    "--json",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            reply = doctor.stdout
     if mode == "require-restricted" and not (
         "--settings" in args
         and "--tools" in args
@@ -48,7 +77,7 @@ elif is_stream:
         json.dumps(
             {
                 "type": "assistant",
-                "message": {"content": [{"type": "text", "text": "Ready."}]},
+                "message": {"content": [{"type": "text", "text": reply}]},
             }
         )
     )
@@ -84,6 +113,21 @@ if mode == "nine-turns" and not is_preflight and not is_stream:
     )
 if mode == "malformed-stream" and is_stream:
     print('{"broken":')
+if mode == "missing-status" and is_stream:
+    result.pop("subtype")
+    result.pop("is_error")
+if mode == "manual-wsl" and not is_preflight and not is_stream:
+    done = "## Agent (turn 2)" in prompt
+    result["result"] = json.dumps(
+        {
+            "reply": ""
+            if done
+            else "I installed Docker Desktop and enabled WSL integration.",
+            "done": done,
+            "approves": False,
+            "completed_steps": [] if done else ["docker_desktop_wsl"],
+        }
+    )
 if mode == "person-error" and not is_preflight and not is_stream:
     result.update(
         is_error=True, subtype="error_during_execution", result="person quota failure"
@@ -97,6 +141,8 @@ if "--json-schema" in args and not result["is_error"]:
     value = json.loads(result["result"])
     if prompt.startswith("You are grading"):
         value = {"verdicts": value}
+    else:
+        value.setdefault("completed_steps", [])
     result["structured_output"] = value
 if mode == "person-preamble" and not is_preflight and not is_stream:
     result["result"] = (
@@ -105,5 +151,5 @@ if mode == "person-preamble" and not is_preflight and not is_stream:
 if mode == "judge-preamble" and prompt.startswith("You are grading"):
     result["result"] = "Here are my judgments."
 print(json.dumps(result))
-if result["is_error"]:
+if result.get("is_error"):
     sys.exit(1)

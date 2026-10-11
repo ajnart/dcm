@@ -42,7 +42,7 @@ Return a JSON object with a verdicts array, one object per assertion in order:
 """
 
 
-def judge_run(run, model):
+def judge_run(run, model, timeout):
     require_run(run)
     meta = json.load(
         open(os.path.join(os.path.dirname(os.path.dirname(run)), "eval_metadata.json"))
@@ -87,43 +87,45 @@ def judge_run(run, model):
         for k, v in os.environ.items()
         if k not in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
     }
-    metrics = {"model": model, "valid": False}
+    metrics = {"model": model, "valid": False, "timeout_seconds": timeout}
     with open(os.path.join(run, "raw", "judge-metrics.json"), "w") as output:
         json.dump(metrics, output, indent=2)
+    output_path = os.path.join(run, "raw", "judge.json")
+    stderr_path = os.path.join(run, "raw", "judge.stderr.txt")
     with tempfile.TemporaryDirectory() as cwd:
-        proc = subprocess.run(
-            [
-                shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
-                "-p",
-                prompt,
-                "--output-format",
-                "json",
-                "--json-schema",
-                json.dumps(schema),
-                "--model",
-                model,
-                "--setting-sources",
-                "project",
-                "--strict-mcp-config",
-                "--tools",
-                "",
-                "--disable-slash-commands",
-                "--no-session-persistence",
-            ],
-            cwd=cwd,
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
-    with open(os.path.join(run, "raw", "judge.json"), "w") as output:
-        output.write(proc.stdout)
-    with open(os.path.join(run, "raw", "judge.stderr.txt"), "w") as output:
-        output.write(proc.stderr)
-    result = require_result(json.loads(proc.stdout), proc.returncode, proc.stderr)
+        with open(output_path, "w") as output, open(stderr_path, "w") as stderr:
+            proc = subprocess.run(
+                [
+                    shutil.which("claude") or os.path.expanduser("~/.local/bin/claude"),
+                    "-p",
+                    prompt,
+                    "--output-format",
+                    "json",
+                    "--json-schema",
+                    json.dumps(schema),
+                    "--model",
+                    model,
+                    "--setting-sources",
+                    "project",
+                    "--strict-mcp-config",
+                    "--tools",
+                    "",
+                    "--disable-slash-commands",
+                    "--no-session-persistence",
+                ],
+                cwd=cwd,
+                env=env,
+                stdout=output,
+                stderr=stderr,
+                text=True,
+                timeout=timeout,
+            )
+    with open(output_path) as output, open(stderr_path) as stderr:
+        result = require_result(json.load(output), proc.returncode, stderr.read())
     metrics = {
         "model": model,
         "valid": False,
+        "timeout_seconds": timeout,
         "usage": result.get("usage", {}),
         "cost_usd": result.get("total_cost_usd"),
         "duration_ms": result.get("duration_ms"),
@@ -167,13 +169,18 @@ def main():
     ap.add_argument("--iteration-dir", required=True)
     ap.add_argument("--model", default="claude-opus-5-5")
     ap.add_argument("--parallel", type=int, default=4)
+    ap.add_argument("--timeout", type=int, default=600, help="seconds per judge call")
     args = ap.parse_args()
+    if args.parallel < 1 or args.timeout < 1:
+        ap.error("--parallel and --timeout must be positive")
     runs = sorted(glob.glob(os.path.join(args.iteration_dir, "eval-*", "*", "run-*")))
     require_iteration(args.iteration_dir, runs)
     check_model(args.model)
     random.shuffle(runs)
     with cf.ThreadPoolExecutor(args.parallel) as pool:
-        for run, msg in pool.map(lambda r: judge_run(r, args.model), runs):
+        for run, msg in pool.map(
+            lambda r: judge_run(r, args.model, args.timeout), runs
+        ):
             print(
                 "%s: %s" % (os.path.relpath(run, args.iteration_dir), msg), flush=True
             )

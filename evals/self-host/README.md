@@ -31,8 +31,8 @@ agent through inspect, plan, approval, apply, verify.
 - **Stubs.** `bin/self-host` replays `scenarios/<name>/`; `bin/docker` pretends
   to be an empty engine. Both log every call with its turn.
 - **Guard.** Claude's Bash replays the tester's shell snapshot, so PATH and HOME
-  would reach the real binary and `~/.self-host`. The sandbox's project settings
-  load external settings containing a fail-closed PreToolUse hook. It rewrites
+  would reach the real binary and `~/.self-host`. The runner passes external
+  settings containing a fail-closed PreToolUse hook. It rewrites
   every Bash command to run under `env -i` and macOS `sandbox-exec`, with a fake
   HOME, fixture PATH, writable working folder and fixture state, read-only
   runtime/fixture files, and no network access. Read is limited to the working
@@ -53,12 +53,16 @@ agent through inspect, plan, approval, apply, verify.
   independently verified proof that each later action had appropriate approval.
 - **Platforms.** Stub host tools simulate OS details and installer commands.
   Drive folders are mapped into the workspace. These are fixture scenarios,
-  not installation proofs on those operating systems.
+  not installation proofs on those operating systems. A schema-validated
+  `completed_steps` label lets the simulated person finish Docker Desktop with
+  WSL integration after the assistant requests it; only the WSL fixture's
+  Docker state changes. Saying yes alone does not apply that step.
 - **Validity.** Model access is checked before a batch. Failed, quota-limited
   or empty model calls invalidate the run; malformed streams, person replies and judge
   verdicts are errors, not silent completion or failed assertions. The batch
   exits non-zero, cancels pending runs, and records `execution.json`. Both
-  grading commands reject invalid or incomplete execution. `checks.py` also
+  grading commands reject invalid or incomplete execution, including positional
+  run arguments belonging to a failed batch. `checks.py` also
   requires every judge assertion to have a complete verdict. Use a new
   iteration number for every attempt; existing evidence is not overwritten.
   A router-present run must advertise `self-host` in the real CLI init event;
@@ -86,8 +90,8 @@ uvx pyright evals/self-host
 ```bash
 set -euo pipefail
 cd evals/self-host
-W=~/.cache/self-host-skill-evals/iteration-8
-python3 run.py --iteration 8 --max-conversation-turns 16
+W=~/.cache/self-host-skill-evals/iteration-9
+python3 run.py --iteration 9 --max-conversation-turns 16
 python3 judge.py --iteration-dir "$W"
 python3 checks.py --iteration-dir "$W"
 
@@ -114,6 +118,10 @@ python3 run.py --iteration 3 --configs \
 `--person-model` selects the simulated person (same default). `judge.py`
 defaults to `claude-opus-5-5`. Agent timing and tokens exclude simulated-person
 calls; their usage and cost are recorded separately in `raw/person.jsonl`.
+`run.py --timeout` limits each task turn (900 seconds by default),
+`--person-timeout` limits each person call (300 seconds), and `judge.py --timeout`
+limits each judgment (600 seconds). All must be positive. Partial stdout/stderr
+is retained if a call times out; the run or judgment remains invalid.
 
 ## Inspecting what happened
 
@@ -147,7 +155,8 @@ with the timestamped stub log. Judge evidence is interpretation; command logs
 only prove a simulated command ran, not that a real App works. Judge usage and
 cost are recorded separately from agent timing. A failed judge attempt cannot
 reuse an older verdict. Approval checks establish order, not authorization scope;
-the public-Access check additionally requires a yes after the public plan.
+the public-Access check additionally requires a yes after the latest public plan
+and matching App/domain selections, including Paperless.
 Iteration-level `inputs/` retains the shared frozen stubs and source inputs.
 
 Raw logs are private development artifacts, not automatically redacted reports.

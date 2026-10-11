@@ -91,6 +91,14 @@ class RunnerCLI(unittest.TestCase):
             json.loads((run / "raw" / "metrics.json").read_text())["valid"]
         )
 
+    def test_model_result_requires_explicit_success_status(self):
+        result = self.execute("missing-status")
+        self.assertNotEqual(result.returncode, 0)
+        manifest = json.loads(
+            (self.workspace / "iteration-1" / "execution.json").read_text()
+        )
+        self.assertFalse(manifest["valid"])
+
     def test_failed_person_call_keeps_raw_diagnostics(self):
         result = self.execute("person-error")
         self.assertNotEqual(result.returncode, 0)
@@ -100,6 +108,20 @@ class RunnerCLI(unittest.TestCase):
         )
         self.assertIn(
             "person diagnostic", (run / "raw" / "person-2.stderr.txt").read_text()
+        )
+
+    def test_person_timeout_retains_partial_diagnostics(self):
+        result = self.execute("person-timeout", extra=("--person-timeout", "1"))
+        self.assertNotEqual(result.returncode, 0)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        self.assertIn(
+            "partial person stdout", (run / "raw" / "person-2.json").read_text()
+        )
+        self.assertIn(
+            "partial person stderr", (run / "raw" / "person-2.stderr.txt").read_text()
+        )
+        self.assertFalse(
+            json.loads((run / "raw" / "metrics.json").read_text())["valid"]
         )
 
     def test_missing_router_discovery_invalidates_run(self):
@@ -150,6 +172,16 @@ class RunnerCLI(unittest.TestCase):
         run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
         response = json.loads((run / "raw" / "person-2.json").read_text())
         self.assertTrue(response["structured_output"]["done"])
+
+    def test_manual_windows_step_makes_docker_available_in_wsl(self):
+        result = self.execute("manual-wsl", extra=("--evals", "6"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
+        replies = (run / "outputs" / "replies.md").read_text()
+        self.assertIn('"Docker: docker command found"', replies)
+        self.assertNotIn('"Docker: docker command not found"', replies)
+        person = json.loads((run / "raw" / "person.jsonl").read_text().splitlines()[0])
+        self.assertEqual(person["completed_steps"], ["docker_desktop_wsl"])
 
 
 if __name__ == "__main__":
