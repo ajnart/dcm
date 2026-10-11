@@ -1,0 +1,47 @@
+internal/system/folders.go
+  s_01e8d17f7740df::t_36733d95782dbd 1-31
+internal/system/folders_test.go
+  s_01e8d17f7740df::t_fc1c63819c30c1 1-58
+internal/system/real.go
+  s_01e8d17f7740df::t_a2f20ad7ef2bfd 101
+internal/system/system.go
+  s_01e8d17f7740df::t_77fd3a23be7a70 94-95
+internal/systemtest/folders.go
+  s_01e8d17f7740df::t_99d20e1f405be2 1-57
+internal/systemtest/systemtest.go
+  s_01e8d17f7740df::t_c56a4f7b688a96 223
+internal/tui/folderpicker.go
+  s_01e8d17f7740df::t_d7b698140f2341 1-132
+internal/tui/folderpicker_test.go
+  s_01e8d17f7740df::t_f0e50a8e3f9d67 1-142
+internal/tui/harness_test.go
+  s_01e8d17f7740df::t_69dab9e52dd4f2 8,28,34-35,116-124
+internal/tui/onboarding.go
+  s_01e8d17f7740df::t_f0a8b22f736bdb 195-196,212-213,233-234,307-308,472-473,480-481
+internal/tui/backend.go
+  s_72889546d6e34d::t_9d95c21c12def7 122-125,192-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a72bc1377af06bafdebfdff3c45a577d7b2d226c",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_72889546d6e34d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "884c11d8-2f52-47fc-b854-05df65d07ebf",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
