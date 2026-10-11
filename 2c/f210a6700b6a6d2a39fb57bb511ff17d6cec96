@@ -1,0 +1,22 @@
+docs/catalog/traps/slskd.md
+  h_d6e478ca18e517 8-10,15-16,19-24
+internal/apps/homarr/target_slskd.go
+  h_d6e478ca18e517 1-153
+internal/apps/slskd/homarr.go
+  h_d6e478ca18e517 1-133
+internal/apps/slskd/slskd.go
+  h_d6e478ca18e517 24,45,51,124,132-150,157,160-163
+internal/apps/slskd/slskd_test.go
+  h_d6e478ca18e517 49-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2cf210a6700b6a6d2a39fb57bb511ff17d6cec96",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
