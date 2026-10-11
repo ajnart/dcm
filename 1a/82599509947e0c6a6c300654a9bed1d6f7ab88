@@ -1,0 +1,22 @@
+video/reel/HANDOFF.md
+  h_d6e478ca18e517 9,28-49
+video/reel/STORYBOARD.md
+  h_d6e478ca18e517 1,29,45,50,63-71,106-131
+video/reel/audio/cues.json
+  h_d6e478ca18e517 980,985,990,995,1000,1005,1010,1015,1020,1025,1030,1035,1040,1045,1050,1055,1060,1065,1069-1242
+video/reel/end.js
+  h_d6e478ca18e517 5-6,22-23,41,56
+video/reel/styles.css
+  h_d6e478ca18e517 1499,1554-1564
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a82599509947e0c6a6c300654a9bed1d6f7ab88",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
