@@ -3,6 +3,7 @@ package plex_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -50,6 +51,15 @@ func (f *fakePlex) handler() http.Handler {
 		}
 		json.NewEncoder(w).Encode(map[string]any{"MediaContainer": map[string]any{"size": 0}})
 	})
+	for _, path := range []string{"/prefs", "/status/sessions", "/library/recentlyAdded"} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-Plex-Token") != serverToken {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{"MediaContainer": map[string]any{"size": 0}})
+		})
+	}
 	return mux
 }
 
@@ -92,7 +102,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
-	h := newH(t, srv, &records, map[string]string{"claim_token": "owner-claim-token"})
+	h := newH(t, srv, &records, map[string]string{"claim_token": "owner-claim-token", "verified_server_id": machineID})
 	ctx := context.Background()
 
 	if err := (plex.App{}).Setup(ctx, h); err != nil {
@@ -119,12 +129,12 @@ func TestMissingClaimTokenHintNamesTheClaimPage(t *testing.T) {
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, map[string]string{})
 
-	if err := (plex.App{}).Setup(context.Background(), h); err == nil {
-		t.Fatal("Setup should fail when no claim token was supplied")
+	if err := (plex.App{}).Setup(context.Background(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("Setup should remain Manual when no claim token was supplied")
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == stepstatus.StepFail {
+		if r.Status == stepstatus.StepManual {
 			hint = r.Hint
 		}
 	}
