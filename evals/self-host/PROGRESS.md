@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution              |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                             |
-| Complete real-model batch with both guides and three repetitions       | Iteration 10 invalid; fresh smoke needed after fixture corrections |
+| Complete real-model batch with both guides and three repetitions       | Iteration 12 running after corrected iteration 11 smoke            |
 | Complete blind judgments, aggregation and supplied review viewer       | Smoke complete; full batch and human feedback pending              |
 | Independent Standards and Spec review                                  | Combined Standards passed; Spec finding fixed and re-review passed |
 
@@ -85,6 +85,21 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   Ruff, Pyright (including both extensionless fixture scripts), and independent
   Standards/Spec re-review passed. Guides, assertions, and budget are unchanged.
   Corrections apply only to future frozen inputs; iteration 10 remains untouched.
+- **Iteration 11: valid corrected smoke.** Both account-access preflights passed.
+  One MacBook run per frozen guide completed in five turns with no denials or
+  errors, using the reconciled audit, selected-App fixtures and neutral runtime
+  identifiers. Complete blind judgments and scripted grading gave revised
+  **11/12**, original **10/12**; all eight scripted assertions passed in both.
+  Supplied aggregation and static viewer are at
+  `~/.cache/self-host-skill-evals/iteration-11/`; metadata placeholders were
+  corrected to the actual models and single repetition. This is smoke evidence,
+  not a general improvement claim. The judge explicitly called the revised
+  media-choice pass lenient because "The fuller setup" was not explained.
+  Both plain-language failures partly conflict with the prescribed experience
+  question and also cite other confusing wording. Verdicts remain unchanged;
+  viewer notes flag both caveats for human review.
+- **Iteration 12: running.** Seven scenarios × two frozen guides × three
+  repetitions, with the same 16-turn budget and corrected harness as iteration 11. No full-batch grading or acceptance is claimed before it finishes.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
@@ -140,7 +155,8 @@ Combined Standards review passed; Spec review caught configuration
 labels in the synthetic Home folder revealing treatment to the blind judge.
 A red-to-green runner regression now requires neutral runtime folder identifiers;
 run artifacts still retain their configuration mapping. Spec re-review passed.
-A fresh smoke comparison is required before the full batch can establish acceptance.
+Iteration 11 cleared the corrected smoke gate. The full batch and human viewer
+feedback remain required for acceptance.
 
 ### Earlier review evidence
 
