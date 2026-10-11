@@ -9,11 +9,15 @@
 // clock; the caller counts frames at FPS.
 package preboot
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	// FPS is the frame rate of the pre-boot screen.
-	FPS = 24
+	FPS            = 24
+	EntranceFrames = 12
 	// ExitFrames is how many frames the exit plays.
 	ExitFrames = 44
 
@@ -117,11 +121,27 @@ func (f *frame) opening() float64 {
 }
 
 func (f *frame) scene() *canvas {
+	return f.entranceScene(1)
+}
+
+func (f *frame) entranceScene(amount float64) *canvas {
 	cv := newCanvas(f.w, f.h)
 	f.sky(cv)
 	cv.flush()
 	if f.lay.tier != small {
 		f.brand(cv)
+	}
+	if amount < 1 {
+		for i, c := range cv.cells {
+			x, y := i%f.w, i/f.w
+			distance := math.Max(float64(abs(x-f.lay.cx))/float64(max(f.w/2, 1)), float64(abs(y-f.lay.brandCY))/float64(max(f.h, 1)))
+			if distance > amount {
+				cv.cells[i] = cell{}
+				continue
+			}
+			c.fg, c.lum = f.pal.Fade(c.fg, amount), c.lum*amount
+			cv.cells[i] = c
+		}
 	}
 	f.drawText(cv)
 	cv.flush()
@@ -131,6 +151,11 @@ func (f *frame) scene() *canvas {
 // Render draws frame n of the pull in a width×height terminal.
 func Render(n, width, height int, pr Progress, pal Palette, noColor bool) []string {
 	return newFrame(n, -1, width, height, pr, pal, noColor).scene().lines(noColor)
+}
+
+func RenderEntrance(n, width, height int, pr Progress, pal Palette, noColor bool) []string {
+	amount := 1 - math.Pow(1-clamp01(float64(n)/EntranceFrames), 3)
+	return newFrame(n, -1, width, height, pr, pal, noColor).entranceScene(amount).lines(noColor)
 }
 
 // RenderExit draws frame since of the exit, n frames after the pull began:

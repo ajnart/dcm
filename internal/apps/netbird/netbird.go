@@ -17,6 +17,13 @@ import (
 // App is NetBird. Traps: docs/catalog/traps/netbird.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "netbird", Name: "NetBird", Category: "Remote access",
@@ -133,7 +140,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{{Path: "server-config", Content: config, Mode: 0600}}
 }
 
-func ownerEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func ownerEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 type user struct {
 	ID    string `json:"id"`
