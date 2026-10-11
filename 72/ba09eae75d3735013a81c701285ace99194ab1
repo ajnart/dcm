@@ -1,0 +1,25 @@
+evals/self-host/README.md
+  s_01e8d17f7740df::t_ddfdf1a1f47e61 36-37
+evals/self-host/run.py
+  s_01e8d17f7740df::t_8724d01eb7187a 39,158
+evals/self-host/tests/fake_claude.py
+  s_01e8d17f7740df::t_d1bf54a8a1e5a5 59-60
+evals/self-host/tests/test_runner.py
+  s_01e8d17f7740df::t_7c4d0b56411f9c 74-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "72ba09eae75d3735013a81c701285ace99194ab1",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
