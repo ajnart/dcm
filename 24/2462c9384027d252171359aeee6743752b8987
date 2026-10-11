@@ -1,0 +1,23 @@
+docs/homarr-gatus-implementation.md
+  s_01e8d17f7740df::t_f290c25e7693f1 1-71
+internal/apps/gatus/gatus.go
+  s_01e8d17f7740df::t_73f2f75dc22bf8 7-8,10,65-133
+internal/apps/gatus/gatus_test.go
+  s_01e8d17f7740df::t_112d0eb976841d 5,10,40-47,92-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "242462c9384027d252171359aeee6743752b8987",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
