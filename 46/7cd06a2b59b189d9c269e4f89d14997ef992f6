@@ -1,0 +1,29 @@
+evals/self-host/bin/docker
+  s_01e8d17f7740df::t_d480b337b57323 23-26,37
+evals/self-host/processes.py
+  s_01e8d17f7740df::t_f125e41b102b05 5-28
+evals/self-host/run.py
+  s_01e8d17f7740df::t_38a070404d7c13 41,364-366,721,787,857-859,861-899,903,907,911-912,921-926
+evals/self-host/scenarios/public-access/cloudflare-plan.json
+  s_01e8d17f7740df::t_9123b8a26d257a 4-5,7-8,10,14
+evals/self-host/scenarios/public-access/status-installed.json
+  s_01e8d17f7740df::t_33a4f412fbad81 20-38
+evals/self-host/validity.py
+  s_01e8d17f7740df::t_4dbcb23226e1c7 116,152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "467cd06a2b59b189d9c269e4f89d14997ef992f6",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
