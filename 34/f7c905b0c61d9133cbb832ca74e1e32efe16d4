@@ -1,0 +1,19 @@
+internal/apps/aria2/aria2.go
+  s_01e8d17f7740df::t_b19c8023b31f23 7,69-70,72,74,76-112,120-124,134-135,137,140,148,150,153,156-201,203,207-214,216,224,228,230-231,233-238,250-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34f7c905b0c61d9133cbb832ca74e1e32efe16d4",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
