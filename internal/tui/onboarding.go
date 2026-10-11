@@ -765,7 +765,9 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			o.err = check.Message
 			return m, nil
 		}
-		m.preboot = newPrebootScreen()
+		if !m.opts.ReducedMotion {
+			m.preboot = newPrebootScreen()
+		}
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
 		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs)}
