@@ -3,6 +3,7 @@ package emby
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -49,38 +50,79 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-func embyHeader() map[string]string {
-	return map[string]string{
-		"X-Emby-Authorization": `Emby Client="selfhost", Device="selfhost-cli", DeviceId="selfhost-cli", Version="1.0.0"`,
+func embyHeader(token string) map[string]string {
+	header := map[string]string{
+		"Authorization": `Emby Client="selfhost", Device="selfhost-cli", DeviceId="selfhost-cli", Version="1.0.0"`,
 	}
+	if token != "" {
+		header["X-Emby-Token"] = token
+	}
+	return header
 }
 
-func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+func signIn(ctx context.Context, h *helpers.H, user, password string) (string, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/Users/AuthenticateByName",
-		Header: embyHeader(),
-		Form:   url.Values{"Username": {user}, "Pw": {password}},
+		Header: embyHeader(""), NoRedirect: true,
+		Form: url.Values{"Username": {user}, "Pw": {password}},
 	})
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	if resp.Status == http.StatusUnauthorized || resp.Status == http.StatusForbidden {
-		return false, nil
+		return "", nil
 	}
 	if !resp.OK() {
-		return false, fmt.Errorf("POST /Users/AuthenticateByName returned HTTP %d", resp.Status)
+		return "", fmt.Errorf("Emby sign-in returned HTTP %d", resp.Status)
 	}
 	var result struct {
-		User struct {
+		AccessToken string
+		User        struct {
+			ID     string
+			Name   string
 			Policy struct {
 				IsAdministrator bool `json:"IsAdministrator"`
 			} `json:"Policy"`
 		} `json:"User"`
 	}
 	if err := resp.Decode(&result); err != nil {
-		return false, err
+		return "", errors.New("Emby returned an incomplete administrator sign-in")
 	}
-	return result.User.Policy.IsAdministrator, nil
+	h.Log.Secret(result.AccessToken)
+	accepted := false
+	defer func() {
+		if !accepted && result.AccessToken != "" {
+			logout(ctx, h, result.AccessToken)
+		}
+	}()
+	if result.AccessToken == "" || result.User.ID == "" || result.User.Name != user || !result.User.Policy.IsAdministrator {
+		return "", errors.New("Emby did not verify the Project administrator")
+	}
+	resp, err = h.HTTP(ctx, helpers.Request{Path: "/System/Configuration", Header: embyHeader(result.AccessToken), NoRedirect: true})
+	if err != nil {
+		return "", err
+	}
+	var configuration struct{ IsStartupWizardCompleted *bool }
+	if resp.Status != http.StatusOK || resp.Decode(&configuration) != nil || configuration.IsStartupWizardCompleted == nil {
+		return "", errors.New("Emby did not report its first-owner wizard status")
+	}
+	if !*configuration.IsStartupWizardCompleted {
+		return "", helpers.ErrManual
+	}
+	accepted = true
+	return result.AccessToken, nil
+}
+
+func logout(ctx context.Context, h *helpers.H, token string) {
+	_, _ = h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/Sessions/Logout", Header: embyHeader(token), NoRedirect: true})
+}
+
+func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+	token, err := signIn(ctx, h, user, password)
+	if token != "" {
+		logout(ctx, h, token)
+	}
+	return token != "", err
 }
 
 // firstAdmin has no headless Create: the trap forbids writing Startup/User or
@@ -94,7 +136,21 @@ func firstAdmin() firstadmin.FirstAdmin {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstAdmin().Setup(ctx, h)
+	if err := firstAdmin().Setup(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-api-key", "prepare a dedicated Emby API key", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if APIKey(h) == "" {
+				return false, nil
+			}
+			err := VerifyHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return createHomarrKey(ctx, h) },
+		Hint:       "Open " + h.URL + " and inspect Dashboard > Advanced > Security. Restore the dedicated self-host Homarr key through the Project secret boundary, then run self-host setup emby. Do not delete other keys or change user visibility.",
+		Credential: "admin",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
@@ -105,5 +161,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Emby", h.AdminUser())
 	}
-	return nil
+	return VerifyHomarr(ctx, h)
 }
