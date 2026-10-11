@@ -52,7 +52,7 @@ Preserve concurrent work: check `git status` before and after edits and stage on
 
 ## Agent skills
 
-- Issue tracker: GitHub Issues for `ajnart/selfhost-skills`. Read `docs/agents/issue-tracker.md` before tracker operations.
+- Issue tracker: GitHub Issues for `ajnart/selfhost`. Read `docs/agents/issue-tracker.md` before tracker operations.
 - Triage labels: the five defaults. Read `docs/agents/triage-labels.md` before triaging.
 - Domain docs: one context, `CONTEXT.md`, with ADRs in `docs/adr/`. Read `docs/agents/domain.md` before exploring the code or changing the domain.
 - Spec #191 tickets: read `docs/agents/implementing.md` before working on any of them.

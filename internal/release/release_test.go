@@ -47,7 +47,7 @@ func TestMalformedVersionsAreNotReleases(t *testing.T) {
 func TestRepositoryComesFromOneConstantAndTheEnvironmentOverride(t *testing.T) {
 	deps := &system.Deps{Getenv: func(string) string { return "" }}
 	c := NewClient(deps)
-	if c.api() != "https://api.github.com/repos/ajnart/selfhost-skills" || c.web() != "https://github.com/ajnart/selfhost-skills" {
+	if c.api() != "https://api.github.com/repos/ajnart/selfhost" || c.web() != "https://github.com/ajnart/selfhost" {
 		t.Errorf("defaults: %s %s", c.api(), c.web())
 	}
 	deps.Getenv = func(key string) string {

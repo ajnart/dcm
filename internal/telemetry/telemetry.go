@@ -38,7 +38,7 @@ const (
 	NoKey = "development"
 	// EnvOptOut turns Telemetry off when it is 1, like DO_NOT_TRACK.
 	EnvOptOut = "SELF_HOST_NO_TELEMETRY"
-	WikiURL   = "https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
+	WikiURL   = "https://github.com/ajnart/selfhost/wiki/Telemetry"
 
 	// Notice is the sentence a plain command prints once; NoticeShort is the
 	// two lines Onboarding's Welcome step shows. Neither names an off switch.

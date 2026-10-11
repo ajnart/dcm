@@ -239,7 +239,7 @@ func TestFeedbackWithTelemetryOffSendsNothingAndSaysHowToReportElse(t *testing.T
 
 			code, out := run("feedback", "--message", "Pull failed twice.", "--yes")
 
-			want := "Telemetry is off here, so nothing was sent. To send feedback another way, open an issue: https://github.com/ajnart/selfhost-skills/issues\n"
+			want := "Telemetry is off here, so nothing was sent. To send feedback another way, open an issue: https://github.com/ajnart/selfhost/issues\n"
 			if code != 1 || out != want {
 				t.Fatalf("exit %d\ngot:\n%s\nwant:\n%s", code, out, want)
 			}
@@ -313,7 +313,7 @@ func TestFeedbackSaysSoWhenPostHogDoesNotAnswer(t *testing.T) {
 
 	code, out := run("feedback", "--message", "Pull failed twice.", "--yes")
 
-	if code != 1 || !strings.Contains(out, "could not reach the maintainers, so nothing was sent. You can open an issue instead: https://github.com/ajnart/selfhost-skills/issues") {
+	if code != 1 || !strings.Contains(out, "could not reach the maintainers, so nothing was sent. You can open an issue instead: https://github.com/ajnart/selfhost/issues") {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
 }

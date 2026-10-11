@@ -67,7 +67,7 @@ Messages from `--message` or stdin are limited to 4096 bytes. Approved Feedback
 uses the same endpoint, random ID and off switches, but waits up to five seconds
 for delivery and reports failure. It does not require the usage notice because
 you explicitly approved it. With Telemetry off it sends nothing, exits 1, and
-points to [GitHub Issues](https://github.com/ajnart/selfhost-skills/issues).
+points to [GitHub Issues](https://github.com/ajnart/selfhost/issues).
 
 ## Technical sources
 

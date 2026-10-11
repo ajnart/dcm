@@ -2,7 +2,7 @@
 # Repeatable check of the documented one-line install. Repository tooling, not
 # part of the shipped binary or the release.
 #
-# It runs the exact one-liner,  curl -fsSL <raw install.sh URL> | bash,  in a
+# It runs the exact one-liner,  curl -fsSL <installer URL> | bash,  in a
 # throwaway HOME with SELF_HOST_INSTALL_DIR inside the sandbox, then asserts:
 #   1. self-host --version equals the latest published CLI release
 #   2. self-host skill works
@@ -13,11 +13,11 @@
 #
 # Environment:
 #   SELF_HOST_GITHUB_TOKEN   only while the repository is private. Sent as a
-#                            curl header for the raw URL and passed to the
+#                            header only to GitHub and passed to the
 #                            installer; never printed. Once the repository is
 #                            public, run this with no token.
-#   VERIFY_INSTALL_URL       the URL to pipe into bash. Defaults to the raw
-#                            install.sh on main. A file:// URL tests a local
+#   VERIFY_INSTALL_URL       the URL to pipe into bash. Defaults to the
+#                            public installer site. A file:// URL tests a local
 #                            script before it is pushed.
 #   SELF_HOST_RELEASE_REPO   repository that publishes the releases
 #   VERIFY_PINNED_VERSION    the old version to upgrade from (default 0.1.2)
@@ -28,8 +28,8 @@
 set +x
 set -euo pipefail
 
-REPO="${SELF_HOST_RELEASE_REPO:-ajnart/selfhost-skills}"
-URL="${VERIFY_INSTALL_URL:-https://raw.githubusercontent.com/${REPO}/main/install.sh}"
+REPO="${SELF_HOST_RELEASE_REPO:-ajnart/selfhost}"
+URL="${VERIFY_INSTALL_URL:-https://selfhost.ajnart.dev/install.sh}"
 PINNED="${VERIFY_PINNED_VERSION:-0.1.2}"
 TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
 
@@ -51,6 +51,12 @@ chmod 600 "$curl_config"
 if [ -n "$TOKEN" ]; then
   printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" >"$curl_config"
 fi
+installer_config="$sandbox/installer.conf"
+: >"$installer_config"
+chmod 600 "$installer_config"
+case "$URL" in
+  https://raw.githubusercontent.com/*) command cp "$curl_config" "$installer_config" ;;
+esac
 
 # sandboxed runs a command with the sandbox HOME and nothing of the person's
 # own login. Without a token it also hides gh, so a logged-in gh cannot make a
@@ -87,7 +93,7 @@ one_liner() {
   shift
   sandboxed SELF_HOST_INSTALL_DIR="$install_dir" "$@" \
     PYTHONCOERCECLOCALE=0 python3 "$no_terminal" "${VERIFY_INSTALL_TIMEOUT:-300}" \
-    bash -c 'curl -fsSL -K "$0" "$1" | bash' "$curl_config" "$URL"
+    bash -o pipefail -c 'curl -fsSL -K "$0" "$1" | bash' "$installer_config" "$URL"
 }
 
 expected_version() {

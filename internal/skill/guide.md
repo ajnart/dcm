@@ -605,7 +605,7 @@ steps send fixed-text logs, never App logs. Never absolute paths, host names,
 inputs, secrets, App data or raw error text. It is on by default in releases,
 announced once, and usage sending waits at most 500 ms without failing a command.
 The random ID lives in the user config folder and survives Home-folder deletion.
-Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry.
+Details: https://github.com/ajnart/selfhost/wiki/Telemetry.
 
 Only when the person asks how to turn Telemetry off, explain
 `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set
@@ -629,7 +629,7 @@ Feedback waits up to five seconds for delivery, separately from usage sending.
 ## Updating the binary
 
 `self-host self-update` takes the highest stable CLI release of
-`ajnart/selfhost-skills`, verifies its sha256 checksum and replaces the running
+`ajnart/selfhost`, verifies its sha256 checksum and replaces the running
 binary, refusing on a mismatch. A development build must be replaced with the
 install script instead. `SELF_HOST_RELEASE_REPO=owner/name` points it at
 another repository.

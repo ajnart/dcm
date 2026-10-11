@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const skillSentence = "Install the self-host skill from github.com/ajnart/selfhost-skills and help me run my own movie server."
+const skillSentence = "Install the self-host skill from github.com/ajnart/selfhost and help me run my own movie server."
 
 // skillTools is every program install.sh needs, linked into one directory so a
 // test controls whether bunx and npx exist without touching the real PATH.
@@ -70,7 +70,7 @@ func TestInstallScriptNeverAsksAboutTheSkillWithoutATerminal(t *testing.T) {
 	if strings.Contains(out, "y/n") {
 		t.Errorf("prompted without a terminal:\n%s", out)
 	}
-	for _, want := range []string{"bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host", skillSentence} {
+	for _, want := range []string{"bunx --bun skills@latest add ajnart/selfhost --skill self-host", skillSentence} {
 		if !strings.Contains(out, want) {
 			t.Errorf("hint is missing %q:\n%s", want, out)
 		}
@@ -86,7 +86,7 @@ func TestInstallScriptAnswerYesRunsTheSkillCommandWithBunx(t *testing.T) {
 	if !strings.Contains(out, "Add the self-host skill to your AI agent too? y/n") {
 		t.Errorf("no prompt:\n%s", out)
 	}
-	if want := "bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host\n"; log != want {
+	if want := "bunx --bun skills@latest add ajnart/selfhost --skill self-host\n"; log != want {
 		t.Errorf("ran %q, want %q", log, want)
 	}
 }
@@ -94,7 +94,7 @@ func TestInstallScriptAnswerYesRunsTheSkillCommandWithBunx(t *testing.T) {
 func TestInstallScriptAnswerYesFallsBackToNpx(t *testing.T) {
 	_, log := installWithSkillStep(t, map[string]string{"npx": ""}, "SELF_HOST_TTY="+answerFile(t, "y\n"))
 
-	if want := "npx --yes skills add ajnart/selfhost-skills --skill self-host\n"; log != want {
+	if want := "npx --yes skills add ajnart/selfhost --skill self-host\n"; log != want {
 		t.Errorf("ran %q, want %q", log, want)
 	}
 }
@@ -110,7 +110,7 @@ func TestInstallScriptAnswerYesUsesTheReleaseRepoOverride(t *testing.T) {
 func TestInstallScriptAnswerYesWithoutBunxOrNpxPrintsTheHint(t *testing.T) {
 	out, log := installWithSkillStep(t, nil, "SELF_HOST_TTY="+answerFile(t, "y\n"))
 
-	for _, want := range []string{"bunx --bun skills@latest add ajnart/selfhost-skills --skill self-host", skillSentence} {
+	for _, want := range []string{"bunx --bun skills@latest add ajnart/selfhost --skill self-host", skillSentence} {
 		if !strings.Contains(out, want) {
 			t.Errorf("hint is missing %q:\n%s", want, out)
 		}

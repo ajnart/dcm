@@ -11,7 +11,7 @@ Run `self-host skill` and follow it.
 If `self-host` is not found, install it, then run `self-host skill`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 

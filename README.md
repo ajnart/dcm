@@ -2,9 +2,15 @@
 
 Run your own apps at home, like a movie server, without learning Docker.
 
+**Release gate:** the installer at [selfhost.ajnart.dev](https://selfhost.ajnart.dev)
+is public, but anonymous CLI downloads are not available yet. The source repository
+is still private under its previous name. The `ajnart/selfhost` references below
+are prepared for the maintainer's rename; do not release these defaults until that
+name resolves. Changing repository visibility remains the maintainer's choice.
+
 **Using an AI assistant?** Paste this into it:
 
-> Install the self-host skill from github.com/ajnart/selfhost-skills and help me run my own movie server.
+> Install the self-host skill from github.com/ajnart/selfhost and help me run my own movie server.
 
 **Using a terminal?** Two steps. Deploying needs Docker with the Compose v2
 plugin. Linux, macOS, or Windows through WSL.
@@ -12,7 +18,7 @@ plugin. Linux, macOS, or Windows through WSL.
 1. **Install the CLI** (it then offers to add the skill to your AI agent):
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+    curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    ```
 
@@ -20,7 +26,7 @@ plugin. Linux, macOS, or Windows through WSL.
 
 The skill costs about 150 tokens while idle, and installing deploys nothing.
 What anonymous usage data is collected:
-[Telemetry](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
+[Telemetry](https://github.com/ajnart/selfhost/wiki/Telemetry).
 
 Choose an App. Review its ports and folders. Let `self-host` install it, create
 its administrator account where supported, and connect it to the other Apps
@@ -44,12 +50,12 @@ If something fails:
 - The agent's guide has no New and Advanced paths: run `self-host self-update`.
 - Docker missing or stopped: install or start it, then run `self-host doctor`.
 - A 404 or authentication error: run `gh auth login`, then
-  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
+  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost/contents/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
 - `curl` reports an error but the command seems to succeed: a pipe hides
   curl's exit status. In scripts run `set -o pipefail` first.
 - Windows: use WSL; native Windows is unsupported.
 
-**Release proof:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
+**Release proof:** [self-host 0.1.2](https://github.com/ajnart/selfhost/releases/tag/new-cli-v0.1.2)
 is published. Linux amd64 host installation, self-update and a clean Alpine
 bootstrap/update passed using the 0.1.2 installer; [release proof](docs/release-proof.md)
 records the scope. The older npm CLI and agent-plugin releases use separate versions.
@@ -83,13 +89,13 @@ updater follow the redirect.
 
 ### A custom domain
 
-The one-liner's URL is the only thing a domain changes. Point the domain at the
-raw `install.sh` (a redirect or a proxy to
-`https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh` works);
-the script, the updater and the releases stay where they are.
+The installer is served directly at `selfhost.ajnart.dev`, alongside a small
+landing page and `install.sh.sha256`. Only those allowlisted assets are uploaded;
+the site neither proxies authenticated GitHub requests nor publishes the source
+tree. The CLI release API, archives and checksums stay on GitHub.
 
 ```bash
-curl -fsSL https://your.domain/install.sh | bash
+curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
 ```
 
 Check any URL with `scripts/verify-install.sh`: it runs the one-liner in
@@ -97,8 +103,11 @@ a throwaway `HOME`, then asserts `self-host --version` is the latest release,
 `self-host skill` works, and a pinned old version upgrades through
 `self-update`. While the repository is private, give it a token without printing
 it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" scripts/verify-install.sh`.
-Once the repository is public, run it with no token. Set `VERIFY_INSTALL_URL`
-to test a different URL, or a local script as `file:///path/to/install.sh`.
+Once releases are anonymously accessible, run it with no token. Set
+`VERIFY_INSTALL_URL` to test a different URL, or a local script as
+`file:///path/to/install.sh`. Site reachability and the installer's own checksum
+do not establish archive availability or a successful install. See
+[site deployment and release gates](docs/releasing.md#installer-site).
 
 ## Staying up to date
 
@@ -134,7 +143,7 @@ Development builds cannot run `self-update`.
 
 ## Telemetry
 
-[Telemetry and Feedback: what is sent, privacy and controls](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
+[Telemetry and Feedback: what is sent, privacy and controls](https://github.com/ajnart/selfhost/wiki/Telemetry).
 
 ## Easy names at home
 
@@ -205,7 +214,7 @@ Names contain the LAN address: when DHCP changes it, review Host settings with
 avoids this. sslip.io sees the LAN address in name queries. HTTP is not encrypted
 and does not satisfy Apps that require HTTPS, including Vaultwarden's web vault.
 Do not forward port 80 on your router. No `.local` announcer or host socket is
-installed; [Linux `.local` follow-up](https://github.com/ajnart/selfhost-skills/issues/232).
+installed; [Linux `.local` follow-up](https://github.com/ajnart/selfhost/issues/232).
 
 ## Requirements and platforms
 
@@ -226,8 +235,8 @@ the invoking user. Images with fixed container UIDs need separate handling.
 | WSL2           | Linux binary inside WSL | Planned path; native WSL validation pending.                                     |
 | Native Windows | No                      | Unsupported.                                                                     |
 
-[Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
-and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
+[Source/native CI](https://github.com/ajnart/selfhost/actions/runs/37662562771)
+and [0.1.2 release packaging](https://github.com/ajnart/selfhost/actions/runs/37663197041)
 passed at `d908cb6`. All four native targets passed CLI execution, local
 checksummed installation and corruption rejection. Published-asset install/update
 proof covers Linux amd64; the other platforms and WSL remain unverified for that

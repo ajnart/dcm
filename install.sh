@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the self-host CLI.
 #
-#   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+#   curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
 #
 # Installs to ~/.local/bin, or /usr/local/bin when run as root.
 # Environment:
@@ -20,7 +20,7 @@ set -euo pipefail
 
 # The one place the repository name is written. After a GitHub rename the old
 # name keeps redirecting, so changing it is cosmetic.
-DEFAULT_REPO="ajnart/selfhost-skills"
+DEFAULT_REPO="ajnart/selfhost"
 
 REPO=""
 TOKEN=""

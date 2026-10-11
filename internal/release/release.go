@@ -28,7 +28,7 @@ import (
 // Repo is the GitHub repository that publishes releases. It is the one place
 // the name is written; a repository rename changes only this line (GitHub
 // redirects the old name until then) and the REPO variable in install.sh.
-const Repo = "ajnart/selfhost-skills"
+const Repo = "ajnart/selfhost"
 
 // Environment overrides, for tests, forks and mirrors. EnvRepo swaps the
 // repository; EnvAPI and EnvWeb swap the two roots outright.
@@ -41,7 +41,7 @@ const (
 )
 
 // InstallCommand is the one-line installer, for messages that point at it.
-const InstallCommand = "curl -fsSL https://raw.githubusercontent.com/" + Repo + "/main/install.sh | bash"
+const InstallCommand = "curl -fsSL https://selfhost.ajnart.dev/install.sh | bash"
 
 const (
 	binaryName    = "self-host"
