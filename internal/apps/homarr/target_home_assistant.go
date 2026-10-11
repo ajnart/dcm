@@ -27,6 +27,13 @@ func homeAssistantTarget() target {
 			unit, _ := entity.Attributes["unit_of_measurement"].(string)
 			return map[string]any{"entityId": entity.ID, "displayName": name, "entityUnit": unit, "clickable": false}, nil
 		}}, statWidget("entities", "unavailable")},
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			if err := (homeassistant.App{}).Check(ctx, to); err != nil {
+				from.Info("Home Assistant needs its verified read-only Homarr token, an available selected entity and completed first-run choices. Run self-host setup home-assistant, resolve its Manual steps without enabling hardware or discovery implicitly, then self-host setup homarr. No Homarr resources were changed.")
+				return err
+			}
+			return nil
+		},
 		verify: verifyHomeAssistant,
 	}
 }

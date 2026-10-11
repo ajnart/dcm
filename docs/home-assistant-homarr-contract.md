@@ -72,6 +72,10 @@ Restore a lost dedicated password or identity record from a Backup.
 The native kind is `homeAssistant`, with one `apiKey` secret containing the
 verified long-lived access token. Homarr uses `http://home-assistant:8123`
 server-side; the app tile separately uses the browser Address.
+The reference's peer preflight runs the App's fresh Check before compatibility
+requests or any Homarr tile/integration/widget mutation, and prints an
+actionable recovery hint on unready prerequisites. Removal does not require
+that preflight, so an unavailable peer cannot block owned cleanup.
 
 Authenticated `/api/states` discovery selects an existing available `sun.*`
 or `input_text.*` entity, deterministically, and records its returned ID.
