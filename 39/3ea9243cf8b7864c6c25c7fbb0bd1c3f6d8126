@@ -1,0 +1,24 @@
+docs/catalog/traps/speedtest-tracker.md
+  h_d6e478ca18e517 6-8
+docs/homarr-speedtest-tracker-source.md
+  h_d6e478ca18e517 1-176
+internal/apps/homarr/target_speedtest_tracker.go
+  h_d6e478ca18e517 1-93
+internal/apps/speedtesttracker/homarr.go
+  h_d6e478ca18e517 1-372
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 129,134-135,137-156,331-332
+internal/apps/speedtesttracker/speedtesttracker_test.go
+  h_d6e478ca18e517 37-40,50-61,73-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "393ea9243cf8b7864c6c25c7fbb0bd1c3f6d8126",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
