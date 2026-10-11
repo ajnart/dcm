@@ -1,0 +1,21 @@
+internal/apps/netdata/metrics.go
+  s_01e8d17f7740df::t_e8e29aca32a05d 1-104
+internal/apps/netdata/netdata.go
+  s_01e8d17f7740df::t_76b1dc88307864 7,19,51-61,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10e4c1d2553ce219f785f6999315033328e22c50",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
