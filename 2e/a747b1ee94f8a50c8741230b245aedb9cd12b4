@@ -1,0 +1,16 @@
+docs/home-assistant-homarr-contract.md
+  h_d6e478ca18e517 75-78
+internal/apps/homarr/target_home_assistant.go
+  h_d6e478ca18e517 30-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ea747b1ee94f8a50c8741230b245aedb9cd12b4",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
