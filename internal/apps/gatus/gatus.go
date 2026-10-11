@@ -88,18 +88,21 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func VerifyHomarr(ctx context.Context, h *helpers.H) error {
-	interval, err := localCheckInterval(ctx, h)
+	key, interval, err := localCheck(ctx, h)
 	if err != nil {
 		return err
 	}
-	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/v1/endpoints/statuses", NoRedirect: true})
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/v1/endpoints/" + key + "/statuses", NoRedirect: true})
 	if err != nil {
 		return errors.New("Gatus status API is unavailable; read self-host logs gatus and retry self-host setup gatus")
+	}
+	if response.Status == 404 {
+		return errors.New("Gatus has no stored result for its configured local health check; wait for monitoring, read self-host logs gatus and retry self-host setup gatus")
 	}
 	if response.Status != 200 {
 		return fmt.Errorf("Gatus status API returned HTTP %d; Homarr supports only the existing no-credentials mode, do not disable authentication", response.Status)
 	}
-	var endpoints []struct {
+	var endpoint struct {
 		Key     string `json:"key"`
 		Name    string `json:"name"`
 		Group   string `json:"group"`
@@ -110,38 +113,33 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 			Timestamp time.Time `json:"timestamp"`
 		} `json:"results"`
 	}
-	if response.Decode(&endpoints) != nil || endpoints == nil {
-		return errors.New("Gatus did not return endpoint statuses; retry self-host setup gatus")
+	if response.Decode(&endpoint) != nil || endpoint.Results == nil {
+		return errors.New("Gatus did not return its local endpoint status; retry self-host setup gatus")
 	}
-	for _, endpoint := range endpoints {
-		if endpoint.Results == nil {
-			return errors.New("Gatus returned incomplete endpoint statuses; retry self-host setup gatus")
-		}
-		for _, result := range endpoint.Results {
-			if result.Success == nil {
-				return errors.New("Gatus returned an endpoint result without its health outcome; retry self-host setup gatus")
-			}
-		}
-		if endpoint.Key != "local_gatus-self" || endpoint.Name != "gatus-self" || endpoint.Group != "local" {
-			continue
-		}
-		if len(endpoint.Results) == 0 {
-			return errors.New("Gatus has not recorded its local health check yet; retry self-host setup gatus")
-		}
-		latest := endpoint.Results[len(endpoint.Results)-1]
-		if !*latest.Success || latest.Status != 200 || latest.Hostname != "127.0.0.1" || latest.Timestamp.IsZero() {
-			return errors.New("Gatus's recorded local health check is not successful; read self-host logs gatus and retry self-host setup gatus")
-		}
-		age := h.Now().Sub(latest.Timestamp)
-		if age < 0 || age > interval {
-			return errors.New("Gatus's local health check has no current result within its configured interval; wait for monitoring, read self-host logs gatus and retry self-host setup gatus")
-		}
-		return nil
+	if endpoint.Key != key || endpoint.Name != "gatus-self" || endpoint.Group != "local" {
+		return errors.New("Gatus did not return the configured local health check; retry self-host setup gatus")
 	}
-	return errors.New("Gatus has no recorded local gatus-self check; preserve existing checks and add the starter loopback health check, then retry self-host setup gatus")
+	for _, result := range endpoint.Results {
+		if result.Success == nil {
+			return errors.New("Gatus returned an endpoint result without its health outcome; retry self-host setup gatus")
+		}
+	}
+	if len(endpoint.Results) == 0 {
+		return errors.New("Gatus has not recorded its local health check yet; retry self-host setup gatus")
+	}
+	latest := endpoint.Results[len(endpoint.Results)-1]
+	if !*latest.Success || latest.Status != 200 || latest.Hostname != "127.0.0.1" || latest.Timestamp.IsZero() {
+		return errors.New("Gatus's recorded local health check is not successful; read self-host logs gatus and retry self-host setup gatus")
+	}
+	age := h.Now().Sub(latest.Timestamp)
+	if age < 0 || age > interval {
+		return errors.New("Gatus's local health check has no current result within its configured interval; wait for monitoring, read self-host logs gatus and retry self-host setup gatus")
+	}
+	return nil
 }
 
-func localCheckInterval(ctx context.Context, h *helpers.H) (time.Duration, error) {
+func localCheck(ctx context.Context, h *helpers.H) (string, time.Duration, error) {
+	var key string
 	value, err := h.ConfigValue(ctx, "config", func(data []byte) (string, bool, error) {
 		var definition struct {
 			Endpoints []struct {
@@ -168,6 +166,7 @@ func localCheckInterval(ctx context.Context, h *helpers.H) (time.Duration, error
 			if interval == 0 {
 				interval = time.Minute
 			}
+			key = endpoint.Group + "_" + endpoint.Name
 		}
 		if interval == 0 {
 			return "", false, errors.New("Gatus config has no starter local gatus-self check; preserve existing monitors and review the starter loopback check before retrying self-host setup gatus")
@@ -175,9 +174,10 @@ func localCheckInterval(ctx context.Context, h *helpers.H) (time.Duration, error
 		return interval.String(), true, nil
 	}, h.PollInterval)
 	if err != nil {
-		return 0, fmt.Errorf("cannot verify Gatus's configured local health check: %w", err)
+		return "", 0, fmt.Errorf("cannot verify Gatus's configured local health check: %w", err)
 	}
-	return time.ParseDuration(value)
+	interval, err := time.ParseDuration(value)
+	return key, interval, err
 }
 
 func (App) Links() []app.Link { return nil }

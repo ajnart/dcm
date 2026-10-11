@@ -25,18 +25,28 @@ selector identifier is invented.
 ## Readiness and verification
 
 Gatus Setup retains `/health` readiness and additionally polls its status API
-for the starter `local_gatus-self` endpoint. The existing `ConfigValue` helper
+at `/api/v1/endpoints/local_gatus-self/statuses`, whose pinned handler reads only
+the local store, for the starter endpoint. The existing `ConfigValue` helper
 reads the Project's App configuration: that monitor must be uniquely configured,
 enabled (including Gatus's enabled-by-default mode), and use GET at the exact
 starter destination `http://127.0.0.1:8080/health`. A matching name or loopback
 hostname alone is insufficient; other ports and paths are not adopted.
+The key is derived from that verified configuration's group and name. Under
+Gatus v5.37.0 key semantics, the permitted lowercase `local` and `gatus-self`
+values need no character replacement, yielding `local_gatus-self`. The returned
+key/name/group must corroborate that configuration. No identifier is guessed.
+Aggregate `/api/v1/endpoints/statuses` appends remote-instance records without
+provenance markers; a same-key remote success therefore cannot prove the owned
+local check. Its absence (404 or no local results) stays an actionable wait.
 Its recorded latest result must explicitly succeed, have HTTP status 200, and
 report the starter loopback hostname `127.0.0.1`. Its timestamp must not be in
 the future or older than the configured monitor interval, using `h.Now()`;
 omitted/zero intervals use Gatus's one-minute default. Stale records poll during
 Setup and otherwise return an actionable retry, including retained SQLite
-results for disabled monitors. The API's ten-second cache can cause a temporary
-wait near the interval boundary; no guessed freshness allowance is applied.
+results for disabled monitors. The single-key handler does not use the aggregate
+API cache; no guessed freshness allowance is applied. Homarr's native Stats
+still uses the aggregate endpoint and legitimately counts its remote records;
+the local readiness proof does not change those upstream count semantics.
 Checks probe afresh. The starter config
 and image `ghcr.io/twin/gatus:v5.37.0` are unchanged: one local health check,
 one-minute interval, SQLite history, no external monitor traffic.
@@ -74,9 +84,18 @@ new test cases/files were added. The three corrected boundaries still need
 fresh independent source review and approved runtime evidence; compilation and
 the existing fixture suite are not claimed as dedicated live regression proof.
 
+The remaining owned-record provenance correction switches verification to the
+local-store-only single-key route and aligns only the existing fixture route
+and object response shape. It does not touch Homarr's descriptor or the
+before/after forced-refresh advancement check. Fresh source review at the new
+head remains required; no remote traffic or live proof was used.
+
 The descriptor is deliberately not registered here: `targets.go` belongs to
 #262. Parent registration, corrected common version/credential-shape gates,
 fresh two-axis review, and approved disposable runtime acceptance remain open.
+The reference custodian's cancellation creates no contract freeze or runtime
+permission. This correction remains independent at the committed baseline;
+native registration, normalization, rendering and lifecycle holds remain.
 No Docker, browser, installer, real Project or protected files were accessed.
 No resolved image digests, real Homarr widget rendering or lifecycle proof is
 claimed. The old Gatus navigation proof is not native integration proof.
@@ -90,6 +109,8 @@ claimed. The old Gatus navigation proof is not native integration proof.
 - [v2.4.1 Stats router](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/widgets/stats.ts)
 - [v2.4.1 Stats snapshot semantics](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/request-handler/src/stats.ts)
 - [Gatus v5.37.0 status API](https://github.com/TwiN/gatus/blob/v5.37.0/api/endpoint_status.go)
+- [Gatus v5.37.0 single-key status route](https://github.com/TwiN/gatus/blob/v5.37.0/api/api.go)
+- [Gatus v5.37.0 key derivation](https://github.com/TwiN/gatus/blob/v5.37.0/config/key/key.go)
 - [Gatus v5.37.0 endpoint result](https://github.com/TwiN/gatus/blob/v5.37.0/config/endpoint/result.go)
 - [Gatus v5.37.0 enabled and interval defaults](https://github.com/TwiN/gatus/blob/v5.37.0/config/endpoint/endpoint.go)
 - [Gatus v5.37.0 monitoring and retained results](https://github.com/TwiN/gatus/blob/v5.37.0/watchdog/endpoint.go)

@@ -43,12 +43,12 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 
 func healthServer(status int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/endpoints/statuses" {
+		if r.URL.Path == "/api/v1/endpoints/local_gatus-self/statuses" {
 			w.WriteHeader(status)
-			json.NewEncoder(w).Encode([]map[string]any{{
+			json.NewEncoder(w).Encode(map[string]any{
 				"key": "local_gatus-self", "name": "gatus-self", "group": "local",
 				"results": []map[string]any{{"success": true, "status": 200, "hostname": "127.0.0.1", "timestamp": "2026-10-06T12:00:00Z"}},
-			}})
+			})
 			return
 		}
 		if r.URL.Path != "/health" {
@@ -104,15 +104,19 @@ func TestAnUnreadyAppFailsWithTheLogsHint(t *testing.T) {
 		{"unavailable health", 500, 200, "[]"},
 		{"protected API", 200, 401, ""},
 		{"navigation page", 200, 200, "<html>Gatus</html>"},
-		{"empty data", 200, 200, "[]"},
-		{"unknown outcome", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"status":200,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}]`},
-		{"failed check", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":false,"status":500,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}]`},
-		{"nonlocal check", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":true,"status":200,"hostname":"example.invalid","timestamp":"2026-10-11T00:00:00Z"}]}]`},
+		{"empty data", 200, 200, `{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[]}`},
+		{"unknown outcome", 200, 200, `{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"status":200,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}`},
+		{"failed check", 200, 200, `{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":false,"status":500,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}`},
+		{"nonlocal check", 200, 200, `{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":true,"status":200,"hostname":"example.invalid","timestamp":"2026-10-11T00:00:00Z"}]}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/health" {
 					w.WriteHeader(tc.health)
+					return
+				}
+				if r.URL.Path != "/api/v1/endpoints/local_gatus-self/statuses" {
+					http.NotFound(w, r)
 					return
 				}
 				w.WriteHeader(tc.api)
