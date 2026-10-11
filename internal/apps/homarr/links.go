@@ -821,10 +821,8 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
 		return false, nil
 	}
-	if t.verify != nil {
-		if err := t.verify(ctx, from, to, integrationID); err != nil {
-			return false, err
-		}
+	if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+		return false, err
 	}
 	if len(t.widgets) == 0 {
 		return true, nil
@@ -931,10 +929,8 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if err != nil {
 			return err
 		}
-		if t.verify != nil {
-			if err := t.verify(ctx, from, to, integrationID); err != nil {
-				return err
-			}
+		if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+			return err
 		}
 		if err := t.addWidgets(ctx, from, to, boardID, integrationID, items); err != nil {
 			return err
