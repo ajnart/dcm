@@ -17,6 +17,8 @@ import (
 
 type fakePaperless struct {
 	reject bool
+	user   map[string]any
+	key    string
 }
 
 func (f *fakePaperless) handler() http.Handler {
@@ -30,12 +32,60 @@ func (f *fakePaperless) handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"results": []map[string]any{
-				{"id": 1, "username": "admin", "is_superuser": true, "is_active": true},
-			},
-		})
+		users := []map[string]any{}
+		if r.URL.Query().Get("username") == "admin" {
+			users = append(users, map[string]any{"id": 1, "username": "admin", "is_superuser": true, "is_active": true})
+		} else if f.user != nil && r.URL.Query().Get("username") == f.user["username"] {
+			users = append(users, f.user)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"results": users})
 	})
+	mux.HandleFunc("POST /api/users/", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != "admin" || pass != "adminpass" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&f.user); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.user["id"] = 2
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(f.user)
+	})
+	mux.HandleFunc("POST /api/token/", func(w http.ResponseWriter, r *http.Request) {
+		var login map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&login); err != nil || f.user == nil || login["username"] != f.user["username"] || login["password"] != f.user["password"] {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if f.key == "" {
+			f.key = "synthetic-paperless-token"
+		}
+		json.NewEncoder(w).Encode(map[string]string{"token": f.key})
+	})
+	mux.HandleFunc("GET /api/profile/", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || f.user == nil || user != f.user["username"] || pass != f.user["password"] {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"auth_token": f.key})
+	})
+	for _, path := range []string{"/api/statistics/", "/api/tags/", "/api/correspondents/", "/api/document_types/"} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			if f.key == "" || r.Header.Get("Authorization") != "Token "+f.key {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if path == "/api/statistics/" {
+				json.NewEncoder(w).Encode(map[string]int{"documents_total": 1, "documents_inbox": 1})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]int{"count": 1})
+		})
+	}
 	return mux
 }
 

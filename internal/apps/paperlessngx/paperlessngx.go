@@ -7,6 +7,7 @@ package paperlessngx
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -100,9 +101,8 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-const usersPath = "/api/users/?username=admin&page_size=2"
-
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
+	usersPath := "/api/users/?username=" + url.QueryEscape(h.AdminUser()) + "&page_size=2"
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Path:     usersPath,
 		User:     h.AdminUser(),
@@ -142,7 +142,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
+	if err := h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
 			return h.Poll(ctx, 5*time.Minute, func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) })
@@ -150,6 +150,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Hint: "Open " + h.URL + " and sign in as " + h.AdminUser() +
 			". The password is in the admin-password file; if the first start failed, read: self-host logs paperless-ngx",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "api-key", "save a read-only Paperless-ngx token for Homarr", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
+		Do:    func(ctx context.Context) error { return ensureHomarrToken(ctx, h) },
+		Hint:  "Run self-host setup paperless-ngx to repair its saved read-only account and token, then run self-host setup homarr. A rejected account password is never reset automatically.",
 	})
 }
 
@@ -160,6 +167,13 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if !ok {
 		return fmt.Errorf("the administrator %s cannot sign in to Paperless-ngx", h.AdminUser())
+	}
+	ok, err = homarrTokenWorks(ctx, h)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("Paperless-ngx's saved read-only token is unavailable; run self-host setup paperless-ngx")
 	}
 	return nil
 }
