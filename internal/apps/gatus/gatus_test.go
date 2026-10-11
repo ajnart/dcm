@@ -2,10 +2,12 @@ package gatus_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/apps/gatus"
 	"github.com/ajnart/self-host/internal/events"
@@ -35,6 +37,14 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 
 func healthServer(status int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/endpoints/statuses" {
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode([]map[string]any{{
+				"key": "local_gatus-self", "name": "gatus-self", "group": "local",
+				"results": []map[string]any{{"success": true, "status": 200, "hostname": "127.0.0.1", "timestamp": time.Now().UTC()}},
+			}})
+			return
+		}
 		if r.URL.Path != "/health" {
 			http.NotFound(w, r)
 			return
@@ -79,16 +89,41 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 }
 
 func TestAnUnreadyAppFailsWithTheLogsHint(t *testing.T) {
-	srv := healthServer(http.StatusInternalServerError)
-	defer srv.Close()
-	var results []helpers.StepResult
-	h := newH(t, srv, &results)
-
-	err := (gatus.App{}).Setup(context.Background(), h)
-	if err == nil {
-		t.Fatal("Setup = nil, want a failure")
-	}
-	if len(results) == 0 || !strings.Contains(results[len(results)-1].Hint, "self-host logs gatus") {
-		t.Errorf("hint does not name the logs command: %+v", results)
+	for _, tc := range []struct {
+		name   string
+		health int
+		api    int
+		body   string
+	}{
+		{"unavailable health", 500, 200, "[]"},
+		{"protected API", 200, 401, ""},
+		{"navigation page", 200, 200, "<html>Gatus</html>"},
+		{"empty data", 200, 200, "[]"},
+		{"unknown outcome", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"status":200,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}]`},
+		{"failed check", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":false,"status":500,"hostname":"127.0.0.1","timestamp":"2026-10-11T00:00:00Z"}]}]`},
+		{"nonlocal check", 200, 200, `[{"key":"local_gatus-self","name":"gatus-self","group":"local","results":[{"success":true,"status":200,"hostname":"example.invalid","timestamp":"2026-10-11T00:00:00Z"}]}]`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/health" {
+					w.WriteHeader(tc.health)
+					return
+				}
+				w.WriteHeader(tc.api)
+				w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+			var results []helpers.StepResult
+			h := newH(t, srv, &results)
+			if err := (gatus.App{}).Setup(context.Background(), h); err == nil {
+				t.Fatal("Setup = nil, want a failure")
+			}
+			if err := (gatus.App{}).Check(context.Background(), h); err == nil {
+				t.Fatal("Check = nil, want a failure")
+			}
+			if len(results) == 0 || !strings.Contains(results[len(results)-1].Hint, "self-host logs gatus") {
+				t.Errorf("hint does not name the logs command: %+v", results)
+			}
+		})
 	}
 }
