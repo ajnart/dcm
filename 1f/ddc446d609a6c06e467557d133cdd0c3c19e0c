@@ -1,0 +1,82 @@
+README.md
+  h_d6e478ca18e517 37-43,437,439-440,445-446
+docs/homarr-integration-contract.md
+  h_d6e478ca18e517 31-40,49-52,72-74
+docs/tui-entrances-proof.md
+  h_d6e478ca18e517 1-116
+internal/app/app.go
+  h_d6e478ca18e517 101-104
+internal/apps/authentik/authentik.go
+  h_d6e478ca18e517 20-26
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 20-26,104
+internal/apps/bookstack/bookstack.go
+  h_d6e478ca18e517 24-30,110,155
+internal/apps/docmost/docmost.go
+  h_d6e478ca18e517 20-26,29
+internal/apps/fireflyiii/fireflyiii.go
+  h_d6e478ca18e517 21-27,30
+internal/apps/homarr/links.go
+  h_d6e478ca18e517 64-69,771-775,859-863,964,989,1006-1010,1016-1021,1028-1054
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 19-20
+internal/apps/netbird/netbird.go
+  h_d6e478ca18e517 20-26,143
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  h_d6e478ca18e517 18-24,55
+internal/apps/openwebui/openwebui.go
+  h_d6e478ca18e517 18,23-29
+internal/apps/pangolin/pangolin.go
+  h_d6e478ca18e517 22-28,175
+internal/apps/passbolt/passbolt.go
+  h_d6e478ca18e517 20-26,194
+internal/apps/seafile/seafile.go
+  h_d6e478ca18e517 21,25-31
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 25,46-52
+internal/cli/cli.go
+  h_d6e478ca18e517 234,238
+internal/cli/install.go
+  h_d6e478ca18e517 235-242,249
+internal/cli/updatenotice_test.go
+  h_d6e478ca18e517 74,87-89
+internal/preboot/preboot.go
+  h_d6e478ca18e517 12-15,19-20,124-127,134-145,156-160
+internal/preboot/preboot_test.go
+  h_d6e478ca18e517 110-124
+internal/service/status.go
+  h_d6e478ca18e517 281-284,305-322,337-342
+internal/skill/guide.md
+  h_d6e478ca18e517 9-14
+internal/tui/copy.go
+  h_d6e478ca18e517 53-55,119-120
+internal/tui/entrance.go
+  h_d6e478ca18e517 1-29
+internal/tui/harness_test.go
+  h_d6e478ca18e517 358
+internal/tui/model.go
+  h_d6e478ca18e517 90-91,115-120,181-185,187-200,214-224,240-246,257,532,553,563,590,765,825,923
+internal/tui/onboarding.go
+  h_d6e478ca18e517 768-770
+internal/tui/preboot.go
+  h_d6e478ca18e517 117-119
+internal/tui/preboot_test.go
+  h_d6e478ca18e517 4,6-8,22-51,122-148,188-201,205-210,307-316,335,343-353,398-419,423-442
+internal/tui/run.go
+  h_d6e478ca18e517 11-13
+internal/tui/settings.go
+  h_d6e478ca18e517 69,377-380,383-385,395,397-399,597-602,693-698
+internal/tui/view.go
+  h_d6e478ca18e517 573-575
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fddc446d609a6c06e467557d133cdd0c3c19e0c",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
