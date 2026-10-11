@@ -69,9 +69,15 @@ If any remaining widget on any visible board still uses the integration,
 removal preserves that integration and releases the Link's recorded ownership,
 rather than destroying a user widget's connection. A later Link creates its own
 integration again; it does not reclaim the preserved record.
-Its linked Homarr App record is preserved too, with its generated marker and
-recorded ownership removed; Homarr cannot delete an App still linked to an
-integration. Only the managed Home tile placement is removed.
+Its linked Homarr App record is preserved too. Its generated or empty description
+becomes `self-host retained tile:<app>`; an existing custom description is kept.
+The retained marker is not an owned marker and legacy navigation migration skips
+it, so even the original nine descriptors cannot reclaim it on reinstall. The
+recorded App and Link ownership are removed; Homarr cannot delete an App still
+linked to an integration. If the user edited its ping Address, release uses the
+recorded App ID rather than an Address match and preserves its other fields.
+Only the managed Home tile placement is removed. Legitimate legacy navigation
+migration is otherwise unchanged.
 
 Existing recorded Links retain their conservative legacy widget migration:
 only a complete unique generated set with deterministic Stats IDs is eligible;
