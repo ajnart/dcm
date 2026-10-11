@@ -1,6 +1,6 @@
 # Paperless-ngx prerequisite and Homarr descriptor
 
-Peer slice for the Homarr coverage work, 11 October 2026. This is not complete
+Peer slice for #289, 11 October 2026. This is not complete
 Homarr widget acceptance: registration and the shared compatibility/ownership
 contract are blocked by #262.
 
@@ -47,6 +47,56 @@ The final isolated Homarr run still needs to verify useful rendered data,
 stable owned IDs on rerun, token-change propagation, preservation of manual
 widgets/integrations and owned-only removal. Source declarations or a passing
 connection test do not satisfy that acceptance.
+
+## Isolated prerequisite evidence
+
+Validated implementation commit: `368cc026` on `feat/homarr-paperless-sol`.
+The only runtime fixture used Compose Project
+`self-host-paperless-sol-93543`, loopback port `53415`, and one new disposable
+Home under the approved OpenCode temporary directory. No existing Project,
+private documents, browser profiles or credential stores were inspected.
+Development Telemetry and update checks were disabled. The three containers
+were limited to 2304 MiB total and two CPUs each, with an eight-minute deadline.
+Only the existing production service/helper/Project boundaries performed
+installation, Setup, credential persistence and Compose commands; the fixture
+wrapper changed resource limits only.
+
+Observed results:
+
+- Fresh installation with Admin login `fixture-admin` passed Setup and Check,
+  including credential creation and fresh authenticated probes on an empty
+  archive. The prior hard-coded administrator lookup was corrected.
+- A single synthetic document model, owned by the fixture administrator, with
+  an unowned inbox tag, correspondent and document type returned
+  `documents_total=1`, `documents_inbox=1` using the read-only token. All three
+  taxonomy endpoints passed Check. This proves document-count access, not OCR,
+  ingestion, physical document downloads or Homarr rendering.
+- The same token received HTTP 403 for taxonomy writes and document-content
+  listing. Account policy checks confirmed the exact four permissions, no
+  groups and no staff/superuser status.
+- A valid Setup rerun kept the token unchanged. Replacing the saved key with
+  an invalid synthetic value made fresh Check fail; Setup rediscovered the same
+  upstream token without rotation.
+- A controlled upstream token rotation in the fixture made Check fail again;
+  Setup rediscovered that new token without rotating it a second time.
+- Exact App response: Paperless-ngx `3.2.1`, API version `10`.
+  Image: `ghcr.io/paperless-ngx/paperless-ngx@sha256:5fa76604a81df6945086e0837b14b56543d137e8ce4f311cc5d9ebe907e74e79`.
+  The fixture also used the Catalog's `postgres:18` and `valkey/valkey:9-alpine`.
+- Initial synthetic seeding needed the App key and database password passed
+  through the helper's environment because container exec bypasses entrypoint
+  `_FILE` resolution. The same fixture was resumed after that harness-only
+  correction; no second fixture was created. Its exact owned Compose Project
+  was taken down after each run, and a label-filtered check confirmed no owned
+  containers remained. Synthetic files were retained only in that disposable
+  Home; no broad prune or volume deletion occurred.
+
+Local gate passed: empty `gofmt -l .`, `go build ./...`, `go vet ./...`,
+`go vet -tags e2e ./e2e/`, `go test ./...`, race checks for
+`internal/tui`, `internal/activity`, `internal/apps/paperlessngx` and
+`internal/apps/homarr`, and `bash -n install.sh`. No e2e runtime suite or
+installer was run. The first combined gate command hit its shell deadline
+after the full test suite passed; the remaining race and shell checks passed
+in a separate bounded command.
 
 ## Versions and sources
 
