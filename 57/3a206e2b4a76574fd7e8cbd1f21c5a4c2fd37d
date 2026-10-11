@@ -1,0 +1,38 @@
+README.md
+  h_d6e478ca18e517 636-641
+docs/homarr-integration-contract.md
+  h_d6e478ca18e517 1-93
+internal/apps/homarr/compatibility.go
+  h_d6e478ca18e517 1-75
+internal/apps/homarr/homarr.go
+  h_d6e478ca18e517 29,49,409-411
+internal/apps/homarr/homarr_test.go
+  h_d6e478ca18e517 119-134
+internal/apps/homarr/installed.go
+  h_d6e478ca18e517 69
+internal/apps/homarr/links.go
+  h_d6e478ca18e517 68,88,218,224-225,249,252,256-260,263,554,557,576,594,599,603,607-608,610,613,619-627,760-762,768,797,808-812,843-845,856,913-917,954,967,988,1007
+internal/apps/homarr/target_immich.go
+  h_d6e478ca18e517 1-43
+internal/apps/homarr/targets.go
+  h_d6e478ca18e517 1-5
+internal/apps/immich/homarr.go
+  h_d6e478ca18e517 1-174
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 154,180-187,199-205
+internal/apps/immich/immich_test.go
+  h_d6e478ca18e517 59-81
+internal/skill/guide.md
+  h_d6e478ca18e517 409-417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "573a206e2b4a76574fd7e8cbd1f21c5a4c2fd37d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
