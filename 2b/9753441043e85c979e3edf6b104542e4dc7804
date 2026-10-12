@@ -1,0 +1,23 @@
+docs/catalog/traps/paperless-ngx.md
+  s_01e8d17f7740df::t_bcae99ed3680ae 12-15
+docs/homarr-paperless-proof.md
+  s_01e8d17f7740df::t_7610c73ecc50cd 3-8,13-18,25-36,42-91,101-102,105-106,115-117,173-175
+internal/apps/paperlessngx/paperlessngx_test.go
+  s_01e8d17f7740df::t_69694276f3003c 6,20-32,54-73,84,86,90-93,95,107-110,112-114,118-132,141-148,158-162,164-174,183,191-192,208-233,237-238,255-392
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2b9753441043e85c979e3edf6b104542e4dc7804",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
