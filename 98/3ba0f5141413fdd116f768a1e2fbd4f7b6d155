@@ -1,0 +1,20 @@
+docs/adguard-homarr-prerequisites.md
+  h_d6e478ca18e517 8-13,110-157,166-168,173-174
+docs/catalog/traps/adguard-home.md
+  h_d6e478ca18e517 7-10
+internal/apps/adguard/adguard.go
+  h_d6e478ca18e517 6,12,56,62,65-73,76,78-80,148-187,202-221,246,251-258
+internal/apps/adguard/adguard_test.go
+  h_d6e478ca18e517 6-7,32-42,55-62,73-83,87-92,99-105,119,172,184-299
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "983ba0f5141413fdd116f768a1e2fbd4f7b6d155",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
