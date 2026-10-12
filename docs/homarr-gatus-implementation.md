@@ -2,11 +2,17 @@
 
 ## Contract
 
-Based on committed #262 reference `573a206e`, not its uncommitted files.
-Homarr v2.4.1 source is `ebbd4876d25a51151444a009ab596e1154d62880`;
-the correct GHCR tag is `ghcr.io/homarr-labs/homarr:v2.4.1`.
-The reference lane owns correcting its image tag and common compatibility code.
-This lane leaves `targets.go` and common reconciliation untouched.
+Normalized by the retained common registry custodian against frozen main
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, merged normally while preserving
+leaf `c3aca1a6d3a8cff2d5d39ca96913960e9ce4b2c8` and its reviewed local-provenance
+corrections. Only this peer's `gatusTarget()` registry call is added in this branch.
+Frozen common reconciliation, compatibility, ownership and freshness remain unchanged.
+
+Homarr's authenticated supported API is `2.4.1`, image tag
+`ghcr.io/homarr-labs/homarr:v2.4.1`. The resolved image revision
+`3d4150e59f600876b7e308f857b2f21572b75348` Gatus provider was checked for these
+exact count semantics; tagged research baseline
+`ebbd4876d25a51151444a009ab596e1154d62880` remains a separate identity.
 
 `gatusTarget()` uses `http://gatus:8080` for Homarr's server connection;
 the browser Address remains independently resolved. It explicitly returns
@@ -51,8 +57,9 @@ Checks probe afresh. The starter config
 and image `ghcr.io/twin/gatus:v5.37.0` are unchanged: one local health check,
 one-minute interval, SQLite history, no external monitor traffic.
 
-The Link verifies Gatus directly, reads `widget.stats.snapshot`, then requests
-`widget.stats.refresh` through Homarr with its owned integration ID. It requires
+The Link verifies Gatus directly and reuses the frozen `freshStatsSnapshot`
+helper with its owned integration ID, rather than copying refresh/timestamp logic.
+That helper reads `widget.stats.snapshot`, then forces `widget.stats.refresh`. It requires
 a successful, non-stale snapshot with a timestamp strictly advanced from the
 before-snapshot (or a positive timestamp when the before-snapshot was unfilled).
 A forced refresh that returns without updating because of a distributed lock
@@ -69,6 +76,10 @@ create an unsolicited monitor, name-only adopt another target, or rewrite their
 configuration or remove authentication. No new dependencies or secrets are used.
 
 ## Evidence and acceptance gaps
+
+The normalized source-activated tree passed the full local gate again, including
+TUI/Activity/Gatus/Homarr/Catalog race checks. This is source/fake verification,
+not live peer acceptance; final normalized-head reviews remain parent-owned.
 
 The repository local gate passed: gofmt, build, both vet commands, all existing
 tests, race checks for TUI/Activity/Gatus/Homarr, and installer shell syntax.
@@ -90,12 +101,14 @@ and object response shape. It does not touch Homarr's descriptor or the
 before/after forced-refresh advancement check. Fresh source review at the new
 head remains required; no remote traffic or live proof was used.
 
-The descriptor is deliberately not registered here: `targets.go` belongs to
-#262. Parent registration, corrected common version/credential-shape gates,
-fresh two-axis review, and approved disposable runtime acceptance remain open.
-The reference custodian's cancellation creates no contract freeze or runtime
-permission. This correction remains independent at the committed baseline;
-native registration, normalization, rendering and lifecycle holds remain.
+The descriptor is now source-activated in this branch through the custodian's
+single registry call. Frozen `verifyData` retains its common selected-metric
+freshness guard after the leaf's semantic verification; nil preflight does not
+alter cleanup or scheduling. No frozen helper signature or body changes.
+Fresh parent-owned Standards/Spec reviews of the normalized final head and approved
+disposable runtime acceptance remain open. Registration is not live native,
+rendered, authentication, both-installation-order, ownership lifecycle or genuinely
+cross-kind shared-binding acceptance. Those gates remain held.
 No Docker, browser, installer, real Project or protected files were accessed.
 No resolved image digests, real Homarr widget rendering or lifecycle proof is
 claimed. The old Gatus navigation proof is not native integration proof.
@@ -103,6 +116,7 @@ claimed. The old Gatus navigation proof is not native integration proof.
 ## First-party sources
 
 - [Homarr Gatus guide](https://homarr.dev/docs/integrations/gatus/)
+- [Resolved-image Gatus Stats provider](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/providers/gatus.ts)
 - [v2.4.1 Gatus Stats provider](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/providers/gatus.ts)
 - [v2.4.1 integration definitions](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/integration.ts)
 - [v2.4.1 create/update schema](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/validation/src/integration.ts)
