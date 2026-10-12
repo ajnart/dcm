@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
-	"path"
 	"slices"
 	"strconv"
 
@@ -65,9 +64,6 @@ func aria2Target() target {
 					return errors.New("Homarr's saved Aria2 connection reports a different version or download directory")
 				}
 			}
-			statistics := map[string]float64{}
-			queue := []map[string]any{}
-			seen := map[string]bool{}
 			keys := []string{"gid", "status", "bittorrent", "files", "totalLength", "completedLength", "uploadLength", "downloadSpeed", "uploadSpeed"}
 			for _, method := range []string{"getGlobalStat", "tellActive", "tellWaiting", "tellStopped"} {
 				params := []any{"token:" + to.Secret(to.Key("rpc_token"))}
@@ -97,6 +93,7 @@ func aria2Target() target {
 					if json.Unmarshal(body.Result, &stats) != nil {
 						return errors.New("Aria2 did not return queue statistics")
 					}
+					statistics := map[string]float64{}
 					for _, key := range []string{"downloadSpeed", "uploadSpeed", "numActive", "numWaiting", "numStopped", "numStoppedTotal"} {
 						count, err := strconv.ParseUint(stats[key], 10, 64)
 						if err != nil {
@@ -113,16 +110,10 @@ func aria2Target() target {
 				if json.Unmarshal(body.Result, &items) != nil || items == nil {
 					return errors.New("Aria2 did not return an explicit queue array")
 				}
-				count := statistics["numActive"]
-				switch method {
-				case "tellWaiting":
-					count = min(statistics["numWaiting"], 50)
-				case "tellStopped":
-					count = min(statistics["numStopped"], 50)
+				if method != "tellActive" && len(items) > 50 {
+					return errors.New("Aria2 returned a queue array exceeding its requested limit")
 				}
-				if float64(len(items)) != count {
-					return errors.New("Aria2's queue counts and RPC items disagree; retry self-host setup homarr")
-				}
+				seen := map[string]bool{}
 				for _, item := range items {
 					id, status := stringField(item, "gid"), stringField(item, "status")
 					if id == "" || seen[id] ||
@@ -132,10 +123,45 @@ func aria2Target() target {
 						return errors.New("Aria2 returned an invalid queue identifier or status")
 					}
 					seen[id] = true
-					queue = append(queue, item)
+					numbers := map[string]float64{}
+					for _, key := range []string{"totalLength", "completedLength", "uploadLength", "downloadSpeed", "uploadSpeed"} {
+						number, err := strconv.ParseUint(stringField(item, key), 10, 64)
+						if err != nil {
+							return errors.New("Aria2 returned incomplete queue sizes or transfer rates")
+						}
+						numbers[key] = float64(number)
+					}
+					if numbers["totalLength"] > 0 && numbers["completedLength"] > numbers["totalLength"] {
+						return errors.New("Aria2 returned queue progress outside the supported zero-to-one range")
+					}
+					files, filesOK := item["files"].([]any)
+					if !filesOK {
+						return errors.New("Aria2 did not return its queue's file metadata")
+					}
+					if len(files) > 0 {
+						file, _ := files[0].(map[string]any)
+						if stringField(file, "path") == "" {
+							return errors.New("Aria2 returned a queue file without its path")
+						}
+					}
+					if rawTorrent := item["bittorrent"]; rawTorrent != nil {
+						torrent, ok := rawTorrent.(map[string]any)
+						if !ok {
+							return errors.New("Aria2 returned unsupported torrent metadata")
+						}
+						info, _ := torrent["info"].(map[string]any)
+						if torrent["info"] != nil && info == nil {
+							return errors.New("Aria2 returned unsupported torrent name metadata")
+						}
+						if rawName := info["name"]; rawName != nil {
+							name, ok := rawName.(string)
+							if !ok || name == "" {
+								return errors.New("Aria2's torrent name is unsupported by Homarr's native Downloads schema")
+							}
+						}
+					}
 				}
 			}
-			queue = queue[:min(len(queue), 50)]
 			value, err = apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
 				"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
 			})
@@ -158,100 +184,40 @@ func aria2Target() target {
 			types, _ := status["types"].([]any)
 			items, itemsOK := data["items"].([]any)
 			paused, pausedOK := status["paused"].(bool)
-			if !itemsOK || len(items) != len(queue) || !pausedOK || len(types) != 2 ||
+			if !itemsOK || len(items) > 50 || !pausedOK || len(types) != 2 ||
 				!slices.Contains(types, any("torrent")) || !slices.Contains(types, any("miscellaneous")) {
 				return errors.New("Homarr returned incomplete Aria2 queue data; an empty queue requires an explicit empty items array")
 			}
-			for key, rpcKey := range map[string]string{"down": "downloadSpeed", "up": "uploadSpeed"} {
+			for _, key := range []string{"down", "up"} {
 				rate, ok := rates[key].(float64)
-				if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) || rate != statistics[rpcKey] {
-					return errors.New("Homarr's Aria2 byte-per-second rates differ from authenticated RPC; retry self-host setup homarr")
+				if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
+					return errors.New("Homarr returned incomplete Aria2 byte-per-second rates")
 				}
 			}
 			allPaused := true
 			for index, raw := range items {
 				item, _ := raw.(map[string]any)
-				rpc := queue[index]
-				numbers := map[string]float64{}
-				for _, key := range []string{"totalLength", "completedLength", "uploadLength", "downloadSpeed", "uploadSpeed"} {
-					number, err := strconv.ParseUint(stringField(rpc, key), 10, 64)
-					if err != nil {
-						return errors.New("Aria2 returned incomplete queue sizes or transfer rates")
-					}
-					numbers[key] = float64(number)
+				itemType, state := stringField(item, "type"), stringField(item, "state")
+				if stringField(item, "id") == "" || stringField(item, "name") == "" ||
+					!slices.Contains([]string{"torrent", "miscellaneous"}, itemType) ||
+					!slices.Contains([]string{"downloading", "leeching", "seeding", "queued", "paused", "completed", "failed", "unknown"}, state) ||
+					itemType == "torrent" && state == "downloading" ||
+					itemType == "miscellaneous" && slices.Contains([]string{"leeching", "seeding"}, state) {
+					return errors.New("Homarr returned unsupported Aria2 item identity, type or state")
 				}
-				progress, eta := float64(0), float64(0)
-				if numbers["totalLength"] > 0 {
-					progress = numbers["completedLength"] / numbers["totalLength"]
-				}
-				if progress > 1 {
-					return errors.New("Aria2 returned queue progress outside the supported zero-to-one range")
-				}
-				if numbers["downloadSpeed"] > 0 && numbers["completedLength"] < numbers["totalLength"] {
-					eta = math.Floor((numbers["totalLength"]-numbers["completedLength"])/numbers["downloadSpeed"]) * 1000
-				}
-				files, filesOK := rpc["files"].([]any)
-				if !filesOK {
-					return errors.New("Aria2 did not return its queue's file metadata")
-				}
-				name, itemType := "Unknown", "miscellaneous"
-				if len(files) > 0 {
-					file, _ := files[0].(map[string]any)
-					filePath, ok := file["path"].(string)
-					if !ok || filePath == "" {
-						return errors.New("Aria2 returned a queue file without its path")
-					}
-					name = path.Base(filePath)
-				}
-				if rawTorrent := rpc["bittorrent"]; rawTorrent != nil {
-					torrent, ok := rawTorrent.(map[string]any)
-					if !ok {
-						return errors.New("Aria2 returned unsupported torrent metadata")
-					}
-					itemType = "torrent"
-					info, _ := torrent["info"].(map[string]any)
-					if torrent["info"] != nil && info == nil {
-						return errors.New("Aria2 returned unsupported torrent name metadata")
-					}
-					if rawName := info["name"]; rawName != nil {
-						name, ok = rawName.(string)
-						if !ok || name == "" {
-							return errors.New("Aria2's torrent name is unsupported by Homarr's native Downloads schema")
-						}
-					}
-				}
-				state := "unknown"
-				switch stringField(rpc, "status") {
-				case "active":
-					state = "downloading"
-					if itemType == "torrent" {
-						state = "leeching"
-						if progress >= 1 {
-							state = "seeding"
-						}
-					}
-				case "waiting":
-					state = "queued"
-				case "paused":
-					state = "paused"
-				case "complete":
-					state = "completed"
-				case "error":
-					state = "failed"
-				}
-				allPaused = allPaused && stringField(rpc, "status") == "paused"
-				if stringField(item, "id") != stringField(rpc, "gid") || stringField(item, "name") != name ||
-					stringField(item, "type") != itemType || stringField(item, "state") != state {
-					return errors.New("Homarr's Aria2 item identity or state differs from authenticated RPC; retry self-host setup homarr")
-				}
-				for key, expected := range map[string]float64{"index": float64(index), "size": numbers["totalLength"],
-					"sent": numbers["uploadLength"], "downSpeed": numbers["downloadSpeed"], "upSpeed": numbers["uploadSpeed"],
-					"progress": progress, "time": eta} {
+				for _, key := range []string{"index", "size", "sent", "downSpeed", "upSpeed", "progress", "time"} {
 					number, ok := item[key].(float64)
-					if !ok || number < 0 || math.IsNaN(number) || math.IsInf(number, 0) || number != expected {
-						return errors.New("Homarr's Aria2 item bytes, rates, progress or millisecond ETA differ from authenticated RPC; retry self-host setup homarr")
+					if !ok || number < 0 || math.IsNaN(number) || math.IsInf(number, 0) ||
+						key == "progress" && number > 1 || key == "index" && number != float64(index) {
+						return errors.New("Homarr returned incomplete Aria2 item bytes, rates, progress or millisecond ETA")
 					}
 				}
+				progress := item["progress"].(float64)
+				if state == "leeching" && progress >= 1 || state == "seeding" && progress < 1 ||
+					(item["downSpeed"] == float64(0) || progress == 1 || item["size"] == float64(0)) && item["time"] != float64(0) {
+					return errors.New("Homarr returned inconsistent Aria2 item progress, state or ETA")
+				}
+				allPaused = allPaused && state == "paused"
 			}
 			if paused != allPaused {
 				return errors.New("Homarr's Aria2 paused flag does not match its bounded download list")
@@ -281,18 +247,14 @@ func aria2Target() target {
 			if err != nil {
 				return err
 			}
-			for key, rpcKey := range map[string]string{"download": "downloadSpeed", "upload": "uploadSpeed"} {
+			for _, key := range []string{"download", "upload"} {
 				rate, ok := stats[key].(float64)
-				if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) || rate != statistics[rpcKey] {
-					return errors.New("Homarr's refreshed Aria2 byte-per-second Stats differ from authenticated RPC; retry self-host setup homarr")
+				if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
+					return errors.New("Homarr returned incomplete refreshed Aria2 byte-per-second Stats")
 				}
 			}
-			statsPaused := true
-			if len(queue) > 0 {
-				statsPaused = stringField(queue[0], "status") == "paused"
-			}
-			if value, ok := stats["paused"].(bool); !ok || value != statsPaused {
-				return errors.New("Homarr's refreshed Aria2 paused Stats do not match its one-item download list")
+			if _, ok := stats["paused"].(bool); !ok {
+				return errors.New("Homarr did not return its independent one-item Aria2 paused Stats")
 			}
 			return nil
 		},

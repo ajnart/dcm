@@ -68,7 +68,7 @@ exact disposable Home/binary/probe. No image or volume pruning was performed.
 
 ## Descriptor and remaining acceptance
 
-`internal/apps/homarr/integration_aria2.go` proposes kind `aria2`, internal
+`internal/apps/homarr/target_aria2.go` proposes kind `aria2`, internal
 Address `http://aria2:6800`, saved `rpc_token` as Homarr `apiKey`, Downloads,
 and shared Stats keys `download`, `upload`, `paused`. It does not enable the
 upstream no-auth alternative. Aria2 is headless; no browser UI or AriaNg was
