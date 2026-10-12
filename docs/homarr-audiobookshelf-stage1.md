@@ -2,7 +2,7 @@
 
 Stage 1 only, 11 October 2026. Blocked by #262 for Homarr registry wiring,
 supported-version reconciliation and complete lifecycle acceptance. The target
-in `internal/apps/homarr/integration_audiobookshelf.go` is deliberately not
+in `internal/apps/homarr/target_audiobookshelf.go` is deliberately not
 registered. This is not a claim of a working Homarr widget.
 
 ## Implemented boundary
