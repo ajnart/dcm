@@ -120,9 +120,9 @@ in a separate bounded command. No new test functions or dependencies were added.
   this direct query/block-statistics check.
 - The source-only histogram follow-up decodes both query and blocking arrays
   as nullable integers and rejects null or negative elements, preserving
-  explicit empty arrays and numeric zeros. Four added control values in the
-  same existing fixture body reproduced erroneous acceptance before the fix;
-  this is direct App schema coverage, not native Homarr/runtime acceptance.
+  explicit empty arrays and numeric zeros. The null/negative rejection and
+  explicit-empty branches have source/schema/compile coverage only in the
+  final tree, not independent regression-test or native/runtime acceptance.
 - The administrator predicate now checks authentication only. Setup reuses the
   existing first-administrator callbacks inside an App-owned step that probes
   afresh before bootstrap, retaining HTTP/server/schema/transport failures
@@ -134,13 +134,23 @@ in a separate bounded command. No new test functions or dependencies were added.
   A missing `running` field differs from `running: false`; both fail with DNS
   diagnostics and a logs/retry hint, not a person-required Manual step.
   Check performs the same fresh reads. Valid accounts/settings are not changed.
-- The existing App fixture reproduced rejection of `filters: null` and loss of
-  DNS/profile failures into administrator recovery before the correction. Its
-  extended body now covers supported empty/zero responses, absent/malformed
-  filters/statistics, DNS HTTP 500/missing/stopped states, profile HTTP
-  500/403/302 and malformed/userless/mismatched identities, failed transport,
-  recovery and genuine credential rejection without account replacement.
-  No test functions, test files, dependencies or comments were added.
+- Test-scope cleanup removes all agent-authored independent filtering/statistics,
+  DNS/profile/transport fault, recovery and credential-rejection matrices,
+  including their sole-use injection fields, counter and transport override.
+  Keeping two named test functions did not make those added cases authorized.
+  Both baseline test bodies and assertions are restored exactly to fixed base
+  `5aafb4c1833fd4cd9caf0f7beaac31e625aafe22`: fresh Setup configures the
+  administrator, Check succeeds, rerun steps skip, and failed first-install
+  configuration retains a hint naming the Setup command. Only required fixture
+  maintenance remains: authenticated profile, structured status with ports,
+  numeric zero statistics and explicitly present `filters: null`.
+  Those single-default responses support baseline coverage, not new cases.
+  Absent/malformed/filter-array alternatives, explicit empty histograms,
+  null/negative histogram elements and other API/auth/bootstrap failure branches
+  have source/schema/compile coverage only at the final head. Removed matrices
+  are not claimed as final-head red/green coverage. No replacement cases,
+  test functions/files, comments or dependencies were added; production code
+  and the descriptor are unchanged by this cleanup.
 - Native holds are separate: both Homarr's tagged research baseline and the
   reference's recorded OCI source revision require `filters` to be an array
   and compute blocked percentage backwards. Accepting direct `null` does not
@@ -159,6 +169,10 @@ AdGuard/Homarr suites with `-count=1`, empty repository `gofmt -l .`,
 `go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/adguard/`,
 `bash -n install.sh` and `git diff --check`. The complete gate exited
 successfully before publication; no Docker/e2e runtime or installer was run.
+The gate was repeated after test-scope cleanup with only baseline cases and
+required fixture maintenance retained. Static fixed-base comparison verified
+all named function declarations unchanged and both baseline test bodies and
+assertions byte-identical, not merely an unchanged test-function count.
 
 ## Sources
 
