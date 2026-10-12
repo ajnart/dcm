@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution           |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+             |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                          |
-| Complete real-model batch with both guides and three repetitions       | Iteration 16 invalid; public scenario contract needs a decision |
+| Complete real-model batch with both guides and three repetitions       | Iteration 17 invalid at subscription quota; fresh batch pending |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending    |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes   |
 
@@ -162,6 +162,18 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   The authorized full comparison has been consumed; another model batch
   requires renewed authorization after that decision. Human feedback on the
   valid iteration 15 smoke remains pending, and PR #259 stays draft.
+
+- **Iteration 17: invalid subscription quota failure.** Thirty-two of 42
+  conversations completed; ten failed or were cancelled. Revised Mint run 3
+  failed on turn 4 with Claude's session-limit error, reporting a reset at
+  12:40 Europe/Paris. All six corrected public-Access conversations completed,
+  but that is execution evidence only, not assertion or approval acceptance.
+  No judgments, grades or benchmark were produced for this partial batch.
+  Frozen inputs and diagnostics remain untouched. The user-authorized fresh
+  full comparison has been consumed; model calls stop at this quota boundary,
+  with no fallback, model switch, billing change or automatic retry. A new
+  complete batch after quota recovery requires renewed authorization. Human
+  feedback on valid iteration 15 remains pending, and PR #259 stays draft.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
