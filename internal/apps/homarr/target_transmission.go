@@ -67,7 +67,8 @@ func verifyTransmission(ctx context.Context, from, to *helpers.H, integrationID 
 	}
 	for _, raw := range items {
 		item, _ := raw.(map[string]any)
-		if stringField(item, "id") == "" || stringField(item, "name") == "" || stringField(item, "type") != "torrent" || !transmissionNumbers(item, "index", "size", "sent", "received", "upSpeed", "progress") {
+		itemTime, timeOK := item["time"].(float64)
+		if !timeOK || math.IsNaN(itemTime) || math.IsInf(itemTime, 0) || stringField(item, "id") == "" || stringField(item, "name") == "" || stringField(item, "type") != "torrent" || !transmissionNumbers(item, "index", "size", "sent", "received", "upSpeed", "progress") {
 			return errors.New("Homarr returned incomplete Transmission download items; retry self-host setup homarr")
 		}
 		progress := item["progress"].(float64)
