@@ -225,7 +225,7 @@ os.chown(sys.argv[2], original.st_uid, original.st_gid)
 PY
 chmod 600 "$temp"
 mv "$temp" "$file"`); err != nil {
-			return errors.New("NZBGet restricted-user settings could not be confirmed saved with preserved ownership; review the configuration permissions and restricted-user slot, then retry self-host setup nzbget with the same managed login")
+			return fmt.Errorf("NZBGet restricted-user settings could not be confirmed saved with preserved ownership; review the configuration permissions and restricted-user slot, then retry self-host setup nzbget with the same managed login: %w", err)
 		}
 	}
 	if active != expected {
