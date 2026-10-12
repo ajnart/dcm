@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                          |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                           |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                           |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                         |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution           |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+             |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                          |
-| Complete real-model batch with both guides and three repetitions       | Iteration 18 running after renewed authorization and preflights |
-| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending    |
-| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes   |
+| Gate                                                                   | Status                                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                         |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                         |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                       |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
+| Complete real-model batch with both guides and three repetitions       | Iteration 18 invalid; Mint manual-step simulation gap         |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -174,15 +174,28 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   with no fallback, model switch, billing change or automatic retry. A new
   complete batch after quota recovery requires renewed authorization. Human
   feedback on valid iteration 15 remains pending, and PR #259 stays draft.
-- **Iteration 18: running.** The user reported Claude access restored and
-  instructed continuation. Both selected Sonnet and Opus access preflights
-  passed. A fresh full comparison uses all seven corrected scenarios, both
-  unchanged frozen guides, three repetitions, equal 16-turn limits and two
-  concurrent conversations. Iteration 17 is not resumed, overwritten or graded.
-  The existing first-party subscription is used without paid fallback, model
-  switch or billing change; another quota or execution failure stops the batch.
-  Complete valid execution is required before blind judgments and grading;
-  the supplied viewer and human feedback remain acceptance gates.
+- **Iteration 18: invalid Mint manual-step loop.** After the user reported
+  restored access and instructed continuation, both model preflights passed.
+  Thirty-six of 42 conversations completed; six failed or were cancelled when
+  original-guide Mint run 2 exhausted the equal 16-turn budget. No judgments,
+  grades or benchmark were produced. The person reported manually running
+  `sudo usermod -aG docker sam` and logging out/back in, but subsequent fixture
+  Doctor observations still reported permission denied. The agent kept asking
+  for manual checks/restarts and never installed Jellyfin. Frozen inputs and
+  raw diagnostics are retained unchanged; iteration 17 was not resumed or graded.
+
+  Source inspection identifies a simulation boundary: `completed_steps` and its
+  state application model only Docker Desktop/WSL completion. Mint's Docker-group
+  marker changes only when an agent command reaches the host stub; the person's
+  reported manual group change/login refresh cannot apply it. This is not a
+  reason to raise the conversation limit or fabricate terminal output. Proposed
+  correction: reuse the explicit manual-step mechanism for requested, completed
+  Mint Docker-group/login actions, with offline coverage and platform/request
+  validation. The existing persona needs an explicit permission for that manual
+  action rather than allowing arbitrary invented observations. A decision and
+  fresh comparison authorization remain due. No additional model calls, paid
+  fallback, model switch or billing change followed the failure. Human feedback
+  on valid iteration 15 remains pending, and PR #259 stays draft.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
