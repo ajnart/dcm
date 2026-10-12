@@ -31,12 +31,20 @@ func navidromeTarget() target {
 func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
+	value, err := apiKeyProcedure(ctx, from, "integration.byId", map[string]any{"id": integrationID})
+	if err != nil {
+		return errors.New("Homarr could not verify its saved Navidrome account; review access to this Link's owned integration, then run self-host setup homarr")
+	}
+	if !navidromeIdentityMatches(value, integrationID, to.AdminUser()) {
+		from.Info("Open Homarr's Integrations page and restore this Link's owned Navidrome integration to the saved Admin login from self-host credentials, then run self-host setup homarr. Do not change Navidrome accounts or adopt another account.")
+		return helpers.ErrManual
+	}
 	expected, err := navidrome.ReadHomarrData(ctx, to)
 	if err != nil {
 		return err
 	}
 	const failure = "Homarr Navidrome data is incomplete or unavailable; run self-host setup navidrome, then self-host setup homarr"
-	value, err := apiKeyProcedure(ctx, from, "widget.audioStats.getStats", map[string]any{"integrationId": integrationID})
+	value, err = apiKeyProcedure(ctx, from, "widget.audioStats.getStats", map[string]any{"integrationId": integrationID})
 	if err != nil {
 		return errors.New(failure)
 	}
@@ -89,6 +97,34 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 		}
 	}
 	return nil
+}
+
+func navidromeIdentityMatches(value any, integrationID, username string) bool {
+	integration, ok := value.(map[string]any)
+	if !ok || integrationID == "" || username == "" || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "navidrome" {
+		return false
+	}
+	credentials, ok := integration["secrets"].([]any)
+	if !ok || len(credentials) != 2 {
+		return false
+	}
+	usernameFound, passwordFound := false, false
+	for _, raw := range credentials {
+		credential, ok := raw.(map[string]any)
+		if !ok {
+			return false
+		}
+		value, present := credential["value"]
+		switch stringField(credential, "kind") {
+		case "username":
+			usernameFound = stringField(credential, "value") == username
+		case "password":
+			passwordFound = present && value == nil
+		default:
+			return false
+		}
+	}
+	return usernameFound && passwordFound
 }
 
 func navidromeCountsMatch(statistics map[string]any, expected navidrome.HomarrData) bool {

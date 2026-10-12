@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -55,6 +56,7 @@ type fakeNavidrome struct {
 	window          time.Time
 	now             func() time.Time
 	subsonicCalls   int
+	albumCount      int
 }
 
 func (f *fakeNavidrome) handler() http.Handler {
@@ -121,17 +123,29 @@ func (f *fakeNavidrome) handler() http.Handler {
 		case "getMusicFolders.view":
 			body["musicFolders"] = map[string]any{"musicFolder": []any{map[string]any{"id": 1, "name": "Music"}}}
 		case "getScanStatus.view":
-			body["scanStatus"] = map[string]any{"scanning": false, "count": 0, "lastScan": "2026-10-11T12:00:00Z"}
+			body["scanStatus"] = map[string]any{"scanning": false, "count": f.albumCount, "lastScan": "2026-10-11T12:00:00Z"}
 		case "getAlbumList2.view":
-			if r.Form.Get("type") != "alphabeticalByName" || r.Form.Get("size") != "500" || r.Form.Get("offset") != "0" {
+			offset, err := strconv.Atoi(r.Form.Get("offset"))
+			if r.Form.Get("type") != "alphabeticalByName" || r.Form.Get("size") != "500" || err != nil || offset < 0 || offset%500 != 0 {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			w.Header().Set("X-Total-Count", "0")
+			w.Header().Set("X-Total-Count", strconv.Itoa(f.albumCount))
+			albums := []any{}
+			for i := offset; i < min(offset+500, f.albumCount); i++ {
+				albums = append(albums, map[string]any{"id": fmt.Sprintf("album-%05d", i), "name": fmt.Sprintf("Album %05d", i), "songCount": 1})
+			}
 			body["albumList2"] = map[string]any{}
+			if len(albums) > 0 {
+				body["albumList2"] = map[string]any{"album": albums}
+			}
 		case "getArtists.view":
-			body["status"] = "failed"
-			body["error"] = map[string]any{"code": 70, "message": "Library not found or empty"}
+			if f.albumCount == 0 {
+				body["status"] = "failed"
+				body["error"] = map[string]any{"code": 70, "message": "Library not found or empty"}
+			} else {
+				body["artists"] = map[string]any{"index": []any{map[string]any{"artist": []any{map[string]any{"id": "artist-1", "name": "Fixture Artist"}}}}}
+			}
 		case "getNowPlaying.view":
 			body["nowPlaying"] = map[string]any{}
 		default:
@@ -176,7 +190,7 @@ func TestCreatesTheFirstAdministratorThenProvesTheLogin(t *testing.T) {
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
-	fake := &fakeNavidrome{password: "correct-horse-battery"}
+	fake := &fakeNavidrome{password: "correct-horse-battery", albumCount: 10001}
 	server := httptest.NewServer(fake.handler())
 	defer server.Close()
 	secrets := secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "correct-horse-battery"}
@@ -186,8 +200,20 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (navidrome.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
+	if err := (navidrome.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("standalone Check rejected a complete 10001-album library: %v", err)
+	}
 	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip || rec.status("homarr-api") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip every step: ready=%q admin=%q homarr-api=%q", rec.status("ready"), rec.status("admin"), rec.status("homarr-api"))
+	}
+	if fake.subsonicCalls != 52 {
+		t.Fatal("standalone Setup and Check did not freshly read all 10001 albums and native artist/session data")
+	}
+	if _, err := navidrome.ReadHomarrData(context.Background(), h); err == nil || !strings.Contains(err.Error(), "10000-album limit") {
+		t.Fatalf("Homarr consumer preflight did not reject its unsupported library size: %v", err)
+	}
+	if fake.subsonicCalls != 56 {
+		t.Fatal("Homarr consumer preflight did not stop at the explicit unsupported total")
 	}
 }
 

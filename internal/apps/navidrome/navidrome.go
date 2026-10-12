@@ -116,11 +116,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}
 	return h.Step(ctx, "homarr-api", "verify music library and listening data", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
-			err := verifyHomarr(ctx, h)
+			err := verifyMusicAPI(ctx, h)
 			return err == nil, err
 		},
-		Do:         func(ctx context.Context) error { return verifyHomarr(ctx, h) },
-		Hint:       "Review the saved Admin login, Subsonic access and music library scan; do not reset accounts or delete data. Run self-host setup navidrome, then self-host setup homarr.",
+		Do:         func(ctx context.Context) error { return verifyMusicAPI(ctx, h) },
+		Hint:       "Review the saved Admin login, Subsonic access and music library scan; do not reset accounts or delete data. Run self-host setup navidrome.",
 		Credential: "admin",
 	})
 }
@@ -129,5 +129,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err := setup().Check(ctx, h); err != nil {
 		return err
 	}
-	return verifyHomarr(ctx, h)
+	return verifyMusicAPI(ctx, h)
 }

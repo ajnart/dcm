@@ -10,7 +10,12 @@ Supported images are `ghcr.io/homarr-labs/homarr:v2.4.1` and
 `ebbd4876d25a51151444a009ab596e1154d62880` and Navidrome tag commit
 `1072e9f7eb27faef740df5f0bd7fb18898aa650e`. Navidrome reports its release
 as `0.64.0 (<build commit>)`; the version check accounts for that suffix.
-No images were run or image digests observed in this lane.
+No images were run or image digests independently observed in this lane.
+The reference owner's cached image evidence identifies Homarr OCI revision
+`3d4150e59f600876b7e308f857b2f21572b75348`, distinct from the tagged baseline.
+Its integration router and credential definitions were compared with the
+tagged baseline and are byte-identical. This is scoped source equivalence,
+not Navidrome runtime acceptance or whole-image equivalence.
 
 ## Credentials and minimum-role limitations
 
@@ -20,6 +25,17 @@ Subsonic token in place of the password. The Link reuses the shared Admin
 login through helpers; it creates no extra identity, changes no account and
 rotates no credential. Existing first-admin Setup still preserves conflicting
 accounts and offers its account-preserving recovery hint.
+
+Before any native widget query, the Link reads `integration.byId` with
+`{"id": integrationID}`. This requires Homarr full integration access and
+returns `secrets` entries with `kind`, `value` and `updatedAt`: `username`
+is a public string, while the private `password` value is `null`. The Link
+requires the returned ID and kind, exactly those two credential entries,
+and the public username to equal the Project's selected `AdminUser()`.
+A missing/malformed identity or a different valid account stops as Manual
+with explicit instructions to restore this Link's owned integration to the
+saved Admin login; matching library/session data cannot adopt another
+account. It does not read, print or claim to compare the redacted password.
 
 A regular Navidrome user with accessible libraries can call the selected
 Subsonic endpoints; administrator privileges are not required by the
@@ -52,11 +68,17 @@ Navidrome Setup and Check freshly read authenticated `ping`,
 The scan must have completed without a recorded error. It is not started
 by these probes. Empty music folders are valid only after a completed scan.
 
-Album paging matches Homarr's `alphabeticalByName`, 500 per page and
-20-page limit. `X-Total-Count` is required and reconciled with the returned
+Native album paging uses `alphabeticalByName`, 500 per page and the supported
+Navidrome offset until the explicit total is complete, within the existing
+one-minute deadline. `X-Total-Count` is required and reconciled with returned
 albums. Missing `songCount`, missing payload objects, repeated albums,
 changing totals, and truncated pages fail instead of becoming zeros.
-Libraries over 10,000 albums fail explicitly because Homarr truncates them.
+Only Homarr's preflight and verification enforce its 20-page/10,000-album
+ceiling through `ReadHomarrData`: larger libraries fail that consuming Link
+explicitly because the adapter truncates them. They do not fail standalone
+Navidrome Setup or Check solely because of Homarr's limit. The persisted
+`homarr-api` step ID remains compatible; its recovery hint names only
+Navidrome Setup.
 Artists are counted from the ID3 index; song counts are summed per album.
 These are library counts, not listening time or play counts.
 
@@ -88,7 +110,15 @@ external music account is used by Setup or Check.
 No Docker, browser, installer, live media seeding, playback or lifecycle
 mutation was run in this lane. Existing focused tests use an authenticated
 fake with the pinned empty-library response, POST salted authentication,
-and fresh Setup/Check requests; they are not functional acceptance.
+and fresh Setup/Check requests. The existing rerun test also uses a complete
+10,001-album fixture: standalone Setup and Check each read all 21 pages,
+while the same Homarr preflight probe rejects the explicit total before
+further paging. This regression was observed failing before the correction
+and passing afterward. No test file, function or case was added.
+The saved-identity guard is source/type-checked against the two upstream
+revisions; it has no directly callable existing test seam while the
+descriptor is unregistered. Its Manual recovery/native behavior remains
+part of parent-owned acceptance. These checks are not functional proof.
 
 After the parent accepts the bounded reference runtime, a separately
 approved disposable Project must record resolved image digests and prove:
@@ -109,6 +139,9 @@ No runtime acceptance or least-privilege identity is claimed by this PR.
 ## Official sources
 
 - [Homarr credentials](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/integration.ts)
+- [Homarr saved integration response](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/integration/integration-router.ts)
+- [OCI-revision saved integration response](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/integration/integration-router.ts)
+- [OCI-revision credential definitions](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/definitions/src/integration.ts)
 - [Homarr adapter](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/navidrome/navidrome-integration.ts)
 - [Audio Stats options](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/widgets/src/audio-stats/index.ts)
 - [Stats metrics](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/existing.ts)

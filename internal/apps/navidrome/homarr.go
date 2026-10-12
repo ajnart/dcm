@@ -125,6 +125,10 @@ func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params 
 }
 
 func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
+	return readMusicData(ctx, h, 10000)
+}
+
+func readMusicData(ctx context.Context, h *helpers.H, albumLimit int) (HomarrData, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	data := HomarrData{}
@@ -154,7 +158,7 @@ func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
 	if err != nil || lastScan.IsZero() || *scan.ScanStatus.Scanning || scan.ScanStatus.Error != "" {
 		return data, errors.New("Navidrome library scan is unfinished or failed; review its music folder and logs, then run self-host setup navidrome")
 	}
-	if err := readAlbums(ctx, h, &data); err != nil {
+	if err := readAlbums(ctx, h, &data, albumLimit); err != nil {
 		return data, err
 	}
 	artists, _, err := subsonicRequest(ctx, h, "getArtists", nil)
@@ -197,10 +201,10 @@ func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
 	return data, nil
 }
 
-func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData) error {
+func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData, albumLimit int) error {
 	total := -1
 	seen := map[string]bool{}
-	for page := 0; page < 20; page++ {
+	for page := 0; ; page++ {
 		albums, resp, err := subsonicRequest(ctx, h, "getAlbumList2", url.Values{
 			"type": {"alphabeticalByName"}, "size": {"500"}, "offset": {strconv.Itoa(page * 500)},
 		})
@@ -211,7 +215,7 @@ func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData) error {
 		if err != nil || count < 0 || albums.AlbumList == nil || total >= 0 && total != count {
 			return errors.New("Navidrome returned incomplete or changing album counts; retry Setup after scanning finishes")
 		}
-		if count > 10000 {
+		if albumLimit > 0 && count > albumLimit {
 			return errors.New("Navidrome exceeds Homarr 2.4.1's 10000-album limit; complete library counts cannot be verified")
 		}
 		total = count
@@ -230,10 +234,9 @@ func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData) error {
 			return errors.New("Navidrome album data does not match its explicit total count")
 		}
 	}
-	return errors.New("Navidrome album pagination did not complete")
 }
 
-func verifyHomarr(ctx context.Context, h *helpers.H) error {
-	_, err := ReadHomarrData(ctx, h)
+func verifyMusicAPI(ctx context.Context, h *helpers.H) error {
+	_, err := readMusicData(ctx, h, 0)
 	return err
 }
