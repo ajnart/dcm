@@ -185,7 +185,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			if h.Secret(h.Key("api_key")) == "" {
 				return false, nil
 			}
-			err := VerifyHomarr(ctx, h)
+			_, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key")))
 			return err == nil, err
 		},
 		Do: func(ctx context.Context) error {
@@ -194,7 +194,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 				return err
 			}
 			h.Log.Secret(key)
-			if err := verifyAPIKey(ctx, h, key); err != nil {
+			if _, err := verifyAPIKey(ctx, h, key); err != nil {
 				return err
 			}
 			return h.SetSecret(h.Key("api_key"), key)
@@ -224,7 +224,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err := setup().Check(ctx, h); err != nil {
 		return err
 	}
-	if err := VerifyHomarr(ctx, h); err != nil {
+	if _, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key"))); err != nil {
 		return err
 	}
 	configured, err := providerConfigured(ctx, h)

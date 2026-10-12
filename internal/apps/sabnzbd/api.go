@@ -5,57 +5,65 @@ import (
 	"errors"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
 func VerifyHomarr(ctx context.Context, h *helpers.H) error {
-	return verifyAPIKey(ctx, h, h.Secret(h.Key("api_key")))
+	version, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key")))
+	if err != nil {
+		return err
+	}
+	if version != "5.1.3" {
+		return errors.New("SABnzbd version is unsupported by the Homarr Link; back up the App and use version 5.1.3, then retry self-host setup homarr")
+	}
+	return nil
 }
 
-func verifyAPIKey(ctx context.Context, h *helpers.H, key string) error {
+func verifyAPIKey(ctx context.Context, h *helpers.H, key string) (string, error) {
 	if key == "" {
-		return errors.New("SABnzbd full API key is missing; run self-host setup sabnzbd")
+		return "", errors.New("SABnzbd full API key is missing; run self-host setup sabnzbd")
 	}
 	h.Log.Secret(key)
 	auth, err := apiForm(ctx, h, map[string]string{"mode": "auth", "key": key})
 	if err != nil {
-		return err
+		return "", err
 	}
 	if auth["auth"] != "apikey" {
-		return errors.New("SABnzbd requires its full API key, not the NZB upload key; run self-host setup sabnzbd")
+		return "", errors.New("SABnzbd requires its full API key, not the NZB upload key; run self-host setup sabnzbd")
 	}
 	result, err := apiForm(ctx, h, map[string]string{"mode": "queue", "apikey": key, "limit": "1"})
 	if err != nil {
-		return err
+		return "", err
 	}
 	queue, ok := result["queue"].(map[string]any)
 	if !ok {
-		return errors.New("SABnzbd did not return authenticated queue data")
+		return "", errors.New("SABnzbd did not return authenticated queue data")
 	}
 	version, ok := queue["version"].(string)
-	if !ok || version != "5.1.3" {
-		return errors.New("SABnzbd version is unsupported; back up the App and use version 5.1.3, then retry Setup")
+	if !ok || strings.TrimSpace(version) == "" {
+		return "", errors.New("SABnzbd did not return its current queue version; retry self-host setup sabnzbd")
 	}
 	_, paused := queue["paused"].(bool)
 	rate, numeric := queue["kbpersec"].(string)
 	speed, parseErr := strconv.ParseFloat(rate, 64)
 	_, slots := queue["slots"].([]any)
 	if !paused || !numeric || parseErr != nil || math.IsNaN(speed) || math.IsInf(speed, 0) || speed < 0 || !slots {
-		return errors.New("SABnzbd returned incomplete queue data; retry self-host setup sabnzbd")
+		return "", errors.New("SABnzbd returned incomplete queue data; retry self-host setup sabnzbd")
 	}
 	result, err = apiForm(ctx, h, map[string]string{"mode": "history", "apikey": key, "limit": "1"})
 	if err != nil {
-		return err
+		return "", err
 	}
 	history, ok := result["history"].(map[string]any)
 	if !ok {
-		return errors.New("SABnzbd did not return authenticated history data")
+		return "", errors.New("SABnzbd did not return authenticated history data")
 	}
 	if _, ok := history["slots"].([]any); !ok {
-		return errors.New("SABnzbd returned incomplete history data; an empty history must explicitly contain an empty slots array")
+		return "", errors.New("SABnzbd returned incomplete history data; an empty history must explicitly contain an empty slots array")
 	}
-	return nil
+	return version, nil
 }
 
 func providerConfigured(ctx context.Context, h *helpers.H) (bool, error) {
@@ -63,7 +71,13 @@ func providerConfigured(ctx context.Context, h *helpers.H) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	config, _ := result["config"].(map[string]any)
+	config, ok := result["config"].(map[string]any)
+	if !ok {
+		return false, errors.New("SABnzbd did not return its provider configuration; retry self-host setup sabnzbd")
+	}
+	if len(config) == 0 {
+		return false, nil
+	}
 	servers, ok := config["servers"].([]any)
 	if !ok {
 		return false, errors.New("SABnzbd did not return its provider configuration; retry self-host setup sabnzbd")
