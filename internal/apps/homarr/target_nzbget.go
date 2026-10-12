@@ -23,12 +23,18 @@ func nzbgetTarget() target {
 			"columns":             []string{"name", "progress", "downSpeed", "time", "state"},
 			"showCompletedUsenet": true, "limitPerIntegration": 50,
 		}}, statWidget("download", "paused")},
-		preflight: func(ctx context.Context, _, to *helpers.H) error { return nzbget.VerifyHomarr(ctx, to) },
-		verify:    verifyNZBGet,
+		preflight: func(_ context.Context, from, _ *helpers.H) error {
+			from.Info("NZBGet native activation is blocked by #354: Homarr 2.4.1 can log a credential-bearing RPC Address after a rejected request. Keep this Link inactive until supported HTTP Basic transport or complete downstream redaction is resolved, the exact Homarr version/source contract is reviewed, and activation is authorized; then retry self-host setup homarr. Standalone NZBGet Setup and owned Link removal remain separate.")
+			return helpers.ErrManual
+		},
+		verify: verifyNZBGet,
 	}
 }
 
 func verifyNZBGet(ctx context.Context, from, to *helpers.H, integrationID string) error {
+	if err := verifyNZBGetIdentity(ctx, from, integrationID); err != nil {
+		return err
+	}
 	if err := nzbget.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
@@ -96,6 +102,35 @@ func verifyNZBGet(ctx context.Context, from, to *helpers.H, integrationID string
 		if !found {
 			return errors.New("Homarr does not expose the required NZBGet Stats fields; use Homarr 2.4.1, then retry Setup")
 		}
+	}
+	return nil
+}
+
+func verifyNZBGetIdentity(ctx context.Context, from *helpers.H, integrationID string) error {
+	if integrationID == "" {
+		from.Info("Homarr's NZBGet Link has no saved integration identifier; review its owned record before retrying self-host setup homarr. No integration was adopted or changed.")
+		return helpers.ErrManual
+	}
+	value, err := apiKeyProcedure(ctx, from, "integration.byId", map[string]any{"id": integrationID})
+	if err != nil {
+		return errors.New("Homarr could not read the saved NZBGet credential metadata; review its owned integration and retry self-host setup homarr")
+	}
+	integration, _ := value.(map[string]any)
+	credentials, ok := integration["secrets"].([]any)
+	valid := ok && len(credentials) == 2 && stringField(integration, "id") == integrationID && stringField(integration, "kind") == "nzbGet" && stringField(integration, "url") == "http://nzbget:6789"
+	seen := map[string]bool{}
+	for _, raw := range credentials {
+		credential, _ := raw.(map[string]any)
+		kind := stringField(credential, "kind")
+		value, present := credential["value"]
+		if seen[kind] || !present || kind != "username" && kind != "password" || kind == "username" && value != "self-host-homarr" || kind == "password" && value != nil {
+			valid = false
+		}
+		seen[kind] = true
+	}
+	if !valid || !seen["username"] || !seen["password"] {
+		from.Info("Homarr's saved NZBGet integration must use exactly the managed restricted username and a redacted password credential. Review and explicitly repair only the owned record; do not adopt an Admin or foreign account. Then retry self-host setup homarr. No credential was changed.")
+		return helpers.ErrManual
 	}
 	return nil
 }

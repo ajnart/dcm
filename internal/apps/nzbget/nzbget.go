@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -102,14 +103,90 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "homarr-rpc", "prepare restricted NZBGet access for Homarr", helpers.StepSpec{
+	if err := h.Step(ctx, "homarr-rpc", "prepare restricted NZBGet access for Homarr", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return VerifyHomarr(ctx, h) == nil, nil },
 		Do:    func(ctx context.Context) error { return prepareHomarr(ctx, h) },
 		Hint: "Run self-host setup nzbget to prepare its Homarr login. If restricted access already exists, keep it unchanged: " +
 			"restore the managed login through the Project secret boundary or explicitly clear only the restricted-user slot in NZBGet settings, then retry. " +
 			"A Usenet provider is separate and is not created by Setup.",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "usenet-provider", "review NZBGet Usenet provider settings", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return providerConfigured(ctx, h) },
+		Do: func(ctx context.Context) error {
+			configured, err := providerConfigured(ctx, h)
+			if err != nil {
+				return err
+			}
+			if configured {
+				return nil
+			}
+			h.Info("NZBGet RPC is ready, but no enabled Usenet provider with a non-placeholder host, valid port and positive connection count is configured. Review Settings > News-Servers with your own provider, save and apply them, then run self-host setup nzbget. Setup creates no account and makes no provider request.")
+			return helpers.ErrManual
+		},
+		Hint: "Review Settings > News-Servers in NZBGet, save and apply your own provider settings, then run self-host setup nzbget. " +
+			"This checks configuration only, not provider authentication, connectivity or a download; an idle queue remains valid.",
+		Credential: "admin",
 	})
+}
+
+func providerConfigured(ctx context.Context, h *helpers.H) (bool, error) {
+	var entries []struct {
+		Name  string
+		Value *string
+	}
+	if err := callRPC(ctx, h, h.AdminUser(), h.AdminPassword(), "config", &entries); err != nil {
+		return false, err
+	}
+	if entries == nil {
+		return false, errors.New("NZBGet did not return its active provider settings; retry self-host setup nzbget")
+	}
+	servers := map[string]map[string]string{}
+	for _, entry := range entries {
+		prefix, key, found := strings.Cut(entry.Name, ".")
+		if !found || !strings.HasPrefix(prefix, "Server") {
+			continue
+		}
+		index, err := strconv.Atoi(strings.TrimPrefix(prefix, "Server"))
+		if err != nil || index <= 0 {
+			continue
+		}
+		if key != "Active" && key != "Host" && key != "Port" && key != "Connections" {
+			continue
+		}
+		if servers[prefix] == nil {
+			servers[prefix] = map[string]string{}
+		}
+		if _, duplicate := servers[prefix][key]; duplicate || entry.Value == nil {
+			return false, errors.New("NZBGet returned incomplete provider settings; review Settings > News-Servers and retry self-host setup nzbget")
+		}
+		value := *entry.Value
+		if key == "Active" {
+			switch strings.ToLower(value) {
+			case "yes", "true", "1", "on", "enable", "enabled":
+				value = "yes"
+			case "no", "false", "0", "off", "disable", "disabled":
+				value = "no"
+			default:
+				return false, errors.New("NZBGet returned an invalid provider enabled setting; review Settings > News-Servers and retry self-host setup nzbget")
+			}
+		}
+		servers[prefix][key] = value
+	}
+	for _, server := range servers {
+		if server["Active"] == "no" {
+			continue
+		}
+		host := strings.TrimSpace(server["Host"])
+		port, portErr := strconv.Atoi(server["Port"])
+		connections, connectionsErr := strconv.Atoi(server["Connections"])
+		if host != "" && !strings.EqualFold(host, "my.newsserver.com") && portErr == nil && port > 0 && port <= 65535 && connectionsErr == nil && connections > 0 && connections <= 999 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

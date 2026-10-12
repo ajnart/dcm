@@ -194,6 +194,8 @@ func prepareHomarr(ctx context.Context, h *helpers.H) error {
 	if saved != expected {
 		if _, err := h.ExecSecret(ctx, map[string]string{"HOMARR_USERNAME": expected.username, "HOMARR_PASSWORD": expected.password}, `set -eu
 file=/config/nzbget.conf
+test -f "$file"
+test ! -L "$file"
 temp=$(mktemp /config/.self-host-homarr.XXXXXX)
 trap 'rm -f "$temp"' EXIT
 awk '
@@ -211,14 +213,24 @@ BEGIN { username = ENVIRON["HOMARR_USERNAME"]; password = ENVIRON["HOMARR_PASSWO
 { print }
 END { if (users != 1 || passwords != 1) exit 1 }
 ' "$file" > "$temp"
+python3 - "$file" "$temp" <<'PY'
+import os
+import stat
+import sys
+
+original = os.stat(sys.argv[1], follow_symlinks=False)
+if not stat.S_ISREG(original.st_mode):
+    raise RuntimeError("NZBGet configuration must be a regular file")
+os.chown(sys.argv[2], original.st_uid, original.st_gid)
+PY
 chmod 600 "$temp"
 mv "$temp" "$file"`); err != nil {
-			return errors.New("NZBGet restricted-user settings could not be saved safely; inspect its settings and retry self-host setup nzbget")
+			return errors.New("NZBGet restricted-user settings could not be confirmed saved with preserved ownership; review the configuration permissions and restricted-user slot, then retry self-host setup nzbget with the same managed login")
 		}
 	}
 	if active != expected {
 		if err := h.Restart(ctx); err != nil {
-			return err
+			return errors.New("NZBGet restricted-user settings are saved, but its scoped restart failed; retry self-host setup nzbget to apply the same managed login")
 		}
 	}
 	return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) {
