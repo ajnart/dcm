@@ -1,0 +1,14 @@
+docs/homarr-audiobookshelf-stage1.md
+  h_d6e478ca18e517 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "895fb166f652181745d188934bf70d8d9479bea6",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
