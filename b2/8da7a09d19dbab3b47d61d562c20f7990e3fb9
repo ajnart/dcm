@@ -1,0 +1,16 @@
+docs/homarr-bazarr-source-check.md
+  h_d6e478ca18e517 58-66,68-75,77,81-82
+internal/apps/bazarr/bazarr_test.go
+  h_d6e478ca18e517 72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b28da7a09d19dbab3b47d61d562c20f7990e3fb9",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
