@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 18 invalid; Mint manual-step simulation gap         |
+| Complete real-model batch with both guides and three repetitions       | Full comparison pending; iteration 20 Mint smoke valid        |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
@@ -222,6 +222,28 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   Suffix users and unsupported trailing arguments reproduced red before
   correction in the existing runner test. All 60 offline tests pass; the final
   focused manual-step regression, Ruff lint/format and Pyright also pass.
+
+- **Iteration 20: valid Mint smoke with complete judgments.** Both conversations
+  completed with no denials or execution errors: original guide in three turns,
+  revised guide in four. The frozen guides, assertions and equal 16-turn budget
+  are unchanged. Revised scored 11/12, original 10/12; all eight scripted checks
+  and both independent blind Recap assessments passed. Both `acceptance_passed`
+  values remain false because original assertions failed. Complete judgments
+  preceded grading. The supplied aggregation and static viewer were generated
+  and opened, with actual model/repetition provenance and caveats retained.
+
+  Both plain-language failures partly conflict with the prescribed Docker
+  experience question. Revised also exposed internal Experience wording;
+  original used sudo and a configuration command. Revised offered both media
+  choices; original did not, although its person had already volunteered a
+  no-download preference. The judge failed the literal choice requirement here
+  but accepted volunteered preference in iteration 15. Retain these judgments
+  and flag that grading limitation, not an established one-point superiority.
+  Revised agent execution used four turns, 43.3 seconds and 475471 cache-inclusive
+  tokens; original used three turns, 37.4 seconds and 393233 tokens. Agent metrics
+  exclude person and judge calls. One run cannot estimate variance or establish
+  overall guide quality; these are synthetic fixtures, not native install proof.
+  A fresh full comparison and human viewer feedback remain acceptance gates.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
