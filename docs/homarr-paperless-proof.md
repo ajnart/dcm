@@ -41,9 +41,13 @@ native/rendered/lifecycle acceptance remain held.
 
 ## Source-only ownership and Manual recovery follow-up
 
-This follow-up changes only Paperless Setup/token code, its existing fixture
-bodies, this proof and the App trap notes. No new test functions, cases,
-dependencies, runtime, registry edits or shared verifier changes were added.
+The production follow-up at `2b9753441043e85c979e3edf6b104542e4dc7804`
+changed Paperless Setup/token code, its fixture and documentation. It also
+added agent-authored regression cases inside existing test bodies without an
+actual human request for new unit tests. The previous "no new cases" claim was
+incorrect. The coverage cleanup removes those cases and their fault-injection
+machinery; production code, dependencies, registry and shared verifiers remain
+unchanged.
 
 - A renamed selected account or lost saved username keeps the same recorded
   ID, ownership marker, password and reusable token. The current canonical
@@ -71,22 +75,46 @@ dependencies, runtime, registry edits or shared verifier changes were added.
   It does not claim an automatic old-format migration or a general replacement
   credential recovery route.
 
-Direct controls were added to the existing Setup/rerun fixture bodies for
-returned ID/marker persistence, renames, lost usernames, stale keys, legacy
-and wrong-ID/marker uncertainty, different authenticated owners, changed or
-missing passwords, disabled status, MFA, permission drift, partial checkpoint
-writes, profile denial versus HTTP 503, malformed account/profile/count fields,
-and successful recovery after restoring the same known account controls.
-They assert one account/token, no other remote account mutations and unchanged
-Admin credentials. These are synthetic HTTP/secret-store controls, not new
-native runtime or rendered acceptance evidence.
+Git history and the owning agent's recorded patches confirm that the extra
+checkpoint/creation assertions, independent partial-write fixture, rename/key/
+ownership/authentication/recovery/failure scenarios and exclusive fault flags,
+counters and failing secret store were introduced by that agent, not by a
+person or unknown concurrent work. They were removed without replacement.
 
-The source-only local gate passed on 12 October: focused
+The remaining test tree was compared with fixed implementation parent
+`5aafb4c1833fd4cd9caf0f7beaac31e625aafe22`, not merely the last commit or the
+list of function names. Every baseline test body/assertion, `newH` and the
+plain in-memory secret store are unchanged. The only remaining fixture delta
+supplies the actual account create/detail, reusable token, Basic/token profile
+and four data endpoint responses needed by those existing cases, including the
+returned ID, ownership marker and required profile fields.
+
+Retained assertions cover `TestSetupThenCheckPass` (normal Setup/Check and no
+failed steps), `TestRerunSkipsEveryStep` (all existing rerun steps skip), and
+`TestFailedLoginHintNamesTheApp` (rejected administrator login and App-page
+hint). The happy-path adapter includes the read-only credential responses;
+there are no separate account-ID/token-count or least-permission assertions.
+Rename/lost username or ID, stale/rejected credentials, uncertain provenance,
+MFA/disabled accounts, permission drift, partial checkpoint writes and malformed
+response guards now have source/schema/compile review only, not retained
+regression cases or current runtime acceptance.
+
+At `2b975344`, the source-only local gate passed on 12 October: focused
 `go test ./internal/apps/paperlessngx/`, empty `gofmt -l .`, `go build ./...`,
 `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
 `go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/paperlessngx/`,
 `bash -n install.sh` and `git diff --check`, with `GOFLAGS=-buildvcs=false`.
+That run included the now-removed cases and is not final-tree retained coverage.
 No Docker, browser, e2e runtime, installer, host probes or account actions ran.
+
+The remaining-tree gate passed after the coverage cleanup: focused
+`go test -count=1 ./internal/apps/paperlessngx/`, empty `gofmt -l .`,
+`go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`,
+`go test -count=1 ./...`,
+`go test -race -count=1 ./internal/tui/ ./internal/activity/ ./internal/apps/paperlessngx/`,
+`bash -n install.sh` and `git diff --check`, with `GOFLAGS=-buildvcs=false`.
+These runs validate the remaining baseline cases and compilation, not the
+removed regression scenarios or native/rendered/lifecycle acceptance.
 
 ## Homarr wiring handoff
 
@@ -185,5 +213,6 @@ Homarr descriptor source contract: `2.4.1`, commit
 - [Native widget size](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget.ts).
 
 Context7 was attempted but its monthly quota was exhausted; upstream source
-was used instead. No dependencies or unit-test cases were added. The existing
-Paperless Setup/rerun fixture was extended to model the new API prerequisite.
+was used instead. No dependencies were added. The retained Paperless fixture
+only adapts the baseline cases to the new API prerequisite; the removed cases
+and reduced coverage boundary are recorded above.
