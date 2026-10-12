@@ -1,0 +1,19 @@
+internal/apps/paperlessngx/paperlessngx_test.go
+  s_a426323822b13f::t_efa92a00e85aed 19-21,35-39,92,111,113-114,123,131,150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df16f7231e9299e9fb6c5975da6669f398f6ce30",
+  "prompts": {},
+  "sessions": {
+    "s_a426323822b13f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11bc1-af3d-7e01-b9f4-a625eaa7ba40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
