@@ -1,0 +1,18 @@
+docs/homarr-prometheus-contract.md
+  h_d6e478ca18e517 5-9,17-21,25,39-46,123-125,128-129,133-136,141
+internal/apps/homarr/target_prometheus.go
+  h_d6e478ca18e517 59
+internal/apps/homarr/targets.go
+  h_d6e478ca18e517 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2231ee7542a1fe6082ec8f0a568ebb2ffa2dd17b",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
