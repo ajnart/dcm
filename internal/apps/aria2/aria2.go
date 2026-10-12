@@ -227,8 +227,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	token := h.Secret(h.Key("rpc_token"))
 	if err := h.Step(ctx, "rpc-token", "authenticate aria2's RPC token", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return tokenWorks(ctx, h, token) },
-		Hint: "Run self-host install aria2 --yes to restore its saved RPC token and private configuration, " +
-			"then self-host start aria2 and self-host setup aria2.",
+		Hint: "Inspect and review aria2's existing Compose, authentication, mounts and ports; " +
+			"reinstall replaces Compose and private configuration, not just credentials. " +
+			"Stop if protected configuration cannot be preserved. " +
+			"Only after separate explicit approval of the replacement, run self-host install aria2 --yes, " +
+			"then self-host restart aria2 and self-host setup aria2.",
 		Credential: h.Key("rpc_token"),
 	}); err != nil {
 		return err

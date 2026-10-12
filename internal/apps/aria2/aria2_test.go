@@ -97,7 +97,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	}
 }
 
-func TestFailingStepHintNamesTheStartCommand(t *testing.T) {
+func TestFailingStepHintRequiresApprovedReplacementAndRestart(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(fakeRPC))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
@@ -112,7 +112,22 @@ func TestFailingStepHintNamesTheStartCommand(t *testing.T) {
 			hint = r.Hint
 		}
 	}
-	if !strings.Contains(hint, "self-host start aria2") {
-		t.Errorf("hint should name the start command, got %q", hint)
+	if !strings.Contains(hint, "then self-host restart aria2 and self-host setup aria2") {
+		t.Errorf("hint should require restart before retrying Setup, got %q", hint)
+	}
+	if strings.Contains(hint, "self-host start aria2") {
+		t.Errorf("hint should not suggest start reloads a running daemon, got %q", hint)
+	}
+	if !strings.Contains(hint, "Inspect and review aria2's existing Compose, authentication, mounts and ports") {
+		t.Errorf("hint should require inspection and review of existing configuration, got %q", hint)
+	}
+	if !strings.Contains(hint, "reinstall replaces Compose and private configuration, not just credentials") {
+		t.Errorf("hint should explain the replacement scope, got %q", hint)
+	}
+	if !strings.Contains(hint, "Stop if protected configuration cannot be preserved") {
+		t.Errorf("hint should stop when protected configuration cannot be preserved, got %q", hint)
+	}
+	if !strings.Contains(hint, "Only after separate explicit approval of the replacement, run self-host install aria2 --yes") {
+		t.Errorf("hint should require separate explicit replacement approval before reinstalling, got %q", hint)
 	}
 }

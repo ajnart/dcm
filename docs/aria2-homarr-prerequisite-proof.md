@@ -46,7 +46,16 @@ POST requests to `/jsonrpc`. No protected file was inspected or dumped.
 | `aria2.tellWaiting(0, 1)`, saved token | Valid empty result array                                        |
 | `aria2.tellStopped(0, 1)`, saved token | Valid empty result array                                        |
 | Setup rerun, restart followed by Setup | Passed; credential unchanged                                    |
-| Reinstall/recovery and Status          | Passed; saved credential reused; Setup `ok`                     |
+| Healthy-token reinstall and Status     | Passed; saved credential reused; Setup `ok`                     |
+
+These reinstall observations used an already healthy token; they are not
+token-drift recovery proof. The 12 October 2026 correction is source-only:
+recovery now requires inspection and review of existing Compose,
+authentication, mounts and ports, preservation of protected configuration,
+and separate explicit approval of Compose/private-configuration replacement
+before an install, followed by explicit restart and Setup. Reinstall is not a
+credential-only update. No runtime or token-drift recovery was exercised for
+this correction; only the existing failing-hint test was strengthened.
 
 Empty queues are authenticated data, not an authorization failure. No download,
 public torrent, session-persistence claim, or VPN-safety claim was involved.
@@ -88,6 +97,14 @@ Passed: `gofmt -l .` (empty), `go build ./...`, `go vet ./...`,
 Existing focused Aria2/Homarr tests passed; only their existing RPC fixture
 was updated. No new dependencies or test cases were added. No e2e runtime
 suite or browser was run.
+
+For the 12 October source-only correction, the existing failing-hint test
+failed before the fix and passed afterward; focused Aria2/Homarr tests,
+format/build/both vet gates, relevant race tests, Bash syntax and diff checks
+passed. The initial full test run failed the unchanged
+`TestCommandDeadlineRetainsSanitizedTermination` and
+`TestPassboltApplicationMetadataWrapperRejectsExpandedAccess` fixtures;
+`go test -p 1 ./...` then passed without fixture changes or Docker runtime.
 
 ## Official sources
 
