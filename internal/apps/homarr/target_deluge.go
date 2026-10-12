@@ -69,6 +69,16 @@ func verifyDeluge(ctx context.Context, from, to *helpers.H, integrationID string
 		if stringField(item, "id") == "" || stringField(item, "name") == "" || stringField(item, "type") != "torrent" || !slices.Contains([]string{"leeching", "seeding", "paused", "unknown"}, stringField(item, "state")) || !ok || progress < 0 || progress > 1 || math.IsNaN(progress) || math.IsInf(progress, 0) {
 			return errors.New("Homarr returned incomplete Deluge download data; run self-host setup homarr")
 		}
+		for _, key := range []string{"time", "upSpeed", "downSpeed"} {
+			raw := item[key]
+			if key == "downSpeed" && progress == 1 && raw == nil {
+				continue
+			}
+			value, ok := raw.(float64)
+			if !ok || math.IsNaN(value) || math.IsInf(value, 0) || key != "time" && value < 0 {
+				return errors.New("Homarr returned incomplete Deluge download time or speeds; run self-host setup homarr")
+			}
+		}
 	}
 	catalog, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
 	if err != nil {

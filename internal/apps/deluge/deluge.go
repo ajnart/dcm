@@ -203,6 +203,13 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	defer rpc(ctx, h, "auth.delete_session", cookie)
+	connected, err := daemonConnected(ctx, h, cookie)
+	if err != nil {
+		return err
+	}
+	if connected {
+		return verifyQueue(ctx, h, cookie)
+	}
 	configuration, err := rpc(ctx, h, "web.get_config", cookie)
 	if err != nil {
 		return err
@@ -245,6 +252,13 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 	if id == "" {
 		return helpers.ErrManual
 	}
+	connected, err = daemonConnected(ctx, h, cookie)
+	if err != nil {
+		return err
+	}
+	if connected {
+		return verifyQueue(ctx, h, cookie)
+	}
 	if _, err := rpc(ctx, h, "web.connect", cookie, id); err != nil {
 		return err
 	}
@@ -266,12 +280,16 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 	return nil
 }
 
-func verifyQueue(ctx context.Context, h *helpers.H, cookie string) error {
+func daemonConnected(ctx context.Context, h *helpers.H, cookie string) (bool, error) {
 	connected, err := rpc(ctx, h, "web.connected", cookie)
 	if err != nil {
-		return err
+		return false, err
 	}
-	ok, err := connected.boolean()
+	return connected.boolean()
+}
+
+func verifyQueue(ctx context.Context, h *helpers.H, cookie string) error {
+	ok, err := daemonConnected(ctx, h, cookie)
 	if err != nil {
 		return err
 	}

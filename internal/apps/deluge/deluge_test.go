@@ -3,6 +3,7 @@ package deluge_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
@@ -29,13 +30,18 @@ const (
 )
 
 type fakeDeluge struct {
-	mu            sync.Mutex
-	password      string
-	connected     bool
-	defaultDaemon string
-	rotations     int
-	sessions      map[string]bool
-	sessionCount  int
+	mu             sync.Mutex
+	password       string
+	connected      bool
+	defaultDaemon  string
+	activeDaemon   string
+	connectOnHosts string
+	connects       int
+	configWrites   int
+	missingRates   bool
+	rotations      int
+	sessions       map[string]bool
+	sessionCount   int
 }
 
 func (f *fakeDeluge) handler() http.Handler {
@@ -88,14 +94,21 @@ func (f *fakeDeluge) handler() http.Handler {
 		case "web.get_config":
 			result = map[string]any{"default_daemon": f.defaultDaemon}
 		case "web.get_hosts":
+			if f.connectOnHosts != "" {
+				f.connected = true
+				f.activeDaemon = f.connectOnHosts
+			}
 			result = [][]any{{"local-daemon", "127.0.0.1", 58846, "localclient"}}
 		case "web.connect":
+			f.connects++
 			var id string
 			if len(req.Params) == 1 && json.Unmarshal(req.Params[0], &id) == nil && id == "local-daemon" {
 				f.connected = true
+				f.activeDaemon = id
 				result = []string{"core.get_session_status"}
 			}
 		case "web.set_config":
+			f.configWrites++
 			var config struct {
 				DefaultDaemon string `json:"default_daemon"`
 			}
@@ -104,8 +117,12 @@ func (f *fakeDeluge) handler() http.Handler {
 				result = nil
 			}
 		case "web.update_ui":
+			stats := map[string]any{"download_rate": 0, "upload_rate": 0}
+			if f.missingRates {
+				delete(stats, "download_rate")
+			}
 			result = map[string]any{"connected": f.connected, "torrents": map[string]any{},
-				"stats": map[string]any{"download_rate": 0, "upload_rate": 0}}
+				"stats": stats}
 		}
 		json.NewEncoder(w).Encode(map[string]any{"result": result, "error": nil, "id": req.ID})
 	})
@@ -169,6 +186,34 @@ func TestSetupRotatesTheInitialPasswordThenCheckAndRerunSkip(t *testing.T) {
 	}
 	if err := (deluge.App{}).Setup(ctx, h); err != nil || !fake.connected {
 		t.Fatal("Setup did not restore the saved local daemon connection")
+	}
+	fake.activeDaemon = "remote-daemon"
+	fake.defaultDaemon = ""
+	fake.missingRates = true
+	connects, configWrites := fake.connects, fake.configWrites
+	if err := (deluge.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "valid transfer rates") {
+		t.Fatal("Setup did not retain the connected daemon's queue error")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.activeDaemon != "remote-daemon" || fake.defaultDaemon != "" {
+		t.Fatal("Setup switched the active remote daemon or adopted a local default after a queue error")
+	}
+	fake.connected = false
+	fake.connectOnHosts = "remote-daemon"
+	if err := (deluge.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "valid transfer rates") {
+		t.Fatal("Setup did not recheck the daemon selected during connection discovery")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.activeDaemon != "remote-daemon" || fake.defaultDaemon != "" {
+		t.Fatal("Setup replaced a daemon connected during discovery or persisted a different default")
+	}
+	fake.connectOnHosts = ""
+	fake.missingRates = false
+	fake.connected = false
+	fake.defaultDaemon = "remote-daemon"
+	if err := (deluge.App{}).Setup(ctx, h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("Setup must leave an unknown configured remote daemon Manual")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.defaultDaemon != "remote-daemon" {
+		t.Fatal("Setup replaced the configured remote daemon")
 	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
