@@ -8,7 +8,9 @@ import (
 
 // Run opens the dashboard until the user quits.
 func Run(ctx context.Context, backend Backend, opts Options) error {
-	final, err := tea.NewProgram(New(backend, opts), tea.WithContext(ctx)).Run()
+	m := New(backend, opts)
+	defer m.cancelFrames()
+	final, err := tea.NewProgram(m, tea.WithContext(ctx)).Run()
 	if err != nil {
 		return err
 	}

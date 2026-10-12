@@ -116,6 +116,22 @@ func (f *fakeHomarr) handler() http.Handler {
 	mux.HandleFunc("GET /api/health/live", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	mux.HandleFunc("GET /api/trpc/info.getInfo", func(w http.ResponseWriter, r *http.Request) {
+		trpc(w, map[string]string{"version": "2.4.1"})
+	})
+	mux.HandleFunc("GET /api/trpc/integration.getKinds", func(w http.ResponseWriter, r *http.Request) {
+		trpc(w, []any{
+			map[string]any{"kind": "sonarr", "requiredSecrets": [][]string{{"apiKey"}}},
+			map[string]any{"kind": "radarr", "requiredSecrets": [][]string{{"apiKey"}}},
+			map[string]any{"kind": "prowlarr", "requiredSecrets": [][]string{{"apiKey"}}},
+			map[string]any{"kind": "jellyfin", "requiredSecrets": [][]string{{"apiKey"}, {"username", "password"}}},
+			map[string]any{"kind": "seerr", "requiredSecrets": [][]string{{"apiKey"}}},
+			map[string]any{"kind": "qBittorrent", "requiredSecrets": [][]string{{"apiKey"}, {"username", "password"}}},
+			map[string]any{"kind": "beszel", "requiredSecrets": [][]string{{"username", "password"}}},
+			map[string]any{"kind": "ntfy", "requiredSecrets": [][]string{{"topic"}, {"topic", "apiKey"}}},
+			map[string]any{"kind": "immich", "requiredSecrets": [][]string{{"apiKey"}}},
+		})
+	})
 	mux.HandleFunc("GET /api/trpc/onboard.currentStep", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()

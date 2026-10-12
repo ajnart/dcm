@@ -9,6 +9,7 @@ import (
 )
 
 const installedTileMarker = "self-host tile:"
+const retainedTileMarker = "self-host retained tile:"
 
 // Generic tiles advertise navigation only. Dedicated integrations and widgets
 // remain the responsibility of the App's Links.
@@ -66,7 +67,7 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 			if marker != "" {
 				continue
 			}
-			for _, t := range targets() {
+			for _, t := range existingTargets() {
 				candidate, wanted := desired[installedTileMarker+t.id]
 				if !wanted || stringField(existing, "name") != t.name || stringField(existing, "pingUrl") != genericPing(candidate) {
 					continue

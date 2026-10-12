@@ -114,6 +114,9 @@ func (m Model) renderPreboot() string {
 	}
 	pr := prebootProgress(m.ctx().snapshot(), p)
 	if p.since < 0 {
+		if p.frame < preboot.EntranceFrames {
+			return strings.Join(preboot.RenderEntrance(p.frame, m.width, m.height, pr, pal, m.opts.NoColor), "\n")
+		}
 		return strings.Join(preboot.Render(p.frame, m.width, m.height, pr, pal, m.opts.NoColor), "\n")
 	}
 	m.preboot = nil
