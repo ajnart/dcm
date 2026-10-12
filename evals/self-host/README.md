@@ -115,6 +115,11 @@ agent through inspect, plan, approval, apply, verify.
   Only fixture Docker state changes, never the relay machine. Marker timestamps
   require fresh CLI verification after completion; prior Status cannot finish
   the goal. These labels are synthetic person reports, not real host proof.
+  Applied steps are tracked per conversation and supplied to the person model.
+  An already recorded label is idempotent: it is retained in raw evidence but
+  does not update state or marker timestamps again. A first report still needs
+  the allowlist, platform and request checks; repeats cannot bypass later
+  mutation/verification checks or make an unknown step valid.
   Newcomer media folders contain no pretend movie payloads. The existing
   platform fixtures declare metadata-only names and sizes; bounded `ls` and
   size-only `stat` calls report those values, explicitly labeled synthetic.

@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 22 invalid; fixture USER expansion corrected        |
+| Complete real-model batch with both guides and three repetitions       | Iteration 23 invalid; repeated completion label correction    |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
@@ -303,6 +303,29 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   a fresh bounded authorization is needed after this invalid attempt.
   Human review and guide improvements in separate PR #257 follow trustworthy
   evidence; no superiority or merge acceptance is claimed from this failure.
+
+- **Iteration 23: invalid repeated manual completion report.** The user
+  authorized Mint only, three repetitions per unchanged frozen guide (six
+  conversations), equal 16-turn limits and complete judgments/viewer if valid.
+  Both model preflights passed. Five of six completed with no denials or
+  execution errors. Original-guide run 3 correctly completed its group/login
+  step at person turn 4; at person turn 6 it repeated that completion label while
+  asking for a clearer handoff, although the latest assistant reply requested
+  no login action. The runner treated the repeat as a new action and rejected
+  it. No judgments, grading or benchmark were produced; historical evidence
+  is unchanged and no subsequent model attempt has been started.
+
+  The repeat reproduced red at the existing runner CLI seam. The correction
+  records applied steps in per-conversation state, tells the person model to
+  report only new steps, and treats already accepted labels as no-op historical
+  reports. Repeats remain in raw logs but cannot refresh state/timestamps or
+  bypass verification after later mutation attempts. First/unknown reports
+  still pass the same allowlist, platform and request checks. The focused
+  regression accepts a repeat after fresh verification and rejects one after
+  a later failed host mutation. All 61 offline tests, Ruff lint/format and
+  Pyright pass; both independent review axes cleared the change. Another
+  real-model attempt requires fresh bounded authorization.
+  Guides, assertions and budgets remain unchanged; PR #259 stays draft.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.

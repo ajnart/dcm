@@ -372,7 +372,9 @@ if mode in ("manual-wsl", "manual-mint") and not is_preflight and not is_stream:
             "reply": "" if done else reply,
             "done": done or bool(os.environ.get("EVAL_TEST_MANUAL_DONE")),
             "approves": False,
-            "completed_steps": [] if done else steps,
+            "completed_steps": []
+            if done and not os.environ.get("EVAL_TEST_REPEAT_STEP")
+            else steps,
         }
     )
 if mode == "person-error" and not is_preflight and not is_stream:

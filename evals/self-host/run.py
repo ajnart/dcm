@@ -450,6 +450,9 @@ Scenario completion criteria:
 Permitted simulated manual steps for this scenario:
 {manual_steps}
 
+Manual steps already recorded as completed in this conversation:
+{completed_steps}
+
 Recorded CLI verification (synthetic observations, not browser/native acceptance):
 {verification}
 
@@ -468,7 +471,8 @@ Write your next message. Rules:
   Never invent browser failures, library scans, playback or device/network observations.
   Say "I haven't checked that" when those facts are not supplied.
 - completed_steps is [] unless you finished a permitted manual step at the
-  assistant's request. Use "docker_desktop_wsl" only after installing Docker
+  assistant's request since your last reply. Do not repeat already recorded
+  steps. Use "docker_desktop_wsl" only after installing Docker
   Desktop in Windows and enabling WSL integration. Use "docker_group_login"
   only after the requested Docker-group command has been run (by you or the
   assistant) and you finish the requested logout/login or computer restart.
@@ -489,7 +493,9 @@ Reply with only JSON:
 """
 
 
-def person_reply(ev, conversation, verification, turn, model, raw, timeout, stop):
+def person_reply(
+    ev, conversation, verification, turn, model, raw, timeout, stop, completed_steps
+):
     """Play the person: answer what the agent actually asked, from the persona."""
     env = {
         k: v
@@ -502,6 +508,7 @@ def person_reply(ev, conversation, verification, turn, model, raw, timeout, stop
         completion_criteria=ev["completion_criteria"],
         verification=json.dumps(verification),
         manual_steps=json.dumps(ev.get("manual_steps", [])),
+        completed_steps=json.dumps(sorted(completed_steps)),
     )
     output_path = os.path.join(raw, "person-%d.json" % turn)
     stderr_path = os.path.join(raw, "person-%d.stderr.txt" % turn)
@@ -679,6 +686,7 @@ def run_one(
 ):
     run, sandbox, harness = prepare(ws, iteration, ev, config, k)
     session, turns_log = None, []
+    completed_steps = set()
     total = {
         "duration_ms": 0,
         "tokens": 0,
@@ -786,14 +794,16 @@ def run_one(
                 os.path.join(run, "raw"),
                 person_timeout,
                 stop,
+                completed_steps,
             )
-            if answer["completed_steps"]:
+            new_steps = set(answer["completed_steps"]) - completed_steps
+            if new_steps:
                 with open(os.path.join(harness, "scenario", "platform.json")) as source:
                     platform = json.load(source)
                 _, latest = render([turns_log[-1]])
                 agent_text = latest.split("## Agent (turn %d)\n" % i, 1)[1]
                 agent_reply = agent_text.lower()
-                step = answer["completed_steps"][0]
+                step = next(iter(new_steps))
                 marker = "docker_installed"
                 if step == "docker_desktop_wsl":
                     valid_request = (
@@ -845,6 +855,7 @@ def run_one(
                     )
                 with open(os.path.join(harness, "state", marker), "w"):
                     pass
+                completed_steps.add(step)
                 verification = completion_evidence(ev, harness)
         except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             stop.set()

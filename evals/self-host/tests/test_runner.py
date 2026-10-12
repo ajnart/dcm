@@ -347,6 +347,43 @@ class RunnerCLI(unittest.TestCase):
                 self.assertEqual(person["completed_steps"], [step])
                 metadata = json.loads((run / "eval_metadata.json").read_text())
                 self.assertEqual(metadata["manual_steps"], [step])
+        self.env["EVAL_TEST_REPEAT_STEP"] = "1"
+        workspace = self.root / "manual-repeated-step"
+        result = self.execute(
+            "manual-mint", extra=("--evals", "5", "--workspace", str(workspace))
+        )
+        self.env.pop("EVAL_TEST_REPEAT_STEP")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        run = next((workspace / "iteration-1").glob("eval-*/*/run-*"))
+        responses = [
+            json.loads(line)
+            for line in (run / "raw/person.jsonl").read_text().splitlines()
+        ]
+        self.assertEqual(
+            [response["completed_steps"] for response in responses],
+            [["docker_group_login"], ["docker_group_login"]],
+        )
+        self.env.update(
+            EVAL_TEST_REPEAT_STEP="1",
+            EVAL_TEST_LATE_OBSERVATION=json.dumps(
+                {
+                    "log": "host.jsonl",
+                    "argv": ["sudo", "-n", "true"],
+                    "exit_code": 1,
+                    "reverify": False,
+                }
+            ),
+        )
+        workspace = self.root / "manual-repeat-stale-verification"
+        result = self.execute(
+            "manual-mint", extra=("--evals", "5", "--workspace", str(workspace))
+        )
+        self.env.pop("EVAL_TEST_REPEAT_STEP")
+        self.env.pop("EVAL_TEST_LATE_OBSERVATION")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        run = next((workspace / "iteration-1").glob("eval-*/*/run-*"))
+        metrics = json.loads((run / "raw/metrics.json").read_text())
+        self.assertIn("CLI verification", json.dumps(metrics["errors"]))
         self.env.update(
             EVAL_TEST_MANUAL_GROUP="1",
             EVAL_TEST_MANUAL_REQUEST=(
