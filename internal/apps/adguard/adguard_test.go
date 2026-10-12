@@ -200,12 +200,28 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	}
 	fake.mu.Lock()
 	fake.filteringBody = ""
-	fake.statsBody = `{"time_units": "days", "dns_queries": [], "blocked_filtering": [], "num_dns_queries": 0, "num_blocked_filtering": 0}`
 	fake.mu.Unlock()
-	if err := (adguard.App{}).Check(ctx, h); err != nil {
-		t.Errorf("valid empty statistics: %v", err)
+	for _, body := range []string{
+		`{"time_units": "days", "dns_queries": [], "blocked_filtering": [], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "hours", "dns_queries": [0], "blocked_filtering": [0], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+	} {
+		fake.mu.Lock()
+		fake.statsBody = body
+		fake.mu.Unlock()
+		if err := (adguard.App{}).Check(ctx, h); err != nil {
+			t.Errorf("valid empty/zero statistics %s: %v", body, err)
+		}
 	}
-	for _, body := range []string{`{}`, `{"time_units": "days", "dns_queries": null, "blocked_filtering": [], "num_dns_queries": 0, "num_blocked_filtering": 0}`, `{"time_units": "days", "dns_queries": [], "blocked_filtering": [], "num_blocked_filtering": 0}`} {
+	for _, body := range []string{
+		`{}`,
+		`{"time_units": "days", "dns_queries": null, "blocked_filtering": [], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [], "blocked_filtering": null, "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [], "blocked_filtering": [], "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [null], "blocked_filtering": [0], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [-1], "blocked_filtering": [0], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [0], "blocked_filtering": [null], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+		`{"time_units": "days", "dns_queries": [0], "blocked_filtering": [-1], "num_dns_queries": 0, "num_blocked_filtering": 0}`,
+	} {
 		fake.mu.Lock()
 		fake.statsBody = body
 		fake.mu.Unlock()

@@ -118,6 +118,11 @@ in a separate bounded command. No new test functions or dependencies were added.
   zero totals. Those remain valid; missing totals or null histogram arrays are
   not treated as zeros. Unused allow-list/custom-rule arrays are not required by
   this direct query/block-statistics check.
+- The source-only histogram follow-up decodes both query and blocking arrays
+  as nullable integers and rejects null or negative elements, preserving
+  explicit empty arrays and numeric zeros. Four added control values in the
+  same existing fixture body reproduced erroneous acceptance before the fix;
+  this is direct App schema coverage, not native Homarr/runtime acceptance.
 - The administrator predicate now checks authentication only. Setup reuses the
   existing first-administrator callbacks inside an App-owned step that probes
   afresh before bootstrap, retaining HTTP/server/schema/transport failures

@@ -226,14 +226,21 @@ func checkDNSData(ctx context.Context, h *helpers.H) error {
 		return fmt.Errorf("AdGuard Home DNS statistics returned HTTP %d", resp.Status)
 	}
 	var stats struct {
-		TimeUnits        string  `json:"time_units"`
-		DNSQueries       []int64 `json:"dns_queries"`
-		BlockedFiltering []int64 `json:"blocked_filtering"`
-		NumDNSQueries    *int64  `json:"num_dns_queries"`
-		NumBlocked       *int64  `json:"num_blocked_filtering"`
+		TimeUnits        string   `json:"time_units"`
+		DNSQueries       []*int64 `json:"dns_queries"`
+		BlockedFiltering []*int64 `json:"blocked_filtering"`
+		NumDNSQueries    *int64   `json:"num_dns_queries"`
+		NumBlocked       *int64   `json:"num_blocked_filtering"`
 	}
 	if resp.Decode(&stats) != nil || (stats.TimeUnits != "hours" && stats.TimeUnits != "days") || stats.DNSQueries == nil || stats.BlockedFiltering == nil || stats.NumDNSQueries == nil || stats.NumBlocked == nil || *stats.NumDNSQueries < 0 || *stats.NumBlocked < 0 {
 		return errors.New("AdGuard Home did not return DNS query and blocking statistics; run self-host setup adguard-home after restoring its statistics API")
+	}
+	for _, counts := range [][]*int64{stats.DNSQueries, stats.BlockedFiltering} {
+		for _, count := range counts {
+			if count == nil || *count < 0 {
+				return errors.New("AdGuard Home returned invalid DNS query or blocking histogram counts; restore its statistics API, then run self-host setup adguard-home")
+			}
+		}
 	}
 	resp, err = h.HTTP(ctx, helpers.Request{Path: "/control/filtering/status", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {
