@@ -188,30 +188,30 @@ func persistentKey(h *helpers.H) bool {
 	return claims.Type == "api" && claims.Name == homarrKeyName && claims.KeyID != "" && claims.KeyID == h.Secret(h.Key("homarr_api_key_id")) && len(claims.Exp) == 0
 }
 
-func VerifyHomarrCredential(ctx context.Context, h *helpers.H) error {
+func VerifyHomarrCredential(ctx context.Context, h *helpers.H) (map[string]any, error) {
 	key := APIKey(h)
 	if key == "" {
-		return errors.New("Audiobookshelf has no saved Homarr API key; run self-host setup audiobookshelf")
+		return nil, errors.New("Audiobookshelf has no saved Homarr API key; run self-host setup audiobookshelf")
 	}
 	if !persistentKey(h) {
-		return errors.New("Audiobookshelf's saved Homarr credential is not its non-expiring named API key")
+		return nil, errors.New("Audiobookshelf's saved Homarr credential is not its non-expiring named API key")
 	}
 	resp, err := credentialRequest(ctx, h, helpers.Request{Method: http.MethodPost, Path: "/api/authorize", Header: bearer(key)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var authorized struct {
 		User account `json:"user"`
 	}
 	if err := resp.Decode(&authorized); err != nil {
-		return err
+		return nil, err
 	}
 	if !authorized.User.homarrAccount(h.Secret(h.Key("homarr_user_id"))) {
-		return errors.New("Audiobookshelf's saved key does not belong to its restricted Homarr account")
+		return nil, errors.New("Audiobookshelf's saved key does not belong to its restricted Homarr account")
 	}
 	resp, err = credentialRequest(ctx, h, helpers.Request{Method: http.MethodGet, Path: "/api/libraries", Header: bearer(key)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var libraries struct {
 		Libraries []struct {
@@ -221,58 +221,82 @@ func VerifyHomarrCredential(ctx context.Context, h *helpers.H) error {
 		} `json:"libraries"`
 	}
 	if err := resp.Decode(&libraries); err != nil {
-		return err
+		return nil, err
 	}
 	if libraries.Libraries == nil {
-		return errors.New("Audiobookshelf did not return an authenticated library list")
+		return nil, errors.New("Audiobookshelf did not return an authenticated library list")
 	}
+	libraryStats := make([]any, 0, len(libraries.Libraries))
+	audiobooks, podcasts := float64(0), float64(0)
 	for _, library := range libraries.Libraries {
 		if library.ID == "" || library.Name == nil || (library.MediaType != "book" && library.MediaType != "podcast") {
-			return errors.New("Audiobookshelf returned an unsupported library")
+			return nil, errors.New("Audiobookshelf returned an unsupported library")
 		}
 		resp, err := credentialRequest(ctx, h, helpers.Request{
 			Method: http.MethodGet, Path: "/api/libraries/" + url.PathEscape(library.ID) + "/stats", Header: bearer(key),
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
-		var stats struct {
-			TotalItems *float64 `json:"totalItems"`
-		}
+		var stats map[string]any
 		if err := resp.Decode(&stats); err != nil {
-			return err
+			return nil, err
 		}
-		if stats.TotalItems == nil || *stats.TotalItems < 0 || math.Trunc(*stats.TotalItems) != *stats.TotalItems {
-			return errors.New("Audiobookshelf did not return a valid library item count")
+		items, ok := stats["totalItems"].(float64)
+		if !ok || items < 0 || math.Trunc(items) != items {
+			return nil, errors.New("Audiobookshelf did not return a valid library item count")
+		}
+		entry := map[string]any{
+			"id": library.ID, "name": *library.Name, "mediaType": library.MediaType,
+			"totalItems": items, "totalDurationSeconds": nil, "totalSizeBytes": nil,
+		}
+		for field, destination := range map[string]string{"totalDuration": "totalDurationSeconds", "totalSize": "totalSizeBytes"} {
+			if value, present := stats[field]; present {
+				number, ok := value.(float64)
+				if !ok || number < 0 || field == "totalSize" && math.Trunc(number) != number {
+					return nil, fmt.Errorf("Audiobookshelf did not return valid %s library stats", field)
+				}
+				entry[destination] = number
+			}
+		}
+		libraryStats = append(libraryStats, entry)
+		if library.MediaType == "book" {
+			audiobooks += items
+		} else {
+			podcasts += items
 		}
 	}
 	resp, err = credentialRequest(ctx, h, helpers.Request{Method: http.MethodGet, Path: "/api/me/listening-stats", Header: bearer(key)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var listening struct {
 		TotalTime *float64 `json:"totalTime"`
 	}
 	if err := resp.Decode(&listening); err != nil {
-		return err
+		return nil, err
 	}
 	if listening.TotalTime == nil || *listening.TotalTime < 0 {
-		return errors.New("Audiobookshelf did not return authenticated listening stats")
+		return nil, errors.New("Audiobookshelf did not return authenticated listening stats")
 	}
 	resp, err = credentialRequest(ctx, h, helpers.Request{Method: http.MethodGet, Path: "/api/users/online", Header: bearer(key)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var online struct {
 		OpenSessions []any `json:"openSessions"`
 	}
 	if err := resp.Decode(&online); err != nil {
-		return err
+		return nil, err
 	}
 	if online.OpenSessions == nil {
-		return errors.New("Audiobookshelf did not return authenticated online sessions")
+		return nil, errors.New("Audiobookshelf did not return authenticated online sessions")
 	}
-	return nil
+	return map[string]any{
+		"libraryCount": float64(len(libraries.Libraries)), "totalAudiobooks": audiobooks, "totalPodcasts": podcasts,
+		"totalListeningTimeSeconds": *listening.TotalTime, "activeSessions": float64(len(online.OpenSessions)),
+		"libraries": libraryStats,
+	}, nil
 }
 
 func createHomarrKey(ctx context.Context, h *helpers.H) error {
@@ -346,7 +370,7 @@ func setupHomarrCredential(ctx context.Context, h *helpers.H) error {
 			if APIKey(h) == "" {
 				return false, nil
 			}
-			err := VerifyHomarrCredential(ctx, h)
+			_, err := VerifyHomarrCredential(ctx, h)
 			return err == nil, err
 		},
 		Do:         func(ctx context.Context) error { return createHomarrKey(ctx, h) },

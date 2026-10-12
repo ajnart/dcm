@@ -127,5 +127,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Audiobookshelf", h.AdminUser())
 	}
-	return VerifyHomarrCredential(ctx, h)
+	_, err = VerifyHomarrCredential(ctx, h)
+	return err
 }
