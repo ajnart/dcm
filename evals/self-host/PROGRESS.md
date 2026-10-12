@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                                   |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                    |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                    |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                                  |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                    |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                      |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                                   |
-| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison           |
-| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending    |
-| Independent Standards and Spec review                                  | `3c9f1372`: Standards passed; two Spec P2s corrected, fresh axes pending |
+| Gate                                                                   | Status                                                                |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                 |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                 |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                               |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
+| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
+| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes         |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -323,6 +323,32 @@ snapshots, personas, first prompts, assertions and equal 16-turn budgets stay
 unchanged. The paid 42-conversation comparison, 1,388-CLI-invocation ceiling,
 explicit monetary authorization/enforceable cap and human acceptance remain
 separate, unmet gates. PR #259 stays draft.
+
+### Current session follow-up (October 12, 2026)
+
+The user approved proceeding with the install/CLI-verification/Recap boundary,
+committing and pushing the fixes, and continuing the comparison. Concurrent
+commits through `16571438` were preserved by fast-forward; unrelated source
+worktree changes remain untouched. Fresh independent review found a Python
+launcher regression and missing service stop/disable freshness classification.
+
+The actual shell tests reproduced seven launcher failures: `/usr/bin/python3`
+could not resolve the developer-selection symlink under the tightened metadata
+policy. Guarded PATH now resolves the already-required Command Line Tools
+Python directly; no sandbox read permission is widened. The existing runner
+regression was extended with systemctl stop/disable and service stop attempts,
+including failures and fresh re-verification. Six subcases failed before the
+shared classifier fix. All 60 offline tests, Ruff lint/format, and Pyright now
+pass; both reviewers rechecked and cleared their findings.
+
+The CLI authentication-status check confirmed a first-party Claude Pro
+subscription login, with no API-key environment or custom endpoint. Continue
+only with the selected Sonnet 5.5 task/person and Opus 5.5 judge, unchanged guide
+snapshots and equal 16-turn budgets: one two-run MacBook smoke, then at most one
+42-run comparison if smoke execution and judgments are valid. No paid fallback,
+model switch or billing change is authorized; stop if quota/access is blocked.
+Historical evidence is untouched. This does not clear the full comparison or
+human viewer gates, and PR #259 remains draft.
 
 ### Earlier review evidence
 

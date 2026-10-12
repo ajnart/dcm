@@ -198,7 +198,7 @@ def host_change(argv):
             w in rest for w in ("install", "remove", "upgrade", "-S", "uninstall")
         )
     if tool in ("systemctl", "service"):
-        return any(w in rest for w in ("start", "enable", "restart"))
+        return any(w in rest for w in ("start", "enable", "restart", "stop", "disable"))
     return False
 
 

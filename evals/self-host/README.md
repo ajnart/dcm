@@ -48,8 +48,11 @@ agent through inspect, plan, approval, apply, verify.
   settings containing a fail-closed PreToolUse hook. It rewrites
   every Bash command to run under `env -i` and macOS `sandbox-exec`, with a fake
   HOME, fixture PATH, writable working folder and fixture state, read-only
-  runtime/fixture files, and no network access. Absolute host installer, remote
-  shell and macOS automation tools are refused, not dispatched by the stubs.
+  runtime/fixture files, and no network access.
+  Fixture shebangs resolve Python directly from Command Line Tools, avoiding
+  macOS's developer-selection launcher without widening metadata permissions.
+  Absolute host installer, remote shell and macOS automation tools are refused,
+  not dispatched by the stubs.
   Read is limited to the working folder and the current session's tool-results
   folder; other tools and background Bash requests are refused. No
   `bypassPermissions` is used. The Claude transport itself is not OS-sandboxed:

@@ -73,7 +73,7 @@ def main():
         path = [os.path.join(stubs, "base")]
         if docker_state(harness) != "missing":
             path.append(os.path.join(stubs, "docker"))
-        path.append(os.path.dirname(os.path.realpath(sys.executable)))
+        path.append("/Library/Developer/CommandLineTools/usr/bin")
         root = os.path.join(sandbox, ".root")
         if os.path.isdir(root):
             for mount in ("/media/", "/mnt/", "/Volumes/"):
