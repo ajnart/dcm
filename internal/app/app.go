@@ -98,6 +98,10 @@ type SecretDeclarer interface {
 	Secrets() []SecretSpec
 }
 
+type AdminEmailProvider interface {
+	AdminEmail(username string) string
+}
+
 // EphemeralFIFODeclarer identifies disposable runtime FIFOs recreated by the
 // App. Only an exact FIFO at a canonical App-relative path may be omitted from
 // backup; regular files, other special types and unsafe paths remain checked.
