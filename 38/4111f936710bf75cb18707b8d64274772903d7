@@ -1,0 +1,16 @@
+docs/homarr-gotify-boundary.md
+  h_d6e478ca18e517 56-64,66-74,103-104,113-120,129-132
+internal/apps/homarr/target_gotify.go
+  h_d6e478ca18e517 7,33-54,73-74,98-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "384111f936710bf75cb18707b8d64274772903d7",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
