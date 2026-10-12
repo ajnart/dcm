@@ -61,7 +61,12 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	if err := monitoringJSON(ctx, h, "/api/v1/data?"+query.Encode(), &sample); err != nil {
 		return err
 	}
-	if len(sample.Labels) < 2 || sample.Labels[0] != "time" || len(sample.Data) == 0 {
+	if len(sample.Labels) != 3 || sample.Labels[0] != "time" ||
+		!(sample.Labels[1] == "user" && sample.Labels[2] == "system" ||
+			sample.Labels[1] == "system" && sample.Labels[2] == "user") {
+		return errors.New("Netdata agent CPU data must have unique time, user and system columns; check its pulse collector and retry self-host setup netdata")
+	}
+	if len(sample.Data) == 0 {
 		return errors.New("Netdata agent CPU data is empty or unavailable; wait for collection and retry self-host setup netdata")
 	}
 	for _, row := range sample.Data {

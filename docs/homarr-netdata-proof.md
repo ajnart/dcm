@@ -52,7 +52,9 @@ returned identifier through `/api/v1/data`. Selection uses the declared
 `milliseconds/s` units. A missing or ambiguous identifier stops the probe.
 Returned identifiers and private machine metadata are not logged or persisted.
 
-The JSON sample must contain a timestamp and actual non-null nonnegative
+The JSON sample must contain exactly one `time`, `user` and `system` column,
+with `time` first and either order for the two native CPU dimensions. Rows
+must align with all three columns and contain actual non-null nonnegative
 values, with a sample no older than two minutes; clock skew beyond thirty
 seconds into the future is rejected. Zero CPU usage is valid. Empty or stale
 samples do not pass readiness. Access denial is an actionable Manual step;
@@ -104,7 +106,7 @@ tests do not constitute that live acceptance proof.
 - Before the authorized fixture correction,
   `go test ./internal/catalog/ -run '^TestGeneratedAppsOnboard/netdata$' -count=1`
   failed on the empty-200 fixture. It passes with the corrected fixture;
-  production readiness remains unchanged.
+  that fixture correction did not change production readiness.
 
 The parent authorized a precise central test exception in the existing
 `internal/catalog/generated_test.go`, restricted to Netdata's routes:
@@ -121,8 +123,41 @@ The parent authorized a precise central test exception in the existing
   Wrong query values return 400, unknown Netdata routes 404 and methods
   other than GET 405. There is no Netdata empty-200 fallback.
 
-Other App fixture behavior is unchanged; no tests, test files, skips or
+Other App fixture behavior is unchanged; no test functions, test files, skips or
 production seam changes were added. Independent Dashdot work was not imported
 from dirty files. These synthetic responses validate the existing Setup/Check
 contract only, not native Homarr/widget or runtime acceptance. The no-host-CPU,
 unchanged authority and unsupported System Resources caveats remain in force.
+
+## Source-review dimension correction
+
+At source head `fb792342c9985274bbbe347d32c435a41a49e094`, on fixed reference
+base `dce263ef822dc056558a648f8f59ea795a3e56d9`, a fresh numeric sample could
+pass with unrelated or missing CPU dimensions. The pinned pulse collector
+defines both `user` and `system`; the readiness filter now requires exactly
+those dimensions plus the unique first `time` column. Existing per-row
+alignment, non-null numeric and freshness checks are retained. Zero is still
+valid, but missing dimensions are never substituted with zero.
+
+Direct controls are inside the existing `TestGeneratedAppsOnboard/netdata`
+body, keeping native info/chart routes and strict data-query validation:
+
+- Unrelated dimension, missing user/system, duplicate user/system/time,
+  misplaced time, extra dimension and misaligned columns are rejected by
+  the App's real Check path.
+- Native all-zero CPU and reversed system/user column order are accepted.
+  The original nonzero-user/zero-system Setup and Check control remains.
+- The fixture response format is atomically replaced so the HTTP handler
+  and Check controls remain race-safe; timestamp still uses `deps.Now`.
+
+Before the production correction, the focused existing command failed with
+`Netdata Check accepted unrelated dimension`; after correction it passes.
+After this source correction, the focused Netdata/Homarr tests and complete
+local gate listed above all pass, including the Catalog/TUI/Activity/App race
+checks. Build, both vet commands, formatting/diff and installer syntax pass.
+No test functions, files, comments, external dependencies, shared production
+seams or registry changes were introduced. These are synthetic Check controls,
+not real native/rendered acceptance. Fresh parent Standards/Spec reviews,
+custodian normalization of the shared freshness guard, registry assembly,
+real native/rendered data, both installation orders and shared ownership
+lifecycle remain held for the parent phase.

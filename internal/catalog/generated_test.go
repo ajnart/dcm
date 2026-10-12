@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -105,6 +106,8 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 		t.Run(a.Info().ID, func(t *testing.T) {
 			info := a.Info()
 			deps := systemtest.NewDeps(t)
+			var netdataSample atomic.Value
+			netdataSample.Store(`{"labels":["time","user","system"],"data":[[%d,1,0]]}`)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if info.ID == "netdata" {
 					w.Header().Set("Content-Type", "application/json")
@@ -123,7 +126,7 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 							w.WriteHeader(http.StatusBadRequest)
 							return
 						}
-						fmt.Fprintf(w, `{"labels":["time","user","system"],"data":[[%d,1,0]]}`, deps.Now().Unix())
+						fmt.Fprintf(w, netdataSample.Load().(string), deps.Now().Unix())
 					default:
 						w.WriteHeader(http.StatusNotFound)
 					}
@@ -149,6 +152,34 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 			}
 			if err := a.Check(ctx, h); err != nil {
 				t.Fatalf("Check: %v", err)
+			}
+			if info.ID != "netdata" {
+				return
+			}
+			for _, sample := range []struct {
+				name, body string
+				valid      bool
+			}{
+				{"unrelated dimension", `{"labels":["time","unrelated"],"data":[[%d,0]]}`, false},
+				{"missing system", `{"labels":["time","user"],"data":[[%d,0]]}`, false},
+				{"missing user", `{"labels":["time","system"],"data":[[%d,0]]}`, false},
+				{"duplicate user", `{"labels":["time","user","user"],"data":[[%d,0,0]]}`, false},
+				{"duplicate system", `{"labels":["time","system","system"],"data":[[%d,0,0]]}`, false},
+				{"duplicate time", `{"labels":["time","time","system"],"data":[[%d,0,0]]}`, false},
+				{"misplaced time", `{"labels":["user","time","system"],"data":[[%d,0,0]]}`, false},
+				{"extra dimension", `{"labels":["time","user","system","unrelated"],"data":[[%d,0,0,0]]}`, false},
+				{"misaligned columns", `{"labels":["time","user","system"],"data":[[%d,0]]}`, false},
+				{"native zero CPU", `{"labels":["time","user","system"],"data":[[%d,0,0]]}`, true},
+				{"native reversed CPU", `{"labels":["time","system","user"],"data":[[%d,0,1]]}`, true},
+			} {
+				netdataSample.Store(sample.body)
+				err := a.Check(ctx, h)
+				if sample.valid && err != nil {
+					t.Fatalf("Netdata Check rejected %s: %v", sample.name, err)
+				}
+				if !sample.valid && err == nil {
+					t.Fatalf("Netdata Check accepted %s", sample.name)
+				}
 			}
 		})
 	}
