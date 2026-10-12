@@ -5,6 +5,12 @@ Runtime verification: **11 October 2026**, macOS host, Linux/arm64 container.
 This is **not complete Homarr acceptance**. Registration, compatibility,
 ownership and functional widget verification remain blocked by #262.
 
+The above prerequisite pin and the runtime/local verification sections below
+are historical evidence, not verification of the source correction described
+later in this document. #262 subsequently closed with frozen source
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; this branch's descriptor remains
+unregistered, with final seam normalization and native acceptance still held.
+
 ## Implemented
 
 - AdGuard Home already had a headless first-run `configure` operation. Its
@@ -101,6 +107,54 @@ and `bash -n install.sh`. The first combined command's time limit expired
 after the full normal suite passed; the remaining race/shell checks passed
 in a separate bounded command. No new test functions or dependencies were added.
 
+## Source-only correction (12 October 2026)
+
+- The pinned AdGuard `handleFilteringStatus` starts with nil slices and appends
+  subscriptions. No subscriptions therefore serialize as explicitly present
+  `filters: null`, including a valid custom-rule-only configuration. Direct
+  Setup/Check now distinguish that and `[]` from absent, malformed, scalar or
+  invalid filter entries. No response is rewritten for Homarr.
+- The pinned statistics `getData(0)` explicitly returns empty arrays and numeric
+  zero totals. Those remain valid; missing totals or null histogram arrays are
+  not treated as zeros. Unused allow-list/custom-rule arrays are not required by
+  this direct query/block-statistics check.
+- The administrator predicate now checks authentication only. Setup reuses the
+  existing first-administrator callbacks inside an App-owned step that probes
+  afresh before bootstrap, retaining HTTP/server/schema/transport failures
+  rather than replacing them with signup or wrong-password guidance. Only
+  HTTP 401 represents explicit rejection; the pinned first-run redirect is
+  considered unconfigured only after a structured install-API check.
+- Authenticated running status, statistics and filtering readiness now have a
+  separate `dns-api` Setup step using the existing two-minute bounded Poll.
+  A missing `running` field differs from `running: false`; both fail with DNS
+  diagnostics and a logs/retry hint, not a person-required Manual step.
+  Check performs the same fresh reads. Valid accounts/settings are not changed.
+- The existing App fixture reproduced rejection of `filters: null` and loss of
+  DNS/profile failures into administrator recovery before the correction. Its
+  extended body now covers supported empty/zero responses, absent/malformed
+  filters/statistics, DNS HTTP 500/missing/stopped states, profile HTTP
+  500/403/302 and malformed/userless/mismatched identities, failed transport,
+  recovery and genuine credential rejection without account replacement.
+  No test functions, test files, dependencies or comments were added.
+- Native holds are separate: both Homarr's tagged research baseline and the
+  reference's recorded OCI source revision require `filters` to be an array
+  and compute blocked percentage backwards. Accepting direct `null` does not
+  establish native compatibility or justify fabricating `[]`. This comparison
+  concerns those two public source files only, not built-image attestation.
+  Descriptor normalization/registration, native/rendered values, both
+  installation orders and the full preservation/removal lifecycle remain held.
+  No runtime, DNS traffic, container, browser, provider or registry action was
+  performed for this correction; the historical runtime does not certify it.
+
+### Correction verification
+
+Passed in the terminal with `GOFLAGS=-buildvcs=false`: existing focused
+AdGuard/Homarr suites with `-count=1`, empty repository `gofmt -l .`,
+`go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
+`go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/adguard/`,
+`bash -n install.sh` and `git diff --check`. The complete gate exited
+successfully before publication; no Docker/e2e runtime or installer was run.
+
 ## Sources
 
 Context7 lookup was attempted but its monthly quota was exhausted. The
@@ -109,9 +163,14 @@ contract was checked directly against official versioned source instead.
 - [AdGuard v0.107.79 first-run configuration](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/controlinstall.go).
 - [AdGuard authenticated profile and userless behavior](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/profilehttp.go).
 - [AdGuard HTTP Basic authentication](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/authhttp.go).
+- [AdGuard first-run redirect](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/control.go#L446-L464).
+- [AdGuard filtering response and nil subscription slices](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/filtering/http.go#L415-L458).
+- [AdGuard empty statistics and zero totals](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/stats/unit.go#L412-L435).
 - [AdGuard API schemas](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/openapi/openapi.yaml).
 - [Official Homarr AdGuard guide](https://homarr.dev/docs/integrations/adguard-home/).
 - [Homarr v2.4.1 native implementation and percentage caveat](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/adguard-home/adguard-home-integration.ts).
 - [Homarr v2.4.1 native response schemas](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/adguard-home/adguard-home-types.ts).
+- [Homarr recorded OCI-source AdGuard response schema](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/adguard-home/adguard-home-types.ts).
+- [Homarr recorded OCI-source AdGuard percentage calculation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/adguard-home/adguard-home-integration.ts).
 - [Homarr v2.4.1 Stats metrics](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/existing.ts).
 - [Homarr v2.4.1 widget support/limits](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget-integration-map.ts).
