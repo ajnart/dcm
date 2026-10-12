@@ -1,32 +1,94 @@
 # Paperless-ngx prerequisite and Homarr descriptor
 
-Peer slice for #289, 11 October 2026. This is not complete
-Homarr widget acceptance: registration and the shared compatibility/ownership
-contract are blocked by #262.
+Peer slice for #289. The prerequisite runtime evidence below belongs to
+11 October 2026 and implementation commit `368cc026`; the source-only ownership
+and Manual recovery follow-up is dated 12 October 2026. Neither is complete
+Homarr widget acceptance. #262's shared contract is now frozen at
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; central wiring and new bounded
+native/rendered/lifecycle acceptance remain held.
 
 ## Implemented boundary
 
 - Paperless-ngx Setup verifies the configured Admin login, then creates a
-  dedicated, randomly named Homarr account. Its saved password establishes
-  control before an existing account's permissions can be repaired; a rejected
-  password is never reset and an unrelated account is never adopted.
+  dedicated, randomly named Homarr account only when no account checkpoint,
+  username, password or token is saved. A pending checkpoint precedes the
+  remote write; the verified create response supplies its canonical account ID.
+  A random ownership marker is recorded with that ID and in the dedicated
+  account's First name field. Neither the shared Admin login nor another
+  account's metadata is modified.
 - The account is active, not staff or a superuser, has no groups and has exactly
   `view_global_statistics`, `view_tag`, `view_correspondent` and
   `view_documenttype`. It cannot list document contents, upload, edit or delete
   documents. Global statistics expose archive counts; taxonomy lists retain
   Paperless's existing object-level visibility. Setup does not rewrite ownership
   or object permissions.
-- `/api/token/` discovers or creates that account's reusable token. Production
-  Setup never calls the rotating `generate_auth_token` endpoint. The username,
-  password and verified `PAPERLESS_NGX_API_KEY` are stored through `helpers.H`
-  and the existing Project secret boundary, not in command arguments.
-- Every Check reads the account policy and its current token afresh, then
+- Reruns resolve only `/api/users/<recorded-id>/`, require that returned ID and
+  ownership marker to agree, and authenticate the saved password using the
+  returned canonical username. The Basic-auth and token-auth profiles must
+  carry the same marker. A profile alone returns no ID: marker correlation
+  with the exact administrator-authenticated detail record is the identity
+  evidence, not arbitrary token success or a username lookup.
+- The current profile token is reused. `/api/token/` creates a reusable token
+  only when that verified profile has none. Production Setup never calls the
+  rotating `generate_auth_token` endpoint. The checkpoint, username, password
+  and verified `PAPERLESS_NGX_API_KEY` are stored through `helpers.H` and the
+  existing Project secret boundary, not in command arguments.
+- Every Check reads account policy, ownership and current token afresh, then
   authenticates against `/api/statistics/`, `/api/tags/`,
   `/api/correspondents/` and `/api/document_types/`. Missing fields are not
   accepted as zero. A null inbox count is valid when no inbox tag exists.
   Missing/stale tokens are rediscovered on `self-host setup paperless-ngx`.
 
-## Minimal handoff to #262
+## Source-only ownership and Manual recovery follow-up
+
+This follow-up changes only Paperless Setup/token code, its existing fixture
+bodies, this proof and the App trap notes. No new test functions, cases,
+dependencies, runtime, registry edits or shared verifier changes were added.
+
+- A renamed selected account or lost saved username keeps the same recorded
+  ID, ownership marker, password and reusable token. The current canonical
+  username is saved only after authenticated ownership and data checks pass.
+- Legacy name-only metadata cannot establish canonical provenance. It remains
+  Manual without adopting an existing account, adding an ownership marker,
+  replacing a token or rewriting permissions. Malformed/missing/pending
+  checkpoints likewise fail closed. A failed final checkpoint write cannot
+  cause a second account/token on retry.
+- Verified credential denial, disabled status, MFA, identity disagreement and
+  policy drift are targeted retryable Manual steps. Setup never reactivates
+  users, disables MFA, resets passwords, changes existing permissions, rotates
+  tokens or deletes accounts. Infrastructure failures and malformed API/data
+  responses remain failed steps; they are not blanket-converted to Manual.
+- The supported person recovery seam is the official 3.2.1 Users & Groups →
+  Edit user dialog: it displays the ID and exposes Password, First name and
+  Active controls. After confirming the recorded ID/marker privately with
+  `self-host credentials`, the person may restore the corresponding saved
+  password or Active status if intended, then retry Setup. MFA remains a
+  separate person decision; Setup does not clear it. The restored known pair
+  reuses its existing token. No account UI action was performed for this fix.
+- Missing saved credentials or unverifiable old ownership require a verified
+  Project Backup or separately approved migration. This slice adds no private
+  Inputs, no `--set-file` ingestion and no credentials-only update command.
+  It does not claim an automatic old-format migration or a general replacement
+  credential recovery route.
+
+Direct controls were added to the existing Setup/rerun fixture bodies for
+returned ID/marker persistence, renames, lost usernames, stale keys, legacy
+and wrong-ID/marker uncertainty, different authenticated owners, changed or
+missing passwords, disabled status, MFA, permission drift, partial checkpoint
+writes, profile denial versus HTTP 503, malformed account/profile/count fields,
+and successful recovery after restoring the same known account controls.
+They assert one account/token, no other remote account mutations and unchanged
+Admin credentials. These are synthetic HTTP/secret-store controls, not new
+native runtime or rendered acceptance evidence.
+
+The source-only local gate passed on 12 October: focused
+`go test ./internal/apps/paperlessngx/`, empty `gofmt -l .`, `go build ./...`,
+`go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
+`go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/paperlessngx/`,
+`bash -n install.sh` and `git diff --check`, with `GOFLAGS=-buildvcs=false`.
+No Docker, browser, e2e runtime, installer, host probes or account actions ran.
+
+## Homarr wiring handoff
 
 `internal/apps/homarr/integration_paperless.go` proposes
 `paperlessTarget() target` using only the existing `target` and `widget` types:
@@ -36,12 +98,12 @@ contract are blocked by #262.
 - Homarr credential `apiKey` from the peer's verified `api_key` secret.
 - Native `paperlessNgx` widget showing document and inbox totals, inbox ratio,
   correspondents, tags and document types. No guessed document IDs or custom JSX.
-- Registry owner explicitly adds `paperlessTarget()` after compatibility and
-  conservative ownership handling are settled. No central registry, `links.go`,
+- Registry owner explicitly ports/registers `paperlessTarget()` against the
+  frozen contract. No central registry, `links.go`,
   shared widget or plugin/init changes are included here.
 - The supported upstream widget default is 2 by 2 cells. The central placement
-  helper currently defaults unknown widgets to 1 by 1; #262's owner must preserve
-  a useful size when wiring this descriptor.
+  helper on this branch defaults unknown widgets to 1 by 1; the registry owner
+  must preserve a useful size when wiring this descriptor.
 
 The final isolated Homarr run still needs to verify useful rendered data,
 stable owned IDs on rerun, token-change propagation, preservation of manual
@@ -50,7 +112,9 @@ connection test do not satisfy that acceptance.
 
 ## Isolated prerequisite evidence
 
-Validated implementation commit: `368cc026` on `feat/homarr-paperless-sol`.
+Historical validated implementation commit: `368cc026` on
+`feat/homarr-paperless-sol`. This run predates the canonical ID/marker and
+Manual recovery changes; it does not validate those changes at runtime.
 The only runtime fixture used Compose Project
 `self-host-paperless-sol-93543`, loopback port `53415`, and one new disposable
 Home under the approved OpenCode temporary directory. No existing Project,
@@ -106,6 +170,9 @@ authentication contract is verified against these versioned sources:
 - [REST authorization and API versioning](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docs/api.md).
 - [User creation and profile/token serializers](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/serialisers.py).
 - [Reusable token endpoint and rotating profile endpoint](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/views.py).
+- [Basic authentication and MFA boundary](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/auth.py).
+- [Official Edit user ID/password/status controls](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src-ui/src/app/components/common/edit-dialog/user-edit-dialog/user-edit-dialog.component.html).
+- [Person-controlled MFA recovery](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docs/usage.md#two-factor-authentication).
 - [Statistics visibility and read-only permissions](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/documents/permissions.py).
 - [Statistics response](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/documents/views.py).
 

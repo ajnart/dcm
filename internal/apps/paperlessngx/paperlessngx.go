@@ -156,7 +156,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "api-key", "save a read-only Paperless-ngx token for Homarr", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return ensureHomarrToken(ctx, h) },
-		Hint:  "Run self-host setup paperless-ngx to repair its saved read-only account and token, then run self-host setup homarr. A rejected account password is never reset automatically.",
+		Hint: "Open " + h.URL + " → Users & Groups and inspect the recorded Homarr account ID using self-host credentials privately. " +
+			"Only after confirming that same account, restore its saved password or Active status through Edit user if intended; preserve its First name ownership marker and read-only permissions. " +
+			"MFA requires a separate person decision. Missing, pending or uncertain ownership/credentials need a verified Project Backup or separately approved migration, not a replacement account. " +
+			"Then run self-host setup paperless-ngx and self-host setup homarr. Setup never resets passwords, disables MFA, reactivates accounts or changes existing permissions.",
 	})
 }
 
