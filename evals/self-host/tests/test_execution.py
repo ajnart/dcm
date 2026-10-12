@@ -214,6 +214,19 @@ class ShellBoundary(unittest.TestCase):
         initial = self.invoke("self-host status --json")
         self.assertEqual(initial.returncode, 0, initial.stderr)
         before = json.loads(initial.stdout)
+        evaluation = next(
+            item
+            for item in json.loads((ROOT / "evals/evals.json").read_text())["evals"]
+            if item["id"] == 3
+        )
+        requested_plan = self.invoke(
+            "self-host cloudflare plan --app=paperless-ngx "
+            "--domain=example.com --email=me@example.org --json"
+        )
+        self.assertEqual(requested_plan.returncode, 0, requested_plan.stderr)
+        hostname = json.loads(requested_plan.stdout)["publish"][0]["name"]
+        for field in ("first_message", "persona"):
+            self.assertIn(hostname, evaluation[field])
         planned = self.invoke(
             "self-host cloudflare plan --app=paperless-ngx "
             "--domain=review.example.com --email=me@example.org --json"

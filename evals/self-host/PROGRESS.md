@@ -422,6 +422,24 @@ Ruff lint/format and Pyright also pass. No new testcases, files or dependencies
 were added. The first full offline command exceeded its 120-second shell timeout;
 a fresh complete run with a longer shell timeout passed all 60 in 88 seconds.
 
+### Public-success scenario correction (October 12, 2026)
+
+The user chose the supported Address for the success scenario and authorized
+one more full comparison after offline validation: seven scenarios, both frozen
+guides, three repetitions, equal 16-turn limits and the same Sonnet/Opus selections
+on the existing first-party subscription, with no paid fallback. Stop on failure
+or quota; judge only a valid complete batch. Human feedback remains separate.
+
+Only eval 3's first request and persona change, from `paperless.example.com` to
+`paperless-ngx.example.com`. Its assertions, completion criterion and fixtures,
+all other scenarios and both guide/router snapshots are unchanged. Existing
+execution-boundary coverage now compares the actual fixture CLI plan's hostname
+with both scenario texts; it failed before the correction and passes after it.
+The existing runner completion/freshness test also passes for every scenario.
+Historical iteration 16 remains invalid and untouched; its scores are not
+backfilled. Future inputs will record the corrected request/persona, so results
+must not be represented as a same-input rerun of the old public scenario.
+
 ### Earlier review evidence
 
 Review follow-up fixes cover positional grading's batch gate, option-prefixed

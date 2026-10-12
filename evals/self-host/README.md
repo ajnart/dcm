@@ -39,6 +39,8 @@ agent through inspect, plan, approval, apply, verify.
   reports the same selected App/domain in Status, Addresses and later plans;
   refused or failed publication does not change that state. Unsupported public
   selections remain refused, not a general Cloudflare emulator.
+  The public-success scenario requests `paperless-ngx.example.com`, matching
+  the production CLI's App-ID-based hostname rather than an unsupported alias.
   The reported Home folder exists only
   inside the run's sandbox. Both tools log every call with its turn.
   Runtime folders use random identifiers so paths in Recaps and commands do
