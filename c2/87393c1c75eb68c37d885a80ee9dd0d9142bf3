@@ -1,0 +1,28 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 200-225
+evals/self-host/README.md
+  h_d6e478ca18e517 95-99
+evals/self-host/bin/hosttool
+  h_d6e478ca18e517 144-165
+evals/self-host/run.py
+  h_d6e478ca18e517 473-475,798-810
+evals/self-host/scenarios/newbie-mint/platform.json
+  h_d6e478ca18e517 15
+evals/self-host/tests/fake_claude.py
+  h_d6e478ca18e517 197-208
+evals/self-host/tests/test_execution.py
+  h_d6e478ca18e517 457-487
+evals/self-host/tests/test_runner.py
+  h_d6e478ca18e517 330-342,348-361,370-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c287393c1c75eb68c37d885a80ee9dd0d9142bf3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
