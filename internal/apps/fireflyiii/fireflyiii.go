@@ -18,9 +18,16 @@ import (
 // App is Firefly III. Traps: docs/catalog/traps/firefly-iii.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 const service = "firefly-iii"
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 func (App) Info() app.Info {
 	return app.Info{

@@ -61,11 +61,12 @@ type target struct {
 	id   string
 	name string
 	// kind is the Homarr integration kind; empty means tile only.
-	kind     string
-	internal func(to *helpers.H) string
-	secrets  func(from, to *helpers.H) []secret
-	widgets  []widget
-	verify   func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	kind      string
+	internal  func(to *helpers.H) string
+	secrets   func(from, to *helpers.H) []secret
+	widgets   []widget
+	preflight func(ctx context.Context, from, to *helpers.H) error
+	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -767,6 +768,11 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return false, err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return false, err
 	}
@@ -815,10 +821,8 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
 		return false, nil
 	}
-	if t.verify != nil {
-		if err := t.verify(ctx, from, to, integrationID); err != nil {
-			return false, err
-		}
+	if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+		return false, err
 	}
 	if len(t.widgets) == 0 {
 		return true, nil
@@ -850,6 +854,11 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return err
 	}
@@ -920,10 +929,8 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if err != nil {
 			return err
 		}
-		if t.verify != nil {
-			if err := t.verify(ctx, from, to, integrationID); err != nil {
-				return err
-			}
+		if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+			return err
 		}
 		if err := t.addWidgets(ctx, from, to, boardID, integrationID, items); err != nil {
 			return err
@@ -989,11 +996,12 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	if !found {
-		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+		recordedID := managedAppIDs(from)[t.id]
+		if err := removeAppTiles(ctx, from, recordedID); err != nil {
 			return err
 		}
 		if keepIntegration {
-			if err := t.releaseApp(ctx, from, ""); err != nil {
+			if err := t.releaseApp(ctx, from, recordedID); err != nil {
 				return err
 			}
 		}
@@ -1020,11 +1028,15 @@ func (t target) releaseApp(ctx context.Context, h *helpers.H, id string) error {
 		return err
 	}
 	for _, item := range apps {
-		if appID(item) != id || stringField(item, "description") != installedTileMarker+t.id {
+		if appID(item) != id {
+			continue
+		}
+		description := stringField(item, "description")
+		if description != "" && description != installedTileMarker+t.id {
 			continue
 		}
 		if _, err := h.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(h), JSON: map[string]any{
-			"name": item["name"], "description": "", "iconUrl": item["iconUrl"], "href": item["href"], "pingUrl": item["pingUrl"],
+			"name": item["name"], "description": retainedTileMarker + t.id, "iconUrl": item["iconUrl"], "href": item["href"], "pingUrl": item["pingUrl"],
 		}}); err != nil {
 			return err
 		}

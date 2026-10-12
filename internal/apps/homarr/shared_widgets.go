@@ -3,11 +3,72 @@ package homarr
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
 func sharedWidget(kind string) bool { return kind == "stats" || kind == "calendar" }
+
+func freshStatsSnapshot(ctx context.Context, h *helpers.H, integrationID string) (map[string]any, error) {
+	input := map[string]any{"integrationId": integrationID}
+	value, err := apiKeyProcedure(ctx, h, "widget.stats.snapshot", input)
+	if err != nil {
+		return nil, err
+	}
+	before, ok := value.(map[string]any)
+	if !ok {
+		return nil, errors.New("Homarr did not return a Stats snapshot")
+	}
+	previous, present := before["updatedAt"]
+	timestamp, numeric := previous.(float64)
+	if !present || previous != nil && (!numeric || timestamp <= 0) {
+		return nil, errors.New("Homarr did not return a valid Stats refresh timestamp")
+	}
+	input["force"] = true
+	value, err = apiKeyWrite(ctx, h, "widget.stats.refresh", input)
+	if err != nil {
+		return nil, err
+	}
+	after, ok := value.(map[string]any)
+	if !ok || after["error"] != false || after["stale"] != false {
+		return nil, errors.New("Homarr Stats refresh failed; retry self-host setup homarr")
+	}
+	updated, ok := after["updatedAt"].(float64)
+	if !ok || updated <= timestamp {
+		return nil, errors.New("Homarr Stats refresh did not advance; retry self-host setup homarr")
+	}
+	values, ok := after["values"].(map[string]any)
+	if !ok {
+		return nil, errors.New("Homarr did not return refreshed Stats values")
+	}
+	return values, nil
+}
+
+func (t target) verifyData(ctx context.Context, from, to *helpers.H, integrationID string) error {
+	if t.verify == nil {
+		return nil
+	}
+	if err := t.verify(ctx, from, to, integrationID); err != nil {
+		return err
+	}
+	for _, w := range t.widgets {
+		if w.kind != "stats" || len(w.metrics) == 0 {
+			continue
+		}
+		values, err := freshStatsSnapshot(ctx, from, integrationID)
+		if err != nil {
+			return err
+		}
+		for _, metric := range w.metrics {
+			if values[metric] == nil {
+				return fmt.Errorf("Homarr did not return refreshed %s Stats; retry self-host setup homarr", metric)
+			}
+		}
+	}
+	return nil
+}
 
 // Ownership stays per integration, even when several integrations share an item.
 func allOwnedWidgets(h *helpers.H) map[string]bool {
