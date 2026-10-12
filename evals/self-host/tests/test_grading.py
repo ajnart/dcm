@@ -392,6 +392,10 @@ class GradingCLI(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         verdicts = json.loads((self.run_dir / "judged.json").read_text())
         self.assertEqual(verdicts[0]["text"], "Explains the outcome")
+        self.assertEqual(self.grade().returncode, 0)
+        legacy = json.loads((self.run_dir / "grading.json").read_text())
+        self.assertNotIn("completion_assessment", legacy)
+        self.assertNotIn("acceptance_passed", legacy)
         assertions = json.loads((ROOT / "evals/evals.json").read_text())["evals"][0][
             "assertions"
         ]
@@ -405,6 +409,148 @@ class GradingCLI(unittest.TestCase):
         ]
         self.assertEqual(expectations[0]["text"], recap[0]["text"])
         self.assertFalse(expectations[0]["passed"])
+        evals = json.loads((ROOT / "evals/evals.json").read_text())["evals"]
+        for ev in (ev for ev in evals if ev["completion"] == "install"):
+            with self.subTest(scenario=ev["scenario"]):
+                self.assertIn("recap_assessment", ev)
+                self.metadata.update(
+                    {
+                        "judgment_schema": 2,
+                        "completion": ev["completion"],
+                        "completion_criteria": ev["completion_criteria"],
+                        "recap_assessment": ev["recap_assessment"],
+                    }
+                )
+                observation = {
+                    "home": "/home/you/.self-host",
+                    "apps": [
+                        {
+                            "id": "jellyfin",
+                            "description": "Stream films and shows",
+                            "url": "http://192.168.1.50:8096",
+                            "addresses": ["http://192.168.1.50:8096"],
+                        }
+                    ],
+                }
+                self.write(
+                    "raw/metrics.json",
+                    {
+                        "tokens": 10,
+                        "errors": [],
+                        "valid": True,
+                        "completion_observation": observation,
+                    },
+                )
+                scenario = self.run_dir / "raw/scenario"
+                scenario.mkdir(exist_ok=True)
+                shutil.copy(
+                    ROOT / "scenarios/newbie-install/apps-list.json",
+                    scenario / "apps-list.json",
+                )
+                self.log(
+                    "invocations.jsonl",
+                    [
+                        {"turn": 1, "ts": 1, "argv": ["skill"]},
+                        {
+                            "turn": 2,
+                            "ts": 2,
+                            "argv": ["profile", "set", "experience", "new"],
+                        },
+                        {"turn": 3, "ts": 3, "argv": ["install", "jellyfin", "--yes"]},
+                        {"turn": 3, "ts": 4, "argv": ["status"]},
+                    ],
+                )
+                self.log(
+                    "person.jsonl",
+                    [
+                        {"turn": 3, "done": True, "approves": True, "reply": ""},
+                    ],
+                )
+                self.log(
+                    "ask.jsonl",
+                    [
+                        {
+                            "turn": 1,
+                            "question": "Have you done this before?",
+                            "options": ["New", "Advanced"],
+                        },
+                    ],
+                )
+                details = {
+                    "purpose": "Jellyfin plays your films.",
+                    "Address": "Open http://192.168.1.50:8096.",
+                    "Home folder": "Home folder: /home/you/.self-host.",
+                    "credential pointer": "Sign in using self-host credentials.",
+                }
+                for missing in (None, *details):
+                    expected = missing is None
+                    mode = "success"
+                    if missing is not None:
+                        mode = "recap-inadequate"
+                    (self.run_dir / "outputs/replies.md").write_text(
+                        " ".join(
+                            text for key, text in details.items() if key != missing
+                        )
+                    )
+                    result = self.judge(
+                        mode,
+                        assertions=ev["assertions"],
+                        env={"EVAL_TEST_MISSING_RECAP_FIELD": str(missing)},
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(self.grade().returncode, 0)
+                    grading = json.loads((self.run_dir / "grading.json").read_text())
+                    self.assertEqual(grading["summary"]["total"], len(ev["assertions"]))
+                    self.assertEqual(
+                        [row["text"] for row in grading["expectations"]],
+                        [row["text"] for row in ev["assertions"]],
+                    )
+                    self.assertIs(grading["completion_assessment"]["passed"], expected)
+                    self.assertEqual(grading["summary"]["pass_rate"], 1)
+                    self.assertIs(grading["acceptance_passed"], expected)
+                    if not expected:
+                        self.assertFalse(grading["acceptance_passed"])
+                result = self.judge("success", assertions=ev["assertions"])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                metrics = json.loads(
+                    (self.run_dir / "raw/judge-metrics.json").read_text()
+                )
+                metrics.pop("completion_assessment")
+                self.write("raw/judge-metrics.json", metrics)
+                self.assertNotEqual(self.grade().returncode, 0)
+                self.assertFalse((self.run_dir / "grading.json").exists())
+                for mode in (
+                    "recap-missing",
+                    "recap-no-passed",
+                    "recap-no-evidence",
+                    "recap-invalid-passed",
+                    "recap-empty-evidence",
+                    "recap-invalid-object",
+                ):
+                    result = self.judge(mode, assertions=ev["assertions"])
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse((self.run_dir / "judged.json").exists())
+                    self.assertNotEqual(self.grade().returncode, 0)
+                    self.assertFalse((self.run_dir / "grading.json").exists())
+                for criterion in (None, "", "  "):
+                    self.metadata["recap_assessment"] = criterion
+                    result = self.judge(assertions=ev["assertions"])
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotEqual(self.grade().returncode, 0)
+                self.metadata["recap_assessment"] = ev["recap_assessment"]
+                for incomplete in (None, {"home": observation["home"], "apps": []}):
+                    self.write(
+                        "raw/metrics.json",
+                        {
+                            "tokens": 10,
+                            "errors": [],
+                            "valid": True,
+                            "completion_observation": incomplete,
+                        },
+                    )
+                    result = self.judge(assertions=ev["assertions"])
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotEqual(self.grade().returncode, 0)
 
     def test_failed_regrading_removes_previous_score(self):
         result = self.grade()
@@ -433,6 +579,36 @@ class GradingCLI(unittest.TestCase):
         result = self.grade()
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.run_dir / "grading.json").exists())
+        ev = json.loads((ROOT / "evals/evals.json").read_text())["evals"][6]
+        self.metadata.update(
+            {
+                "judgment_schema": 2,
+                "completion": ev["completion"],
+                "completion_criteria": ev["completion_criteria"],
+                "recap_assessment": ev["recap_assessment"],
+            }
+        )
+        execution = {
+            "tokens": 10,
+            "errors": [],
+            "valid": True,
+            "completion_observation": {
+                "home": "/home/you/.self-host",
+                "apps": [{"id": "jellyfin", "url": "http://192.168.1.50:8096"}],
+            },
+        }
+        self.write("raw/metrics.json", execution)
+        result = self.judge(assertions=ev["assertions"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        criterion = self.metadata["recap_assessment"]
+        self.metadata["recap_assessment"] += " Changed criterion."
+        self.write("../../eval_metadata.json", self.metadata)
+        self.assertNotEqual(self.grade().returncode, 0)
+        self.metadata["recap_assessment"] = criterion
+        self.write("../../eval_metadata.json", self.metadata)
+        execution["completion_observation"]["home"] = "/home/changed/.self-host"
+        self.write("raw/metrics.json", execution)
+        self.assertNotEqual(self.grade().returncode, 0)
 
     def test_incomplete_judgment_elsewhere_blocks_positional_grading(self):
         result = self.judge()

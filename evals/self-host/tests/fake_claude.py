@@ -81,6 +81,28 @@ def verify_goal():
             and operation[0] == "status"
         ):
             sys.exit(command.stderr or "fake goal command failed")
+    observation = os.environ.get("EVAL_TEST_LATE_OBSERVATION")
+    if observation:
+        late = json.loads(observation)
+        with open(harness / late["log"], "a") as output:
+            output.write(
+                json.dumps(
+                    {
+                        "ts": time.time(),
+                        "turn": 1,
+                        "argv": late["argv"],
+                        "exit_code": late["exit_code"],
+                    }
+                )
+                + "\n"
+            )
+        if late["reverify"]:
+            subprocess.run(
+                [sys.executable, str(binary), "status", "--json"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
 
 args = sys.argv[1:]
@@ -282,6 +304,45 @@ if "--json-schema" in args and not result["is_error"]:
     value = json.loads(result["result"])
     if prompt.startswith("You are grading"):
         value = {"verdicts": value}
+        schema = json.loads(args[args.index("--json-schema") + 1])
+        if "completion_assessment" in schema["required"]:
+            if (
+                not all(
+                    text in prompt
+                    for text in (
+                        "purpose",
+                        "Address",
+                        "Home folder",
+                        "self-host credentials",
+                        "Verified CLI inventory",
+                        "jellyfin",
+                        "done flag",
+                    )
+                )
+                or "with_skill" in prompt
+            ):
+                sys.exit("missing or unblinded independent Recap inputs")
+            value["completion_assessment"] = {
+                "passed": mode != "recap-inadequate",
+                "evidence": "The handoff contains all required details.",
+            }
+            if mode == "recap-inadequate":
+                value["completion_assessment"]["evidence"] = (
+                    "The handoff omits "
+                    + os.environ.get("EVAL_TEST_MISSING_RECAP_FIELD", "Home folder")
+                )
+            if mode == "recap-missing":
+                value.pop("completion_assessment")
+            elif mode == "recap-no-passed":
+                value["completion_assessment"].pop("passed")
+            elif mode == "recap-no-evidence":
+                value["completion_assessment"].pop("evidence")
+            elif mode == "recap-invalid-passed":
+                value["completion_assessment"]["passed"] = "yes"
+            elif mode == "recap-empty-evidence":
+                value["completion_assessment"]["evidence"] = "  "
+            elif mode == "recap-invalid-object":
+                value["completion_assessment"] = []
     else:
         value.setdefault("completed_steps", [])
     result["structured_output"] = value

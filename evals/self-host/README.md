@@ -72,6 +72,9 @@ agent through inspect, plan, approval, apply, verify.
   the last successful CLI Status observation. A person's `done` cannot bypass
   missing, failed or stale verification after a change. It never passes an
   assertion: Recap quality, approval and guide failures still require grading.
+  Freshness includes recorded host and Docker mutation attempts classified by
+  the existing grading checks, even when they failed; a later successful Status
+  observation is required. Read-only fixture observations do not stale it.
 - **Platforms.** Stub host tools simulate OS details and installer commands.
   Drive folders are mapped into the workspace. These are fixture scenarios,
   not installation proofs on those operating systems. A schema-validated
@@ -104,6 +107,18 @@ agent through inspect, plan, approval, apply, verify.
   even for positional run arguments. Regrading invalidates old score files
   before validation; a failed judge preflight cannot reuse old verdicts.
   Judgments are tied to hashes of their assertions and conversation inputs.
+  New batches record `judgment_schema: 2`. All four newcomer scenarios require
+  a separate blind `completion_assessment` of the Recap in the same judge call,
+  including WSL. It checks every installed App's purpose and Address, the Home
+  folder and the credential pointer without secrets, against a filtered verified
+  CLI inventory. The criterion and inventory are part of the judgment fingerprint.
+  Missing or malformed assessments, criteria or inventories invalidate grading;
+  a negative assessment is a recorded failure, not an invalid model response.
+  The original assertions, counts and assertion-only pass rates remain unchanged.
+  `grading.json` adds the assessment and `acceptance_passed`; a failed Recap also
+  appears in viewer review notes. Assertion-only aggregates do not establish
+  completion acceptance. Historical batches without the new schema retain
+  their previous judgment contract; this does not regrade historical evidence.
   Older judgments without these fingerprints must be judged again, not
   backfilled by hand. Use a new
   iteration number for every attempt; existing evidence is not overwritten.
@@ -112,7 +127,10 @@ agent through inspect, plan, approval, apply, verify.
   routers, fixtures and stubs, not live checkout links.
 - **Ground truth.** Scripted checks read the stubs' logs and the agent's actual
   replies, never a transcript the agent wrote about itself. Judge checks see
-  only the replies and the command list, blind to the configuration.
+  the replies and the command list, blind to the configuration. Newcomer Recap
+  assessment also sees the verified App inventory and Home folder, not secrets
+  or guide/configuration labels. Neither the person saying `done` nor the CLI
+  inventory substitutes for an adequate handoff in the assistant's actual replies.
 
 ## Running an iteration
 
@@ -183,23 +201,23 @@ models, selected evals, repetitions, parallelism, timeout and start time;
 
 Each `eval-*/<configuration>/run-*` contains:
 
-| File                                                                    | What to inspect                                                                           |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `eval_metadata.json`                                                    | Request, simulated-person facts, turn limit and assertions shown in the viewer            |
-| `raw/inputs.json`                                                       | Scenario and SHA-256 fingerprints of the copied guide and router; absent router is `null` |
-| `raw/guide.md`, `raw/router/`, `raw/scenario/`                          | Actual frozen inputs used by this run; scenario symlinks are flattened                    |
-| `raw/turn-N.jsonl`                                                      | Actual Claude stream: tool calls, results, model usage and errors                         |
-| `raw/turn-N.stderr.txt`, `raw/person-N.json`, `raw/person-N.stderr.txt` | Raw diagnostics retained even when a model call fails                                     |
-| `raw/invocations.jsonl`                                                 | Stub `self-host` calls with arguments, timestamps and turns                               |
-| `raw/docker.jsonl`, `raw/host.jsonl`                                    | Stub engine and host-tool calls, when used                                                |
-| `raw/ask.jsonl`                                                         | Questions and clickable options, when used                                                |
-| `raw/person.jsonl`                                                      | Simulated replies, approval labels, usage and cost                                        |
-| `raw/metrics.json`                                                      | Execution validity, errors, permission denials and agent usage                            |
-| `outputs/conversation.md`                                               | Readable conversation including tool calls and results; long tool output is truncated     |
-| `outputs/replies.md`, `outputs/commands.md`                             | Material given to the blind judge                                                         |
-| `judged.json`, `grading.json`                                           | Judge verdicts, scripted checks and their evidence                                        |
-| `raw/judge.json`, `raw/judge.stderr.txt`, `raw/judge-metrics.json`      | Judge response, diagnostics, model, usage, reported cost and validity                     |
-| `timing.json`                                                           | Agent-only duration, tokens including cache usage, and reported cost                      |
+| File                                                                    | What to inspect                                                                               |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `eval_metadata.json`                                                    | Request, simulated-person facts, turn limit and assertions shown in the viewer                |
+| `raw/inputs.json`                                                       | Scenario and SHA-256 fingerprints of the copied guide and router; absent router is `null`     |
+| `raw/guide.md`, `raw/router/`, `raw/scenario/`                          | Actual frozen inputs used by this run; scenario symlinks are flattened                        |
+| `raw/turn-N.jsonl`                                                      | Actual Claude stream: tool calls, results, model usage and errors                             |
+| `raw/turn-N.stderr.txt`, `raw/person-N.json`, `raw/person-N.stderr.txt` | Raw diagnostics retained even when a model call fails                                         |
+| `raw/invocations.jsonl`                                                 | Stub `self-host` calls with arguments, timestamps and turns                                   |
+| `raw/docker.jsonl`, `raw/host.jsonl`                                    | Stub engine and host-tool calls, when used                                                    |
+| `raw/ask.jsonl`                                                         | Questions and clickable options, when used                                                    |
+| `raw/person.jsonl`                                                      | Simulated replies, approval labels, usage and cost                                            |
+| `raw/metrics.json`                                                      | Execution validity, errors, permission denials, agent usage and verified completion inventory |
+| `outputs/conversation.md`                                               | Readable conversation including tool calls and results; long tool output is truncated         |
+| `outputs/replies.md`, `outputs/commands.md`                             | Material given to the blind judge                                                             |
+| `judged.json`, `grading.json`                                           | Original verdicts/checks; new newcomer grades also carry independent Recap acceptance         |
+| `raw/judge.json`, `raw/judge.stderr.txt`, `raw/judge-metrics.json`      | Judge response, diagnostics, model, usage, reported cost and validity                         |
+| `timing.json`                                                           | Agent-only duration, tokens including cache usage, and reported cost                          |
 
 Follow a turn from the request to `raw/turn-N.jsonl`, then compare its tool call
 with the timestamped stub log. Judge evidence is interpretation; command logs

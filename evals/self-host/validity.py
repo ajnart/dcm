@@ -100,13 +100,81 @@ def require_iteration(directory, runs):
         require_run(run)
 
 
+def recap_criterion(meta):
+    version = meta.get("judgment_schema")
+    if version is None:
+        return None
+    if type(version) is not int or version != 2:
+        raise ValueError("unsupported judgment schema")
+    if meta.get("completion") != "install":
+        return None
+    criterion = meta.get("recap_assessment")
+    if not isinstance(criterion, str) or not criterion.strip():
+        raise ValueError("missing independent Recap criterion")
+    return criterion
+
+
+def recap_observation(metrics):
+    observation = metrics.get("completion_observation")
+    if (
+        not isinstance(observation, dict)
+        or not isinstance(observation.get("home"), str)
+        or not observation["home"].strip()
+        or not isinstance(observation.get("apps"), list)
+        or not observation["apps"]
+        or any(
+            not isinstance(app, dict)
+            or not isinstance(app.get("id"), str)
+            or not app["id"].strip()
+            or not isinstance(app.get("url"), str)
+            or not app["url"].strip()
+            for app in observation["apps"]
+        )
+    ):
+        raise ValueError("missing or invalid verified Recap observation")
+    return {
+        "home": observation["home"],
+        "apps": [
+            {
+                key: app[key]
+                for key in ("id", "description", "url", "addresses")
+                if key in app
+            }
+            for app in observation["apps"]
+        ],
+    }
+
+
+def require_recap_assessment(assessment):
+    if (
+        not isinstance(assessment, dict)
+        or type(assessment.get("passed")) is not bool
+        or not isinstance(assessment.get("evidence"), str)
+        or not assessment["evidence"].strip()
+    ):
+        raise ValueError("missing or invalid independent Recap assessment")
+    return {"passed": assessment["passed"], "evidence": assessment["evidence"]}
+
+
 def judgment_digest(run):
     meta_path = os.path.join(
         os.path.dirname(os.path.dirname(run)), "eval_metadata.json"
     )
     with open(meta_path) as source:
-        assertions = json.load(source)["assertions"]
-    inputs = {"assertions": assertions}
+        meta = json.load(source)
+    inputs = {"assertions": meta["assertions"]}
+    criterion = recap_criterion(meta)
+    if meta.get("judgment_schema") == 2:
+        inputs.update(
+            {
+                "judgment_schema": 2,
+                "completion": meta["completion"],
+                "completion_criteria": meta["completion_criteria"],
+            }
+        )
+    if criterion is not None:
+        inputs["recap_assessment"] = criterion
+        inputs["completion_observation"] = recap_observation(require_run(run))
     for name in ("replies.md", "commands.md"):
         with open(os.path.join(run, "outputs", name), "rb") as source:
             inputs[name] = hashlib.sha256(source.read()).hexdigest()

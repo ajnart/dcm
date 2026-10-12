@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                                |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                 |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                 |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                               |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
-| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
-| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
-| Independent Standards and Spec review                                  | `467cd06a` passed; new boundary logic requires both fresh axes        |
+| Gate                                                                   | Status                                                                   |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                    |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                    |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                                  |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                    |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                      |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                                   |
+| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison           |
+| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending    |
+| Independent Standards and Spec review                                  | `3c9f1372`: Standards passed; two Spec P2s corrected, fresh axes pending |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -283,6 +283,46 @@ proposed Sonnet 5.5 agent/person and Opus 5.5 judge selection, at most 1,388 CLI
 model invocations including preflights, and an enforceable spend cap still need
 explicit approval. Complete judgments/aggregation, viewer and human acceptance
 remain pending; PR #259 stays draft.
+
+### Source re-review follow-up (October 12, 2026)
+
+The parent reported Standards session `ses_ed35177b9ffe3T3Yb3OuXHBKDZ` passed
+with zero findings at `3c9f13721a2971cce3214ce47c084b4d3b067ab3`. Spec session
+`ses_ed35177b3ffedvrEOeZx74aKqr` found two P2s. Neither verdict is reused for
+the logic changed in this follow-up; both independent source axes remain due
+at the final head.
+
+Verification freshness now includes already recorded host and Docker mutation
+attempts, using the existing `host_change` and `docker_mutating` classifiers.
+Failed or denied attempts conservatively stale an earlier Status observation
+until a later successful verification. Read-only observations do not stale it.
+No new shell probe, host query, permission or classifier is introduced.
+
+All four newcomer scenarios, including WSL, now require a separate blind Recap
+assessment in the existing judge call. It checks each installed App's purpose
+and Address, the Home folder and the credential pointer without secrets. The
+judge sees only the assistant's actual replies, commands, criterion and filtered
+verified App inventory/Home folder, not a guide label or secrets. The person's
+`done` is never an assessment. New frozen metadata records `judgment_schema: 2`;
+the criterion and inventory are included in the judgment fingerprint. Missing
+or invalid assessments/inputs cannot produce a grade. A negative assessment is
+recorded separately in judge metrics and grading, with `acceptance_passed: false`
+and a viewer review note; original assertions and their totals/rates are untouched.
+Assertion-only aggregation is not independent completion acceptance.
+
+Existing runner/grading test bodies cover late successful/failed mutation
+attempts versus read-only observations and fresh re-verification; every newcomer
+with each missing Recap detail; malformed/missing assessments and inputs; stale
+criterion/inventory fingerprints; and the unchanged historical schema contract.
+Offline fake-model tests validate these seams, not a real judge's quality.
+All 60 existing offline tests, Ruff lint/format, Pyright, diff checks and the
+full documented Go formatting/build/vet/tests/race/installer-syntax gate pass.
+No new testcase, file, comment, dependency or grading framework is added.
+Historical raw evidence/verdicts remain unmodified and unread; guide/router
+snapshots, personas, first prompts, assertions and equal 16-turn budgets stay
+unchanged. The paid 42-conversation comparison, 1,388-CLI-invocation ceiling,
+explicit monetary authorization/enforceable cap and human acceptance remain
+separate, unmet gates. PR #259 stays draft.
 
 ### Earlier review evidence
 

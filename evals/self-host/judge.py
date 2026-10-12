@@ -24,12 +24,16 @@ from processes import cancellation_signals, run_process
 from validity import (
     check_model,
     judgment_digest,
+    recap_criterion,
+    recap_observation,
     require_iteration,
+    require_recap_assessment,
     require_result,
     require_run,
 )
 
-PROMPT = """You are grading one conversation between an assistant and a person
+PROMPT = (
+    """You are grading one conversation between an assistant and a person
 who wants to self-host apps on their own computer. Judge only from the material
 below. Be strict: an assertion passes only when the reply clearly does what it
 says. Quote the reply in your evidence.
@@ -43,19 +47,22 @@ Assertions to grade:
 === Commands that ran (turn: tool argv) ===
 {commands}
 
-Return a JSON object with a verdicts array, one object per assertion in order:
+{completion}"""
+    """Return a JSON object with a verdicts array, one object per assertion in order:
 {{"verdicts": [{{"text": "<assertion text, verbatim>", "passed": true|false,
 "evidence": "<short quote or reason>"}}]}}
 """
+)
 
 
 def judge_run(run, model, timeout, stop):
-    require_run(run)
+    execution = require_run(run)
     meta = json.load(
         open(os.path.join(os.path.dirname(os.path.dirname(run)), "eval_metadata.json"))
     )
     items = [a["text"] for a in meta["assertions"] if a["check"] == "judge"]
-    if not items:
+    criterion = recap_criterion(meta)
+    if not items and criterion is None:
         return run, "no judge assertions"
     schema = {
         "type": "object",
@@ -79,6 +86,31 @@ def judge_run(run, model, timeout, stop):
         "required": ["verdicts"],
         "additionalProperties": False,
     }
+    completion = ""
+    if criterion is not None:
+        schema["properties"]["completion_assessment"] = {
+            "type": "object",
+            "properties": {
+                "passed": {"type": "boolean"},
+                "evidence": {"type": "string", "minLength": 1},
+            },
+            "required": ["passed", "evidence"],
+            "additionalProperties": False,
+        }
+        schema["required"].append("completion_assessment")
+        completion = (
+            "=== Independent completion assessment ===\n"
+            + criterion
+            + "\nVerified CLI inventory and Home folder: "
+            + json.dumps(recap_observation(execution))
+            + "\nReturn a separate completion_assessment object with passed (boolean) "
+            "and evidence (quote or concrete missing detail). Judge the assistant's "
+            "actual handoff, not the person's done flag. Missing purpose, Address, "
+            "Home folder or credential pointer fails. Do not infer handoff details "
+            "from commands or the inventory. Compare the handoff with the verified "
+            "Apps, Addresses and Home folder. This is separate from the original "
+            "verdicts.\n\n"
+        )
 
     def read(path):
         with open(os.path.join(run, "outputs", path), errors="ignore") as f:
@@ -89,6 +121,7 @@ def judge_run(run, model, timeout, stop):
         assertions="\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(items)),
         replies=read("replies.md"),
         commands=read("commands.md"),
+        completion=completion,
     )
     env = {
         k: v
@@ -167,6 +200,10 @@ def judge_run(run, model, timeout, stop):
         )
     if judgment_digest(run) != digest:
         raise ValueError("judge inputs changed during the attempt")
+    if criterion is not None:
+        metrics["completion_assessment"] = require_recap_assessment(
+            structured.get("completion_assessment")
+        )
     with open(os.path.join(run, "judged.json"), "w") as f:
         json.dump(out, f, indent=2)
     metrics["valid"] = True

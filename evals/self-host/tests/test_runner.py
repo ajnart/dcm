@@ -79,6 +79,12 @@ class RunnerCLI(unittest.TestCase):
         original = (snapshot / "apps-list.json").read_text()
         source.write_text("changed after execution")
         self.assertEqual((snapshot / "apps-list.json").read_text(), original)
+        metadata = json.loads((run / "eval_metadata.json").read_text())
+        self.assertEqual(metadata["judgment_schema"], 2)
+        self.assertIn("purpose", metadata["recap_assessment"])
+        metrics = json.loads((run / "raw/metrics.json").read_text())
+        self.assertTrue(metrics["completion_observation"]["home"])
+        self.assertEqual(metrics["completion_observation"]["apps"][0]["id"], "jellyfin")
 
     def test_recap_runtime_path_does_not_reveal_configuration(self):
         result = self.execute("recap-home", config="new_skill=skills/self-host")
@@ -123,6 +129,44 @@ class RunnerCLI(unittest.TestCase):
                 self.assertEqual(
                     completed.returncode, 0, completed.stdout + completed.stderr
                 )
+        observations = (
+            ("host.jsonl", ["sudo", "usermod", "-aG", "docker", "sam"], True),
+            ("host.jsonl", ["brew", "install", "orbstack"], True),
+            ("host.jsonl", ["systemctl", "restart", "docker"], True),
+            ("host.jsonl", ["uname", "-a"], False),
+            ("docker.jsonl", ["--context", "fixture", "compose", "restart"], True),
+            ("docker.jsonl", ["run", "--rm", "web", "echo", "--help"], True),
+            ("docker.jsonl", ["compose", "ps", "--format", "json"], False),
+        )
+        for index, (log, argv, changed) in enumerate(observations):
+            for exit_code in (0, 1):
+                for reverify in (False, True):
+                    with self.subTest(
+                        argv=argv, exit_code=exit_code, reverify=reverify
+                    ):
+                        self.env["EVAL_TEST_LATE_OBSERVATION"] = json.dumps(
+                            {
+                                "log": log,
+                                "argv": argv,
+                                "exit_code": exit_code,
+                                "reverify": reverify,
+                            }
+                        )
+                        result = self.execute(
+                            "completion-scopes",
+                            extra=(
+                                "--workspace",
+                                str(
+                                    self.root
+                                    / ("late-%d-%d-%s" % (index, exit_code, reverify))
+                                ),
+                            ),
+                        )
+                        self.assertEqual(
+                            result.returncode == 0,
+                            not changed or reverify,
+                            result.stdout + result.stderr,
+                        )
 
     def test_turn_limit_is_not_silent_completion(self):
         result = self.execute("turn-cap")

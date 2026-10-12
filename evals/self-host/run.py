@@ -38,9 +38,9 @@ import threading
 import time
 import uuid
 
-from checks import commands, is_mutating, selected_apps
+from checks import commands, docker_mutating, host_change, is_mutating, selected_apps
 from processes import cancellation_signals, run_process
-from validity import check_cli, check_model, require_result
+from validity import check_cli, check_model, recap_criterion, require_result
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -562,12 +562,22 @@ def completion_evidence(ev, harness):
         observation = json.load(source)
     calls = commands(read_jsonl(os.path.join(harness, "invocations.jsonl")))
     changes = [call for call in calls if is_mutating(call)]
+    change_times = [call["ts"] for call in changes]
+    for name, classify in (
+        ("host.jsonl", host_change),
+        ("docker.jsonl", docker_mutating),
+    ):
+        change_times.extend(
+            call.get("ts", observation["ts"])
+            for call in read_jsonl(os.path.join(harness, name))
+            if classify(call["argv"])
+        )
     statuses = [call for call in calls if call["cmd"] == "status"]
     if (
         not changes
         or not statuses
         or statuses[-1]["ts"] != observation["ts"]
-        or max(call["ts"] for call in changes) >= observation["ts"]
+        or max(change_times) >= observation["ts"]
     ):
         return {"verified": False, "reason": "CLI Status must succeed after the change"}
     status = observation["status"]
@@ -768,6 +778,19 @@ def run_one(
             )
             break
         person_log.append(answer)
+        if verification["verified"]:
+            observed = verification["status"]
+            total["completion_observation"] = {
+                "home": observed.get("home"),
+                "apps": [
+                    {
+                        key: app[key]
+                        for key in ("id", "description", "url", "addresses")
+                        if key in app
+                    }
+                    for app in observed["apps"]
+                ],
+            }
         if answer["done"] and not verification["verified"]:
             stop.set()
             total["errors"].append(
@@ -901,6 +924,9 @@ def main(stop):
     unknown = wanted - {ev["id"] for ev in evals["evals"]}
     if unknown:
         ap.error("unknown eval ids: %s" % sorted(unknown))
+    for ev in evals["evals"]:
+        if not wanted or ev["id"] in wanted:
+            recap_criterion(dict(ev, judgment_schema=2))
     for config in configs:
         if not os.path.isfile(config["guide"]):
             ap.error("configuration guide does not exist")
@@ -948,6 +974,8 @@ def main(stop):
                 "assertions": ev["assertions"],
                 "completion": ev["completion"],
                 "completion_criteria": ev["completion_criteria"],
+                "judgment_schema": 2,
+                "recap_assessment": ev.get("recap_assessment"),
             },
         )
         for config in configs:

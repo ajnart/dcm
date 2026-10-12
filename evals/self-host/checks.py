@@ -16,7 +16,13 @@ import glob
 import json
 import os
 
-from validity import judgment_digest, require_iteration, require_run
+from validity import (
+    judgment_digest,
+    recap_criterion,
+    require_iteration,
+    require_recap_assessment,
+    require_run,
+)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SENTINEL = "EVAL-SENTINEL-"
@@ -479,6 +485,7 @@ def grade(run):
         os.path.dirname(os.path.dirname(run)), "eval_metadata.json"
     )
     meta = json.load(open(meta_path))
+    criterion = recap_criterion(meta)
     raw = os.path.join(run, "raw")
     replies = ""
     rp = os.path.join(run, "outputs", "replies.md")
@@ -518,7 +525,8 @@ def grade(run):
     jp = os.path.join(run, "judged.json")
     if os.path.exists(jp):
         judged = {j["text"]: j for j in json.load(open(jp))}
-    if any(a["check"] == "judge" for a in meta["assertions"]):
+    completion_assessment = None
+    if any(a["check"] == "judge" for a in meta["assertions"]) or criterion is not None:
         judgment = os.path.join(raw, "judge-metrics.json")
         if not os.path.isfile(judgment):
             raise ValueError("%s: missing or failed judge attempt" % run)
@@ -528,6 +536,10 @@ def grade(run):
             "input_sha256"
         ) != judgment_digest(run):
             raise ValueError("%s: missing, failed or stale judge attempt" % run)
+        if criterion is not None:
+            completion_assessment = require_recap_assessment(
+                metrics.get("completion_assessment")
+            )
 
     expectations = []
     for a in meta["assertions"]:
@@ -589,6 +601,19 @@ def grade(run):
             else [],
         },
     }
+    if completion_assessment is not None:
+        grading["completion_assessment"] = dict(
+            completion_assessment, criteria=criterion
+        )
+        grading["acceptance_passed"] = (
+            all(row["passed"] for row in expectations)
+            and completion_assessment["passed"]
+        )
+        if not completion_assessment["passed"]:
+            grading["user_notes_summary"]["needs_review"].append(
+                "Independent Recap assessment failed: "
+                + completion_assessment["evidence"]
+            )
     summary = "%s: %d/%d" % (
         os.path.relpath(run, os.path.dirname(os.path.dirname(os.path.dirname(run)))),
         passed,
