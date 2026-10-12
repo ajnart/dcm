@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                        |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                         |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                         |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                       |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 23 invalid; repeated completion label correction    |
-| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
-| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
+| Gate                                                                   | Status                                                         |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                          |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                          |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                        |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution          |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+            |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                         |
+| Complete real-model batch with both guides and three repetitions       | Iteration 24 six-run Mint smoke valid; full comparison pending |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending   |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes  |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -326,6 +326,33 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   Pyright pass; both independent review axes cleared the change. Another
   real-model attempt requires fresh bounded authorization.
   Guides, assertions and budgets remain unchanged; PR #259 stays draft.
+
+- **Iteration 24: valid three-repetition Mint comparison.** The user renewed
+  authorization for six Mint conversations, equal 16-turn limits and complete
+  judgments/viewer only after valid execution. Both model preflights passed;
+  all six conversations completed without denials or execution errors. Complete
+  blind judgments preceded grading. Revised scored 10/12, 11/12 and 11/12
+  (32/36); original scored 10/12 in each repetition (30/36). All eight scripted
+  checks passed in every run, and all six separate Recap assessments passed.
+  Every `acceptance_passed` remains false because original assertions failed.
+
+  Both guides failed plain-language grading in all repetitions. Some evidence
+  conflicts with the prescribed Docker experience question, but other failures
+  identify actual sudo/group jargon, raw Status terminology, confusing Home
+  folder wording and long runtime paths. Revised explicitly offered the media
+  choice in two repetitions; original did not in any. Some people volunteered
+  a no-download preference/folder, so strict offer-and-ask grading can penalize
+  an already settled choice; iteration 15 was lenient in such a case. Verdicts
+  are retained and those limitations are noted, not repaired into passes.
+
+  The supplied aggregation and static viewer were generated and opened with
+  actual model/repetition provenance and caveats. Revised task time averaged
+  42.5 seconds and 423177 cache-inclusive tokens, versus original 41.8 seconds
+  and 374346; person and judge usage are separate. Three Mint repetitions do
+  not establish cross-scenario guide quality or real installation acceptance.
+  No full comparison was authorized by this smoke selection; a fresh bounded
+  nine-scenario batch and human viewer feedback remain due. PR #259 stays draft;
+  guide improvements remain in #257 after trustworthy evidence and feedback.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
