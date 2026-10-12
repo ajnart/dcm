@@ -1,0 +1,18 @@
+internal/apps/audiobookshelf/audiobookshelf.go
+  h_d6e478ca18e517 130-131
+internal/apps/audiobookshelf/homarr_credentials.go
+  h_d6e478ca18e517 191,194,197,201,207,210,214,224,227,229-230,233,239,241,243-247,249-266,271,277,280,284,290,293,295-299,373
+internal/apps/homarr/integration_audiobookshelf.go
+  h_d6e478ca18e517 3-13,25-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8c7048b5f4cc67f39e04f412415cbd01711f7794",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
