@@ -1,0 +1,23 @@
+docs/homarr-nzbget-proof.md
+  s_59ffa5bfdcd3ba::t_a48e9101ab8021 10-11,23-27,31-43,112-123,163-168
+internal/apps/nzbget/nzbget.go
+  s_59ffa5bfdcd3ba::t_c097278585294e 146-147,154,157-164,168-170,172-179,182-183,186
+internal/apps/nzbget/nzbget_test.go
+  s_59ffa5bfdcd3ba::t_cd29a85d1f1b22 202-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "52eab49981b87fed11ba6a9e152ebf1eab2a07ab",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
