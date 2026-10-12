@@ -1,0 +1,18 @@
+docs/homarr-netdata-proof.md
+  h_d6e478ca18e517 55-57,109,126,131-163
+internal/apps/netdata/metrics.go
+  h_d6e478ca18e517 64-69
+internal/catalog/generated_test.go
+  h_d6e478ca18e517 10,109-110,129,156-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87a69b36ab077b5683b47932935f49a5fa41280b",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
