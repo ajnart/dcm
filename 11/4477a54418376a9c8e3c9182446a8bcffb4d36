@@ -1,0 +1,20 @@
+docs/aria2-homarr-prerequisite-proof.md
+  h_d6e478ca18e517 49-58,101-108
+docs/catalog/traps/aria2.md
+  h_d6e478ca18e517 12
+internal/apps/aria2/aria2.go
+  h_d6e478ca18e517 230-234
+internal/apps/aria2/aria2_test.go
+  h_d6e478ca18e517 100,115-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "114477a54418376a9c8e3c9182446a8bcffb4d36",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
