@@ -1,0 +1,32 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 24-34,287-326
+evals/self-host/README.md
+  h_d6e478ca18e517 75-77,110-121,130-133,204-220
+evals/self-host/checks.py
+  h_d6e478ca18e517 19-25,488,528-529,539-542,604-616
+evals/self-host/evals/evals.json
+  h_d6e478ca18e517 10,199,261,323
+evals/self-host/judge.py
+  h_d6e478ca18e517 27-28,30,35-36,50-51,55,59,64-65,89-113,124,203-206
+evals/self-host/run.py
+  h_d6e478ca18e517 41,43,565-574,580,781-793,927-929,977-978
+evals/self-host/tests/fake_claude.py
+  h_d6e478ca18e517 84-105,307-345
+evals/self-host/tests/test_grading.py
+  h_d6e478ca18e517 395-398,412-553,582-611
+evals/self-host/tests/test_runner.py
+  h_d6e478ca18e517 82-87,132-169
+evals/self-host/validity.py
+  h_d6e478ca18e517 103-158,164-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "16571438bc18d9c0914cf1f4c3af512c427d78df",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
