@@ -66,7 +66,8 @@ Remaining focused coverage is exactly the two baseline Bazarr App tests:
 `TestSetupThenCheckThenRerunSkips` and
 `TestFailingStepHintNamesTheSetupCommand`. The first checks successful Setup and
 Check, saved API credentials, valid zero-count responses and rerun preservation
-without configuration rereads or authentication updates. Its maintained fixture
+without authentication updates, with configuration still present. Missing-config
+or configuration-reread avoidance is not test coverage. Its maintained fixture
 serves `/`, `/api/system/settings`, `/api/system/status` and `/api/badges`. The
 second covers a failed settings update and its Settings hint. Credential-change,
 malformed-data rejection and Homarr descriptor/count-guard behavior remain
@@ -193,3 +194,24 @@ credential-change recovery and shared removal/reinstall acceptance remain held
 for a separately authorized bounded proof. No runtime consent is active and no
 Docker, browser, installer, host/provider/account, protected secret/profile or
 Gatus candidate/archive work was performed.
+
+## Stage 3: missing-config scenario removal, source only
+
+Starting pin: `9bb75b06cd1983c75f606e58c603d7e58cbd837b`; frozen reference remains
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`. With parent/oracle approval, remove only
+the confirmed agent-authored three-line `os.Remove(config.yaml)` block inside
+`TestSetupThenCheckThenRerunSkips`. That added scenario had no explicit human
+request and was not required API fixture maintenance. Both baseline functions,
+API response fixtures, saved-key and settings-write idempotence assertions remain.
+All production, preflight, registry and common bytes stay identical to the
+starting pin; previously removed tests stay absent. No tests, helpers, functions,
+subtests or scenarios are added. Missing-config/no-reread avoidance, credential
+changes and descriptor/preflight/native guards remain source/schema/compile-only.
+
+The corrected remaining test tree passed the cached Go 1.26.0 offline gate
+under the same four environment settings recorded above: empty `gofmt -l .`,
+build, both vet commands, focused/full tests, race tests for TUI/Activity/Homarr/
+Bazarr, `bash -n install.sh` and `git diff --check`. Tests used `-count=1`;
+the removed fault trigger was absent from every run. No e2e-tagged runtime ran.
+Parent-owned fresh fixed-reference Standards and Spec reviews remain pending;
+native proof is held.

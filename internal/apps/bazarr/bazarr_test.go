@@ -124,9 +124,6 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	if h.Secret(h.Key("api_key")) != apiKey {
 		t.Fatal("Setup did not save the verified API credential")
 	}
-	if err := os.Remove(filepath.Join(h.Dir, "config", "config", "config.yaml")); err != nil {
-		t.Fatal(err)
-	}
 
 	records = nil
 	if err := (bazarr.App{}).Setup(ctx, h); err != nil {
