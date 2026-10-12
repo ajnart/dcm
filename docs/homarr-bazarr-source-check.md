@@ -4,6 +4,13 @@ Issue: [#272](https://github.com/ajnart/selfhost-skills/issues/272).
 Reference base: `573a206e`, [#309](https://github.com/ajnart/selfhost-skills/pull/309).
 The shared [Homarr Link contract](homarr-integration-contract.md) applies.
 
+## Stage 1: historical descriptor-only source phase
+
+The record below describes corrected source
+`b28da7a09d19dbab3b47d61d562c20f7990e3fb9` against the original reference base.
+Its pending registration/reference statements and test gate are historical;
+the frozen-reference normalization record follows the official sources.
+
 ## Credentials and own Setup
 
 The Catalog pins `lscr.io/linuxserver/bazarr:version-v1.6.0`. Bazarr v1.6.0
@@ -104,3 +111,85 @@ Keep the PR draft and the issue open until those conditions are met.
 
 Context7 discovery was attempted but its quota was exhausted. The selected
 contracts were verified directly against official tagged source instead.
+
+## Stage 2: frozen-reference normalization, source only
+
+Normalized source pin: `ee5de2c1939965789649ddf3541441306444d740`.
+The subsequent source-check documentation commit changes no production or tests.
+
+Reference #309 is merged and #262 closed. This phase merges frozen main
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c` normally into the existing Bazarr
+branch at merge `e0bb36bde7a101295bc9280c3fbfcf9379601fff`, preserving corrected
+`b28da7a09d19dbab3b47d61d562c20f7990e3fb9`. No merge conflicts occurred.
+The frozen tree equals final reference evidence commit
+`33e7fbccb7541d2bbf1d81968eb21c35a1b5bfd7`; its tested reference production was
+`89301aff17c86b767f5a45076881f2bb7b41db39`. That Immich proof is not Bazarr proof.
+The current [peer workflow](https://github.com/ajnart/selfhost-skills/blob/main/docs/agents/homarr-integrations.md)
+governs later phases.
+
+The sole registry custodian adds exactly one `bazarrTarget()` call to
+`targets.go`, retaining `existingTargets()` and `immichTarget()` unchanged.
+The leaf uses the existing `target` contract. Its new preflight delegates to
+the already exported, read-only `bazarr.VerifyHomarr(ctx, to)`: each invocation
+reads the saved key, registers it for redaction and freshly probes authenticated
+`/api/system/status` and `/api/badges` through existing HTTP helpers. Common
+`linked` and `add` invoke it before compatibility checks or Homarr credential
+creation/update. It does not call credential Setup, read configuration, store
+keys, change authentication or require the Admin login/UI. This API-readiness
+check does not establish whole Setup, Sonarr/Radarr readiness or provider access.
+Missing/rejected keys retain the Bazarr-then-Homarr Setup recovery instructions.
+
+The integration Address stays `http://bazarr:6767`: the actual adapter appends
+`/api/system/status` and `/api/badges`, so storing an `/api` suffix would duplicate
+it. The browser Address remains separately resolved by the frozen common flow.
+Authenticated Homarr API version `2.4.1`, kind `bazarr` and exact `apiKey`
+credential compatibility remain centrally enforced. No empty credential or
+unauthenticated fallback is introduced.
+
+The unchanged leaf validates authenticated `widget.bazarr.getBadges` data and
+its five nonnegative integer counts and two SignalR strings. Central
+`verifyData` still runs after the leaf, forces Stats refresh and requires an
+advancing positive `updatedAt`, `error: false`, `stale: false` and non-null
+`episodes`, `movies`, `providers`. Their missing-subtitle/throttling meanings
+remain unchanged. Removal/absence never invokes preflight or native data reads.
+Shared reconciliation, ownership, legacy registrations and images are untouched.
+
+Cached Git source comparison confirms these nine Bazarr-scoped files are
+identical at research baseline `ebbd4876d25a51151444a009ab596e1154d62880` and
+recorded reference OCI revision `3d4150e59f600876b7e308f857b2f21572b75348`:
+`packages/definitions/src/integration.ts`,
+`packages/definitions/src/widget-integration-map.ts`,
+`packages/integrations/src/bazarr/bazarr-integration.ts`,
+`packages/integrations/src/bazarr/bazarr-types.ts`,
+`packages/api/src/router/widgets/bazarr.ts`,
+`packages/request-handler/src/bazarr.ts`,
+`packages/widgets/src/bazarr/index.ts`,
+`packages/widgets/src/bazarr/component.tsx` and
+`packages/integrations/src/stats/existing.ts`.
+This is scoped source provenance, not whole-revision equivalence or current
+image attestation; no registry metadata or image was fetched in this phase.
+
+Bazarr App source and its test file remain byte-identical to `b28da7a`.
+No new test files, functions, subtests, independent scenarios, fault matrices,
+comments or dependencies were added. Direct Bazarr coverage remains exactly
+the two baseline tests described above; the descriptor, new preflight routing,
+credential changes and malformed/native data guards are source/schema/compile
+coverage, not newly implemented test or runtime proof.
+
+The normalized production tree passed the local gate in terminal shell
+`sh_13035227d001YlEZe0Pr7AsPnf` using cached Go 1.26.0 with
+`GOFLAGS=-buildvcs=false`, `GOTOOLCHAIN=local`, `GOPROXY=off` and `GOSUMDB=off`:
+empty `gofmt -l .`, focused Bazarr/Homarr tests, `go build ./...`,
+`go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`, race tests for
+TUI/Activity/Homarr/Bazarr, `bash -n install.sh` and `git diff --check`.
+Focused/full/race tests used `-count=1`; no e2e-tagged runtime tests ran.
+Only documentation was completed after this gate; production and test bytes
+remain those verified by it.
+
+Keep #320 draft and #272 open. Fresh independent Standards/Spec reviews and the
+parent's oracle phase gate remain required before counting this normalization.
+Native/rendered values, both installation orders, late-peer scheduling, restart,
+credential-change recovery and shared removal/reinstall acceptance remain held
+for a separately authorized bounded proof. No runtime consent is active and no
+Docker, browser, installer, host/provider/account, protected secret/profile or
+Gatus candidate/archive work was performed.
