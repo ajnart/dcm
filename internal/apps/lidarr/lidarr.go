@@ -36,6 +36,8 @@ func (App) Links() []app.Link   { return nil }
 // api is the pinned Lidarr prefix; it is /api/v1, unlike Sonarr and Radarr.
 const api = "/api/v1"
 
+const recoveryHint = "Preserve Lidarr's configuration and review Settings > General > Security. This Setup supports Lidarr 3.x API v1 with Forms authentication required for every address; unsupported or externally managed authentication needs review. Run self-host setup lidarr to reread its generated API key and retry; do not reinstall to retry."
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
@@ -68,10 +70,12 @@ func request(h *helpers.H, req helpers.Request) helpers.Request {
 }
 
 func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if h.Secret(h.Key("api_key")) == "" {
 		return false, nil
 	}
-	resp, err := h.HTTP(ctx, request(h, helpers.Request{Path: "/system/status"}))
+	resp, err := h.HTTP(ctx, request(h, helpers.Request{Path: "/system/status", NoRedirect: true}))
 	if err != nil {
 		return false, err
 	}
@@ -88,6 +92,23 @@ func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if status.AppName != "Lidarr" || strings.TrimSpace(status.Version) == "" {
 		return false, fmt.Errorf("Lidarr API key verification returned incomplete status data")
 	}
+	parts := strings.Split(status.Version, ".")
+	if len(parts) < 2 || len(parts) > 4 {
+		return false, fmt.Errorf("Lidarr API key verification returned a malformed version")
+	}
+	var major uint64
+	for index, part := range parts {
+		value, err := strconv.ParseUint(part, 10, 31)
+		if err != nil || strings.Trim(part, "0123456789") != "" {
+			return false, fmt.Errorf("Lidarr API key verification returned a malformed version")
+		}
+		if index == 0 {
+			major = value
+		}
+	}
+	if major != 3 {
+		return false, fmt.Errorf("%w: Lidarr's version is outside the supported 3.x API v1 contract; %s", helpers.ErrManual, recoveryHint)
+	}
 	return true, nil
 }
 
@@ -103,6 +124,8 @@ func readAPIKey(ctx context.Context, h *helpers.H) error {
 // loginWorks submits the login form; a failure redirects to a location that
 // carries loginFailed=true.
 func loginWorks(ctx context.Context, h *helpers.H) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/login", NoRedirect: true,
 		Form: map[string][]string{"username": {h.AdminUser()}, "password": {h.AdminPassword()}},
@@ -116,17 +139,71 @@ func loginWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	return !strings.Contains(resp.Header.Get("Location"), "loginFailed=true"), nil
 }
 
-func hostConfig(ctx context.Context, h *helpers.H) (map[string]any, error) {
-	resp, err := h.Expect(ctx, request(h, helpers.Request{Path: "/config/host"}))
+func supportedHostConfig(ctx context.Context, h *helpers.H) (map[string]any, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	if ok, err := keyWorks(ctx, h); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("Lidarr's saved API key is missing; run self-host setup lidarr to reread its generated key")
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{
+		Path: "/api", Header: map[string]string{"X-Api-Key": h.Secret(h.Key("api_key"))}, NoRedirect: true,
+	})
 	if err != nil {
 		return nil, err
 	}
+	if resp.Status == 404 || resp.Status == 405 || resp.Status == 501 {
+		return nil, fmt.Errorf("%w: Lidarr's API discovery is unsupported; %s", helpers.ErrManual, recoveryHint)
+	}
+	if resp.Status != 200 {
+		return nil, fmt.Errorf("Lidarr API discovery returned HTTP %d", resp.Status)
+	}
+	var info struct {
+		Current string `json:"current"`
+	}
+	if err := resp.Decode(&info); err != nil || info.Current == "" {
+		return nil, fmt.Errorf("Lidarr returned malformed API discovery data")
+	}
+	if info.Current != "v1" {
+		return nil, fmt.Errorf("%w: Lidarr does not advertise the supported API v1 contract; %s", helpers.ErrManual, recoveryHint)
+	}
+	resp, err = h.HTTP(ctx, request(h, helpers.Request{Path: "/config/host", NoRedirect: true}))
+	if err != nil {
+		return nil, err
+	}
+	if resp.Status == 404 || resp.Status == 405 || resp.Status == 501 {
+		return nil, fmt.Errorf("%w: Lidarr's host configuration API is unsupported; %s", helpers.ErrManual, recoveryHint)
+	}
+	if resp.Status != 200 {
+		return nil, fmt.Errorf("Lidarr host configuration returned HTTP %d", resp.Status)
+	}
 	var cfg map[string]any
-	return cfg, resp.Decode(&cfg)
+	if err := resp.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("Lidarr returned malformed host configuration")
+	}
+	if id, ok := cfg["id"].(float64); !ok || id != 1 {
+		return nil, fmt.Errorf("Lidarr returned an invalid host configuration identifier")
+	}
+	for _, field := range []string{"authenticationMethod", "authenticationRequired", "username", "password", "passwordConfirmation", "apiKey"} {
+		if _, ok := cfg[field].(string); !ok {
+			return nil, fmt.Errorf("Lidarr returned incomplete or mistyped authentication configuration")
+		}
+	}
+	if cfg["apiKey"] != h.Secret(h.Key("api_key")) {
+		return nil, fmt.Errorf("Lidarr's host configuration does not identify its accepted API key; retry self-host setup lidarr")
+	}
+	if cfg["authenticationMethod"] != "none" && cfg["authenticationMethod"] != "forms" {
+		return nil, fmt.Errorf("%w: Lidarr's authentication method cannot be changed automatically; %s", helpers.ErrManual, recoveryHint)
+	}
+	if cfg["authenticationRequired"] != "enabled" && cfg["authenticationRequired"] != "disabledForLocalAddresses" {
+		return nil, fmt.Errorf("%w: Lidarr's required-authentication mode is unsupported; %s", helpers.ErrManual, recoveryHint)
+	}
+	return cfg, nil
 }
 
 func authConfigured(ctx context.Context, h *helpers.H) (bool, error) {
-	cfg, err := hostConfig(ctx, h)
+	cfg, err := supportedHostConfig(ctx, h)
 	if err != nil {
 		return false, err
 	}
@@ -137,7 +214,7 @@ func authConfigured(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func setAuth(ctx context.Context, h *helpers.H) error {
-	cfg, err := hostConfig(ctx, h)
+	cfg, err := supportedHostConfig(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -146,10 +223,12 @@ func setAuth(ctx context.Context, h *helpers.H) error {
 	cfg["username"] = h.AdminUser()
 	cfg["password"] = h.AdminPassword()
 	cfg["passwordConfirmation"] = h.AdminPassword()
-	id, _ := cfg["id"].(float64)
-	if _, err := h.Expect(ctx, request(h, helpers.Request{
-		Method: "PUT", Path: fmt.Sprintf("/config/host/%d", int(id)), JSON: cfg,
-	})); err != nil {
+	writeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	_, err = h.Expect(writeCtx, request(h, helpers.Request{
+		Method: "PUT", Path: "/config/host/1", JSON: cfg, NoRedirect: true,
+	}))
+	cancel()
+	if err != nil {
 		return err
 	}
 	if h.Poll(ctx, 30*time.Second, func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) }) == nil {
@@ -168,7 +247,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	err := h.Step(ctx, "api-key", "read the Lidarr API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return keyWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return readAPIKey(ctx, h) },
-		Hint:  "Copy the API key from Lidarr > Settings > General into secrets.env as " + h.Key("api_key") + ".",
+		Hint:  recoveryHint,
 	})
 	if err != nil {
 		return err
@@ -176,17 +255,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "auth", "require the Admin login (forms authentication)", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return authConfigured(ctx, h) },
 		Do:         func(ctx context.Context) error { return setAuth(ctx, h) },
-		Hint:       "Open Lidarr > Settings > General > Security: set Authentication to Forms and enter the Admin login.",
+		Hint:       recoveryHint,
 		Credential: "admin",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	if ok, err := keyWorks(ctx, h); !ok {
-		return fmt.Errorf("the Lidarr API key is not accepted: %v", err)
-	}
-	if ok, err := authConfigured(ctx, h); !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to Lidarr: %v", h.AdminUser(), err)
+	if ok, err := authConfigured(ctx, h); err != nil {
+		return err
+	} else if !ok {
+		return fmt.Errorf("Lidarr's required Forms Admin login could not be verified; run self-host setup lidarr")
 	}
 	return nil
 }
