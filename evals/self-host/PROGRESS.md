@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution           |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+             |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                          |
-| Complete real-model batch with both guides and three repetitions       | Iteration 17 invalid at subscription quota; fresh batch pending |
+| Complete real-model batch with both guides and three repetitions       | Iteration 18 running after renewed authorization and preflights |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending    |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes   |
 
@@ -174,6 +174,15 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   with no fallback, model switch, billing change or automatic retry. A new
   complete batch after quota recovery requires renewed authorization. Human
   feedback on valid iteration 15 remains pending, and PR #259 stays draft.
+- **Iteration 18: running.** The user reported Claude access restored and
+  instructed continuation. Both selected Sonnet and Opus access preflights
+  passed. A fresh full comparison uses all seven corrected scenarios, both
+  unchanged frozen guides, three repetitions, equal 16-turn limits and two
+  concurrent conversations. Iteration 17 is not resumed, overwritten or graded.
+  The existing first-party subscription is used without paid fallback, model
+  switch or billing change; another quota or execution failure stops the batch.
+  Complete valid execution is required before blind judgments and grading;
+  the supplied viewer and human feedback remain acceptance gates.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
