@@ -1,0 +1,21 @@
+internal/apps/deluge/deluge.go
+  s_01e8d17f7740df::t_ef2b11aded743d 206-212,255-261,283,286,288-292
+internal/tui/copy.go
+  s_01e8d17f7740df::t_73d873fc66c4b7 67-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0b3155367e6423acb3450ccc19021bace705e7a0",
+  "prompts": {},
+  "sessions": {
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
