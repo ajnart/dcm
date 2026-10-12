@@ -17,6 +17,9 @@ func bazarrTarget() target {
 			"showMissingEpisodes": true, "showMissingMovies": true,
 			"showProviderIssues": true, "showHealthIssues": true,
 		}}, statWidget("episodes", "movies", "providers")},
+		preflight: func(ctx context.Context, _, to *helpers.H) error {
+			return bazarr.VerifyHomarr(ctx, to)
+		},
 		verify: verifyBazarr,
 	}
 }
