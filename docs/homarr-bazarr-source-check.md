@@ -55,24 +55,31 @@ are failures, not an empty library or tile-only success.
 
 ## Verification and remaining gate
 
-Remaining focused coverage is in the existing Bazarr App fixtures in
-`internal/apps/bazarr/bazarr_test.go`: valid zero counts, fresh credential
-rejection, key recovery, rerun preservation, rejected/unavailable API access,
-missing version, missing/null/negative badge fields and malformed API data.
-Homarr's Bazarr descriptor is source/schema/compile-only pending native proof;
-there is no final-HEAD descriptor unit-test or full mock-acceptance claim.
+Remaining focused coverage is exactly the two baseline Bazarr App tests:
+`TestSetupThenCheckThenRerunSkips` and
+`TestFailingStepHintNamesTheSetupCommand`. The first checks successful Setup and
+Check, saved API credentials, valid zero-count responses and rerun preservation
+without configuration rereads or authentication updates. Its maintained fixture
+serves `/`, `/api/system/settings`, `/api/system/status` and `/api/badges`. The
+second covers a failed settings update and its Settings hint. Credential-change,
+malformed-data rejection and Homarr descriptor/count-guard behavior remain
+source/schema/compile-only pending native proof, not final-HEAD test coverage.
 
-The entirely agent-added 135-line `target_bazarr_test.go` was removed with explicit
-parent authorization. The earlier parent-authored delegation request for focused
-descriptor tests was not an actual human explicit unit-test request. No existing
-App fixture or implementation was removed and no replacement tests were added.
+The entirely agent-added 135-line `target_bazarr_test.go` and the added functions
+`TestAPIReadinessRejectsMissingFieldsAndAuthenticationErrors` (all seven table
+cases) and `TestSetupRecoversExternallyChangedKeyAndCheckProbesAfresh` were removed
+with explicit parent authorization, along with their exclusive fixture controls.
+The earlier parent-authored delegation request was not an actual human explicit
+unit-test request. No baseline function or implementation was removed and no
+replacement tests were added. Added named test/helper function count against
+fixed base `573a206e2b4a76574fd7e8cbd1f21c5a4c2fd37d` is zero.
 
-The post-correction local gate passed on only the remaining test tree:
+The final post-correction local gate passed on only the remaining test tree:
 `GOFLAGS=-buildvcs=false`, empty `gofmt -l .`,
 `go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
 race tests for TUI, Activity, Bazarr and Homarr, `bash -n install.sh` and
-`git diff --check`. Focused/full/race tests ran with `-count=1`; the removed
-descriptor test was not part of this gate. No e2e-tagged runtime tests were run.
+`git diff --check`. Focused/full/race tests ran with `-count=1`; none of the
+removed tests was part of this gate. No e2e-tagged runtime tests were run.
 
 Live proof is blocked by reference acceptance and parent-controlled capacity.
 No Docker, browser, installer, person's Project, protected secret file or browser profile
