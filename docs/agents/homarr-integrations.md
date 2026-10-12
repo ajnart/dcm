@@ -1,129 +1,123 @@
 # Native Homarr integrations
 
 Ship one peer App at a time: its Setup owns credentials; Homarr owns the Link,
-connection and widgets. Browser automation verifies the result, not the Setup.
-Keep using the existing self-host skill router; this is a development workflow.
+connection and widgets. Read the [contract](../homarr-integration-contract.md)
+and [final bounded proof](../homarr-immich-proof.md#final-bounded-attempt).
+[#309][reference] is merged and #262 closed: its frozen main commit is
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`. Historical pending-review prose in
+those records predates that decision. Keep the existing self-host skill router.
 
 ## Ordered workflow
 
-1. **Inspect the supported surface.** Read the peer's Setup/Check and Homarr's
-   declarations below. Consult the [official guide index][guides], then the
-   integration registry, adapter and widget schemas at the **tested Homarr source
-   SHA**, not just the latest docs. Resolve exact kind casing, credential
-   alternatives, peer API version/permissions, internal port/path, useful default
-   widgets and required selectors. Keep unsupported/external surfaces separate
-   from Catalog work; a navigation tile is not native wiring.
-   **Done:** record the kind, credential shape, permissions, endpoints, widget
-   options and one observable acceptance value, with versioned sources.
+1. **Inspect the native surface.** Read the peer's Setup/Check, official guide,
+   Homarr registry, adapter/Stats provider and widget schemas at the resolved
+   image's source revision. Record exact kind casing, credential alternatives,
+   least permissions, internal endpoint and useful supported widgets/metrics.
+   The [compatibility gate](../../internal/apps/homarr/compatibility.go) requires
+   authenticated API version **2.4.1** and the exact `integration.getKinds`
+   credential alternative; missing keys are not submitted. A nil resolver sends
+   `[]` only when the upstream alternative permits it. Resolve actual selectors
+   or omit the widget; no invented IDs, metrics, empty values or hardware readiness.
+   **Done:** sources and one meaningful native acceptance value are identified.
 
-2. **Confirm the shared contract.** [#262][contract] owns the compatibility and
-   ownership contract, including the first Immich slice. It is being implemented
-   concurrently; this ticket is a **temporary contract reference**, not a shipped
-   API. Read its implementation before extending it. At the source baseline below,
-   the existing descriptor is `target`, with `secret` and `widget`, in
-   [`links.go`](../../internal/apps/homarr/links.go); there is no separate descriptor
-   registry/compatibility API to assume exists. Add one descriptor per peer through
-   the shared owner; coordinate registry/contract edits with #262 rather than
-   inventing another engine or copying transport/reconciliation code.
-   **Done:** identify the actual declaration location and contract revision, or
-   explicitly block only the parts awaiting #262.
+2. **Use the peer seam.** Own one branch/worktree/PR and
+   `internal/apps/homarr/target_<app>.go`, defining `<app>Target() target`.
+   Reuse `target`, `secret`, `widget`, `fixed`, `plain`, `statWidget` and `bind`;
+   [`target_immich.go`](../../internal/apps/homarr/target_immich.go) is the example.
+   The exclusive registry custodian owns
+   [`targets.go`](../../internal/apps/homarr/targets.go) and common reconciliation;
+   coordinate registration without editing either from a peer lane.
+   Optional `preflight(ctx, from, to)` probes afresh, read-only, before compatibility
+   or mutation in both Check/apply. For person-owned prerequisites, emit recovery
+   through `from.Info` and return `helpers.ErrManual`. It is not an Address resolver
+   or TLS bypass. Optional `verify(ctx, from, to, integrationID)` validates useful
+   authenticated data, including its meaning/destination. Nil verifiers retain
+   legacy data checks; removal/absence never calls preflight or refreshes Stats.
+   **Done:** the leaf fits the actual contract without changing common signatures.
 
 3. **Implement the two owners.** The peer's idempotent Setup discovers/creates,
-   verifies and reuses the least-privilege credential. Store it through
-   `h.SetSecret(h.Key(...), value)`; use helper HTTP/secret-safe exec, not secret-file
-   scraping. Give missing/invalid credentials a targeted retry or Manual step.
-   Homarr consumes saved credentials, uses the Compose service Address for its
-   connection and the browser Address for `href`, checks response-body errors,
-   and binds native widgets to real peer IDs. Selectors such as album/system IDs
-   need discovery or an explicit choice, never an invented default. Preserve
-   the service scheduler and consumer-owned failures.
-   **Done:** peer Setup can recover without routine rotation; Homarr has one
-   declaration with check/apply/remove through the existing Link machinery.
+   verifies and reuses credentials through `h.Secret`, `h.Key`, `h.SetSecret`
+   and existing HTTP/secret-safe exec helpers. Lost/rejected keys need targeted
+   retry/Manual recovery, not blind rotation or database/file scraping. Homarr
+   consumes those keys, separates the internal Compose Address from browser `href`
+   and checks body errors/returned IDs. The service owns absent/unready scheduling.
+   For a non-nil verifier with Stats metrics, central `verifyData` runs **after the
+   leaf** in Check/apply: `freshStatsSnapshot` reads the prior snapshot, forces
+   refresh, requires advancing positive `updatedAt`, `error: false`, `stale: false`
+   and every selected metric non-null. A cached non-stale/no-op result fails with
+   a retry hint; the guard does not loop. Keep peer semantic checks too.
+   **Done:** recovery and fresh native/Stats checks work through existing owners.
 
 4. **Prepare isolated acceptance.** Runtime work needs approval for the disposable
-   Project, synthetic writes and owned cleanup; docs-only work needs no runtime.
-   Set an absolute fresh `SELF_HOST_HOME`, unique `SELF_HOST_COMPOSE_PROJECT`,
-   `SELF_HOST_NO_TELEMETRY=1`, and isolated media/download folders. Install only
-   the required Apps through self-host with `--exposure local` and unused
-   `--set <app>.port=N` host ports. A different Home folder alone does **not**
-   change the default Compose name `selfhost`. Confirm the Project/ports before
-   every mutation; the person's existing Project and live Homarr board are out
-   of scope. Keep protected secret files, `.sessions/` and browser profiles unread.
-   **Done:** the owned Project, Compose name, bind addresses, data folders and
-   cleanup scope are recorded; no host resources overlap.
+   Project, data writes and owned cleanup; source-only documentation needs none.
+   Set fresh absolute `SELF_HOST_HOME`, unique `SELF_HOST_COMPOSE_PROJECT`,
+   isolated media/download folders, Telemetry off and unused loopback ports with
+   `--exposure local` / `--set <app>.port=N`. A new Home alone still uses `selfhost`.
+   Approve numeric per-container **and aggregate** limits and a cancellation/
+   diagnostic/cleanup deadline before startup; enforce from first creation and
+   inspect every dependency's actual caps. Reference bounds were five
+   containers, each 1 GiB/1 CPU/512 PIDs, aggregate 5 GiB/5 CPUs, 13 minutes work,
+   30 seconds diagnostics and one minute cleanup within a 15-minute ceiling.
+   Adding cross-kind peers/dependencies needs its own approved budget, not an
+   unbounded extension. Provider/account actions, hardware, bandwidth-heavy jobs,
+   public Access and another runtime attempt each need explicit scope/approval.
+   **Done:** owned inventory, ports, hard bounds and cleanup are preflighted;
+   no real user Project/board or protected secret/profile files are touched.
 
-5. **Debug, seed, then inspect the browser.** Run `self-host debug <peer> --json`
-   and `self-host debug homarr --json` in that Project first. Repair headless
-   Setup before browser work. Seed a small known synthetic item through the peer's
-   supported API/UI; record its non-secret ID/value and wait for processing.
-   Load the installed browser instructions and create an isolated session:
-
-   ```bash
-   agent-browser skills get core
-   export AGENT_BROWSER_SESSION="$(agent-browser session id --scope worktree --prefix homarr)"
-   agent-browser open "$HOMARR_ADDRESS"
-   agent-browser snapshot -i
-   ```
-
-   `HOMARR_ADDRESS` is the disposable instance's Address from status/debug.
-   Use fixture-controlled stdin/provider authentication without printing values;
-   if unavailable, have the person sign into this isolated instance. Keep secrets
-   out of CLI arguments, output and captures; do not load a real profile, attach
-   to a person's browser, or persist/export auth state. Follow fresh refs, wait
-   for the expected widget value, and re-snapshot after navigation; polling boards
-   are not candidates for a generic `networkidle` wait. Capture only the secret-free
-   widget area, never credential forms, raw headers/bodies or storage.
-   **Done:** native Homarr data and a visible widget show the seeded value (or
-   exact expected aggregate), not merely a saved connection or tile. Record valid
-   empty data separately from authentication failure; empty-only proof is partial.
+5. **Debug, seed, inspect.** Read `self-host debug <peer> --json` and
+   `self-host debug homarr --json` first; repair headless Setup. Seed known small
+   synthetic data where approved, or verify a legitimate empty state plus positive
+   authenticated identity. Missing/null/error fields are not zeros. Before browser
+   use, load `agent-browser skills get core` from the installed CLI; select a fresh
+   short named namespace/session, check socket length and allowlist only the fixture's
+   loopback host. Authenticate through fixture-controlled stdin/provider, otherwise
+   use a Manual login. Secrets stay out of arguments/output/captures; no real browser
+   attachment, profile reads or persisted/exported auth state. Use `snapshot -i`,
+   fresh refs and value-based waits, not polling-board `networkidle`. Inspect and
+   review the actual native widget and shared Stats, not just API readback or a tile.
+   **Done:** useful native and rendered values agree with the controlled dataset;
+   negative authentication and real no-op/advancing refresh outcomes are recorded.
 
 6. **Exercise preservation.** Snapshot non-secret resource IDs/options in the test
-   instance, including an unrelated manual integration/widget and, where relevant,
-   another owned binding in shared Stats/Calendar. Rerun peer/Homarr Setup: IDs
-   stay stable, counts do not grow, valid keys are reused. Change/revoke only the
-   fixture's credential through its owner; show targeted failure, recovery and
-   preserved Homarr IDs. Remove only the peer through self-host and rerun Homarr:
-   its owned connection/bindings disappear, unrelated resources and remaining
-   shared entries survive. Probe a manually created same-kind/same-Address
-   collision: baseline matching can adopt it, so stop for the shared ownership
-   decision rather than treating a match as permission. An absent peer must not
-   receive an integration attempt; installed/unready peers retain an actionable
-   wait. Baseline waiting rows are not proof of a connection attempt.
-   **Done:** rerun, changed-key, removal, collision and readiness outcomes are
-   accounted for; close only this browser session with `agent-browser close` and
-   clean up only the approved fixture's resources. Report any blocked case.
+   instance: matching user integrations/widgets and **at least two real cross-kind
+   bindings** in applicable shared widgets. Rerun, then exercise invalid-key
+   failure/recovery and replacement through the fixture's peer owner: valid keys
+   are reused, owned IDs stay stable, duplicates do not grow, user resources survive.
+   Remove only the peer through self-host. Only recorded owned bindings disappear;
+   a remaining user widget on any visible board retains its integration and linked
+   App. Recorded ownership is released; generated/empty descriptions become
+   `self-host retained tile:<app>`, custom descriptions stay unchanged. Release
+   uses the recorded App ID even after edited `pingUrl`, preserving user fields;
+   reinstall creates new owned IDs, never reclaims retained resources. Verify two
+   reinstall/remove cycles, preserved boards and a **meaningful useful survivor**
+   from the other real kind. Opaque legacy records prove ownership only, not native
+   peer data; two Immich bindings are not cross-kind acceptance.
+   **Done:** lifecycle, collision, absent/unready behavior and survivor data/rendering
+   pass; owned containers/networks and only this browser session close, scoped
+   cleanup readback is empty/inactive, and volumes/disposable data remain kept.
 
 7. **Deliver a bounded proof.** Record self-host source SHA and binary SHA-256,
-   Homarr/peer versions, upstream source SHAs, runtime image IDs and repository
-   digests (including dependencies; note unavailable fields), platform, fixture
-   value, redacted debug/native/widget observations, lifecycle outcomes and owned
-   cleanup. Hash any evidence files. State exactly what remains unverified.
-   Use the repository gate for code changes; docs-only delivery checks links and
-   `git diff --check`, without Docker/browser runs or the heavy Go gate.
-   **Done:** the PR links reproducible evidence at its tested revision and names
-   any remaining #262 contract update; declarations are never called live proof.
+   peer versions, authenticated Homarr API version, image index/platform manifest/
+   local ID, RepoDigests, OCI revision/version labels and inspected source SHAs.
+   Keep them distinct: the reference's OCI revision is
+   `3d4150e59f600876b7e308f857b2f21572b75348`, OCI version `main`, API `2.4.1`;
+   `ebbd4876d25a51151444a009ab596e1154d62880` is the tagged research baseline.
+   Its 22-file comparison proves only those files, not all peer contracts. Hash
+   evidence, record bounds/cleanup and limitations. Code changes use the local
+   repository gate; docs-only changes use source/link/diff checks without runtime.
+   **Done:** each peer PR has fresh independent Standards/Spec reviews and its own
+   bounded native/rendered/lifecycle acceptance before merge; registry changes
+   remain custodian-owned.
 
-## Current source checkpoints
+## Acceptance boundary
 
-Baseline: self-host `5aafb4c1833fd4cd9caf0f7beaac31e625aafe22` (11 October 2026).
-Refresh these facts when implementing; they are not the pending #262 contract.
+The reference production `89301aff17c86b767f5a45076881f2bb7b41db39` accepts
+authenticated Immich Users 1 / Photos 0 / Videos 0 / Storage 0, including genuine
+Stats refresh and preservation. This is **1 of the 39** missing native peers,
+not populated-media or all-peer acceptance. Source drafts for the 39 are not a
+coverage claim; the remaining 38 native acceptances stay held for their own gates.
+Account/provider, hardware, physical LAN, populated media, Manual key recovery,
+migration/restore, real refresh contention and non-nil prerequisite behavior
+remain outside that reference proof. Reuse its seam and containment, not its result.
 
-- [`homarr.go`](../../internal/apps/homarr/homarr.go) uses mutable `:dev`, stores
-  its own API key and manages Home. A tag or readiness Check is not compatibility.
-- [`links.go`](../../internal/apps/homarr/links.go) matches connections by kind +
-  internal Address, fingerprints credentials and records widget ownership;
-  [`shared_widgets.go`](../../internal/apps/homarr/shared_widgets.go) shares
-  Stats/Calendar. Connection adoption/removal is not fully ownership-safe.
-- [`helpers.go`](../../internal/helpers/helpers.go) owns redaction and Check/Do;
-  [`service.go`](../../internal/service/service.go) owns peer readiness and
-  Project isolation; [`lifecycle.go`](../../internal/service/lifecycle.go) invokes
-  consuming `Link.Remove`. Keep those boundaries intact.
-- [`homarr-proof.md`](../homarr-proof.md) is scoped historical evidence, not proof
-  of a new peer. Upstream v2.4.1 at `ebbd4876d25a51151444a009ab596e1154d62880`
-  supplies [credential definitions][registry] and [widget support][widgets];
-  inspect the revision matching the image actually exercised.
-
-[guides]: https://homarr.dev/docs/integrations/
-[contract]: https://github.com/ajnart/selfhost-skills/issues/262
-[registry]: https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/integration.ts
-[widgets]: https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget-integration-map.ts
+[reference]: https://github.com/ajnart/selfhost-skills/pull/309
