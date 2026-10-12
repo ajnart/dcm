@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 21 quota-blocked; iteration 20 Mint smoke valid     |
+| Complete real-model batch with both guides and three repetitions       | Iteration 22 expanded 54-conversation comparison running      |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
@@ -278,6 +278,18 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   regression and a fresh complete suite passed after these corrections.
   No guide changes are inferred from invalid batches; PR #257 remains separate
   and human viewer feedback remains due before merge.
+
+- **Iteration 22: running expanded comparison.** After the reported reset time,
+  the user explicitly authorized nine scenarios, both unchanged frozen guides
+  and three repetitions (54 conversations), equal 16-turn limits, then complete
+  blind judgments and the supplied viewer only if execution is valid. Both
+  selected Sonnet and Opus access preflights passed. The batch runs two
+  conversations concurrently; quota or execution failure stops it without
+  fallback or automatic retry. Iteration 21 remains untouched and ungraded.
+  Original IDs 0-6 retain their previous definitions; new IDs 7-8 add refusal
+  coverage. This expanded comparison is not a same-input rerun of iteration 21.
+  Human review and guide improvements in separate PR #257 follow trustworthy
+  evidence; no superiority or merge acceptance is claimed while it runs.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
