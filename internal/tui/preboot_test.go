@@ -1,7 +1,11 @@
 package tui
 
 import (
+	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +18,36 @@ import (
 	"github.com/ajnart/self-host/internal/preboot"
 	"github.com/ajnart/self-host/internal/service"
 )
+
+var entrancePreview = flag.String("entrance-preview", "", "write fake entrance asciicasts at this path prefix")
+
+func captureEntrance(t *testing.T, m Model, name string) func(Model, time.Duration) {
+	t.Helper()
+	if *entrancePreview == "" {
+		return func(Model, time.Duration) {}
+	}
+	f, err := os.Create(*entrancePreview + "-" + name + ".cast")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := f.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	if _, err := fmt.Fprintf(f, "{\"version\":2,\"width\":%d,\"height\":%d,\"title\":\"Fake %s entrance\"}\n", m.width, m.height, name); err != nil {
+		t.Fatal(err)
+	}
+	return func(frame Model, at time.Duration) {
+		text, err := json.Marshal("\x1b[H\x1b[2J" + frame.View().Content)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := fmt.Fprintf(f, "[%.6f,\"o\",%s]\n", at.Seconds(), text); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 // approved is Onboarding's Review approved at width×height, with the install
 // Action started but not yet run, so a test plays its events itself.
@@ -85,6 +119,33 @@ func TestApprovingReviewShowsPrebootAndDispatchesTheInstall(t *testing.T) {
 	if got := backend.installs(); len(got) != 1 || strings.Join(got[0].Targets, ",") != "homarr,ntfy" {
 		t.Fatalf("the install Action should be dispatched as before, installs %+v", got)
 	}
+	m, _, _ = approved(t, 120, 30, func(o *Options) {
+		o.Now = func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) }
+	})
+	play(m, pullStart("2"), downloading("homarr"), downloading("ntfy"))
+	capture := captureEntrance(t, m, "preboot")
+	capture(m, 0)
+	if m.preboot.frame != 0 || !strings.Contains(screen(m), "0 of 2 images") || !strings.Contains(screen(m), "Pulling 2 images") {
+		t.Fatal("first entrance frame must retain early pull events")
+	}
+	for n := 1; n <= 12; n++ {
+		m = frames(t, m, 1)
+		capture(m, time.Duration(n)*time.Second/24)
+	}
+	pr := prebootProgress(m.ctx().snapshot(), m.preboot)
+	want := strings.Join(preboot.Render(12, 120, 30, pr, preboot.Dark(), false), "\n")
+	if m.View().Content != want {
+		t.Fatal("entrance must end on the unchanged main scene at frame 12")
+	}
+	for n := 13; n <= 36; n++ {
+		m = frames(t, m, 1)
+		capture(m, time.Duration(n)*time.Second/24)
+	}
+	play(m, pulledImage("homarr"), pulledImage("ntfy"), events.Event{Event: events.StepOK, Step: "pull"})
+	for n := 37; n <= 82; n++ {
+		m = frames(t, m, 1)
+		capture(m, time.Duration(n)*time.Second/24)
+	}
 }
 
 func TestPrebootBarAndImageCountFollowThePullEvents(t *testing.T) {
@@ -124,9 +185,29 @@ func TestPrebootIsFullScreenAtTheTerminalSize(t *testing.T) {
 			}
 		}
 	}
+	m, _, _ := approved(t, 120, 30)
+	for _, size := range []struct{ w, h int }{{80, 24}, {40, 12}, {70, 20}, {120, 30}} {
+		m = update(t, m, windowSize(size.w, size.h))
+		m = frames(t, m, 1)
+		lines := strings.Split(screen(m), "\n")
+		if len(lines) != size.h {
+			t.Fatalf("resized entrance has %d rows, want %d", len(lines), size.h)
+		}
+		for _, line := range lines {
+			if ansi.StringWidth(line) != size.w {
+				t.Fatal("resized entrance must fit every row")
+			}
+		}
+	}
 }
 
 func TestPrebootPlaysTheExitThenLandsOnActivity(t *testing.T) {
+	fast, _, _ := approved(t, 120, 30)
+	play(fast, pullStart("1"), pulledImage("homarr"), events.Event{Event: events.StepOK, Step: "pull"})
+	fast = frames(t, fast, 1)
+	if fast.preboot == nil || fast.preboot.since != 0 || fast.preboot.frame != 1 {
+		t.Fatal("a fast pull must start the existing exit without waiting for the entrance")
+	}
 	m, _, _ := approved(t, 120, 30)
 	play(m, pullStart("1"), downloading("ghcr.io/homarr-labs/homarr:latest"))
 	m = frames(t, m, 10)
@@ -223,6 +304,16 @@ func TestEnterSkipsPrebootToActivity(t *testing.T) {
 	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Like self-host?") {
 		t.Fatalf("enter should skip to Activity\n%s", out)
 	}
+	m, backend, cmd := approved(t, 120, 30, func(o *Options) { o.ReducedMotion = true })
+	if m.preboot != nil || m.opening != 0 || !strings.Contains(screen(m), "3 Activity") {
+		t.Fatal("reduced motion must show Activity immediately")
+	}
+	for _, msg := range runCmd(cmd) {
+		m = drive(t, m, msg)
+	}
+	if len(backend.installs()) != 1 {
+		t.Fatal("reduced motion must not prevent the approved install")
+	}
 }
 
 func TestPrebootOpensTheDonationPages(t *testing.T) {
@@ -241,12 +332,24 @@ func TestPrebootOpensTheDonationPages(t *testing.T) {
 
 func TestQuitsFromPreboot(t *testing.T) {
 	m, _, _ := approved(t, 120, 30)
+	pending := m.frameTick()
 
 	next, cmd := m.Update(press("q"))
 	m = next.(Model)
 
 	if !m.quitting || cmd == nil {
 		t.Fatal("q should quit as on the Dashboard")
+	}
+	if msg := pending(); msg != nil {
+		t.Fatalf("quitting must cancel the pending frame, got %T", msg)
+	}
+	if _, cmd := m.nextFrame(); cmd != nil {
+		t.Fatal("a queued frame after quitting must not schedule another")
+	}
+	m, _, _ = approved(t, 120, 30)
+	next, cmd = m.Update(press("ctrl+c"))
+	if !next.(Model).quitting || cmd == nil {
+		t.Fatal("ctrl+c must quit during the entrance")
 	}
 }
 
@@ -292,8 +395,50 @@ func TestACatalogInstallNeverShowsPreboot(t *testing.T) {
 
 func TestFramesTickOnlyWhileSomethingAnimates(t *testing.T) {
 	m, _ := sample(t, 120, 30)
+	m.opening = 3
+	capture := captureEntrance(t, m, "dashboard")
+	capture(m, 0)
+	stable := m
+	stable.opening = 0
+	if screen(m) != screen(stable) || m.View().Content == stable.View().Content {
+		t.Fatal("opening must only settle the palette, not hide content")
+	}
+	if m.View().Content != m.View().Content {
+		t.Fatal("the same opening frame must render identically")
+	}
+	for n := 1; n <= 3; n++ {
+		next, cmd := m.nextFrame()
+		m = next.(Model)
+		capture(m, time.Duration(n)*time.Second/12)
+		if m.opening != 3-n || (n < 3 && cmd == nil) || (n == 3 && cmd != nil) {
+			t.Fatalf("opening frame %d has remaining %d, ticking %v", n, m.opening, cmd != nil)
+		}
+	}
+	if m.View().Content != stable.View().Content {
+		t.Fatal("frame 3 must restore the original Dashboard palette exactly")
+	}
 	if _, cmd := m.nextFrame(); cmd != nil {
 		t.Fatal("an idle Dashboard must not tick")
+	}
+	for _, k := range []string{"2", "?", "q", "ctrl+c"} {
+		m, _ = sample(t, 120, 30)
+		m.opening = 3
+		m = update(t, m, press(k))
+		if m.opening != 0 {
+			t.Fatalf("%s must skip opening without consuming the key", k)
+		}
+		if k == "2" && m.surface != surfaceApps || k == "?" && !m.showHelp || (k == "q" || k == "ctrl+c") && !m.quitting {
+			t.Fatalf("%s must retain its normal behavior", k)
+		}
+	}
+	m = New(&fakeBackend{}, Options{ReducedMotion: true})
+	if m.opening != 0 {
+		t.Fatal("reduced motion must skip the opening")
+	}
+	m = New(&fakeBackend{}, Options{})
+	m = update(t, m, statusMsg{err: errors.New("cannot read Project")})
+	if m.opening != 0 || !strings.Contains(screen(update(t, m, windowSize(80, 24))), "cannot read Project") {
+		t.Fatal("an early load failure must bypass opening")
 	}
 
 	m, _, _ = approved(t, 120, 30)

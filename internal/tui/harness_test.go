@@ -355,6 +355,7 @@ func sample(t *testing.T, width, height int) (Model, *fakeBackend) {
 	m = update(t, m, tea.WindowSizeMsg{Width: width, Height: height})
 	m = drive(t, m, statusMsg{status: backend.status})
 	m = update(t, m, doctorMsg{checks: backend.checks})
+	m.opening = 0
 	return m, backend
 }
 
