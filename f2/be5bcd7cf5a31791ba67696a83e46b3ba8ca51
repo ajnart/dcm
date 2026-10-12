@@ -1,0 +1,22 @@
+docs/homarr-nzbget-proof.md
+  h_d6e478ca18e517 3-27,37-41,48-50,70-86,93-104,116-125,131,133-144,160-164,167-168,177-178,189-201
+internal/apps/homarr/target_nzbget.go
+  h_d6e478ca18e517 26-30,35-37,108-136
+internal/apps/nzbget/homarr.go
+  h_d6e478ca18e517 197-198,216-225,228,233
+internal/apps/nzbget/nzbget.go
+  h_d6e478ca18e517 12,106,113-131,135-191
+internal/apps/nzbget/nzbget_test.go
+  h_d6e478ca18e517 6,9-11,13,17,21,32,54-59,69-73,96-102,106-174,182-219,223-224,245-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2be5bcd7cf5a31791ba67696a83e46b3ba8ca51",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
