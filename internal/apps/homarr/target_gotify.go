@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -29,7 +30,28 @@ func verifyGotify(ctx context.Context, from, to *helpers.H, integrationID string
 	if err := gotify.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
+	recordedID, err := strconv.ParseUint(to.Secret(to.Key("homarr_user_id")), 10, 64)
+	if err != nil || recordedID == 0 || recordedID > 1<<53-1 {
+		return errors.New("Gotify Homarr account ID is invalid; run self-host setup gotify")
+	}
+	value, err := apiKeyWrite(ctx, from, "integration.request", map[string]any{
+		"integrationId": integrationID, "method": http.MethodGet, "path": "/current/user",
+	})
+	if err != nil {
+		return errors.New("Homarr could not verify its saved Gotify login; run self-host setup gotify, then self-host setup homarr")
+	}
+	response, ok := value.(map[string]any)
+	integration, _ := response["integration"].(map[string]any)
+	status, _ := response["status"].(float64)
+	if !ok || response["ok"] != true || status != http.StatusOK || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "gotify" {
+		return errors.New("Homarr did not verify the saved Gotify connection; run self-host setup homarr")
+	}
+	account, _ := response["data"].(map[string]any)
+	accountID, hasID := account["id"].(float64)
+	if !hasID || accountID != float64(recordedID) || account["admin"] != false || stringField(account, "name") == "" {
+		return errors.New("Homarr's Gotify login must belong to the recorded non-admin account; run self-host setup gotify, then self-host setup homarr")
+	}
+	value, err = apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
 	if err != nil {
 		return errors.New("Homarr could not read Gotify Stats capabilities; retry self-host setup homarr")
 	}
@@ -48,37 +70,8 @@ func verifyGotify(ctx context.Context, from, to *helpers.H, integrationID string
 	if !ok || !found {
 		return errors.New("Homarr does not support Gotify's messages statistic; use Homarr 2.4.1 and retry Setup")
 	}
-	value, err = apiKeyProcedure(ctx, from, "widget.notifications.getNotifications", map[string]any{
-		"integrationIds": []string{integrationID}, "hideLogos": false, "messageFormat": "plain",
-	})
-	if err != nil {
-		return errors.New("Homarr could not read Gotify notifications; run self-host setup gotify, then self-host setup homarr")
-	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New("Homarr did not return the Gotify notification result")
-	}
-	result, ok := results[0].(map[string]any)
-	if !ok || result["error"] != nil {
-		return errors.New("Homarr reported a Gotify notification error; retry Setup")
-	}
-	integration, _ := result["integration"].(map[string]any)
-	if stringField(integration, "id") != integrationID || stringField(integration, "kind") != "gotify" {
-		return errors.New("Homarr returned notifications for a different integration")
-	}
-	notifications, ok := result["data"].([]any)
-	if !ok || len(notifications) > 100 {
-		return errors.New("Homarr returned incomplete Gotify notifications")
-	}
-	for _, raw := range notifications {
-		notification, ok := raw.(map[string]any)
-		id, idErr := strconv.ParseUint(stringField(notification, "id"), 10, 64)
-		date, dateErr := time.Parse(time.RFC3339Nano, stringField(notification, "time"))
-		_, hasTitle := notification["title"].(string)
-		_, hasBody := notification["body"].(string)
-		if !ok || idErr != nil || id == 0 || dateErr != nil || date.IsZero() || !hasTitle || !hasBody {
-			return errors.New("Homarr returned an incomplete Gotify notification")
-		}
+	if err := verifyGotifyNotifications(ctx, from, integrationID); err != nil {
+		return err
 	}
 	refreshStarted := from.Now().UnixMilli()
 	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
@@ -99,6 +92,55 @@ func verifyGotify(ctx context.Context, from, to *helpers.H, integrationID string
 	count, ok := statistics["messages"].(float64)
 	if !ok || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count || count < 0 || count > 100 {
 		return errors.New("Homarr returned an invalid Gotify message statistic")
+	}
+	return nil
+}
+
+func verifyGotifyNotifications(ctx context.Context, h *helpers.H, integrationID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	started := h.Now()
+	err := h.Poll(ctx, 30*time.Second, func(ctx context.Context) (bool, error) {
+		value, err := apiKeyProcedure(ctx, h, "widget.notifications.getNotifications", map[string]any{
+			"integrationIds": []string{integrationID}, "hideLogos": false, "messageFormat": "plain",
+		})
+		if err != nil {
+			return false, errors.New("Homarr could not read Gotify notifications")
+		}
+		results, ok := value.([]any)
+		if !ok || len(results) != 1 {
+			return false, errors.New("Homarr did not return the Gotify notification result")
+		}
+		result, ok := results[0].(map[string]any)
+		if !ok || result["error"] != nil {
+			return false, errors.New("Homarr reported a Gotify notification error")
+		}
+		integration, _ := result["integration"].(map[string]any)
+		if stringField(integration, "id") != integrationID || stringField(integration, "kind") != "gotify" {
+			return false, errors.New("Homarr returned notifications for a different integration")
+		}
+		updated, err := time.Parse(time.RFC3339Nano, stringField(integration, "updatedAt"))
+		if err != nil || updated.IsZero() || updated.Before(started) || updated.After(h.Now()) {
+			return false, errors.New("Homarr did not return Gotify notifications fetched during this attempt")
+		}
+		notifications, ok := result["data"].([]any)
+		if !ok || len(notifications) > 100 {
+			return false, errors.New("Homarr returned incomplete Gotify notifications")
+		}
+		for _, raw := range notifications {
+			notification, ok := raw.(map[string]any)
+			id, idErr := strconv.ParseUint(stringField(notification, "id"), 10, 64)
+			date, dateErr := time.Parse(time.RFC3339Nano, stringField(notification, "time"))
+			_, hasTitle := notification["title"].(string)
+			_, hasBody := notification["body"].(string)
+			if !ok || idErr != nil || id == 0 || dateErr != nil || date.IsZero() || !hasTitle || !hasBody {
+				return false, errors.New("Homarr returned an incomplete Gotify notification")
+			}
+		}
+		return true, nil
+	})
+	if err != nil {
+		return errors.New("Homarr could not verify fresh Gotify notifications; run self-host setup gotify, then self-host setup homarr")
 	}
 	return nil
 }

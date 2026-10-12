@@ -53,9 +53,25 @@ Every Check probes the recorded non-admin identity and authenticated
 An explicit empty message array with size zero is valid; missing/null fields
 and rejected authentication are not zeros.
 
+The Link first verifies `/current/user` through Homarr's saved connection using
+the supported `integration.request` mutation with `method: GET`. It requires
+the exact integration ID/kind, upstream success with HTTP 200, the recorded
+numeric Gotify account ID and strict `admin: false`. Missing or malformed
+identity, a different account, and administrator credentials fail before native
+data can be accepted. Homarr redacts the saved username in the response;
+identity is established by the account ID, not by adopting that response name.
+This read does not create, rotate or alter any account.
+
 The Link reads `widget.stats.catalog` to confirm the `messages` count metric,
-then `widget.notifications.getNotifications` scoped to the exact integration.
-It validates the result's integration identity, error state and message fields.
+then polls `widget.notifications.getNotifications` scoped to the exact
+integration using the existing polling helper and a 30-second context deadline.
+It validates the result's integration identity, error state, native
+`integration.updatedAt` and message fields. Homarr caches successful notification
+reads for ten seconds; only an actual native timestamp within this polling
+attempt is accepted. Older, future, missing or malformed timestamps never turn
+cached empty messages into fresh success. A fresh authenticated empty array is
+valid. Polling only reads data, without invalidation, fabricated timestamps or
+notification sends.
 `widget.stats.refresh` with `force: true` refreshes Homarr's cache using only
 Gotify GET requests; this cache mutation does not change Gotify. Error, stale,
 missing timestamp, a timestamp before the refresh attempt, missing value, and
@@ -84,7 +100,8 @@ resources. Cleanup must remain scoped to the approved disposable resources.
 
 ## Local verification
 
-The local gate passed on the committed #262 reference `b8f5ea0b` plus this
+The local gate passed on the committed #262 reference
+`b8f5ea0b27c1641079b834b280cc28b067119b1d` plus this
 peer's changes: clean `gofmt -l .`, `go build ./...`, `go vet ./...`,
 `go vet -tags e2e ./e2e/`, `go test ./...`, `bash -n install.sh`, and
 `go test -race` for TUI, Activity, Gotify and Homarr, with
@@ -92,6 +109,14 @@ peer's changes: clean `gofmt -l .`, `go build ./...`, `go vet ./...`,
 new account step, legitimate empty messages and rerun reuse; no new test
 functions or dependencies were added. These are source/local-fixture results,
 not Docker, native rendered widget or isolated lifecycle acceptance.
+
+The source review correction remains on that frozen base; no reference merge,
+registration, shared Stats normalization or common reconciliation edit was
+performed. The custodian owns assembly onto the merged #309 reference
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, including its central post-leaf
+`freshStatsSnapshot` gate. Existing fixtures do not exercise this deliberately
+unregistered descriptor; both corrected checks still require fresh source review
+and approved native acceptance.
 
 ## Official sources
 
@@ -101,6 +126,10 @@ not Docker, native rendered widget or isolated lifecycle acceptance.
 - [Homarr 2.4.1 credentials](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/integration.ts)
 - [Homarr Gotify adapter](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/gotify/gotify-integration.ts)
 - [Homarr notification query](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/widgets/notifications.ts)
+- [Homarr saved-connection request schema and response redaction](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/integration/integration-request.ts)
+- [Homarr integration request route](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/integration/integration-router.ts)
+- [Homarr saved-connection authentication and permission gate](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/api/src/router/integration/integration-http.ts)
+- [Homarr native notification cache and timestamps](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/request-handler/src/lib/request-handler.ts)
 - [Homarr Stats metric](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/existing.ts)
 - [Homarr Stats refresh/error contract](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/request-handler/src/stats.ts)
 - [Gotify 3.1.1 account API](https://github.com/gotify/server/blob/v3.1.1/api/user.go)
