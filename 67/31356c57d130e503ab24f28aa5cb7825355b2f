@@ -1,0 +1,16 @@
+docs/adguard-homarr-prerequisites.md
+  h_d6e478ca18e517 123-125,137-153,172-175
+internal/apps/adguard/adguard_test.go
+  h_d6e478ca18e517 30-33,131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6731356c57d130e503ab24f28aa5cb7825355b2f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
