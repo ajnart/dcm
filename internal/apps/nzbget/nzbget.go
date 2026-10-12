@@ -143,41 +143,50 @@ func providerConfigured(ctx context.Context, h *helpers.H) (bool, error) {
 	if entries == nil {
 		return false, errors.New("NZBGet did not return its active provider settings; retry self-host setup nzbget")
 	}
-	servers := map[string]map[string]string{}
+	servers := map[int]map[string]string{}
+	invalid := map[int]bool{}
 	for _, entry := range entries {
 		prefix, key, found := strings.Cut(entry.Name, ".")
 		if !found || !strings.HasPrefix(prefix, "Server") {
 			continue
 		}
 		index, err := strconv.Atoi(strings.TrimPrefix(prefix, "Server"))
-		if err != nil || index <= 0 {
+		if err != nil || index <= 0 || prefix != "Server"+strconv.Itoa(index) {
 			continue
+		}
+		switch key {
+		case "Active", "Name", "Level", "Group", "Host", "Port", "Optional", "Username", "Password", "Connections", "JoinGroup", "Encryption", "Cipher", "Retention":
+		default:
+			continue
+		}
+		if servers[index] == nil {
+			servers[index] = map[string]string{}
 		}
 		if key != "Active" && key != "Host" && key != "Port" && key != "Connections" {
 			continue
 		}
-		if servers[prefix] == nil {
-			servers[prefix] = map[string]string{}
+		if _, duplicate := servers[index][key]; duplicate || entry.Value == nil {
+			invalid[index] = true
+			continue
 		}
-		if _, duplicate := servers[prefix][key]; duplicate || entry.Value == nil {
+		servers[index][key] = *entry.Value
+	}
+	for index := 1; index <= len(servers); index++ {
+		server, exists := servers[index]
+		if !exists {
+			break
+		}
+		if invalid[index] {
 			return false, errors.New("NZBGet returned incomplete provider settings; review Settings > News-Servers and retry self-host setup nzbget")
 		}
-		value := *entry.Value
-		if key == "Active" {
-			switch strings.ToLower(value) {
+		if active, exists := server["Active"]; exists {
+			switch strings.ToLower(active) {
 			case "yes", "true", "1", "on", "enable", "enabled":
-				value = "yes"
 			case "no", "false", "0", "off", "disable", "disabled":
-				value = "no"
+				continue
 			default:
 				return false, errors.New("NZBGet returned an invalid provider enabled setting; review Settings > News-Servers and retry self-host setup nzbget")
 			}
-		}
-		servers[prefix][key] = value
-	}
-	for _, server := range servers {
-		if server["Active"] == "no" {
-			continue
 		}
 		host := strings.TrimSpace(server["Host"])
 		port, portErr := strconv.Atoi(server["Port"])

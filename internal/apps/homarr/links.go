@@ -153,6 +153,9 @@ func (t target) hint(from *helpers.H) string {
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
 	}
+	if t.id == "nzbget" {
+		return "NZBGet activation is on hold for credential-safety issue #354. Do not manually create its Homarr integration or bypass credential checks while this is unresolved. Resolve #354 with supported upstream credential transport and a complete privacy review of every error and log destination; verify the exact Homarr source and version, then obtain separate activation approval before retrying self-host setup homarr. A transport change alone does not establish safety. Standalone NZBGet Setup and owned Link removal are separate."
+	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
 	}

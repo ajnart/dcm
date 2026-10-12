@@ -199,6 +199,61 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 	if err := (nzbget.App{}).Check(t.Context(), h); err != nil {
 		t.Fatal("provider-unavailable settings must not invalidate authenticated idle RPC")
 	}
+	restricted := []map[string]string{
+		{"Name": "RestrictedUsername", "Value": "self-host-homarr"},
+		{"Name": "RestrictedPassword", "Value": "restricted-password"},
+	}
+	second := append(restricted, []map[string]string{
+		{"Name": "Server2.Host", "Value": "provider.example.invalid"},
+		{"Name": "Server2.Port", "Value": "563"},
+		{"Name": "Server2.Connections", "Value": "2"},
+	}...)
+	second = second[:len(second):len(second)]
+	settings.Store("config", second)
+	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("Server2 alone must remain Manual because NZBGet stops at absent Server1")
+	}
+	settings.Store("config", append(second, map[string]string{"Name": "Server1.Active", "Value": "no"}))
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
+		t.Fatal("a disabled Server1 definition must allow configured Server2 settings")
+	}
+	settings.Store("config", append(second, map[string]string{"Name": "Server1.Name", "Value": ""}))
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
+		t.Fatal("an incomplete recognized Server1 definition must allow consecutive Server2 settings")
+	}
+	for _, key := range []string{"Unknown", "Notes", "IpVersion", "CertVerification"} {
+		settings.Store("config", append(second, map[string]string{"Name": "Server1." + key, "Value": ""}))
+		if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+			t.Fatal("a field excluded from upstream definition presence must not open the provider sequence")
+		}
+	}
+	settings.Store("config", append(restricted, []map[string]string{
+		{"Name": "Server1.Active", "Value": "no"},
+		{"Name": "Server3.Host", "Value": "provider.example.invalid"},
+		{"Name": "Server3.Port", "Value": "563"},
+		{"Name": "Server3.Connections", "Value": "2"},
+	}...))
+	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("a missing Server2 definition must stop before configured Server3 settings")
+	}
+	for _, prefix := range []string{"Server01", "Server+1"} {
+		settings.Store("config", append(second, map[string]string{"Name": prefix + ".Name", "Value": ""}))
+		if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+			t.Fatal("noncanonical indexes must not alias the missing Server1 definition")
+		}
+	}
+	settings.Store("config", append(restricted, []map[string]string{
+		{"Name": "Server1.Name", "Value": ""},
+		{"Name": "Server02.Host", "Value": "provider.example.invalid"},
+		{"Name": "Server02.Port", "Value": "563"},
+		{"Name": "Server02.Connections", "Value": "2"},
+	}...))
+	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("noncanonical provider fields must not alias a loaded Server2")
+	}
+	if err := (nzbget.App{}).Check(t.Context(), h); err != nil || writes != 2 || restarts != 0 {
+		t.Fatal("provider index checks must preserve idle RPC and never mutate configuration")
+	}
 	settings.Delete("config")
 	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
 		t.Fatal("configured provider settings must allow retry with an empty queue")

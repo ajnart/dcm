@@ -7,7 +7,8 @@ blocks native activation and acceptance. The NZBGet leaf preflight returns
 retryable Manual before any Homarr compatibility request, credential
 creation/update, tile/widget mutation or native query. A currently valid login
 cannot prevent a later rejected-credential request. Standalone NZBGet Setup and
-owned Link removal stay separate; common reconciliation and registry are unchanged.
+owned Link removal stay separate. Registry and common reconciliation behavior
+are unchanged; the authorized common hint handoff is recorded below.
 
 At both Homarr source revisions below, the adapter embeds the username/password
 in the RPC path. On a rejected response, the original `ResponseError` retains
@@ -19,11 +20,26 @@ log-view permission. Ordinary connection-test 401/403 payloads omit the Address
 and are not the established surface. No live leak, negative-auth runtime probe
 or log read was observed or performed.
 
-Resolution needs a supported HTTP Basic transport or complete downstream
-credential-path redaction, reconciliation/review of the exact accepted Homarr
-version/source contract, then explicit authorization of bounded acceptance.
+Resolution needs supported upstream credential transport and a complete privacy
+source review of every error/log destination, including credential-path
+redaction, reconciliation of the exact accepted Homarr version/source contract,
+then separate activation approval before Setup retry. A transport change alone
+does not establish safety; there is no manual integration or credential bypass.
 No proxy, no-auth switch, direct-App-data substitute, upstream disclosure,
 dependency update or activation test was introduced.
+
+The retained common custodian prepared only a three-line NZBGet-specific
+`target.hint` addition in `internal/apps/homarr/links.go`; the parent explicitly
+authorized this lane to stage that exact prepared change without editing it.
+It persists the #354 hold, forbids manual activation/bypass and requires
+transport, complete privacy review, exact source/version verification and
+separate approval before retry. Before staging, its SHA-256 values must remain:
+
+- Full common diff: `9492c61dee2ca526819d8fe085d6d95b75074de41e8cdd2f3ce1f07c5dcb0e6b`.
+- Common file: `c5c27db9e5baa6be266529b6535e9e329386e558b4bc788512602cc289819b7e`.
+
+This handoff changes no common signatures, registration, cleanup or credential
+transport. The hint has source coverage only while this descriptor is unregistered.
 
 ## Contract
 
@@ -93,8 +109,18 @@ body errors, missing/null results and incomplete records are not.
 Setup separately records `usenet-provider` as retryable Manual when active
 Admin `config` evidence has no enabled, non-placeholder provider host with a
 valid port and positive bounded connection count. The check discovers returned
-`Server<N>` settings instead of inventing a server, accepts NZBGet's documented
-enabled aliases/default when `Active` is absent, and excludes the shipped
+canonical `Server<N>` settings instead of inventing a server. As pinned
+`Options::InitServers` does, it starts at 1, continues through disabled or
+incomplete definitions and stops at the first absent definition, ignoring
+retained settings beyond that gap. Definition presence is tracked before
+filtering decision values using exactly upstream's fields: `Active`, `Name`,
+`Level`, `Group`, `Host`, `Port`, `Optional`, `Username`, `Password`,
+`Connections`, `JoinGroup`, `Encryption`, `Cipher`, `Retention`.
+Unknown fields, `Notes`, `IpVersion` and `CertVerification` do not count; signed
+or leading-zero indexes never alias loaded canonical names. A simple loop is
+bounded by the number of discovered definitions, not the largest returned index.
+The check accepts NZBGet's documented enabled aliases/default when `Active` is
+absent and excludes the shipped
 `my.newsserver.com` placeholder. It reads only the relevant configuration fields
 into the decision, never prints provider settings or uses provider credentials.
 This establishes settings only: no account creation, automatic provider
@@ -134,7 +160,12 @@ queue/history. Direct coverage includes failed-edit/no-restart and same-login
 retry, the actual guarded script on a test-owned local file preserving UID/GID,
 `0600` and unrelated configuration, active-login/no-restart recovery, failed
 scoped-restart/same-settings retry, and a separate provider Manual followed by
-configured-settings retry while idle RPC remains valid. Root-exec-to-daemon
+configured-settings retry while idle RPC remains valid. The same existing
+fixture sequence now checks Server2 alone, disabled/incomplete recognized
+Server1 prefixes followed by valid Server2, fields excluded from definition
+presence, a missing Server2 before valid Server3 and noncanonical indexes.
+These prove source/local settings decisions, not provider connectivity or
+NZBGet runtime loading. Root-exec-to-daemon
 ownership is supported by the script controls and pinned image source, not
 tested against a real container or different local owner. Leaf source assertions
 cover the unconditional #354 preflight hold and saved-identity/explicit-null
