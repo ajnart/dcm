@@ -197,6 +197,32 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   fallback, model switch or billing change followed the failure. Human feedback
   on valid iteration 15 remains pending, and PR #259 stays draft.
 
+- **Iteration 19: invalid Mint smoke.** One of two conversations completed.
+  The revised-guide conversation failed when the person reported the requested
+  logout/login after an agent-applied group change; the latest reply no longer
+  repeated `usermod`. No judgments, grades or benchmark were produced. The
+  retained command trace also exposes an earlier fixture false success:
+  `sudo -n usermod -aG docker` lacked a username but changed the group marker.
+  `whoami` was unmodeled, so command substitution had returned no username.
+  Both failures reproduced offline at the existing runner/execution seams.
+
+  The correction accepts requested login refresh after a validated prior group
+  change, while still requiring fresh verification. Mint's explicit fixture
+  username supports only `whoami` and `id -un`; no relay identity is inspected.
+  The host stub rejects unsupported group commands, missing usernames and
+  other users without state changes. Existing tests cover these controls and
+  still reject service restart as login refresh, including after a prior group
+  change. The person prompt distinguishes agent-applied group changes from
+  person-applied ones; permission alone remains insufficient. Guides, assertions,
+  completion criteria and 16-turn limits remain unchanged. The user requested
+  further iteration; the next step is another fresh Mint smoke after validation,
+  then a full comparison only if the smoke is valid. No model/billing switch or
+  paid fallback is permitted. Historical attempts remain untouched and ungraded.
+  Both review axes rechecked and cleared follow-up username-boundary fixes.
+  Suffix users and unsupported trailing arguments reproduced red before
+  correction in the existing runner test. All 60 offline tests pass; the final
+  focused manual-step regression, Ruff lint/format and Pyright also pass.
+
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
 

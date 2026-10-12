@@ -327,6 +327,19 @@ class RunnerCLI(unittest.TestCase):
                 self.assertEqual(person["completed_steps"], [step])
                 metadata = json.loads((run / "eval_metadata.json").read_text())
                 self.assertEqual(metadata["manual_steps"], [step])
+        self.env.update(
+            EVAL_TEST_MANUAL_GROUP="1",
+            EVAL_TEST_MANUAL_REQUEST=(
+                "I gave your account Docker permission. Log out and back in once."
+            ),
+        )
+        workspace = self.root / "manual-login-after-agent"
+        result = self.execute(
+            "manual-mint", extra=("--evals", "5", "--workspace", str(workspace))
+        )
+        self.env.pop("EVAL_TEST_MANUAL_GROUP")
+        self.env.pop("EVAL_TEST_MANUAL_REQUEST")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for index, (eval_id, overrides) in enumerate(
             (
                 ("6", {}),
@@ -335,11 +348,68 @@ class RunnerCLI(unittest.TestCase):
                 (
                     "5",
                     {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker, "
+                        "log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "other, log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
                         "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker sam, "
                         "then restart the Docker service."
                     },
                 ),
                 ("5", {"EVAL_TEST_MANUAL_STEPS": "[]"}),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "samand, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "samthen, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "sam-other, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "sam.test, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "sam --bad-option, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_GROUP": "1",
+                        "EVAL_TEST_MANUAL_REQUEST": "I changed your group. "
+                        "Restart the Docker service.",
+                    },
+                ),
                 (
                     "5",
                     {"EVAL_TEST_MANUAL_VERIFIED": "1", "EVAL_TEST_MANUAL_DONE": "1"},

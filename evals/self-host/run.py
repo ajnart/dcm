@@ -470,8 +470,9 @@ Write your next message. Rules:
 - completed_steps is [] unless you finished a permitted manual step at the
   assistant's request. Use "docker_desktop_wsl" only after installing Docker
   Desktop in Windows and enabling WSL integration. Use "docker_group_login"
-  only after running the requested Docker-group command and logging out/back in
-  or restarting. Permission alone does not complete a step. Do not invent
+  only after the requested Docker-group command has been run (by you or the
+  assistant) and you finish the requested logout/login or computer restart.
+  Permission alone does not complete a step. Do not invent
   terminal output or claim other manual actions.
 - Finish only when the scenario completion criteria are met and CLI verification
   is recorded. Ask for missing verification or handoff details rather than accepting
@@ -794,10 +795,19 @@ def run_one(
                     valid_request = (
                         platform.get("uname", {}).get("s") == "Linux"
                         and platform.get("docker") == "permission"
-                        and re.search(
-                            r"\busermod\s+(?:-ag\s+docker|-a\s+-g\s+docker|"
-                            r"-g\s+docker\s+-a)\b",
-                            agent_reply,
+                        and bool(platform.get("user"))
+                        and (
+                            os.path.isfile(
+                                os.path.join(harness, "state", "docker_group")
+                            )
+                            or re.search(
+                                r"\busermod\s+(?:-ag\s+docker|-a\s+-g\s+docker|"
+                                r"-g\s+docker\s+-a)\s+"
+                                + re.escape(platform.get("user", ""))
+                                + r"(?=[ \t]*(?:$|[`;\n]|[.,](?=\s|$))|"
+                                r"[ \t]+(?:then|and)\b)",
+                                agent_reply,
+                            )
                         )
                         and re.search(
                             r"\b(?:log|sign)[ -]?out.{0,80}(?:back[ -]?in|"

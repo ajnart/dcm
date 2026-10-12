@@ -12,6 +12,7 @@
   "apt-get"
  ],
  "docker": "permission",
+ "user": "sam",
   "media": {
     "metadata_only": true,
     "files": [

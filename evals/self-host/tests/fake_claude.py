@@ -194,6 +194,18 @@ elif is_stream:
     if mode == "empty-task":
         reply = ""
     if mode in ("manual-wsl", "manual-mint"):
+        if os.environ.get("EVAL_TEST_MANUAL_GROUP") and "--resume" not in args:
+            subprocess.run(
+                [
+                    os.path.join(os.environ["EVAL_STUBS"], "base", "sudo"),
+                    "usermod",
+                    "-aG",
+                    "docker",
+                    "sam",
+                ],
+                capture_output=True,
+                check=True,
+            )
         reply = "Please install Docker Desktop in Windows and enable WSL integration."
         if mode == "manual-mint":
             reply = "Please run sudo usermod -aG docker sam, log out and back in."

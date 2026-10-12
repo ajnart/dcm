@@ -61,8 +61,6 @@ def effects(h, words):
         k in text for k in ("docker", "orbstack", "get.docker.com", "get-docker")
     ):
         mark(h, "docker_installed")
-    if "usermod" in text and "docker" in text:
-        mark(h, "docker_group")
     if (
         "systemctl" in text
         and ("start" in text or "enable" in text)
@@ -143,6 +141,28 @@ def main():
     h = harness()
     p = platform(h)
     log(h, tool, argv)
+    if p.get("user") and (
+        (tool == "whoami" and not argv) or (tool == "id" and argv == ["-un"])
+    ):
+        print(p["user"])
+        return 0
+    words = [tool] + argv
+    if tool == "sudo":
+        words = argv.copy()
+        if words[:1] == ["-n"]:
+            words = words[1:]
+    if words[:1] == ["usermod"]:
+        user = p.get("user")
+        if not user or words[1:] not in (
+            ["-aG", "docker", user],
+            ["-a", "-G", "docker", user],
+            ["-G", "docker", "-a", user],
+        ):
+            sys.stderr.write(
+                "usermod: a modeled Docker-group command and user are required\n"
+            )
+            return 1
+        mark(h, "docker_group")
     if tool in (
         "ls",
         "stat",

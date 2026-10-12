@@ -92,6 +92,11 @@ agent through inspect, plan, approval, apply, verify.
   or Mint's Docker-group command followed by logout/login or a computer/session
   restart. The scenario allowlist, platform and request must match; restarting
   the Docker service is not a login refresh. Saying yes alone changes nothing.
+  If the agent already applied a validated group change, the person may finish
+  only the requested logout/login. Mint's username is fixture metadata:
+  `whoami` and `id -un` return it, never the relay identity. Docker-group
+  commands without that username or with unsupported arguments fail without
+  changing fixture state; other identity/group observations remain unmodeled.
   Only fixture Docker state changes, never the relay machine. Marker timestamps
   require fresh CLI verification after completion; prior Status cannot finish
   the goal. These labels are synthetic person reports, not real host proof.

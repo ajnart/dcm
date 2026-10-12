@@ -454,6 +454,37 @@ class ShellBoundary(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         for app in before_apps:
             self.assertIn("self-host-%s-1" % app, result.stdout)
+        shutil.copytree(
+            ROOT / "scenarios/newbie-mint",
+            self.harness / "scenario",
+            dirs_exist_ok=True,
+        )
+        for tool in ("sudo", "whoami", "id"):
+            (self.stubs / "base" / tool).symlink_to("hosttool")
+        (self.stubs / "base/hosttool").chmod(0o755)
+        platform = json.loads(
+            (ROOT / "scenarios/newbie-mint/platform.json").read_text()
+        )
+        platform["user"] = "sam"
+        (self.harness / "scenario/platform.json").write_text(json.dumps(platform))
+        for command in ("sudo -n usermod -aG docker", "sudo usermod -aG docker other"):
+            result = self.invoke(command)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "permission denied", self.invoke("self-host doctor --json").stdout
+            )
+        for command in ("whoami", "id -un"):
+            result = self.invoke(command)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "sam")
+        result = self.invoke("sudo -n usermod -aG docker $(whoami)")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(
+            "permission denied", self.invoke("self-host doctor --json").stdout
+        )
+        platform.pop("user")
+        (self.harness / "scenario/platform.json").write_text(json.dumps(platform))
+        self.assertNotEqual(self.invoke("whoami").returncode, 0)
 
     def test_installed_project_home_exists_only_in_sandbox(self):
         shutil.copytree(
