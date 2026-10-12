@@ -11,3 +11,11 @@
 ## Security
 
 - Make Caddy the sole approved owner of selected ingress ports.
+
+## Homarr source activation
+
+- Retained registry custodian normally merged frozen main `6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, preserving reviewed leaf `2cf41e1301fc3fb55eb1e5c00f5edaf8f52332bc`; only `caddyTarget()` is registered in this branch.
+- The descriptor reuses frozen `freshStatsSnapshot` instead of copying refresh checks, preserving direct bridge verification and finite nonnegative integer semantics. Frozen `verifyData` retains its common post-leaf selected-metric guard; common contract/helper bodies and signatures are unchanged.
+- The actual Homarr image revision [Caddy provider](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/providers/caddy.ts) confirms these semantics. Authenticated API `2.4.1`, image tag/revision and tagged research baseline `ebbd4876d25a51151444a009ab596e1154d62880` remain separate identities.
+- The normalized source-activated tree passed gofmt, build, both vet gates, all existing tests, TUI/Activity/Caddy/Homarr/Catalog race checks, installer shell syntax and diff checks with `GOFLAGS=-buildvcs=false`; these are source/fake checks, not live peer proof.
+- Source-activated is not live verified. Fresh parent-owned final Standards/Spec review and native/rendered/auth-mode, both-installation-order, restart/rerun, ownership/removal/reinstall and genuinely cross-kind shared-binding acceptance remain held. No runtime or changed Access/admin binding is authorized by registration.
