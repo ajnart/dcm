@@ -791,7 +791,8 @@ def run_one(
                 with open(os.path.join(harness, "scenario", "platform.json")) as source:
                     platform = json.load(source)
                 _, latest = render([turns_log[-1]])
-                agent_reply = latest.split("## Agent (turn %d)\n" % i, 1)[1].lower()
+                agent_text = latest.split("## Agent (turn %d)\n" % i, 1)[1]
+                agent_reply = agent_text.lower()
                 step = answer["completed_steps"][0]
                 marker = "docker_installed"
                 if step == "docker_desktop_wsl":
@@ -802,6 +803,11 @@ def run_one(
                     )
                 else:
                     marker = "docker_group"
+                    target = (
+                        r"(?:"
+                        + re.escape(platform.get("user", ""))
+                        + r"|\$USER|\$\{USER\}|\$\(whoami\)|\$\(id -un\))"
+                    )
                     valid_request = (
                         platform.get("uname", {}).get("s") == "Linux"
                         and platform.get("docker") == "permission"
@@ -811,12 +817,16 @@ def run_one(
                                 os.path.join(harness, "state", "docker_group")
                             )
                             or re.search(
-                                r"\busermod\s+(?:-ag\s+docker|-a\s+-g\s+docker|"
-                                r"-g\s+docker\s+-a)\s+"
-                                + re.escape(platform.get("user", ""))
+                                r"\busermod\s+(?:-aG\s+docker|-a\s+-G\s+docker|"
+                                r"-G\s+docker\s+-a)\s+"
+                                + r'(?:"'
+                                + target
+                                + r'"|'
+                                + target
+                                + r")"
                                 + r"(?=[ \t]*(?:$|[`;\n]|[.,](?=\s|$))|"
                                 r"[ \t]+(?:then|and)\b)",
-                                agent_reply,
+                                agent_text,
                             )
                         )
                         and re.search(

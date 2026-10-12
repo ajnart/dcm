@@ -477,14 +477,23 @@ class ShellBoundary(unittest.TestCase):
             result = self.invoke(command)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.strip(), "sam")
-        result = self.invoke("sudo -n usermod -aG docker $(whoami)")
-        self.assertEqual(result.returncode, 0, result.stderr)
+        for command in (
+            "sudo -n usermod -aG docker $USER",
+            'sudo -n usermod -aG docker "${USER}"',
+            "sudo -n usermod -aG docker $(whoami)",
+        ):
+            result = self.invoke(command)
+            self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(
             "permission denied", self.invoke("self-host doctor --json").stdout
         )
         platform.pop("user")
         (self.harness / "scenario/platform.json").write_text(json.dumps(platform))
         self.assertNotEqual(self.invoke("whoami").returncode, 0)
+        self.env["USER"] = "RELAY-ID-CANARY"
+        result = self.invoke('printf "%s" "$USER"')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("RELAY-ID-CANARY", result.stdout)
 
     def test_installed_project_home_exists_only_in_sandbox(self):
         shutil.copytree(

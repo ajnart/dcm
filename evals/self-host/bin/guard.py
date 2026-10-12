@@ -105,6 +105,12 @@ def main():
             "TMPDIR": temporary,
             "SELF_HOST_NO_UPDATE_CHECK": "1",
         }
+        platform_path = os.path.join(harness or "", "scenario", "platform.json")
+        if os.path.isfile(platform_path):
+            with open(platform_path) as source:
+                user = json.load(source).get("user")
+            if isinstance(user, str) and user:
+                env["USER"] = user
         for k, v in os.environ.items():
             if k.startswith("SELF_HOST_EVAL_"):
                 env[k] = v

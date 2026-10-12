@@ -105,9 +105,13 @@ agent through inspect, plan, approval, apply, verify.
   the Docker service is not a login refresh. Saying yes alone changes nothing.
   If the agent already applied a validated group change, the person may finish
   only the requested logout/login. Mint's username is fixture metadata:
-  `whoami` and `id -un` return it, never the relay identity. Docker-group
-  commands without that username or with unsupported arguments fail without
-  changing fixture state; other identity/group observations remain unmodeled.
+  `whoami` and `id -un` return it, never the relay identity.
+  `$USER` is also set from that metadata inside the isolated shell. Manual
+  instructions may use that variable or the supported identity commands;
+  their case and quoting must preserve expansion, not a literal `$USER` name.
+  Docker-group commands without that username or with unsupported arguments
+  fail without changing fixture state; other identity/group observations remain
+  unmodeled.
   Only fixture Docker state changes, never the relay machine. Marker timestamps
   require fresh CLI verification after completion; prior Status cannot finish
   the goal. These labels are synthetic person reports, not real host proof.

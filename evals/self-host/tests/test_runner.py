@@ -307,6 +307,24 @@ class RunnerCLI(unittest.TestCase):
                     "docker_group_login",
                     "Run sudo usermod -aG docker sam, then restart the laptop.",
                 ),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    "Run sudo usermod -aG docker $USER, then log out and back in.",
+                ),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    'Run sudo usermod -aG docker "$USER", then log out and back in.',
+                ),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    "Run sudo usermod -aG docker $(whoami), then log out and back in.",
+                ),
             )
         ):
             with self.subTest(mode=mode, request=request):
@@ -369,6 +387,27 @@ class RunnerCLI(unittest.TestCase):
                     },
                 ),
                 ("5", {"EVAL_TEST_MANUAL_STEPS": "[]"}),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "$user, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -ag docker "
+                        "sam, then log out and back in."
+                    },
+                ),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker "
+                        "'$USER', then log out and back in."
+                    },
+                ),
                 (
                     "5",
                     {

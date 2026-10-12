@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 22 expanded 54-conversation comparison running      |
+| Complete real-model batch with both guides and three repetitions       | Iteration 22 invalid; fixture USER expansion corrected        |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
@@ -279,17 +279,30 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   No guide changes are inferred from invalid batches; PR #257 remains separate
   and human viewer feedback remains due before merge.
 
-- **Iteration 22: running expanded comparison.** After the reported reset time,
+- **Iteration 22: invalid Mint username-expansion boundary.** After the reported reset time,
   the user explicitly authorized nine scenarios, both unchanged frozen guides
   and three repetitions (54 conversations), equal 16-turn limits, then complete
   blind judgments and the supplied viewer only if execution is valid. Both
-  selected Sonnet and Opus access preflights passed. The batch runs two
-  conversations concurrently; quota or execution failure stops it without
-  fallback or automatic retry. Iteration 21 remains untouched and ungraded.
+  selected Sonnet and Opus access preflights passed. Twenty-nine of 54
+  conversations completed; 25 failed or were cancelled after revised-guide Mint
+  run 1 reported a requested manual Docker-group/login step that the runner
+  rejected. The attempted shell command expanded `$USER` to no username because
+  the clean fixture environment omitted it. The manual handoff correctly used
+  `$USER`, but the request validator required a literal fixture username.
+  No judgments, grading or benchmark were produced; there was no fallback or
+  automatic retry. Iterations 21 and 22 remain untouched and ungraded.
   Original IDs 0-6 retain their previous definitions; new IDs 7-8 add refusal
   coverage. This expanded comparison is not a same-input rerun of iteration 21.
+  Both symptoms reproduced red at the existing runner and execution seams.
+  The shell now sets `$USER` only from trusted fixture metadata, never the relay.
+  Manual validation preserves command case and supports that expansion plus
+  existing modeled identity commands. Literal single-quoted variables, wrong
+  case and malformed commands remain refused. Both focused regressions and all
+  61 offline tests pass, along with Ruff lint/format and Pyright. Both independent
+  review axes cleared the change. No subsequent model batch has been launched;
+  a fresh bounded authorization is needed after this invalid attempt.
   Human review and guide improvements in separate PR #257 follow trustworthy
-  evidence; no superiority or merge acceptance is claimed while it runs.
+  evidence; no superiority or merge acceptance is claimed from this failure.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
