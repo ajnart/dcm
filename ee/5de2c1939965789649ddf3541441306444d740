@@ -1,0 +1,21 @@
+internal/apps/homarr/target_bazarr.go
+  s_59ffa5bfdcd3ba::t_520ee70b61845a 20-22
+internal/apps/homarr/targets.go
+  s_59ffa5bfdcd3ba::t_085855090d3c33 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ee5de2c1939965789649ddf3541441306444d740",
+  "prompts": {},
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
