@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 
 
@@ -29,6 +30,17 @@ def deny(reason):
         )
     )
     return 0
+
+
+def relay_command(command):
+    result = subprocess.run(
+        ["/bin/bash", "-c", command], capture_output=True, check=False
+    )
+    sys.stdout.buffer.write(result.stdout)
+    sys.stderr.buffer.write(result.stderr)
+    if result.returncode < 0:
+        return 128 - result.returncode
+    return result.returncode
 
 
 def main():
@@ -108,6 +120,13 @@ def main():
             prefix,
             isolated,
         )
+        wrapped = (
+            "/Library/Developer/CommandLineTools/usr/bin/python3 %s --relay %s"
+            % (
+                shlex.quote(os.path.realpath(__file__)),
+                shlex.quote(wrapped),
+            )
+        )
         print(
             json.dumps(
                 {
@@ -165,4 +184,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--relay":
+        sys.exit(relay_command(sys.argv[2]))
     sys.exit(main())

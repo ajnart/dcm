@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -151,7 +152,40 @@ if is_preflight:
     result["result"] = "READY"
 elif is_stream:
     reply = "Ready."
-    if mode != "manual-wsl" or "--resume" in args:
+    if mode == "guarded-fixture":
+        hook = subprocess.run(
+            [sys.executable, os.path.join(os.environ["EVAL_STUBS"], "base/guard.py")],
+            input=json.dumps(
+                {
+                    "tool_name": "Bash",
+                    "tool_input": {
+                        "command": "self-host skill && uname -s && "
+                        "brew install --cask orbstack && self-host doctor --json && "
+                        "self-host install jellyfin --yes --json && "
+                        "self-host status --json"
+                    },
+                }
+            ),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        decision = json.loads(hook.stdout)["hookSpecificOutput"]
+        with tempfile.TemporaryDirectory() as output_dir:
+            output_path = Path(output_dir) / "stdout"
+            error_path = Path(output_dir) / "stderr"
+            with output_path.open("w") as output, error_path.open("w") as error:
+                call = subprocess.run(
+                    decision["updatedInput"]["command"],
+                    shell=True,
+                    stdout=output,
+                    stderr=error,
+                    check=False,
+                )
+            if call.returncode:
+                sys.exit(error_path.read_text() or "guarded fixture failed")
+            reply = output_path.read_text()
+    elif mode != "manual-wsl" or "--resume" in args:
         verify_goal()
     if mode == "recap-home":
         reply = "Home folder: " + str(Path.cwd() / ".home" / ".self-host")

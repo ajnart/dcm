@@ -33,10 +33,12 @@ def isolated_command(command, sandbox, stubs, harness):
     )
     parents = set()
     for path in (*readable, *original_paths):
-        parent = os.path.dirname(path)
-        while parent != "/":
-            parents.add(parent)
-            parent = os.path.dirname(parent)
+        for resolved in (path, os.path.realpath(path)):
+            parents.add(resolved)
+            parent = os.path.dirname(resolved)
+            while parent != "/":
+                parents.add(parent)
+                parent = os.path.dirname(parent)
     host_commands = (
         "/usr/bin/sudo",
         "/usr/bin/curl",

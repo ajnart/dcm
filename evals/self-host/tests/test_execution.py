@@ -1,5 +1,6 @@
 import json
 import os
+import shlex
 import shutil
 import socket
 import subprocess
@@ -62,17 +63,59 @@ class ShellBoundary(unittest.TestCase):
         result = self.invoke("/bin/cat " + str(outside))
         self.assertNotIn("PRIVATE-HOST-CANARY", result.stdout)
         self.assertNotEqual(result.returncode, 0)
+        escaped = self.invoke(
+            'for f in .tmp/*/stdout; do /bin/rm -- "$f"; '
+            '/bin/ln -s %s "$f"; done' % shlex.quote(str(outside))
+        )
+        self.assertNotIn("PRIVATE-HOST-CANARY", escaped.stdout + escaped.stderr)
 
     def test_shell_can_run_fixture_binary(self):
         (self.harness / "guide.md").write_text("FIXTURE-GUIDE")
         (self.harness / "config.json").write_text(
             json.dumps({"guide": str(self.harness / "guide.md"), "version": "dev-eval"})
         )
+        scenario = self.harness / "scenario"
+        archived = self.root / "raw" / "scenario"
+        archived.parent.mkdir()
+        scenario.rename(archived)
+        scenario.symlink_to(archived, target_is_directory=True)
         (self.stubs / "base" / "self-host").chmod(0o755)
         result = self.invoke("self-host skill")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stderr, "")
         self.assertIn("FIXTURE-GUIDE", result.stdout)
+        decision = self.decision("Bash", {"command": "self-host skill"})
+        output_path = self.root / "tool-output"
+        error_path = self.root / "tool-error"
+        with output_path.open("w") as output, error_path.open("w") as error:
+            result = subprocess.run(
+                decision["updatedInput"]["command"],
+                shell=True,
+                stdout=output,
+                stderr=error,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, error_path.read_text())
+        self.assertIn("FIXTURE-GUIDE", output_path.read_text())
+        decision = self.decision(
+            "Bash",
+            {
+                "command": "python3 -c 'import sys; "
+                'sys.stdout.write("o" * 131072); sys.stderr.write("e" * 131072); '
+                "sys.exit(7)'"
+            },
+        )
+        with output_path.open("w") as output, error_path.open("w") as error:
+            result = subprocess.run(
+                decision["updatedInput"]["command"],
+                shell=True,
+                stdout=output,
+                stderr=error,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(output_path.read_text(), "o" * 131072)
+        self.assertEqual(error_path.read_text(), "e" * 131072)
 
     def test_shell_cannot_write_outside_workspace(self):
         outside = self.root / "host-file"
@@ -244,6 +287,11 @@ class ShellBoundary(unittest.TestCase):
             self.harness / "scenario",
             dirs_exist_ok=True,
         )
+        scenario = self.harness / "scenario"
+        archived = self.root / "raw" / "scenario"
+        archived.parent.mkdir()
+        scenario.rename(archived)
+        scenario.symlink_to(archived, target_is_directory=True)
         (self.harness / "config.json").write_text(json.dumps({"version": "dev-eval"}))
         (self.stubs / "base" / "self-host").chmod(0o755)
         result = self.invoke(

@@ -62,7 +62,7 @@ class RunnerCLI(unittest.TestCase):
         )
 
     def test_run_preserves_fixture_inputs_without_symlinks(self):
-        result = self.execute()
+        result = self.execute("guarded-fixture")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
         snapshot = run / "raw" / "scenario"

@@ -51,6 +51,10 @@ agent through inspect, plan, approval, apply, verify.
   runtime/fixture files, and no network access.
   Fixture shebangs resolve Python directly from Command Line Tools, avoiding
   macOS's developer-selection launcher without widening metadata permissions.
+  A trusted synchronous relay drains isolated stdout/stderr through pipes before
+  forwarding to Claude's output files; it preserves exit status and never reopens
+  agent-writable capture paths outside isolation. Fixture symlink roots and their
+  canonical ancestors have literal metadata permission, not broad host access.
   Absolute host installer, remote shell and macOS automation tools are refused,
   not dispatched by the stubs.
   Read is limited to the working folder and the current session's tool-results

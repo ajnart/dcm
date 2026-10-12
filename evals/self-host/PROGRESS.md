@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
-| Complete real-model batch with both guides and three repetitions       | Fresh iteration 14 smoke running; full comparison pending             |
+| Complete real-model batch with both guides and three repetitions       | Iteration 14 invalid; fresh smoke needed after launch-path fixes      |
 | Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes         |
 
@@ -118,11 +118,13 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   cancellation stopped the revised-guide conversation on turn 8. Neither run
   completed; no judgments, grades or benchmark were produced. Frozen inputs
   and raw diagnostics are retained unchanged.
-- **Iteration 14: running.** After the user's instruction to continue, DNS
-  resolution and both selected model-access preflights succeeded. A fresh
-  two-run MacBook smoke uses the corrected harness, unchanged guide snapshots
-  and equal 16-turn budgets. No transport retry alters iteration 13 evidence;
-  full comparison still requires valid smoke execution and complete judgments.
+- **Iteration 14: invalid launch-path failure.** Both preflights passed, but
+  the revised run never read the guide: fixture commands failed silently and
+  the person/agent conversation exhausted 16 turns. Its peer was cancelled on
+  turn 10. Neither was graded. Offline reproduction identified inherited
+  file-backed stdout/stderr outside the sandbox, unlike earlier piped tests;
+  another reproduction found missing metadata permission for archived-fixture
+  symlinks. This is not evidence of guide quality. Evidence remains untouched.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
@@ -359,6 +361,29 @@ snapshots and equal 16-turn budgets: one two-run MacBook smoke, then at most one
 model switch or billing change is authorized; stop if quota/access is blocked.
 Historical evidence is untouched. This does not clear the full comparison or
 human viewer gates, and PR #259 remains draft.
+
+### Actual launch-path regressions (October 12, 2026)
+
+The shell seam now reproduces Claude's inherited regular-file stdout/stderr,
+including 131072 bytes per stream and original exit status 7. The existing
+runner fixture-preservation test exercises the actual guard/OS sandbox over
+the prepared symlinked scenario, through guide, host, install and verification
+commands, rather than unguarded fake command execution. The affected tests
+went red on both observed fixture failures before correction.
+
+A trusted synchronous pipe relay forwards completed stdout/stderr without
+reopening agent-writable paths. Review caught and rejected an initial capture
+path read escape and asynchronous forwarding; neither interim design was
+committed or used in model runs. The final relay drains both pipes and waits
+before returning, preserving the child status. Literal metadata permission
+includes only configured roots/aliases and their canonical ancestors; host
+read/write/network and arbitrary workspace-symlink canaries still pass.
+Both independent reviewers cleared the final changes. Historical evidence,
+guide/router snapshots, assertions and equal conversation budgets are unchanged.
+All 60 existing offline tests pass, including the prepared runner canary;
+Ruff lint/format and Pyright also pass. No new testcases, files or dependencies
+were added. The first full offline command exceeded its 120-second shell timeout;
+a fresh complete run with a longer shell timeout passed all 60 in 88 seconds.
 
 ### Earlier review evidence
 
