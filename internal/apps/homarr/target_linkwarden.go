@@ -16,7 +16,16 @@ func linkwardenTarget() target {
 			return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("homarr_api_key"))}}
 		},
 		widgets: []widget{statWidget("links", "collections", "tags")},
-		verify:  verifyLinkwarden,
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			if err := linkwarden.VerifyHomarr(ctx, to); err != nil {
+				if errors.Is(err, helpers.ErrManual) {
+					from.Info(linkwarden.HomarrRecoveryHint + " No Homarr mutation is permitted while that prerequisite is Manual.")
+				}
+				return err
+			}
+			return nil
+		},
+		verify: verifyLinkwarden,
 	}
 }
 
@@ -24,24 +33,27 @@ func verifyLinkwarden(ctx context.Context, from, to *helpers.H, integrationID st
 	if err := linkwarden.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	started := from.Now().UnixMilli()
-	value, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
+	accountID, err := linkwarden.HomarrAccountID(to)
 	if err != nil {
 		return err
 	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Linkwarden statistics; retry self-host setup homarr")
+	value, err := apiKeyWrite(ctx, from, "integration.request", map[string]any{
+		"integrationId": integrationID, "method": "GET", "path": "/api/v1/users/me",
+	})
+	if err != nil {
+		return err
 	}
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updatedAt, hasTime := snapshot["updatedAt"].(float64)
-	if !hasError || failed || !hasStale || stale || !hasTime || math.IsNaN(updatedAt) || math.IsInf(updatedAt, 0) || updatedAt < float64(started) {
-		return errors.New("Homarr could not refresh authenticated Linkwarden statistics; check its token and retry self-host setup homarr")
+	result, _ := value.(map[string]any)
+	integration, _ := result["integration"].(map[string]any)
+	data, _ := result["data"].(map[string]any)
+	identity, _ := data["response"].(map[string]any)
+	if result["ok"] != true || result["status"] != float64(200) || integration["id"] != integrationID || integration["kind"] != "linkwarden" || identity["id"] != float64(accountID) {
+		from.Info("Restore the known selected account's token to this owned Linkwarden integration in Homarr Management > Integrations, preserving unrelated integrations, then retry self-host setup homarr. Equal or empty native counts do not establish account identity.")
+		return helpers.ErrManual
 	}
-	statistics, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Linkwarden statistics values")
+	statistics, err := freshStatsSnapshot(ctx, from, integrationID)
+	if err != nil {
+		return err
 	}
 	for _, key := range []string{"links", "collections", "tags"} {
 		count, ok := statistics[key].(float64)

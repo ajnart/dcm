@@ -30,7 +30,14 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{
+		{Key: "homarr_api_key", Prompt: "Saved self-host Homarr access token", Private: true,
+			Help: "Optional restoration of the known token with its matching ownership record, never a different account's token. Empty private inputs preserve saved values. Reinstall replaces Compose: preserve and review existing authentication, mounts and ports and separately approve replacement before using install --set-file."},
+		{Key: "homarr_token_ownership", Prompt: "Saved self-host Homarr token ownership", Private: true,
+			Help: "Restore the matching JSON record with id, accountId, expires and fingerprint, not a guessed token ID. A pending issued token blocks reissuance until its secret is restored or its recorded ID is absent from the authenticated token inventory. Empty private inputs preserve saved values."},
+	}
+}
 
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
@@ -141,7 +148,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "homarr-token", "prepare Linkwarden statistics access", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
 		Do:         func(ctx context.Context) error { return createHomarrToken(ctx, h) },
-		Hint:       "Run self-host setup linkwarden to prepare its Homarr token. If the managed token expires or its saved secret is lost, restore its credential through the Project secret boundary or revoke only self-host Homarr statistics in Linkwarden Settings > Access Tokens, then retry. Unknown saved credentials require an ownership review before replacement. Linkwarden does not support read-only token scopes.",
+		Hint:       HomarrRecoveryHint,
 		Credential: "admin",
 	})
 }
