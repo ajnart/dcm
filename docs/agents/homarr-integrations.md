@@ -53,13 +53,14 @@ those records predates that decision. Keep the existing self-host skill router.
    Set fresh absolute `SELF_HOST_HOME`, unique `SELF_HOST_COMPOSE_PROJECT`,
    isolated media/download folders, Telemetry off and unused loopback ports with
    `--exposure local` / `--set <app>.port=N`. A new Home alone still uses `selfhost`.
-   Approve numeric per-container **and aggregate** limits and a cancellation/
-   diagnostic/cleanup deadline before startup; enforce from first creation and
-   inspect every dependency's actual caps. Reference bounds were five
-   containers, each 1 GiB/1 CPU/512 PIDs, aggregate 5 GiB/5 CPUs, 13 minutes work,
-   30 seconds diagnostics and one minute cleanup within a 15-minute ceiling.
-   Adding cross-kind peers/dependencies needs its own approved budget, not an
-   unbounded extension. Provider/account actions, hardware, bandwidth-heavy jobs,
+   Enforce an **entire-attempt global ceiling of at most 5 containers, 5 GiB,
+   5 CPUs and 15 minutes**, including every dependency, fixture, companion App,
+   diagnostics and cleanup. Run batches sequentially, never concurrently; peer
+   budgets are not additive. Enforce 1 GiB/1 CPU/512 PIDs per container from first
+   creation and inspect actual caps. Reserve 13 minutes work, 30 seconds diagnostics
+   and one minute owned cleanup within that ceiling. Any higher limits require a
+   **separately approved scope and runtime plan before launch**.
+   Provider/account actions, hardware, bandwidth-heavy jobs,
    public Access and another runtime attempt each need explicit scope/approval.
    **Done:** owned inventory, ports, hard bounds and cleanup are preflighted;
    no real user Project/board or protected secret/profile files are touched.
@@ -92,9 +93,13 @@ those records predates that decision. Keep the existing self-host skill router.
    reinstall/remove cycles, preserved boards and a **meaningful useful survivor**
    from the other real kind. Opaque legacy records prove ownership only, not native
    peer data; two Immich bindings are not cross-kind acceptance.
-   **Done:** lifecycle, collision, absent/unready behavior and survivor data/rendering
-   pass; owned containers/networks and only this browser session close, scoped
-   cleanup readback is empty/inactive, and volumes/disposable data remain kept.
+   Exercise **peer-first then Homarr** and **Homarr-first then peer** in fresh
+   isolated Projects: each order must reach useful native/rendered acceptance.
+   These exercise different Setup scheduler paths; reruns do not prove both orders.
+   **Done:** both installation orders, lifecycle, collision, absent/unready behavior
+   and survivor data/rendering pass; owned containers/networks and only this browser
+   session close, scoped cleanup readback is empty/inactive, and volumes/disposable
+   data remain kept.
 
 7. **Deliver a bounded proof.** Record self-host source SHA and binary SHA-256,
    peer versions, authenticated Homarr API version, image index/platform manifest/
