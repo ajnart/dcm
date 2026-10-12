@@ -39,13 +39,11 @@ func (t target) compatible(ctx context.Context, from, to *helpers.H) error {
 		return errors.New("Homarr did not return its integration capabilities")
 	}
 	provided := []string{}
-	if t.secrets != nil {
-		for _, credential := range t.secrets(from, to) {
-			if credential.Value == "" {
-				return fmt.Errorf("%s %s credential is missing; run self-host setup %s, then self-host setup homarr", t.name, credential.Kind, t.id)
-			}
-			provided = append(provided, credential.Kind)
+	for _, credential := range t.credentials(from, to) {
+		if credential.Value == "" {
+			return fmt.Errorf("%s %s credential is missing; run self-host setup %s, then self-host setup homarr", t.name, credential.Kind, t.id)
 		}
+		provided = append(provided, credential.Kind)
 	}
 	for _, raw := range kinds {
 		kind, _ := raw.(map[string]any)
@@ -62,6 +60,11 @@ func (t target) compatible(ctx context.Context, from, to *helpers.H) error {
 			for _, raw := range required {
 				name, ok := raw.(string)
 				if !ok || !slices.Contains(provided, name) {
+					matches = false
+				}
+			}
+			for _, name := range provided {
+				if !slices.Contains(required, any(name)) {
 					matches = false
 				}
 			}
