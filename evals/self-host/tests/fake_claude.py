@@ -63,10 +63,13 @@ def verify_goal():
             operations = [["setup", "sonarr", "--json"]]
         else:
             operations = [["config", "set", "LAN_IP=auto", "--yes", "--json"]]
+    mutation = operations[0]
+    if os.environ.get("EVAL_TEST_COMPLETION") == "no_change":
+        operations = []
     if os.environ["EVAL_TEST_MODE"] != "missing-verification":
         operations.append(["status", "--json"])
     if os.environ["EVAL_TEST_MODE"] == "stale-verification":
-        operations.append(operations[0])
+        operations.append(mutation)
     if os.environ["EVAL_TEST_MODE"] == "failed-verification":
         for name in ("status-installed.exit", "status-fixed.exit", "status.exit"):
             (harness / "scenario" / name).write_text(json.dumps({"code": 1}))
@@ -185,6 +188,26 @@ elif is_stream:
             if call.returncode:
                 sys.exit(error_path.read_text() or "guarded fixture failed")
             reply = output_path.read_text()
+    elif mode == "no-change":
+        base = Path(os.environ["EVAL_STUBS"]) / "base"
+        subprocess.run(
+            [str(base / "self-host"), "skill"], capture_output=True, check=True
+        )
+        attempt = json.loads(os.environ.get("EVAL_TEST_NO_CHANGE_ATTEMPT", "[]"))
+        if attempt and "--resume" not in args:
+            tool = base / attempt[0]
+            if attempt[0] == "docker":
+                tool = base.parent / "docker" / "docker"
+            subprocess.run([str(tool), *attempt[1:]], capture_output=True, check=False)
+        if not os.environ.get("EVAL_TEST_NO_CHANGE_SKIP_STATUS"):
+            subprocess.run(
+                [str(base / "self-host"), "status", "--json"],
+                capture_output=True,
+                check=True,
+            )
+        reply = "Would you like me to apply this plan?"
+        if "--resume" in args:
+            reply = "Stopped. No installation or public Access change was attempted."
     elif mode not in ("manual-wsl", "manual-mint") or "--resume" in args:
         verify_goal()
     if os.environ.get("EVAL_TEST_MANUAL_VERIFIED") and "--resume" not in args:
@@ -314,6 +337,11 @@ if mode == "invalid-usage" and is_stream:
 if mode == "turn-cap" and not is_preflight and not is_stream:
     result["result"] = json.dumps(
         {"reply": "Please continue", "done": False, "approves": False}
+    )
+if mode == "no-change" and not is_preflight and not is_stream:
+    done = "## Agent (turn 2)" in prompt
+    result["result"] = json.dumps(
+        {"reply": "" if done else "No, stop here.", "done": done, "approves": False}
     )
 if mode == "nine-turns" and not is_preflight and not is_stream:
     done = "## Agent (turn 9)" in prompt

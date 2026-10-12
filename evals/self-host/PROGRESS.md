@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Full comparison pending; iteration 20 Mint smoke valid        |
+| Complete real-model batch with both guides and three repetitions       | Iteration 21 quota-blocked; iteration 20 Mint smoke valid     |
 | Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
@@ -244,6 +244,40 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   exclude person and judge calls. One run cannot estimate variance or establish
   overall guide quality; these are synthetic fixtures, not native install proof.
   A fresh full comparison and human viewer feedback remain acceptance gates.
+
+- **Iteration 21: invalid subscription quota failure.** The user explicitly
+  authorized one original seven-scenario comparison, both frozen guides and
+  three repetitions (42 conversations), equal 16-turn limits, complete blind
+  judgments/viewer only after valid execution. Selected Sonnet and Opus access
+  preflights passed, but the first person call later failed with
+  `You've hit your session limit · resets 6:50pm (Europe/Paris)`.
+  Zero of 42 completed; every planned run failed or was cancelled. No judgments,
+  grading or benchmark were produced. The attempt remains frozen and ungraded;
+  no quota retry, paid fallback, model switch or billing change followed it.
+
+  The user requested more tests and another full comparison with subsequent
+  guide improvements. Two additional refusal scenarios were prepared offline:
+  declining more Apps and declining public Access, both on the existing
+  Jellyfin/Paperless fixture. Original IDs 0-6, guides, assertions and budgets
+  were not changed; these additions do not alter iteration 21. New IDs 7-8 use
+  a separate `no_change` completion contract: successful Status, unchanged Apps
+  and Access, and zero Project/Host/Docker mutation attempts, including failed
+  ones. A runner CLI test went red for both correctly declined conversations
+  before implementing the contract; it now accepts those conversations and
+  rejects missing Status, installation, host privilege, Docker and refused
+  publication attempts. It uses the fake model boundary, not live Claude or
+  the Project. Real-model validation of the additions is still pending.
+  Expanded nine-scenario comparison would be 54 conversations, not 42; its
+  bounded authorization and restored access must precede a fresh attempt.
+  All 61 offline tests, Ruff lint/format and Pyright pass. Both independent
+  review axes cleared the final changes. The first full offline run found the
+  existing all-eval regression keyed workspaces by fixture scenario; shared
+  refusal fixtures collided. Workspaces now use eval IDs, and the fake positive
+  completion path respects `no_change` rather than publishing every Paperless
+  fixture. Missing/stale/failed verification controls still fail. The focused
+  regression and a fresh complete suite passed after these corrections.
+  No guide changes are inferred from invalid batches; PR #257 remains separate
+  and human viewer feedback remains due before merge.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.

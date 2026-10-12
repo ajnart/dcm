@@ -95,13 +95,14 @@ class RunnerCLI(unittest.TestCase):
         self.assertNotIn("new_skill", replies)
         self.assertEqual(run.parent.name, "new_skill")
         for ev in json.loads((self.harness / "evals/evals.json").read_text())["evals"]:
-            with self.subTest(scenario=ev["scenario"]):
+            with self.subTest(eval_id=ev["id"], scenario=ev["scenario"]):
+                self.env["EVAL_TEST_COMPLETION"] = ev["completion"]
                 for mode in (
                     "missing-verification",
                     "stale-verification",
                     "failed-verification",
                 ):
-                    workspace = self.root / (ev["scenario"] + "-" + mode)
+                    workspace = self.root / (str(ev["id"]) + "-" + mode)
                     failed = self.execute(
                         mode,
                         extra=("--workspace", str(workspace), "--evals", str(ev["id"])),
@@ -121,7 +122,7 @@ class RunnerCLI(unittest.TestCase):
                         ],
                         ev["assertions"],
                     )
-                workspace = self.root / (ev["scenario"] + "-verified")
+                workspace = self.root / (str(ev["id"]) + "-verified")
                 completed = self.execute(
                     "completion-scopes",
                     extra=("--workspace", str(workspace), "--evals", str(ev["id"])),
@@ -129,6 +130,7 @@ class RunnerCLI(unittest.TestCase):
                 self.assertEqual(
                     completed.returncode, 0, completed.stdout + completed.stderr
                 )
+        self.env.pop("EVAL_TEST_COMPLETION")
         observations = (
             ("host.jsonl", ["sudo", "usermod", "-aG", "docker", "sam"], True),
             ("host.jsonl", ["brew", "install", "orbstack"], True),
@@ -430,6 +432,60 @@ class RunnerCLI(unittest.TestCase):
                     (workspace / "iteration-1/execution.json").read_text()
                 )
                 self.assertFalse(manifest["valid"])
+
+    def test_declined_plans_finish_only_without_mutation_attempts(self):
+        for eval_id in ("7", "8"):
+            with self.subTest(eval_id=eval_id):
+                workspace = self.root / ("declined-%s" % eval_id)
+                result = self.execute(
+                    "no-change",
+                    extra=("--evals", eval_id, "--workspace", str(workspace)),
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                run = next((workspace / "iteration-1").glob("eval-*/*/run-*"))
+                metrics = json.loads((run / "raw/metrics.json").read_text())
+                self.assertTrue(metrics["valid"])
+                self.assertEqual(
+                    {app["id"] for app in metrics["completion_observation"]["apps"]},
+                    {"jellyfin", "paperless-ngx"},
+                )
+        for index, overrides in enumerate(
+            (
+                {"EVAL_TEST_NO_CHANGE_SKIP_STATUS": "1"},
+                {
+                    "EVAL_TEST_NO_CHANGE_ATTEMPT": json.dumps(
+                        ["self-host", "install", "jellyfin", "--yes", "--json"]
+                    )
+                },
+                {"EVAL_TEST_NO_CHANGE_ATTEMPT": '["sudo", "-n", "true"]'},
+                {"EVAL_TEST_NO_CHANGE_ATTEMPT": '["docker", "compose", "up", "-d"]'},
+                {
+                    "EVAL_TEST_NO_CHANGE_ATTEMPT": json.dumps(
+                        [
+                            "self-host",
+                            "cloudflare",
+                            "publish",
+                            "--app",
+                            "paperless-ngx",
+                            "--yes",
+                        ]
+                    )
+                },
+            )
+        ):
+            with self.subTest(overrides=overrides):
+                previous = self.env.copy()
+                self.env.update(overrides)
+                workspace = self.root / ("declined-invalid-%d" % index)
+                result = self.execute(
+                    "no-change", extra=("--evals", "8", "--workspace", str(workspace))
+                )
+                self.env = previous
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                execution = json.loads(
+                    (workspace / "iteration-1/execution.json").read_text()
+                )
+                self.assertFalse(execution["valid"])
 
     def test_model_children_are_terminated_before_collecting_artifacts(self):
         marker = self.root / "late-child"

@@ -595,18 +595,28 @@ def completion_evidence(ev, harness):
             if classify(call["argv"])
         )
     statuses = [call for call in calls if call["cmd"] == "status"]
+    kind = ev["completion"]
     if (
-        not changes
-        or not statuses
+        not statuses
         or statuses[-1]["ts"] != observation["ts"]
-        or max(change_times) >= observation["ts"]
+        or (
+            kind != "no_change"
+            and (not changes or max(change_times) >= observation["ts"])
+        )
     ):
         return {"verified": False, "reason": "CLI Status must succeed after the change"}
     status = observation["status"]
     apps = {app["id"]: app for app in status["apps"]}
-    kind = ev["completion"]
     verified = False
-    if kind == "install":
+    if kind == "no_change":
+        with open(os.path.join(harness, "scenario", "status.json")) as source:
+            initial = json.load(source)
+        verified = (
+            not change_times
+            and status["apps"] == initial["apps"]
+            and status.get("access", []) == initial.get("access", [])
+        )
+    elif kind == "install":
         verified = (
             any(call["cmd"] == "install" for call in changes)
             and "jellyfin" in apps
