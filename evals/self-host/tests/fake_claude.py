@@ -185,17 +185,19 @@ elif is_stream:
             if call.returncode:
                 sys.exit(error_path.read_text() or "guarded fixture failed")
             reply = output_path.read_text()
-    elif mode != "manual-wsl" or "--resume" in args:
+    elif mode not in ("manual-wsl", "manual-mint") or "--resume" in args:
+        verify_goal()
+    if os.environ.get("EVAL_TEST_MANUAL_VERIFIED") and "--resume" not in args:
         verify_goal()
     if mode == "recap-home":
         reply = "Home folder: " + str(Path.cwd() / ".home" / ".self-host")
     if mode == "empty-task":
         reply = ""
-    if mode == "manual-wsl":
-        reply = (
-            "Please install Docker Desktop in Windows and enable WSL integration, "
-            "then tell me when done."
-        )
+    if mode in ("manual-wsl", "manual-mint"):
+        reply = "Please install Docker Desktop in Windows and enable WSL integration."
+        if mode == "manual-mint":
+            reply = "Please run sudo usermod -aG docker sam, log out and back in."
+        reply = os.environ.get("EVAL_TEST_MANUAL_REQUEST", reply)
         if "--resume" in args:
             doctor = subprocess.run(
                 [
@@ -209,6 +211,8 @@ elif is_stream:
                 check=False,
             )
             reply = doctor.stdout
+            if doctor.returncode:
+                sys.exit(doctor.stdout or doctor.stderr)
     if mode == "require-restricted" and not (
         "--settings" in args
         and "--tools" in args
@@ -313,16 +317,22 @@ if mode == "malformed-stream" and is_stream:
 if mode == "missing-status" and is_stream:
     result.pop("subtype")
     result.pop("is_error")
-if mode == "manual-wsl" and not is_preflight and not is_stream:
+if mode in ("manual-wsl", "manual-mint") and not is_preflight and not is_stream:
     done = "## Agent (turn 2)" in prompt
+    step = "docker_desktop_wsl"
+    reply = "I installed Docker Desktop and enabled WSL integration."
+    if mode == "manual-mint":
+        step = "docker_group_login"
+        reply = (
+            "I ran the group command, typed my password, and logged out and back in."
+        )
+    steps = json.loads(os.environ.get("EVAL_TEST_MANUAL_STEPS", json.dumps([step])))
     result["result"] = json.dumps(
         {
-            "reply": ""
-            if done
-            else "I installed Docker Desktop and enabled WSL integration.",
-            "done": done,
+            "reply": "" if done else reply,
+            "done": done or bool(os.environ.get("EVAL_TEST_MANUAL_DONE")),
             "approves": False,
-            "completed_steps": [] if done else ["docker_desktop_wsl"],
+            "completed_steps": [] if done else steps,
         }
     )
 if mode == "person-error" and not is_preflight and not is_stream:

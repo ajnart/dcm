@@ -282,15 +282,84 @@ class RunnerCLI(unittest.TestCase):
                 (run / "outputs" / name).read_text(),
             )
 
-    def test_manual_windows_step_makes_docker_available_in_wsl(self):
-        result = self.execute("manual-wsl", extra=("--evals", "6"))
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        run = next((self.workspace / "iteration-1").glob("eval-*/*/run-*"))
-        replies = (run / "outputs" / "replies.md").read_text()
-        self.assertIn('"Docker: docker command found"', replies)
-        self.assertNotIn('"Docker: docker command not found"', replies)
-        person = json.loads((run / "raw" / "person.jsonl").read_text().splitlines()[0])
-        self.assertEqual(person["completed_steps"], ["docker_desktop_wsl"])
+    def test_requested_manual_docker_steps_make_fixture_available(self):
+        for index, (mode, eval_id, step, request) in enumerate(
+            (
+                ("manual-wsl", "6", "docker_desktop_wsl", ""),
+                ("manual-mint", "5", "docker_group_login", ""),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    "Run sudo usermod -a -G docker sam, then log out and log back in.",
+                ),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    "Run sudo usermod -aG docker sam, then sign out and sign back in.",
+                ),
+                (
+                    "manual-mint",
+                    "5",
+                    "docker_group_login",
+                    "Run sudo usermod -aG docker sam, then restart the laptop.",
+                ),
+            )
+        ):
+            with self.subTest(mode=mode, request=request):
+                if request:
+                    self.env["EVAL_TEST_MANUAL_REQUEST"] = request
+                workspace = self.root / ("manual-valid-%d" % index)
+                result = self.execute(
+                    mode, extra=("--evals", eval_id, "--workspace", str(workspace))
+                )
+                self.env.pop("EVAL_TEST_MANUAL_REQUEST", None)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                run = next((workspace / "iteration-1").glob("eval-*/*/run-*"))
+                replies = (run / "outputs" / "replies.md").read_text()
+                self.assertIn('"Docker: docker command found"', replies)
+                self.assertNotIn('"Docker: docker command not found"', replies)
+                self.assertNotIn("permission denied", replies)
+                person = json.loads(
+                    (run / "raw" / "person.jsonl").read_text().splitlines()[0]
+                )
+                self.assertEqual(person["completed_steps"], [step])
+                metadata = json.loads((run / "eval_metadata.json").read_text())
+                self.assertEqual(metadata["manual_steps"], [step])
+        for index, (eval_id, overrides) in enumerate(
+            (
+                ("6", {}),
+                ("5", {"EVAL_TEST_MANUAL_REQUEST": "Please try again."}),
+                ("5", {"EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker sam."}),
+                (
+                    "5",
+                    {
+                        "EVAL_TEST_MANUAL_REQUEST": "Run sudo usermod -aG docker sam, "
+                        "then restart the Docker service."
+                    },
+                ),
+                ("5", {"EVAL_TEST_MANUAL_STEPS": "[]"}),
+                (
+                    "5",
+                    {"EVAL_TEST_MANUAL_VERIFIED": "1", "EVAL_TEST_MANUAL_DONE": "1"},
+                ),
+            )
+        ):
+            with self.subTest(eval_id=eval_id, overrides=overrides):
+                previous = self.env.copy()
+                self.env.update(overrides)
+                workspace = self.root / ("manual-invalid-%d" % index)
+                result = self.execute(
+                    "manual-mint",
+                    extra=("--evals", eval_id, "--workspace", str(workspace)),
+                )
+                self.env = previous
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                manifest = json.loads(
+                    (workspace / "iteration-1/execution.json").read_text()
+                )
+                self.assertFalse(manifest["valid"])
 
     def test_model_children_are_terminated_before_collecting_artifacts(self):
         marker = self.root / "late-child"

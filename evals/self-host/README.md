@@ -87,9 +87,14 @@ agent through inspect, plan, approval, apply, verify.
 - **Platforms.** Stub host tools simulate OS details and installer commands.
   Drive folders are mapped into the workspace. These are fixture scenarios,
   not installation proofs on those operating systems. A schema-validated
-  `completed_steps` label lets the simulated person finish Docker Desktop with
-  WSL integration after the assistant requests it; only the WSL fixture's
-  Docker state changes. Saying yes alone does not apply that step.
+  `completed_steps` label lets the simulated person finish a permitted manual
+  action after the assistant requests it: Docker Desktop with WSL integration,
+  or Mint's Docker-group command followed by logout/login or a computer/session
+  restart. The scenario allowlist, platform and request must match; restarting
+  the Docker service is not a login refresh. Saying yes alone changes nothing.
+  Only fixture Docker state changes, never the relay machine. Marker timestamps
+  require fresh CLI verification after completion; prior Status cannot finish
+  the goal. These labels are synthetic person reports, not real host proof.
   Newcomer media folders contain no pretend movie payloads. The existing
   platform fixtures declare metadata-only names and sizes; bounded `ls` and
   size-only `stat` calls report those values, explicitly labeled synthetic.

@@ -474,6 +474,39 @@ Historical iteration 16 remains invalid and untouched; its scores are not
 backfilled. Future inputs will record the corrected request/persona, so results
 must not be represented as a same-input rerun of the old public scenario.
 
+### Mint manual-step correction (October 12, 2026)
+
+The user approved the narrow correction, offline validation, commit/push and
+one Mint conversation per frozen guide with complete blind judgments if valid.
+No fresh full comparison is authorized yet. Historical iteration 18 stays
+invalid and ungraded; the guide/router snapshots, assertions and turn limits
+remain unchanged.
+
+The existing structured person response now supports `docker_group_login`
+alongside `docker_desktop_wsl`. Trusted per-scenario allowlists permit only
+the relevant step, at most one per reply. The runner checks the platform and
+assistant's request before updating existing fixture state markers. Mint's
+persona explicitly permits the requested group command and login refresh,
+not fabricated terminal output or arbitrary manual actions. Allowed steps
+are recorded in eval metadata. Marker timestamps and immediate verification
+recomputation prevent completion using a stale pre-step Status observation.
+
+The existing runner CLI test went red for Mint before the fix. Its coverage
+now includes WSL and Mint completion, absent completion labels, wrong scenario,
+missing group/login requests and stale verification. Spec review also found
+split `-a -G` flags and sign-out wording were rejected while a Docker service
+restart was accepted as a login refresh. All three reproduced red in that
+same test before correction. The bounded matcher now accepts those equivalent
+group/login instructions but requires a login or computer/session refresh,
+not a Docker service restart. Standards review requested the README update.
+Both independent review axes rechecked and cleared the final source/doc fixes.
+All 60 existing offline tests, Ruff lint/format and Pyright pass. An earlier
+final-suite attempt timed out at the network-isolation canary; the focused
+canary passed immediately and a fresh complete suite passed in 94 seconds.
+No isolation rule was relaxed and no timeout cause is asserted. No new test
+files, testcases, comments or dependencies were added. No model calls were
+made during correction; the authorized Mint smoke is the next gate.
+
 ### Earlier review evidence
 
 Review follow-up fixes cover positional grading's batch gate, option-prefixed

@@ -258,6 +258,7 @@
       "id": 5,
       "name": "newbie-mint-laptop",
       "scenario": "newbie-mint",
+      "manual_steps": ["docker_group_login"],
       "recap_assessment": "The final Recap describes the purpose and Address of every installed App, names the Home folder, and points to self-host credentials without revealing secrets.",
       "completion": "install",
       "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",
@@ -313,13 +314,14 @@
         }
       ],
       "first_message": "Linux Mint laptop here. I want a home movie server instead of paying Netflix every month. Can you set it up on this laptop?",
-      "persona": "You are not technical: you have never run a server or used Docker, and words like 'terminal' or 'port' mean little to you. You want to stop paying for Netflix. You only want something that plays the films you already own, not anything that downloads new ones. Your films are on a USB drive; if asked for the folder, it is /media/sam/FILMS/Movies. You watch on the living-room TV. You say yes to a plan that does this, including installing what your computer needs, and you type your password when asked. The computer is your Linux Mint laptop; you are logged in as sam.",
+      "persona": "You are not technical: you have never run a server or used Docker, and words like 'terminal' or 'port' mean little to you. You want to stop paying for Netflix. You only want something that plays the films you already own, not anything that downloads new ones. Your films are on a USB drive; if asked for the folder, it is /media/sam/FILMS/Movies. You watch on the living-room TV. You say yes to a plan that does this, including installing what your computer needs, and you type your password when asked. If the assistant asks you to run the Docker-group permission command yourself and log out/back in or restart, you can complete that manual step and report it done; do not invent terminal output or any other manual action. The computer is your Linux Mint laptop; you are logged in as sam.",
       "max_turns": 8
     },
     {
       "id": 6,
       "name": "newbie-windows-wsl",
       "scenario": "newbie-wsl",
+      "manual_steps": ["docker_desktop_wsl"],
       "recap_assessment": "The final Recap describes the purpose and Address of every installed App, names the Home folder, and points to self-host credentials without revealing secrets.",
       "completion": "install",
       "completion_criteria": "Install-only goal: the chosen Apps are installed, the assistant runs self-host status after the change, and gives an adequate Recap with each App's Address and purpose, the Home folder, and a pointer to self-host credentials without secrets. Decline optional library or browser follow-ups after that handoff. Media observations are synthetic metadata only; do not claim scanning, playback, TV access or browser success/failure. Missing verification or handoff details still need an answer; a Recap label alone is not completion.",

@@ -426,7 +426,11 @@ PERSON_SCHEMA = {
         "done": {"type": "boolean"},
         "completed_steps": {
             "type": "array",
-            "items": {"type": "string", "enum": ["docker_desktop_wsl"]},
+            "items": {
+                "type": "string",
+                "enum": ["docker_desktop_wsl", "docker_group_login"],
+            },
+            "maxItems": 1,
             "uniqueItems": True,
         },
     },
@@ -442,6 +446,9 @@ Who you are and what you know:
 
 Scenario completion criteria:
 {completion_criteria}
+
+Permitted simulated manual steps for this scenario:
+{manual_steps}
 
 Recorded CLI verification (synthetic observations, not browser/native acceptance):
 {verification}
@@ -460,9 +467,12 @@ Write your next message. Rules:
 - Only claim a manual action when your description explicitly permits that action.
   Never invent browser failures, library scans, playback or device/network observations.
   Say "I haven't checked that" when those facts are not supplied.
-- completed_steps is [] unless you just finished installing Docker Desktop in
-  Windows and enabling WSL integration at the assistant's request. Only then
-  include "docker_desktop_wsl". Permission alone does not complete a step.
+- completed_steps is [] unless you finished a permitted manual step at the
+  assistant's request. Use "docker_desktop_wsl" only after installing Docker
+  Desktop in Windows and enabling WSL integration. Use "docker_group_login"
+  only after running the requested Docker-group command and logging out/back in
+  or restarting. Permission alone does not complete a step. Do not invent
+  terminal output or claim other manual actions.
 - Finish only when the scenario completion criteria are met and CLI verification
   is recorded. Ask for missing verification or handoff details rather than accepting
   an unsupported success claim. Decline optional follow-ups outside this scenario.
@@ -490,6 +500,7 @@ def person_reply(ev, conversation, verification, turn, model, raw, timeout, stop
         conversation=conversation,
         completion_criteria=ev["completion_criteria"],
         verification=json.dumps(verification),
+        manual_steps=json.dumps(ev.get("manual_steps", [])),
     )
     output_path = os.path.join(raw, "person-%d.json" % turn)
     stderr_path = os.path.join(raw, "person-%d.stderr.txt" % turn)
@@ -531,8 +542,14 @@ def person_reply(ev, conversation, verification, turn, model, raw, timeout, stop
     if not answer["done"] and not answer["reply"].strip():
         raise ValueError("simulated person returned an empty unfinished reply")
     steps = answer.get("completed_steps")
-    if not isinstance(steps, list) or any(
-        step != "docker_desktop_wsl" for step in steps
+    if (
+        not isinstance(steps, list)
+        or len(steps) > 1
+        or any(
+            step not in ("docker_desktop_wsl", "docker_group_login")
+            or step not in ev.get("manual_steps", [])
+            for step in steps
+        )
     ):
         raise ValueError("simulated person returned invalid completed steps")
     answer["turn"] = turn
@@ -563,6 +580,10 @@ def completion_evidence(ev, harness):
     calls = commands(read_jsonl(os.path.join(harness, "invocations.jsonl")))
     changes = [call for call in calls if is_mutating(call)]
     change_times = [call["ts"] for call in changes]
+    for marker in ("docker_installed", "docker_group"):
+        path = os.path.join(harness, "state", marker)
+        if os.path.isfile(path):
+            change_times.append(os.path.getmtime(path))
     for name, classify in (
         ("host.jsonl", host_change),
         ("docker.jsonl", docker_mutating),
@@ -755,22 +776,46 @@ def run_one(
                 person_timeout,
                 stop,
             )
-            if "docker_desktop_wsl" in answer["completed_steps"]:
+            if answer["completed_steps"]:
                 with open(os.path.join(harness, "scenario", "platform.json")) as source:
                     platform = json.load(source)
                 _, latest = render([turns_log[-1]])
                 agent_reply = latest.split("## Agent (turn %d)\n" % i, 1)[1].lower()
-                if (
-                    "microsoft" not in platform.get("uname", {}).get("r", "").lower()
-                    or "docker desktop" not in agent_reply
-                    or "wsl" not in agent_reply
-                    or not answer["reply"].strip()
-                ):
-                    raise ValueError(
-                        "manual Docker completion does not match a WSL request"
+                step = answer["completed_steps"][0]
+                marker = "docker_installed"
+                if step == "docker_desktop_wsl":
+                    valid_request = (
+                        "microsoft" in platform.get("uname", {}).get("r", "").lower()
+                        and "docker desktop" in agent_reply
+                        and "wsl" in agent_reply
                     )
-                with open(os.path.join(harness, "state", "docker_installed"), "w"):
+                else:
+                    marker = "docker_group"
+                    valid_request = (
+                        platform.get("uname", {}).get("s") == "Linux"
+                        and platform.get("docker") == "permission"
+                        and re.search(
+                            r"\busermod\s+(?:-ag\s+docker|-a\s+-g\s+docker|"
+                            r"-g\s+docker\s+-a)\b",
+                            agent_reply,
+                        )
+                        and re.search(
+                            r"\b(?:log|sign)[ -]?out.{0,80}(?:back[ -]?in|"
+                            r"(?:log|sign)[ -]?in)\b|"
+                            r"\b(?:restart|reboot)\s+(?:(?:the|your)\s+)?"
+                            r"(?:laptop|computer|machine|session)\b|"
+                            r"\breboot\b(?=\s*[.!?,\n]|$)",
+                            agent_reply,
+                            re.DOTALL,
+                        )
+                    )
+                if not valid_request or not answer["reply"].strip():
+                    raise ValueError(
+                        "manual Docker completion does not match its request"
+                    )
+                with open(os.path.join(harness, "state", marker), "w"):
                     pass
+                verification = completion_evidence(ev, harness)
         except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             stop.set()
             total["errors"].append(
@@ -974,6 +1019,7 @@ def main(stop):
                 "assertions": ev["assertions"],
                 "completion": ev["completion"],
                 "completion_criteria": ev["completion_criteria"],
+                "manual_steps": ev.get("manual_steps", []),
                 "judgment_schema": 2,
                 "recap_assessment": ev.get("recap_assessment"),
             },
