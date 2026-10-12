@@ -1,0 +1,22 @@
+docs/homarr-sabnzbd-contract.md
+  h_d6e478ca18e517 12-17,43-45,54-59,83-96,109-120,138-142,152
+internal/apps/homarr/target_sabnzbd.go
+  h_d6e478ca18e517 22-25,55-56,59-63,98-148
+internal/apps/sabnzbd/api.go
+  h_d6e478ca18e517 8,14-21,24,26,31,34,38,42,45-46,53,57,61,64,66,74-80
+internal/apps/sabnzbd/sabnzbd.go
+  h_d6e478ca18e517 188,197,227
+internal/apps/sabnzbd/sabnzbd_test.go
+  h_d6e478ca18e517 24-28,35-36,41-45,65-69,76-78,80,143,152-184,190-191,213-234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "908931b24cf9c013768fce1a94c64e96aa37f109",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
