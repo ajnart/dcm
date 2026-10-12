@@ -57,6 +57,9 @@ type fakeNavidrome struct {
 	now             func() time.Time
 	subsonicCalls   int
 	albumCount      int
+	albumPages      int
+	samplePages     int
+	malformedAlbum  bool
 }
 
 func (f *fakeNavidrome) handler() http.Handler {
@@ -126,14 +129,23 @@ func (f *fakeNavidrome) handler() http.Handler {
 			body["scanStatus"] = map[string]any{"scanning": false, "count": f.albumCount, "lastScan": "2026-10-11T12:00:00Z"}
 		case "getAlbumList2.view":
 			offset, err := strconv.Atoi(r.Form.Get("offset"))
-			if r.Form.Get("type") != "alphabeticalByName" || r.Form.Get("size") != "500" || err != nil || offset < 0 || offset%500 != 0 {
+			size, sizeErr := strconv.Atoi(r.Form.Get("size"))
+			if r.Form.Get("type") != "alphabeticalByName" || sizeErr != nil || size != 1 && size != 500 || err != nil || offset < 0 || offset%500 != 0 {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			f.albumPages++
+			if size == 1 {
+				f.samplePages++
+			}
 			w.Header().Set("X-Total-Count", strconv.Itoa(f.albumCount))
 			albums := []any{}
-			for i := offset; i < min(offset+500, f.albumCount); i++ {
-				albums = append(albums, map[string]any{"id": fmt.Sprintf("album-%05d", i), "name": fmt.Sprintf("Album %05d", i), "songCount": 1})
+			for i := offset; i < min(offset+size, f.albumCount); i++ {
+				album := map[string]any{"id": fmt.Sprintf("album-%05d", i), "name": fmt.Sprintf("Album %05d", i), "songCount": 1}
+				if f.malformedAlbum {
+					album["songCount"] = nil
+				}
+				albums = append(albums, album)
 			}
 			body["albumList2"] = map[string]any{}
 			if len(albums) > 0 {
@@ -184,8 +196,12 @@ func TestCreatesTheFirstAdministratorThenProvesTheLogin(t *testing.T) {
 	if rec.status("admin") != stepstatus.StepOK {
 		t.Fatalf("admin step = %q, want ok", rec.status("admin"))
 	}
-	if fake.subsonicCalls != 12 || rec.status("homarr-api") != stepstatus.StepSkip {
+	if fake.subsonicCalls != 12 || fake.samplePages != 2 || fake.albumPages != 2 || rec.status("homarr-api") != stepstatus.StepSkip {
 		t.Fatal("Setup and Check did not freshly verify the explicit empty music library and listening sessions")
+	}
+	data, err := navidrome.ReadHomarrData(context.Background(), h)
+	if err != nil || data != (navidrome.HomarrData{}) || fake.subsonicCalls != 18 || fake.albumPages != 3 || fake.samplePages != 2 {
+		t.Fatalf("Homarr did not freshly verify complete authenticated empty-library data: %v", err)
 	}
 }
 
@@ -201,19 +217,44 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		t.Fatalf("Setup: %v", err)
 	}
 	if err := (navidrome.App{}).Check(context.Background(), h); err != nil {
-		t.Fatalf("standalone Check rejected a complete 10001-album library: %v", err)
+		t.Fatalf("standalone Check rejected a healthy 10001-album API: %v", err)
 	}
 	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip || rec.status("homarr-api") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip every step: ready=%q admin=%q homarr-api=%q", rec.status("ready"), rec.status("admin"), rec.status("homarr-api"))
 	}
-	if fake.subsonicCalls != 52 {
-		t.Fatal("standalone Setup and Check did not freshly read all 10001 albums and native artist/session data")
+	if fake.subsonicCalls != 12 || fake.albumPages != 2 || fake.samplePages != 2 {
+		t.Fatal("standalone Setup and Check exceeded six fresh API reads and one single-album page each")
+	}
+	fake.mu.Lock()
+	fake.albumCount = 60001
+	fake.mu.Unlock()
+	if err := (navidrome.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("standalone Check rejected a healthy larger API: %v", err)
+	}
+	if fake.subsonicCalls != 18 || fake.albumPages != 3 || fake.samplePages != 3 {
+		t.Fatal("standalone readiness request/page bound grew with the library")
 	}
 	if _, err := navidrome.ReadHomarrData(context.Background(), h); err == nil || !strings.Contains(err.Error(), "10000-album limit") {
 		t.Fatalf("Homarr consumer preflight did not reject its unsupported library size: %v", err)
 	}
-	if fake.subsonicCalls != 56 {
+	if fake.subsonicCalls != 22 || fake.albumPages != 4 || fake.samplePages != 3 {
 		t.Fatal("Homarr consumer preflight did not stop at the explicit unsupported total")
+	}
+	fake.mu.Lock()
+	fake.albumCount = 503
+	fake.mu.Unlock()
+	data, err := navidrome.ReadHomarrData(context.Background(), h)
+	if err != nil || data != (navidrome.HomarrData{ArtistCount: 1, AlbumCount: 503, SongCount: 503}) || fake.subsonicCalls != 29 || fake.albumPages != 6 || fake.samplePages != 3 {
+		t.Fatalf("Homarr did not reconcile both full album pages and complete counts: %v", err)
+	}
+	fake.mu.Lock()
+	fake.malformedAlbum = true
+	fake.mu.Unlock()
+	if err := (navidrome.App{}).Check(context.Background(), h); err == nil || !strings.Contains(err.Error(), "incomplete") {
+		t.Fatalf("standalone readiness accepted a null representative song count: %v", err)
+	}
+	if fake.subsonicCalls != 33 || fake.albumPages != 7 || fake.samplePages != 4 {
+		t.Fatal("malformed readiness did not stop within its fixed request/page bound")
 	}
 }
 

@@ -68,17 +68,24 @@ Navidrome Setup and Check freshly read authenticated `ping`,
 The scan must have completed without a recorded error. It is not started
 by these probes. Empty music folders are valid only after a completed scan.
 
-Native album paging uses `alphabeticalByName`, 500 per page and the supported
-Navidrome offset until the explicit total is complete, within the existing
-one-minute deadline. `X-Total-Count` is required and reconciled with returned
-albums. Missing `songCount`, missing payload objects, repeated albums,
-changing totals, and truncated pages fail instead of becoming zeros.
-Only Homarr's preflight and verification enforce its 20-page/10,000-album
-ceiling through `ReadHomarrData`: larger libraries fail that consuming Link
-explicitly because the adapter truncates them. They do not fail standalone
-Navidrome Setup or Check solely because of Homarr's limit. The persisted
-`homarr-api` step ID remains compatible; its recovery hint names only
-Navidrome Setup.
+Standalone readiness is bounded to six Subsonic requests per probe and one
+representative album page: `alphabeticalByName`, `size=1`, `offset=0`.
+Its explicit `X-Total-Count` must be nonnegative; the page must contain one
+schema-valid album when nonempty and no album when the total is zero.
+Library, artist and session validation are shared with the consumer probe.
+This verifies authentication and representative API/schema readiness within
+the existing one-minute deadline, not complete library counts. No sampled
+count is returned as Stats data, and readiness never pages through the full
+album library. The persisted `homarr-api` step ID remains compatible; its
+label names API readiness and its recovery hint names only Navidrome Setup.
+
+Homarr's preflight and verification still require complete counts through
+`ReadHomarrData`: `alphabeticalByName`, 500 albums per page, at most 20
+pages, reconciled against a stable `X-Total-Count`. Missing `songCount`,
+missing payload objects, repeated albums, changing totals and truncated
+pages fail instead of becoming zeros. Libraries over 10,000 albums fail
+that consuming Link explicitly because the adapter truncates them; that
+limit does not affect standalone Navidrome readiness.
 Artists are counted from the ID3 index; song counts are summed per album.
 These are library counts, not listening time or play counts.
 
@@ -110,11 +117,19 @@ external music account is used by Setup or Check.
 No Docker, browser, installer, live media seeding, playback or lifecycle
 mutation was run in this lane. Existing focused tests use an authenticated
 fake with the pinned empty-library response, POST salted authentication,
-and fresh Setup/Check requests. The existing rerun test also uses a complete
-10,001-album fixture: standalone Setup and Check each read all 21 pages,
-while the same Homarr preflight probe rejects the explicit total before
-further paging. This regression was observed failing before the correction
-and passing afterward. No test file, function or case was added.
+and fresh Setup/Check requests. Existing test bodies verify:
+
+- Standalone Setup/Check use six requests and one single-album page each
+  for 10,001 albums; growing to 60,001 albums preserves that exact bound.
+- The consumer rejects the oversized explicit total after four requests,
+  but reconciles a supported 503-album library across both complete pages
+  with actual artist/album/song/session counts.
+- Authenticated empty-library readiness and complete consumer zeros remain
+  valid; a null representative `songCount` fails after four requests rather
+  than becoming a zero or successful readiness result.
+
+The request-bound control failed before the correction and passed afterward,
+without simulated delays. No test file, function or named case was added.
 The saved-identity guard is source/type-checked against the two upstream
 revisions; it has no directly callable existing test seam while the
 descriptor is unregistered. Its Manual recovery/native behavior remains

@@ -114,7 +114,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := setup().Setup(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "homarr-api", "verify music library and listening data", helpers.StepSpec{
+	return h.Step(ctx, "homarr-api", "verify music API readiness", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			err := verifyMusicAPI(ctx, h)
 			return err == nil, err

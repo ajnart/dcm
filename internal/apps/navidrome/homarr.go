@@ -125,86 +125,103 @@ func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params 
 }
 
 func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
-	return readMusicData(ctx, h, 10000)
-}
-
-func readMusicData(ctx context.Context, h *helpers.H, albumLimit int) (HomarrData, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	data := HomarrData{}
-	if _, _, err := subsonicRequest(ctx, h, "ping", nil); err != nil {
-		return data, err
-	}
-	folders, _, err := subsonicRequest(ctx, h, "getMusicFolders", nil)
+	scanCount, err := readMusicLibrary(ctx, h)
 	if err != nil {
 		return data, err
 	}
+	if err := readAlbums(ctx, h, &data); err != nil {
+		return data, err
+	}
+	data.ArtistCount, err = readMusicArtists(ctx, h, data.AlbumCount, scanCount)
+	if err != nil {
+		return data, err
+	}
+	data.Sessions, err = readListeningSessions(ctx, h)
+	return data, err
+}
+
+func readMusicLibrary(ctx context.Context, h *helpers.H) (int, error) {
+	if _, _, err := subsonicRequest(ctx, h, "ping", nil); err != nil {
+		return 0, err
+	}
+	folders, _, err := subsonicRequest(ctx, h, "getMusicFolders", nil)
+	if err != nil {
+		return 0, err
+	}
 	if folders.MusicFolders == nil || len(folders.MusicFolders.Folders) == 0 {
-		return data, errors.New("Navidrome has no accessible music library; review library access, then retry Setup")
+		return 0, errors.New("Navidrome has no accessible music library; review library access, then retry Setup")
 	}
 	for _, folder := range folders.MusicFolders.Folders {
 		if folder.ID == nil || *folder.ID <= 0 || folder.Name == "" {
-			return data, errors.New("Navidrome returned incomplete music library data")
+			return 0, errors.New("Navidrome returned incomplete music library data")
 		}
 	}
 	scan, _, err := subsonicRequest(ctx, h, "getScanStatus", nil)
 	if err != nil {
-		return data, err
+		return 0, err
 	}
 	if scan.ScanStatus == nil || scan.ScanStatus.Scanning == nil || scan.ScanStatus.Count == nil || *scan.ScanStatus.Count < 0 {
-		return data, errors.New("Navidrome returned incomplete library scan data")
+		return 0, errors.New("Navidrome returned incomplete library scan data")
 	}
 	lastScan, err := time.Parse(time.RFC3339, scan.ScanStatus.LastScan)
 	if err != nil || lastScan.IsZero() || *scan.ScanStatus.Scanning || scan.ScanStatus.Error != "" {
-		return data, errors.New("Navidrome library scan is unfinished or failed; review its music folder and logs, then run self-host setup navidrome")
+		return 0, errors.New("Navidrome library scan is unfinished or failed; review its music folder and logs, then run self-host setup navidrome")
 	}
-	if err := readAlbums(ctx, h, &data, albumLimit); err != nil {
-		return data, err
-	}
+	return *scan.ScanStatus.Count, nil
+}
+
+func readMusicArtists(ctx context.Context, h *helpers.H, albumCount, scanCount int) (int, error) {
 	artists, _, err := subsonicRequest(ctx, h, "getArtists", nil)
 	if err != nil {
-		return data, err
+		return 0, err
 	}
 	if artists.Status == "failed" {
-		if data.AlbumCount != 0 || *scan.ScanStatus.Count != 0 {
-			return data, errors.New("Navidrome artist data is unavailable for a nonempty library")
+		if albumCount != 0 || scanCount != 0 {
+			return 0, errors.New("Navidrome artist data is unavailable for a nonempty library")
 		}
-	} else {
-		if artists.Artists == nil || len(artists.Artists.Index) == 0 {
-			return data, errors.New("Navidrome returned incomplete artist data")
+		return 0, nil
+	}
+	if artists.Artists == nil || len(artists.Artists.Index) == 0 {
+		return 0, errors.New("Navidrome returned incomplete artist data")
+	}
+	count := 0
+	for _, index := range artists.Artists.Index {
+		if len(index.Artist) == 0 {
+			return 0, errors.New("Navidrome returned an incomplete artist index")
 		}
-		for _, index := range artists.Artists.Index {
-			if len(index.Artist) == 0 {
-				return data, errors.New("Navidrome returned an incomplete artist index")
+		for _, artist := range index.Artist {
+			if artist.ID == "" || artist.Name == "" {
+				return 0, errors.New("Navidrome returned incomplete artist data")
 			}
-			for _, artist := range index.Artist {
-				if artist.ID == "" || artist.Name == "" {
-					return data, errors.New("Navidrome returned incomplete artist data")
-				}
-				data.ArtistCount++
-			}
+			count++
 		}
 	}
+	return count, nil
+}
+
+func readListeningSessions(ctx context.Context, h *helpers.H) (int, error) {
 	nowPlaying, _, err := subsonicRequest(ctx, h, "getNowPlaying", nil)
 	if err != nil {
-		return data, err
+		return 0, err
 	}
 	if nowPlaying.NowPlaying == nil {
-		return data, errors.New("Navidrome did not return its listening sessions")
+		return 0, errors.New("Navidrome did not return its listening sessions")
 	}
 	for _, entry := range nowPlaying.NowPlaying.Entries {
 		if entry.ID == "" || entry.Title == "" || entry.Username == "" {
-			return data, errors.New("Navidrome returned incomplete listening session data")
+			return 0, errors.New("Navidrome returned incomplete listening session data")
 		}
 	}
-	data.Sessions = len(nowPlaying.NowPlaying.Entries)
-	return data, nil
+	return len(nowPlaying.NowPlaying.Entries), nil
 }
 
-func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData, albumLimit int) error {
+func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData) error {
 	total := -1
 	seen := map[string]bool{}
-	for page := 0; ; page++ {
+	for page := 0; page < 20; page++ {
 		albums, resp, err := subsonicRequest(ctx, h, "getAlbumList2", url.Values{
 			"type": {"alphabeticalByName"}, "size": {"500"}, "offset": {strconv.Itoa(page * 500)},
 		})
@@ -215,7 +232,7 @@ func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData, albumLimit 
 		if err != nil || count < 0 || albums.AlbumList == nil || total >= 0 && total != count {
 			return errors.New("Navidrome returned incomplete or changing album counts; retry Setup after scanning finishes")
 		}
-		if albumLimit > 0 && count > albumLimit {
+		if count > 10000 {
 			return errors.New("Navidrome exceeds Homarr 2.4.1's 10000-album limit; complete library counts cannot be verified")
 		}
 		total = count
@@ -234,9 +251,34 @@ func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData, albumLimit 
 			return errors.New("Navidrome album data does not match its explicit total count")
 		}
 	}
+	return errors.New("Navidrome album pagination did not complete")
 }
 
 func verifyMusicAPI(ctx context.Context, h *helpers.H) error {
-	_, err := readMusicData(ctx, h, 0)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	scanCount, err := readMusicLibrary(ctx, h)
+	if err != nil {
+		return err
+	}
+	albums, resp, err := subsonicRequest(ctx, h, "getAlbumList2", url.Values{
+		"type": {"alphabeticalByName"}, "size": {"1"}, "offset": {"0"},
+	})
+	if err != nil {
+		return err
+	}
+	count, err := strconv.Atoi(resp.Header.Get("X-Total-Count"))
+	if err != nil || count < 0 || albums.AlbumList == nil || len(albums.AlbumList.Albums) != min(count, 1) {
+		return errors.New("Navidrome returned incomplete representative album data")
+	}
+	for _, album := range albums.AlbumList.Albums {
+		if album.ID == "" || album.Name == "" || album.SongCount == nil || *album.SongCount < 0 {
+			return errors.New("Navidrome returned incomplete representative album data")
+		}
+	}
+	if _, err := readMusicArtists(ctx, h, count, scanCount); err != nil {
+		return err
+	}
+	_, err = readListeningSessions(ctx, h)
 	return err
 }
