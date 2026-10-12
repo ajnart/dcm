@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                                |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                                 |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                                 |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                               |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
-| Complete real-model batch with both guides and three repetitions       | Iteration 14 invalid; fresh smoke needed after launch-path fixes      |
-| Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
-| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes         |
+| Gate                                                                   | Status                                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                         |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                         |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                       |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
+| Complete real-model batch with both guides and three repetitions       | Iteration 15 smoke valid; full iteration 16 running           |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -125,6 +125,25 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   file-backed stdout/stderr outside the sandbox, unlike earlier piped tests;
   another reproduction found missing metadata permission for archived-fixture
   symlinks. This is not evidence of guide quality. Evidence remains untouched.
+- **Iteration 15: valid current-input smoke.** Both MacBook conversations
+  completed without denials or execution errors: original in five turns,
+  revised in seven. Complete blind Opus judgments and scripted grading gave
+  **11/12** each; all eight scripted assertions and both separate Recap
+  assessments passed. Overall `acceptance_passed` remains false because the
+  original plain-language assertion failed in both configurations. Its evidence
+  partly conflicts with the required experience question and credential/Home
+  folder wording; the revised response also used DHCP jargon. The original
+  media-choice assertion passed leniently on the person's volunteered preference,
+  without an explicit two-option offer. Verdicts are unchanged. Supplied
+  aggregation and static viewer, with actual model/repetition provenance and
+  these caveats, are at `~/.cache/self-host-skill-evals/iteration-15/`. The viewer
+  was opened for human feedback. One run per guide is not a general improvement
+  claim and does not clear the full-comparison or human acceptance gates.
+- **Iteration 16: running.** The previously authorized full comparison uses
+  all seven scenarios, both unchanged frozen guides, three repetitions and
+  equal 16-turn limits, with two concurrent conversations. The current-input
+  smoke execution and complete judgments are valid. No model switch, paid
+  fallback or billing change is used; any execution failure blocks grading.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
