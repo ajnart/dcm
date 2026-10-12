@@ -1,0 +1,14 @@
+docs/agents/homarr-integrations.md
+  h_d6e478ca18e517 4-8,12-21,23-36,39-49,52-65,67-79,82-97,100-110,112,114-121,123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae383ed0e8679023083d11d9480bdd934626de4d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
