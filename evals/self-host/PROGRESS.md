@@ -21,17 +21,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                        |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                         |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                         |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                       |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
-| Complete real-model batch with both guides and three repetitions       | Iteration 15 smoke valid; full iteration 16 running           |
-| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending  |
-| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
+| Gate                                                                   | Status                                                          |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                           |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                           |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                         |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution           |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+             |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                          |
+| Complete real-model batch with both guides and three repetitions       | Iteration 16 invalid; public scenario contract needs a decision |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending    |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes   |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -139,11 +139,29 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   these caveats, are at `~/.cache/self-host-skill-evals/iteration-15/`. The viewer
   was opened for human feedback. One run per guide is not a general improvement
   claim and does not clear the full-comparison or human acceptance gates.
-- **Iteration 16: running.** The previously authorized full comparison uses
-  all seven scenarios, both unchanged frozen guides, three repetitions and
-  equal 16-turn limits, with two concurrent conversations. The current-input
-  smoke execution and complete judgments are valid. No model switch, paid
-  fallback or billing change is used; any execution failure blocks grading.
+- **Iteration 16: invalid public-scenario contract.** Twenty of 42 runs
+  completed; 22 failed or were cancelled. Revised public-Access run 2 ended
+  on turn 10 without successful post-change verification after refusing to
+  publish at an unapproved hostname. No judgments, grades or benchmark were
+  produced. The person insisted on `paperless.example.com`, while the CLI plan
+  offered `paperless-ngx.example.com`. The agent respected that restriction
+  and left Paperless unpublished. The frozen first request/persona demand the
+  unsupported name while completion requires successful publication, so safe
+  refusal cannot satisfy this scenario. Other completed runs are not graded
+  or treated as acceptance evidence. Frozen inputs and raw diagnostics remain
+  unchanged; no fallback, model switch or billing change was used.
+
+  A deterministic offline invocation of the fixture's actual `cloudflare plan`
+  reproduced the mismatch against eval 3's requested hostname. Production
+  `internal/service/cloudflare.go` also builds the name from the App ID and
+  main domain; the fixture is not wrong on that point. Do not invent hostname
+  support or loosen approval scope. A decision is needed between correcting
+  the success scenario to the supported Address, and treating this request as
+  a refusal scenario with different assertions/completion. Either changes the
+  eval inputs and requires a fresh comparison, not regrading iteration 16.
+  The authorized full comparison has been consumed; another model batch
+  requires renewed authorization after that decision. Human feedback on the
+  valid iteration 15 smoke remains pending, and PR #259 stays draft.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
