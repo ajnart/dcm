@@ -1,0 +1,16 @@
+internal/apps/lidarr/lidarr.go
+  h_d6e478ca18e517 39-40,73-74,78,95-111,127-128,142-152,156-180,182-202,206,217,226-231,250,258,264-267
+internal/apps/lidarr/lidarr_test.go
+  h_d6e478ca18e517 6,17,29-30,34,38-42,48-54,75-78,84,89,91-94,142-153,155-156,159-174,178,188-190,200-209,218-220,226-227,229-233
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e8ea969a9d3a2f07ca9ba626996a6207d0cd087d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
