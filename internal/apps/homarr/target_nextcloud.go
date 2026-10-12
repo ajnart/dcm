@@ -21,7 +21,7 @@ func nextcloudTarget() target {
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
 			err := nextcloud.VerifyHomarr(ctx, to)
 			if errors.Is(err, helpers.ErrManual) {
-				from.Info("Review Nextcloud's self-host Homarr app password in Personal settings > Security and restore it through the Project secret boundary, then retry self-host setup nextcloud and self-host setup homarr.")
+				from.Info(nextcloud.HomarrRecoveryHint(to))
 			}
 			return err
 		},
@@ -33,7 +33,39 @@ func verifyNextcloud(ctx context.Context, from, to *helpers.H, integrationID str
 	if err := nextcloud.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.notifications.getNotifications", map[string]any{"integrationIds": []string{integrationID}})
+	value, err := apiKeyProcedure(ctx, from, "integration.byId", map[string]any{"id": integrationID})
+	if err != nil {
+		return err
+	}
+	saved, ok := value.(map[string]any)
+	if !ok || stringField(saved, "id") != integrationID || stringField(saved, "kind") != "nextcloud" {
+		return errors.New("Homarr did not return the saved Nextcloud integration")
+	}
+	credentials, ok := saved["secrets"].([]any)
+	if !ok || len(credentials) != 2 {
+		return errors.New("Homarr returned incomplete saved Nextcloud credential metadata; retry self-host setup homarr")
+	}
+	username, password := false, false
+	for _, raw := range credentials {
+		credential, _ := raw.(map[string]any)
+		switch stringField(credential, "kind") {
+		case "username":
+			if username || to.AdminUser() == "" || stringField(credential, "value") != to.AdminUser() {
+				return errors.New("Homarr's saved Nextcloud account does not match the Project administrator; retry self-host setup homarr")
+			}
+			username = true
+		case "password":
+			redacted, present := credential["value"]
+			if password || !present || redacted != nil {
+				return errors.New("Homarr returned invalid saved Nextcloud password metadata")
+			}
+			password = true
+		}
+	}
+	if !username || !password {
+		return errors.New("Homarr did not return the saved Nextcloud username and password metadata")
+	}
+	value, err = apiKeyProcedure(ctx, from, "widget.notifications.getNotifications", map[string]any{"integrationIds": []string{integrationID}})
 	if err != nil {
 		return err
 	}

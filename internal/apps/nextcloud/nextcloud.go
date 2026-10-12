@@ -36,7 +36,14 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{
+		{Key: "homarr_app_password", Prompt: "Saved self-host Homarr app password", Private: true,
+			Help: "Optional recovery of the known app password together with its matching token ID; use c-l-e-a-r (without hyphens) in both private inputs only after explicitly revoking self-host Homarr. Reinstall replaces Compose; preserve and review existing authentication, mounts and ports and separately approve replacement first."},
+		{Key: "homarr_app_password_id", Prompt: "Saved self-host Homarr token ID", Private: true,
+			Help: "Optional recovery of the known token ID corresponding to the supplied app password; never infer it from a name or successful login. Empty private inputs do not erase saved values."},
+	}
+}
 
 // Secrets backs the database. The administrator is the shared Admin login,
 // written to a file by Files before the container first starts.
@@ -185,7 +192,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return errors.New("Nextcloud rejected the saved administrator login; recover it using self-host credentials, then retry self-host setup nextcloud")
 		},
 		Hint: "Open " + h.URL + " and sign in as " + h.AdminUser() +
-			" using self-host credentials. If two-factor authentication requires an app password, create self-host Homarr in Personal settings > Security and save it through the Project secret boundary as NEXTCLOUD_HOMARR_APP_PASSWORD, then retry self-host setup nextcloud. Never disable two-factor authentication.",
+			" using self-host credentials. " + HomarrRecoveryHint(h),
 		Credential: "admin",
 	}); err != nil {
 		return err
@@ -193,7 +200,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "homarr-password", "prepare Nextcloud's Homarr app password", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return homarrPasswordWorks(ctx, h) },
 		Do:         func(ctx context.Context) error { return prepareHomarrPassword(ctx, h) },
-		Hint:       "Open " + h.URL + "/settings/user/security. Restore the self-host Homarr app password and its ID through the Project secret boundary. To replace a lost password, revoke only self-host Homarr, clear NEXTCLOUD_HOMARR_APP_PASSWORD and NEXTCLOUD_HOMARR_APP_PASSWORD_ID through that boundary, then retry self-host setup nextcloud. This app password retains administrator and file-write authority; it is not read-only.",
+		Hint:       HomarrRecoveryHint(h),
 		Credential: "admin",
 	})
 }
@@ -330,6 +337,15 @@ func saveTrustedHosts(ctx context.Context, h *helpers.H, domains []string) error
 
 const homarrPasswordName = "self-host Homarr"
 
+func HomarrRecoveryHint(h *helpers.H) string {
+	return "Open " + h.URL + "/settings/user/security. Restore the known matching self-host Homarr app password and token ID from owner-only files. " +
+		"Private-input ingestion requires reinstall, which replaces apps/nextcloud/compose.yml and generated credential files. Preserve and review existing authentication, mounts and ports, and obtain separate approval for replacement first. If existing custom configuration cannot survive replacement, stop: there is no credentials-only ingestion command. " +
+		"Only after approval, run: self-host install nextcloud --yes --set-file nextcloud.homarr_app_password=/owned/private/app-password --set-file nextcloud.homarr_app_password_id=/owned/private/token-id. " +
+		"To discard obsolete credentials, explicitly revoke only self-host Homarr first, then use that command with both files containing c-l-e-a-r (without hyphens); empty files do not erase saved values. " +
+		"If the matching credential or ID is unknown, recovery remains Manual; do not infer an ID from the token name or a working login. If two-factor authentication rejects account-password API login, headless reissuance remains Manual; restore an explicitly matched app password and ID instead. Never disable two-factor authentication. Retry self-host setup nextcloud, then self-host setup homarr. " +
+		"The default app password retains administrator and file-write authority; it is not read-only."
+}
+
 type authToken struct {
 	ID    int             `json:"id"`
 	Name  string          `json:"name"`
@@ -357,7 +373,7 @@ func homarrToken(ctx context.Context, h *helpers.H) (*authToken, error) {
 		}
 		_, filesystemScope := token.Scope["filesystem"]
 		if found != nil || token.ID <= 0 || token.Name != homarrPasswordName || token.Type == nil || *token.Type != 1 || len(token.Scope) != 1 || !filesystemScope {
-			h.Info("Review self-host Homarr in Nextcloud Personal settings > Security, restore its saved app password through the Project boundary, and retry self-host setup nextcloud.")
+			h.Info(HomarrRecoveryHint(h))
 			return nil, helpers.ErrManual
 		}
 		found = &token
@@ -381,18 +397,30 @@ func prepareHomarrPassword(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	if token != nil {
-		if h.Secret(h.Key("homarr_app_password")) == "" {
-			h.Info("Nextcloud already has self-host Homarr; restore its saved app password through the Project secret boundary instead of creating a duplicate.")
+	password := h.Secret(h.Key("homarr_app_password"))
+	id := h.Secret(h.Key("homarr_app_password_id"))
+	if password == "clear" || id == "clear" {
+		if password != "clear" || id != "clear" || token != nil {
+			h.Info(HomarrRecoveryHint(h))
 			return helpers.ErrManual
 		}
-		if err := VerifyHomarr(ctx, h); err != nil {
+		if err := h.SetSecret(h.Key("homarr_app_password"), ""); err != nil {
 			return err
 		}
-		return h.SetSecret(h.Key("homarr_app_password_id"), strconv.Itoa(token.ID))
+		if err := h.SetSecret(h.Key("homarr_app_password_id"), ""); err != nil {
+			return err
+		}
+		password, id = "", ""
 	}
-	if h.Secret(h.Key("homarr_app_password")) != "" {
-		h.Info("The saved Nextcloud Homarr app password has no matching owned token; review Personal settings > Security and its saved Project credential before retrying.")
+	if token != nil {
+		if password == "" || id == "" {
+			h.Info(HomarrRecoveryHint(h))
+			return helpers.ErrManual
+		}
+		return VerifyHomarr(ctx, h)
+	}
+	if password != "" || id != "" {
+		h.Info(HomarrRecoveryHint(h))
 		return helpers.ErrManual
 	}
 	h.Info("Nextcloud's Homarr app password retains administrator and file-write authority; Nextcloud's headless app-password command does not offer read-only scopes.")
@@ -465,18 +493,18 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 		return errors.New("Nextcloud does not trust its Project addresses; run self-host setup nextcloud")
 	}
 	password := h.Secret(h.Key("homarr_app_password"))
-	if password == "" {
-		return errors.New("Nextcloud Homarr app password is missing; run self-host setup nextcloud")
+	id := h.Secret(h.Key("homarr_app_password_id"))
+	if password == "" || id == "" || password == "clear" || id == "clear" {
+		h.Info(HomarrRecoveryHint(h))
+		return helpers.ErrManual
 	}
 	token, err := homarrToken(ctx, h)
 	if err != nil {
 		return err
 	}
-	if token == nil {
-		return errors.New("Nextcloud Homarr app-password metadata is missing; run self-host setup nextcloud")
-	}
-	if id := h.Secret(h.Key("homarr_app_password_id")); id != "" && id != strconv.Itoa(token.ID) {
-		return errors.New("Nextcloud Homarr app-password identity changed; review Personal settings > Security and retry self-host setup nextcloud")
+	if token == nil || id != strconv.Itoa(token.ID) {
+		h.Info(HomarrRecoveryHint(h))
+		return helpers.ErrManual
 	}
 	var account struct {
 		ID     string
