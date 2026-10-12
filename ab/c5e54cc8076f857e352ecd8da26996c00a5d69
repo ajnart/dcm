@@ -1,0 +1,14 @@
+internal/apps/homarr/integration_aria2.go
+  h_d6e478ca18e517 3-14,23-298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "abc5e54cc8076f857e352ecd8da26996c00a5d69",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
