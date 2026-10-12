@@ -1,0 +1,41 @@
+evals/self-host/evals/evals.json
+  s_a426323822b13f::t_99f6f7cffd1090 261,317,324
+evals/self-host/run.py
+  s_01e8d17f7740df::t_4f80dfc8cfa9a7 429-433,450-452,470-475,503,545-552,583-586,779,784-812,814,816,818,1022
+evals/self-host/tests/fake_claude.py
+  s_00d9eee545672e::t_b8b69d50d50fef 188-190,196-200,214-215,320,322-329,332-333,335
+evals/self-host/tests/test_runner.py
+  s_01e8d17f7740df::t_1e785004673d6a 285-362
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8403ff89de96fa23423be021beff0c5dd78c8c73",
+  "prompts": {},
+  "sessions": {
+    "s_00d9eee545672e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fc3-6532-7483-af9d-07e71149ec51",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_01e8d17f7740df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1268b-f643-7c41-b14c-a49ad65a4fdf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a426323822b13f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11bc1-af3d-7e01-b9f4-a625eaa7ba40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
