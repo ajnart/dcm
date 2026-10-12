@@ -153,7 +153,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/server/config"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "create the first administrator "+email, helpers.StepSpec{
+	if err := h.Step(ctx, "admin", "create the first administrator "+email, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
 		Do: func(ctx context.Context) error {
 			setUp, err := initialized(ctx, h)
@@ -179,6 +179,14 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		},
 		Hint:       "Open " + h.URL + ", finish the Immich setup with email " + email + " and the password shown by `self-host credentials`, then run: self-host setup immich",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-key", "prepare read-only Immich statistics", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return homarrKeyWorks(ctx, h) },
+		Do:         func(ctx context.Context) error { return createHomarrKey(ctx, h) },
+		Hint:       "Run self-host setup immich to prepare its Homarr credential. If the managed key already exists but its saved secret is lost, restore it through the Project secret boundary or delete only the self-host Homarr statistics key in Immich user settings, then retry.",
+		Credential: "admin",
 	})
 }
 
@@ -189,6 +197,13 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if !ok {
 		return fmt.Errorf("the administrator %s cannot sign in", email)
+	}
+	ok, err = homarrKeyWorks(ctx, h)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("the read-only Immich statistics credential is missing or rejected; run self-host setup immich")
 	}
 	return nil
 }

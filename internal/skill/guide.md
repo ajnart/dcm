@@ -412,6 +412,15 @@ masking: review them before sharing. Copy confirmation never echoes the error.
 Read `status --json`: `addresses` lists only working Easy names ahead of
 `IP:port`, after valid private Tailscale and available verified Cloudflare
 Addresses; `url` remains the first. Homarr tiles share that browser Address.
+
+Homarr Links support Homarr 2.4.1, not an arbitrary mutable development build.
+Immich Setup creates a dedicated read-only statistics key. Retry its own Setup
+before retrying Homarr: `self-host setup immich`, then `self-host setup homarr`.
+A lost managed key is a Manual step with a recovery hint, never an excuse to
+read secrets or rotate someone else's key. Immich server statistics are wired;
+album slideshows are not. Native authenticated data and rendered widgets need
+their own verification; a tile or successful HTTP response is not that proof.
+
 The additive `names` section has `on`, `working` and, on failure, `problem`,
 `message`, `technical`. Give the plain `message` first and the numbered Address;
 do not change the router or disable its protection yourself. `blocked` compares
