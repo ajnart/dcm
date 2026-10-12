@@ -9,6 +9,7 @@ import (
 )
 
 const installedTileMarker = "self-host tile:"
+const retainedTileMarker = "self-host retained tile:"
 
 // Generic tiles advertise navigation only. Dedicated integrations and widgets
 // remain the responsibility of the App's Links.
