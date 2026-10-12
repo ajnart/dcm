@@ -1,0 +1,18 @@
+internal/apps/homarr/target_nextcloud.go
+  h_d6e478ca18e517 24,36-68
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 39-46,195,203,340-348,376,400-404,407-410,413,415-423,496-499,505-507
+internal/apps/nextcloud/nextcloud_test.go
+  h_d6e478ca18e517 6,12,14-15,34,45,55,102-146,170-205,226-234,239-243,252-254,257-260,262-264
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "21f74e29d9c7e75da04c0410a2fcad717cc2f75f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
