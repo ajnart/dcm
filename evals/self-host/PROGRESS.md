@@ -29,7 +29,7 @@ No percentage estimate: each gate requires evidence.
 | Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution                 |
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+                   |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                                |
-| Complete real-model batch with both guides and three repetitions       | Iteration 12 invalid; corrected fixtures need a new comparison        |
+| Complete real-model batch with both guides and three repetitions       | Fresh iteration 14 smoke running; full comparison pending             |
 | Complete blind judgments, aggregation and supplied review viewer       | Earlier smoke is historical; current batch and human feedback pending |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes         |
 
@@ -113,6 +113,16 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   scenario ends at the Recap or must include an explicitly modeled browser
   acceptance flow. Either way, machine/media observations need consistent
   synthetic coverage; merely raising the turn limit would hide the problem.
+- **Iteration 13: invalid transport failure.** The original-guide conversation
+  failed on turn 6 with an API/DNS `ENOTFOUND` connection error. Shared
+  cancellation stopped the revised-guide conversation on turn 8. Neither run
+  completed; no judgments, grades or benchmark were produced. Frozen inputs
+  and raw diagnostics are retained unchanged.
+- **Iteration 14: running.** After the user's instruction to continue, DNS
+  resolution and both selected model-access preflights succeeded. A fresh
+  two-run MacBook smoke uses the corrected harness, unchanged guide snapshots
+  and equal 16-turn budgets. No transport retry alters iteration 13 evidence;
+  full comparison still requires valid smoke execution and complete judgments.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
