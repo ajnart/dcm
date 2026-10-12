@@ -55,19 +55,24 @@ are failures, not an empty library or tile-only success.
 
 ## Verification and remaining gate
 
-The focused tests first failed because Setup did not save an API key and accepted
-incomplete API data. The implementation passes those regressions and descriptor
-checks using isolated HTTP fakes. They cover valid empty/populated data, fresh
-credential rejection, key recovery, rerun preservation, rejected API access and
-missing/null/negative/fractional fields. These are source checks, not rendered
-widget acceptance or an exact-image runtime proof.
+Remaining focused coverage is in the existing Bazarr App fixtures in
+`internal/apps/bazarr/bazarr_test.go`: valid zero counts, fresh credential
+rejection, key recovery, rerun preservation, rejected/unavailable API access,
+missing version, missing/null/negative badge fields and malformed API data.
+Homarr's Bazarr descriptor is source/schema/compile-only pending native proof;
+there is no final-HEAD descriptor unit-test or full mock-acceptance claim.
 
-Local gate passed with `GOFLAGS=-buildvcs=false`: `gofmt -l .` was empty,
+The entirely agent-added 135-line `target_bazarr_test.go` was removed with explicit
+parent authorization. The earlier parent-authored delegation request for focused
+descriptor tests was not an actual human explicit unit-test request. No existing
+App fixture or implementation was removed and no replacement tests were added.
+
+The post-correction local gate passed on only the remaining test tree:
+`GOFLAGS=-buildvcs=false`, empty `gofmt -l .`,
 `go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
-and race tests for TUI, Activity, Bazarr and Homarr passed. `bash -n install.sh`
-and `git diff --check` passed. The initial whole-module test command hit its
-120-second harness timeout; a rerun with a larger timeout completed successfully.
-No e2e-tagged runtime tests were run.
+race tests for TUI, Activity, Bazarr and Homarr, `bash -n install.sh` and
+`git diff --check`. Focused/full/race tests ran with `-count=1`; the removed
+descriptor test was not part of this gate. No e2e-tagged runtime tests were run.
 
 Live proof is blocked by reference acceptance and parent-controlled capacity.
 No Docker, browser, installer, person's Project, protected secret file or browser profile
