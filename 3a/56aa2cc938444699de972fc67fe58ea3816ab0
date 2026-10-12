@@ -1,0 +1,22 @@
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 32,307-329
+evals/self-host/README.md
+  h_d6e478ca18e517 118-122
+evals/self-host/run.py
+  h_d6e478ca18e517 453-455,474-475,496-498,511,689,797,799-800,806,858
+evals/self-host/tests/fake_claude.py
+  h_d6e478ca18e517 375-377
+evals/self-host/tests/test_runner.py
+  h_d6e478ca18e517 350-386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3a56aa2cc938444699de972fc67fe58ea3816ab0",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
