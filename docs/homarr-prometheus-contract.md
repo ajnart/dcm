@@ -2,8 +2,11 @@
 
 ## Pinned sources
 
-- Homarr `v2.4.1` resolves to
-  `ebbd4876d25a51151444a009ab596e1154d62880`.
+- Homarr authenticated API is `2.4.1`, image tag `ghcr.io/homarr-labs/homarr:v2.4.1`.
+  The resolved image revision's Prometheus provider
+  `3d4150e59f600876b7e308f857b2f21572b75348` was checked for the exact native
+  metrics/authentication/active-target semantics below. Tagged research baseline
+  `ebbd4876d25a51151444a009ab596e1154d62880` is a separate source identity.
 - Prometheus `v3.15.0` resolves through its annotated tag to
   `5241a27fe3c6983549fccc32f6e65917408c63cd`.
 - These source tags were read, not deployed. No image digest or runtime version
@@ -11,12 +14,15 @@
 
 The [shared reference contract](homarr-integration-contract.md) owns version
 checks, registration, scheduling, stable resource IDs, shared widget bindings
-and removal. This lane only provides `prometheusTarget()`; the registry owner
-must add it to `targets()` before native Links can run.
+and removal. The retained common registry custodian normally merged frozen main
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, preserving reviewed leaf
+`56dc88ec7bcfb1a2397b8365d894b26ebd7e974e` and its recovery/startup corrections.
+Only this branch's `prometheusTarget()` registry call is added. Source activation
+is not live acceptance; no frozen common contract/helper body/signature changes.
 
 ## Actual native capabilities
 
-Homarr's tagged Prometheus Stats provider reads `GET /api/v1/targets`. Its exact
+Homarr's resolved-image Prometheus Stats provider reads `GET /api/v1/targets`. Its exact
 metrics are `total` (Targets), `up` (Up), and `down` (Down), all unit `count`.
 Only active targets are counted. Other health strings contribute to `total`,
 not to either up/down count; dropped targets are excluded. There is no dedicated
@@ -30,14 +36,14 @@ must still be checked during batch registration. Browser Addresses remain
 separate from the integration's `http://prometheus:9090` internal Address.
 
 Native verification calls `widget.stats.catalog` with `{integrationId}` and
-requires all three keys with unit `count`. It then POSTs `widget.stats.refresh`
-with `{integrationId, force: true}`. This is a read-only source refresh, not a
-configuration mutation. The returned snapshot must have `error: false`,
-`stale: false`, a numeric `updatedAt` in Unix **milliseconds** at or after the
-request start and no more than five seconds ahead of the local clock, and all
-three numeric counts equal to a fresh direct read. Null, absent, failed,
-unrefreshed and changed counts are rejected. An explicit zero up/down count is
-valid. A concurrent refresh returning an older snapshot requires a retry.
+requires all three keys with unit `count`. It reuses frozen `freshStatsSnapshot`
+rather than copying refresh/timestamp logic: before-snapshot, forced refresh,
+`error: false`, `stale: false` and positive advancing Unix **millisecond**
+`updatedAt`. This is a read-only source refresh, not a configuration mutation.
+All three numeric counts must equal a fresh direct read. Null, absent, failed,
+unrefreshed and changed counts are rejected; explicit zero up/down counts are valid.
+Frozen `verifyData` retains the common post-leaf selected-metric freshness guard.
+The App's independent source-sample clock/freshness checks below remain unchanged.
 
 ## App Setup and credentials
 
@@ -114,19 +120,25 @@ Catalog tests, `gofmt -l .` (empty), `go build ./...`, `go vet ./...`,
 `go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/prometheus/ ./internal/apps/homarr/ ./internal/catalog/`,
 `bash -n install.sh`, and `git diff --check`.
 The untagged Go gate does not launch the Docker e2e runtime.
+The full gate passed again on the normalized source-activated tree, including
+TUI/Activity/Prometheus/Homarr/Catalog race checks. Fresh normalized-head reviews
+remain parent-owned; prior clean leaf reviews do not certify this final head.
 
 Source/fake verification cannot prove native rendering. Pending the parent's
-isolated batch: registry activation, real Homarr provider refresh, rendered
+fresh final normalized-head Standards/Spec review and separately approved
+isolated batch: real Homarr provider refresh, rendered
 Targets/Up/Down values, resolved image digests, Basic-mode verification, both
 installation orders, late/unready peers, restart and credential changes, owned
 removal/reinstallation, and preservation of user-authored/shared resources.
-These gaps keep #299 open; this is not full functional or lifecycle acceptance.
-README/embedded-guide summaries and the common reference belong to the registry
-owner and should be updated with registration.
+Genuinely cross-kind shared-binding acceptance also remains held. These gaps keep
+#299 open; registration is not full functional or lifecycle acceptance. This phase
+adds no Docker/browser/installer, provider/account, secret-file or paid-model actions,
+new test cases/comments/dependencies or duplicate guide/harness work.
 
 ## Primary references
 
 - [Homarr integration guide](https://homarr.dev/docs/integrations/prometheus/)
+- [Resolved-image Prometheus Stats provider](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/providers/prometheus.ts)
 - [Homarr v2.4.1 credential alternatives](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/definitions/src/integration.ts)
 - [Homarr v2.4.1 Prometheus provider](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/integrations/src/stats/providers/prometheus.ts)
 - [Stats router](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/api/src/router/widgets/stats.ts)

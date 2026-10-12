@@ -3,7 +3,6 @@ package homarr
 import (
 	"context"
 	"errors"
-	"math"
 
 	"github.com/ajnart/self-host/internal/apps/prometheus"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -57,25 +56,9 @@ func verifyPrometheus(ctx context.Context, from, to *helpers.H, integrationID st
 			return errors.New("Homarr does not expose the supported Prometheus target-count metrics; retry self-host setup homarr with Homarr 2.4.1")
 		}
 	}
-	started := float64(from.Now().UnixMilli())
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
+	values, err := freshStatsSnapshot(ctx, from, integrationID)
 	if err != nil {
 		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Prometheus statistics")
-	}
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updated, hasTime := snapshot["updatedAt"].(float64)
-	now := float64(from.Now().UnixMilli())
-	if !hasError || failed || !hasStale || stale || !hasTime || math.IsNaN(updated) || math.IsInf(updated, 0) || updated < started || updated > now+5000 {
-		return errors.New("Homarr Prometheus statistics are failed, missing or not freshly refreshed; retry self-host setup homarr")
-	}
-	values, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr returned incomplete Prometheus statistics")
 	}
 	for key, expected := range map[string]int{"total": counts.Total, "up": counts.Up, "down": counts.Down} {
 		actual, ok := values[key].(float64)
