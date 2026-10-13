@@ -242,6 +242,24 @@ def main(stop):
     if args.parallel < 1 or args.timeout < 1:
         ap.error("--parallel and --timeout must be positive")
     runs = sorted(glob.glob(os.path.join(args.iteration_dir, "eval-*", "*", "run-*")))
+    if (
+        not os.path.isfile(os.path.join(args.iteration_dir, "execution.json"))
+        or not runs
+        or any(
+            not os.path.isdir(run)
+            or not os.path.isdir(os.path.join(run, "raw"))
+            or not os.path.isdir(os.path.join(run, "outputs"))
+            or not os.path.isfile(
+                os.path.join(
+                    os.path.dirname(os.path.dirname(run)), "eval_metadata.json"
+                )
+            )
+            for run in runs
+        )
+    ):
+        ap.error(
+            "--iteration-dir must contain an execution manifest and evaluation runs"
+        )
     invalidate_judgments(args.iteration_dir, runs, args.model)
     require_iteration(args.iteration_dir, runs)
     check_model(args.model, stop=stop)
