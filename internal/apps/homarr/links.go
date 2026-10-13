@@ -155,6 +155,9 @@ func (t target) hint(from *helpers.H) string {
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
 	}
+	if t.id == "sabnzbd" {
+		return "SABnzbd activation is on hold for credential-safety issue #363. Do not manually create its Homarr integration or bypass this hold. Resolve the supported adapter and complete error/log chain, verify the exact fixed Homarr image and privacy behavior, then retry self-host setup homarr after activation is approved. Standalone SABnzbd Setup and owned Link removal are separate."
+	}
 	if t.id == "frigate" {
 		return "Frigate's Homarr Link requires trusted HTTPS on authenticated port 8971. The default HTTP starter cannot be linked. Obtain explicit approval for Project-scoped private TLS and certificate trust in both Homarr and the CLI, then retry self-host setup frigate and self-host setup homarr. Keep authentication enabled on port 8971; do not use port 5000, bypass certificate verification, or enable public Access."
 	}
