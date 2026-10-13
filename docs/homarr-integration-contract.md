@@ -2,7 +2,9 @@
 
 ## Supported upstream
 
-The compiled definition pins `ghcr.io/homarr-labs/homarr:v2.4.1`.
+The compiled definition uses `ghcr.io/homarr-labs/homarr:latest`.
+The currently verified image provides the supported API below; later images
+require compatibility verification.
 The supported API version is `2.4.1`, observed through authenticated
 `info.getInfo`. The tagged research baseline is
 `ebbd4876d25a51151444a009ab596e1154d62880`; it is not the resolved image revision.
