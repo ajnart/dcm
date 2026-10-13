@@ -105,6 +105,20 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 		t.Run(a.Info().ID, func(t *testing.T) {
 			deps := systemtest.NewDeps(t)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if a.Info().ID == "glances" {
+					w.Header().Set("Content-Type", "application/json")
+					switch r.URL.Path {
+					case "/api/4/status":
+						w.Write([]byte(`{"version":"4.5.6"}`))
+					case "/api/4/version":
+						w.Write([]byte(`"4.5.6"`))
+					case "/api/4/all":
+						w.Write([]byte(`{"cpu":{"total":0},"mem":{"total":0,"used":0,"free":0},"network":[],"fs":[],"uptime":"0:00:00"}`))
+					default:
+						http.NotFound(w, r)
+					}
+					return
+				}
 				if a.Info().ID == "prometheus" {
 					switch r.URL.Path {
 					case "/api/v1/targets":
