@@ -34,6 +34,13 @@ Bun, checkout, or AI account. A Project made by a pre-release build in
 `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
 at one.
 
+The Dashboard opens with a brief, skippable entrance; any key continues with its
+usual meaning. The existing Pre-boot scene animates in during the approved first
+install, with `enter` to skip to Activity and `q` or `ctrl+c` to quit.
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips these decorative transitions and
+shows that first Action directly in Activity. Loading and installation never
+wait for motion; plain commands, non-TTY output and `--json` do not animate.
+
 Ask your agent to use the self-host skill ("use self-host to watch my movies on
 the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). Agents
 also load the skill on their own when you talk about running your own apps.
@@ -427,14 +434,16 @@ page and under This computer only, where a phone cannot reach the Address;
 
 `c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
 `enter` copies and `esc` closes; background keys and clicks do not navigate.
-It offers the Admin password, the selected App's login alias and API keys,
+It offers the Admin password, the selected App's login alias, admin email and API keys,
 then Admin username and email when saved. Values stay hidden and are read
-again when copied.
+again when copied. App emails come from saved credentials or the App's automatic
+Setup definition; they do not detect accounts changed directly inside an App.
 
 While a search or an edit takes text, every key goes to it; in the App list
 `/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
 five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
-Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
+Host folder edits list matching folders; `tab` completes, arrows select a suggestion
+and `~` expands to your home folder. Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
 archives in `~/.self-host/backups` with date, size and whether each is encrypted:
 `b` asks for an optional passphrase (typed as dots; empty means unencrypted, otherwise it
 is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore
@@ -644,7 +653,16 @@ Homarr Links support version **2.4.1**. Immich Setup prepares a dedicated
 read-only statistics key; retry with `self-host setup immich`, then
 `self-host setup homarr`. Server statistics are enabled, not album slideshows.
 Other Homarr versions stop with a recovery hint; back up before changing versions.
+Immich Links require genuinely refreshed Stats, not merely cached values. Retry
+Homarr Setup if its refresh cannot advance. User-referenced integrations and
+linked bookmarks survive removal and are not reclaimed on reinstall, including
+bookmarks with user-edited ping Addresses.
 See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
+The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
+empty-library statistics, rendered widgets and preservation/removal/reinstall
+at its exact source and image identities, including retained legacy-App exclusion
+through two cycles and final post-lifecycle native/shared rendering. It does not
+verify populated media or other peers.
 
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |

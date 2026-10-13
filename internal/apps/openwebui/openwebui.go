@@ -15,10 +15,17 @@ import (
 )
 
 // adminEmail is the shared Admin login's email form.
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 // App is Open WebUI. Traps: docs/catalog/traps/open-webui.md.
 type App struct{}
+
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
 
 func (App) Info() app.Info {
 	return app.Info{
