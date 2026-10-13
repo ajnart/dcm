@@ -2,6 +2,7 @@ package homarr
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,6 +21,7 @@ type sabnzbdFixture struct {
 	nativeReads       int
 	downloads         int
 	statsBeforeNative bool
+	requests          int
 }
 
 func newSABnzbdFixture() *sabnzbdFixture {
@@ -33,6 +35,7 @@ func newSABnzbdFixture() *sabnzbdFixture {
 }
 
 func (f *sabnzbdFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.requests++
 	if strings.HasPrefix(r.URL.Path, "/api/trpc/widget.stats.") {
 		if f.nativeReads == 0 || f.downloads != 1 {
 			f.statsBeforeNative = true
@@ -155,6 +158,25 @@ func TestSABnzbdVerificationUsesOneSemanticStatsSample(t *testing.T) {
 			}
 			if scenario.refreshes == 0 && f.stats.catalogs != 0 {
 				t.Fatal("native failure acquired Stats catalog")
+			}
+		})
+	}
+}
+
+func TestSABnzbdPrivacyHoldPrecedesAllRequests(t *testing.T) {
+	for _, path := range []string{"apply", "Check"} {
+		t.Run(path, func(t *testing.T) {
+			descriptor := sabnzbdTarget()
+			f := newSABnzbdFixture()
+			from, to := f.helpers(t, descriptor)
+			var err error
+			if path == "apply" {
+				err = descriptor.add(t.Context(), from, to)
+			} else {
+				_, err = descriptor.linked(t.Context(), from, to)
+			}
+			if !errors.Is(err, helpers.ErrManual) || f.requests != 0 {
+				t.Fatalf("credential-safety hold must be Manual before all HTTP: manual=%v requests=%d", errors.Is(err, helpers.ErrManual), f.requests)
 			}
 		})
 	}

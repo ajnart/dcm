@@ -2,6 +2,46 @@
 
 Part of #298, using the [reference contract](homarr-integration-contract.md).
 
+## Native activation: credential-safety hold #363
+
+Tracker #363 blocks native activation. The SABnzbd Homarr Link is retryable
+Manual before any Homarr or peer HTTP
+request, credential creation/update, tile/widget mutation or native query.
+Do not manually create an integration or bypass this hold. Standalone SABnzbd
+Setup/Check and owned Link removal remain separate.
+
+At recorded Homarr OCI-source revision
+`3d4150e59f600876b7e308f857b2f21572b75348`, the native SABnzbd adapter puts
+the full API key in the request query. A rejected response retains the raw
+Address in `ResponseError`; the integration decorator sanitizes its own log
+copy but rethrows the original cause. Downloads integration settling logs that
+cause, and recursive error/metadata formatting retain the Address string.
+Console logging is enabled; Redis/browser visibility depends on logging and
+permissions. A currently valid direct API probe cannot prevent a later
+rejected native request. This is source-confirmed risk, not an observed leak
+or built-image attestation; no rejected-credential probe or log read was run.
+
+Activation requires a supported adapter and complete downstream logging-chain
+fix verified in the actual supported image, exact image/version/source
+compatibility review and separate authorization. Source agreement, a local
+upstream patch or valid credentials do not clear this image prerequisite.
+
+The HTTP regression fixture failed before the hold: both Link Check/apply made
+one request and did not return Manual. After the leaf hold, both return Manual
+with zero HTTP requests. The existing native Downloads and pure Stats callback
+remain unchanged behind the hold; their synthetic fixtures exercise the dormant
+verifier directly and are not activation acceptance.
+
+The inspected source chain is:
+
+- [SABnzbd native query and rejected response](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/download-client/sabnzbd/sabnzbd-integration.ts#L150-L165)
+- [ResponseError retains the response Address](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/common/src/errors/http/response-error.ts#L5-L10)
+- [Decorator sanitizes one copy and rethrows the cause](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/base/errors/decorator.ts#L37-L145)
+- [Integration settling logs the rejected cause](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/settle-integrations.ts#L39-L44)
+- [Recursive error formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/error.ts#L22-L53)
+- [String metadata formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/metadata.ts#L9-L14)
+- [Console and conditional Redis transports](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/transports/index.ts#L7-L18)
+
 ## Source-verified versions and authentication
 
 - Homarr's actual tag is `v2.4.1`, commit
@@ -76,8 +116,9 @@ wildcard host whitelist, authentication removal or public Access is applied.
   count. Shared Stats uses the reference lane's deterministic per-integration
   entry IDs and preserves unrelated bindings.
 
-The read-only peer preflight verifies administrator/API/provider readiness
-before any Homarr mutation. Native verification reads
+Standalone Setup verifies administrator/API/provider readiness. The Homarr
+preflight now stops unconditionally on the credential-safety hold before any
+request or mutation. Its dormant native verification reads
 `widget.downloads.getJobsAndStatuses` for the owned integration ID, requires
 nonfailed explicit items, paused state and finite nonnegative download rate,
 then checks every returned item against the pinned normalized schema and
@@ -102,9 +143,10 @@ array remain legitimate; native queue and Stats are independently sampled.
 ## Implementation and acceptance limits
 
 This peer owns `target_sabnzbd.go`, `sabnzbdTarget()`, and SABnzbd Setup. The
-reference owner must add `sabnzbdTarget()` to `targets.go`; this branch does not
-edit the shared registry or reconciliation seam. Until registered, no native
-SABnzbd Link is exposed. The reference removal/ownership policy then applies.
+reference owner registered `sabnzbdTarget()` in `targets.go`; this leaf hold
+changes no shared registry or reconciliation code. Registration is not
+activation approval: #363 keeps preflight Manual. The reference
+removal/ownership policy remains unchanged.
 
 Existing SABnzbd test bodies directly model key reuse, version readiness,
 explicit empty queue/history, recovery of the same missing Project key,
@@ -116,7 +158,7 @@ blank observed version still fails standalone Setup/Check. This is not live
 `5.1.2` acceptance. Both original regressions failed before the corrections
 and passed after them. Those earlier checks covered the reference seam.
 The 13 October migration
-adds focused HTTP fixtures for this unregistered descriptor, including its
+adds focused HTTP fixtures for this descriptor, including its
 item validator. They are source validation, not native runtime acceptance.
 No dependencies were added.
 
@@ -175,6 +217,7 @@ The affected descriptor tests, shared Stats/Downloads tests, App tests,
 package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
 provider request, download or protected Project state was used.
 
-Registry assembly remains custodian-owned. Useful real native/rendered data,
-both installation orders and credential/ownership/removal lifecycle checks
-remain prerequisites to full acceptance; source fixtures do not satisfy them.
+Registry assembly remains custodian-owned. The credential-safety image fix
+and activation authorization precede useful real native/rendered data, both
+installation orders and credential/ownership/removal lifecycle checks.
+Source fixtures do not satisfy these prerequisites.

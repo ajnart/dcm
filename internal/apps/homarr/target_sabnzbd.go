@@ -14,15 +14,9 @@ func sabnzbdTarget() target {
 		id: "sabnzbd", name: "SABnzbd", kind: "sabNzbd", internal: fixed("http://sabnzbd:8080"),
 		secrets: apiKeySecret,
 		widgets: []widget{plain("downloads"), statWidget("download", "paused")},
-		preflight: func(ctx context.Context, from, to *helpers.H) error {
-			err := (sabnzbd.App{}).Check(ctx, to)
-			if errors.Is(err, helpers.ErrManual) {
-				from.Info("SABnzbd needs your existing authorized provider in Config > Servers; run self-host setup sabnzbd, then self-host setup homarr. No provider account is created or tested.")
-			}
-			if err != nil {
-				return err
-			}
-			return sabnzbd.VerifyHomarr(ctx, to)
+		preflight: func(_ context.Context, from, _ *helpers.H) error {
+			from.Info("Homarr SABnzbd credential-safety hold #363: Homarr 2.4.1 can log the full API key after a rejected native request. Keep this Link inactive and do not create a manual integration or bypass this hold. A supported adapter and complete downstream logging fix must be verified in the actual supported image, with its exact version/source contract reviewed and activation authorized before retrying self-host setup homarr. Standalone SABnzbd Setup and owned Link removal remain separate.")
+			return helpers.ErrManual
 		},
 		verify: verifySABnzbd,
 		stats:  verifySABnzbdStats,

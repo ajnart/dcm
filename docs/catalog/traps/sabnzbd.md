@@ -13,3 +13,4 @@
 
 - Treat provider credentials, server configuration, and the SABnzbd API key as secrets.
 - Keep its WebUI private; the API key is accepted as a query parameter by the upstream API.
+- Homarr SABnzbd credential-safety hold #363: the pinned native adapter sends the full API key in the request query. A rejected response can retain that Address into downstream logs. Homarr Link Check/apply must remain Manual before any request or mutation until a supported adapter and complete logging-chain fix are verified in the actual supported image. Do not manually activate the integration or bypass the hold; standalone SABnzbd Setup and owned Link removal stay separate.
