@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
@@ -76,20 +78,62 @@ func (App) Compose(rc app.RenderContext) string {
 
 // login returns the private session cookie when the password is accepted.
 func login(ctx context.Context, h *helpers.H, user, password string) (string, bool, error) {
+	if user == "" || password == "" {
+		return "", false, errors.New("the Frigate Admin login is missing; run self-host setup frigate")
+	}
+	denied, err := h.HTTP(ctx, helpers.Request{Path: "/api/profile", NoRedirect: true})
+	if err != nil {
+		return "", false, errors.New("cannot verify the protected Frigate API; retry self-host setup frigate")
+	}
+	if denied.Status != http.StatusUnauthorized && denied.Status != http.StatusForbidden {
+		return "", false, fmt.Errorf("Frigate anonymous profile access was not denied (HTTP %d)", denied.Status)
+	}
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/login",
-		JSON: map[string]string{"user": user, "password": password},
+		JSON: map[string]string{"user": user, "password": password}, NoRedirect: true,
 	})
 	if err != nil {
-		return "", false, err
+		return "", false, errors.New("the Frigate login request failed; retry self-host setup frigate")
 	}
 	if resp.Status == http.StatusUnauthorized || resp.Status == http.StatusForbidden {
 		return "", false, nil
 	}
-	if !resp.OK() {
+	if resp.Status != http.StatusOK {
 		return "", false, fmt.Errorf("POST /api/login returned HTTP %d", resp.Status)
 	}
-	return resp.Cookie("frigate_token"), true, nil
+	cookies := (&http.Response{Header: resp.Header}).Cookies()
+	token := ""
+	for _, cookie := range cookies {
+		if cookie.Name != "frigate_token" {
+			continue
+		}
+		if token != "" || len(cookie.Value) > 4096 || !sessionToken.MatchString(cookie.Value) {
+			return "", false, errors.New("Frigate returned an invalid or ambiguous session cookie")
+		}
+		token = cookie.Value
+	}
+	if token == "" {
+		return "", false, errors.New("Frigate did not return its frigate_token session cookie")
+	}
+	h.Log.Secret(token)
+	profile, err := h.HTTP(ctx, helpers.Request{
+		Path: "/api/profile", Header: map[string]string{"Authorization": "Bearer " + token}, NoRedirect: true,
+	})
+	if err != nil {
+		return "", false, errors.New("cannot verify the Frigate administrator profile")
+	}
+	if profile.Status != http.StatusOK {
+		return "", false, fmt.Errorf("the authenticated Frigate profile returned HTTP %d", profile.Status)
+	}
+	var identity struct {
+		Username       string   `json:"username"`
+		Role           string   `json:"role"`
+		AllowedCameras []string `json:"allowed_cameras"`
+	}
+	if err := profile.Decode(&identity); err != nil || identity.Username != user || identity.Role != "admin" || identity.AllowedCameras == nil {
+		return "", false, errors.New("Frigate did not verify the expected administrator and camera permissions")
+	}
+	return token, true, nil
 }
 
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
@@ -98,29 +142,47 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 }
 
 var temporaryPassword = regexp.MustCompile(`\*\*\*\s+Password:\s+([0-9a-f]{32})\s+\*\*\*`)
+var sessionToken = regexp.MustCompile(`^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$`)
 
 // firstUserPassword reads the generated password from the latest fresh-user
 // block in the container's whole log: Frigate logs every request, so the
 // block scrolls far out of a short tail. A password reset after that block
 // is refused.
 func firstUserPassword(ctx context.Context, h *helpers.H) (string, error) {
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/auth/first_time_login", NoRedirect: true})
+	if err != nil || response.Status != http.StatusOK {
+		return "", fmt.Errorf("%w: cannot establish Frigate's first-user state; finish the administrator login privately, then retry self-host setup frigate", helpers.ErrManual)
+	}
+	var state struct {
+		FirstLogin bool `json:"admin_first_time_login"`
+	}
+	if err := response.Decode(&state); err != nil || !state.FirstLogin {
+		return "", fmt.Errorf("%w: Frigate already has an administrator; restore the Admin login through the Project secret boundary and retry self-host setup frigate", helpers.ErrManual)
+	}
 	logs, err := h.Logs(ctx, 1_000_000)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: the private Frigate first-user log is unavailable; finish the administrator login privately and retry self-host setup frigate", helpers.ErrManual)
 	}
 	start := strings.LastIndex(logs, "Auth is enabled, but no users exist")
-	if start < 0 || strings.Contains(logs[start:], "Reset admin password") {
-		return "", errors.New("no fresh Frigate first-user password block in the logs")
+	if start < 0 || strings.Count(logs, "Auth is enabled, but no users exist") != 1 || strings.Contains(logs, "Reset admin password") {
+		return "", fmt.Errorf("%w: no unambiguous Frigate first-user password block; finish the administrator login privately and retry self-host setup frigate", helpers.ErrManual)
 	}
 	found := temporaryPassword.FindStringSubmatch(logs[start:])
 	if found == nil {
-		return "", errors.New("no generated administrator password in the Frigate logs")
+		return "", fmt.Errorf("%w: no generated administrator password in the private Frigate first-user log", helpers.ErrManual)
 	}
+	h.Log.Secret(found[1])
 	return found[1], nil
 }
 
 // createAdmin rotates the generated first user to the saved Admin password.
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
+	if h.Secret(h.Key("admin_rotation_pending")) != "" {
+		return fmt.Errorf("%w: the previous Frigate password change is uncertain; restore or finish the Admin login privately, then retry self-host setup frigate", helpers.ErrManual)
+	}
+	if user != "admin" {
+		return fmt.Errorf("%w: Frigate generates the first administrator as admin; create the shared Admin login as an administrator in Frigate's user settings, then retry self-host setup frigate", helpers.ErrManual)
+	}
 	denied, err := h.HTTP(ctx, helpers.Request{Path: "/api/profile"})
 	if err != nil {
 		return err
@@ -139,12 +201,21 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	if !ok || token == "" {
 		return errors.New("the temporary Frigate administrator password was rejected")
 	}
-	_, err = h.Expect(ctx, helpers.Request{
+	if err := h.SetSecret(h.Key("admin_rotation_pending"), "true"); err != nil {
+		return err
+	}
+	response, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPut, Path: "/api/users/" + user + "/password",
 		Header: map[string]string{"Cookie": "frigate_token=" + token},
-		JSON:   map[string]string{"password": password},
+		JSON:   map[string]string{"password": password}, NoRedirect: true,
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("%w: the Frigate password change was not confirmed; finish it privately and retry self-host setup frigate", helpers.ErrManual)
+	}
+	if response.Status != http.StatusOK {
+		return fmt.Errorf("the Frigate password change returned HTTP %d; finish it privately and retry self-host setup frigate", response.Status)
+	}
+	return nil
 }
 
 func firstAdmin() firstadmin.FirstAdmin {
@@ -154,21 +225,107 @@ func firstAdmin() firstadmin.FirstAdmin {
 		Ready:  firstadmin.Probe{Path: "/api/profile", Want: []int{http.StatusUnauthorized, http.StatusForbidden}},
 		Create: createAdmin,
 		Login:  loginWorks,
-		Manual: "sign in with the temporary password printed by the container (`self-host logs frigate`) and change it to the password from `self-host credentials`",
+		Manual: "privately inspect the first-login help and `self-host logs frigate`, finish the administrator account using the password from `self-host credentials`, and never share the logs or credentials",
 	}
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstAdmin().Setup(ctx, h)
+	h = apiHelper(ctx, h)
+	if err := firstAdmin().Setup(ctx, h); err != nil {
+		return err
+	}
+	if h.Secret(h.Key("admin_rotation_pending")) != "" {
+		if err := h.SetSecret(h.Key("admin_rotation_pending"), ""); err != nil {
+			return err
+		}
+	}
+	return h.Step(ctx, "api", "verify Frigate server statistics", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			_, err := ReadStatistics(ctx, h)
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error {
+			return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) {
+				_, err := ReadStatistics(ctx, h)
+				return err == nil, err
+			})
+		},
+		Hint: "Keep authentication enabled on Frigate port 8971, restore the Admin login through the Project secret boundary, then run self-host setup frigate. A camera-free server is valid; camera recording and detection need separately approved configuration.",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	ok, err := loginWorks(ctx, h, h.AdminUser(), h.AdminPassword())
+	_, err := ReadStatistics(ctx, h)
+	return err
+}
+
+type Statistics struct {
+	Cameras int
+	Uptime  float64
+	Version string
+}
+
+func ReadStatistics(ctx context.Context, h *helpers.H) (Statistics, error) {
+	h = apiHelper(ctx, h)
+	token, ok, err := login(ctx, h, h.AdminUser(), h.AdminPassword())
 	if err != nil {
-		return err
+		return Statistics{}, err
 	}
 	if !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to Frigate", h.AdminUser())
+		return Statistics{}, errors.New("Frigate rejected the Admin login; restore it through the Project secret boundary and retry self-host setup frigate")
 	}
-	return nil
+	response, err := h.HTTP(ctx, helpers.Request{
+		Path: "/api/stats", Header: map[string]string{"Authorization": "Bearer " + token}, NoRedirect: true,
+	})
+	if err != nil {
+		return Statistics{}, errors.New("the authenticated Frigate statistics request failed; retry self-host setup frigate")
+	}
+	if response.Status != http.StatusOK {
+		return Statistics{}, fmt.Errorf("the authenticated Frigate statistics returned HTTP %d; retry self-host setup frigate", response.Status)
+	}
+	var snapshot struct {
+		Cameras map[string]struct{} `json:"cameras"`
+		Service struct {
+			Uptime  *float64 `json:"uptime"`
+			Version string   `json:"version"`
+		} `json:"service"`
+	}
+	if err := response.Decode(&snapshot); err != nil || snapshot.Cameras == nil || snapshot.Service.Uptime == nil || *snapshot.Service.Uptime < 0 || snapshot.Service.Version == "" {
+		return Statistics{}, errors.New("Frigate returned incomplete server statistics; retry self-host setup frigate")
+	}
+	if snapshot.Service.Version != "0.18.0" && !strings.HasPrefix(snapshot.Service.Version, "0.18.0-") {
+		return Statistics{}, errors.New("this Frigate API contract supports version 0.18.0; back up Frigate before changing its version, then retry Setup")
+	}
+	return Statistics{Cameras: len(snapshot.Cameras), Uptime: *snapshot.Service.Uptime, Version: snapshot.Service.Version}, nil
+}
+
+func VerifyHomarr(ctx context.Context, h *helpers.H) (Statistics, error) {
+	h = apiHelper(ctx, h)
+	address, err := url.Parse(h.BaseURL)
+	if err != nil || address.Scheme != "https" {
+		return Statistics{}, fmt.Errorf("%w: Homarr requires trusted HTTPS on Frigate's authenticated port 8971. The current HTTP starter cannot be linked; approve a Project-scoped TLS configuration and certificate trust in Homarr and the CLI before retrying self-host setup frigate and self-host setup homarr. Do not disable authentication or use port 5000", helpers.ErrManual)
+	}
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/profile", NoRedirect: true})
+	if err != nil {
+		return Statistics{}, fmt.Errorf("%w: Frigate's HTTPS API is unreachable or its certificate is not trusted by the CLI; finish the approved private TLS and certificate-trust configuration, then retry self-host setup frigate and self-host setup homarr", helpers.ErrManual)
+	}
+	if response.Status != http.StatusUnauthorized && response.Status != http.StatusForbidden {
+		return Statistics{}, fmt.Errorf("Frigate's HTTPS API did not deny anonymous profile access (HTTP %d); keep authentication enabled on port 8971 and retry Setup", response.Status)
+	}
+	return ReadStatistics(ctx, h)
+}
+
+func apiHelper(ctx context.Context, h *helpers.H) *helpers.H {
+	address, err := url.Parse(h.BaseURL)
+	if err != nil || address.Scheme != "http" {
+		return h
+	}
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/profile", NoRedirect: true})
+	if err != nil || response.Status != http.StatusBadRequest {
+		return h
+	}
+	address.Scheme = "https"
+	config := h.Config
+	config.BaseURL = address.String()
+	return helpers.New(config)
 }
