@@ -155,11 +155,14 @@ func (t target) hint(from *helpers.H) string {
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
 	}
-	if t.id == "nzbget" {
-		return "NZBGet credential-safety hold #354: use exactly Homarr 2.5.1 or 2.5.2 with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."
+	if t.id == "navidrome" {
+		return navidromePrivacyHoldHint
 	}
 	if t.id == "frigate" {
 		return "Frigate's Homarr Link requires trusted HTTPS on authenticated port 8971. The default HTTP starter cannot be linked. Obtain explicit approval for Project-scoped private TLS and certificate trust in both Homarr and the CLI, then retry self-host setup frigate and self-host setup homarr. Keep authentication enabled on port 8971; do not use port 5000, bypass certificate verification, or enable public Access."
+	}
+	if t.id == "nzbget" {
+		return "NZBGet credential-safety hold #354: use exactly Homarr 2.5.1 or 2.5.2 with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."
 	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
