@@ -1,13 +1,16 @@
 package homarr
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
@@ -67,10 +70,6 @@ func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
 				}
 			}
 			peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == http.MethodGet && r.URL.Path == "/transmission/web/" {
-					w.WriteHeader(http.StatusUnauthorized)
-					return
-				}
 				if r.Method != http.MethodPost || r.URL.Path != "/transmission/rpc" {
 					t.Error("unexpected Transmission request")
 					w.WriteHeader(http.StatusNotFound)
@@ -135,7 +134,7 @@ func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			from := helpers.New(helpers.Config{App: "homarr", BaseURL: server.URL, HTTP: server.Client(), Log: events.Discard(), Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"}})
-			to := helpers.New(helpers.Config{App: "transmission", BaseURL: peer.URL, HTTP: peer.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "fixture-user", "ADMIN_PASSWORD": "fixture-password"}})
+			to := helpers.New(helpers.Config{App: "transmission", Service: "transmission", Exec: &transmissionPolicyExec{t: t}, BaseURL: peer.URL, HTTP: peer.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "fixture-user", "ADMIN_PASSWORD": "fixture-password"}})
 			err := transmissionTarget().verifyData(t.Context(), from, to, "transmission-owned")
 			if (err != nil) != scenario.wantError {
 				t.Fatalf("error = %v, want failure %v", err, scenario.wantError)
@@ -160,3 +159,20 @@ func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
 		})
 	}
 }
+
+// The peer owner reads only its saved authentication boolean; Homarr never
+// obtains configuration contents or sends an anonymous policy challenge.
+type transmissionPolicyExec struct{ t *testing.T }
+
+func (f *transmissionPolicyExec) Exec(_ context.Context, service string, env map[string]string, command ...string) (system.Result, error) {
+	f.t.Helper()
+	if service != "transmission" || len(env) != 0 || len(command) != 3 || command[0] != "sh" || command[1] != "-c" || !strings.Contains(command[2], "rpc-authentication-required") {
+		f.t.Fatal("unexpected Transmission policy probe")
+	}
+	return system.Result{Stdout: []byte("true")}, nil
+}
+func (*transmissionPolicyExec) LogText(context.Context, int, ...string) (string, error) {
+	return "", nil
+}
+func (*transmissionPolicyExec) Restart(context.Context, ...string) error { return nil }
+func (*transmissionPolicyExec) Up(context.Context, ...string) error      { return nil }

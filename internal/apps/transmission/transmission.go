@@ -109,19 +109,27 @@ func rpcNumbers(value map[string]any, keys ...string) bool {
 	return true
 }
 
+// This App-owned probe emits only the saved authentication boolean. It does
+// not prove that a running daemon has reloaded a changed policy; no anonymous
+// challenge is safe when Transmission's brute-force threshold may be one.
+const configuredRPCAuthenticationProbe = `jq -e -r 'if type == "object" and (."rpc-authentication-required" | type) == "boolean" then ."rpc-authentication-required" | tostring else error("unavailable RPC authentication policy") end' /config/settings.json 2>/dev/null`
+
+func verifyConfiguredRPCAuthentication(ctx context.Context, h *helpers.H) error {
+	if h.Config.Exec != nil {
+		result, err := h.Exec(ctx, nil, "sh", "-c", configuredRPCAuthenticationProbe)
+		if err == nil && result.ExitCode == 0 && strings.TrimSpace(string(result.Stdout)) == "true" && len(result.Stderr) == 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("%w: Transmission's saved RPC authentication policy is disabled or cannot be verified; privately verify rpc-authentication-required=true, restart Transmission to apply it, preserve existing RPC IP/host whitelists, then retry self-host setup transmission and self-host setup homarr", helpers.ErrManual)
+}
+
 func rpcSession(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	if user == "" || password == "" {
 		return false, nil
 	}
-	challenge, err := h.HTTP(ctx, helpers.Request{Path: "/transmission/web/", NoRedirect: true})
-	if err != nil {
+	if err := verifyConfiguredRPCAuthentication(ctx, h); err != nil {
 		return false, err
-	}
-	if challenge.Status == 200 {
-		return false, errors.New("Transmission RPC authentication is not enabled; restore the Project's Admin login through its existing container environment and retry self-host setup transmission")
-	}
-	if challenge.Status != 401 {
-		return false, fmt.Errorf("Transmission authentication check returned HTTP %d; review its existing access policy and retry Setup", challenge.Status)
 	}
 	session, err := rpcRead(ctx, h, user, password, "session-get", map[string]any{"fields": []string{"version", "rpc-version-semver"}})
 	if errors.Is(err, errRPCAuthentication) {
@@ -180,7 +188,12 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 
 func setup() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
-		Ready: firstadmin.Probe{Path: "/transmission/web/", Want: []int{200, 401}},
+		Ready: firstadmin.Probe{
+			Path: "/transmission/web/", Want: []int{200, 401},
+			Request: func(h *helpers.H) helpers.Request {
+				return helpers.Request{User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true}
+			},
+		},
 		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 			ok, err := rpcSession(ctx, h, user, password)
 			if err != nil {
@@ -190,10 +203,16 @@ func setup() firstadmin.FirstAdmin {
 		},
 		Manual: "Transmission reads USER and PASS from the container environment on first start; " +
 			"restore the Project's Admin login if it changed, keep RPC authentication enabled and preserve existing RPC IP/host whitelists. " +
+			"Privately verify the saved rpc-authentication-required flag and restart Transmission to apply policy. " +
 			"Setup must verify Transmission 4.1.3, session negotiation, queue data and transfer rates.",
 	}
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error { return setup().Setup(ctx, h) }
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if h.AdminUser() == "" || h.AdminPassword() == "" {
+		return fmt.Errorf("%w: Transmission's Project Admin login is missing; restore it through the Project secret boundary and retry self-host setup transmission", helpers.ErrManual)
+	}
+	return setup().Setup(ctx, h)
+}
 
 func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
