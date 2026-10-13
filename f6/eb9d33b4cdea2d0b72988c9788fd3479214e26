@@ -1,0 +1,20 @@
+README.md
+  h_d6e478ca18e517 1-6
+docs/assets/logo-dark.svg
+  h_d6e478ca18e517 1-128
+docs/assets/logo-light.svg
+  h_d6e478ca18e517 1-128
+tools/logo/main.go
+  h_d6e478ca18e517 1-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f6eb9d33b4cdea2d0b72988c9788fd3479214e26",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
