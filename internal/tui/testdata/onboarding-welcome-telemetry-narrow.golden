@@ -1,6 +1,6 @@
  ◆ self-host                                                              v1.0.0
 
-  ✓ ● Welcome ○ ○ ○ ○ ○ ○  2 of 8
+  ● Welcome › ○ What › ○ Where › ○ Access › ○ Who › ○ Look › ○ Review
 
   Welcome to self-host
 
@@ -21,4 +21,4 @@
   Anonymous usage data helps improve self-host: no IP, no personal data.
   Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry
 
- q quit                ↑/↓  focus   space  select   enter  continue   esc  back
+ q quit                            ↑/↓  focus   space  select   enter  continue
