@@ -1,0 +1,13 @@
+{
+  "id": "sonarr",
+  "name": "Sonarr",
+  "description": "Find, download and organize TV shows automatically",
+  "category": "Requests",
+  "image": "lscr.io/linuxserver/sonarr:latest",
+  "docs": "https://wiki.servarr.com/sonarr",
+  "port": 8989,
+  "inputs": [],
+  "links": [
+    "qbittorrent"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "jellyfin",
+  "name": "Jellyfin",
+  "description": "Stream your movies and shows to every screen in the house",
+  "category": "Media",
+  "image": "lscr.io/linuxserver/jellyfin:latest",
+  "docs": "https://jellyfin.org/docs/general/installation/container/",
+  "port": 8096,
+  "inputs": []
+}
