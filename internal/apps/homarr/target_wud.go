@@ -21,10 +21,18 @@ func wudTarget() target {
 		}}, statWidget("totalContainers", "updatesAvailable")},
 		preflight: preflightWUD,
 		verify:    verifyWUD,
+		stats:     verifyWUDStats,
 	}
 }
 
 func preflightWUD(ctx context.Context, from, to *helpers.H) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := (wud.App{}).Preflight(ctx, to); err != nil {
+		from.Info("WUD needs a separately approved Project-only Docker TLS endpoint and owned valid CA/client trust files. Resolve those prerequisites, then retry self-host setup wud and self-host setup homarr. This Link does not discover endpoints, mount a Docker socket or weaken TLS.")
+		return helpers.ErrManual
+	}
 	statistics, err := wud.ReadHomarrStats(ctx, to)
 	if err != nil {
 		return err
@@ -37,30 +45,10 @@ func preflightWUD(ctx context.Context, from, to *helpers.H) error {
 }
 
 func verifyWUD(ctx context.Context, from, to *helpers.H, integrationID string) error {
-	expected, err := wud.ReadHomarrStats(ctx, to)
-	if err != nil {
+	if _, err := wud.ReadHomarrStats(ctx, to); err != nil {
 		return err
 	}
-	started := from.Now()
-	value, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return WUD statistics; retry self-host setup homarr")
-	}
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updatedAt, hasTime := snapshot["updatedAt"].(float64)
-	if !hasError || failed || !hasStale || stale || !hasTime || math.IsNaN(updatedAt) || math.IsInf(updatedAt, 0) || updatedAt < float64(started.UnixMilli()) || updatedAt > float64(from.Now().Add(time.Second).UnixMilli()) {
-		return errors.New("Homarr could not refresh authenticated WUD statistics; check its saved connection and retry self-host setup homarr")
-	}
-	statistics, ok := snapshot["values"].(map[string]any)
-	if !ok || !wudCountsMatch(statistics, expected) {
-		return errors.New("Homarr WUD statistics are incomplete or differ from its current inventory; retry self-host setup homarr")
-	}
-	value, err = apiKeyProcedure(ctx, from, "widget.wud.getStats", map[string]any{"integrationId": integrationID})
+	value, err := apiKeyProcedure(ctx, from, "widget.wud.getStats", map[string]any{"integrationId": integrationID})
 	if err != nil {
 		return err
 	}
@@ -73,54 +61,62 @@ func verifyWUD(ctx context.Context, from, to *helpers.H, integrationID string) e
 	if !ok || err != nil || fetchedAt.Before(from.Now().Add(-10*time.Second)) || fetchedAt.After(from.Now().Add(time.Second)) {
 		return errors.New("Homarr WUD widget returned missing or stale data; retry self-host setup homarr")
 	}
-	statistics, ok = result["stats"].(map[string]any)
-	if !ok || !wudCountsMatch(statistics, expected) {
-		return errors.New("Homarr WUD widget counts differ from its current inventory; retry self-host setup homarr")
+	statistics, ok := result["stats"].(map[string]any)
+	if !ok || !validWUDCounts(statistics) {
+		return errors.New("Homarr WUD widget returned invalid container counts; retry self-host setup homarr")
 	}
 	updates, ok := statistics["updates"].([]any)
-	if !ok || len(updates) != expected.UpdatesAvailable {
+	if !ok || float64(len(updates)) != statistics["updatesAvailable"].(float64) {
 		return errors.New("Homarr returned incomplete WUD container updates; retry self-host setup homarr")
 	}
-	for index, raw := range updates {
+	seen := map[string]bool{}
+	for _, raw := range updates {
 		update, ok := raw.(map[string]any)
 		if !ok {
 			return errors.New("Homarr returned malformed WUD container updates; retry self-host setup homarr")
 		}
-		if !wudUpdateMatches(update, expected.Updates[index]) {
-			return errors.New("Homarr WUD container updates differ from its current inventory; retry self-host setup homarr")
+		if !validWUDUpdate(update) || seen[stringField(update, "id")] {
+			return errors.New("Homarr WUD container updates are incomplete or duplicated; retry self-host setup homarr")
 		}
+		seen[stringField(update, "id")] = true
 	}
 	return nil
 }
 
-func wudUpdateMatches(actual map[string]any, expected wud.HomarrUpdate) bool {
-	id, hasID := actual["id"].(string)
-	name, hasName := actual["name"].(string)
-	if !hasID || !hasName || id != expected.ID || name != expected.Name {
+func validWUDUpdate(actual map[string]any) bool {
+	if stringField(actual, "id") == "" || stringField(actual, "name") == "" {
 		return false
 	}
-	for key, expected := range map[string]*string{
-		"currentVersion": expected.CurrentVersion, "newVersion": expected.NewVersion, "link": expected.Link,
-	} {
+	for _, key := range []string{"currentVersion", "newVersion", "link"} {
 		value, exists := actual[key]
 		if !exists {
 			return false
 		}
-		if expected == nil {
-			if value != nil {
+		if value != nil {
+			if _, ok := value.(string); !ok {
 				return false
 			}
-			continue
-		}
-		if value != *expected {
-			return false
 		}
 	}
 	return true
 }
 
-func wudCountsMatch(statistics map[string]any, expected wud.HomarrStatistics) bool {
-	total, hasTotal := statistics["totalContainers"].(float64)
-	updates, hasUpdates := statistics["updatesAvailable"].(float64)
-	return hasTotal && hasUpdates && total == float64(expected.TotalContainers) && updates == float64(expected.UpdatesAvailable)
+func validWUDCounts(values map[string]any) bool {
+	for _, key := range []string{"totalContainers", "updatesAvailable"} {
+		count, ok := values[key].(float64)
+		if !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
+			return false
+		}
+	}
+	return values["updatesAvailable"].(float64) <= values["totalContainers"].(float64)
+}
+
+func verifyWUDStats(sample statsSample) error {
+	if sample.updatedAt < sample.startedAt || sample.updatedAt > sample.completedAt+float64(time.Second.Milliseconds()) {
+		return errors.New("Homarr WUD statistics have an invalid refresh time; retry self-host setup homarr")
+	}
+	if sample.units["totalContainers"] != "count" || sample.units["updatesAvailable"] != "count" || !validWUDCounts(sample.values) {
+		return errors.New("Homarr WUD statistics have invalid container counts or units; retry self-host setup homarr")
+	}
+	return nil
 }

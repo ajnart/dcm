@@ -3,6 +3,11 @@
 Source-only work for [#306](https://github.com/ajnart/selfhost-skills/issues/306),
 based on committed reference `d956824f3758e26bb9cdfc262e229eaf67ef187c`.
 Uses the [reference Link contract](homarr-integration-contract.md).
+The original peer history now forward-merges SDK
+`0bf67c3c64c229af25f19c1b93264f19cc57a910`, without rewriting its commits.
+The current native router, WUD mapping and Stats provider were inspected
+read-only at OCI source `3d4150e59f600876b7e308f857b2f21572b75348`
+in the local Homarr checkout. The tagged source below is a separate baseline.
 No Docker, browser, image inspection, registry request or runtime proof was run.
 Context7 was already exhausted; exact official source was read directly.
 
@@ -49,12 +54,24 @@ empty inventory. Explicit false update flags and zero counts are accepted.
 Missing/null flags, duplicate/missing identifiers, invalid nested metadata,
 unapproved watcher rows and reported watcher/registry errors fail explicitly.
 
-Native verification force-refreshes `widget.stats.refresh`, requiring
-`error=false`, `stale=false`, a timestamp at or after the request, and matching
-counts. It also reads `widget.wud.getStats`, requires a timestamp within the
-pinned ten-second cache window, and compares counts and every update field
-against the direct WUD API snapshot. It does not replace unknown fields with
-zeros or accept retained error snapshots as fresh results.
+Native verification retains administrator identity, anonymous denial and useful
+update observations. `widget.wud.getStats` must have a timestamp within its
+pinned ten-second cache window, finite nonnegative integral counts, updates no
+greater than total containers, and an explicit update array of the stated size.
+Every update has a unique nonempty ID/name and explicit string-or-null current
+version, new version and link. Separate volatile inventories are not compared
+for equality.
+
+Central `verifyData` reads the catalog and obtains one forced advancing Stats
+sample. Pure `verifyWUDStats` validates that same sample's count units, integral
+nonnegative counts, updates no greater than containers, and timestamp between
+request start and response completion plus the existing one-second future skew.
+A slow response uses completion for the upper limit. No native failure reaches
+Stats, and no semantic failure acquires a second sample.
+
+Read-only Link preflight now also checks the App's fixed TLS prerequisites,
+reporting missing approved endpoint/trust files as Manual before Homarr mutation.
+It never runs the App's watcher scan or reads private credentials for discovery.
 
 ## Discovery and runtime acceptance blockers
 
@@ -85,17 +102,13 @@ lane adds `wudTarget()` but deliberately leaves `targets.go` unchanged.
 
 ## Local evidence
 
-Existing focused WUD/Homarr tests pass. WUD's existing positive fixture payloads
-were corrected only to supply the pinned API's mandatory name and explicit
-update flag; no test cases/files/assertions or common fakes were added/weakened.
-The descriptor compiles, but these existing tests do not exercise its native
-verification while it remains outside parent-owned registry assembly.
-
-The local gate passed with `GOFLAGS=-buildvcs=false`: `gofmt -l .` empty,
-`go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
-`go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/wud/
-./internal/apps/homarr/`, `bash -n install.sh`, and `git diff --check`.
-The untagged `e2e` package runs source/fixture checks, not Docker runtime.
+Focused descriptor HTTP fixtures exercise `wudTarget().verifyData` with the
+existing shared `statsFixture`: a changing independent inventory, nullable
+update fields, legitimate zero updates, invalid counts/units, no-op refresh,
+request/completion clock limits, stale/malformed native data and Manual TLS
+prerequisites. These source fixtures are not Docker/registry monitoring proof.
+Focused owning WUD/Homarr package checks, build, vet, gofmt and diff checks
+are recorded by the normalization lane; no broad suites or runtime were run.
 
 ## Official source index
 
