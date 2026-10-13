@@ -1,0 +1,18 @@
+components/compose-modal/CopyComposeModal.tsx
+  h_d6e478ca18e517 9,27,43-45,52-53,125,168,208,225
+components/compose-modal/SelfHostCallout.tsx
+  h_d6e478ca18e517 4,9-10,14-15,30,32,35-40,45,47,56-64
+components/floating-bar.tsx
+  h_d6e478ca18e517 3,7-8,11,13,21,25-28,32-35,37,42-43,45-54,61,66,68,81-82,86-101,103,105-137,140-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "106799ff82de930d9434e66aaa35eed55bb2bca3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
