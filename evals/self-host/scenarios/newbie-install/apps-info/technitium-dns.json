@@ -1,0 +1,18 @@
+{
+  "id": "technitium-dns",
+  "name": "Technitium DNS Server",
+  "description": "Run your home network's address book (DNS), blocking ads and unwanted sites",
+  "category": "DNS",
+  "image": "technitium/dns-server:15.5.1",
+  "docs": "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
+  "port": 5380,
+  "inputs": [
+    {
+      "key": "dns-port",
+      "prompt": "Published DNS port",
+      "help": "TCP and UDP host port; LAN DNS clients normally require port 53",
+      "default": "53",
+      "required": false
+    }
+  ]
+}
