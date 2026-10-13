@@ -14,15 +14,27 @@ func lidarrTarget() target {
 	return target{
 		id: "lidarr", name: "Lidarr", kind: "lidarr",
 		internal: fixed("http://lidarr:8686"), secrets: apiKeySecret,
-		widgets: []widget{plain("calendar"), statWidget("artists", "monitored", "upcoming")},
-		verify:  verifyLidarr,
-		stats:   verifyLidarrStats,
+		widgets:   []widget{plain("calendar"), statWidget("artists", "monitored", "upcoming")},
+		preflight: verifyLidarrReady,
+		verify:    verifyLidarr,
+		stats:     verifyLidarrStats,
 	}
 }
 
-func verifyLidarr(ctx context.Context, from, to *helpers.H, integrationID string) error {
+func verifyLidarrReady(ctx context.Context, from, to *helpers.H) error {
 	if err := (lidarr.App{}).Check(ctx, to); err != nil {
+		if errors.Is(err, helpers.ErrManual) {
+			from.Info(err.Error())
+			return err
+		}
 		return errors.New("Lidarr's saved API key or Admin login is not ready; run self-host setup lidarr, then self-host setup homarr")
+	}
+	return nil
+}
+
+func verifyLidarr(ctx context.Context, from, to *helpers.H, integrationID string) error {
+	if err := verifyLidarrReady(ctx, from, to); err != nil {
+		return err
 	}
 	libraryCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	resp, err := to.HTTP(libraryCtx, helpers.Request{

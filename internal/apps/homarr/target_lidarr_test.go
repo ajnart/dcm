@@ -2,6 +2,7 @@ package homarr
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -10,18 +11,20 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/status"
 )
 
 type lidarrNativeFixture struct {
-	status   int
-	version  string
-	artists  any
-	calendar any
+	status               int
+	version              string
+	authenticationMethod string
+	artists              any
+	calendar             any
 }
 
 func newLidarrNativeFixture() *lidarrNativeFixture {
 	return &lidarrNativeFixture{
-		status: http.StatusOK, version: "3.1.0.4875",
+		status: http.StatusOK, version: "3.1.0.4875", authenticationMethod: "forms",
 		artists: []any{map[string]any{"monitored": true}},
 		calendar: []any{map[string]any{
 			"integration": map[string]any{"id": "lidarr-owned", "kind": "lidarr"},
@@ -54,7 +57,7 @@ func (f *lidarrNativeFixture) peer(t *testing.T) *helpers.H {
 		case "/api":
 			w.Write([]byte(`{"current":"v1"}`))
 		case "/api/v1/config/host":
-			w.Write([]byte(`{"id":1,"authenticationMethod":"forms","authenticationRequired":"enabled","username":"admin","password":"","passwordConfirmation":"","apiKey":"fixture-lidarr-key"}`))
+			json.NewEncoder(w).Encode(map[string]any{"id": 1, "authenticationMethod": f.authenticationMethod, "authenticationRequired": "enabled", "username": "admin", "password": "", "passwordConfirmation": "", "apiKey": "fixture-lidarr-key"})
 		case "/api/v1/artist":
 			json.NewEncoder(w).Encode(f.artists)
 		default:
@@ -144,6 +147,55 @@ func TestLidarrVerifyDataUsesOneSemanticStatsSample(t *testing.T) {
 			}
 			if f.refreshes == 1 && !f.force {
 				t.Fatal("Stats refresh was not forced")
+			}
+		})
+	}
+}
+
+func TestLidarrManualPrerequisitesStopBeforeHomarr(t *testing.T) {
+	for _, scenario := range []struct {
+		name   string
+		change func(*lidarrNativeFixture)
+		manual bool
+	}{
+		{"unsupported version drift", func(f *lidarrNativeFixture) { f.version = "4.0.0.1" }, true},
+		{"external authentication drift", func(f *lidarrNativeFixture) { f.authenticationMethod = "external" }, true},
+		{"rejected API key remains failed", func(f *lidarrNativeFixture) { f.status = http.StatusUnauthorized }, false},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			native := newLidarrNativeFixture()
+			scenario.change(native)
+			peer := native.peer(t)
+			requests := 0
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			t.Cleanup(srv.Close)
+			var recorded []helpers.StepResult
+			from := helpers.New(helpers.Config{
+				App: "homarr", BaseURL: srv.URL, HTTP: srv.Client(), Log: events.Discard(),
+				Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"},
+				Record:  func(result helpers.StepResult) { recorded = append(recorded, result) },
+			})
+			descriptor := lidarrTarget()
+			err := descriptor.verifyData(t.Context(), from, peer, "lidarr-owned")
+			if err == nil || errors.Is(err, helpers.ErrManual) != scenario.manual {
+				t.Errorf("native verification must preserve Manual classification=%v: %v", scenario.manual, err)
+			}
+			err = descriptor.link().Apply(t.Context(), from, peer)
+			if err == nil || errors.Is(err, helpers.ErrManual) != scenario.manual || errors.Is(err, helpers.ErrStepFailed) == scenario.manual {
+				t.Errorf("Link must retain Manual/failed classification=%v: %v", scenario.manual, err)
+			}
+			wantStatus := status.StepFail
+			if scenario.manual {
+				wantStatus = status.StepManual
+			}
+			if len(recorded) != 1 || recorded[0].Status != wantStatus {
+				t.Errorf("Link recorded %v, want one %s step", recorded, wantStatus)
+			}
+			if requests != 0 {
+				t.Errorf("known App prerequisite reached Homarr %d times; want zero requests before resource work", requests)
 			}
 		})
 	}
