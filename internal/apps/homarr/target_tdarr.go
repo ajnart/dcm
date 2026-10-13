@@ -20,6 +20,7 @@ func tdarrTarget() target {
 		}}, statWidget("totalFileCount", "totalTranscodeCount", "failedTranscodeCount")},
 		preflight: preflightTdarr,
 		verify:    verifyTdarr,
+		stats:     verifyTdarrStats,
 	}
 }
 
@@ -139,24 +140,18 @@ func verifyTdarr(ctx context.Context, from, to *helpers.H, integrationID string)
 			}
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
+	return nil
+}
+
+func verifyTdarrStats(sample statsSample) error {
+	if math.Trunc(sample.updatedAt) != sample.updatedAt {
+		return errors.New("Homarr returned an invalid Tdarr Stats timestamp; retry self-host setup homarr")
 	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false || !tdarrNumber(snapshot, "updatedAt", true) {
-		return errors.New("Homarr's Tdarr Stats refresh is unavailable; retry self-host setup homarr")
-	}
-	updated := snapshot["updatedAt"].(float64)
-	if age := float64(from.Now().UnixMilli()) - updated; updated <= 0 || age < -60_000 || age > 300_000 {
+	if age := sample.completedAt - sample.updatedAt; age < -60_000 || age > 300_000 {
 		return errors.New("Homarr returned stale Tdarr Stats; retry self-host setup homarr")
 	}
-	metrics, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr returned malformed Tdarr Stats")
-	}
 	for _, key := range []string{"totalFileCount", "totalTranscodeCount", "failedTranscodeCount"} {
-		if !tdarrNumber(metrics, key, true) {
+		if sample.units[key] != "count" || !tdarrNumber(sample.values, key, true) {
 			return errors.New("Homarr returned incomplete Tdarr Stats; explicit zeros are valid")
 		}
 	}
