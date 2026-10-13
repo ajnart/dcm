@@ -143,8 +143,9 @@ type profile struct {
 func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	login, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v1/auth/login",
-		Header: map[string]string{"X-Device-ID": clientDeviceID},
-		JSON:   map[string]string{"username": user, "password": password},
+		NoRedirect: true,
+		Header:     map[string]string{"X-Device-ID": clientDeviceID},
+		JSON:       map[string]string{"username": user, "password": password},
 	})
 	if err != nil {
 		return false, err
@@ -156,17 +157,21 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 		return false, fmt.Errorf("PatchMon login returned HTTP %d", login.Status)
 	}
 	var token struct {
-		Token string `json:"token"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 	if err := login.Decode(&token); err != nil {
 		return false, err
 	}
+	h.Log.Secret(token.Token)
+	h.Log.Secret(token.RefreshToken)
 	if token.Token == "" {
 		return false, nil
 	}
 	resp, err := h.HTTP(ctx, helpers.Request{
-		Path:   "/api/v1/auth/profile",
-		Header: map[string]string{"Authorization": "Bearer " + token.Token},
+		Path:       "/api/v1/auth/profile",
+		NoRedirect: true,
+		Header:     map[string]string{"Authorization": "Bearer " + token.Token},
 	})
 	if err != nil {
 		return false, err
@@ -181,7 +186,7 @@ func signedIn(ctx context.Context, h *helpers.H, user, password string) (bool, e
 	if err := resp.Decode(&p); err != nil {
 		return false, err
 	}
-	return p.User.Username == user && p.User.Email == adminEmail(h) &&
+	return p.User.ID != "" && p.User.Username == user && p.User.Email == adminEmail(h) &&
 		p.User.Role == "superadmin" && p.User.IsActive, nil
 }
 
@@ -219,7 +224,21 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Login:  signedIn,
 		Manual: "Open " + h.URL + " and create the first administrator as " + adminEmail(h) + ".",
 	}
-	return first.Setup(ctx, h)
+	if err := first.Setup(ctx, h); err != nil {
+		return err
+	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-credential", "Homarr is not installed; no PatchMon statistics credential is needed")
+		return nil
+	}
+	return h.Step(ctx, "homarr-credential", "review PatchMon statistics access", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			return false, HomarrReadiness(ctx, h)
+		},
+		Do:         func(ctx context.Context) error { return HomarrReadiness(ctx, h) },
+		Hint:       HomarrHint,
+		Credential: "admin",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
