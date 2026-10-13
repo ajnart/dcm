@@ -233,6 +233,7 @@ func NewDeps(t *testing.T, opts ...Option) *system.Deps {
 		CacheDir:    func() (string, error) { return filepath.Join(home, ".cache"), nil },
 		ConfigDir:   func() (string, error) { return filepath.Join(home, ".config"), nil },
 		ConfigFiles: &ConfigFiles{},
+		DiskFree:    func(string) (uint64, error) { return 20 << 30, nil },
 		PID:         4242,
 		Out:         io.Discard,
 		Err:         io.Discard,

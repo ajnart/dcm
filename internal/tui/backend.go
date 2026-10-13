@@ -62,6 +62,9 @@ type Backend interface {
 	CloudflarePlan(service.CloudflareOptions) (service.CloudflarePlan, error)
 	Status(ctx context.Context) (service.Status, error)
 	Doctor(ctx context.Context) []host.Check
+	// OnboardingChecks checks disk space and the selected Apps' ports without
+	// changing the Project or Doctor's output.
+	OnboardingChecks(ctx context.Context, appIDs []string) []host.Check
 	// Updates returns App ID → available, current or unknown.
 	Updates(ctx context.Context, status service.Status) map[string]string
 	Credentials(ctx context.Context) (service.Credentials, error)
@@ -169,6 +172,10 @@ func (b ServiceBackend) Status(ctx context.Context) (service.Status, error) {
 
 func (b ServiceBackend) Doctor(ctx context.Context) []host.Check {
 	return b.quiet().Doctor(ctx)
+}
+
+func (b ServiceBackend) OnboardingChecks(ctx context.Context, appIDs []string) []host.Check {
+	return b.quiet().OnboardingChecks(ctx, appIDs)
 }
 
 func (b ServiceBackend) Updates(ctx context.Context, status service.Status) map[string]string {

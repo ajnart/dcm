@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"golang.org/x/sys/unix"
 )
 
 // ListFolders returns the names of the folders inside dir, following links to
@@ -28,4 +30,27 @@ func ListFolders(dir string) ([]string, error) {
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+// DiskFree reports the available bytes on the filesystem that will contain
+// path. It walks to an existing parent so a new Home folder can be checked
+// before Onboarding creates it.
+func DiskFree(path string) (uint64, error) {
+	for {
+		if _, err := os.Stat(path); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			return 0, err
+		}
+		parent := filepath.Dir(path)
+		if parent == path {
+			break
+		}
+		path = parent
+	}
+	var stat unix.Statfs_t
+	if err := unix.Statfs(path, &stat); err != nil {
+		return 0, err
+	}
+	return stat.Bavail * uint64(stat.Bsize), nil
 }

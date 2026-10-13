@@ -520,10 +520,12 @@ undetermined). With a Project it adds `project-lock`, `project-userns`
 `firewall` (both only under `lan`), and per App `running`, `binding` and
 `reachable`, plus `easy-names` while Easy names at home are on.
 
-Doctor does not check that ports are free or how much disk is left (issue
-#140). `self-host install` takes the next free port from an App's default and
-emits `step.warn` step `port`; an explicit `--set <app>.port=N` is used as given,
-so check that port yourself. Free disk space is yours to check too.
+Doctor does not check unapproved App ports or free disk, so its human and JSON
+output stay unchanged. Onboarding checks free space in the Home folder and the
+selected Apps' default ports at Review, before approval. A failed check blocks
+approval and `r` rechecks it. Outside Onboarding, `self-host install` takes the
+next free port from an App's default and emits `step.warn` step `port`; an
+explicit `--set <app>.port=N` is used as given, so check that port yourself.
 
 The LAN IP is detected at first install and stored. When the machine moves to
 another network (office to home), every App URL points at the old address:

@@ -362,6 +362,26 @@ func TestReviewShowsThePlanAndInstallsNothingBeforeApproval(t *testing.T) {
 	}
 }
 
+func TestReviewShowsSelectedAppAndDiskChecksAndBlocksOnFailure(t *testing.T) {
+	m, backend := freshHost(t)
+	backend.onboardingChecks = []host.Check{
+		{ID: "disk", Title: "Disk space", Level: host.OK, Detail: "12 GiB free in the Home folder"},
+		{ID: "port", App: "homarr", Title: "Homarr port", Level: host.Fail, Detail: "port 7575 is already in use", Hint: "Stop the program using port 7575, then return to Review."},
+	}
+	m = toReview(t, m)
+
+	out := screen(m)
+	for _, want := range []string{"Machine checks", "Disk space", "12 GiB free", "Homarr port", "port 7575 is already in use", "Stop the program using port 7575"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("review lacks %q\n%s", want, out)
+		}
+	}
+	m = drive(t, m, press("enter"))
+	if len(backend.Actions()) != 0 {
+		t.Fatal("a failed Review host check must block approval")
+	}
+}
+
 func TestOnboardingInstallsTheSelectionWithReviewedSettings(t *testing.T) {
 	m, backend := freshHost(t)
 	m = toReview(t, m)

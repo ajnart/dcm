@@ -30,14 +30,15 @@ import (
 )
 
 type fakeBackend struct {
-	cloudflarePlan func(service.CloudflareOptions) (service.CloudflarePlan, error)
-	mu             sync.Mutex
-	folders        *systemtest.Folders
-	home           string
-	status         service.Status
-	checks         []host.Check
-	actions        []string
-	opened         []string
+	cloudflarePlan   func(service.CloudflareOptions) (service.CloudflarePlan, error)
+	mu               sync.Mutex
+	folders          *systemtest.Folders
+	home             string
+	status           service.Status
+	checks           []host.Check
+	onboardingChecks []host.Check
+	actions          []string
+	opened           []string
 	// tools maps a program name to its path on PATH; executed are the
 	// commands ExecTool was given, and toolErr is what they exit with.
 	tools       map[string]string
@@ -269,6 +270,9 @@ func (f *fakeBackend) Restart() error {
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, f.statusErr }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
+func (f *fakeBackend) OnboardingChecks(context.Context, []string) []host.Check {
+	return f.onboardingChecks
+}
 func (f *fakeBackend) Containers(context.Context) ([]service.ContainerStatus, error) {
 	return f.containers, nil
 }

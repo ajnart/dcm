@@ -49,7 +49,7 @@ func (o *onboarding) bar(ctx *viewContext) (string, []key.Binding) {
 			}
 			return quit, append(chips, onboardingBack)
 		}
-		return quit, []key.Binding{onboardingApprove, onboardingBack}
+		return quit, []key.Binding{hint("r", "recheck"), onboardingApprove, onboardingBack}
 	}
 	return quit, []key.Binding{onboardingContinue, onboardingBack}
 }
@@ -189,6 +189,16 @@ func (o *onboarding) renderReview(ctx *viewContext) []string {
 		}
 	}
 	lines = append(lines, planLines(t, o.plan)...)
+	if len(o.hostChecks) > 0 {
+		lines = append(lines, "", "  "+t.heading().Render("Machine checks"))
+		for _, check := range o.hostChecks {
+			mark := t.dot(string(check.Level))
+			lines = append(lines, "  "+mark+" "+t.body().Render(check.Title)+t.dim().Render(" — "+check.Detail))
+			if check.Hint != "" {
+				lines = append(lines, "    "+t.dim().Render(check.Hint))
+			}
+		}
+	}
 	if o.answers.cloudflare {
 		lines = append(lines, "", "  "+t.body().Render("Your own web address: choose Apps in Settings after install; nothing public yet"))
 	}

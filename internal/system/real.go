@@ -97,6 +97,7 @@ func Real(version string) *Deps {
 		HomeNetwork:      homeNetwork,
 		TimeZone:         timeZone,
 		PortFree:         portFree,
+		DiskFree:         DiskFree,
 		BindTCP:          bindTCP,
 		BindUDP:          bindUDP,
 		DiskUsage:        diskUsage,
