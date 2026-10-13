@@ -1,30 +1,27 @@
-import type { DockerTool } from "@/lib/docker-tools"
+import type { CatalogEntry } from "@/lib/catalog"
 import DockerCard from "./docker-card"
 
 interface ToolGridProps {
-  tools: DockerTool[]
-  selectedTools: string[]
-  onToggleSelection: (toolId: string) => void
+  entries: CatalogEntry[]
+  selected: string[]
+  onToggle: (id: string) => void
 }
 
 export default function ToolGrid({
-  tools,
-  selectedTools,
-  onToggleSelection,
+  entries,
+  selected,
+  onToggle,
 }: ToolGridProps) {
   return (
-    <div className="before:-inset-4 before:-z-10 relative rounded-lg p-4 before:absolute before:rounded-lg before:bg-gradient-to-r before:from-primary/20 before:via-primary/5 before:to-primary/20 before:blur-3xl">
-      <div className="grid 3xl:grid-cols-7 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {tools.map((tool) => (
-          <div key={tool.id} className="h-full">
-            <DockerCard
-              tool={tool}
-              isSelected={selectedTools.includes(tool.id)}
-              onSelect={() => onToggleSelection(tool.id)}
-            />
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {entries.map((entry) => (
+        <DockerCard
+          key={entry.id}
+          entry={entry}
+          isSelected={selected.includes(entry.id)}
+          onSelect={() => onToggle(entry.id)}
+        />
+      ))}
     </div>
   )
 }

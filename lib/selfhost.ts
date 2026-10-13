@@ -1,122 +1,45 @@
-const SELFHOST_URL = "https://selfhost.ajnart.dev"
+import data from "./selfhost-catalog.json"
 
-const SELFHOST_APP_IDS = new Set([
-  "actual-budget",
-  "adguard-home",
-  "archive-team-warrior",
-  "aria2",
-  "audiobookshelf",
-  "authelia",
-  "authentik",
-  "bazarr",
-  "beszel",
-  "bookstack",
-  "borgmatic",
-  "caddy",
-  "cloudflare-tunnel",
-  "dashdot",
-  "deluge",
-  "dockge",
-  "docmost",
-  "emby",
-  "firefly-iii",
-  "forgejo",
-  "freshrss",
-  "frigate",
-  "gatus",
-  "glances",
-  "gluetun",
-  "gotify",
-  "grafana",
-  "haproxy",
-  "headscale",
-  "homarr",
-  "home-assistant",
-  "homebridge",
-  "immich",
-  "jellyfin",
-  "keycloak",
-  "kopia",
-  "lidarr",
-  "linkwarden",
-  "lldap",
-  "loki",
-  "mayan-edms",
-  "minio",
-  "navidrome",
-  "netbird",
-  "netdata",
-  "nextcloud",
-  "nginx-proxy-manager",
-  "node-red",
-  "ntfy",
-  "nzbget",
-  "ollama",
-  "open-webui",
-  "pangolin",
-  "paperless-ngx",
-  "passbolt",
-  "patchmon",
-  "peanut",
-  "photoprism",
-  "pihole",
-  "plex",
-  "portainer",
-  "postgresql",
-  "prometheus",
-  "prowlarr",
-  "qbittorrent",
-  "radarr",
-  "renovate",
-  "restic",
-  "sabnzbd",
-  "scrypted",
-  "seafile",
-  "seerr",
-  "slskd",
-  "sonarr",
-  "speedtest-tracker",
-  "stalwart-mail",
-  "stirling-pdf",
-  "syncthing",
-  "tailscale",
-  "tdarr",
-  "technitium-dns",
-  "tracearr",
-  "traefik",
-  "transmission",
-  "umami",
-  "unbound",
-  "uptime-kuma",
-  "valkey",
-  "vaultwarden",
-  "vector",
-  "victoria-metrics",
-  "wud",
-  "zerotier",
-])
+export const SELFHOST_URL = "https://selfhost.ajnart.dev"
+export const SELFHOST_ICON_BASE =
+  "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/"
 
-const OVERRIDES: Record<string, string> = {
+export interface SelfHostApp {
+  id: string
+  name: string
+  d: string
+  c: string
+  img: string
+  p: number
+  l: string[]
+  i?: string
+}
+
+export interface SelfHostRecipe {
+  id: string
+  name: string
+  d: string
+  apps: string[]
+}
+
+export const selfHostApps: SelfHostApp[] = data.apps
+export const selfHostRecipes: SelfHostRecipe[] = data.recipes
+
+const appIds = new Set(selfHostApps.map((app) => app.id))
+
+const ALIASES: Record<string, string> = {
+  actualbudget: "actual-budget",
   adguardhome: "adguard-home",
+  firefly: "firefly-iii",
   homeassistant: "home-assistant",
   jellyseerr: "seerr",
   overseerr: "seerr",
+  postgres: "postgresql",
 }
 
 export function getSelfHostId(toolId: string): string | undefined {
-  const override = OVERRIDES[toolId]
-  if (override) return override
-  if (SELFHOST_APP_IDS.has(toolId)) return toolId
-  return undefined
-}
-
-export function getSelfHostIds(toolIds: string[]): string[] {
-  const ids = new Set<string>()
-  for (const toolId of toolIds) {
-    const id = getSelfHostId(toolId)
-    if (id) ids.add(id)
-  }
-  return [...ids]
+  const id = ALIASES[toolId] ?? toolId
+  return appIds.has(id) ? id : undefined
 }
 
 export function buildSelfHostLink(ids: string[] = []): string {

@@ -9,108 +9,100 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-import { tools } from "@/tools"
-import { Check, X } from "lucide-react"
+import type { Catalog } from "@/lib/catalog"
+import { Check } from "lucide-react"
 import { useEffect, useState } from "react"
 
 interface SearchCommandProps {
-  selectedTools: string[]
-  onToggleToolSelection: (toolId: string) => void
+  catalog: Catalog
+  selected: string[]
+  onToggle: (id: string) => void
 }
 
 export function SearchCommand({
-  selectedTools,
-  onToggleToolSelection,
+  catalog,
+  selected,
+  onToggle,
 }: SearchCommandProps) {
   const [open, setOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-
-  const filteredTools = tools.filter((tool) =>
-    tool.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setOpen((open) => !open)
+        setOpen((value) => !value)
       }
     }
-
-    const handleCustomTrigger = () => {
-      setOpen((open) => !open)
-    }
+    const handleCustomTrigger = () => setOpen((value) => !value)
 
     document.addEventListener("keydown", handleKeyDown)
     document.addEventListener("triggerCommandK", handleCustomTrigger)
-
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
       document.removeEventListener("triggerCommandK", handleCustomTrigger)
     }
   }, [])
 
-  const handleToolSelect = (toolId: string) => {
-    const tool = tools.find((t) => t.id === toolId)
-    if (tool && !tool.isUnsupported) {
-      onToggleToolSelection(toolId)
-    }
-  }
-
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <DialogTitle className="sr-only">Search Services</DialogTitle>
-      <CommandInput
-        placeholder="Search for services..."
-        value={searchTerm}
-        onValueChange={setSearchTerm}
-      />
+      <DialogTitle className="sr-only">Search apps and recipes</DialogTitle>
+      <CommandInput placeholder="Search apps and recipes..." />
       <CommandList>
-        <CommandEmpty>No services found.</CommandEmpty>
+        <CommandEmpty>Nothing found.</CommandEmpty>
 
-        <CommandGroup>
-          {filteredTools.map((tool) => (
+        <CommandGroup heading="Recipes">
+          {catalog.recipes.map((recipe) => (
             <CommandItem
-              key={tool.id}
-              onSelect={() => handleToolSelect(tool.id)}
+              key={recipe.id}
+              value={`recipe ${recipe.name} ${recipe.id}`}
+              onSelect={() => onToggle(recipe.id)}
               className="flex items-center justify-between"
-              disabled={tool.isUnsupported}
             >
-              <div className="flex items-center">
-                <div
-                  className={cn(
-                    "mr-2 flex h-6 w-6 items-center justify-center overflow-hidden rounded-sm",
-                    selectedTools.includes(tool.id) && !tool.isUnsupported
-                      ? "text-primary"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {tool.icon ? (
+              <span className="text-gold">{recipe.name}</span>
+              <span className="flex items-center gap-2 text-dim text-xs">
+                {recipe.apps.length} apps
+                {selected.includes(recipe.id) && (
+                  <Check className="h-4 w-4 text-pink" />
+                )}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+
+        <CommandGroup heading="Apps">
+          {catalog.entries.map((entry) => (
+            <CommandItem
+              key={entry.id}
+              value={`${entry.name} ${entry.id} ${entry.category}`}
+              onSelect={() => onToggle(entry.id)}
+              disabled={entry.isUnsupported}
+              className="flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden border border-line bg-deep text-pink text-xs">
+                  {entry.icon ? (
                     <img
-                      src={tool.icon}
-                      alt={`${tool.name} icon`}
+                      src={entry.icon}
+                      alt=""
                       className="h-full w-full object-contain p-0.5"
                     />
                   ) : (
-                    <div className="font-bold text-xs">
-                      {tool.name.charAt(0)}
-                    </div>
+                    entry.name.charAt(0)
                   )}
-                </div>
-                <span>{tool.name}</span>
-              </div>
-              {tool.isUnsupported && (
-                <div
-                  className="ml-2 flex items-center text-destructive"
-                  title="This service is not supported"
-                >
-                  <X className="h-4 w-4" />
-                </div>
-              )}
-              {selectedTools.includes(tool.id) && (
-                <Check className="ml-2 h-4 w-4 text-primary" />
-              )}
+                </span>
+                {entry.name}
+              </span>
+              <span className="flex items-center gap-2 text-xs">
+                {entry.selfhostOnly && (
+                  <span className="text-pink">self-host only</span>
+                )}
+                {entry.isUnsupported && (
+                  <span className="text-red">unsupported</span>
+                )}
+                {selected.includes(entry.id) && (
+                  <Check className="h-4 w-4 text-pink" />
+                )}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>

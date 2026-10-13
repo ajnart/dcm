@@ -1,17 +1,17 @@
 import { TemplateCard } from "@/components/template-card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { DockerTool } from "@/lib/docker-tools"
+import type { CatalogEntry } from "@/lib/catalog"
 import type { Template } from "@/lib/templates"
 import { templates } from "@/lib/templates"
 import { Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
 interface TemplateGalleryProps {
-  allTools: DockerTool[]
-  onSelectTemplate: (tools: DockerTool[], template: Template) => void
+  allTools: CatalogEntry[]
+  onSelectTemplate: (tools: CatalogEntry[], template: Template) => void
   onUnselectTemplate?: (toolIds: string[], templateId: string) => void
-  selectedTools: DockerTool[]
+  selectedTools: CatalogEntry[]
   selectedTemplateIds?: string[]
 }
 
