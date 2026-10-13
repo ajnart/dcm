@@ -1,6 +1,6 @@
 "use client"
 
-import { Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
@@ -14,6 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+const triggerClassName =
+  "relative w-8 px-0 bg-primary-foreground/15 text-primary-foreground shadow-md transition-all duration-300 hover:scale-105 hover:bg-primary-foreground/25 hover:shadow-lg motion-safe:animate-slide-in-right"
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -24,8 +27,9 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="outline" size="icon" disabled>
-        <Sun className="h-4 w-4" />
+      <Button size="sm" className={triggerClassName} disabled>
+        <Sun />
+        <span className="sr-only">Toggle theme</span>
       </Button>
     )
   }
@@ -33,9 +37,9 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Sun className="dark:-rotate-90 h-4 w-4 rotate-0 scale-100 transition-all dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <Button size="sm" className={triggerClassName}>
+          <Sun className="dark:-rotate-90 rotate-0 scale-100 transition-all dark:scale-0" />
+          <Moon className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
@@ -60,9 +64,7 @@ export function ThemeToggle() {
           checked={theme === "system"}
           onCheckedChange={() => setTheme("system")}
         >
-          <span className="mr-2 flex h-4 w-4 items-center justify-center text-xs">
-            💻
-          </span>
+          <Monitor className="mr-2 h-4 w-4" />
           System
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
