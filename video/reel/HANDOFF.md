@@ -27,7 +27,7 @@ Keep reading holds meaningful while allowing controlled movement.
 
 The approved v5 end command was **`npx selfhost install`**, specifically requested by the maintainer
 as a preview of the planned npm installer. The later canonical-domain request supersedes that copy:
-the current release candidate uses **`curl -fsSL https://selfhost.ajnart.dev/install.sh | bash`** and
+the current release candidate uses **`curl -fsSL https://self-host.fyi/install.sh | bash`** and
 shows the existing repository, **`github.com/ajnart/selfhost-skills`**. The approved motion, music
 and other product copy are unchanged.
 Catalog counts and product behaviour should be rechecked before changing those claims. Provenance is

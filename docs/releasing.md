@@ -112,6 +112,13 @@ addresses) and `www` (`CNAME` to `ajnart.github.io`), verify the domain, then
 enable **Enforce HTTPS**. Pages on a private repository needs a paid plan, and
 the workflow needs Actions minutes.
 
+The old `selfhost.ajnart.dev` host must keep working for installs already in the
+wild. Once `self-host.fyi` serves the installer, replace the
+`selfhost-installer` Worker with a Cloudflare redirect rule on the `ajnart.dev`
+zone: hostname `selfhost.ajnart.dev`, 301 to
+`concat("https://self-host.fyi", http.request.uri.path)`, preserving the query
+string. Check it with `curl -I https://selfhost.ajnart.dev/install.sh`.
+
 The builder copies only `index.html`, `site.css`, `js/*.js`, `catalog.js`,
 `catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons,
 `site.webmanifest`, the showreel from `video/reel/out/selfhost-reel.mp4` as
@@ -122,7 +129,9 @@ regenerate it with `go run ./tools/sitecatalog` after catalog changes, and
 `go run ./tools/introframes`. The builder refuses a destination inside the
 checkout or one that exists, and never copies the repository, hidden files,
 service configurations or binaries. Pages cannot set response headers, so the
-Content Security Policy lives in a `<meta>` tag in `index.html`. To preview the
+Content Security Policy lives in a `<meta>` tag in `index.html`; the former
+`frame-ancestors` and `nosniff` headers have no Pages equivalent, an accepted
+loss for a static page with no signed-in actions. To preview the
 exact published tree locally:
 
 ```bash

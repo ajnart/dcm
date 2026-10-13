@@ -29,7 +29,7 @@ set +x
 set -euo pipefail
 
 REPO="${SELF_HOST_RELEASE_REPO:-ajnart/selfhost-skills}"
-URL="${VERIFY_INSTALL_URL:-https://selfhost.ajnart.dev/install.sh}"
+URL="${VERIFY_INSTALL_URL:-https://self-host.fyi/install.sh}"
 PINNED="${VERIFY_PINNED_VERSION:-0.1.2}"
 TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
 

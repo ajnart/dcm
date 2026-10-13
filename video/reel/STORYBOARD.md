@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://selfhost.ajnart.dev/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -61,7 +61,7 @@ integrated and a true peak below −1 dBTP.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
-  **`https://selfhost.ajnart.dev/install.sh`**. The repository line now names the existing
+  **`https://self-host.fyi/install.sh`**. The repository line now names the existing
   **`ajnart/selfhost-skills`** repository. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.

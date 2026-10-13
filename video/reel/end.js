@@ -2,7 +2,7 @@ import { $, proc, clamp, prog, scene, chars, read, cue, typeCues, on, cut, drift
 import { SC, DUR, b } from "./timeline.js";
 
 const [A] = SC.end;
-export const END_INSTALL = "curl -fsSL https://selfhost.ajnart.dev/install.sh | bash";
+export const END_INSTALL = "curl -fsSL https://self-host.fyi/install.sh | bash";
 export const END_REPO = "github.com/ajnart/selfhost-skills";
 // beats: 0 the final hit, the logo · 1 the install line types · 2 the agents · 3 the counts run up;
 // still from SETTLED but for the caret and a slow push
