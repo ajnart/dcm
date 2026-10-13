@@ -1,0 +1,18 @@
+{
+  "id": "tailscale",
+  "name": "Tailscale",
+  "description": "Reach your home apps privately from anywhere, on any of your devices",
+  "category": "Remote access",
+  "image": "ghcr.io/tailscale/tailscale:v1.102.4",
+  "docs": "https://tailscale.com/docs/",
+  "port": 0,
+  "inputs": [
+    {
+      "key": "auth_key",
+      "prompt": "Tailscale auth key",
+      "help": "Make one reusable, pre-approved key at https://login.tailscale.com/admin/settings/keys and paste it here. An OAuth client secret works too.",
+      "required": true,
+      "private": true
+    }
+  ]
+}

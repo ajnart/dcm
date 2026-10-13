@@ -1,0 +1,10 @@
+{
+  "id": "nginx-proxy-manager",
+  "name": "Nginx Proxy Manager",
+  "description": "Give your apps easy web addresses and secure padlocks from a web page",
+  "category": "Ingress",
+  "image": "jc21/nginx-proxy-manager:2.16.0",
+  "docs": "https://nginxproxymanager.com/guide/",
+  "port": 8181,
+  "inputs": []
+}

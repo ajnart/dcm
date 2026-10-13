@@ -4940,7 +4940,7 @@
       ],
       "security": [
         "Protect the admin UI and notification credentials.",
-        "Creating an API key globally changes /metrics authentication from administrator Basic auth to API-key Basic auth. The owned nonexpiring key is metrics-only, not a general API or MCP token."
+        "Creating an API key globally changes /metrics authentication from administrator Basic auth to API-key Basic auth. These keys do not authenticate the status-page API or the administrator's Socket.IO API. Setup creates and rotates no keys."
       ],
       "support": {
         "tier": "T0",
