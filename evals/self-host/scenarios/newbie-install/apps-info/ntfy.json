@@ -1,0 +1,10 @@
+{
+  "id": "ntfy",
+  "name": "ntfy",
+  "description": "Get instant pop-up alerts on your phone from your apps and scripts",
+  "category": "Communication",
+  "image": "binwiederhier/ntfy:latest",
+  "docs": "https://docs.ntfy.sh/install/",
+  "port": 2586,
+  "inputs": []
+}

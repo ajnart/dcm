@@ -30,7 +30,14 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{
+		{Key: "homarr_api_key", Prompt: "Saved self-host Homarr access token", Private: true,
+			Help: "Optional restoration of the known token with its matching ownership record, never a different account's token. Empty private inputs preserve saved values. Reinstall replaces Compose: preserve and review existing authentication, mounts and ports and separately approve replacement before using install --set-file."},
+		{Key: "homarr_token_ownership", Prompt: "Saved self-host Homarr token ownership", Private: true,
+			Help: "Restore the matching JSON record with id, accountId, expires and fingerprint, not a guessed token ID. A pending issued token blocks reissuance until its secret is restored or its recorded ID is absent from the authenticated token inventory. Empty private inputs preserve saved values."},
+	}
+}
 
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{
@@ -104,6 +111,7 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 	if body.Response.Token == "" {
 		return false, nil
 	}
+	h.Log.Secret(body.Response.Token)
 	me, err := h.HTTP(ctx, helpers.Request{
 		Path:   "/api/v1/users/me",
 		Header: map[string]string{"Authorization": "Bearer " + body.Response.Token},
@@ -127,14 +135,22 @@ func login(ctx context.Context, h *helpers.H, user, password string) (bool, erro
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstadmin.FirstAdmin{
+	if err := (firstadmin.FirstAdmin{
 		// v2.16.3 has no health route. The protected current-user route proves
 		// API routing before signup; Login separately verifies authenticated identity.
 		Ready:  firstadmin.Probe{Path: "/api/v1/users/me", Want: []int{http.StatusUnauthorized}, Contains: `"response":"You must be logged in."`},
 		Create: create,
 		Login:  login,
 		Manual: "Linkwarden signs up its first account on the private instance.",
-	}.Setup(ctx, h)
+	}).Setup(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-token", "prepare Linkwarden statistics access", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
+		Do:         func(ctx context.Context) error { return createHomarrToken(ctx, h) },
+		Hint:       HomarrRecoveryHint,
+		Credential: "admin",
+	})
 }
 
 func create(ctx context.Context, h *helpers.H, user, password string) error {
@@ -146,7 +162,10 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return firstadmin.FirstAdmin{Create: create, Login: login}.Check(ctx, h)
+	if err := (firstadmin.FirstAdmin{Create: create, Login: login}).Check(ctx, h); err != nil {
+		return err
+	}
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }
