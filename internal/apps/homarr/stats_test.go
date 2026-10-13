@@ -15,18 +15,19 @@ import (
 )
 
 type statsFixture struct {
-	values     map[string]any
-	metrics    []any
-	timestamp  float64
-	advance    bool
-	refreshes  int
-	catalogs   int
-	snapshots  int
-	force      bool
-	beforeRaw  string
-	afterRaw   string
-	retryAt    any
-	hasRetryAt bool
+	values        map[string]any
+	metrics       []any
+	timestamp     float64
+	advance       bool
+	refreshes     int
+	catalogs      int
+	snapshots     int
+	force         bool
+	integrationID string
+	beforeRaw     string
+	afterRaw      string
+	retryAt       any
+	hasRetryAt    bool
 }
 
 func newStatsFixture() *statsFixture {
@@ -37,56 +38,60 @@ func newStatsFixture() *statsFixture {
 	}
 }
 
+func (f *statsFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("ApiKey") != "fixture-key" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	var value any
+	switch r.URL.Path {
+	case "/api/trpc/widget.stats.catalog":
+		f.catalogs++
+		value = map[string]any{"metrics": f.metrics}
+	case "/api/trpc/widget.stats.snapshot":
+		f.snapshots++
+		if f.beforeRaw != "" {
+			w.Write([]byte(`{"result":{"data":{"json":{"updatedAt":` + f.beforeRaw + `}}}}`))
+			return
+		}
+		value = map[string]any{"updatedAt": f.timestamp, "retryAt": float64(9000)}
+	case "/api/trpc/widget.stats.refresh":
+		f.refreshes++
+		var input struct {
+			JSON struct {
+				Force         bool   `json:"force"`
+				IntegrationID string `json:"integrationId"`
+			} `json:"json"`
+		}
+		json.NewDecoder(r.Body).Decode(&input)
+		f.force = input.JSON.Force
+		f.integrationID = input.JSON.IntegrationID
+		if f.advance {
+			f.timestamp++
+		}
+		if f.afterRaw != "" {
+			w.Write([]byte(`{"result":{"data":{"json":{"updatedAt":` + f.afterRaw + `,"error":false,"stale":false,"values":{"requests":0}}}}}`))
+			return
+		}
+		values := f.values
+		if f.refreshes > 1 {
+			values = map[string]any{"requests": float64(0)}
+		}
+		refreshed := map[string]any{"updatedAt": f.timestamp, "error": false, "stale": false, "values": values}
+		if f.hasRetryAt {
+			refreshed["retryAt"] = f.retryAt
+		}
+		value = refreshed
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": value}}})
+}
+
 func (f *statsFixture) helpers(t *testing.T) *helpers.H {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("ApiKey") != "fixture-key" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		var value any
-		switch r.URL.Path {
-		case "/api/trpc/widget.stats.catalog":
-			f.catalogs++
-			value = map[string]any{"metrics": f.metrics}
-		case "/api/trpc/widget.stats.snapshot":
-			f.snapshots++
-			if f.beforeRaw != "" {
-				w.Write([]byte(`{"result":{"data":{"json":{"updatedAt":` + f.beforeRaw + `}}}}`))
-				return
-			}
-			value = map[string]any{"updatedAt": f.timestamp, "retryAt": float64(9000)}
-		case "/api/trpc/widget.stats.refresh":
-			f.refreshes++
-			var input struct {
-				JSON struct {
-					Force bool `json:"force"`
-				} `json:"json"`
-			}
-			json.NewDecoder(r.Body).Decode(&input)
-			f.force = input.JSON.Force
-			if f.advance {
-				f.timestamp++
-			}
-			if f.afterRaw != "" {
-				w.Write([]byte(`{"result":{"data":{"json":{"updatedAt":` + f.afterRaw + `,"error":false,"stale":false,"values":{"requests":0}}}}}`))
-				return
-			}
-			values := f.values
-			if f.refreshes > 1 {
-				values = map[string]any{"requests": float64(0)}
-			}
-			refreshed := map[string]any{"updatedAt": f.timestamp, "error": false, "stale": false, "values": values}
-			if f.hasRetryAt {
-				refreshed["retryAt"] = f.retryAt
-			}
-			value = refreshed
-		default:
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": value}}})
-	}))
+	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 	return helpers.New(helpers.Config{
 		App: "homarr", BaseURL: srv.URL, HTTP: srv.Client(), Log: events.Discard(),
