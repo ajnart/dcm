@@ -235,6 +235,7 @@ jobs:
           branch: "add-container-${{ steps.parse.outputs.container_id }}"
           delete-branch: true
           title: "Add ${{ steps.parse.outputs.name }} container"
+          base: dev
           body: |
             ## Auto-generated PR from Issue #${{ steps.parse.outputs.issue_number }}
             
