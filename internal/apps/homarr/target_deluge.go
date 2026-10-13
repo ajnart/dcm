@@ -20,7 +20,7 @@ func delugeTarget() target {
 			"columns":             []string{"name", "progress", "downSpeed", "upSpeed", "time", "state"},
 			"limitPerIntegration": 50,
 		}}, statWidget("download", "upload", "paused")},
-		verify: verifyDeluge,
+		verify: verifyDeluge, stats: verifyDelugeStats,
 	}
 }
 
@@ -28,23 +28,11 @@ func verifyDeluge(ctx context.Context, from, to *helpers.H, integrationID string
 	if err := deluge.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-		"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-	})
+	queue, err := readDownloadsQueue(ctx, from, integrationID, "deluge")
 	if err != nil {
 		return err
 	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New("Homarr did not return the Deluge download queue; run self-host setup deluge, then self-host setup homarr")
-	}
-	result, _ := results[0].(map[string]any)
-	integration, _ := result["integration"].(map[string]any)
-	data, _ := result["data"].(map[string]any)
-	if result["error"] != nil || stringField(result, "integrationId") != integrationID || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "deluge" || data == nil {
-		return errors.New("Homarr could not read the authenticated Deluge queue; run self-host setup deluge, then self-host setup homarr")
-	}
-	status, _ := data["status"].(map[string]any)
+	status := queue.status
 	rates, _ := status["rates"].(map[string]any)
 	for _, key := range []string{"down", "up"} {
 		rate, ok := rates[key].(float64)
@@ -59,8 +47,8 @@ func verifyDeluge(ctx context.Context, from, to *helpers.H, integrationID string
 	if !ok || !slices.Contains(types, any("torrent")) {
 		return errors.New("Homarr did not identify the Deluge torrent queue; run self-host setup homarr")
 	}
-	items, ok := data["items"].([]any)
-	if !ok || len(items) > 50 {
+	items := queue.items
+	if len(items) > 50 {
 		return errors.New("Homarr did not return the bounded Deluge download list; run self-host setup homarr")
 	}
 	for _, raw := range items {
@@ -80,24 +68,18 @@ func verifyDeluge(ctx context.Context, from, to *helpers.H, integrationID string
 			}
 		}
 	}
-	catalog, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
+	return nil
+}
+
+func verifyDelugeStats(sample statsSample) error {
+	for _, key := range []string{"download", "upload"} {
+		value, ok := sample.values[key].(float64)
+		if sample.units[key] != "bytesPerSecond" || !ok || value < 0 || math.IsNaN(value) || math.IsInf(value, 0) {
+			return errors.New("Homarr returned incomplete Deluge transfer Stats; run self-host setup homarr")
+		}
 	}
-	statistics, _ := catalog.(map[string]any)
-	metrics, _ := statistics["metrics"].([]any)
-	for _, key := range []string{"download", "upload", "paused"} {
-		found := false
-		for _, raw := range metrics {
-			metric, _ := raw.(map[string]any)
-			if stringField(metric, "key") == key {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.New("Homarr does not expose the required Deluge Stats fields; use Homarr 2.4.1, then retry self-host setup homarr")
-		}
+	if _, ok := sample.values["paused"].(bool); !ok || sample.units["paused"] != "text" {
+		return errors.New("Homarr did not return the Deluge queue state in Stats; run self-host setup homarr")
 	}
 	return nil
 }
