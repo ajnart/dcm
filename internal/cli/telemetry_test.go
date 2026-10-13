@@ -527,3 +527,24 @@ func TestTelemetryDoesNotTouchConfigPathsWithFakeDependencies(t *testing.T) {
 		t.Fatalf("telemetry touched an OS config path with fake dependencies: %v", err)
 	}
 }
+
+func TestProfileSetExperienceSetsThePersonProperty(t *testing.T) {
+	deps, net := telemetryDeps(t)
+	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
+	clitest.Run(t, deps, cat, "apps", "list")
+
+	clitest.Run(t, deps, cat, "profile", "set", "experience", "advanced")
+	clitest.Run(t, deps, cat, "profile", "set", "experience", "expert")
+
+	events := commandEvents(net)
+	if len(events) != 3 {
+		t.Fatalf("got %d command events, want 3", len(events))
+	}
+	set, _ := events[1]["$set"].(map[string]any)
+	if events[1]["command"] != "profile set experience" || len(set) != 1 || set["experience"] != "advanced" {
+		t.Errorf("event = %v, want profile set experience with $set experience=advanced", events[1])
+	}
+	if _, found := events[2]["$set"]; found {
+		t.Errorf("a rejected level set the person property: %v", events[2])
+	}
+}

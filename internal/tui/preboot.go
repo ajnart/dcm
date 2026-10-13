@@ -39,10 +39,10 @@ var (
 	prebootKeys    = []key.Binding{prebootKoFi, prebootSponsor, prebootSkip}
 )
 
-// framePeriod is the time between frames: the pre-boot screen runs at its
-// own rate, everything else at the Activity rate.
+// framePeriod is the time between frames: the pre-boot screen, the Intro and
+// Welcome's reactions run at their own rate, everything else at the Activity rate.
 func (m Model) framePeriod() time.Duration {
-	if m.preboot != nil {
+	if m.preboot != nil || m.fastFrames() {
 		return time.Second / preboot.FPS
 	}
 	return time.Second / activity.FPS
