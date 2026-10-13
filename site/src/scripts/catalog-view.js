@@ -4,19 +4,33 @@ import { $, copy, esc, iconEl, toast } from "./util.js";
 
 const PREVIEW = 24;
 
+function starBadge(app) {
+  const a = document.createElement("a");
+  a.className = "stars";
+  a.href = `https://github.com/${app.repo}`;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.title = `${app.stars.toLocaleString("en")} stars on GitHub`;
+  a.innerHTML = `<span class="star" aria-hidden="true">★</span>${starLabel(app.stars)}`;
+  return a;
+}
+
 function card(app) {
+  const box = document.createElement("div");
+  box.className = "cardbox";
   const b = document.createElement("button");
   b.type = "button";
   b.className = "card";
   const port = app.port ? `:${app.port}` : "no ui";
   const wires = app.links.length ? `wires to ${app.links.length} App${app.links.length === 1 ? "" : "s"}` : "&nbsp;";
-  const stars = app.stars ? `<span>${starLabel(app.stars)}</span>` : "";
-  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.description)}</small><span class="meta"><span>${wires}</span>${stars}</span>`;
+  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.description)}</small><span class="meta">${wires}</span>`;
   const name = document.createElement("b");
   name.textContent = app.name;
   b.querySelector(".who").append(iconEl(app), name);
   b.addEventListener("click", () => selection.toggle(app.id));
-  return b;
+  box.append(b);
+  if (app.repo) box.append(starBadge(app));
+  return { box, button: b };
 }
 
 function drawStack() {
@@ -69,9 +83,10 @@ export function mountCatalog({ onInstall, onSearch }) {
   const more = $("#more");
   const unselect = $("#unselect");
   let expanded = false;
-  const cards = APPS.map((app) => {
+  const pinned = [...APPS].sort((a, b) => Number(b.id === "homarr") - Number(a.id === "homarr"));
+  const cards = pinned.map((app) => {
     const el = card(app);
-    grid.append(el);
+    grid.append(el.box);
     return [app, el];
   });
 
@@ -81,9 +96,9 @@ export function mountCatalog({ onInstall, onSearch }) {
     let shown = 0;
     for (const [app, el] of cards) {
       const match = !needle || `${app.id} ${app.name} ${app.description} ${app.category}`.toLowerCase().includes(needle);
-      el.hidden = !match || (capped && shown >= PREVIEW);
-      if (!el.hidden) shown++;
-      el.setAttribute("aria-pressed", String(selection.has(app.id)));
+      el.box.hidden = !match || (capped && shown >= PREVIEW);
+      if (!el.box.hidden) shown++;
+      el.button.setAttribute("aria-pressed", String(selection.has(app.id)));
     }
     more.hidden = !capped;
   };

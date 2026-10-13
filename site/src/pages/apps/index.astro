@@ -22,7 +22,7 @@ const categories = [...byCategory.keys()].sort();
             <h3>{category}</h3>
             <ul class="apps applist">
               {byCategory.get(category)?.map((app) => (
-                <li>
+                <li class="cardbox">
                   <a class="card" href={`/apps/${app.id}`}>
                     <span class="t">
                       <span class="who">
@@ -32,8 +32,13 @@ const categories = [...byCategory.keys()].sort();
                       <span class="muted">{app.data.port ? `:${app.data.port}` : "no ui"}</span>
                     </span>
                     <small>{app.data.description}</small>
-                    {app.data.stars > 0 && <span class="meta">{starLabel(app.data.stars)}</span>}
                   </a>
+                  {app.data.repo && (
+                    <a class="stars" href={`https://github.com/${app.data.repo}`} target="_blank" rel="noopener" title={`${app.data.stars.toLocaleString("en")} stars on GitHub`}>
+                      <span class="star" aria-hidden="true">★</span>
+                      {starLabel(app.data.stars)}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

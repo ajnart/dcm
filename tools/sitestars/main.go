@@ -152,10 +152,14 @@ func run() error {
 	for _, e := range out.Errors {
 		fmt.Fprintln(os.Stderr, e.Message)
 	}
-	stars := map[string]int{}
+	type entry struct {
+		Repo  string `json:"repo"`
+		Stars int    `json:"stars"`
+	}
+	stars := map[string]entry{}
 	for i, id := range ids {
 		if r := out.Data[fmt.Sprintf("r%d", i)]; r != nil {
-			stars[id] = r.StargazerCount
+			stars[id] = entry{Repo: repos[id], Stars: r.StargazerCount}
 		}
 	}
 	doc, err := json.MarshalIndent(stars, "", " ")

@@ -15,6 +15,7 @@ const apps = defineCollection({
     port: z.number().int().nonnegative(),
     icon: z.string(),
     stars: z.number().int().nonnegative(),
+    repo: z.string(),
     links: z.array(link),
   }),
 });

@@ -1,93 +1,366 @@
 {
- "actual-budget": 29473,
- "adguard-home": 37400,
- "archive-team-warrior": 458,
- "aria2": 43101,
- "audiobookshelf": 14635,
- "authelia": 29255,
- "authentik": 25948,
- "bazarr": 4361,
- "beszel": 26167,
- "bookstack": 19079,
- "borgmatic": 2353,
- "caddy": 77918,
- "cloudflare-tunnel": 16124,
- "dashdot": 3632,
- "deluge": 1801,
- "dockge": 24601,
- "docmost": 21965,
- "emby": 4995,
- "firefly-iii": 24885,
- "freshrss": 16281,
- "frigate": 36554,
- "gatus": 12298,
- "glances": 33773,
- "gluetun": 15768,
- "gotify": 16054,
- "grafana": 77293,
- "haproxy": 6922,
- "headscale": 44597,
- "homarr": 5089,
- "home-assistant": 91531,
- "homebridge": 25508,
- "immich": 116166,
- "jellyfin": 58061,
- "keycloak": 37332,
- "kopia": 14341,
- "lidarr": 5739,
- "linkwarden": 20093,
- "lldap": 6563,
- "loki": 29010,
- "mayan-edms": 842,
- "minio": 61324,
- "navidrome": 24147,
- "netbird": 29935,
- "netdata": 80924,
- "nextcloud": 37083,
- "nginx-proxy-manager": 34394,
- "node-red": 23742,
- "ntfy": 34795,
- "nzbget": 763,
- "ollama": 183045,
- "open-webui": 155565,
- "pangolin": 23080,
- "paperless-ngx": 46627,
- "passbolt": 6164,
- "patchmon": 3413,
- "peanut": 1700,
- "photoprism": 40289,
- "pihole": 61263,
- "portainer": 38655,
- "postgresql": 22388,
- "prometheus": 66530,
- "prowlarr": 7372,
- "qbittorrent": 40792,
- "radarr": 14565,
- "renovate": 22741,
- "restic": 36547,
- "sabnzbd": 3144,
- "scrypted": 6006,
- "seafile": 15328,
- "seerr": 12888,
- "slskd": 4052,
- "sonarr": 17082,
- "speedtest-tracker": 6014,
- "stalwart-mail": 15081,
- "stirling-pdf": 94133,
- "syncthing": 89362,
- "tailscale": 37449,
- "tdarr": 4353,
- "technitium-dns": 10106,
- "tracearr": 2713,
- "traefik": 65195,
- "transmission": 15298,
- "umami": 39351,
- "unbound": 4979,
- "uptime-kuma": 92412,
- "valkey": 27416,
- "vaultwarden": 68985,
- "vector": 22697,
- "victoria-metrics": 17851,
- "wud": 4015,
- "zerotier": 17178
+ "actual-budget": {
+  "repo": "actualbudget/actual",
+  "stars": 29473
+ },
+ "adguard-home": {
+  "repo": "AdguardTeam/AdGuardHome",
+  "stars": 37400
+ },
+ "archive-team-warrior": {
+  "repo": "ArchiveTeam/warrior-dockerfile",
+  "stars": 458
+ },
+ "aria2": {
+  "repo": "aria2/aria2",
+  "stars": 43101
+ },
+ "audiobookshelf": {
+  "repo": "advplyr/audiobookshelf",
+  "stars": 14635
+ },
+ "authelia": {
+  "repo": "authelia/authelia",
+  "stars": 29255
+ },
+ "authentik": {
+  "repo": "goauthentik/authentik",
+  "stars": 25948
+ },
+ "bazarr": {
+  "repo": "morpheus65535/bazarr",
+  "stars": 4361
+ },
+ "beszel": {
+  "repo": "henrygd/beszel",
+  "stars": 26167
+ },
+ "bookstack": {
+  "repo": "BookStackApp/BookStack",
+  "stars": 19079
+ },
+ "borgmatic": {
+  "repo": "borgmatic-collective/borgmatic",
+  "stars": 2353
+ },
+ "caddy": {
+  "repo": "caddyserver/caddy",
+  "stars": 77919
+ },
+ "cloudflare-tunnel": {
+  "repo": "cloudflare/cloudflared",
+  "stars": 16124
+ },
+ "dashdot": {
+  "repo": "MauriceNino/dashdot",
+  "stars": 3633
+ },
+ "deluge": {
+  "repo": "deluge-torrent/deluge",
+  "stars": 1801
+ },
+ "dockge": {
+  "repo": "louislam/dockge",
+  "stars": 24601
+ },
+ "docmost": {
+  "repo": "docmost/docmost",
+  "stars": 21966
+ },
+ "emby": {
+  "repo": "MediaBrowser/Emby",
+  "stars": 4995
+ },
+ "firefly-iii": {
+  "repo": "firefly-iii/firefly-iii",
+  "stars": 24885
+ },
+ "freshrss": {
+  "repo": "FreshRSS/FreshRSS",
+  "stars": 16281
+ },
+ "frigate": {
+  "repo": "blakeblackshear/frigate",
+  "stars": 36555
+ },
+ "gatus": {
+  "repo": "TwiN/gatus",
+  "stars": 12298
+ },
+ "glances": {
+  "repo": "nicolargo/glances",
+  "stars": 33773
+ },
+ "gluetun": {
+  "repo": "qdm12/gluetun",
+  "stars": 15768
+ },
+ "gotify": {
+  "repo": "gotify/server",
+  "stars": 16054
+ },
+ "grafana": {
+  "repo": "grafana/grafana",
+  "stars": 77294
+ },
+ "haproxy": {
+  "repo": "haproxy/haproxy",
+  "stars": 6922
+ },
+ "headscale": {
+  "repo": "juanfont/headscale",
+  "stars": 44597
+ },
+ "homarr": {
+  "repo": "homarr-labs/homarr",
+  "stars": 5089
+ },
+ "home-assistant": {
+  "repo": "home-assistant/core",
+  "stars": 91531
+ },
+ "homebridge": {
+  "repo": "homebridge/homebridge",
+  "stars": 25508
+ },
+ "immich": {
+  "repo": "immich-app/immich",
+  "stars": 116167
+ },
+ "jellyfin": {
+  "repo": "jellyfin/jellyfin",
+  "stars": 58062
+ },
+ "keycloak": {
+  "repo": "keycloak/keycloak",
+  "stars": 37332
+ },
+ "kopia": {
+  "repo": "kopia/kopia",
+  "stars": 14341
+ },
+ "lidarr": {
+  "repo": "Lidarr/Lidarr",
+  "stars": 5739
+ },
+ "linkwarden": {
+  "repo": "linkwarden/linkwarden",
+  "stars": 20093
+ },
+ "lldap": {
+  "repo": "lldap/lldap",
+  "stars": 6563
+ },
+ "loki": {
+  "repo": "grafana/loki",
+  "stars": 29010
+ },
+ "mayan-edms": {
+  "repo": "mayan-edms/Mayan-EDMS",
+  "stars": 842
+ },
+ "minio": {
+  "repo": "minio/minio",
+  "stars": 61324
+ },
+ "navidrome": {
+  "repo": "navidrome/navidrome",
+  "stars": 24147
+ },
+ "netbird": {
+  "repo": "netbirdio/netbird",
+  "stars": 29935
+ },
+ "netdata": {
+  "repo": "netdata/netdata",
+  "stars": 80924
+ },
+ "nextcloud": {
+  "repo": "nextcloud/server",
+  "stars": 37083
+ },
+ "nginx-proxy-manager": {
+  "repo": "NginxProxyManager/nginx-proxy-manager",
+  "stars": 34394
+ },
+ "node-red": {
+  "repo": "node-red/node-red",
+  "stars": 23742
+ },
+ "ntfy": {
+  "repo": "binwiederhier/ntfy",
+  "stars": 34795
+ },
+ "nzbget": {
+  "repo": "nzbgetcom/nzbget",
+  "stars": 763
+ },
+ "ollama": {
+  "repo": "ollama/ollama",
+  "stars": 183048
+ },
+ "open-webui": {
+  "repo": "open-webui/open-webui",
+  "stars": 155566
+ },
+ "pangolin": {
+  "repo": "fosrl/pangolin",
+  "stars": 23080
+ },
+ "paperless-ngx": {
+  "repo": "paperless-ngx/paperless-ngx",
+  "stars": 46627
+ },
+ "passbolt": {
+  "repo": "passbolt/passbolt_api",
+  "stars": 6164
+ },
+ "patchmon": {
+  "repo": "PatchMon/PatchMon",
+  "stars": 3413
+ },
+ "peanut": {
+  "repo": "Brandawg93/PeaNUT",
+  "stars": 1700
+ },
+ "photoprism": {
+  "repo": "photoprism/photoprism",
+  "stars": 40290
+ },
+ "pihole": {
+  "repo": "pi-hole/pi-hole",
+  "stars": 61263
+ },
+ "portainer": {
+  "repo": "portainer/portainer",
+  "stars": 38655
+ },
+ "postgresql": {
+  "repo": "postgres/postgres",
+  "stars": 22388
+ },
+ "prometheus": {
+  "repo": "prometheus/prometheus",
+  "stars": 66530
+ },
+ "prowlarr": {
+  "repo": "Prowlarr/Prowlarr",
+  "stars": 7372
+ },
+ "qbittorrent": {
+  "repo": "qbittorrent/qBittorrent",
+  "stars": 40792
+ },
+ "radarr": {
+  "repo": "Radarr/Radarr",
+  "stars": 14565
+ },
+ "renovate": {
+  "repo": "renovatebot/renovate",
+  "stars": 22741
+ },
+ "restic": {
+  "repo": "restic/restic",
+  "stars": 36547
+ },
+ "sabnzbd": {
+  "repo": "sabnzbd/sabnzbd",
+  "stars": 3144
+ },
+ "scrypted": {
+  "repo": "koush/scrypted",
+  "stars": 6006
+ },
+ "seafile": {
+  "repo": "haiwen/seafile",
+  "stars": 15328
+ },
+ "seerr": {
+  "repo": "seerr-team/seerr",
+  "stars": 12889
+ },
+ "slskd": {
+  "repo": "slskd/slskd",
+  "stars": 4052
+ },
+ "sonarr": {
+  "repo": "Sonarr/Sonarr",
+  "stars": 17083
+ },
+ "speedtest-tracker": {
+  "repo": "alexjustesen/speedtest-tracker",
+  "stars": 6014
+ },
+ "stalwart-mail": {
+  "repo": "stalwartlabs/stalwart",
+  "stars": 15081
+ },
+ "stirling-pdf": {
+  "repo": "Stirling-Tools/Stirling-PDF",
+  "stars": 94136
+ },
+ "syncthing": {
+  "repo": "syncthing/syncthing",
+  "stars": 89362
+ },
+ "tailscale": {
+  "repo": "tailscale/tailscale",
+  "stars": 37449
+ },
+ "tdarr": {
+  "repo": "HaveAGitGat/Tdarr",
+  "stars": 4353
+ },
+ "technitium-dns": {
+  "repo": "TechnitiumSoftware/DnsServer",
+  "stars": 10106
+ },
+ "tracearr": {
+  "repo": "connorgallopo/Tracearr",
+  "stars": 2713
+ },
+ "traefik": {
+  "repo": "traefik/traefik",
+  "stars": 65194
+ },
+ "transmission": {
+  "repo": "transmission/transmission",
+  "stars": 15298
+ },
+ "umami": {
+  "repo": "umami-software/umami",
+  "stars": 39350
+ },
+ "unbound": {
+  "repo": "NLnetLabs/unbound",
+  "stars": 4979
+ },
+ "uptime-kuma": {
+  "repo": "louislam/uptime-kuma",
+  "stars": 92412
+ },
+ "valkey": {
+  "repo": "valkey-io/valkey",
+  "stars": 27416
+ },
+ "vaultwarden": {
+  "repo": "dani-garcia/vaultwarden",
+  "stars": 68987
+ },
+ "vector": {
+  "repo": "vectordotdev/vector",
+  "stars": 22697
+ },
+ "victoria-metrics": {
+  "repo": "VictoriaMetrics/VictoriaMetrics",
+  "stars": 17851
+ },
+ "wud": {
+  "repo": "getwud/wud",
+  "stars": 4015
+ },
+ "zerotier": {
+  "repo": "zerotier/ZeroTierOne",
+  "stars": 17178
+ }
 }
