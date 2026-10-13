@@ -1,0 +1,19 @@
+internal/apps/homarr/links.go
+  s_efac015806e3bf::t_87a8918e73e1f6 74-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5c5246f783b2b1e0be376edfb514122871b932e",
+  "prompts": {},
+  "sessions": {
+    "s_efac015806e3bf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f912c5ba-41a3-4c29-b7ad-e526f1fdd016",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
