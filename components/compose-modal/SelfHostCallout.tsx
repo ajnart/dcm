@@ -27,9 +27,9 @@ export default function SelfHostCallout({
   }
 
   return (
-    <div className="mb-3 flex flex-col gap-3 border border-pink/50 bg-deep p-3 md:flex-row md:items-center md:justify-between">
+    <div className="mb-3 flex flex-col gap-3 rounded-md border bg-muted/50 p-3 md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
-        <p className="font-bold text-sm">
+        <p className="font-medium text-sm">
           Rather not manage YAML? self-host installs and wires these for you.
         </p>
         {yamlMissing.length > 0 && (
@@ -42,9 +42,8 @@ export default function SelfHostCallout({
           type="button"
           onClick={handleCopy}
           aria-label="Copy self-host command"
-          className="mt-2 flex max-w-full items-center gap-2 border border-line bg-bg px-2 py-1 text-left text-cyan text-xs hover:border-pink"
+          className="mt-2 flex max-w-full items-center gap-2 rounded-md border bg-background px-2 py-1 text-left font-mono text-xs transition-colors hover:bg-accent"
         >
-          <span className="text-pink">$</span>
           <span className="truncate">{command}</span>
           {copied ? (
             <Check className="h-3 w-3 shrink-0" />

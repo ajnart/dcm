@@ -58,11 +58,11 @@ export function SearchCommand({
               onSelect={() => onToggle(recipe.id)}
               className="flex items-center justify-between"
             >
-              <span className="text-gold">{recipe.name}</span>
-              <span className="flex items-center gap-2 text-dim text-xs">
+              <span>{recipe.name}</span>
+              <span className="flex items-center gap-2 text-muted-foreground text-xs">
                 {recipe.apps.length} apps
                 {selected.includes(recipe.id) && (
-                  <Check className="h-4 w-4 text-pink" />
+                  <Check className="h-4 w-4 text-primary" />
                 )}
               </span>
             </CommandItem>
@@ -79,7 +79,7 @@ export function SearchCommand({
               className="flex items-center justify-between"
             >
               <span className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center overflow-hidden border border-line bg-deep text-pink text-xs">
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-sm text-muted-foreground text-xs">
                   {entry.icon ? (
                     <img
                       src={entry.icon}
@@ -94,13 +94,13 @@ export function SearchCommand({
               </span>
               <span className="flex items-center gap-2 text-xs">
                 {entry.selfhostOnly && (
-                  <span className="text-pink">self-host only</span>
+                  <span className="text-primary">self-host only</span>
                 )}
                 {entry.isUnsupported && (
-                  <span className="text-red">unsupported</span>
+                  <span className="text-destructive">unsupported</span>
                 )}
                 {selected.includes(entry.id) && (
-                  <Check className="h-4 w-4 text-pink" />
+                  <Check className="h-4 w-4 text-primary" />
                 )}
               </span>
             </CommandItem>

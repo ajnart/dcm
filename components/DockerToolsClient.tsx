@@ -1,14 +1,18 @@
 "use client"
 
+import ToolGrid from "@/components/ToolGrid"
 import DiscoveryPanel from "@/components/discovery-panel"
 import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
-import ToolGrid from "@/components/ToolGrid"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { useSelection } from "@/hooks/use-selection"
 import { type Catalog, canGenerateYaml } from "@/lib/catalog"
 import { buildSelfHostLink } from "@/lib/selfhost"
 import { decodeShareUrl } from "@/lib/url-utils"
 import { cn } from "@/lib/utils"
+import { Palette } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -62,28 +66,38 @@ export default function DockerToolsClient({ catalog }: DockerToolsClientProps) {
   const selected = shareParam ? decodeShareUrl(shareParam) : selection.ids
 
   return (
-    <div className="container pb-8">
-      <section className="py-10">
-        <h1 className="font-bold text-3xl text-ink md:text-4xl">
-          <span className="text-pink">$</span> docker compose maker
-        </h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
-          Pick your apps, get a docker-compose.yaml.{" "}
-          <span className="text-ink">Rather not manage YAML?</span>{" "}
-          <a
-            href={buildSelfHostLink()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-pink hover:underline"
-          >
-            self-host
-          </a>{" "}
-          installs and wires these for you.
-        </p>
-      </section>
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-bold text-3xl">Docker Compose Maker</h1>
+          <p className="mt-1 text-muted-foreground text-sm">
+            Rather not manage YAML?{" "}
+            <a
+              href={buildSelfHostLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              self-host
+            </a>{" "}
+            installs and wires these for you.
+          </p>
+        </div>
+        <Button asChild className="flex items-center gap-2">
+          <Link prefetch={false} href="/templates">
+            <Palette size={16} />
+            Template Gallery
+          </Link>
+        </Button>
+      </div>
 
-      <SettingsPanel />
-      <DiscoveryPanel />
+      <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
+        <SettingsPanel />
+      </div>
+
+      <div className="[animation-delay:450ms] motion-safe:animate-slide-down">
+        <DiscoveryPanel />
+      </div>
 
       <FloatingBar
         catalog={catalog}
@@ -94,10 +108,8 @@ export default function DockerToolsClient({ catalog }: DockerToolsClientProps) {
 
       {catalog.recipes.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-1 font-bold text-gold text-sm uppercase tracking-wider">
-            Recipes
-          </h2>
-          <p className="mb-3 text-muted-foreground text-xs">
+          <h2 className="mb-1 font-semibold text-xl">Recipes</h2>
+          <p className="mb-3 text-muted-foreground text-sm">
             Ready-made stacks. Select one to add every app in it.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -108,37 +120,50 @@ export default function DockerToolsClient({ catalog }: DockerToolsClientProps) {
                 return entry && canGenerateYaml(entry)
               }).length
               return (
-                <button
+                <Card
                   key={recipe.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => selection.toggle(recipe.id)}
                   className={cn(
-                    "card-top hover:-translate-x-0.5 hover:-translate-y-0.5 border border-gold/50 bg-panel p-4 pt-5 text-left shadow-sm transition-all hover:shadow-md",
-                    isSelected && "border-pink bg-secondary",
+                    "group relative cursor-pointer select-none overflow-hidden rounded-sm transition-all hover:shadow-md",
+                    isSelected
+                      ? "bg-secondary"
+                      : "hover:border-muted-foreground/20",
+                    "motion-safe:hover:scale-105",
                   )}
+                  onClick={() => selection.toggle(recipe.id)}
                 >
-                  <span className="font-bold text-gold">{recipe.name}</span>
-                  <span className="mt-1 line-clamp-2 block text-muted-foreground text-xs">
-                    {recipe.description}
-                  </span>
-                  <span className="mt-3 block text-[11px] text-dim">
-                    {recipe.apps.length} apps · {yamlCount} with YAML
-                  </span>
-                </button>
+                  <div
+                    className={cn(
+                      "h-1 w-full transition-colors duration-300",
+                      isSelected
+                        ? "bg-primary"
+                        : "bg-transparent group-hover:bg-primary/30",
+                    )}
+                  />
+                  <CardContent className="p-4">
+                    <h3 className="font-mono font-semibold tracking-tight">
+                      {recipe.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
+                      {recipe.description}
+                    </p>
+                    <p className="mt-3 text-muted-foreground text-xs">
+                      {recipe.apps.length} apps · {yamlCount} with YAML
+                    </p>
+                  </CardContent>
+                </Card>
               )
             })}
           </div>
           {catalog.recipes.length > RECIPES_COLLAPSED && (
-            <button
-              type="button"
+            <Button
+              variant="link"
+              className="mt-2 h-auto p-0"
               onClick={() => setShowAllRecipes(!showAllRecipes)}
-              className="mt-3 text-gold text-xs hover:underline"
             >
               {showAllRecipes
                 ? "Show fewer recipes"
                 : `Show all ${catalog.recipes.length} recipes`}
-            </button>
+            </Button>
           )}
         </section>
       )}
@@ -146,24 +171,19 @@ export default function DockerToolsClient({ catalog }: DockerToolsClientProps) {
       <div className="mb-4 flex flex-wrap gap-1.5">
         {[[ALL, catalog.entries.length] as const, ...categories].map(
           ([name, count]) => (
-            <button
+            <Button
               key={name}
-              type="button"
+              size="sm"
+              variant={category === name ? "default" : "outline"}
               onClick={() => setCategory(name)}
-              className={cn(
-                "border px-2 py-1 text-xs transition-colors",
-                category === name
-                  ? "border-pink bg-pink text-bg"
-                  : "border-line bg-panel text-muted-foreground hover:border-pink hover:text-pink",
-              )}
             >
               {name} <span className="opacity-60">{count}</span>
-            </button>
+            </Button>
           ),
         )}
       </div>
 
       <ToolGrid entries={visible} selected={selected} onToggle={toggle} />
-    </div>
+    </>
   )
 }

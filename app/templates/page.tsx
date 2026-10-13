@@ -13,5 +13,11 @@ export async function generateStaticParams() {
 export default async function TemplatesPage() {
   const catalog = buildCatalog(await fetchGitHubStars())
 
-  return <TemplateGalleryClient catalog={catalog} />
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="container relative z-10 mx-auto px-4 pt-4">
+        <TemplateGalleryClient catalog={catalog} />
+      </main>
+    </div>
+  )
 }

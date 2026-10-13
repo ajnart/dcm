@@ -2,7 +2,11 @@
 
 import ActionButtons from "@/components/compose-modal/ActionButtons"
 import PortConflictsAlert from "@/components/compose-modal/PortConflictsAlert"
-import { ComposeEditor, EnvEditor } from "@/components/editors/MonacoEditor"
+import {
+  ComposeEditor,
+  EnvEditor,
+  configureMonacoThemes,
+} from "@/components/editors/MonacoEditor"
 import SettingsForm from "@/components/settings/SettingsForm"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +37,7 @@ import {
   Star,
 } from "lucide-react"
 import type { editor } from "monaco-editor"
+import { useTheme } from "next-themes"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -65,6 +70,7 @@ export function TemplateClient({
 
   const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const { resolvedTheme } = useTheme()
 
   // Handle download of docker-compose file
   const handleDownload = () => {
@@ -105,10 +111,26 @@ export function TemplateClient({
     editor: editor.IStandaloneCodeEditor,
   ) => {
     composeEditorRef.current = editor
+
+    if (hasMounted) {
+      const currentTheme =
+        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
+      editor.updateOptions({ theme: currentTheme })
+    }
   }
 
   const handleEnvEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
     envEditorRef.current = editor
+
+    if (hasMounted) {
+      const currentTheme =
+        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
+      editor.updateOptions({ theme: currentTheme })
+    }
+  }
+
+  const handleBeforeMount = (monaco: typeof import("monaco-editor")) => {
+    configureMonacoThemes(monaco)
   }
 
   useEffect(() => {
@@ -135,14 +157,52 @@ export function TemplateClient({
     setCopied(false)
   }, [activeTab])
 
+  useEffect(() => {
+    if (!hasMounted) return
+
+    if (composeEditorRef.current) {
+      const currentTheme =
+        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
+      composeEditorRef.current.updateOptions({ theme: currentTheme })
+    }
+
+    if (envEditorRef.current) {
+      const currentTheme =
+        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
+      envEditorRef.current.updateOptions({ theme: currentTheme })
+    }
+  }, [resolvedTheme, hasMounted])
+
+  // Handle tab changes with proper theme application
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     setCopied(false)
+
+    // Apply theme to the appropriate editor if it's already mounted
+    if (hasMounted) {
+      const currentTheme =
+        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
+
+      if (tab === "compose" && composeEditorRef.current) {
+        composeEditorRef.current.updateOptions({ theme: currentTheme })
+      } else if (tab === "env" && envEditorRef.current) {
+        envEditorRef.current.updateOptions({ theme: currentTheme })
+      }
+    }
   }
 
+  const currentTheme = !hasMounted
+    ? "vs"
+    : resolvedTheme === "dark"
+      ? "tailwind-dark"
+      : "tailwind-light"
+
   return (
-    <div className="min-h-screen">
-      <main className="container pt-6 pb-12">
+    <div className="relative min-h-screen bg-background">
+      {/* Background decoration */}
+      <div className="pointer-events-none absolute top-0 left-0 z-0 h-full w-full bg-stripes opacity-30" />
+
+      <main className="container relative z-10 mx-auto px-4 pt-4 pb-12">
         <div className="mb-8 flex items-center justify-between">
           <Link href="/templates">
             <Button className="flex items-center gap-2" variant="ghost">
@@ -166,7 +226,7 @@ export function TemplateClient({
         <div className="mb-8">
           <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             {template.icon && (
-              <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border bg-background shadow-sm sm:h-20 sm:w-20">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-background shadow-xs sm:h-20 sm:w-20">
                 <Image
                   alt={template.name}
                   className="object-contain p-2"
@@ -213,7 +273,7 @@ export function TemplateClient({
           </div>
         </div>
 
-        <Card className="mb-8 border shadow-sm">
+        <Card className="mb-8 border shadow-xs">
           <Tabs
             defaultValue="services"
             value={activeTab}
@@ -264,10 +324,10 @@ export function TemplateClient({
                   {templateTools.map((tool) => (
                     <div
                       key={tool.id}
-                      className="flex flex-col items-start gap-4 rounded-md border bg-card p-4 shadow-sm transition-colors hover:bg-accent/10 sm:flex-row sm:items-center"
+                      className="flex flex-col items-start gap-4 rounded-md border bg-card p-4 shadow-xs transition-colors hover:bg-accent/10 sm:flex-row sm:items-center"
                     >
                       {tool.icon && (
-                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border bg-background">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-background">
                           <Image
                             alt={tool.name}
                             className="object-contain p-1"
@@ -331,7 +391,7 @@ export function TemplateClient({
                       {unavailableTools.map((tool) => (
                         <div
                           key={tool.id}
-                          className="flex items-center gap-3 rounded-md border bg-muted/30 p-4 shadow-sm"
+                          className="flex items-center gap-3 rounded-md border bg-muted/30 p-4 shadow-xs"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-medium">
@@ -375,10 +435,12 @@ export function TemplateClient({
                   />
                 </div>
 
-                <div className="h-[750px] w-full border bg-card shadow-md">
+                <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <ComposeEditor
-                    content={content}
+                    value={content}
                     onMount={handleComposeEditorDidMount}
+                    beforeMount={handleBeforeMount}
+                    theme={currentTheme}
                     readOnly={false}
                   />
                 </div>
@@ -397,10 +459,12 @@ export function TemplateClient({
                   />
                 </div>
 
-                <div className="h-[750px] w-full border bg-card shadow-md">
+                <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <EnvEditor
-                    content={envContent}
+                    value={envContent}
                     onMount={handleEnvEditorDidMount}
+                    beforeMount={handleBeforeMount}
+                    theme={currentTheme}
                     readOnly={false}
                   />
                 </div>

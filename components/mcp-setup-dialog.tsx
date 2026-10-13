@@ -112,7 +112,7 @@ function CopyButton({ value }: { value: string }) {
         type="button"
         size="sm"
         variant="secondary"
-        className="border border-zinc-700 bg-zinc-100 text-zinc-950 shadow-sm hover:bg-white focus-visible:ring-zinc-300"
+        className="border border-zinc-700 bg-zinc-100 text-zinc-950 shadow-xs hover:bg-white focus-visible:ring-zinc-300"
         onClick={handleCopy}
       >
         <ButtonIcon aria-hidden="true" />
@@ -137,14 +137,25 @@ export function McpSetupDialog() {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="px-2 py-1 text-muted-foreground text-sm transition-colors hover:text-pink"
-        >
-          MCP
-        </button>
-      </DialogTrigger>
+      <div className="relative inline-flex">
+        <DialogTrigger asChild>
+          <Button
+            size="sm"
+            className="group relative overflow-hidden border border-cyan-100/40 bg-cyan-50/20 px-4 py-2 text-primary-foreground shadow-md transition-all duration-300 hover:scale-105 hover:bg-cyan-50/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+          >
+            <Plug aria-hidden="true" />
+            <span className="hidden sm:inline">MCP setup</span>
+            <span className="sm:hidden">MCP</span>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-linear-to-r from-cyan-400/20 to-blue-300/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            />
+          </Button>
+        </DialogTrigger>
+        <Badge className="-right-2 -top-2 pointer-events-none absolute h-5 border-cyan-100/50 bg-cyan-100 px-1.5 font-bold text-[10px] text-cyan-950 shadow-md">
+          NEW
+        </Badge>
+      </div>
 
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-5xl gap-0 overflow-y-auto p-0 sm:w-full">
         <DialogHeader className="border-b bg-muted/30 px-5 py-5 pr-14 text-left sm:px-6">
@@ -193,7 +204,7 @@ export function McpSetupDialog() {
               </div>
               <textarea
                 aria-label="MCP JSON configuration"
-                className="h-72 w-full resize-none bg-zinc-950 p-4 font-mono text-xs text-zinc-100 leading-6 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                className="h-72 w-full resize-none bg-zinc-950 p-4 font-mono text-xs text-zinc-100 leading-6 outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                 readOnly
                 spellCheck={false}
                 value={config}
@@ -247,7 +258,7 @@ export function McpSetupDialog() {
                 return (
                   <li
                     key={endpoint.key}
-                    className="rounded-lg border bg-background/80 p-3 shadow-sm"
+                    className="rounded-lg border bg-background/80 p-3 shadow-xs"
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/15">

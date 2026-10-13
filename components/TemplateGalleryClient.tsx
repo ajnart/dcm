@@ -43,8 +43,8 @@ export default function TemplateGalleryClient({
   const toggle = (id: string) => selection.toggle(id)
 
   return (
-    <div className="container pt-6 pb-8">
-      <div className="mb-6">
+    <>
+      <div className="mb-6 flex items-center justify-between">
         <Button asChild variant="ghost" className="flex items-center gap-2">
           <Link prefetch={false} href="/">
             <ArrowLeft size={16} />
@@ -53,7 +53,9 @@ export default function TemplateGalleryClient({
         </Button>
       </div>
 
-      <SettingsPanel />
+      <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
+        <SettingsPanel />
+      </div>
 
       <FloatingBar
         catalog={catalog}
@@ -69,6 +71,6 @@ export default function TemplateGalleryClient({
         selectedTools={selectedEntries}
         selectedTemplateIds={selectedTemplateIds}
       />
-    </div>
+    </>
   )
 }

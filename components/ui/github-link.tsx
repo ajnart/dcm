@@ -15,7 +15,7 @@ export function GitHubLink({ url, className }: GitHubLinkProps) {
       href={url}
       target="_blank"
       className={cn(
-        "github-link border border-line bg-deep p-1.5 opacity-0 transition-all hover:border-pink group-hover:opacity-100",
+        "github-link rounded-full bg-background/80 p-1.5 opacity-0 shadow-xs transition-all duration-300 hover:scale-110 hover:bg-background hover:shadow-md group-hover:opacity-100",
         className
       )}
       onClick={(e) => {

@@ -104,7 +104,7 @@ export function TemplateCard({
         isSelected
           ? "bg-secondary"
           : "border-border hover:border-muted-foreground/20",
-        "hover:motion-safe:scale-105",
+        "motion-safe:hover:scale-105",
         "flex h-80 flex-col",
       )}
       onMouseEnter={() => setIsHovering(true)}
@@ -133,7 +133,7 @@ export function TemplateCard({
             <Button
               variant="secondary"
               size="sm"
-              className="flex items-center gap-1 bg-background/80 backdrop-blur-sm"
+              className="flex items-center gap-1 bg-background/80 backdrop-blur-xs"
             >
               <Eye size={14} />
               <span className="text-xs">View</span>

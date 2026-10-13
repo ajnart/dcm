@@ -13,5 +13,11 @@ export async function generateStaticParams() {
 export default async function Home() {
   const catalog = buildCatalog(await fetchGitHubStars())
 
-  return <DockerToolsClient catalog={catalog} />
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="container relative z-10 mx-auto px-4 pt-4">
+        <DockerToolsClient catalog={catalog} />
+      </main>
+    </div>
+  )
 }

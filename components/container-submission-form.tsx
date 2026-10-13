@@ -46,11 +46,13 @@ import {
   ExternalLink,
   GitPullRequest,
   Info,
+  PlusCircle,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { GradientButton } from "./ui/gradient-button"
 
 const CATEGORIES = [
   "Media",
@@ -155,12 +157,14 @@ export function ContainerSubmissionForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className="px-2 py-1 text-muted-foreground text-sm transition-colors hover:text-pink"
+        <GradientButton
+          gradientFrom="from-green-500/20"
+          gradientTo="to-green-400/20"
+          className="[animation-delay:300ms] motion-safe:animate-slide-in-right"
         >
-          Submit container
-        </button>
+          <PlusCircle size={18} />
+          <span>Suggest container</span>
+        </GradientButton>
       </DialogTrigger>
       <DialogContent className="max-h-[95vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
