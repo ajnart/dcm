@@ -1,0 +1,21 @@
+internal/apps/seerr/links_test.go
+  s_378d5db6c5f6de::t_89227a8e64cb39 1-67
+internal/apps/seerr/seerr.go
+  s_378d5db6c5f6de::t_62a9a51c617047 109,112,178,186,223-224,242,246,251,253,265,271,298,304,337,343,358-359,368,370,377,380
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3c5bed131ca722cb27515ced472624a609f0018",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
