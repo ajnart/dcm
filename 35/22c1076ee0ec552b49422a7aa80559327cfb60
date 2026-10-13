@@ -1,0 +1,23 @@
+internal/apps/arr/arr.go
+  s_8e166456c2ed73::t_e2edde8dfae088 12,27-28,116-117,120-121,146,158,164
+internal/apps/arr/links.go
+  s_8e166456c2ed73::t_843c0a96720356 9,40,63,78
+internal/apps/lidarr/lidarr.go
+  s_8e166456c2ed73::t_a510b479f7823d 11,33,61,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3522c1076ee0ec552b49422a7aa80559327cfb60",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
