@@ -562,14 +562,80 @@ class GradingCLI(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.run_dir / "grading.json").exists())
 
+    def test_judge_wrong_directory_preserves_unrelated_reports(self):
+        for layout in ("no-manifest", "no-runs", "run-file", "missing-raw"):
+            with self.subTest(layout=layout):
+                directory = Path(self.workspace.name) / layout
+                directory.mkdir()
+                benchmark = directory / "benchmark.json"
+                viewer = directory / "review.html"
+                benchmark.write_text('{"unrelated": true}')
+                viewer.write_text("<html>Unrelated review</html>")
+                preserved = {path: path.read_bytes() for path in (benchmark, viewer)}
+                if layout != "no-manifest":
+                    (directory / "execution.json").write_text('{"valid": false}')
+                if layout in ("run-file", "missing-raw"):
+                    run = directory / "eval-0-example" / "with_skill" / "run-1"
+                    run.parent.mkdir(parents=True)
+                    if layout == "run-file":
+                        run.write_text("Unrelated file")
+                    else:
+                        run.mkdir()
+                        (run / "outputs").mkdir()
+                        metadata = directory / "eval-0-example" / "eval_metadata.json"
+                        metadata.write_text(json.dumps(self.metadata))
+                result = self.judge(
+                    "preflight-error", extra=("--iteration-dir", str(directory))
+                )
+                self.assertNotEqual(result.returncode, 0)
+                for path, contents in preserved.items():
+                    self.assertTrue(path.exists(), result.stderr)
+                    self.assertEqual(path.read_bytes(), contents)
+
+    def test_judge_invalid_execution_removes_previous_reports(self):
+        self.assertEqual(self.judge().returncode, 0)
+        self.assertEqual(self.grade().returncode, 0)
+        benchmark = self.iteration / "benchmark.json"
+        viewer = self.iteration / "review.html"
+        benchmark.write_text('{"previous_aggregate": true}')
+        viewer.write_text("<html>Previous review</html>")
+        self.write("raw/metrics.json", {"tokens": 10, "errors": [], "valid": False})
+        result = self.judge("preflight-error")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid execution", result.stderr)
+        self.assertFalse(benchmark.exists())
+        self.assertFalse(viewer.exists())
+        self.assertFalse((self.run_dir / "judged.json").exists())
+        self.assertFalse((self.run_dir / "grading.json").exists())
+
     def test_judge_preflight_failure_invalidates_previous_verdict_and_grade(self):
         result = self.judge()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.grade().returncode, 0)
+        benchmark = self.iteration / "benchmark.json"
+        viewer = self.iteration / "review.html"
+        benchmark.write_text('{"previous_aggregate": true}')
+        viewer.write_text("<html>Previous review</html>")
+        previous_judge = self.run_dir / "raw" / "previous-judge.json"
+        previous_judge.write_bytes((self.run_dir / "raw" / "judge.json").read_bytes())
+        preserved = {
+            path: path.read_bytes()
+            for path in (
+                self.iteration / "execution.json",
+                self.run_dir / "raw" / "metrics.json",
+                self.run_dir / "outputs" / "replies.md",
+                previous_judge,
+            )
+        }
         result = self.judge("preflight-error")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.run_dir / "judged.json").exists())
         self.assertFalse((self.run_dir / "grading.json").exists())
+        self.assertFalse(benchmark.exists())
+        self.assertFalse(viewer.exists())
+        for path, contents in preserved.items():
+            with self.subTest(preserved=path.name):
+                self.assertEqual(path.read_bytes(), contents)
         self.assertNotEqual(self.grade().returncode, 0)
 
     def test_changed_conversation_cannot_reuse_cached_judgment(self):

@@ -39,6 +39,19 @@ CLI → accepted/rejected grades, and execution boundary → blocked host/networ
 access. Tests use a fake Claude executable only at the external model boundary;
 shell canaries exercise the real OS sandbox. See [README.md](README.md) for commands.
 
+## Derived report invalidation (October 13, 2026)
+
+A failed fresh judgment attempt removed verdicts and grades but left a prior
+`benchmark.json` and `review.html` visible. The existing fake-Claude judge CLI
+regression reproduced this before correction. Judgment invalidation now removes
+both derived reports before execution validation or model preflight, after
+recognizing the execution manifest and evaluation run layout. An unrelated or
+unrecognized directory keeps its existing files. Conversation inputs, execution
+evidence and archived raw responses are preserved.
+The focused regression passes. No private attempts or model calls were accessed
+for this source correction; the completed iteration 26 comparison remains
+historical evidence, with human feedback still pending.
+
 ## Evidence ledger
 
 - **Iteration 1: invalid.** Agent-authored transcripts and wrong approval/repetition
