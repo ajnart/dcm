@@ -9,7 +9,8 @@ The above prerequisite pin and the runtime/local verification sections below
 are historical evidence, not verification of the source correction described
 later in this document. #262 subsequently closed with frozen source
 `6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; this branch's descriptor remains
-unregistered, with final seam normalization and native acceptance still held.
+unregistered. The 13 October source completion below normalizes the seam;
+native/rendered runtime acceptance remains separate.
 
 ## Implemented
 
@@ -32,7 +33,7 @@ unregistered, with final seam normalization and native acceptance still held.
   selected Access. DNS port 53 remains inside the container. Setup never
   changes the host/router resolver, enables DHCP, disables authentication,
   changes existing blocking settings or calls installation autofix.
-- `internal/apps/homarr/integration_adguard.go` proposes `adguardTarget()`
+- `internal/apps/homarr/target_adguard.go` defines `adguardTarget()`
   using only existing `target`, `secret` and `widget` types. It is intentionally
   **not registered**. No common Homarr files or extension machinery changed.
 
@@ -174,10 +175,47 @@ required fixture maintenance retained. Static fixed-base comparison verified
 all named function declarations unchanged and both baseline test bodies and
 assertions byte-identical, not merely an unchanged test-function count.
 
+## SDK source completion (13 October 2026)
+
+The original lane forward-merges frozen SDK
+`ecc21d9f95664ef6245863ddfb05930bf4cde3a3`, preserving both histories.
+The descriptor now uses the documented `target_adguard.go` seam, with
+`adguardTarget()` ready for custodian-owned registration. It remains unregistered
+in this lane; no common reconciliation or registry file was edited.
+
+Read-only preflight rechecks the saved administrator and running DNS API.
+It distinguishes AdGuard's legitimate null filters from missing data, then
+reports the pinned Homarr array-only schema limitation without changing DNS
+settings or inventing an empty list. Subscribed filters must have native metadata
+and nonnegative integral rule counts. Native verification reads the actual
+`widget.dnsHole.summary` procedure at recorded OCI source
+`3d4150e59f600876b7e308f857b2f21572b75348`, requiring the recorded owned
+integration ID/kind, protection state, integral counts, blocked queries no
+greater than total queries, and a correct percentage in the range 0–100.
+The pinned implementation's reversed percentage fails for partially blocked
+traffic; this source completion does not fix or certify upstream behavior.
+
+Stats acquisition now belongs entirely to the SDK. `verifyAdguardStats` checks
+the same single refreshed sample supplied by common verification: the three
+selected metrics must have `count` units, nonnegative integral values, and
+blocked queries no greater than total queries. Genuine zeros remain valid.
+The unselected percentage is not required or filled with a synthetic zero.
+Native and Stats are independent volatile samples and need not be equal.
+
+Focused seam fixtures cover authenticated useful zero data, one catalog/forced
+refresh per invocation, no-op refresh rejection, authentication recovery,
+wrong ownership, missing/null/fractional/negative counts, blocked-count
+relationships, percentage meaning and range, unit mismatch, independent native
+and Stats samples, and null/missing/native-filter metadata distinctions.
+These are source fixtures, not new Docker, rendered-widget or lifecycle proof.
+Both affected package suites, package build/vet, changed-file formatting and
+`git diff --check` passed with `GOFLAGS=-buildvcs=false` where applicable.
+
 ## Sources
 
-Context7 lookup was attempted but its monthly quota was exhausted. The
-contract was checked directly against official versioned source instead.
+The historical prerequisite Context7 lookup exhausted its monthly quota.
+The 13 October lookup succeeded, but returned general integration guidance;
+the exact native response contract was checked against official pinned source.
 
 - [AdGuard v0.107.79 first-run configuration](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/controlinstall.go).
 - [AdGuard authenticated profile and userless behavior](https://github.com/AdguardTeam/AdGuardHome/blob/v0.107.79/internal/home/profilehttp.go).
@@ -191,5 +229,6 @@ contract was checked directly against official versioned source instead.
 - [Homarr v2.4.1 native response schemas](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/adguard-home/adguard-home-types.ts).
 - [Homarr recorded OCI-source AdGuard response schema](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/adguard-home/adguard-home-types.ts).
 - [Homarr recorded OCI-source AdGuard percentage calculation](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/adguard-home/adguard-home-integration.ts).
+- [Homarr recorded OCI-source DNS summary procedure and returned identity](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/widgets/dns-hole.ts).
 - [Homarr v2.4.1 Stats metrics](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/existing.ts).
 - [Homarr v2.4.1 widget support/limits](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget-integration-map.ts).
