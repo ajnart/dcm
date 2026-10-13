@@ -1,0 +1,23 @@
+site/src/components/HeroLogo.astro
+  s_378d5db6c5f6de::t_bc0335bb30c1d4 1-36
+site/src/pages/index.astro
+  s_378d5db6c5f6de::t_05946486c92a37 4,56
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_3963e81adc5dbe 230-238,241-312,1242,1244-1246
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1449947b7ebf6adbe8c461f5db5708c80df1ff58",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
