@@ -1,0 +1,10 @@
+{
+  "id": "bazarr",
+  "name": "Bazarr",
+  "description": "Automatically find subtitles for your movies and shows",
+  "category": "Requests",
+  "image": "lscr.io/linuxserver/bazarr:version-v1.6.0",
+  "docs": "https://wiki.bazarr.media/",
+  "port": 6767,
+  "inputs": []
+}
