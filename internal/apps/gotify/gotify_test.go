@@ -2,6 +2,7 @@ package gotify_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,16 +42,63 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 // fakeGotify models GET /version and GET /current/user from the v3.1.1 API.
 func fakeGotify(acceptPassword string) *httptest.Server {
 	mux := http.NewServeMux()
+	homarrPassword := ""
 	mux.HandleFunc("GET /version", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"version":"3.1.1"}`))
 	})
 	mux.HandleFunc("GET /current/user", func(w http.ResponseWriter, r *http.Request) {
 		user, password, ok := r.BasicAuth()
+		if ok && user == "self-host-homarr" && homarrPassword != "" && password == homarrPassword {
+			w.Write([]byte(`{"name":"self-host-homarr","admin":false,"id":2}`))
+			return
+		}
 		if !ok || user != adminUser || password != acceptPassword {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		w.Write([]byte(`{"name":"admin","admin":true,"id":1}`))
+	})
+	mux.HandleFunc("GET /user", func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if !ok || user != adminUser || password != acceptPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if homarrPassword != "" {
+			w.Write([]byte(`[{"name":"admin","admin":true,"id":1},{"name":"self-host-homarr","admin":false,"id":2}]`))
+			return
+		}
+		w.Write([]byte(`[{"name":"admin","admin":true,"id":1}]`))
+	})
+	mux.HandleFunc("POST /user", func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if !ok || user != adminUser || password != acceptPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var account struct {
+			Name  string `json:"name"`
+			Pass  string `json:"pass"`
+			Admin bool   `json:"admin"`
+		}
+		if json.NewDecoder(r.Body).Decode(&account) != nil || account.Name != "self-host-homarr" || account.Pass == "" || account.Admin || homarrPassword != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		homarrPassword = account.Pass
+		w.Write([]byte(`{"name":"self-host-homarr","admin":false,"id":2}`))
+	})
+	mux.HandleFunc("GET /message", func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if !ok || user != "self-host-homarr" || homarrPassword == "" || password != homarrPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if r.URL.Query().Get("limit") != "100" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Write([]byte(`{"paging":{"size":0,"limit":100,"next":"","since":0},"messages":[]}`))
 	})
 	return httptest.NewServer(mux)
 }

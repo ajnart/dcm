@@ -1,0 +1,10 @@
+{
+  "id": "audiobookshelf",
+  "name": "Audiobookshelf",
+  "description": "Listen to your audiobooks and podcasts on your phone or in a browser",
+  "category": "Media",
+  "image": "ghcr.io/advplyr/audiobookshelf:2.37.0",
+  "docs": "https://www.audiobookshelf.org/docs",
+  "port": 13378,
+  "inputs": []
+}

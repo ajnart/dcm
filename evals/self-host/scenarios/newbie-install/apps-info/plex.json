@@ -1,0 +1,18 @@
+{
+  "id": "plex",
+  "name": "Plex",
+  "description": "Stream your movies and shows to any TV, phone or tablet, signed in with Plex",
+  "category": "Media",
+  "image": "plexinc/pms-docker:1.43.4.10903-e5521bd8c",
+  "docs": "https://support.plex.tv/articles/200288586-installation/",
+  "port": 32400,
+  "inputs": [
+    {
+      "key": "claim_token",
+      "prompt": "Plex claim token",
+      "help": "Create a claim token at https://www.plex.tv/claim and paste it here.",
+      "required": true,
+      "private": true
+    }
+  ]
+}
