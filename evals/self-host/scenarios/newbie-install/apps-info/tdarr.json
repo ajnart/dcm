@@ -1,0 +1,10 @@
+{
+  "id": "tdarr",
+  "name": "Tdarr",
+  "description": "Shrink and convert your video files automatically to save space",
+  "category": "Media",
+  "image": "ghcr.io/haveagitgat/tdarr:2.92.01",
+  "docs": "https://docs.tdarr.io/",
+  "port": 8265,
+  "inputs": []
+}

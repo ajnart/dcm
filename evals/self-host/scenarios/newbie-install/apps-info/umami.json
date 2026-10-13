@@ -1,0 +1,10 @@
+{
+  "id": "umami",
+  "name": "Umami",
+  "description": "See how many people visit your websites, without tracking them",
+  "category": "Analytics",
+  "image": "ghcr.io/umami-software/umami:3.4.0",
+  "docs": "https://umami.is/docs/install",
+  "port": 3000,
+  "inputs": []
+}

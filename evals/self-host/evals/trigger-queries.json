@@ -1,0 +1,22 @@
+[
+  {"query": "im paying for netflix, disney+ AND prime and honestly most of what we watch is the same 30 movies. I have an old dell optiplex in the closet, could I turn that into our own streaming thing for the family?", "should_trigger": true},
+  {"query": "Google Photos just told me I'm out of storage again and I refuse to pay another 3 dollars a month. Is there a way to keep all our phone pictures on my own computer instead and still back up automatically from my phone?", "should_trigger": true},
+  {"query": "can you set up a password manager that I host myself? I don't trust lastpass anymore after the breach. I've got a mac mini running 24/7", "should_trigger": true},
+  {"query": "where is my movie app? you set something up for me last week on this mac and I can't remember the address", "should_trigger": true},
+  {"query": "I'd like Paperless running so I can scan all my bills, and I want to reach it from my phone when I'm out. Can you handle that on this machine?", "should_trigger": true},
+  {"query": "my sonarr says 'download client unavailable' since yesterday, everything was installed with self-host. can you fix it", "should_trigger": true},
+  {"query": "Replace Dropbox for me. Just need a folder that syncs between my laptop and my wife's, hosted at home on the NUC under the TV.", "should_trigger": true},
+  {"query": "set up home assistant and a dashboard for all my home stuff on this ubuntu box please, I've never done docker", "should_trigger": true},
+  {"query": "back up all my self hosted apps tonight before I update macOS, I don't want to lose the jellyfin watch history", "should_trigger": true},
+  {"query": "Is there anything like Spotify I can run myself for my own mp3 collection (about 40GB in ~/Music)? want to listen from my phone", "should_trigger": true},
+  {"query": "Write me a docker-compose.yml for a Go API + Postgres + Redis for local development of my startup's backend, with healthchecks", "should_trigger": false},
+  {"query": "our k8s cluster on EKS keeps OOMKilling the jellyfin pod we run for the office lobby screen, here are the limits: memory 512Mi. what should I set?", "should_trigger": false},
+  {"query": "what NAS should I buy for about $400 for storing family photos? Synology vs QNAP vs building my own, compare them", "should_trigger": false},
+  {"query": "How do I cancel my Netflix subscription and get a refund for this month? I was charged twice", "should_trigger": false},
+  {"query": "deploy my next.js blog to a VPS on hetzner with nginx and certbot, I have the server IP and ssh key already", "should_trigger": false},
+  {"query": "Explain the difference between Plex, Jellyfin and Emby for a blog post I'm writing about media servers, around 800 words", "should_trigger": false},
+  {"query": "my docker desktop on mac says 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock' when I run docker ps, how do I fix it", "should_trigger": false},
+  {"query": "add a /health endpoint to the express server in src/server.ts that returns uptime and the git sha", "should_trigger": false},
+  {"query": "write a bash script that rsyncs ~/Photos to my external drive every night via cron and emails me if it fails", "should_trigger": false},
+  {"query": "I'm building a self-hosted SaaS product and need a license key system so customers can run it on-prem. How should I design the activation server?", "should_trigger": false}
+]

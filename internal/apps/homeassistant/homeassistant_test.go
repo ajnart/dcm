@@ -13,6 +13,7 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
 	stepstatus "github.com/ajnart/self-host/internal/status"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
@@ -30,7 +31,22 @@ type fakeHA struct {
 	mu       sync.Mutex
 	password string
 	failUser bool
+	tokens   int
 }
+
+func (f *fakeHA) Exec(_ context.Context, _ string, env map[string]string, _ ...string) (system.Result, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if env["SELF_HOST_MODE"] == "ensure" {
+		f.tokens++
+		return system.Result{Stdout: []byte(`{"status":"ok","user_id":"fixture-reader","token_id":"fixture-token-id","token":"fixture-access-token"}`)}, nil
+	}
+	return system.Result{Stdout: []byte(`{"status":"ok","user_id":"fixture-reader","token_id":"fixture-token-id"}`)}, nil
+}
+
+func (*fakeHA) LogText(context.Context, int, ...string) (string, error) { return "", nil }
+func (*fakeHA) Restart(context.Context, ...string) error                { return nil }
+func (*fakeHA) Up(context.Context, ...string) error                     { return nil }
 
 func (f *fakeHA) handler() http.Handler {
 	mux := http.NewServeMux()
@@ -40,9 +56,9 @@ func (f *fakeHA) handler() http.Handler {
 		defer f.mu.Unlock()
 		json.NewEncoder(w).Encode([]map[string]any{
 			{"step": "user", "done": f.password != ""},
-			{"step": "core_config", "done": false},
-			{"step": "analytics", "done": false},
-			{"step": "integration", "done": false},
+			{"step": "core_config", "done": f.password != ""},
+			{"step": "analytics", "done": f.password != ""},
+			{"step": "integration", "done": f.password != ""},
 		})
 	})
 	mux.HandleFunc("POST /api/onboarding/users", func(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +87,27 @@ func (f *fakeHA) handler() http.Handler {
 		}
 		json.NewEncoder(w).Encode(map[string]any{"type": "create_entry", "result": "0123456789abcdef0123456789abcdef"})
 	})
+	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer fixture-access-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"version": "2026.9.3"})
+	})
+	entity := map[string]any{
+		"entity_id": "input_text.fixture", "state": "controlled text", "attributes": map[string]any{"friendly_name": "Fixture"},
+		"last_changed": "2026-10-11T12:00:00Z", "last_updated": "2026-10-11T12:00:00Z",
+	}
+	mux.HandleFunc("GET /api/states", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]any{entity})
+	})
+	mux.HandleFunc("GET /api/states/input_text.fixture", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer fixture-access-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(entity)
+	})
 	return mux
 }
 
@@ -92,6 +129,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
+	h.Config.Exec = fake
 	ctx := context.Background()
 
 	if err := (homeassistant.App{}).Setup(ctx, h); err != nil {
@@ -109,6 +147,9 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if fake.tokens != 1 {
+		t.Errorf("token creation count = %d, want 1", fake.tokens)
 	}
 }
 

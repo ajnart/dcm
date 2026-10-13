@@ -1,0 +1,12 @@
+{"event":"run.start","msg":"doctor"}
+{"event":"step.ok","step":"docker","msg":"Docker: docker command found"}
+{"event":"step.ok","step":"docker-socket","msg":"Docker daemon: engine 29.4.0"}
+{"event":"step.ok","step":"compose","msg":"Docker Compose: compose 5.1.2"}
+{"event":"step.ok","step":"project-lock","msg":"Project lock: free"}
+{"event":"step.ok","step":"project","msg":"Project: /home/you/.self-host"}
+{"event":"step.ok","step":"exposure","msg":"Access: home network"}
+{"event":"step.warn","step":"lan-ip","msg":"LAN IP: stored 192.168.1.50 but this machine is now 192.168.0.31","hint":"Run self-host config set LAN_IP=auto","docs":"https://github.com/ajnart/selfhost-skills/wiki/Access"}
+{"event":"step.ok","app":"jellyfin","step":"running","msg":"jellyfin: running"}
+{"event":"step.ok","app":"jellyfin","step":"binding","msg":"jellyfin: port 8096 published"}
+{"event":"step.ok","app":"jellyfin","step":"reachable","msg":"jellyfin: health check ok"}
+{"event":"run.end","msg":"doctor: 1 warning"}

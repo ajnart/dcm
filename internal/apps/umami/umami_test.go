@@ -16,9 +16,12 @@ import (
 )
 
 type fakeUmami struct {
-	rotated   bool
-	generated string
-	rejectAll bool
+	rotated        bool
+	generated      string
+	rejectAll      bool
+	homarrUser     map[string]string
+	homarrPassword string
+	website        map[string]any
 }
 
 func (f *fakeUmami) identity(token string) map[string]any {
@@ -38,6 +41,7 @@ func (f *fakeUmami) handler() http.Handler {
 	})
 	mux.HandleFunc("POST /api/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
+			Username string `json:"username"`
 			Password string `json:"password"`
 		}
 		json.NewDecoder(r.Body).Decode(&body)
@@ -46,9 +50,15 @@ func (f *fakeUmami) handler() http.Handler {
 			return
 		}
 		switch {
-		case body.Password == "umami" && !f.rotated:
+		case body.Username == "self-host-homarr" && f.homarrUser != nil && body.Password == f.homarrPassword:
+			json.NewEncoder(w).Encode(map[string]any{
+				"token": "homarr-token", "user": map[string]any{
+					"id": f.homarrUser["id"], "username": "self-host-homarr", "role": "view-only", "isAdmin": false, "teams": []any{},
+				},
+			})
+		case body.Username == "admin" && body.Password == "umami" && !f.rotated:
 			json.NewEncoder(w).Encode(f.identity("seed-token"))
-		case body.Password != "" && body.Password == f.generated:
+		case body.Username == "admin" && body.Password != "" && body.Password == f.generated:
 			json.NewEncoder(w).Encode(f.identity("gen-token"))
 		default:
 			w.WriteHeader(http.StatusUnauthorized)
@@ -66,6 +76,94 @@ func (f *fakeUmami) handler() http.Handler {
 		f.generated = body.Password
 		f.rotated = true
 		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer gen-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if f.homarrUser != nil && r.PathValue("id") == f.homarrUser["id"] {
+			json.NewEncoder(w).Encode(f.homarrUser)
+			return
+		}
+		json.NewEncoder(w).Encode(nil)
+	})
+	mux.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer gen-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var body map[string]string
+		if json.NewDecoder(r.Body).Decode(&body) != nil || f.homarrUser != nil || body["username"] != "self-host-homarr" || body["role"] != "view-only" || body["id"] == "" || len(body["password"]) < 8 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.homarrPassword = body["password"]
+		delete(body, "password")
+		f.homarrUser = body
+		json.NewEncoder(w).Encode(f.homarrUser)
+	})
+	mux.HandleFunc("POST /api/websites", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer gen-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var body map[string]any
+		if json.NewDecoder(r.Body).Decode(&body) != nil || f.website != nil || body["id"] == "" || body["name"] != "self-host Homarr fixture" || body["domain"] != "self-host.invalid" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		body["userId"] = "a1b2c3d4-0000-4000-8000-000000000000"
+		body["createdBy"] = body["userId"]
+		body["teamId"] = nil
+		body["shareId"] = nil
+		body["recorderEnabled"] = false
+		f.website = body
+		json.NewEncoder(w).Encode(f.website)
+	})
+	mux.HandleFunc("GET /api/websites/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer gen-token" && r.Header.Get("Authorization") != "Bearer homarr-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if f.website != nil && r.PathValue("id") == f.website["id"] {
+			json.NewEncoder(w).Encode(f.website)
+			return
+		}
+		json.NewEncoder(w).Encode(nil)
+	})
+	mux.HandleFunc("POST /api/websites/{id}/transfer", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer gen-token" || f.website == nil || r.PathValue("id") != f.website["id"] {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var body map[string]string
+		if json.NewDecoder(r.Body).Decode(&body) != nil || f.homarrUser == nil || body["userId"] != f.homarrUser["id"] {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.website["userId"] = body["userId"]
+		json.NewEncoder(w).Encode(f.website)
+	})
+	mux.HandleFunc("GET /api/websites/{id}/{metric}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer homarr-token" || f.website == nil || r.PathValue("id") != f.website["id"] || f.website["userId"] != f.homarrUser["id"] {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.PathValue("metric") {
+		case "stats":
+			json.NewEncoder(w).Encode(map[string]int{"pageviews": 0, "visitors": 0, "visits": 0, "bounces": 0, "totaltime": 0})
+		case "pageviews":
+			if r.URL.Query().Get("unit") != "hour" || r.URL.Query().Get("timezone") != "UTC" || r.URL.Query().Get("startAt") == "" || r.URL.Query().Get("endAt") == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{"pageviews": []any{}, "sessions": []any{}})
+		case "active":
+			json.NewEncoder(w).Encode(map[string]int{"visitors": 0})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	})
 	return mux
 }
