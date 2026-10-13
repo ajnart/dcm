@@ -6,6 +6,12 @@ you read the output yourself. This guide is built into the binary and describes
 exactly the commands this version registers; run `self-host skill` again after
 `self-host self-update`.
 
+The interactive Dashboard has a brief opening entrance, skipped by any key
+without changing its meaning. Pre-boot animates in only after approving the
+first install; `enter` shows Activity, and `q` or `ctrl+c` quits. For less motion,
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips the decorative transitions and shows
+the first Action directly in Activity. Plain commands and `--json` never animate.
+
 ## Every conversation
 
 1. In a new conversation, run `self-host status --json` before anything else.

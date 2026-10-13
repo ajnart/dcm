@@ -232,13 +232,21 @@ func (a *program) credentialsCmd() *cobra.Command {
 			for _, id := range ids {
 				fmt.Fprintf(a.deps.Out, "  alias     %s %s\n", id, creds.Admin.Aliases[id])
 			}
+			ids = ids[:0]
+			for id := range creds.Admin.Emails {
+				ids = append(ids, id)
+			}
+			sort.Strings(ids)
+			for _, id := range ids {
+				fmt.Fprintf(a.deps.Out, "  email     %s %s\n", id, creds.Admin.Emails[id])
+			}
 			for id, values := range creds.Apps {
 				fmt.Fprintf(a.deps.Out, "\n%s\n", id)
 				for key, value := range values {
 					fmt.Fprintf(a.deps.Out, "  %s  %s\n", key, value)
 				}
 			}
-			fmt.Fprintf(a.deps.Out, "\nStored in %s (mode 0600).\n", "secrets.env")
+			fmt.Fprintf(a.deps.Out, "\nPasswords and API keys stored in %s (mode 0600).\n", "secrets.env")
 			return nil
 		},
 	}
