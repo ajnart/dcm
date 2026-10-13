@@ -72,7 +72,7 @@ self-host status --json
 - `--set app.key=value` (repeatable) for non-secret inputs; `--set app.port=N` picks a port.
 - `--set-file app.key=/path` for secrets: owner-only, mode 0600, `=-` reads stdin. Never pass secrets as arguments. Values land only in the Project's `secrets.env`.
 - `--media-root`, `--downloads-root`, `--exposure lan|local`, `--easy-names`, `--admin-user` (default `admin`) set new-Project choices. The Admin password is generated unless `SELF_HOST_ADMIN_PASSWORD` is in the environment.
-- With `--json`, mutations and `doctor` emit newline-delimited events; `status`, `profile`, `apps list`, `apps info` and `credentials` emit JSON documents. Existing keys are stable; new fields are additive.
+- With `--json`, mutations and `doctor` emit newline-delimited events; `status`, `profile`, `apps list`, `apps info`, `credentials` and `host report` emit JSON documents. Existing keys are stable; new fields are additive.
 - Exit codes: `0` success, `1` error, `2` incomplete Setup. Read each `step.fail` and its hint, repair, then `self-host setup <app>` (completed steps are skipped).
 - **A running container or HTTP 200 is not acceptance.** Verify the App does its job.
 - `self-host credentials` reveals the shared Admin login and per-App API keys. Use it privately; keep output out of chat, logs and screenshots.
@@ -168,6 +168,7 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 | Command                                              | Effect                                                                                                   |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `doctor`                                             | Check Docker, Compose, ports and the Host.                                                               |
+| `host report`                                       | Report OS, Docker access, IPv6 and bind results for ports 80 and 443. Changes nothing.                   |
 | `install <app\|recipe>...`                           | Install Apps or Recipes into the Project.                                                                |
 | `status [--updates]`                                 | URLs, container state, health and Setup; optionally check image updates.                                 |
 | `setup [app...]`                                     | Retry unfinished Setup.                                                                                  |
@@ -181,6 +182,12 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 | `access export --format caddy\|nginx\|traefik\|json` | Print each App's upstream for your own reverse proxy. Changes nothing.                                   |
 | `backup`, `restore`                                  | See [Backup and Restore](#backup-and-restore).                                                           |
 | `self-update`                                        | Replace the binary with the latest checksummed release.                                                  |
+
+`host report --json` has schema version `1`. It returns `os`, `architecture`,
+`docker`, `ipv6` and `ports`. Each port contains probes for `0.0.0.0`,
+`127.0.0.1` and `::`; each result is `ok`, `permission`, `in_use` or
+`unsupported`, with `error_class` when the operating system returned one.
+Findings do not change its successful exit status.
 
 Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
 
