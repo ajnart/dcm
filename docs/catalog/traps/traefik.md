@@ -1,5 +1,11 @@
 # Traefik traps
 
+Source status, 13 October 2026 (before this docs update):
+`9a588e5f92085c0c578320d1326c47156901e72b`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 ## Pitfalls
 
 - The App never enables insecure API/dashboard access. Control-interface
@@ -13,8 +19,8 @@
 ## Homarr source contract (#304)
 
 This is a source-only leaf for the [Homarr Link contract](../../homarr-integration-contract.md).
-The reference owner must register `traefikTarget()` in `targets.go`; this leaf
-does not change the registry or common ownership/reconciliation code.
+The reference owner registered `traefikTarget()` in `targets.go`; common
+ownership and reconciliation remain custodian-owned.
 
 The App already pins `traefik:v3.6.22`. Its official source tag resolves to
 `e15c8f86ba7370d01f529682f3b28d2f1d2bb4b5`. Setup and Check verify the saved
@@ -94,21 +100,21 @@ successful connections or backend health. Homarr tracks enabled/warning/error
 summary buckets; disabled entries contribute to total but not its error bucket.
 Its health badge is not acceptance that ordinary user routes work.
 
-Verification requests `widget.stats.refresh` with `force: true`, requires explicit
-non-error/non-stale flags, a valid positive timestamp and finite nonnegative
-integer values, and compares all three totals with fresh direct API reads.
-Missing values are never replaced with zero. Explicit empty TCP/UDP lists are
-valid; the protected HTTP management resources cannot be absent. Concurrent
-route changes can cause a retryable count mismatch without changing routing.
-The upstream refresh can return an existing snapshot when another worker owns
-its lock. A central per-request freshness check remains reference-custodian
-work; the flags alone do not prove a newly completed refresh.
+The SDK reads the catalog and prior snapshot, then forces exactly one Stats
+refresh per verification invocation. Its central guard rejects failed, stale,
+missing-value and non-advancing snapshots. The pure `verifyTraefikStats` callback
+validates `routers`, `services` and `middlewares` on that same sample: all must
+have `count` units and finite nonnegative integral values. Independently cached
+native/direct API counts may change and are not compared with refreshed Stats.
+Missing values are never replaced with zero. Explicit empty TCP/UDP lists remain
+valid; protected HTTP management resources cannot be absent. Native pagination,
+authentication, resource identity and summary checks remain separate.
 
 ### Acceptance limits
 
 Existing focused tests and the repository's full local gate validate source
-compilation and existing behavior, not execution of this unregistered leaf.
-Registration, central Stats freshness, genuine authenticated native API output,
+compilation and fixture behavior, not live native execution.
+Genuine authenticated native API output,
 rendered widgets, ordinary user request routing, restart/credential changes,
 both installation orders and removal/reinstallation still need contained
 acceptance. Common recorded ownership must preserve manually authored resources;
