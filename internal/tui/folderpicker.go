@@ -21,7 +21,7 @@ const maxFolderSuggestions = 50
 const maxFolderListed = 6
 
 // folderKeysHint is the one line every folder field explains its keys with.
-const folderKeysHint = "Tab completes, ↑ ↓ choose."
+const folderKeysHint = "Type or paste a path. Tab completes existing folders; ↑ ↓ choose."
 
 // folderPicker turns a path input into a folder picker: as the person types,
 // the input suggests the folders inside the typed path and the screen can

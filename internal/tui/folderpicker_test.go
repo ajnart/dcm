@@ -222,6 +222,24 @@ func TestWhereFoldersListTheFoldersInsideTheTypedPath(t *testing.T) {
 	}
 }
 
+func TestFolderInputsExplainTypingAndBrowsingInOnboardingAndSettings(t *testing.T) {
+	want := "Type or paste a path. Tab completes existing folders; ↑ ↓ choose."
+
+	onboarding, _ := atWhereMedia(t)
+	if out := screen(onboarding); !strings.Contains(flat(out), want) {
+		t.Fatalf("Onboarding folder input lacks %q\n%s", want, out)
+	}
+
+	settings, _ := settingsHost(t)
+	for range 6 {
+		settings = drive(t, settings, press("down"))
+	}
+	settings = drive(t, settings, press("enter"))
+	if out := screen(settings); !strings.Contains(flat(out), want) {
+		t.Fatalf("Settings folder input lacks %q\n%s", want, out)
+	}
+}
+
 func atWhereMedia(t *testing.T) (Model, *fakeBackend) {
 	t.Helper()
 	return atWhereMediaSized(t, 120, 40)
