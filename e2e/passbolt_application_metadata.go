@@ -24,7 +24,7 @@ if (getenv("DATASOURCES_DEFAULT_HOST") !== "passbolt-db" || getenv("DATASOURCES_
  $data["datasource"] = "driver-unavailable";
 } else {
  try {
-  $pdo = new PDO("mysql:host=db;port=3306;dbname=passbolt", "passbolt", (string)getenv("DATASOURCES_DEFAULT_PASSWORD"), [PDO::ATTR_TIMEOUT=>3, PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_PERSISTENT=>false]);
+  $pdo = new PDO("mysql:host=passbolt-db;port=3306;dbname=passbolt", "passbolt", (string)getenv("DATASOURCES_DEFAULT_PASSWORD"), [PDO::ATTR_TIMEOUT=>3, PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_PERSISTENT=>false]);
   $data["datasource"] = "connected";
   try {
    $one = $pdo->query("SELECT 1")->fetchColumn();
