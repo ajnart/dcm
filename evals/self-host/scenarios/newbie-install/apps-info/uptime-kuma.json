@@ -1,0 +1,10 @@
+{
+  "id": "uptime-kuma",
+  "name": "Uptime Kuma",
+  "description": "Get an alert when one of your websites or apps stops working",
+  "category": "Monitoring",
+  "image": "louislam/uptime-kuma:2.5.5",
+  "docs": "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
+  "port": 3001,
+  "inputs": []
+}

@@ -1,0 +1,6 @@
+{
+  "drift": [
+    {"setting": "LAN_IP", "stored": "192.168.1.50", "detected": "192.168.0.31", "fix": "Run self-host config review --yes to update it and rebuild Addresses"}
+  ],
+  "ok": ["TZ"]
+}
