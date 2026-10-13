@@ -31,7 +31,9 @@ Before any native widget query, the Link reads `integration.byId` with
 returns `secrets` entries with `kind`, `value` and `updatedAt`: `username`
 is a public string, while the private `password` value is `null`. The Link
 requires the returned ID and kind, exactly those two credential entries,
-and the public username to equal the Project's selected `AdminUser()`.
+and the public username to equal the Project's selected `AdminUser()`. It also
+requires the recorded owned integration ID and internal Address
+`http://navidrome:4533`.
 A missing/malformed identity or a different valid account stops as Manual
 with explicit instructions to restore this Link's owned integration to the
 saved Admin login; matching library/session data cannot adopt another
@@ -101,13 +103,20 @@ for this Homarr kind. Media Server shows all returned audio sessions,
 without bitrate/location toggles: the adapter supplies neither playback
 position nor a playing/paused state. No album/media selection is required.
 
-The Link preflights the direct API before any Homarr mutation, then compares
-authenticated direct counts with
-`widget.audioStats.getStats`, force-refreshes `widget.stats.refresh`
-and checks its error/freshness markers and values, then checks
-`widget.mediaServer.getCurrentStreams` against the direct session count.
-Errors are kept secret-safe. Homarr audio/session caches can briefly lag
-library or session changes; retry once the source and caches settle.
+The Link preflights the direct API before any Homarr mutation. Native verification
+retains saved Admin identity/destination, freshly authenticated complete Subsonic
+library/session readiness, `widget.audioStats.getStats` count semantics, and
+`widget.mediaServer.getCurrentStreams` integration/session identifiers and audio
+schema. Direct, native and Stats counts and session lengths are independently
+sampled; their volatile values are not required to equal each other.
+`verifyNavidromeStats` receives the shared SDK's one catalog-backed forced
+advancing Stats sample. All three selected metrics require `count` units and
+finite nonnegative integral values; album counts retain the 10,000-album bound.
+Within each native/Stats sample, zero albums require zero songs and populated
+albums require artists.
+Explicit zeros and empty session arrays remain valid. The central timestamp rule
+requires a finite positive advancing timestamp; this leaf adds no wall-clock
+limit. Errors remain secret-safe.
 Recorded IDs, ownership, shared widget preservation and removal use #262's
 unchanged reconciliation. No user media, playback, artwork retrieval or
 external music account is used by Setup or Check.
@@ -129,11 +138,18 @@ and fresh Setup/Check requests. Existing test bodies verify:
   than becoming a zero or successful readiness result.
 
 The request-bound control failed before the correction and passed afterward,
-without simulated delays. No test file, function or named case was added.
-The saved-identity guard is source/type-checked against the two upstream
-revisions; it has no directly callable existing test seam while the
-descriptor is unregistered. Its Manual recovery/native behavior remains
-part of parent-owned acceptance. These checks are not functional proof.
+without simulated delays. That earlier readiness correction added no test file,
+function or named case.
+Descriptor HTTP fixtures now invoke the real `verifyData` seam with the existing
+`statsFixture`. They cover populated independently changing samples, zero counts
+and empty sessions, invalid counts/units/catalog entries, the album bound, no-op
+refreshes, saved account/destination/owned-ID Manual guards and malformed native
+counts/sessions. Native failures acquire no Stats; semantic Stats failures use
+one catalog and one forced refresh. Focused App/Homarr tests, build, vet and
+formatting/diff checks are the source gate. Native adapter, Stats metrics and
+nullable session schema were rechecked at OCI source revision
+`3d4150e59f600876b7e308f857b2f21572b75348`. These fixtures are not functional,
+rendered or lifecycle proof.
 
 After the parent accepts the bounded reference runtime, a separately
 approved disposable Project must record resolved image digests and prove:

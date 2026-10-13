@@ -3,6 +3,7 @@ package homarr
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/ajnart/self-host/internal/apps/navidrome"
@@ -25,6 +26,7 @@ func navidromeTarget() target {
 			return err
 		},
 		verify: verifyNavidrome,
+		stats:  verifyNavidromeStats,
 	}
 }
 
@@ -35,11 +37,11 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 	if err != nil {
 		return errors.New("Homarr could not verify its saved Navidrome account; review access to this Link's owned integration, then run self-host setup homarr")
 	}
-	if !navidromeIdentityMatches(value, integrationID, to.AdminUser()) {
+	if integrationID != from.Secret(from.Key("linked_navidrome")) || !navidromeIdentityMatches(value, integrationID, to.AdminUser()) {
 		from.Info("Open Homarr's Integrations page and restore this Link's owned Navidrome integration to the saved Admin login from self-host credentials, then run self-host setup homarr. Do not change Navidrome accounts or adopt another account.")
 		return helpers.ErrManual
 	}
-	expected, err := navidrome.ReadHomarrData(ctx, to)
+	_, err = navidrome.ReadHomarrData(ctx, to)
 	if err != nil {
 		return err
 	}
@@ -53,20 +55,7 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 		return errors.New(failure)
 	}
 	statistics, _ := result["data"].(map[string]any)
-	if !navidromeCountsMatch(statistics, expected) {
-		return errors.New(failure)
-	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return errors.New(failure)
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New(failure)
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	statistics, _ = snapshot["values"].(map[string]any)
-	if !ok || updatedAt <= 0 || !navidromeCountsMatch(statistics, expected) {
+	if !navidromeCountsValid(statistics) {
 		return errors.New(failure)
 	}
 	value, err = apiKeyProcedure(ctx, from, "widget.mediaServer.getCurrentStreams", map[string]any{"integrationIds": []string{integrationID}, "showOnlyPlaying": false})
@@ -82,7 +71,7 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 		return errors.New(failure)
 	}
 	sessions, ok := stream["sessions"].([]any)
-	if !ok || len(sessions) != expected.Sessions {
+	if !ok {
 		return errors.New(failure)
 	}
 	for _, raw := range sessions {
@@ -101,7 +90,7 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 
 func navidromeIdentityMatches(value any, integrationID, username string) bool {
 	integration, ok := value.(map[string]any)
-	if !ok || integrationID == "" || username == "" || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "navidrome" {
+	if !ok || integrationID == "" || username == "" || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "navidrome" || stringField(integration, "url") != "http://navidrome:4533" {
 		return false
 	}
 	credentials, ok := integration["secrets"].([]any)
@@ -127,12 +116,28 @@ func navidromeIdentityMatches(value any, integrationID, username string) bool {
 	return usernameFound && passwordFound
 }
 
-func navidromeCountsMatch(statistics map[string]any, expected navidrome.HomarrData) bool {
-	for key, expectedCount := range map[string]int{"artistCount": expected.ArtistCount, "albumCount": expected.AlbumCount, "songCount": expected.SongCount} {
+func navidromeCountsValid(statistics map[string]any) bool {
+	for _, key := range []string{"artistCount", "albumCount", "songCount"} {
 		count, ok := statistics[key].(float64)
-		if !ok || count != float64(expectedCount) {
+		if !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
 			return false
 		}
 	}
+	albums := statistics["albumCount"].(float64)
+	if albums > 10000 || albums == 0 && statistics["songCount"] != float64(0) || albums > 0 && statistics["artistCount"] == float64(0) {
+		return false
+	}
 	return true
+}
+
+func verifyNavidromeStats(sample statsSample) error {
+	for _, metric := range []string{"artistCount", "albumCount", "songCount"} {
+		if sample.units[metric] != "count" {
+			return errors.New("Homarr Navidrome Stats catalog has unexpected units; retry self-host setup homarr")
+		}
+	}
+	if !navidromeCountsValid(sample.values) {
+		return errors.New("Homarr Navidrome Stats counts are incomplete or invalid; retry self-host setup homarr")
+	}
+	return nil
 }
