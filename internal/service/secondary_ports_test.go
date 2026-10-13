@@ -5,7 +5,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -17,16 +19,23 @@ import (
 
 func TestInstallAllocatesAvailableSecondaryPorts(t *testing.T) {
 	for _, tc := range []struct {
-		app app.App
-		key string
+		app      app.App
+		key      string
+		occupied int
 	}{
-		{qbittorrent.App{}, "torrent-port"},
-		{pihole.App{}, "dns-port"},
-		{technitiumdns.App{}, "dns-port"},
+		{qbittorrent.App{}, "torrent-port", 6881},
+		{pihole.App{}, "dns-port", 53},
+		{technitiumdns.App{}, "dns-port", 53},
 	} {
 		t.Run(tc.app.Info().ID, func(t *testing.T) {
 			h := newHarness(t, tc.app)
-			h.deps.PortFree = func(port int) bool { return port != 53 && port != 6881 }
+			h.deps.PortFree = func(int) bool { return true }
+			h.deps.BindUDP = func(_ string, address string) error {
+				if strings.HasSuffix(address, ":"+strconv.Itoa(tc.occupied)) {
+					return syscall.EADDRINUSE
+				}
+				return nil
+			}
 
 			if err := h.svc.Install(context.Background(), InstallOptions{Targets: []string{tc.app.Info().ID}}); err != nil && !errors.Is(err, ErrIncomplete) {
 				t.Fatal(err)

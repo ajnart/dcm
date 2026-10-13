@@ -48,6 +48,26 @@ func ProbePort(deps *system.Deps, port int) []PortProbe {
 	return probes
 }
 
+// ProbeUDPPort tries the UDP wildcard and loopback addresses Docker may bind.
+func ProbeUDPPort(deps *system.Deps, port int) []PortProbe {
+	addresses := []struct {
+		network string
+		address string
+		bind    string
+	}{
+		{network: "udp4", address: "0.0.0.0", bind: "0.0.0.0:" + strconv.Itoa(port)},
+		{network: "udp4", address: "127.0.0.1", bind: "127.0.0.1:" + strconv.Itoa(port)},
+		{network: "udp6", address: "::", bind: "[::]:" + strconv.Itoa(port)},
+	}
+	probes := make([]PortProbe, 0, len(addresses))
+	for _, address := range addresses {
+		result, class := classifyBind(deps.BindUDP(address.network, address.bind))
+		probes = append(probes, PortProbe{Network: address.network, Address: address.address,
+			Port: port, Result: result, ErrorClass: class})
+	}
+	return probes
+}
+
 // PortAvailable reports whether the probes found no address already held by
 // another listener. Permission and unsupported results are inconclusive.
 func PortAvailable(probes []PortProbe) bool {

@@ -112,13 +112,15 @@ type Deps struct {
 	PortFree func(port int) bool
 	// BindTCP tries one TCP bind and closes it immediately. Callers classify the
 	// returned operating-system error without keeping the port reserved.
-	BindTCP          func(network, address string) error
+	BindTCP func(network, address string) error
+	// BindUDP tries one UDP bind and closes it immediately.
+	BindUDP          func(network, address string) error
 	DiskUsage        func(path string) (DiskUsage, error)
 	PathExists       func(path string) bool
 	MachineResources func() (MachineResources, error)
 	FileLimits       func() (FileLimits, error)
 	FileSystem       func(path string) (FileSystem, error)
-	Resolver         Resolver
+	Resolver Resolver
 	// ListFolders returns the names of the folders inside dir.
 	ListFolders func(dir string) ([]string, error)
 	// ProcessAlive reports whether a PID belongs to a running process.

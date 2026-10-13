@@ -17,6 +17,7 @@ import (
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 	stepstatus "github.com/ajnart/self-host/internal/status"
+	"github.com/ajnart/self-host/internal/system"
 )
 
 type InstallOptions struct {
@@ -539,7 +540,7 @@ func (ss *session) allocateInputPorts(a app.App, values map[string]string, sets 
 		}
 		selected := 0
 		for port := start; port <= 65535; port++ {
-			if !used[port] && ss.s.Deps.PortFree(port) {
+			if !used[port] && portProtocolsAvailable(ss.s.Deps, port, input.HostPortProtocols) {
 				selected = port
 				break
 			}
@@ -555,6 +556,24 @@ func (ss *session) allocateInputPorts(a app.App, values map[string]string, sets 
 		}
 	}
 	return nil
+}
+
+func portProtocolsAvailable(deps *system.Deps, port int, protocols []string) bool {
+	for _, protocol := range protocols {
+		var probes []host.PortProbe
+		switch protocol {
+		case "tcp":
+			probes = host.ProbePort(deps, port)
+		case "udp":
+			probes = host.ProbeUDPPort(deps, port)
+		default:
+			return false
+		}
+		if !host.PortAvailable(probes) {
+			return false
+		}
+	}
+	return true
 }
 
 // setupAll runs Setup for each App, continuing past failures.
