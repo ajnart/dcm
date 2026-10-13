@@ -89,7 +89,7 @@ exactly the verified safe versions `2.5.1` and `2.5.2`. Older, unknown or malfor
 versions and failed reads emit only the caller's fixed App-specific recovery
 hint through `from.Info`, then return `helpers.ErrManual`; no provider request,
 mutation, cache or raw response/error output is added. Normal Apps retain the
-existing `supportedVersion` allowlist and failure behavior. The shared helper
+existing `supportedVersion` minimum-version policy and failure behavior. The shared helper
 alone is not leaf acceptance: real consumers, focused leaf checks and any
 remaining native/privacy or outside runtime prerequisites must be accounted for.
 
