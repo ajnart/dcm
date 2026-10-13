@@ -183,7 +183,7 @@ export function CopyComposeModal({
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="flex h-[90vh] max-w-[95vw] flex-col overflow-y-auto">
-        <AlertDialogHeader className="flex flex-row items-center justify-between">
+        <AlertDialogHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
             <AlertDialogTitle>Docker Compose Configuration</AlertDialogTitle>
             <AlertDialogDescription>
@@ -209,8 +209,6 @@ export function CopyComposeModal({
           {portConflicts && (
             <PortConflictsAlert portConflicts={portConflicts} />
           )}
-
-          <SelfHostCallout ids={selfHostIds} yamlMissing={yamlMissing} />
 
           <Tabs
             className="w-full"
@@ -284,7 +282,8 @@ export function CopyComposeModal({
           </Tabs>
         </div>
 
-        <AlertDialogFooter className="mt-4">
+        <AlertDialogFooter className="mt-4 sm:items-center">
+          <SelfHostCallout ids={selfHostIds} yamlMissing={yamlMissing} />
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onOpenChange.bind(null, false)}>
             Done

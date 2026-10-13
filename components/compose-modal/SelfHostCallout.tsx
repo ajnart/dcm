@@ -1,9 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { useClipboard } from "@/hooks/use-clipboard"
 import { buildSelfHostCommand, buildSelfHostLink } from "@/lib/selfhost"
 import { Check, Copy, ExternalLink } from "lucide-react"
-import { useState } from "react"
 
 interface SelfHostCalloutProps {
   ids: string[]
@@ -14,54 +13,41 @@ export default function SelfHostCallout({
   ids,
   yamlMissing = [],
 }: SelfHostCalloutProps) {
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useClipboard()
 
   if (ids.length === 0) return null
 
   const command = buildSelfHostCommand(ids)
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(command)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const lead =
+    yamlMissing.length > 0
+      ? `No YAML for ${yamlMissing.map((entry) => entry.name).join(", ")}? The self-host preview covers it:`
+      : "Rather not manage YAML? Try the self-host preview:"
 
   return (
-    <div className="mb-3 flex flex-col gap-3 rounded-md border bg-muted/50 p-3 md:flex-row md:items-center md:justify-between">
-      <div className="min-w-0">
-        <p className="font-medium text-sm">
-          Rather not manage YAML? self-host installs and wires these for you.
-        </p>
-        {yamlMissing.length > 0 && (
-          <p className="text-muted-foreground text-xs">
-            No YAML here for {yamlMissing.map((entry) => entry.name).join(", ")}
-            : self-host covers {yamlMissing.length === 1 ? "it" : "them"}.
-          </p>
+    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-muted-foreground text-sm sm:mt-0 sm:mr-auto">
+      <span>{lead}</span>
+      <button
+        type="button"
+        onClick={() => copy(command)}
+        aria-label="Copy self-host command"
+        className="flex min-w-0 max-w-full items-center gap-2 rounded-md border bg-muted px-2 py-1 text-left font-mono text-foreground text-xs transition-colors hover:bg-accent"
+      >
+        <span className="truncate">{command}</span>
+        {copied ? (
+          <Check className="h-3 w-3 shrink-0" />
+        ) : (
+          <Copy className="h-3 w-3 shrink-0" />
         )}
-        <button
-          type="button"
-          onClick={handleCopy}
-          aria-label="Copy self-host command"
-          className="mt-2 flex max-w-full items-center gap-2 rounded-md border bg-background px-2 py-1 text-left font-mono text-xs transition-colors hover:bg-accent"
-        >
-          <span className="truncate">{command}</span>
-          {copied ? (
-            <Check className="h-3 w-3 shrink-0" />
-          ) : (
-            <Copy className="h-3 w-3 shrink-0" />
-          )}
-        </button>
-      </div>
-      <Button asChild variant="outline" size="sm" className="shrink-0">
-        <a
-          href={buildSelfHostLink(ids)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Try it in your browser
-          <ExternalLink className="ml-2 h-3 w-3" />
-        </a>
-      </Button>
+      </button>
+      <a
+        href={buildSelfHostLink(ids)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 transition-colors hover:text-primary hover:underline"
+      >
+        Try it in your browser
+        <ExternalLink className="h-3 w-3" />
+      </a>
     </div>
   )
 }

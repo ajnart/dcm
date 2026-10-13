@@ -250,7 +250,11 @@ export default function FloatingBar({
               <button
                 type="button"
                 onClick={() =>
-                  copy(command).then(() => toast.success("Command copied"))
+                  copy(command).then((ok) =>
+                    ok
+                      ? toast.success("Command copied")
+                      : toast.error("Failed to copy command"),
+                  )
                 }
                 aria-label="Copy self-host command"
                 className="min-w-0 max-w-full truncate rounded-md border bg-muted px-2 py-1 text-left font-mono text-foreground text-xs transition-colors hover:bg-accent"
@@ -263,8 +267,7 @@ export default function FloatingBar({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 transition-colors hover:text-primary hover:underline"
               >
-                Rather not manage YAML? self-host installs and wires these for
-                you
+                Rather not manage YAML? Try the self-host preview
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
