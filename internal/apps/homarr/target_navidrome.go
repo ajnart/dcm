@@ -14,7 +14,7 @@ func navidromeTarget() target {
 	return target{
 		id: "navidrome", name: "Navidrome", kind: "navidrome", internal: fixed("http://navidrome:4533"),
 		secrets: func(_, to *helpers.H) []secret {
-			return []secret{{Kind: "username", Value: to.AdminUser()}, {Kind: "password", Value: to.AdminPassword()}}
+			return []secret{{Kind: "username", Value: to.Secret(to.Key("homarr_username"))}, {Kind: "password", Value: to.Secret(to.Key("homarr_password"))}}
 		},
 		widgets: []widget{
 			{kind: "audioStats", options: map[string]any{"showArtists": true, "showAlbums": true, "showSongs": true, "compactMode": false}},
@@ -37,8 +37,8 @@ func verifyNavidrome(ctx context.Context, from, to *helpers.H, integrationID str
 	if err != nil {
 		return errors.New("Homarr could not verify its saved Navidrome account; review access to this Link's owned integration, then run self-host setup homarr")
 	}
-	if integrationID != from.Secret(from.Key("linked_navidrome")) || !navidromeIdentityMatches(value, integrationID, to.AdminUser()) {
-		from.Info("Open Homarr's Integrations page and restore this Link's owned Navidrome integration to the saved Admin login from self-host credentials, then run self-host setup homarr. Do not change Navidrome accounts or adopt another account.")
+	if integrationID != from.Secret(from.Key("linked_navidrome")) || !navidromeIdentityMatches(value, integrationID, to.Secret(to.Key("homarr_username"))) {
+		from.Info("Open Homarr's Integrations page and restore this Link's owned Navidrome integration to the saved regular Homarr account; run self-host setup navidrome to verify that account, then run self-host setup homarr. Do not change Navidrome accounts or adopt another account.")
 		return helpers.ErrManual
 	}
 	_, err = navidrome.ReadHomarrData(ctx, to)

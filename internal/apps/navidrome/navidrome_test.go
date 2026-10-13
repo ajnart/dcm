@@ -49,17 +49,25 @@ func (r *recorder) hint() string {
 }
 
 type fakeNavidrome struct {
-	mu              sync.Mutex
-	password        string
-	loginLimit      int
-	logins, creates int
-	window          time.Time
-	now             func() time.Time
-	subsonicCalls   int
-	albumCount      int
-	albumPages      int
-	samplePages     int
-	malformedAlbum  bool
+	mu                  sync.Mutex
+	password            string
+	homarrPassword      string
+	homarrCreates       int
+	homarrAdmin         bool
+	homarrLibraryDenied bool
+	homarrMissingRole   bool
+	homarrNoLibraries   bool
+	lostCreateResponse  bool
+	adminSubsonicCalls  int
+	loginLimit          int
+	logins, creates     int
+	window              time.Time
+	now                 func() time.Time
+	subsonicCalls       int
+	albumCount          int
+	albumPages          int
+	samplePages         int
+	malformedAlbum      bool
 }
 
 func (f *fakeNavidrome) handler() http.Handler {
@@ -84,7 +92,11 @@ func (f *fakeNavidrome) handler() http.Handler {
 		}
 		var body struct{ Username, Password string }
 		json.NewDecoder(r.Body).Decode(&body)
-		if f.password == "" || body.Password != f.password {
+		if body.Username == "self-host-homarr" && f.homarrPassword != "" && body.Password == f.homarrPassword {
+			json.NewEncoder(w).Encode(map[string]any{"username": "self-host-homarr", "isAdmin": f.homarrAdmin, "id": "regular-owned", "token": "regular-token"})
+			return
+		}
+		if body.Username != "admin" || f.password == "" || body.Password != f.password {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -104,6 +116,66 @@ func (f *fakeNavidrome) handler() http.Handler {
 		f.password = body.Password
 		json.NewEncoder(w).Encode(map[string]any{"username": "admin", "isAdmin": true, "id": "abc", "token": "a.b.c"})
 	})
+	mux.HandleFunc("POST /api/user", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("X-ND-Authorization") != "Bearer a.b.c" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		var body struct {
+			Username string `json:"userName"`
+			Name     string `json:"name"`
+			Password string `json:"password"`
+			IsAdmin  bool   `json:"isAdmin"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		if body.Username != "self-host-homarr" || body.Password == "" || body.Name == "" || body.IsAdmin {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if f.homarrPassword != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.homarrPassword = body.Password
+		f.homarrCreates++
+		if f.lostCreateResponse {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"id": "regular-owned", "userName": body.Username, "isAdmin": false})
+	})
+	mux.HandleFunc("GET /api/user/regular-owned", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("X-ND-Authorization") != "Bearer regular-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		account := map[string]any{"id": "regular-owned", "userName": "self-host-homarr", "isAdmin": f.homarrAdmin, "libraries": []any{map[string]any{"id": 1}}}
+		if f.homarrMissingRole {
+			delete(account, "isAdmin")
+		}
+		if f.homarrNoLibraries {
+			delete(account, "libraries")
+		}
+		json.NewEncoder(w).Encode(account)
+	})
+	mux.HandleFunc("GET /api/library", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("X-ND-Authorization") != "Bearer regular-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if f.homarrLibraryDenied {
+			json.NewEncoder(w).Encode([]any{})
+			return
+		}
+		w.WriteHeader(http.StatusForbidden)
+	})
 	mux.HandleFunc("POST /rest/{endpoint}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -114,8 +186,11 @@ func (f *fakeNavidrome) handler() http.Handler {
 		}
 		body := map[string]any{"status": "ok", "version": "1.16.1", "type": "navidrome", "serverVersion": "0.64.0 (1072e9f7)"}
 		write := func() { json.NewEncoder(w).Encode(map[string]any{"subsonic-response": body}) }
-		token := fmt.Sprintf("%x", md5.Sum([]byte(f.password+r.Form.Get("s"))))
-		if f.password == "" || r.Form.Get("u") != "admin" || r.Form.Get("t") != token || len(r.Form.Get("s")) != 32 || r.Form.Get("v") != "1.16.1" || r.Form.Get("c") != "self-host" || r.Form.Get("f") != "json" {
+		if r.Form.Get("u") == "admin" {
+			f.adminSubsonicCalls++
+		}
+		token := fmt.Sprintf("%x", md5.Sum([]byte(f.homarrPassword+r.Form.Get("s"))))
+		if f.homarrPassword == "" || r.Form.Get("u") != "self-host-homarr" || r.Form.Get("t") != token || len(r.Form.Get("s")) != 32 || r.Form.Get("v") != "1.16.1" || r.Form.Get("c") != "self-host" || r.Form.Get("f") != "json" {
 			body["status"] = "failed"
 			body["error"] = map[string]any{"code": 40, "message": "Wrong username or password"}
 			write()
@@ -357,5 +432,96 @@ func TestLoginHTTPHasBoundedDeadlineAndHonorsCancellation(t *testing.T) {
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("login did not propagate caller cancellation: %v", err)
+	}
+}
+
+func TestHomarrRegularAccountRetryAndRecovery(t *testing.T) {
+	for _, lostResponse := range []bool{false, true} {
+		t.Run(fmt.Sprintf("lost response %v", lostResponse), func(t *testing.T) {
+			fake := &fakeNavidrome{lostCreateResponse: lostResponse}
+			server := httptest.NewServer(fake.handler())
+			t.Cleanup(server.Close)
+			saved := secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-admin-password"}
+			h := newH(t, server, saved, &recorder{})
+			err := (navidrome.App{}).Setup(t.Context(), h)
+			if (err != nil) != lostResponse {
+				t.Fatalf("Setup error=%v", err)
+			}
+			password := saved[h.Key("homarr_password")]
+			if password == "" || password == saved["ADMIN_PASSWORD"] {
+				t.Fatal("Homarr did not receive a separate saved password")
+			}
+			if err := (navidrome.App{}).Setup(t.Context(), h); err != nil {
+				t.Fatalf("retry: %v", err)
+			}
+			if err := (navidrome.App{}).Check(t.Context(), h); err != nil {
+				t.Fatalf("Check: %v", err)
+			}
+			if fake.creates != 1 || fake.homarrCreates != 1 || fake.adminSubsonicCalls != 0 || saved[h.Key("homarr_password")] != password || saved[h.Key("homarr_user_id")] != "regular-owned" {
+				t.Fatal("retry changed identities/credentials or used the administrator for Subsonic")
+			}
+			// The native user-create API forbids administration by a regular JWT.
+			req, err := http.NewRequest(http.MethodPost, server.URL+"/api/user", strings.NewReader(`{"userName":"unauthorized","password":"fixture","isAdmin":true}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("X-ND-Authorization", "Bearer regular-token")
+			resp, err := server.Client().Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusForbidden || fake.homarrCreates != 1 {
+				t.Fatal("regular account could create an administrator")
+			}
+			for _, breakAccount := range []string{"password lost", "password rejected", "administrator role", "missing native role", "missing library access", "administrative library access", "different native ID"} {
+				t.Run(breakAccount, func(t *testing.T) {
+					saved[h.Key("homarr_password")] = password
+					saved[h.Key("homarr_user_id")] = "regular-owned"
+					fake.homarrAdmin, fake.homarrMissingRole, fake.homarrLibraryDenied, fake.homarrNoLibraries = false, false, false, false
+					switch breakAccount {
+					case "password lost":
+						saved[h.Key("homarr_password")] = ""
+					case "password rejected":
+						saved[h.Key("homarr_password")] = "rejected-fixture"
+					case "administrator role":
+						fake.homarrAdmin = true
+					case "missing native role":
+						fake.homarrMissingRole = true
+					case "missing library access":
+						fake.homarrNoLibraries = true
+					case "administrative library access":
+						fake.homarrLibraryDenied = true
+					case "different native ID":
+						saved[h.Key("homarr_user_id")] = "different-owned"
+					}
+					before := saved[h.Key("homarr_password")]
+					if err := (navidrome.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+						t.Fatalf("expected account-preserving Manual recovery: %v", err)
+					}
+					if saved[h.Key("homarr_password")] != before || fake.homarrPassword != password || fake.password != saved["ADMIN_PASSWORD"] || fake.homarrCreates != 1 || fake.creates != 1 {
+						t.Fatal("account recovery mutated an existing user or credential")
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestHomarrRegularAccountPreservesConflictingUser(t *testing.T) {
+	fake := &fakeNavidrome{password: "fixture-admin-password", homarrPassword: "fixture-existing-user-password"}
+	server := httptest.NewServer(fake.handler())
+	t.Cleanup(server.Close)
+	saved := secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-admin-password"}
+	h := newH(t, server, saved, &recorder{})
+	if err := (navidrome.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("existing regular user did not require Manual recovery: %v", err)
+	}
+	password := saved[h.Key("homarr_password")]
+	if err := (navidrome.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("retry adopted an unrelated account: %v", err)
+	}
+	if fake.homarrCreates != 0 || fake.creates != 0 || fake.homarrPassword != "fixture-existing-user-password" || fake.password != saved["ADMIN_PASSWORD"] || password == "" || saved[h.Key("homarr_password")] != password || saved[h.Key("homarr_user_id")] != "" {
+		t.Fatal("conflict recovery changed an existing user or rotated the pending credential")
 	}
 }

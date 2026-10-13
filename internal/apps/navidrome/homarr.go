@@ -69,8 +69,8 @@ type subsonicResponse struct {
 }
 
 func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params url.Values) (*subsonicResponse, helpers.Response, error) {
-	if h.AdminUser() == "" || h.AdminPassword() == "" {
-		return nil, helpers.Response{}, errors.New("Navidrome Admin login is missing; run self-host setup navidrome")
+	if h.Secret(h.Key("homarr_username")) == "" || h.Secret(h.Key("homarr_password")) == "" {
+		return nil, helpers.Response{}, errors.New("Navidrome Homarr login is missing; run self-host setup navidrome")
 	}
 	if params == nil {
 		params = url.Values{}
@@ -80,9 +80,9 @@ func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params 
 		return nil, helpers.Response{}, errors.New("cannot prepare Navidrome authentication")
 	}
 	salt := hex.EncodeToString(randomSalt[:])
-	token := fmt.Sprintf("%x", md5.Sum([]byte(h.AdminPassword()+salt)))
+	token := fmt.Sprintf("%x", md5.Sum([]byte(h.Secret(h.Key("homarr_password"))+salt)))
 	h.Log.Secret(token)
-	params.Set("u", h.AdminUser())
+	params.Set("u", h.Secret(h.Key("homarr_username")))
 	params.Set("t", token)
 	params.Set("s", salt)
 	params.Set("v", "1.16.1")
@@ -116,7 +116,7 @@ func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params 
 		if endpoint == "getArtists" && value.Error != nil && value.Error.Code == 70 && value.Error.Message == "Library not found or empty" {
 			return value, resp, nil
 		}
-		return nil, resp, fmt.Errorf("Navidrome rejected %s; check the saved Admin login and Subsonic access, then run self-host setup navidrome", endpoint)
+		return nil, resp, fmt.Errorf("Navidrome rejected %s; check the saved Homarr login and library access, then run self-host setup navidrome", endpoint)
 	}
 	if value.Status != "ok" || value.Error != nil {
 		return nil, resp, errors.New("Navidrome did not confirm Subsonic success")
@@ -128,6 +128,9 @@ func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	data := HomarrData{}
+	if err := VerifyHomarrUser(ctx, h); err != nil {
+		return data, err
+	}
 	scanCount, err := readMusicLibrary(ctx, h)
 	if err != nil {
 		return data, err

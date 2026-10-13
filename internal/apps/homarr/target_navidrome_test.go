@@ -44,6 +44,9 @@ func TestNavidromeStatsVerification(t *testing.T) {
 		{"missing catalog metric", func(f *statsFixture, _, _, _ map[string]any) { f.metrics = f.metrics[1:] }, true, false, 0},
 		{"no advancement", func(f *statsFixture, _, _, _ map[string]any) { f.advance = false }, true, false, 1},
 		{"invalid timestamp", func(f *statsFixture, _, _, _ map[string]any) { f.afterRaw = "0" }, true, false, 1},
+		{"saved administrator username", func(_ *statsFixture, identity, _, _ map[string]any) {
+			identity["secrets"].([]any)[0].(map[string]any)["value"] = "admin"
+		}, true, true, 0},
 		{"wrong saved username", func(_ *statsFixture, identity, _, _ map[string]any) {
 			identity["secrets"].([]any)[0].(map[string]any)["value"] = "other-user"
 		}, true, true, 0},
@@ -65,7 +68,7 @@ func TestNavidromeStatsVerification(t *testing.T) {
 				fixture.metrics = append(fixture.metrics, map[string]any{"key": metric, "unit": "count"})
 			}
 			identity := map[string]any{"id": "nav-owned", "kind": "navidrome", "url": "http://navidrome:4533", "secrets": []any{
-				map[string]any{"kind": "username", "value": "admin"}, map[string]any{"kind": "password", "value": nil},
+				map[string]any{"kind": "username", "value": "self-host-homarr"}, map[string]any{"kind": "password", "value": nil},
 			}}
 			native := map[string]any{"artistCount": float64(1), "albumCount": float64(3), "songCount": float64(5)}
 			stream := map[string]any{"integrationId": "nav-owned", "integrationKind": "navidrome", "error": nil, "sessions": []any{map[string]any{
@@ -90,8 +93,33 @@ func navidromeVerificationFixture(t *testing.T, stats *statsFixture, identity, n
 	t.Helper()
 	statsHelper := stats.helpers(t)
 	peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/auth/login":
+			var login struct{ Username, Password string }
+			json.NewDecoder(r.Body).Decode(&login)
+			if login.Username != "self-host-homarr" || login.Password != "fixture-password" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{"id": "regular-owned", "username": "self-host-homarr", "isAdmin": false, "token": "fixture-user-token"})
+			return
+		case "/api/user/regular-owned":
+			if r.Header.Get("X-ND-Authorization") != "Bearer fixture-user-token" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{"id": "regular-owned", "userName": "self-host-homarr", "isAdmin": false, "libraries": []any{map[string]any{"id": 1}}})
+			return
+		case "/api/library":
+			if r.Header.Get("X-ND-Authorization") != "Bearer fixture-user-token" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 		r.ParseForm()
-		if r.Method != http.MethodPost || r.URL.RawQuery != "" || r.Form.Get("u") != "admin" || r.Form.Get("p") != "" || r.Form.Get("s") == "" || r.Form.Get("t") != fmt.Sprintf("%x", md5.Sum([]byte("fixture-password"+r.Form.Get("s")))) {
+		if r.Method != http.MethodPost || r.URL.RawQuery != "" || r.Form.Get("u") != "self-host-homarr" || r.Form.Get("p") != "" || r.Form.Get("s") == "" || r.Form.Get("t") != fmt.Sprintf("%x", md5.Sum([]byte("fixture-password"+r.Form.Get("s")))) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -119,7 +147,7 @@ func navidromeVerificationFixture(t *testing.T, stats *statsFixture, identity, n
 		json.NewEncoder(w).Encode(map[string]any{"subsonic-response": body})
 	}))
 	t.Cleanup(peer.Close)
-	to := helpers.New(helpers.Config{App: "navidrome", BaseURL: peer.URL, HTTP: peer.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-password"}})
+	to := helpers.New(helpers.Config{App: "navidrome", BaseURL: peer.URL, HTTP: peer.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-admin-password", "NAVIDROME_HOMARR_USERNAME": "self-host-homarr", "NAVIDROME_HOMARR_PASSWORD": "fixture-password", "NAVIDROME_HOMARR_USER_ID": "regular-owned"}})
 	homarr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("ApiKey") != "fixture-key" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -166,14 +194,29 @@ func navidromeVerificationFixture(t *testing.T, stats *statsFixture, identity, n
 func TestNavidromeNativeCredentialRejectionBeforeStats(t *testing.T) {
 	fixture := newStatsFixture()
 	identity := map[string]any{"id": "nav-owned", "kind": "navidrome", "url": "http://navidrome:4533", "secrets": []any{
-		map[string]any{"kind": "username", "value": "admin"}, map[string]any{"kind": "password", "value": nil},
+		map[string]any{"kind": "username", "value": "self-host-homarr"}, map[string]any{"kind": "password", "value": nil},
 	}}
 	from, to := navidromeVerificationFixture(t, fixture, identity, nil, nil)
-	to.SetSecret("ADMIN_PASSWORD", "rejected-fixture-password")
+	to.SetSecret(to.Key("homarr_password"), "rejected-fixture-password")
 	if err := navidromeTarget().verifyData(t.Context(), from, to, "nav-owned"); err == nil {
 		t.Fatal("accepted rejected Subsonic credentials")
 	}
 	if fixture.catalogs != 0 || fixture.refreshes != 0 {
 		t.Fatalf("native credential failure acquired Stats: catalogs=%d refreshes=%d", fixture.catalogs, fixture.refreshes)
+	}
+}
+
+func TestNavidromeHomarrSelectsRegularCredentials(t *testing.T) {
+	fixture := newStatsFixture()
+	identity := map[string]any{"id": "nav-owned", "kind": "navidrome", "url": "http://navidrome:4533", "secrets": []any{
+		map[string]any{"kind": "username", "value": "self-host-homarr"}, map[string]any{"kind": "password", "value": nil},
+	}}
+	from, to := navidromeVerificationFixture(t, fixture, identity, nil, nil)
+	credentials := navidromeTarget().secrets(from, to)
+	if len(credentials) != 2 || credentials[0].Value != to.Secret(to.Key("homarr_username")) || credentials[1].Value != to.Secret(to.Key("homarr_password")) {
+		t.Fatal("Homarr selected administrator credentials instead of the saved regular account")
+	}
+	if credentials[0].Value == to.AdminUser() || credentials[1].Value == to.AdminPassword() {
+		t.Fatal("Homarr receives the shared administrator login")
 	}
 }

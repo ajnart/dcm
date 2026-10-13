@@ -21,32 +21,45 @@ not Navidrome runtime acceptance or whole-image equivalence.
 
 Homarr's native `navidrome` kind requires exactly `username` and `password`.
 It does not accept a Navidrome UI JWT, an API key, or a precomputed salted
-Subsonic token in place of the password. The Link reuses the shared Admin
-login through helpers; it creates no extra identity, changes no account and
-rotates no credential. Existing first-admin Setup still preserves conflicting
-accounts and offers its account-preserving recovery hint.
+Subsonic token in place of the password. Navidrome Setup preserves the shared
+Admin login for administration and creates a dedicated regular account named
+`self-host-homarr` through the pinned native `POST /api/user` route with
+`isAdmin: false`. The account receives Navidrome's default libraries; Setup
+never expands that access or changes another user. The consuming Link uses
+only its Project-owned `NAVIDROME_HOMARR_USERNAME` and
+`NAVIDROME_HOMARR_PASSWORD`, with native user ownership recorded in
+`NAVIDROME_HOMARR_USER_ID`, through the existing private helpers boundary.
+Credentials are persisted before creation so an interrupted response can be
+recovered by login without creating a duplicate or rotating the password.
+A conflicting existing user, lost/rejected credential or changed identity
+requires account-preserving Manual recovery.
+
+Fresh native login and `GET /api/user/{id}` must confirm the exact saved ID,
+username, explicit `isAdmin: false` and accessible library IDs. The regular
+JWT must receive HTTP 403 from the administrative `GET /api/library` route.
+This is an authenticated, read-only scope probe; Setup and Check do not try
+an administrative mutation as a verification step.
 
 Before any native widget query, the Link reads `integration.byId` with
 `{"id": integrationID}`. This requires Homarr full integration access and
 returns `secrets` entries with `kind`, `value` and `updatedAt`: `username`
 is a public string, while the private `password` value is `null`. The Link
 requires the returned ID and kind, exactly those two credential entries,
-and the public username to equal the Project's selected `AdminUser()`. It also
-requires the recorded owned integration ID and internal Address
+and the public username to equal the Project's selected regular Homarr user.
+It also requires the recorded owned integration ID and internal Address
 `http://navidrome:4533`.
 A missing/malformed identity or a different valid account stops as Manual
-with explicit instructions to restore this Link's owned integration to the
-saved Admin login; matching library/session data cannot adopt another
-account. It does not read, print or claim to compare the redacted password.
+with instructions to restore this Link's owned integration to that regular
+account. Matching library/session data cannot adopt another account. It does
+not read, print or claim to compare the redacted password.
 
-A regular Navidrome user with accessible libraries can call the selected
-Subsonic endpoints; administrator privileges are not required by the
-Homarr adapter. This slice deliberately reuses the existing Admin login
-rather than creating an account. It is therefore **not a least-privilege
-read-only identity**: Navidrome has no per-endpoint credential scope for
-these user/password requests. Its user-creation Subsonic endpoints are not
-implemented. Creating or changing a dedicated account requires separate
-approval and is not performed here.
+A regular Navidrome user can call all selected Subsonic endpoints without
+administrator privileges. This uses the lowest supported native role, but
+Navidrome has **no read-only account role or per-endpoint password scope**.
+The account can still perform ordinary user operations such as playlist
+edits, streaming and permitted personal-account changes. Native user
+creation and library administration require an administrator. These limits
+must not be described as a read-only credential.
 
 Self-host probes authenticate with fresh `t = MD5(password + salt)` and `s`
 in a POST form, with `u`, `v=1.16.1`, `c=self-host`, and `f=json`.
@@ -104,7 +117,7 @@ without bitrate/location toggles: the adapter supplies neither playback
 position nor a playing/paused state. No album/media selection is required.
 
 The Link preflights the direct API before any Homarr mutation. Native verification
-retains saved Admin identity/destination, freshly authenticated complete Subsonic
+retains saved regular Homarr identity/destination, freshly authenticated complete Subsonic
 library/session readiness, `widget.audioStats.getStats` count semantics, and
 `widget.mediaServer.getCurrentStreams` integration/session identifiers and audio
 schema. Direct, native and Stats counts and session lengths are independently
@@ -151,6 +164,14 @@ nullable session schema were rechecked at OCI source revision
 `3d4150e59f600876b7e308f857b2f21572b75348`. These fixtures are not functional,
 rendered or lifecycle proof.
 
+The focused regular-account fixtures also verify that Homarr never receives
+administrator credentials, populated/zero native data reaches exactly one
+Stats sample, role/identity/scope drift stops verification, creation-response
+loss recovers without duplicate users, and missing/rejected secrets or a
+conflicting existing user preserve all users and passwords. The native
+user-create fixture denies an administrative mutation under the regular JWT.
+That fixture is source-contract evidence, not a real-server denial proof.
+
 After the parent accepts the bounded reference runtime, a separately
 approved disposable Project must record resolved image digests and prove:
 
@@ -165,7 +186,8 @@ approved disposable Project must record resolved image digests and prove:
   preservation of user-authored resources and other shared bindings, and
   removal/reinstallation without duplicates or stale bindings.
 
-No runtime acceptance or least-privilege identity is claimed by this PR.
+The regular-account role and selected-identity guards are source-validated.
+No native runtime or rendered acceptance is claimed by this PR.
 
 ## Official sources
 
@@ -184,3 +206,8 @@ No runtime acceptance or least-privilege identity is claimed by this PR.
 - [Navidrome album/session data](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/album_lists.go)
 - [Navidrome response schema](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/responses/responses.go)
 - [Navidrome reported version](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/consts/version.go)
+
+- [Navidrome native user routes and administrative library guard](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/nativeapi/native_api.go)
+- [Navidrome native login identity and JWT](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/auth.go)
+- [Navidrome user schema](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/model/user.go)
+- [Navidrome user creation, role policy and default library assignment](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/persistence/user_repository.go)
