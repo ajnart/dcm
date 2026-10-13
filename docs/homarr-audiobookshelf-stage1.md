@@ -1,9 +1,14 @@
 # Audiobookshelf credential prerequisite for Homarr
 
+Source status, 13 October 2026 (before this docs update):
+`32cf93355fb8d4467ab7cfce6ec9256f5500ecab`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Source-only prerequisite and descriptor, updated 13 October 2026. The #262
-reference is merged; registry wiring and complete lifecycle acceptance remain
-with the reference owner. The target in `internal/apps/homarr/target_audiobookshelf.go` is deliberately not
-registered. This is not a claim of a working Homarr widget.
+reference is merged and `audiobookshelfTarget()` is registered. Complete native,
+rendered and lifecycle acceptance remains with the approved runtime phase.
 
 ## Implemented boundary
 
