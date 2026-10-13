@@ -1,0 +1,10 @@
+{
+  "id": "docmost",
+  "name": "Docmost",
+  "description": "Write and share notes and documents with your family or team",
+  "category": "Productivity",
+  "image": "docker.io/docmost/docmost:0.96.0",
+  "docs": "https://docmost.com/docs/installation",
+  "port": 3000,
+  "inputs": []
+}

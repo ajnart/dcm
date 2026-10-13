@@ -3,11 +3,11 @@
 ## Supported upstream
 
 The compiled definition uses `ghcr.io/homarr-labs/homarr:latest`.
-The compatibility gate accepts exactly API versions `2.4.1`, `2.5.1` and `2.5.2`, read
-through authenticated `info.getInfo`; `2.5.0`, other `2.5.x` versions and unknown
-versions remain unsupported. Later images require compatibility verification.
-Setup and every Link reject unsupported versions with a backup/version/retry
-hint. `integration.getKinds` must expose the descriptor's kind and the exact
+The compatibility gate requires API version `>= 2.4.1`, read through
+authenticated `info.getInfo`. Stable versions are compared numerically by
+major, minor and patch; newer releases do not need a separate allowlist entry.
+Setup and every Link reject older or malformed versions with a recovery hint.
+`integration.getKinds` must expose the descriptor's kind and the exact
 supplied credential alternative. Missing credentials name the peer's Setup
 command; they are not submitted as empty keys.
 
@@ -29,10 +29,12 @@ was published at source `7eb9a417a60d759adce5f7ac15ceb594aefad471`.
 Its source comparison against the validated `2.5.1` OCI revision changes only
 the changelog, root version and Beszel chart CSS. API, authentication, Stats,
 Downloads and all 39 native peer implementations are unchanged; the ten privacy
-owner source hashes match. Exact `2.5.2` support is therefore source-prepared,
-with fresh `2.5.2` image/API proof still pending. These source comparisons and
-narrow API observations do not establish native/privacy, browser or lifecycle
-acceptance; peer-specific privacy holds remain in place.
+owner source hashes match. The fresh published `2.5.2` image check verified its
+authenticated API version, image index and OCI revision. These audits record
+specific checked contracts rather than a fixed global supported-version list.
+These source comparisons and narrow API observations do not establish
+peer-specific native/privacy, browser or lifecycle acceptance; peer-specific
+privacy holds remain in place.
 
 ### Historical 2.4.1 image proof
 
@@ -79,6 +81,17 @@ instructions through `from.Info` before returning Manual; the step retains its
 normal descriptor hint. Nil preserves existing behavior. Removal and absence
 checks never call it, so unavailable credentials or prerequisites cannot block
 owned cleanup. It is not an Address resolver or a TLS bypass.
+
+Privacy-sensitive leaf preflights can call
+`requireCredentialSafeHomarr(ctx, from, hint)` before provider requests or
+mutation. The helper performs one authenticated `info.getInfo` read and admits
+exactly the verified safe versions `2.5.1` and `2.5.2`. Older, unknown or malformed
+versions and failed reads emit only the caller's fixed App-specific recovery
+hint through `from.Info`, then return `helpers.ErrManual`; no provider request,
+mutation, cache or raw response/error output is added. Normal Apps retain the
+existing `supportedVersion` minimum-version policy and failure behavior. The shared helper
+alone is not leaf acceptance: real consumers, focused leaf checks and any
+remaining native/privacy or outside runtime prerequisites must be accounted for.
 
 The optional
 `verify(context.Context, from, to *helpers.H, integrationID string) error`
