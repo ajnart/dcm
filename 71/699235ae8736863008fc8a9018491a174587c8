@@ -1,0 +1,93 @@
+video/reel/HANDOFF.md
+  s_a58ef3d97f782e::t_e469aa1836c6d9 24,90-91
+video/reel/agents.js
+  s_378d5db6c5f6de::t_1bfdce4ecf2dd2 53,55,59,103
+video/reel/assets/intro.json
+  s_378d5db6c5f6de::t_272cebcb0b9ac7 1
+video/reel/assets/logo.svg
+  s_378d5db6c5f6de::t_fd756a8836b959 1-128
+video/reel/audio/SOURCES.md
+  s_10121d22af0be1::t_306875042174b3 29
+video/reel/audio/cues.json
+  s_10121d22af0be1::t_0d964f2941bb3b 2,10,14,18,20-24,27-28,31-32,35-36,39-40,43-44,51,56-61,66,78,82,86-89,93,97,101,105,109,113,117,121,125,129,133,137,141,244,248-261,266-295,297-326,329,334,339,344,349,354,359,364,369,374,379,384,389,394,399,404,409,414,419,424,429,434,439,444,449,454,459,464,468,472,477,482,487,492,497,502,507,512,518,524,529,535,541,546,552,558,563,569,575,580,586,592,597,603,609,614,620,625,630,636,641,646,651,656,661,666,672,677,682,687,692,697,702,707,712,716,722,727,732,737,743,749,755,760,765,770,776,782,788,794,799,805,810,815,820,825,830,835,840,845,850,855,860,865,870,875,880,885,890,895,900,905,910,915,920,925,930,935,940,945,950,954,959,963,968,972,976,981,985,990,995,1000,1004,1008,1012,1016,1022,1028,1035,1041,1048,1054,1059-1083,1087,1092,1097,1102,1107,1112,1117,1122,1127,1132,1137,1142,1147,1152,1157,1162,1167,1172,1177,1182,1187,1192,1197,1202,1207,1212,1216,1221,1226,1231,1236,1241,1246,1251,1256,1261,1266,1271,1276,1281,1286,1291,1296,1301,1306
+video/reel/board.js
+  s_10121d22af0be1::t_2ecb22e429c891 34-35,53-54
+video/reel/end.js
+  s_10121d22af0be1::t_e1ca4de796a48e 3,8,10,12-19,27,30,33-43,69
+video/reel/index.html
+  s_10121d22af0be1::t_112fa294f1b60f 21-26,28
+video/reel/intro.js
+  s_7483fc463c4a1b::t_85971d35790f13 1-73
+video/reel/introsc.js
+  s_10121d22af0be1::t_c68105455c9a81 1-31
+video/reel/links.js
+  s_10121d22af0be1::t_25d7eca41315f6 40-41
+video/reel/logo.js
+  s_4dd7acd8d1c574::t_e87f89995eeb9e 1-47
+video/reel/main.js
+  s_10121d22af0be1::t_bee86d826708f0 4,26,28
+video/reel/product.js
+  s_10121d22af0be1::t_b571f2fb218f0a 1,3,5,11-13,16-17,19,21,23-27,35,37
+video/reel/setup.js
+  s_9128f94176201b::t_bf5c2c2ac62ba7 26
+video/reel/styles.css
+  s_10121d22af0be1::t_98bf1161b5c27e 259-260,262-265,267-268,271-272,277,280-281,285,289,1474-1476
+video/reel/timeline.js
+  s_9128f94176201b::t_1fed51c2661b07 6,14-22,28-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "71699235ae8736863008fc8a9018491a174587c8",
+  "prompts": {},
+  "sessions": {
+    "s_10121d22af0be1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7247faa-e0fd-4e4b-9cda-b22bf9bfdbc1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_4dd7acd8d1c574": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13eb7580-d2ad-4b87-a500-6181bc511085",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_7483fc463c4a1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b6432c6-ee0d-4e52-b004-9dbb7d3613ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_9128f94176201b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c14b4a80-4655-47d8-8430-d71ef9966292",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a58ef3d97f782e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "77983d98-2996-4705-ad20-7a17d90abb42",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
