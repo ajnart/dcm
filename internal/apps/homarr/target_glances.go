@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 
 	"github.com/ajnart/self-host/internal/apps/glances"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -19,6 +20,7 @@ func glancesTarget() target {
 		},
 		preflight: preflightGlances,
 		verify:    verifyGlances,
+		stats:     verifyGlancesStats,
 	}
 }
 
@@ -57,7 +59,8 @@ func verifyGlances(ctx context.Context, from, to *helpers.H, integrationID strin
 	}
 	for _, key := range []string{"cpuUtilization", "memUsedInBytes", "memAvailableInBytes", "uptime"} {
 		number, ok := health[key].(float64)
-		if !ok || number < 0 || key == "cpuUtilization" && number > 100 {
+		if !ok || math.IsNaN(number) || math.IsInf(number, 0) || number < 0 || key == "cpuUtilization" && number > 100 ||
+			(key == "memUsedInBytes" || key == "memAvailableInBytes") && math.Trunc(number) != number {
 			return errors.New(failure)
 		}
 	}
@@ -67,29 +70,22 @@ func verifyGlances(ctx context.Context, from, to *helpers.H, integrationID strin
 	}
 	for _, key := range []string{"up", "down"} {
 		number, ok := network[key].(float64)
-		if !ok || number < 0 {
+		if !ok || math.IsNaN(number) || math.IsInf(number, 0) || number < 0 {
 			return errors.New(failure)
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": false})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New("Homarr Glances Stats are unavailable; retry self-host setup homarr after its statistics refresh completes")
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	if !ok || updatedAt <= 0 {
-		return errors.New("Homarr did not return a completed Glances Stats refresh; retry self-host setup homarr")
-	}
-	values, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New(failure)
-	}
-	for _, key := range []string{"cpu", "memoryUsed", "memoryAvailable", "uptime"} {
-		number, ok := values[key].(float64)
-		if !ok || number < 0 || key == "cpu" && number > 100 {
+	return nil
+}
+
+// Homarr reports total minus used memory, not Glances' free-memory observation.
+// Native and Stats samples can change independently; neither proves a physical host.
+func verifyGlancesStats(sample statsSample) error {
+	const failure = "Homarr returned incomplete Glances resource Stats; retry self-host setup glances, then self-host setup homarr"
+	for key, unit := range map[string]string{"cpu": "percent", "memoryUsed": "bytes", "memoryAvailable": "bytes", "uptime": "seconds"} {
+		number, ok := sample.values[key].(float64)
+		if sample.units[key] != unit || !ok || math.IsNaN(number) || math.IsInf(number, 0) || number < 0 ||
+			key == "cpu" && number > 100 ||
+			(key == "memoryUsed" || key == "memoryAvailable") && math.Trunc(number) != number {
 			return errors.New(failure)
 		}
 	}

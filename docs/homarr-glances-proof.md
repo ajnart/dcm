@@ -47,11 +47,14 @@ Defaults:
 false`); these are not observed package-update or reboot health results.
 
 The descriptor verifies the owned integration's
-`widget.healthMonitoring.getSystemHealthStatus` data and a completed, non-error,
-non-stale `widget.stats.refresh` snapshot. Numeric zero is accepted only when
-present in actual data. Homarr's health response must match the requested
-integration ID and exact Glances version. Stats refresh uses Homarr's bounded
-read-only source refresh and respects its normal cache window (`force: false`).
+`widget.healthMonitoring.getSystemHealthStatus` data. Homarr's health response
+must match the requested integration ID and exact Glances version. The shared
+Stats SDK discovers the selected catalog keys and acquires one forced refresh
+with a finite positive advancing timestamp, no error and no stale flag. The
+pure Glances Stats callback validates percent CPU in 0–100, integral nonnegative
+bytes and nonnegative uptime in seconds. All values must be finite and defined;
+legitimate zero values are accepted. Native and Stats observations can change
+independently, so they are not compared for equality.
 The peer preflight verifies Glances before compatibility requests or any Link
 mutation; authentication produces a specific Manual recovery message. Removal
 does not probe Glances, so unavailable credentials or data cannot block cleanup.
