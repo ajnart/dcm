@@ -1,0 +1,19 @@
+internal/app/link_pins_test.go
+  s_18fb16dea0e4db::t_e4cc95e13bae6a 24-25,31-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7b40f1f68032fbbebf71b571a4bc804e4fd282c",
+  "prompts": {},
+  "sessions": {
+    "s_18fb16dea0e4db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "252c7f71-5e08-4c19-a1ce-9ac61d55e3a9",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
