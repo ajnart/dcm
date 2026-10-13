@@ -11,9 +11,11 @@ import (
 
 // statsSample carries one completed refresh and its catalog. Timestamps are
 // Unix milliseconds; leaves may enforce their own clock limits and units.
+// retryAt preserves the refresh response's raw metadata for leaf validation.
 type statsSample struct {
 	values      map[string]any
 	units       map[string]string
+	retryAt     any
 	startedAt   float64
 	completedAt float64
 	updatedAt   float64
@@ -61,7 +63,7 @@ func readStatsSample(ctx context.Context, h *helpers.H, integrationID string, se
 	}
 	for _, metric := range selected {
 		if _, present := units[metric]; !present {
-			return statsSample{}, fmt.Errorf("Homarr does not expose %s Stats; use Homarr 2.4.1 and retry Setup", metric)
+			return statsSample{}, fmt.Errorf("Homarr does not expose %s Stats; use Homarr %s and retry Setup", metric, supportedHomarrVersions)
 		}
 	}
 	sample, err := refreshStatsSample(ctx, h, integrationID)
@@ -111,7 +113,7 @@ func refreshStatsSample(ctx context.Context, h *helpers.H, integrationID string)
 	if !ok {
 		return statsSample{}, errors.New("Homarr did not return refreshed Stats values")
 	}
-	return statsSample{values: values, startedAt: started, completedAt: completed, updatedAt: updated}, nil
+	return statsSample{values: values, retryAt: after["retryAt"], startedAt: started, completedAt: completed, updatedAt: updated}, nil
 }
 
 func validStatsTimestamp(timestamp float64) bool {
