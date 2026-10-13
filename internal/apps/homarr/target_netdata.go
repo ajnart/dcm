@@ -15,6 +15,7 @@ func netdataTarget() target {
 		widgets:   []widget{statWidget("warnings", "criticals")},
 		preflight: preflightNetdata,
 		verify:    verifyNetdata,
+		stats:     verifyNetdataStats,
 	}
 }
 
@@ -26,27 +27,17 @@ func preflightNetdata(ctx context.Context, from, to *helpers.H) error {
 	return err
 }
 
-func verifyNetdata(ctx context.Context, from, _ *helpers.H, integrationID string) error {
-	started := from.Now().UnixMilli()
-	value, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New("Homarr could not refresh Netdata alarm counts; check local API access and retry self-host setup homarr")
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	if !ok || math.IsNaN(updatedAt) || math.IsInf(updatedAt, 0) || updatedAt < float64(started) || updatedAt > float64(from.Now().UnixMilli()+30_000) {
+func verifyNetdata(ctx context.Context, from, to *helpers.H, _ string) error {
+	return preflightNetdata(ctx, from, to)
+}
+
+func verifyNetdataStats(sample statsSample) error {
+	if sample.updatedAt < sample.startedAt || sample.updatedAt > sample.completedAt+30_000 {
 		return errors.New("Homarr did not return freshly collected Netdata statistics; check its refresh queue and clock, then retry self-host setup homarr")
 	}
-	counts, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Netdata alarm counts")
-	}
 	for _, key := range []string{"warnings", "criticals"} {
-		count, ok := counts[key].(float64)
-		if !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
 			return errors.New("Homarr returned incomplete Netdata alarm counts; retry self-host setup homarr")
 		}
 	}
