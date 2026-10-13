@@ -1,0 +1,12 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'none'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+
+/install.sh
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache
+
+/install.sh.sha256
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache
