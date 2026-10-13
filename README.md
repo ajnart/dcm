@@ -8,9 +8,9 @@
 
 **Run your own apps at home without learning Docker.** One Go binary installs, wires together and operates self-hosted Apps with Docker Compose: a terminal Dashboard for people, plain commands for agents.
 
-[![self-host showreel](docs/assets/reel-poster.jpg)](https://self-host.fyi/#reel)
 
-▶ [Watch the showreel](https://self-host.fyi/#reel) · [Try it in your browser](https://self-host.fyi/#play)
+https://github.com/user-attachments/assets/b964b8b3-7dca-4020-8699-ed1697be38b2
+
 
 > **Release gate:** the installer is public, but anonymous CLI downloads are not available yet. Releases, the skill and self-update still use the private `ajnart/selfhost-skills` repository; public artifact distribution is a separate gate. See [Install details](#install-details).
 
