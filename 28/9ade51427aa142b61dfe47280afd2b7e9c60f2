@@ -1,0 +1,862 @@
+README.md
+  h_d6e478ca18e517 11-16,27,105-108,111,119-123,548-554
+docs/adguard-homarr-prerequisites.md
+  h_d6e478ca18e517 1-267
+docs/aria2-homarr-prerequisite-proof.md
+  h_d6e478ca18e517 1-146
+docs/catalog/traps/adguard-home.md
+  h_d6e478ca18e517 6-10
+docs/catalog/traps/aria2.md
+  h_d6e478ca18e517 11-12,18
+docs/catalog/traps/audiobookshelf.md
+  h_d6e478ca18e517 10-16
+docs/catalog/traps/dashdot.md
+  h_d6e478ca18e517 6-7
+docs/catalog/traps/emby.md
+  h_d6e478ca18e517 7
+docs/catalog/traps/frigate.md
+  h_d6e478ca18e517 6,8-9
+docs/catalog/traps/glances.md
+  h_d6e478ca18e517 5,7-10
+docs/catalog/traps/gotify.md
+  h_d6e478ca18e517 3-8,14-20
+docs/catalog/traps/home-assistant.md
+  h_d6e478ca18e517 9-10
+docs/catalog/traps/lidarr.md
+  h_d6e478ca18e517 7-9
+docs/catalog/traps/linkwarden.md
+  h_d6e478ca18e517 3-8,18-21
+docs/catalog/traps/netdata.md
+  h_d6e478ca18e517 5-8,15
+docs/catalog/traps/nextcloud.md
+  h_d6e478ca18e517 3-8,18-19
+docs/catalog/traps/paperless-ngx.md
+  h_d6e478ca18e517 3-8,17-21
+docs/catalog/traps/patchmon.md
+  h_d6e478ca18e517 10,16
+docs/catalog/traps/peanut.md
+  h_d6e478ca18e517 7-10,13-60
+docs/catalog/traps/pihole.md
+  h_d6e478ca18e517 3-8,18-117
+docs/catalog/traps/plex.md
+  h_d6e478ca18e517 16-124
+docs/catalog/traps/sabnzbd.md
+  h_d6e478ca18e517 6-9,16
+docs/catalog/traps/slskd.md
+  h_d6e478ca18e517 8-10,15-16,19-24
+docs/catalog/traps/speedtest-tracker.md
+  h_d6e478ca18e517 6-10
+docs/catalog/traps/tdarr.md
+  h_d6e478ca18e517 10-11
+docs/catalog/traps/technitium-dns.md
+  h_d6e478ca18e517 3-8,18-81
+docs/catalog/traps/tracearr.md
+  h_d6e478ca18e517 15-85
+docs/catalog/traps/traefik.md
+  h_d6e478ca18e517 3-8,11-13,18-136
+docs/catalog/traps/transmission.md
+  h_d6e478ca18e517 10-24
+docs/catalog/traps/umami.md
+  h_d6e478ca18e517 8-11,16
+docs/catalog/traps/uptime-kuma.md
+  h_d6e478ca18e517 10-48
+docs/catalog/traps/wud.md
+  h_d6e478ca18e517 20-27
+docs/handoffs/release-2026-10-13/.gitattributes
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/APP-QUEUE.md
+  h_d6e478ca18e517 1-505
+docs/handoffs/release-2026-10-13/CHECKPOINTS.md
+  h_d6e478ca18e517 1-56
+docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md
+  h_d6e478ca18e517 1-115
+docs/handoffs/release-2026-10-13/CURRENT-STATUS.md
+  h_d6e478ca18e517 1-64
+docs/handoffs/release-2026-10-13/HANDOFF.md
+  h_d6e478ca18e517 1-288
+docs/handoffs/release-2026-10-13/LATEST-UPDATE.md
+  h_d6e478ca18e517 1-61
+docs/handoffs/release-2026-10-13/PR-HISTORY.md
+  h_d6e478ca18e517 1-143
+docs/handoffs/release-2026-10-13/PR-STACKS.md
+  h_d6e478ca18e517 1-2035
+docs/handoffs/release-2026-10-13/SHA256SUMS
+  h_d6e478ca18e517 1-129
+docs/handoffs/release-2026-10-13/START-HERE.md
+  h_d6e478ca18e517 1-46
+docs/handoffs/release-2026-10-13/TRACKER-INVENTORY.md
+  h_d6e478ca18e517 1-142
+docs/handoffs/release-2026-10-13/evidence/aggregate/artifact-hashes.reconciled.final.json
+  h_d6e478ca18e517 1-25
+docs/handoffs/release-2026-10-13/evidence/aggregate/browser-cleanup-readback.final.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/evidence/aggregate/captured-resources.json
+  h_d6e478ca18e517 1-991
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.final.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.json
+  h_d6e478ca18e517 1-64
+docs/handoffs/release-2026-10-13/evidence/aggregate/debug-homarr.redacted.log
+  h_d6e478ca18e517 1-127
+docs/handoffs/release-2026-10-13/evidence/aggregate/image-provenance.final.json
+  h_d6e478ca18e517 1-56
+docs/handoffs/release-2026-10-13/evidence/aggregate/install.redacted.log
+  h_d6e478ca18e517 1-2484
+docs/handoffs/release-2026-10-13/evidence/aggregate/per-app-results.reconciled.final.json
+  h_d6e478ca18e517 1-2562
+docs/handoffs/release-2026-10-13/evidence/aggregate/status.redacted.log
+  h_d6e478ca18e517 1-2046
+docs/handoffs/release-2026-10-13/evidence/aggregate/summary.reconciled.final.json
+  h_d6e478ca18e517 1-115
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/hashes.json
+  h_d6e478ca18e517 1-22
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/result.json
+  h_d6e478ca18e517 1-243
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.after.json
+  h_d6e478ca18e517 1-70
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.before.json
+  h_d6e478ca18e517 1-56
+docs/handoffs/release-2026-10-13/evidence/tested-source/checks.json
+  h_d6e478ca18e517 1-12
+docs/handoffs/release-2026-10-13/evidence/tested-source/gate.json
+  h_d6e478ca18e517 1-44
+docs/handoffs/release-2026-10-13/evidence/tested-source/inventory.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/evidence/tested-source/manifest.final.json
+  h_d6e478ca18e517 1-10509
+docs/handoffs/release-2026-10-13/evidence/tested-source/plugin-probe.json
+  h_d6e478ca18e517 1-53
+docs/handoffs/release-2026-10-13/export-provenance.json
+  h_d6e478ca18e517 1-387
+docs/handoffs/release-2026-10-13/github/app-queue.json
+  h_d6e478ca18e517 1-1284
+docs/handoffs/release-2026-10-13/github/checkpoint-commits.json
+  h_d6e478ca18e517 1-772
+docs/handoffs/release-2026-10-13/github/comments/pr-259.json
+  h_d6e478ca18e517 1-132
+docs/handoffs/release-2026-10-13/github/comments/pr-300.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-310.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-311.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-312.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-313.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-315.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-317.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-318.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-319.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-320.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-321.json
+  h_d6e478ca18e517 1-32
+docs/handoffs/release-2026-10-13/github/comments/pr-322.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-323.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-324.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-325.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-326.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-327.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-328.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-329.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-330.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-331.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-333.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-334.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-335.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-336.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-337.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-338.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-339.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-340.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-341.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-342.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-343.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-344.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-345.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-346.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-347.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-348.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-349.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-351.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-352.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-355.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/concurrent-additional-prs.json
+  h_d6e478ca18e517 1-980
+docs/handoffs/release-2026-10-13/github/dependencies.json
+  h_d6e478ca18e517 1-668
+docs/handoffs/release-2026-10-13/github/evaluation-current.json
+  h_d6e478ca18e517 1-139
+docs/handoffs/release-2026-10-13/github/handoff-publication.json
+  h_d6e478ca18e517 1-15
+docs/handoffs/release-2026-10-13/github/issues.json
+  h_d6e478ca18e517 1-3986
+docs/handoffs/release-2026-10-13/github/pr-259-detail.json
+  h_d6e478ca18e517 1-680
+docs/handoffs/release-2026-10-13/github/pr-259-files.complete.json
+  h_d6e478ca18e517 1-1437
+docs/handoffs/release-2026-10-13/github/pr-300-detail.json
+  h_d6e478ca18e517 1-64
+docs/handoffs/release-2026-10-13/github/pr-313-detail.json
+  h_d6e478ca18e517 1-218
+docs/handoffs/release-2026-10-13/github/pr-355-detail.json
+  h_d6e478ca18e517 1-33
+docs/handoffs/release-2026-10-13/github/pr-356-concurrent-detail.json
+  h_d6e478ca18e517 1-627
+docs/handoffs/release-2026-10-13/github/pr-356-files.complete.json
+  h_d6e478ca18e517 1-1066
+docs/handoffs/release-2026-10-13/github/pr-357-concurrent-detail.json
+  h_d6e478ca18e517 1-39
+docs/handoffs/release-2026-10-13/github/pr-stack-audit.json
+  h_d6e478ca18e517 1-1588
+docs/handoffs/release-2026-10-13/github/pull-requests.json
+  h_d6e478ca18e517 1-9764
+docs/handoffs/release-2026-10-13/github/repository.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/machine-observation.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/references/aria2-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/audiobookshelf-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/bazarr-final-source-review.md
+  h_d6e478ca18e517 1-7
+docs/handoffs/release-2026-10-13/references/concurrent-release-handoff.pr-356.md
+  h_d6e478ca18e517 1-198
+docs/handoffs/release-2026-10-13/references/evaluation-progress.live-head.md
+  h_d6e478ca18e517 1-718
+docs/handoffs/release-2026-10-13/references/evaluation-progress.pr-357.md
+  h_d6e478ca18e517 1-728
+docs/handoffs/release-2026-10-13/references/evaluation-readme.live-head.md
+  h_d6e478ca18e517 1-311
+docs/handoffs/release-2026-10-13/references/frigate-hint-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/gluetun-native-blocker.md
+  h_d6e478ca18e517 1-29
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-inspection.md
+  h_d6e478ca18e517 1-186
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-plan.md
+  h_d6e478ca18e517 1-81
+docs/handoffs/release-2026-10-13/references/nzbget-diagnostic-source-review.md
+  h_d6e478ca18e517 1-7
+docs/handoffs/release-2026-10-13/references/nzbget-native-logging-blocker.md
+  h_d6e478ca18e517 1-26
+docs/handoffs/release-2026-10-13/references/release-homarr.md
+  h_d6e478ca18e517 1-532
+docs/handoffs/release-2026-10-13/references/repository/AGENTS.md
+  h_d6e478ca18e517 1-58
+docs/handoffs/release-2026-10-13/references/repository/CONTEXT.md
+  h_d6e478ca18e517 1-265
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/domain.md
+  h_d6e478ca18e517 1-27
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/homarr-integrations.md
+  h_d6e478ca18e517 1-128
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/implementing.md
+  h_d6e478ca18e517 1-71
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/issue-tracker.md
+  h_d6e478ca18e517 1-45
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-external-coverage-plan.md
+  h_d6e478ca18e517 1-213
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-immich-proof.md
+  h_d6e478ca18e517 1-340
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-contract.md
+  h_d6e478ca18e517 1-166
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-coverage-research.md
+  h_d6e478ca18e517 1-214
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-ticket-index.md
+  h_d6e478ca18e517 1-89
+docs/handoffs/release-2026-10-13/references/repository/docs/releasing.md
+  h_d6e478ca18e517 1-89
+docs/handoffs/release-2026-10-13/references/video-handoff.pinned.md
+  h_d6e478ca18e517 1-98
+docs/handoffs/release-2026-10-13/references/video-storyboard.pinned.md
+  h_d6e478ca18e517 1-131
+docs/handoffs/release-2026-10-13/snapshot.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/source/helper-public-username.prepared.patch
+  h_d6e478ca18e517 1-12
+docs/handoffs/release-2026-10-13/source/prepared-helper.go.reference
+  h_d6e478ca18e517 1-114
+docs/handoffs/release-2026-10-13/source/prepared-supervise.py.reference
+  h_d6e478ca18e517 1-1278
+docs/handoffs/release-2026-10-13/source/runner-diagnostics.prepared.patch
+  h_d6e478ca18e517 1-238
+docs/handoffs/release-2026-10-13/source/synthetic-argv-probe.go.reference
+  h_d6e478ca18e517 1-27
+docs/handoffs/release-2026-10-13/source/tested-candidate.patch
+  h_d6e478ca18e517 1-13849
+docs/handoffs/release-2026-10-13/validation.json
+  h_d6e478ca18e517 1-28
+docs/homarr-audiobookshelf-stage1.md
+  h_d6e478ca18e517 1-127
+docs/homarr-bazarr-source-check.md
+  h_d6e478ca18e517 1-250
+docs/homarr-dashdot-contract.md
+  h_d6e478ca18e517 1-131
+docs/homarr-deluge-proof.md
+  h_d6e478ca18e517 1-153
+docs/homarr-emby-implementation.md
+  h_d6e478ca18e517 1-85
+docs/homarr-frigate-contract.md
+  h_d6e478ca18e517 1-126
+docs/homarr-gatus-implementation.md
+  h_d6e478ca18e517 1-139
+docs/homarr-glances-proof.md
+  h_d6e478ca18e517 1-108
+docs/homarr-gluetun-contract.md
+  h_d6e478ca18e517 1-101
+docs/homarr-gotify-boundary.md
+  h_d6e478ca18e517 1-140
+docs/homarr-integration-contract.md
+  h_d6e478ca18e517 32-37,85-95
+docs/homarr-navidrome-contract.md
+  h_d6e478ca18e517 1-293
+docs/homarr-netdata-proof.md
+  h_d6e478ca18e517 1-170
+docs/homarr-nzbget-proof.md
+  h_d6e478ca18e517 1-257
+docs/homarr-paperless-proof.md
+  h_d6e478ca18e517 1-256
+docs/homarr-patchmon-contract.md
+  h_d6e478ca18e517 1-145
+docs/homarr-prometheus-contract.md
+  h_d6e478ca18e517 1-172
+docs/homarr-sabnzbd-contract.md
+  h_d6e478ca18e517 1-227
+docs/homarr-speedtest-tracker-source.md
+  h_d6e478ca18e517 1-190
+docs/homarr-tdarr-source.md
+  h_d6e478ca18e517 1-43
+docs/homarr-umami-source-proof.md
+  h_d6e478ca18e517 1-167
+docs/homarr-warrior-proof.md
+  h_d6e478ca18e517 1-137
+docs/homarr-wud-proof.md
+  h_d6e478ca18e517 1-159
+docs/home-assistant-homarr-contract.md
+  h_d6e478ca18e517 1-151
+docs/releasing.md
+  h_d6e478ca18e517 86-206
+evals/self-host/PROGRESS.md
+  h_d6e478ca18e517 42-54
+evals/self-host/judge.py
+  h_d6e478ca18e517 215-219,245-263,298
+evals/self-host/tests/test_grading.py
+  h_d6e478ca18e517 565-610,615-629,634-638
+install.sh
+  h_d6e478ca18e517 4
+internal/apps/adguard/adguard.go
+  h_d6e478ca18e517 6,12-13,55-58,62-82,88,92-103,107-108,116-122,134-138,143,148-187,198-269
+internal/apps/adguard/adguard_test.go
+  h_d6e478ca18e517 46-65
+internal/apps/archiveteamwarrior/archiveteamwarrior.go
+  h_d6e478ca18e517 89-90,94,99-102,108
+internal/apps/archiveteamwarrior/archiveteamwarrior_test.go
+  h_d6e478ca18e517 297-310
+internal/apps/archiveteamwarrior/status.go
+  h_d6e478ca18e517 1-119
+internal/apps/aria2/aria2.go
+  h_d6e478ca18e517 7,69-70,72,74,76-112,120-124,134-135,137,140,148,150,153,156-201,203,207-214,216,224,228,230-234,236-241,253-254
+internal/apps/aria2/aria2_test.go
+  h_d6e478ca18e517 33-35,40-41,49,55-58,100,115-131
+internal/apps/audiobookshelf/audiobookshelf.go
+  h_d6e478ca18e517 116-119,130-131
+internal/apps/audiobookshelf/audiobookshelf_test.go
+  h_d6e478ca18e517 5,31-39,71-155,189-192,203-224
+internal/apps/audiobookshelf/homarr_credentials.go
+  h_d6e478ca18e517 1-380
+internal/apps/bazarr/api.go
+  h_d6e478ca18e517 1-99
+internal/apps/bazarr/bazarr.go
+  h_d6e478ca18e517 60-62,121-124,142
+internal/apps/bazarr/bazarr_test.go
+  h_d6e478ca18e517 5,33-37,65,68-85,124-126,137-139
+internal/apps/dashdot/dashdot.go
+  h_d6e478ca18e517 6,19,51-64,68
+internal/apps/dashdot/metrics.go
+  h_d6e478ca18e517 1-90
+internal/apps/dashdot/metrics_test.go
+  h_d6e478ca18e517 1-112
+internal/apps/deluge/deluge.go
+  h_d6e478ca18e517 7,9,57-60,63-67,72-79,83-85,88,90-91,97-104,106-108,113-128,130-152,157-159,163-330,350-354,356,358,362-372,377
+internal/apps/deluge/deluge_test.go
+  h_d6e478ca18e517 6-7,9,33-44,54-56,59-65,68-69,71-77,79-83,85-89,92-125,158-160,174-232
+internal/apps/emby/emby.go
+  h_d6e478ca18e517 6,53-55,57-60,63,66-67,70,73,76,79-82,89-123,125,139-153,164
+internal/apps/emby/emby_test.go
+  h_d6e478ca18e517 30-35,49-50,53-104,121-122,144-163
+internal/apps/emby/homarr.go
+  h_d6e478ca18e517 1-198
+internal/apps/emby/homarr_ownership_test.go
+  h_d6e478ca18e517 1-106
+internal/apps/frigate/frigate.go
+  h_d6e478ca18e517 9,13,81-90,93,96,101,104-136,145,152-161,164,167-168,172,174,180-185,204-207,210,212-218,228,233-254,258-270,272,275,277-330
+internal/apps/frigate/frigate_test.go
+  h_d6e478ca18e517 63-66,69-82,96
+internal/apps/gatus/gatus.go
+  h_d6e478ca18e517 7-8,10,15,66-181
+internal/apps/gatus/gatus_test.go
+  h_d6e478ca18e517 5,8-9,13,29-32,34,46-53,98-137
+internal/apps/glances/glances.go
+  h_d6e478ca18e517 18,43-53,57
+internal/apps/glances/homarr.go
+  h_d6e478ca18e517 1-98
+internal/apps/gluetun/gluetun.go
+  h_d6e478ca18e517 10,102,115-119,121-122,124-125,127-140,145,147-148,155,158,160,162-169,172,178-190,193-215
+internal/apps/gluetun/gluetun_test.go
+  h_d6e478ca18e517 5,51-58,89,95-96,100
+internal/apps/gotify/gotify.go
+  h_d6e478ca18e517 66,68,83,98,103-121,134
+internal/apps/gotify/gotify_test.go
+  h_d6e478ca18e517 5,45,51-54,61-102
+internal/apps/gotify/homarr.go
+  h_d6e478ca18e517 1-135
+internal/apps/homarr/compatibility.go
+  h_d6e478ca18e517 16,19,22-40
+internal/apps/homarr/compatibility_test.go
+  h_d6e478ca18e517 1-89
+internal/apps/homarr/links.go
+  h_d6e478ca18e517 155-157,161-163,167-175
+internal/apps/homarr/target_adguard.go
+  h_d6e478ca18e517 1-145
+internal/apps/homarr/target_adguard_test.go
+  h_d6e478ca18e517 1-286
+internal/apps/homarr/target_archive_team_warrior.go
+  h_d6e478ca18e517 1-93
+internal/apps/homarr/target_archive_team_warrior_test.go
+  h_d6e478ca18e517 1-55
+internal/apps/homarr/target_aria2.go
+  h_d6e478ca18e517 1-228
+internal/apps/homarr/target_aria2_test.go
+  h_d6e478ca18e517 1-188
+internal/apps/homarr/target_audiobookshelf.go
+  h_d6e478ca18e517 1-153
+internal/apps/homarr/target_audiobookshelf_test.go
+  h_d6e478ca18e517 1-190
+internal/apps/homarr/target_bazarr.go
+  h_d6e478ca18e517 1-62
+internal/apps/homarr/target_bazarr_test.go
+  h_d6e478ca18e517 1-55
+internal/apps/homarr/target_dashdot.go
+  h_d6e478ca18e517 1-69
+internal/apps/homarr/target_dashdot_test.go
+  h_d6e478ca18e517 1-233
+internal/apps/homarr/target_deluge.go
+  h_d6e478ca18e517 1-85
+internal/apps/homarr/target_deluge_test.go
+  h_d6e478ca18e517 1-156
+internal/apps/homarr/target_emby.go
+  h_d6e478ca18e517 1-123
+internal/apps/homarr/target_emby_test.go
+  h_d6e478ca18e517 1-168
+internal/apps/homarr/target_frigate.go
+  h_d6e478ca18e517 1-51
+internal/apps/homarr/target_frigate_test.go
+  h_d6e478ca18e517 1-60
+internal/apps/homarr/target_gatus.go
+  h_d6e478ca18e517 1-42
+internal/apps/homarr/target_gatus_test.go
+  h_d6e478ca18e517 1-94
+internal/apps/homarr/target_glances.go
+  h_d6e478ca18e517 1-93
+internal/apps/homarr/target_glances_test.go
+  h_d6e478ca18e517 1-150
+internal/apps/homarr/target_gluetun.go
+  h_d6e478ca18e517 1-103
+internal/apps/homarr/target_gluetun_test.go
+  h_d6e478ca18e517 1-251
+internal/apps/homarr/target_gotify.go
+  h_d6e478ca18e517 1-119
+internal/apps/homarr/target_gotify_test.go
+  h_d6e478ca18e517 1-122
+internal/apps/homarr/target_home_assistant.go
+  h_d6e478ca18e517 1-101
+internal/apps/homarr/target_home_assistant_test.go
+  h_d6e478ca18e517 1-118
+internal/apps/homarr/target_lidarr.go
+  h_d6e478ca18e517 1-109
+internal/apps/homarr/target_lidarr_test.go
+  h_d6e478ca18e517 1-202
+internal/apps/homarr/target_linkwarden.go
+  h_d6e478ca18e517 1-66
+internal/apps/homarr/target_linkwarden_test.go
+  h_d6e478ca18e517 1-125
+internal/apps/homarr/target_navidrome.go
+  h_d6e478ca18e517 1-148
+internal/apps/homarr/target_navidrome_test.go
+  h_d6e478ca18e517 1-331
+internal/apps/homarr/target_netdata.go
+  h_d6e478ca18e517 1-45
+internal/apps/homarr/target_netdata_test.go
+  h_d6e478ca18e517 1-137
+internal/apps/homarr/target_nextcloud.go
+  h_d6e478ca18e517 1-127
+internal/apps/homarr/target_nextcloud_test.go
+  h_d6e478ca18e517 1-228
+internal/apps/homarr/target_nzbget.go
+  h_d6e478ca18e517 1-118
+internal/apps/homarr/target_nzbget_test.go
+  h_d6e478ca18e517 1-261
+internal/apps/homarr/target_paperless_ngx.go
+  h_d6e478ca18e517 1-138
+internal/apps/homarr/target_paperless_ngx_test.go
+  h_d6e478ca18e517 1-202
+internal/apps/homarr/target_patchmon.go
+  h_d6e478ca18e517 1-90
+internal/apps/homarr/target_patchmon_test.go
+  h_d6e478ca18e517 1-78
+internal/apps/homarr/target_peanut.go
+  h_d6e478ca18e517 1-101
+internal/apps/homarr/target_peanut_test.go
+  h_d6e478ca18e517 1-134
+internal/apps/homarr/target_pihole.go
+  h_d6e478ca18e517 1-83
+internal/apps/homarr/target_pihole_test.go
+  h_d6e478ca18e517 1-168
+internal/apps/homarr/target_plex.go
+  h_d6e478ca18e517 1-103
+internal/apps/homarr/target_plex_test.go
+  h_d6e478ca18e517 1-131
+internal/apps/homarr/target_prometheus.go
+  h_d6e478ca18e517 1-55
+internal/apps/homarr/target_prometheus_test.go
+  h_d6e478ca18e517 1-208
+internal/apps/homarr/target_sabnzbd.go
+  h_d6e478ca18e517 1-111
+internal/apps/homarr/target_sabnzbd_test.go
+  h_d6e478ca18e517 1-260
+internal/apps/homarr/target_slskd.go
+  h_d6e478ca18e517 1-102
+internal/apps/homarr/target_slskd_test.go
+  h_d6e478ca18e517 1-184
+internal/apps/homarr/target_speedtest_tracker.go
+  h_d6e478ca18e517 1-108
+internal/apps/homarr/target_speedtest_tracker_test.go
+  h_d6e478ca18e517 1-201
+internal/apps/homarr/target_tdarr.go
+  h_d6e478ca18e517 1-159
+internal/apps/homarr/target_tdarr_test.go
+  h_d6e478ca18e517 1-172
+internal/apps/homarr/target_technitium_dns.go
+  h_d6e478ca18e517 1-54
+internal/apps/homarr/target_technitium_dns_test.go
+  h_d6e478ca18e517 1-104
+internal/apps/homarr/target_tracearr.go
+  h_d6e478ca18e517 1-146
+internal/apps/homarr/target_tracearr_test.go
+  h_d6e478ca18e517 1-179
+internal/apps/homarr/target_traefik.go
+  h_d6e478ca18e517 1-222
+internal/apps/homarr/target_traefik_test.go
+  h_d6e478ca18e517 1-172
+internal/apps/homarr/target_transmission.go
+  h_d6e478ca18e517 1-77
+internal/apps/homarr/target_transmission_test.go
+  h_d6e478ca18e517 1-178
+internal/apps/homarr/target_umami.go
+  h_d6e478ca18e517 1-132
+internal/apps/homarr/target_umami_test.go
+  h_d6e478ca18e517 1-216
+internal/apps/homarr/target_uptime_kuma.go
+  h_d6e478ca18e517 1-122
+internal/apps/homarr/target_uptime_kuma_test.go
+  h_d6e478ca18e517 1-156
+internal/apps/homarr/target_wud.go
+  h_d6e478ca18e517 1-122
+internal/apps/homarr/target_wud_test.go
+  h_d6e478ca18e517 1-121
+internal/apps/homarr/targets.go
+  h_d6e478ca18e517 4
+internal/apps/homeassistant/homarr.go
+  h_d6e478ca18e517 1-264
+internal/apps/homeassistant/homarr_auth.go
+  h_d6e478ca18e517 1-154
+internal/apps/homeassistant/homeassistant.go
+  h_d6e478ca18e517 6,33-44,94-101,156-158,173-176,187-188
+internal/apps/homeassistant/homeassistant_test.go
+  h_d6e478ca18e517 16,34,37-50,59-61,90-110,132,151-153
+internal/apps/lidarr/lidarr.go
+  h_d6e478ca18e517 39-40,73-74,78-112,127-128,142-171,175-180,182-202,206,217,226-231,250,258,264-267
+internal/apps/lidarr/lidarr_test.go
+  h_d6e478ca18e517 6,17,22-30,34,38-42,48-54,56-57,62-66,69-70,75-78,84,89,91-94,126-127,142-182,188-190,200-209,218-220,226-227,229-233
+internal/apps/linkwarden/homarr.go
+  h_d6e478ca18e517 1-292
+internal/apps/linkwarden/linkwarden.go
+  h_d6e478ca18e517 33-40,114,138,145-153,165-168
+internal/apps/linkwarden/linkwarden_test.go
+  h_d6e478ca18e517 5-6,8-10,24-29,31-42,50-51,82-88,95-125,134,140-142,163,174-184,189-190,199,207-260,268,282,293-296,319,339,343-370
+internal/apps/navidrome/homarr.go
+  h_d6e478ca18e517 1-288
+internal/apps/navidrome/homarr_user.go
+  h_d6e478ca18e517 1-194
+internal/apps/navidrome/navidrome.go
+  h_d6e478ca18e517 47,49-50,53,86-113,115-123
+internal/apps/navidrome/navidrome_test.go
+  h_d6e478ca18e517 5,8,11,52-72,97-101,121-258,289-295,299,309-347,390-392,452-587
+internal/apps/netdata/metrics.go
+  h_d6e478ca18e517 1-109
+internal/apps/netdata/netdata.go
+  h_d6e478ca18e517 7,19,51-61,65
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 10-11,13,40-47,77,125-128,130-136,138-139,142-143,145,149-155,161-179,186-197,201,203-211,228,239-243,258,270-272,294-579
+internal/apps/nextcloud/nextcloud_test.go
+  h_d6e478ca18e517 6,12,14-15,30,32,34,38-60,77-78,102-146,170-205,226-234,239-243,251-266,283
+internal/apps/nzbget/homarr.go
+  h_d6e478ca18e517 1-240
+internal/apps/nzbget/nzbget.go
+  h_d6e478ca18e517 12,66,73,95,100,103-131,135-200,205
+internal/apps/nzbget/nzbget_test.go
+  h_d6e478ca18e517 6,9-11,13,17,21,32,36,40-74,85-91,96-102,106-174,182-274,278-279,300-324
+internal/apps/paperlessngx/paperlessngx.go
+  h_d6e478ca18e517 10,105,145,158-168,179-185
+internal/apps/paperlessngx/paperlessngx_test.go
+  h_d6e478ca18e517 20-21,41-107
+internal/apps/paperlessngx/token.go
+  h_d6e478ca18e517 1-303
+internal/apps/patchmon/homarr.go
+  h_d6e478ca18e517 1-90
+internal/apps/patchmon/patchmon.go
+  h_d6e478ca18e517 146-148,160-161,166-167,172-174,189,227-241
+internal/apps/peanut/peanut.go
+  h_d6e478ca18e517 7,10,54-57,64,71,75-156,160,163,165-177,179-185,191-192,194-195
+internal/apps/peanut/peanut_test.go
+  h_d6e478ca18e517 44-52
+internal/apps/pihole/homarr.go
+  h_d6e478ca18e517 1-279
+internal/apps/pihole/install_test.go
+  h_d6e478ca18e517 23,31-34,53-55,61-104,108
+internal/apps/pihole/pihole.go
+  h_d6e478ca18e517 92-93,179-195
+internal/apps/pihole/pihole_test.go
+  h_d6e478ca18e517 30-34,40,42,55-58,62-121,124,169-173,209
+internal/apps/plex/plex.go
+  h_d6e478ca18e517 7,34-41,75,79,83,85-86,89,93,96,101,105,107-124,128,131,133,135-138,140-145,148-240,242-270,289-291,293-300,307-309,313-321,326
+internal/apps/plex/plex_test.go
+  h_d6e478ca18e517 6,11,55-63,106,133-134,138,146-183
+internal/apps/prometheus/prometheus.go
+  h_d6e478ca18e517 5-6,8,29-34,51-76,80
+internal/apps/prometheus/prometheus_test.go
+  h_d6e478ca18e517 4,11,23-26,28-43,58
+internal/apps/prometheus/readiness.go
+  h_d6e478ca18e517 1-139
+internal/apps/sabnzbd/api.go
+  h_d6e478ca18e517 1-101
+internal/apps/sabnzbd/sabnzbd.go
+  h_d6e478ca18e517 12,59-63,68,72,77-83,92-94,107-111,131,171,179-221,223-238
+internal/apps/sabnzbd/sabnzbd_test.go
+  h_d6e478ca18e517 6,17,24-28,34-46,51-58,63-84,123-124,128,139-184,190-191,203-234
+internal/apps/slskd/homarr.go
+  h_d6e478ca18e517 1-133
+internal/apps/slskd/slskd.go
+  h_d6e478ca18e517 25,46,52,125,138-157,163,166-169
+internal/apps/slskd/slskd_test.go
+  h_d6e478ca18e517 6,50-63,94-177
+internal/apps/speedtesttracker/homarr.go
+  h_d6e478ca18e517 1-372
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 130,140-142,144-164,338-339
+internal/apps/speedtesttracker/speedtesttracker_test.go
+  h_d6e478ca18e517 37-40,50-61,73-81
+internal/apps/tdarr/homarr.go
+  h_d6e478ca18e517 1-246
+internal/apps/tdarr/tdarr.go
+  h_d6e478ca18e517 33-36,55-56,99,114-115,120,134,140,145-148,176-219,221-239
+internal/apps/tdarr/tdarr_test.go
+  h_d6e478ca18e517 26-54,59,96,107-109,117,125-127
+internal/apps/technitiumdns/technitiumdns.go
+  h_d6e478ca18e517 7,9,74,78-118,121,123-241,243-259,262-265,269-283,285-286,288-290,293-294,296-394,416-431,444
+internal/apps/technitiumdns/technitiumdns_test.go
+  h_d6e478ca18e517 30-34,39-47,53-59,64-107,109-111,116-156
+internal/apps/tracearr/homarr.go
+  h_d6e478ca18e517 1-205
+internal/apps/tracearr/homarr_test.go
+  h_d6e478ca18e517 1-109
+internal/apps/tracearr/tracearr.go
+  h_d6e478ca18e517 134,161,189-193,261,349-357
+internal/apps/transmission/transmission.go
+  h_d6e478ca18e517 9,11,59-65,67-68,70-96,99-135,138-139,141-143,145-146,149-186,191-196,198-202,205-207,211-216
+internal/apps/transmission/transmission_test.go
+  h_d6e478ca18e517 5-6,9,16,18,22-29,33-39,42-47,51-52,77-93,105,124,140,148-238
+internal/apps/umami/homarr.go
+  h_d6e478ca18e517 1-310
+internal/apps/umami/umami.go
+  h_d6e478ca18e517 9,84,90-93,96,110-114,118,120-121,124,165,178-181,199
+internal/apps/umami/umami_test.go
+  h_d6e478ca18e517 19-24,44,53-59,61,80-167
+internal/apps/uptimekuma/uptimekuma.go
+  h_d6e478ca18e517 6-7,32-51,71-82,87,101-102,106-125,127-219
+internal/apps/wud/discovery_test.go
+  h_d6e478ca18e517 35,139
+internal/apps/wud/homarr.go
+  h_d6e478ca18e517 1-102
+internal/apps/wud/homarr_test.go
+  h_d6e478ca18e517 1-267
+internal/apps/wud/preflight_test.go
+  h_d6e478ca18e517 101-108,110-119,125-161,165-168,172
+internal/apps/wud/tls_test.go
+  h_d6e478ca18e517 124,266,268-271
+internal/apps/wud/wud.go
+  h_d6e478ca18e517 9,188,240-251,276-278,338-349,351-443
+internal/apps/wud/wud_test.go
+  h_d6e478ca18e517 32-36,44-52,55-65,67-70,78,82,116
+internal/catalog/generated_test.go
+  h_d6e478ca18e517 5,10,107-110,112-163,165-176,197-224
+internal/catalog/testdata/legacy-facts.json
+  h_d6e478ca18e517 4943
+internal/cli/install_test.go
+  h_d6e478ca18e517 238,257-260,331
+internal/cli/lan_test.go
+  h_d6e478ca18e517 21,23-24,29-30,34,61-62,70,89
+internal/project/files.go
+  h_d6e478ca18e517 1-70
+internal/project/files_test.go
+  h_d6e478ca18e517 1-29
+internal/project/staging.go
+  h_d6e478ca18e517 1-139
+internal/release/release.go
+  h_d6e478ca18e517 44
+internal/service/access.go
+  h_d6e478ca18e517 12-13,82,121,126
+internal/service/backup.go
+  h_d6e478ca18e517 86
+internal/service/backup_list.go
+  h_d6e478ca18e517 1-111
+internal/service/cloudflare.go
+  h_d6e478ca18e517 590-591
+internal/service/install.go
+  h_d6e478ca18e517 428,581
+internal/service/installed_apps.go
+  h_d6e478ca18e517 61
+internal/service/lifecycle.go
+  h_d6e478ca18e517 271,310,372
+internal/service/mutation.go
+  h_d6e478ca18e517 327,334
+internal/service/names.go
+  h_d6e478ca18e517 383
+internal/service/restore.go
+  h_d6e478ca18e517 1-542
+internal/service/service.go
+  h_d6e478ca18e517 330
+internal/service/status.go
+  h_d6e478ca18e517 139,162-165,243,385
+internal/service/tailscale.go
+  h_d6e478ca18e517 96,112
+internal/skill/guide.md
+  h_d6e478ca18e517 424-430
+internal/system/capabilities.go
+  h_d6e478ca18e517 1-91
+internal/systemtest/fakes.go
+  h_d6e478ca18e517 1-197
+internal/systemtest/systemtest.go
+  h_d6e478ca18e517 188-190,192,197-221,233-235,237-245,250,252
+internal/tui/copy.go
+  h_d6e478ca18e517 70-72
+internal/tui/copy_modal_test.go
+  h_d6e478ca18e517 119-155
+internal/tui/easy_names_test.go
+  h_d6e478ca18e517 13,20,34
+internal/tui/error_copy_test.go
+  h_d6e478ca18e517 37
+internal/tui/intro.go
+  h_d6e478ca18e517 40-42,46,61-64,68,71-72,78-81,86-88,102-104,107-108,130-138,141-143,145,147-148,154,156,158,161,171-172,174-176,178,183-185,191,193,197-205,207,213,216-222,224,227,230,235,239,241-242,245-246,248,250,253-255,257,259,261,267,272,277-279,282,286-290,313-314
+internal/tui/intro_test.go
+  h_d6e478ca18e517 349,397-399
+internal/tui/model.go
+  h_d6e478ca18e517 265-267,370,439,450,463,470,552,566,576,580-582,590,645-646,796,803,977,982-1039
+internal/tui/onboarding.go
+  h_d6e478ca18e517 93-97,100,102-106,122-124,126-127,129,132-136,140-142,146,148-150,152-157,160,205-209,212,216,219-225,229,234,237,239,241,243,246,249,257,263,271,277,285,288,292,296,300,304,308,312,315,317,335,343-345,359-360,363-364,368-369,376,378,380,382,384,388,392,400,404,406-407,424,427-428,432,435-437,442-453,456,459,464,467,469,498-501,504,510,512,514
+internal/tui/onboarding_flow_test.go
+  h_d6e478ca18e517 151,280,305,324-325
+internal/tui/onboarding_followup_test.go
+  h_d6e478ca18e517 62-63
+internal/tui/onboarding_form.go
+  h_d6e478ca18e517 1-212
+internal/tui/onboarding_plan.go
+  h_d6e478ca18e517 1-160
+internal/tui/onboarding_selection_golden_test.go
+  h_d6e478ca18e517 29
+internal/tui/onboarding_telemetry_test.go
+  h_d6e478ca18e517 162
+internal/tui/onboarding_view.go
+  h_d6e478ca18e517 1-284
+internal/tui/preboot.go
+  h_d6e478ca18e517 51-53,62,66-72,110-112,114,117,120,122,124-131
+internal/tui/tailscale_test.go
+  h_d6e478ca18e517 39
+internal/tui/view.go
+  h_d6e478ca18e517 112-115,627,631,725-734
+internal/tui/welcome.go
+  h_d6e478ca18e517 4-6,28,30,38,41-45,48,51-55,58,61-63,66,70-72,74,87-102,105-185
+internal/tui/what.go
+  h_d6e478ca18e517 24,28,49-50,55-56,58,69,71,74,87,89,97,112,116,121-122,125,128,130-131,135-136,141-145,150,161
+scripts/build-installer-site.sh
+  h_d6e478ca18e517 1-34
+scripts/verify-install.sh
+  h_d6e478ca18e517 5,16,19-20,32,54-59,96
+site/_headers
+  h_d6e478ca18e517 1-12
+site/index.html
+  h_d6e478ca18e517 1-27
+site/site.css
+  h_d6e478ca18e517 1-118
+site/wrangler.toml
+  h_d6e478ca18e517 1-12
+skills/self-host/SKILL.md
+  h_d6e478ca18e517 14
+video/reel/HANDOFF.md
+  h_d6e478ca18e517 9,28-51
+video/reel/STORYBOARD.md
+  h_d6e478ca18e517 1,29,45,50,63-74,109-164
+video/reel/audio/cues.json
+  h_d6e478ca18e517 980,985,990,995,1000,1005,1010,1015,1020,1025,1030,1035,1040,1045,1050,1055,1060,1065,1069-1242
+video/reel/end.js
+  h_d6e478ca18e517 5-6,22-23,41,56
+video/reel/styles.css
+  h_d6e478ca18e517 1499,1554-1564
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "289ade51427aa142b61dfe47280afd2b7e9c60f2",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
