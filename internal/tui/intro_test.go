@@ -310,6 +310,25 @@ func TestTheNoticeIsAnnouncedOnlyWhenWelcomeShows(t *testing.T) {
 	}
 }
 
+func TestQuittingDuringTheExitLeavesTheNotice(t *testing.T) {
+	m, backend := introModel(t, Options{}, readyChecks...)
+	backend.telemetryNotice = noticeLines
+	m = update(t, m, doctorMsg{checks: readyChecks})
+	for range introFrames {
+		if m.onboarding.intro.exit >= 0 {
+			break
+		}
+		m = frames(t, m, 1)
+	}
+	if m.onboarding.intro == nil || m.onboarding.intro.exit < 0 {
+		t.Fatal("the exit should be playing")
+	}
+	m = drive(t, m, press("q"))
+	if backend.telemetryNotice == "" {
+		t.Fatal("quitting during the exit must not record the notice as shown")
+	}
+}
+
 func TestWelcomeRevisitHasNoIntro(t *testing.T) {
 	m, _ := freshHost(t)
 	m = drive(t, m, press("enter"))

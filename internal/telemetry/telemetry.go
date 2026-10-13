@@ -190,6 +190,10 @@ func (c *Client) Announce() bool {
 	return c.o.Store.WriteHomeFile(noticeFile, []byte("shown\n"), 0o644) == nil
 }
 
+// NoticeDue reports whether Announce would show the notice now, without
+// recording anything.
+func (c *Client) NoticeDue() bool { return c.Enabled() && !c.announced() }
+
 func (c *Client) announced() bool {
 	_, err := c.o.Store.ReadHomeFile(noticeFile)
 	return err == nil

@@ -133,6 +133,12 @@ func (f *fakeBackend) TelemetryNotice() string {
 	return notice
 }
 
+func (f *fakeBackend) PendingTelemetryNotice() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.telemetryNotice
+}
+
 func (f *fakeBackend) ReportOnboarding(o telemetry.Onboarding) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

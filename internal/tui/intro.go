@@ -171,7 +171,7 @@ func (m Model) advanceIntro() Model {
 	if m.opts.ReducedMotion {
 		return m.endIntro()
 	}
-	m.revealNotice()
+	m.previewNotice()
 	i.exit = 0
 	return m
 }
@@ -181,6 +181,16 @@ func (m Model) endIntro() Model {
 	m.revealNotice()
 	m.onboarding.intro = nil
 	return m
+}
+
+// previewNotice lets the exit draw Welcome with the Telemetry notice it will
+// show, without recording it as shown: quitting during the exit leaves it
+// for the next run.
+func (m Model) previewNotice() {
+	o := m.onboarding
+	if !o.noticeRead {
+		o.notice = m.backend.PendingTelemetryNotice()
+	}
 }
 
 // introChecksArrived takes Doctor's answer: the checks start ticking into the
@@ -241,8 +251,9 @@ func (m Model) pokeIntro() (tea.Model, tea.Cmd) {
 	return m, m.startTicking()
 }
 
-// revealNotice reads the Telemetry notice the first time Welcome is about to
-// be on screen, so quitting during the Intro leaves it for the next run.
+// revealNotice reads the Telemetry notice and records it as shown the first
+// time Welcome is on screen, so quitting during the Intro leaves it for the
+// next run.
 func (m Model) revealNotice() {
 	o := m.onboarding
 	if o.noticeRead {

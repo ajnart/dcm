@@ -119,6 +119,9 @@ type Backend interface {
 	// TelemetryNotice is the one line that announces Telemetry the first
 	// time, and "" once it has been shown or while Telemetry is off.
 	TelemetryNotice() string
+	// PendingTelemetryNotice is the line TelemetryNotice would return now,
+	// without recording that it was shown.
+	PendingTelemetryNotice() string
 	// ReportOnboarding sends the one Telemetry event of an approved Review.
 	// It does nothing while Telemetry is off.
 	ReportOnboarding(o telemetry.Onboarding)
@@ -140,6 +143,13 @@ type ServiceBackend struct {
 
 func (b ServiceBackend) TelemetryNotice() string {
 	if b.quiet().Telemetry().Announce() {
+		return telemetry.NoticeShort
+	}
+	return ""
+}
+
+func (b ServiceBackend) PendingTelemetryNotice() string {
+	if b.quiet().Telemetry().NoticeDue() {
 		return telemetry.NoticeShort
 	}
 	return ""
