@@ -1,5 +1,5 @@
 package homarr
 
 func targets() []target {
-	return append(existingTargets(), immichTarget())
+	return append(existingTargets(), immichTarget(), navidromeTarget())
 }
