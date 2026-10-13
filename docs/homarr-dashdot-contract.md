@@ -73,6 +73,12 @@ ID. It requires exactly one matching result, no error, and explicitly defined
 nonnegative CPU/RAM/uptime values with positive total memory. This is the native
 data path used by System Resources, not an HTTP-200 or saved-tile check.
 
+The descriptor's Stats callback validates the shared SDK's single sample after
+catalog discovery and a forced refresh with an advancing timestamp. It requires
+percent CPU in 0–100, integral nonnegative byte values, nonnegative uptime in
+seconds, finite values and positive total memory. Defined zeros remain valid.
+Native and Stats values are independently observed and need not be equal.
+
 ## Upstream limitation and security
 
 Homarr v2.4.1's Dash. adapter always requests `/load/storage`, `/load/network`

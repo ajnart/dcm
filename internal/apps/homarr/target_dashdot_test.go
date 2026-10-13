@@ -3,6 +3,7 @@ package homarr
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -18,8 +19,21 @@ type dashdotSecrets map[string]string
 func (s dashdotSecrets) Get(key string) string       { return s[key] }
 func (s dashdotSecrets) Set(key, value string) error { s[key] = value; return nil }
 
-func dashdotHelpers(t *testing.T, native any, cpuBody string, required [][]string) (*helpers.H, *helpers.H) {
+func dashdotHelpers(t *testing.T, native any, cpuBody string, required [][]string, fixtures ...*statsFixture) (*helpers.H, *helpers.H) {
 	t.Helper()
+	f := &statsFixture{
+		timestamp: 1000, advance: true,
+		values: map[string]any{"cpu": float64(0), "memoryUsed": float64(0), "memoryAvailable": float64(8192), "uptime": float64(0)},
+		metrics: []any{
+			map[string]any{"key": "cpu", "unit": "percent"},
+			map[string]any{"key": "memoryUsed", "unit": "bytes"},
+			map[string]any{"key": "memoryAvailable", "unit": "bytes"},
+			map[string]any{"key": "uptime", "unit": "seconds"},
+		},
+	}
+	if len(fixtures) != 0 {
+		f = fixtures[0]
+	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var value any
 		switch r.URL.Path {
@@ -39,6 +53,35 @@ func dashdotHelpers(t *testing.T, native any, cpuBody string, required [][]strin
 			value = map[string]string{"version": "2.4.1"}
 		case "/api/trpc/integration.getKinds":
 			value = []any{map[string]any{"kind": "dashDot", "requiredSecrets": required}}
+		case "/api/trpc/widget.stats.catalog", "/api/trpc/widget.stats.snapshot", "/api/trpc/widget.stats.refresh":
+			var input struct {
+				JSON struct {
+					IntegrationID string `json:"integrationId"`
+					Force         bool   `json:"force"`
+				} `json:"json"`
+			}
+			if r.Method == http.MethodPost {
+				json.NewDecoder(r.Body).Decode(&input)
+			} else {
+				json.Unmarshal([]byte(r.URL.Query().Get("input")), &input)
+			}
+			if input.JSON.IntegrationID != "owned-dashdot" {
+				t.Error("Stats query selected an unowned integration")
+			}
+			switch r.URL.Path {
+			case "/api/trpc/widget.stats.catalog":
+				f.catalogs++
+				value = map[string]any{"metrics": f.metrics}
+			case "/api/trpc/widget.stats.snapshot":
+				value = map[string]any{"updatedAt": f.timestamp}
+			case "/api/trpc/widget.stats.refresh":
+				f.refreshes++
+				f.force = input.JSON.Force
+				if f.advance {
+					f.timestamp++
+				}
+				value = map[string]any{"updatedAt": f.timestamp, "error": false, "stale": false, "values": f.values}
+			}
 		case "/api/trpc/widget.healthMonitoring.getSystemHealthStatus":
 			var input struct {
 				JSON struct {
@@ -121,7 +164,7 @@ func TestDashdotVerificationRequiresRawAndNativeDefinedNumbers(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			from, to := dashdotHelpers(t, tc.native, tc.cpuBody, [][]string{{}})
-			err := dashdotTarget().verify(context.Background(), from, to, "owned-dashdot")
+			err := dashdotTarget().verifyData(context.Background(), from, to, "owned-dashdot")
 			if (err == nil) != tc.valid {
 				t.Fatalf("unexpected verification result: %v", err)
 			}
@@ -129,5 +172,62 @@ func TestDashdotVerificationRequiresRawAndNativeDefinedNumbers(t *testing.T) {
 				t.Fatalf("verification lacks recovery instruction: %v", err)
 			}
 		})
+	}
+}
+
+func TestDashdotStatsUseOneFreshOwnedSample(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(*statsFixture)
+		valid  bool
+	}{
+		{"volatile native and Stats may differ", func(f *statsFixture) { f.values["cpu"] = float64(25) }, true},
+		{"zero CPU and used RAM", func(*statsFixture) {}, true},
+		{"wrong unit", func(f *statsFixture) { f.metrics[0].(map[string]any)["unit"] = "bytes" }, false},
+		{"missing catalog metric", func(f *statsFixture) { f.metrics = f.metrics[:3] }, false},
+		{"null value", func(f *statsFixture) { f.values["uptime"] = nil }, false},
+		{"negative byte value", func(f *statsFixture) { f.values["memoryUsed"] = float64(-1) }, false},
+		{"fractional byte value", func(f *statsFixture) { f.values["memoryUsed"] = 0.5 }, false},
+		{"CPU over 100", func(f *statsFixture) { f.values["cpu"] = float64(101) }, false},
+		{"zero total memory", func(f *statsFixture) { f.values["memoryAvailable"] = float64(0) }, false},
+		{"cached refresh", func(f *statsFixture) { f.advance = false }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &statsFixture{
+				timestamp: 1000, advance: true,
+				values: map[string]any{"cpu": float64(0), "memoryUsed": float64(0), "memoryAvailable": float64(8192), "uptime": float64(0)},
+				metrics: []any{
+					map[string]any{"key": "cpu", "unit": "percent"},
+					map[string]any{"key": "memoryUsed", "unit": "bytes"},
+					map[string]any{"key": "memoryAvailable", "unit": "bytes"},
+					map[string]any{"key": "uptime", "unit": "seconds"},
+				},
+			}
+			tc.change(f)
+			health := []any{map[string]any{"integrationId": "owned-dashdot", "healthInfo": map[string]any{"cpuUtilization": 0, "memUsedInBytes": 0, "memAvailableInBytes": 8192, "uptime": 0}}}
+			from, to := dashdotHelpers(t, health, `[{"load":0,"temp":0}]`, [][]string{{}}, f)
+			err := dashdotTarget().verifyData(context.Background(), from, to, "owned-dashdot")
+			if (err == nil) != tc.valid {
+				t.Fatalf("unexpected verification result: %v", err)
+			}
+			if f.refreshes > 1 || f.refreshes == 1 && !f.force || tc.valid && (f.refreshes != 1 || f.catalogs != 1) {
+				t.Fatalf("Stats acquisition duplicated or did not force refresh: %+v", f)
+			}
+		})
+	}
+}
+
+func TestDashdotStatsRejectNonfiniteValues(t *testing.T) {
+	for _, bad := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		for _, key := range []string{"cpu", "memoryUsed", "memoryAvailable", "uptime"} {
+			sample := statsSample{
+				values: map[string]any{"cpu": float64(0), "memoryUsed": float64(0), "memoryAvailable": float64(8192), "uptime": float64(0)},
+				units:  map[string]string{"cpu": "percent", "memoryUsed": "bytes", "memoryAvailable": "bytes", "uptime": "seconds"},
+			}
+			sample.values[key] = bad
+			if verifyDashdotStats(sample) == nil {
+				t.Fatalf("accepted nonfinite %s Stats", key)
+			}
+		}
 	}
 }
