@@ -14,12 +14,13 @@ those records predates that decision. Keep the existing self-host skill router.
    image's source revision. Record exact kind casing, credential alternatives,
    least permissions, internal endpoint and useful supported widgets/metrics.
    The [compatibility gate](../../internal/apps/homarr/compatibility.go) requires
-   authenticated API version **2.4.1 or 2.5.1** and the exact `integration.getKinds`
+   authenticated API version **2.4.1, 2.5.1 or 2.5.2** and the exact `integration.getKinds`
    credential alternative; missing keys are not submitted. A nil resolver sends
    `[]` only when the upstream alternative permits it. Resolve actual selectors
    or omit the widget; no invented IDs, metrics, empty values or hardware readiness.
-   The `2.5.1` source candidate includes hotfix #7170; its fresh published-image
-   proof remains pending. The finite gate excludes `2.5.0` and other `2.5.x` versions.
+   `2.5.1` includes hotfix #7170; `2.5.2` preserves the audited peer contracts.
+   Fresh `2.5.2` image/API proof remains pending. The finite gate excludes `2.5.0`,
+   `2.5.3` and other unreviewed versions; native/privacy holds remain in place.
    **Done:** sources and one meaningful native acceptance value are identified.
 
 2. **Use the peer seam.** Own one branch/worktree/PR and
