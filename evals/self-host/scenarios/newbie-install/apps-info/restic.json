@@ -1,0 +1,17 @@
+{
+  "id": "restic",
+  "name": "restic",
+  "description": "Back up your files with encryption, and restore them when you need them",
+  "category": "Backups",
+  "image": "ghcr.io/restic/restic:0.19.1",
+  "docs": "https://restic.readthedocs.io/en/stable/",
+  "port": 0,
+  "inputs": [
+    {
+      "key": "repository",
+      "prompt": "restic repository destination",
+      "help": "The repository restic writes snapshots to, e.g. /repository or s3:s3.example.com/bucket",
+      "required": true
+    }
+  ]
+}

@@ -7,9 +7,11 @@ import (
 	"slices"
 
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/release"
 )
 
-const supportedHomarrVersions = "2.4.1, 2.5.1 or 2.5.2"
+const minimumHomarrVersion = "2.4.1"
+const supportedHomarrVersions = minimumHomarrVersion + " or newer"
 
 func readHomarrVersion(ctx context.Context, h *helpers.H) (string, error) {
 	value, err := apiKeyProcedure(ctx, h, "info.getInfo", nil)
@@ -36,7 +38,8 @@ func supportedVersion(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return fmt.Errorf("cannot verify Homarr compatibility; use Homarr %s and retry self-host setup homarr: %w", supportedHomarrVersions, err)
 	}
-	if version != "2.4.1" && version != "2.5.1" && version != "2.5.2" {
+	tooOld, err := release.Newer(version, minimumHomarrVersion)
+	if err != nil || tooOld {
 		return fmt.Errorf("Homarr %s is unsupported; this CLI supports %s. Back up Homarr before changing its version, then retry self-host setup homarr", version, supportedHomarrVersions)
 	}
 	return nil

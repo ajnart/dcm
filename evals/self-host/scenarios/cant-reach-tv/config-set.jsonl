@@ -1,0 +1,7 @@
+{"event":"run.start","msg":"config set LAN_IP=auto"}
+{"event":"info","msg":"Detected LAN IP 192.168.0.31"}
+{"event":"step.start","app":"jellyfin","step":"recreate"}
+{"event":"step.ok","app":"jellyfin","step":"recreate"}
+{"event":"step.start","app":"homarr","step":"recreate"}
+{"event":"step.ok","app":"homarr","step":"recreate"}
+{"event":"run.end","msg":"config set: ok"}

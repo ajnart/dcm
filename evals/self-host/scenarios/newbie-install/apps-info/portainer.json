@@ -1,0 +1,10 @@
+{
+  "id": "portainer",
+  "name": "Portainer",
+  "description": "See and manage your running apps from one web page",
+  "category": "Containers",
+  "image": "docker.io/portainer/portainer-ce:2.45.1",
+  "docs": "https://docs.portainer.io/start/install-ce/server/docker/linux",
+  "port": 9000,
+  "inputs": []
+}
