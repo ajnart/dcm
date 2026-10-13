@@ -31,7 +31,7 @@ No percentage estimate: each gate requires evidence.
 | Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
 | Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
 | Complete real-model batch with both guides and three repetitions       | Iteration 25 valid: all 54 expanded conversations completed   |
-| Complete blind judgments, aggregation and supplied review viewer       | Iteration 25 judgment quota failure; no full grades/viewer    |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 26 complete; viewer open, human feedback pending    |
 | Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
@@ -46,8 +46,9 @@ A failed fresh judgment attempt removed verdicts and grades but left a prior
 regression reproduced this before correction. Judgment invalidation now removes
 both derived reports before execution validation or model preflight, while
 preserving conversation inputs, execution evidence and archived raw responses.
-The focused regression passes. No private attempts or model calls were accessed;
-the complete judgment, aggregation, viewer and human review gates remain pending.
+The focused regression passes. No private attempts or model calls were accessed
+for this source correction; the completed iteration 26 comparison remains
+historical evidence, with human feedback still pending.
 
 ## Evidence ledger
 
@@ -385,6 +386,50 @@ the complete judgment, aggregation, viewer and human review gates remain pending
   No guide changes are inferred from incomplete judgments. The guide PR #257 is now merged
   according to GitHub; further guide changes will use a separate follow-up PR,
   never the harness PR #259. Human feedback remains a merge gate for #259.
+
+- **Iteration 26: complete valid judgment-only comparison.** The user explicitly
+  requested resuming blind judging after the reported noon Paris reset without
+  rerunning conversations. At 12:17pm Paris time, the valid 54-conversation
+  execution from iteration 25 was copied into a fresh unused iteration. All
+  4920 copied execution files are byte-identical and all 54 judgment-input
+  fingerprints match. Failed prior judge diagnostics stay in iteration 25;
+  they were not copied into the fresh attempt or treated as usable verdicts.
+  `judgment_attempt.json` records source provenance, copied-file fingerprints,
+  selected Opus model and zero conversation reruns. Blind judging ran with
+  parallelism two and the same 600-second call timeout; its access preflight
+  passed and all 54 judgments completed validly. Complete judgments preceded
+  grading. The supplied aggregation and static viewer were generated with
+  corrected model/repetition metadata, execution-source provenance and caveats,
+  then opened for human review. No conversation or failed historical attempt
+  was rerun, edited or silently reused as a passing judgment.
+
+  Revised passed 210/240 assertions; original passed 202/240. The supplied
+  aggregate averages per-run assertion pass rates: 88.5% revised versus 85.2%
+  original. Weighted assertion totals are 87.5% versus 84.2%, a different
+  statistic; neither establishes superiority or real installation acceptance.
+  All 342 scripted checks passed. All 24 independent newcomer Recap assessments
+  passed, but all 24 newcomer `acceptance_passed` fields remain false because
+  original assertions failed. Other scenarios have no newcomer acceptance field.
+
+  Both guides respected refusal without mutation attempts in all 12 refusal
+  conversations. Public-risk explanation/approval judgments failed eight of
+  twelve across publication and refusal cases; Jellyfin's public-streaming
+  rationale failed five of six, and Sonarr before-action guidance failed four
+  of six. Passing scripted approval timing does not clear these communication
+  failures. The media-choice/location assertion passed six of twelve revised
+  versus zero of twelve original; some failures penalize not re-asking details
+  the person already volunteered. Plain-language failed twelve of twelve
+  revised and eleven of twelve original, partly conflicting with required
+  Experience wording, credential commands and numbered Addresses, alongside
+  real jargon and confusing path wording. All verdicts are retained unchanged.
+  Recap assessments accept an earlier complete handoff, while three original
+  final-reply assertions failed when later replies omitted the credential pointer;
+  the contracts' different scope is preserved rather than rewritten into passes.
+
+  The full execution/judgment/viewer gate is now satisfied; human feedback and
+  evidence-based guide improvements remain outstanding. PR #259 stays draft
+  until human review; new guide changes belong in a separate follow-up to merged
+  #257. The contributor skill and trigger-label review remain separate tasks.
 
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.

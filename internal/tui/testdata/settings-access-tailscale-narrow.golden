@@ -6,6 +6,7 @@
 │ > ○ From anywhere, privately                                                 │
 │   ○ Your own web address                                                     │
 │   ○ Bring your own                                                           │
+│   ○ This computer only                                                       │
 │   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies         │
 │                                                                              │
 │   Tailscale lets you open each App with its own private HTTPS name from your │
@@ -16,7 +17,6 @@
 │                                 │                                            │
 │                            internet ✗                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-
 
 
 

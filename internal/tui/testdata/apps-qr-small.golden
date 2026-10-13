@@ -1,0 +1,20 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings
+╭─ Apps 3 ───────────────────╮╭─ Jellyfin logs ────────────╮
+│ ● ◇ Jellyfin     running   ││  logs   setup   info   compose   containers
+╭──────────────────────────────────────────────────────────╮
+│ Jellyfin · QR code                                       │
+│ http://192.168.1.20:8096                                 │
+│                                                          │
+│ The terminal is too small for the QR code: it needs      │
+│ 44×22 cells and this one has 60×17. Enlarge it, or type  │
+│ the Address above.                                       │
+│                                                          │
+│ Esc closes.                                              │
+╰──────────────────────────────────────────────────────────╯
+│                            ││                            │
+│                            ││                            │
+│                            ││                            │
+│                            ││                            │
+╰────────────────────────────╯╰────────────────────────────╯
+
+ typing · keys go to the input                   esc  close

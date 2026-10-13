@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+	"io/fs"
 	"os/exec"
 	"reflect"
 	"slices"
@@ -24,11 +25,15 @@ import (
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/systemtest"
+	"github.com/ajnart/self-host/internal/telemetry"
 )
 
 type fakeBackend struct {
 	cloudflarePlan func(service.CloudflareOptions) (service.CloudflarePlan, error)
 	mu             sync.Mutex
+	folders        *systemtest.Folders
+	home           string
 	status         service.Status
 	checks         []host.Check
 	actions        []string
@@ -91,6 +96,8 @@ type fakeBackend struct {
 	restartErr  error
 	// telemetryNotice is what TelemetryNotice announces, once.
 	telemetryNotice string
+	// onboardingReports is every event ReportOnboarding received.
+	onboardingReports []telemetry.Onboarding
 }
 
 func (b *fakeBackend) CloudflarePlan(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
@@ -109,12 +116,39 @@ func (b *fakeBackend) CloudflarePlan(opts service.CloudflareOptions) (service.Cl
 	return p, nil
 }
 
+func (f *fakeBackend) ListFolders(dir string) ([]string, error) {
+	if f.folders == nil {
+		return nil, fs.ErrNotExist
+	}
+	return f.folders.List(dir)
+}
+
+func (f *fakeBackend) UserHome() string { return f.home }
+
 func (f *fakeBackend) TelemetryNotice() string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	notice := f.telemetryNotice
 	f.telemetryNotice = ""
 	return notice
+}
+
+func (f *fakeBackend) PendingTelemetryNotice() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.telemetryNotice
+}
+
+func (f *fakeBackend) ReportOnboarding(o telemetry.Onboarding) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.onboardingReports = append(f.onboardingReports, o)
+}
+
+func (f *fakeBackend) reportedOnboarding() []telemetry.Onboarding {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]telemetry.Onboarding(nil), f.onboardingReports...)
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {
@@ -342,6 +376,7 @@ func sample(t *testing.T, width, height int) (Model, *fakeBackend) {
 	m = update(t, m, tea.WindowSizeMsg{Width: width, Height: height})
 	m = drive(t, m, statusMsg{status: backend.status})
 	m = update(t, m, doctorMsg{checks: backend.checks})
+	m.opening = 0
 	return m, backend
 }
 
@@ -1114,7 +1149,15 @@ func TestEveryViewFitsEightyColumns(t *testing.T) {
 // Host sub-tab, and returns to the Host sub-tab.
 func pickHomeNetwork(t *testing.T, m Model) Model {
 	t.Helper()
-	m = drive(t, m, press("]"))
+	m = focusHomeNetwork(t, drive(t, m, press("]")))
 	m = drive(t, m, press("enter"))
 	return drive(t, m, press("["))
+}
+
+func focusHomeNetwork(t *testing.T, m Model) Model {
+	t.Helper()
+	for range accessOptions {
+		m = drive(t, m, press("up"))
+	}
+	return m
 }

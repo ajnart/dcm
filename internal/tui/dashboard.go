@@ -40,6 +40,8 @@ func (v *dashboardView) Keys() []key.Binding {
 	switch {
 	case v.apps.copy != nil:
 		return copyHelp
+	case v.apps.qr != nil:
+		return qrKeys
 	case v.apps.searching:
 		return appsSearchKeys
 	case v.needsFocused:
@@ -94,6 +96,10 @@ func (v *dashboardView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, na
 	case tea.KeyPressMsg:
 		if v.apps.copy != nil {
 			return v, v.apps.copyKey(ctx, msg), nav{}
+		}
+		if v.apps.qr != nil {
+			v.apps.qrKey(msg)
+			return v, nil, nav{}
 		}
 		return v.key(ctx, msg)
 	case clickMsg:

@@ -26,9 +26,13 @@ type menuEntry struct {
 	// confirm is what an armed destructive entry says before the second enter.
 	confirm string
 	req     Request
+	// qr opens the QR code modal instead of dispatching a Request.
+	qr *qrModal
 	// title names the running Action in the status line and Activity.
 	title  string
 	reason string
+	// flash is what enter says on an unavailable entry, when the reason needs more words.
+	flash string
 }
 
 // appActions are the Actions valid for one App in its current state.
@@ -63,16 +67,29 @@ func appActions(app service.AppStatus, update string, busy bool) []menuEntry {
 		menuEntry{label: "Backup", mnemonic: "b",
 			preview: "Backs up " + name + "'s configuration, databases and secrets into one archive. Media is not included.",
 			req:     Request{Action: ActionBackup, IDs: ids}, title: "backup " + app.ID},
+		qrEntry(app),
 		menuEntry{label: "Remove", mnemonic: "m", destructive: true,
 			preview: "Removes " + name + "'s containers and Compose file. Its data in apps/" + app.ID + "/ stays.",
 			confirm: "Press enter again to remove " + name + ". Its data in apps/" + app.ID + "/ stays.",
 			req:     Request{Action: ActionRemove, IDs: ids}, title: "remove " + app.ID})
 	if busy {
 		for i := range entries {
-			entries[i].reason = reasonBusy
+			if entries[i].qr == nil {
+				entries[i].reason = reasonBusy
+			}
 		}
 	}
 	return entries
+}
+
+func qrEntry(app service.AppStatus) menuEntry {
+	reason, why := qrUnavailable(app)
+	e := menuEntry{label: "QR code", mnemonic: "q", reason: reason, flash: why, qr: newQRModal(app),
+		preview: "Shows " + app.Name + "'s Address as a QR code to scan with your phone."}
+	if why != "" {
+		e.preview = why
+	}
+	return e
 }
 
 // projectActions are the Actions on the whole Project.
@@ -229,12 +246,19 @@ func (m Model) runMenuEntry(entries []menuEntry) (tea.Model, tea.Cmd) {
 	e := entries[m.menu.cursor]
 	switch {
 	case e.reason != "":
+		if e.flash != "" {
+			m.setFlash(e.flash, levelWarn)
+		}
 		return m, nil
 	case e.destructive && !m.menu.armed:
 		m.menu.armed = true
 		return m, nil
 	}
 	m.menu = nil
+	if e.qr != nil {
+		m.apps.qr = e.qr
+		return m, nil
+	}
 	return m.focusActivity(m.ctx().run(e.req, e.title))
 }
 

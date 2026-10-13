@@ -1,16 +1,16 @@
  ◆ self-host                                                              v1.0.0
 
-  ✓ ✓ ✓ ✓ ● Access ○ ○ ○  5 of 8
+  ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
 
   How you'll open your Apps
   Choose how phones, TVs and laptops will open your Apps. Home network needs
   nothing to set up. You can change this later in Settings, under Access.
-
     ● Home network (default)
     ○ Easy names at home
     ○ From anywhere, privately
     ○ Your own web address
   > ○ Bring your own
+    ○ This computer only
 
   Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy
   Manager, Traefik or Caddy? Choosing this changes nothing here. Run self-host

@@ -6,6 +6,12 @@ you read the output yourself. This guide is built into the binary and describes
 exactly the commands this version registers; run `self-host skill` again after
 `self-host self-update`.
 
+The interactive Dashboard has a brief opening entrance, skipped by any key
+without changing its meaning. Pre-boot animates in only after approving the
+first install; `enter` shows Activity, and `q` or `ctrl+c` quits. For less motion,
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips the decorative transitions and shows
+the first Action directly in Activity. Plain commands and `--json` never animate.
+
 ## Every conversation
 
 1. In a new conversation, run `self-host status --json` before anything else.
@@ -13,21 +19,32 @@ exactly the commands this version registers; run `self-host skill` again after
    plus `home`, `dashboard` and `profile`. With no Project yet it exits 1 with
    "no Project yet", which means nothing is installed: run
    `self-host profile --json` instead.
-2. If the Profile's `experience` is empty, ask once, in plain words, through
-   your ask-user or question tool: "Have you run your own server or used Docker
-   before, or is this all new to you?" Save the answer with
+2. If the Profile's `experience` is empty, ask once through your ask-user or
+   question tool: "Have you run your own server or used Docker before, or is
+   this all new to you?", with two options to click so nobody has to describe
+   themselves: "This is all new to me" and "I've done this before". Skip the
+   question only when they already said which. Without such a tool, ask it
+   with the two choices in one line. Save the answer with
    `self-host profile set experience new` or
    `self-host profile set experience advanced`. A skipped question means new:
    save that.
 3. **New** (the person is not technical): follow the newcomer contract.
-   - Ask one question at a time through your ask-user tool.
+   - Ask one question at a time through your ask-user tool, with 2 to 4 options
+     to click, so the person types as little as possible.
    - Before installing software, changing Access or deleting data, say one plain
      sentence about what will happen and wait for a yes. Anything reachable from
      the internet needs its own yes that names the risk.
    - Change the Project only through `self-host` commands.
    - Never ask for or show a secret. Point at `self-host credentials`.
    - Offer the plan in goals and Apps, never settings. Pick the Recipe or Apps
-     from `self-host apps list --json`, with the catalog defaults.
+     from `self-host apps list --json`, with the catalog defaults. When a goal
+     has a small and a fuller answer, offer both as options. For films and
+     shows: Jellyfin alone plays what they already have; the Media Recipe also
+     finds and downloads new ones and lets the household ask for them. Ask
+     where their files live now (a folder, a USB drive) and pass that folder
+     as `--media-root`.
+   - Leave Docker, ports, containers and Compose out of what you say. Mention
+     Docker only when it must be installed or started, in one phrase (4).
 
    A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
    and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
@@ -221,9 +238,8 @@ secrets masked, and the health-check URL. Then hand off what the event gives you
 
 Access is how people open the Apps. Onboarding's Access step and Settings'
 Access sub-tab offer Home network (the default), Easy names at home, From
-anywhere privately, Your own web address and Bring your own, each with a
-diagram and a help page. Home network, Easy names at home, Tailscale, Bring your own and Your own
-web address are available. Your own web address uses Cloudflare
+anywhere privately, Your own web address, Bring your own and This computer only,
+each with a diagram and a help page. All six are available. Your own web address uses Cloudflare
 Tunnel with a login page. Onboarding opens its guided Settings flow after the
 Apps finish installing; choosing it alone never publishes anything. Options
 marked "coming soon" change nothing. Bring your own is for people who
@@ -244,7 +260,8 @@ The command changes nothing; the user runs the proxy, its
 certificates and its login, and the `IP:port` Address keeps working. Home network is stored as `EXPOSURE=lan`
 and publishes every App's port on `0.0.0.0`, so other devices on the network
 can connect. `--exposure local` and `EXPOSURE=local` publish on `127.0.0.1`
-instead, so only this machine can; Onboarding does not offer it. `LAN_IP` only
+instead, so only this machine can; Onboarding and Settings offer it as "This
+computer only". `LAN_IP` only
 builds the links people open; it never decides who can connect. Access explains
 most "I can't reach it from my TV or phone" reports, and `self-host status` shows
 it first: `status --json` has `access` (a list including `home` or `local`, plus
@@ -395,6 +412,15 @@ masking: review them before sharing. Copy confirmation never echoes the error.
 Read `status --json`: `addresses` lists only working Easy names ahead of
 `IP:port`, after valid private Tailscale and available verified Cloudflare
 Addresses; `url` remains the first. Homarr tiles share that browser Address.
+
+Homarr Links support Homarr 2.4.1, not an arbitrary mutable development build.
+Immich Setup creates a dedicated read-only statistics key. Retry its own Setup
+before retrying Homarr: `self-host setup immich`, then `self-host setup homarr`.
+A lost managed key is a Manual step with a recovery hint, never an excuse to
+read secrets or rotate someone else's key. Immich server statistics are wired;
+album slideshows are not. Native authenticated data and rendered widgets need
+their own verification; a tile or successful HTTP response is not that proof.
+
 The additive `names` section has `on`, `working` and, on failure, `problem`,
 `message`, `technical`. Give the plain `message` first and the numbered Address;
 do not change the router or disable its protection yourself. `blocked` compares

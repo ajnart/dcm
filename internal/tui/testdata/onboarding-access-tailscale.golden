@@ -1,6 +1,6 @@
  ◆ self-host                                                                                                      v1.0.0
 
-  ✓ Initializing › ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
+  ✓ Welcome › ✓ What › ✓ Where › ● Access › ○ Who › ○ Look › ○ Review
 
   How you'll open your Apps
   Choose how phones, TVs and laptops will open your Apps. Home network needs nothing to set up.
@@ -11,6 +11,7 @@
   > ○ From anywhere, privately
     ○ Your own web address
     ○ Bring your own
+    ○ This computer only
 
   Tailscale lets you open each App with its own private HTTPS name from your phone, laptop or TV,
   wherever you are. Your Home network Addresses keep working.
@@ -18,7 +19,6 @@
   your phone, anywhere ──── Tailscale ──── this computer private name
                                 │
                            internet ✗
-
 
 
 

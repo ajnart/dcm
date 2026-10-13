@@ -6,6 +6,7 @@
 │   ○ From anywhere, privately                                                                                         │
 │ > ○ Your own web address                                                                                             │
 │   ○ Bring your own                                                                                                   │
+│   ○ This computer only                                                                                               │
 │   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies                                                 │
 │                                                                                                                      │
 │   Your own web address, like movies.example.com, opens your chosen Apps from anywhere through Cloudflare Tunnel,     │
@@ -16,7 +17,6 @@
 │                                     │                                                                                │
 │                               login first ✓                                                                          │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
 
 
 

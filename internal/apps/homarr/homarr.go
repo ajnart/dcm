@@ -26,7 +26,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "homarr", Name: "Homarr", Category: "Dashboard",
 		Description:   "Put all your apps on one home page, each a click away",
-		Image:         "ghcr.io/homarr-labs/homarr:dev",
+		Image:         "ghcr.io/homarr-labs/homarr:latest",
 		Docs:          "https://homarr.dev/docs/getting-started/",
 		Port:          7575,
 		ContainerPort: 7575,
@@ -46,7 +46,7 @@ func (App) Secrets() []app.SecretSpec {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   homarr:
-    image: ghcr.io/homarr-labs/homarr:dev
+    image: ghcr.io/homarr-labs/homarr:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}
@@ -375,6 +375,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/health/live", helpers.Timeout(2*time.Minute)); err != nil {
 		return err
 	}
+	if ok, err := apiKeyWorks(ctx, h); err != nil {
+		return err
+	} else if ok {
+		if err := supportedVersion(ctx, h); err != nil {
+			return err
+		}
+	}
 	s := newSession()
 	err := h.Step(ctx, "admin", "sign in as the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return s.admin(ctx, h) },
@@ -406,6 +413,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
+	if err := supportedVersion(ctx, h); err != nil {
+		return err
+	}
 	if h.InstalledApps != nil {
 		if err := h.Step(ctx, "app-tiles", "reconcile installed App tiles", helpers.StepSpec{
 			Check: func(ctx context.Context) (bool, error) { return installedTiles(ctx, h, false) },
@@ -433,6 +443,9 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if !ok {
 		return errors.New("the stored Homarr API key is not accepted")
+	}
+	if err := supportedVersion(ctx, h); err != nil {
+		return err
 	}
 	if err := newSession().login(ctx, h); err != nil {
 		return fmt.Errorf("the Admin login %s cannot sign in to Homarr: %w", h.AdminUser(), err)

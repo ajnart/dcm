@@ -43,17 +43,17 @@ func TestAppActionsPerState(t *testing.T) {
 		want   []string
 	}{
 		{"running, no update known", running, service.UpdateUnknown, false, []string{
-			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "m Remove"}},
+			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "q QR code — no web page", "m Remove"}},
 		{"degraded counts as running", degraded, service.UpdateCurrent, false, []string{
-			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "m Remove"}},
+			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "q QR code — no web page", "m Remove"}},
 		{"stopped", stopped, service.UpdateUnknown, false, []string{
-			"s Start", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "m Remove"}},
+			"s Start", "u Update — " + noUpdate, "r Retry Setup", "b Backup", "q QR code — no web page", "m Remove"}},
 		{"update known", running, service.UpdateAvailable, false, []string{
-			"s Stop", "t Restart", "u Update", "r Retry Setup", "b Backup", "m Remove"}},
+			"s Stop", "t Restart", "u Update", "r Retry Setup", "b Backup", "q QR code — no web page", "m Remove"}},
 		{"unmanaged", unmanaged, service.UpdateUnknown, false, []string{
-			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup — added by hand, no Setup", "b Backup", "m Remove"}},
+			"s Stop", "t Restart", "u Update — " + noUpdate, "r Retry Setup — added by hand, no Setup", "b Backup", "q QR code — no web page", "m Remove"}},
 		{"an Action is running", running, service.UpdateAvailable, true, []string{
-			"s Stop — " + wait, "t Restart — " + wait, "u Update — " + wait, "r Retry Setup — " + wait, "b Backup — " + wait, "m Remove — " + wait}},
+			"s Stop — " + wait, "t Restart — " + wait, "u Update — " + wait, "r Retry Setup — " + wait, "b Backup — " + wait, "q QR code — no web page", "m Remove — " + wait}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := entryLines(appActions(tc.app, tc.update, tc.busy)); !slices.Equal(got, tc.want) {

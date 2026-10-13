@@ -19,6 +19,7 @@ func TestGoldenOnboardingSelectionAndFocus(t *testing.T) {
 			{"welcome-focus", stepWelcome, []string{"down"}},
 			{"welcome-selected", stepWelcome, []string{"down", "space", "up"}},
 			{"access-selected", stepAccess, []string{"down", "space", "up"}},
+			{"access-local-focus", stepAccess, []string{"down", "down", "down", "down", "down"}},
 			{"look-focus", stepLook, []string{"up"}},
 			{"look-selected", stepLook, []string{"up", "space", "down"}},
 		} {
@@ -30,6 +31,7 @@ func TestGoldenOnboardingSelectionAndFocus(t *testing.T) {
 				for _, key := range stage.keys {
 					m = drive(t, m, press(key))
 				}
+				m = frames(t, m, reactionFrames)
 				golden(t, "onboarding-"+stage.name+size.suffix, trimLines(screen(m)))
 			})
 		}

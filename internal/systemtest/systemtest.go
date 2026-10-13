@@ -220,6 +220,7 @@ func NewDeps(t *testing.T) *system.Deps {
 		TimeZone:     func() string { return "Europe/Paris" },
 		PortFree:     func(int) bool { return true },
 		Resolver:     &Resolver{},
+		ListFolders:  (&Folders{}).List,
 		ProcessAlive: func(int) bool { return false },
 		PID:          4242,
 		Out:          io.Discard,

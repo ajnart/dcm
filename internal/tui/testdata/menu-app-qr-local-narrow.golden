@@ -1,0 +1,24 @@
+ ◆ self-host 1 Overview  2 Apps  3 Activity  4 Catalog  5 Settings  ◐ 1 warning
+╭─ Now ────────────────────────────────────────────────────────────────────────╮
+│ No Action yet                                                                │
+│ ◐ Ho╭──────────────────────────────────────────────────────────────────╮     │
+│     │ Jellyfin · Actions                                               │     │
+│     │                                                                  │     │
+╰─────│   Stop                                                           │─────╯
+╭─ App│   Restart                                                        │─────╮
+│ ● ◇ │   Update        no update known (checked every 30 minutes)       │     │
+│ ✗ ◇ │   Retry Setup                                                    │     │
+│ ✗ ◇ │   Backup                                                         │     │
+╰─────│ > QR code       this computer only                               │─────╯
+╭─ Nee│   Remove                                                         │─────╮
+│ ✗ So│                                                                  │etup │
+│ ✗ wh│ ──────────────────────────────────────────────────────────────── │tart │
+│ ! Fi│ Under This computer only a phone cannot reach this App's         │     │
+│   → │ Address. Choose another Access in Settings > Access to scan it.  │     │
+│     ╰──────────────────────────────────────────────────────────────────╯     │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ actions · letters pick an Action         ↑/↓  select   enter  run   esc  close

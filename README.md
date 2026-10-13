@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+  <img src="docs/assets/logo-light.svg" alt="self-host Logo: four containers with their status lights" width="152" height="144">
+</picture>
+
 # self-host CLI
 
 Run your own apps at home, like a movie server, without learning Docker.
@@ -33,6 +39,13 @@ Setup code and agent guide ship inside the binary; running it needs no Node.js,
 Bun, checkout, or AI account. A Project made by a pre-release build in
 `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
 at one.
+
+The Dashboard opens with a brief, skippable entrance; any key continues with its
+usual meaning. The existing Pre-boot scene animates in during the approved first
+install, with `enter` to skip to Activity and `q` or `ctrl+c` to quit.
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips these decorative transitions and
+shows that first Action directly in Activity. Loading and installation never
+wait for motion; plain commands, non-TTY output and `--json` do not animate.
 
 Ask your agent to use the self-host skill ("use self-host to watch my movies on
 the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). Agents
@@ -279,13 +292,14 @@ Apps, which you can untick one by one, and its mark shows whether all, some or
 none are picked; an App that needs answers
 of its own asks them next. **Where** explains each field in a line while it is
 focused: the LAN address, the Host settings and, only for media Apps, the
-media and downloads folders. **Access** ("How you'll open your Apps") lists Home
+media and downloads folders. Typing a folder path lists the folders inside it,
+`tab` completes it and `~` expands to your home folder. **Access** ("How you'll open your Apps") lists Home
 network (the default), Easy names at home, From anywhere privately, Your own web
-address and Bring your own, each with a plain explanation and a small diagram
-that follow the highlighted option. `?` opens a longer help page that ends with
+address, Bring your own and This computer only (Apps open only on this
+computer), each with a plain explanation and a small diagram that follow the
+highlighted option. `?` opens a longer help page that ends with
 its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. Home network, From anywhere, privately, Bring your own and
-Your own web address are available. The latter
+question mark. All six options are available. Your own web address
 opens a guided Cloudflare flow in Settings after the Apps finish installing;
 it chooses Apps individually and asks a separate yes before publication.
 Options marked coming soon change nothing.
@@ -404,7 +418,7 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | Dashboard key   | Action                                                                                                                                                                    |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1–5, ←/→        | Switch tabs.                                                                                                                                                              |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes.                                                                                                                       |
+| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. In Onboarding's folder inputs, `tab` completes the typed path.                                                        |
 | [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
 | a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
 | enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its Address; choose a saved credential to copy.                                                    |
@@ -412,23 +426,30 @@ with its Action highlighted, and `enter` opens the App on the Apps tab.
 | ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
 
 No single key changes an App or the Project. The Action menu lists only the
-Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup and
-Remove for an App; Up all, Down all, Restart all, Update all and Backup for
+Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup, QR code
+and Remove for an App; Up all, Down all, Restart all, Update all and Backup for
 the Project. A letter highlights an Action and shows what it will do; `enter`
 runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
 closes the menu. With the mouse, a click highlights an Action and a click on
 the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
 
+QR code shows the App's Address as a QR code over the Overview or Apps tab, to
+scan with a phone; `esc` closes it. It is unavailable for an App with no web
+page and under This computer only, where a phone cannot reach the Address;
+`enter` on the greyed row says so and points at Settings > Access.
+
 `c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
 `enter` copies and `esc` closes; background keys and clicks do not navigate.
-It offers the Admin password, the selected App's login alias and API keys,
+It offers the Admin password, the selected App's login alias, admin email and API keys,
 then Admin username and email when saved. Values stay hidden and are read
-again when copied.
+again when copied. App emails come from saved credentials or the App's automatic
+Setup definition; they do not detect accounts changed directly inside an App.
 
 While a search or an edit takes text, every key goes to it; in the App list
 `/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
 five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
-Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
+Host folder edits list matching folders; `tab` completes, arrows select a suggestion
+and `~` expands to your home folder. Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
 archives in `~/.self-host/backups` with date, size and whether each is encrypted:
 `b` asks for an optional passphrase (typed as dots; empty means unencrypted, otherwise it
 is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore
@@ -626,6 +647,21 @@ machine checks, owned cleanup and reviewed dashboard/panel screenshots passed
 at one immutable head. The terminal screenshots above use that same fixture
 and binary. API payload checks, archive sentinels, browser review and full
 workload recovery remain distinct claims.
+
+Homarr Links support version **2.4.1**. Immich Setup prepares a dedicated
+read-only statistics key; retry with `self-host setup immich`, then
+`self-host setup homarr`. Server statistics are enabled, not album slideshows.
+Other Homarr versions stop with a recovery hint; back up before changing versions.
+Immich Links require genuinely refreshed Stats, not merely cached values. Retry
+Homarr Setup if its refresh cannot advance. User-referenced integrations and
+linked bookmarks survive removal and are not reclaimed on reinstall, including
+bookmarks with user-edited ping Addresses.
+See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
+The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
+empty-library statistics, rendered widgets and preservation/removal/reinstall
+at its exact source and image identities, including retained legacy-App exclusion
+through two cycles and final post-lifecycle native/shared rendering. It does not
+verify populated media or other peers.
 
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |

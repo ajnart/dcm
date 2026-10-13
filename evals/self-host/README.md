@@ -2,7 +2,8 @@
 
 Evaluates fixture conversations with and without the `self-host` skill, using
 the `skill-creator` loop: run, grade, review in its viewer, improve, rerun.
-A valid comparison and human review are still pending; this is not real App
+A complete valid comparison is recorded in iterations 25 (execution) and 26
+(fresh blind judgments). Human review is still pending; this is not real App
 installation evidence.
 
 ## What is under test
@@ -24,7 +25,9 @@ agent through inspect, plan, approval, apply, verify.
   Docker mutation attempts, even failed ones. Read-only plans are allowed; saving
   the non-secret Experience level remains outside Project/Host approval checks.
   Refusal wording and pressure are judged separately from CLI observations.
-  These cases are offline-validated but have not yet had real-model runs.
+  Both cases completed real-model fixture conversations in iteration 25 and
+  complete blind judgments in iteration 26. Refusal was respected in all runs;
+  public-risk explanations still failed in five of six refusal conversations.
   The original comparison selects `--evals 0,1,2,3,4,5,6` (42 conversations at
   three repetitions and two guides); including 7 and 8 would be 54 and requires
   a separately bounded authorization. Defaults are not permission to expand.

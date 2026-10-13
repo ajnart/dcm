@@ -1,12 +1,14 @@
 package prometheus_test
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/prometheus"
@@ -18,10 +20,27 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-type readyTransport struct{}
+type readyTransport struct {
+	now         func() time.Time
+	discoveryAt time.Time
+}
 
-func (readyTransport) RoundTrip(*http.Request) (*http.Response, error) {
-	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+func (transport readyTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	body := `{"status":"success","data":{"activeTargets":[{"health":"up","labels":{"job":"prometheus","instance":"localhost:9090"},"scrapeUrl":"http://localhost:9090/metrics"}],"droppedTargets":[]}}`
+	switch request.URL.Path {
+	case "/api/v1/targets":
+		if transport.now().Before(transport.discoveryAt) {
+			body = `{"status":"success","data":{"activeTargets":[],"droppedTargets":[]}}`
+		}
+	case "/api/v1/query":
+		if request.URL.Query().Get("query") != `up{job="prometheus",instance="localhost:9090"}[1m]` {
+			return nil, fmt.Errorf("unexpected Prometheus query")
+		}
+		body = fmt.Sprintf(`{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"up","job":"prometheus","instance":"localhost:9090"},"values":[[%d,"1"]]}]}}`, transport.now().Unix())
+	default:
+		return nil, fmt.Errorf("unexpected Prometheus API path")
+	}
+	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
 }
 
 func TestInstallUsesConfiguredStorageUser(t *testing.T) {
@@ -36,7 +55,7 @@ func TestInstallUsesConfiguredStorageUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			deps := systemtest.NewDeps(t)
 			deps.Runner.(*systemtest.Runner).On("docker info", system.Result{Stdout: []byte(tc.options)})
-			deps.HTTP = &http.Client{Transport: readyTransport{}}
+			deps.HTTP = &http.Client{Transport: readyTransport{now: deps.Now, discoveryAt: deps.Now().Add(5 * time.Second)}}
 			cat := catalog.New([]app.App{prometheus.App{}}, nil)
 			args := []string{"install", "prometheus", "--yes"}
 			if r := clitest.Run(t, deps, cat, args...); r.Code != 0 {

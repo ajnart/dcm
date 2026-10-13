@@ -6,6 +6,7 @@
 │   ○ From anywhere, privately                                                                                         │
 │   ○ Your own web address                                                                                             │
 │ > ○ Bring your own                                                                                                   │
+│   ○ This computer only                                                                                               │
 │   ↑/↓ focus · space selects · enter confirms choice · ctrl+s applies                                                 │
 │                                                                                                                      │
 │   Already run your own reverse proxy, such as SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy? Choosing this   │
@@ -16,7 +17,6 @@
 │                          │                                                                                           │
 │                  you set the rules                                                                                   │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
 
 
 

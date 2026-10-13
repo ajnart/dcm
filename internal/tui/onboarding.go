@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -19,16 +18,17 @@ import (
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/intro"
 	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/telemetry"
 )
 
 // step is one step of Onboarding, in order.
 type step int
 
 const (
-	stepInitializing step = iota
-	stepWelcome
+	stepWelcome step = iota
 	stepWhat
 	stepWhere
 	stepAccess
@@ -37,10 +37,7 @@ const (
 	stepReview
 )
 
-var stepNames = []string{"Initializing", "Welcome", "What", "Where", "Access", "Who", "Look", "Review"}
-
-// revealEvery is how many frames each host check spins before it shows its result.
-const revealEvery = 6
+var stepNames = []string{"Welcome", "What", "Where", "Access", "Who", "Look", "Review"}
 
 // answers is shared by pointer so huh's bindings survive Model copies and
 // every step's form, built afresh each time the step opens, shows them.
@@ -71,12 +68,11 @@ type onboarding struct {
 	list    *whatList
 	answers *answers
 	plan    *plan
-	// checking is set while the host checks are being read; checksFrom is
-	// the frame they started revealing at.
-	checking     bool
-	checksFrom   int
-	autoContinue bool
-	experience   int
+	// intro is the scene that opens Onboarding, nil once Welcome shows.
+	intro      *introScreen
+	experience int
+	// react is Welcome's reaction to a focus move or a selection.
+	react welcomeReaction
 	// look is the highlighted choice of the Look step, an index into glyphChoices.
 	look int
 	// access is the highlighted option of the Access step, an index into accessOptions.
@@ -84,11 +80,19 @@ type onboarding struct {
 	// task is the approved install; while it is set Pre-boot or the Dashboard is on screen.
 	task int
 	err  string
-	// notice announces Telemetry on the Welcome step, once per Home folder.
-	notice string
+	// folders suggests and lists the folders of the Where step's folder fields.
+	folders *folderPicker
+	// notice announces Telemetry on the Welcome step, once per Home folder;
+	// it is read when Welcome is first about to show, which noticeRead records.
+	notice     string
+	noticeRead bool
 	// experienceSaved is set when the Profile already holds an Experience
 	// level: Welcome does not ask, and Review does not save one.
 	experienceSaved bool
+	// opened is when Onboarding opened; introSkipped is set when the person
+	// skipped the Intro. Both only feed the onboarding Telemetry event.
+	opened       time.Time
+	introSkipped bool
 }
 
 // plan is a reviewed install: what will happen, before anything is written.
@@ -103,7 +107,7 @@ type plan struct {
 
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		checking: len(m.checks) == 0, checksFrom: m.frame, autoContinue: true, notice: m.backend.TelemetryNotice()}
+		folders: newFolderPicker(m.backend), opened: m.opts.Now(), react: welcomeReaction{focusAge: -1, selectAge: -1}}
 	o.answers.fill(m.defaults)
 	o.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
 	return o
@@ -124,64 +128,6 @@ func (a *answers) fill(defaults map[string]string) {
 // onboardingShown reports that Onboarding is on screen rather than the Dashboard.
 func (m Model) onboardingShown() bool {
 	return m.onboarding != nil && m.onboarding.task == 0
-}
-
-// revealed is how many host checks show their result; the next one spins.
-func (m Model) revealed() int {
-	o := m.onboarding
-	if o.checking {
-		return 0
-	}
-	return min(max((m.frame-o.checksFrom)/revealEvery, 0), len(m.checks))
-}
-
-func (m Model) checksDone() bool {
-	return !m.onboarding.checking && m.revealed() == len(m.checks)
-}
-
-// onboardingAnimating reports that the host checks are still being read or revealed.
-func (m Model) onboardingAnimating() bool {
-	return m.onboardingShown() && m.onboarding.step == stepInitializing &&
-		(!m.checksDone() || m.onboarding.autoContinue && m.frame < m.onboarding.checksFrom+(len(m.checks)+1)*revealEvery)
-}
-
-func (m Model) advanceInitializing() Model {
-	if !m.onboardingShown() || m.onboarding.step != stepInitializing || !m.onboarding.autoContinue ||
-		!m.checksDone() || m.defaults == nil || host.Worst(m.checks) == host.Fail ||
-		m.frame < m.onboarding.checksFrom+(len(m.checks)+1)*revealEvery {
-		return m
-	}
-	next, _ := m.openStep(stepWelcome)
-	return next.(Model)
-}
-
-// checksArrived starts revealing the host checks when they are new to Onboarding.
-func (m *Model) checksArrived() tea.Cmd {
-	if !m.onboardingShown() || !m.onboarding.checking {
-		return nil
-	}
-	m.onboarding.checksFrom, m.onboarding.checking = m.frame, false
-	return m.startTicking()
-}
-
-func validFolder(path string) error {
-	if !filepath.IsAbs(path) {
-		return errors.New("use an absolute path, e.g. /srv/media")
-	}
-	parent := path
-	for {
-		if info, err := os.Stat(parent); err == nil {
-			if !info.IsDir() {
-				return errors.New(parent + " is a file, not a folder")
-			}
-			return nil
-		}
-		next := filepath.Dir(parent)
-		if next == parent {
-			return errors.New("no existing parent folder")
-		}
-		parent = next
-	}
 }
 
 func validPassword(s string) error {
@@ -214,6 +160,8 @@ func mediaApps(cat *catalog.Catalog, p picks) []string {
 func (m Model) buildForm(s step) *huh.Form {
 	v := m.onboarding.answers
 	cat := m.backend.Catalog()
+	folders := m.onboarding.folders
+	media, downloads := folders.input(&v.media), folders.input(&v.downloads)
 	var groups []*huh.Group
 	height := m.formHeight(s)
 	switch s {
@@ -229,8 +177,8 @@ func (m Model) buildForm(s step) *huh.Form {
 				huh.NewInput().Key(wherePGID).Title("Group ID (PGID)").Value(&v.pgid).Validate(numeric),
 			).Title("Host settings").Description("Detected from this machine."),
 			huh.NewGroup(
-				huh.NewInput().Key(whereMedia).Title("Media folder").Value(&v.media).Validate(validFolder),
-				huh.NewInput().Key(whereDownloads).Title("Downloads folder").Value(&v.downloads).Validate(validFolder),
+				media.Key(whereMedia).Title("Media folder"),
+				downloads.Key(whereDownloads).Title("Downloads folder"),
 			).Title("Folders").WithHideFunc(func() bool { return len(mediaApps(cat, v.picks)) == 0 }))
 		groups[1].Description("Used by " + strings.Join(mediaApps(cat, v.picks), ", ") + ".")
 	case stepWho:
@@ -250,6 +198,8 @@ func (m Model) buildForm(s step) *huh.Form {
 	if s != stepWhere {
 		return form.WithHeight(height)
 	}
+	media.WithKeyMap(folderKeyMap())
+	downloads.WithKeyMap(folderKeyMap())
 	// Where's pages are as tall as their own fields, so the explanation of
 	// the focused field sits right under them, and scroll only past height.
 	for _, g := range groups {
@@ -271,6 +221,9 @@ func (m Model) formHeight(s step) int {
 	room := m.mainHeight() - 3 - len(m.stepIntro(s)) - 1
 	if s == stepWhere {
 		room -= whereExplainLines
+		if len(mediaApps(m.backend.Catalog(), m.onboarding.answers.picks)) > 0 {
+			room -= folderListLines
+		}
 	}
 	return max(room, 6)
 }
@@ -315,6 +268,10 @@ const (
 // two lines a failed validation adds to the form.
 const whereExplainLines = 5
 
+// folderListLines is the room the folder fields add under their explanation
+// for the folders inside the typed path.
+const folderListLines = 2
+
 // whereExplanations are the one-line explanations of the Where fields that
 // do not change with the answers.
 var whereExplanations = map[string]string{
@@ -322,8 +279,8 @@ var whereExplanations = map[string]string{
 	whereTZ:        "The clock your Apps use for schedules and logs, for example Europe/Paris.",
 	wherePUID:      "The user ID that owns the files your Apps write, so you can open them. Detected from this machine.",
 	wherePGID:      "The group ID that owns those files. Detected from this machine.",
-	whereMedia:     "Where movies, shows and music live. The folder must exist or sit inside one that does.",
-	whereDownloads: "Where downloads land before they move to media. The folder must exist or sit inside one that does.",
+	whereMedia:     "Where movies, shows and music live. The folder must exist or sit inside one that does. " + folderKeysHint,
+	whereDownloads: "Where downloads land before they move to media. The folder must exist or sit inside one that does. " + folderKeysHint,
 }
 
 // focusedKey is the key of the focused form field, or "" off a form.
@@ -335,6 +292,27 @@ func (o *onboarding) focusedKey() string {
 		return f.GetKey()
 	}
 	return ""
+}
+
+// tabAsEnter makes Tab on a folder field with nothing to complete move on, as
+// it does on the other Where fields.
+func (o *onboarding) tabAsEnter(msg tea.Msg) tea.Msg {
+	press, ok := msg.(tea.KeyPressMsg)
+	if !ok || press.Code != tea.KeyTab || press.Mod != 0 {
+		return msg
+	}
+	typed := o.answers.media
+	switch o.focusedKey() {
+	case whereMedia:
+	case whereDownloads:
+		typed = o.answers.downloads
+	default:
+		return msg
+	}
+	if len(o.folders.suggestions(typed)) > 0 {
+		return msg
+	}
+	return tea.KeyPressMsg{Code: tea.KeyEnter}
 }
 
 // helpPage is the page `?` opens: the help page of the highlighted Access
@@ -357,7 +335,23 @@ func (m Model) whereExplanation() []string {
 	for _, line := range strings.Split(wrap(whereExplanations[key], width), "\n") {
 		lines = append(lines, "  "+m.theme.body().Render(strings.TrimRight(line, " ")))
 	}
-	return append([]string{""}, lines...)
+	lines = append([]string{""}, lines...)
+	for _, line := range m.folderListing(key, width) {
+		lines = append(lines, "  "+m.theme.dim().Render(line))
+	}
+	return lines
+}
+
+// folderListing lists the folders inside what the focused folder field holds.
+func (m Model) folderListing(key string, width int) []string {
+	o := m.onboarding
+	switch key {
+	case whereMedia:
+		return o.folders.listing(o.answers.media, width, folderListLines)
+	case whereDownloads:
+		return o.folders.listing(o.answers.downloads, width, folderListLines)
+	}
+	return nil
 }
 
 // whatDetailLines is the room for the hovered item's description on What:
@@ -469,6 +463,7 @@ func numeric(s string) error {
 // planFromAnswers turns completed answers into a reviewed install.
 func (m Model) planFromAnswers(v *answers) *plan {
 	cat := m.backend.Catalog()
+	folders := newFolderPicker(m.backend)
 	apps := v.picks.apps(cat)
 	opts := service.InstallOptions{Exposure: v.exposure, EasyNames: v.easyNames, AdminUser: v.adminUser, AdminPassword: v.adminPassword,
 		Settings: map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid}}
@@ -487,14 +482,14 @@ func (m Model) planFromAnswers(v *answers) *plan {
 		}
 	}
 	if needsMedia {
-		opts.MediaRoot, opts.DownloadsRoot = v.media, v.downloads
+		opts.MediaRoot, opts.DownloadsRoot = folders.expand(v.media), folders.expand(v.downloads)
 	}
 	settings := map[string]string{"TZ": v.tz, "LAN_IP": v.lan, "PUID": v.puid, "PGID": v.pgid, "EXPOSURE": v.exposure}
 	if v.easyNames {
 		settings["EASY_NAMES"] = "on"
 	}
 	if needsMedia {
-		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = v.media, v.downloads
+		settings["MEDIA_ROOT"], settings["DOWNLOADS_ROOT"] = folders.expand(v.media), folders.expand(v.downloads)
 	}
 	return &plan{apps: apps, opts: opts, links: linksBetween(cat, apps, nil), settings: settings, fresh: true}
 }
@@ -586,18 +581,21 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m.updateOnboardingForm(msg)
 	}
+	var cmd tea.Cmd
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m.quit()
 	case "esc":
-		if o.step > stepInitializing {
+		if o.step > stepWelcome {
 			return m.openStep(o.step - 1)
 		}
 	case "up", "k":
 		switch o.step {
 		case stepWelcome:
 			if !o.experienceSaved {
+				before := o.experience
 				o.experience = max(o.experience-1, 0)
+				cmd = m.reactFocus(before)
 			}
 		case stepLook:
 			o.look = max(o.look-1, 0)
@@ -609,7 +607,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		switch o.step {
 		case stepWelcome:
 			if !o.experienceSaved {
+				before := o.experience
 				o.experience = min(o.experience+1, len(experienceChoices)-1)
+				cmd = m.reactFocus(before)
 			}
 		case stepLook:
 			o.look = min(o.look+1, len(glyphChoices)-1)
@@ -621,7 +621,9 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		switch o.step {
 		case stepWelcome:
 			if !o.experienceSaved {
+				before := o.answers.experience
 				o.answers.experience = experienceChoices[o.experience].level
+				cmd = m.reactSelect(before)
 			}
 		case stepLook:
 			m.glyphs = glyphChoices[o.look].glyphs
@@ -633,12 +635,6 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			}
 			o.answers.accessChoice, o.answers.accessChosen = choice.id, true
 			m.setFlash("", levelInfo)
-		}
-	case "r":
-		if o.step == stepInitializing && !o.checking {
-			o.checking = true
-			tick := m.startTicking()
-			return m, tea.Batch(m.loadDoctor(), tick)
 		}
 	case "a":
 		if o.step == stepReview && o.err != "" {
@@ -659,7 +655,7 @@ func (m Model) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		return m.onboardingNext()
 	}
-	return m, nil
+	return m, cmd
 }
 
 // takesEsc reports that the focused field uses esc itself, as a filtering
@@ -680,16 +676,6 @@ func takesEsc(f *huh.Form) bool {
 func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 	o := m.onboarding
 	switch o.step {
-	case stepInitializing:
-		switch {
-		case o.checking:
-		case !m.checksDone():
-			o.checksFrom = m.frame - len(m.checks)*revealEvery
-		case host.Worst(m.checks) == host.Fail, m.defaults == nil:
-		default:
-			return m.openStep(stepWelcome)
-		}
-		return m, nil
 	case stepAccess:
 		choice, found := accessByID(o.answers.accessChoice)
 		if !found {
@@ -735,10 +721,12 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 			o.err = check.Message
 			return m, nil
 		}
-		m.preboot = newPrebootScreen()
+		if !m.opts.ReducedMotion {
+			m.preboot = newPrebootScreen()
+		}
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
-		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs)}
+		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs), m.reportOnboarding()}
 		if !o.experienceSaved {
 			cmds = append(cmds, saveExperienceWithInstall(m.backend, o.answers.experience))
 		}
@@ -753,7 +741,6 @@ func (m Model) openStep(s step) (tea.Model, tea.Cmd) {
 	o.step, o.form, o.list = s, nil, nil
 	switch s {
 	case stepWelcome:
-		o.autoContinue = false
 		o.experienceSaved = m.backend.Experience(context.Background()) != ""
 		if o.answers.experience == "" {
 			o.answers.experience = project.ExperienceNew
@@ -804,6 +791,31 @@ func (m Model) reviewNamesCheck() service.NamesCheck {
 	return service.NamesCheck{Available: true}
 }
 
+// reportOnboarding sends the onboarding Telemetry event of the approved Review.
+func (m Model) reportOnboarding() tea.Cmd {
+	o := m.onboarding
+	experience := o.answers.experience
+	if o.experienceSaved {
+		experience = m.backend.Experience(context.Background())
+	}
+	doctor := "ok"
+	if host.Worst(m.checks) == host.Warn {
+		doctor = "warn"
+	}
+	report := telemetry.Onboarding{
+		Experience:   experience,
+		Glyphs:       string(activity.ParseGlyphs(string(m.glyphs))),
+		IntroSkipped: o.introSkipped,
+		Doctor:       doctor,
+		Duration:     m.opts.Now().Sub(o.opened),
+	}
+	backend := m.backend
+	return func() tea.Msg {
+		backend.ReportOnboarding(report)
+		return nil
+	}
+}
+
 // saveGlyphsWithInstall saves the glyph set with the Project in step with
 // the install that creates it. A failure only warns, and the install goes on.
 func saveGlyphsWithInstall(backend Backend, g activity.Glyphs) tea.Cmd {
@@ -834,6 +846,7 @@ func (m Model) backToWelcome() (tea.Model, tea.Cmd) {
 
 func (m Model) updateOnboardingForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	o := m.onboarding
+	msg = o.tabAsEnter(msg)
 	next, cmd := o.form.Update(msg)
 	o.form = next.(*huh.Form)
 	switch o.form.State {
@@ -852,7 +865,6 @@ var (
 	onboardingBack     = key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back"))
 	onboardingChoose   = key.NewBinding(key.WithKeys("up", "down"), key.WithHelp("↑/↓", "focus"))
 	onboardingSelect   = key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "select"))
-	onboardingRecheck  = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recheck"))
 )
 
 // onboardingBar is the bottom bar's left side and chips for the step.
@@ -860,8 +872,6 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 	t := m.theme
 	quit := barKey(t, "q", "quit")
 	switch m.onboarding.step {
-	case stepInitializing:
-		return quit, []key.Binding{onboardingContinue, onboardingRecheck}
 	case stepWhat, stepWhere, stepWho:
 		chips := []key.Binding{onboardingNextKey, onboardingBack}
 		if _, found := m.contextHelp(); found {
@@ -875,9 +885,9 @@ func (m Model) onboardingBar() (string, []key.Binding) {
 		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack, moreKey}
 	case stepWelcome:
 		if m.onboarding.experienceSaved {
-			return quit, []key.Binding{onboardingContinue, onboardingBack}
+			return quit, []key.Binding{onboardingContinue}
 		}
-		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack}
+		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue}
 	case stepLook:
 		return quit, []key.Binding{onboardingChoose, onboardingSelect, onboardingContinue, onboardingBack}
 	case stepReview:
@@ -907,20 +917,9 @@ func (m Model) renderOnboarding() string {
 	o := m.onboarding
 	lines := []string{"", "  " + renderSteps(m.theme, o.step, m.width-4), ""}
 	switch o.step {
-	case stepInitializing, stepWelcome:
-		body := m.renderChecks()
-		if o.step == stepWelcome {
-			body = m.renderWelcome()
-		}
+	case stepWelcome:
 		room := max(m.mainHeight()-len(lines), 1)
-		if o.step == stepInitializing {
-			width := min(max(m.width-4, 1), 96)
-			for i, line := range body {
-				body[i] = truncate(strings.TrimPrefix(line, "  "), width)
-			}
-			block := fit(strings.Join(body, "\n"), width, min(room, 18))
-			return strings.Join(lines, "\n") + "\n" + lipgloss.Place(m.width, room, lipgloss.Center, lipgloss.Center, block)
-		}
+		body := m.renderWelcome(room)
 		for i := len(body) - 1; i >= 0 && len(body) > room; i-- {
 			if strings.TrimSpace(body[i]) == "" {
 				body = slices.Delete(body, i, i+1)
@@ -991,62 +990,34 @@ func renderSteps(t theme, current step, width int) string {
 	return strings.Join(compact, " ") + t.dim().Render(fmt.Sprintf("  %d of %d", current+1, len(stepNames)))
 }
 
-// renderChecks reveals the host checks one at a time: each spins, then
-// shows its result, and a failed or warning check its hint and docs.
-func (m Model) renderChecks() []string {
-	t := m.theme
-	spinner := t.fg(t.accentText).Render(activity.Spinner(m.frame))
-	lines := []string{"  " + t.heading().Render("Checking this machine"),
-		"  " + t.dim().Render("self-host runs every App with Docker and Docker Compose."), ""}
-	if m.onboarding.checking {
-		return append(lines, "  "+spinner+" "+t.dim().Render("Checking Docker…"))
-	}
-	n := m.revealed()
-	for i, c := range m.checks {
-		if i == n {
-			lines = append(lines, "  "+spinner+" "+t.body().Render(c.Title))
-			break
-		}
-		glyph, colour := "✓", t.ok
-		switch c.Level {
-		case host.Warn:
-			glyph, colour = "!", t.warn
-		case host.Fail:
-			glyph, colour = "✗", t.fail
-		}
-		lines = append(lines, truncate("  "+t.fg(colour).Render(glyph)+" "+t.body().Render(pad(c.Title, 16))+"  "+t.dim().Render(c.Detail), m.width))
-		hint, docs := "", ""
-		if c.Level != host.OK {
-			if c.Hint != "" {
-				hint = "    " + t.fg(t.warn).Render("→ "+c.Hint)
-			}
-			if c.Docs != "" {
-				docs = "    " + t.dim().Render(c.Docs)
-			}
-		}
-		lines = append(lines, hint, docs)
-	}
-	if !m.checksDone() {
-		return lines
-	}
-	for len(lines) < 16 {
-		lines = append(lines, "")
-	}
-	switch {
-	case host.Worst(m.checks) == host.Fail:
-		return append(lines, "  "+t.fg(t.fail).Render("Fix the failed check above, then press r to check again."),
-			"  "+t.dim().Render("Onboarding cannot continue while a check fails."))
-	case m.defaults == nil:
-		return append(lines, "  "+spinner+" "+t.dim().Render("Reading this machine's settings…"))
-	case host.Worst(m.checks) == host.Warn:
-		return append(lines, "  "+t.fg(t.ok).Render("✓ This machine is ready.")+t.dim().Render(" Warnings do not stop the install."))
-	}
-	return append(lines, "  "+t.fg(t.ok).Render("✓ This machine is ready."))
+const welcomeTitle = "Welcome to self-host"
+
+func (m Model) welcomeRoom() int { return max(m.mainHeight()-3, 1) }
+
+// welcomeEmblem reports that Welcome has room for its emblem: the full tier
+// with the five rows the emblem and its gap take.
+func (m Model) welcomeEmblem(room int) bool {
+	return m.width >= 100 && m.height >= 28 && len(m.welcomeBody(room, true, true)) <= room
 }
 
-func (m Model) renderWelcome() []string {
+// welcomeBody is Welcome's lines, with its emblem and with the caption under
+// the choices when asked for.
+func (m Model) welcomeBody(room int, caption, emblem bool) []string {
 	t := m.theme
-	lines := []string{"  " + t.title().Render("Welcome to self-host"), ""}
+	o := m.onboarding
+	r := m.welcomeReaction()
+	var lines []string
+	if emblem {
+		for _, line := range intro.ReactionEmblem(r) {
+			lines = append(lines, "  "+line)
+		}
+		lines = append(lines, "")
+	}
+	title := t.title().Render(welcomeTitle)
+	if intro.FocusActive(r) {
+		title = intro.Title(welcomeTitle, r)
+	}
+	lines = append(lines, "  "+title, "")
 	paragraph := func(text string, style lipgloss.Style) {
 		for _, line := range strings.Split(wrap(text, min(max(m.width-4, 1), 76)), "\n") {
 			lines = append(lines, "  "+style.Render(strings.TrimRight(line, " ")))
@@ -1056,21 +1027,51 @@ func (m Model) renderWelcome() []string {
 	lines = append(lines, "")
 	paragraph("Next you choose what to run, where it lives, who administers it and how it looks. Then you review the plan.", t.body())
 	lines = append(lines, "")
-	if !m.onboarding.experienceSaved {
+	if !o.experienceSaved {
 		paragraph(experienceQuestion, t.heading())
 		for i, c := range experienceChoices {
-			lines = append(lines, "  "+truncate(radioRow(t, i == m.onboarding.experience, c.level == m.onboarding.answers.experience, c.label), m.width-2))
+			lines = append(lines, "  "+truncate(m.experienceRow(i, c, r), m.width-2))
+		}
+		if caption {
+			lines = append(lines, "      "+intro.Caption(r))
 		}
 		lines = append(lines, "")
 	}
 	paragraph("Nothing is written until you approve the plan at Review.", t.active())
-	if m.onboarding.notice != "" {
+	if o.notice != "" {
 		lines = append(lines, "")
-		for _, line := range strings.Split(m.onboarding.notice, "\n") {
+		for _, line := range strings.Split(o.notice, "\n") {
 			lines = append(lines, "  "+t.dim().Render(truncate(line, m.width-4)))
 		}
 	}
 	return lines
+}
+
+// renderWelcome is Welcome's lines: the emblem when it fits, and the caption
+// under the choices unless the lines would overflow without it.
+func (m Model) renderWelcome(room int) []string {
+	if m.welcomeEmblem(room) {
+		return m.welcomeBody(room, true, true)
+	}
+	if lines := m.welcomeBody(room, true, false); len(lines) <= room {
+		return lines
+	}
+	return m.welcomeBody(room, false, false)
+}
+
+// experienceRow is one choice: the plain radio row at rest, the Ink
+// composition while a reaction plays.
+func (m Model) experienceRow(i int, c experienceChoice, r intro.Reaction) string {
+	t, o := m.theme, m.onboarding
+	if !intro.FocusActive(r) && !intro.SelectionActive(r) {
+		return radioRow(t, i == o.experience, c.level == o.answers.experience, c.label)
+	}
+	cursor := "  "
+	if i == o.experience {
+		cursor = t.cursor()
+	}
+	choice := intro.Choice(i)
+	return cursor + intro.Mark(choice, r) + " " + intro.Label(choice, c.label, r)
 }
 
 const experienceQuestion = "Have you run your own server or used Docker before, or is this all new to you?"
@@ -1103,19 +1104,27 @@ func (m Model) renderLook() []string {
 func (m Model) renderAccess() []string {
 	t := m.theme
 	o := m.onboarding
-	lines := []string{"  " + t.title().Render("How you'll open your Apps")}
+	head := []string{"  " + t.title().Render("How you'll open your Apps")}
 	for _, line := range m.stepIntro(stepAccess) {
-		lines = append(lines, "  "+t.body().Render(line))
+		head = append(head, "  "+t.body().Render(line))
 	}
-	lines = append(lines, "")
+	var options []string
 	for i, option := range accessOptions {
 		selected := option.id == o.answers.accessChoice
-		lines = append(lines, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
+		options = append(options, "  "+truncate(radioRow(t, i == o.access, selected, accessLabel(t, option)), m.width-2))
 	}
 	const above = 3 // the blank line, the step indicator and a blank line
-	room := m.mainHeight() - above - len(lines)
 	width := min(max(m.width-4, 20), 96)
-	return append(lines, accessBlock(t, accessOptions[o.access], o.answers.exposure, o.answers.lan, width, room)...)
+	block := func(lines []string) []string {
+		room := m.mainHeight() - above - len(lines)
+		return accessBlock(t, accessOptions[o.access], o.answers.exposure, o.answers.lan, width, room)
+	}
+	spaced := slices.Concat(head, []string{""}, options)
+	packed := slices.Concat(head, options)
+	if len(block(packed)) > len(block(spaced)) {
+		return append(packed, block(packed)...)
+	}
+	return append(spaced, block(spaced)...)
 }
 
 func (m Model) renderReview() []string {

@@ -40,7 +40,8 @@ _Avoid_: onboarding (that is the person's first run), wizard
 **Onboarding**:
 The setup wizard a person goes through the first time they run self-host,
 before any Project exists: what they want to run, why, where it lives and who
-administers it. It ends at an approved plan; Pre-boot plays while the first
+administers it. It starts with the Intro, then seven steps from Welcome to
+Review. It ends at an approved plan; Pre-boot plays while the first
 install pulls its images, then Onboarding hands over to the Dashboard, where
 the first Action comes to life.
 _Avoid_: setup (that is an App's automatic configuration), first run
@@ -54,9 +55,23 @@ friendly line comparing the time left to something small ("This should take
 about as long as a song on the radio"), which warms up until the pull has
 moved enough to estimate and never shows a number. When the pull ends it plays
 its exit and lands on Activity; a failed pull lands there at once, and with
-nothing to pull it plays about four seconds. It is the one screen allowed
-several colours and 24 frames a second.
+nothing to pull it plays about four seconds. It has the Logo at its centre.
+Pre-boot and the Intro are the only screens allowed several colours and 24
+frames a second.
 _Avoid_: splash screen, loading screen
+
+**Intro**:
+The full-screen scene that opens Onboarding while Doctor checks this machine,
+then hands over to Welcome. Shown whenever Onboarding opens (no Project),
+never for the Dashboard, never remembered.
+_Avoid_: splash screen, loading screen, boot, opening (that is the Dashboard's
+accent settle)
+
+**Logo**:
+The rack of four containers, each with its status light, coloured purple
+(bottom), pink, cyan, gold (top). The one-cell brand mark stands for it where
+one cell is all there is: `◆` in Simple, a server icon in Nerd Font.
+_Avoid_: icon, emblem (that is the Logo at rest on Welcome), badge
 
 **Manual step**:
 A Setup step that needs a person to finish or verify it in a browser. It keeps
@@ -84,11 +99,14 @@ serving `http://jellyfin.192-168-1-20.sslip.io` on every OS), **From
 anywhere, privately** (Tailscale), **Your own web address** (Cloudflare
 Tunnel, plus a login page in front) and **Bring your own** (SWAG, Pangolin or
 an existing proxy, for advanced users: `self-host access export` prints each App's
-upstream and choosing it changes nothing). Options combine: Easy names at home
-and Tailscale can both be on. Always shown in the recap, since it explains most
-"can't reach it from my TV" reports. Anything reachable from the internet needs
-its own explicit yes that names the risk. Binding to this computer only
-(`127.0.0.1`, stored as `local`) remains a CLI flag, not an Onboarding choice.
+upstream and choosing it changes nothing) and **This computer only**
+(`127.0.0.1`, stored as `local`, with its own diagram; also `install --exposure
+local`). Options combine: Easy names at home and Tailscale can both be on. Always
+shown in the recap, since it explains most "can't reach it from my TV" reports.
+Anything reachable from the internet needs its own explicit yes that names the
+risk. In the Dashboard, an App's Action menu can show its Address as a QR code to
+scan with a phone; it is unavailable under This computer only, since a phone
+cannot reach `127.0.0.1`.
 _Avoid_: exposure, ingress, remote access
 
 **Address**:
@@ -149,10 +167,13 @@ link to the wiki, not an off-switch prompt. It carries a random install ID
 derived from the machine), version, OS and architecture, command names,
 App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
 and errors as PostHog exceptions with module-relative in-app stack frames.
-Warning and error steps also send fixed-text OTLP log records. Never IPs,
+Approving Onboarding's Review sends one `onboarding` event (Experience level,
+glyph set, whether the Intro was skipped, Doctor's outcome, duration) and sets
+the person property `experience`, as `self-host profile set experience` does
+(ADR 0009). Warning and error steps also send fixed-text OTLP log records. Never IPs,
 locations, host names, absolute paths, inputs, secrets, raw errors or App
-data. Person profiles group events by the random ID without extra personal
-properties; GeoIP is disabled. Server-side IP discard is a maintainer setting,
+data. Person profiles group events by the random ID; `experience` is the only
+person property; GeoIP is disabled. Server-side IP discard is a maintainer setting,
 not verified by the CLI. A public dashboard may come later. Off with
 `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always off in CI and
 development builds.
@@ -231,7 +252,7 @@ _Avoid_: workflow view, task overlay
 The non-secret choice of glyph set saved with the Project: **Nerd Font**
 icons, or **Simple** Unicode symbols (the default). Icons appear only where
 they carry meaning (an App's category, the Docker, key and link stages, the
-brand mark); bars, spinners and state dots are the same in both.
+brand mark: the Logo's one-cell form); bars, spinners and state dots are the same in both.
 _Avoid_: theme (that is the colours), Host setting (Appearance is not one)
 
 **Keybind**:

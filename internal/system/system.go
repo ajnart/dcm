@@ -91,6 +91,8 @@ type Deps struct {
 	// a real bind.
 	PortFree func(port int) bool
 	Resolver Resolver
+	// ListFolders returns the names of the folders inside dir.
+	ListFolders func(dir string) ([]string, error)
 	// ProcessAlive reports whether a PID belongs to a running process.
 	ProcessAlive func(pid int) bool
 	PID          int

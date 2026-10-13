@@ -98,6 +98,7 @@ func Real(version string) *Deps {
 		TimeZone:     timeZone,
 		PortFree:     portFree,
 		Resolver:     newResolver(),
+		ListFolders:  ListFolders,
 		ProcessAlive: processAlive,
 		PID:          os.Getpid(),
 		In:           os.Stdin,
