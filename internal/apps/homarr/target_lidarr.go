@@ -16,6 +16,7 @@ func lidarrTarget() target {
 		internal: fixed("http://lidarr:8686"), secrets: apiKeySecret,
 		widgets: []widget{plain("calendar"), statWidget("artists", "monitored", "upcoming")},
 		verify:  verifyLidarr,
+		stats:   verifyLidarrStats,
 	}
 }
 
@@ -23,37 +24,26 @@ func verifyLidarr(ctx context.Context, from, to *helpers.H, integrationID string
 	if err := (lidarr.App{}).Check(ctx, to); err != nil {
 		return errors.New("Lidarr's saved API key or Admin login is not ready; run self-host setup lidarr, then self-host setup homarr")
 	}
-	value, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{
-		"integrationId": integrationID, "force": true,
+	libraryCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	resp, err := to.HTTP(libraryCtx, helpers.Request{
+		Path: "/api/v1/artist", NoRedirect: true,
+		Header: map[string]string{"X-Api-Key": to.Secret(to.Key("api_key"))},
 	})
+	cancel()
 	if err != nil {
-		return errors.New("Homarr could not refresh Lidarr statistics; check the integration and retry self-host setup homarr")
+		return err
 	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Lidarr statistics; retry self-host setup homarr")
+	var artists []struct{ Monitored *bool }
+	if resp.Status != 200 || resp.Decode(&artists) != nil || artists == nil {
+		return errors.New("Lidarr did not return its authenticated artist library; retry self-host setup lidarr")
 	}
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updatedAt, hasUpdatedAt := snapshot["updatedAt"].(float64)
-	if !hasError || failed || !hasStale || stale || !hasUpdatedAt || updatedAt <= 0 {
-		return errors.New("Homarr's Lidarr statistics are unavailable or stale, not an empty library; retry self-host setup homarr")
-	}
-	values, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr returned incomplete Lidarr statistics; retry self-host setup homarr")
-	}
-	for _, key := range []string{"artists", "monitored", "upcoming"} {
-		count, ok := values[key].(float64)
-		if !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || count != math.Trunc(count) {
-			return errors.New("Homarr returned incomplete Lidarr statistics; retry self-host setup homarr")
+	for _, artist := range artists {
+		if artist.Monitored == nil {
+			return errors.New("Lidarr returned incomplete artist monitoring data; retry self-host setup lidarr")
 		}
 	}
-	if values["monitored"].(float64) > values["artists"].(float64) {
-		return errors.New("Homarr returned inconsistent Lidarr artist statistics; retry self-host setup homarr")
-	}
-	now := time.Now().UTC()
-	value, err = apiKeyProcedure(ctx, from, "widget.calendar.findAllEvents", map[string]any{
+	now := from.Now().UTC()
+	value, err := apiKeyProcedure(ctx, from, "widget.calendar.findAllEvents", map[string]any{
 		"integrationIds": []string{integrationID}, "year": now.Year(), "month": int(now.Month()),
 		"releaseType": []string{}, "showUnmonitored": true,
 	})
@@ -78,12 +68,30 @@ func verifyLidarr(ctx context.Context, from, to *helpers.H, integrationID string
 	}
 	for _, value := range events {
 		event, ok := value.(map[string]any)
-		if !ok || stringField(event, "title") == "" || stringField(event, "subTitle") == "" {
+		if !ok || stringField(event, "title") == "" {
 			return errors.New("Homarr returned incomplete Lidarr release data; retry self-host setup homarr")
+		}
+		subtitle, present := event["subTitle"]
+		_, text := subtitle.(string)
+		if !present || subtitle != nil && !text {
+			return errors.New("Homarr returned invalid Lidarr artist data; retry self-host setup homarr")
 		}
 		if _, err := time.Parse(time.RFC3339Nano, stringField(event, "startDate")); err != nil {
 			return errors.New("Homarr returned an invalid Lidarr release date; retry self-host setup homarr")
 		}
+	}
+	return nil
+}
+
+func verifyLidarrStats(sample statsSample) error {
+	for _, key := range []string{"artists", "monitored", "upcoming"} {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || count != math.Trunc(count) {
+			return errors.New("Homarr returned invalid Lidarr count statistics; retry self-host setup homarr")
+		}
+	}
+	if sample.values["monitored"].(float64) > sample.values["artists"].(float64) {
+		return errors.New("Homarr returned inconsistent Lidarr artist statistics; retry self-host setup homarr")
 	}
 	return nil
 }
