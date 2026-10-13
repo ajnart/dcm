@@ -1,8 +1,8 @@
-import { APPS, RECIPES } from "../catalog.js";
+import { APPS, RECIPES } from "./catalog.js";
 import { sleep } from "./util.js";
 
 export const LAN = "192.168.1.20";
-export const VERSION = "0.1.2";
+export const VERSION = document.documentElement.dataset.version;
 export const byId = new Map(APPS.map((a) => [a.id, a]));
 export const recipeById = new Map(RECIPES.map((r) => [r.id, r]));
 

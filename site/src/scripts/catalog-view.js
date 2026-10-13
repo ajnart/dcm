@@ -1,4 +1,4 @@
-import { APPS } from "../catalog.js";
+import { APPS } from "./catalog.js";
 import { byId } from "./project.js";
 import { selection } from "./selection.js";
 import { $, copy, esc, iconEl, toast } from "./util.js";
@@ -67,7 +67,6 @@ export function mountCatalog({ onInstall, onSearch }) {
   const more = $("#more");
   const unselect = $("#unselect");
   let expanded = false;
-  $("#count").textContent = APPS.length;
   const cards = APPS.map((app) => {
     const el = card(app);
     grid.append(el);

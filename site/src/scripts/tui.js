@@ -1,4 +1,4 @@
-import { APPS, RECIPES } from "../catalog.js";
+import { APPS, RECIPES } from "./catalog.js";
 import { LAN, VERSION, byId, expand, project, urlOf } from "./project.js";
 import { $, esc } from "./util.js";
 

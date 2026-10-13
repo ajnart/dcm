@@ -1,7 +1,7 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; media-src 'self'; manifest-src 'self'; style-src 'self'; img-src 'self' https://cdn.jsdelivr.net; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+  Content-Security-Policy: frame-ancestors 'none'
 
 /install
   Content-Type: text/plain; charset=utf-8

@@ -6,7 +6,7 @@ import { byId, recipeById } from "./project.js";
 import { selection } from "./selection.js";
 import { shell } from "./shell.js";
 import { tui } from "./tui.js";
-import { $, copy, sleep, toast, waitFor } from "./util.js";
+import { $, sleep, toast, waitFor } from "./util.js";
 
 const run = async (line) => {
   await intro.skip();
@@ -36,11 +36,6 @@ const replay = () => {
 };
 $("#reset").addEventListener("click", replay);
 for (const b of document.querySelectorAll("[data-cmd]")) b.addEventListener("click", () => run(b.dataset.cmd));
-$("#copy").addEventListener("click", async () => {
-  const b = $("#copy");
-  b.textContent = (await copy($("#oneliner").textContent)) ? "copied" : "select it";
-  setTimeout(() => (b.textContent = "copy"), 1500);
-});
 
 document.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {

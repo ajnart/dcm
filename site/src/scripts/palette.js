@@ -1,4 +1,4 @@
-import { APPS } from "../catalog.js";
+import { APPS } from "./catalog.js";
 import { selection } from "./selection.js";
 import { $, iconEl } from "./util.js";
 

@@ -23,15 +23,8 @@ case "$output" in
   "$root" | "$root"/*) printf 'Build outside the checkout.\n' >&2; exit 1 ;;
 esac
 mkdir "$output"
-mkdir "$output/public"
-for name in index.html site.css catalog.js catalog.json logo.svg og.png intro.json reel.jpg apple-touch-icon.png icon-192.png icon-512.png site.webmanifest llms.txt 404.html _headers; do
-  command cp "$root/site/$name" "$output/public/$name"
-done
-command cp "$root/video/reel/out/selfhost-reel.mp4" "$output/public/reel.mp4"
-mkdir "$output/public/js"
-for path in "$root"/site/js/*.js; do
-  command cp "$path" "$output/public/js/"
-done
+command -v bun >/dev/null || { printf 'bun is required to build the site.\n' >&2; exit 1; }
+(cd "$root/site" && bun install --frozen-lockfile && bun run build --outDir "$output/public")
 command cp "$root/site/wrangler.toml" "$output/wrangler.toml"
 awk -v repo="$repo" '/^DEFAULT_REPO=/ { print "DEFAULT_REPO=\"" repo "\""; next } { print }' "$root/install.sh" > "$output/public/install.sh"
 bash -n "$output/public/install.sh"

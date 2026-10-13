@@ -1,4 +1,3 @@
-import { APPS } from "../catalog.js";
 import { byId } from "./project.js";
 import { $, iconEl } from "./util.js";
 
@@ -48,8 +47,5 @@ function linkCard([from, targets, text], onTry) {
 }
 
 export function mountLinks({ onTry }) {
-  const total = APPS.reduce((n, a) => n + a.l.length, 0);
-  const sources = APPS.filter((a) => a.l.length).length;
-  $("#linkcount").textContent = `${total} Links across ${sources} Apps.`;
   $("#linkcards").append(...FEATURED.map((f) => linkCard(f, onTry)));
 }

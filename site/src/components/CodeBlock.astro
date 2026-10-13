@@ -1,0 +1,48 @@
+---
+import Prism from "prismjs";
+import "prismjs/components/prism-bash.js";
+
+interface Props {
+  code: string;
+  lang?: string;
+  label?: string;
+  id?: string;
+}
+
+const { code, lang = "bash", label, id } = Astro.props;
+const grammar = Prism.languages[lang];
+const highlight = (line: string) => (grammar ? Prism.highlight(line, grammar, lang) : Prism.util.encode(line).toString());
+const html = code
+  .split("\n")
+  .map((line) => `<span class="line">${highlight(line)}</span>`)
+  .join("");
+---
+
+<figure class="codeblock" id={id}>
+  <figcaption>
+    <span>{label ?? lang}</span>
+    <button class="copybtn" type="button" data-copy={code}>copy</button>
+  </figcaption>
+  <pre class={`language-${lang}`}><code class={`language-${lang}`} set:html={html} /></pre>
+</figure>
+
+<script>
+  import { copy } from "../scripts/util.js";
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+    button.addEventListener("click", async () => {
+      const code = button.closest(".codeblock")?.querySelector("code");
+      let ok = await copy(button.dataset.copy ?? "");
+      if (!ok && code) {
+        getSelection()?.selectAllChildren(code);
+        ok = document.execCommand("copy");
+      }
+      button.textContent = ok ? "copied" : "select it";
+      button.classList.toggle("done", ok);
+      setTimeout(() => {
+        button.textContent = "copy";
+        button.classList.remove("done");
+      }, 1500);
+    });
+  }
+</script>

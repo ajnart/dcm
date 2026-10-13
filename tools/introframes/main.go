@@ -176,7 +176,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join("site", "intro.json")
+	path := filepath.Join("site", "public", "intro.json")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return err
 	}

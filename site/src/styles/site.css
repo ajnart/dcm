@@ -591,37 +591,107 @@ h2 {
 
 .split {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: start;
 }
 
-.quote {
+.codeblock {
   margin: 0;
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--pink);
-  padding: 1rem 1.25rem;
-  background: var(--panel);
-}
-
-.quote figcaption {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.quote blockquote {
-  margin: 0.75rem 0 0;
-  font-size: 1.25rem;
-  line-height: 1.4;
-}
-
-.code {
-  margin: 0;
-  padding: 1rem 1.25rem;
   border: 1px solid var(--line);
   background: var(--deep);
+  max-width: 48rem;
+  min-width: 0;
+}
+
+.split .codeblock {
+  max-width: none;
+}
+
+#prompt-block {
+  border-left: 4px solid var(--pink);
+}
+
+.codeblock figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0.3rem 0.3rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.copybtn {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 0.15rem 0.7rem;
+  cursor: pointer;
+}
+
+.copybtn:hover,
+.copybtn:focus-visible {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+.copybtn.done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.codeblock pre {
+  margin: 0;
+  padding: 0.9rem 1rem;
   overflow-x: auto;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.7;
+}
+
+.codeblock pre.language-text {
+  white-space: pre-wrap;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.codeblock code {
+  color: var(--ink);
+}
+
+.codeblock .line {
+  display: block;
+}
+
+.codeblock pre.language-bash .line::before {
+  content: "$ ";
+  color: var(--dim);
+}
+
+.codeblock .token.function {
+  color: var(--cyan);
+}
+
+.codeblock .token.parameter,
+.codeblock .token.operator {
+  color: var(--violet);
+}
+
+.codeblock .token.string,
+.codeblock .token.url {
+  color: var(--green);
+}
+
+.codeblock .token.comment {
+  color: var(--dim);
+}
+
+.codeblock .token.keyword,
+.codeblock .token.builtin {
+  color: var(--pink);
 }
 
 .card {
@@ -1049,39 +1119,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 0.5rem;
-}
-
-.install {
-  display: flex;
-  border: 1px solid var(--line);
-  background: var(--deep);
-  max-width: 48rem;
-}
-
-.install code {
-  flex: 1;
-  padding: 0.8rem 1rem;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-.install code::before {
-  content: "$ ";
-  color: var(--muted);
-}
-
-.install .btn {
-  border: 0;
-  border-left: 1px solid var(--line);
-}
-
-.notice {
-  max-width: 48rem;
-  border-left: 3px solid var(--gold);
-  padding: 0.5rem 1rem;
-  background: var(--panel);
-  color: #c4c4cc;
-  font-size: 0.88rem;
 }
 
 .notice b {

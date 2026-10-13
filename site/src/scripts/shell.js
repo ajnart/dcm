@@ -1,4 +1,4 @@
-import { APPS, RECIPES } from "../catalog.js";
+import { APPS, RECIPES } from "./catalog.js";
 import { LAN, VERSION, byId, linksAmong, project, recipeById, urlOf } from "./project.js";
 import { $, pad, sleep } from "./util.js";
 import { tui } from "./tui.js";

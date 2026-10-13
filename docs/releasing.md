@@ -102,7 +102,7 @@ on the strength of the site's HTTP status.
 
 Cloudflare Pages serves the site at `https://self-host.fyi` from the Pages
 project `selfhost` (also `selfhost-d8k.pages.dev`), uploaded with Wrangler
-Direct Upload: no Git integration, no build step, no GitHub Actions. The apex
+Direct Upload of a locally built tree: no Git integration, no GitHub Actions. The apex
 and `www` are proxied CNAMEs to `selfhost-d8k.pages.dev` in the `self-host.fyi`
 zone. Deploying changes no Project and publishes no release archives. Use
 managed Wrangler authentication (`wrangler whoami`), never extract tokens.
@@ -113,10 +113,19 @@ bash scripts/build-installer-site.sh "$stage/deploy"
 (cd "$stage/deploy" && wrangler pages deploy --branch main)
 ```
 
-`site/wrangler.toml` names the project and points it at `public/`. `_headers`
-sets the Content Security Policy, `nosniff`, `no-referrer`, plain-text types
-for the installer and CORS for `catalog.json`; `404.html` makes unknown paths
-such as `/go.mod` return 404 instead of the landing page.
+`site/` is a static Astro project (`bun install`, `bun run dev` to work on it,
+`bun run check` to type-check). Its definitions come from the Go code:
+`go run ./tools/sitecatalog` writes `site/src/data/catalog.json` from the
+Catalog, and Astro renders the App and Link counts, `/catalog.json` (read by
+DCM) and `/llms.txt` from it at build time; `go run ./tools/introframes` writes
+`site/public/intro.json`, the onboarding Intro recorded from `internal/intro`.
+The version shown is the newest CLI tag from `git describe`, or
+`SELF_HOST_SITE_VERSION`. `site/wrangler.toml` names the Pages project.
+`public/_headers` sets `nosniff`, `no-referrer`, `frame-ancestors`, plain-text
+types for the installer and CORS for `catalog.json`; Astro adds the rest of
+the Content Security Policy as a `<meta>` tag with hashes (`security.csp` in
+`astro.config.mjs`). `404.astro` makes unknown paths such as `/go.mod` return
+404 instead of the landing page.
 
 The old `selfhost.ajnart.dev` host keeps working for installs already in the
 wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and
@@ -124,15 +133,14 @@ query preserved, to `concat("https://self-host.fyi", http.request.uri.path)`
 with a 301. A second rule on the `self-host.fyi` zone does the same for `www`.
 Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 
-The builder copies only `index.html`, `site.css`, `js/*.js`, `catalog.js`,
-`catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons,
-`site.webmanifest`, `llms.txt`, `404.html`, `_headers`, the showreel from `video/reel/out/selfhost-reel.mp4` as
-`reel.mp4`, `install.sh` and `install.sh.sha256` into `public/`, plus `wrangler.toml` beside it. `catalog.js` feeds the landing page's browser playground;
-regenerate it with `go run ./tools/sitecatalog` after catalog changes (it also writes `llms.txt`), and
-`intro.json`, the onboarding Intro recorded from `internal/intro`, with
-`go run ./tools/introframes`. The builder refuses a destination inside the
-checkout or one that exists, and never copies the repository, hidden files,
-service configurations or binaries. To preview the exact published tree locally:
+The builder needs `bun`. It runs `bun install --frozen-lockfile` and
+`astro build` straight into `public/`, then adds `install`, `install.sh` and
+`install.sh.sha256`, and puts `wrangler.toml` beside it. The showreel reaches
+the build through the `site/public/reel.mp4` symlink to
+`video/reel/out/selfhost-reel.mp4`, which Astro copies as a file. It refuses a
+destination inside the checkout or one that exists; only Astro's output and the
+installer are published, never the repository. To preview the exact published
+tree locally:
 
 ```bash
 stage="$(mktemp -d)"
