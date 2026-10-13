@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/beszel"
@@ -65,8 +66,10 @@ type target struct {
 	internal  func(to *helpers.H) string
 	secrets   func(from, to *helpers.H) []secret
 	widgets   []widget
+	recovery  string
 	preflight func(ctx context.Context, from, to *helpers.H) error
 	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	stats     func(statsSample) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
@@ -150,8 +153,14 @@ func iconURL(id string) string {
 }
 
 func (t target) hint(from *helpers.H) string {
+	if t.recovery != "" {
+		return t.recovery
+	}
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
+	}
+	if t.id == "frigate" {
+		return "Frigate's Homarr Link requires trusted HTTPS on authenticated port 8971. The default HTTP starter cannot be linked. Obtain explicit approval for Project-scoped private TLS and certificate trust in both Homarr and the CLI, then retry self-host setup frigate and self-host setup homarr. Keep authentication enabled on port 8971; do not use port 5000, bypass certificate verification, or enable public Access."
 	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
@@ -228,8 +237,16 @@ func (t target) findApp(ctx context.Context, h *helpers.H, pingURL string) (stri
 	if err != nil {
 		return "", false, err
 	}
+	recorded := managedAppIDs(h)[t.id]
+	if recorded != "" {
+		for _, item := range apps {
+			if appID(item) == recorded && !strings.HasPrefix(stringField(item, "description"), retainedTileMarker) {
+				return recorded, true, nil
+			}
+		}
+	}
 	for _, item := range apps {
-		owned := stringField(item, "description") == installedTileMarker+t.id || appID(item) == managedAppIDs(h)[t.id]
+		owned := stringField(item, "description") == installedTileMarker+t.id
 		if owned && stringField(item, "pingUrl") == pingURL {
 			return appID(item), true, nil
 		}
@@ -845,6 +862,9 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 		}
 		owned := ownedWidgets(from, integrationID)
 		for _, item := range items {
+			if w.kind == "stats" {
+				continue
+			}
 			if owned[stringField(item, "id")] && wiredTo(item, w.kind, integrationID) && !widgetCurrent(item, w, integrationID) {
 				return false, nil
 			}
@@ -877,8 +897,24 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	if !found {
-		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
-			return err
+		previous := managedAppIDs(from)[t.id]
+		retained := false
+		if previous != "" {
+			apps, err := listApps(ctx, from)
+			if err != nil {
+				return err
+			}
+			for _, item := range apps {
+				if appID(item) == previous && strings.HasPrefix(stringField(item, "description"), retainedTileMarker) {
+					retained = true
+					break
+				}
+			}
+		}
+		if !retained {
+			if err := removeAppTiles(ctx, from, previous); err != nil {
+				return err
+			}
 		}
 		resp, err := from.Expect(ctx, helpers.Request{
 			Method: "POST", Path: "/api/apps", Header: apiKeyHeader(from),
@@ -908,7 +944,7 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 				continue
 			}
 			_, err := from.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(from), JSON: map[string]any{
-				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": browser, "pingUrl": internal,
+				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": browser, "pingUrl": item["pingUrl"],
 			}})
 			if err != nil {
 				return err
