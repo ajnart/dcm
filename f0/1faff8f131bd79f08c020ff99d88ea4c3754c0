@@ -1,0 +1,98 @@
+internal/app/link.go
+  h_d6e478ca18e517 1-54
+internal/app/link_pins_test.go
+  h_d6e478ca18e517 1-129
+internal/app/link_test.go
+  h_d6e478ca18e517 1-157
+internal/apps/arr/arr.go
+  h_d6e478ca18e517 12,27-28,116-117,120-121,146,158,164
+internal/apps/arr/links.go
+  h_d6e478ca18e517 9,40,63,78,116-135,138-144,146-157,175-191,194-200,202-213
+internal/apps/authelia/authelia.go
+  h_d6e478ca18e517 170-171,181,184
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 15,376-383,395-399
+internal/apps/bookstack/bookstack.go
+  h_d6e478ca18e517 18,157-162,175-181
+internal/apps/deluge/deluge.go
+  h_d6e478ca18e517 62,70-78,103,105,107-108,110,114,116-118,120-121,123,127,130,132,139,142,144,146,148-149,151,155-157,159,172,176,179-180,200,204-205,210,212,222,254,259,261,264,268,271,282-283,290-291,298,322,326-327
+internal/apps/docmost/docmost.go
+  h_d6e478ca18e517 91,100,125,128,130
+internal/apps/fireflyiii/fireflyiii.go
+  h_d6e478ca18e517 15,158-164,177-180
+internal/apps/grafana/grafana.go
+  h_d6e478ca18e517 13,81-87,90-94
+internal/apps/homarr/homarr.go
+  h_d6e478ca18e517 60-61,63,67,127,139,152,168,178,226,337,402
+internal/apps/homarr/links.go
+  h_d6e478ca18e517 1196-1202,1204-1209
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 13,157-163,185-188
+internal/apps/jellyfin/jellyfin.go
+  h_d6e478ca18e517 17,97-98,100,103-106,228-236,268,271,275,279,282,286,288,350-361,365,387
+internal/apps/keycloak/keycloak.go
+  h_d6e478ca18e517 14,128-133,136-139
+internal/apps/kopia/kopia.go
+  h_d6e478ca18e517 98-99,107,110-111
+internal/apps/lidarr/lidarr.go
+  h_d6e478ca18e517 14,36,66,237
+internal/apps/lidarr/lidarr_test.go
+  h_d6e478ca18e517 236-254
+internal/apps/mayanedms/mayanedms.go
+  h_d6e478ca18e517 187-191,194-197
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 20,179-185,199-203
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  h_d6e478ca18e517 13,141-147,164-168
+internal/apps/nodered/nodered.go
+  h_d6e478ca18e517 14,130-136,139-143
+internal/apps/openwebui/openwebui.go
+  h_d6e478ca18e517 14,94-101,104-109
+internal/apps/pangolin/pangolin.go
+  h_d6e478ca18e517 16,237-243,277-280
+internal/apps/paperlessngx/paperlessngx.go
+  h_d6e478ca18e517 145-151,154-158
+internal/apps/photoprism/photoprism.go
+  h_d6e478ca18e517 13,112-118,121-125
+internal/apps/portainer/portainer.go
+  h_d6e478ca18e517 13,103-106,109-112
+internal/apps/qbittorrent/qbittorrent.go
+  h_d6e478ca18e517 98-103,109,113,115,117,121,124,127-128,132,137,144,225
+internal/apps/seafile/seafile.go
+  h_d6e478ca18e517 155-162,165-169
+internal/apps/seerr/seerr.go
+  h_d6e478ca18e517 109,115-116,118,121,123-124,126,186,208,215-226,354-363,365-372
+internal/apps/servarr/servarr.go
+  h_d6e478ca18e517 1-129
+internal/apps/slskd/slskd.go
+  h_d6e478ca18e517 14,125-131,134-138
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 21,130-137,140-144
+internal/apps/vaultwarden/vaultwarden.go
+  h_d6e478ca18e517 81,84-85,90-91,101,105-106,108-113,121,150,155
+internal/apps/wud/wud.go
+  h_d6e478ca18e517 21,226-231,234-237
+internal/firstadmin/firstadmin.go
+  h_d6e478ca18e517 136-141,148,151,157,198-211,213-215
+internal/firstadmin/firstadmin_test.go
+  h_d6e478ca18e517 472-522
+internal/helpers/apikey.go
+  h_d6e478ca18e517 1-57
+internal/helpers/apikey_test.go
+  h_d6e478ca18e517 1-177
+internal/helpers/session.go
+  h_d6e478ca18e517 55-57,61,84-89,93-99,115-136,139-153
+internal/helpers/session_redirect_test.go
+  h_d6e478ca18e517 6,115-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f01faff8f131bd79f08c020ff99d88ea4c3754c0",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
