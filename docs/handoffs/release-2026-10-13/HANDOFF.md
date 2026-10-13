@@ -1,10 +1,12 @@
 # self-host release handoff — another machine
 
-**Current source status:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first for the later SDK merges, image target and human-deferred prerequisites. Older ledgers and runtime evidence below retain their captured heads and scope.
+**Current instructions:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first. The user now authorizes source-only delivery: 37 of 38 original peer PRs are merged at the supplement's snapshot; remaining source merges are pending. Runtime acceptance and deferred outside prerequisites remain separate from source delivery. Publication is still held.
 
-**Prepared 13 October 2026. Start on branch `docs/release-handoff`, at `docs/handoffs/release-2026-10-13/START-HERE.md`.** Then read this file, [PR-STACKS.md](PR-STACKS.md), [APP-QUEUE.md](APP-QUEUE.md) and [TRACKER-INVENTORY.md](TRACKER-INVENTORY.md). [CONTINUE-PROMPT.md](CONTINUE-PROMPT.md) is the copyable next-agent prompt. Transfer the whole private bundle or fetch the handoff branch, not just this file. This is not a public release or authorization to launch anything.
+Start at [START-HERE.md](START-HERE.md) on `docs/release-handoff`. Refresh live main and PR heads before continuing. This private documentation does not authorize public release or another runtime attempt.
 
-**Read [LATEST-UPDATE.md](LATEST-UPDATE.md) first.** Concurrent #356 reports a newer Linux candidate/run and candidate-only verifier/common/version repairs; #357 is a real stacked fix above #259. The old-run/source plan below is historical original-branch state, not permission to duplicate or undo later work. Latest final readback is 46 open / 128 total PRs including documentation #358. Owner approvals/receipts and combined-versus-individual merge route still need reconciliation.
+## Historical handoff
+
+The remainder preserves the earlier handoff's captured source state, runtime evidence, counts, ownership and proposed gates. In particular, its statements that all 38 peers remain draft, its aggregate-before-merge sequence and its evaluation/installer/video status are superseded by [CURRENT-STATUS.md](CURRENT-STATUS.md). [LATEST-UPDATE.md](LATEST-UPDATE.md) is an intermediate historical update, not the newest authority. [CONTINUE-PROMPT.md](CONTINUE-PROMPT.md), [PR-STACKS.md](PR-STACKS.md), [APP-QUEUE.md](APP-QUEUE.md) and [TRACKER-INVENTORY.md](TRACKER-INVENTORY.md) retain their original snapshot scope.
 
 ## 1. Outcome and the actual problem
 
