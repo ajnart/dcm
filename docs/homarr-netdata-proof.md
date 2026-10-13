@@ -1,5 +1,11 @@
 # Netdata Link: source verification, runtime pending
 
+Source status, 13 October 2026 (before this docs update):
+`7e2e7480d1977a1ead494ab7010dd8ba8dd6a46e`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Issue: [#287](https://github.com/ajnart/selfhost-skills/issues/287).
 Reference: [#262](https://github.com/ajnart/selfhost-skills/issues/262) and
 [the shared Link contract](homarr-integration-contract.md).
@@ -77,8 +83,8 @@ Netdata v2.11.0 sources:
 
 ## Acceptance gaps
 
-`target_netdata.go` owns the descriptor; only the reference owner may add
-`netdataTarget()` to `targets.go`. Until then no Netdata Link is registered.
+`target_netdata.go` owns the descriptor; the reference owner has registered
+`netdataTarget()` in `targets.go`.
 Common ownership, reconciliation, removal, shared Stats bindings and peer
 scheduling are reused rather than independently reimplemented.
 The latest committed reference supplies a read-only preflight seam. Netdata's
@@ -157,7 +163,8 @@ local gate listed above all pass, including the Catalog/TUI/Activity/App race
 checks. Build, both vet commands, formatting/diff and installer syntax pass.
 No test functions, files, comments, external dependencies, shared production
 seams or registry changes were introduced. These are synthetic Check controls,
-not real native/rendered acceptance. Fresh parent Standards/Spec reviews,
-custodian normalization of the shared freshness guard, registry assembly,
-real native/rendered data, both installation orders and shared ownership
-lifecycle remain held for the parent phase.
+not real native/rendered acceptance. At that correction, fresh parent
+Standards/Spec reviews, custodian normalization of the shared freshness guard,
+registry assembly, real native/rendered data, both installation orders and shared
+ownership lifecycle remained held. The source-status note above records
+subsequent SDK normalization and registration, without new runtime proof.
