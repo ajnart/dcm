@@ -116,3 +116,31 @@ passed. The initial full test run failed the unchanged
 
 Context7 lookup was attempted but quota-exhausted; the official source above
 was used instead. v2.4.1 is a researched contract, not a tested Homarr runtime.
+
+## 13 October shared Stats and Downloads migration
+
+The original branch forward-merges the shared Stats/Downloads SDK and its
+retry metadata without rewriting history. `aria2Target()` keeps native
+readiness, identity and queue semantics and uses `readDownloadsQueue` for
+one owned Downloads result with an explicit items array and a requested
+limit of 50. The shared owner acquires the catalog and exactly one forced,
+positive advancing sample per `verifyData` invocation; `verifyAria2Stats`
+validates that same sample's units and types. Rates remain finite nonnegative
+bytes/second and paused remains boolean with catalog unit `text`.
+Both download and upload remain selected. The native bounded-list paused
+relationship, progress/state rules and nonnegative millisecond ETA remain
+unchanged. Stats paused comes from its separate one-item native request.
+
+Focused descriptor HTTP fixtures use the existing `statsFixture`, reject the
+first invalid refreshed value without resampling, no-op refresh, wrong units,
+wrong value types and foreign Downloads identity, and stop before the Stats
+catalog on native failure. Explicit zero Stats remain valid even when the
+independently sampled native rate or paused state differs. Local fixture
+responses are synthetic and establish no real App/native/rendered acceptance.
+The affected descriptor tests, shared Stats/Downloads tests, App tests,
+package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
+provider request, download or protected Project state was used.
+
+Registry assembly remains custodian-owned. Useful real native/rendered data,
+both installation orders and credential/ownership/removal lifecycle checks
+remain prerequisites to full acceptance; source fixtures do not satisfy them.

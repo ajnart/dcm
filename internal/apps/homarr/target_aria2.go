@@ -19,6 +19,7 @@ func aria2Target() target {
 			return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("rpc_token"))}}
 		},
 		widgets: []widget{plain("downloads"), statWidget("download", "upload", "paused")},
+		stats:   verifyAria2Stats,
 		verify: func(ctx context.Context, from, to *helpers.H, integrationID string) error {
 			if err := (aria2.App{}).Check(ctx, to); err != nil {
 				return err
@@ -162,29 +163,15 @@ func aria2Target() target {
 					}
 				}
 			}
-			value, err = apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-				"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-			})
+			queue, err := readDownloadsQueue(ctx, from, integrationID, "aria2")
 			if err != nil {
 				return err
 			}
-			results, ok := value.([]any)
-			if !ok || len(results) != 1 {
-				return errors.New("Homarr did not return Aria2's native Downloads data")
-			}
-			result, _ := results[0].(map[string]any)
-			integration, _ := result["integration"].(map[string]any)
-			data, _ := result["data"].(map[string]any)
-			if result["error"] != nil || stringField(result, "integrationId") != integrationID ||
-				stringField(integration, "id") != integrationID || stringField(integration, "kind") != "aria2" || data == nil {
-				return errors.New("Homarr did not return Downloads from the owned Aria2 integration")
-			}
-			status, _ := data["status"].(map[string]any)
+			status, items := queue.status, queue.items
 			rates, _ := status["rates"].(map[string]any)
 			types, _ := status["types"].([]any)
-			items, itemsOK := data["items"].([]any)
 			paused, pausedOK := status["paused"].(bool)
-			if !itemsOK || len(items) > 50 || !pausedOK || len(types) != 2 ||
+			if len(items) > 50 || !pausedOK || len(types) != 2 ||
 				!slices.Contains(types, any("torrent")) || !slices.Contains(types, any("miscellaneous")) {
 				return errors.New("Homarr returned incomplete Aria2 queue data; an empty queue requires an explicit empty items array")
 			}
@@ -222,41 +209,20 @@ func aria2Target() target {
 			if paused != allPaused {
 				return errors.New("Homarr's Aria2 paused flag does not match its bounded download list")
 			}
-			value, err = apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-			if err != nil {
-				return err
-			}
-			catalog, _ := value.(map[string]any)
-			metrics, _ := catalog["metrics"].([]any)
-			for key, unit := range map[string]string{"download": "bytesPerSecond", "upload": "bytesPerSecond", "paused": "text"} {
-				matches := 0
-				for _, raw := range metrics {
-					metric, _ := raw.(map[string]any)
-					if stringField(metric, "key") == key {
-						if stringField(metric, "unit") != unit {
-							return errors.New("Homarr returned unsupported Aria2 Stats units")
-						}
-						matches++
-					}
-				}
-				if matches != 1 {
-					return errors.New("Homarr did not expose Aria2's supported Stats metrics and units")
-				}
-			}
-			stats, err := freshStatsSnapshot(ctx, from, integrationID)
-			if err != nil {
-				return err
-			}
-			for _, key := range []string{"download", "upload"} {
-				rate, ok := stats[key].(float64)
-				if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
-					return errors.New("Homarr returned incomplete refreshed Aria2 byte-per-second Stats")
-				}
-			}
-			if _, ok := stats["paused"].(bool); !ok {
-				return errors.New("Homarr did not return its independent one-item Aria2 paused Stats")
-			}
 			return nil
 		},
 	}
+}
+
+func verifyAria2Stats(sample statsSample) error {
+	for _, key := range []string{"download", "upload"} {
+		rate, ok := sample.values[key].(float64)
+		if sample.units[key] != "bytesPerSecond" || !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
+			return errors.New("Homarr returned unsupported refreshed Aria2 byte-per-second Stats; retry self-host setup homarr")
+		}
+	}
+	if _, ok := sample.values["paused"].(bool); !ok || sample.units["paused"] != "text" {
+		return errors.New("Homarr did not return supported refreshed Aria2 paused Stats; retry self-host setup homarr")
+	}
+	return nil
 }
