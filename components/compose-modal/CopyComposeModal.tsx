@@ -2,12 +2,11 @@
 
 import { File } from "lucide-react"
 import type { editor } from "monaco-editor"
-import { useTheme } from "next-themes"
 import { useEffect, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
 import SettingsForm from "@/components/settings/SettingsForm"
-import type { DockerTool } from "@/lib/docker-tools"
+import type { CatalogEntry } from "@/lib/catalog"
 import { useSettings } from "@/lib/settings-context"
 
 import {
@@ -25,11 +24,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings } from "lucide-react"
 
-import {
-  ComposeEditor,
-  EnvEditor,
-  configureMonacoThemes,
-} from "@/components/editors/MonacoEditor"
+import { ComposeEditor, EnvEditor } from "@/components/editors/MonacoEditor"
 import {
   copyToClipboard,
   downloadFile,
@@ -45,20 +40,23 @@ import SelfHostCallout from "./SelfHostCallout"
 interface CopyComposeModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  selectedTools: DockerTool[]
+  selectedTools: CatalogEntry[]
+  yamlMissing: CatalogEntry[]
+  selfHostIds: string[]
 }
 
 export function CopyComposeModal({
   isOpen,
   onOpenChange,
   selectedTools,
+  yamlMissing,
+  selfHostIds,
 }: CopyComposeModalProps) {
   const [showInterpolated, setShowInterpolated] = useState(false)
   const [composeContent, setComposeContent] = useState<string>("")
   const [envFileContent, setEnvFileContent] = useState<string>("")
   const [activeTab, setActiveTab] = useState<string>("compose")
   const [copied, setCopied] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [portConflicts, setPortConflicts] = useState<{
     fixed: number
     conflicts: string[]
@@ -67,12 +65,7 @@ export function CopyComposeModal({
   const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
-  const { theme, resolvedTheme } = useTheme()
   const { settings } = useSettings()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -94,22 +87,6 @@ export function CopyComposeModal({
     setCopied(false)
   }, [activeTab])
 
-  useEffect(() => {
-    if (!mounted) return
-
-    if (composeEditorRef.current) {
-      const currentTheme =
-        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-      composeEditorRef.current.updateOptions({ theme: currentTheme })
-    }
-
-    if (envEditorRef.current) {
-      const currentTheme =
-        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-      envEditorRef.current.updateOptions({ theme: currentTheme })
-    }
-  }, [resolvedTheme, mounted])
-
   const handleCopy = async () => {
     const content =
       activeTab === "compose"
@@ -120,7 +97,6 @@ export function CopyComposeModal({
       content,
       activeTab as "compose" | "env",
       selectedTools,
-      settings,
     )
 
     if (success) {
@@ -146,41 +122,18 @@ export function CopyComposeModal({
         ? composeEditorRef.current?.getValue() || composeContent
         : envEditorRef.current?.getValue() || envFileContent
 
-    downloadFile(
-      content,
-      activeTab as "compose" | "env",
-      selectedTools,
-      settings,
-    )
+    downloadFile(content, activeTab as "compose" | "env", selectedTools)
   }
 
   const handleComposeEditorDidMount = (
     editor: editor.IStandaloneCodeEditor,
   ) => {
     composeEditorRef.current = editor
-
-    if (mounted) {
-      const currentTheme =
-        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-      editor.updateOptions({ theme: currentTheme })
-    }
   }
 
   const handleEnvEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
     envEditorRef.current = editor
-
-    if (mounted) {
-      const currentTheme =
-        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-      editor.updateOptions({ theme: currentTheme })
-    }
   }
-
-  const currentTheme = !mounted
-    ? "vs"
-    : resolvedTheme === "dark"
-      ? "tailwind-dark"
-      : "tailwind-light"
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -212,7 +165,7 @@ export function CopyComposeModal({
             <PortConflictsAlert portConflicts={portConflicts} />
           )}
 
-          <SelfHostCallout selectedTools={selectedTools} />
+          <SelfHostCallout ids={selfHostIds} yamlMissing={yamlMissing} />
 
           <Tabs
             className="w-full"
@@ -252,12 +205,10 @@ export function CopyComposeModal({
                 />
               </div>
 
-              <div className="h-[calc(65vh-40px)] flex-1 overflow-hidden rounded border">
+              <div className="h-[calc(65vh-40px)] flex-1 overflow-hidden border">
                 <ComposeEditor
                   content={composeContent}
                   onMount={handleComposeEditorDidMount}
-                  beforeMount={configureMonacoThemes}
-                  theme={currentTheme}
                 />
               </div>
             </TabsContent>
@@ -271,11 +222,10 @@ export function CopyComposeModal({
                 />
               </div>
 
-              <div className="h-[calc(65vh-40px)] flex-1 overflow-hidden rounded border">
+              <div className="h-[calc(65vh-40px)] flex-1 overflow-hidden border">
                 <EnvEditor
                   content={envFileContent}
                   onMount={handleEnvEditorDidMount}
-                  theme={currentTheme}
                 />
               </div>
             </TabsContent>
