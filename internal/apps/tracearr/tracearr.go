@@ -131,6 +131,7 @@ type authObservation struct {
 	attempted                         bool
 	loginHTTP, meHTTP                 int
 	token, username, email, owner, id bool
+	sessionToken, ownerID             string
 }
 
 func observeLogin(ctx context.Context, h *helpers.H, user, password string, observed *authObservation) (bool, error) {
@@ -157,6 +158,7 @@ func observeLogin(ctx context.Context, h *helpers.H, user, password string, obse
 	if token.Token == "" {
 		return false, nil
 	}
+	h.Log.Secret(token.Token)
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Path:   "/api/v1/auth/me",
 		Header: map[string]string{"Authorization": "Bearer " + token.Token},
@@ -184,7 +186,11 @@ func observeLogin(ctx context.Context, h *helpers.H, user, password string, obse
 	observed.email = me.Email == ownerEmail(h)
 	observed.owner = me.Role == "owner"
 	observed.id = me.UserID != ""
-	return observed.username && observed.email && observed.owner && observed.id, nil
+	valid := observed.username && observed.email && observed.owner && observed.id
+	if valid {
+		observed.sessionToken, observed.ownerID = token.Token, me.UserID
+	}
+	return valid, nil
 }
 
 // Better Auth 1.6.33 limits sign-in to three requests per ten seconds and
@@ -252,7 +258,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}
 	err := first.Setup(ctx, h)
 	if err == nil {
-		return nil
+		return setupHomarrKey(ctx, h, observed.sessionToken, observed.ownerID)
 	}
 	return errors.Join(err, startupStatus(ctx, h), authStatus(ctx, h, observed))
 }
@@ -340,6 +346,15 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 		return observeLogin(ctx, h, user, password, &observed)
 	}}).Check(ctx, h)
 	if err == nil {
+		if homarrKeyNeeded(h) {
+			ok, err := homarrKeyWorks(ctx, h, observed.sessionToken, observed.ownerID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return errors.New("Tracearr Homarr credential is missing; run self-host setup tracearr, then self-host setup homarr")
+			}
+		}
 		return nil
 	}
 	return errors.Join(err, authStatus(ctx, h, observed))
