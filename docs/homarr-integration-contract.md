@@ -3,9 +3,18 @@
 ## Supported upstream
 
 The compiled definition pins `ghcr.io/homarr-labs/homarr:v2.4.1`.
-The API contract is Homarr v2.4.1, source
-`ebbd4876d25a51151444a009ab596e1154d62880`. A release tag is not an
-immutable digest; runtime proofs must record the resolved digest separately.
+The supported API version is `2.4.1`, observed through authenticated
+`info.getInfo`. The tagged research baseline is
+`ebbd4876d25a51151444a009ab596e1154d62880`; it is not the resolved image revision.
+The inspected image index is
+`sha256:ee67a5e856c051c4e114418a54b89a3fc3cb5507d0689e5cb89c790305c549cd`,
+its linux/arm64 manifest is
+`sha256:308feba8b9845cbdb21eb2e1b05579d49fb815bf3f0a452e58b59fcd4db8ecd2`,
+and its local image ID is
+`sha256:c6d895d659718b05ab9cc7b936458e6f5820b5cf3f0d35318588bd1b6901ee1b`.
+Its OCI revision label is `3d4150e59f600876b7e308f857b2f21572b75348` and
+version label is `main`, neither a substitute for the observed API version.
+A release tag is mutable; proofs record each identity separately.
 Setup and every Link read authenticated `info.getInfo` and reject other
 versions with a backup/version/retry hint. `integration.getKinds` must expose
 the descriptor's kind and the exact supplied credential alternative. Missing
@@ -15,7 +24,12 @@ The supported operations are the existing REST Apps/boards/item creation,
 tRPC `integration.all/create/update/delete`, `board.getBoardByName/saveBoard`,
 and per-App native queries. Successful connection creation requires a returned
 integration ID and no body error, not merely HTTP 200. Widget options and metric
-keys come from this tagged source; API readback alone is not rendered acceptance.
+keys were checked at both source revisions. Scoped comparisons found the common
+integration definitions/registry/router, widget map/router, Stats providers and
+refresh/cache handlers, Immich adapter/router/request handler/widget options,
+and App validation byte-identical. This is not a claim that the revisions are
+equivalent in full, nor proof of another peer's native data.
+API readback alone is not rendered acceptance.
 
 ## Peer worker seam
 
@@ -44,6 +58,55 @@ authentication failures and accept legitimate zero values. Use a real identifier
 in `bind` when needed, or leave that widget out. Do not invent an album, entity,
 website or machine. `stats` and `calendar` remain shared, with per-integration
 ownership and deterministic per-integration metric entry IDs.
+For non-nil verifiers with Stats metrics, common `verifyData` additionally calls
+`freshStatsSnapshot(ctx context.Context, h *helpers.H, integrationID string)
+(map[string]any, error)` in both Check and apply. It reads `widget.stats.snapshot`,
+requests `widget.stats.refresh` with `force: true`, and requires `error: false`,
+`stale: false`, a positive `updatedAt` advancing from the prior timestamp, and
+non-null values for every descriptor metric. It returns the refreshed values.
+Homarr's refresh can no-op on lock contention or queue timeout while a cached
+snapshot remains non-stale for an hour; neither HTTP success nor `stale: false`
+alone is acceptance. No-op refreshes fail with a Setup retry hint; the helper
+does not loop. The existing Step boundary may run Check followed by apply.
+Nil verifiers keep legacy behavior; removal never refreshes Stats.
+Peers keep their own semantic/destination checks without editing the common
+guard or widening its signature.
+Migrated descriptors additionally supply `stats func(statsSample) error` for
+Stats semantics. Their existing `verify` keeps native identity and useful-data
+checks and no longer acquires Stats. After that verifier succeeds, common
+`verifyData` deduplicates selected metric keys across Stats widgets, reads the
+authenticated catalog and obtains one completed refresh. It rejects missing
+catalog keys, malformed or duplicate catalog entries, missing/null selected
+values, non-finite or nonpositive timestamps and refreshes that do not advance.
+The callback receives that same sample's `values`, catalog `units`, `startedAt`,
+`completedAt` and `updatedAt` (Unix milliseconds), after these checks. `startedAt`
+is read before the refresh request and `completedAt` after its response, so leaves
+can retain their existing future-skew limits after a slow refresh. Common checks
+only timestamp finiteness, positivity and advancement; Apps own clock policy.
+Leaves retain expected
+units, integral counts, ranges, nullable-field rules, additional clock limits
+and relationships. Explicit zeros remain valid where the App allows them.
+Mutable native-widget results are separate cached samples; do not require
+equality between independently collected volatile values.
+
+One refresh applies per migrated verification invocation. The Step can run
+Check before and after apply, so a successful first Link can collect more than
+one sample across distinct invocations. Samples are never remembered across
+invocations. Descriptors without `stats` keep their current verification guard
+without a new catalog request; nil `verify` still skips data verification.
+Migrate each peer by retaining its native checks and moving its Stats checks
+into `stats`. Preflight/Manual ordering and removal without Stats requests stay
+unchanged.
+Downloads peers may use `readDownloadsQueue(ctx, from, integrationID, kind)`.
+This package-private module owns the existing authenticated read with a requested
+limit of 50, exactly one result, its nil error field, matching outer/nested
+integration IDs and kind, object data/status and an explicit items array. An
+empty array is valid. It returns unchanged integration metadata, status and
+items, and fixed recovery errors without raw response details. Apps retain
+readiness/provider checks, response-count limits, rates, queue types, item
+states, numeric ranges, nullable speeds and finite negative time rules. The
+module does not acquire Stats or interpret queue meaning.
+
 No-auth kinds may omit the credential resolver: the common transport sends an
 explicit empty secrets array and validates it against the upstream empty alternative.
 Frigate is not a no-auth kind: Homarr 2.4.1 needs administrator username/password
@@ -110,10 +173,22 @@ Immich's user settings and retry `self-host setup immich`.
 The Link uses `http://immich:2283`, verifies authenticated
 `widget.immich.getServerStats`, and adds `immich-serverStats` plus shared Stats
 entries `userCount`, `photoCount`, `videoCount`, `totalLibraryUsageInBytes`.
+Its common guard also requires a genuinely refreshed Stats snapshot, so cached
+native server statistics alone cannot complete the Link.
 An empty library is valid when authenticated statistics explicitly report zeros
 and the user list is nonempty. No album widget or fabricated album ID is added.
 The [real API/browser proof](homarr-immich-proof.md) records its source, resolved
 image identities, rendered values and ownership lifecycle, with explicit gaps.
+At production `89301aff17c86b767f5a45076881f2bb7b41db39`, the updated attempt
+verified the freshness guard and edited-ping Immich lifecycle. The final bounded
+attempt additionally passed retained original-descriptor exclusion through two
+reinstall/remove cycles and post-lifecycle preserved-board/Home rendering, with
+reviewed native/shared statistics and the preserved user metric. The legacy
+record is ownership-only, not native ntfy/Sonarr acceptance. Prior partial evidence
+is retained separately. PR #309 stays draft pending both parent-owned independent
+Standards/Spec reviews; this is not a contract freeze or permission to register
+peers. Populated media, Manual key recovery, migration/restore, physical LAN,
+actual refresh contention and non-nil Frigate prerequisites remain proof gaps.
 
 Sources:
 
@@ -123,3 +198,5 @@ Sources:
 - [Homarr widget options](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/widgets/src/immich/server-stats/index.ts)
 - [Immich key API](https://github.com/immich-app/immich/blob/v3.2.2/server/src/controllers/api-key.controller.ts)
 - [Homarr Frigate Stats authentication](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/stats/providers/frigate.ts)
+- [Resolved-image Stats refresh/cache contract](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/request-handler/src/stats.ts)
+- [Resolved-image Stats API](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/widgets/stats.ts)
