@@ -116,6 +116,43 @@ func TestCopyModalOffersAdminLoginAndCopiesFreshValuesWithoutRenderingThem(t *te
 			t.Fatal("native clipboard dispatch must flash the label, never the value")
 		}
 	}
+	m, fake := sample(t, 80, 24)
+	fake.status.Apps[0].ID = "deluge"
+	fake.status.Apps[0].Name = "Deluge"
+	m = drive(t, m, statusMsg{status: fake.status})
+	backend := &copyBackend{Backend: fake}
+	backend.credentials.Admin.Password = "old-admin-password"
+	backend.credentials.Apps = map[string]map[string]string{
+		"deluge":   {"DELUGE_WEB_PASSWORD": "saved-deluge-web-password", "DELUGE_DAEMON_PASSWORD": "hidden-daemon-password"},
+		"jellyfin": {"JELLYFIN_API_KEY": "other-app-key"},
+	}
+	m.backend = backend
+	m = drive(t, m, press("c"))
+	if m.apps.copy == nil || len(m.apps.copy.rows) != 2 || m.apps.copy.rows[1] != (copyChoice{app: "deluge", key: "DELUGE_WEB_PASSWORD", label: "Deluge Web password"}) {
+		t.Fatal("Deluge Web password choice must store only its App and secret identifiers")
+	}
+	if !strings.Contains(screen(m), "Admin password") || !strings.Contains(screen(m), "Deluge Web password") {
+		t.Fatal("Deluge must retain the Admin choice and label its saved Web password separately")
+	}
+	for _, value := range []string{"old-admin-password", "saved-deluge-web-password", "hidden-daemon-password", "other-app-key"} {
+		if strings.Contains(screen(m), value) {
+			t.Fatal("Deluge copy modal displayed a credential value")
+		}
+	}
+	backend.credentials.Admin.Password = "changed-admin-password"
+	m = drive(t, m, press("down"))
+	m, cmd := send(t, m, press("enter"))
+	if cmd == nil {
+		t.Fatal("Deluge Web password choice must request a private copy")
+	}
+	copied, ok := cmd().(clipboardMsg)
+	if !ok || copied.text != "saved-deluge-web-password" || copied.what != "Deluge Web password" || backend.reads != 2 || m.apps.copy != nil {
+		t.Fatal("Deluge must reread its retained Web password, not the changed Admin password")
+	}
+	m, native := send(t, m, copied)
+	if native == nil || !strings.Contains(statusLine(screen(m)), "copied Deluge Web password") || strings.Contains(screen(m), "saved-deluge-web-password") || strings.Contains(screen(m), "changed-admin-password") {
+		t.Fatal("Deluge clipboard dispatch must show only the credential label")
+	}
 }
 
 func TestCopyModalIgnoresBackgroundClicks(t *testing.T) {
