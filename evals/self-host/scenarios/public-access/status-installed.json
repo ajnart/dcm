@@ -1,0 +1,41 @@
+{
+  "project": "/home/you/.self-host",
+  "home": "/home/you/.self-host",
+  "dashboard": "http://192.168.1.50:3000",
+  "exposure": "lan",
+  "access": ["home"],
+  "lan_ip": "192.168.1.50",
+  "profile": {"experience": "new"},
+  "apps": [
+    {
+      "id": "jellyfin",
+      "description": "Stream your movies and shows to every screen in the house",
+      "url": "http://192.168.1.50:8096",
+      "addresses": ["http://192.168.1.50:8096"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "paperless-ngx",
+      "description": "Scan paper and files into a searchable, tagged filing cabinet",
+      "url": "http://192.168.1.50:8000",
+      "addresses": ["http://192.168.1.50:8000"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "documents",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "cloudflare-tunnel",
+      "name": "Cloudflare Tunnel",
+      "managed": true,
+      "description": "Open your app to the internet safely through Cloudflare, with no router changes",
+      "state": "running",
+      "setup": "ok"
+    }
+  ]
+}

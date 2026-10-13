@@ -1,0 +1,23 @@
+{
+  "id": "haproxy",
+  "name": "HAProxy",
+  "description": "Give your apps one shared front door, with a page of usage statistics",
+  "category": "Ingress",
+  "image": "haproxy:3.2.25",
+  "docs": "https://docs.haproxy.org/",
+  "port": 18081,
+  "inputs": [
+    {
+      "key": "target-app",
+      "prompt": "Backend application",
+      "help": "The catalog App id to proxy to, e.g. ntfy",
+      "required": true
+    },
+    {
+      "key": "target-port",
+      "prompt": "Backend container port",
+      "help": "The container port of the selected App, e.g. 80",
+      "required": true
+    }
+  ]
+}

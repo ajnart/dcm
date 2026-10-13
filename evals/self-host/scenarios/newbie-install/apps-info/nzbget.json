@@ -1,0 +1,10 @@
+{
+  "id": "nzbget",
+  "name": "NZBGet",
+  "description": "Download files from your Usenet provider, a paid file-sharing service",
+  "category": "Downloads",
+  "image": "ghcr.io/nzbgetcom/nzbget:v26.3",
+  "docs": "https://nzbget.com/documentation/",
+  "port": 6789,
+  "inputs": []
+}

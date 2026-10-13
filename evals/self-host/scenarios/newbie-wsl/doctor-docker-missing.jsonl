@@ -1,0 +1,3 @@
+{"event":"run.start","msg":"doctor"}
+{"event":"step.fail","step":"docker","msg":"Docker: docker command not found","hint":"Install Docker Engine, then run self-host again.","docs":"https://docs.docker.com/engine/install/"}
+{"event":"run.end","msg":"doctor: failed"}

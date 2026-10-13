@@ -1,0 +1,16 @@
+{
+  "id": "patchmon",
+  "name": "PatchMon",
+  "description": "See which of your computers are waiting for software updates",
+  "category": "Monitoring",
+  "image": "ghcr.io/patchmon/patchmon-server:2.1.3",
+  "docs": "https://docs.patchmon.net/",
+  "port": 3000,
+  "inputs": [
+    {
+      "key": "admin_email",
+      "prompt": "Administrator email",
+      "required": false
+    }
+  ]
+}
