@@ -107,16 +107,23 @@ The archive and two selected chunks remain under the approved temporary folder
 `umami-source-308-zlpxaq46`. These observations establish static image contents,
 not successful running APIs or a rendered widget.
 
-## Verification and outstanding acceptance
+## Historical source verification, 11 October 2026
 
 Build, both vet runs, full Go tests, existing focused Umami/Homarr tests, race
-checks for Umami/Homarr/TUI/Activity, formatting and installer shell syntax pass.
+checks for Umami/Homarr/TUI/Activity, formatting and installer shell syntax passed.
 Only the existing Umami fake was extended with exact owned-account/site endpoints
 and authenticated explicit-zero responses; no test cases/files or dependencies
-were added. The Homarr descriptor is compiled but deliberately not added to the
-reference-owned `targets.go` registry by this lane.
+were added. At that point the Homarr descriptor was compiled but deliberately
+not added to the reference-owned `targets.go` registry by the peer lane.
 
-Registration, actual account creation/transfer, authenticated live Umami and
+## Current registration and outstanding acceptance, 13 October 2026
+
+The registry owner registered `umamiTarget()` in `targets.go` at
+`f04e38837abce57c85c18be0b0f597e8f4f61280`. The Link selects the native Umami
+analytics widget and the supported shared Stats `websites` count only. This is
+source registration, not native, rendered or lifecycle acceptance.
+
+Actual account creation/transfer, authenticated live Umami and
 Homarr data, rendered chart/explicit-zero values, synthetic controlled visits,
 Manual recovery, restart, credential changes, both installation orders,
 late-peer readiness, removal/reinstall and preservation of user-authored

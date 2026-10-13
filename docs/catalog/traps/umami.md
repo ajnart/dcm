@@ -7,7 +7,7 @@
 - The seeded administrator is reachable on the selected loopback origin until the separately approved password-rotation setup completes; never expose it more broadly before rotation is verified.
 - Setup also prepares a separate `view-only` Homarr account and an empty owned `self-host.invalid` fixture website. It installs no tracking script, records no visits, and never adopts a matching manual account or website.
 - Retry existing Projects with `self-host setup umami`, then `self-host setup homarr`. Lost saved passwords and changed ownership require an explicit review; Setup does not reset a valid account or transfer a person's website.
-- Homarr's self-hosted API Address ends in `/api`; its browser Address does not. The native Umami chart needs the recorded website identifier. Homarr 2.4.1 has no Umami Stats provider.
+- Homarr's self-hosted API Address ends in `/api`; its browser Address does not. The native Umami chart needs the recorded website identifier. The actual Homarr image source exposes Umami shared Stats only as `websites` with unit `count`; visitor analytics stays in the native widget. The registered Link does not prove live native data, rendering or lifecycle acceptance.
 - Empty counts must be explicit authenticated numbers. Homarr's active-visitors endpoint can turn failures into zero, so the Link also checks Umami directly. See the [source-only contract and remaining proof gaps](../../homarr-umami-source-proof.md).
 
 ## Security
