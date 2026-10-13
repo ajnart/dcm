@@ -278,9 +278,10 @@ func fragmentCompletionDependencies(path string) map[string]bool {
 
 type Credentials struct {
 	Admin struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Email    string `json:"email,omitempty"`
+		Username string            `json:"username"`
+		Password string            `json:"password"`
+		Email    string            `json:"email,omitempty"`
+		Emails   map[string]string `json:"emails,omitempty"`
 		// Aliases maps an App ID to the App-local Admin login username it needs
 		// when the shared username is reserved upstream.
 		Aliases map[string]string `json:"aliases,omitempty"`
@@ -301,6 +302,24 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 	creds.Admin.Aliases = map[string]string{}
 	creds.Apps = map[string]map[string]string{}
 	ids, _ := ss.p.AppIDs()
+	for _, id := range ids {
+		a, found := s.Catalog.App(id)
+		if !found {
+			continue
+		}
+		provider, ok := a.(app.AdminEmailProvider)
+		if !ok {
+			continue
+		}
+		email := provider.AdminEmail(creds.Admin.Username)
+		if email == "" {
+			continue
+		}
+		if creds.Admin.Emails == nil {
+			creds.Admin.Emails = map[string]string{}
+		}
+		creds.Admin.Emails[id] = email
+	}
 	sort.Slice(ids, func(i, j int) bool { return len(ids[i]) > len(ids[j]) })
 	for key, value := range ss.secrets.values {
 		if strings.HasPrefix(key, "ADMIN_") {
@@ -315,6 +334,12 @@ func (s *Service) Credentials(ctx context.Context) (Credentials, error) {
 			}
 		}
 		// The reserved-username alias is part of the Admin login, not an App secret.
+		if owner != "other" && strings.HasSuffix(key, "_ADMIN_EMAIL") && value != "" {
+			if creds.Admin.Emails == nil {
+				creds.Admin.Emails = map[string]string{}
+			}
+			creds.Admin.Emails[owner] = value
+		}
 		if strings.HasSuffix(key, "_ADMIN_USER") {
 			if value != creds.Admin.Username {
 				creds.Admin.Aliases[owner] = value

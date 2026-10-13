@@ -17,6 +17,13 @@ import (
 // App is Passbolt. Traps: docs/catalog/traps/passbolt.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "passbolt", Name: "Passbolt", Category: "Passwords",
@@ -184,7 +191,7 @@ func enrollmentHint(h *helpers.H) string {
 		"The Admin password is not used: Passbolt enrollment is OpenPGP key-based. Time sync and SMTP delivery are installation prerequisites."
 }
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	ok, err := serverKeyWorks(ctx, h)
