@@ -37,6 +37,7 @@ import (
 // integration connection test.
 type fakeHomarr struct {
 	mu                     sync.Mutex
+	version                string
 	adminExists            bool
 	adminName              string
 	adminPassword          string
@@ -61,7 +62,7 @@ type fakeHomarr struct {
 	nextID                 int
 }
 
-func newFake() *fakeHomarr { return &fakeHomarr{step: "start", nextID: 1} }
+func newFake() *fakeHomarr { return &fakeHomarr{version: "2.4.1", step: "start", nextID: 1} }
 
 func (f *fakeHomarr) id(prefix string) string {
 	id := prefix + "-" + strconv.Itoa(f.nextID)
@@ -118,7 +119,7 @@ func (f *fakeHomarr) handler() http.Handler {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 	mux.HandleFunc("GET /api/trpc/info.getInfo", func(w http.ResponseWriter, r *http.Request) {
-		trpc(w, map[string]string{"version": "2.4.1"})
+		trpc(w, map[string]string{"version": f.version})
 	})
 	mux.HandleFunc("GET /api/trpc/integration.getKinds", func(w http.ResponseWriter, r *http.Request) {
 		trpc(w, []any{
@@ -637,31 +638,56 @@ func linkFor(t *testing.T, target string) app.Link {
 }
 
 func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T) {
-	fake := newFake()
-	fake.apiKey = "keyid.secret"
-	srv := serve(t, fake)
-	from := homarrH(t, srv, fakeSecrets{"HOMARR_API_KEY": "keyid.secret", "ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
-	to := targetH(t, srv, "sonarr", 8989, fakeSecrets{"SONARR_API_KEY": "sonarr-secret"})
-	link := linkFor(t, "sonarr")
+	for _, scenario := range []struct {
+		version   string
+		wantError bool
+	}{
+		{"2.4.1", false},
+		{"2.5.1", false},
+		{"2.5.0", true},
+		{"2.5.2", true},
+		{"unknown", true},
+		{"", true},
+	} {
+		t.Run(scenario.version, func(t *testing.T) {
+			fake := newFake()
+			fake.version = scenario.version
+			fake.apiKey = "keyid.secret"
+			srv := serve(t, fake)
+			from := homarrH(t, srv, fakeSecrets{"HOMARR_API_KEY": "keyid.secret", "ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+			to := targetH(t, srv, "sonarr", 8989, fakeSecrets{"SONARR_API_KEY": "sonarr-secret"})
+			link := linkFor(t, "sonarr")
 
-	if err := link.Apply(context.Background(), from, to); err != nil {
-		t.Fatalf("apply: %v", err)
-	}
-	fake.mu.Lock()
-	apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
-	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 6 {
-		t.Fatalf("apps=%d integrations=%d items=%d, want 1/1/6", apps, integrations, items)
-	}
+			if err := link.Apply(context.Background(), from, to); scenario.wantError {
+				if err == nil || !strings.Contains(err.Error(), "unsupported") || !strings.Contains(err.Error(), "2.4.1 or 2.5.1") {
+					t.Fatalf("unsupported version must retain the supported-version recovery hint: %v", err)
+				}
+				fake.mu.Lock()
+				defer fake.mu.Unlock()
+				if len(fake.apps) != 0 || len(fake.integrations) != 0 || len(fake.items) != 0 {
+					t.Fatal("unsupported version mutated the board or integration")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("apply: %v", err)
+			}
+			fake.mu.Lock()
+			apps, integrations, items := len(fake.apps), len(fake.integrations), len(fake.items)
+			fake.mu.Unlock()
+			if apps != 1 || integrations != 1 || items != 6 {
+				t.Fatalf("apps=%d integrations=%d items=%d, want 1/1/6", apps, integrations, items)
+			}
 
-	if err := link.Apply(context.Background(), from, to); err != nil {
-		t.Fatalf("rerun: %v", err)
-	}
-	fake.mu.Lock()
-	apps, integrations, items = len(fake.apps), len(fake.integrations), len(fake.items)
-	fake.mu.Unlock()
-	if apps != 1 || integrations != 1 || items != 6 {
-		t.Fatalf("rerun added duplicates: apps=%d integrations=%d items=%d", apps, integrations, items)
+			if err := link.Apply(context.Background(), from, to); err != nil {
+				t.Fatalf("rerun: %v", err)
+			}
+			fake.mu.Lock()
+			apps, integrations, items = len(fake.apps), len(fake.integrations), len(fake.items)
+			fake.mu.Unlock()
+			if apps != 1 || integrations != 1 || items != 6 {
+				t.Fatalf("rerun added duplicates: apps=%d integrations=%d items=%d", apps, integrations, items)
+			}
+		})
 	}
 }
 

@@ -9,8 +9,6 @@ import (
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/catalog"
-	"github.com/ajnart/self-host/internal/host"
-	"github.com/ajnart/self-host/internal/service"
 )
 
 func TestWhatEnterShowsOnlySelectedAppPromptsOnEveryMessage(t *testing.T) {
@@ -51,138 +49,6 @@ func TestWhatEnterShowsOnlySelectedAppPromptsOnEveryMessage(t *testing.T) {
 	}
 }
 
-func TestInitializingWaitsForHostSettingsAndDoesNotLoopOnRevisit(t *testing.T) {
-	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks}
-	m := update(t, New(backend, Options{}), windowSize(80, 24))
-	m = update(t, m, statusMsgFor(service.ErrNoProject))
-	m = update(t, m, doctorMsg{checks: readyChecks})
-	m = frames(t, m, 30)
-	if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Reading this machine's settings") {
-		t.Fatalf("Doctor alone cannot continue without Host settings\n%s", screen(m))
-	}
-	m = update(t, m, defaultsMsg{settings: map[string]string{"LAN_IP": "192.168.1.20"}})
-	if m.onboarding.step != stepWelcome {
-		t.Fatalf("late Host settings should release the completed checks\n%s", screen(m))
-	}
-	m = drive(t, m, press("esc"))
-	m = drive(t, m, press("r"))
-	m = frames(t, m, 60)
-	if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "This machine is ready") {
-		t.Fatalf("revisiting and rechecking must keep Doctor readable\n%s", screen(m))
-	}
-	m = drive(t, m, press("enter"))
-	if m.onboarding.step != stepWelcome {
-		t.Fatalf("Enter should continue a revisited Doctor\n%s", screen(m))
-	}
-}
-
-func TestInitializingBlocksFailuresUntilASuccessfulRecheck(t *testing.T) {
-	m, backend := onboardingHost(t, 80, 24, host.Check{ID: "docker", Title: "Docker", Level: host.Fail, Hint: "Start Docker."})
-	m = frames(t, m, 60)
-	m = drive(t, m, press("enter"))
-	if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Start Docker.") || !strings.Contains(screen(m), "r to check again") {
-		t.Fatalf("failed Doctor checks must block and offer recheck\n%s", screen(m))
-	}
-	backend.checks = readyChecks
-	m = drive(t, m, press("r"))
-	if !strings.Contains(screen(m), "⠋ Docker") {
-		t.Fatalf("recheck must reveal fresh results\n%s", screen(m))
-	}
-	m = frames(t, m, 24)
-	if m.onboarding.step != stepWelcome {
-		t.Fatalf("a successful recheck should continue automatically\n%s", screen(m))
-	}
-}
-
-func TestInitializingFocusRefreshRestartsRevealWithoutARevisitLoop(t *testing.T) {
-	for _, revisit := range []bool{false, true} {
-		t.Run(map[bool]string{false: "first run", true: "revisit"}[revisit], func(t *testing.T) {
-			failed := []host.Check{{ID: "docker", Title: "Docker", Level: host.Fail, Hint: "Start Docker."}}
-			m, backend := onboardingHost(t, 80, 24, failed...)
-			if revisit {
-				backend.checks = readyChecks
-				m = drive(t, m, press("r"))
-				m = frames(t, m, 60)
-				m = drive(t, m, press("esc"))
-				backend.checks = failed
-				m = drive(t, m, press("r"))
-			}
-			m = frames(t, m, 60)
-			next, cmd := m.Update(frameMsg{})
-			m = next.(Model)
-			if yieldsFrame(cmd) || !strings.Contains(screen(m), "Start Docker.") {
-				t.Fatal("a revealed failure must stay visible after its ticker stops")
-			}
-			backend.statusErr, backend.checks = service.ErrNoProject, readyChecks
-			next, cmd = m.Update(tea.FocusMsg{})
-			m = next.(Model)
-			var pending []tea.Msg
-			commands := []tea.Cmd{cmd}
-			for len(commands) > 0 {
-				command := commands[0]
-				commands = commands[1:]
-				if command == nil {
-					continue
-				}
-				msg := command()
-				if batch, ok := msg.(tea.BatchMsg); ok {
-					commands = append(commands, batch...)
-				} else if msg != nil {
-					pending = append(pending, msg)
-				}
-			}
-			var frame, doctor bool
-			for _, msg := range pending {
-				switch msg.(type) {
-				case frameMsg:
-					frame = true
-				case doctorMsg:
-					doctor = true
-				}
-			}
-			if !frame || !doctor {
-				t.Fatal("focus must refresh Doctor and restart the stopped frame ticker")
-			}
-			m = frames(t, m, 30)
-			if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Checking Docker…") {
-				t.Fatalf("focus refresh must not advance while Doctor is still working\n%s", screen(m))
-			}
-			for _, msg := range pending {
-				m = update(t, m, msg)
-			}
-			if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "Docker") || strings.Contains(screen(m), "docker command found") || strings.Contains(screen(m), "This machine is ready") {
-				t.Fatalf("fresh results must start their reveal, not advance immediately\n%s", screen(m))
-			}
-			m = idle(t, m)
-			if revisit {
-				if m.onboarding.step != stepInitializing || !strings.Contains(screen(m), "This machine is ready") {
-					t.Fatalf("a focus refresh on revisited Initializing must remain readable\n%s", screen(m))
-				}
-				m = drive(t, m, press("enter"))
-			}
-			if m.onboarding.step != stepWelcome || len(backend.Actions()) != 0 {
-				t.Fatalf("ready results must continue to Welcome without applying a change\n%s", screen(m))
-			}
-		})
-	}
-}
-
-func TestInitializingContinuesAfterRevealingReadyChecks(t *testing.T) {
-	m, backend := onboardingHost(t, 80, 24, readyChecks...)
-	m = update(t, m, defaultsMsg{settings: map[string]string{"LAN_IP": "192.168.1.20"}})
-	m = frames(t, m, 18)
-	if out := screen(m); m.onboarding.step != stepInitializing || !strings.Contains(out, "✓ Docker Compose") || !strings.Contains(out, "This machine is ready") {
-		t.Fatalf("show the last result before automatically continuing\n%s", out)
-	}
-	m = frames(t, m, 6)
-	if out := screen(m); m.onboarding.step != stepWelcome || !strings.Contains(out, "Welcome to self-host") {
-		t.Fatalf("ready checks should continue without an Enter key\n%s", out)
-	}
-	if len(backend.Actions()) != 0 {
-		t.Fatal("automatic continuation must not apply a Project change")
-	}
-}
-
 func TestWhatStartsOnAUsefulRecipeAndKeepsHomarrDeliberatelyOptional(t *testing.T) {
 	m, backend := freshHost(t)
 	backend.catalog = catalog.Default()
@@ -214,10 +80,12 @@ func TestWhatStartsOnAUsefulRecipeAndKeepsHomarrDeliberatelyOptional(t *testing.
 func TestWelcomeFocusAndSelectionAreSeparateAndEnterContinuesTheAnswer(t *testing.T) {
 	m, backend := freshHost(t)
 	m = drive(t, m, press("down"))
+	m = frames(t, m, reactionFrames)
 	if out := screen(m); !strings.Contains(out, "● New: this is all new to me") || !strings.Contains(out, "> ○ Advanced: I have run a server or used Docker") {
 		t.Fatalf("arrows should focus Advanced while the default answer stays New\n%s", out)
 	}
 	m = drive(t, m, press("space"))
+	m = frames(t, m, reactionFrames)
 	if out := screen(m); m.onboarding.step != stepWelcome || !strings.Contains(out, "> ● Advanced: I have run a server or used Docker") || !strings.Contains(out, "○ New: this is all new to me") {
 		t.Fatalf("Space should select Advanced without advancing\n%s", out)
 	}
@@ -288,16 +156,12 @@ func TestAccessSpaceKeepsAPendingAnswerAndEnterContinuesIt(t *testing.T) {
 	}
 }
 
-func TestInitializingAndWelcomeAreCenteredBelowTheStepIndicator(t *testing.T) {
+func TestWelcomeIsCenteredBelowTheStepIndicator(t *testing.T) {
 	for _, size := range []struct{ width, height int }{{80, 24}, {120, 30}, {160, 50}, {60, 24}} {
-		for _, welcome := range []bool{false, true} {
+		for _, welcome := range []bool{true} {
 			m, _ := onboardingHost(t, size.width, size.height, readyChecks...)
-			m = frames(t, m, 18)
-			heading := "Checking this machine"
-			if welcome {
-				m = frames(t, m, 6)
-				heading = "Welcome to self-host"
-			}
+			m = frames(t, m, introFrames)
+			heading := "Welcome to self-host"
 			out := screen(m)
 			lines := strings.Split(out, "\n")
 			if len(lines) != size.height || !strings.Contains(lines[2], "●") || !strings.Contains(out, heading) || !strings.Contains(lines[size.height-1], "enter") {
@@ -467,14 +331,17 @@ func TestOnboardingChoiceKeybindAudit(t *testing.T) {
 			got = append(got, b.Help().Desc+": "+strings.Join(b.Keys(), " "))
 		}
 		want := "focus: up down|select: space|continue: enter|back: esc"
-		if stage == stepAccess {
+		switch stage {
+		case stepWelcome:
+			want = "focus: up down|select: space|continue: enter"
+		case stepAccess:
 			want += "|more: ?"
 		}
 		if strings.Join(got, "|") != want {
 			t.Fatalf("%s keys = %v, want %s", stepNames[stage], got, want)
 		}
 		bar := flat(lastLine(screen(m)))
-		for _, hint := range []string{"↑/↓ focus", "space select", "enter continue", "esc back"} {
+		for _, hint := range []string{"↑/↓ focus", "space select", "enter continue"} {
 			if !strings.Contains(bar, hint) {
 				t.Fatalf("%s must keep %q visible: %s", stepNames[stage], hint, bar)
 			}
