@@ -33,8 +33,9 @@ type DiskUsage struct {
 }
 
 type MachineResources struct {
-	MemoryBytes uint64
-	CPUs        int
+	MemoryBytes  uint64
+	MemorySource string
+	CPUs         int
 }
 
 type FileLimits struct {

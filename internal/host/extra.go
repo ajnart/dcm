@@ -131,8 +131,12 @@ func resourceChecks(deps *system.Deps, apps int) []ExtraCheck {
 		if resources.CPUs < Requirements.MinimumCPUs {
 			cpuLevel = Warn
 		}
+		source := resources.MemorySource
+		if source == "" {
+			source = "effective memory"
+		}
 		checks = append(checks,
-			ExtraCheck{ID: "memory", Title: "Memory", Status: memoryLevel, Reason: fmt.Sprintf("%d MiB total; %d MiB recommended", resources.MemoryBytes>>20, required>>20)},
+			ExtraCheck{ID: "memory", Title: "Memory", Status: memoryLevel, Reason: fmt.Sprintf("%d MiB from %s; %d MiB recommended", resources.MemoryBytes>>20, source, required>>20)},
 			ExtraCheck{ID: "cpu", Title: "Processors", Status: cpuLevel, Reason: fmt.Sprintf("%d available; %d recommended", resources.CPUs, Requirements.MinimumCPUs)})
 	}
 	if deps.FileLimits == nil {
