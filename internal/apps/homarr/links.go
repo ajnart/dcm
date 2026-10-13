@@ -69,6 +69,7 @@ type target struct {
 	recovery  string
 	preflight func(ctx context.Context, from, to *helpers.H) error
 	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	stats     func(statsSample) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }

@@ -3,7 +3,6 @@ package homarr
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/ajnart/self-host/internal/helpers"
@@ -12,38 +11,8 @@ import (
 func sharedWidget(kind string) bool { return kind == "stats" || kind == "calendar" }
 
 func freshStatsSnapshot(ctx context.Context, h *helpers.H, integrationID string) (map[string]any, error) {
-	input := map[string]any{"integrationId": integrationID}
-	value, err := apiKeyProcedure(ctx, h, "widget.stats.snapshot", input)
-	if err != nil {
-		return nil, err
-	}
-	before, ok := value.(map[string]any)
-	if !ok {
-		return nil, errors.New("Homarr did not return a Stats snapshot")
-	}
-	previous, present := before["updatedAt"]
-	timestamp, numeric := previous.(float64)
-	if !present || previous != nil && (!numeric || timestamp <= 0) {
-		return nil, errors.New("Homarr did not return a valid Stats refresh timestamp")
-	}
-	input["force"] = true
-	value, err = apiKeyWrite(ctx, h, "widget.stats.refresh", input)
-	if err != nil {
-		return nil, err
-	}
-	after, ok := value.(map[string]any)
-	if !ok || after["error"] != false || after["stale"] != false {
-		return nil, errors.New("Homarr Stats refresh failed; retry self-host setup homarr")
-	}
-	updated, ok := after["updatedAt"].(float64)
-	if !ok || updated <= timestamp {
-		return nil, errors.New("Homarr Stats refresh did not advance; retry self-host setup homarr")
-	}
-	values, ok := after["values"].(map[string]any)
-	if !ok {
-		return nil, errors.New("Homarr did not return refreshed Stats values")
-	}
-	return values, nil
+	sample, err := refreshStatsSample(ctx, h, integrationID)
+	return sample.values, err
 }
 
 func (t target) verifyData(ctx context.Context, from, to *helpers.H, integrationID string) error {
@@ -52,6 +21,17 @@ func (t target) verifyData(ctx context.Context, from, to *helpers.H, integration
 	}
 	if err := t.verify(ctx, from, to, integrationID); err != nil {
 		return err
+	}
+	if t.stats != nil {
+		metrics := t.statsMetrics()
+		if len(metrics) == 0 {
+			return nil
+		}
+		sample, err := readStatsSample(ctx, from, integrationID, metrics)
+		if err != nil {
+			return err
+		}
+		return t.stats(sample)
 	}
 	for _, w := range t.widgets {
 		if w.kind != "stats" || len(w.metrics) == 0 {
