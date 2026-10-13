@@ -18,7 +18,7 @@ func TestExtraChecksAreIndependentAndCleanUpOwnedDockerResources(t *testing.T) {
 	deps := systemtest.NewDeps(t)
 	runner := deps.Runner.(*systemtest.Runner)
 	runner.On("docker context inspect", system.Result{Stdout: []byte("unix:///var/run/docker.sock\n")})
-	runner.On("docker info --format {{.DockerRootDir}}", system.Result{Stdout: []byte("/var/lib/docker\n")})
+	runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"Ubuntu 24.04.3 LTS\"\n")})
 	deps.PathExists = func(path string) bool { return path == "/var/lib/docker" }
 	runner.On("docker network create", system.Result{ExitCode: 1, Stderr: []byte("network denied")})
 	runner.On("docker volume create", system.Result{Stdout: []byte("created\n")})
@@ -99,16 +99,18 @@ func TestExtraReportsCleanupFailure(t *testing.T) {
 
 func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
 	for _, tc := range []struct {
-		name, goos, endpoint string
+		name, goos, endpoint, operatingSystem string
 	}{
-		{"remote SSH", "linux", "ssh://builder.example"},
-		{"Docker Desktop VM", "darwin", "unix:///Users/test/.docker/run/docker.sock"},
+		{"remote SSH", "linux", "ssh://builder.example", "Ubuntu 24.04 LTS"},
+		{"Docker Desktop VM on macOS", "darwin", "unix:///Users/test/.docker/run/docker.sock", "Docker Desktop"},
+		{"Docker Desktop Unix proxy on Linux", "linux", "unix:///home/alice/.docker/desktop/docker.sock", "Docker Desktop"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			deps := systemtest.NewDeps(t, systemtest.WithEnv(map[string]string{"DOCKER_HOST": tc.endpoint}))
 			deps.GOOS = tc.goos
 			runner := deps.Runner.(*systemtest.Runner)
-			runner.On("docker info --format {{.DockerRootDir}}", system.Result{Stdout: []byte("/var/lib/docker\n")})
+			runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"" + tc.operatingSystem + "\"\n")})
+			deps.PathExists = func(path string) bool { return path == "/var/lib/docker" }
 			var diskPaths []string
 			deps.DiskUsage = func(path string) (system.DiskUsage, error) {
 				diskPaths = append(diskPaths, path)
@@ -120,6 +122,22 @@ func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
 				t.Fatalf("Docker disk = %+v, paths = %v", dockerDisk, diskPaths)
 			}
 		})
+	}
+}
+
+func TestExtraChecksDockerDiskForNativeLinuxDaemon(t *testing.T) {
+	deps := systemtest.NewDeps(t, systemtest.WithEnv(map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"}))
+	runner := deps.Runner.(*systemtest.Runner)
+	runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"Ubuntu 24.04.3 LTS\"\n")})
+	deps.PathExists = func(path string) bool { return path == "/var/lib/docker" }
+	var diskPaths []string
+	deps.DiskUsage = func(path string) (system.DiskUsage, error) {
+		diskPaths = append(diskPaths, path)
+		return system.DiskUsage{AvailableBytes: 30 << 30}, nil
+	}
+	checks := host.Extra(context.Background(), deps, host.ExtraOptions{ProjectPath: "/project"})
+	if check(checks, "disk-docker").Status != host.OK || !strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
+		t.Fatalf("Docker disk = %+v, paths = %v", check(checks, "disk-docker"), diskPaths)
 	}
 }
 

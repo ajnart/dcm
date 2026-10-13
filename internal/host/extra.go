@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -243,11 +244,23 @@ func localDockerRoot(ctx context.Context, deps *system.Deps) (string, string) {
 	if deps.GOOS != "linux" || endpoint.Kind != "unix" {
 		return "", "Docker data belongs to a remote host or virtual machine"
 	}
-	result, err := deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"info", "--format", "{{.DockerRootDir}}"}})
+	result, err := deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{
+		"info", "--format", `{{json .DockerRootDir}} {{json .OperatingSystem}}`,
+	}})
 	if err != nil || result.ExitCode != 0 {
 		return "", "Docker data path is unavailable"
 	}
-	root := strings.TrimSpace(string(result.Stdout))
+	decoder := json.NewDecoder(strings.NewReader(string(result.Stdout)))
+	var root, operatingSystem string
+	if decoder.Decode(&root) != nil || decoder.Decode(&operatingSystem) != nil || operatingSystem == "" {
+		return "", "Docker daemon identity is unavailable"
+	}
+	identity := strings.ToLower(operatingSystem)
+	for _, virtual := range []string{"docker desktop", "orbstack", "rancher desktop", "colima"} {
+		if strings.Contains(identity, virtual) {
+			return "", "Docker data belongs to a virtual machine"
+		}
+	}
 	if root == "" || deps.PathExists == nil || !deps.PathExists(root) {
 		return "", "Docker data path is not mapped on this machine"
 	}
