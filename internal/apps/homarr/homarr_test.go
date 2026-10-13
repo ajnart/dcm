@@ -57,6 +57,7 @@ type fakeHomarr struct {
 	rejectAssistantMessage string
 	rejectAssistantIssues  []any
 	rejectUpdates          bool
+	rejectBoardSaves       int
 	nextID                 int
 }
 
@@ -398,6 +399,14 @@ func (f *fakeHomarr) handler() http.Handler {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
+		if body["kind"] == "stats" {
+			options, _ := body["options"].(map[string]any)
+			entries, _ := options["entries"].([]any)
+			if len(entries) > 100 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 		f.itemPosts++
 		if body["kind"] == "assistant" {
 			f.assistantPosts++
@@ -454,9 +463,28 @@ func (f *fakeHomarr) handler() http.Handler {
 		if raw, ok := input["items"].([]any); ok {
 			for _, value := range raw {
 				if record, ok := value.(map[string]any); ok {
+					if record["kind"] == "stats" {
+						options, _ := record["options"].(map[string]any)
+						entries, _ := options["entries"].([]any)
+						if len(entries) > 100 {
+							w.WriteHeader(http.StatusBadRequest)
+							return
+						}
+					}
 					items = append(items, record)
 				}
 			}
+		}
+		stats := 0
+		for _, item := range items {
+			if item["kind"] == "stats" {
+				stats++
+			}
+		}
+		if f.rejectBoardSaves > 0 && stats >= 3 {
+			f.rejectBoardSaves--
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 		f.items = items
 		if raw, ok := input["sections"].([]any); ok {
@@ -1155,6 +1183,141 @@ func TestLinkWidgetsAreNotDuplicatedOnRerun(t *testing.T) {
 	}
 	if after != before {
 		t.Fatalf("rerun changed items from %d to %d", before, after)
+	}
+}
+
+func TestSharedStatsPreserveEntriesBeyondOneWidgetCapacity(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	secrets := allSecrets()
+	from := homarrH(t, srv, secrets)
+	sonarr := linkFor(t, "sonarr")
+	sonarrH := targetH(t, srv, "sonarr", 8989, secrets)
+	radarr := linkFor(t, "radarr")
+	radarrH := targetH(t, srv, "radarr", 7878, secrets)
+	if err := sonarr.Apply(context.Background(), from, sonarrH); err != nil {
+		t.Fatal(err)
+	}
+	sonarrID := secrets["HOMARR_LINKED_SONARR"]
+	var originalID any
+	preserved := map[string]string{}
+	for _, item := range fake.items {
+		if item["kind"] != "stats" {
+			continue
+		}
+		originalID = item["id"]
+		options := item["options"].(map[string]any)
+		entries := options["entries"].([]any)[:3]
+		for i := 0; i < 97; i++ {
+			entry := map[string]any{"id": fmt.Sprintf("custom-%d", i), "integrationId": sonarrID, "metric": "shows", "label": fmt.Sprintf("My count %d", i), "hidden": true, "compact": true}
+			encoded, _ := json.Marshal(entry)
+			preserved[entry["id"].(string)] = string(encoded)
+			entries = append(entries, entry)
+		}
+		options["entries"] = entries
+		options["table"] = true
+	}
+	user := map[string]any{"id": "user-stats", "kind": "stats", "integrationIds": []any{"user-source"}, "options": map[string]any{"entries": []any{map[string]any{"id": "user-metric", "integrationId": "user-source", "metric": "messages", "label": "Keep me"}}}, "size": map[string]any{"width": 2, "height": 3}}
+	fake.items = append(fake.items, user)
+	userBefore, _ := json.Marshal(user)
+	fake.rejectBoardSaves = 1
+	if err := radarr.Apply(context.Background(), from, radarrH); err == nil {
+		t.Fatal("expected rejected board save")
+	}
+	if err := radarr.Apply(context.Background(), from, radarrH); err != nil {
+		t.Fatalf("adding another peer beyond 100 entries: %v", err)
+	}
+	if err := sonarr.Apply(context.Background(), from, sonarrH); err != nil {
+		t.Fatalf("repairing a metric across partitions: %v", err)
+	}
+	radarrID := secrets["HOMARR_LINKED_RADARR"]
+	seen := map[string]bool{}
+	count, widgets := 0, 0
+	originalFound := false
+	for _, item := range fake.items {
+		if item["id"] == originalID {
+			originalFound = true
+		}
+		if item["id"] == "user-stats" {
+			after, _ := json.Marshal(item)
+			if string(after) != string(userBefore) {
+				t.Fatal("unowned user Stats changed")
+			}
+			continue
+		}
+		if item["kind"] != "stats" {
+			continue
+		}
+		widgets++
+		options := item["options"].(map[string]any)
+		entries := options["entries"].([]any)
+		if len(entries) > 100 || options["table"] != true {
+			t.Fatal("Stats partition exceeds capacity or loses display options")
+		}
+		for _, raw := range entries {
+			entry := raw.(map[string]any)
+			id := entry["id"].(string)
+			if seen[id] {
+				t.Fatal("duplicated metric entry")
+			}
+			seen[id] = true
+			count++
+			if expected, ok := preserved[id]; ok {
+				encoded, _ := json.Marshal(entry)
+				if string(encoded) != expected {
+					t.Fatal("custom metric changed")
+				}
+			}
+		}
+	}
+	if widgets != 2 || count != 105 || !originalFound {
+		t.Fatalf("got %d widgets/%d entries, want 2/105", widgets, count)
+	}
+	before, _ := json.Marshal(fake.items)
+	for _, pair := range []struct {
+		link app.Link
+		to   *helpers.H
+	}{{sonarr, sonarrH}, {radarr, radarrH}} {
+		fresh := homarrH(t, srv, secrets)
+		var status stepstatus.Step
+		fresh.Record = func(result helpers.StepResult) {
+			if result.ID == pair.link.ID {
+				status = result.Status
+			}
+		}
+		if err := pair.link.Apply(context.Background(), fresh, pair.to); err != nil || status != stepstatus.StepSkip {
+			t.Fatalf("partitioned rerun did not skip: %v / %s", err, status)
+		}
+	}
+	after, _ := json.Marshal(fake.items)
+	if string(before) != string(after) {
+		t.Fatal("rerun changed Stats IDs or user layout")
+	}
+	for cycle := 0; cycle < 2; cycle++ {
+		if err := sonarr.Remove(context.Background(), from, sonarrH); err != nil {
+			t.Fatal(err)
+		}
+		for _, item := range fake.items {
+			if item["id"] == originalID {
+				t.Fatal("empty owned Stats survived removal")
+			}
+			if item["kind"] != "stats" || item["id"] == "user-stats" {
+				continue
+			}
+			entries := item["options"].(map[string]any)["entries"].([]any)
+			if len(entries) != 4 {
+				t.Fatal("removal lost surviving peer metrics")
+			}
+			for _, raw := range entries {
+				if raw.(map[string]any)["integrationId"] != radarrID {
+					t.Fatal("removed peer binding survived")
+				}
+			}
+		}
+		if err := sonarr.Apply(context.Background(), from, sonarrH); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
