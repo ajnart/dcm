@@ -1,5 +1,11 @@
 # Gotify traps
 
+Source status, 13 October 2026 (before this docs update):
+`4d73ed69a47bdf9025865f38014347ec7e9180c6`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 ## Pitfalls
 
 - The default username and password initialize only when Gotify first creates its database; an existing /app/data volume keeps its current account and must be inspected if login fails.
@@ -11,7 +17,7 @@
 
 ## Verification status
 
-The descriptor is defined in `internal/apps/homarr/target_gotify.go` for the reference owner's registry assembly. This peer branch leaves `targets.go` unchanged. Native runtime/widget proof and the complete isolated lifecycle remain pending; no Docker or browser run has been performed for this change. See [the implementation boundary](../../homarr-gotify-boundary.md).
+The descriptor is defined in `internal/apps/homarr/target_gotify.go` and is now registered by the reference owner. Native runtime/widget proof and the complete isolated lifecycle remain pending; no Docker or browser run has been performed for this change. See [the implementation boundary](../../homarr-gotify-boundary.md).
 
 ## Security
 

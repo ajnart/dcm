@@ -1,13 +1,19 @@
 # Gotify Homarr implementation boundary
 
+Source status, 13 October 2026 (before this docs update):
+`4d73ed69a47bdf9025865f38014347ec7e9180c6`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Issue #282; source implementation, not live functional proof.
 
 ## Contract
 
 - Homarr: `ghcr.io/homarr-labs/homarr:v2.4.1`, source
   `ebbd4876d25a51151444a009ab596e1154d62880`. The shared version and
-  `integration.getKinds` gates apply when the reference owner registers
-  `gotifyTarget()`; this peer does not modify `targets.go` or reconciliation.
+  `integration.getKinds` gates apply to the registered
+  `gotifyTarget()`; registry and reconciliation remain custodian-owned.
 - Gotify: compiled `gotify/server:3.1.1`. No new dependencies or privileges.
   Runtime image digests are unrecorded because runtime verification is gated.
 - Native kind `gotify`, internal Address `http://gotify:80`; the tile and
@@ -62,8 +68,7 @@ data can be accepted. Homarr redacts the saved username in the response;
 identity is established by the account ID, not by adopting that response name.
 This read does not create, rotate or alter any account.
 
-The Link reads `widget.stats.catalog` to confirm the `messages` count metric,
-then polls `widget.notifications.getNotifications` scoped to the exact
+The Link polls `widget.notifications.getNotifications` scoped to the exact
 integration using the existing polling helper and a 30-second context deadline.
 It validates the result's integration identity, error state, native
 `integration.updatedAt` and message fields. Homarr caches successful notification
@@ -72,20 +77,19 @@ attempt is accepted. Older, future, missing or malformed timestamps never turn
 cached empty messages into fresh success. A fresh authenticated empty array is
 valid. Polling only reads data, without invalidation, fabricated timestamps or
 notification sends.
-`widget.stats.refresh` with `force: true` refreshes Homarr's cache using only
-Gotify GET requests; this cache mutation does not change Gotify. Error, stale,
-missing timestamp, a timestamp before the refresh attempt, missing value, and
-invalid count fail verification. Compose containers share the Host clock; an
-older snapshot returned while another refresh holds the lock is not accepted
-as this attempt's fresh success.
+The SDK discovers the catalog and forces one advancing Stats refresh after
+native verification. The pure Gotify callback requires `messages` in `count`
+units, an integral value in 0–100 and a timestamp at or after this attempt
+started. Missing values, failed/stale/no-op refreshes fail centrally. This cache
+refresh changes no Gotify data.
 The `messages` count means retrieved notifications, capped at 100 by the
 adapter, not all-time volume, unread messages, or verified device delivery.
 It can differ from a separately fetched list when messages arrive between reads.
 
 ## Acceptance still required
 
-The descriptor is deliberately unregistered until the reference owner assembles
-the approved peers. Runtime remains blocked on the reference proof/capacity gate.
+The descriptor is registered. Runtime acceptance remains pending the approved
+contained phase.
 Local checks and saved configuration do not prove a rendered widget.
 
 Next phase must use an approved disposable loopback-only Project, development
@@ -110,13 +114,13 @@ new account step, legitimate empty messages and rerun reuse; no new test
 functions or dependencies were added. These are source/local-fixture results,
 not Docker, native rendered widget or isolated lifecycle acceptance.
 
-The source review correction remains on that frozen base; no reference merge,
+At that historical correction, the source remained on that frozen base; no reference merge,
 registration, shared Stats normalization or common reconciliation edit was
-performed. The custodian owns assembly onto the merged #309 reference
+performed. The custodian then owned assembly onto the merged #309 reference
 `6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, including its central post-leaf
-`freshStatsSnapshot` gate. Existing fixtures do not exercise this deliberately
-unregistered descriptor; both corrected checks still require fresh source review
-and approved native acceptance.
+`freshStatsSnapshot` gate. At that correction, existing fixtures did not exercise
+the unregistered descriptor; fresh source review and approved native acceptance
+were still required. The source-status note above records subsequent SDK wiring.
 
 ## Official sources
 
