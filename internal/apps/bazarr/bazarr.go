@@ -57,7 +57,9 @@ func (App) Compose(rc app.RenderContext) string {
 
 // apiKey waits for the key Bazarr writes to its config on first start.
 func apiKey(ctx context.Context, h *helpers.H) (string, error) {
-	return h.ConfigValue(ctx, "config/config/config.yaml", helpers.YAMLPath("auth.apikey"), 2*time.Minute)
+	key, err := h.ConfigValue(ctx, "config/config/config.yaml", helpers.YAMLPath("auth.apikey"), 2*time.Minute)
+	h.Log.Secret(key)
+	return key, err
 }
 
 // anonymousDenied reports whether Bazarr already refuses anonymous UI access.
@@ -116,7 +118,10 @@ func firstAdmin() firstadmin.FirstAdmin {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstAdmin().Setup(ctx, h)
+	if err := firstAdmin().Setup(ctx, h); err != nil {
+		return err
+	}
+	return setupAPIKey(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
@@ -134,5 +139,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !denied {
 		return errors.New("Bazarr still permits anonymous UI access; Basic authentication is not applied")
 	}
-	return nil
+	return VerifyHomarr(ctx, h)
 }

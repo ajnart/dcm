@@ -294,7 +294,20 @@ func handler(accept bool) http.Handler {
 		w.Write([]byte("<html>Warrior</html>"))
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
+		user, pass, ok := r.BasicAuth()
+		if !accept || !ok || user != adminUser || pass != adminPass {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/000/") && strings.HasSuffix(r.URL.Path, "/xhr") {
+			w.Write([]byte(`a["{\"event_name\":\"project.refresh\",\"message\":null}","{\"event_name\":\"warrior.status\",\"message\":{\"status\":\"NO_PROJECT\"}}"]`))
+			return
+		}
+		if r.URL.Path == "/" {
+			w.Write([]byte("<html>Warrior</html>"))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
 	})
 	return mux
 }
