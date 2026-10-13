@@ -1,0 +1,4 @@
+{"event":"run.start","msg":"config set"}
+{"event":"step.start","app":"jellyfin","step":"recreate"}
+{"event":"step.ok","app":"jellyfin","step":"recreate"}
+{"event":"run.end","msg":"config set: ok"}
