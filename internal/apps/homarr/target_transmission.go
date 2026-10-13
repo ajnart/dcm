@@ -23,7 +23,7 @@ func transmissionTarget() target {
 		preflight: func(ctx context.Context, _, to *helpers.H) error {
 			return transmission.VerifyHomarr(ctx, to)
 		},
-		verify: verifyTransmission,
+		verify: verifyTransmission, stats: verifyTransmissionStats,
 	}
 }
 
@@ -41,28 +41,16 @@ func verifyTransmission(ctx context.Context, from, to *helpers.H, integrationID 
 	if err := transmission.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-		"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-	})
+	queue, err := readDownloadsQueue(ctx, from, integrationID, "transmission")
 	if err != nil {
 		return err
 	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New("Homarr did not return Transmission's download data; retry self-host setup homarr")
-	}
-	result, _ := results[0].(map[string]any)
-	integration, _ := result["integration"].(map[string]any)
-	data, _ := result["data"].(map[string]any)
-	if result["error"] != nil || stringField(result, "integrationId") != integrationID || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "transmission" || data == nil {
-		return errors.New("Homarr could not read the owned Transmission integration; verify its RPC login and access policy, then retry self-host setup homarr")
-	}
-	status, _ := data["status"].(map[string]any)
+	status := queue.status
 	rates, _ := status["rates"].(map[string]any)
 	types, _ := status["types"].([]any)
 	_, pausedOK := status["paused"].(bool)
-	items, itemsOK := data["items"].([]any)
-	if !pausedOK || !itemsOK || !slices.Contains(types, any("torrent")) || !transmissionNumbers(rates, "down", "up") {
+	items := queue.items
+	if !pausedOK || !slices.Contains(types, any("torrent")) || !transmissionNumbers(rates, "down", "up") {
 		return errors.New("Homarr returned incomplete Transmission queue status or rates; an explicit empty items array and valid rates are required for an empty queue")
 	}
 	for _, raw := range items {
@@ -77,16 +65,13 @@ func verifyTransmission(ctx context.Context, from, to *helpers.H, integrationID 
 			return errors.New("Homarr returned unsupported Transmission download items; retry self-host setup homarr")
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, _ := value.(map[string]any)
-	statistics, _ := snapshot["values"].(map[string]any)
-	updatedAt, updatedOK := snapshot["updatedAt"].(float64)
-	_, pausedOK = statistics["paused"].(bool)
-	if snapshot["error"] != false || snapshot["stale"] != false || !updatedOK || updatedAt <= 0 || !pausedOK || !transmissionNumbers(statistics, "download", "upload") {
-		return errors.New("Homarr did not return fresh Transmission Stats; verify its RPC login and retry self-host setup homarr")
+	return nil
+}
+
+func verifyTransmissionStats(sample statsSample) error {
+	_, pausedOK := sample.values["paused"].(bool)
+	if !pausedOK || sample.units["paused"] != "text" || sample.units["download"] != "bytesPerSecond" || sample.units["upload"] != "bytesPerSecond" || !transmissionNumbers(sample.values, "download", "upload") {
+		return errors.New("Homarr did not return complete Transmission Stats; verify its RPC login and retry self-host setup homarr")
 	}
 	return nil
 }
