@@ -110,8 +110,12 @@ record or binding instead of overwriting it. Let the custom domain create its
 own DNS record and certificate; do not create a second DNS record.
 
 Build into a new directory outside the checkout. The builder copies only
-`index.html`, `site.css`, `_headers`, `install.sh` and `install.sh.sha256` into
-`public/`. It refuses an existing destination and never copies the repository,
+`index.html`, `site.css`, `js/*.js`, `catalog.js`, `catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons, `site.webmanifest`, `_headers`, the
+showreel from `video/reel/out/selfhost-reel.mp4` as `reel.mp4`,
+`install.sh` and `install.sh.sha256` into `public/`. `catalog.js` feeds the
+landing page's browser playground; regenerate it with
+`go run ./tools/sitecatalog` after catalog changes, and `intro.json`, the
+onboarding Intro recorded from `internal/intro`, with `go run ./tools/introframes`. It refuses an existing destination and never copies the repository,
 hidden files, service configurations or binaries. The default build uses
 `ajnart/selfhost-skills` without GitHub authentication:
 

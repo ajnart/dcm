@@ -4,615 +4,197 @@
   <img src="docs/assets/logo-light.svg" alt="self-host Logo: four containers with their status lights" width="152" height="144">
 </picture>
 
-# self-host CLI
+# self-host
 
-Run your own apps at home, like a movie server, without learning Docker.
+**Run your own apps at home without learning Docker.** One Go binary installs, wires together and operates self-hosted Apps with Docker Compose: a terminal Dashboard for people, plain commands for agents.
 
-**Release gate:** the installer at [selfhost.ajnart.dev](https://selfhost.ajnart.dev)
-is public, but anonymous CLI downloads are not available yet. Releases, the skill
-and self-update still use the private `ajnart/selfhost-skills` repository. A
-repository rename and public artifact distribution remain separate release gates;
-changing repository visibility remains the maintainer's choice.
+[![self-host showreel](docs/assets/reel-poster.jpg)](https://self-host.fyi/#reel)
 
-**Using an AI assistant?** Paste this into it:
+▶ [Watch the showreel](https://self-host.fyi/#reel) · [Try it in your browser](https://self-host.fyi/#play)
 
-> Install the self-host skill from github.com/ajnart/selfhost-skills and help me run my own movie server.
+> **Release gate:** the installer is public, but anonymous CLI downloads are not available yet. Releases, the skill and self-update still use the private `ajnart/selfhost-skills` repository; public artifact distribution is a separate gate. See [Install details](#install-details).
 
-**Using a terminal?** Two steps. Deploying needs Docker with the Compose v2
-plugin. Linux, macOS, or Windows through WSL.
+## Quick start
 
-1. **Install the CLI** (it then offers to add the skill to your AI agent):
-
-   ```bash
-   curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
-   export PATH="$HOME/.local/bin:$PATH"
-   ```
-
-2. **Run `self-host`** for the terminal Dashboard.
-
-The skill costs about 150 tokens while idle, and installing deploys nothing.
-What anonymous usage data is collected:
-[Telemetry](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
-
-Choose an App. Review its ports and folders. Let `self-host` install it, create
-its administrator account where supported, and connect it to the other Apps
-in your Project. Come back to the Dashboard to open Apps, check health, retry
-Setup, update images, or make a Backup.
-
-One Go binary runs both the terminal interface and plain commands for agents.
-Apps share one Docker Compose Project, normally in `~/.self-host`. The Catalog,
-Setup code and agent guide ship inside the binary; running it needs no Node.js,
-Bun, checkout, or AI account. A Project made by a pre-release build in
-`~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI
-at one.
-
-The Dashboard opens with a brief, skippable entrance; any key continues with its
-usual meaning. The existing Pre-boot scene animates in during the approved first
-install, with `enter` to skip to Activity and `q` or `ctrl+c` to quit.
-`SELF_HOST_REDUCED_MOTION=1 self-host` skips these decorative transitions and
-shows that first Action directly in Activity. Loading and installation never
-wait for motion; plain commands, non-TTY output and `--json` do not animate.
-
-Ask your agent to use the self-host skill ("use self-host to watch my movies on
-the TV"; `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). Agents
-also load the skill on their own when you talk about running your own apps.
-
-If something fails:
-
-- `self-host: command not found`: add `~/.local/bin` to `PATH`.
-- The agent's guide has no New and Advanced paths: run `self-host self-update`.
-- Docker missing or stopped: install or start it, then run `self-host doctor`.
-- A 404 or authentication error: run `gh auth login`, then
-  `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/install.sh | SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash`.
-- `curl` reports an error but the command seems to succeed: a pipe hides
-  curl's exit status. In scripts run `set -o pipefail` first.
-- Windows: use WSL; native Windows is unsupported.
-
-**Release proof:** [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2)
-is published. Linux amd64 host installation, self-update and a clean Alpine
-bootstrap/update passed using the 0.1.2 installer; [release proof](docs/release-proof.md)
-records the scope. The older npm CLI and agent-plugin releases use separate versions.
-
-![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
-
-Actual 120×30 terminal session with an isolated, loopback-only Homarr/Jellyfin/ntfy
-Project at `374bd1c`, captured after all nine Homarr API/browser stages passed.
-[Activity steps](docs/images/workflow.png),
-[Catalog search](docs/images/install-search.png), [terminal recording](docs/demos/self-host.cast)
-(asciicast v2) and [capture provenance](docs/demos/capture.json) come from the same
-real binary and fixture. This demonstrates these three Apps, not the full Catalog.
-
-## Install details
-
-The installer selects the highest stable CLI release (tags `vX.Y.Z`, or the
-earlier `new-cli-vX.Y.Z`, carrying the `self-host_<version>_<os>_<arch>.tar.gz`
-archives and `checksums.txt`), verifies the archive against `checksums.txt`, and
-installs `self-host` in `~/.local/bin` (`/usr/local/bin` when run as root). When
-that directory is not on `PATH` it prints the exact line to add for your shell
-(bash, zsh or fish). `SELF_HOST_INSTALL_DIR` changes the destination;
-`SELF_HOST_VERSION` accepts `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z`. Omit it to
-select the highest stable CLI release. The script runs everything from one
-`main` function on its last line, so a truncated download installs nothing.
-
-`SELF_HOST_RELEASE_REPO=owner/name` makes the installer and `self-update` use
-another repository (a fork, or the new name after a rename). The repository name
-is written once in Go (`release.Repo`) and once in `install.sh` (`DEFAULT_REPO`);
-GitHub redirects the old name after a rename, and both the installer and the
-updater follow the redirect.
-
-### A custom domain
-
-The installer is served directly at `selfhost.ajnart.dev`, alongside a small
-landing page and `install.sh.sha256`. Only those allowlisted assets are uploaded;
-the site neither proxies authenticated GitHub requests nor publishes the source
-tree. The CLI release API, archives and checksums stay on GitHub.
+Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
 
 ```bash
-curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
-```
+# 1. install (puts self-host in ~/.local/bin, verifies the checksum, deploys nothing)
+curl -fsSL https://self-host.fyi/install.sh | bash
+export PATH="$HOME/.local/bin:$PATH"
 
-Check any URL with `scripts/verify-install.sh`: it runs the one-liner in
-a throwaway `HOME`, then asserts `self-host --version` is the latest release,
-`self-host skill` works, and a pinned old version upgrades through
-`self-update`. While the repository is private, give it a token without printing
-it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" scripts/verify-install.sh`.
-Once releases are anonymously accessible, run it with no token. Set
-`VERIFY_INSTALL_URL` to test a different URL, or a local script as
-`file:///path/to/install.sh`. Site reachability and the installer's own checksum
-do not establish archive availability or a successful install. See
-[site deployment and release gates](docs/releasing.md#installer-site).
-
-## Staying up to date
-
-`self-host self-update` replaces the binary with the latest release after
-checking its sha256 checksum. You do not have to remember it:
-
-- **Dashboard:** when a newer release exists and nothing is running, bare
-  `self-host` asks "self-host X is available (you have Y). Update now? y/n".
-  `y` updates and restarts into the new version; `n` remembers that release in
-  `<user cache dir>/self-host/update.json` (no secrets) so it does not ask
-  again. The header and Settings → About keep showing that an update exists.
-- **Plain commands:** on an interactive terminal, one line after the command,
-  at most once every 24 hours, never delaying it.
-- **Silence:** nothing appears under `--json`, off a terminal, with `CI` set, on
-  a development build, or with `SELF_HOST_NO_UPDATE_CHECK=1`. Agents using
-  `--json` are never interrupted.
-
-Maintainers: [how to cut a release](docs/releasing.md).
-
-When GitHub rejects an unauthenticated download, the installer accepts
-`SELF_HOST_GITHUB_TOKEN` or, when unset, uses `gh auth token`. Never print or
-paste a token into commands or reports.
-
-To build the current development source from an authenticated checkout:
-
-```bash
-go build -buildvcs=false -o /tmp/self-host ./cmd/self-host
-/tmp/self-host --help
-```
-
-Source builds require Go 1.26.0 or newer and access to Go module downloads.
-Development builds cannot run `self-update`.
-
-## Telemetry
-
-[Telemetry and Feedback: what is sent, privacy and controls](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
-
-## Easy names at home
-
-Choose **Easy names at home** in Onboarding or Settings, under Access. Onboarding
-selects it by default only when port 80 is available, Docker is not rootless,
-and this computer can look up the names. Review still needs your approval.
-For a new Project through the CLI, add `--easy-names` to `self-host install`;
-for an existing one, after approval:
-
-```bash
-self-host config set EASY_NAMES=on
-self-host status --json
-```
-
-Easy names need an active private home-network IPv4 address. The
-[IPv4 Service Continuity Prefix](https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml)
-used by CLAT on IPv6 networks is not such an address; Easy names do not yet
-support it or IPv6. Onboarding checks the entered address before approval.
-If blocked, `w` returns to the LAN address and `a` to Access, preserving answers.
-Choosing Home network or another Access option is deliberate, not automatic;
-keeping a numbered Address does not verify that other devices can reach it.
-
-One managed Caddy in the Compose Project serves HTTP names such as
-`http://jellyfin.192-168-1-20.sslip.io`, on Linux and macOS. Each Catalog App
-with a web page gets a route. Homarr tiles use the friendliest working Address.
-The published `IP:port` Address is always kept. Turning names off with
-`self-host config set EASY_NAMES=off` removes only the managed Caddy.
-
-Names are offered as Addresses only while the Project's Caddy has a running
-home-network port-80 binding and the stored LAN address is current. DNS success
-alone is not App acceptance. After `down`, removing an App or retrying Setup
-updates routes without starting Caddy; an explicit `start` starts Access too.
-Stopped Apps defer their Access configuration until an approved start.
-
-Saved routes are not treated as applied routes. Failed or interrupted Caddy
-updates keep names pending and numbered Addresses first until an approved
-retry succeeds. Failed initial startup can be retried with the same Action;
-unrelated Actions do not start Access, and `down` cancels that pending startup.
-Startup approval is saved before settings edits. Restore saves its original
-startup targets before initializing or replacing files, so a failed start can
-be retried without treating those targets as deliberately stopped. The retry
-is scoped to the same backup and targets; `down` cancels it.
-Retry merges only the selected Apps' records, preserving credentials, state and
-files of Apps installed in the meantime. The initial Admin login is restored
-only while absent; a newer login is kept. `down` also cancels pending Restore
-before a Project exists, without creating settings or starting containers.
-
-Access changes never silently reinstall Apps. If changing an origin would
-replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses
-before changing settings or files. Keep your image pins, mounts and environment
-overrides; update the origin manually or approve a reinstall separately. Restore
-checks Access before replacing App data and rebuilds routes without rerunning Setup.
-Restore updates Access configuration only for restored running Apps, preserving
-trusted hosts; previously stopped Apps stay stopped.
-
-Names are **checked from this computer**, not your phone or TV. They need
-internet name lookup; a router may hide them. Status explains blocked, offline
-or rewritten lookups in plain words and keeps the numbered Addresses. Technical
-details are in `status --json` under `names`. Port 80 conflicts, rootless Docker
-and non-home network addresses are refused without changes.
-
-The port check tries binding on IPv4 and IPv6. If Linux denies the port-80
-inspection, names stay off even with rootful Docker: an unverified port is not
-treated as free. Point-to-point and `/32` interfaces are not home networks.
-
-Names contain the LAN address: when DHCP changes it, review Host settings with
-`self-host config review`, then update bookmarks. A router DHCP reservation
-avoids this. sslip.io sees the LAN address in name queries. HTTP is not encrypted
-and does not satisfy Apps that require HTTPS, including Vaultwarden's web vault.
-Do not forward port 80 on your router. No `.local` announcer or host socket is
-installed; [Linux `.local` follow-up](https://github.com/ajnart/selfhost-skills/issues/232).
-
-## Requirements and platforms
-
-Deployment needs a working Docker engine, the `docker compose` v2 plugin with
-Compose `include` support, write access to the Project and data folders, free
-published ports, and sufficient storage/RAM for the selected Apps. Start with
-one App; photo libraries, AI workloads and multi-App Recipes need more capacity.
-Run `self-host doctor` before installation. With rootless Docker, compatible
-images may require container `PUID=0 PGID=0`; host filesystem ownership remains
-the invoking user. Images with fixed container UIDs need separate handling.
-
-| Platform       | Binary target           | Current validation                                                               |
-| -------------- | ----------------------- | -------------------------------------------------------------------------------- |
-| Linux amd64    | Yes                     | Published host install/update and clean Alpine bootstrap/update passed.          |
-| Linux arm64    | Yes                     | Native CLI/local archive checks passed; image support varies by App.             |
-| macOS arm64    | Yes                     | Native CLI/local archive checks passed; deployment requires a Linux Docker VM.   |
-| Intel macOS    | Yes                     | Native CLI execution, local checksummed install and corruption rejection passed. |
-| WSL2           | Linux binary inside WSL | Planned path; native WSL validation pending.                                     |
-| Native Windows | No                      | Unsupported.                                                                     |
-
-[Source/native CI](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771)
-and [0.1.2 release packaging](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)
-passed at `d908cb6`. All four native targets passed CLI execution, local
-checksummed installation and corruption rejection. Published-asset install/update
-proof covers Linux amd64; the other platforms and WSL remain unverified for that
-path. Docker/App evidence is the separate Linux runtime matrix below.
-
-## First App
-
-```bash
+# 2. check the machine, then preview and install a Recipe
 self-host doctor
-self-host apps info ntfy
-self-host install ntfy --exposure local
-self-host status
+self-host install media homarr
+
+# 3. open the Dashboard
 self-host
 ```
 
-Interactive install reviews Host settings and the selection. The example uses
-**this machine only** (`local`); the default is **local network** (`lan`),
-which publishes ports on all host interfaces. Review network/firewall scope
-before choosing LAN access. Public ingress is a separate decision.
+On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, asks one thing at a time, and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`.
 
-To front the Apps with your own reverse proxy, run
-`self-host access export --format caddy` (or `nginx`, `traefik`, `json`). It
-prints each App's name, internal upstream (the Compose service and container
-port, plus the host `IP:port` for a proxy outside Docker) and a hostname to
-replace, with a note when an App needs WebSockets or long timeouts. It changes
-nothing; Traefik output is a file provider, so no Docker socket is needed.
-Unmanaged apps in `extra/` (or historical `apps/` folders) are included when
-their Compose fragment identifies one literal published HTTP upstream: TCP
-port 80, or a port marked `app_protocol: http`. Unknown WebSocket and timeout
-requirements stay omitted. Ambiguous or unsupported fragments produce a
-warning (`warnings` with `id` and `reason` in JSON, comments in snippets), not
-a guessed upstream. Export never loads secret env files or Compose env files.
+The Catalog ships inside the binary: **93 Apps, 20 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`).
 
-Run `self-host` on a terminal to open the first-install flow or the existing
-Dashboard. Use `4` to open the Catalog and `/` to search. A Recipe chooses a
-bundle: inspect `self-host apps list`, then install it by ID, for example
-`self-host install media`. External accounts, hardware and browser-only setup
-remain explicit prerequisites.
+![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
 
-On a machine without a Project, `self-host` opens Onboarding. It checks Docker
-and Docker Compose (a failed check shows its fix and `r` checks again;
-warnings do not stop you), says that nothing is written until you approve the
-plan, then asks one thing at a time and says why. In **Welcome**, **Access** and
-**Look**, `↑`/`↓` moves focus, `space` selects without leaving the step, and
-`enter` continues the selected answer, not the focused option. **What** picks
-Recipes and Apps with `space` and shows the highlighted item's description.
-Text inputs still accept spaces. Picking a Recipe picks its
-Apps, which you can untick one by one, and its mark shows whether all, some or
-none are picked; an App that needs answers
-of its own asks them next. **Where** explains each field in a line while it is
-focused: the LAN address, the Host settings and, only for media Apps, the
-media and downloads folders. Typing a folder path lists the folders inside it,
-`tab` completes it and `~` expands to your home folder. **Access** ("How you'll open your Apps") lists Home
-network (the default), Easy names at home, From anywhere privately, Your own web
-address, Bring your own and This computer only (Apps open only on this
-computer), each with a plain explanation and a small diagram that follow the
-highlighted option. `?` opens a longer help page that ends with
-its technical details (`esc` or `?` closes it); in a text input `?` types a
-question mark. All six options are available. Your own web address
-opens a guided Cloudflare flow in Settings after the Apps finish installing;
-it chooses Apps individually and asks a separate yes before publication.
-Options marked coming soon change nothing.
-Bring your own is for advanced users with SWAG, Pangolin, Nginx Proxy Manager,
-Traefik or their own Caddy; `space` on it explains without changing the selected
-answer and points at `self-host access export`. In Settings, the Access sub-tab
-offers the same list; arrows focus, `space` selects a pending choice, and
-`ctrl+s` applies Home network or Easy names changes. `enter` confirms a
-Space-selected choice, or chooses the focused option if Space was not used.
-For Tailscale and Your own web address, Space only selects; Enter opens their
-separate install or publication review. Tailscale uses a concealed key field.
-In Settings' LAN address text editor, `tab` fills the next detected address;
-Space still types. In Settings,
-`enter` on Bring your own or a coming-soon option only explains it.
-**Who** sets the one Admin login for every App: a password
-of your own, or leave it empty and self-host generates one, kept with the
-Project and shown by `self-host credentials`; the password is always masked.
-**Look** immediately previews the selected Simple or Nerd Font symbols;
-arrows alone do not change them, and approval saves the choice. **Review** lists the
-plan; approving it plays the pre-boot screen while the first install pulls its
-images, a parallax starfield with the overall bar, "N of M images" and a line
-comparing the time left to something small, then hands over to the Dashboard
-with Activity focused, where the install carries on. `enter` skips to Activity, `c` opens Ko-fi and `s` GitHub
-Sponsors; a failed pull lands on Activity at once, and `NO_COLOR` keeps the
-motion without colour. `esc` goes back one step and keeps your answers.
-Doctor reserves a centered area so its heading and check titles stay in place
-as results arrive or checks refresh. A failed install before the Project exists
-returns to Review: `c` copies its full masked error, `e` opens a scrollable reader,
-and `a` or `w` returns to Access or the LAN address without discarding answers.
+Real 120×30 session, loopback-only Homarr/Jellyfin/ntfy Project. [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json). Shows these three Apps, not the whole Catalog.
 
-### Your own web address
+## Links: Apps that wire themselves
 
-Use a main domain already **active** on Cloudflare. First finish Zero Trust
-onboarding at https://one.dash.cloudflare.com: a team name, the **Free plan**
-(50 users) and a required payment method that is **not charged**. Create a custom
-API token under My Profile > API Tokens, limited to one account and one zone:
-Account **Cloudflare Tunnel: Edit**, **Access: Apps and Policies: Edit**,
-**Access: Organizations, Identity Providers, and Groups: Edit**; Zone
-**DNS: Edit** and **Zone: Read**. Hand it over privately, never through chat.
+Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
 
-Settings > Access > Your own web address guides the domain, allowed emails,
-hidden token and individual App choices. Nothing is selected by default;
-normally private categories require naming the App and accepting its risk.
-Apps without a web page cannot be published. The separate final yes names
-the risk of strangers reaching the login page and Cloudflare seeing traffic.
-Cloudflare's terms restrict video streaming; phone and TV apps cannot pass
-the PIN login. **Use Tailscale for streaming and native clients instead.**
+| Consumer       | Linked to                                         |
+| -------------- | ------------------------------------------------- |
+| Sonarr, Radarr | qBittorrent (download client)                     |
+| Prowlarr       | Sonarr, Radarr                                    |
+| Seerr          | Jellyfin, Sonarr, Radarr                          |
+| Homarr         | native tiles and widgets for the Apps it supports |
 
-For agents, `self-host cloudflare plan --domain example.com --email
-alice@example.org --app paperless-ngx --json` previews without network calls.
-After the person's separate yes, use `self-host cloudflare publish` with the
-same choices, `--set-file cloudflare.api_token=/private/token` and
-`--accept-public`. The file must be owner-only (0600); `=-` reads private stdin.
-Changes and `self-host cloudflare remove --set-file
-cloudflare.api_token=/private/token --yes` need the API token afresh. Only the
-tunnel run token is saved. HTTPS Addresses appear only after an outside 302
-to the team's login page; a failed probe deletes DNS. `IP:port` stays available.
-Status and Homarr tiles prefer valid private Tailscale HTTPS, then verified
-Cloudflare HTTPS while its connector is observed running, then working Easy
-names, then `IP:port`. Homarr refreshes after publication is finalized. A stopped,
-missing or unknown connector suppresses public Addresses without discarding
-ownership or cleanup receipts. App checks and Links' API endpoints remain local.
-The shared PIN provider and organization survive removal. Run `self-host skill`
-for the full procedure and warnings.
+A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links target Homarr **2.4.1**; other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
 
-Cloudflare ownership uses a random identity unique to this Project and receipts
-for the account, zone and resource IDs. Matching names are never ownership.
-Backups include these receipts. Restore keeps the cleanup information but holds
-the public connector disabled, even with `restore --yes`; a separate
-`cloudflare plan` and approved `cloudflare publish --accept-public` are needed
-to activate it again. Ordinary connector removal is refused while cleanup is
-pending. Older records/backups without receipts require manual Cloudflare
-review; they are never adopted automatically. A network failure can prevent
-remote cleanup: ownership is retained and `status --json` includes
-`access_warnings` and `cloudflare_cleanup`, not a guarantee of successful cleanup.
-Tunnel ownership does not own foreign routes inside it: existing hostnames need
-matching exact-rule receipts before replacement. Unproven routes are refused.
-Complete cleanup releases account/zone constraints while keeping the Project
-identity; partial cleanup retains both constraints and outstanding receipts.
-
-### From anywhere, privately
-
-Install Tailscale on your phone, laptop or TV and sign in to the same account
-(Apple TV and Android TV have apps). On the [DNS page](https://login.tailscale.com/admin/dns),
-enable HTTPS with MagicDNS on. **App names appear in a public certificate log;
-your Apps stay private.** At [Settings, Keys](https://login.tailscale.com/admin/settings/keys),
-make a **Reusable**, **Pre-approved** auth key with **Ephemeral** off. Save it
-privately on the host, never in chat, then approve:
+## Agents
 
 ```bash
-self-host install tailscale --set-file tailscale.auth_key=/path/to/key
+self-host skill        # the guide that matches the installed binary
 ```
 
-Each App with a web page gets its own persistent Tailscale node and HTTPS
-Address from that node's real name. Nothing enables Funnel. The existing
-IP:port Address stays available. The key lasts up to 90 days; adding Apps later
-may need a new one. `self-host doctor` warns about node sign-in expiry and
-signed-out nodes. An OAuth client secret also works in the same private input,
-with `tag:self-host` owned by that client. See [the decision](docs/adr/0008-tailscale-per-app-nodes.md).
+Ask an agent to "use self-host to watch my movies on the TV" (`/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). The one public skill, `skills/self-host/SKILL.md`, routes to that guide; it costs about 150 tokens while idle and installing it deploys nothing.
 
-The Dashboard has five tabs: Overview, Apps, Activity, Catalog and Settings.
-The header names the Project, its LAN address, the host's health and the
-time; on a narrow terminal the Overview's Now strip says the LAN address and
-time the header has no room for. The bar on the last row shows the global keys and the focused pane's
-keys.
-
-The Overview is the command center. The Now strip mirrors the running Action
-(its bar or stages and one line on what happens now) and, once it ends, its
-result next to the host's health. Below it, every App shows its Status,
-category, address, state and Setup, and Needs attention lists failed and
-Manual steps, stopped Apps, updates and host warnings, each with the chord
-that resolves it, such as `a r` (retry Setup), or the command to run. `tab`
-focuses Needs attention: `a` then opens the Action menu for that item's App
-with its Action highlighted, and `enter` opens the App on the Apps tab.
-
-| Dashboard key   | Action                                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1–5, ←/→        | Switch tabs.                                                                                                                                                              |
-| ↑/↓ or k/j, tab | Move in the focused pane; move focus between panes. In Onboarding's folder inputs, `tab` completes the typed path.                                                        |
-| [ and ]         | Switch the sub-tab: App details (logs, setup, info, compose, containers) or Settings (Host, Access, Appearance, Backups, Tools, About).                                   |
-| a, A            | Open the Action menu for the selected App (or Needs attention item), or for the whole Project.                                                                            |
-| enter, o, c     | Open the selected App in the Apps tab (there, focus its details); open its Address; choose a saved credential to copy.                                                    |
-| /               | Search the focused list: the Overview's Apps pane, the Apps tab's list, Activity or the Catalog.                                                                          |
-| ?, q            | Help; quit. On Onboarding's Access step and Settings' Access sub-tab, `?` opens the highlighted option's help page instead of the key reference (`esc` or `?` closes it). |
-
-No single key changes an App or the Project. The Action menu lists only the
-Actions valid now: Start or Stop, Restart, Update, Retry Setup, Backup, QR code
-and Remove for an App; Up all, Down all, Restart all, Update all and Backup for
-the Project. A letter highlights an Action and shows what it will do; `enter`
-runs it, a second `enter` confirms Stop, Remove and Down all, and `esc`
-closes the menu. With the mouse, a click highlights an Action and a click on
-the highlighted one runs it, with the same second confirmation. Unavailable Actions stay greyed with the reason.
-
-QR code shows the App's Address as a QR code over the Overview or Apps tab, to
-scan with a phone; `esc` closes it. It is unavailable for an App with no web
-page and under This computer only, where a phone cannot reach the Address;
-`enter` on the greyed row says so and points at Settings > Access.
-
-`c` opens a credential copy modal over the Overview or Apps tab. Arrows select,
-`enter` copies and `esc` closes; background keys and clicks do not navigate.
-It offers the Admin password, the selected App's login alias, admin email and API keys,
-then Admin username and email when saved. Values stay hidden and are read
-again when copied. App emails come from saved credentials or the App's automatic
-Setup definition; they do not detect accounts changed directly inside an App.
-
-While a search or an edit takes text, every key goes to it; in the App list
-`/` filters on name or id, `enter` keeps the filter and `esc` clears it. Settings has
-five sub-tabs, switched with `[` and `]`: Host, Appearance, Backups, Tools and About.
-Host folder edits list matching folders; `tab` completes, arrows select a suggestion
-and `~` expands to your home folder. Host applies edits with `ctrl+s`; `esc` returns to the Overview. Backups lists the
-archives in `~/.self-host/backups` with date, size and whether each is encrypted:
-`b` asks for an optional passphrase (typed as dots; empty means unencrypted, otherwise it
-is asked twice) and backs up the whole Project, and `enter` on an archive opens a restore
-preview that offers the whole Project or one App, asks for the passphrase only when the
-archive is encrypted, and restores only once `enter` is pressed twice in the preview. Both
-run as Actions in Activity, and no key deletes an archive. Tools finds
-[`ctop`](https://github.com/bcicen/ctop#install) (container metrics),
-[`lazydocker`](https://github.com/jesseduffield/lazydocker#installation) (Docker management),
-[`btop`](https://github.com/aristocratos/btop#installation) (machine resources),
-[`bottom`](https://github.com/ClementTsang/bottom#installation), whose executable is `btm`
-(resource history graphs), and [`ncdu`](https://dev.yorhel.nl/ncdu) (large folders).
-Arrows browse the list and show the selected tool's guidance within 80×24;
-`enter` runs an installed tool and the Dashboard resumes when it exits.
-ncdu runs with deletion and shell spawning disabled (`-r -r`, [upstream manual](https://dev.yorhel.nl/ncdu/man)).
-A missing tool shows a verified macOS install command or Linux package/release
-guidance; `c` copies a command only when available for the OS and architecture.
-No tools are installed automatically. Linux distributions use different packages,
-so the added tools link upstream rather than assume a package manager or binary architecture.
-About shows the version, the Project folder and whether a newer
-release exists; `c` opens Ko-fi and `s` GitHub Sponsors in the browser. Appearance
-chooses the icons: Nerd Font (needs a [Nerd Font](https://www.nerdfonts.com)
-in the terminal) or Simple Unicode symbols, the default. The choice is saved at
-once in the Project's `appearance.json`, and the CLI in a terminal uses it too.
-Bars, spinners and state dots look the same in both. Activity takes focus when
-an Action starts and plays it: its stages, each App's Setup steps one at a
-time, credentials as masked dots, Links filling into arrows and one line that
-says what is happening now. The finished Action stays until the next one;
-below it are remembered render/pull/start, Setup, Links and checks. Space
-expands an App, `/` filters, and enter expands a failed step's error and
-recovery hint.
-For a selected failed step, or otherwise the latest failed Action, `c` copies
-the full masked error and `e` opens its scrollable reader—even for failures
-outside an App's steps. The reader also supports `c`; `esc` closes it and
-Ctrl+C still quits. App credential copying remains separate. Keyboard copying
-does not depend on the terminal's modifier-key mouse selection behavior.
-While an Action pulls images, Activity, the status line and the CLI in a
-terminal show one overall bar, a slim bar per image and "N of M images"; piped
-output keeps one `✓ pulled` line per image. In a terminal the CLI prints its
-usual lines and draws the same Action below them; piped and `--json` output
-stay plain.
-
-The Apps tab holds everything about one App: the App list on the left and
-App details on the right, including its containers and images with their
-state, health, uptime, ports and update state. While the containers sub-tab
-is open, each running container also shows CPU (of the whole machine) and
-memory (of its limit, or the machine's memory) bars with the MiB in use.
-`r` there reloads the containers and checks for updates again.
-Down removes the Project's containers and networks while keeping volumes,
-App files and Setup records. Use named volumes or bind mounts for persistent
-data: anonymous volumes are not automatically reattached after Down/Up.
-The equivalent commands are `self-host up`, `self-host down` and
-`self-host restart`.
-
-## Agents and automation
-
-Run `self-host skill` to get the guide matching the installed binary.
-The repository's one public skill, `skills/self-host/SKILL.md`, is the
-agent entry point and routes to that guide.
-
-Inspect first, agree on the Apps and Access, then apply the approved selection:
+The loop is **inspect → plan → approval → apply → verify**. Loading the skill is intent, never approval; every change needs the person's explicit yes.
 
 ```bash
 self-host doctor --json
 self-host apps list --json
 self-host apps info ntfy --json
-# After approval:
+# only after approval:
 self-host install ntfy --exposure local --yes --json
 self-host status --json
 ```
 
-Use repeated `--set app.key=value` for documented non-secret inputs and
-`--set app.port=N` to select a port. `--media-root`, `--downloads-root` and
-`--exposure lan|local` set new-Project choices; `--admin-user` defaults to
-`admin`. An Admin password is generated unless `SELF_HOST_ADMIN_PASSWORD` is
-provided through the environment. Forgejo uses `selfhost-admin` for a fresh
-install when the shared username is `admin`; check its App credentials for the
-actual login. Do not pass secrets as command arguments.
+- `--set app.key=value` (repeatable) for non-secret inputs; `--set app.port=N` picks a port.
+- `--set-file app.key=/path` for secrets: owner-only, mode 0600, `=-` reads stdin. Never pass secrets as arguments. Values land only in the Project's `secrets.env`.
+- `--media-root`, `--downloads-root`, `--exposure lan|local`, `--easy-names`, `--admin-user` (default `admin`) set new-Project choices. The Admin password is generated unless `SELF_HOST_ADMIN_PASSWORD` is in the environment.
+- With `--json`, mutations and `doctor` emit newline-delimited events; `status`, `profile`, `apps list`, `apps info` and `credentials` emit JSON documents. Existing keys are stable; new fields are additive.
+- Exit codes: `0` success, `1` error, `2` incomplete Setup. Read each `step.fail` and its hint, repair, then `self-host setup <app>` (completed steps are skipped).
+- **A running container or HTTP 200 is not acceptance.** Verify the App does its job.
+- `self-host credentials` reveals the shared Admin login and per-App API keys. Use it privately; keep output out of chat, logs and screenshots.
+- `self-host debug <app>` prints Status, failed steps with hints, the last 100 log lines with secrets masked, and the health-check URL.
 
-Private fields use `--set-file app.key=/owned/mode-0600/path`, for example
-`--set-file gluetun.openvpn-password=/owned/private/openvpn-password` for an
-already-provided credential file. The file must be owned by the Project owner
-and mode 0600. Private values are saved only in the Project's `secrets.env`;
-interactive private fields are masked. Provider accounts, VPN credentials,
-existing tunnel enrollment and software licenses remain prerequisites. The CLI
-does not create provider accounts or establish those external approvals for you.
+Isolated Project: set `SELF_HOST_HOME` (absolute path) and a unique lowercase `SELF_HOST_COMPOSE_PROJECT`, and keep both for later commands. Do not point this CLI at an older CLI's Project.
 
-Gluetun Setup verifies its saved read-only control key separately from VPN
-readiness. Missing provider credentials or a disconnected tunnel remain Manual
-steps; rejected control credentials and invalid API responses are failures.
-Its Homarr native Link remains blocked: the supported upstream adapter requires
-an endpoint that exposes provider credentials. Do not expand the control role
-to work around it. See [the Gluetun contract](docs/homarr-gluetun-contract.md).
+## Commands
 
-With `--json`, mutations and `doctor` produce newline-delimited events;
-`status`, `profile`, `apps list`, `apps info` and `credentials` produce JSON documents.
-Read each `step.fail` and its hint. Exit codes are `0` for success, `1` for an
-error and `2` for incomplete Setup. A failed Setup needs repair and
-`self-host setup <app>`; completed steps are skipped. Verify the App's intended
-function afterward. A running container or HTTP 200 alone is not acceptance.
+Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an approved noninteractive install, remove or restore; it is not a preview flag.
 
-`self-host credentials` deliberately reveals the Shared Admin login and per-App API
-keys. Use it privately; exclude its output, logs, passwords and API keys from
-chat replies, screenshots and ordinary evidence.
+| Command                                              | Effect                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `doctor`                                             | Check Docker, Compose, ports and the Host.                                                               |
+| `install <app\|recipe>...`                           | Install Apps or Recipes into the Project.                                                                |
+| `status [--updates]`                                 | URLs, container state, health and Setup; optionally check image updates.                                 |
+| `setup [app...]`                                     | Retry unfinished Setup.                                                                                  |
+| `up`, `down`                                         | Start / remove the Project's containers and networks. `down` keeps volumes, App files and Setup records. |
+| `start`, `stop`, `restart [app...]`                  | Operate named Apps, or every installed App when omitted.                                                 |
+| `update [app...]`                                    | Pull images, recreate Apps and rerun checks.                                                             |
+| `logs <app> [--follow] [--tail N]`                   | Container logs; default tail is 200 lines.                                                               |
+| `remove <app>... [--yes]`                            | Remove Apps, keep data; `--purge` also deletes their data folders.                                       |
+| `config set KEY=value...`                            | Change Host settings and recreate affected Apps.                                                         |
+| `config review [--yes]`                              | Review Host drift; `--yes` applies detected LAN address and time zone fixes.                             |
+| `access export --format caddy\|nginx\|traefik\|json` | Print each App's upstream for your own reverse proxy. Changes nothing.                                   |
+| `backup`, `restore`                                  | See [Backup and Restore](#backup-and-restore).                                                           |
+| `self-update`                                        | Replace the binary with the latest checksummed release.                                                  |
 
-## Daily commands
+Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
 
-| Command                             | Effect                                                                        |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
-| `status [--updates]`                | Show URLs, container state, health and Setup; optionally check image updates. |
-| `setup [app...]`                    | Retry unfinished Setup.                                                       |
-| `start`, `stop`, `restart [app...]` | Operate named Apps, or every installed App when omitted.                      |
-| `update [app...]`                   | Pull images, recreate Apps and rerun checks.                                  |
-| `logs <app> [--follow] [--tail N]`  | Read container logs; default tail is 200 lines.                               |
-| `remove <app>... [--yes]`           | Remove Apps while keeping data; `--purge` also deletes their data folders.    |
-| `config set KEY=value...`           | Change Host settings and recreate affected Apps.                              |
-| `config review [--yes]`             | Review current host drift; `--yes` applies detected LAN IP/time zone fixes.   |
-| `self-update`                       | Replace a release binary with the latest stable checksummed CLI release.      |
+**Unmanaged apps:** a Compose folder you add by hand under `~/.self-host/extra/<name>/` gets lifecycle, Address listing and Backup, but no Setup.
 
-Prefix each with `self-host`. `--verbose` (`-v`) adds command and step details.
-Use `--yes` for approved noninteractive install, remove and restore operations;
-it is authorization to perform the operation, not a preview flag.
+## Install details
 
-For an isolated Project, set both `SELF_HOST_HOME` to an absolute directory and
-`SELF_HOST_COMPOSE_PROJECT` to a unique lowercase Compose name. Keep them
-consistent for subsequent commands. Do not point this CLI at an older CLI's
-Project as an assumed migration path.
+- The installer picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
+- `SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z`; `SELF_HOST_RELEASE_REPO=owner/name` points the installer and `self-update` at a fork.
+- While the repository is private the installer accepts `SELF_HOST_GITHUB_TOKEN`, or falls back to `gh auth token`. Never print or paste a token.
+- Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill`, and an upgrade through `self-update`). `VERIFY_INSTALL_URL` overrides the URL. See [site deployment and release gates](docs/releasing.md#installer-site); maintainers: [how to cut a release](docs/releasing.md).
+- From source (Go 1.26.0+): `go build -buildvcs=false -o /tmp/self-host ./cmd/self-host`. Development builds cannot `self-update`.
+- Release proof: [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2), Linux amd64 install, self-update and clean Alpine bootstrap passed ([scope](docs/release-proof.md)).
 
-Current source rejects duplicate Compose service names across App fragments
-before apply. When older installed fragments shared a cache service name,
-reinstall both affected Apps to regenerate their separate cache definitions.
-This is not an automatic data migration: old Redis containers/data are not
-retired without established ownership and approval.
+**Staying current.** `self-host self-update` replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
 
-## Cannot reach an App from another device
+**Troubleshooting**
 
-For one broken App, `self-host debug <app>` (or `--json`) prints its state,
-failed steps with hints, the last 100 log lines with secrets masked, and its
-health-check URL. Start with `self-host status` and `self-host doctor`. Check the recorded
-Access and URL, Docker availability, published ports, and the host firewall.
-`local` binds to loopback. To deliberately allow LAN access:
+| Symptom                                       | Fix                                                                                                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                                                                                                                                  |
+| Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                                                                                                                       |
+| Docker missing or stopped                     | Install or start it, then `self-host doctor`.                                                                                                                                  |
+| 404 or authentication error on install        | `gh auth login`, then `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/install.sh \| SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash` |
+| `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.                                                                                                             |
+| Native Windows                                | Unsupported. Use WSL.                                                                                                                                                          |
+
+Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Plain commands, non-TTY and `--json` never animate. A Project from a pre-release build in `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI at one.
+
+## Requirements and platforms
+
+Docker engine, the `docker compose` v2 plugin with `include` support, write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first. With rootless Docker, compatible images may need `PUID=0 PGID=0`; host file ownership stays with the invoking user.
+
+| Platform       | Binary       | Validation                                                             |
+| -------------- | ------------ | ---------------------------------------------------------------------- |
+| Linux amd64    | Yes          | Published install/update and clean Alpine bootstrap passed.            |
+| Linux arm64    | Yes          | Native CLI and archive checks passed; image support varies by App.     |
+| macOS arm64    | Yes          | Native checks passed; deployment needs a Linux Docker VM.              |
+| Intel macOS    | Yes          | Native execution, checksummed install and corruption rejection passed. |
+| WSL2           | Linux binary | Planned; native WSL validation pending.                                |
+| Native Windows | No           | Unsupported.                                                           |
+
+Published-asset install/update proof covers Linux amd64 only ([CI run](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771), [packaging run](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)).
+
+## Reaching your Apps (Access)
+
+Access decides each App's Address. Choose it in Onboarding or Settings → Access. **Review always needs your approval.**
+
+| Access                   | What you get                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| Home network (default)   | `http://192.168.1.20:8096`. Ports publish on all host interfaces: review firewall scope.      |
+| This computer only       | `127.0.0.1` (`--exposure local`).                                                             |
+| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io` through one managed Caddy.                            |
+| From anywhere, privately | Tailscale, one HTTPS node per App.                                                            |
+| Your own web address     | Cloudflare Tunnel plus a login page.                                                          |
+| Bring your own           | `self-host access export` for SWAG, Pangolin, Nginx Proxy Manager, Traefik or your own Caddy. |
+
+The `IP:port` Address is always kept as a fallback. Status and Homarr tiles prefer Tailscale HTTPS, then verified Cloudflare HTTPS, then working Easy names, then `IP:port`. Anything reachable from the internet needs its own explicit yes that names the risk.
+
+### Easy names at home
+
+Enable with `self-host install ... --easy-names` (new Project) or, after approval, `self-host config set EASY_NAMES=on`; turn off with `EASY_NAMES=off` (removes only the managed Caddy). Check with `self-host status --json` (`names`).
+
+- Needs an active private home-network IPv4 address, free port 80 and rootful Docker. IPv6 and the CLAT service-continuity prefix are not supported. A port that cannot be verified is treated as busy. Conflicts are refused without changes.
+- Names are **checked from this computer**, not your phone or TV; a router may hide them. DNS success is not App acceptance.
+- The name embeds the LAN address: after a DHCP change run `self-host config review` and update bookmarks. A router DHCP reservation avoids this. sslip.io sees the LAN address in name queries.
+- HTTP only: Apps that require HTTPS (Vaultwarden's web vault) won't work. **Do not forward port 80 on your router.** No `.local` announcer is installed ([#232](https://github.com/ajnart/selfhost-skills/issues/232)).
+- Failed or interrupted Caddy updates keep names pending and numbered Addresses first until an approved retry. `down` cancels pending startup. Access changes never silently reinstall Apps: if an origin change would replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses first.
+
+### From anywhere, privately (Tailscale)
+
+Install Tailscale on your devices and sign in to the same account. On the [DNS page](https://login.tailscale.com/admin/dns) enable HTTPS with MagicDNS on. **App names appear in a public certificate log; the Apps stay private.** At [Settings, Keys](https://login.tailscale.com/admin/settings/keys) make a **Reusable**, **Pre-approved** auth key with **Ephemeral** off. Save it privately on the host, never in chat:
 
 ```bash
-self-host config set EXPOSURE=lan
+self-host install tailscale --set-file tailscale.auth_key=/path/to/key
 ```
 
-After moving networks, `status --json` reports `lan_ip_stale` when the saved
-address is gone. Repair it with `self-host config set LAN_IP=auto`, or review
-all Host settings using `self-host config review`. These operations recreate
-Apps that use changed settings. `config review --yes` applies detected LAN IP
-and time zone fixes; ownership IDs and folder changes remain deliberate choices.
+Each web App gets its own persistent node and HTTPS Address. Nothing enables Funnel. The key lasts up to 90 days (new Apps may need a new one); `self-host doctor` warns about expiry and signed-out nodes. An OAuth client secret works too, with `tag:self-host` owned by it. See [ADR 0008](docs/adr/0008-tailscale-per-app-nodes.md).
 
-If the URL works on the host but fails on your phone/TV, check same-network
-connectivity, guest-network isolation, firewall scope and Docker VM forwarding.
-A host-side probe cannot prove reachability from that device.
+### Your own web address (Cloudflare)
+
+Needs a domain already **active** on Cloudflare, Zero Trust onboarding done (team name, **Free plan**, a payment method that is **not charged**), and a custom API token limited to one account and zone: Account **Cloudflare Tunnel: Edit**, **Access: Apps and Policies: Edit**, **Access: Organizations, Identity Providers, and Groups: Edit**; Zone **DNS: Edit**, **Zone: Read**. Hand the token over privately, never through chat.
+
+- Settings → Access guides domain, allowed emails and per-App choices. Nothing is selected by default; Apps without a web page cannot be published. The final yes names the risk: strangers reach the login page and Cloudflare sees traffic.
+- **Cloudflare's terms restrict video streaming and phone/TV apps cannot pass the PIN login. Use Tailscale for streaming and native clients.**
+- Agents: `self-host cloudflare plan --domain example.com --email alice@example.org --app paperless-ngx --json` previews with no network calls. After the person's separate yes: `self-host cloudflare publish` with the same choices, `--set-file cloudflare.api_token=/private/token` and `--accept-public`. Changes and `cloudflare remove --yes` need the token afresh; only the tunnel run token is saved.
+- HTTPS Addresses appear only after an outside 302 to the login page; a failed probe deletes DNS.
+- Ownership is a random Project identity plus receipts, never matching names. Backups keep receipts; Restore holds the public connector disabled until a new `cloudflare plan` and approved `publish --accept-public`. A network failure can block remote cleanup: ownership is kept and `status --json` reports `access_warnings` and `cloudflare_cleanup`. Foreign routes and receipt-less records are never adopted.
+- Run `self-host skill` for the full procedure and warnings.
+
+### Cannot reach an App from another device
+
+Start with `self-host debug <app>`, `self-host status` and `self-host doctor`; check the recorded Access, Docker, published ports and the host firewall. `local` binds loopback; to allow the LAN: `self-host config set EXPOSURE=lan`. After a network move, `status --json` reports `lan_ip_stale`: `self-host config set LAN_IP=auto` (or `config review`). These recreate affected Apps. If it works on the host but not your phone or TV, check same-network connectivity, guest-network isolation, firewall and Docker VM forwarding: a host-side probe cannot prove device reachability.
 
 ## Backup and Restore
 
@@ -622,75 +204,21 @@ self-host backup ntfy --encrypt --output /absolute/private/ntfy.tar.zst.age
 self-host restore /absolute/private/ntfy.tar.zst.age ntfy
 ```
 
-Provide `SELF_HOST_BACKUP_PASSPHRASE` through your credential provider, or answer
-the interactive prompt. Keep the passphrase separately from the archive.
-Backup pauses running App services while copying their folders, then starts
-those services again. It includes App folders, Host settings, state and secrets;
-external media/download libraries and data stored outside App folders are not
-included. Even a single-App Backup contains Project credential metadata.
+- Passphrase via `SELF_HOST_BACKUP_PASSPHRASE` or the prompt; keep it apart from the archive.
+- Default destination `~/.self-host/backups/selfhost-DATE.tar.zst` (`.age` when encrypted). Running App services pause while folders are copied, then start again.
+- Includes App folders, Host settings, state and secrets, so even a single-App Backup holds credential metadata. **Media libraries and data outside App folders are not included.**
+- Restore replaces the selected Apps' data and asks first (`--yes` skips). A fresh Project needs a full restore before selective ones. Review Host settings on a different machine.
+- Keep a copy off the host. **A written archive is not a verified recovery plan:** restore into an isolated Project and check the data.
 
-The default destination is `~/.self-host/backups/selfhost-DATE.tar.zst`, with
-`.age` added for encryption. Restore replaces the selected Apps' current data
-and asks for confirmation; `--yes` skips it. A fresh Project requires a full
-Backup restore before selective restores are possible. Review Host settings on
-a different machine and verify logins, data and the App's actual workload.
+## Telemetry
 
-Keep another private copy off the host. A written archive is not a verified
-recovery plan: perform a restore into an isolated Project and check the data.
-Generic acceptance checks archive extraction and Setup/Check. Selected Apps
-also seed and recover real API/database payloads; those probes establish only
-the workload they exercise. Check the per-target evidence for recovery coverage.
+Anonymous usage and error data, on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [Telemetry wiki](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
 
 ## What is supported
 
-The Catalog contains **93 Apps and 20 Recipes** (19 legacy Recipes plus
-`media`). The final [runtime matrix](docs/runtime-matrix.md) and
-[JSON evidence](docs/runtime-matrix.json) record **97 passes, 3 failures,
-8 awaiting external credentials and 5 manual** across all 113 targets.
-Each result belongs to its recorded head, binary, image IDs and platform;
-these mixed-head passes do not verify every App on the current binary.
+[Runtime matrix](docs/runtime-matrix.md) ([JSON](docs/runtime-matrix.json)) over all 113 targets: **97 pass, 3 fail, 8 await external credentials, 5 manual.** Each result belongs to its recorded head, binary, image IDs and platform; mixed-head passes do not verify every App on the current binary.
 
-BookStack, Speedtest Tracker and Passbolt failed on this host.
-[PHP-FPM confinement evidence](docs/php-fpm-host-limit.md) documents the host
-access limits; Passbolt's HTTP 500 is not fully explained by that reproduction.
-Have the host administrator review PHP-FPM bootstrap/configuration access before
-retrying Setup.
-External credentials/licenses remain owner-supplied. Dockge, Emby, Stalwart,
-Uptime Kuma and the monitoring Recipe need manual setup.
-
-Homarr has [real API/browser and visual proof](docs/homarr-proof.md): nine
-machine checks, owned cleanup and reviewed dashboard/panel screenshots passed
-at one immutable head. The terminal screenshots above use that same fixture
-and binary. API payload checks, archive sentinels, browser review and full
-workload recovery remain distinct claims.
-
-Homarr Links support version **2.4.1**. Immich Setup prepares a dedicated
-read-only statistics key; retry with `self-host setup immich`, then
-`self-host setup homarr`. Server statistics are enabled, not album slideshows.
-Other Homarr versions stop with a recovery hint; back up before changing versions.
-Immich Links require genuinely refreshed Stats, not merely cached values. Retry
-Homarr Setup if its refresh cannot advance. User-referenced integrations and
-linked bookmarks survive removal and are not reclaimed on reinstall, including
-bookmarks with user-edited ping Addresses.
-See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
-The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
-empty-library statistics, rendered widgets and preservation/removal/reinstall
-at its exact source and image identities, including retained legacy-App exclusion
-through two cycles and final post-lifecycle native/shared rendering. It does not
-verify populated media or other peers.
-
-| Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Catalog install    | Compiled Compose definitions and App inputs.                                               | All-catalog runtime acceptance is incomplete.                                                  |
-| Setup and Links    | Per-App API/configuration routines; retry unfinished steps.                                | Browser-only tasks, external credentials and remote enrollment may need you.                   |
-| Dashboard/Activity | TUI, persisted stages, retry hints and live progress.                                      | Actual three-App terminal capture above; full-Catalog/browser visuals remain separate.         |
-| Lifecycle/update   | Project-scoped commands and image refreshes.                                               | Update checks do not establish safe version-to-version migration.                              |
-| Backup/Restore     | Compressed archives, optional encryption, selected-App restore.                            | API/database payload probes apply only where recorded; sentinels establish archive extraction. |
-| Unmanaged Apps     | Lifecycle/Backup for Compose App folders added by hand under `~/.self-host/extra/<name>/`. | No compiled Setup for off-Catalog Apps; see `self-host skill`.                                 |
-| VPN/public access  | App configuration where implemented.                                                       | Tunnel-break fail-closed, DNS/TLS and external accounts need their own proof.                  |
-
-[Acceptance documentation](e2e/acceptance.md) defines lifecycle stages,
-per-target outcomes and the limits of generic checks. Manual, blocked,
-missing-configuration, awaiting-external-credentials and not-run targets are
-reported separately from passes. External provider enrollment, VPN fail-closed,
-version-to-version migration and full workload recovery require their own proof.
+- **Failed on the test host:** BookStack, Speedtest Tracker, Passbolt ([PHP-FPM evidence](docs/php-fpm-host-limit.md)). Have the host administrator review PHP-FPM bootstrap access before retrying Setup.
+- **Manual setup:** Dockge, Emby, Stalwart, Uptime Kuma and the monitoring Recipe. Provider accounts, VPN credentials, tunnel enrollment and licenses stay owner-supplied.
+- **Homarr:** [real API/browser proof](docs/homarr-proof.md), nine machine checks. Immich Links need a read-only stats key: `self-host setup immich`, then `self-host setup homarr` ([Immich proof](docs/homarr-immich-proof.md), empty-library only). Gluetun's native Homarr Link stays blocked by upstream design ([contract](docs/homarr-gluetun-contract.md)).
+- Update checks do not establish safe version-to-version migration. VPN fail-closed behavior, DNS/TLS and external accounts need their own proof. [Acceptance docs](e2e/acceptance.md) define stages and the limits of generic checks.

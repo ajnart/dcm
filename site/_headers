@@ -1,7 +1,7 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Content-Security-Policy: default-src 'none'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; media-src 'self'; manifest-src 'self'; style-src 'self'; img-src 'self' https://cdn.jsdelivr.net; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
 
 /install.sh
   Content-Type: text/plain; charset=utf-8
@@ -10,3 +10,7 @@
 /install.sh.sha256
   Content-Type: text/plain; charset=utf-8
   Cache-Control: no-cache
+
+/catalog.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: max-age=3600
