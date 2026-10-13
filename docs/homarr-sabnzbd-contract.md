@@ -2,59 +2,46 @@
 
 Part of #298, using the [reference contract](homarr-integration-contract.md).
 
-## Native activation: credential-safety hold #363
+## Native activation: fixed-version gate
 
-Tracker #363 blocks native activation. The SABnzbd Homarr Link is retryable
-Manual before any Homarr or peer HTTP
-request, credential creation/update, tile/widget mutation or native query.
-Do not manually create an integration or bypass this hold. Standalone SABnzbd
-Setup/Check and owned Link removal remain separate.
+Current-release delivery covers source-reviewed integration support;
+provider/account and hardware runtime verification is deferred. The #363 privacy
+hold now probes authenticated `info.getInfo` first. Only exact Homarr API
+`2.5.1` or `2.5.2` proceeds to the existing SABnzbd full-key/API verifier.
+Older, unreadable, malformed, unknown and unreviewed versions remain retryable
+Manual before any peer request, native query or Homarr mutation. Do not bypass
+the hold or create a manual integration. Standalone SABnzbd Setup/Check and
+owned Link removal remain separate.
 
-At recorded Homarr OCI-source revision
-`3d4150e59f600876b7e308f857b2f21572b75348`, the native SABnzbd adapter puts
-the full API key in the request query. A rejected response retains the raw
-Address in `ResponseError`; the integration decorator sanitizes its own log
-copy but rethrows the original cause. Downloads integration settling logs that
-cause, and recursive error/metadata formatting retain the Address string.
-Console logging is enabled; Redis/browser visibility depends on logging and
-permissions. A currently valid direct API probe cannot prevent a later
-rejected native request. This is source-confirmed risk, not an observed leak
-or built-image attestation; no rejected-credential probe or log read was run.
+[Hotfix #7170](https://github.com/homarr-labs/homarr/pull/7170), shipped in
+2.5.1, fixes downstream logging of integration request errors. The SABnzbd
+adapter still sends its key in the native query, so transport alone does not
+establish privacy. The exact 2.5.2 source
+`7eb9a417a60d759adce5f7ac15ceb594aefad471` retains the audited APIs and privacy
+owners unchanged from the fixed 2.5.1 image source. The
+[shared contract](homarr-integration-contract.md) records the authenticated API
+and image/source evidence separately. Those observations do not establish real
+SABnzbd native/rendered, provider or lifecycle acceptance.
 
-Activation requires a supported adapter and complete downstream logging-chain
-fix verified in the actual supported image, exact image/version/source
-compatibility review and separate authorization. Source agreement, a local
-upstream patch or valid credentials do not clear this image prerequisite.
-
-The HTTP regression fixture failed before the hold: both Link Check/apply made
-one request and did not return Manual. After the leaf hold, both return Manual
-with zero HTTP requests. The existing native Downloads and pure Stats callback
-remain unchanged behind the hold; their synthetic fixtures exercise the dormant
-verifier directly and are not activation acceptance.
-
-The inspected source chain is:
-
-- [SABnzbd native query and rejected response](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/download-client/sabnzbd/sabnzbd-integration.ts#L150-L165)
-- [ResponseError retains the response Address](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/common/src/errors/http/response-error.ts#L5-L10)
-- [Decorator sanitizes one copy and rethrows the cause](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/base/errors/decorator.ts#L37-L145)
-- [Integration settling logs the rejected cause](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/settle-integrations.ts#L39-L44)
-- [Recursive error formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/error.ts#L22-L53)
-- [String metadata formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/metadata.ts#L9-L14)
-- [Console and conditional Redis transports](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/transports/index.ts#L7-L18)
+Historically, #363 blocked all Link HTTP because Homarr 2.4.1 retained the raw
+key-bearing Address through ResponseError and downstream logging. No live leak,
+private log read or rejected-credential runtime probe was performed. The common
+persisted hint remains custodian-owned; this leaf does not edit reconciliation,
+registry or removal behavior.
 
 ## Source-verified versions and authentication
 
-- Homarr's actual tag is `v2.4.1`, commit
+- The historical Homarr baseline is `v2.4.1`, commit
   `ebbd4876d25a51151444a009ab596e1154d62880`.
 - The existing Catalog image is `linuxserver/sabnzbd:version-5.1.3`;
   SABnzbd's `5.1.3` source tag resolves to
   `a647f73426cb70ad60ae7964b96c2d5e939b4727`.
-- The Homarr Link accepts only Homarr 2.4.1 and SABnzbd 5.1.3. Older or newer
+- The Homarr Link accepts only Homarr 2.5.1/2.5.2 and SABnzbd 5.1.3. Other
   versions are not claimed native-compatible. Standalone SABnzbd Setup/Check
   still validate the current administrator, full-key authentication, observed
   nonempty queue version and API capabilities without imposing the Link's
-  exact-version restriction. These are source baselines, not tested images or
-  immutable image digests.
+  exact-version restriction. SABnzbd remains a source baseline, not a tested
+  image or immutable image digest; Homarr image/API evidence is recorded separately.
 - Homarr's exact native kind is `sabNzbd`, secret kind `apiKey`, internal
   Address `http://sabnzbd:8080`. Its browser Address stays separate.
 - The full API key is the minimum usable credential for this adapter. The
@@ -117,8 +104,8 @@ wildcard host whitelist, authentication removal or public Access is applied.
   entry IDs and preserves unrelated bindings.
 
 Standalone Setup verifies administrator/API/provider readiness. The Homarr
-preflight now stops unconditionally on the credential-safety hold before any
-request or mutation. Its dormant native verification reads
+preflight checks the fixed Homarr version before invoking full-key readiness.
+Its native verification reads
 `widget.downloads.getJobsAndStatuses` for the owned integration ID, requires
 nonfailed explicit items, paused state and finite nonnegative download rate,
 then checks every returned item against the pinned normalized schema and
@@ -143,9 +130,9 @@ array remain legitimate; native queue and Stats are independently sampled.
 ## Implementation and acceptance limits
 
 This peer owns `target_sabnzbd.go`, `sabnzbdTarget()`, and SABnzbd Setup. The
-reference owner registered `sabnzbdTarget()` in `targets.go`; this leaf hold
-changes no shared registry or reconciliation code. Registration is not
-activation approval: #363 keeps preflight Manual. The reference
+reference owner registered `sabnzbdTarget()` in `targets.go`; this leaf
+changes no shared registry or reconciliation code. The fixed-version gate
+retains Manual for unsafe or unreadable versions. The reference
 removal/ownership policy remains unchanged.
 
 Existing SABnzbd test bodies directly model key reuse, version readiness,
@@ -162,7 +149,8 @@ adds focused HTTP fixtures for this descriptor, including its
 item validator. They are source validation, not native runtime acceptance.
 No dependencies were added.
 
-The local gate passed with `GOFLAGS=-buildvcs=false`: clean `gofmt -l .`,
+The historical local gate before this fixed-version update passed with
+`GOFLAGS=-buildvcs=false`: clean `gofmt -l .`,
 `go build ./...`, both repository/e2e-tag `go vet` commands, `go test ./...`,
 race checks for TUI, Activity, SABnzbd and Homarr, and `bash -n install.sh`.
 The ordinary test run did not enable the Docker e2e runtime build tag.
@@ -217,7 +205,23 @@ The affected descriptor tests, shared Stats/Downloads tests, App tests,
 package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
 provider request, download or protected Project state was used.
 
-Registry assembly remains custodian-owned. The credential-safety image fix
-and activation authorization precede useful real native/rendered data, both
-installation orders and credential/ownership/removal lifecycle checks.
-Source fixtures do not satisfy these prerequisites.
+## 13 October fixed-version privacy gate
+
+This leaf forward-merges shared SDK commit
+`a62010719833f6db05810231fd1f1764d387c593` without rewriting history and uses
+`requireCredentialSafeHomarr` before `sabnzbd.VerifyHomarr`. It preserves full
+API-key validation, exact observed SABnzbd version 5.1.3, native Downloads item
+semantics, one shared queue acquisition and one advancing Stats sample. The
+separate App Setup provider step remains Manual without configured Usenet
+settings; it does not prove provider account validity or connectivity.
+
+Focused fake HTTP fixtures failed against the former unconditional hold and
+passed after this change. Both Check/apply stop after exactly one `info.getInfo`
+request for unsafe/unreadable versions, with no peer or other Homarr request.
+Both fixed versions reach genuine full-key readiness. Rejected native
+credentials fail in both paths before any further Homarr request or mutation.
+The descriptor's native/Stats fixtures and affected App tests pass; formatting,
+package build/vet and diff checks also pass. No Docker, browser, private Project,
+real Usenet request, provider login or download was used. Real rendered and
+lifecycle acceptance remains deferred. Registry assembly and common persisted
+hints remain custodian-owned.
