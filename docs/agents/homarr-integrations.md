@@ -35,8 +35,12 @@ those records predates that decision. Keep the existing self-host skill router.
    legacy data checks; removal/absence never calls preflight or refreshes Stats.
    Migrated Stats peers add `stats func(statsSample) error` for pure semantic
    validation. Keep native checks in `verify`, and move Stats acquisition out
-   of it. The callback receives `values`, catalog `units`, `startedAt` and
-   `updatedAt` (Unix milliseconds) from one completed central refresh.
+   of it. The callback receives `values`, catalog `units`, `startedAt`,
+   `completedAt` and `updatedAt` (Unix milliseconds) from one central refresh.
+   The start is read before the request and completion after the response;
+   use completion when retaining an App's existing upper future-skew limit
+   after a slow refresh. Apps own clock policy; common checks require finite,
+   positive, advancing timestamps.
    **Done:** the leaf fits the actual contract without changing common signatures.
 
 3. **Implement the two owners.** The peer's idempotent Setup discovers/creates,
