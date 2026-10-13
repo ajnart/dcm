@@ -1,0 +1,19 @@
+video/reel/audio/cues.json
+  s_c905e1fca49b5e::t_47105f7b18fe84 980,985,990,995,1000,1005,1010,1015,1020,1025,1030,1035,1040,1045,1050,1055,1060,1065,1070,1075,1080,1085,1090,1095,1100,1105-1109,1114,1119,1124,1129,1134,1139,1144,1149,1154,1159,1164,1169,1174,1179,1184,1189,1194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e5f6e06a99ee52af500eb8403705010b0d4b0fe",
+  "prompts": {},
+  "sessions": {
+    "s_c905e1fca49b5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4cc4354d-5418-45e3-aa7f-bc6fb6e17e90",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
