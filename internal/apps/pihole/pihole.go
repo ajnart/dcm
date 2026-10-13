@@ -30,7 +30,7 @@ func (App) Info() app.Info {
 }
 
 func (App) Inputs() []app.Input {
-	return []app.Input{{Key: "dns-port", Prompt: "Published DNS port", Default: "53", Help: "TCP and UDP host port; LAN DNS clients normally require port 53", Validate: func(value string) error {
+	return []app.Input{{Key: "dns-port", Prompt: "Published DNS port", Default: "53", Help: "TCP and UDP host port; LAN DNS clients normally require port 53", HostPortProtocols: []string{"tcp", "udp"}, Validate: func(value string) error {
 		port, err := strconv.Atoi(value)
 		if err != nil || port < 1 || port > 65535 || strings.Trim(value, "0123456789") != "" {
 			return errors.New("must be a decimal port from 1 to 65535")

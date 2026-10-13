@@ -308,6 +308,9 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 					return err
 				}
 				delete(values, "port")
+				if err := ss.allocateInputPorts(a, values, opts.Sets, st.Inputs); err != nil {
+					return err
+				}
 				if err := ss.ensureSecrets(a); err != nil {
 					return err
 				}
@@ -498,6 +501,60 @@ func (ss *session) allocatePort(info app.Info, requested string, current int) (i
 		}
 	}
 	return 0, fmt.Errorf("%s: no free port from %d", info.ID, info.Port)
+}
+
+func inputWasSet(sets []string, id, key string) bool {
+	for _, set := range sets {
+		name, _, found := strings.Cut(set, "=")
+		if found && (name == key || name == id+"."+key) {
+			return true
+		}
+	}
+	return false
+}
+
+func (ss *session) allocateInputPorts(a app.App, values map[string]string, sets []string, previous map[string]string) error {
+	id := a.Info().ID
+	used := map[int]bool{}
+	for installedID, st := range ss.state.Apps {
+		used[st.Port] = true
+		installed, found := ss.s.Catalog.App(installedID)
+		if !found || installedID == id {
+			continue
+		}
+		for _, input := range installed.Inputs() {
+			if len(input.HostPortProtocols) > 0 {
+				port, _ := strconv.Atoi(st.Inputs[input.Key])
+				used[port] = true
+			}
+		}
+	}
+	for _, input := range a.Inputs() {
+		if len(input.HostPortProtocols) == 0 || previous[input.Key] != "" || inputWasSet(sets, id, input.Key) {
+			continue
+		}
+		start, err := strconv.Atoi(values[input.Key])
+		if err != nil {
+			return fmt.Errorf("%s.%s: %q is not a port", id, input.Key, values[input.Key])
+		}
+		selected := 0
+		for port := start; port <= 65535; port++ {
+			if !used[port] && ss.s.Deps.PortFree(port) {
+				selected = port
+				break
+			}
+		}
+		if selected == 0 {
+			return fmt.Errorf("%s.%s: no free port from %d", id, input.Key, start)
+		}
+		values[input.Key] = strconv.Itoa(selected)
+		used[selected] = true
+		if selected != start {
+			ss.s.Log.Emit(events.Event{Event: events.StepWarn, App: id, Step: "port",
+				Msg: fmt.Sprintf("port %d is taken, using %d", start, selected)})
+		}
+	}
+	return nil
 }
 
 // setupAll runs Setup for each App, continuing past failures.

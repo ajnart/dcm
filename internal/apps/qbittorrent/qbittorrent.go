@@ -46,7 +46,7 @@ func (App) Info() app.Info {
 }
 
 func (App) Inputs() []app.Input {
-	return []app.Input{{Key: "torrent-port", Prompt: "Torrent peer port", Default: "6881", Help: "TCP and UDP peer port, separate from the private WebUI", Validate: func(value string) error {
+	return []app.Input{{Key: "torrent-port", Prompt: "Torrent peer port", Default: "6881", Help: "TCP and UDP peer port, separate from the private WebUI", HostPortProtocols: []string{"tcp", "udp"}, Validate: func(value string) error {
 		port, err := strconv.Atoi(value)
 		if err != nil || port < 1 || port > 65535 || strings.Trim(value, "0123456789") != "" {
 			return errors.New("must be a decimal port from 1 to 65535")
