@@ -13,16 +13,18 @@ administrator policy and authenticated `IsStartupWizardCompleted`; it never
 calls `Startup/User` or `Startup/Complete`, creates an external account,
 purchases Premiere or enables hardware privileges.
 
-Setup discovers or creates one API key named `self-host Homarr`, stores it as
+Setup creates one API key named `self-host Homarr`, stores it as
 `EMBY_HOMARR_API_KEY` through `h.SetSecret`, and verifies authenticated
 `/emby/System/Info` and `/emby/Sessions`. A valid saved key is reused. A
 rejected saved key, duplicate/inactive named keys or an incomplete inventory
 stop rather than rotating credentials. `EMBY_HOMARR_KEY_CREATED` records
-creation intent before POST: an ambiguous request is never replayed when
-discovery still finds no key. Inspect Security and restore the saved key;
-only after confirming no key was created may the pending marker be cleared
-through the Project secret boundary. Login sessions are not persisted and
-are logged out. No credential goes in request query parameters.
+creation intent before POST. A discovered unsaved named key is recovered only
+with that Project's `pending` checkpoint; a name match without this checkpoint
+stays Manual and is never silently adopted. An ambiguous request is never
+replayed when discovery still finds no key. Inspect Security and restore the
+saved key; only after confirming no key was created may the pending marker be
+cleared through the Project secret boundary. Login sessions are not persisted
+and are logged out. No credential goes in request query parameters.
 
 The documented Emby key API exposes no per-endpoint permission scopes. A
 dedicated revocable key is the supported Homarr alternative, not a claim of
@@ -48,7 +50,10 @@ nonstale successful snapshot with an explicit nonnegative integer count.
 
 Existing Emby tests cover dedicated key creation, stable reuse, a fresh
 revocation check, no rotation on rejected credentials and the Manual owner
-hint, real-ID selection and hidden-user rejection. These are fake-HTTP checks,
+hint, real-ID selection and hidden-user rejection. Focused ownership fixtures
+reject uncheckpointed user-key collisions, recover an interrupted Project
+credential save without rotating the created key, and reject a pending
+creation replay when inventory has no key. These are fake-HTTP checks,
 not native functional proof. Official Emby documentation leaves the
 `Auth/Keys` response type unspecified; the strict inventory fields must be
 confirmed against the pinned image in that runtime batch.

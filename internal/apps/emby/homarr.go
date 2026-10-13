@@ -125,8 +125,12 @@ func createHomarrKey(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
+	checkpoint := h.Secret(h.Key("homarr_key_created"))
+	if key != "" && checkpoint != "pending" {
+		return fmt.Errorf("%w: the named Emby key has no Project creation checkpoint; keep it and resolve the ownership collision before retrying", helpers.ErrManual)
+	}
 	if key == "" {
-		if h.Secret(h.Key("homarr_key_created")) != "" {
+		if checkpoint != "" {
 			return helpers.ErrManual
 		}
 		if err := h.SetSecret(h.Key("homarr_key_created"), "pending"); err != nil {

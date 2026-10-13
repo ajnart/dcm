@@ -148,7 +148,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err == nil, err
 		},
 		Do:         func(ctx context.Context) error { return createHomarrKey(ctx, h) },
-		Hint:       "Open " + h.URL + " and inspect Dashboard > Advanced > Security. Restore the dedicated self-host Homarr key through the Project secret boundary, then run self-host setup emby. Do not delete other keys or change user visibility.",
+		Hint:       "Open " + h.URL + " and inspect Dashboard > Advanced > Security. A matching key name alone does not prove Project ownership; keep user keys and resolve that collision explicitly. Restore a previously created dedicated self-host Homarr key through the Project secret boundary, then run self-host setup emby. Do not delete other keys or change user visibility.",
 		Credential: "admin",
 	})
 }
