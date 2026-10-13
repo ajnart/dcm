@@ -1,0 +1,10 @@
+{
+  "id": "kopia",
+  "name": "Kopia",
+  "description": "Back up your files with encryption and check on them from a web page",
+  "category": "Backups",
+  "image": "docker.io/kopia/kopia:0.23.1",
+  "docs": "https://kopia.io/docs/getting-started/",
+  "port": 51515,
+  "inputs": []
+}

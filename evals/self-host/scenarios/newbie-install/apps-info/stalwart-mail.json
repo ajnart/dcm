@@ -1,0 +1,23 @@
+{
+  "id": "stalwart-mail",
+  "name": "Stalwart Mail Server",
+  "description": "Run your own email service, managed from a private admin page",
+  "category": "Communication",
+  "image": "stalwartlabs/stalwart:v0.16.24",
+  "docs": "https://stalw.art/docs/install/platform/docker",
+  "port": 8080,
+  "inputs": [
+    {
+      "key": "STALWART_HOSTNAME",
+      "prompt": "Server hostname for the admin UI",
+      "help": "The FQDN this server answers on, e.g. mail.selfhost.local. See https://stalw.art/docs/install/platform/docker",
+      "required": true
+    },
+    {
+      "key": "STALWART_DOMAIN",
+      "prompt": "Administrative account domain",
+      "help": "The domain the first administrator belongs to, e.g. selfhost.local",
+      "required": true
+    }
+  ]
+}

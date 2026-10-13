@@ -1,0 +1,23 @@
+{
+  "id": "pangolin",
+  "name": "Pangolin",
+  "description": "Reach your apps from outside your home by name, behind a login page",
+  "category": "Remote access",
+  "image": "traefik:v3.7",
+  "docs": "https://docs.pangolin.net/",
+  "port": 18086,
+  "inputs": [
+    {
+      "key": "PANGOLIN_CANONICAL_ORIGIN",
+      "prompt": "Private HTTPS URL for the Pangolin dashboard and API",
+      "help": "The exact https://host reverse-proxied to this router. See https://docs.pangolin.net/",
+      "required": true
+    },
+    {
+      "key": "PANGOLIN_BASE_DOMAIN",
+      "prompt": "Base domain for resources",
+      "help": "Defaults to the administrative origin's host",
+      "required": false
+    }
+  ]
+}

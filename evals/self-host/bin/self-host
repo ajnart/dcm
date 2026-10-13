@@ -1,0 +1,616 @@
+#!/usr/bin/env python3
+"""Stub `self-host` for skill evaluation.
+
+Replays canned fixtures instead of touching a real Docker Project. The scenario
+is selected through SELF_HOST_EVAL_HARNESS, which run.py sets per run. Every invocation
+is appended to that run's invocations.jsonl so assertions have ground truth for
+what the agent actually ran.
+"""
+
+import json
+import os
+import re
+import sys
+import time
+
+VALUE_FLAGS = {
+    "--set",
+    "--set-file",
+    "--exposure",
+    "--media-root",
+    "--downloads-root",
+    "--admin-user",
+    "--domain",
+    "--email",
+    "--app",
+    "--format",
+    "--tail",
+    "--output",
+    "-o",
+    "--allow-private",
+}
+BOOL_FLAGS = {
+    "--json",
+    "--verbose",
+    "-v",
+    "--yes",
+    "--updates",
+    "--purge",
+    "--encrypt",
+    "--follow",
+    "--accept-public",
+    "--easy-names",
+}
+
+
+def find_marker():
+    env = os.environ.get("SELF_HOST_EVAL_HARNESS")
+    if env:
+        return env if os.path.isdir(env) else None
+    d = os.getcwd()
+    while True:
+        marker = os.path.join(d, ".self-host-eval")
+        if os.path.isdir(marker):
+            return marker
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
+def parse(argv):
+    positionals = []
+    flags = {}
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        name, equal, value = tok.partition("=")
+        if equal and name in VALUE_FLAGS:
+            flags[name] = value
+            i += 1
+            continue
+        if tok in VALUE_FLAGS:
+            flags[tok] = argv[i + 1] if i + 1 < len(argv) else ""
+            i += 2
+            continue
+        if tok in BOOL_FLAGS:
+            flags[tok] = True
+            i += 1
+            continue
+        if tok.startswith("-"):
+            flags[tok] = True
+            i += 1
+            continue
+        positionals.append(tok)
+        i += 1
+    return positionals, flags
+
+
+class Harness:
+    def __init__(self, marker, argv):
+        self.marker = marker
+        self.scenario = os.path.join(marker, "scenario")
+        self.cfg = json.load(open(os.path.join(marker, "config.json")))
+        self.argv = argv
+        self.state = os.path.join(marker, "state")
+        os.makedirs(self.state, exist_ok=True)
+        self.positionals, self.flags = parse(argv)
+        self.json = bool(self.flags.get("--json"))
+
+    def path(self, name):
+        return os.path.join(self.scenario, name)
+
+    def has(self, name):
+        return os.path.exists(self.path(name))
+
+    def exit_code(self, name):
+        if self.has(name + ".exit"):
+            spec = json.load(open(self.path(name + ".exit")))
+            if spec.get("stderr"):
+                sys.stderr.write(spec["stderr"].rstrip("\n") + "\n")
+            return spec.get("code", 0)
+        return None
+
+    def emit_events(self, name, only_apps=None, domain=None):
+        """Print a JSONL fixture; returns True when one existed.
+
+        only_apps drops events about Apps this run did not ask for.
+        """
+        if not self.has(name + ".jsonl"):
+            return False
+        with open(self.path(name + ".jsonl")) as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if not line:
+                    continue
+                if domain:
+                    line = line.replace("example.com", domain)
+                if name == "install":
+                    event = json.loads(line)
+                    if event.get("event") == "run.start":
+                        event["msg"] = "install " + " ".join(self.positionals[1:])
+                        line = json.dumps(event)
+                if only_apps:
+                    try:
+                        app = json.loads(line).get("app")
+                    except json.JSONDecodeError:
+                        app = None
+                    if app and app not in only_apps:
+                        continue
+                if self.json:
+                    print(line)
+                else:
+                    try:
+                        ev = json.loads(line)
+                    except json.JSONDecodeError:
+                        print(line)
+                        continue
+                    print(ev.get("msg") or ev.get("event", ""))
+        return True
+
+    def emit_doc(self, name):
+        """Print a JSON document fixture; returns True when one existed."""
+        if not self.has(name + ".json"):
+            return False
+        with open(self.path(name + ".json")) as f:
+            if name.startswith("status") and self.cfg.get("home"):
+                doc = json.load(f)
+                doc["home"] = self.cfg["home"]
+                doc["project"] = self.cfg["home"]
+                print(json.dumps(doc, indent=2))
+                return True
+            print(f.read().rstrip("\n"))
+        return True
+
+    def finish(self, name, default_code=0):
+        code = self.exit_code(name)
+        if code is None:
+            code = default_code
+        return code
+
+    def missing(self, what):
+        sys.stderr.write(
+            "eval-harness: no fixture for %r in scenario %s\n"
+            % (what, os.path.basename(self.scenario))
+        )
+        if self.json:
+            print(
+                json.dumps(
+                    {
+                        "event": "step.fail",
+                        "step": "eval-harness",
+                        "msg": "eval harness has no fixture for this command",
+                        "error": "no fixture for %s" % what,
+                    }
+                )
+            )
+        return 1
+
+
+def guide_text(cfg):
+    path = cfg.get("guide")
+    if not path or not os.path.exists(path):
+        return "# self-host agent guide (eval harness: guide.md not found)\n"
+    with open(path) as f:
+        return f.read().replace("{{version}}", cfg.get("version", "dev-eval"))
+
+
+def installed_ids(h, requested):
+    """Expand Recipes so status shows only what this run installed."""
+    recipes = {}
+    if h.has("apps-list.json"):
+        data = json.load(open(h.path("apps-list.json")))
+        recipes = {r["id"]: r.get("apps", []) for r in data.get("recipes", [])}
+    out = []
+    for item in requested:
+        for app in recipes.get(item, [item]):
+            if app not in out:
+                out.append(app)
+    return out
+
+
+def project_status(h):
+    name = "status"
+    installed = os.path.join(h.state, "installed")
+    publication = os.path.join(h.state, "publication.json")
+    if h.has("status-installed.json") and (
+        os.path.isfile(installed)
+        or os.path.isfile(os.path.join(h.state, "setup"))
+        or os.path.isfile(publication)
+    ):
+        name = "status-installed"
+    if h.has("status-fixed.json") and os.path.isfile(
+        os.path.join(h.state, "lan_fixed")
+    ):
+        name = "status-fixed"
+    doc = json.load(open(h.path(name + ".json")))
+    if h.cfg.get("home"):
+        doc["home"] = h.cfg["home"]
+        doc["project"] = h.cfg["home"]
+    if os.path.isfile(installed):
+        wanted = set(open(installed).read().split())
+        if wanted != {"1"}:
+            doc["apps"] = [a for a in doc["apps"] if a["id"] in wanted]
+    recipes = os.path.join(h.state, "recipes.json")
+    if os.path.isfile(recipes):
+        selected = json.load(open(recipes))
+        for app in doc["apps"]:
+            if app["id"] in selected:
+                app.pop("recipe", None)
+                if selected[app["id"]]:
+                    app["recipe"] = selected[app["id"]]
+    if os.path.isfile(publication):
+        published = json.load(open(publication))["publish"]
+        addresses = {app["app"]: app["address"] for app in published}
+        for app in doc["apps"]:
+            if app["id"] in addresses:
+                app["addresses"] = list(
+                    dict.fromkeys([addresses[app["id"]]] + app.get("addresses", []))
+                )
+                app["url"] = addresses[app["id"]]
+        if addresses and "cloudflare" not in doc["access"]:
+            doc["access"].append("cloudflare")
+    doc.pop("dashboard", None)
+    for app in doc["apps"]:
+        if app["id"] == "homarr" and app.get("addresses"):
+            doc["dashboard"] = app["addresses"][0]
+    return name, doc
+
+
+def flag_values(argv, name):
+    values = []
+    for i, word in enumerate(argv):
+        value = None
+        if word == name and i + 1 < len(argv):
+            value = argv[i + 1]
+        elif word.startswith(name + "="):
+            value = word.split("=", 1)[1]
+        if value is not None:
+            values.extend(item.strip() for item in value.split(",") if item.strip())
+    return list(dict.fromkeys(values))
+
+
+def publication_plan(h):
+    plan = json.load(open(h.path("cloudflare-plan.json")))
+    domain = h.flags.get("--domain", "").strip().lower().rstrip(".")
+    if not re.fullmatch(r"([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}", domain):
+        raise ValueError("give a main domain on its own (--domain)")
+    apps = flag_values(h.argv, "--app")
+    emails = flag_values(h.argv, "--email")
+    if not apps or not emails:
+        raise ValueError(
+            "choose Apps individually (--app) and allowed emails (--email)"
+        )
+    _, status = project_status(h)
+    if set(apps) - {app["id"] for app in status["apps"]}:
+        raise ValueError("chosen App is not installed")
+    supported = {app["app"] for app in plan["publish"] + plan.get("refused", [])}
+    if set(apps) - supported:
+        raise ValueError("no publication fixture for chosen App")
+    current = []
+    path = os.path.join(h.state, "publication.json")
+    if os.path.isfile(path):
+        previous = json.load(open(path))
+        if previous["domain"] != domain:
+            raise ValueError("Apps are already published under " + previous["domain"])
+        current = previous["publish"]
+    plan["domain"], plan["emails"] = domain, emails
+    plan["publish"] = [
+        {
+            "app": app["app"],
+            "name": app["app"] + "." + domain,
+            "address": "https://" + app["app"] + "." + domain,
+        }
+        for app in plan["publish"]
+        if app["app"] in apps
+    ]
+    plan["refused"] = [app for app in plan.get("refused", []) if app["app"] in apps]
+    plan["current"] = current
+    plan["additions"] = [
+        app
+        for app in plan["publish"]
+        if app["name"] not in {p["name"] for p in current}
+    ]
+    plan["dropped"] = sorted(
+        app["name"]
+        for app in current
+        if app["name"] not in {p["name"] for p in plan["publish"]}
+    )
+    plan["risk"] = (
+        "This puts "
+        + ", ".join(app["address"] for app in plan["publish"])
+        + " on the internet. Anyone in the world can reach the login page "
+        "and try to get in; "
+        + "only "
+        + ", ".join(emails)
+        + " get past it, with a code sent to their email. "
+        "If the login page or an App has a flaw, "
+        "strangers could get in, and everything that passes through "
+        "is visible to Cloudflare."
+    )
+    for name in ("refused", "current", "additions", "dropped"):
+        if not plan[name]:
+            plan.pop(name)
+    return plan
+
+
+def main():
+    argv = sys.argv[1:]
+    marker = find_marker()
+    if marker is None:
+        sys.stderr.write(
+            "self-host: eval harness: run this from inside an eval run directory\n"
+        )
+        return 1
+
+    started = time.time()
+    with open(os.path.join(marker, "invocations.jsonl"), "a") as f:
+        f.write(
+            json.dumps(
+                {
+                    "ts": started,
+                    "turn": int(os.environ.get("SELF_HOST_EVAL_TURN", "1")),
+                    "argv": argv,
+                    "cwd": os.getcwd(),
+                }
+            )
+            + "\n"
+        )
+
+    h = Harness(marker, argv)
+    pos = h.positionals
+
+    if not pos:
+        return h.missing("(no command)") if h.json else print_help()
+    if pos[0] in ("--version", "version", "-version"):
+        print(h.cfg.get("version", "dev-eval"))
+        return 0
+
+    cmd = pos[0]
+    sub = pos[1] if len(pos) > 1 else ""
+
+    if "--help" in argv or "-h" in argv:
+        if h.has(os.path.join("help", cmd + ".txt")):
+            sys.stdout.write(open(h.path(os.path.join("help", cmd + ".txt"))).read())
+        else:
+            print(
+                "Usage: self-host %s [flags]. "
+                "Run `self-host skill` for the full guide." % cmd
+            )
+        return 0
+
+    if cmd == "skill":
+        sys.stdout.write(guide_text(h.cfg))
+        return 0
+
+    if cmd == "status":
+        if not h.has("status.json") and not os.path.isfile(
+            os.path.join(h.state, "installed")
+        ):
+            h.emit_doc("status")
+            return h.finish("status")
+        base, doc = project_status(h)
+        print(json.dumps(doc, indent=2))
+        code = h.finish(base)
+        if not code:
+            with open(os.path.join(h.state, "verified.json"), "w") as output:
+                json.dump({"ts": started, "status": doc}, output)
+        return code
+
+    if cmd == "profile":
+        if sub == "set":
+            h.emit_doc("profile-set")
+            with open(os.path.join(h.state, "experience"), "w") as f:
+                for p in pos[2:]:
+                    f.write(p + "\n")
+            return h.finish("profile-set")
+        experience = os.path.join(h.state, "experience")
+        if os.path.isfile(experience):
+            values = open(experience).read().splitlines()
+            print(json.dumps({"experience": values[-1] if values else ""}))
+        else:
+            h.emit_doc("profile")
+        return h.finish("profile")
+
+    if cmd == "doctor":
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        from dockerstate import docker_state
+
+        state = docker_state(h.marker)
+        if state != "ok" and h.emit_events("doctor-docker-" + state):
+            return 1
+        if not h.emit_events("doctor"):
+            return h.missing("doctor")
+        return h.finish("doctor")
+
+    if cmd == "apps":
+        if sub == "info":
+            app = pos[2] if len(pos) > 2 else ""
+            name = os.path.join("apps-info", app)
+            if h.emit_doc(name):
+                return h.finish(name)
+            return h.missing("apps info " + app)
+        if h.emit_doc("apps-list"):
+            return h.finish("apps-list")
+        return h.missing("apps list")
+
+    if cmd == "debug":
+        app = pos[1] if len(pos) > 1 else ""
+        name = os.path.join("debug", app)
+        if h.has(name + ".json"):
+            doc = json.load(open(h.path(name + ".json")))
+            _, status = project_status(h)
+            for current in status["apps"]:
+                if current["id"] == app:
+                    doc["setup"] = current["setup"]
+                    doc["failed_steps"] = [
+                        step
+                        for step in current.get("steps", [])
+                        if step["status"] in ("fail", "manual")
+                    ]
+            print(json.dumps(doc, indent=2))
+            return h.finish(name)
+        return h.missing("debug " + app)
+
+    if cmd == "credentials":
+        installed = os.path.join(h.state, "installed")
+        if h.has("credentials.json") and os.path.exists(installed):
+            with open(installed) as source:
+                wanted = set(source.read().split())
+            with open(h.path("credentials.json")) as source:
+                doc = json.load(source)
+            if wanted != {"1"}:
+                doc["apps"] = {
+                    app: secrets
+                    for app, secrets in doc["apps"].items()
+                    if app in wanted
+                }
+            print(json.dumps(doc, indent=2))
+            return h.finish("credentials")
+        if h.emit_doc("credentials"):
+            return h.finish("credentials")
+        return h.missing("credentials")
+
+    if cmd == "logs":
+        app = pos[1] if len(pos) > 1 else ""
+        name = os.path.join("logs", app + ".txt")
+        if h.has(name):
+            sys.stdout.write(open(h.path(name)).read())
+            return h.finish(os.path.join("logs", app))
+        return h.missing("logs " + app)
+
+    if cmd == "access":
+        if sub == "export":
+            if h.emit_doc("access-export"):
+                return h.finish("access-export")
+            print(json.dumps({"apps": [], "warnings": []}))
+            return 0
+        return h.missing("access " + sub)
+
+    if cmd == "cloudflare":
+        if sub == "plan":
+            if not h.has("cloudflare-plan.json"):
+                return h.missing("cloudflare plan")
+            try:
+                plan = publication_plan(h)
+            except ValueError as error:
+                sys.stderr.write(str(error) + "\n")
+                return 1
+            print(json.dumps(plan, indent=2))
+            return h.finish("cloudflare-plan")
+        if (
+            sub == "publish"
+            and h.flags.get("--set-file", "").startswith("cloudflare.api_token=")
+            and h.flags.get("--set-file", "").partition("=")[2]
+            and h.flags.get("--accept-public")
+            and h.has("cloudflare-publish-ok.jsonl")
+        ):
+            try:
+                plan = publication_plan(h)
+                if not plan["publish"]:
+                    raise ValueError("no chosen App may be published by this fixture")
+            except ValueError as error:
+                sys.stderr.write(str(error) + "\n")
+                return 1
+            h.emit_events("cloudflare-publish-ok", domain=plan["domain"])
+            code = h.finish("cloudflare-publish-ok")
+            if code:
+                return code
+            with open(os.path.join(h.state, "publication.json"), "w") as output:
+                json.dump(plan, output)
+            return 0
+        if not h.emit_events("cloudflare-" + sub):
+            return h.missing("cloudflare " + sub)
+        return h.finish("cloudflare-" + sub)
+
+    if cmd == "install":
+        before = []
+        if h.has("status.json") or os.path.isfile(os.path.join(h.state, "installed")):
+            _, status = project_status(h)
+            before = status["apps"]
+        ids = set(installed_ids(h, pos[1:]))
+        if not h.emit_events("install", only_apps=ids):
+            return h.missing("install")
+        code = h.finish("install")
+        if code:
+            return code
+        existing = [app["id"] for app in before]
+        selected = {app["id"]: app.get("recipe", "") for app in before}
+        catalog_recipes = json.load(open(h.path("apps-list.json"))).get("recipes", [])
+        recipes = {}
+        for target in pos[1:]:
+            for recipe in catalog_recipes:
+                if recipe["id"] == target:
+                    for app in recipe["apps"]:
+                        recipes.setdefault(app, target)
+        for app in installed_ids(h, pos[1:]):
+            selected.setdefault(app, recipes.get(app, ""))
+            if app not in existing:
+                existing.append(app)
+        with open(os.path.join(h.state, "installed"), "w") as f:
+            f.write("\n".join(existing) + "\n")
+        with open(os.path.join(h.state, "recipes.json"), "w") as output:
+            json.dump(selected, output)
+        if h.cfg.get("home"):
+            os.makedirs(h.cfg["home"], exist_ok=True)
+        return 0
+
+    if cmd == "setup":
+        if not h.emit_events("setup"):
+            return h.missing("setup")
+        code = h.finish("setup")
+        if code:
+            return code
+        with open(os.path.join(h.state, "setup"), "w") as f:
+            f.write("1\n")
+        return 0
+
+    if cmd == "config":
+        if sub == "review" and not h.flags.get("--yes"):
+            if h.emit_doc("config-review"):
+                return h.finish("config-review")
+            return h.missing("config review")
+        name = "config-" + (sub or "set")
+        if sub == "review":
+            name = "config-set"
+        if not h.emit_events(name):
+            return h.missing("config " + sub)
+        if sub == "review" or "LAN_IP=auto" in pos or "LAN_IP=auto" in h.argv:
+            with open(os.path.join(h.state, "lan_fixed"), "w") as f:
+                f.write("1\n")
+        return h.finish("config-" + (sub or "set"))
+
+    if cmd in (
+        "start",
+        "stop",
+        "restart",
+        "up",
+        "down",
+        "update",
+        "remove",
+        "backup",
+        "restore",
+        "self-update",
+        "feedback",
+    ):
+        if not h.emit_events(cmd):
+            return h.missing(cmd)
+        return h.finish(cmd)
+
+    return h.missing(cmd)
+
+
+def print_help():
+    print("self-host (eval harness)")
+    print(
+        "Commands: doctor, install, setup, status, profile, apps, debug, credentials,"
+    )
+    print(
+        "  start, stop, restart, up, down, update, remove, config, cloudflare, backup,"
+    )
+    print("  restore, access, logs, feedback, self-update, skill")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
