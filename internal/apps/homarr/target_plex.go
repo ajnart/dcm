@@ -26,6 +26,7 @@ func plexTarget() target {
 			return nil
 		},
 		verify: verifyPlex,
+		stats:  verifyPlexStats,
 	}
 }
 
@@ -87,25 +88,15 @@ func verifyPlex(ctx context.Context, from, to *helpers.H, integrationID string) 
 			return errors.New("Homarr returned media releases from a different integration")
 		}
 	}
-	started := from.Now().UnixMilli()
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New("Homarr could not refresh Plex playback statistics; retry self-host setup homarr")
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	if !ok || updatedAt < float64(started) {
+	return nil
+}
+
+func verifyPlexStats(sample statsSample) error {
+	if sample.updatedAt < sample.startedAt {
 		return errors.New("Homarr Plex playback statistics were not freshly verified; retry self-host setup homarr")
 	}
-	statistics, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr returned incomplete Plex playback statistics")
-	}
-	count, ok := statistics["sessions"].(float64)
-	if !ok || count < 0 || math.Trunc(count) != count {
+	count, ok := sample.values["sessions"].(float64)
+	if sample.units["sessions"] != "count" || !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
 		return errors.New("Homarr did not return a valid Plex playback session count")
 	}
 	return nil

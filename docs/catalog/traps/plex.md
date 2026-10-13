@@ -67,8 +67,12 @@ Checks require explicit native library/session/release container sizes,
 reject anonymous library access, validate present native identifiers, and
 accept authenticated explicit zeros. Through the returned Homarr integration
 ID, verification checks stream and release responses for missing fields or
-source errors, then forces a read-only Stats refresh and requires a fresh,
-error-free `sessions` count. An empty stream list is not playback proof.
+source errors, then the shared SDK reads the Stats catalog and forces one
+read-only refresh.
+The pure `verifyPlexStats` callback requires `count` units and a finite, integral,
+nonnegative `sessions` value from that same advancing sample, with its timestamp
+at or after request start. Counts are not compared with separately cached
+streams. An empty stream list is not playback proof.
 Homarr's release adapter can skip failing per-library episode requests or
 items without images; successful release queries do not prove completeness.
 Its stream/release query responses can be cached; the Stats refresh timestamp
