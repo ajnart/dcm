@@ -44,15 +44,13 @@ import {
   AlertTriangle,
   CheckCircle,
   ExternalLink,
-  Github,
+  GitPullRequest,
   Info,
-  PlusCircle,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { GradientButton } from "./ui/gradient-button"
 
 const CATEGORIES = [
   "Media",
@@ -157,14 +155,12 @@ export function ContainerSubmissionForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <GradientButton
-          gradientFrom="from-green-500/20"
-          gradientTo="to-green-400/20"
-          className="[animation-delay:300ms] motion-safe:animate-slide-in-right"
+        <button
+          type="button"
+          className="px-2 py-1 text-muted-foreground text-sm transition-colors hover:text-pink"
         >
-          <PlusCircle size={18} />
-          <span>Suggest container</span>
-        </GradientButton>
+          Submit container
+        </button>
       </DialogTrigger>
       <DialogContent className="max-h-[95vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
@@ -288,15 +284,16 @@ export function ContainerSubmissionForm() {
                   </FormControl>
                   <p className="text-muted-foreground text-xs">
                     We recommend using icons from{" "}
-                    <a 
-                      href="https://github.com/homarr-labs/dashboard-icons" 
-                      target="_blank" 
+                    <a
+                      href="https://github.com/homarr-labs/dashboard-icons"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="font-medium text-primary underline underline-offset-4"
                     >
                       homarr-labs/dashboard-icons
                     </a>
-                    . Format: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/[name].svg
+                    . Format:
+                    https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/[name].svg
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -432,7 +429,7 @@ export function ContainerSubmissionForm() {
                 onClick={openGitHubIssue}
                 className="flex items-center gap-2"
               >
-                <Github size={18} />
+                <GitPullRequest size={18} />
                 <span>Open GitHub Issue template directly</span>
               </Button>
 

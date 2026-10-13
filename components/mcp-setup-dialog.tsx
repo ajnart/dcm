@@ -137,25 +137,14 @@ export function McpSetupDialog() {
 
   return (
     <Dialog>
-      <div className="relative inline-flex">
-        <DialogTrigger asChild>
-          <Button
-            size="sm"
-            className="group relative overflow-hidden border border-cyan-100/40 bg-cyan-50/20 px-4 py-2 text-primary-foreground shadow-md transition-all duration-300 hover:scale-105 hover:bg-cyan-50/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
-          >
-            <Plug aria-hidden="true" />
-            <span className="hidden sm:inline">MCP setup</span>
-            <span className="sm:hidden">MCP</span>
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-blue-300/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            />
-          </Button>
-        </DialogTrigger>
-        <Badge className="-right-2 -top-2 pointer-events-none absolute h-5 border-cyan-100/50 bg-cyan-100 px-1.5 font-bold text-[10px] text-cyan-950 shadow-md">
-          NEW
-        </Badge>
-      </div>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="px-2 py-1 text-muted-foreground text-sm transition-colors hover:text-pink"
+        >
+          MCP
+        </button>
+      </DialogTrigger>
 
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-5xl gap-0 overflow-y-auto p-0 sm:w-full">
         <DialogHeader className="border-b bg-muted/30 px-5 py-5 pr-14 text-left sm:px-6">

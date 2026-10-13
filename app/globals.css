@@ -1,223 +1,208 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "tailwindcss-motion";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --breakpoint-xs: 30rem;
+
+  --color-bg: #1e1d2a;
+  --color-panel: #23222f;
+  --color-deep: #171621;
+  --color-line: #3a3947;
+  --color-ink: #e4e4ea;
+  --color-dim: #5c5c68;
+  --color-pink: #ff87d7;
+  --color-purple: #5f00ff;
+  --color-violet: #a77bff;
+  --color-green: #00d787;
+  --color-gold: #ffaf00;
+  --color-cyan: #5fd7ff;
+  --color-red: #ff5f6d;
+
+  --font-sans: ui-monospace, "JetBrains Mono", "Berkeley Mono", "SF Mono",
+    SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: var(--font-sans);
+
+  --shadow-2xs: 2px 2px 0 var(--color-deep);
+  --shadow-xs: 3px 3px 0 var(--color-deep);
+  --shadow-sm: 4px 4px 0 var(--color-deep);
+  --shadow-md: 6px 6px 0 var(--color-deep);
+  --shadow-lg: 8px 8px 0 var(--color-deep);
+  --shadow-xl: 8px 8px 0 var(--color-deep);
+  --shadow-2xl: 12px 12px 0 var(--color-deep);
+
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-in-left: slide-in-left 0.3s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--color-panel);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--color-panel);
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-pink);
+  --color-primary-foreground: var(--color-bg);
+  --color-secondary: color-mix(
+    in oklab,
+    var(--color-purple) 22%,
+    var(--color-panel)
+  );
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-deep);
+  --color-muted-foreground: #8a8a96;
+  --color-accent: color-mix(in oklab, var(--color-pink) 14%, var(--color-panel));
+  --color-accent-foreground: var(--color-ink);
+  --color-destructive: var(--color-red);
+  --color-destructive-foreground: var(--color-bg);
+  --color-success: var(--color-green);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-pink);
+}
+
+@utility container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+}
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 215 70% 50%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.3rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: dark;
+    font-size: 15px;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 215 70% 50%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-line);
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
+  html {
+    scroll-behavior: smooth;
   }
+
   body {
-    @apply bg-background text-foreground;
+    margin: 0;
+    overflow-x: clip;
+    background-color: var(--color-bg);
+    background-image: linear-gradient(var(--color-deep) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-deep) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="combobox"]:focus-visible {
+    outline: 2px solid var(--color-pink);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  kbd {
+    border: 1px solid var(--color-line);
+    background: var(--color-deep);
+    padding: 0 0.3em;
+    color: var(--color-cyan);
   }
 }
 
-@layer utilities {
-  .animate-pulse-subtle {
-    animation: pulse-subtle 3s infinite;
-  }
-
-  .animate-shimmer {
-    animation: shimmer 2s infinite;
-  }
-
-  @keyframes pulse-subtle {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.85;
-    }
-  }
-
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
+* {
+  border-radius: 0;
 }
 
 .bg-stripes {
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0.05) 75%,
-    transparent 75%,
-    transparent
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--color-pink) 9%, transparent) 0 14px,
+    transparent 14px 28px
   );
-  background-size: 40px 40px;
-}
-/* Adjust stripe color for dark mode */
-.dark .bg-stripes {
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0.05) 75%,
-    transparent 75%,
-    transparent
-  );
-  background-size: 40px 40px;
 }
 
-/* Syntax highlighting styles for starry-night */
-.syntax-highlighted {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
-  tab-size: 2;
+.card-top {
+  position: relative;
 }
 
-/* Comment */
-.syntax--comment {
-  color: #6a737d;
+.card-top::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: transparent;
+  transition: background 0.15s;
 }
 
-/* Keyword & Operator */
-.syntax--keyword,
-.syntax--operator {
-  color: #d73a49;
+.card-top:hover::before {
+  background: color-mix(in oklab, var(--color-pink) 40%, transparent);
 }
 
-/* String */
-.syntax--string {
-  color: #032f62;
-}
-
-/* Variable */
-.syntax--variable,
-.syntax--property {
-  color: #005cc5;
-}
-
-/* Function */
-.syntax--function {
-  color: #6f42c1;
-}
-
-/* Constant */
-.syntax--constant {
-  color: #0366d6;
-}
-
-/* Dark mode syntax highlighting */
-.dark .syntax--comment {
-  color: #8b949e;
-}
-
-.dark .syntax--keyword,
-.dark .syntax--operator {
-  color: #ff7b72;
-}
-
-.dark .syntax--string {
-  color: #a5d6ff;
-}
-
-.dark .syntax--variable,
-.dark .syntax--property {
-  color: #79c0ff;
-}
-
-.dark .syntax--function {
-  color: #d2a8ff;
-}
-
-.dark .syntax--constant {
-  color: #79c0ff;
+.card-top[aria-pressed="true"]::before {
+  background: var(--color-pink);
 }

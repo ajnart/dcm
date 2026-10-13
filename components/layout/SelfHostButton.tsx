@@ -1,27 +1,16 @@
-"use client"
-
-import { GradientButton } from "@/components/ui/gradient-button"
 import { buildSelfHostLink } from "@/lib/selfhost"
-import { Rocket } from "lucide-react"
-import posthog from "posthog-js"
+import { ArrowUpRight } from "lucide-react"
 
-/** Link the header to the self-host landing page. */
 export function SelfHostButton() {
   return (
-    <GradientButton
+    <a
       href={buildSelfHostLink()}
-      external
-      gradientFrom="from-emerald-500/20"
-      gradientTo="to-teal-400/20"
-      onClick={() =>
-        posthog.capture("selfhost_link_clicked", {
-          source: "header",
-          apps: [],
-        })
-      }
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:-translate-x-px hover:-translate-y-px inline-flex items-center gap-1.5 border border-pink bg-pink px-3 py-1.5 font-bold text-bg text-sm shadow-xs transition-all hover:shadow-sm"
     >
-      <Rocket />
-      <span>Try self-host</span>
-    </GradientButton>
+      self-host
+      <ArrowUpRight className="h-4 w-4" />
+    </a>
   )
 }

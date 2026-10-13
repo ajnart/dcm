@@ -1,14 +1,8 @@
 "use client"
 
-import {
-  ComposeEditor,
-  configureMonacoThemes,
-} from "@/components/editors/MonacoEditor"
+import { ComposeEditor } from "@/components/editors/MonacoEditor"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
-import type { editor } from "monaco-editor"
-import { useTheme } from "next-themes"
-import { useEffect, useRef, useState } from "react"
 
 interface TemplateViewerProps {
   content: string
@@ -25,38 +19,6 @@ export function TemplateViewer({
   language = "yaml",
   readOnly = true,
 }: TemplateViewerProps) {
-  const [mounted, setMounted] = useState(false)
-  const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
-  const { resolvedTheme } = useTheme()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted || !composeEditorRef.current) return
-
-    const currentTheme =
-      resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-    composeEditorRef.current.updateOptions({ theme: currentTheme })
-  }, [resolvedTheme, mounted])
-
-  const handleComposeEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-  ) => {
-    composeEditorRef.current = editor
-
-    if (mounted) {
-      const currentTheme =
-        resolvedTheme === "dark" ? "tailwind-dark" : "tailwind-light"
-      editor.updateOptions({ theme: currentTheme })
-    }
-  }
-
-  const handleBeforeMount = (monaco: typeof import("monaco-editor")) => {
-    configureMonacoThemes(monaco)
-  }
-
   const handleDownload = () => {
     // Create a blob with the content
     const blob = new Blob([content], { type: "text/plain" })
@@ -77,14 +39,8 @@ export function TemplateViewer({
     URL.revokeObjectURL(url)
   }
 
-  const currentTheme = !mounted
-    ? "vs"
-    : resolvedTheme === "dark"
-      ? "tailwind-dark"
-      : "tailwind-light"
-
   return (
-    <div className="rounded-md border bg-card">
+    <div className="border bg-card shadow-md">
       <div className="flex items-center justify-between border-b p-4">
         <div>
           <h2 className="font-semibold text-xl">
@@ -109,13 +65,7 @@ export function TemplateViewer({
         </Button>
       </div>
       <div className="h-[700px] w-full">
-        <ComposeEditor
-          value={content}
-          onMount={handleComposeEditorDidMount}
-          beforeMount={handleBeforeMount}
-          theme={currentTheme}
-          readOnly={readOnly}
-        />
+        <ComposeEditor content={content} readOnly={readOnly} />
       </div>
     </div>
   )
