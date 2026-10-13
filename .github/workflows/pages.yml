@@ -1,0 +1,50 @@
+name: pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "install.sh"
+      - "scripts/build-installer-site.sh"
+      - "video/reel/out/selfhost-reel.mp4"
+      - ".github/workflows/pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Build the allowlisted site
+        run: |
+          bash scripts/build-installer-site.sh "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site/public"
+          shasum -a 256 -c install.sh.sha256
+          bash -n install.sh
+          test ! -e AGENTS.md && test ! -e go.mod
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: ${{ runner.temp }}/site/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1

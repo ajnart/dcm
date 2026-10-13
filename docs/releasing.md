@@ -98,32 +98,37 @@ on the strength of the site's HTTP status.
 
 ## Installer site
 
-`site/wrangler.toml` binds only `selfhost.ajnart.dev`, with `workers.dev` and
-preview URLs disabled. Cloudflare Workers serves static assets without a
-GitHub connection, token, backend or source checkout. Deployment changes no
+GitHub Pages serves the site at `https://self-host.fyi`. The `pages` workflow
+(`.github/workflows/pages.yml`) runs on pushes to `main` that touch `site/`,
+`install.sh`, the builder or the showreel, and on manual dispatch. It builds the
+allowlisted tree, checks the installer checksum and the absence of source
+files, then publishes it with `actions/deploy-pages`. Publishing changes no
 Project and publishes no release archives.
 
-Use managed Wrangler authentication (`wrangler whoami`), never extract tokens.
-Before attaching the custom domain, check the active `ajnart.dev` zone, the
-exact hostname's DNS records and Worker domain bindings. Stop on a foreign
-record or binding instead of overwriting it. Let the custom domain create its
-own DNS record and certificate; do not create a second DNS record.
+One-time setup, done by the maintainer: in the repository's Pages settings
+choose **GitHub Actions** as the source and `self-host.fyi` as the custom
+domain, add the registrar's DNS records for the apex (GitHub's `A`/`AAAA`
+addresses) and `www` (`CNAME` to `ajnart.github.io`), verify the domain, then
+enable **Enforce HTTPS**. Pages on a private repository needs a paid plan, and
+the workflow needs Actions minutes.
 
-Build into a new directory outside the checkout. The builder copies only
-`index.html`, `site.css`, `js/*.js`, `catalog.js`, `catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons, `site.webmanifest`, `_headers`, the
-showreel from `video/reel/out/selfhost-reel.mp4` as `reel.mp4`,
-`install.sh` and `install.sh.sha256` into `public/`. `catalog.js` feeds the
-landing page's browser playground; regenerate it with
-`go run ./tools/sitecatalog` after catalog changes, and `intro.json`, the
-onboarding Intro recorded from `internal/intro`, with `go run ./tools/introframes`. It refuses an existing destination and never copies the repository,
-hidden files, service configurations or binaries. The default build uses
-`ajnart/selfhost-skills` without GitHub authentication:
+The builder copies only `index.html`, `site.css`, `js/*.js`, `catalog.js`,
+`catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons,
+`site.webmanifest`, the showreel from `video/reel/out/selfhost-reel.mp4` as
+`reel.mp4`, `install.sh` and `install.sh.sha256` into `public/`, and writes the
+`CNAME` file. `catalog.js` feeds the landing page's browser playground;
+regenerate it with `go run ./tools/sitecatalog` after catalog changes, and
+`intro.json`, the onboarding Intro recorded from `internal/intro`, with
+`go run ./tools/introframes`. The builder refuses a destination inside the
+checkout or one that exists, and never copies the repository, hidden files,
+service configurations or binaries. Pages cannot set response headers, so the
+Content Security Policy lives in a `<meta>` tag in `index.html`. To preview the
+exact published tree locally:
 
 ```bash
 stage="$(mktemp -d)"
 bash scripts/build-installer-site.sh "$stage/deploy"
-wrangler deploy --cwd "$stage/deploy" --dry-run
-wrangler deploy --cwd "$stage/deploy"
+python3 -m http.server 8000 --directory "$stage/deploy/public"
 ```
 
 After a confirmed rename, `SITE_RELEASE_REPO=ajnart/selfhost` explicitly selects
@@ -153,10 +158,10 @@ installation, self-update and any required live rename redirect remain external
 verification gates. The evidence below describes the earlier deployed version;
 this source update does not redeploy it or publish a new CLI release.
 
-References: [static assets](https://developers.cloudflare.com/workers/static-assets/get-started/)
-and [custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+References: [custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+and [custom domains](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site).
 
-### Deployment evidence, October 11, 2026
+### Deployment evidence, October 11, 2026 (former Cloudflare Worker)
 
 - Worker `selfhost-installer`, version `5fd5421a-313a-4c5b-9b1d-145791dd4920`,
   serves only the allowlisted assets at `https://selfhost.ajnart.dev`.

@@ -24,7 +24,7 @@ case "$output" in
 esac
 mkdir "$output"
 mkdir "$output/public"
-for name in index.html site.css catalog.js catalog.json logo.svg og.png intro.json reel.jpg apple-touch-icon.png icon-192.png icon-512.png site.webmanifest _headers; do
+for name in index.html site.css catalog.js catalog.json logo.svg og.png intro.json reel.jpg apple-touch-icon.png icon-192.png icon-512.png site.webmanifest; do
   command cp "$root/site/$name" "$output/public/$name"
 done
 command cp "$root/video/reel/out/selfhost-reel.mp4" "$output/public/reel.mp4"
@@ -32,7 +32,7 @@ mkdir "$output/public/js"
 for path in "$root"/site/js/*.js; do
   command cp "$path" "$output/public/js/"
 done
-command cp "$root/site/wrangler.toml" "$output/wrangler.toml"
+printf 'self-host.fyi\n' > "$output/public/CNAME"
 awk -v repo="$repo" '/^DEFAULT_REPO=/ { print "DEFAULT_REPO=\"" repo "\""; next } { print }' "$root/install.sh" > "$output/public/install.sh"
 bash -n "$output/public/install.sh"
 (cd "$output/public" && shasum -a 256 install.sh > install.sh.sha256)
