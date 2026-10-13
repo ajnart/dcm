@@ -1,0 +1,67 @@
+internal/apps/beszel/beszel.go
+  s_8e166456c2ed73::t_32fffd1f0e303c 15,376-383,395-399
+internal/apps/bookstack/bookstack.go
+  s_8e166456c2ed73::t_8cb5f4ec2082eb 18,157-162,175-181
+internal/apps/fireflyiii/fireflyiii.go
+  s_8e166456c2ed73::t_5aa0704650de0f 15,158-164,177-180
+internal/apps/grafana/grafana.go
+  s_378d5db6c5f6de::t_5491719a18a6d2 13,81-87,90-94
+internal/apps/immich/immich.go
+  s_378d5db6c5f6de::t_1610a503b8113d 13,157-163,185-188
+internal/apps/jellyfin/jellyfin.go
+  s_8e166456c2ed73::t_197b11eea70019 17,344-355
+internal/apps/keycloak/keycloak.go
+  s_378d5db6c5f6de::t_316270edb03050 14,128-133,136-139
+internal/apps/mayanedms/mayanedms.go
+  s_378d5db6c5f6de::t_94abdf82abc657 187-191,194-197
+internal/apps/nextcloud/nextcloud.go
+  s_378d5db6c5f6de::t_44d0be0d508a2e 169-175,178-182
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  s_8e166456c2ed73::t_61cf0f4c7701c3 13,141-147,164-168
+internal/apps/nodered/nodered.go
+  s_378d5db6c5f6de::t_e68cbfcd974088 14,130-136,139-143
+internal/apps/openwebui/openwebui.go
+  s_378d5db6c5f6de::t_45157ebd159d1b 14,94-101,104-109
+internal/apps/pangolin/pangolin.go
+  s_8e166456c2ed73::t_8f06a3a5562f52 16,237-243,277-280
+internal/apps/paperlessngx/paperlessngx.go
+  s_378d5db6c5f6de::t_e62605d2d8793e 145-151,154-158
+internal/apps/photoprism/photoprism.go
+  s_378d5db6c5f6de::t_c3d32f8f44699a 13,112-118,121-125
+internal/apps/portainer/portainer.go
+  s_378d5db6c5f6de::t_9af6cb213a58d2 13,103-106,109-112
+internal/apps/seafile/seafile.go
+  s_378d5db6c5f6de::t_6a0a2626b60813 155-162,165-169
+internal/apps/slskd/slskd.go
+  s_378d5db6c5f6de::t_69012d5a6a6b3c 14,125-131,134-138
+internal/apps/speedtesttracker/speedtesttracker.go
+  s_378d5db6c5f6de::t_c94af62daac3f0 21,130-137,140-145
+internal/apps/wud/wud.go
+  s_378d5db6c5f6de::t_92da6cf39aff91 20,224-229,232-235
+internal/firstadmin/firstadmin.go
+  s_378d5db6c5f6de::t_fe2f937567b884 136-141,148,151,157,198-211,213-215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c949c6c2896c62f8ddf15ed24a28dedf44a64a95",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
