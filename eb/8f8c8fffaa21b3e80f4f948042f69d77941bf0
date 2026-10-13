@@ -1,0 +1,37 @@
+README.md
+  s_378d5db6c5f6de::t_0fd0c9a0add022 21,112,126
+docs/releasing.md
+  s_378d5db6c5f6de::t_f0b90b64080a97 126,129,147-148
+install.sh
+  s_378d5db6c5f6de::t_140f2a9c746ee8 4
+internal/release/release.go
+  s_378d5db6c5f6de::t_07e758b21aec91 44
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_ae0ed167d6eca1 27,38
+scripts/verify-install.sh
+  s_378d5db6c5f6de::t_91b61c41b30a58 32
+site/index.html
+  s_378d5db6c5f6de::t_e2636978d7ce68 193,196,227
+site/llms.txt
+  s_378d5db6c5f6de::t_455927ee7fc11e 1-142
+skills/self-host/SKILL.md
+  s_378d5db6c5f6de::t_eba025a3fb599a 14
+tools/sitecatalog/main.go
+  s_378d5db6c5f6de::t_5faf3eb86b3d41 8,97-99,104-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eb8f8c8fffaa21b3e80f4f948042f69d77941bf0",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
