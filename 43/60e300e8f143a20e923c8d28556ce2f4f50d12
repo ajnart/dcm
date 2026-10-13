@@ -1,0 +1,18 @@
+.github/ISSUE_TEMPLATE/bug_report.yml
+  h_d6e478ca18e517 1-83
+.github/ISSUE_TEMPLATE/feature_request.yml
+  h_d6e478ca18e517 1-38
+docs/agents/filing-issues.md
+  h_d6e478ca18e517 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4360e300e8f143a20e923c8d28556ce2f4f50d12",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
