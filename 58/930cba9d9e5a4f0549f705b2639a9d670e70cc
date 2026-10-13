@@ -1,0 +1,154 @@
+internal/tui/folderpicker_test.go
+  h_d6e478ca18e517 233
+internal/tui/intro.go
+  h_d6e478ca18e517 1-291
+internal/tui/model.go
+  h_d6e478ca18e517 18,176-179,254-257,266-267,432,439-440,457-460,468-478,557-559,583-585,802-803
+internal/tui/onboarding.go
+  h_d6e478ca18e517 21,31,40,71-75,85-88,110,584,589,596,598,610,612,624,626,658,888,890,920,922,993-1005,1007-1012,1016-1018,1020,1030,1033-1036,1041,1043,1050-1076
+internal/tui/onboarding_flow_test.go
+  h_d6e478ca18e517 83,88,159,161,163-164,334-337,344
+internal/tui/onboarding_selection_golden_test.go
+  h_d6e478ca18e517 34
+internal/tui/onboarding_telemetry_test.go
+  h_d6e478ca18e517 37,281-286
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 7,12,52-53,59,69,73-78,201,221,263,281-285,292-293,297,303-304,311,425,520-521,580,582-587,655,1039,1059,1088,1239
+internal/tui/preboot.go
+  h_d6e478ca18e517 42-43,45
+internal/tui/preboot_test.go
+  h_d6e478ca18e517 65
+internal/tui/recipes_test.go
+  h_d6e478ca18e517 29
+internal/tui/testdata/easy-names-onboarding-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/easy-names-onboarding.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-bring-your-own-note-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-bring-your-own-note.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-cloudflare-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-cloudflare.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-custom-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-custom.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-local-focus-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-local-focus.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-names-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-names.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-selected-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-selected.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-tailscale-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access-tailscale.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-access.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-error-120x30.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-error-80x24.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-intro-warning-narrow.golden
+  h_d6e478ca18e517 1-24
+internal/tui/testdata/onboarding-intro-warning.golden
+  h_d6e478ca18e517 1-30
+internal/tui/testdata/onboarding-look-focus-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-look-focus.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-look-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-look-selected-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-look-selected.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-look.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-review-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-review.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-tailscale-input-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-tailscale-input.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-welcome-focus-narrow.golden
+  h_d6e478ca18e517 3,19,24
+internal/tui/testdata/onboarding-welcome-focus.golden
+  h_d6e478ca18e517 3,6-9,24,30
+internal/tui/testdata/onboarding-welcome-narrow.golden
+  h_d6e478ca18e517 3,19,24
+internal/tui/testdata/onboarding-welcome-saved-profile-narrow.golden
+  h_d6e478ca18e517 3,24
+internal/tui/testdata/onboarding-welcome-saved-profile.golden
+  h_d6e478ca18e517 3,9-12,30
+internal/tui/testdata/onboarding-welcome-selected-narrow.golden
+  h_d6e478ca18e517 3,19,24
+internal/tui/testdata/onboarding-welcome-selected.golden
+  h_d6e478ca18e517 3,6-9,24,30
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  h_d6e478ca18e517 3,24
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  h_d6e478ca18e517 3,5-8,23,30
+internal/tui/testdata/onboarding-welcome.golden
+  h_d6e478ca18e517 3,6-9,24,30
+internal/tui/testdata/onboarding-what-default-focus-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-default-focus.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-recipe-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-recipe.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-selected-input-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what-selected-input.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-what.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where-folders-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where-folders.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where-host-settings-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where-host-settings.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-where.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-who-narrow.golden
+  h_d6e478ca18e517 3
+internal/tui/testdata/onboarding-who.golden
+  h_d6e478ca18e517 3
+internal/tui/view.go
+  h_d6e478ca18e517 608-617
+internal/tui/welcome.go
+  h_d6e478ca18e517 1-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58930cba9d9e5a4f0549f705b2639a9d670e70cc",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
