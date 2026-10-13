@@ -6,8 +6,7 @@ import (
 	"github.com/ajnart/self-host/internal/scene"
 )
 
-// Palette is the pre-boot screen's own set of colours: it is the one screen
-// that may use several.
+// Palette is Pre-boot's own set of colours, shared with the Intro.
 type Palette = scene.Palette
 
 // Dark is the palette for a dark terminal.

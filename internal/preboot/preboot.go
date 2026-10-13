@@ -1,6 +1,6 @@
 // Package preboot draws the pre-boot screen: the full-screen scene shown
 // while the first install pulls its images. It is a parallax starfield, with
-// aurora ribbons, shooting stars and sparkles around a pulsing ◆, the pull's
+// aurora ribbons, shooting stars and sparkles around the Logo, the pull's
 // bar and a friendly line on how long is left. Its exit stretches the stars
 // into streaks and then wipes the Dashboard in along a slanted edge.
 //
