@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/beszel"
@@ -61,14 +62,24 @@ type target struct {
 	id   string
 	name string
 	// kind is the Homarr integration kind; empty means tile only.
-	kind     string
-	internal func(to *helpers.H) string
-	secrets  func(from, to *helpers.H) []secret
-	widgets  []widget
-	verify   func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	kind      string
+	internal  func(to *helpers.H) string
+	secrets   func(from, to *helpers.H) []secret
+	widgets   []widget
+	recovery  string
+	preflight func(ctx context.Context, from, to *helpers.H) error
+	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
+	stats     func(statsSample) error
 }
 
 func fixed(u string) func(*helpers.H) string { return func(*helpers.H) string { return u } }
+
+func (t target) credentials(from, to *helpers.H) []secret {
+	if t.secrets == nil {
+		return []secret{}
+	}
+	return t.secrets(from, to)
+}
 
 func apiKeySecret(_, to *helpers.H) []secret {
 	return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("api_key"))}}
@@ -142,8 +153,14 @@ func iconURL(id string) string {
 }
 
 func (t target) hint(from *helpers.H) string {
+	if t.recovery != "" {
+		return t.recovery
+	}
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
+	}
+	if t.id == "frigate" {
+		return "Frigate's Homarr Link requires trusted HTTPS on authenticated port 8971. The default HTTP starter cannot be linked. Obtain explicit approval for Project-scoped private TLS and certificate trust in both Homarr and the CLI, then retry self-host setup frigate and self-host setup homarr. Keep authentication enabled on port 8971; do not use port 5000, bypass certificate verification, or enable public Access."
 	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
@@ -220,8 +237,16 @@ func (t target) findApp(ctx context.Context, h *helpers.H, pingURL string) (stri
 	if err != nil {
 		return "", false, err
 	}
+	recorded := managedAppIDs(h)[t.id]
+	if recorded != "" {
+		for _, item := range apps {
+			if appID(item) == recorded && !strings.HasPrefix(stringField(item, "description"), retainedTileMarker) {
+				return recorded, true, nil
+			}
+		}
+	}
 	for _, item := range apps {
-		owned := stringField(item, "description") == installedTileMarker+t.id || appID(item) == managedAppIDs(h)[t.id]
+		owned := stringField(item, "description") == installedTileMarker+t.id
 		if owned && stringField(item, "pingUrl") == pingURL {
 			return appID(item), true, nil
 		}
@@ -234,7 +259,10 @@ func listIntegrations(ctx context.Context, h *helpers.H) ([]map[string]any, erro
 	if err != nil {
 		return nil, err
 	}
-	items, _ := value.([]any)
+	items, ok := value.([]any)
+	if !ok {
+		return nil, errors.New("Homarr did not return an integration list; inspect its connection before retrying Setup")
+	}
 	integrations := make([]map[string]any, 0, len(items))
 	for _, item := range items {
 		if record, ok := item.(map[string]any); ok {
@@ -575,7 +603,7 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	if id := match(integrations); id != "" {
 		if from.Secret(integrationFingerprintKey(from, id)) != integrationFingerprint(t, from, to) || !integrationAddressCurrent(integrations, id, internal) {
 			value, err := apiKeyWrite(ctx, from, "integration.update", map[string]any{
-				"id": id, "name": t.name, "url": internal, "secrets": t.secrets(from, to), "appId": appID,
+				"id": id, "name": t.name, "url": internal, "secrets": t.credentials(from, to), "appId": appID,
 			})
 			if err != nil {
 				return "", err
@@ -598,7 +626,7 @@ func ensureIntegration(ctx context.Context, from, to *helpers.H, t target, appID
 	}
 	id, err := createIntegration(ctx, from, map[string]any{
 		"name": t.name, "url": internal, "kind": t.kind,
-		"secrets": t.secrets(from, to), "attemptSearchEngineCreation": false,
+		"secrets": t.credentials(from, to), "attemptSearchEngineCreation": false,
 		"app": map[string]any{"id": appID},
 	})
 	if err != nil {
@@ -645,7 +673,7 @@ func verifyNTFYToken(ctx context.Context, to *helpers.H) error {
 func integrationFingerprintKey(h *helpers.H, id string) string { return h.Key("integration_" + id) }
 
 func integrationFingerprint(t target, from, to *helpers.H) string {
-	raw, _ := json.Marshal(t.secrets(from, to))
+	raw, _ := json.Marshal(t.credentials(from, to))
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
 }
@@ -757,6 +785,11 @@ func removeWidgets(ctx context.Context, h *helpers.H, integrationID string, widg
 // to it exist. It deliberately does not claim them: that is what a rerun
 // proves.
 func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return false, err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return false, err
 	}
@@ -805,10 +838,8 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 	if from.Secret(integrationFingerprintKey(from, integrationID)) != integrationFingerprint(t, from, to) {
 		return false, nil
 	}
-	if t.verify != nil {
-		if err := t.verify(ctx, from, to, integrationID); err != nil {
-			return false, err
-		}
+	if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+		return false, err
 	}
 	if len(t.widgets) == 0 {
 		return true, nil
@@ -831,6 +862,9 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 		}
 		owned := ownedWidgets(from, integrationID)
 		for _, item := range items {
+			if w.kind == "stats" {
+				continue
+			}
 			if owned[stringField(item, "id")] && wiredTo(item, w.kind, integrationID) && !widgetCurrent(item, w, integrationID) {
 				return false, nil
 			}
@@ -840,6 +874,11 @@ func (t target) linked(ctx context.Context, from, to *helpers.H) (bool, error) {
 }
 
 func (t target) add(ctx context.Context, from, to *helpers.H) error {
+	if t.preflight != nil {
+		if err := t.preflight(ctx, from, to); err != nil {
+			return err
+		}
+	}
 	if err := t.compatible(ctx, from, to); err != nil {
 		return err
 	}
@@ -858,8 +897,24 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	if !found {
-		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
-			return err
+		previous := managedAppIDs(from)[t.id]
+		retained := false
+		if previous != "" {
+			apps, err := listApps(ctx, from)
+			if err != nil {
+				return err
+			}
+			for _, item := range apps {
+				if appID(item) == previous && strings.HasPrefix(stringField(item, "description"), retainedTileMarker) {
+					retained = true
+					break
+				}
+			}
+		}
+		if !retained {
+			if err := removeAppTiles(ctx, from, previous); err != nil {
+				return err
+			}
 		}
 		resp, err := from.Expect(ctx, helpers.Request{
 			Method: "POST", Path: "/api/apps", Header: apiKeyHeader(from),
@@ -889,7 +944,7 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 				continue
 			}
 			_, err := from.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(from), JSON: map[string]any{
-				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": browser, "pingUrl": internal,
+				"name": item["name"], "description": item["description"], "iconUrl": item["iconUrl"], "href": browser, "pingUrl": item["pingUrl"],
 			}})
 			if err != nil {
 				return err
@@ -910,10 +965,8 @@ func (t target) add(ctx context.Context, from, to *helpers.H) error {
 		if err != nil {
 			return err
 		}
-		if t.verify != nil {
-			if err := t.verify(ctx, from, to, integrationID); err != nil {
-				return err
-			}
+		if err := t.verifyData(ctx, from, to, integrationID); err != nil {
+			return err
 		}
 		if err := t.addWidgets(ctx, from, to, boardID, integrationID, items); err != nil {
 			return err
@@ -940,6 +993,7 @@ func browserAddress(ctx context.Context, from, to *helpers.H) (string, error) {
 
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 	internal := t.internal(to)
+	keepIntegration := false
 	if t.kind != "" {
 		if id := from.Secret(from.Key("linked_" + t.id)); id != "" {
 			if err := removeWidgets(ctx, from, id, t.widgets); err != nil {
@@ -958,6 +1012,15 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 						return err
 					}
 				}
+				used, err := integrationUsedByWidgets(ctx, from, id)
+				if err != nil {
+					return err
+				}
+				if used {
+					from.Info("keeping the " + t.name + " integration because other widgets still use it")
+					keepIntegration = true
+					continue
+				}
 				if err := deleteIntegration(ctx, from, id); err != nil {
 					return err
 				}
@@ -969,18 +1032,88 @@ func (t target) remove(ctx context.Context, from, to *helpers.H) error {
 		return err
 	}
 	if !found {
-		if err := removeAppTiles(ctx, from, managedAppIDs(from)[t.id]); err != nil {
+		recordedID := managedAppIDs(from)[t.id]
+		if err := removeAppTiles(ctx, from, recordedID); err != nil {
 			return err
+		}
+		if keepIntegration {
+			if err := t.releaseApp(ctx, from, recordedID); err != nil {
+				return err
+			}
 		}
 		return ensureNotebook(ctx, from)
 	}
 	if err := removeAppTiles(ctx, from, id); err != nil {
 		return err
 	}
+	if keepIntegration {
+		if err := t.releaseApp(ctx, from, id); err != nil {
+			return err
+		}
+		return ensureNotebook(ctx, from)
+	}
 	if _, err = from.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(from)}); err != nil {
 		return err
 	}
 	return ensureNotebook(ctx, from)
+}
+
+func (t target) releaseApp(ctx context.Context, h *helpers.H, id string) error {
+	apps, err := listApps(ctx, h)
+	if err != nil {
+		return err
+	}
+	for _, item := range apps {
+		if appID(item) != id {
+			continue
+		}
+		description := stringField(item, "description")
+		if description != "" && description != installedTileMarker+t.id {
+			continue
+		}
+		if _, err := h.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(h), JSON: map[string]any{
+			"name": item["name"], "description": retainedTileMarker + t.id, "iconUrl": item["iconUrl"], "href": item["href"], "pingUrl": item["pingUrl"],
+		}}); err != nil {
+			return err
+		}
+	}
+	ids := managedAppIDs(h)
+	delete(ids, t.id)
+	raw, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+	if err := h.SetSecret(h.Key("app_ids"), string(raw)); err != nil {
+		return err
+	}
+	return h.SetSecret(h.Key("linked_"+t.id), "")
+}
+
+func integrationUsedByWidgets(ctx context.Context, h *helpers.H, integrationID string) (bool, error) {
+	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/boards", Header: apiKeyHeader(h)})
+	if err != nil {
+		return false, err
+	}
+	var boards []map[string]any
+	if err := resp.Decode(&boards); err != nil {
+		return false, err
+	}
+	for _, candidate := range boards {
+		value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": stringField(candidate, "name")})
+		if err != nil {
+			return false, err
+		}
+		current, ok := value.(map[string]any)
+		if !ok {
+			return false, errors.New("Homarr did not return a board while checking remaining integration bindings")
+		}
+		for _, item := range itemsOf(current) {
+			if wiredTo(item, stringField(item, "kind"), integrationID) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {

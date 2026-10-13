@@ -71,6 +71,7 @@ func TestTheNoticeObeysEverySuppressionRule(t *testing.T) {
 		env         map[string]string
 		args        []string
 	}{
+		{"bare json command", "1.0.0", true, nil, []string{"--json"}},
 		{"json output", "1.0.0", true, nil, []string{"apps", "list", "--json"}},
 		{"not a terminal", "1.0.0", false, nil, []string{"apps", "list"}},
 		{"continuous integration", "1.0.0", true, map[string]string{"CI": "true"}, []string{"apps", "list"}},
@@ -83,6 +84,9 @@ func TestTheNoticeObeysEverySuppressionRule(t *testing.T) {
 			rel, run, _ := noticeSetup(t, tc.version, tc.interactive, tc.env)
 
 			r := run(tc.args...)
+			if tc.args[0] == "--json" && (r.Code != 0 || !strings.Contains(r.Out, "Usage:") || strings.Contains(r.Out, "\x1b")) {
+				t.Fatalf("bare JSON command must print plain help without opening the TUI: %+v", r)
+			}
 
 			if strings.Contains(r.Out, "is available") {
 				t.Errorf("unexpected notice:\n%s", r.Out)
