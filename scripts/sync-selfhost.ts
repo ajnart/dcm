@@ -1,4 +1,4 @@
-const SOURCE = "https://selfhost.ajnart.dev/catalog.json"
+const SOURCE = "https://self-host.fyi/catalog.json"
 const TARGET = new URL("../lib/selfhost-catalog.json", import.meta.url)
 
 const response = await fetch(SOURCE)
