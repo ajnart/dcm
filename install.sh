@@ -7,7 +7,7 @@
 # Environment:
 #   SELF_HOST_VERSION      install this version (1.2.0, v1.2.0 or new-cli-v1.2.0) instead of the latest
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
-#   SELF_HOST_GITHUB_TOKEN token for the private repository; defaults to `gh auth token` when gh is logged in
+#   SELF_HOST_GITHUB_TOKEN GitHub token to lift the anonymous API rate limit; defaults to `gh auth token` when gh is logged in
 #   SELF_HOST_RELEASE_REPO owner/name of the repository that publishes releases (default below)
 #   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots
 #   SELF_HOST_SKIP_SKILL_PROMPT=1  never offer to add the skill to an AI agent
@@ -32,7 +32,7 @@ staging=""
 configure() {
   REPO="${SELF_HOST_RELEASE_REPO:-$DEFAULT_REPO}"
   [[ "$REPO" =~ ^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+$ && "$REPO" != *..* && "$REPO" != */. ]] || die "SELF_HOST_RELEASE_REPO must look like owner/name, not '${REPO}'"
-  # Optional private-repository access. Tokens stay out of process arguments.
+  # Optional GitHub token for a higher API rate limit. Tokens stay out of process arguments.
   TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
   if [ -z "$TOKEN" ] && [ -z "${SELF_HOST_RELEASES_URL:-}" ] && command -v gh >/dev/null 2>&1; then
     TOKEN="$(gh auth token 2>/dev/null || true)"
@@ -206,7 +206,7 @@ latest_tag() {
   local body page count candidates="" tag version
   for page in {1..10}; do
     body="$(api_get "${API_URL}/releases?per_page=100&page=${page}" application/vnd.github+json)" ||
-      die "could not look up CLI releases from ${API_URL} (404 means no access to the private repository); run 'gh auth login' or set SELF_HOST_GITHUB_TOKEN"
+      die "could not look up CLI releases from ${API_URL} (403 is GitHub's anonymous limit of 60 requests an hour: wait, or set SELF_HOST_GITHUB_TOKEN)"
     while IFS= read -r tag; do
       case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; v*) version="${tag#v}" ;; *) continue ;; esac
       if valid_version "$version"; then candidates="${candidates}${version} ${tag}"$'\n'; fi
@@ -274,7 +274,7 @@ resolve_release() {
   if [ -n "$found" ]; then
     die "release ${found} is not a CLI release: it does not list ${archive}"
   fi
-  die "could not read release metadata for $* from ${API_URL} (404 means no such release, or no access to the private repository)"
+  die "could not read release metadata for $* from ${API_URL} (404 means no such release; 403 is GitHub's anonymous rate limit, set SELF_HOST_GITHUB_TOKEN)"
 }
 
 skill_command() {

@@ -118,12 +118,11 @@ sets the Content Security Policy, `nosniff`, `no-referrer`, plain-text types
 for the installer and CORS for `catalog.json`; `404.html` makes unknown paths
 such as `/go.mod` return 404 instead of the landing page.
 
-The old `selfhost.ajnart.dev` host must keep working for installs already in the
-wild. Once `self-host.fyi` serves the installer, replace the
-`selfhost-installer` Worker with a Cloudflare redirect rule on the `ajnart.dev`
-zone: hostname `selfhost.ajnart.dev`, 301 to
-`concat("https://self-host.fyi", http.request.uri.path)`, preserving the query
-string. Check it with `curl -I https://selfhost.ajnart.dev/install.sh`.
+The old `selfhost.ajnart.dev` host keeps working for installs already in the
+wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and
+query preserved, to `concat("https://self-host.fyi", http.request.uri.path)`
+with a 301. A second rule on the `self-host.fyi` zone does the same for `www`.
+Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 
 The builder copies only `index.html`, `site.css`, `js/*.js`, `catalog.js`,
 `catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons,
