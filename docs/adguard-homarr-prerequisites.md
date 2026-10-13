@@ -216,6 +216,34 @@ These are source fixtures, not new Docker, rendered-widget or lifecycle proof.
 Both affected package suites, package build/vet, changed-file formatting and
 `git diff --check` passed with `GOFLAGS=-buildvcs=false` where applicable.
 
+## Reviewed-version null filters correction (13 October 2026)
+
+The original lane forward-merges the shared authenticated version-reader SDK
+`a62010719833f6db05810231fd1f1764d387c593`. A genuine, explicitly present
+`filters: null` now passes native preflight only when `info.getInfo` reports
+exactly `2.5.1` or `2.5.2`. Those published schemas accept null, and the adapter
+returns zero filtered domains for it. Homarr `2.4.1`, unreviewed versions,
+missing version data and failed version authentication remain rejected for this
+case. Empty/nonempty arrays retain their existing path; missing, scalar, object,
+text-null and incomplete/invalid entries are rejected without acquiring a version.
+
+The peer's direct Check and DNS settings remain unchanged. No null is rewritten
+into an array, and the native percentage/count/range checks plus the pure Stats
+callback remain unchanged. Earlier array-only and reversed-percentage statements
+above describe the inspected `2.4.1` source; they do not describe the corrected
+`2.5.1`/`2.5.2` adapter.
+
+The existing focused descriptor fixtures reproduce fixed-version null rejection
+before the correction and acceptance afterward. They retain old-version and
+unreviewed-version rejection, rejected authentication, malformed non-null data
+and zero native/Stats-domain counts. All preflight probes are read-only. These
+are source fixtures; no Docker, live DNS traffic, rendered widget or lifecycle
+acceptance was performed. Full native/rendered/lifecycle proof remains deferred.
+
+- [Homarr 2.5.1 nullable filtering schema](https://github.com/homarr-labs/homarr/blob/v2.5.1/packages/integrations/src/adguard-home/adguard-home-types.ts)
+- [Homarr 2.5.2 nullable filtering schema](https://github.com/homarr-labs/homarr/blob/v2.5.2/packages/integrations/src/adguard-home/adguard-home-types.ts)
+- [Homarr 2.5.2 native null/count/percentage handling](https://github.com/homarr-labs/homarr/blob/v2.5.2/packages/integrations/src/adguard-home/adguard-home-integration.ts)
+
 ## Sources
 
 The historical prerequisite Context7 lookup exhausted its monthly quota.

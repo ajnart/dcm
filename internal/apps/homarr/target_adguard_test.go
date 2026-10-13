@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/apps/adguard"
@@ -81,6 +80,8 @@ func (f *adguardVerificationFixture) helper(t *testing.T) *helpers.H {
 
 func TestAdguardVerificationAcceptsZeroAndUsesOneFreshStatsSample(t *testing.T) {
 	f := newAdguardVerificationFixture()
+	f.summary["domainsBeingBlocked"] = 0
+	f.values["domainsBeingBlocked"] = 0
 	h := f.helper(t)
 	if err := adguardTarget().verifyData(t.Context(), h, h, "adguard-owned"); err != nil {
 		t.Fatal(err)
@@ -162,9 +163,60 @@ func TestAdguardNativeAndStatsSamplesRemainIndependent(t *testing.T) {
 }
 
 func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
-	for _, response := range []string{`{"filters":null}`, `{"filters":[]}`, `{}`, `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":2,"enabled":true}]}`, `{"filters":[{"enabled":true,"rules_count":2}]}`} {
-		t.Run(response, func(t *testing.T) {
+	for _, scenario := range []struct {
+		name          string
+		response      string
+		version       string
+		rejectVersion bool
+		valid         bool
+		versionReads  int
+	}{
+		{"null on old schema", `{"filters":null}`, "2.4.1", false, false, 1},
+		{"null on fixed 2.5.1", `{"filters":null}`, "2.5.1", false, true, 1},
+		{"null on fixed 2.5.2", `{"filters":null}`, "2.5.2", false, true, 1},
+		{"null on unreviewed 2.5.0", `{"filters":null}`, "2.5.0", false, false, 1},
+		{"null on unreviewed 2.5.3", `{"filters":null}`, "2.5.3", false, false, 1},
+		{"null without version", `{"filters":null}`, "", false, false, 1},
+		{"null with rejected version auth", `{"filters":null}`, "2.5.2", true, false, 1},
+		{"empty list on old schema", `{"filters":[]}`, "2.4.1", false, true, 0},
+		{"empty list on fixed schema", `{"filters":[]}`, "2.5.2", false, true, 0},
+		{"missing filters", `{}`, "2.5.2", false, false, 0},
+		{"scalar filters", `{"filters":0}`, "2.5.2", false, false, 0},
+		{"object filters", `{"filters":{}}`, "2.5.2", false, false, 0},
+		{"text null", `{"filters":"null"}`, "2.5.2", false, false, 0},
+		{"valid filter", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":2,"enabled":true}]}`, "2.4.1", false, true, 0},
+		{"missing metadata", `{"filters":[{"enabled":true,"rules_count":2}]}`, "2.5.2", false, false, 0},
+		{"null entry", `{"filters":[null]}`, "2.5.2", false, false, 0},
+		{"fractional count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":0.5,"enabled":true}]}`, "2.5.2", false, false, 0},
+		{"negative count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":-1,"enabled":true}]}`, "2.5.2", false, false, 0},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			versionReads, writes := 0, 0
+			homarr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					writes++
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				if r.URL.Path != "/api/trpc/info.getInfo" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				versionReads++
+				if r.Header.Get("ApiKey") != "fixture-key" || scenario.rejectVersion {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+				json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": map[string]any{"version": scenario.version}}}})
+			}))
+			t.Cleanup(homarr.Close)
+			from := helpers.New(helpers.Config{App: "homarr", BaseURL: homarr.URL, HTTP: homarr.Client(), Log: events.Discard(), Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"}})
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					writes++
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
 				if user, password, ok := r.BasicAuth(); !ok || user != "admin" || password != "fixture-password" {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
@@ -177,30 +229,23 @@ func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
 				case "/control/stats":
 					w.Write([]byte(`{"time_units":"hours","dns_queries":[],"blocked_filtering":[],"num_dns_queries":0,"num_blocked_filtering":0}`))
 				case "/control/filtering/status":
-					w.Write([]byte(response))
+					w.Write([]byte(scenario.response))
 				default:
 					w.WriteHeader(http.StatusNotFound)
 				}
 			}))
 			t.Cleanup(srv.Close)
-			h := helpers.New(helpers.Config{App: "adguard-home", BaseURL: srv.URL, HTTP: srv.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-password"}})
-			err := adguardTarget().preflight(t.Context(), h, h)
-			switch response {
-			case `{"filters":null}`:
-				if check := (adguard.App{}).Check(t.Context(), h); check != nil {
-					t.Fatalf("valid AdGuard null filters: %v", check)
+			to := helpers.New(helpers.Config{App: "adguard-home", BaseURL: srv.URL, HTTP: srv.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-password"}})
+			if scenario.response == `{"filters":null}` {
+				if err := (adguard.App{}).Check(t.Context(), to); err != nil {
+					t.Fatalf("valid direct AdGuard null filters: %v", err)
 				}
-				if err == nil || !strings.Contains(err.Error(), "valid null filters") {
-					t.Fatalf("missing native compatibility diagnostic: %v", err)
-				}
-			case `{"filters":[]}`, `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":2,"enabled":true}]}`:
-				if err != nil {
-					t.Fatal(err)
-				}
-			default:
-				if err == nil {
-					t.Fatal("accepted missing filter data or native metadata")
-				}
+			}
+			if err := adguardTarget().preflight(t.Context(), from, to); (err == nil) != scenario.valid {
+				t.Fatalf("native preflight valid=%v: %v", scenario.valid, err)
+			}
+			if versionReads != scenario.versionReads || writes != 0 {
+				t.Fatalf("version reads=%d want=%d writes=%d", versionReads, scenario.versionReads, writes)
 			}
 		})
 	}

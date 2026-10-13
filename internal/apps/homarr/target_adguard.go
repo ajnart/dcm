@@ -23,15 +23,15 @@ func adguardTarget() target {
 			{kind: "dnsHoleControls", options: map[string]any{"showToggleAllButtons": false}},
 			statWidget("dnsQueriesToday", "adsBlockedToday", "domainsBeingBlocked"),
 		},
-		preflight: func(ctx context.Context, _, to *helpers.H) error {
-			return adguardNativeReady(ctx, to)
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			return adguardNativeReady(ctx, from, to)
 		},
 		verify: verifyAdguard,
 		stats:  verifyAdguardStats,
 	}
 }
 
-func adguardNativeReady(ctx context.Context, h *helpers.H) error {
+func adguardNativeReady(ctx context.Context, from, h *helpers.H) error {
 	if err := (adguard.App{}).Check(ctx, h); err != nil {
 		return err
 	}
@@ -57,7 +57,14 @@ func adguardNativeReady(ctx context.Context, h *helpers.H) error {
 		return errors.New("AdGuard Home returned malformed DNS filters; retry self-host setup adguard-home")
 	}
 	if filters == nil {
-		return errors.New("AdGuard Home has a valid null filters list, but Homarr 2.4.1 requires an array; preserve the current DNS settings and resolve the upstream native schema before retrying self-host setup homarr")
+		version, err := readHomarrVersion(ctx, from)
+		if err != nil {
+			return fmt.Errorf("cannot verify Homarr's null DNS-filter support; preserve the current DNS settings and retry self-host setup homarr: %w", err)
+		}
+		if version == "2.5.1" || version == "2.5.2" {
+			return nil
+		}
+		return errors.New("AdGuard Home has a valid null filters list, which this Link supports only with authenticated Homarr 2.5.1 or 2.5.2; preserve the current DNS settings and review the supported Homarr version before retrying self-host setup homarr")
 	}
 	for _, filter := range filters {
 		if filter.URL == nil || filter.Name == nil || filter.Enabled == nil || filter.ID == nil || filter.RulesCount == nil ||
