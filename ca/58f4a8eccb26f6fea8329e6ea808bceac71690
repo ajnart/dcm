@@ -1,0 +1,18 @@
+video/reel/STORYBOARD.md
+  h_d6e478ca18e517 203-206,210,212,217
+video/reel/audio/cues.json
+  h_d6e478ca18e517 976,982,987-1004,1010,1012-1018,1036-1041,1072-1081,1197-1202,1259,1261,1269,1275,1281,1287,1293
+video/reel/end.js
+  h_d6e478ca18e517 27,32-36,55,58,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca58f4a8eccb26f6fea8329e6ea808bceac71690",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
