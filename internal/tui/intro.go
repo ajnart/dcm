@@ -141,6 +141,9 @@ func (m Model) advanceIntro() Model {
 		i.waited++
 		return m
 	}
+	if m.opts.ReducedMotion && i.reading {
+		return m
+	}
 	i.wall++
 	if i.exit >= 0 {
 		i.exit++
