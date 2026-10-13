@@ -1,0 +1,10 @@
+{
+  "id": "firefly-iii",
+  "name": "Firefly III",
+  "description": "Track your income, expenses and budgets in one private place",
+  "category": "Productivity",
+  "image": "fireflyiii/core:version-6.7.2",
+  "docs": "https://docs.firefly-iii.org/how-to/firefly-iii/installation/docker/",
+  "port": 8080,
+  "inputs": []
+}
