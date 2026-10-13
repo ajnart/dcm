@@ -605,6 +605,16 @@ func (m Model) view() tea.View {
 		v.SetContent(m.renderPreboot())
 		return v
 	}
+	if m.introShown() {
+		v.SetContent(m.renderIntro())
+		v.OnMouse = func(msg tea.MouseMsg) tea.Cmd {
+			if _, ok := msg.(tea.MouseClickMsg); !ok {
+				return nil
+			}
+			return func() tea.Msg { return introPokeMsg{} }
+		}
+		return v
+	}
 	header, layers, restated := m.renderHeader()
 	ctxView.headerFacts = restated
 	status := pad(m.footerStatus(ctxView), m.width)

@@ -34,7 +34,7 @@ func welcomeWithNotice(t *testing.T, width, height int) Model {
 	m = update(t, m, windowSize(width, height))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	return frames(t, m, 60)
+	return frames(t, m, introFrames)
 }
 
 type telemetryWorkerRunner struct{}
@@ -278,7 +278,12 @@ func steppedHost(t *testing.T, backend *fakeBackend) (Model, *time.Time) {
 	m = update(t, m, windowSize(120, 40))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	return frames(t, m, 60), &at
+	m = frames(t, m, introFrames)
+	if m.onboarding.intro != nil {
+		m = drive(t, m, press("enter"))
+		m = frames(t, m, introFrames)
+	}
+	return m, &at
 }
 
 func TestApprovingReviewSendsTheOnboardingEvent(t *testing.T) {

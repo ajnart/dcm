@@ -4,10 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
-	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
-	"github.com/charmbracelet/x/ansi"
 )
 
 func TestLookPreviewsTheSelectedSymbolsImmediately(t *testing.T) {
@@ -159,56 +156,5 @@ func TestLANEditorSpaceTypesAndTabChoiceIsExplained(t *testing.T) {
 	m = drive(t, m, press("enter"))
 	if len(backend.Actions()) != 0 || m.settings.pairs()[0] != "LAN_IP=192.168.0.12" {
 		t.Fatal("accepting an address must wait for Ctrl+S")
-	}
-}
-
-func TestDoctorKeepsLiteralCoordinatesThroughRevealAndRefresh(t *testing.T) {
-	for _, size := range []struct{ width, height, x, y int }{{80, 24, 2, 4}, {120, 30, 12, 7}} {
-		m, _ := onboardingHost(t, size.width, size.height, readyChecks...)
-		m.onboarding.autoContinue = false
-		checkPosition := func(text string, x, y int) {
-			t.Helper()
-			lines := strings.Split(screen(m), "\n")
-			at := strings.Index(lines[y], text)
-			if at < 0 || ansi.StringWidth(lines[y][:at]) != x {
-				t.Fatalf("%dx%d: %q must start at (%d,%d)\n%s", size.width, size.height, text, x, y, screen(m))
-			}
-		}
-		for _, level := range []host.Level{host.OK, host.Warn, host.Fail} {
-			m = update(t, m, tea.FocusMsg{})
-			checkPosition("Checking this machine", size.x, size.y)
-			checkPosition("Checking Docker…", size.x+2, size.y+3)
-			checks := []host.Check{
-				{ID: "docker", Title: "Docker", Level: level, Detail: strings.Repeat("long diagnostic ", 12), Hint: strings.Repeat("long recovery ", 12), Docs: "https://docs.example.invalid/recovery"},
-				{ID: "daemon", Title: "Docker daemon", Level: host.OK, Detail: "ready"},
-				{ID: "compose", Title: "Docker Compose", Level: host.OK, Detail: "ready"},
-				{ID: "ids", Title: "Container IDs", Level: host.OK, Detail: "ready"},
-			}
-			m = update(t, m, doctorMsg{checks: checks})
-			for frame := range 31 {
-				checkPosition("Checking this machine", size.x, size.y)
-				checkPosition("Docker", size.x+2, size.y+3)
-				if frame >= 6 {
-					checkPosition("Docker daemon", size.x+2, size.y+6)
-				}
-				if frame >= 24 {
-					if level == host.Fail {
-						checkPosition("Fix the failed check", size.x, size.y+16)
-					} else {
-						checkPosition("✓ This machine is ready.", size.x, size.y+16)
-					}
-				}
-				m = update(t, m, frameMsg{})
-			}
-		}
-		m.defaults = nil
-		m = update(t, m, tea.FocusMsg{})
-		m = update(t, m, doctorMsg{checks: readyChecks})
-		m = frames(t, m, 30)
-		checkPosition("Checking this machine", size.x, size.y)
-		checkPosition("Reading this machine's settings…", size.x+2, size.y+16)
-		m = update(t, m, defaultsMsg{settings: map[string]string{"LAN_IP": "192.168.1.20"}})
-		checkPosition("Checking this machine", size.x, size.y)
-		checkPosition("✓ This machine is ready.", size.x, size.y+16)
 	}
 }

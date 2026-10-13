@@ -15,6 +15,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/host"
+	"github.com/ajnart/self-host/internal/intro"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 )
@@ -172,6 +173,10 @@ type Model struct {
 	cloudflareAfterInstall bool
 	// preboot is set while the first install's pre-boot screen is on screen.
 	preboot *prebootScreen
+	// bgKnown is set once the terminal has told its background colour;
+	// fastTicks counts frames played at the Intro's rate.
+	bgKnown   bool
+	fastTicks int
 }
 
 func New(backend Backend, opts Options) Model {
@@ -246,6 +251,10 @@ func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 		m.opening--
 	}
 	activityFrame := m.preboot == nil || m.preboot.frame%prebootFramesPerActivity == 0
+	if m.preboot == nil && m.fastFrames() {
+		m.fastTicks++
+		activityFrame = m.fastTicks%introFramesPerActivity == 0
+	}
 	if activityFrame {
 		m.frame++
 	}
@@ -254,7 +263,8 @@ func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 		m.tracker.Observe(s, m.frame)
 	}
 	m = m.advancePreboot(s)
-	m = m.advanceInitializing()
+	m = m.advanceIntro()
+	m = m.advanceReaction()
 	if m.opening > 0 || m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, m.frameTick()
 	}
@@ -419,14 +429,15 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.BackgroundColorMsg:
+		m.bgKnown = true
 		m.theme = newTheme(msg.IsDark())
 		m.relayout()
 		return m, nil
 
 	case tea.FocusMsg:
 		var frame tea.Cmd
-		if m.onboardingShown() && m.onboarding.step == stepInitializing {
-			m.onboarding.checking = true
+		if m.introShown() && m.onboarding.intro.hold.Level == intro.Fail && !m.onboarding.intro.reading {
+			m.onboarding.intro.reading, m.onboarding.intro.again = true, true
 			frame = m.startTicking()
 		}
 		return m, tea.Batch(m.loadStatus(), m.loadDoctor(), frame)
@@ -443,7 +454,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.onboarding.answers.accessChoice = ""
 			}
 		}
-		return m.advanceInitializing(), nil
+		if m.introShown() {
+			return m, m.startTicking()
+		}
+		return m, nil
 
 	case statusMsg:
 		return m.handleStatus(msg)
@@ -451,8 +465,17 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case doctorMsg:
 		m.checks = msg.checks
 		m.relayout()
-		cmd := m.checksArrived()
-		return m, cmd
+		if m.introShown() && m.onboarding.intro.reading {
+			m.introChecksArrived()
+			return m, m.startTicking()
+		}
+		return m, nil
+
+	case introPokeMsg:
+		if m.introShown() {
+			return m.pokeIntro()
+		}
+		return m, nil
 
 	case updatesTick:
 		return m, tea.Batch(m.loadUpdates(), tea.Tick(checkUpdatesEvery, func(time.Time) tea.Msg { return updatesTick{} }))
@@ -531,6 +554,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseWheelMsg:
 		m.opening = 0
+		if m.introShown() {
+			return m.pokeIntro()
+		}
 		if m.preboot != nil || m.upgrade != nil {
 			return m, nil
 		}
@@ -554,6 +580,9 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		m.opening = 0
 		if m.onboarding == nil {
 			m.onboarding = m.newOnboarding()
+			next, _ := m.openStep(stepWelcome)
+			m = next.(Model)
+			m.onboarding.intro = newIntroScreen(m)
 			tick := m.startTicking()
 			return m, tea.Batch(m.loadDefaults(), tick)
 		}
@@ -770,6 +799,8 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.handleUpdateKey(msg)
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
+	case m.introShown():
+		return m.handleIntroKey(msg)
 	case m.showHelp:
 		if m.helpView.page != nil && m.helpView.page.copyText != "" && msg.String() == "ctrl+c" {
 			return m.quit()
