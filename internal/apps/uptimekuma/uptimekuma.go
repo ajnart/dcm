@@ -143,7 +143,7 @@ type HomarrMonitor struct {
 func HomarrMonitors(ctx context.Context, h *helpers.H) ([]HomarrMonitor, error) {
 	slug := HomarrSlug(h)
 	if slug == "" {
-		h.Info("Homarr needs an explicitly selected existing Uptime Kuma status page. Review its unauthenticated monitor data, then save its real slug with self-host install uptime-kuma --yes --set uptime-kuma.homarr_status_page=SLUG and retry self-host setup homarr. Do not publish private monitors or change Access.")
+		h.Info("Homarr needs an explicitly selected existing Uptime Kuma status page. Review the monitors it already shares without a login. Saving its slug requires reinstall, which replaces apps/uptime-kuma/compose.yml and can restart the App. First preserve and review custom authentication, mounts and ports and separately approve the concrete replacement plan. If custom configuration cannot survive replacement, stop; there is no input-only save command. After approval, run self-host install uptime-kuma --set uptime-kuma.homarr_status_page=SLUG; use --yes noninteractively only after that approval. Then retry self-host setup uptime-kuma and self-host setup homarr. Do not publish private monitors or change Access.")
 		return nil, helpers.ErrManual
 	}
 	if err := validateSlug(slug); err != nil {
