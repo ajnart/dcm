@@ -7,7 +7,11 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["./components/ui"]
+    "ignore": [
+      "./components/ui",
+      "lib/selfhost-catalog.json",
+      "tsconfig.tsbuildinfo"
+    ]
   },
   "formatter": {
     "enabled": true,
