@@ -10,6 +10,8 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
+const patchmonNativeHint = patchmon.HomarrHint
+
 func patchmonTarget() target {
 	return target{
 		id: "patchmon", name: "PatchMon", kind: "patchmon",
