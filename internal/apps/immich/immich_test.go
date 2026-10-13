@@ -56,6 +56,29 @@ func (f *fakeImmich) handler() http.Handler {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]any{"userEmail": f.email, "isAdmin": true, "accessToken": "tok"})
 	})
+	mux.HandleFunc("GET /api/api-keys", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]any{})
+	})
+	mux.HandleFunc("POST /api/api-keys", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"id": "statistics-key", "secret": "statistics-secret"})
+	})
+	mux.HandleFunc("GET /api/api-keys/me", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-api-key") != "statistics-secret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"id": "statistics-key", "permissions": []string{"user.read", "server.statistics"}})
+	})
+	mux.HandleFunc("GET /api/users/me", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"email": f.email, "isAdmin": true})
+	})
+	mux.HandleFunc("GET /api/users", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]any{map[string]string{"id": "u1"}})
+	})
+	mux.HandleFunc("GET /api/server/statistics", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]int{"photos": 0, "videos": 0, "usage": 0})
+	})
 	return mux
 }
 

@@ -6,6 +6,12 @@ you read the output yourself. This guide is built into the binary and describes
 exactly the commands this version registers; run `self-host skill` again after
 `self-host self-update`.
 
+The interactive Dashboard has a brief opening entrance, skipped by any key
+without changing its meaning. Pre-boot animates in only after approving the
+first install; `enter` shows Activity, and `q` or `ctrl+c` quits. For less motion,
+`SELF_HOST_REDUCED_MOTION=1 self-host` skips the decorative transitions and shows
+the first Action directly in Activity. Plain commands and `--json` never animate.
+
 ## Every conversation
 
 1. In a new conversation, run `self-host status --json` before anything else.
@@ -406,6 +412,22 @@ masking: review them before sharing. Copy confirmation never echoes the error.
 Read `status --json`: `addresses` lists only working Easy names ahead of
 `IP:port`, after valid private Tailscale and available verified Cloudflare
 Addresses; `url` remains the first. Homarr tiles share that browser Address.
+
+Homarr Links support Homarr 2.4.1, not an arbitrary mutable development build.
+Immich Setup creates a dedicated read-only statistics key. Retry its own Setup
+before retrying Homarr: `self-host setup immich`, then `self-host setup homarr`.
+A lost managed key is a Manual step with a recovery hint, never an excuse to
+read secrets or rotate someone else's key. Immich server statistics are wired;
+album slideshows are not. Native authenticated data and rendered widgets need
+their own verification; a tile or successful HTTP response is not that proof.
+
+Gluetun's control API key is not a VPN-provider credential. Missing privately
+supplied provider credentials or a disconnected tunnel remain retryable Manual
+steps. Rejected control keys, transport errors and invalid responses are failures.
+Homarr 2.4.1 needs a credential-bearing VPN settings endpoint for both its native
+VPN and Stats widgets. That Link is blocked; never expand the control role,
+request provider secrets, disable the firewall or claim a tile proves VPN data.
+
 The additive `names` section has `on`, `working` and, on failure, `problem`,
 `message`, `technical`. Give the plain `message` first and the numbered Address;
 do not change the router or disable its protection yourself. `blocked` compares

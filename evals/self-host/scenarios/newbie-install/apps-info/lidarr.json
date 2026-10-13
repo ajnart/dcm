@@ -1,0 +1,10 @@
+{
+  "id": "lidarr",
+  "name": "Lidarr",
+  "description": "Find, download and organize your music automatically",
+  "category": "Requests",
+  "image": "lscr.io/linuxserver/lidarr:version-3.1.0.4875",
+  "docs": "https://wiki.servarr.com/lidarr",
+  "port": 8686,
+  "inputs": []
+}

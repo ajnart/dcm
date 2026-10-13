@@ -50,6 +50,9 @@ func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
 		if alias := creds.Admin.Aliases[app.ID]; alias != "" {
 			rows = append(rows, copyChoice{app: app.ID, username: true, label: app.Name + " username"})
 		}
+		if creds.Admin.Emails[app.ID] != "" {
+			rows = append(rows, copyChoice{app: app.ID, key: "ADMIN_EMAIL", label: app.Name + " admin email"})
+		}
 		keys := []string{}
 		for name, value := range creds.Apps[app.ID] {
 			if value != "" && (strings.HasSuffix(name, "_API_KEY") || strings.HasSuffix(name, "_API_TOKEN") || strings.HasSuffix(name, "_ACCESS_TOKEN")) {
@@ -63,6 +66,9 @@ func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
 				label += " (" + name + ")"
 			}
 			rows = append(rows, copyChoice{app: app.ID, key: name, label: label})
+		}
+		if app.ID == "deluge" && creds.Apps["deluge"]["DELUGE_WEB_PASSWORD"] != "" {
+			rows = append(rows, copyChoice{app: "deluge", key: "DELUGE_WEB_PASSWORD", label: "Deluge Web password"})
 		}
 		if creds.Admin.Username != "" {
 			rows = append(rows, copyChoice{key: "ADMIN_USER", label: "Admin username"})
@@ -113,6 +119,8 @@ func (v *appsView) copyKey(ctx *viewContext, msg tea.KeyPressMsg) tea.Cmd {
 			switch {
 			case choice.username:
 				value = creds.Admin.Aliases[choice.app]
+			case choice.app != "" && choice.key == "ADMIN_EMAIL":
+				value = creds.Admin.Emails[choice.app]
 			case choice.app == "" && choice.key == "ADMIN_USER":
 				value = creds.Admin.Username
 			case choice.app == "" && choice.key == "ADMIN_EMAIL":

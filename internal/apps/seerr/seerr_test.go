@@ -71,13 +71,13 @@ func TestRerunAddsNoSecondServer(t *testing.T) {
 	}
 }
 
-func TestWithoutJellyfinSeerrWaitsAndServersPointBackAtIt(t *testing.T) {
+func TestWithoutJellyfinSeerrDoesNotScheduleItsJellyfinLink(t *testing.T) {
 	e := newEnv(t, requestApps()...)
 
 	r := e.Run("install", "sonarr", "seerr", "--yes", "--json")
 
-	if r.StepEvent("seerr", "link-jellyfin") != "step.skip" {
-		t.Errorf("link-jellyfin should wait for Jellyfin:\n%s", r.Out)
+	if r.StepEvent("seerr", "link-jellyfin") != "" {
+		t.Errorf("an absent Jellyfin must not schedule its Link:\n%s", r.Out)
 	}
 	step := r.Step("seerr", "link-sonarr")
 	if r.Code != 2 || step == nil || step["event"] != "step.fail" || !strings.Contains(step["error"].(string), "link-jellyfin") {

@@ -6,6 +6,8 @@
 - Loopback-only bridge networking does not provide the LAN discovery behavior of the upstream host-network example.
 - A smart-speaker experience also needs compatible audio hardware plus chosen wake-word, speech-to-text, and text-to-speech components; Home Assistant alone is not a physical speaker.
 - Shared setup verifies the owner and integration token, but reports unfinished core_config, analytics and integration wizard steps separately. Core-config completion starts upstream provider flows; it is not silently approved by account creation or Homarr publication.
+- Homarr uses a dedicated local-only Read Only user and a long-lived access token, never the onboarding authorization code, short-lived access token or OAuth refresh token. An existing conflicting identity or lost token remains a retryable Manual step; Setup never adopts or resets someone else's user.
+- An Entity State widget needs an actual available entity. Setup discovers an existing Sun or text helper, or accepts an explicitly selected `homarr_entity_id`; it creates no synthetic device, guesses no sensor ID and enables no toggles or automations. See [the Home Assistant Link contract](../../home-assistant-homarr-contract.md).
 
 ## Security
 

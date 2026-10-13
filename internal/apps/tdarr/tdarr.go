@@ -30,6 +30,10 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
+func (App) Secrets() []app.SecretSpec {
+	return []app.SecretSpec{{Name: "api_key_seed", Length: 32}}
+}
+
 const source = "webui"
 
 func (App) Compose(rc app.RenderContext) string {
@@ -48,6 +52,8 @@ func (App) Compose(rc app.RenderContext) string {
       internalNode: "true"
       inContainer: "true"
       auth: "true"
+      seededApiKey: tapi_${TDARR_API_KEY_SEED}
+      apiKey: tapi_${TDARR_API_KEY_SEED}
       openBrowser: "false"
       transcodecpuWorkers: "0"
       transcodegpuWorkers: "0"
@@ -90,6 +96,7 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	if login.Token == "" {
 		return false, nil
 	}
+	h.Log.Secret(login.Token)
 	verify, err := h.HTTP(ctx, helpers.Request{
 		Path: "/api/v2/auth/verify-token",
 		Header: map[string]string{
@@ -104,12 +111,13 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 		return false, nil
 	}
 	var owner struct {
-		Roles []string `json:"roles"`
+		Roles     []string `json:"roles"`
+		LocalAuth *bool    `json:"localAuth"`
 	}
 	if err := verify.Decode(&owner); err != nil {
 		return false, err
 	}
-	return slices.Contains(owner.Roles, "admin"), nil
+	return owner.LocalAuth != nil && *owner.LocalAuth && slices.Contains(owner.Roles, "admin"), nil
 }
 
 // exists reads the unauthenticated verify-token state: 401/403 with
@@ -123,18 +131,21 @@ func exists(ctx context.Context, h *helpers.H) (bool, error) {
 		return false, err
 	}
 	if resp.OK() {
-		return true, nil
+		return false, fmt.Errorf("Tdarr authentication must remain enabled; restore auth=true and retry Setup")
 	}
 	if resp.Status != 401 && resp.Status != 403 {
 		return false, fmt.Errorf("verify-token returned HTTP %d", resp.Status)
 	}
 	var state struct {
-		SetupAdmin bool `json:"setupAdmin"`
+		SetupAdmin *bool `json:"setupAdmin"`
 	}
 	if err := resp.Decode(&state); err != nil {
 		return false, err
 	}
-	return !state.SetupAdmin, nil
+	if state.SetupAdmin == nil {
+		return true, nil
+	}
+	return !*state.SetupAdmin, nil
 }
 
 func create(ctx context.Context, h *helpers.H, user, password string) error {
@@ -162,6 +173,67 @@ func setup() firstadmin.FirstAdmin {
 	}
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error { return setup().Setup(ctx, h) }
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := h.Ready(ctx, "/api/v2/status", helpers.WantStatus(200)); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "api-version", "verify the supported Tdarr API", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			err := verifyVersion(ctx, h)
+			return err == nil, err
+		},
+		Do:   func(ctx context.Context) error { return verifyVersion(ctx, h) },
+		Hint: "Back up Tdarr before changing versions; this Link supports 2.92.01.",
+	}); err != nil {
+		return err
+	}
+	if err := setup().Setup(ctx, h); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-api-key", "verify Tdarr's native API key", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if h.Secret(h.Key("homarr_api_key")) == "" {
+				return false, nil
+			}
+			_, err := ReadHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error {
+			if h.Secret(h.Key("homarr_api_key")) == "" {
+				seed := h.Secret(h.Key("api_key_seed"))
+				if seed == "" {
+					return helpers.ErrManual
+				}
+				if err := h.SetSecret(h.Key("homarr_api_key"), "tapi_"+seed); err != nil {
+					return err
+				}
+			}
+			data, err := ReadHomarr(ctx, h)
+			if err == nil && data.NodeCount == 0 {
+				h.Info("Tdarr's server API answers, but no nodes are connected; processing is unavailable")
+			}
+			return err
+		},
+		Hint: "For an older Project, run self-host install tdarr to apply native key seeding without deleting its data. Restore a lost or rejected managed key through the Project secret boundary; do not rotate or adopt another key. Then retry self-host setup tdarr and self-host setup homarr. Workers remain disabled until separately approved.",
+	})
+}
 
-func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if err := setup().Check(ctx, h); err != nil {
+		return err
+	}
+	data, err := ReadHomarr(ctx, h)
+	if err == nil {
+		switch {
+		case data.NodeCount == 0:
+			h.Info("Tdarr's server API answers, but no nodes are connected. Restore the existing internal node's saved API key and retry self-host setup tdarr; connecting another node needs separate approval.")
+			return helpers.ErrManual
+		case data.UnpausedNodes == 0:
+			h.Info("Tdarr's server API answers, but every connected node is paused. Review node and media permissions before approving processing, then retry self-host setup tdarr; Setup will not unpause nodes.")
+			return helpers.ErrManual
+		case data.WorkerCount == 0:
+			h.Info("Tdarr's server API answers with no running workers; this verifies monitoring, not processing or hardware")
+		}
+	}
+	return err
+}
