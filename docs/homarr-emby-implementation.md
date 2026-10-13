@@ -1,9 +1,15 @@
 # Emby Link implementation and remaining acceptance
 
+Source status, 13 October 2026 (before this docs update):
+`76105871107f486a6b1d1a3db8818bc46ac49fa1`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Issue #276 starts from the committed #262 contract at `573a206e` and includes
 the reference owner's later committed contract/readiness fixes at `cf8f04c0`.
-`embyTarget()` is ready for the reference owner's `targets.go` registration;
-this peer does not change the shared registry or reconciliation.
+`embyTarget()` is registered by the reference owner in `targets.go`; shared
+registry and reconciliation remain custodian-owned.
 
 ## Contract
 
@@ -42,9 +48,10 @@ The Link queries `widget.mediaServer.getCurrentStreams` with
 `showOnlyPlaying=false` and `widget.mediaRelease.getMediaReleases`, rejecting
 missing fields and failed integration results. Authenticated empty arrays
 are valid empty states, not playback or nonempty-library proof.
-It checks `widget.stats.catalog` for `sessions` in count units and performs
-`widget.stats.refresh` without bypassing the freshness window, requiring a
-nonstale successful snapshot with an explicit nonnegative integer count.
+The SDK checks `widget.stats.catalog` and forces one advancing refresh. The
+pure Emby Stats callback requires `sessions` in `count` units with an explicit
+nonnegative integer value; independently cached native sessions need not match.
+Failed, stale, missing-value and no-op refreshes fail centrally.
 
 ## Verification boundary
 
@@ -61,8 +68,8 @@ confirmed against the pinned image in that runtime batch.
 Docker/browser execution is gated to the parent's next runtime batch. Exact
 image digests, real owned media, disposable playback, rendered widgets,
 both installation orders, restart, rotation, removal and reinstallation
-remain unproved. The PR stays draft until registration and those acceptance
-checks are complete. No Premiere or hardware-transcoding result is claimed.
+remain unproved. Those acceptance checks remain required before merge.
+No Premiere or hardware-transcoding result is claimed.
 
 ## Sources
 
