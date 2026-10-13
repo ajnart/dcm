@@ -1,0 +1,24 @@
+README.md
+  h_d6e478ca18e517 44,46-48,163,166-168,214-216
+tests/template-selection.test.ts
+  h_d6e478ca18e517 16-22,26,83-84,98,111-112,122-124
+tests/validate-compose.test.ts
+  h_d6e478ca18e517 55-57,83
+tests/validate-networks.test.ts
+  h_d6e478ca18e517 2-5,116-118
+tools/other.ts
+  h_d6e478ca18e517 331,799-800
+tsconfig.json
+  h_d6e478ca18e517 3,22,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1591d0827138f807fe5e8c126af34b7fbf948545",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
