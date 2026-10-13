@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -122,11 +123,18 @@ func TestStatsVerificationRejectsTheFirstRefreshedSample(t *testing.T) {
 func TestStatsVerificationAcceptsExplicitZeroWithOneRefresh(t *testing.T) {
 	fixture := newStatsFixture()
 	fixture.values["requests"] = float64(0)
+	fixture.afterRaw = "45000"
 	h := fixture.helpers(t)
+	h.Now = func() time.Time {
+		if fixture.refreshes == 0 {
+			return time.UnixMilli(2000)
+		}
+		return time.UnixMilli(47000)
+	}
 	validated := false
 	target := statsTarget(func(sample statsSample) error {
 		validated = true
-		if sample.values["requests"] != float64(0) || sample.units["requests"] != "count" || sample.updatedAt != 1001 || sample.startedAt <= 0 {
+		if sample.values["requests"] != float64(0) || sample.units["requests"] != "count" || sample.updatedAt != 45000 || sample.startedAt != 2000 || sample.completedAt != 47000 {
 			return errors.New("unexpected refreshed sample")
 		}
 		return nil
