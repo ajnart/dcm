@@ -78,8 +78,12 @@ checks and no longer acquires Stats. After that verifier succeeds, common
 authenticated catalog and obtains one completed refresh. It rejects missing
 catalog keys, malformed or duplicate catalog entries, missing/null selected
 values, non-finite or nonpositive timestamps and refreshes that do not advance.
-The callback receives that same sample's `values`, catalog `units`, `startedAt`
-and `updatedAt` (Unix milliseconds), after these checks. Leaves retain expected
+The callback receives that same sample's `values`, catalog `units`, `startedAt`,
+`completedAt` and `updatedAt` (Unix milliseconds), after these checks. `startedAt`
+is read before the refresh request and `completedAt` after its response, so leaves
+can retain their existing future-skew limits after a slow refresh. Common checks
+only timestamp finiteness, positivity and advancement; Apps own clock policy.
+Leaves retain expected
 units, integral counts, ranges, nullable-field rules, additional clock limits
 and relationships. Explicit zeros remain valid where the App allows them.
 Mutable native-widget results are separate cached samples; do not require
