@@ -30,14 +30,15 @@ const downloads = "/var/lib/aria2/downloads"
 
 func fakeRPC(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Method string   `json:"method"`
-		Params []string `json:"params"`
-		ID     int      `json:"id"`
+		Method string            `json:"method"`
+		Params []json.RawMessage `json:"params"`
+		ID     int               `json:"id"`
 	}
 	json.NewDecoder(r.Body).Decode(&req)
 	token := ""
 	if len(req.Params) > 0 {
-		token = strings.TrimPrefix(req.Params[0], "token:")
+		json.Unmarshal(req.Params[0], &token)
+		token = strings.TrimPrefix(token, "token:")
 	}
 	if token != rpcToken {
 		w.WriteHeader(http.StatusBadRequest)
@@ -45,12 +46,16 @@ func fakeRPC(w http.ResponseWriter, r *http.Request) {
 			"error": map[string]any{"code": 1, "message": "Unauthorized"}})
 		return
 	}
-	result := map[string]any{}
+	var result any = map[string]any{}
 	switch req.Method {
 	case "aria2.getVersion":
 		result = map[string]any{"version": "1.37.0"}
 	case "aria2.getGlobalOption":
 		result = map[string]any{"dir": downloads}
+	case "aria2.getGlobalStat":
+		result = map[string]string{"downloadSpeed": "0", "uploadSpeed": "0", "numActive": "0", "numWaiting": "0", "numStopped": "0", "numStoppedTotal": "0"}
+	case "aria2.tellActive", "aria2.tellWaiting", "aria2.tellStopped":
+		result = []any{}
 	}
 	json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": result})
 }
@@ -92,7 +97,7 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	}
 }
 
-func TestFailingStepHintNamesTheStartCommand(t *testing.T) {
+func TestFailingStepHintRequiresApprovedReplacementAndRestart(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(fakeRPC))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
@@ -107,7 +112,22 @@ func TestFailingStepHintNamesTheStartCommand(t *testing.T) {
 			hint = r.Hint
 		}
 	}
-	if !strings.Contains(hint, "self-host start aria2") {
-		t.Errorf("hint should name the start command, got %q", hint)
+	if !strings.Contains(hint, "then self-host restart aria2 and self-host setup aria2") {
+		t.Errorf("hint should require restart before retrying Setup, got %q", hint)
+	}
+	if strings.Contains(hint, "self-host start aria2") {
+		t.Errorf("hint should not suggest start reloads a running daemon, got %q", hint)
+	}
+	if !strings.Contains(hint, "Inspect and review aria2's existing Compose, authentication, mounts and ports") {
+		t.Errorf("hint should require inspection and review of existing configuration, got %q", hint)
+	}
+	if !strings.Contains(hint, "reinstall replaces Compose and private configuration, not just credentials") {
+		t.Errorf("hint should explain the replacement scope, got %q", hint)
+	}
+	if !strings.Contains(hint, "Stop if protected configuration cannot be preserved") {
+		t.Errorf("hint should stop when protected configuration cannot be preserved, got %q", hint)
+	}
+	if !strings.Contains(hint, "Only after separate explicit approval of the replacement, run self-host install aria2 --yes") {
+		t.Errorf("hint should require separate explicit replacement approval before reinstalling, got %q", hint)
 	}
 }

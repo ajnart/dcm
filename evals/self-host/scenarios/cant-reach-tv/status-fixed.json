@@ -1,0 +1,33 @@
+{
+  "project": "/home/you/.self-host",
+  "home": "/home/you/.self-host",
+  "dashboard": "http://192.168.0.31:3000",
+  "exposure": "lan",
+  "access": ["home"],
+  "lan_ip": "192.168.0.31",
+  "host_ips": ["192.168.0.31"],
+  "profile": {"experience": "new"},
+  "apps": [
+    {
+      "id": "jellyfin",
+      "description": "Stream your movies and shows to every screen in the house",
+      "url": "http://192.168.0.31:8096",
+      "addresses": ["http://192.168.0.31:8096"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "homarr",
+      "description": "A dashboard with a tile for each of your apps",
+      "url": "http://192.168.0.31:3000",
+      "addresses": ["http://192.168.0.31:3000"],
+      "state": "running",
+      "health": "ok",
+      "setup": "ok",
+      "failed_steps": []
+    }
+  ]
+}
