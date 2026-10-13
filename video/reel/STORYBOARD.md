@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://selfhost.ajnart.dev/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://selfhost.ajnart.dev/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -61,14 +61,17 @@ integrated and a true peak below −1 dBTP.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
-  **`https://selfhost.ajnart.dev/install.sh`**, and repository **`ajnart/selfhost`**. It supersedes the
+  **`https://selfhost.ajnart.dev/install.sh`**. The repository line now names the existing
+  **`ajnart/selfhost-skills`** repository. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
-- **Publication is held pending live release verification.** On 2026-10-11 the domain did not resolve,
-  `ajnart/selfhost` was unavailable through authenticated GitHub lookup, and `ajnart/selfhost-skills`
-  was private. [Issue #193](https://github.com/ajnart/selfhost-skills/issues/193) records the rename and
-  visibility gate. [Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks publication
-  acceptance. A successful mock render does not establish working installer or public binaries.
+- **Publication is held pending anonymous installer and release-binary verification.** As of the
+  current-release reconciliation on 2026-10-13, the website is live and `ajnart/selfhost-skills` remains
+  private. This source correction does not rename or publish it.
+  [Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site acceptance,
+  [issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions, and
+  [issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks reel publication acceptance.
+  A successful mock render does not establish a working anonymous installer or public binaries.
 - Agent logo provenance is in `assets/agents/SOURCES.md`.
 
 ## Validation and reproduction
@@ -129,3 +132,33 @@ The luminance scan is a limited automated check, not a comprehensive photosensit
 
 These measurements belong to the release candidate, not a new creative approval or public installer
 acceptance. Publication remains gated by #268.
+
+### Verified repository correction, 2026-10-13
+
+- Merged current `main` (`6c0482ea`) and corrected only the end-card repository to
+  `github.com/ajnart/selfhost-skills`. The existing GSAP/Playwright renderer, frozen dependency
+  versions, fonts, 34-second timeline, motion and track provenance are retained.
+- Regenerated the 218-cue sheet, byte-identical to the preceding candidate. The original raw track
+  cache was unavailable. To preserve the approved sound without downloading media, the preceding
+  candidate's AAC was decoded to ignored `audio/out/soundtrack.wav` for the existing picture render;
+  its original AAC stream was then copied into the final MP4 with `ffmpeg -c copy` and faststart.
+  Extracted AAC streams compare byte-identical (SHA-256
+  `d44f41bb6934fa2eb2e4addc46ac9ae4074db8c47704d9dfb6b18f6fc022907e`).
+- Rendered all 34 chunks through `node render.mjs video --workers 8 --sub 8`. Final MP4: 2,040
+  frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo. Picture, sound and
+  container all measure 34.000 seconds; size 7.73 MB. Loudness remains −13.8 LUFS, −2.0 dBTP, 6.0 LU.
+- The final-file scan reports no flashes under its limited frame-average measure. All 17 cuts have
+  maximum and mean absolute beat offsets of 1.00 ms.
+- All 103 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology
+  failures. Full lint passes all 68 out-of-order samples and 23 fresh-page samples; 25 comparisons
+  show sub-pixel glyph raster noise (worst 53.6 dB PSNR, above the 30 dB failure threshold).
+  Eleven targeted end-card seek samples and four fresh-page comparisons are pixel-identical.
+- Inspected eight source stills, sixteen quarter-second samples from the final rendered end card,
+  and the regenerated 34-frame contact sheet. The full repository line retains 97 px bottom
+  clearance at 33.95 seconds, with no clipping or overlap observed.
+- Changed JavaScript syntax and `git diff --check` pass. Product code, Docker and runtime tests
+  were not part of this focused composition correction.
+- MP4 SHA-256: `4ea555e40653d6df72cc957b6d94e678a2dae0b9de385cd6e6b9b10f20d0c6f0`.
+
+This is source and render acceptance. Anonymous installation, public binary distribution and reel
+publication remain separate gates under #295, #193 and #268.

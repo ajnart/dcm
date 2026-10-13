@@ -28,22 +28,24 @@ Keep reading holds meaningful while allowing controlled movement.
 The approved v5 end command was **`npx selfhost install`**, specifically requested by the maintainer
 as a preview of the planned npm installer. The later canonical-domain request supersedes that copy:
 the current release candidate uses **`curl -fsSL https://selfhost.ajnart.dev/install.sh | bash`** and
-shows **`github.com/ajnart/selfhost`**. The approved motion, music and other product copy are unchanged.
+shows the existing repository, **`github.com/ajnart/selfhost-skills`**. The approved motion, music
+and other product copy are unchanged.
 Catalog counts and product behaviour should be rechecked before changing those claims. Provenance is
 recorded in the storyboard and asset source files.
 
 ## Canonical-domain release candidate
 
-This revision is not a new creative approval or proof that installation works. On 2026-10-11,
-`selfhost.ajnart.dev` did not resolve, GitHub could not resolve `ajnart/selfhost`, and
-`ajnart/selfhost-skills` was still private. The rename/publication gate remains
-[issue #193](https://github.com/ajnart/selfhost-skills/issues/193). Verify the canonical script and
-public release assets before publishing this candidate; do not deploy the private source or raw music.
-[Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks this candidate's publication
-checks separately from the rename and installer implementation. The candidate MP4 and contact sheet
-have been regenerated: 34.000 seconds, 2,040 frames at 1920×1080/60 fps, 7.72 MB, −13.8 LUFS and
-−2.0 dBTP. All 103 reading holds, full and targeted seek checks pass; the storyboard records the
-measurements and review samples separately from the approved v5 history below.
+This revision is not a new creative approval or proof that installation works. The source repository
+remains **`ajnart/selfhost-skills`**, private; the reel does not imply a rename or visibility change.
+The canonical website is live as of the current-release reconciliation on 2026-10-13. Anonymous
+installer and release-binary acceptance remain unverified; source merge does not satisfy that gate.
+[Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site proof, and
+[issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions.
+Verify the canonical script and anonymous release assets before publishing this candidate; do not
+publish the private source or raw music.
+[Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks the reel's publication checks.
+The corrected candidate's artifact measurements are recorded in the storyboard, separately from
+approved v5 and the earlier canonical-domain render.
 
 No release URL was found in the existing self-host OpenChamber scheduled task. Its Claude harness
 retry instructions and model selection were left unchanged, as were the repository workflows.

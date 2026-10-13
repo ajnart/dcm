@@ -3,7 +3,7 @@ import { SC, DUR, b } from "./timeline.js";
 
 const [A] = SC.end;
 export const END_INSTALL = "curl -fsSL https://selfhost.ajnart.dev/install.sh | bash";
-export const END_REPO = "github.com/ajnart/selfhost";
+export const END_REPO = "github.com/ajnart/selfhost-skills";
 // beats: 0 the final hit, the logo · 1 the install line types · 2 the agents · 3 the counts run up;
 // still from SETTLED but for the caret and a slow push
 const T = { logo: b(60), cmd: b(61), type: [b(61) + 0.15, b(61) + 0.75], agents: b(62), stats: b(63) };
