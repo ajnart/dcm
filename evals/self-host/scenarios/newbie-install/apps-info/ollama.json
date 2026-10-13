@@ -1,0 +1,10 @@
+{
+  "id": "ollama",
+  "name": "Ollama",
+  "description": "Run AI chat models on your own computer, with nothing sent to the cloud",
+  "category": "Local AI",
+  "image": "ollama/ollama:0.34.1",
+  "docs": "https://github.com/ollama/ollama/blob/main/docs/docker.md",
+  "port": 11434,
+  "inputs": []
+}

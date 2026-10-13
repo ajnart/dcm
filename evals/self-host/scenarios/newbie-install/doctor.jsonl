@@ -1,0 +1,6 @@
+{"event":"run.start","msg":"doctor"}
+{"event":"step.ok","step":"docker","msg":"Docker: docker command found"}
+{"event":"step.ok","step":"docker-socket","msg":"Docker daemon: engine 29.4.0"}
+{"event":"step.ok","step":"compose","msg":"Docker Compose: compose 5.1.2"}
+{"event":"step.ok","step":"docker-userns","msg":"Container IDs: rootless mode is not enabled","docs":"https://docs.docker.com/engine/security/rootless/uid-gid-mapping/"}
+{"event":"run.end","msg":"doctor: ok"}

@@ -1,0 +1,27 @@
+{
+ "uname": {
+  "s": "Linux",
+  "n": "mint-laptop",
+  "r": "6.8.0-60-generic",
+  "v": "#63~22.04.1-Ubuntu SMP",
+  "m": "x86_64"
+ },
+ "lsb_release": "Distributor ID:\tLinuxmint\nDescription:\tLinux Mint 22.1\nRelease:\t22.1\nCodename:\txia",
+ "tools": [
+  "apt",
+  "apt-get"
+ ],
+ "docker": "permission",
+ "user": "sam",
+  "media": {
+    "metadata_only": true,
+    "files": [
+      {"name": "Arrival (2016).mkv", "bytes": 134217728},
+      {"name": "Paddington 2 (2017).mkv", "bytes": 268435456},
+      {"name": "The Iron Giant (1999).mp4", "bytes": 67108864}
+    ]
+  },
+  "dirs": [
+  "/media/sam/FILMS/Movies"
+ ]
+}

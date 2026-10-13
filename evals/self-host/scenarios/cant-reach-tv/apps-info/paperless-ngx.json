@@ -1,0 +1,10 @@
+{
+  "id": "paperless-ngx",
+  "name": "Paperless-ngx",
+  "description": "Scan paper and files into a searchable, tagged filing cabinet",
+  "category": "Documents",
+  "image": "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
+  "docs": "https://docs.paperless-ngx.com/setup/",
+  "port": 8000,
+  "inputs": []
+}
