@@ -1,5 +1,4 @@
-import { APPS } from "./catalog.js";
-import { byId } from "./project.js";
+import { apps as APPS, appById } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { $, copy, esc, iconEl, toast } from "./util.js";
 
@@ -9,9 +8,9 @@ function card(app) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "card";
-  const port = app.p ? `:${app.p}` : "no ui";
-  const wires = app.l.length ? `wires to ${app.l.length} App${app.l.length === 1 ? "" : "s"}` : "&nbsp;";
-  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.d)}</small><span class="meta">${wires}</span>`;
+  const port = app.port ? `:${app.port}` : "no ui";
+  const wires = app.links.length ? `wires to ${app.links.length} App${app.links.length === 1 ? "" : "s"}` : "&nbsp;";
+  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.description)}</small><span class="meta">${wires}</span>`;
   const name = document.createElement("b");
   name.textContent = app.name;
   b.querySelector(".who").append(iconEl(app), name);
@@ -25,8 +24,8 @@ function drawStack() {
   for (const id of selection.ids()) {
     const b = document.createElement("button");
     b.type = "button";
-    b.title = `remove ${byId.get(id).name}`;
-    b.append(iconEl(byId.get(id)));
+    b.title = `remove ${appById.get(id).name}`;
+    b.append(iconEl(appById.get(id)));
     b.addEventListener("click", () => selection.remove(id));
     stack.append(b);
   }
@@ -47,8 +46,8 @@ function drawWires() {
       group.className = "pair";
       group.title = out.map((l) => l.title).join("\n");
       const name = document.createElement("strong");
-      name.textContent = byId.get(from).name;
-      group.append(name, ` → ${out.map((l) => byId.get(l.to).name).join(", ")}`);
+      name.textContent = appById.get(from).name;
+      group.append(name, ` → ${out.map((l) => appById.get(l.to).name).join(", ")}`);
       box.append(group);
     }
   }
@@ -78,7 +77,7 @@ export function mountCatalog({ onInstall, onSearch }) {
     const capped = !expanded && !needle;
     let shown = 0;
     for (const [app, el] of cards) {
-      const match = !needle || `${app.id} ${app.name} ${app.d} ${app.c}`.toLowerCase().includes(needle);
+      const match = !needle || `${app.id} ${app.name} ${app.description} ${app.category}`.toLowerCase().includes(needle);
       el.hidden = !match || (capped && shown >= PREVIEW);
       if (!el.hidden) shown++;
       el.setAttribute("aria-pressed", String(selection.has(app.id)));
@@ -102,7 +101,6 @@ export function mountCatalog({ onInstall, onSearch }) {
   };
 
   filter.addEventListener("input", redraw);
-  more.textContent = `show all ${APPS.length} apps ↓`;
   more.addEventListener("click", () => {
     expanded = true;
     redraw();

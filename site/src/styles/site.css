@@ -177,8 +177,12 @@ main {
   padding: 0 clamp(1rem, 4vw, 3rem);
 }
 
-section {
+main > section {
   padding: 4.5rem 0 1rem;
+}
+
+.page > section {
+  padding: 0;
 }
 
 section,
@@ -761,7 +765,14 @@ h2 {
   color: var(--pink);
 }
 
+.ico {
+  position: relative;
+}
+
 .ico img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 22px;
   height: 22px;
 }
@@ -912,9 +923,12 @@ h2 {
   cursor: help;
 }
 
-.more {
-  display: block;
-  margin: 1rem auto 0;
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .chips .demo {
@@ -1166,9 +1180,24 @@ h2 {
   .screen {
     font-size: 12px;
   }
-  .bar nav,
-  .ext .ver {
-    display: none;
+  .bar:not(.foot) {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+  .bar nav {
+    order: 3;
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.15rem;
+  }
+  .bar nav a {
+    flex: none;
+  }
+  .ext {
+    gap: 0.6rem;
+    font-size: 0.8rem;
   }
   .modal {
     inset: 10% 4%;
@@ -1333,4 +1362,136 @@ h2 {
 .notfound {
   padding: 20vh 1.5rem;
   text-align: center;
+}
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.category h3 {
+  margin: 1.75rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+.applist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.applist .card {
+  height: 100%;
+  text-decoration: none;
+}
+
+.crumbs {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.apphead {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.apphead h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+}
+
+.apphead .lede {
+  margin: 0.4rem 0 0;
+}
+
+.apphead .ico {
+  width: 64px;
+  height: 64px;
+  font-size: 1.6rem;
+}
+
+.apphead .ico img {
+  width: 44px;
+  height: 44px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 1.5rem;
+  margin: 0 0 1.5rem;
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.apppage h2 {
+  margin-top: 2.25rem;
+  font-size: 1.2rem;
+}
+
+.linklist {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ver {
+  text-decoration: none;
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+.bar:not(.foot) {
+  view-transition-name: site-header;
+}
+
+.apphead .ico,
+.applist .ico {
+  view-transition-name: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: 160ms ease-in both vt-out;
+  }
+  ::view-transition-new(root) {
+    animation: 220ms ease-out both vt-in;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }

@@ -1,11 +1,8 @@
-import { APPS, RECIPES } from "./catalog.js";
+import { appById, expand, linksAmong } from "../lib/catalog";
 import { sleep } from "./util.js";
 
 export const LAN = "192.168.1.20";
 export const VERSION = document.documentElement.dataset.version;
-export const byId = new Map(APPS.map((a) => [a.id, a]));
-export const recipeById = new Map(RECIPES.map((r) => [r.id, r]));
-
 const apps = new Map();
 const listeners = new Set();
 let password = "";
@@ -13,30 +10,6 @@ let password = "";
 const changed = () => listeners.forEach((fn) => fn());
 
 export const urlOf = (app) => (app.port ? `http://${LAN}:${app.port}` : "no web page");
-
-export function linksAmong(ids) {
-  const set = new Set(ids);
-  const links = [];
-  for (const id of set) {
-    const app = byId.get(id);
-    app.l.forEach((to, i) => {
-      if (set.has(to)) links.push({ from: id, to, title: app.lt[i] });
-    });
-  }
-  return links;
-}
-
-export function expand(targets) {
-  const ids = [];
-  const unknown = [];
-  for (const t of targets) {
-    const recipe = recipeById.get(t);
-    if (recipe) ids.push(...recipe.apps);
-    else if (byId.has(t)) ids.push(t);
-    else unknown.push(t);
-  }
-  return { ids: [...new Set(ids)], unknown };
-}
 
 function freePort(port, taken) {
   if (!port) return 0;
@@ -47,7 +20,7 @@ function freePort(port, taken) {
 
 function stepsFor(app, installed) {
   const steps = [
-    ["render", `wrote apps/${app.id}/compose.yml (${app.img}${app.port ? ` on port ${app.port}` : ""})`],
+    ["render", `wrote apps/${app.id}/compose.yml (${app.image}${app.port ? ` on port ${app.port}` : ""})`],
     ["pull", `pulled ${app.id}`],
     ["start", `started ${app.id}`],
     ["ready", app.port ? `${app.name} answers on port ${app.port}` : `${app.name} is running`],
@@ -85,8 +58,8 @@ export const project = {
     const fresh = ids
       .filter((id) => !apps.has(id))
       .map((id) => {
-        const a = byId.get(id);
-        return { id, name: a.name, category: a.c, description: a.d, url: urlOf({ port: freePort(a.p, taken) }) };
+        const a = appById.get(id);
+        return { id, name: a.name, category: a.category, description: a.description, url: urlOf({ port: freePort(a.port, taken) }) };
       });
     return { fresh, unknown };
   },
@@ -98,8 +71,8 @@ export const project = {
     const taken = new Set(project.list().map((a) => a.port));
     emit({ type: "run", msg: `install ${fresh.join(" ")}` });
     for (const id of fresh) {
-      const a = byId.get(id);
-      apps.set(id, { id, name: a.name, img: a.img, l: a.l, port: freePort(a.p, taken), state: "starting", steps: [] });
+      const a = appById.get(id);
+      apps.set(id, { id, name: a.name, image: a.image, port: freePort(a.port, taken), state: "starting", steps: [] });
     }
     changed();
     for (const id of fresh) {
@@ -111,7 +84,7 @@ export const project = {
         await sleep(step === "pull" ? 260 : 60 + Math.random() * 90);
         row[2] = "ok";
         if (step === "start") app.state = "running";
-        if (step === "pull") emit({ type: "pull", app: id, image: app.img });
+        if (step === "pull") emit({ type: "pull", app: id, image: app.image });
         else emit({ type: "step", app: id, step, msg });
         changed();
       }

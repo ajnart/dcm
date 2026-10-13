@@ -2,7 +2,7 @@ import { mountCatalog } from "./catalog-view.js";
 import { intro } from "./intro.js";
 import { mountLinks } from "./links-view.js";
 import { palette } from "./palette.js";
-import { byId, recipeById } from "./project.js";
+import { appById, recipeById } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { shell } from "./shell.js";
 import { tui } from "./tui.js";
@@ -106,7 +106,7 @@ function scrollSpy() {
 
 function handoff() {
   const params = new URLSearchParams(location.search);
-  const wanted = (params.get("apps") ?? "").split(",").filter((id) => byId.has(id) || recipeById.has(id));
+  const wanted = (params.get("apps") ?? "").split(",").filter((id) => appById.has(id) || recipeById.has(id));
   if (params.get("ref") === "dcm") {
     shell.print(["pink", "◆"], " Came from DCM? Same Apps, but installed, signed in and wired to each other for you.");
     shell.print("");

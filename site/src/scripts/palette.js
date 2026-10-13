@@ -1,4 +1,4 @@
-import { APPS } from "./catalog.js";
+import { apps as APPS } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { $, iconEl } from "./util.js";
 
@@ -21,7 +21,7 @@ function collect() {
   const needle = input.value.toLowerCase().trim();
   const n = selection.size;
   const available = actions.filter((a) => (!a.needsSelection || n > 0) && matches(needle, a.name(n), a.hint));
-  const hits = APPS.filter((a) => matches(needle, a.id, a.name, a.d, a.c));
+  const hits = APPS.filter((a) => matches(needle, a.id, a.name, a.description, a.category));
   const picked = hits.filter((a) => selection.has(a.id));
   const apps = [...picked, ...hits.filter((a) => !selection.has(a.id))].slice(0, Math.max(picked.length, needle ? 50 : 30));
   return [...available.map((a) => ({ kind: "action", ...a })), ...apps.map((a) => ({ kind: "app", app: a }))];
@@ -63,10 +63,10 @@ function row(item, index) {
   name.textContent = item.app.name;
   const sub = document.createElement("span");
   sub.className = "pdesc";
-  sub.textContent = item.app.d;
+  sub.textContent = item.app.description;
   const cat = document.createElement("span");
   cat.className = "pcat";
-  cat.textContent = item.app.c;
+  cat.textContent = item.app.category;
   el.append(box, iconEl(item.app), name, sub, cat);
   return el;
 }

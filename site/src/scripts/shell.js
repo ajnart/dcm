@@ -1,5 +1,5 @@
-import { APPS, RECIPES } from "./catalog.js";
-import { LAN, VERSION, byId, linksAmong, project, recipeById, urlOf } from "./project.js";
+import { apps as APPS, recipes as RECIPES, appById, linksAmong, recipeById } from "../lib/catalog";
+import { LAN, VERSION, project, urlOf } from "./project.js";
 import { $, pad, sleep } from "./util.js";
 import { tui } from "./tui.js";
 
@@ -128,11 +128,11 @@ function status(json) {
   const apps = project.list();
   if (!apps.length) return json ? print('{"error":"no Project yet"}') : noProject();
   if (json) {
-    const doc = { home: "~/.self-host", access: "lan", lan_ip: LAN, apps: apps.map((a) => ({ id: a.id, url: urlOf(a), state: a.state, setup: project.setupOf(a), description: byId.get(a.id).d })) };
+    const doc = { home: "~/.self-host", access: "lan", lan_ip: LAN, apps: apps.map((a) => ({ id: a.id, url: urlOf(a), state: a.state, setup: project.setupOf(a), description: appById.get(a.id).d })) };
     return print(JSON.stringify(doc, null, 2));
   }
   print(`You have ${apps.length} App${apps.length > 1 ? "s" : ""}.`);
-  for (const a of apps) print("  ", ["bold", pad(a.name, 18)], ["cyan", pad(urlOf(a), 28)], ["muted", byId.get(a.id).d]);
+  for (const a of apps) print("  ", ["bold", pad(a.name, 18)], ["cyan", pad(urlOf(a), 28)], ["muted", appById.get(a.id).d]);
   if (project.has("homarr")) print("Dashboard: Homarr at ", ["cyan", urlOf(project.get("homarr"))]);
   print("Everything lives in ~/.self-host.");
   print("");
@@ -149,25 +149,25 @@ function status(json) {
 function appsList(json) {
   if (json) return print(JSON.stringify({ apps: APPS.map(({ id, name, d, c, p }) => ({ id, name, description: d, category: c, port: p })), recipes: RECIPES }, null, 2));
   print(["bold", "Recipes"]);
-  for (const r of RECIPES) print("  ", ["pink", pad(r.id, 20)], ` ${r.d} `, ["muted", `(${r.apps.join(", ")})`]);
+  for (const r of RECIPES) print("  ", ["pink", pad(r.id, 20)], ` ${r.description} `, ["muted", `(${r.apps.join(", ")})`]);
   print("");
   print(["bold", "Apps"]);
-  for (const a of APPS) print("  ", ["cyan", pad(a.id, 20)], ` ${a.d}`);
+  for (const a of APPS) print("  ", ["cyan", pad(a.id, 20)], ` ${a.description}`);
 }
 
 function appsInfo(id) {
-  const a = byId.get(id);
+  const a = appById.get(id);
   const r = recipeById.get(id);
   if (r) {
-    print(["bold", r.name], ` — ${r.d}`);
+    print(["bold", r.name], ` — ${r.description}`);
     return print(["muted", "apps   "], r.apps.join(", "));
   }
   if (!a) return print(["red", `✗ unknown app "${id ?? ""}" (see: self-host apps list)`]);
-  print(["bold", a.name], ` — ${a.d}`);
-  print(["muted", "image  "], a.img);
-  print(["muted", "port   "], a.p ? String(a.p) : "none, it has no web page");
-  print(["muted", "group  "], a.c);
-  a.l.forEach((to, i) => print(["muted", i ? "       " : "links  "], ["pink", "⇄ "], pad(to, 16), ["muted", a.lt[i]]));
+  print(["bold", a.name], ` — ${a.description}`);
+  print(["muted", "image  "], a.image);
+  print(["muted", "port   "], a.port ? String(a.port) : "none, it has no web page");
+  print(["muted", "group  "], a.category);
+  a.links.forEach((l, i) => print(["muted", i ? "       " : "links  "], ["pink", "⇄ "], pad(l.to, 16), ["muted", l.title]));
   print("");
   print(["muted", "try: "], ["cyan", `self-host install ${a.id}`]);
 }
@@ -208,11 +208,11 @@ function lifecycle(verb, ids) {
 
 function logs(id) {
   if (!project.has(id)) return print(["red", `✗ ${id ?? "an App"} is not installed`], ["muted", " · usage: self-host logs <app>"]);
-  const app = byId.get(id);
+  const app = appById.get(id);
   const now = Date.now();
   const ts = (s) => new Date(now - s * 1000).toISOString().slice(11, 19);
   print(["muted", `${ts(42)} `], `[${id}] starting ${app.name}`);
-  print(["muted", `${ts(41)} `], `[${id}] ${app.p ? `listening on 0.0.0.0:${app.p}` : "ready"}`);
+  print(["muted", `${ts(41)} `], `[${id}] ${app.port ? `listening on 0.0.0.0:${app.port}` : "ready"}`);
   print(["muted", `${ts(30)} `], `[${id}] GET /api/health 200 3ms`);
   print(["muted", `${ts(2)} `], `[${id}] GET / 200 11ms`);
 }

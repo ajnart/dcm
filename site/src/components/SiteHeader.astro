@@ -1,0 +1,18 @@
+---
+import { LINKS, VERSION } from "../lib/site";
+
+const sections = ["reel", "play", "apps", "links", "how", "agents", "install", "support"];
+const label: Record<string, string> = { reel: "watch" };
+---
+
+<header class="bar">
+  <a class="tag" href="/" aria-label="self-host home">◆ self-host</a>
+  <nav aria-label="Sections" id="nav">
+    {sections.map((id) => <a href={`/#${id}`}>{label[id] ?? id}</a>)}
+  </nav>
+  <span class="ext">
+    <a href={LINKS.github}>github ↗</a>
+    <a href={LINKS.discord}>discord ↗</a>
+    <a href={LINKS.releases} class="ver" title="Latest CLI release">v{VERSION}</a>
+  </span>
+</header>

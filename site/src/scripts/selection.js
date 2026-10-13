@@ -1,4 +1,4 @@
-import { byId, expand, linksAmong } from "./project.js";
+import { appById, expand, installLine, linksAmong } from "../lib/catalog";
 
 const ids = new Set();
 const listeners = new Set();
@@ -30,7 +30,7 @@ export const selection = {
     ids.clear();
     changed();
   },
-  installLine: () => `self-host install ${[...ids].join(" ")}`,
+  installLine: () => installLine(ids),
   shareUrl() {
     const url = new URL(location.href);
     url.search = "";
@@ -41,7 +41,7 @@ export const selection = {
   links: () => linksAmong(ids),
   dashboardCandidates() {
     if (ids.has("homarr")) return [];
-    const homarr = byId.get("homarr");
-    return [...ids].filter((id) => homarr.l.includes(id));
+    const homarr = appById.get("homarr");
+    return [...ids].filter((id) => homarr.links.some((l) => l.to === id));
   },
 };

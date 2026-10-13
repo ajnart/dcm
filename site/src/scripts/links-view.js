@@ -1,4 +1,4 @@
-import { byId } from "./project.js";
+import { appById } from "../lib/catalog";
 import { $, iconEl } from "./util.js";
 
 const FEATURED = [
@@ -9,7 +9,7 @@ const FEATURED = [
 ];
 
 function face(id) {
-  const app = byId.get(id);
+  const app = appById.get(id);
   const el = document.createElement("span");
   el.className = "lface";
   el.title = app.name;
@@ -31,7 +31,7 @@ function linkCard([from, targets, text], onTry) {
 
   const names = document.createElement("p");
   names.className = "lnames";
-  names.textContent = `${byId.get(from).name} → ${targets.map((t) => byId.get(t).name).join(" · ")}`;
+  names.textContent = `${appById.get(from).name} → ${targets.map((t) => appById.get(t).name).join(" · ")}`;
   const what = document.createElement("p");
   what.className = "lwhat";
   what.textContent = text;

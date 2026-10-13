@@ -76,6 +76,9 @@ scripts/verify-install.sh                                              # public 
 It runs the documented `curl | bash` install in a throwaway `HOME` and checks
 `--version`, `self-host skill` and a pinned-old-version `self-update`.
 
+Then redeploy the site (see [Installer site](#installer-site)) so self-host.fyi
+shows the new version.
+
 ## Tag triggers
 
 Two workflows react to release tags: `release.yml` (the release) and `e2e.yml`
@@ -113,19 +116,31 @@ bash scripts/build-installer-site.sh "$stage/deploy"
 (cd "$stage/deploy" && wrangler pages deploy --branch main)
 ```
 
-`site/` is a static Astro project (`bun install`, `bun run dev` to work on it,
-`bun run check` to type-check). Its definitions come from the Go code:
+`site/` is a static Astro project, built with bun (`bun install`, `bun run dev`,
+`bun run check`). Its definitions come from the Go code:
 `go run ./tools/sitecatalog` writes `site/src/data/catalog.json` from the
-Catalog, and Astro renders the App and Link counts, `/catalog.json` (read by
-DCM) and `/llms.txt` from it at build time; `go run ./tools/introframes` writes
-`site/public/intro.json`, the onboarding Intro recorded from `internal/intro`.
-The version shown is the newest CLI tag from `git describe`, or
-`SELF_HOST_SITE_VERSION`. `site/wrangler.toml` names the Pages project.
-`public/_headers` sets `nosniff`, `no-referrer`, `frame-ancestors`, plain-text
-types for the installer and CORS for `catalog.json`; Astro adds the rest of
-the Content Security Policy as a `<meta>` tag with hashes (`security.csp` in
-`astro.config.mjs`). `404.astro` makes unknown paths such as `/go.mod` return
-404 instead of the landing page.
+Catalog. `src/lib/catalog.ts` is the one typed model of it, shared by the
+build and the browser playground; the `apps` content collection validates it
+with a schema, so a generator change that breaks the shape fails the build.
+From it Astro renders the landing page, one page per App under `/apps`,
+`/catalog.json` (read by DCM), `/llms.txt`, the sitemap and `robots.txt`.
+`go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
+Intro recorded from `internal/intro`.
+
+The version the site shows is looked up at build time the way the installer
+picks a release: the highest stable `vX.Y.Z` release on GitHub that carries
+`checksums.txt` and the `self-host_*` archives. The build uses `GITHUB_TOKEN`
+or `gh auth token` while the repository is private, and fails rather than show
+a stale version; `SELF_HOST_SITE_VERSION` overrides it. **Redeploy the site
+after every release** so the page and the playground show the new version.
+
+`site/wrangler.toml` names the Pages project. `public/_headers` sets `nosniff`,
+`no-referrer`, `frame-ancestors`, plain-text types for the installer and CORS
+for `catalog.json`; Astro adds the rest of the Content Security Policy as a
+`<meta>` tag with hashes (`security.csp` in `astro.config.mjs`). Pages move
+with native cross-document view transitions, which need no script and work
+under that policy; Astro's `<ClientRouter />` does not support its CSP.
+`404.astro` makes unknown paths such as `/go.mod` return 404.
 
 The old `selfhost.ajnart.dev` host keeps working for installs already in the
 wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and

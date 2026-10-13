@@ -9,6 +9,7 @@
     "check": "astro check"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.3.6",
     "prismjs": "^1.30.0"
   },
@@ -17,5 +18,9 @@
     "@types/node": "^26.6.4",
     "@types/prismjs": "^1.26.6",
     "typescript": "^6.0.3"
+  },
+  "packageManager": "bun@1.4.3",
+  "engines": {
+    "bun": ">=1.4.3"
   }
 }

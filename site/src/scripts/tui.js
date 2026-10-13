@@ -1,5 +1,5 @@
-import { APPS, RECIPES } from "./catalog.js";
-import { LAN, VERSION, byId, expand, project, urlOf } from "./project.js";
+import { apps as APPS, recipes as RECIPES, appById, expand } from "../lib/catalog";
+import { LAN, VERSION, project, urlOf } from "./project.js";
 import { $, esc } from "./util.js";
 
 const root = $("#tui");
@@ -22,7 +22,7 @@ function glyph(status) {
 
 function stepRows(app) {
   const rows = app.steps.map(([id, msg, status]) => `<div class="row">${glyph(status)} ${esc(id)}  ${sp("muted", msg)}</div>`);
-  for (const t of app.l) {
+  for (const t of appById.get(app.id).links.map((l) => l.to)) {
     if (!project.has(t)) rows.push(`<div class="row">${sp("dim", "○")} link-${esc(t)}  ${sp("dim", `waiting for ${t} (install it, or finish its Setup)`)}</div>`);
   }
   return rows.join("");
@@ -51,12 +51,12 @@ function dashboard() {
   const cur = apps[ui.sel];
   let right = "";
   if (cur) {
-    const meta = byId.get(cur.id);
+    const meta = appById.get(cur.id);
     const tabs = `<div class="tabs">${["logs", "setup", "info"].map((t, i) => sp(i === ui.pane ? "on" : "", t)).join("")}</div><div class="dim">${"─".repeat(60)}</div>`;
     const bodies = [
-      () => [`starting ${cur.name}`, meta.p ? `listening on 0.0.0.0:${meta.p}` : "ready", "GET /api/health 200 3ms", "GET / 200 11ms"].map((l, i) => `<div class="row">${sp("muted", `12:0${i * 2}:1${i}`)} ${esc(l)}</div>`).join(""),
+      () => [`starting ${cur.name}`, meta.port ? `listening on 0.0.0.0:${meta.port}` : "ready", "GET /api/health 200 3ms", "GET / 200 11ms"].map((l, i) => `<div class="row">${sp("muted", `12:0${i * 2}:1${i}`)} ${esc(l)}</div>`).join(""),
       () => stepRows(cur),
-      () => `<div class="row wrap">${esc(meta.d)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(meta.img)}</div><div class="row">${sp("muted", "url    ")}${esc(urlOf(cur))}</div><div class="row">${sp("muted", "group  ")}${esc(meta.c)}</div>`,
+      () => `<div class="row wrap">${esc(meta.description)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(meta.image)}</div><div class="row">${sp("muted", "url    ")}${esc(urlOf(cur))}</div><div class="row">${sp("muted", "group  ")}${esc(meta.category)}</div>`,
     ];
     right = `<div class="box grow"><span class="legend">${esc(cur.name)}</span><div class="scroll">${tabs}${bodies[ui.pane]()}</div></div>`;
   }
@@ -98,8 +98,8 @@ function workflow() {
 function installItems() {
   const q = ui.query.toLowerCase();
   const match = (s) => s.toLowerCase().includes(q);
-  const recipes = RECIPES.filter((r) => match(r.id) || match(r.name) || match(r.d) || r.apps.some((a) => a.includes(q))).map((r) => ({ kind: "recipe", ...r }));
-  const apps = APPS.filter((a) => match(a.id) || match(a.name) || match(a.d) || match(a.c)).map((a) => ({ kind: "app", ...a }));
+  const recipes = RECIPES.filter((r) => match(r.id) || match(r.name) || match(r.description) || r.apps.some((a) => a.includes(q))).map((r) => ({ kind: "recipe", ...r }));
+  const apps = APPS.filter((a) => match(a.id) || match(a.name) || match(a.description) || match(a.category)).map((a) => ({ kind: "app", ...a }));
   return [...recipes, ...apps];
 }
 
@@ -121,10 +121,10 @@ function installView() {
   const cur = items[ui.cursor];
   let detail = '<div class="row muted">No match.</div>';
   if (cur?.kind === "recipe") {
-    detail = `<div class="row wrap">${esc(cur.d)}</div><div class="row"> </div><div class="row bold">Apps</div>${cur.apps.map((id) => `<div class="row">${esc(byId.get(id).name.padEnd(16))} ${sp("muted", byId.get(id).d)}</div>`).join("")}`;
+    detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row bold">Apps</div>${cur.apps.map((id) => `<div class="row">${esc(appById.get(id).name.padEnd(16))} ${sp("muted", appById.get(id).d)}</div>`).join("")}`;
   }
   if (cur?.kind === "app") {
-    detail = `<div class="row wrap">${esc(cur.d)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(cur.img)}</div><div class="row">${sp("muted", "port   ")}${cur.p || "none"}</div><div class="row">${sp("muted", "group  ")}${esc(cur.c)}</div>${cur.l.length ? `<div class="row wrap">${sp("muted", "links  ")}${esc(cur.l.join(", "))}</div>` : ""}`;
+    detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(cur.image)}</div><div class="row">${sp("muted", "port   ")}${cur.port || "none"}</div><div class="row">${sp("muted", "group  ")}${esc(cur.category)}</div>${cur.links.length ? `<div class="row wrap">${sp("muted", "links  ")}${esc(cur.links.map((l) => l.to).join(", "))}</div>` : ""}`;
   }
   const picked = ui.picks.size ? sp("pink", ` ${ui.picks.size} picked`) : "";
   const review = ui.review ? `<div class="modal">${ui.review}</div>` : "";

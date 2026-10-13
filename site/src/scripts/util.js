@@ -14,18 +14,16 @@ export const esc = (s) =>
 
 export const pad = (s, n) => String(s).padEnd(n);
 
-const ICONS = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/";
-
 export function iconEl(app) {
   const box = document.createElement("span");
   box.className = "ico";
   box.textContent = app.name[0];
-  if (!app.i) return box;
+  if (!app.icon) return box;
   const img = new Image();
   img.alt = "";
   img.width = 22;
   img.height = 22;
-  img.src = ICONS + app.i;
+  img.src = app.icon;
   img.addEventListener("load", () => box.replaceChildren(img));
   return box;
 }

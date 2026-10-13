@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
-import { APPS, INSTALL, RECIPES } from "../data/site";
+import { apps, recipes } from "../lib/catalog";
+import { INSTALL, LINKS } from "../lib/site";
 
 const head = `# self-host
 
@@ -13,10 +14,11 @@ Agents: run \`self-host skill\` and follow the guide it prints. Every change fol
 
 ## Docs
 
-- [README](https://github.com/ajnart/selfhost-skills/blob/main/README.md): install, quick start, Links, commands, Access, Backup
-- [Agent skill](https://github.com/ajnart/selfhost-skills/blob/main/skills/self-host/SKILL.md): the discoverable skill, a router to \`self-host skill\`
+- [README](${LINKS.github}/blob/main/README.md): install, quick start, Links, commands, Access, Backup
+- [Agent skill](${LINKS.github}/blob/main/skills/self-host/SKILL.md): the discoverable skill, a router to \`self-host skill\`
 - [Catalog JSON](https://self-host.fyi/catalog.json): every App and Recipe, with ports, images and Links
-- [Releases](https://github.com/ajnart/selfhost-skills/releases): CLI archives and checksums.txt
+- [Releases](${LINKS.releases}): CLI archives and checksums.txt
+- [Discord](${LINKS.discord}): community and help
 
 ## Commands
 
@@ -28,8 +30,8 @@ Agents: run \`self-host skill\` and follow the guide it prints. Every change fol
 `;
 
 export const GET: APIRoute = () => {
-  const recipes = RECIPES.map((r) => `- \`${r.id}\` (${r.name}): ${r.d}. Apps: ${r.apps.join(", ")}`);
-  const apps = APPS.map((a) => `- \`${a.id}\` (${a.name}, ${a.c}): ${a.d}${a.l.length ? `. Links to ${a.l.join(", ")}` : ""}`);
-  const body = [head, "## Recipes", "", ...recipes, "", "## Apps", "", ...apps, ""].join("\n");
+  const recipeLines = recipes.map((r) => `- \`${r.id}\` (${r.name}): ${r.description}. Apps: ${r.apps.join(", ")}`);
+  const appLines = apps.map((a) => `- [\`${a.id}\`](https://self-host.fyi/apps/${a.id}) (${a.name}, ${a.category}): ${a.description}${a.links.length ? `. Links to ${a.links.map((l) => l.to).join(", ")}` : ""}`);
+  const body = [head, "## Recipes", "", ...recipeLines, "", "## Apps", "", ...appLines, ""].join("\n");
   return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 };

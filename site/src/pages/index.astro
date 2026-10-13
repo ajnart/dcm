@@ -1,39 +1,49 @@
 ---
 import Base from "../layouts/Base.astro";
 import CodeBlock from "../components/CodeBlock.astro";
-import { AGENT_PROMPT, APPS, INSTALL, LINK_COUNT, VERSION } from "../data/site";
+import SectionHead from "../components/SectionHead.astro";
+import { apps, linkCount, linkingApps } from "../lib/catalog";
+import { AGENT_PROMPT, INSTALL, LINKS, VERSION } from "../lib/site";
 
-const linkSources = APPS.filter((a) => a.l.length).length;
 const AGENT_RUNS = `self-host skill
 self-host status --json
 self-host install media --yes --json
 self-host debug sonarr`;
+const description = `One Go binary that installs, signs in and wires together ${apps.length} self-hosted Apps with Docker Compose. Try it in your browser.`;
+const jsonld = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "self-host",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Linux, macOS, Windows (WSL)",
+      softwareVersion: VERSION,
+      description,
+      url: "https://self-host.fyi/",
+      downloadUrl: LINKS.releases,
+      license: "https://www.apache.org/licenses/LICENSE-2.0",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+    {
+      "@type": "VideoObject",
+      name: "self-host in 34 seconds",
+      description,
+      thumbnailUrl: "https://self-host.fyi/reel.jpg",
+      contentUrl: "https://self-host.fyi/reel.mp4",
+      uploadDate: "2026-10-13",
+      duration: "PT34S",
+    },
+  ],
+};
 ---
 
-<Base title="self-host · run your own Apps" description="self-host: one Go binary that installs, wires and repairs self-hosted Apps with Docker Compose. Try it in your browser.">
-      <header class="bar">
-        <a class="tag" href="/" aria-label="self-host home">◆ self-host</a>
-        <nav aria-label="Sections" id="nav">
-          <a href="#reel">watch</a>
-          <a href="#play">play</a>
-          <a href="#apps">apps</a>
-          <a href="#links">links</a>
-          <a href="#how">how</a>
-          <a href="#agents">agents</a>
-          <a href="#install">install</a>
-          <a href="#support">support</a>
-        </nav>
-        <span class="ext">
-          <a href="https://github.com/ajnart/selfhost-skills">github ↗</a>
-          <a href="https://compose.ajnart.dev/?ref=selfhost">dcm ↗</a>
-          <span class="ver">v{VERSION}</span>
-        </span>
-      </header>
+<Base title="self-host · run your own Apps" description={description} video jsonld={jsonld}>
 
       <main>
         <section class="hero">
           <div>
-            <p class="eyebrow">// one Go binary · docker compose · {APPS.length} Apps</p>
+            <p class="eyebrow">// one Go binary · docker compose · {apps.length} Apps</p>
             <h1>Your Apps.<br>Your home.<br><span class="pink">One binary.</span></h1>
             <p class="lede">Installs self-hosted Apps, signs them in, and wires them to each other. A terminal Dashboard for you, <code>--json</code> for your agent.</p>
             <div class="cta">
@@ -53,10 +63,7 @@ self-host debug sonarr`;
         </section>
 
         <section id="play" class="play" aria-labelledby="play-title">
-          <div class="section-head">
-            <h2 id="play-title"><span class="num">01</span> Play</h2>
-            <p>A simulation in your browser. Real catalog, nothing installed. <kbd>self-host</kbd> opens the Dashboard.</p>
-          </div>
+          <SectionHead id="play" num="01" title="Play">A simulation in your browser. Real catalog, nothing installed. <kbd>self-host</kbd> opens the Dashboard.</SectionHead>
           <div class="term" id="term">
             <div class="term-bar">
               <span class="dots"><i></i><i></i><i></i></span>
@@ -97,10 +104,7 @@ self-host debug sonarr`;
         </section>
 
         <section id="apps" aria-labelledby="apps-title">
-          <div class="section-head">
-            <h2 id="apps-title"><span class="num">02</span> Apps</h2>
-            <p>{APPS.length} Apps. Pick some, then install them in the playground or share the link.</p>
-          </div>
+          <SectionHead id="apps" num="02" title="Apps">{apps.length} Apps. Pick some, then install them in the playground or share the link.</SectionHead>
           <div class="selbar" id="selbar">
             <div class="sel-info">
               <span id="selcount">0 Apps selected</span>
@@ -117,22 +121,16 @@ self-host debug sonarr`;
           </div>
           <input id="q" class="filter" type="search" placeholder="/ filter apps" aria-label="Filter Apps" autocomplete="off" spellcheck="false">
           <div class="apps" id="catalog"></div>
-          <button class="btn more" id="more" type="button">show all {APPS.length} apps ↓</button>
+          <p class="more-row"><button class="btn more" id="more" type="button">show all {apps.length} apps ↓</button> <a class="btn" href="/apps">browse every App →</a></p>
         </section>
 
         <section id="links" aria-labelledby="links-title">
-          <div class="section-head">
-            <h2 id="links-title"><span class="num">03</span> Links</h2>
-            <p>Install two Apps that know each other and they get connected: download clients, indexers, requests, dashboard tiles. {LINK_COUNT} Links across {linkSources} Apps.</p>
-          </div>
+          <SectionHead id="links" num="03" title="Links">Install two Apps that know each other and they get connected: download clients, indexers, requests, dashboard tiles. {linkCount} Links across {linkingApps} Apps.</SectionHead>
           <div class="linkcards" id="linkcards"></div>
         </section>
 
         <section id="how" aria-labelledby="how-title">
-          <div class="section-head">
-            <h2 id="how-title"><span class="num">04</span> How</h2>
-            <p>Nothing changes until you say yes.</p>
-          </div>
+          <SectionHead id="how" num="04" title="How">Nothing changes until you say yes.</SectionHead>
           <ol class="steps">
             <li><b>inspect</b><span>Docker, ports, folders, LAN.</span></li>
             <li><b>plan</b><span>Apps, ports, folders.</span></li>
@@ -143,10 +141,7 @@ self-host debug sonarr`;
         </section>
 
         <section id="agents" aria-labelledby="agents-title">
-          <div class="section-head">
-            <h2 id="agents-title"><span class="num">05</span> Agents</h2>
-            <p>The binary ships its own agent guide. One sentence is enough.</p>
-          </div>
+          <SectionHead id="agents" num="05" title="Agents">The binary ships its own agent guide. One sentence is enough.</SectionHead>
           <div class="split">
             <CodeBlock lang="text" label="you, to Claude Code / Codex / OpenCode" code={AGENT_PROMPT} id="prompt-block" />
     <CodeBlock lang="bash" label="what the agent runs" code={AGENT_RUNS} />
@@ -154,25 +149,20 @@ self-host debug sonarr`;
         </section>
 
         <section id="install" aria-labelledby="install-title">
-          <div class="section-head">
-            <h2 id="install-title"><span class="num">06</span> Install</h2>
-            <p>Linux, macOS, WSL. Needs Docker with Compose v2.</p>
-          </div>
+          <SectionHead id="install" num="06" title="Install">Linux, macOS, WSL. Needs Docker with Compose v2.</SectionHead>
           <CodeBlock lang="bash" label="install" code={INSTALL} id="oneliner" />
-          <p class="aside">Read it first: <a href="/install">installer</a> · <a href="/install.sh.sha256">sha256</a> · <a href="https://github.com/ajnart/selfhost-skills/releases">releases</a></p>
-          <p class="aside">Want the YAML instead? <a href="https://compose.ajnart.dev/?ref=selfhost">DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
+          <p class="aside">Read it first: <a href="/install">installer</a> · <a href="/install.sh.sha256">sha256</a> · <a href={LINKS.releases}>releases</a></p>
+          <p class="aside">Want the YAML instead? <a href={LINKS.dcm}>DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
         </section>
 
         <section id="support" aria-labelledby="support-title">
-          <div class="section-head">
-            <h2 id="support-title"><span class="num">07</span> Support</h2>
-            <p>Free and open source. Built by one person.</p>
-          </div>
+          <SectionHead id="support" num="07" title="Support">Free and open source. Built by one person.</SectionHead>
           <div class="links">
-            <a class="btn primary" href="https://github.com/sponsors/ajnart">♥ sponsor on GitHub</a>
-            <a class="btn" href="https://ko-fi.com/ajnart">☕ Ko-fi</a>
-            <a class="btn" href="https://github.com/ajnart/selfhost-skills">★ GitHub</a>
-            <a class="btn" href="https://github.com/ajnart/selfhost-skills/issues">report a bug</a>
+            <a class="btn primary" href={LINKS.sponsor}>♥ sponsor on GitHub</a>
+            <a class="btn" href={LINKS.kofi}>☕ Ko-fi</a>
+            <a class="btn" href={LINKS.github}>★ GitHub</a>
+            <a class="btn" href={LINKS.discord}>💬 Discord</a>
+            <a class="btn" href={LINKS.issues}>report a bug</a>
           </div>
         </section>
       </main>
@@ -188,10 +178,6 @@ self-host debug sonarr`;
       </dialog>
       <div class="toast" id="toast" role="status" hidden></div>
 
-      <footer class="bar foot">
-        <span>self-host · Apache-2.0</span>
-        <span><a href="https://github.com/ajnart/selfhost-skills">github</a> · <a href="https://github.com/sponsors/ajnart">sponsor</a> · <a href="https://ko-fi.com/ajnart">ko-fi</a> · <a href="https://compose.ajnart.dev/?ref=selfhost">dcm</a> · <a href="/llms.txt">llms.txt</a></span>
-      </footer>
 </Base>
 
 <script>

@@ -1,10 +1,13 @@
+import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
   site: "https://self-host.fyi",
   output: "static",
-  trailingSlash: "ignore",
+  trailingSlash: "never",
   build: { format: "file", inlineStylesheets: "never" },
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
+  integrations: [sitemap({ filter: (page) => !page.endsWith("/404") })],
   devToolbar: { enabled: false },
   security: {
     csp: {
