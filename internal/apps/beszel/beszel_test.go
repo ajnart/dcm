@@ -693,9 +693,9 @@ type service struct {
 	ReadOnly    bool              `yaml:"read_only"`
 }
 
-func fragment(t *testing.T) (string, map[string]service) {
+func fragmentWithSocket(t *testing.T, socket string) (string, map[string]service) {
 	t.Helper()
-	source := (beszel.App{}).Compose(app.RenderContext{Port: 8090})
+	source := (beszel.App{}).Compose(app.RenderContext{Port: 8090, DockerSocket: socket})
 	var doc struct {
 		Services map[string]service `yaml:"services"`
 	}
@@ -703,6 +703,11 @@ func fragment(t *testing.T) (string, map[string]service) {
 		t.Fatalf("fragment is not YAML: %v", err)
 	}
 	return source, doc.Services
+}
+
+func fragment(t *testing.T) (string, map[string]service) {
+	t.Helper()
+	return fragmentWithSocket(t, "")
 }
 
 func TestFragmentHasHubAgentAndProxyAndOnlyTheProxyMountsTheSocket(t *testing.T) {
@@ -715,13 +720,30 @@ func TestFragmentHasHubAgentAndProxyAndOnlyTheProxyMountsTheSocket(t *testing.T)
 			if !strings.Contains(volume, "docker.sock") {
 				continue
 			}
-			if name != beszel.SocketProxyService || volume != beszel.DockerSocketMount {
-				t.Errorf("%s mounts %s; only %s may mount %s", name, volume, beszel.SocketProxyService, beszel.DockerSocketMount)
+			if name != beszel.SocketProxyService || !beszel.IsDockerSocketMount(volume) {
+				t.Errorf("%s has an invalid Docker socket mount %s", name, volume)
 			}
 		}
 	}
 	if got := services["beszel-socket-proxy"].Volumes; len(got) != 1 || got[0] != "/var/run/docker.sock:/var/run/docker.sock:ro" {
 		t.Errorf("proxy volumes = %v, want exactly the read-only socket", got)
+	}
+}
+
+func TestSocketProxyMountsTheActiveDaemonSocket(t *testing.T) {
+	for _, tc := range []struct {
+		name, source string
+	}{
+		{name: "rootful", source: "/var/run/docker.sock"},
+		{name: "rootless", source: "/run/user/1000/docker.sock"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, services := fragmentWithSocket(t, tc.source)
+			want := tc.source + ":/var/run/docker.sock:ro"
+			if got := services[beszel.SocketProxyService].Volumes; len(got) != 1 || got[0] != want {
+				t.Errorf("proxy volumes = %v, want [%s]", got, want)
+			}
+		})
 	}
 }
 

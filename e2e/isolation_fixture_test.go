@@ -171,12 +171,14 @@ func TestComposeIsolationNamesTheBeszelExceptionsAndNothingElse(t *testing.T) {
 		accepted     bool
 	}{
 		{"the named proxy with its read-only socket", "services:\n  beszel-socket-proxy:\n    volumes: [" + proxyMount + "]\n", true},
+		{"the named proxy with a rootless read-only socket", "services:\n  beszel-socket-proxy:\n    volumes: [/run/user/1000/docker.sock:/var/run/docker.sock:ro]\n", true},
 		{"the named agent on the host network", "services:\n  beszel-agent:\n    network_mode: host\n", true},
 		{"the agent mounting the socket", "services:\n  beszel-agent:\n    volumes: [" + proxyMount + "]\n", false},
 		{"another service mounting the socket read-only", "services:\n  app:\n    volumes: [" + proxyMount + "]\n", false},
 		{"the hub mounting the socket", "services:\n  beszel:\n    volumes: [" + proxyMount + "]\n", false},
 		{"the proxy with a writable socket", "services:\n  beszel-socket-proxy:\n    volumes: [/var/run/docker.sock:/var/run/docker.sock]\n", false},
-		{"the proxy with another socket path", "services:\n  beszel-socket-proxy:\n    volumes: [/run/docker.sock:/var/run/docker.sock:ro]\n", false},
+		{"the proxy with another container target", "services:\n  beszel-socket-proxy:\n    volumes: [/run/docker.sock:/run/docker.sock:ro]\n", false},
+		{"the proxy with a non-socket source", "services:\n  beszel-socket-proxy:\n    volumes: [/etc/passwd:/var/run/docker.sock:ro]\n", false},
 		{"the proxy on the host network", "services:\n  beszel-socket-proxy:\n    network_mode: host\n", false},
 		{"another service on the host network", "services:\n  app:\n    network_mode: host\n", false},
 		{"the hub on the host network", "services:\n  beszel:\n    network_mode: host\n", false},

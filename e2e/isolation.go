@@ -395,7 +395,7 @@ func validateComposeIsolation(source string) error {
 			return errors.New("external network namespace")
 		}
 		for _, volume := range svc.Volumes {
-			readOnlyProxy := name == beszel.SocketProxyService && fmt.Sprint(volume) == beszel.DockerSocketMount
+			readOnlyProxy := name == beszel.SocketProxyService && beszel.IsDockerSocketMount(fmt.Sprint(volume))
 			if strings.Contains(fmt.Sprint(volume), "docker.sock") && !readOnlyProxy {
 				return errors.New("Docker socket mount")
 			}

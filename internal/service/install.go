@@ -319,12 +319,16 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 					}
 				}
 				ss.emitStage([]string{info.ID}, events.Event{Event: events.StepStart, App: info.ID, Step: StageRender, Msg: "render " + info.ID})
-				fragment := a.Compose(app.RenderContext{Port: port, Inputs: values, Settings: ss.settings})
+				rc, err := s.renderContext(ctx, a, port, values, ss.settings)
+				if err != nil {
+					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
+				}
+				fragment := a.Compose(rc)
 				if err := ss.p.ValidateFragment(info.ID, fragment); err != nil {
 					st.Port, st.Inputs = previousPort, previousInputs
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
-				if err := ss.writeFiles(a, app.RenderContext{Port: port, Inputs: values, Settings: ss.settings}); err != nil {
+				if err := ss.writeFiles(a, rc); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
 				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {

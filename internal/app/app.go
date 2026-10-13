@@ -46,12 +46,19 @@ type Input struct {
 
 // RenderContext is what an App needs to render its Compose fragment.
 type RenderContext struct {
-	Port     int
-	Inputs   map[string]string
-	Settings map[string]string
+	Port         int
+	Inputs       map[string]string
+	Settings     map[string]string
+	DockerSocket string
 	// Web lists the installed Apps with a web page, by ID, for an Access App
 	// that fronts each of them.
 	Web []WebTarget
+}
+
+// DockerSocketMounter identifies an App whose fragment mounts the active
+// Docker daemon socket. The service resolves the host path at render time.
+type DockerSocketMounter interface {
+	DockerSocketTarget() string
 }
 
 // WebTarget is one installed App with a web page: the Compose service and

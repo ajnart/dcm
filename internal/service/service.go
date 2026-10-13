@@ -258,6 +258,19 @@ func (s *Service) open(ctx context.Context) (*session, error) {
 	return &session{s: s, p: p, settings: settings, secrets: &secretStore{p: p, values: secrets}, state: state, compose: s.compose(p)}, nil
 }
 
+func (s *Service) renderContext(ctx context.Context, a app.App, port int, inputs, settings map[string]string) (app.RenderContext, error) {
+	rc := app.RenderContext{Port: port, Inputs: inputs, Settings: settings}
+	if _, ok := a.(app.DockerSocketMounter); !ok {
+		return rc, nil
+	}
+	socket, err := host.DockerSocket(ctx, s.Deps)
+	if err != nil {
+		return app.RenderContext{}, err
+	}
+	rc.DockerSocket = socket
+	return rc, nil
+}
+
 func (s *Service) lock(p *project.Project) (func(), error) {
 	return p.Lock(s.Deps.PID, s.Deps.ProcessAlive)
 }
