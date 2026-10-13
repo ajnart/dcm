@@ -2,9 +2,44 @@
 
 ## Supported upstream
 
-The compiled definition pins `ghcr.io/homarr-labs/homarr:v2.4.1`.
-The supported API version is `2.4.1`, observed through authenticated
-`info.getInfo`. The tagged research baseline is
+The compiled definition uses `ghcr.io/homarr-labs/homarr:latest`.
+The compatibility gate requires API version `>= 2.4.1`, read through
+authenticated `info.getInfo`. Stable versions are compared numerically by
+major, minor and patch; newer releases do not need a separate allowlist entry.
+Setup and every Link reject older or malformed versions with a recovery hint.
+`integration.getKinds` must expose the descriptor's kind and the exact
+supplied credential alternative. Missing credentials name the peer's Setup
+command; they are not submitted as empty keys.
+
+Earlier on 2026-10-13, stable [v2.5.1](https://github.com/homarr-labs/homarr/releases/tag/v2.5.1)
+was published at release source `c2e95f8d05b87dae42e9cd638dd7d4822b7cd608`,
+including [hotfix #7170](https://github.com/homarr-labs/homarr/pull/7170)
+merged as `62c8513a27e9fd40ad935fac152ba1a6a84f0867`. Its observed published
+`:latest` index was
+`sha256:92520b5b5188b1ea54cfa19dc2e6d54c7f09d21aca6b2868355f0b4985d70d71`.
+The scoped source audit from the historical resolved `2.4.1` source through
+`2.5.0` and that hotfix found the relevant API, credential, native-widget, Stats
+and Downloads contracts unchanged except the specific hotfix corrections;
+no client protocol adaptation is needed. The fresh `2.5.1` image check observed
+authenticated API `2.5.1` at that index and OCI revision
+`62c8513a27e9fd40ad935fac152ba1a6a84f0867`.
+
+Later on 2026-10-13, stable [v2.5.2](https://github.com/homarr-labs/homarr/releases/tag/v2.5.2)
+was published at source `7eb9a417a60d759adce5f7ac15ceb594aefad471`.
+Its source comparison against the validated `2.5.1` OCI revision changes only
+the changelog, root version and Beszel chart CSS. API, authentication, Stats,
+Downloads and all 39 native peer implementations are unchanged; the ten privacy
+owner source hashes match. The fresh published `2.5.2` image check verified its
+authenticated API version, image index and OCI revision. These audits record
+specific checked contracts rather than a fixed global supported-version list.
+These source comparisons and narrow API observations do not establish
+peer-specific native/privacy, browser or lifecycle acceptance; peer-specific
+privacy holds remain in place.
+
+### Historical 2.4.1 image proof
+
+The historical proof observed API `2.4.1` through authenticated `info.getInfo`.
+Its tagged research baseline is
 `ebbd4876d25a51151444a009ab596e1154d62880`; it is not the resolved image revision.
 The inspected image index is
 `sha256:ee67a5e856c051c4e114418a54b89a3fc3cb5507d0689e5cb89c790305c549cd`,
@@ -15,10 +50,6 @@ and its local image ID is
 Its OCI revision label is `3d4150e59f600876b7e308f857b2f21572b75348` and
 version label is `main`, neither a substitute for the observed API version.
 A release tag is mutable; proofs record each identity separately.
-Setup and every Link read authenticated `info.getInfo` and reject other
-versions with a backup/version/retry hint. `integration.getKinds` must expose
-the descriptor's kind and the exact supplied credential alternative. Missing
-credentials name the peer's Setup command; they are not submitted as empty keys.
 
 The supported operations are the existing REST Apps/boards/item creation,
 tRPC `integration.all/create/update/delete`, `board.getBoardByName/saveBoard`,
@@ -51,6 +82,17 @@ normal descriptor hint. Nil preserves existing behavior. Removal and absence
 checks never call it, so unavailable credentials or prerequisites cannot block
 owned cleanup. It is not an Address resolver or a TLS bypass.
 
+Privacy-sensitive leaf preflights can call
+`requireCredentialSafeHomarr(ctx, from, hint)` before provider requests or
+mutation. The helper performs one authenticated `info.getInfo` read and admits
+exactly the verified safe versions `2.5.1` and `2.5.2`. Older, unknown or malformed
+versions and failed reads emit only the caller's fixed App-specific recovery
+hint through `from.Info`, then return `helpers.ErrManual`; no provider request,
+mutation, cache or raw response/error output is added. Normal Apps retain the
+existing `supportedVersion` minimum-version policy and failure behavior. The shared helper
+alone is not leaf acceptance: real consumers, focused leaf checks and any
+remaining native/privacy or outside runtime prerequisites must be accounted for.
+
 The optional
 `verify(context.Context, from, to *helpers.H, integrationID string) error`
 probes authenticated useful data; verification must fail on missing fields or
@@ -71,10 +113,50 @@ does not loop. The existing Step boundary may run Check followed by apply.
 Nil verifiers keep legacy behavior; removal never refreshes Stats.
 Peers keep their own semantic/destination checks without editing the common
 guard or widening its signature.
+Migrated descriptors additionally supply `stats func(statsSample) error` for
+Stats semantics. Their existing `verify` keeps native identity and useful-data
+checks and no longer acquires Stats. After that verifier succeeds, common
+`verifyData` deduplicates selected metric keys across Stats widgets, reads the
+authenticated catalog and obtains one completed refresh. It rejects missing
+catalog keys, malformed or duplicate catalog entries, missing/null selected
+values, non-finite or nonpositive timestamps and refreshes that do not advance.
+The callback receives that same sample's `values`, catalog `units`, raw `retryAt`,
+`startedAt`, `completedAt` and `updatedAt` (Unix milliseconds), after these checks.
+`retryAt` comes from the refresh response without coercion; missing/null metadata
+remains nil, and malformed or nonzero metadata stays available for App-specific
+validation. Common checks impose no retry policy and perform no extra read.
+`startedAt` is read before the refresh request and `completedAt` after its response,
+so leaves
+can retain their existing future-skew limits after a slow refresh. Common checks
+only timestamp finiteness, positivity and advancement; Apps own clock policy.
+Leaves retain expected
+units, integral counts, ranges, nullable-field rules, additional clock limits
+and relationships. Explicit zeros remain valid where the App allows them.
+Mutable native-widget results are separate cached samples; do not require
+equality between independently collected volatile values.
+
+One refresh applies per migrated verification invocation. The Step can run
+Check before and after apply, so a successful first Link can collect more than
+one sample across distinct invocations. Samples are never remembered across
+invocations. Descriptors without `stats` keep their current verification guard
+without a new catalog request; nil `verify` still skips data verification.
+Migrate each peer by retaining its native checks and moving its Stats checks
+into `stats`. Preflight/Manual ordering and removal without Stats requests stay
+unchanged.
+Downloads peers may use `readDownloadsQueue(ctx, from, integrationID, kind)`.
+This package-private module owns the existing authenticated read with a requested
+limit of 50, exactly one result, its nil error field, matching outer/nested
+integration IDs and kind, object data/status and an explicit items array. An
+empty array is valid. It returns unchanged integration metadata, status and
+items, and fixed recovery errors without raw response details. Apps retain
+readiness/provider checks, response-count limits, rates, queue types, item
+states, numeric ranges, nullable speeds and finite negative time rules. The
+module does not acquire Stats or interpret queue meaning.
+
 No-auth kinds may omit the credential resolver: the common transport sends an
 explicit empty secrets array and validates it against the upstream empty alternative.
-Frigate is not a no-auth kind: Homarr 2.4.1 needs administrator username/password
-over trusted HTTPS. The Catalog's authenticated HTTP starter cannot meet that
+Frigate is not a no-auth kind: the supported Homarr versions need administrator
+username/password over trusted HTTPS. The Catalog's authenticated HTTP starter cannot meet that
 contract; its peer-owned preflight must stop as Manual before mutation, not
 submit an empty credential alternative or disable TLS verification.
 

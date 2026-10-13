@@ -34,7 +34,10 @@ func (s secrets) Set(key, value string) error { s[key] = value; return nil }
 // the seeded administrator verified.
 type fakeExecutor struct{ exit int }
 
-func (f fakeExecutor) Exec(context.Context, string, map[string]string, ...string) (system.Result, error) {
+func (f fakeExecutor) Exec(_ context.Context, _ string, _ map[string]string, command ...string) (system.Result, error) {
+	if strings.Contains(strings.Join(command, " "), "PersonalAccessToken::findToken") {
+		return system.Result{ExitCode: f.exit, Stdout: []byte(`{"id":"1","adminId":"1","name":"self-host Homarr results","abilities":["results:read"]}`)}, nil
+	}
 	return system.Result{ExitCode: f.exit, Stdout: []byte("1")}, nil
 }
 func (fakeExecutor) LogText(context.Context, int, ...string) (string, error) { return "", nil }
@@ -44,7 +47,18 @@ func (fakeExecutor) Up(context.Context, ...string) error                     { r
 func serve(t *testing.T) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"ok"}`))
+		switch r.URL.Path {
+		case "/api/healthcheck":
+			w.Write([]byte(`{"status":"ok"}`))
+		case "/api/v1/results":
+			w.Write([]byte(`{"data":[{"id":1,"ping":10,"download":100,"upload":50,"download_bits":800,"upload_bits":400,"healthy":true,"status":"completed","created_at":"2026-10-11 00:00:00"}],"meta":{"current_page":1,"last_page":1,"total":1}}`))
+		case "/api/v1/results/latest":
+			w.Write([]byte(`{"data":{"id":1,"ping":10,"download":100,"upload":50,"download_bits":800,"upload_bits":400,"healthy":true,"status":"completed","created_at":"2026-10-11 00:00:00"}}`))
+		case "/api/v1/stats":
+			w.Write([]byte(`{"data":{"total_results":1,"ping":{"avg":10,"min":10,"max":10},"download":{"avg":100,"avg_bits":800,"min":100,"max":100},"upload":{"avg":50,"avg_bits":400,"min":50,"max":50}}}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	}))
 	t.Cleanup(srv.Close)
 	return srv
@@ -56,11 +70,15 @@ func newH(t *testing.T, srv *httptest.Server, exec fakeExecutor, results *[]help
 	return helpers.New(helpers.Config{
 		App: "speedtest-tracker", Service: "speedtest-tracker",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
-		Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": password},
-		Exec:    exec,
-		Log:     events.Discard(),
-		Record:  func(r helpers.StepResult) { *results = append(*results, r) },
-		Now:     deps.Now, Sleep: deps.Sleep,
+		Secrets: secrets{
+			"ADMIN_USER": "admin", "ADMIN_PASSWORD": password,
+			"SPEEDTEST_TRACKER_HOMARR_API_KEY":    "synthetic-speedtest-results-token",
+			"SPEEDTEST_TRACKER_HOMARR_API_KEY_ID": "1", "SPEEDTEST_TRACKER_HOMARR_ADMIN_ID": "1",
+		},
+		Exec:   exec,
+		Log:    events.Discard(),
+		Record: func(r helpers.StepResult) { *results = append(*results, r) },
+		Now:    deps.Now, Sleep: deps.Sleep,
 	})
 }
 

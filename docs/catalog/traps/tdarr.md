@@ -7,6 +7,8 @@
 - Port 8266 is the server/API listener and is not published by the shared recipe; only the web UI is mapped to loopback.
 - The internal node starts with zero configured workers; approve library write behavior and test on copies before enabling transcoding.
 
+- The native widget and shared Stats are separate cached samples. The SDK collects one advancing Stats refresh; the leaf validates count units, integral nonnegative values and the existing clock bounds without requiring their counts to equal the native cache. [Source normalization](../../homarr-tdarr-source.md) remains separate from runtime acceptance.
+
 ## Security
 
 - Limit worker access to owner-selected libraries and approve GPU or device access explicitly.

@@ -1,0 +1,10 @@
+{
+  "id": "frigate",
+  "name": "Frigate",
+  "description": "Record your security cameras and get alerts when people or cars appear",
+  "category": "Cameras",
+  "image": "ghcr.io/blakeblackshear/frigate:0.18.0",
+  "docs": "https://docs.frigate.video/guides/getting_started/",
+  "port": 8971,
+  "inputs": []
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the self-host CLI.
 #
-#   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+#   curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
 #
 # Installs to ~/.local/bin, or /usr/local/bin when run as root.
 # Environment:

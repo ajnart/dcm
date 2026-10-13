@@ -4,8 +4,6 @@ package archiveteamwarrior
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -87,39 +85,27 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-// basicWorks reads the control interface with the shared Admin login.
 func basicWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/index.html", User: h.AdminUser(), Password: h.AdminPassword()})
-	if err != nil {
-		return false, err
-	}
-	return resp.Status == http.StatusOK, nil
+	err := Verify(ctx, h)
+	return err == nil, err
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return h.Step(ctx, "ready", "the Warrior control interface accepts the Admin login", helpers.StepSpec{
+	return h.Step(ctx, "ready", "verify the Warrior Admin login and worker status", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return basicWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
 			return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return basicWorks(ctx, h) })
 		},
-		Hint: "Open " + h.URL + "/index.html and sign in with the Admin login " +
-			"(self-host credentials), or read the logs with: self-host logs archive-team-warrior",
+		Hint: "Open " + h.URL + "/index.html with the Admin login (self-host credentials). " +
+			"Check the nickname and Warrior HQ connection, then retry self-host setup archive-team-warrior. " +
+			"Keep no project selected until its outbound archival work is explicitly approved. " +
+			"Existing saved settings may ignore changed Admin login values; repair them in the control interface without deleting configuration.",
 		Credential: "admin",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	anon, err := h.HTTP(ctx, helpers.Request{Path: "/"})
-	if err != nil {
-		return err
-	}
-	if anon.Status != http.StatusUnauthorized && anon.Status != http.StatusForbidden {
-		return fmt.Errorf("anonymous visitors can reach the control interface (HTTP %d); set HTTP_USERNAME and HTTP_PASSWORD", anon.Status)
-	}
-	if ok, err := basicWorks(ctx, h); !ok {
-		return fmt.Errorf("the Admin login cannot sign in to the control interface: %v", err)
-	}
-	return nil
+	return Verify(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

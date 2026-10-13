@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "slskd", Name: "Slskd", Category: "Downloads",
 		Description:   "Share and find music with others on the Soulseek network, from a web page",
-		Image:         "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
+		Image:         "ghcr.io/slskd/slskd:0.26.1",
 		Docs:          "https://github.com/slskd/slskd/tree/master/docs",
 		Port:          5030,
 		ContainerPort: 5030,
@@ -42,13 +42,13 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   slskd:
-    image: ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4
+    image: ghcr.io/slskd/slskd:0.26.1
     restart: unless-stopped
     user: ${PUID}:${PGID}
     environment:
       SLSKD_USERNAME: ${ADMIN_USER}
       SLSKD_PASSWORD: ${ADMIN_PASSWORD}
-      SLSKD_API_KEY: ${SLSKD_API_KEY}
+      SLSKD_API_KEY: role=ReadOnly;${SLSKD_API_KEY}
       SLSKD_DOWNLOADS_DIR: /downloads
     volumes:
       - ./app:/app
@@ -121,7 +121,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/v0/session/enabled"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
+	if err := h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("slskd reads SLSKD_USERNAME/SLSKD_PASSWORD/SLSKD_API_KEY only when the container starts")
@@ -129,16 +129,38 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Hint: "slskd applies the Web UI login and API key on first start. Recreate the container: self-host start slskd, " +
 			"then open " + h.URL + " and sign in with the password from `self-host credentials`.",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "homarr-api", "verify Slskd download data", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			err := VerifyHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return VerifyHomarr(ctx, h) },
+		Hint:       "Back up Slskd, then run self-host update slskd to apply version 0.26.1 and its read-only primary API key. Restore a lost key through the Project secret boundary; never paste it into chat. Then retry self-host setup slskd.",
+		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "soulseek", "verify the Soulseek connection", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return soulseekReady(ctx, h) },
+		Do:         func(ctx context.Context) error { return VerifySoulseek(ctx, h) },
+		Hint:       soulseekHint(h),
+		Credential: "admin",
 	})
 }
 
 // Check verifies the Web UI login and the generated primary API key. It does
 // not create a Soulseek protocol account, which needs owner credentials.
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	if ok, err := adminWorks(ctx, h); !ok {
+	if ok, err := adminWorks(ctx, h); !ok || err != nil {
 		return fmt.Errorf("the Admin login %s cannot sign in to slskd: %v", h.AdminUser(), err)
 	}
-	return nil
+	if err := VerifyHomarr(ctx, h); err != nil {
+		return err
+	}
+	return VerifySoulseek(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

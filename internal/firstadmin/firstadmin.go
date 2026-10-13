@@ -23,6 +23,9 @@ func Kinds() []string { return []string{KindManualFirstAdmin, KindNoAccount} }
 
 // Probe proves an App answers on an HTTP path.
 type Probe struct {
+	// Request optionally resolves credentials and other existing HTTP options.
+	// An empty request Path uses Path; nil keeps the ordinary anonymous probe.
+	Request  func(*helpers.H) helpers.Request
 	Path     string
 	Want     []int
 	Contains string
@@ -34,6 +37,17 @@ func (p Probe) path() string {
 		return "/"
 	}
 	return p.Path
+}
+
+func (p Probe) request(h *helpers.H) helpers.Request {
+	request := helpers.Request{Path: p.path()}
+	if p.Request != nil {
+		request = p.Request(h)
+		if request.Path == "" {
+			request.Path = p.path()
+		}
+	}
+	return request
 }
 
 func (p Probe) timeout() time.Duration {
@@ -56,7 +70,7 @@ func (p Probe) wanted(status int) bool {
 }
 
 func (p Probe) attempt(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{Path: p.path()})
+	resp, err := h.HTTP(ctx, p.request(h))
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +84,7 @@ func (p Probe) attempt(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (p Probe) step(ctx context.Context, h *helpers.H) error {
-	path := p.path()
+	path := p.request(h).Path
 	return h.Step(ctx, "ready", "wait for "+h.App+" to answer on "+path, helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return p.attempt(ctx, h) },
 		Do: func(ctx context.Context) error {
@@ -96,7 +110,7 @@ func (n NoAccount) Check(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("%s did not answer on %s", h.App, n.Probe.path())
+		return fmt.Errorf("%s did not answer on %s", h.App, n.Probe.request(h).Path)
 	}
 	return nil
 }

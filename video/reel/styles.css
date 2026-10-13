@@ -1496,7 +1496,7 @@ kbd {
   text-align: left;
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 64px;
+  font-size: 40px;
   line-height: 1;
   background: var(--panel);
   border: 1.5px solid rgba(168, 141, 242, 0.55);
@@ -1550,6 +1550,17 @@ kbd {
   font-weight: 700;
   font-size: 62px;
   letter-spacing: -0.04em;
+}
+.e-repo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 920px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--accentText);
 }
 .e-stats i,
 .e-ag i {

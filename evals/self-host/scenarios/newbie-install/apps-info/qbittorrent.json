@@ -1,0 +1,18 @@
+{
+  "id": "qbittorrent",
+  "name": "qBittorrent",
+  "description": "Download and share torrents from a clean web page",
+  "category": "Downloads",
+  "image": "lscr.io/linuxserver/qbittorrent:latest",
+  "docs": "https://github.com/qbittorrent/qBittorrent/wiki",
+  "port": 8080,
+  "inputs": [
+    {
+      "key": "torrent-port",
+      "prompt": "Torrent peer port",
+      "help": "TCP and UDP peer port, separate from the private WebUI",
+      "default": "6881",
+      "required": false
+    }
+  ]
+}

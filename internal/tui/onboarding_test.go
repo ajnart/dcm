@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"slices"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ajnart/self-host/internal/activity"
@@ -47,13 +49,14 @@ var readyChecks = []host.Check{
 	{ID: "compose", Title: "Docker Compose", Level: host.OK, Detail: "compose 2.29.7"},
 }
 
-// onboardingHost is a machine without a Project, at the Initializing step
-// before any host check has been revealed.
+// onboardingHost is a machine without a Project, on the Intro at its first
+// frame with Doctor's answer in.
 func onboardingHost(t *testing.T, width, height int, checks ...host.Check) (Model, *fakeBackend) {
 	t.Helper()
 	backend := &fakeBackend{catalog: wizardCatalog(), checks: checks}
 	m := New(backend, Options{Version: "1.0.0"})
 	m = update(t, m, windowSize(width, height))
+	m = update(t, m, tea.BackgroundColorMsg{Color: color.Black})
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
 	return m, backend
@@ -63,9 +66,15 @@ func onboardingHost(t *testing.T, width, height int, checks ...host.Check) (Mode
 func freshHost(t *testing.T) (Model, *fakeBackend) {
 	t.Helper()
 	m, backend := onboardingHost(t, 120, 40, readyChecks...)
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	return m, backend
 }
+
+// reactionFrames is enough frames for Welcome's reactions to come to rest.
+const reactionFrames = 30
+
+// introFrames is enough frames for the Intro to play, settle and exit.
+const introFrames = 130
 
 func frames(t *testing.T, m Model, n int) Model {
 	t.Helper()
@@ -150,95 +159,6 @@ func TestLoadingScreenShowsTheBrandAndASpinner(t *testing.T) {
 	}
 }
 
-func TestFreshHostOpensOnboardingAtInitializing(t *testing.T) {
-	m, _ := onboardingHost(t, 120, 30, readyChecks...)
-
-	out := screen(m)
-	if !strings.Contains(indicator(t, m), "● Initializing") || !strings.Contains(out, "Checking this machine") {
-		t.Fatalf("Onboarding should open at Initializing\n%s", out)
-	}
-}
-
-func TestHostChecksRevealOneAtATime(t *testing.T) {
-	m, _ := onboardingHost(t, 120, 30, readyChecks...)
-
-	out := screen(m)
-	if !strings.Contains(out, "⠋ Docker") || strings.Contains(out, "Docker daemon") {
-		t.Fatalf("the first check should spin alone\n%s", out)
-	}
-
-	m = frames(t, m, 6)
-	out = screen(m)
-	if !strings.Contains(out, "✓ Docker ") || !strings.Contains(out, "⠦ Docker daemon") || strings.Contains(out, "compose 2.29.7") {
-		t.Fatalf("Docker should be done and the daemon checking\n%s", out)
-	}
-
-	m = frames(t, m, 12)
-	out = screen(m)
-	for _, want := range []string{"✓ Docker daemon", "✓ Docker Compose", "This machine is ready"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("after the reveal the screen lacks %q\n%s", want, out)
-		}
-	}
-	m = frames(t, m, 6)
-	if _, cmd := m.Update(frameMsg{}); yieldsFrame(cmd) {
-		t.Fatal("frames must stop once the checks have continued to Welcome")
-	}
-}
-
-func TestFailingCheckBlocksWithItsHintAndRecheckClearsIt(t *testing.T) {
-	m, backend := onboardingHost(t, 120, 30,
-		host.Check{ID: "docker", Title: "Docker", Level: host.OK, Detail: "docker command found"},
-		host.Check{ID: "docker-socket", Title: "Docker daemon", Level: host.Fail, Detail: "permission denied on the Docker socket",
-			Hint: "Add your user to the docker group.", Docs: "https://docs.docker.com/engine/install/linux-postinstall/"})
-	m = frames(t, m, 60)
-
-	m = drive(t, m, press("enter"))
-
-	out := screen(m)
-	for _, want := range []string{"✗ Docker daemon", "→ Add your user to the docker group.", "linux-postinstall", "Fix the failed check", "r to check again"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("a failed check should show %q\n%s", want, out)
-		}
-	}
-	if !strings.Contains(indicator(t, m), "● Initializing") {
-		t.Fatalf("a failed check must block continuing\n%s", out)
-	}
-
-	backend.checks = readyChecks
-	m = drive(t, m, press("r"))
-	m = frames(t, m, 60)
-
-	if !strings.Contains(indicator(t, m), "● Welcome") {
-		t.Fatalf("a clean recheck should automatically continue\n%s", screen(m))
-	}
-}
-
-func TestWarningDoesNotBlock(t *testing.T) {
-	m, _ := onboardingHost(t, 120, 30, append(readyChecks[:3:3],
-		host.Check{ID: "docker-userns", Title: "Container IDs", Level: host.Warn, Detail: "user namespace unknown", Hint: "Inspect docker info."})...)
-	m = frames(t, m, 24)
-	if out := screen(m); !strings.Contains(out, "! Container IDs") || !strings.Contains(out, "→ Inspect docker info.") {
-		t.Fatalf("the warning should show with its hint\n%s", out)
-	}
-
-	m = frames(t, m, 6)
-
-	if !strings.Contains(indicator(t, m), "● Welcome") {
-		t.Fatalf("a warning must not block\n%s", screen(m))
-	}
-}
-
-func TestEnterDuringTheRevealShowsEveryCheckFirst(t *testing.T) {
-	m, _ := onboardingHost(t, 120, 30, readyChecks...)
-
-	m = drive(t, m, press("enter"))
-
-	if out := screen(m); !strings.Contains(out, "✓ Docker Compose") || !strings.Contains(indicator(t, m), "● Initializing") {
-		t.Fatalf("enter should finish the reveal, not skip it\n%s", out)
-	}
-}
-
 func TestWelcomeSaysNothingIsWrittenUntilReview(t *testing.T) {
 	m, _ := freshHost(t)
 
@@ -278,6 +198,7 @@ func TestChoosingAdvancedAtWelcomeStoresAdvancedAtApproval(t *testing.T) {
 	m, backend := freshHost(t)
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("space"))
+	m = frames(t, m, reactionFrames)
 	if out := screen(m); !strings.Contains(out, "● Advanced: I have run a server or used Docker") || !strings.Contains(out, "○ New: this is all new to me") {
 		t.Fatalf("down should highlight Advanced\n%s", out)
 	}
@@ -297,7 +218,7 @@ func welcomeWithSavedExperience(t *testing.T, level string, width, height int) (
 	m = update(t, m, windowSize(width, height))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	return m, backend
 }
 
@@ -339,7 +260,7 @@ func TestWelcomeWithASavedProfileGolden(t *testing.T) {
 
 func TestStepIndicatorFollowsEveryStep(t *testing.T) {
 	m, _ := freshHost(t)
-	steps := []string{"Initializing", "Welcome", "What", "Where", "Access", "Who", "Look", "Review"}
+	steps := []string{"Welcome", "What", "Where", "Access", "Who", "Look", "Review"}
 	want := func(current int) {
 		t.Helper()
 		line := indicator(t, m)
@@ -357,33 +278,37 @@ func TestStepIndicatorFollowsEveryStep(t *testing.T) {
 		}
 	}
 
+	if len(steps) != 7 {
+		t.Fatalf("Onboarding has 7 steps, got %v", steps)
+	}
+	want(0)
+	m = drive(t, m, press("enter"))
 	want(1)
 	m = drive(t, m, press("enter"))
 	want(2)
-	m = drive(t, m, press("enter"))
-	want(3)
 	for range 4 {
 		m = drive(t, m, press("enter"))
 	}
+	want(3)
+	m = drive(t, m, press("enter"))
 	want(4)
+	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("enter"))
 	want(5)
 	m = drive(t, m, press("enter"))
-	m = drive(t, m, press("enter"))
 	want(6)
-	m = drive(t, m, press("enter"))
-	want(7)
 }
 
 func TestNarrowStepIndicatorKeepsTheCurrentStep(t *testing.T) {
-	m, _ := onboardingHost(t, 60, 24, readyChecks...)
+	m, _ := freshHost(t)
+	m = update(t, m, windowSize(60, 24))
 
 	for _, line := range strings.Split(screen(m), "\n") {
 		if ansi.StringWidth(line) > 60 {
 			t.Fatalf("line wider than 60 columns: %q", line)
 		}
 	}
-	if !strings.Contains(screen(m), "● Initializing") || !strings.Contains(screen(m), "1 of 8") {
+	if !strings.Contains(screen(m), "● Welcome") || !strings.Contains(screen(m), "1 of 7") {
 		t.Fatalf("a narrow indicator should still name the current step\n%s", screen(m))
 	}
 }
@@ -497,7 +422,7 @@ func TestNoProjectYetDuringTheInstallKeepsTheDashboard(t *testing.T) {
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 
 	out := screen(m)
-	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Welcome") || strings.Contains(out, "Initializing") {
+	if m.surface != surfaceActivity || !strings.Contains(out, "3 Activity") || strings.Contains(out, "Welcome") {
 		t.Fatalf("a refresh before the Project exists must not reopen Onboarding\n%s", out)
 	}
 }
@@ -592,9 +517,8 @@ func walkOnboarding(t *testing.T, width, height int, glyphs activity.Glyphs, see
 	see("loading", update(t, loading, appearanceMsg{glyphs: glyphs}))
 	m, _ := onboardingHost(t, width, height, readyChecks...)
 	m = update(t, m, appearanceMsg{glyphs: glyphs})
-	m = frames(t, m, 18)
-	see("Initializing", m)
-	m = frames(t, m, 6)
+	see("Intro", m)
+	m = frames(t, m, introFrames)
 	see("Welcome", m)
 	m = drive(t, m, press("enter"))
 	see("What", m)
@@ -646,11 +570,6 @@ func TestGoldenOnboarding(t *testing.T) {
 			m = update(t, m, windowSize(size.width, size.height))
 			golden(t, "onboarding-loading"+size.suffix, trimLines(screen(m)))
 		})
-		t.Run("initializing"+size.suffix, func(t *testing.T) {
-			m, _ := onboardingHost(t, size.width, size.height, checks...)
-			golden(t, "onboarding-initializing-reveal"+size.suffix, trimLines(screen(frames(t, m, 14))))
-			golden(t, "onboarding-initializing-done"+size.suffix, trimLines(screen(frames(t, m, 24))))
-		})
 		t.Run("steps"+size.suffix, func(t *testing.T) {
 			walkOnboarding(t, size.width, size.height, activity.Simple, func(name string, m Model) {
 				if slices.Contains([]string{"What", "Where", "Where host settings", "Who", "Look"}, name) || strings.HasPrefix(name, "Access") {
@@ -658,9 +577,14 @@ func TestGoldenOnboarding(t *testing.T) {
 				}
 			})
 		})
-		t.Run("welcome-review"+size.suffix, func(t *testing.T) {
+		t.Run("intro-warning"+size.suffix, func(t *testing.T) {
 			m, _ := onboardingHost(t, size.width, size.height, checks...)
-			m = frames(t, m, 60)
+			m = frames(t, m, introFrames)
+			golden(t, "onboarding-intro-warning"+size.suffix, trimLines(screen(m)))
+		})
+		t.Run("welcome-review"+size.suffix, func(t *testing.T) {
+			m, _ := onboardingHost(t, size.width, size.height, readyChecks...)
+			m = frames(t, m, introFrames)
 			golden(t, "onboarding-welcome"+size.suffix, trimLines(screen(m)))
 			golden(t, "onboarding-review"+size.suffix, trimLines(screen(toReview(t, m))))
 		})
@@ -728,7 +652,7 @@ func TestWhatWrapsALongDescriptionAtWordBoundaries(t *testing.T) {
 		"with transcoding, subtitles, watch history for each person and a mobile app for travelling."
 	m, backend := onboardingHost(t, 80, 24, readyChecks...)
 	backend.catalog = onlyApps(stubApp{info: app.Info{ID: "homarr", Name: "Homarr", Description: long, Image: "x", Port: 1}})
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	m = atStep(t, m, "What")
 
 	out := screen(m)
@@ -1112,7 +1036,7 @@ func TestTheMoreChipShowsOnlyWhereQuestionMarkOpensAHelpPage(t *testing.T) {
 
 func TestTheAccessStepAndItsHelpPageFitEightyByTwentyFourAndNothingIsCut(t *testing.T) {
 	m, _ := onboardingHost(t, 80, 24, readyChecks...)
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	m = atAccess(t, m)
 	if lines := strings.Split(screen(m), "\n"); len(lines) > 24 || !strings.Contains(flat(screen(m)), "internet ✗") || !strings.Contains(flat(lines[23]), "? more") {
 		t.Fatalf("the Access step with its explanation and diagram fits 80x24 with its bar, %d lines\n%s", len(lines), screen(m))
@@ -1132,7 +1056,7 @@ func TestTheAccessStepAndItsHelpPageFitEightyByTwentyFourAndNothingIsCut(t *test
 
 func TestWhereFoldersFitTheScreenAtEightyByTwentyFour(t *testing.T) {
 	m, _ := onboardingHost(t, 80, 24, readyChecks...)
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("down"))
 	m = drive(t, m, press("down"))
@@ -1161,7 +1085,7 @@ func TestRecipeIconFollowsTheGlyphSetInTheCatalogAndOnboarding(t *testing.T) {
 
 		o, _ := onboardingHost(t, 120, 30, readyChecks...)
 		o = withGlyphs(t, o, set)
-		o = frames(t, o, 60)
+		o = frames(t, o, introFrames)
 		what := screen(drive(t, o, press("enter")))
 		if !strings.Contains(what, set.Recipe()+" Media (Recipe)") || strings.Contains(what, "📦") {
 			t.Errorf("%s: What should mark the Recipe with %q\n%s", set, set.Recipe(), what)
@@ -1312,7 +1236,7 @@ func TestWhatScrollsAFortyAppListAndKeepsTheDescriptionOnScreen(t *testing.T) {
 	}
 	m, backend := onboardingHost(t, 80, 24, readyChecks...)
 	backend.catalog = onlyApps(apps...)
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	m = atStep(t, m, "What")
 
 	for range 39 {

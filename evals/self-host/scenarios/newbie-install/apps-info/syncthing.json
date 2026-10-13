@@ -1,0 +1,10 @@
+{
+  "id": "syncthing",
+  "name": "Syncthing",
+  "description": "Keep folders identical across your devices, with no cloud in between",
+  "category": "Files",
+  "image": "syncthing/syncthing:2.1.4",
+  "docs": "https://docs.syncthing.net/",
+  "port": 8384,
+  "inputs": []
+}

@@ -14,10 +14,13 @@ those records predates that decision. Keep the existing self-host skill router.
    image's source revision. Record exact kind casing, credential alternatives,
    least permissions, internal endpoint and useful supported widgets/metrics.
    The [compatibility gate](../../internal/apps/homarr/compatibility.go) requires
-   authenticated API version **2.4.1** and the exact `integration.getKinds`
+   authenticated API version **>= 2.4.1** and the exact `integration.getKinds`
    credential alternative; missing keys are not submitted. A nil resolver sends
    `[]` only when the upstream alternative permits it. Resolve actual selectors
    or omit the widget; no invented IDs, metrics, empty values or hardware readiness.
+   Compare stable versions numerically by major, minor and patch. Do not maintain
+   a fixed release allowlist: newer versions pass the minimum gate and retain the
+   same capability and data checks. Peer-specific native/privacy holds remain.
    **Done:** sources and one meaningful native acceptance value are identified.
 
 2. **Use the peer seam.** Own one branch/worktree/PR and
@@ -33,6 +36,16 @@ those records predates that decision. Keep the existing self-host skill router.
    or TLS bypass. Optional `verify(ctx, from, to, integrationID)` validates useful
    authenticated data, including its meaning/destination. Nil verifiers retain
    legacy data checks; removal/absence never calls preflight or refreshes Stats.
+   Migrated Stats peers add `stats func(statsSample) error` for pure semantic
+   validation. Keep native checks in `verify`, and move Stats acquisition out
+   of it. The callback receives `values`, catalog `units`, raw `retryAt`, `startedAt`,
+   `completedAt` and `updatedAt` (Unix milliseconds) from one central refresh.
+   `retryAt` preserves missing/null and malformed metadata without coercion;
+   each App owns its retry policy, without another Stats read.
+   The start is read before the request and completion after the response;
+   use completion when retaining an App's existing upper future-skew limit
+   after a slow refresh. Apps own clock policy; common checks require finite,
+   positive, advancing timestamps.
    **Done:** the leaf fits the actual contract without changing common signatures.
 
 3. **Implement the two owners.** The peer's idempotent Setup discovers/creates,
@@ -46,6 +59,14 @@ those records predates that decision. Keep the existing self-host skill router.
    refresh, requires advancing positive `updatedAt`, `error: false`, `stale: false`
    and every selected metric non-null. A cached non-stale/no-op result fails with
    a retry hint; the guard does not loop. Keep peer semantic checks too.
+   For descriptors with `stats`, common verification instead reads the catalog,
+   deduplicates the selected keys, obtains one finite positive advancing sample,
+   checks required values, then invokes `stats` on that same sample. Preserve
+   expected units, integral counts, ranges, legitimate zeros, nullable fields,
+   additional clock limits and relationships in the leaf callback. Do not compare
+   independently cached volatile samples for equality. The guarantee is one
+   refresh per verification invocation; Step's separate Check/apply invocations
+   remain separate. Unmigrated peers do not acquire a new catalog.
    **Done:** recovery and fresh native/Stats checks work through existing owners.
 
 4. **Prepare isolated acceptance.** Runtime work needs approval for the disposable
