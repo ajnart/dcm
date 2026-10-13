@@ -51,8 +51,8 @@ func TestTheBrandMarkFollowsTheGlyphSet(t *testing.T) {
 
 	m = withGlyphs(t, m, activity.NerdFont)
 
-	if !strings.HasPrefix(screen(m), " \U000F070B self-host") {
-		t.Fatalf("the Nerd Font brand mark is nf-md-rhombus\n%s", screen(m))
+	if !strings.HasPrefix(screen(m), " \U000F048B self-host") {
+		t.Fatalf("the Nerd Font brand mark is nf-md-server\n%s", screen(m))
 	}
 }
 
@@ -64,7 +64,7 @@ func TestTheSavedGlyphSetIsUsedFromTheStart(t *testing.T) {
 		m = drive(t, m, msg)
 	}
 
-	if !strings.HasPrefix(screen(m), " \U000F070B self-host") {
+	if !strings.HasPrefix(screen(m), " \U000F048B self-host") {
 		t.Fatalf("the Project's Nerd Font choice is not used\n%s", screen(m))
 	}
 }
@@ -121,7 +121,7 @@ func TestChoosingAGlyphSetSavesAndRedrawsAtOnce(t *testing.T) {
 		t.Fatalf("saved %v, want the Nerd Font set once", got)
 	}
 	out := screen(m)
-	if !strings.HasPrefix(out, " \U000F070B self-host") || !strings.Contains(out, "\U000F0868 Docker") {
+	if !strings.HasPrefix(out, " \U000F048B self-host") || !strings.Contains(out, "\U000F0868 Docker") {
 		t.Fatalf("the whole UI should redraw with Nerd Font icons at once\n%s", out)
 	}
 	if m.surface != surfaceSettings || len(backend.Actions()) != 0 {
