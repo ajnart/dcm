@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/apps/frigate"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -24,40 +25,27 @@ func frigateTarget() target {
 			return err
 		},
 		verify: verifyFrigate,
+		stats:  verifyFrigateStats,
 	}
 }
 
-func verifyFrigate(ctx context.Context, from, to *helpers.H, integrationID string) error {
-	statistics, err := frigate.VerifyHomarr(ctx, to)
-	if err != nil || integrationID == "" {
-		return err
+func verifyFrigate(ctx context.Context, _, to *helpers.H, _ string) error {
+	_, err := frigate.VerifyHomarr(ctx, to)
+	return err
+}
+
+func verifyFrigateStats(sample statsSample) error {
+	cameras, camerasOK := sample.values["cameras"].(float64)
+	uptime, uptimeOK := sample.values["uptime"].(float64)
+	version, versionOK := sample.values["version"].(string)
+	if sample.units["cameras"] != "count" || !camerasOK || cameras < 0 || math.IsNaN(cameras) || math.IsInf(cameras, 0) || math.Trunc(cameras) != cameras {
+		return errors.New("Homarr returned invalid Frigate camera Stats; retry self-host setup homarr")
 	}
-	previous, err := apiKeyProcedure(ctx, from, "widget.stats.snapshot", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
+	if sample.units["uptime"] != "seconds" || !uptimeOK || uptime < 0 || math.IsNaN(uptime) || math.IsInf(uptime, 0) {
+		return errors.New("Homarr returned invalid Frigate uptime Stats; retry self-host setup homarr")
 	}
-	oldSnapshot, ok := previous.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return its Frigate statistics snapshot")
-	}
-	oldUpdate, _ := oldSnapshot["updatedAt"].(float64)
-	value, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New("Homarr did not return fresh authenticated Frigate statistics; verify certificate trust and the Admin login, then retry self-host setup homarr")
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	if !ok || updatedAt <= 0 || updatedAt <= oldUpdate || math.IsNaN(updatedAt) || math.IsInf(updatedAt, 0) {
-		return errors.New("Homarr did not complete a fresh Frigate statistics refresh; retry self-host setup homarr when its statistics queue is available")
-	}
-	values, _ := snapshot["values"].(map[string]any)
-	cameras, camerasOK := values["cameras"].(float64)
-	uptime, uptimeOK := values["uptime"].(float64)
-	if !camerasOK || cameras != float64(statistics.Cameras) || !uptimeOK || uptime < 0 || math.IsNaN(uptime) || math.IsInf(uptime, 0) || values["version"] != statistics.Version {
-		return errors.New("Homarr returned incomplete or mismatched Frigate cameras, uptime or version; retry self-host setup homarr")
+	if sample.units["version"] != "text" || !versionOK || version != "0.18.0" && !strings.HasPrefix(version, "0.18.0-") {
+		return errors.New("Homarr returned unsupported Frigate version Stats; retry self-host setup homarr")
 	}
 	return nil
 }

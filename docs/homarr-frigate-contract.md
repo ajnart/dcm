@@ -91,3 +91,36 @@ the private bootstrap log's current-start provenance without publishing it.
 - [Pinned Stats entry schema](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/widgets/src/stats/config.ts)
 - [Frigate 0.18 authentication API](https://github.com/blakeblackshear/frigate/blob/77a66e75c61862b048a07c1295877f4b31343504/frigate/api/auth.py)
 - [Frigate 0.18 statistics API](https://github.com/blakeblackshear/frigate/blob/77a66e75c61862b048a07c1295877f4b31343504/frigate/api/app.py)
+
+
+## Shared Stats SDK normalization, source and focused HTTP evidence
+
+The original branch history is preserved by forward merges of shared SDK
+`0bf67c3c64c229af25f19c1b93264f19cc57a910` and additive metadata SDK
+`d069339add5924f942ea6536f77d68e64b165df0`. No registry or common verification
+implementation is changed by this peer.
+
+The descriptor now uses a pure `statsSample` callback for `cameras`, `uptime`, `version`.
+One common catalog/snapshot/forced-refresh sequence supplies the same values
+validated by the leaf. Exact catalog units and value types are checked: camera count, seconds and text.
+Missing/null fields, invalid counts/units and no-op refreshes fail; legitimate
+zeros remain valid. Common timestamp validation remains finite, positive and
+advancing; this peer adds no invented clock policy.
+
+Authenticated Frigate profile and native statistics verification remain in the leaf verifier. The duplicated leaf snapshot/refresh was removed. The Stats callback checks a finite nonnegative integer camera count, finite nonnegative uptime, and the owner-supported 0.18.0 version family; it does not equate independently acquired camera counts/version strings.
+
+Units and selected provider keys were checked in immutable Homarr OCI source
+`3d4150e59f600876b7e308f857b2f21572b75348`, using
+`packages/integrations/src/stats/existing.ts` and, for Frigate,
+`packages/integrations/src/stats/providers/frigate.ts`. This is source provenance,
+not new image attestation.
+
+Focused HTTP scenarios use the shared `statsFixture` through `verifyData`, with
+the native verifier explicitly isolated, and assert one forced refresh for the
+owned integration. They cover valid empty/populated samples, invalid selected
+values/units and refresh no-op rejection. App and Homarr affected-package tests,
+affected-package build/vet, changed-file gofmt and `git diff --check` passed.
+No Docker, browser, installer or broad suite was run. These fixtures verify the
+source interface; they do not claim real native/rendered acceptance.
+
+#331 remains draft and #277 remains on Manual hold. Trusted HTTPS, certificate trust and separately approved genuine camera/configuration prerequisites remain unmet for acceptance. Camera-free statistics are structurally valid source data, not useful camera acceptance. Diagnostic #355 is not acceptance; no fake camera or bypass is introduced.
