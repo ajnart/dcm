@@ -66,6 +66,7 @@ type settingsView struct {
 	editing bool
 	key     string
 	input   textinput.Model
+	folders *folderPicker
 
 	// tools are the programs the Tools sub-tab found on PATH when it opened;
 	// goos picks their install commands.
@@ -373,10 +374,15 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 			v.editing, v.err = false, ""
 			return v, nil, nav{}
 		case "tab":
-			v.cycleChoice()
-			return v, nil, nav{}
+			if v.folders == nil {
+				v.cycleChoice()
+				return v, nil, nav{}
+			}
 		case "enter":
 			value := strings.TrimSpace(v.input.Value())
+			if v.folders != nil {
+				value = v.folders.expand(value)
+			}
 			if err := validateSetting(v.key, value); err != nil {
 				v.err = v.key + ": " + err.Error()
 				return v, nil, nav{}
@@ -386,7 +392,11 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 			return v, nil, nav{}
 		}
 		var cmd tea.Cmd
+		previous := v.input.Value()
 		v.input, cmd = v.input.Update(msg)
+		if v.folders != nil && v.input.Value() != previous {
+			v.input.SetSuggestions(v.folders.suggestions(v.input.Value()))
+		}
 		return v, cmd, nav{}
 	}
 	if v.tab == tabBackups && v.backups.modal() {
@@ -584,6 +594,12 @@ func (v *settingsView) beginEdit(ctx *viewContext) (view, tea.Cmd, nav) {
 	v.input.SetValue(v.value(v.cursor))
 	v.input.CursorEnd()
 	v.input.SetWidth(max(ctx.width-24, 20))
+	v.folders = nil
+	if row.Key == "MEDIA_ROOT" || row.Key == "DOWNLOADS_ROOT" {
+		v.folders = newFolderPicker(ctx.backend)
+		v.input.ShowSuggestions = true
+		v.input.SetSuggestions(v.folders.suggestions(v.input.Value()))
+	}
 	v.input.Focus()
 	return v, textinput.Blink, nav{}
 }
@@ -673,6 +689,12 @@ func (v *settingsView) hostBox(ctx *viewContext, width, avail int) string {
 	}
 	if v.confirmDiscard {
 		confirm = []string{t.fg(t.warn).Render("discard " + strconv.Itoa(len(v.pairs())) + " changes? y/n")}
+	}
+	if v.editing && v.folders != nil {
+		head = append(head, truncate(t.dim().Render(folderKeysHint), inner))
+		for _, line := range v.folders.listing(v.input.Value(), inner, 2) {
+			head = append(head, t.dim().Render(line))
+		}
 	}
 	space := avail - len(head) - len(confirm)
 	window := min(len(v.rows), max(minRows, space-v.pendingHeight()))
