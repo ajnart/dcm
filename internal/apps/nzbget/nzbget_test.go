@@ -269,7 +269,7 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 		}
 	}
 	preflight := source[strings.Index(source, "preflight:"):strings.Index(source, "verify: verifyNZBGet")]
-	if strings.Contains(preflight, "apiKey") || strings.Contains(preflight, "VerifyHomarr") || strings.Index(source, "verifyNZBGetIdentity(ctx") > strings.Index(source, "widget.downloads.getJobsAndStatuses") {
+	if strings.Contains(preflight, "apiKey") || strings.Contains(preflight, "VerifyHomarr") || strings.Index(source, "verifyNZBGetIdentity(ctx") > strings.Index(source, "readDownloadsQueue(ctx, from, integrationID") {
 		t.Fatal("native hold and saved-identity checks must precede activation and queries")
 	}
 }

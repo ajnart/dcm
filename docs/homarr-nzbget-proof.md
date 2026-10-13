@@ -230,3 +230,36 @@ The conditional logging chain is public source; #354 remains private coordinatio
 - [Conditional Redis log history](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/transports/redis-transport.ts#L28-L51)
 - [Permission-gated log API](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/log.ts#L55-L60)
 - [Browser log terminal](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/apps/nextjs/src/app/%5Blocale%5D/manage/tools/logs/terminal.tsx#L159-L165)
+
+## 13 October shared Stats and Downloads migration
+
+The original branch forward-merges the shared Stats/Downloads SDK and its
+retry metadata without rewriting history. `nzbgetTarget()` keeps native
+readiness, identity and queue semantics and uses `readDownloadsQueue` for
+one owned Downloads result with an explicit items array and a requested
+limit of 50. The shared owner acquires the catalog and exactly one forced,
+positive advancing sample per `verifyData` invocation; `verifyNZBGetStats`
+validates that same sample's units and types. Rates remain finite nonnegative
+bytes/second and paused remains boolean with catalog unit `text`.
+Only download and paused remain selected; unsupported nullable upload is
+not coerced to zero. Finite negative completion times remain accepted.
+
+Focused descriptor HTTP fixtures use the existing `statsFixture`, reject the
+first invalid refreshed value without resampling, no-op refresh, wrong units,
+wrong value types and foreign Downloads identity, and stop before the Stats
+catalog on native failure. Explicit zero Stats remain valid even when the
+independently sampled native rate or paused state differs. Local fixture
+responses are synthetic and establish no real App/native/rendered acceptance.
+The affected descriptor tests, shared Stats/Downloads tests, App tests,
+package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
+provider request, download or protected Project state was used.
+
+#354 remains an unconditional pre-mutation Manual hold in both Check and
+apply. An HTTP fixture verifies that neither path makes any request. The
+`verifyData` fixtures exercise the dormant validator directly; they do not
+activate a native integration, clear the hold or attest image privacy.
+A supported fixed Homarr image, complete downstream privacy review, exact
+version/source compatibility review and separate activation authorization
+remain required. Source agreement or a local upstream patch cannot satisfy
+that image prerequisite. The common hint hashes above describe the historical
+prepared handoff, before the custodian resolved the shared SDK forward merge.

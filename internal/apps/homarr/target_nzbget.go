@@ -28,6 +28,7 @@ func nzbgetTarget() target {
 			return helpers.ErrManual
 		},
 		verify: verifyNZBGet,
+		stats:  verifyNZBGetStats,
 	}
 }
 
@@ -38,23 +39,11 @@ func verifyNZBGet(ctx context.Context, from, to *helpers.H, integrationID string
 	if err := nzbget.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-		"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-	})
+	queue, err := readDownloadsQueue(ctx, from, integrationID, "nzbGet")
 	if err != nil {
-		return errors.New("Homarr could not read NZBGet Downloads; run self-host setup nzbget, then self-host setup homarr")
+		return err
 	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New("Homarr did not return the NZBGet download queue; retry self-host setup homarr")
-	}
-	result, _ := results[0].(map[string]any)
-	integration, _ := result["integration"].(map[string]any)
-	data, _ := result["data"].(map[string]any)
-	if result["error"] != nil || stringField(result, "integrationId") != integrationID || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "nzbGet" || data == nil {
-		return errors.New("Homarr could not read the authenticated NZBGet queue; retry self-host setup homarr")
-	}
-	status, _ := data["status"].(map[string]any)
+	status, items := queue.status, queue.items
 	rates, _ := status["rates"].(map[string]any)
 	rate, ok := rates["down"].(float64)
 	if !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
@@ -67,8 +56,7 @@ func verifyNZBGet(ctx context.Context, from, to *helpers.H, integrationID string
 	if !ok || !slices.Contains(types, any("usenet")) {
 		return errors.New("Homarr did not identify the NZBGet Usenet queue; retry self-host setup homarr")
 	}
-	items, ok := data["items"].([]any)
-	if !ok || len(items) > 50 {
+	if len(items) > 50 {
 		return errors.New("Homarr did not return the bounded NZBGet download list; retry self-host setup homarr")
 	}
 	for _, raw := range items {
@@ -82,25 +70,6 @@ func verifyNZBGet(ctx context.Context, from, to *helpers.H, integrationID string
 			if !ok || math.IsNaN(value) || math.IsInf(value, 0) || key == "size" && value < 0 {
 				return errors.New("Homarr returned incomplete NZBGet download data; retry self-host setup homarr")
 			}
-		}
-	}
-	catalog, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return errors.New("Homarr could not read the NZBGet Stats catalog; retry self-host setup homarr")
-	}
-	statistics, _ := catalog.(map[string]any)
-	metrics, _ := statistics["metrics"].([]any)
-	for _, key := range []string{"download", "paused"} {
-		found := false
-		for _, raw := range metrics {
-			metric, _ := raw.(map[string]any)
-			if stringField(metric, "key") == key {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.New("Homarr does not expose the required NZBGet Stats fields; use Homarr 2.4.1, then retry Setup")
 		}
 	}
 	return nil
@@ -131,6 +100,17 @@ func verifyNZBGetIdentity(ctx context.Context, from *helpers.H, integrationID st
 	if !valid || !seen["username"] || !seen["password"] {
 		from.Info("Homarr's saved NZBGet integration must use exactly the managed restricted username and a redacted password credential. Review and explicitly repair only the owned record; do not adopt an Admin or foreign account. Then retry self-host setup homarr. No credential was changed.")
 		return helpers.ErrManual
+	}
+	return nil
+}
+
+func verifyNZBGetStats(sample statsSample) error {
+	rate, ok := sample.values["download"].(float64)
+	if sample.units["download"] != "bytesPerSecond" || !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
+		return errors.New("Homarr returned unsupported refreshed NZBGet byte-per-second Stats; retry self-host setup homarr")
+	}
+	if _, ok := sample.values["paused"].(bool); !ok || sample.units["paused"] != "text" {
+		return errors.New("Homarr did not return supported refreshed NZBGet paused Stats; retry self-host setup homarr")
 	}
 	return nil
 }
