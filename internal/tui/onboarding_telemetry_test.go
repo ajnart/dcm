@@ -9,11 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
@@ -263,5 +266,91 @@ func TestNoScreenOffersATelemetryToggleOrNamesItsOffSwitch(t *testing.T) {
 				t.Errorf("%s names or offers an off switch (%q)", path, banned)
 			}
 		}
+	}
+}
+
+// steppedHost is a fresh machine whose clock is the returned time, which the
+// test moves to say how long Onboarding took.
+func steppedHost(t *testing.T, backend *fakeBackend) (Model, *time.Time) {
+	t.Helper()
+	at := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	m := New(backend, Options{Version: "1.0.0", Now: func() time.Time { return at }})
+	m = update(t, m, windowSize(120, 40))
+	m = drive(t, m, statusMsgFor(service.ErrNoProject))
+	m = update(t, m, doctorMsg{checks: backend.checks})
+	return frames(t, m, 60), &at
+}
+
+func TestApprovingReviewSendsTheOnboardingEvent(t *testing.T) {
+	warned := append([]host.Check{{ID: "ids", Title: "Container IDs", Level: host.Warn, Detail: "undetermined"}}, readyChecks...)
+	backend := &fakeBackend{catalog: wizardCatalog(), checks: warned, glyphs: activity.NerdFont}
+	m, clock := steppedHost(t, backend)
+	m = withGlyphs(t, m, activity.NerdFont)
+	m = drive(t, m, press("down"))
+	m = drive(t, m, press("space"))
+	m = toReview(t, m)
+	*clock = clock.Add(93500 * time.Millisecond)
+	if got := backend.reportedOnboarding(); len(got) != 0 {
+		t.Fatalf("reported %v before approval", got)
+	}
+
+	m = drive(t, m, press("enter"))
+
+	got := backend.reportedOnboarding()
+	if len(got) != 1 {
+		t.Fatalf("reported %v, want one onboarding event", got)
+	}
+	r := got[0]
+	if r.Experience != "advanced" || r.Glyphs != "nerd-font" || r.Doctor != "warn" || r.IntroSkipped || r.Duration != 93500*time.Millisecond {
+		t.Fatalf("onboarding event = %+v", r)
+	}
+}
+
+func TestTheOnboardingEventUsesTheSavedExperienceAndPlainDefaults(t *testing.T) {
+	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks, experience: "advanced"}
+	m, _ := steppedHost(t, backend)
+	m = toReview(t, m)
+
+	m = drive(t, m, press("enter"))
+
+	got := backend.reportedOnboarding()
+	if len(got) != 1 || got[0].Experience != "advanced" || got[0].Glyphs != "simple" || got[0].Doctor != "ok" {
+		t.Fatalf("onboarding event = %+v, want advanced, simple, ok", got)
+	}
+}
+
+func TestQuittingOnboardingBeforeApprovalSendsNothing(t *testing.T) {
+	backend := &fakeBackend{catalog: wizardCatalog(), checks: readyChecks}
+	m, _ := steppedHost(t, backend)
+	m = toReview(t, m)
+
+	m = drive(t, m, press("ctrl+c"))
+
+	if got := backend.reportedOnboarding(); len(got) != 0 {
+		t.Fatalf("reported %v without an approval", got)
+	}
+}
+
+func TestTheServiceBackendSendsTheOnboardingEventAndTheExperienceProperty(t *testing.T) {
+	key := telemetry.ProjectKey
+	telemetry.ProjectKey = "phc_test"
+	t.Cleanup(func() { telemetry.ProjectKey = key })
+	deps := systemtest.NewDeps(t)
+	deps.Version = "1.2.3"
+	net := &telemetrytest.Transport{}
+	deps.HTTP = net.Client()
+	backend := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
+	backend.TelemetryNotice()
+
+	backend.ReportOnboarding(telemetry.Onboarding{Experience: "new", Glyphs: "simple", Doctor: "ok", IntroSkipped: false, Duration: 2 * time.Second})
+
+	events := net.Events()
+	if len(events) != 1 || events[0]["event"] != "onboarding" {
+		t.Fatalf("events = %v, want one onboarding event", events)
+	}
+	props := events[0]["properties"].(map[string]any)
+	set, _ := props["$set"].(map[string]any)
+	if props["experience"] != "new" || props["duration_ms"] != float64(2000) || props["intro_skipped"] != false || set["experience"] != "new" {
+		t.Fatalf("properties = %v", props)
 	}
 }

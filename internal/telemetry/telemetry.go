@@ -106,6 +106,20 @@ type Report struct {
 	Failure error
 	Panic   any
 	Stack   Stack
+	// Experience is the Experience level a command set; it becomes the person
+	// property of the same name.
+	Experience string
+}
+
+// Onboarding is an approved Review: what the person answered and how the first
+// run went, sent as the one "onboarding" event.
+type Onboarding struct {
+	// Experience is "new" or "advanced"; Glyphs is "nerd-font" or "simple";
+	// Doctor is "ok" or "warn".
+	Experience, Glyphs, Doctor string
+	IntroSkipped               bool
+	// Duration is Onboarding open to approval.
+	Duration time.Duration
 }
 
 type StepOutcome string
@@ -254,6 +268,31 @@ func (c *Client) Send(r Report) {
 		}
 		return messages
 	}, func(id string) []logRecord { return c.logRecords(id, r) }, defaultDeadline)
+}
+
+// SendOnboarding sends the "onboarding" event of an approved Review and sets
+// the person property experience. Like Send it waits for the notice and every
+// off switch applies.
+func (c *Client) SendOnboarding(o Onboarding) {
+	if !c.Enabled() || !c.announced() {
+		return
+	}
+	c.deliver(func(id string) []posthog.Message {
+		props := posthog.Properties{
+			"glyphs":        clean(o.Glyphs, glyphSets),
+			"intro_skipped": o.IntroSkipped,
+			"doctor":        clean(o.Doctor, doctorOutcomes),
+			"duration_ms":   o.Duration.Milliseconds(),
+			"version":       c.o.Version,
+			"os":            c.o.OS,
+			"arch":          c.o.Arch,
+		}
+		if level := clean(o.Experience, experienceLevels); level != "unknown" {
+			props["experience"] = level
+			props["$set"] = map[string]any{"experience": level}
+		}
+		return []posthog.Message{posthog.Capture{DistinctId: id, Event: "onboarding", Properties: props}}
+	}, nil, defaultDeadline)
 }
 
 // SendFeedback sends one Feedback as a "feedback" event, with the same install
@@ -448,6 +487,9 @@ func (c *Client) properties(r Report) posthog.Properties {
 	if slices.Contains(accessChoices, r.Access) {
 		props["access"] = r.Access
 	}
+	if level := clean(r.Experience, experienceLevels); level != "unknown" {
+		props["$set"] = map[string]any{"experience": level}
+	}
 	if steps := cleanIDs(r.FailedSteps, stepPattern); len(steps) > 0 {
 		props["failed_steps"] = steps
 	}
@@ -477,8 +519,11 @@ func cleanSteps(steps []Step) []Step {
 }
 
 var (
-	commandWords = regexp.MustCompile(`^[a-z0-9][a-z0-9 -]{0,63}$`)
-	stepPattern  = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}(/[a-z0-9][a-z0-9._:-]{0,63})?$`)
+	experienceLevels = regexp.MustCompile(`^(new|advanced)$`)
+	glyphSets        = regexp.MustCompile(`^(nerd-font|simple)$`)
+	doctorOutcomes   = regexp.MustCompile(`^(ok|warn)$`)
+	commandWords     = regexp.MustCompile(`^[a-z0-9][a-z0-9 -]{0,63}$`)
+	stepPattern      = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}(/[a-z0-9][a-z0-9._:-]{0,63})?$`)
 )
 
 func clean(s string, pattern *regexp.Regexp) string {
