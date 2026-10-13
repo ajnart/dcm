@@ -83,11 +83,13 @@ always a CLI release at that version from the tagged commit.
 
 ## Repository rename
 
-The repository is still private at `ajnart/selfhost-skills`; the prepared target
-`ajnart/selfhost` does not resolve as of October 11, 2026. This branch prepares
-that target, not the rename or a visibility change. Keep its PR in draft until
-the maintainer confirms the canonical repository exists. Making it public is
-the maintainer's separate decision, not a prerequisite for hosting this site.
+The repository remains private at `ajnart/selfhost-skills`. The installer,
+self-update, skill and site builder keep that current default. The proposed
+`ajnart/selfhost` target did not resolve in the October 11, 2026 evidence below.
+Merge the useful site source independently of the rename; change defaults only
+after the maintainer confirms the new repository exists. A visibility change
+remains the maintainer's separate decision, not a prerequisite for hosting this
+site.
 
 After the rename, check the old repository's API redirect with an old release
 binary. Its fake 301 test is not a live redirect check. Issue #194 additionally
@@ -110,19 +112,19 @@ own DNS record and certificate; do not create a second DNS record.
 Build into a new directory outside the checkout. The builder copies only
 `index.html`, `site.css`, `_headers`, `install.sh` and `install.sh.sha256` into
 `public/`. It refuses an existing destination and never copies the repository,
-hidden files, service configurations or binaries. The default build requires
-`gh` to confirm the canonical repository exists. Until the rename, explicitly
-select the current repository for the hosted script:
+hidden files, service configurations or binaries. The default build uses
+`ajnart/selfhost-skills` without GitHub authentication:
 
 ```bash
 stage="$(mktemp -d)"
-SITE_RELEASE_REPO=ajnart/selfhost-skills bash scripts/build-installer-site.sh "$stage/deploy"
+bash scripts/build-installer-site.sh "$stage/deploy"
 wrangler deploy --cwd "$stage/deploy" --dry-run
 wrangler deploy --cwd "$stage/deploy"
 ```
 
-After the rename, omit `SITE_RELEASE_REPO` to use `ajnart/selfhost`. Deploying
-the prepared installer still does not make private GitHub releases public.
+After a confirmed rename, `SITE_RELEASE_REPO=ajnart/selfhost` explicitly selects
+the new repository; that option requires `gh` to confirm the name exists.
+Deploying the prepared installer does not make private GitHub releases public.
 The landing page deliberately says public downloads are unavailable; keep it
 that way until anonymous install and self-update pass.
 
@@ -138,6 +140,14 @@ verified archives and checksums, and a release lookup usable by both the
 installer and `self-update`. A mirror cannot fix existing release binaries'
 GitHub defaults merely by serving the installer. Publish neither authenticated
 GitHub responses nor credentials to work around that boundary.
+
+Source merge does not close the remaining release acceptance in
+[#193](https://github.com/ajnart/selfhost-skills/issues/193),
+[#194](https://github.com/ajnart/selfhost-skills/issues/194) or
+[#295](https://github.com/ajnart/selfhost-skills/issues/295). Anonymous archive
+installation, self-update and any required live rename redirect remain external
+verification gates. The evidence below describes the earlier deployed version;
+this source update does not redeploy it or publish a new CLI release.
 
 References: [static assets](https://developers.cloudflare.com/workers/static-assets/get-started/)
 and [custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).

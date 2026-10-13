@@ -3,7 +3,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd -P)"
 output="${1:?Provide a new output directory outside the checkout}"
-repo="${SITE_RELEASE_REPO:-ajnart/selfhost}"
+repo="${SITE_RELEASE_REPO:-ajnart/selfhost-skills}"
 case "$repo" in
   ajnart/selfhost | ajnart/selfhost-skills) ;;
   *) printf 'Unsupported release repository: %s\n' "$repo" >&2; exit 1 ;;

@@ -3,6 +3,7 @@ package slskd_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,6 +47,20 @@ func handler() http.Handler {
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 	})
+	for path, body := range map[string]string{
+		"/api/v0/application/version": `"0.26.1.0"`,
+		"/api/v0/server":              `{"isConnected":true,"isLoggedIn":true}`,
+		"/api/v0/transfers/downloads": `[]`,
+	} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-API-Key") != apiKey {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(body))
+		})
+	}
 	return mux
 }
 
@@ -73,6 +88,90 @@ func TestSetupCheckPass(t *testing.T) {
 	}
 	if err := (slskd.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
+	}
+}
+
+func TestCatalogVersionLeavesDisconnectedSoulseekManual(t *testing.T) {
+	base := handler()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v0/server" && r.Method == http.MethodGet {
+			if r.Header.Get("X-API-Key") != apiKey {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Write([]byte(`{"isConnected":false,"isLoggedIn":false}`))
+			return
+		}
+		base.ServeHTTP(w, r)
+	}))
+	defer srv.Close()
+	var results []helpers.StepResult
+	h := newH(t, srv, &results)
+	ctx := context.Background()
+
+	if err := (slskd.App{}).Setup(ctx, h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("Setup = %v, want the Soulseek Manual step", err)
+	}
+	apiReady, providerManual := false, false
+	for _, result := range results {
+		if result.ID == "homarr-api" && result.Status == stepstatus.StepSkip {
+			apiReady = true
+		}
+		if result.ID == "soulseek" && result.Status == stepstatus.StepManual {
+			providerManual = true
+		}
+	}
+	if !apiReady || !providerManual {
+		t.Fatalf("want verified API and Manual Soulseek steps, got %+v", results)
+	}
+	if err := (slskd.App{}).Check(ctx, h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("Check = %v, want the Soulseek Manual step", err)
+	}
+}
+
+func TestVersionContractRequiresSupportedRelease(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		body string
+		pass bool
+	}{
+		{name: "semantic release", body: `"0.26.1"`, pass: true},
+		{name: "different revision", body: `"0.26.1.1"`},
+		{name: "different release", body: `"0.26.10"`},
+		{name: "prerelease", body: `"0.26.1-rc.1"`},
+		{name: "missing value", body: `null`},
+		{name: "wrong shape", body: `{"version":"0.26.1.0"}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			base := handler()
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/api/v0/application/version" && r.Method == http.MethodGet {
+					if r.Header.Get("X-API-Key") != apiKey {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+					w.Write([]byte(test.body))
+					return
+				}
+				base.ServeHTTP(w, r)
+			}))
+			defer srv.Close()
+			var results []helpers.StepResult
+			h := newH(t, srv, &results)
+			ctx := context.Background()
+
+			setupErr := (slskd.App{}).Setup(ctx, h)
+			checkErr := (slskd.App{}).Check(ctx, h)
+			if test.pass {
+				if setupErr != nil || checkErr != nil {
+					t.Fatalf("supported version: Setup = %v, Check = %v", setupErr, checkErr)
+				}
+				return
+			}
+			if !errors.Is(setupErr, helpers.ErrStepFailed) || checkErr == nil || !strings.Contains(checkErr.Error(), "supports version 0.26.1") {
+				t.Fatalf("unsupported version: Setup = %v, Check = %v", setupErr, checkErr)
+			}
+		})
 	}
 }
 

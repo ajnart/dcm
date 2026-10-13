@@ -22,7 +22,7 @@ import (
 )
 
 // adminEmail is the shared Admin login's email form.
-func adminEmail(h *helpers.H) string { return h.AdminUser() + "@selfhost.local" }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 // verifyScript reads the seeded administrator from the exact pinned Laravel
 // container. The email and password arrive through private environment
@@ -42,6 +42,13 @@ exec /usr/sbin/php-fpm85 -F
 
 // App is Speedtest Tracker. Traps: docs/catalog/traps/speedtest-tracker.md.
 type App struct{}
+
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -119,15 +126,34 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
+	if err := h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(context.Context) error {
 			return errors.New("Speedtest Tracker seeds the administrator from ADMIN_EMAIL/ADMIN_PASSWORD only on first start")
 		},
-		Hint: "Speedtest Tracker seeds the admin account on first start. Recreate the container with an empty config volume: " +
-			"self-host start speedtest-tracker, then open " + h.URL + " and sign in as " + adminEmail(h) +
-			" with the password from `self-host credentials`.",
+		Hint: "Speedtest Tracker seeds the Admin login only on first start. Open " + h.URL +
+			" and verify the existing account with self-host credentials. Restore the matching Project credential through its secret boundary, then retry self-host setup speedtest-tracker; do not delete configuration or reset an existing account.",
 		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "homarr-key", "verify the Speedtest Tracker results credential", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return homarrKeyWorks(ctx, h) },
+		Do:    func(ctx context.Context) error { return createHomarrKey(ctx, h) },
+		Hint:  tokenHint, Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-results", "verify measured Speedtest Tracker results", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			_, err := ReadHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error {
+			_, err := ReadHomarr(ctx, h)
+			return err
+		},
+		Hint: measurementHint, Credential: "admin",
 	})
 }
 
@@ -298,13 +324,12 @@ fi
 printf 'path=%s\nprocess_root=%s\ntarget_read=%s\ntarget_write=%s\ntarget_owner=%s\n' "$path" "$process_root" "$target_read" "$target_write" "$target_owner"
 `
 
-// Check verifies the seeded administrator only; the scoped API token and a real
-// measurement stay separate acceptance steps.
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot be verified in Speedtest Tracker: %v", adminEmail(h), err)
 	}
-	return nil
+	_, err := ReadHomarr(ctx, h)
+	return err
 }
 
 func (App) Links() []app.Link { return nil }

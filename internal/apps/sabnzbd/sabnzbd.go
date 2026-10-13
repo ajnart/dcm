@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -55,20 +56,31 @@ func (App) Links() []app.Link { return nil }
 
 // readAPIKey waits for the key SABnzbd writes to its config on first start.
 func readAPIKey(ctx context.Context, h *helpers.H) (string, error) {
-	return h.ConfigValue(ctx, "config/sabnzbd.ini", helpers.INIKey("misc", "api_key"), 2*time.Minute)
+	key, err := h.ConfigValue(ctx, "config/sabnzbd.ini", helpers.INIKey("misc", "api_key"), 2*time.Minute)
+	if err == nil {
+		h.Log.Secret(key)
+	}
+	return key, err
 }
 
 func apiForm(ctx context.Context, h *helpers.H, fields map[string]string) (map[string]any, error) {
 	form := url.Values{}
+	form.Set("output", "json")
 	for key, value := range fields {
 		form.Set(key, value)
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api", Form: form})
+	resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api", Form: form, NoRedirect: true})
 	if err != nil {
 		return nil, err
 	}
 	if !resp.OK() {
-		return nil, fmt.Errorf("the API returned HTTP %d", resp.Status)
+		if strings.Contains(string(resp.Body), "Hostname verification failed") {
+			return nil, errors.New("SABnzbd refused its hostname; review Config > Special > host_whitelist for the Project Address without disabling hostname checks")
+		}
+		if strings.Contains(string(resp.Body), "External internet access denied") {
+			return nil, errors.New("SABnzbd refused the Project connection; review its private network access settings without enabling public Access")
+		}
+		return nil, fmt.Errorf("SABnzbd API returned HTTP %d; verify the full API key in Config > General and retry self-host setup sabnzbd", resp.Status)
 	}
 	var result map[string]any
 	if err := resp.Decode(&result); err != nil {
@@ -76,6 +88,9 @@ func apiForm(ctx context.Context, h *helpers.H, fields map[string]string) (map[s
 	}
 	if status, ok := result["status"].(bool); ok && !status {
 		return nil, errors.New("SABnzbd rejected the API request")
+	}
+	if failure, found := result["error"]; found && failure != nil {
+		return nil, errors.New("SABnzbd returned an API error; review Config > General and retry self-host setup sabnzbd")
 	}
 	return result, nil
 }
@@ -89,7 +104,11 @@ func readSetting(ctx context.Context, h *helpers.H, key, setting string) (string
 	}
 	config, _ := result["config"].(map[string]any)
 	misc, _ := config["misc"].(map[string]any)
-	return fmt.Sprint(misc[setting]), nil
+	value, ok := misc[setting].(string)
+	if !ok {
+		return "", errors.New("SABnzbd did not return the requested setting")
+	}
+	return value, nil
 }
 
 func setSetting(ctx context.Context, h *helpers.H, key, setting, value string) error {
@@ -109,7 +128,7 @@ func exists(ctx context.Context, h *helpers.H) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return username == "admin", nil
+	return username == h.AdminUser(), nil
 }
 
 func create(ctx context.Context, h *helpers.H, user, password string) error {
@@ -149,7 +168,7 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 
 func setup() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
-		Ready:  firstadmin.Probe{Path: "/"},
+		Ready:  firstadmin.Probe{Path: "/api?mode=version&output=json", Contains: `"version"`},
 		Exists: exists,
 		Create: create,
 		Login:  loginWorks,
@@ -157,6 +176,63 @@ func setup() firstadmin.FirstAdmin {
 	}
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error { return setup().Setup(ctx, h) }
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := setup().Setup(ctx, h); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "api-key", "verify the full SABnzbd API key", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if h.Secret(h.Key("api_key")) == "" {
+				return false, nil
+			}
+			_, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key")))
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error {
+			key, err := readAPIKey(ctx, h)
+			if err != nil {
+				return err
+			}
+			h.Log.Secret(key)
+			if _, err := verifyAPIKey(ctx, h, key); err != nil {
+				return err
+			}
+			return h.SetSecret(h.Key("api_key"), key)
+		},
+		Hint: "Run self-host setup sabnzbd to recover its existing full API key from the Project config, then self-host setup homarr. The NZB key only uploads jobs; do not rotate keys or disable authentication.",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "provider", "check for an existing Usenet provider", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) { return providerConfigured(ctx, h) },
+		Do: func(ctx context.Context) error {
+			configured, err := providerConfigured(ctx, h)
+			if err != nil {
+				return err
+			}
+			if configured {
+				return nil
+			}
+			return fmt.Errorf("%w: the API is ready, but no enabled Usenet provider is configured", helpers.ErrManual)
+		},
+		Hint:       "Open SABnzbd > Config > Servers (or its first-run wizard) and configure your own authorized Usenet provider, then run self-host setup sabnzbd and self-host setup homarr. No provider account is created or tested by Setup.",
+		Credential: "admin",
+	})
+}
 
-func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if err := setup().Check(ctx, h); err != nil {
+		return err
+	}
+	if _, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key"))); err != nil {
+		return err
+	}
+	configured, err := providerConfigured(ctx, h)
+	if err != nil {
+		return err
+	}
+	if !configured {
+		return fmt.Errorf("%w: the SABnzbd API is ready, but no enabled Usenet provider is configured; open Config > Servers and retry self-host setup sabnzbd", helpers.ErrManual)
+	}
+	return nil
+}

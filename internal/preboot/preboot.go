@@ -1,6 +1,6 @@
 // Package preboot draws the pre-boot screen: the full-screen scene shown
 // while the first install pulls its images. It is a parallax starfield, with
-// aurora ribbons, shooting stars and sparkles around a pulsing ◆, the pull's
+// aurora ribbons, shooting stars and sparkles around the Logo, the pull's
 // bar and a friendly line on how long is left. Its exit stretches the stars
 // into streaks and then wipes the Dashboard in along a slanted edge.
 //
@@ -9,11 +9,15 @@
 // clock; the caller counts frames at FPS.
 package preboot
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	// FPS is the frame rate of the pre-boot screen.
-	FPS = 24
+	FPS            = 24
+	EntranceFrames = 12
 	// ExitFrames is how many frames the exit plays.
 	ExitFrames = 44
 
@@ -117,20 +121,41 @@ func (f *frame) opening() float64 {
 }
 
 func (f *frame) scene() *canvas {
+	return f.entranceScene(1)
+}
+
+func (f *frame) entranceScene(amount float64) *canvas {
 	cv := newCanvas(f.w, f.h)
 	f.sky(cv)
-	cv.flush()
+	cv.Flush()
 	if f.lay.tier != small {
 		f.brand(cv)
 	}
+	if amount < 1 {
+		for i, c := range cv.Cells {
+			x, y := i%f.w, i/f.w
+			distance := math.Max(float64(abs(x-f.lay.cx))/float64(max(f.w/2, 1)), float64(abs(y-f.lay.brandCY))/float64(max(f.h, 1)))
+			if distance > amount {
+				cv.Cells[i] = cell{}
+				continue
+			}
+			c.FG, c.Lum = f.pal.Fade(c.FG, amount), c.Lum*amount
+			cv.Cells[i] = c
+		}
+	}
 	f.drawText(cv)
-	cv.flush()
+	cv.Flush()
 	return cv
 }
 
 // Render draws frame n of the pull in a width×height terminal.
 func Render(n, width, height int, pr Progress, pal Palette, noColor bool) []string {
-	return newFrame(n, -1, width, height, pr, pal, noColor).scene().lines(noColor)
+	return newFrame(n, -1, width, height, pr, pal, noColor).scene().Lines(noColor)
+}
+
+func RenderEntrance(n, width, height int, pr Progress, pal Palette, noColor bool) []string {
+	amount := 1 - math.Pow(1-clamp01(float64(n)/EntranceFrames), 3)
+	return newFrame(n, -1, width, height, pr, pal, noColor).entranceScene(amount).Lines(noColor)
 }
 
 // RenderExit draws frame since of the exit, n frames after the pull began:
@@ -140,7 +165,7 @@ func RenderExit(n, since, width, height int, pr Progress, pal Palette, noColor b
 	f := newFrame(n, since, width, height, pr, pal, noColor)
 	cv := f.scene()
 	if opening := f.opening(); opening > 0 {
-		return f.reveal(cv.lines(noColor), under, opening)
+		return f.reveal(cv.Lines(noColor), under, opening)
 	}
-	return cv.lines(noColor)
+	return cv.Lines(noColor)
 }

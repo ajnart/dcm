@@ -17,6 +17,13 @@ import (
 
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + emailSuffix
+}
+
 const (
 	// version is the Hub's version; the agent runs the same one.
 	version = "0.20.0"
@@ -94,7 +101,7 @@ func (App) Compose(rc app.RenderContext) string {
 const emailSuffix = "@selfhost.local"
 
 // AdminEmail is the Admin login in the Hub: the Admin user at a fixed domain.
-func AdminEmail(h *helpers.H) string { return h.AdminUser() + emailSuffix }
+func AdminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 func firstRun(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/beszel/first-run"}, http.StatusOK)

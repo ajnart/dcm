@@ -36,7 +36,7 @@ Feedback gets a separate five-second send deadline and reports delivery failure;
 when Telemetry is off it sends nothing and exits 1, not the Manual-step code.
 
 The first-run notice and Onboarding link the
-[Telemetry wiki](https://github.com/ajnart/selfhost/wiki/Telemetry), with
+[Telemetry wiki](https://github.com/ajnart/selfhost-skills/wiki/Telemetry), with
 no toggle or off-switch advertising. Nothing is sent before that notice,
 except explicitly approved Feedback. Environment variables
 `SELF_HOST_NO_TELEMETRY=1` and `DO_NOT_TRACK=1` disable all sending, as do CI and
@@ -47,3 +47,8 @@ in the UI first. A public dashboard may come later; none is promised today.
 On by default was chosen over opt-in because opt-in data from a self-hosting
 audience is too sparse to steer by. The documented scope and never-sent rules
 make that acceptable; widening either needs a new ADR.
+
+## Amendment: the onboarding event and the experience person property
+
+[ADR 0009](0009-onboarding-event-and-experience-property.md) adds one
+`onboarding` event on approving Review and the person property `experience`.

@@ -113,7 +113,7 @@ func installHandler() http.Handler {
 			w.Write([]byte(`{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}`))
 			return
 		}
-		w.Write([]byte(`[{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}]`))
+		w.Write([]byte(`[{"id":"owned-fixture","name":"owned-fixture","watcher":"approved","updateAvailable":false,"image":{"id":"sha256:owned-image"}}]`))
 	})
 }
 

@@ -426,7 +426,7 @@ func TestNoNoticeWhenTelemetryIsOff(t *testing.T) {
 }
 
 func TestTheNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
-	const wiki = "https://github.com/ajnart/selfhost/wiki/Telemetry"
+	const wiki = "https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
 	for name, notice := range map[string]string{"Notice": telemetry.Notice, "NoticeShort": telemetry.NoticeShort} {
 		if !strings.Contains(notice, wiki) {
 			t.Errorf("%s = %q, want it to link %s", name, notice, wiki)
@@ -784,5 +784,85 @@ func TestApprovedFeedbackWaitsLongerThanTheUsageDeadline(t *testing.T) {
 	defer timer.Stop()
 	if !telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "Pull failed."}) {
 		t.Fatal("approved feedback was dropped at the short usage deadline")
+	}
+}
+
+var approvedOnboarding = telemetry.Onboarding{Experience: "advanced", Glyphs: "nerd-font", Doctor: "warn", IntroSkipped: true, Duration: 93500 * time.Millisecond}
+
+func TestOnboardingIsOneEventWithTheExperiencePersonProperty(t *testing.T) {
+	s := enabled(t)
+	telemetry.New(s.opts).SendOnboarding(approvedOnboarding)
+	events := s.net.Events()
+	if len(events) != 1 || events[0]["event"] != "onboarding" {
+		t.Fatalf("events = %v, want one onboarding event", events)
+	}
+	props := events[0]["properties"].(map[string]any)
+	want := map[string]any{
+		"experience":     "advanced",
+		"glyphs":         "nerd-font",
+		"intro_skipped":  true,
+		"doctor":         "warn",
+		"duration_ms":    float64(93500),
+		"version":        "1.2.3",
+		"os":             "linux",
+		"arch":           "amd64",
+		"$geoip_disable": true,
+	}
+	for key, value := range want {
+		if props[key] != value {
+			t.Errorf("properties[%q] = %v, want %v", key, props[key], value)
+		}
+	}
+	set, _ := props["$set"].(map[string]any)
+	if len(set) != 1 || set["experience"] != "advanced" {
+		t.Errorf("$set = %v, want only experience=advanced", props["$set"])
+	}
+}
+
+func TestOnboardingValuesOutsideTheFixedSetsAreNotSent(t *testing.T) {
+	s := enabled(t)
+	telemetry.New(s.opts).SendOnboarding(telemetry.Onboarding{Experience: "/home/alice", Glyphs: "alice-laptop", Doctor: "fail"})
+	props := s.net.Events()[0]["properties"].(map[string]any)
+	if _, found := props["experience"]; found {
+		t.Errorf("experience = %v, want it dropped", props["experience"])
+	}
+	if _, found := props["$set"]; found {
+		t.Errorf("$set = %v, want it dropped", props["$set"])
+	}
+	if props["glyphs"] != "unknown" || props["doctor"] != "unknown" {
+		t.Errorf("glyphs = %v, doctor = %v, want unknown", props["glyphs"], props["doctor"])
+	}
+}
+
+func TestOnboardingObeysTheOffSwitchesAndWaitsForTheNotice(t *testing.T) {
+	for name, tweak := range map[string]func(s *setup){
+		"SELF_HOST_NO_TELEMETRY": func(s *setup) { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
+		"DO_NOT_TRACK":           func(s *setup) { s.env["DO_NOT_TRACK"] = "1" },
+		"CI":                     func(s *setup) { s.env["CI"] = "true" },
+		"development build":      func(s *setup) { s.opts.Version = "dev" },
+		"no notice yet":          func(s *setup) { s.store.Remove("telemetry-notice") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := enabled(t)
+			tweak(s)
+			telemetry.New(s.opts).SendOnboarding(approvedOnboarding)
+			if got := len(s.net.Bodies()); got != 0 {
+				t.Fatalf("sent %d requests, want 0", got)
+			}
+		})
+	}
+}
+
+func TestACommandThatSetsTheExperienceSetsThePersonProperty(t *testing.T) {
+	s := enabled(t)
+	s.send(telemetry.Report{Command: "profile set experience", Outcome: telemetry.OutcomeOK, Experience: "new"})
+	props := s.net.Events()[0]["properties"].(map[string]any)
+	set, _ := props["$set"].(map[string]any)
+	if len(set) != 1 || set["experience"] != "new" {
+		t.Fatalf("$set = %v, want only experience=new", props["$set"])
+	}
+	s.send(install)
+	if _, found := s.net.Events()[1]["properties"].(map[string]any)["$set"]; found {
+		t.Fatal("a command that sets no Experience level carries $set")
 	}
 }

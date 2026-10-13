@@ -4,9 +4,7 @@ package navidrome
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
@@ -46,38 +44,13 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
-// loginWorks posts the saved Admin login; Navidrome only answers 200 with an
-// administrator identity when the credential is right.
+// loginWorks verifies the shared administrator, separately from Homarr's user.
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	resp, err := h.RetryAfter(ctx, helpers.RateLimit{
-		Headers: []string{"Retry-After"},
-		Default: 20 * time.Second, // The pinned server's default authentication window.
-		Bound:   time.Minute,
-	}, func(ctx context.Context) (helpers.Response, error) {
-		return h.HTTP(ctx, helpers.Request{
-			Method: "POST", Path: "/auth/login",
-			JSON: map[string]string{"username": user, "password": password},
-		})
-	})
-	if err != nil {
+	account, err := login(ctx, h, user, password)
+	if err != nil || account == nil {
 		return false, err
 	}
-	if resp.Status == 401 {
-		return false, nil
-	}
-	if !resp.OK() {
-		return false, fmt.Errorf("sign-in returned HTTP %d", resp.Status)
-	}
-	var account struct {
-		Username string `json:"username"`
-		IsAdmin  bool   `json:"isAdmin"`
-	}
-	if err := resp.Decode(&account); err != nil {
-		return false, err
-	}
-	return account.Username == user && account.IsAdmin, nil
+	return account.Username == user && account.IsAdmin != nil && *account.IsAdmin, nil
 }
 
 // createAdmin calls the native first-admin route; the pinned server refuses
@@ -110,6 +83,41 @@ func setup() firstadmin.FirstAdmin {
 	}
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error { return setup().Setup(ctx, h) }
+func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := setup().Setup(ctx, h); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "homarr-user", "prepare the regular Navidrome account for Homarr", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if h.Secret(h.Key("homarr_user_id")) == "" {
+				return false, nil
+			}
+			err := VerifyHomarrUser(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return createHomarrUser(ctx, h) },
+		Hint:       homarrRecovery,
+		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-api", "verify music API readiness", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			err := verifyMusicAPI(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return verifyMusicAPI(ctx, h) },
+		Hint:       "Review the saved Homarr account, its library access and music library scan; do not reset accounts or delete data. Run self-host setup navidrome.",
+		Credential: "admin",
+	})
+}
 
-func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
+func (App) Check(ctx context.Context, h *helpers.H) error {
+	if err := setup().Check(ctx, h); err != nil {
+		return err
+	}
+	if err := VerifyHomarrUser(ctx, h); err != nil {
+		return err
+	}
+	return verifyMusicAPI(ctx, h)
+}

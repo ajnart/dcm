@@ -1,0 +1,15 @@
+{
+  "domain": "example.com",
+  "emails": ["me@example.org"],
+  "additions": [
+    {"app": "paperless-ngx", "name": "paperless-ngx.example.com", "address": "https://paperless-ngx.example.com"}
+  ],
+  "publish": [
+    {"app": "paperless-ngx", "name": "paperless-ngx.example.com", "address": "https://paperless-ngx.example.com"}
+  ],
+  "risk": "Strangers anywhere can reach this login page; a flaw in the App or login could let them in; Cloudflare sees the traffic.",
+  "refused": [
+    {"app": "jellyfin", "reason": "Media apps are not published; recommend Tailscale for streaming and native clients."}
+  ],
+  "token_scopes": ["Account > Cloudflare Tunnel > Edit", "Account > Access: Apps and Policies > Edit", "Account > Access: Organizations, Identity Providers, and Groups > Edit", "Zone > DNS > Edit", "Zone > Zone > Read"]
+}

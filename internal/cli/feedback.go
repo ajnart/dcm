@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	issuesURL   = "https://github.com/ajnart/selfhost/issues"
+	issuesURL   = "https://github.com/ajnart/selfhost-skills/issues"
 	feedbackAsk = "Send this to the self-host maintainers? y/n "
 )
 

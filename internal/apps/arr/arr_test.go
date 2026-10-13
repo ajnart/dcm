@@ -134,12 +134,12 @@ func TestSonarrAndRadarrDownloadClientLinkToQBittorrent(t *testing.T) {
 	}
 }
 
-func TestLinkIsSkippedWhileQBittorrentIsMissing(t *testing.T) {
+func TestLinkIsNotScheduledWhileQBittorrentIsMissing(t *testing.T) {
 	e := newEnv(t, arr.Sonarr(), qbittorrent.App{})
 
 	r := e.Run("install", "sonarr", "--yes", "--json")
 
-	if r.Code != 0 || len(e.Sonarr.DownloadClients()) != 0 || r.StepEvent("sonarr", "link-qbittorrent") != "step.skip" {
+	if r.Code != 0 || len(e.Sonarr.DownloadClients()) != 0 || r.StepEvent("sonarr", "link-qbittorrent") != "" {
 		t.Fatalf("no Link should run without qBittorrent (exit %d)\n%s", r.Code, r.Out)
 	}
 }

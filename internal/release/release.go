@@ -28,7 +28,7 @@ import (
 // Repo is the GitHub repository that publishes releases. It is the one place
 // the name is written; a repository rename changes only this line (GitHub
 // redirects the old name until then) and the REPO variable in install.sh.
-const Repo = "ajnart/selfhost"
+const Repo = "ajnart/selfhost-skills"
 
 // Environment overrides, for tests, forks and mirrors. EnvRepo swaps the
 // repository; EnvAPI and EnvWeb swap the two roots outright.

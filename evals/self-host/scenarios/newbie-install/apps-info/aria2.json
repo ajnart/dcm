@@ -1,0 +1,10 @@
+{
+  "id": "aria2",
+  "name": "Aria2",
+  "description": "Download files and torrents in the background, controlled by other tools",
+  "category": "Downloads",
+  "image": "snowdreamtech/aria2:1.37.0-debian",
+  "docs": "https://aria2.github.io/manual/en/html/",
+  "port": 6800,
+  "inputs": []
+}

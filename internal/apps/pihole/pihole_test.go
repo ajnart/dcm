@@ -27,15 +27,19 @@ const (
 )
 
 type fakePihole struct {
-	mu       sync.Mutex
-	password string
+	mu          sync.Mutex
+	password    string
+	appHash     string
+	passwords   int
+	activations int
 }
 
 func (f *fakePihole) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /admin/", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("<html>Pi-hole</html>")) })
+	mux.HandleFunc("GET /api/info/login", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{"dns":true,"https_port":443}`)) })
 	mux.HandleFunc("GET /api/auth", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-FTL-SID") != "session-id" {
+		if r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -48,14 +52,76 @@ func (f *fakePihole) handler() http.Handler {
 			Password string `json:"password"`
 		}
 		json.NewDecoder(r.Body).Decode(&body)
-		if body.Password != f.password {
+		sid := "session-id"
+		if body.Password == "fixture-app-password" && f.appHash == "fixture-app-hash" {
+			sid = "app-session-id"
+		} else if body.Password != f.password {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"session": map[string]any{"valid": true, "sid": "session-id"}})
+		json.NewEncoder(w).Encode(map[string]any{"session": map[string]any{"valid": true, "sid": sid}})
+	})
+	mux.HandleFunc("DELETE /api/auth", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("GET /api/auth/sessions", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-FTL-SID") != "app-session-id" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"sessions":[{"current_session":true,"valid":true,"app":true,"cli":false}]}`))
+	})
+	mux.HandleFunc("GET /api/config/webserver/api/app_sudo", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"config":{"webserver":{"api":{"app_sudo":false}}}}`))
+	})
+	mux.HandleFunc("GET /api/config/webserver/api/app_pwhash", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"config": map[string]any{"webserver": map[string]any{"api": map[string]any{"app_pwhash": f.appHash}}}})
+	})
+	mux.HandleFunc("GET /api/auth/app", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if r.Header.Get("X-FTL-SID") != "session-id" || f.appHash != "" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		f.passwords++
+		w.Write([]byte(`{"app":{"password":"fixture-app-password","hash":"fixture-app-hash"}}`))
+	})
+	mux.HandleFunc("PATCH /api/config", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		var body map[string]map[string]map[string]map[string]string
+		if r.Header.Get("X-FTL-SID") != "session-id" || json.NewDecoder(r.Body).Decode(&body) != nil || len(body) != 1 || len(body["config"]) != 1 || len(body["config"]["webserver"]) != 1 || len(body["config"]["webserver"]["api"]) != 1 || body["config"]["webserver"]["api"]["app_pwhash"] != "fixture-app-hash" || f.appHash != "" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		f.appHash = "fixture-app-hash"
+		f.activations++
+		json.NewEncoder(w).Encode(body)
+	})
+	mux.HandleFunc("GET /api/stats/summary", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-FTL-SID") != "app-session-id" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"queries":{"total":0,"blocked":0,"percent_blocked":0},"gravity":{"domains_being_blocked":0}}`))
 	})
 	mux.HandleFunc("GET /api/dns/blocking", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-FTL-SID") != "session-id" {
+		if r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -100,6 +166,11 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
 	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if fake.passwords != 1 || fake.activations != 1 || h.Secret("PIHOLE_HOMARR_APP_PASSWORD") != "fixture-app-password" || h.Secret("PIHOLE_HOMARR_APP_PASSWORD_HASH") != "fixture-app-hash" {
+		t.Fatal("Setup must save and reuse its dedicated application password without rotating it")
+	}
 }
 
 func TestFailingStepHintNamesTheStartCommand(t *testing.T) {
@@ -135,7 +206,7 @@ func TestAuthenticatedLocalAPIWorksWithoutVersionMetadata(t *testing.T) {
 					w.WriteHeader(http.StatusInternalServerError)
 					w.Write([]byte(`{"error":{"key":"internal_error","message":"private-version-error"}}`))
 				case "/api/dns/blocking":
-					if r.Method != http.MethodGet || r.Header.Get("X-FTL-SID") != "session-id" {
+					if r.Method != http.MethodGet || r.Header.Get("X-FTL-SID") != "session-id" && r.Header.Get("X-FTL-SID") != "app-session-id" {
 						w.WriteHeader(http.StatusUnauthorized)
 						return
 					}
