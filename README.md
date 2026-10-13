@@ -8,24 +8,24 @@
 
 **Run your own apps at home without learning Docker.** One Go binary installs, wires together and operates self-hosted Apps with Docker Compose: a terminal Dashboard for people, plain commands for agents.
 
+[Website](https://self-host.fyi) · [Try it in the browser](https://self-host.fyi/#play) · [Discord](https://discord.gg/aCsmEV5RgA) · [Agent docs](https://self-host.fyi/llms.txt)
 
-https://github.com/user-attachments/assets/b964b8b3-7dca-4020-8699-ed1697be38b2
+[![Watch the showreel](docs/assets/reel-poster.jpg)](https://self-host.fyi/#reel)
 
-
-## Quick start
+## 30 seconds setup
 
 Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
 
 ```bash
-# 1. install (puts self-host in ~/.local/bin, verifies the checksum, deploys nothing)
 curl -fsSL https://self-host.fyi/install | bash
 export PATH="$HOME/.local/bin:$PATH"
-
-# 2. check the machine, then preview and install a Recipe
 self-host doctor
-self-host install media homarr
+```
 
-# 3. open the Dashboard
+That installs the binary and deploys nothing. Then preview and install a Recipe, and open the Dashboard:
+
+```bash
+self-host install media homarr
 self-host
 ```
 
@@ -37,28 +37,28 @@ The Catalog ships inside the binary: **93 Apps, 20 Recipes**. A Recipe is a pre-
 
 Real 120×30 session, loopback-only Homarr/Jellyfin/ntfy Project. [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json). Shows these three Apps, not the whole Catalog.
 
-## Links: Apps that wire themselves
+## With an agent
 
-Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
+Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
 
-| Consumer       | Linked to                                         |
-| -------------- | ------------------------------------------------- |
-| Sonarr, Radarr | qBittorrent (download client)                     |
-| Prowlarr       | Sonarr, Radarr                                    |
-| Seerr          | Jellyfin, Sonarr, Radarr                          |
-| Homarr         | native tiles and widgets for the Apps it supports |
-
-A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links target Homarr **2.4.1**; other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
-
-## Agents
-
-```bash
-self-host skill        # the guide that matches the installed binary
+```text
+Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
 ```
 
-Ask an agent to "use self-host to watch my movies on the TV" (`/self-host` in Claude Code and OpenClaw, `$self-host` in Codex). The one public skill, `skills/self-host/SKILL.md`, routes to that guide; it costs about 150 tokens while idle and installing it deploys nothing.
+Or add the skill yourself (needs Bun or Node.js):
 
-The loop is **inspect → plan → approval → apply → verify**. Loading the skill is intent, never approval; every change needs the person's explicit yes.
+```bash
+bunx --bun skills@latest add ajnart/self-host --skill self-host
+# or: npx --yes skills add ajnart/self-host --skill self-host
+```
+
+The installer offers the same command when it finishes. The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary; it costs about 150 tokens while idle and installing it deploys nothing. Invoke it with `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex.
+
+```bash
+self-host skill        # prints the guide that matches the installed binary
+```
+
+Agents: read <https://self-host.fyi/llms.txt>, then follow **inspect → plan → approval → apply → verify**. Loading the skill is intent, never approval; every change needs the person's explicit yes.
 
 ```bash
 self-host doctor --json
@@ -79,6 +79,87 @@ self-host status --json
 - `self-host debug <app>` prints Status, failed steps with hints, the last 100 log lines with secrets masked, and the health-check URL.
 
 Isolated Project: set `SELF_HOST_HOME` (absolute path) and a unique lowercase `SELF_HOST_COMPOSE_PROJECT`, and keep both for later commands. Do not point this CLI at an older CLI's Project.
+
+## Install
+
+### 1. The script (recommended)
+
+```bash
+curl -fsSL https://self-host.fyi/install | bash
+```
+
+It picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
+
+| Variable                 | Effect                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `SELF_HOST_VERSION`      | Install `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z` instead of the latest.                    |
+| `SELF_HOST_INSTALL_DIR`  | Install here instead of the default directory.                                          |
+| `SELF_HOST_RELEASE_REPO` | `owner/name` that publishes releases; also used by `self-update`. For forks.            |
+| `SELF_HOST_GITHUB_TOKEN` | Lifts GitHub's anonymous API rate limit; falls back to `gh auth token`. Never paste it. |
+
+Read it before you run it, and check the published hash:
+
+```bash
+curl -fsSL https://self-host.fyi/install -o install.sh
+curl -fsSL https://self-host.fyi/install.sh.sha256   # compare with: shasum -a 256 install.sh
+less install.sh && bash install.sh
+```
+
+### 2. Manual download
+
+Pick the archive for your system from [GitHub Releases](https://github.com/ajnart/self-host/releases): `self-host_<version>_<os>_<arch>.tar.gz` for `linux` or `darwin`, `amd64` or `arm64`.
+
+```bash
+VERSION=0.3.1   # no leading v; see the latest release
+OS=linux        # or darwin
+ARCH=amd64      # or arm64
+BASE=https://github.com/ajnart/self-host/releases/download/v$VERSION
+ARCHIVE=self-host_${VERSION}_${OS}_${ARCH}.tar.gz
+
+curl -fsSLO $BASE/$ARCHIVE
+curl -fsSLO $BASE/checksums.txt
+sha256sum -c --ignore-missing checksums.txt        # Linux
+# grep " $ARCHIVE\$" checksums.txt | shasum -a 256 -c -   # macOS
+
+tar -xzf $ARCHIVE self-host
+mkdir -p ~/.local/bin && mv self-host ~/.local/bin/
+```
+
+Do not run the binary if the checksum check fails.
+
+### 3. Build from source
+
+Needs Go 1.26.0+.
+
+```bash
+git clone https://github.com/ajnart/self-host && cd self-host
+go build -buildvcs=false -o ~/.local/bin/self-host ./cmd/self-host
+```
+
+Development builds cannot `self-update`.
+
+### Update
+
+```bash
+self-host self-update
+```
+
+It replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
+
+Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill` and an upgrade through `self-update`; `VERIFY_INSTALL_URL` overrides the URL). Maintainers: [how to cut a release](docs/releasing.md), [site deployment and release gates](docs/releasing.md#installer-site).
+
+## Links: Apps that wire themselves
+
+Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
+
+| Consumer       | Linked to                                         |
+| -------------- | ------------------------------------------------- |
+| Sonarr, Radarr | qBittorrent (download client)                     |
+| Prowlarr       | Sonarr, Radarr                                    |
+| Seerr          | Jellyfin, Sonarr, Radarr                          |
+| Homarr         | native tiles and widgets for the Apps it supports |
+
+A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links target Homarr **2.4.1**; other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
 
 ## Commands
 
@@ -105,29 +186,18 @@ Use named volumes or bind mounts for persistent data: anonymous volumes are not 
 
 **Unmanaged apps:** a Compose folder you add by hand under `~/.self-host/extra/<name>/` gets lifecycle, Address listing and Backup, but no Setup.
 
-## Install details
-
-- The installer picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
-- `SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z`; `SELF_HOST_RELEASE_REPO=owner/name` points the installer and `self-update` at a fork.
-- Hitting GitHub's anonymous API rate limit? The installer accepts `SELF_HOST_GITHUB_TOKEN`, or falls back to `gh auth token`. Never print or paste a token.
-- Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill`, and an upgrade through `self-update`). `VERIFY_INSTALL_URL` overrides the URL. See [site deployment and release gates](docs/releasing.md#installer-site); maintainers: [how to cut a release](docs/releasing.md).
-- From source (Go 1.26.0+): `go build -buildvcs=false -o /tmp/self-host ./cmd/self-host`. Development builds cannot `self-update`.
-- Release proof: [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2), Linux amd64 install, self-update and clean Alpine bootstrap passed ([scope](docs/release-proof.md)).
-
-**Staying current.** `self-host self-update` replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
-
-**Troubleshooting**
-
-| Symptom                                       | Fix                                                                                                                                                                            |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                                                                                                                                  |
-| Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                                                                                                                       |
-| Docker missing or stopped                     | Install or start it, then `self-host doctor`.                                                                                                                                  |
-| 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour.                                                                                                   |
-| `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.                                                                                                             |
-| Native Windows                                | Unsupported. Use WSL.                                                                                                                                                          |
-
 Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Plain commands, non-TTY and `--json` never animate. A Project from a pre-release build in `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI at one.
+
+## Troubleshooting
+
+| Symptom                                       | Fix                                                                         |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                               |
+| Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                    |
+| Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
+| 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
+| `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
+| Native Windows                                | Unsupported. Use WSL.                                                       |
 
 ## Requirements and platforms
 
@@ -142,7 +212,7 @@ Docker engine, the `docker compose` v2 plugin with `include` support, write acce
 | WSL2           | Linux binary | Planned; native WSL validation pending.                                |
 | Native Windows | No           | Unsupported.                                                           |
 
-Published-asset install/update proof covers Linux amd64 only ([CI run](https://github.com/ajnart/selfhost-skills/actions/runs/37662562771), [packaging run](https://github.com/ajnart/selfhost-skills/actions/runs/37663197041)).
+Published-asset install/update proof covers Linux amd64 only ([scope](docs/release-proof.md)).
 
 ## Reaching your Apps (Access)
 
@@ -166,7 +236,7 @@ Enable with `self-host install ... --easy-names` (new Project) or, after approva
 - Needs an active private home-network IPv4 address, free port 80 and rootful Docker. IPv6 and the CLAT service-continuity prefix are not supported. A port that cannot be verified is treated as busy. Conflicts are refused without changes.
 - Names are **checked from this computer**, not your phone or TV; a router may hide them. DNS success is not App acceptance.
 - The name embeds the LAN address: after a DHCP change run `self-host config review` and update bookmarks. A router DHCP reservation avoids this. sslip.io sees the LAN address in name queries.
-- HTTP only: Apps that require HTTPS (Vaultwarden's web vault) won't work. **Do not forward port 80 on your router.** No `.local` announcer is installed ([#232](https://github.com/ajnart/selfhost-skills/issues/232)).
+- HTTP only: Apps that require HTTPS (Vaultwarden's web vault) won't work. **Do not forward port 80 on your router.** No `.local` announcer is installed ([#232](https://github.com/ajnart/self-host/issues/232)).
 - Failed or interrupted Caddy updates keep names pending and numbered Addresses first until an approved retry. `down` cancels pending startup. Access changes never silently reinstall Apps: if an origin change would replace a customized Paperless-ngx or Vaultwarden fragment, the command refuses first.
 
 ### From anywhere, privately (Tailscale)
@@ -210,7 +280,7 @@ self-host restore /absolute/private/ntfy.tar.zst.age ntfy
 
 ## Telemetry
 
-Anonymous usage and error data, on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [Telemetry wiki](https://github.com/ajnart/selfhost-skills/wiki/Telemetry).
+Anonymous usage and error data, on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [Telemetry wiki](https://github.com/ajnart/self-host/wiki/Telemetry).
 
 ## What is supported
 
@@ -220,3 +290,9 @@ Anonymous usage and error data, on by default in releases, never in CI or develo
 - **Manual setup:** Dockge, Emby, Stalwart, Uptime Kuma and the monitoring Recipe. Provider accounts, VPN credentials, tunnel enrollment and licenses stay owner-supplied.
 - **Homarr:** [real API/browser proof](docs/homarr-proof.md), nine machine checks. Immich Links need a read-only stats key: `self-host setup immich`, then `self-host setup homarr` ([Immich proof](docs/homarr-immich-proof.md), empty-library only). Gluetun's native Homarr Link stays blocked by upstream design ([contract](docs/homarr-gluetun-contract.md)).
 - Update checks do not establish safe version-to-version migration. VPN fail-closed behavior, DNS/TLS and external accounts need their own proof. [Acceptance docs](e2e/acceptance.md) define stages and the limits of generic checks.
+
+## Community
+
+- [Discord](https://discord.gg/aCsmEV5RgA): questions, show and tell.
+- [Issues](https://github.com/ajnart/self-host/issues): bugs and App requests.
+- Support the work: [GitHub Sponsors](https://github.com/sponsors/ajnart) · [Ko-fi](https://ko-fi.com/ajnart).
