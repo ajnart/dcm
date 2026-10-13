@@ -26,6 +26,7 @@ func linkwardenTarget() target {
 			return nil
 		},
 		verify: verifyLinkwarden,
+		stats:  verifyLinkwardenStats,
 	}
 }
 
@@ -51,13 +52,13 @@ func verifyLinkwarden(ctx context.Context, from, to *helpers.H, integrationID st
 		from.Info("Restore the known selected account's token to this owned Linkwarden integration in Homarr Management > Integrations, preserving unrelated integrations, then retry self-host setup homarr. Equal or empty native counts do not establish account identity.")
 		return helpers.ErrManual
 	}
-	statistics, err := freshStatsSnapshot(ctx, from, integrationID)
-	if err != nil {
-		return err
-	}
+	return nil
+}
+
+func verifyLinkwardenStats(sample statsSample) error {
 	for _, key := range []string{"links", "collections", "tags"} {
-		count, ok := statistics[key].(float64)
-		if !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
 			return errors.New("Homarr returned incomplete Linkwarden statistics; retry self-host setup homarr")
 		}
 	}
