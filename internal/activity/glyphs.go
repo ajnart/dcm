@@ -59,7 +59,7 @@ type iconSet struct {
 
 // nerdFontIcons are Material Design icons (nf-md-*) of Nerd Fonts v3.
 var nerdFontIcons = iconSet{
-	brand:    "\U000F070B", // nf-md-rhombus
+	brand:    "\U000F048B", // nf-md-server
 	docker:   "\U000F0868", // nf-md-docker
 	key:      "\U000F0306", // nf-md-key
 	link:     "\U000F0339", // nf-md-link_variant

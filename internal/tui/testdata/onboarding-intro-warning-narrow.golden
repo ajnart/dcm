@@ -1,0 +1,24 @@
+
+                         ·                                      +
+
+                                                                          ·
+                                 █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+              +                  █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+                                 █▀█▀█▀█▀█▀█▀█
+  ✦                              █▄█▄█▄█▄█▄█▄█ ●
+                                 █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+             ───────────────────━━━━━━━━━━━━━━━─────────────────────
+
+                           ▄▄    ▄▄       ▄                  ▄
+
+   ╭─ ! Container IDs ──────────────────────────────────────────────────────╮
+   │ Docker user namespace could not be determined: docker info timed out   │
+   │ → Inspect docker info before choosing PUID/PGID for bind-mounted       │
+   │ folders.                                                               │
+   │ https://docs.docker.com/engine/security/rootless/                      │
+   ╰────────────────────────────────────────────────────────────────────────╯
+
+ ✓ This machine is ready. Warnings do not stop the in…  enter continue · q quit

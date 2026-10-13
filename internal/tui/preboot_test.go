@@ -62,7 +62,7 @@ func approved(t *testing.T, width, height int, opts ...func(*Options)) (Model, *
 	m = update(t, m, windowSize(width, height))
 	m = drive(t, m, statusMsgFor(service.ErrNoProject))
 	m = update(t, m, doctorMsg{checks: backend.checks})
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	m = toReview(t, m)
 	next, cmd := m.Update(press("enter"))
 	m = next.(Model)
