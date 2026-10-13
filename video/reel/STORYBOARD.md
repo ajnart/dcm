@@ -162,3 +162,18 @@ acceptance. Publication remains gated by #268.
 
 This is source and render acceptance. Anonymous installation, public binary distribution and reel
 publication remain separate gates under #295, #193 and #268.
+
+### Verified canonical-address re-render, 2026-10-13
+
+- Re-rendered the deliverables from `main` (`b368a712`) so the end card shows
+  `curl -fsSL https://self-host.fyi/install.sh | bash`. No source, timing or direction changes.
+  `audio/cues.json` was regenerated (212 cues, since the typed command differs) and the original
+  track was fetched and verified by `audio/mix.mjs`.
+- Final MP4: 2,040 frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo.
+  Picture, sound and container all measure 34.000 seconds; size 7.69 MB.
+- Loudness −13.8 LUFS, true peak −2.0 dBTP, loudness range 6.0 LU. No flashes under the limited
+  luminance scan; 17 cuts have a mean absolute beat offset of 0.94 ms (worst 2.16 ms).
+- All 103 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology failures.
+  All 68 out-of-order and fresh-page seek samples pass (worst raster noise 53.4 dB PSNR).
+- The command fits its card at 40 px with no clipping; the repository line is unchanged.
+- MP4 SHA-256: `dac4f31932a77e1d9d86455220f112c9c85b23a00ead30daf136320e2e4f70a6`.
