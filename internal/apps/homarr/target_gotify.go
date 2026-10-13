@@ -23,6 +23,7 @@ func gotifyTarget() target {
 		},
 		widgets: []widget{{kind: "notifications", options: map[string]any{"hideLogos": false, "messageFormat": "plain"}}, statWidget("messages")},
 		verify:  verifyGotify,
+		stats:   verifyGotifyStats,
 	}
 }
 
@@ -51,45 +52,17 @@ func verifyGotify(ctx context.Context, from, to *helpers.H, integrationID string
 	if !hasID || accountID != float64(recordedID) || account["admin"] != false || stringField(account, "name") == "" {
 		return errors.New("Homarr's Gotify login must belong to the recorded non-admin account; run self-host setup gotify, then self-host setup homarr")
 	}
-	value, err = apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return errors.New("Homarr could not read Gotify Stats capabilities; retry self-host setup homarr")
-	}
-	catalog, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Gotify Stats capabilities")
-	}
-	metrics, ok := catalog["metrics"].([]any)
-	found := false
-	for _, raw := range metrics {
-		metric, _ := raw.(map[string]any)
-		if stringField(metric, "key") == "messages" && stringField(metric, "unit") == "count" {
-			found = true
-		}
-	}
-	if !ok || !found {
+	return verifyGotifyNotifications(ctx, from, integrationID)
+}
+
+func verifyGotifyStats(sample statsSample) error {
+	if sample.units["messages"] != "count" {
 		return errors.New("Homarr does not support Gotify's messages statistic; use Homarr 2.4.1 and retry Setup")
 	}
-	if err := verifyGotifyNotifications(ctx, from, integrationID); err != nil {
-		return err
-	}
-	refreshStarted := from.Now().UnixMilli()
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return errors.New("Homarr could not refresh Gotify's read-only message statistic; retry Setup")
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Gotify statistics")
-	}
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updated, hasUpdated := snapshot["updatedAt"].(float64)
-	if !hasError || failed || !hasStale || stale || !hasUpdated || updated <= 0 || updated < float64(refreshStarted) || math.IsNaN(updated) || math.IsInf(updated, 0) {
+	if sample.updatedAt < sample.startedAt {
 		return errors.New("Homarr could not refresh Gotify statistics; run self-host setup gotify, then self-host setup homarr")
 	}
-	statistics, _ := snapshot["values"].(map[string]any)
-	count, ok := statistics["messages"].(float64)
+	count, ok := sample.values["messages"].(float64)
 	if !ok || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count || count < 0 || count > 100 {
 		return errors.New("Homarr returned an invalid Gotify message statistic")
 	}
