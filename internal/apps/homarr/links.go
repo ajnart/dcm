@@ -162,9 +162,6 @@ func (t target) hint(from *helpers.H) string {
 	if t.id == "frigate" {
 		return "Frigate's Homarr Link requires trusted HTTPS on authenticated port 8971. The default HTTP starter cannot be linked. Obtain explicit approval for Project-scoped private TLS and certificate trust in both Homarr and the CLI, then retry self-host setup frigate and self-host setup homarr. Keep authentication enabled on port 8971; do not use port 5000, bypass certificate verification, or enable public Access."
 	}
-	if t.id == "nzbget" {
-		return "NZBGet activation is on hold for credential-safety issue #354. Do not manually create its Homarr integration or bypass credential checks while this is unresolved. Resolve #354 with supported upstream credential transport and a complete privacy review of every error and log destination; verify the exact Homarr source and version, then obtain separate activation approval before retrying self-host setup homarr. A transport change alone does not establish safety. Standalone NZBGet Setup and owned Link removal are separate."
-	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
 	}
