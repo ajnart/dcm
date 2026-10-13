@@ -235,8 +235,7 @@ func TestInputsCanBeSetPerApp(t *testing.T) {
 }
 
 func TestRecipeInstallsItsAppsAndTakesNextFreePort(t *testing.T) {
-	deps := systemtest.NewDeps(t)
-	deps.PortFree = func(port int) bool { return port != 9000 }
+	deps := systemtest.NewDeps(t, systemtest.WithNetwork(systemtest.NewNetwork().BusyPorts(9000)))
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
 
 	code, out := runWith(t, deps, cat, "install", "pair", "--yes")
@@ -254,13 +253,11 @@ func TestRecipeInstallsItsAppsAndTakesNextFreePort(t *testing.T) {
 }
 
 func TestSudoInstallBelongsToInvokingUser(t *testing.T) {
-	deps := systemtest.NewDeps(t)
 	bobHome := t.TempDir()
-	deps.CurrentUser = func() (system.User, error) { return system.User{Name: "root", Home: t.TempDir()}, nil }
-	deps.LookupUser = func(name string) (system.User, error) {
-		return system.User{Name: name, Home: bobHome, UID: 1001, GID: 1002}, nil
-	}
-	systemtest.SetEnv(deps, map[string]string{"SUDO_USER": "bob", "SUDO_UID": "1001", "SUDO_GID": "1002"})
+	accounts := systemtest.NewAccounts(system.User{Name: "root", Home: t.TempDir()}).Add(system.User{Name: "bob", Home: bobHome, UID: 1001, GID: 1002})
+	deps := systemtest.NewDeps(t,
+		systemtest.WithAccounts(accounts),
+		systemtest.WithEnv(map[string]string{"SUDO_USER": "bob", "SUDO_UID": "1001", "SUDO_GID": "1002"}))
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 
 	code, out := runWith(t, deps, cat, "install", "one", "--yes")
@@ -331,11 +328,10 @@ func TestStatusReportsContainerState(t *testing.T) {
 }
 
 func TestLiveLockBlocksSecondMutatingCommand(t *testing.T) {
-	deps := systemtest.NewDeps(t)
+	deps := systemtest.NewDeps(t, systemtest.WithHost(systemtest.NewHost().AliveProcesses(777)))
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 	runWith(t, deps, cat, "install", "one", "--yes")
 	os.WriteFile(filepath.Join(projectRoot(t, deps), ".lock"), []byte("777"), 0o644)
-	deps.ProcessAlive = func(pid int) bool { return pid == 777 }
 
 	code, out := runWith(t, deps, cat, "setup", "one")
 

@@ -18,20 +18,20 @@ const office, home = "10.36.56.243", "192.168.0.12"
 
 // installedAtOffice installs "one" (whose Compose file uses ${LAN_IP}) and
 // "two" on the office network, then moves the machine to the home network.
-func installedAtOffice(t *testing.T) (*system.Deps, *catalog.Catalog) {
+func installedAtOffice(t *testing.T) (*system.Deps, *catalog.Catalog, *systemtest.Network) {
 	t.Helper()
-	deps := systemtest.NewDeps(t)
-	deps.LANIP = func() (string, error) { return office, nil }
+	network := systemtest.NewNetwork().SetLANIP(office)
+	deps := systemtest.NewDeps(t, systemtest.WithNetwork(network))
 	cat := testCatalog(&echoApp{id: "one", baseURL: true, done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
 	if code, out := runWith(t, deps, cat, "install", "--yes", "one", "two"); code != 0 {
 		t.Fatalf("install: %d\n%s", code, out)
 	}
-	deps.LANIP = func() (string, error) { return home, nil }
-	return deps, cat
+	network.SetLANIP(home)
+	return deps, cat, network
 }
 
 func TestStatusAndDoctorFlagALANIPThatIsNoLongerOnThisMachine(t *testing.T) {
-	deps, cat := installedAtOffice(t)
+	deps, cat, _ := installedAtOffice(t)
 
 	_, out := runWith(t, deps, cat, "status", "--json")
 	var status struct {
@@ -58,8 +58,8 @@ func TestStatusAndDoctorFlagALANIPThatIsNoLongerOnThisMachine(t *testing.T) {
 }
 
 func TestDoctorAcceptsALANIPThatIsStillOnThisMachine(t *testing.T) {
-	deps, cat := installedAtOffice(t)
-	deps.HostIPs = func() ([]string, error) { return []string{home, office}, nil }
+	deps, cat, network := installedAtOffice(t)
+	network.SetHostIPs(home, office)
 
 	if check := clitest.Run(t, deps, cat, "doctor", "--json").Step("", "lan-ip"); check == nil || check["event"] != "step.ok" {
 		t.Fatalf("an address the machine still has is not stale: %v", check)
@@ -67,7 +67,7 @@ func TestDoctorAcceptsALANIPThatIsStillOnThisMachine(t *testing.T) {
 }
 
 func TestConfigSetLANIPAutoRedetectsAndRecreatesTheAppsThatUseIt(t *testing.T) {
-	deps, cat := installedAtOffice(t)
+	deps, cat, _ := installedAtOffice(t)
 
 	code, out := runWith(t, deps, cat, "config", "set", "LAN_IP=auto")
 
@@ -86,7 +86,7 @@ func TestConfigSetLANIPAutoRedetectsAndRecreatesTheAppsThatUseIt(t *testing.T) {
 }
 
 func TestConfigReviewShowsDriftAndFixesItKeepingInstalledApps(t *testing.T) {
-	deps, cat := installedAtOffice(t)
+	deps, cat, _ := installedAtOffice(t)
 	deps.TimeZone = func() string { return "America/New_York" }
 	root := projectRoot(t, deps)
 	kept := map[string]string{}

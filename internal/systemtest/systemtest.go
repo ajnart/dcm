@@ -185,21 +185,44 @@ func (r *Runner) Cmds() []system.Cmd {
 }
 
 // NewDeps returns Deps for a healthy Linux host with Docker and Compose v2,
-// a home directory under t.TempDir and free ports.
-func NewDeps(t *testing.T) *system.Deps {
+// a home directory under t.TempDir and free ports. Options swap in the fakes
+// behind each capability; WithRunner replaces the default Docker answers too.
+func NewDeps(t *testing.T, opts ...Option) *system.Deps {
 	t.Helper()
+	home := t.TempDir()
 	runner := &Runner{}
 	runner.On("docker version", system.Result{Stdout: []byte("27.3.1\n")})
 	runner.On("docker info", system.Result{Stdout: []byte(`["name=seccomp,profile=builtin","name=cgroupns"]`)})
 	runner.On("docker compose version", system.Result{Stdout: []byte("2.29.7\n")})
-	home := t.TempDir()
-	env := map[string]string{}
-	clock := &Clock{now: time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)}
+	f := &fakes{}
+	for _, opt := range opts {
+		opt(f)
+	}
+	if f.runner == nil {
+		f.runner = runner
+	}
+	if f.clock == nil {
+		f.clock = NewClock(time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC))
+	}
+	if f.network == nil {
+		f.network = NewNetwork()
+	}
+	if f.host == nil {
+		f.host = NewHost()
+	}
+	if f.env == nil {
+		f.env = Env{}
+	}
+	if f.accounts == nil {
+		f.accounts = NewAccounts(system.User{Name: "alice", Home: home, UID: 1000, GID: 1000})
+	}
+	if f.resolver == nil {
+		f.resolver = &Resolver{}
+	}
 	deps := &system.Deps{
 		Version:     "test",
 		GOOS:        "linux",
 		GOARCH:      "amd64",
-		Runner:      runner,
 		HTTP:        &http.Client{Timeout: 5 * time.Second},
 		LookPath:    func(name string) (string, error) { return "/usr/bin/" + name, nil },
 		Executable:  func() (string, error) { return filepath.Join(home, "bin", "self-host"), nil },
@@ -207,36 +230,26 @@ func NewDeps(t *testing.T) *system.Deps {
 		CacheDir:    func() (string, error) { return filepath.Join(home, ".cache"), nil },
 		ConfigDir:   func() (string, error) { return filepath.Join(home, ".config"), nil },
 		ConfigFiles: &ConfigFiles{},
-		Getenv:      func(key string) string { return env[key] },
-		CurrentUser: func() (system.User, error) {
-			return system.User{Name: "alice", Home: home, UID: 1000, GID: 1000}, nil
-		},
-		LookupUser: func(name string) (system.User, error) {
-			return system.User{}, fmt.Errorf("unknown user %s", name)
-		},
-		Now:          clock.Now,
-		Sleep:        clock.Sleep,
-		LANIP:        func() (string, error) { return "192.168.1.20", nil },
-		TimeZone:     func() string { return "Europe/Paris" },
-		PortFree:     func(int) bool { return true },
-		Resolver:     &Resolver{},
-		ListFolders:  (&Folders{}).List,
-		ProcessAlive: func(int) bool { return false },
-		PID:          4242,
-		Out:          io.Discard,
-		Err:          io.Discard,
+		PID:         4242,
+		Out:         io.Discard,
+		Err:         io.Discard,
 	}
-	// The host's addresses follow LANIP unless a test sets them.
-	deps.HostIPs = func() ([]string, error) {
-		ip, err := deps.LANIP()
-		return []string{ip}, err
+	deps.WithRunner(f.runner).
+		WithClock(f.clock).
+		WithNetwork(f.network).
+		WithHost(f.host).
+		WithEnvironment(f.env).
+		WithAccounts(f.accounts).
+		WithResolver(f.resolver)
+	if network, ok := f.network.(*Network); ok {
+		network.follow(deps.Network())
 	}
 	return deps
 }
 
-// SetEnv replaces Getenv with a map lookup.
+// SetEnv replaces the environment with a lookup in env.
 func SetEnv(deps *system.Deps, env map[string]string) {
-	deps.Getenv = func(key string) string { return env[key] }
+	deps.WithEnvironment(Env(env))
 }
 
 // Clock is a fake clock: Sleep returns at once and moves Now forward, so
