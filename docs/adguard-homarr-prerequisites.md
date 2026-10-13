@@ -1,15 +1,21 @@
 # AdGuard Home → Homarr prerequisites (#266)
 
+Source status, 13 October 2026 (before this docs update):
+`e351acb19e32a5a5789683d7a78cd72b9e45b9be`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Prerequisite code: `dacc3065025075f9beb816a81b01d82f96db4351`.
 Runtime verification: **11 October 2026**, macOS host, Linux/arm64 container.
-This is **not complete Homarr acceptance**. Registration, compatibility,
-ownership and functional widget verification remain blocked by #262.
+This was **not complete Homarr acceptance**. At that prerequisite commit,
+registration, compatibility, ownership and functional widgets were blocked by #262.
 
 The above prerequisite pin and the runtime/local verification sections below
 are historical evidence, not verification of the source correction described
 later in this document. #262 subsequently closed with frozen source
-`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; this branch's descriptor remains
-unregistered. The 13 October source completion below normalizes the seam;
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`. The 13 October source completion
+below normalizes the seam;
 native/rendered runtime acceptance remains separate.
 
 ## Implemented
@@ -34,7 +40,7 @@ native/rendered runtime acceptance remains separate.
   changes the host/router resolver, enables DHCP, disables authentication,
   changes existing blocking settings or calls installation autofix.
 - `internal/apps/homarr/target_adguard.go` defines `adguardTarget()`
-  using only existing `target`, `secret` and `widget` types. It is intentionally
+  using only existing `target`, `secret` and `widget` types. At that prerequisite commit it was
   **not registered**. No common Homarr files or extension machinery changed.
 
 ## Descriptor and reference seam
@@ -50,8 +56,7 @@ native/rendered runtime acceptance remains separate.
 | Shared Stats metrics            | `dnsQueriesToday`, `adsBlockedToday`, `domainsBeingBlocked`   |
 | Selected identifiers            | None required by these widgets                                |
 
-The #262 registry owner should register this function only after the supported
-version/capability and explicit resource-ownership contract is available.
+The registry owner has registered this function against the shared contract.
 The final Link must recheck target readiness/credentials rather than allowing
 Homarr's shallow connection test to accept a userless server. Homarr v2.4.1
 supports only username/password for this native integration; no narrower
@@ -180,8 +185,8 @@ assertions byte-identical, not merely an unchanged test-function count.
 The original lane forward-merges frozen SDK
 `ecc21d9f95664ef6245863ddfb05930bf4cde3a3`, preserving both histories.
 The descriptor now uses the documented `target_adguard.go` seam, with
-`adguardTarget()` ready for custodian-owned registration. It remains unregistered
-in this lane; no common reconciliation or registry file was edited.
+`adguardTarget()` now registered by the custodian. The peer completion itself
+did not edit common reconciliation or registry files.
 
 Read-only preflight rechecks the saved administrator and running DNS API.
 It distinguishes AdGuard's legitimate null filters from missing data, then
