@@ -3,7 +3,10 @@ package deluge_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"strings"
 	"sync"
@@ -27,8 +30,18 @@ const (
 )
 
 type fakeDeluge struct {
-	mu       sync.Mutex
-	password string
+	mu             sync.Mutex
+	password       string
+	connected      bool
+	defaultDaemon  string
+	activeDaemon   string
+	connectOnHosts string
+	connects       int
+	configWrites   int
+	missingRates   bool
+	rotations      int
+	sessions       map[string]bool
+	sessionCount   int
 }
 
 func (f *fakeDeluge) handler() http.Handler {
@@ -38,24 +51,78 @@ func (f *fakeDeluge) handler() http.Handler {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		var req struct {
-			Method string   `json:"method"`
-			Params []string `json:"params"`
-			ID     int      `json:"id"`
+			Method string            `json:"method"`
+			Params []json.RawMessage `json:"params"`
+			ID     int               `json:"id"`
 		}
 		json.NewDecoder(r.Body).Decode(&req)
-		result := false
+		session, _ := r.Cookie("_session_id")
+		validSession := session != nil && f.sessions[session.Value]
+		if req.Method != "auth.login" && req.Method != "auth.check_session" && !validSession {
+			json.NewEncoder(w).Encode(map[string]any{"result": nil, "error": map[string]any{"code": 1, "message": "Not authenticated"}, "id": req.ID})
+			return
+		}
+		var result any = false
 		switch req.Method {
 		case "auth.login":
-			if len(req.Params) == 1 && req.Params[0] == f.password {
+			var password string
+			if len(req.Params) == 1 && json.Unmarshal(req.Params[0], &password) == nil && password == f.password {
 				result = true
-				http.SetCookie(w, &http.Cookie{Name: "_session_id", Value: "session"})
+				if f.sessions == nil {
+					f.sessions = map[string]bool{}
+				}
+				f.sessionCount++
+				id := fmt.Sprintf("session-%d", f.sessionCount)
+				f.sessions[id] = true
+				http.SetCookie(w, &http.Cookie{Name: "_session_id", Value: id})
 			}
+		case "auth.check_session":
+			result = validSession
+		case "auth.delete_session":
+			delete(f.sessions, session.Value)
+			result = true
 		case "auth.change_password":
-			if len(req.Params) == 2 && req.Params[0] == f.password &&
-				r.Header.Get("Cookie") == "_session_id=session" {
-				f.password = req.Params[1]
+			var oldPassword, newPassword string
+			if len(req.Params) == 2 && json.Unmarshal(req.Params[0], &oldPassword) == nil &&
+				json.Unmarshal(req.Params[1], &newPassword) == nil && oldPassword == f.password && validSession {
+				f.password = newPassword
+				f.rotations++
 				result = true
 			}
+		case "web.connected":
+			result = f.connected
+		case "web.get_config":
+			result = map[string]any{"default_daemon": f.defaultDaemon}
+		case "web.get_hosts":
+			if f.connectOnHosts != "" {
+				f.connected = true
+				f.activeDaemon = f.connectOnHosts
+			}
+			result = [][]any{{"local-daemon", "127.0.0.1", 58846, "localclient"}}
+		case "web.connect":
+			f.connects++
+			var id string
+			if len(req.Params) == 1 && json.Unmarshal(req.Params[0], &id) == nil && id == "local-daemon" {
+				f.connected = true
+				f.activeDaemon = id
+				result = []string{"core.get_session_status"}
+			}
+		case "web.set_config":
+			f.configWrites++
+			var config struct {
+				DefaultDaemon string `json:"default_daemon"`
+			}
+			if len(req.Params) == 1 && json.Unmarshal(req.Params[0], &config) == nil {
+				f.defaultDaemon = config.DefaultDaemon
+				result = nil
+			}
+		case "web.update_ui":
+			stats := map[string]any{"download_rate": 0, "upload_rate": 0}
+			if f.missingRates {
+				delete(stats, "download_rate")
+			}
+			result = map[string]any{"connected": f.connected, "torrents": map[string]any{},
+				"stats": stats}
 		}
 		json.NewEncoder(w).Encode(map[string]any{"result": result, "error": nil, "id": req.ID})
 	})
@@ -88,6 +155,9 @@ func TestSetupRotatesTheInitialPasswordThenCheckAndRerunSkip(t *testing.T) {
 	if fake.password != adminPass {
 		t.Fatalf("Setup did not rotate the Web password, got %q", fake.password)
 	}
+	if deluge.WebPassword(h) != adminPass || !fake.connected || fake.defaultDaemon != "local-daemon" || fake.rotations != 1 {
+		t.Fatal("Setup did not save the verified Web password and persistent local daemon connection")
+	}
 	if err := (deluge.App{}).Check(ctx, h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
@@ -100,6 +170,65 @@ func TestSetupRotatesTheInitialPasswordThenCheckAndRerunSkip(t *testing.T) {
 		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if fake.rotations != 1 {
+		t.Fatal("rerun Setup rotated the valid Web password")
+	}
+	if err := h.SetSecret("ADMIN_PASSWORD", "replacement-admin-password"); err != nil {
+		t.Fatal(err)
+	}
+	if err := (deluge.App{}).Setup(ctx, h); err != nil || fake.rotations != 1 || deluge.WebPassword(h) != adminPass {
+		t.Fatal("Setup did not reuse the valid saved Web password after an Admin login change")
+	}
+	fake.connected = false
+	if err := (deluge.App{}).Check(ctx, h); err == nil {
+		t.Fatal("Check accepted a disconnected daemon")
+	}
+	if err := (deluge.App{}).Setup(ctx, h); err != nil || !fake.connected {
+		t.Fatal("Setup did not restore the saved local daemon connection")
+	}
+	fake.activeDaemon = "remote-daemon"
+	fake.defaultDaemon = ""
+	fake.missingRates = true
+	connects, configWrites := fake.connects, fake.configWrites
+	if err := (deluge.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "valid transfer rates") {
+		t.Fatal("Setup did not retain the connected daemon's queue error")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.activeDaemon != "remote-daemon" || fake.defaultDaemon != "" {
+		t.Fatal("Setup switched the active remote daemon or adopted a local default after a queue error")
+	}
+	fake.connected = false
+	fake.connectOnHosts = "remote-daemon"
+	if err := (deluge.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "valid transfer rates") {
+		t.Fatal("Setup did not recheck the daemon selected during connection discovery")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.activeDaemon != "remote-daemon" || fake.defaultDaemon != "" {
+		t.Fatal("Setup replaced a daemon connected during discovery or persisted a different default")
+	}
+	fake.connectOnHosts = ""
+	fake.missingRates = false
+	fake.connected = false
+	fake.defaultDaemon = "remote-daemon"
+	if err := (deluge.App{}).Setup(ctx, h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatal("Setup must leave an unknown configured remote daemon Manual")
+	}
+	if fake.connects != connects || fake.configWrites != configWrites || fake.defaultDaemon != "remote-daemon" {
+		t.Fatal("Setup replaced the configured remote daemon")
+	}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Config.HTTP.Jar = jar
+	if _, err := h.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/json",
+		JSON: map[string]any{"method": "auth.login", "params": []string{adminPass}, "id": 1}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.SetSecret(h.Key("web_password"), "rejected-password"); err != nil {
+		t.Fatal(err)
+	}
+	if err := (deluge.App{}).Check(ctx, h); err == nil {
+		t.Fatal("Check accepted a rejected Web password through an existing session")
 	}
 }
 

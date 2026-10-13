@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -183,6 +184,7 @@ func validateTLS(h *helpers.H) error {
 }
 
 type identity struct {
+	ID       string `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
 	Provider string `json:"provider"`
@@ -230,6 +232,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if err := setupHomarrReader(ctx, h); err != nil {
+		return err
+	}
+	if err := h.Step(ctx, "homarr-api", "the private API returns supported container update data", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			_, err := ReadHomarrStats(ctx, h)
+			return err == nil, err
+		},
+		Hint: "Verify the saved Admin login and private WUD 9.1.0 API, then run: self-host setup wud",
+	}); err != nil {
+		return err
+	}
 	// WUD starts discovery on a deferred timer after registration. A working
 	// login can precede that scan, so observe approved inventory separately.
 	discovery, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -253,6 +267,9 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot sign in: %v", h.AdminUser(), err)
+	}
+	if err := VerifyHomarrReader(ctx, h); err != nil {
+		return err
 	}
 	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers"})
 	if err != nil {
@@ -313,12 +330,112 @@ func boundedInventoryCount(count int) int {
 }
 
 type watcherContainer struct {
-	ID      string `json:"id"`
-	Watcher string `json:"watcher"`
-	Error   any    `json:"error"`
-	Image   struct {
-		ID string `json:"id"`
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	DisplayName     *string `json:"displayName"`
+	Watcher         string  `json:"watcher"`
+	Error           any     `json:"error"`
+	UpdateAvailable *bool   `json:"updateAvailable"`
+	Link            *string `json:"link"`
+	Image           struct {
+		ID  string `json:"id"`
+		Tag struct {
+			Value *string `json:"value"`
+		} `json:"tag"`
 	} `json:"image"`
+	UpdateKind struct {
+		RemoteValue *string `json:"remoteValue"`
+	} `json:"updateKind"`
+	Result struct {
+		Tag *string `json:"tag"`
+	} `json:"result"`
+}
+
+type HomarrUpdate struct {
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	CurrentVersion *string `json:"currentVersion"`
+	NewVersion     *string `json:"newVersion"`
+	Link           *string `json:"link"`
+}
+
+type HomarrStatistics struct {
+	TotalContainers  int
+	UpdatesAvailable int
+	Updates          []HomarrUpdate
+}
+
+func ReadHomarrStats(ctx context.Context, h *helpers.H) (HomarrStatistics, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	statistics := HomarrStatistics{Updates: []HomarrUpdate{}}
+	if err := ctx.Err(); err != nil {
+		return statistics, err
+	}
+	if err := VerifyHomarrReader(ctx, h); err != nil {
+		return statistics, err
+	}
+	anonymous, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", NoRedirect: true})
+	if err != nil || anonymous.Status != http.StatusUnauthorized {
+		return statistics, errors.New("WUD anonymous inventory access is not verified as denied; repair its authentication and retry self-host setup wud")
+	}
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", NoRedirect: true, User: h.Secret(h.Key("homarr_username")), Password: h.Secret(h.Key("homarr_password"))})
+	if err != nil {
+		return statistics, errors.New("WUD authenticated inventory request failed; retry self-host setup wud")
+	}
+	if response.Status != http.StatusOK {
+		return statistics, fmt.Errorf("WUD authenticated inventory returned HTTP %d; retry self-host setup wud", response.Status)
+	}
+	var containers []watcherContainer
+	var fields []map[string]json.RawMessage
+	if response.Decode(&containers) != nil || containers == nil || response.Decode(&fields) != nil {
+		return statistics, errors.New("WUD returned malformed container update data; retry self-host setup wud")
+	}
+	seen := map[string]bool{}
+	for index, container := range containers {
+		for _, key := range []string{"image", "updateKind", "result"} {
+			if raw, exists := fields[index][key]; exists {
+				var object map[string]json.RawMessage
+				if json.Unmarshal(raw, &object) != nil || object == nil {
+					return statistics, errors.New("WUD returned malformed container update metadata; retry self-host setup wud")
+				}
+				if raw, exists := object["tag"]; key == "image" && exists {
+					var tag map[string]json.RawMessage
+					if json.Unmarshal(raw, &tag) != nil || tag == nil {
+						return statistics, errors.New("WUD returned malformed container image metadata; retry self-host setup wud")
+					}
+				}
+			}
+		}
+		if container.ID == "" || container.Name == "" || container.UpdateAvailable == nil || seen[container.ID] {
+			return statistics, errors.New("WUD returned incomplete container update data; retry self-host setup wud")
+		}
+		if container.Watcher != "approved" {
+			return statistics, errors.New("WUD inventory includes an unapproved watcher; confirm a Project-only discovery boundary before retrying Setup")
+		}
+		if container.Error != nil {
+			return statistics, errors.New("WUD reports a watcher or registry error; unavailable update results are not zero updates; retry self-host setup wud")
+		}
+		seen[container.ID] = true
+		if !*container.UpdateAvailable {
+			continue
+		}
+		name := container.Name
+		if container.DisplayName != nil {
+			name = *container.DisplayName
+		}
+		version := container.UpdateKind.RemoteValue
+		if version == nil {
+			version = container.Result.Tag
+		}
+		statistics.Updates = append(statistics.Updates, HomarrUpdate{
+			ID: container.ID, Name: name, CurrentVersion: container.Image.Tag.Value,
+			NewVersion: version, Link: container.Link,
+		})
+	}
+	statistics.TotalContainers = len(containers)
+	statistics.UpdatesAvailable = len(statistics.Updates)
+	return statistics, nil
 }
 
 func approvedInventoryReady(ctx context.Context, h *helpers.H) (bool, error) {

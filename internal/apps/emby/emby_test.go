@@ -27,7 +27,12 @@ const (
 
 // fakeEmby has the first-owner wizard already completed, as it must be before
 // headless setup can verify the login.
-type fakeEmby struct{ reject bool }
+type fakeEmby struct {
+	reject  bool
+	key     string
+	created int
+	hidden  bool
+}
 
 func (f *fakeEmby) handler() http.Handler {
 	mux := http.NewServeMux()
@@ -41,8 +46,61 @@ func (f *fakeEmby) handler() http.Handler {
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{
-			"User": map[string]any{"Name": adminUser, "Policy": map[string]any{"IsAdministrator": true}},
+			"AccessToken": "test-session",
+			"User":        map[string]any{"Id": "test-admin", "Name": adminUser, "Policy": map[string]any{"IsAdministrator": true}},
 		})
+	})
+	mux.HandleFunc("GET /System/Configuration", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"IsStartupWizardCompleted": true})
+	})
+	mux.HandleFunc("POST /Sessions/Logout", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	mux.HandleFunc("GET /Auth/Keys", func(w http.ResponseWriter, r *http.Request) {
+		items := []map[string]any{}
+		if f.key != "" {
+			items = append(items, map[string]any{"AccessToken": f.key, "AppName": "self-host Homarr", "IsActive": true})
+		}
+		json.NewEncoder(w).Encode(map[string]any{"Items": items, "TotalRecordCount": len(items)})
+	})
+	mux.HandleFunc("POST /Auth/Keys", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("App") != "self-host Homarr" || r.Header.Get("X-Emby-Token") != "test-session" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		f.created++
+		f.key = "test-api-key"
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("GET /emby/System/Info", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Emby-Token") != "test-session" && (f.key == "" || r.Header.Get("X-Emby-Token") != f.key) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"Id": "server-1", "Version": "4.10.0.40"})
+	})
+	mux.HandleFunc("GET /emby/Sessions", func(w http.ResponseWriter, r *http.Request) {
+		if f.key == "" || r.Header.Get("X-Emby-Token") != f.key {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]any{})
+	})
+	mux.HandleFunc("GET /Users/Public", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Emby-Token") != f.key || f.key == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		users := []map[string]any{}
+		if !f.hidden {
+			users = append(users, map[string]any{"Id": "selected-user-47", "Name": "viewer"})
+		}
+		json.NewEncoder(w).Encode(users)
+	})
+	mux.HandleFunc("GET /Users/selected-user-47/Items/Latest", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Emby-Token") != f.key || r.URL.Query().Get("Limit") != "100" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]map[string]any{})
 	})
 	return mux
 }
@@ -60,7 +118,8 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 }
 
 func TestSetupSkipsWhenTheWizardIsDoneAndCheckPasses(t *testing.T) {
-	srv := httptest.NewServer((&fakeEmby{}).handler())
+	fake := &fakeEmby{}
+	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records)
@@ -81,6 +140,26 @@ func TestSetupSkipsWhenTheWizardIsDoneAndCheckPasses(t *testing.T) {
 		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if fake.created != 1 || emby.APIKey(h) != "test-api-key" {
+		t.Fatal("Setup should save and reuse one dedicated API key")
+	}
+	if err := emby.VerifyReleases(ctx, h); err != nil {
+		t.Fatalf("authenticated empty latest media: %v", err)
+	}
+	fake.hidden = true
+	if err := emby.VerifyReleases(ctx, h); err == nil {
+		t.Fatal("hidden users should not become an invented release selection")
+	}
+	fake.key = "changed-api-key"
+	if err := (emby.App{}).Check(ctx, h); err == nil {
+		t.Fatal("Check should freshly reject a revoked API key")
+	}
+	if err := (emby.App{}).Setup(ctx, h); err == nil {
+		t.Fatal("Setup should not rotate a revoked API key")
+	}
+	if fake.created != 1 {
+		t.Fatal("retry rotated the API key")
 	}
 }
 
