@@ -1,0 +1,4 @@
+{"event":"run.start","msg":"doctor"}
+{"event":"step.ok","step":"docker","msg":"Docker: docker command found"}
+{"event":"step.fail","step":"docker-socket","msg":"Docker daemon: permission denied on the Docker socket","hint":"Add your user to the docker group, use rootless Docker, or rerun with sudo.","docs":"https://docs.docker.com/engine/install/linux-postinstall/"}
+{"event":"run.end","msg":"doctor: failed"}

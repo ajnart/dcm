@@ -1,0 +1,18 @@
+{"event":"run.start","msg":"install media"}
+{"event":"step.start","app":"qbittorrent","step":"image"}
+{"event":"step.ok","app":"qbittorrent","step":"image"}
+{"event":"step.start","app":"sonarr","step":"image"}
+{"event":"step.ok","app":"sonarr","step":"image"}
+{"event":"step.start","app":"radarr","step":"image"}
+{"event":"step.ok","app":"radarr","step":"image"}
+{"event":"step.start","app":"prowlarr","step":"image"}
+{"event":"step.ok","app":"prowlarr","step":"image"}
+{"event":"step.start","app":"jellyfin","step":"image"}
+{"event":"step.ok","app":"jellyfin","step":"image"}
+{"event":"step.start","app":"seerr","step":"image"}
+{"event":"step.ok","app":"seerr","step":"image"}
+{"event":"step.start","app":"sonarr","step":"download-client"}
+{"event":"step.ok","app":"sonarr","step":"download-client"}
+{"event":"step.start","app":"radarr","step":"download-client"}
+{"event":"step.ok","app":"radarr","step":"download-client"}
+{"event":"run.end","msg":"install: ok"}

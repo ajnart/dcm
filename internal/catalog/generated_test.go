@@ -132,7 +132,48 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 					}
 					return
 				}
+				if a.Info().ID == "glances" {
+					w.Header().Set("Content-Type", "application/json")
+					switch r.URL.Path {
+					case "/api/4/status":
+						w.Write([]byte(`{"version":"4.5.6"}`))
+					case "/api/4/version":
+						w.Write([]byte(`"4.5.6"`))
+					case "/api/4/all":
+						w.Write([]byte(`{"cpu":{"total":0},"mem":{"total":0,"used":0,"free":0},"network":[],"fs":[],"uptime":"0:00:00"}`))
+					default:
+						http.NotFound(w, r)
+					}
+					return
+				}
+				if a.Info().ID == "prometheus" {
+					switch r.URL.Path {
+					case "/api/v1/targets":
+						fmt.Fprint(w, `{"status":"success","data":{"activeTargets":[{"health":"up","labels":{"job":"prometheus","instance":"localhost:9090"},"scrapeUrl":"http://localhost:9090/metrics"}],"droppedTargets":[]}}`)
+					case "/api/v1/query":
+						if r.URL.Query().Get("query") != `up{job="prometheus",instance="localhost:9090"}[1m]` {
+							w.WriteHeader(http.StatusBadRequest)
+							return
+						}
+						fmt.Fprintf(w, `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"up","job":"prometheus","instance":"localhost:9090"},"values":[[%d,"1"]]}]}}`, deps.Now().Unix())
+					default:
+						w.WriteHeader(http.StatusNotFound)
+					}
+					return
+				}
 				w.WriteHeader(http.StatusOK)
+				if a.Info().ID == "dashdot" {
+					switch r.URL.Path {
+					case "/config":
+						w.Write([]byte(`{"config":{"widget_list":["cpu","ram"],"running_in_docker":false,"disable_background_stats_collection":true,"disable_integrations":false,"enable_cpu_temps":false}}`))
+					case "/info":
+						w.Write([]byte(`{"cpu":{"brand":"Kernel CPU","model":"Model","threads":2},"ram":{"size":8192}}`))
+					case "/load/cpu":
+						w.Write([]byte(`[{"load":0,"temp":0},{"load":0,"temp":0}]`))
+					case "/load/ram":
+						w.Write([]byte(`{"load":0}`))
+					}
+				}
 			}))
 			defer srv.Close()
 			h := helpers.New(helpers.Config{
