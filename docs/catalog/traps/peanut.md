@@ -28,9 +28,12 @@
   not zero.
 - Native shared Stats are exactly `devices`, `onBattery` and `lowBattery`;
   low-battery status takes precedence over on-battery status. Verification reads
-  `widget.ups.getSummaries` and refreshes authenticated `widget.stats.refresh`,
-  checking IDs, status, real readings and non-stale complete counts. It adds no
-  control widget and preserves other Apps' shared bindings through the reference
+  `widget.ups.getSummaries`, checking IDs, status and nullable real readings.
+  The shared SDK acquires the catalog and one advancing, error-free Stats
+  refresh; pure `verifyPeanutStats` requires `count` units, finite integral
+  nonnegative counts and `onBattery + lowBattery <= devices` in that sample.
+  Counts are not compared with the independently sampled direct UPS list.
+  It adds no control widget and preserves other Apps' shared bindings through the reference
   contract.
 - The descriptor awaits reference-owner registry assembly in `targets.go`;
   this lane does not enable the Link. No PeaNUT image digest, Docker/browser

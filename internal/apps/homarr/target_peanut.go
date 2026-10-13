@@ -26,6 +26,7 @@ func peanutTarget() target {
 			return nil
 		},
 		verify: verifyPeanut,
+		stats:  verifyPeanutStats,
 	}
 }
 
@@ -83,24 +84,18 @@ func verifyPeanut(ctx context.Context, from, to *helpers.H, integrationID string
 			}
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, _ := value.(map[string]any)
-	values, _ := snapshot["values"].(map[string]any)
-	updated, ok := snapshot["updatedAt"].(float64)
-	if snapshot["error"] != false || snapshot["stale"] != false || !ok || updated <= 0 {
-		return errors.New("Homarr could not refresh PeaNUT native Stats; check its NUT connection and retry Setup")
-	}
+	return nil
+}
+
+func verifyPeanutStats(sample statsSample) error {
 	for _, key := range []string{"devices", "onBattery", "lowBattery"} {
-		count, ok := values[key].(float64)
-		if !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count {
 			return errors.New("Homarr returned incomplete PeaNUT native Stats; retry Setup")
 		}
 	}
-	if values["devices"].(float64) != float64(len(devices)) || values["onBattery"].(float64)+values["lowBattery"].(float64) > values["devices"].(float64) {
-		return errors.New("Homarr PeaNUT native Stats do not match the discovered UPS count; retry Setup")
+	if sample.values["onBattery"].(float64)+sample.values["lowBattery"].(float64) > sample.values["devices"].(float64) {
+		return errors.New("Homarr PeaNUT native Stats exceed the refreshed UPS count; retry Setup")
 	}
 	return nil
 }
