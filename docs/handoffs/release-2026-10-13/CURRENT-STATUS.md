@@ -14,7 +14,9 @@ At this snapshot, main is `0c69f9b3ba2b9df86c2537a37b2524aedcac9f2a`. **All 38 o
 - Installer [#313](https://github.com/ajnart/selfhost-skills/pull/313) merged its actual-repository correction after all three independent reviews cleared: source `5570708c5d4842955e4d27be91517250b91a06e7`, merge `ab86faf1c85656c30e691ff433d20035e04ab4ab`. Video [#300](https://github.com/ajnart/selfhost-skills/pull/300) also merged after all three independent reviews cleared: source `3f22f70474d636ecc4e6bf17c8d752394dbb6db2`, merge `0c69f9b3ba2b9df86c2537a37b2524aedcac9f2a`. Its source artifact is delivered; publication prerequisites [#268](https://github.com/ajnart/selfhost-skills/issues/268) remain open.
 - Relevant CodeRabbit reviews were requested, but the bot was rate-limited. Completed independent reviews remain separate evidence; no fresh CodeRabbit pass is claimed.
 
-Documentation [#358](https://github.com/ajnart/selfhost-skills/pull/358) is still pending this update. Older Raspberry Pi source fix [#14](https://github.com/ajnart/selfhost-skills/pull/14) is under isolated applicability review and supplies no current-release runtime proof. Publication issues [#193](https://github.com/ajnart/selfhost-skills/issues/193), [#194](https://github.com/ajnart/selfhost-skills/issues/194) and [#295](https://github.com/ajnart/selfhost-skills/issues/295) remain open.
+Documentation [#358](https://github.com/ajnart/selfhost-skills/pull/358) publishes this revision. Older Raspberry Pi source fix [#14](https://github.com/ajnart/selfhost-skills/pull/14) is closed as superseded by the Go rewrite; its original `6c65` history is preserved. This supplies no current-release runtime proof. Publication issues [#193](https://github.com/ajnart/selfhost-skills/issues/193), [#194](https://github.com/ajnart/selfhost-skills/issues/194) and [#295](https://github.com/ajnart/selfhost-skills/issues/295) remain open.
+
+Source privacy closure for [#332](https://github.com/ajnart/selfhost-skills/issues/332), [#354](https://github.com/ajnart/selfhost-skills/issues/354) and [#363](https://github.com/ajnart/selfhost-skills/issues/363) accepts implemented corrections only. Remaining runtime proof is explicitly carried by open [#45](https://github.com/ajnart/selfhost-skills/issues/45); implementation issues [#279](https://github.com/ajnart/selfhost-skills/issues/279), [#290](https://github.com/ajnart/selfhost-skills/issues/290) and [#298](https://github.com/ajnart/selfhost-skills/issues/298) remain open. PatchMon authority issue #350 remains separate and open.
 
 ## Homarr source, image and runtime proof
 
@@ -49,7 +51,7 @@ At 14:54 UTC the user deferred these 11 prerequisites with: “I don't have this
 
 ## Continuation
 
-Deliver this documentation update and reconcile the final main/source state. The 38 original peer PRs plus evaluation, installer and video source work are merged; documentation #358 remains pending at this snapshot. Keep outside prerequisites, native/rendered/lifecycle acceptance, evaluation validity/human feedback, distribution and publication as separate outstanding work. Further runtime needs its approved containment and cleanup scope; this documentation launches none.
+Reconcile the final main/source state. The 38 original peer PRs plus evaluation, installer and video source work are merged; this documentation revision is published through #358. Keep outside prerequisites, native/rendered/lifecycle acceptance, evaluation validity/human feedback, distribution and publication as separate outstanding work. Further runtime needs its approved containment and cleanup scope; this documentation launches none.
 
 Static receipt provenance (SHA-256 of the inspected source files):
 
