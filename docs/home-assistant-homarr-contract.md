@@ -6,7 +6,12 @@ The reference owner must register `homeAssistantTarget()` in
 
 ## Source baseline, not live acceptance
 
-- Homarr `2.4.1`, source `ebbd4876d25a51151444a009ab596e1154d62880`.
+- Homarr API `2.4.1`, resolved OCI source
+  `3d4150e59f600876b7e308f857b2f21572b75348` inspected locally read-only.
+  The tagged source `ebbd4876d25a51151444a009ab596e1154d62880` remains
+  a separate research baseline.
+- Original peer history forward-merges SDK
+  `0bf67c3c64c229af25f19c1b93264f19cc57a910`; no history rewrite.
 - Home Assistant `2026.9.3`, image
   `ghcr.io/home-assistant/home-assistant:2026.9.3`.
 - Both the authenticated `/api/config` version and the WebSocket welcome
@@ -96,11 +101,16 @@ unavailable data remains Manual, not a fabricated state or an auth success.
 The widget is `smartHome-entityState`, limited to one integration, with options
 `entityId`, `displayName`, `entityUnit`, and `clickable=false`. It reads a state;
 it cannot toggle anything. Verification reads Homarr's
-`widget.smartHome.entityDetails` and requires the real selected state and
-timestamps, not just the saved widget. Shared Stats binds `entities` and
-`unavailable`, refreshed through `widget.stats.refresh`; all fields, freshness,
-error state and update timestamp are checked. Legitimate zero unavailable
-entities is accepted. Neither Calendar nor Execute Automation is enabled:
+`widget.smartHome.entityDetails` and requires the real selected identity,
+available state, attributes and parsed ordered timestamps, not just the saved widget. Separate volatile states are
+not compared for equality. Shared Stats binds `entities` and `unavailable`;
+central `verifyData` reads the catalog and acquires one forced advancing refresh.
+The pure `verifyHomeAssistantStats` callback checks that same sample's count
+units, finite nonnegative integers, at least one entity and unavailable no
+greater than total entities. Legitimate zero unavailable entities is accepted.
+Native failures stop before Stats acquisition. Focused descriptor HTTP fixtures
+exercise the real `verifyData` path; they remain source validation, not runtime
+or rendered acceptance. Neither Calendar nor Execute Automation is enabled:
 no calendar or safe automation identifier has been selected. Those features
 would need their own selected identifiers and explicit action approval.
 
