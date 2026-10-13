@@ -1,0 +1,71 @@
+AGENTS.md
+  s_378d5db6c5f6de::t_4377f846e06d98 12
+docs/releasing.md
+  s_378d5db6c5f6de::t_897227a64f5f70 105,116-128,136-143
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_fcb0ab573e9df4 26-27
+site/.gitignore
+  s_378d5db6c5f6de::t_e04ecbe07b8abd 1-3
+site/astro.config.mjs
+  s_378d5db6c5f6de::t_e826dbf88bbd5e 1-22
+site/bun.lock
+  s_378d5db6c5f6de::t_4f66c7e7d3ff27 1-754
+site/package.json
+  s_378d5db6c5f6de::t_0bc7a73f0b9423 1-21
+site/public/_headers
+  s_378d5db6c5f6de::t_a8dbc2a1fe9013 4
+site/public/reel.mp4
+  s_378d5db6c5f6de::t_23aef68514de27 1
+site/src/components/CodeBlock.astro
+  s_378d5db6c5f6de::t_855c5cd943ac9c 1-48
+site/src/data/site.ts
+  s_378d5db6c5f6de::t_344847dc9ddd6e 1-21
+site/src/layouts/Base.astro
+  s_378d5db6c5f6de::t_ba8f0119ae6846 1-14,16,18-46,49
+site/src/pages/404.astro
+  s_378d5db6c5f6de::t_c9a44b60ba14e2 1-13
+site/src/pages/catalog.json.ts
+  s_378d5db6c5f6de::t_de239bae2744ce 1-4
+site/src/pages/index.astro
+  s_378d5db6c5f6de::t_c4658e46574fe6 1-4,6-43,45-46,48-53,55-58,60-85,88-95,97,99-102,104-116,118-121,123-129,131-143,145-154,156-164,166-184,186-189,191-195,197-199
+site/src/pages/llms.txt.ts
+  s_378d5db6c5f6de::t_c96aa4d37f8e94 1-4,10,12,17,23-35
+site/src/scripts/catalog-view.js
+  s_378d5db6c5f6de::t_14526782c8e704 1
+site/src/scripts/catalog.js
+  s_378d5db6c5f6de::t_52c329a8d7de28 1-4
+site/src/scripts/main.js
+  s_378d5db6c5f6de::t_f8eb291726ea53 9
+site/src/scripts/palette.js
+  s_378d5db6c5f6de::t_9bf62dad04c8e0 1
+site/src/scripts/project.js
+  s_378d5db6c5f6de::t_0eede9cb9ea776 1,5
+site/src/scripts/shell.js
+  s_378d5db6c5f6de::t_0c6adaa8aeb39d 1
+site/src/scripts/tui.js
+  s_378d5db6c5f6de::t_5375af40aeffa9 1
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_4ac6fd5249b705 594,596,599,602-611,615-622,624-633,636-639,642-647,649,651,655-696
+site/tsconfig.json
+  s_378d5db6c5f6de::t_f9b4874fa6408c 1-17
+tools/introframes/main.go
+  s_378d5db6c5f6de::t_7241d25aa4cabd 179
+tools/sitecatalog/main.go
+  s_378d5db6c5f6de::t_2c72fc73cb3a44 80-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e1e1ca188b819a01883eba82da32c0d3ddadd6ea",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
