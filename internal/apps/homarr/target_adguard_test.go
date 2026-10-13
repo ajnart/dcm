@@ -1,9 +1,12 @@
 package homarr
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/apps/adguard"
@@ -170,28 +173,34 @@ func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
 		rejectVersion bool
 		valid         bool
 		versionReads  int
+		failure       string
 	}{
-		{"null on old schema", `{"filters":null}`, "2.4.1", false, false, 1},
-		{"null on fixed 2.5.1", `{"filters":null}`, "2.5.1", false, true, 1},
-		{"null on fixed 2.5.2", `{"filters":null}`, "2.5.2", false, true, 1},
-		{"null on unreviewed 2.5.0", `{"filters":null}`, "2.5.0", false, false, 1},
-		{"null on unreviewed 2.5.3", `{"filters":null}`, "2.5.3", false, false, 1},
-		{"null without version", `{"filters":null}`, "", false, false, 1},
-		{"null with rejected version auth", `{"filters":null}`, "2.5.2", true, false, 1},
-		{"empty list on old schema", `{"filters":[]}`, "2.4.1", false, true, 0},
-		{"empty list on fixed schema", `{"filters":[]}`, "2.5.2", false, true, 0},
-		{"missing filters", `{}`, "2.5.2", false, false, 0},
-		{"scalar filters", `{"filters":0}`, "2.5.2", false, false, 0},
-		{"object filters", `{"filters":{}}`, "2.5.2", false, false, 0},
-		{"text null", `{"filters":"null"}`, "2.5.2", false, false, 0},
-		{"valid filter", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":2,"enabled":true}]}`, "2.4.1", false, true, 0},
-		{"missing metadata", `{"filters":[{"enabled":true,"rules_count":2}]}`, "2.5.2", false, false, 0},
-		{"null entry", `{"filters":[null]}`, "2.5.2", false, false, 0},
-		{"fractional count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":0.5,"enabled":true}]}`, "2.5.2", false, false, 0},
-		{"negative count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":-1,"enabled":true}]}`, "2.5.2", false, false, 0},
+		{"null on old schema", `{"filters":null}`, "2.4.1", false, false, 1, ""},
+		{"null on fixed 2.5.1", `{"filters":null}`, "2.5.1", false, true, 1, ""},
+		{"null on fixed 2.5.2", `{"filters":null}`, "2.5.2", false, true, 1, ""},
+		{"null on unreviewed 2.5.0", `{"filters":null}`, "2.5.0", false, false, 1, ""},
+		{"null on unreviewed 2.5.3", `{"filters":null}`, "2.5.3", false, false, 1, ""},
+		{"null without version", `{"filters":null}`, "", false, false, 1, ""},
+		{"null with rejected version auth", `{"filters":null}`, "2.5.2", true, false, 1, ""},
+		{"poisoned RPC version failure", `{"filters":null}`, "2.5.2", false, false, 1, "rpc"},
+		{"poisoned HTTP version failure", `{"filters":null}`, "2.5.2", false, false, 1, "http"},
+		{"empty list on old schema", `{"filters":[]}`, "2.4.1", false, true, 0, ""},
+		{"empty list on fixed schema", `{"filters":[]}`, "2.5.2", false, true, 0, ""},
+		{"missing filters", `{}`, "2.5.2", false, false, 0, ""},
+		{"scalar filters", `{"filters":0}`, "2.5.2", false, false, 0, ""},
+		{"object filters", `{"filters":{}}`, "2.5.2", false, false, 0, ""},
+		{"text null", `{"filters":"null"}`, "2.5.2", false, false, 0, ""},
+		{"valid filter", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":2,"enabled":true}]}`, "2.4.1", false, true, 0, ""},
+		{"missing metadata", `{"filters":[{"enabled":true,"rules_count":2}]}`, "2.5.2", false, false, 0, ""},
+		{"null entry", `{"filters":[null]}`, "2.5.2", false, false, 0, ""},
+		{"fractional count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":0.5,"enabled":true}]}`, "2.5.2", false, false, 0, ""},
+		{"negative count", `{"filters":[{"url":"https://example.invalid/filter","name":"fixture","id":1,"rules_count":-1,"enabled":true}]}`, "2.5.2", false, false, 0, ""},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			versionReads, writes := 0, 0
+			const poisonMarker = "fixture-upstream-private-marker"
+			var progress []events.Event
+			log := events.New(events.SinkFunc(func(event events.Event) { progress = append(progress, event) }))
 			homarr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != "GET" {
 					writes++
@@ -207,10 +216,19 @@ func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
+				if scenario.failure == "rpc" {
+					json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"json": map[string]any{"message": poisonMarker}}})
+					return
+				}
+				if scenario.failure == "http" {
+					w.WriteHeader(http.StatusBadGateway)
+					json.NewEncoder(w).Encode(map[string]any{"private": poisonMarker})
+					return
+				}
 				json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": map[string]any{"version": scenario.version}}}})
 			}))
 			t.Cleanup(homarr.Close)
-			from := helpers.New(helpers.Config{App: "homarr", BaseURL: homarr.URL, HTTP: homarr.Client(), Log: events.Discard(), Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"}})
+			from := helpers.New(helpers.Config{App: "homarr", BaseURL: homarr.URL, HTTP: homarr.Client(), Log: log, Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"}})
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != "GET" {
 					writes++
@@ -241,8 +259,24 @@ func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
 					t.Fatalf("valid direct AdGuard null filters: %v", err)
 				}
 			}
-			if err := adguardTarget().preflight(t.Context(), from, to); (err == nil) != scenario.valid {
-				t.Fatalf("native preflight valid=%v: %v", scenario.valid, err)
+			var err error
+			if scenario.failure != "" {
+				err = from.Step(t.Context(), "adguard-preflight", "verify AdGuard compatibility", helpers.StepSpec{
+					Do:   func(ctx context.Context) error { return adguardTarget().preflight(ctx, from, to) },
+					Hint: "preserve DNS settings and retry self-host setup homarr",
+				})
+				if err == nil || strings.Contains(err.Error(), poisonMarker) || !errors.Is(err, helpers.ErrStepFailed) || errors.Is(err, helpers.ErrManual) {
+					t.Fatal("version failure leaked upstream details or lost failure classification")
+				}
+				rawProgress, encodeErr := json.Marshal(progress)
+				if encodeErr != nil || len(progress) == 0 || strings.Contains(string(rawProgress), poisonMarker) {
+					t.Fatal("version failure leaked upstream details into progress")
+				}
+			} else {
+				err = adguardTarget().preflight(t.Context(), from, to)
+			}
+			if (err == nil) != scenario.valid {
+				t.Fatal("native preflight returned an unexpected outcome")
 			}
 			if versionReads != scenario.versionReads || writes != 0 {
 				t.Fatalf("version reads=%d want=%d writes=%d", versionReads, scenario.versionReads, writes)

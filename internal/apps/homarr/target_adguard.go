@@ -59,7 +59,7 @@ func adguardNativeReady(ctx context.Context, from, h *helpers.H) error {
 	if filters == nil {
 		version, err := readHomarrVersion(ctx, from)
 		if err != nil {
-			return fmt.Errorf("cannot verify Homarr's null DNS-filter support; preserve the current DNS settings and retry self-host setup homarr: %w", err)
+			return errors.New("cannot verify Homarr's null DNS-filter support; preserve the current DNS settings and retry self-host setup homarr")
 		}
 		if version == "2.5.1" || version == "2.5.2" {
 			return nil
