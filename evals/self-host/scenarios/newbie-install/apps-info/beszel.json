@@ -1,0 +1,10 @@
+{
+  "id": "beszel",
+  "name": "Beszel",
+  "description": "See how busy your computers are: processor, memory and disk space",
+  "category": "Monitoring",
+  "image": "henrygd/beszel:0.20.0",
+  "docs": "https://www.beszel.dev/guide/hub-installation",
+  "port": 8090,
+  "inputs": []
+}
