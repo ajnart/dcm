@@ -1,5 +1,4 @@
 import { ContainerSubmissionForm } from "@/components/container-submission-form"
-import { McpSetupDialog } from "@/components/mcp-setup-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { buildSelfHostLink } from "@/lib/selfhost"
@@ -22,7 +21,6 @@ export function Header() {
           </div>
           <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:justify-end">
             <ThemeToggle />
-            <McpSetupDialog />
             <ContainerSubmissionForm />
 
             <GradientButton

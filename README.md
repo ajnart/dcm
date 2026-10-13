@@ -233,40 +233,6 @@ bun test:compose
 bun test:containers
 ```
 
-## 🤖 MCP v2 endpoints
-
-The Cloudflare Pages deployment includes three independent, stateless MCP v2
-Streamable HTTP endpoints:
-
-- `https://compose.ajnart.dev/api/mcp/v2/tools` - discover tools and retrieve their Compose definitions
-- `https://compose.ajnart.dev/api/mcp/v2/templates` - discover templates and their tools
-- `https://compose.ajnart.dev/api/mcp/v2/compose` - generate `docker-compose.yaml` and `.env` content
-
-Each endpoint is a separate MCP server. They do not keep sessions or rely on
-in-memory state, so they can run on any Cloudflare Pages Function instance.
-POST requests use JSON responses over the MCP Streamable HTTP transport. Because
-these endpoints are stateless, `GET` and `DELETE` return `405`; clients should
-use `POST` for initialization and tool calls.
-
-The endpoints are public by default. Set the optional `MCP_ACCESS_TOKEN`
-Pages secret to require `Authorization: Bearer <token>`:
-
-```bash
-wrangler pages secret put MCP_ACCESS_TOKEN
-```
-
-The frontend remains a static Next.js export. The deploy script compiles the
-Pages Functions into `out/_worker.js` before uploading `out`:
-
-```bash
-bun run deploy
-```
-
-The Docker image in this repository still serves only the static `out`
-directory, so it does not provide the MCP endpoints. GitHub Pages would have
-the same limitation; the MCP runtime requires Cloudflare Pages Functions or a
-separate Worker.
-
 ## 🔄 Template Gallery
 
 DCM includes a Template Gallery that allows you to quickly add predefined stacks of containers based on common use cases:
