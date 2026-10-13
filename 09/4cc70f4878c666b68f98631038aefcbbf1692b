@@ -1,0 +1,37 @@
+internal/apps/authelia/authelia.go
+  s_8e166456c2ed73::t_f3b7a59eef0614 170-171,181,184
+internal/apps/deluge/deluge.go
+  s_8e166456c2ed73::t_b8e15d03370a45 55-57,60-62,76-78,80,82-83,85,89-90,115,119,122
+internal/apps/docmost/docmost.go
+  s_8e166456c2ed73::t_68e38614446840 91,100,125,128,130
+internal/apps/frigate/frigate.go
+  s_8e166456c2ed73::t_54915946fc26bd 77-80,85,88,91,93,136,140,143,145
+internal/apps/homarr/homarr.go
+  s_8e166456c2ed73::t_596dff9639af34 60-61,63,67,127,139,152,168,178,226,337,402
+internal/apps/kopia/kopia.go
+  s_8e166456c2ed73::t_a370330a0b26ea 98-99,107,110-111
+internal/apps/qbittorrent/qbittorrent.go
+  s_8e166456c2ed73::t_452efc1f6845dd 98-103,109,113,115,117,121,124,127-128,132,137,144,225
+internal/apps/seerr/seerr.go
+  s_8e166456c2ed73::t_f8b18f915bd002 110,116-117,119,122,124-125,127,187,209
+internal/apps/vaultwarden/vaultwarden.go
+  s_8e166456c2ed73::t_2a40e4d860776c 81,84-85,90-91,101,105,107-112,120,149,154
+internal/helpers/session.go
+  s_8e166456c2ed73::t_7d761c88893563 111-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "094cc70f4878c666b68f98631038aefcbbf1692b",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
