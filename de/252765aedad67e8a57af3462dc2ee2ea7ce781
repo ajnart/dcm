@@ -1,0 +1,42 @@
+internal/preboot/brand.go
+  h_d6e478ca18e517 6-7,48-58,60-65,67-79,82
+internal/preboot/preboot.go
+  h_d6e478ca18e517 3
+internal/preboot/scene.go
+  h_d6e478ca18e517 9
+internal/preboot/testdata/exit-00-120x30.golden
+  h_d6e478ca18e517 2-16,18,20
+internal/preboot/testdata/exit-00-80x24.golden
+  h_d6e478ca18e517 1-12,14
+internal/preboot/testdata/exit-12-120x30.golden
+  h_d6e478ca18e517 2-18,20
+internal/preboot/testdata/exit-12-80x24.golden
+  h_d6e478ca18e517 1-17
+internal/preboot/testdata/exit-28-120x30.golden
+  h_d6e478ca18e517 4-14
+internal/preboot/testdata/exit-28-80x24.golden
+  h_d6e478ca18e517 2-11
+internal/preboot/testdata/pull-end-120x30.golden
+  h_d6e478ca18e517 2-16,18,20
+internal/preboot/testdata/pull-end-80x24.golden
+  h_d6e478ca18e517 1-12,14
+internal/preboot/testdata/pull-mid-120x30.golden
+  h_d6e478ca18e517 1-16,18,20
+internal/preboot/testdata/pull-mid-80x24.golden
+  h_d6e478ca18e517 1-12,14,18
+internal/preboot/testdata/pull-start-120x30.golden
+  h_d6e478ca18e517 1-16,18
+internal/preboot/testdata/pull-start-80x24.golden
+  h_d6e478ca18e517 1-12,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de252765aedad67e8a57af3462dc2ee2ea7ce781",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
