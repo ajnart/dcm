@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import CodeBlock from "../components/CodeBlock.astro";
+import HeroLogo from "../components/HeroLogo.astro";
 import SectionHead from "../components/SectionHead.astro";
 import { apps, linkCount, linkingApps } from "../lib/catalog";
 import { AGENT_PROMPT, INSTALL, LINKS, VERSION } from "../lib/site";
@@ -52,7 +53,7 @@ const jsonld = {
               <a class="btn" href="#apps">apps</a>
             </div>
           </div>
-          <img class="logo" src="/logo.svg" alt="self-host Logo: four stacked containers, gold, cyan, pink and purple" width="228" height="216">
+          <HeroLogo />
         </section>
 
         <section id="reel" class="reel" aria-label="Showreel">

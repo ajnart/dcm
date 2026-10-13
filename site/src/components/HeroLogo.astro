@@ -1,0 +1,36 @@
+---
+import svg from "../../public/logo.svg?raw";
+
+const shapes = svg.split("\n").filter((line) => /<(rect|circle)\b/.test(line.trim()));
+const crates: { body: string; light: string }[] = [];
+let body: string[] = [];
+for (const shape of shapes) {
+  if (shape.includes("<circle")) {
+    crates.push({ body: body.join(""), light: shape.trim() });
+    body = [];
+  } else body.push(shape.trim());
+}
+---
+
+<button class="herologo" type="button" aria-label="Replay the logo animation">
+  <svg viewBox="0 0 228 216" width="228" height="216" role="img" aria-label="self-host Logo: four stacked containers, gold, cyan, pink and purple, each with a lit status light">
+    {
+      crates.map((crate, i) => (
+        <g class={`crate c${i + 1}`}>
+          <g set:html={crate.body} />
+          <g class="light" set:html={crate.light} />
+        </g>
+      ))
+    }
+  </svg>
+</button>
+
+<script>
+  for (const logo of document.querySelectorAll<HTMLButtonElement>(".herologo")) {
+    logo.addEventListener("click", () => {
+      logo.classList.add("reset");
+      void logo.getBoundingClientRect();
+      logo.classList.remove("reset");
+    });
+  }
+</script>
