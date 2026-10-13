@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+  <img src="docs/assets/logo-light.svg" alt="self-host Logo: four containers with their status lights" width="152" height="144">
+</picture>
+
 # self-host CLI
 
 Run your own apps at home, like a movie server, without learning Docker.

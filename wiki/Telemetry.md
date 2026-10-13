@@ -14,11 +14,17 @@ There is no public dashboard yet; one may come later.
 - Errors as PostHog `$exception` events: error type, fixed description, stable
   fingerprint, and in-app function names, module-relative files and line numbers.
   Panics are unhandled exceptions, flushed before the original panic continues.
+- When you approve Onboarding's plan, one `onboarding` event: your Experience
+  level (`new` or `advanced`), the glyph set (`nerd-font` or `simple`), whether
+  you skipped the intro, whether the machine check warned (`ok` or `warn`) and
+  how long Onboarding took. Nothing is sent if you quit before approving.
 - Warning and error steps as fixed-text OTLP log records, with the step and
   command IDs. These are not App logs, raw error messages, or distributed traces.
 
 PostHog person profiles group events by the random ID to count usage and return
-visits. No names, emails or additional personal properties are set. GeoIP is
+visits. No names or emails are set. The one person property is `experience`
+(`new` or `advanced`), set by the `onboarding` event and by
+`self-host profile set experience`. GeoIP is
 disabled; payloads contain no IP addresses or locations. Receiving network
 infrastructure still sees the source IP. Server-side "Discard client IP data"
 is a maintainer-controlled setting, not something the CLI verifies.
