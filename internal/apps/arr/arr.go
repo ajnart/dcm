@@ -6,13 +6,10 @@ package arr
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/servarr"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -27,8 +24,8 @@ type App struct {
 
 // The API prefixes: Sonarr and Radarr speak v3, Prowlarr v1.
 const (
-	apiV3 = "/api/v3"
-	apiV1 = "/api/v1"
+	apiV3 = servarr.V3
+	apiV1 = servarr.V1
 )
 
 func Sonarr() App {
@@ -116,97 +113,12 @@ func (a App) Compose(rc app.RenderContext) string {
 `
 }
 
-// request adds the API key to req; path is relative to the API prefix.
+func (a App) servarr() servarr.Servarr {
+	return servarr.Servarr{Name: a.info.Name, API: a.api}
+}
+
 func (a App) request(h *helpers.H, req helpers.Request) helpers.Request {
-	return apiRequest(h, a.api, req)
-}
-
-func apiRequest(h *helpers.H, api string, req helpers.Request) helpers.Request {
-	req.Path = api + req.Path
-	req.Header = map[string]string{"X-Api-Key": h.Secret(h.Key("api_key"))}
-	return req
-}
-
-func (a App) keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	if h.Secret(h.Key("api_key")) == "" {
-		return false, nil
-	}
-	resp, err := h.HTTP(ctx, a.request(h, helpers.Request{Path: "/system/status"}))
-	return err == nil && resp.Status == 200, err
-}
-
-// readAPIKey waits for the key the App writes to config.xml on first start.
-func (a App) readAPIKey(ctx context.Context, h *helpers.H) error {
-	key, err := h.ConfigValue(ctx, filepath.Join("config", "config.xml"), helpers.XMLElement("ApiKey"), 2*time.Minute)
-	if err != nil {
-		return err
-	}
-	return h.SetSecret(h.Key("api_key"), key)
-}
-
-// loginWorks submits the login form with the Admin login. Failure redirects
-// to a location carrying loginFailed=true.
-func loginWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
-		Method: "POST", Path: "/login", NoRedirect: true,
-		Form: map[string][]string{"username": {h.AdminUser()}, "password": {h.AdminPassword()}},
-	})
-	if err != nil {
-		return false, err
-	}
-	if resp.Status < 300 || resp.Status > 399 {
-		return false, fmt.Errorf("login returned HTTP %d", resp.Status)
-	}
-	return !strings.Contains(resp.Header.Get("Location"), "loginFailed=true"), nil
-}
-
-type hostConfig map[string]any
-
-func (a App) hostConfig(ctx context.Context, h *helpers.H) (hostConfig, error) {
-	resp, err := h.Expect(ctx, a.request(h, helpers.Request{Path: "/config/host"}))
-	if err != nil {
-		return nil, err
-	}
-	var cfg hostConfig
-	return cfg, resp.Decode(&cfg)
-}
-
-func (a App) authConfigured(ctx context.Context, h *helpers.H) (bool, error) {
-	cfg, err := a.hostConfig(ctx, h)
-	if err != nil {
-		return false, err
-	}
-	if cfg["authenticationMethod"] != "forms" || cfg["authenticationRequired"] != "enabled" || cfg["username"] != h.AdminUser() {
-		return false, nil
-	}
-	return loginWorks(ctx, h)
-}
-
-func (a App) setAuth(ctx context.Context, h *helpers.H) error {
-	cfg, err := a.hostConfig(ctx, h)
-	if err != nil {
-		return err
-	}
-	cfg["authenticationMethod"] = "forms"
-	cfg["authenticationRequired"] = "enabled"
-	cfg["username"] = h.AdminUser()
-	cfg["password"] = h.AdminPassword()
-	cfg["passwordConfirmation"] = h.AdminPassword()
-	id, _ := cfg["id"].(float64)
-	if _, err := h.Expect(ctx, a.request(h, helpers.Request{
-		Method: "PUT", Path: fmt.Sprintf("/config/host/%d", int(id)), JSON: cfg,
-	})); err != nil {
-		return err
-	}
-	// The App may apply authentication by itself; some versions only pick up
-	// the new method after a restart.
-	if h.Poll(ctx, 30*time.Second, func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) }) == nil {
-		return nil
-	}
-	if err := h.Restart(ctx); err != nil {
-		return err
-	}
-	return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return loginWorks(ctx, h) })
+	return a.servarr().Request(h, req)
 }
 
 type rootFolder struct {
@@ -231,25 +143,7 @@ func (a App) hasRootFolder(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func (a App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := h.Ready(ctx, "/ping"); err != nil {
-		return err
-	}
-	name := a.info.Name
-	err := h.Step(ctx, "api-key", "read the "+name+" API key", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return a.keyWorks(ctx, h) },
-		Do:    func(ctx context.Context) error { return a.readAPIKey(ctx, h) },
-		Hint:  "Copy the API key from " + name + " > Settings > General into secrets.env as " + h.Key("api_key") + ".",
-	})
-	if err != nil {
-		return err
-	}
-	err = h.Step(ctx, "auth", "require the Admin login (forms authentication)", helpers.StepSpec{
-		Check:      func(ctx context.Context) (bool, error) { return a.authConfigured(ctx, h) },
-		Do:         func(ctx context.Context) error { return a.setAuth(ctx, h) },
-		Hint:       "Open " + name + " > Settings > General > Security: set Authentication to Forms and enter the Admin login.",
-		Credential: "admin",
-	})
-	if err != nil || a.rootFolder == "" {
+	if err := a.servarr().Setup(ctx, h); err != nil || a.rootFolder == "" {
 		return err
 	}
 	return h.Step(ctx, "root-folder", "add the root folder "+a.rootFolder, helpers.StepSpec{
@@ -261,17 +155,11 @@ func (a App) Setup(ctx context.Context, h *helpers.H) error {
 			_, err := h.Expect(ctx, a.request(h, helpers.Request{Method: "POST", Path: "/rootfolder", JSON: rootFolder{Path: a.rootFolder}}))
 			return err
 		},
-		Hint:       "Open " + name + " > Settings > Media Management > Add Root Folder and choose " + a.rootFolder + ".",
+		Hint:       "Open " + a.info.Name + " > Settings > Media Management > Add Root Folder and choose " + a.rootFolder + ".",
 		Credential: "admin",
 	})
 }
 
 func (a App) Check(ctx context.Context, h *helpers.H) error {
-	if ok, err := a.keyWorks(ctx, h); !ok {
-		return fmt.Errorf("the %s API key is not accepted: %v", a.info.Name, err)
-	}
-	if ok, err := loginWorks(ctx, h); !ok {
-		return fmt.Errorf("the Admin login %s cannot sign in to %s: %v", h.AdminUser(), a.info.Name, err)
-	}
-	return nil
+	return a.servarr().Check(ctx, h)
 }

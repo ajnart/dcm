@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/servarr"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -36,7 +37,7 @@ func (o object) field(name string) any {
 }
 
 func list(ctx context.Context, h *helpers.H, api, path string) ([]object, error) {
-	resp, err := h.Expect(ctx, apiRequest(h, api, helpers.Request{Path: path}))
+	resp, err := h.Expect(ctx, servarr.Request(h, api, helpers.Request{Path: path}))
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func schemaFor(ctx context.Context, h *helpers.H, api, path, implementation stri
 }
 
 func create(ctx context.Context, h *helpers.H, api, path string, item object) error {
-	_, err := h.Expect(ctx, apiRequest(h, api, helpers.Request{Method: "POST", Path: path, JSON: item}))
+	_, err := h.Expect(ctx, servarr.Request(h, api, helpers.Request{Method: "POST", Path: path, JSON: item}))
 	return err
 }
 
@@ -74,7 +75,7 @@ func remove(ctx context.Context, h *helpers.H, api, path string, match func(obje
 			continue
 		}
 		id, _ := item["id"].(float64)
-		req := apiRequest(h, api, helpers.Request{Method: "DELETE", Path: fmt.Sprintf("%s/%d", path, int(id))})
+		req := servarr.Request(h, api, helpers.Request{Method: "DELETE", Path: fmt.Sprintf("%s/%d", path, int(id))})
 		if _, err := h.Expect(ctx, req); err != nil {
 			return err
 		}

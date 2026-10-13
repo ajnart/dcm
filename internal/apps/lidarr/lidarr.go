@@ -6,12 +6,12 @@ package lidarr
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/apps/servarr"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -33,8 +33,7 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
-// api is the pinned Lidarr prefix; it is /api/v1, unlike Sonarr and Radarr.
-const api = "/api/v1"
+var lidarrServarr = servarr.Servarr{Name: "Lidarr", API: servarr.V1}
 
 const recoveryHint = "Preserve Lidarr's configuration and review Settings > General > Security. This Setup supports Lidarr 3.x API v1 with Forms authentication required for every address; unsupported or externally managed authentication needs review. Run self-host setup lidarr to reread its generated API key and retry; do not reinstall to retry."
 
@@ -64,9 +63,7 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func request(h *helpers.H, req helpers.Request) helpers.Request {
-	req.Path = api + req.Path
-	req.Header = map[string]string{"X-Api-Key": h.Secret(h.Key("api_key"))}
-	return req
+	return servarr.Request(h, servarr.V1, req)
 }
 
 func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
@@ -110,15 +107,6 @@ func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
 		return false, fmt.Errorf("%w: Lidarr's version is outside the supported 3.x API v1 contract; %s", helpers.ErrManual, recoveryHint)
 	}
 	return true, nil
-}
-
-// readAPIKey waits for the key Lidarr writes to config.xml on first start.
-func readAPIKey(ctx context.Context, h *helpers.H) error {
-	key, err := h.ConfigValue(ctx, filepath.Join("config", "config.xml"), helpers.XMLElement("ApiKey"), 2*time.Minute)
-	if err != nil {
-		return err
-	}
-	return h.SetSecret(h.Key("api_key"), key)
 }
 
 // loginWorks submits the login form; a failure redirects to a location that
@@ -246,7 +234,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}
 	err := h.Step(ctx, "api-key", "read the Lidarr API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return keyWorks(ctx, h) },
-		Do:    func(ctx context.Context) error { return readAPIKey(ctx, h) },
+		Do:    func(ctx context.Context) error { return lidarrServarr.ReadAPIKey(ctx, h) },
 		Hint:  recoveryHint,
 	})
 	if err != nil {
