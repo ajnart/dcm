@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -19,6 +20,7 @@ import (
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/telemetry"
 )
 
 // step is one step of Onboarding, in order.
@@ -89,6 +91,10 @@ type onboarding struct {
 	// experienceSaved is set when the Profile already holds an Experience
 	// level: Welcome does not ask, and Review does not save one.
 	experienceSaved bool
+	// opened is when Onboarding opened; introSkipped is set when the person
+	// skipped the Intro. Both only feed the onboarding Telemetry event.
+	opened       time.Time
+	introSkipped bool
 }
 
 // plan is a reviewed install: what will happen, before anything is written.
@@ -104,7 +110,7 @@ type plan struct {
 func (m Model) newOnboarding() *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
 		checking: len(m.checks) == 0, checksFrom: m.frame, autoContinue: true, notice: m.backend.TelemetryNotice(),
-		folders: newFolderPicker(m.backend)}
+		folders: newFolderPicker(m.backend), opened: m.opts.Now()}
 	o.answers.fill(m.defaults)
 	o.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
 	return o
@@ -770,7 +776,7 @@ func (m Model) onboardingNext() (tea.Model, tea.Cmd) {
 		}
 		next, cmd := m.installPlan(o.plan)
 		o.task, o.err = next.tasks.latest().id, ""
-		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs)}
+		cmds := []tea.Cmd{cmd, saveGlyphsWithInstall(m.backend, m.glyphs), m.reportOnboarding()}
 		if !o.experienceSaved {
 			cmds = append(cmds, saveExperienceWithInstall(m.backend, o.answers.experience))
 		}
@@ -834,6 +840,31 @@ func (m Model) reviewNamesCheck() service.NamesCheck {
 		return service.EasyNamesAddressCheck(m.onboarding.plan.opts.Settings["LAN_IP"])
 	}
 	return service.NamesCheck{Available: true}
+}
+
+// reportOnboarding sends the onboarding Telemetry event of the approved Review.
+func (m Model) reportOnboarding() tea.Cmd {
+	o := m.onboarding
+	experience := o.answers.experience
+	if o.experienceSaved {
+		experience = m.backend.Experience(context.Background())
+	}
+	doctor := "ok"
+	if host.Worst(m.checks) == host.Warn {
+		doctor = "warn"
+	}
+	report := telemetry.Onboarding{
+		Experience:   experience,
+		Glyphs:       string(activity.ParseGlyphs(string(m.glyphs))),
+		IntroSkipped: o.introSkipped,
+		Doctor:       doctor,
+		Duration:     m.opts.Now().Sub(o.opened),
+	}
+	backend := m.backend
+	return func() tea.Msg {
+		backend.ReportOnboarding(report)
+		return nil
+	}
 }
 
 // saveGlyphsWithInstall saves the glyph set with the Project in step with

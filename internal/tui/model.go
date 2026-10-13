@@ -89,7 +89,8 @@ type (
 type Options struct {
 	Version       string
 	ReducedMotion bool
-	// NoColor is NO_COLOR: the pre-boot screen keeps its motion without colour.
+	// NoColor is a non-empty NO_COLOR: no screen has colour, and the pre-boot
+	// screen keeps its motion in bold and faint.
 	NoColor bool
 	// NoUpdatePrompt keeps the "Update now?" question away, for CI and
 	// SELF_HOST_NO_UPDATE_CHECK; the header still shows a newer release.
