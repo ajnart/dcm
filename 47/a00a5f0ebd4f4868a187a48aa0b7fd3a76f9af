@@ -1,0 +1,33 @@
+README.md
+  s_9128f94176201b::t_dcdbcd6ca0ee39 34
+e2e/acceptance.md
+  s_9128f94176201b::t_dc563b7da66740 3
+e2e/acceptance_fixture_test.go
+  s_9128f94176201b::t_92f54cb29f61ac 24
+internal/catalog/batch_recipes.go
+  s_9128f94176201b::t_1ffc9a0e709a06 42
+internal/catalog/parity_test.go
+  s_9128f94176201b::t_cda9f7b86b5a6f 108-124,336-341
+internal/tui/testdata/onboarding-what-default-focus-narrow.golden
+  s_9128f94176201b::t_0f1471c3ceb304 11-16
+internal/tui/testdata/onboarding-what-default-focus.golden
+  s_9128f94176201b::t_70d80ac106d7f4 15-22
+site/src/data/catalog.json
+  s_9128f94176201b::t_77d402f7246437 1209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "47a00a5f0ebd4f4868a187a48aa0b7fd3a76f9af",
+  "prompts": {},
+  "sessions": {
+    "s_9128f94176201b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c14b4a80-4655-47d8-8430-d71ef9966292",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
