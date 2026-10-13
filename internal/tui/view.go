@@ -570,6 +570,9 @@ func (m Model) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 	v.ReportFocus = true
 	v.WindowTitle = m.windowTitle()
+	if m.loaded && !m.onboardingShown() && m.statusErr == "" && m.preboot == nil {
+		m.theme = m.openingTheme()
+	}
 	ctxView := m.ctx()
 	if pct, ok := m.pullProgress(ctxView); ok {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarDefault, pct)
@@ -584,7 +587,6 @@ func (m Model) View() tea.View {
 		v.SetContent(m.renderPreboot())
 		return v
 	}
-
 	header, layers, restated := m.renderHeader()
 	ctxView.headerFacts = restated
 	status := pad(m.footerStatus(ctxView), m.width)

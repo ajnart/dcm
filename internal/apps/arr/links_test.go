@@ -88,14 +88,14 @@ func TestRerunningTheConsumerRetriesItsFailedLink(t *testing.T) {
 	}
 }
 
-func TestALinkWaitingForItsTargetSaysSo(t *testing.T) {
+func TestALinkToAnUninstalledTargetIsNotScheduled(t *testing.T) {
 	e := newEnv(t, arr.Sonarr(), qbittorrent.App{})
 
 	r := e.Run("install", "sonarr", "--yes", "--json")
 
 	step := r.Step("sonarr", "link-qbittorrent")
-	if r.Code != 0 || step == nil || step["event"] != "step.skip" || !strings.Contains(step["msg"].(string), "waiting for qbittorrent") {
-		t.Fatalf("exit %d, want a step.skip waiting for qbittorrent\n%s", r.Code, r.Out)
+	if r.Code != 0 || step != nil {
+		t.Fatalf("exit %d, an absent target must not schedule its Link\n%s", r.Code, r.Out)
 	}
 }
 
