@@ -3,11 +3,11 @@
 ## Supported upstream
 
 The compiled definition uses `ghcr.io/homarr-labs/homarr:latest`.
-The compatibility gate accepts exactly API versions `2.4.1`, `2.5.1` and `2.5.2`, read
-through authenticated `info.getInfo`; `2.5.0`, other `2.5.x` versions and unknown
-versions remain unsupported. Later images require compatibility verification.
-Setup and every Link reject unsupported versions with a backup/version/retry
-hint. `integration.getKinds` must expose the descriptor's kind and the exact
+The compatibility gate requires API version `>= 2.4.1`, read through
+authenticated `info.getInfo`. Stable versions are compared numerically by
+major, minor and patch; newer releases do not need a separate allowlist entry.
+Setup and every Link reject older or malformed versions with a recovery hint.
+`integration.getKinds` must expose the descriptor's kind and the exact
 supplied credential alternative. Missing credentials name the peer's Setup
 command; they are not submitted as empty keys.
 
@@ -29,8 +29,8 @@ was published at source `7eb9a417a60d759adce5f7ac15ceb594aefad471`.
 Its source comparison against the validated `2.5.1` OCI revision changes only
 the changelog, root version and Beszel chart CSS. API, authentication, Stats,
 Downloads and all 39 native peer implementations are unchanged; the ten privacy
-owner source hashes match. Exact `2.5.2` support is therefore source-prepared,
-with fresh `2.5.2` image/API proof still pending. These source comparisons and
+owner source hashes match. These audits document specific checked contracts,
+not a fixed supported-version list. These source comparisons and
 narrow API observations do not establish native/privacy, browser or lifecycle
 acceptance; peer-specific privacy holds remain in place.
 

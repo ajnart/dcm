@@ -642,11 +642,18 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 		version   string
 		wantError bool
 	}{
+		{"1.99.99", true},
+		{"2.3.99", true},
+		{"2.4.0", true},
 		{"2.4.1", false},
-		{"2.5.1", false},
-		{"2.5.0", true},
-		{"2.5.2", false},
-		{"2.5.3", true},
+		{"2.4.2", false},
+		{"2.5.0", false},
+		{"2.9.0", false},
+		{"2.10.0", false},
+		{"3.0.0", false},
+		{"10.0.0", false},
+		{"2.4", true},
+		{"2.4.x", true},
 		{"unknown", true},
 		{"", true},
 	} {
@@ -660,7 +667,7 @@ func TestLinkApplyCreatesAppIntegrationAndTileAndRerunsIdempotently(t *testing.T
 			link := linkFor(t, "sonarr")
 
 			if err := link.Apply(context.Background(), from, to); scenario.wantError {
-				if err == nil || !strings.Contains(err.Error(), "unsupported") || !strings.Contains(err.Error(), "2.4.1, 2.5.1 or 2.5.2") {
+				if err == nil || !strings.Contains(err.Error(), "unsupported") || !strings.Contains(err.Error(), "2.4.1 or newer") {
 					t.Fatalf("unsupported version must retain the supported-version recovery hint: %v", err)
 				}
 				fake.mu.Lock()
