@@ -3,7 +3,8 @@
 ## Scope
 
 The harness is tracked in [PR #259](https://github.com/ajnart/selfhost-skills/pull/259).
-The operator guide changes stay in [PR #257](https://github.com/ajnart/selfhost-skills/pull/257).
+The original operator guide changes merged in [PR #257](https://github.com/ajnart/selfhost-skills/pull/257).
+Further guide improvements belong in a separate follow-up PR.
 The proposed Catalog contributor skill is separate and remains unimplemented.
 
 ```text
@@ -21,17 +22,17 @@ platform behavior, or correct authorization scope for every Action.
 
 No percentage estimate: each gate requires evidence.
 
-| Gate                                                                   | Status                                                         |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                          |
-| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                          |
-| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                        |
-| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution          |
-| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+            |
-| Local build, vet, tests, race checks and installer syntax              | Passed                                                         |
-| Complete real-model batch with both guides and three repetitions       | Iteration 24 six-run Mint smoke valid; full comparison pending |
-| Complete blind judgments, aggregation and supplied review viewer       | Iteration 15 complete; full batch and human feedback pending   |
-| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes  |
+| Gate                                                                   | Status                                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Runner CLI saves frozen inputs, streams and failure diagnostics        | Regression tests pass                                         |
+| Grading rejects missing manifests, unknown checks and failed judgments | Regression tests pass                                         |
+| Shell boundary blocks host reads/writes/execution and network access   | macOS canary tests pass                                       |
+| Real CLI discovers the router in router-present configurations         | Observed; missing discovery now invalidates execution         |
+| Claude transport and shell use no bypassPermissions                    | Implemented; fail-closed hooks require CLI 2.1.295+           |
+| Local build, vet, tests, race checks and installer syntax              | Passed                                                        |
+| Complete real-model batch with both guides and three repetitions       | Iteration 25 valid: all 54 expanded conversations completed   |
+| Complete blind judgments, aggregation and supplied review viewer       | Iteration 25 judgment quota failure; no full grades/viewer    |
+| Independent Standards and Spec review                                  | Final source and follow-up fixes passed both independent axes |
 
 The user approved tests at three seams: runner CLI → saved artifacts, grading
 CLI → accepted/rejected grades, and execution boundary → blocked host/network
@@ -354,14 +355,24 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   nine-scenario batch and human viewer feedback remain due. PR #259 stays draft;
   guide improvements remain in #257 after trustworthy evidence and feedback.
 
-- **Iteration 25: expanded comparison running.** After the valid repeated Mint
+- **Iteration 25: execution valid, judgment quota failure.** After the valid repeated Mint
   smoke, the user asked to continue the unfinished work in response to the
   pending full-comparison proposal. This starts one fresh nine-scenario batch,
   both unchanged frozen guides, three repetitions (54 conversations), equal
   16-turn limits and parallelism two. Sonnet and Opus access preflights passed.
-  Complete blind judgments and the supplied viewer follow only valid complete
-  execution. Failure or quota stops the attempt without fallback or automatic
-  retry; historical attempts remain unchanged. The guide PR #257 is now merged
+  All 54 conversations completed validly, with zero failed or cancelled runs.
+  The authorized blind judgment batch then hit the subscription session limit:
+  `You've hit your session limit · resets 12pm (Europe/Paris)`.
+  Forty-eight judge responses with usage were retained, but the failed batch
+  invalidated all judgment metrics and removed every usable verdict. There are
+  zero grade files, no benchmark and no review viewer for this iteration.
+  Partial responses are diagnostics, not scores or guide-effectiveness evidence.
+  Model calls stopped; no fallback or automatic retry followed. The valid
+  conversation execution and failed judgment diagnostics remain preserved.
+  Restored access and separately bounded authorization are required for a
+  fresh judgment-only attempt using copies of the valid frozen conversations;
+  another conversation batch is unnecessary for this quota-only failure.
+  No guide changes are inferred from incomplete judgments. The guide PR #257 is now merged
   according to GitHub; further guide changes will use a separate follow-up PR,
   never the harness PR #259. Human feedback remains a merge gate for #259.
 
