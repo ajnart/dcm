@@ -36,6 +36,7 @@ func patchmonTarget() target {
 			return err
 		},
 		verify: verifyPatchmon,
+		stats:  verifyPatchmonStats,
 	}
 }
 
@@ -65,6 +66,23 @@ func verifyPatchmon(ctx context.Context, from, to *helpers.H, integrationID stri
 	}
 	if stats["totalHosts"] == float64(0) {
 		from.Info("PatchMon reports no enrolled computers. These zero counts are not evidence of secure or fully patched computers.")
+	}
+	return nil
+}
+
+// verifyPatchmonStats validates the one centrally refreshed sample. The native
+// response is independently cached, so counts are not compared across reads.
+func verifyPatchmonStats(sample statsSample) error {
+	counts := make(map[string]float64)
+	for _, key := range []string{"totalHosts", "hostsNeedingUpdates", "securityUpdates", "totalOutdatedPackages"} {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count {
+			return errors.New("Homarr returned invalid PatchMon Stats counts or units; retry self-host setup homarr")
+		}
+		counts[key] = count
+	}
+	if counts["hostsNeedingUpdates"] > counts["totalHosts"] || counts["securityUpdates"] > counts["totalOutdatedPackages"] {
+		return errors.New("Homarr returned inconsistent PatchMon Stats host or package counts; retry self-host setup homarr")
 	}
 	return nil
 }

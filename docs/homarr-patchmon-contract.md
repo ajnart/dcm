@@ -125,3 +125,21 @@ PatchMon/Homarr/Catalog, `go build ./...`, both vet runs including the e2e
 build-tag compile check, `go test ./...`, and race checks for
 PatchMon/Homarr/TUI/Activity. `gofmt -l .`, `git diff --check` and
 `bash -n install.sh` were clean. The e2e runtime was not enabled.
+
+## Original-branch normalization, 13 October 2026
+
+The original release branch forward-merges the SDK and additive Stats contracts
+without rewriting history. `verifyPatchmonStats` validates the four selected
+`count` metrics from the one central sample: finite nonnegative integers, hosts
+needing updates no greater than total hosts, and security packages no greater
+than outdated packages. Native verification and the source-only awaiting-inventory
+policy stay separate; independently cached native/Stats counts are not compared.
+Explicit zeros remain empty inventory, not secure/compliant computers.
+
+The #350 Manual credential hold still runs before compatibility or Homarr
+mutation, even if a manually supplied pair is present. The GetHomepage name and
+GET-only calls do not narrow its enrollment/script authority. A supported reviewed
+server credential separation remains required. Focused HTTP checks prove that the
+hold makes no Homarr or statistics requests; pure callback checks cover prepared
+Stats semantics only. No native refresh, rendered widget or runtime acceptance
+is claimed. The descriptor remains unregistered in this lane.
