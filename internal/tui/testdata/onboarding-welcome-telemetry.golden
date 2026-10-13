@@ -1,9 +1,11 @@
  ◆ self-host                                                                                                      v1.0.0
 
-  ✓ Initializing › ● Welcome › ○ What › ○ Where › ○ Access › ○ Who › ○ Look › ○ Review
+  ● Welcome › ○ What › ○ Where › ○ Access › ○ Who › ○ Look › ○ Review
 
-
-
+                      █▀█▀█▀█▀█ ·
+                      █▀█▀█▀█▀█ ●
+                      █▀█▀█▀█▀█ ●
+                      █▀█▀█▀█▀█ ●
 
                       Welcome to self-host
 
@@ -18,13 +20,11 @@
                       you?
                       > ● New: this is all new to me
                         ○ Advanced: I have run a server or used Docker
+                          Tailors self-host to you: more help along the way.
 
                       Nothing is written until you approve the plan at Review.
 
                       Anonymous usage data helps improve self-host: no IP, no personal data.
                       Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry
 
-
-
-
- q quit                                                        ↑/↓  focus   space  select   enter  continue   esc  back
+ q quit                                                                    ↑/↓  focus   space  select   enter  continue

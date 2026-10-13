@@ -26,7 +26,7 @@ func atWhatWith(t *testing.T, cat *catalog.Catalog, width, height int) (Model, *
 	t.Helper()
 	m, backend := onboardingHost(t, width, height, readyChecks...)
 	backend.catalog = cat
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	return drive(t, m, press("enter")), backend
 }
 

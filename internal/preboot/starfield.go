@@ -41,9 +41,9 @@ func (f *frame) sky(cv *canvas) {
 			if trail := int(warp * ly.trail); trail > 0 {
 				for j := 1; j <= trail; j++ {
 					a := b * (1 - float64(j)/float64(trail+1))
-					cv.put(x+j, y, '─', f.tint(c, a), a*0.7)
+					cv.Put(x+j, y, '─', f.tint(c, a), a*0.7)
 				}
-				cv.put(x, y, '━', f.tint(f.pal.Glow(c, 0.5), 1), 1)
+				cv.Put(x, y, '━', f.tint(f.pal.Glow(c, 0.5), 1), 1)
 				continue
 			}
 			f.star(cv, x, y, b, c)
@@ -81,9 +81,9 @@ func (f *frame) shootingStars(cv *canvas) {
 			a := 1 - float64(j)/9
 			c := f.pal.Sweep(0.7 + float64(j)*0.03 + float64(s)*0.3)
 			if j == 0 {
-				cv.put(x, y, '✦', f.tint(f.pal.Glow(c, 0.8), 1), 1)
+				cv.Put(x, y, '✦', f.tint(f.pal.Glow(c, 0.8), 1), 1)
 			} else {
-				cv.put(x, y, '·', f.tint(c, a), a*0.7)
+				cv.Put(x, y, '·', f.tint(c, a), a*0.7)
 			}
 		}
 	}
@@ -122,6 +122,6 @@ func (f *frame) ribbon(cv *canvas, row, amp float64, k int) {
 			continue
 		}
 		c := f.pal.Sweep(x/float64(f.w)*0.8 + t*0.08 + float64(k)*0.5)
-		cv.dot(sx, int(y*4), f.tint(c, a), a)
+		cv.Dot(sx, int(y*4), f.tint(c, a), a)
 	}
 }
