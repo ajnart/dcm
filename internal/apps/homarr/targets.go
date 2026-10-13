@@ -1,5 +1,5 @@
 package homarr
 
 func targets() []target {
-	return append(existingTargets(), immichTarget(), uptimeKumaTarget())
+	return append(existingTargets(), immichTarget(), caddyTarget(), gatusTarget(), prometheusTarget(), gotifyTarget(), technitiumDNSTarget(), dashdotTarget(), glancesTarget(), netdataTarget(), traefikTarget(), audiobookshelfTarget(), paperlessTarget(), linkwardenTarget(), nextcloudTarget(), lidarrTarget(), embyTarget(), piholeTarget(), uptimeKumaTarget())
 }

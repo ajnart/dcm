@@ -1,0 +1,30 @@
+{
+  "id": "wud",
+  "name": "What's Up Docker",
+  "description": "Tell you when new versions of your apps are available",
+  "category": "Containers",
+  "image": "getwud/wud:9.1.0",
+  "docs": "https://getwud.app/docs/",
+  "port": 18083,
+  "inputs": [
+    {
+      "key": "WUD_DOCKER_HOST",
+      "prompt": "DNS name of the approved remote Docker TLS endpoint",
+      "help": "A Docker socket proxy or TLS endpoint whose mutating operations are denied. See https://getwud.app/docs/",
+      "required": true
+    },
+    {
+      "key": "WUD_DOCKER_PORT",
+      "prompt": "Remote Docker TLS port",
+      "default": "2376",
+      "required": false
+    },
+    {
+      "key": "WUD_DOCKER_TLS_CLIENT_AUTH",
+      "prompt": "Require Docker TLS client authentication (true or false)",
+      "help": "Prepare tls/ca.pem inside this App directory. When true, also prepare tls/client-cert.pem and private mode-0600 tls/client-key.pem. No external file paths are accepted.",
+      "default": "false",
+      "required": false
+    }
+  ]
+}

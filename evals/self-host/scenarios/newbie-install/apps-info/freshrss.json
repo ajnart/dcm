@@ -1,0 +1,10 @@
+{
+  "id": "freshrss",
+  "name": "FreshRSS",
+  "description": "Read news from all your favorite websites in one place",
+  "category": "Productivity",
+  "image": "ghcr.io/freshrss/freshrss:1.30.0",
+  "docs": "https://github.com/FreshRSS/FreshRSS/tree/edge/Docker",
+  "port": 8080,
+  "inputs": []
+}

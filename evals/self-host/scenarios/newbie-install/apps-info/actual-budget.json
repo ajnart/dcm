@@ -1,0 +1,10 @@
+{
+  "id": "actual-budget",
+  "name": "Actual Budget",
+  "description": "Plan your spending and follow every dollar, with one budget on all your devices",
+  "category": "Productivity",
+  "image": "ghcr.io/actualbudget/actual:26.9.0",
+  "docs": "https://actualbudget.org/docs/install/docker/",
+  "port": 5006,
+  "inputs": []
+}

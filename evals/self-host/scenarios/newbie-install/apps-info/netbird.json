@@ -1,0 +1,17 @@
+{
+  "id": "netbird",
+  "name": "NetBird",
+  "description": "Connect your devices into one private network, wherever they are",
+  "category": "Remote access",
+  "image": "netbirdio/dashboard:v2.94.0",
+  "docs": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+  "port": 18080,
+  "inputs": [
+    {
+      "key": "NETBIRD_CANONICAL_ORIGIN",
+      "prompt": "Public HTTPS URL for the NetBird management API and dashboard",
+      "help": "The exact https://host reverse-proxied to this control plane. See https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+      "required": true
+    }
+  ]
+}

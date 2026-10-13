@@ -1,0 +1,18 @@
+{
+  "id": "renovate",
+  "name": "Renovate",
+  "description": "Automatically suggest updates for the software your code projects depend on",
+  "category": "Developer tools",
+  "image": "ghcr.io/renovatebot/renovate:44.132.2",
+  "docs": "https://docs.renovatebot.com/",
+  "port": 0,
+  "inputs": [
+    {
+      "key": "token",
+      "prompt": "Forgejo Personal Access Token",
+      "help": "A dedicated Renovate account's token with repository read and pull-request write scope",
+      "required": true,
+      "private": true
+    }
+  ]
+}

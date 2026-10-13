@@ -1,0 +1,10 @@
+{
+  "id": "seafile",
+  "name": "Seafile",
+  "description": "Sync and share your files across all your devices",
+  "category": "Files",
+  "image": "seafileltd/seafile-mc:13.0.28",
+  "docs": "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/",
+  "port": 8080,
+  "inputs": []
+}
