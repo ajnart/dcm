@@ -21,6 +21,7 @@ func bazarrTarget() target {
 			return bazarr.VerifyHomarr(ctx, to)
 		},
 		verify: verifyBazarr,
+		stats:  verifyBazarrStats,
 	}
 }
 
@@ -45,6 +46,16 @@ func verifyBazarr(ctx context.Context, from, to *helpers.H, integrationID string
 	for _, key := range []string{"sonarr_signalr", "radarr_signalr"} {
 		if _, ok := badges[key].(string); !ok {
 			return errors.New("Homarr returned incomplete Bazarr media connection status; retry self-host setup homarr")
+		}
+	}
+	return nil
+}
+
+func verifyBazarrStats(sample statsSample) error {
+	for _, key := range []string{"episodes", "movies", "providers"} {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count {
+			return errors.New("Homarr returned invalid Bazarr subtitle Stats; retry self-host setup homarr")
 		}
 	}
 	return nil

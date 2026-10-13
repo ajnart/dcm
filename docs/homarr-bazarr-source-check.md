@@ -215,3 +215,36 @@ Bazarr, `bash -n install.sh` and `git diff --check`. Tests used `-count=1`;
 the removed fault trigger was absent from every run. No e2e-tagged runtime ran.
 Parent-owned fresh fixed-reference Standards and Spec reviews remain pending;
 native proof is held.
+
+
+## Shared Stats SDK normalization, source and focused HTTP evidence
+
+The original branch history is preserved by forward merges of shared SDK
+`0bf67c3c64c229af25f19c1b93264f19cc57a910` and additive metadata SDK
+`d069339add5924f942ea6536f77d68e64b165df0`. No registry or common verification
+implementation is changed by this peer.
+
+The descriptor now uses a pure `statsSample` callback for `episodes`, `movies`, `providers`.
+One common catalog/snapshot/forced-refresh sequence supplies the same values
+validated by the leaf. Exact catalog units and value types are checked: counts.
+Missing/null fields, invalid counts/units and no-op refreshes fail; legitimate
+zeros remain valid. Common timestamp validation remains finite, positive and
+advancing; this peer adds no invented clock policy.
+
+Native authenticated peer status/badge checks and all five native count/two SignalR guards remain unchanged. Stats count values may differ from independently cached native badges; both are validated without equating volatile samples.
+
+Units and selected provider keys were checked in immutable Homarr OCI source
+`3d4150e59f600876b7e308f857b2f21572b75348`, using
+`packages/integrations/src/stats/existing.ts` and, for Frigate,
+`packages/integrations/src/stats/providers/frigate.ts`. This is source provenance,
+not new image attestation.
+
+Focused HTTP scenarios use the shared `statsFixture` through `verifyData`, with
+the native verifier explicitly isolated, and assert one forced refresh for the
+owned integration. They cover valid empty/populated samples, invalid selected
+values/units and refresh no-op rejection. App and Homarr affected-package tests,
+affected-package build/vet, changed-file gofmt and `git diff --check` passed.
+No Docker, browser, installer or broad suite was run. These fixtures verify the
+source interface; they do not claim real native/rendered acceptance.
+
+#320 remains draft and #272 remains open. Provider setup, rendered native/Stats data and both installation orders still require their own approved bounded proof.
