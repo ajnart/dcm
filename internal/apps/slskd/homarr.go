@@ -59,7 +59,7 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	var version string
-	if response.Decode(&version) != nil || version != "0.26.1" {
+	if response.Decode(&version) != nil || version != "0.26.1" && version != "0.26.1.0" {
 		return errors.New("this Slskd Link supports version 0.26.1; back up Slskd, run self-host update slskd, then retry self-host setup slskd")
 	}
 	if _, err := readServer(ctx, h); err != nil {
