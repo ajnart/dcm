@@ -1,18 +1,17 @@
-import type { DockerSettings } from "@/components/settings-panel"
 import type { DockerTool } from "@/lib/docker-tools"
-import posthog from "posthog-js"
 import { toast } from "sonner"
 
 export async function copyToClipboard(
   content: string,
   fileType: "compose" | "env",
   selectedTools: DockerTool[],
-  settings: DockerSettings,
 ): Promise<boolean> {
   try {
     // Check if we're in a secure context and clipboard API is available
     if (!navigator.clipboard) {
-      throw new Error("Clipboard API not available. This feature requires HTTPS or localhost.")
+      throw new Error(
+        "Clipboard API not available. This feature requires HTTPS or localhost.",
+      )
     }
 
     await navigator.clipboard.writeText(content)
@@ -25,19 +24,14 @@ export async function copyToClipboard(
       },
     )
 
-    posthog.capture("copy_compose_success", {
-      selected_tools: selectedTools.map((t) => t.id),
-      settings: settings,
-      file_type: fileType,
-    })
-
     return true
   } catch (err) {
     console.error("Failed to copy: ", err)
 
-    const errorMessage = err instanceof Error ? err.message : "An error occurred while copying"
+    const errorMessage =
+      err instanceof Error ? err.message : "An error occurred while copying"
     toast.error("Failed to copy to clipboard", {
-      description: errorMessage.includes("not available") 
+      description: errorMessage.includes("not available")
         ? "Please ensure you're using HTTPS or localhost"
         : errorMessage,
       duration: 5000,
@@ -51,7 +45,6 @@ export function downloadFile(
   content: string,
   fileType: "compose" | "env",
   selectedTools: DockerTool[],
-  settings: DockerSettings,
 ): void {
   const filename = fileType === "compose" ? "docker-compose.yaml" : ".env"
 
@@ -73,12 +66,6 @@ export function downloadFile(
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     }, 100)
-
-    posthog.capture("download_compose_file", {
-      selected_tools: selectedTools.map((t) => t.id),
-      settings: settings,
-      file_type: fileType,
-    })
   } catch (err) {
     console.error("Failed to download file: ", err)
 

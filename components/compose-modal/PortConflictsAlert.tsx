@@ -16,18 +16,31 @@ function parseConflicts(conflicts: string[]) {
     const portMatch = lines[0].match(/Port (\d+) was used by: (.+)/)
     const port = portMatch ? portMatch[1] : "?"
     const services = portMatch ? portMatch[2].split(", ") : []
-    const changes = lines.slice(1).map((line) => {
-      const changeMatch = line.match(/→ Changed ([^:]+): (\d+) → (\d+)/)
-      if (changeMatch) {
-        return {
-          service: changeMatch[1],
-          oldPort: changeMatch[2],
-          newPort: changeMatch[3],
+    const changes = lines
+      .slice(1)
+      .map((line) => {
+        const changeMatch = line.match(/→ Changed ([^:]+): (\d+) → (\d+)/)
+        if (changeMatch) {
+          return {
+            service: changeMatch[1],
+            oldPort: changeMatch[2],
+            newPort: changeMatch[3],
+          }
         }
-      }
-      return null
-    }).filter(Boolean) as { service: string; oldPort: string; newPort: string }[]
-    return { port, services, changes, raw: conflict, parsed: Boolean(portMatch) }
+        return null
+      })
+      .filter(Boolean) as {
+      service: string
+      oldPort: string
+      newPort: string
+    }[]
+    return {
+      port,
+      services,
+      changes,
+      raw: conflict,
+      parsed: Boolean(portMatch),
+    }
   })
 }
 
@@ -58,8 +71,8 @@ export default function PortConflictsAlert({
                 <>
                   <div className="mb-1 flex items-center gap-1.5 font-medium text-xs">
                     <AlertCircle className="h-3 w-3 text-amber-500" />
-                    Port <span className="font-mono">{item.port}</span> was shared by:{" "}
-                    {item.services.join(", ")}
+                    Port <span className="font-mono">{item.port}</span> was
+                    shared by: {item.services.join(", ")}
                   </div>
                   {item.changes.length > 0 && (
                     <div className="space-y-0.5">
@@ -92,7 +105,8 @@ export default function PortConflictsAlert({
           ))}
         </div>
         <p className="mt-2 text-muted-foreground">
-          Review the generated compose file to ensure the new ports work for your setup.
+          Review the generated compose file to ensure the new ports work for
+          your setup.
         </p>
       </AlertDescription>
     </Alert>

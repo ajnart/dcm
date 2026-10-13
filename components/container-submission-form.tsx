@@ -44,7 +44,7 @@ import {
   AlertTriangle,
   CheckCircle,
   ExternalLink,
-  Github,
+  GitPullRequest,
   Info,
   PlusCircle,
 } from "lucide-react"
@@ -288,15 +288,16 @@ export function ContainerSubmissionForm() {
                   </FormControl>
                   <p className="text-muted-foreground text-xs">
                     We recommend using icons from{" "}
-                    <a 
-                      href="https://github.com/homarr-labs/dashboard-icons" 
-                      target="_blank" 
+                    <a
+                      href="https://github.com/homarr-labs/dashboard-icons"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="font-medium text-primary underline underline-offset-4"
                     >
                       homarr-labs/dashboard-icons
                     </a>
-                    . Format: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/[name].svg
+                    . Format:
+                    https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/[name].svg
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -432,7 +433,7 @@ export function ContainerSubmissionForm() {
                 onClick={openGitHubIssue}
                 className="flex items-center gap-2"
               >
-                <Github size={18} />
+                <GitPullRequest size={18} />
                 <span>Open GitHub Issue template directly</span>
               </Button>
 

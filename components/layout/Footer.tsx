@@ -1,3 +1,4 @@
+import { buildSelfHostLink } from "@/lib/selfhost"
 import { HeartIcon } from "lucide-react"
 import Link from "next/link"
 
@@ -18,6 +19,17 @@ export function Footer() {
           >
             ajnart
           </Link>
+        </p>
+        <p className="mt-2 text-sm">
+          Prefer a guided install?{" "}
+          <a
+            href={buildSelfHostLink()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium transition-colors hover:text-primary hover:underline"
+          >
+            self-host
+          </a>
         </p>
       </div>
     </footer>

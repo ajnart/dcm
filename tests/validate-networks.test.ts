@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
-import { composeContentSchema, validateComposeContent } from "../lib/docker-tools"
+import {
+  composeContentSchema,
+  validateComposeContent,
+} from "../lib/docker-tools"
 
 describe("Docker Compose Networks Validation", () => {
   test("should validate the exact example from issue (erugo app with networks)", () => {
@@ -110,7 +113,9 @@ networks:
   mynet:
     external: true`
 
-    const schemaResult = composeContentSchema.safeParse(composeWithExternalNetwork)
+    const schemaResult = composeContentSchema.safeParse(
+      composeWithExternalNetwork,
+    )
     expect(schemaResult.success).toBe(true)
 
     const validationResult = validateComposeContent(composeWithExternalNetwork)

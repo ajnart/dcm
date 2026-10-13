@@ -13,17 +13,17 @@ describe("Template Definitions Structure", () => {
 
   test("template categories should be properly imported", () => {
     // Verify TemplateCategory enum is properly imported and working
-    expect(TemplateCategory.MEDIA).toBe("Media")
-    expect(TemplateCategory.DEVELOPMENT).toBe("Development")
-    expect(TemplateCategory.MONITORING).toBe("Monitoring")
-    expect(TemplateCategory.DATABASE).toBe("Database")
-    expect(TemplateCategory.PRODUCTIVITY).toBe("Productivity")
-    expect(TemplateCategory.SECURITY).toBe("Security")
-    expect(TemplateCategory.OTHER).toBe("Other")
+    expect<string>(TemplateCategory.MEDIA).toBe("Media")
+    expect<string>(TemplateCategory.DEVELOPMENT).toBe("Development")
+    expect<string>(TemplateCategory.MONITORING).toBe("Monitoring")
+    expect<string>(TemplateCategory.DATABASE).toBe("Database")
+    expect<string>(TemplateCategory.PRODUCTIVITY).toBe("Productivity")
+    expect<string>(TemplateCategory.SECURITY).toBe("Security")
+    expect<string>(TemplateCategory.OTHER).toBe("Other")
   })
 
   test("templates should use valid template categories", () => {
-    const validCategories = Object.values(TemplateCategory)
+    const validCategories: string[] = Object.values(TemplateCategory)
 
     templates.forEach((template) => {
       expect(validCategories).toContain(template.category)
@@ -80,8 +80,8 @@ describe("Template Selection Utilities", () => {
 describe("Template Selection/Unselection Logic", () => {
   test("selecting a template should add its tools without duplicates", () => {
     // Setup initial state
-    const mockSetStoredTools = mock(() => {})
-    const mockSetSelectedTemplateIds = mock(() => {})
+    const mockSetStoredTools = mock((_value: unknown) => {})
+    const mockSetSelectedTemplateIds = mock((_value: unknown) => {})
     const currentStoredTools: string[] = ["tool1", "tool2"]
     const templateTools = [
       { id: "tool2", name: "Tool 2" },
@@ -95,7 +95,7 @@ describe("Template Selection/Unselection Logic", () => {
       ...new Set([...currentStoredTools, ...templateToolIds]),
     ]
     mockSetStoredTools(newSelection)
-    mockSetSelectedTemplateIds((prev) => [...prev, template.id])
+    mockSetSelectedTemplateIds((prev: string[]) => [...prev, template.id])
 
     // Verify expectations
     expect(mockSetStoredTools).toHaveBeenCalledTimes(1)
@@ -108,8 +108,8 @@ describe("Template Selection/Unselection Logic", () => {
 
   test("unselecting a template should remove only its tools", () => {
     // Setup initial state
-    const mockSetStoredTools = mock(() => {})
-    const mockSetSelectedTemplateIds = mock(() => {})
+    const mockSetStoredTools = mock((_value: unknown) => {})
+    const mockSetSelectedTemplateIds = mock((_value: unknown) => {})
     const currentStoredTools: string[] = ["tool1", "tool2", "tool3", "tool4"]
     const templateToolsToRemove = ["tool2", "tool3"]
     const templateId = "template1"
@@ -119,7 +119,9 @@ describe("Template Selection/Unselection Logic", () => {
       (id) => !templateToolsToRemove.includes(id),
     )
     mockSetStoredTools(newSelection)
-    mockSetSelectedTemplateIds((prev) => prev.filter((id) => id !== templateId))
+    mockSetSelectedTemplateIds((prev: string[]) =>
+      prev.filter((id) => id !== templateId),
+    )
 
     // Verify expectations
     expect(mockSetStoredTools).toHaveBeenCalledTimes(1)

@@ -56,7 +56,7 @@ export default function SettingsPanel({
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="w-full overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow duration-300 hover:shadow-md"
+        className="w-full overflow-hidden rounded-lg border bg-card shadow-xs transition-shadow duration-300 hover:shadow-md"
       >
         <div className="flex items-center justify-between bg-muted/30 px-4 py-3">
           <div className="flex items-center gap-2">

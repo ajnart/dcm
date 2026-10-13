@@ -83,7 +83,6 @@ export function TemplateClient({
       contentToDownload,
       activeTab as "compose" | "env",
       templateTools,
-      settings,
     )
   }
 
@@ -98,7 +97,6 @@ export function TemplateClient({
       contentToCopy,
       activeTab as "compose" | "env",
       templateTools,
-      settings,
     )
 
     if (success) {
@@ -228,7 +226,7 @@ export function TemplateClient({
         <div className="mb-8">
           <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             {template.icon && (
-              <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border bg-background shadow-sm sm:h-20 sm:w-20">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-background shadow-xs sm:h-20 sm:w-20">
                 <Image
                   alt={template.name}
                   className="object-contain p-2"
@@ -275,7 +273,7 @@ export function TemplateClient({
           </div>
         </div>
 
-        <Card className="mb-8 border shadow-sm">
+        <Card className="mb-8 border shadow-xs">
           <Tabs
             defaultValue="services"
             value={activeTab}
@@ -326,10 +324,10 @@ export function TemplateClient({
                   {templateTools.map((tool) => (
                     <div
                       key={tool.id}
-                      className="flex flex-col items-start gap-4 rounded-md border bg-card p-4 shadow-sm transition-colors hover:bg-accent/10 sm:flex-row sm:items-center"
+                      className="flex flex-col items-start gap-4 rounded-md border bg-card p-4 shadow-xs transition-colors hover:bg-accent/10 sm:flex-row sm:items-center"
                     >
                       {tool.icon && (
-                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border bg-background">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-background">
                           <Image
                             alt={tool.name}
                             className="object-contain p-1"
@@ -393,7 +391,7 @@ export function TemplateClient({
                       {unavailableTools.map((tool) => (
                         <div
                           key={tool.id}
-                          className="flex items-center gap-3 rounded-md border bg-muted/30 p-4 shadow-sm"
+                          className="flex items-center gap-3 rounded-md border bg-muted/30 p-4 shadow-xs"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-medium">
@@ -437,7 +435,7 @@ export function TemplateClient({
                   />
                 </div>
 
-                <div className="h-[750px] w-full rounded-md border bg-card shadow-sm">
+                <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <ComposeEditor
                     value={content}
                     onMount={handleComposeEditorDidMount}
@@ -461,7 +459,7 @@ export function TemplateClient({
                   />
                 </div>
 
-                <div className="h-[750px] w-full rounded-md border bg-card shadow-sm">
+                <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <EnvEditor
                     value={envContent}
                     onMount={handleEnvEditorDidMount}

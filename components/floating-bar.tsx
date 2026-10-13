@@ -2,16 +2,16 @@
 
 import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
+import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
-import type { DockerTool } from "@/lib/docker-tools"
-import { useSettings } from "@/lib/settings-context"
+import { type Catalog, resolveSelection, toSelfHostIds } from "@/lib/catalog"
+import { buildSelfHostLink } from "@/lib/selfhost"
 import { generateShareUrl } from "@/lib/url-utils"
 import { cn } from "@/lib/utils"
-import { RefreshCw, Search, Share2 } from "lucide-react"
+import { ExternalLink, RefreshCw, Search, Share2 } from "lucide-react"
 import dynamic from "next/dynamic"
-import posthog from "posthog-js"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 // Dynamically import CopyComposeModal with loading state
@@ -26,23 +26,19 @@ const CopyComposeModal = dynamic(
 )
 
 interface FloatingBarProps {
-  selectedCount: number
-  selectedTools: string[]
-  selectedToolIds: string[]
-  onReset?: () => void
-  onToggleToolSelection?: (toolId: string) => void
+  catalog: Catalog
+  ids: string[]
+  onToggle: (id: string) => void
+  onClear: () => void
   scrollPosition?: number
-  selectedToolObjects: DockerTool[]
 }
 
 export default function FloatingBar({
-  selectedCount,
-  selectedTools,
-  selectedToolIds,
-  onReset,
-  onToggleToolSelection,
+  catalog,
+  ids,
+  onToggle,
+  onClear,
   scrollPosition = 200,
-  selectedToolObjects,
 }: FloatingBarProps) {
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
   const [isFixed, setIsFixed] = useState(false)
@@ -50,8 +46,11 @@ export default function FloatingBar({
   const [isMounted, setIsMounted] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [isResetActive, setIsResetActive] = useState(false)
-  const { settings, resetSettings } = useSettings()
   const { copy } = useClipboard()
+
+  const resolved = useMemo(() => resolveSelection(ids, catalog), [ids, catalog])
+  const selfHostIds = useMemo(() => toSelfHostIds(ids, catalog), [ids, catalog])
+  const selectedCount = resolved.entries.length
 
   useEffect(() => {
     setIsMounted(true)
@@ -80,7 +79,7 @@ export default function FloatingBar({
       return
     }
 
-    if (onReset) onReset()
+    onClear()
     setIsResetActive(false)
   }
 
@@ -94,7 +93,7 @@ export default function FloatingBar({
     if (selectedCount === 0) return
 
     // Generate encoded share URL
-    const shareUrl = generateShareUrl(selectedToolIds)
+    const shareUrl = generateShareUrl(ids)
 
     // Show animation state
     setIsSharing(true)
@@ -105,11 +104,6 @@ export default function FloatingBar({
     if (success) {
       toast.success("Share URL copied to clipboard!", {
         description: "Share this link to show your selected services",
-      })
-
-      posthog.capture("share_selection_clipboard", {
-        selected_tools: selectedTools,
-        url: shareUrl,
       })
     } else {
       toast.error("Failed to copy URL", {
@@ -137,26 +131,15 @@ export default function FloatingBar({
 
   return (
     <>
-      {onToggleToolSelection && (
-        <SearchCommand
-          selectedTools={selectedToolIds}
-          onToggleToolSelection={onToggleToolSelection}
-        />
-      )}
+      <SearchCommand catalog={catalog} selected={ids} onToggle={onToggle} />
 
       {isMounted && (
         <CopyComposeModal
           isOpen={isCopyDialogOpen}
-          onOpenChange={(open) => {
-            if (open) {
-              posthog.capture("copy_compose_opened", {
-                selected_tools: selectedTools,
-                settings: settings,
-              })
-            }
-            setIsCopyDialogOpen(open)
-          }}
-          selectedTools={selectedToolObjects}
+          onOpenChange={setIsCopyDialogOpen}
+          selectedTools={resolved.yamlTools}
+          yamlMissing={resolved.yamlMissing}
+          selfHostIds={selfHostIds}
         />
       )}
 
@@ -186,9 +169,9 @@ export default function FloatingBar({
                 {selectedCount > 0 && (
                   <div className="flex max-w-full flex-wrap gap-1.5 sm:max-w-[600px]">
                     <ServiceCircles
-                      selectedServices={selectedToolObjects}
+                      selectedServices={resolved.entries}
                       spacing="-space-x-1 xs:-space-x-2 sm:-space-x-4"
-                      onToggleServiceSelection={onToggleToolSelection}
+                      onToggleServiceSelection={onToggle}
                       className="mt-1"
                     />
                   </div>
@@ -202,7 +185,6 @@ export default function FloatingBar({
                   variant="outline"
                   className="flex items-center gap-2 transition-transform motion-safe:hover:scale-105"
                   onClick={triggerSearchShortcut}
-                  disabled={!onToggleToolSelection}
                 >
                   <Search className="h-3.5 w-3.5" />
                   <span className="xs:inline hidden">Search</span>
@@ -229,34 +211,32 @@ export default function FloatingBar({
                   <span className="xs:inline hidden">Share</span>
                 </Button>
 
-                {onReset && (
-                  <Button
-                    variant={isResetActive ? "destructive" : "outline"}
-                    disabled={selectedCount === 0}
-                    onClick={handleResetClick}
-                    onMouseLeave={handleResetMouseLeave}
-                    className="group relative flex items-center gap-2 transition-all motion-safe:hover:scale-105"
-                  >
-                    <RefreshCw
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        isResetActive && "animate-spin",
-                      )}
-                    />
-                    {!isResetActive ? (
-                      <span className="xs:inline hidden xs:min-w-16">
-                        Unselect
-                      </span>
-                    ) : (
-                      <span className="motion-preset-shake xs:min-w-16 text-destructive-foreground">
-                        <span className="xs:inline hidden">U sure?</span>
-                      </span>
+                <Button
+                  variant={isResetActive ? "destructive" : "outline"}
+                  disabled={selectedCount === 0}
+                  onClick={handleResetClick}
+                  onMouseLeave={handleResetMouseLeave}
+                  className="group relative flex items-center gap-2 transition-all motion-safe:hover:scale-105"
+                >
+                  <RefreshCw
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      isResetActive && "animate-spin",
                     )}
-                  </Button>
-                )}
+                  />
+                  {!isResetActive ? (
+                    <span className="xs:inline hidden xs:min-w-16">
+                      Unselect
+                    </span>
+                  ) : (
+                    <span className="motion-preset-shake xs:min-w-16 text-destructive-foreground">
+                      <span className="xs:inline hidden">U sure?</span>
+                    </span>
+                  )}
+                </Button>
               </div>
               <Button
-                disabled={selectedCount === 0}
+                disabled={resolved.yamlTools.length === 0}
                 className="hover:motion-preset-confetti xs:w-auto font-semibold"
                 onClick={() => setIsCopyDialogOpen(true)}
               >
@@ -264,6 +244,21 @@ export default function FloatingBar({
               </Button>
             </div>
           </div>
+
+          {selfHostIds.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2 border-t pt-3 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
+              <SelfHostCommand ids={selfHostIds} />
+              <a
+                href={buildSelfHostLink(selfHostIds)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 transition-colors hover:text-primary hover:underline"
+              >
+                Rather not manage YAML? Try the self-host preview
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </>

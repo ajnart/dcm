@@ -10,19 +10,18 @@ import {
 } from "@/components/ui/hover-card"
 import { StarCount } from "@/components/ui/star-count"
 import { TruncatedText } from "@/components/ui/truncated-text"
-import type { DockerTool } from "@/lib/docker-tools"
+import type { CatalogEntry } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import posthog from "posthog-js"
 
 interface DockerCardProps {
-  tool: DockerTool
+  entry: CatalogEntry
   isSelected: boolean
   onSelect: () => void
 }
 
 export default function DockerCard({
-  tool,
+  entry,
   isSelected,
   onSelect,
 }: DockerCardProps) {
@@ -30,48 +29,42 @@ export default function DockerCard({
     if (
       (e.target as Element).closest(".github-link") ||
       (e.target as Element).closest(".description-expand") ||
-      tool.isUnsupported
+      entry.isUnsupported
     ) {
       e.stopPropagation()
       return
     }
     onSelect()
-    posthog.capture("service_selected", {
-      service_id: tool.id,
-      service_name: tool.name,
-      service_category: tool.category,
-      service_tags: tool.tags,
-    })
   }
 
   const CardComponent = (
     <Card
       className={cn(
         "group relative h-full cursor-pointer select-none overflow-hidden rounded-sm transition-all hover:shadow-md",
-        isSelected && !tool.isUnsupported
+        isSelected && !entry.isUnsupported
           ? "bg-secondary"
-          : tool.isUnsupported
+          : entry.isUnsupported
             ? "hover:border-destructive/50"
             : "hover:border-muted-foreground/20",
-        "hover:motion-safe:scale-105",
+        "motion-safe:hover:scale-105",
       )}
       onClick={handleCardClick}
     >
       <div
         className={cn(
           "h-1 w-full transition-colors duration-300",
-          isSelected && !tool.isUnsupported
+          isSelected && !entry.isUnsupported
             ? "bg-primary"
-            : tool.isUnsupported
+            : entry.isUnsupported
               ? "bg-transparent group-hover:bg-destructive/50"
               : "bg-transparent group-hover:bg-primary/30",
         )}
       />
 
-      {tool.githubUrl && (
+      {entry.githubUrl && (
         <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
-          {tool.stars !== undefined && <StarCount count={tool.stars} />}
-          <GitHubLink url={tool.githubUrl} toolId={tool.id} />
+          {entry.stars !== undefined && <StarCount count={entry.stars} />}
+          <GitHubLink url={entry.githubUrl} />
         </div>
       )}
 
@@ -80,33 +73,41 @@ export default function DockerCard({
           <div
             className={cn(
               "flex h-10 w-10 items-center justify-center overflow-hidden rounded-md transition-all duration-300",
-              isSelected && !tool.isUnsupported
+              isSelected && !entry.isUnsupported
                 ? "bg-primary/40 text-primary-foreground"
                 : "bg-primary/10 text-primary group-hover:bg-primary/20",
             )}
           >
-            {tool.icon ? (
+            {entry.icon ? (
               <img
-                src={tool.icon}
-                alt={tool.name}
+                src={entry.icon}
+                alt={entry.name}
                 className="h-full min-h-4 w-full min-w-4 p-1.5"
               />
             ) : (
-              <div className="font-bold">{tool.name.charAt(0)}</div>
+              <div className="font-bold">{entry.name.charAt(0)}</div>
             )}
           </div>
           <div className="flex w-full items-center justify-between gap-2">
             <h3 className="font-mono font-semibold tracking-tight">
-              {tool.name}
+              {entry.name}
             </h3>
-            <p className="text-muted-foreground text-xs">{tool.category}</p>
+            <p className="text-muted-foreground text-xs">{entry.category}</p>
           </div>
         </div>
         <div className="mb-3">
-          <TruncatedText text={tool.description} />
+          <TruncatedText text={entry.description} />
         </div>
         <div className="mt-auto flex flex-wrap gap-1">
-          {tool.tags.map((tag) => (
+          {entry.selfhostOnly && (
+            <Badge
+              variant="default"
+              className="rounded-md px-1 font-normal text-xs"
+            >
+              self-host only
+            </Badge>
+          )}
+          {entry.tags.map((tag) => (
             <Badge
               key={tag}
               variant="outline"
@@ -120,7 +121,7 @@ export default function DockerCard({
     </Card>
   )
 
-  if (tool.isUnsupported) {
+  if (entry.isUnsupported) {
     return (
       <HoverCard openDelay={100} closeDelay={100}>
         <HoverCardTrigger asChild>{CardComponent}</HoverCardTrigger>
@@ -133,7 +134,7 @@ export default function DockerCard({
               instructions.
             </p>
             <Link
-              href={tool.githubUrl || "#"}
+              href={entry.githubUrl || "#"}
               target="_blank"
               className="text-primary text-sm hover:underline"
             >

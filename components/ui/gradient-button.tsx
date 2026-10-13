@@ -29,7 +29,7 @@ export function GradientButton({
       <span className="relative z-10 flex items-center gap-2">{children}</span>
       <span
         className={cn(
-          "absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100",
+          "absolute inset-0 bg-linear-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100",
           gradientFrom,
           gradientTo
         )}

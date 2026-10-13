@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
 import SettingsForm from "@/components/settings/SettingsForm"
-import type { DockerTool } from "@/lib/docker-tools"
+import type { CatalogEntry } from "@/lib/catalog"
 import { useSettings } from "@/lib/settings-context"
 
 import {
@@ -40,17 +40,22 @@ import {
 } from "@/lib/docker-compose/generators"
 import ActionButtons from "./ActionButtons"
 import PortConflictsAlert from "./PortConflictsAlert"
+import SelfHostCallout from "./SelfHostCallout"
 
 interface CopyComposeModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  selectedTools: DockerTool[]
+  selectedTools: CatalogEntry[]
+  yamlMissing: CatalogEntry[]
+  selfHostIds: string[]
 }
 
 export function CopyComposeModal({
   isOpen,
   onOpenChange,
   selectedTools,
+  yamlMissing,
+  selfHostIds,
 }: CopyComposeModalProps) {
   const [showInterpolated, setShowInterpolated] = useState(false)
   const [composeContent, setComposeContent] = useState<string>("")
@@ -119,7 +124,6 @@ export function CopyComposeModal({
       content,
       activeTab as "compose" | "env",
       selectedTools,
-      settings,
     )
 
     if (success) {
@@ -145,12 +149,7 @@ export function CopyComposeModal({
         ? composeEditorRef.current?.getValue() || composeContent
         : envEditorRef.current?.getValue() || envFileContent
 
-    downloadFile(
-      content,
-      activeTab as "compose" | "env",
-      selectedTools,
-      settings,
-    )
+    downloadFile(content, activeTab as "compose" | "env", selectedTools)
   }
 
   const handleComposeEditorDidMount = (
@@ -184,7 +183,7 @@ export function CopyComposeModal({
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="flex h-[90vh] max-w-[95vw] flex-col overflow-y-auto">
-        <AlertDialogHeader className="flex flex-row items-center justify-between">
+        <AlertDialogHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
             <AlertDialogTitle>Docker Compose Configuration</AlertDialogTitle>
             <AlertDialogDescription>
@@ -283,7 +282,8 @@ export function CopyComposeModal({
           </Tabs>
         </div>
 
-        <AlertDialogFooter className="mt-4">
+        <AlertDialogFooter className="mt-4 sm:items-center">
+          <SelfHostCallout ids={selfHostIds} yamlMissing={yamlMissing} />
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onOpenChange.bind(null, false)}>
             Done

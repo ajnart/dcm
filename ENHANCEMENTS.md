@@ -41,15 +41,6 @@ This document lists potential enhancements, bug fixes, and improvements that cou
 
 **Impact:** Better user experience, easier to find containers
 
-#### 2. Dark/Light Mode Toggle
-**Priority:** Medium  
-**Description:** The app uses next-themes but may benefit from:
-- More prominent theme toggle button
-- Theme preview before switching
-- Persist theme preference
-
-**Impact:** Better accessibility and user preference support
-
 #### 3. Container Comparison Feature
 **Priority:** Medium  
 **Description:** Allow users to compare similar containers side-by-side:
