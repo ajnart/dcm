@@ -30,39 +30,30 @@ type PortProbe struct {
 // ProbePort tries the wildcard, loopback and IPv6 wildcard addresses used by
 // Docker port publishing. Each successful bind is closed immediately.
 func ProbePort(deps *system.Deps, port int) []PortProbe {
-	addresses := []struct {
-		network string
-		address string
-		bind    string
-	}{
-		{network: "tcp4", address: "0.0.0.0", bind: "0.0.0.0:" + strconv.Itoa(port)},
-		{network: "tcp4", address: "127.0.0.1", bind: "127.0.0.1:" + strconv.Itoa(port)},
-		{network: "tcp6", address: "::", bind: "[::]:" + strconv.Itoa(port)},
-	}
-	probes := make([]PortProbe, 0, len(addresses))
-	for _, address := range addresses {
-		result, class := classifyBind(deps.BindTCP(address.network, address.bind))
-		probes = append(probes, PortProbe{Network: address.network, Address: address.address,
-			Port: port, Result: result, ErrorClass: class})
-	}
-	return probes
+	return probePort("tcp", deps.BindTCP, port)
 }
 
 // ProbeUDPPort tries the UDP wildcard and loopback addresses Docker may bind.
 func ProbeUDPPort(deps *system.Deps, port int) []PortProbe {
+	return probePort("udp", deps.BindUDP, port)
+}
+
+func probePort(protocol string, bind func(network, address string) error, port int) []PortProbe {
+	portText := strconv.Itoa(port)
 	addresses := []struct {
-		network string
+		family  string
 		address string
 		bind    string
 	}{
-		{network: "udp4", address: "0.0.0.0", bind: "0.0.0.0:" + strconv.Itoa(port)},
-		{network: "udp4", address: "127.0.0.1", bind: "127.0.0.1:" + strconv.Itoa(port)},
-		{network: "udp6", address: "::", bind: "[::]:" + strconv.Itoa(port)},
+		{family: "4", address: "0.0.0.0", bind: "0.0.0.0:" + portText},
+		{family: "4", address: "127.0.0.1", bind: "127.0.0.1:" + portText},
+		{family: "6", address: "::", bind: "[::]:" + portText},
 	}
 	probes := make([]PortProbe, 0, len(addresses))
 	for _, address := range addresses {
-		result, class := classifyBind(deps.BindUDP(address.network, address.bind))
-		probes = append(probes, PortProbe{Network: address.network, Address: address.address,
+		network := protocol + address.family
+		result, class := classifyBind(bind(network, address.bind))
+		probes = append(probes, PortProbe{Network: network, Address: address.address,
 			Port: port, Result: result, ErrorClass: class})
 	}
 	return probes
