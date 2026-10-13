@@ -26,6 +26,7 @@ import (
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
 	"github.com/ajnart/self-host/internal/systemtest"
+	"github.com/ajnart/self-host/internal/telemetry"
 )
 
 type fakeBackend struct {
@@ -95,6 +96,8 @@ type fakeBackend struct {
 	restartErr  error
 	// telemetryNotice is what TelemetryNotice announces, once.
 	telemetryNotice string
+	// onboardingReports is every event ReportOnboarding received.
+	onboardingReports []telemetry.Onboarding
 }
 
 func (b *fakeBackend) CloudflarePlan(opts service.CloudflareOptions) (service.CloudflarePlan, error) {
@@ -128,6 +131,24 @@ func (f *fakeBackend) TelemetryNotice() string {
 	notice := f.telemetryNotice
 	f.telemetryNotice = ""
 	return notice
+}
+
+func (f *fakeBackend) PendingTelemetryNotice() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.telemetryNotice
+}
+
+func (f *fakeBackend) ReportOnboarding(o telemetry.Onboarding) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.onboardingReports = append(f.onboardingReports, o)
+}
+
+func (f *fakeBackend) reportedOnboarding() []telemetry.Onboarding {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]telemetry.Onboarding(nil), f.onboardingReports...)
 }
 
 func (f *fakeBackend) usageStreams() (started, running int) {

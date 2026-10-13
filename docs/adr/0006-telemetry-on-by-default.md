@@ -47,3 +47,8 @@ in the UI first. A public dashboard may come later; none is promised today.
 On by default was chosen over opt-in because opt-in data from a self-hosting
 audience is too sparse to steer by. The documented scope and never-sent rules
 make that acceptable; widening either needs a new ADR.
+
+## Amendment: the onboarding event and the experience person property
+
+[ADR 0009](0009-onboarding-event-and-experience-property.md) adds one
+`onboarding` event on approving Review and the person property `experience`.
