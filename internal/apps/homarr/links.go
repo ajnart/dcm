@@ -66,7 +66,6 @@ type target struct {
 	internal  func(to *helpers.H) string
 	secrets   func(from, to *helpers.H) []secret
 	widgets   []widget
-	recovery  string
 	preflight func(ctx context.Context, from, to *helpers.H) error
 	verify    func(ctx context.Context, from, to *helpers.H, integrationID string) error
 	stats     func(statsSample) error
@@ -153,9 +152,6 @@ func iconURL(id string) string {
 }
 
 func (t target) hint(from *helpers.H) string {
-	if t.recovery != "" {
-		return t.recovery
-	}
 	if t.id == "ntfy" {
 		return "Run self-host setup ntfy to repair its saved Homarr token, then run self-host setup homarr."
 	}
@@ -992,6 +988,21 @@ func browserAddress(ctx context.Context, from, to *helpers.H) (string, error) {
 }
 
 func (t target) remove(ctx context.Context, from, to *helpers.H) error {
+	if recordedID := managedAppIDs(from)[t.id]; recordedID != "" {
+		apps, err := listApps(ctx, from)
+		if err != nil {
+			return err
+		}
+		for _, item := range apps {
+			if appID(item) != recordedID || !strings.HasPrefix(stringField(item, "description"), retainedTileMarker) {
+				continue
+			}
+			if err := t.releaseApp(ctx, from, recordedID); err != nil {
+				return err
+			}
+			return ensureNotebook(ctx, from)
+		}
+	}
 	internal := t.internal(to)
 	keepIntegration := false
 	if t.kind != "" {
