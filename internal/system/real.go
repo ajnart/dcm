@@ -223,9 +223,6 @@ func portFree(port int) bool {
 	for _, addr := range [][2]string{{"tcp4", "0.0.0.0:" + p}, {"tcp4", "127.0.0.1:" + p}, {"tcp6", "[::]:" + p}} {
 		listener, err := net.Listen(addr[0], addr[1])
 		if err != nil {
-			if port == 80 && errors.Is(err, os.ErrPermission) {
-				return false
-			}
 			if bindMeansBusy(addr[0], err) {
 				return false
 			}
