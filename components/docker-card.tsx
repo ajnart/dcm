@@ -35,7 +35,7 @@ export default function DockerCard({
     <div className="group relative h-full">
       <button
         type="button"
-        aria-pressed={isSelected}
+        aria-pressed={isSelected && !entry.isUnsupported}
         onClick={handleClick}
         className={cn(
           "card-top hover:-translate-x-0.5 hover:-translate-y-0.5 flex h-full w-full cursor-pointer select-none flex-col border border-line bg-panel p-4 pt-5 text-left shadow-sm transition-all hover:shadow-md",
