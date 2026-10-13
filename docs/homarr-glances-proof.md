@@ -1,8 +1,14 @@
 # Glances Link source contract (#281)
 
+Source status, 13 October 2026 (before this docs update):
+`f73981b4dccdbc34f022110e499f0909367dd092`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 This is source verification, not functional runtime acceptance. The descriptor
 uses the [reference ownership contract](homarr-integration-contract.md). Its
-registration in `targets.go` belongs to the reference lane and is outstanding.
+registration in `targets.go` was completed by the reference owner.
 
 ## Version and authentication
 
@@ -67,7 +73,7 @@ unchanged; keep this no-auth API private because it can reveal process details.
 
 ## Acceptance still outstanding
 
-The parent runtime batch must register `glancesTarget()`, record resolved image
+The parent runtime batch must record resolved image
 digests, and verify real API data and rendered widgets in an approved disposable
 Project with development Telemetry disabled. Source-shaped fixtures and shared
 ownership tests are not a live lifecycle proof. Both installation orders,
