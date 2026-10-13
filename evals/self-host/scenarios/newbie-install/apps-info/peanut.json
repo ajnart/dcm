@@ -1,0 +1,10 @@
+{
+  "id": "peanut",
+  "name": "PeaNUT",
+  "description": "Check on your battery backup (UPS) with a live dashboard",
+  "category": "Monitoring",
+  "image": "brandawg93/peanut:6.0.0",
+  "docs": "https://github.com/Brandawg93/PeaNUT#readme",
+  "port": 8080,
+  "inputs": []
+}

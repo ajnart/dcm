@@ -1,0 +1,5 @@
+{"event":"run.start","msg":"setup sonarr"}
+{"event":"step.skip","app":"sonarr","step":"image","msg":"sonarr: image already pulled"}
+{"event":"step.start","app":"sonarr","step":"download-client"}
+{"event":"step.ok","app":"sonarr","step":"download-client","msg":"sonarr: download client added"}
+{"event":"run.end","msg":"setup: ok"}
