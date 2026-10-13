@@ -1,0 +1,52 @@
+docs/handoffs/release-2026-10-13/APP-QUEUE.md
+  h_d6e478ca18e517 3-4,7-47
+docs/handoffs/release-2026-10-13/CHECKPOINTS.md
+  h_d6e478ca18e517 3-4
+docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md
+  h_d6e478ca18e517 10,15,31-36,45-54,56-60,65-68,74-75,90-95
+docs/handoffs/release-2026-10-13/HANDOFF.md
+  h_d6e478ca18e517 5-6
+docs/handoffs/release-2026-10-13/LATEST-UPDATE.md
+  h_d6e478ca18e517 1-61
+docs/handoffs/release-2026-10-13/PR-HISTORY.md
+  h_d6e478ca18e517 134-143
+docs/handoffs/release-2026-10-13/PR-STACKS.md
+  h_d6e478ca18e517 5-6,1696-2035
+docs/handoffs/release-2026-10-13/SHA256SUMS
+  h_d6e478ca18e517 2-10,31,76,79,86-88,96,98,121,128
+docs/handoffs/release-2026-10-13/START-HERE.md
+  h_d6e478ca18e517 5-6,29-30,45,50
+docs/handoffs/release-2026-10-13/TRACKER-INVENTORY.md
+  h_d6e478ca18e517 5-7
+docs/handoffs/release-2026-10-13/export-provenance.json
+  h_d6e478ca18e517 372-385
+docs/handoffs/release-2026-10-13/github/concurrent-additional-prs.json
+  h_d6e478ca18e517 1-980
+docs/handoffs/release-2026-10-13/github/handoff-publication.json
+  h_d6e478ca18e517 1-15
+docs/handoffs/release-2026-10-13/github/pr-356-concurrent-detail.json
+  h_d6e478ca18e517 1-627
+docs/handoffs/release-2026-10-13/github/pr-356-files.complete.json
+  h_d6e478ca18e517 1-1066
+docs/handoffs/release-2026-10-13/github/pr-357-concurrent-detail.json
+  h_d6e478ca18e517 1-39
+docs/handoffs/release-2026-10-13/references/concurrent-release-handoff.pr-356.md
+  h_d6e478ca18e517 1-198
+docs/handoffs/release-2026-10-13/references/evaluation-progress.pr-357.md
+  h_d6e478ca18e517 1-728
+docs/handoffs/release-2026-10-13/snapshot.json
+  h_d6e478ca18e517 10-19
+docs/handoffs/release-2026-10-13/validation.json
+  h_d6e478ca18e517 4,14-15,17-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80a8e574f19a35e12bc02c1b2b8480b21407b4a9",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
