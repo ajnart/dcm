@@ -213,21 +213,18 @@ func connect(ctx context.Context, from *helpers.H) error {
 // jellyfinLink signs Seerr in to Jellyfin with the Admin login, enables every
 // Jellyfin library and finishes Seerr's setup.
 func jellyfinLink() app.Link {
-	const id = "link-jellyfin"
-	return app.Link{
-		ID:     id,
-		Target: "jellyfin",
-		Title:  "media server: Jellyfin",
-		Apply: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, id, "sign in to Jellyfin and enable its libraries", helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) { return connected(ctx, from) },
-				Do:    func(ctx context.Context) error { return connect(ctx, from) },
-				Hint: "Open " + from.URL + "/setup: choose Jellyfin, server jellyfin port " + strconv.Itoa(jellyfin.ContainerPort) +
-					", sign in with the Admin login (any email), enable every library and finish.",
-				Credential: "admin",
-			})
-		},
-	}
+	return app.NewLink("link-jellyfin", "jellyfin", "media server: Jellyfin",
+		app.LinkStep{
+			Message: "sign in to Jellyfin and enable its libraries",
+			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
+				return connected(ctx, from)
+			},
+			Do: func(ctx context.Context, from, _ *helpers.H) error { return connect(ctx, from) },
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + "/setup: choose Jellyfin, server jellyfin port " + strconv.Itoa(jellyfin.ContainerPort) +
+					", sign in with the Admin login (any email), enable every library and finish."
+			},
+		}, nil)
 }
 
 // server is Sonarr or Radarr as Seerr sees them.
@@ -356,33 +353,23 @@ func (s server) remove(ctx context.Context, h *helpers.H) error {
 // serverLink makes Sonarr or Radarr the default server Seerr sends requests
 // to, reached by Compose service name with its API key.
 func serverLink(s server) app.Link {
-	id := "link-" + s.id
-	hint := func(from *helpers.H) string {
-		return "Open " + from.URL + "/settings/services, add " + s.name + " with host " + s.id + ", port " + strconv.Itoa(s.port) +
-			", its API key from `self-host credentials`, the first quality profile and root folder " + s.rootFolder + ", marked default."
-	}
-	return app.Link{
-		ID:     id,
-		Target: s.id,
-		Title:  "requests go to " + s.name,
-		Apply: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, id, "send requests to "+s.name, helpers.StepSpec{
-				Check:      func(ctx context.Context) (bool, error) { return s.linked(ctx, from) },
-				Do:         func(ctx context.Context) error { return s.add(ctx, from, to) },
-				Hint:       hint(from),
-				Credential: "admin",
-			})
+	linked := func(ctx context.Context, from, _ *helpers.H) (bool, error) { return s.linked(ctx, from) }
+	return app.NewLink("link-"+s.id, s.id, "requests go to "+s.name,
+		app.LinkStep{
+			Message: "send requests to " + s.name,
+			Check:   linked,
+			Do:      func(ctx context.Context, from, to *helpers.H) error { return s.add(ctx, from, to) },
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + "/settings/services, add " + s.name + " with host " + s.id + ", port " + strconv.Itoa(s.port) +
+					", its API key from `self-host credentials`, the first quality profile and root folder " + s.rootFolder + ", marked default."
+			},
 		},
-		Remove: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, "un"+id, "stop sending requests to "+s.name, helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) {
-					found, err := s.linked(ctx, from)
-					return !found, err
-				},
-				Do:         func(ctx context.Context) error { return s.remove(ctx, from) },
-				Hint:       "Open " + from.URL + "/settings/services and delete " + s.name + ".",
-				Credential: "admin",
-			})
-		},
-	}
+		&app.LinkStep{
+			Message: "stop sending requests to " + s.name,
+			Check:   app.Absent(linked),
+			Do:      func(ctx context.Context, from, _ *helpers.H) error { return s.remove(ctx, from) },
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + "/settings/services and delete " + s.name + "."
+			},
+		})
 }

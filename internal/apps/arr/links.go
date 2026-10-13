@@ -113,51 +113,48 @@ func isQBittorrent(item object) bool {
 // downloadClientLink makes Sonarr or Radarr send downloads to qBittorrent,
 // reached by its Compose service name and the Admin login.
 func downloadClientLink(categoryField, category string) app.Link {
-	const id, target = "link-qbittorrent", "qbittorrent"
-	return app.Link{
-		ID:     id,
-		Target: target,
-		Title:  "download client: qBittorrent",
-		Apply: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, id, "use qBittorrent as the download client", helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) {
-					return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
-				},
-				Do: func(ctx context.Context) error {
-					client, err := schemaFor(ctx, from, apiV3, "/downloadclient", "QBittorrent")
-					if err != nil {
+	const target = "qbittorrent"
+	return app.NewLink("link-qbittorrent", target, "download client: qBittorrent",
+		app.LinkStep{
+			Message: "use qBittorrent as the download client",
+			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
+			},
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				client, err := schemaFor(ctx, from, apiV3, "/downloadclient", "QBittorrent")
+				if err != nil {
+					return err
+				}
+				client["name"], client["enable"] = "qBittorrent", true
+				for _, f := range []field{
+					{"host", target}, {"port", to.Port},
+					{"username", from.AdminUser()}, {"password", from.AdminPassword()},
+					{categoryField, category},
+				} {
+					name, value := f.name, f.value
+					if err := client.setField(name, value); err != nil {
 						return err
 					}
-					client["name"], client["enable"] = "qBittorrent", true
-					for _, f := range []field{
-						{"host", target}, {"port", to.Port},
-						{"username", from.AdminUser()}, {"password", from.AdminPassword()},
-						{categoryField, category},
-					} {
-						name, value := f.name, f.value
-						if err := client.setField(name, value); err != nil {
-							return err
-						}
-					}
-					return create(ctx, from, apiV3, "/downloadclient", client)
-				},
-				Hint: "Open " + from.URL + " > Settings > Download Clients > add qBittorrent with host " + target +
-					", port " + strconv.Itoa(to.Port) + " and the Admin login.",
-				Credential: "admin",
-			})
+				}
+				return create(ctx, from, apiV3, "/downloadclient", client)
+			},
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Download Clients > add qBittorrent with host " + target +
+					", port " + strconv.Itoa(to.Port) + " and the Admin login."
+			},
 		},
-		Remove: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, "un"+id, "remove the qBittorrent download client", helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) {
-					found, err := exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
-					return !found, err
-				},
-				Do:         func(ctx context.Context) error { return remove(ctx, from, apiV3, "/downloadclient", isQBittorrent) },
-				Hint:       "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent.",
-				Credential: "admin",
-			})
-		},
-	}
+		&app.LinkStep{
+			Message: "remove the qBittorrent download client",
+			Check: app.Absent(func(ctx context.Context, from, _ *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
+			}),
+			Do: func(ctx context.Context, from, _ *helpers.H) error {
+				return remove(ctx, from, apiV3, "/downloadclient", isQBittorrent)
+			},
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent."
+			},
+		})
 }
 
 // applicationTargets are the Apps Prowlarr syncs indexers to.
@@ -172,48 +169,46 @@ const prowlarrURL = "http://prowlarr:9696"
 // reaches by Compose service name with their API key.
 func applicationLink(target string) app.Link {
 	t := applicationTargets[target]
-	id := "link-" + target
 	points := func(item object) bool {
 		return item["implementation"] == t.implementation && item.field("baseUrl") == t.baseURL
 	}
-	return app.Link{
-		ID:     id,
-		Target: target,
-		Title:  "sync indexers to " + t.implementation,
-		Apply: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, id, "sync indexers to "+t.implementation, helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) { return exists(ctx, from, apiV1, "/applications", points) },
-				Do: func(ctx context.Context) error {
-					application, err := schemaFor(ctx, from, apiV1, "/applications", t.implementation)
-					if err != nil {
+	return app.NewLink("link-"+target, target, "sync indexers to "+t.implementation,
+		app.LinkStep{
+			Message: "sync indexers to " + t.implementation,
+			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV1, "/applications", points)
+			},
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				application, err := schemaFor(ctx, from, apiV1, "/applications", t.implementation)
+				if err != nil {
+					return err
+				}
+				application["name"], application["syncLevel"] = t.implementation, "fullSync"
+				for _, f := range []field{
+					{"prowlarrUrl", prowlarrURL}, {"baseUrl", t.baseURL}, {"apiKey", to.Secret(to.Key("api_key"))},
+				} {
+					name, value := f.name, f.value
+					if err := application.setField(name, value); err != nil {
 						return err
 					}
-					application["name"], application["syncLevel"] = t.implementation, "fullSync"
-					for _, f := range []field{
-						{"prowlarrUrl", prowlarrURL}, {"baseUrl", t.baseURL}, {"apiKey", to.Secret(to.Key("api_key"))},
-					} {
-						name, value := f.name, f.value
-						if err := application.setField(name, value); err != nil {
-							return err
-						}
-					}
-					return create(ctx, from, apiV1, "/applications", application)
-				},
-				Hint: "Open " + from.URL + " > Settings > Apps > add " + t.implementation + " with Prowlarr server " +
-					prowlarrURL + ", server " + t.baseURL + " and its API key.",
-				Credential: "admin",
-			})
+				}
+				return create(ctx, from, apiV1, "/applications", application)
+			},
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Apps > add " + t.implementation + " with Prowlarr server " +
+					prowlarrURL + ", server " + t.baseURL + " and its API key."
+			},
 		},
-		Remove: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, "un"+id, "stop syncing indexers to "+t.implementation, helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) {
-					found, err := exists(ctx, from, apiV1, "/applications", points)
-					return !found, err
-				},
-				Do:         func(ctx context.Context) error { return remove(ctx, from, apiV1, "/applications", points) },
-				Hint:       "Open " + from.URL + " > Settings > Apps and delete " + t.implementation + ".",
-				Credential: "admin",
-			})
-		},
-	}
+		&app.LinkStep{
+			Message: "stop syncing indexers to " + t.implementation,
+			Check: app.Absent(func(ctx context.Context, from, _ *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV1, "/applications", points)
+			}),
+			Do: func(ctx context.Context, from, _ *helpers.H) error {
+				return remove(ctx, from, apiV1, "/applications", points)
+			},
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Apps and delete " + t.implementation + "."
+			},
+		})
 }

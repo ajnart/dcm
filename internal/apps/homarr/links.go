@@ -1189,32 +1189,22 @@ func (t target) absent(ctx context.Context, from, to *helpers.H) (bool, error) {
 // link wires Homarr to one target. The framework runs Apply only once the
 // target's own Setup finished, so `to` is always ready.
 func (t target) link() app.Link {
-	id := "link-" + t.id
 	title := "link " + t.name
 	if t.kind == "" {
 		title = "add a " + t.name + " tile"
 	}
-	return app.Link{
-		ID:     id,
-		Target: t.id,
-		Title:  title,
-		Apply: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, id, "add "+t.name+" to Homarr", helpers.StepSpec{
-				Check:      func(ctx context.Context) (bool, error) { return t.linked(ctx, from, to) },
-				Do:         func(ctx context.Context) error { return t.add(ctx, from, to) },
-				Hint:       t.hint(from),
-				Credential: "admin",
-			})
+	hint := func(from, _ *helpers.H) string { return t.hint(from) }
+	return app.NewLink("link-"+t.id, t.id, title,
+		app.LinkStep{
+			Message: "add " + t.name + " to Homarr",
+			Check:   func(ctx context.Context, from, to *helpers.H) (bool, error) { return t.linked(ctx, from, to) },
+			Do:      func(ctx context.Context, from, to *helpers.H) error { return t.add(ctx, from, to) },
+			Hint:    hint,
 		},
-		Remove: func(ctx context.Context, from, to *helpers.H) error {
-			return from.Step(ctx, "un"+id, "remove "+t.name+" from Homarr", helpers.StepSpec{
-				Check: func(ctx context.Context) (bool, error) {
-					return t.absent(ctx, from, to)
-				},
-				Do:         func(ctx context.Context) error { return t.remove(ctx, from, to) },
-				Hint:       t.hint(from),
-				Credential: "admin",
-			})
-		},
-	}
+		&app.LinkStep{
+			Message: "remove " + t.name + " from Homarr",
+			Check:   func(ctx context.Context, from, to *helpers.H) (bool, error) { return t.absent(ctx, from, to) },
+			Do:      func(ctx context.Context, from, to *helpers.H) error { return t.remove(ctx, from, to) },
+			Hint:    hint,
+		})
 }
