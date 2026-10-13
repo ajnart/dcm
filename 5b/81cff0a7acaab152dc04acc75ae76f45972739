@@ -1,0 +1,21 @@
+internal/app/link.go
+  s_378d5db6c5f6de::t_3527cf85e8ea50 1-54
+internal/app/link_test.go
+  s_378d5db6c5f6de::t_28e6355f6c323a 1-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b81cff0a7acaab152dc04acc75ae76f45972739",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
