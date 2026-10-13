@@ -1,0 +1,27 @@
+internal/apps/arr/links.go
+  s_378d5db6c5f6de::t_044fa0ac20ed7f 162-165,171,173-176,181,183-184,186,190,192,201-202,207,209,212-213
+internal/helpers/helpers.go
+  s_378d5db6c5f6de::t_d11ed179e66d7d 55-57
+internal/helpers/internaladdress.go
+  s_378d5db6c5f6de::t_e7143b90fdb935 1-26
+internal/helpers/internaladdress_test.go
+  s_378d5db6c5f6de::t_1b0c6cadcb66ff 1-31
+internal/service/mutation_test.go
+  s_378d5db6c5f6de::t_988fcb5ea4232a 514-538
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fa41b465a939f6623f100acec1702753adb3eafa",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
