@@ -1,0 +1,41 @@
+docs/releasing.md
+  s_22ff62fda90f47::t_17b807172ecb47 115-121
+install.sh
+  s_378d5db6c5f6de::t_6e944934664a06 4
+internal/release/release.go
+  s_378d5db6c5f6de::t_da0164d0d8caa7 44
+scripts/verify-install.sh
+  s_378d5db6c5f6de::t_c13f7bb0f57eb1 32
+skills/self-host/SKILL.md
+  s_378d5db6c5f6de::t_524de710fd2b89 14
+video/reel/HANDOFF.md
+  s_378d5db6c5f6de::t_9b7ad880f9988a 30
+video/reel/STORYBOARD.md
+  s_378d5db6c5f6de::t_25bcc253e1fcd7 29,64
+video/reel/end.js
+  s_378d5db6c5f6de::t_81d80ef62a06b9 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ab5aa0eb0f3b9453a3f849d0538a7d31839e2ef",
+  "prompts": {},
+  "sessions": {
+    "s_22ff62fda90f47": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6ce308e1-3b59-44e6-a828-1ee4dec863b1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+docs/releasing.md
+  s_378d5db6c5f6de::t_600dd95202a724 132-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5bd2f86f5415f10b77376317f88bbaa7e53ed3ef",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
