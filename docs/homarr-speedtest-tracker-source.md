@@ -1,17 +1,18 @@
-# Speedtest Tracker Link: source-only record (#296)
+# Speedtest Tracker Link: source-only record (#351)
 
 This is a source implementation, not functional or measured-network acceptance.
 No Docker, browser, external speed test, provider account, terms acceptance,
-analytics or person's result history was used. Existing focused tests and the
-full local gate passed; their synthetic data proves only code behavior.
+analytics or person's result history was used. Focused descriptor HTTP fixtures
+and affected App checks pass; their synthetic data proves only code behavior.
 
 ## Compatibility and image provenance
 
-The common contract is inherited from committed reference `d956824f` on
-`feat/homarr-immich-sol`. The peer owns `target_speedtest_tracker.go` and
+The original branch forward-merges the shared SDK at
+`0bf67c3c64c229af25f19c1b93264f19cc57a910`, preserving its history. The peer owns
+`target_speedtest_tracker.go` and
 `speedtestTrackerTarget()`. The reference owner must register that descriptor
 in `targets.go`; this lane does not modify the registry or reconciliation.
-Final ownership normalization and review remain pending.
+Final registered ownership normalization and review remain pending.
 
 Homarr's accepted API version is `2.4.1`. The actual-image source revision is
 `3d4150e59f600876b7e308f857b2f21572b75348`, not the tagged research baseline
@@ -119,13 +120,23 @@ also cannot count as success. No request runs a test or contacts an Ookla server
 HTTP 200, the healthcheck and seeded administrator verification are not sufficient.
 
 The native widget is `speedtestTracker`, with latest result, aggregate statistics,
-recent results and ping graph enabled. There is **no shared Stats provider** and
-no invented metric key. It uses
+recent results and ping graph enabled. It uses
 `widget.speedtestTracker.getDashboard({ integrationIds: [ownedID] })`.
 Verification compares the native latest measurement, aggregate fields and entire
 returned history against fresh App reads. Missing/error/epoch-only results fail;
 changing data or a stale Homarr cache requires a retry, never fake acceptance.
-No other integration's shared Stats or Calendar bindings are touched.
+The exact actual-image `stats/existing.ts` also exposes `ping` in milliseconds
+and `download`/`upload` in bytes/second, derived from latest integral bit rates
+by dividing by eight. The descriptor selects these actual shared Stats metrics.
+`verifySpeedtestTrackerStats` validates the SDK's single refreshed sample with
+its catalog units: finite nonnegative values, explicit zero acceptance and
+integral derived bandwidth bit rates. Missing/null measurements fail. The SDK
+requires an advancing positive timestamp and a successful non-stale forced
+refresh; there is no independent volatile equality check against the native
+cache or a second Stats request. No additional App clock policy is introduced.
+The native verifier still requires the exact completed source result identity,
+measurement, aggregate statistics and ordered history, with the existing retry
+behavior when source data changes. Other integrations retain their bindings.
 
 The adapter sends `result_count=30`, but the pinned App uses JSON:API `page[size]`
 and defaults to 25. The preflight deliberately matches the actual native request;
@@ -147,8 +158,10 @@ last 12 hours; an old completed result does not prove a visible recent chart.
   exact ability enforcement, credential reuse/rejection/ambiguity recovery in a
   disposable Project. No actual issuance was run here; PHP was not installed
   locally and the helper scripts were not executed or claimed runtime-verified.
-- PHP-FPM/rootless readiness on the actual owned runtime; existing source launcher
-  and diagnostics are not live readiness proof.
+- The pinned image remains externally blocked by the host AppArmor
+  `/etc/php85` permission issue affecting PHP-FPM readiness. Host policy review
+  is pending outside this source-only task. No host policy apply/reload/bypass,
+  image replacement or runtime attempt is authorized or performed.
 - A separately approved, lawful supported one-test measurement. No Ookla/EULA or
   bandwidth approval is implied by this source-only task. Synthetic fixtures
   cannot establish internet performance.
@@ -166,6 +179,7 @@ last 12 hours; an old completed result does not prove a visible recent chart.
 - [Actual-image schemas](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/speedtest-tracker/speedtest-tracker-types.ts)
 - [Native widget/router](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/widgets/speedtest-tracker.ts)
 - [Native widget options](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/widgets/src/speedtest-tracker/index.ts)
+- [Legacy Stats provider](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/existing.ts)
 - [Stats provider registry](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/providers.ts)
 - [Official API token abilities](https://docs.speedtest-tracker.dev/api/authorization)
 - [Official supported commands](https://docs.speedtest-tracker.dev/other/commands)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"reflect"
 	"time"
 
@@ -20,7 +21,7 @@ func speedtestTrackerTarget() target {
 		},
 		widgets: []widget{{kind: "speedtestTracker", options: map[string]any{
 			"showLatestResult": true, "showStats": true, "showRecentResults": true, "showPingGraph": true,
-		}}},
+		}}, statWidget("ping", "download", "upload")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
 			_, err := speedtesttracker.ReadHomarr(ctx, to)
 			if errors.Is(err, helpers.ErrManual) {
@@ -29,6 +30,7 @@ func speedtestTrackerTarget() target {
 			return err
 		},
 		verify: verifySpeedtestTracker,
+		stats:  verifySpeedtestTrackerStats,
 	}
 }
 
@@ -90,4 +92,17 @@ func speedtestHistoryCurrent(native, actual speedtesttracker.Result, location *t
 	expected, err := actual.Timestamp(location)
 	created, nativeErr := time.Parse(time.RFC3339Nano, native.CreatedAt)
 	return err == nil && nativeErr == nil && created.Equal(expected) && reflect.DeepEqual(native.ID, actual.ID) && reflect.DeepEqual(native.Ping, actual.Ping) && reflect.DeepEqual(native.DownloadBits, actual.DownloadBits) && reflect.DeepEqual(native.UploadBits, actual.UploadBits) && string(native.Healthy) == string(actual.Healthy)
+}
+
+func verifySpeedtestTrackerStats(sample statsSample) error {
+	for key, unit := range map[string]string{"ping": "milliseconds", "download": "bytesPerSecond", "upload": "bytesPerSecond"} {
+		value, ok := sample.values[key].(float64)
+		if !ok || sample.units[key] != unit || math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+			return errors.New("Homarr returned incomplete Speedtest Tracker Stats; unknown speed is not zero")
+		}
+		if key != "ping" && (math.IsInf(value*8, 0) || math.Trunc(value*8) != value*8) {
+			return errors.New("Homarr returned non-integral Speedtest Tracker bit rates; retry self-host setup homarr")
+		}
+	}
+	return nil
 }
