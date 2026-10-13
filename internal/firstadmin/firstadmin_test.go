@@ -404,3 +404,68 @@ func TestFirstAdminRecordsManualStep(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthenticatedProbeUsesResolvedRequestAndPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if r.URL.Path != "/protected" || !ok || user != "admin" || password != adminPassword {
+			t.Error("readiness did not resolve its path and Shared Admin credentials")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Location", "/unexpected-redirect")
+		w.WriteHeader(http.StatusFound)
+		w.Write([]byte("private readiness"))
+	}))
+	t.Cleanup(server.Close)
+	var results []helpers.StepResult
+	h := newH(t, server, &results)
+	admin := firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{
+			Path: "/fallback", Want: []int{http.StatusFound}, Contains: "private readiness",
+			Request: func(h *helpers.H) helpers.Request {
+				return helpers.Request{Path: "/protected", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true}
+			},
+		},
+		Login: func(context.Context, *helpers.H, string, string) (bool, error) { return true, nil },
+	}
+	if err := admin.Setup(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 || !strings.Contains(results[0].Msg, "/protected") || strings.Contains(results[0].Msg+results[0].Hint, "/fallback") {
+		t.Fatalf("readiness reported a different path: %+v", results)
+	}
+	assertNoSecret(t, adminPassword, nil, results)
+}
+
+func TestProbeRequestDefaultsToConfiguredPath(t *testing.T) {
+	for _, scenario := range []struct {
+		name     string
+		resolved bool
+	}{{"nil resolver", false}, {"empty resolved path", true}} {
+		t.Run(scenario.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/ready" {
+					t.Error("probe changed the configured path")
+				}
+				if (r.Header.Get("Authorization") != "") != scenario.resolved {
+					t.Error("probe changed default authentication")
+				}
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte("ready"))
+			}))
+			t.Cleanup(server.Close)
+			var results []helpers.StepResult
+			h := newH(t, server, &results)
+			probe := firstadmin.Probe{Path: "/ready", Want: []int{http.StatusCreated}, Contains: "ready", Timeout: time.Second}
+			if scenario.resolved {
+				probe.Request = func(h *helpers.H) helpers.Request {
+					return helpers.Request{User: h.AdminUser(), Password: h.AdminPassword()}
+				}
+			}
+			if err := (firstadmin.NoAccount{Probe: probe}).Check(t.Context(), h); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
