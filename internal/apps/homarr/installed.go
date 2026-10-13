@@ -2,6 +2,7 @@ package homarr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -40,6 +41,50 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 	current, err := board(ctx, h)
 	if err != nil {
 		return false, err
+	}
+	remaining := map[string]helpers.InstalledApp{}
+	counts := map[string]int{}
+	inspectReferences := false
+	for marker, item := range desired {
+		remaining[marker] = item
+	}
+	for _, existing := range apps {
+		marker := stringField(existing, "description")
+		if !strings.HasPrefix(marker, installedTileMarker) {
+			continue
+		}
+		counts[marker]++
+		if _, wanted := desired[marker]; !wanted || counts[marker] > 1 {
+			inspectReferences = true
+		}
+	}
+	referenced := map[string]bool{}
+	linkedApps := map[string]string{}
+	if inspectReferences {
+		referenced, linkedApps, err = installedAppReferences(ctx, h)
+		if err != nil {
+			return false, err
+		}
+	}
+	canonical := map[string]string{}
+	recorded := managedAppIDs(h)
+	for marker, item := range desired {
+		preferred := linkedApps[item.ID]
+		if preferred == "" {
+			preferred = recorded[item.ID]
+		}
+		for _, existing := range apps {
+			if stringField(existing, "description") != marker {
+				continue
+			}
+			id := appID(existing)
+			if canonical[marker] == "" || id == preferred {
+				canonical[marker] = id
+			}
+			if id == preferred {
+				break
+			}
+		}
 	}
 	complete := true
 	for _, id := range managedAppIDs(h) {
@@ -91,13 +136,18 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 		}
 		item, wanted := desired[marker]
 		id := appID(existing)
-		if !wanted {
+		duplicate := wanted && canonical[marker] != "" && canonical[marker] != id
+		if !wanted || duplicate {
 			complete = false
 			if apply {
-				if err := removeAppTiles(ctx, h, id); err != nil {
-					return false, err
+				if !inspectReferences {
+					referenced, _, err = installedAppReferences(ctx, h)
+					if err != nil {
+						return false, err
+					}
+					inspectReferences = true
 				}
-				if _, err := h.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(h)}); err != nil {
+				if err := retireInstalledApp(ctx, h, existing, referenced[id], duplicate); err != nil {
 					return false, err
 				}
 			}
@@ -112,7 +162,7 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 			complete = false
 			if apply {
 				if _, err := h.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(h), JSON: map[string]any{
-					"name": item.Name, "description": marker, "iconUrl": existing["iconUrl"], "href": item.URL, "pingUrl": genericPing(item),
+					"name": existing["name"], "description": marker, "iconUrl": existing["iconUrl"], "href": item.URL, "pingUrl": existing["pingUrl"],
 				}}); err != nil {
 					return false, err
 				}
@@ -126,9 +176,9 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 				}
 			}
 		}
-		delete(desired, marker)
+		delete(remaining, marker)
 	}
-	for marker, item := range desired {
+	for marker, item := range remaining {
 		complete = false
 		if !apply {
 			continue
@@ -155,6 +205,88 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 		}
 	}
 	return complete, nil
+}
+
+func installedAppReferences(ctx context.Context, h *helpers.H) (map[string]bool, map[string]string, error) {
+	integrations, err := listIntegrations(ctx, h)
+	if err != nil {
+		return nil, nil, err
+	}
+	referenced := map[string]bool{}
+	owned := map[string]string{}
+	for _, integration := range integrations {
+		id := stringField(integration, "id")
+		value, err := apiKeyProcedure(ctx, h, "integration.byId", map[string]any{"id": id})
+		if err != nil {
+			return nil, nil, err
+		}
+		detail, ok := value.(map[string]any)
+		if !ok || stringField(detail, "id") != id {
+			return nil, nil, errors.New("Homarr did not return integration App associations; preserve its App records and retry self-host setup homarr")
+		}
+		if _, present := detail["app"]; !present {
+			return nil, nil, errors.New("Homarr omitted an integration App association; preserve its App records and retry self-host setup homarr")
+		}
+		if detail["app"] == nil {
+			continue
+		}
+		linked, _ := detail["app"].(map[string]any)
+		appID := stringField(linked, "id")
+		if appID == "" {
+			return nil, nil, errors.New("Homarr returned an invalid integration App association; preserve its App records and retry self-host setup homarr")
+		}
+		referenced[appID] = true
+		for _, target := range targets() {
+			if id == h.Secret(h.Key("linked_"+target.id)) && stringField(detail, "kind") == target.kind {
+				owned[target.id] = appID
+			}
+		}
+	}
+	return referenced, owned, nil
+}
+
+func retireInstalledApp(ctx context.Context, h *helpers.H, existing map[string]any, referenced, duplicate bool) error {
+	id := appID(existing)
+	if !referenced {
+		response, err := h.Expect(ctx, helpers.Request{Path: "/api/boards", Header: apiKeyHeader(h)})
+		if err != nil {
+			return err
+		}
+		var boards []map[string]any
+		if err := response.Decode(&boards); err != nil {
+			return err
+		}
+		for _, candidate := range boards {
+			name := stringField(candidate, "name")
+			if name == "Home" && !duplicate {
+				continue
+			}
+			value, err := apiKeyProcedure(ctx, h, "board.getBoardByName", map[string]any{"name": name})
+			if err != nil {
+				return err
+			}
+			current, ok := value.(map[string]any)
+			if !ok {
+				return errors.New("Homarr did not return App tile references; preserve its App records and retry self-host setup homarr")
+			}
+			if hasTile(itemsOf(current), id) {
+				referenced = true
+				break
+			}
+		}
+	}
+	if referenced {
+		marker := strings.TrimPrefix(stringField(existing, "description"), installedTileMarker)
+		_, err := h.Expect(ctx, helpers.Request{Method: "PATCH", Path: "/api/apps/" + id, Header: apiKeyHeader(h), JSON: map[string]any{
+			"name": existing["name"], "description": retainedTileMarker + marker, "iconUrl": existing["iconUrl"], "href": existing["href"], "pingUrl": existing["pingUrl"],
+		}})
+		return err
+	}
+	if err := removeAppTiles(ctx, h, id); err != nil {
+		return err
+	}
+	_, err := h.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/apps/" + id, Header: apiKeyHeader(h)})
+	return err
 }
 
 func genericPing(item helpers.InstalledApp) string {
