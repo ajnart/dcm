@@ -45,11 +45,11 @@ func (f *frame) reveal(scene, under []string, opening float64) []string {
 			case d >= 0 && opening < 1:
 				k := min(int(d*0.8), 3)
 				c := f.pal.Sweep(float64(x+y)*0.012 + f.t()*0.8)
-				shade := cell{r: shades[3-k], fg: f.pal.Fade(c, 0.35+0.65*float64(4-k)/4), lum: float64(4-k) / 4}
-				next, glyph = drawn, shade.look(f.noColor).apply(string(shade.r), f.noColor)
+				shade := cell{R: shades[3-k], FG: f.pal.Fade(c, 0.35+0.65*float64(4-k)/4), Lum: float64(4-k) / 4}
+				next, glyph = drawn, shade.Look(f.noColor).Apply(string(shade.R), f.noColor)
 			case d >= -3 && opening < 1 && hash(x, y, 7)%5 == 0:
-				spark := cell{r: '✦', fg: f.pal.Glow(f.pal.Sweep(noise(x, y, 3)), 0.6), lum: 1}
-				next, glyph = drawn, spark.look(f.noColor).apply(string(spark.r), f.noColor)
+				spark := cell{R: '✦', FG: f.pal.Glow(f.pal.Sweep(noise(x, y, 3)), 0.6), Lum: 1}
+				next, glyph = drawn, spark.Look(f.noColor).Apply(string(spark.R), f.noColor)
 			}
 			if next != src || next == drawn {
 				flush(x)

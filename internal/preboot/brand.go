@@ -19,7 +19,7 @@ func (f *frame) star(cv *canvas, x, y int, b float64, c color.RGBA) {
 	case b > 0.5:
 		r = '+'
 	}
-	cv.put(x, y, r, f.tint(c, b), b)
+	cv.Put(x, y, r, f.tint(c, b), b)
 }
 
 // flare draws a four-point sparkle that grows and fades over life in [0, 1].
@@ -28,18 +28,18 @@ func (f *frame) flare(cv *canvas, x, y int, life float64, c color.RGBA) {
 	if s < 0.15 {
 		return
 	}
-	cv.put(x, y, '✦', f.tint(f.pal.Glow(c, 0.8), s), s)
+	cv.Put(x, y, '✦', f.tint(f.pal.Glow(c, 0.8), s), s)
 	if s > 0.35 {
-		cv.put(x-1, y, '─', f.tint(c, s*0.8), s*0.7)
-		cv.put(x+1, y, '─', f.tint(c, s*0.8), s*0.7)
+		cv.Put(x-1, y, '─', f.tint(c, s*0.8), s*0.7)
+		cv.Put(x+1, y, '─', f.tint(c, s*0.8), s*0.7)
 	}
 	if s > 0.6 {
-		cv.put(x, y-1, '│', f.tint(c, s*0.8), s*0.7)
-		cv.put(x, y+1, '│', f.tint(c, s*0.8), s*0.7)
+		cv.Put(x, y-1, '│', f.tint(c, s*0.8), s*0.7)
+		cv.Put(x, y+1, '│', f.tint(c, s*0.8), s*0.7)
 	}
 	if s > 0.85 {
-		cv.put(x-2, y, '·', f.tint(c, 0.6), 0.5)
-		cv.put(x+2, y, '·', f.tint(c, 0.6), 0.5)
+		cv.Put(x-2, y, '·', f.tint(c, 0.6), 0.5)
+		cv.Put(x+2, y, '·', f.tint(c, 0.6), 0.5)
 	}
 }
 
@@ -82,7 +82,7 @@ func (f *frame) diamond(cv *canvas, cx, cy, r int, hue float64) {
 					ch = '▒'
 				}
 			}
-			cv.put(cx+dx, cy+dy, ch, c, lum)
+			cv.Put(cx+dx, cy+dy, ch, c, lum)
 		}
 	}
 }
@@ -103,8 +103,8 @@ func (f *frame) halo(cv *canvas, cx, cy, r, rings int) {
 			}
 			for _, sx := range []float64{-dx, dx} {
 				x := cx + int(math.Round(sx))
-				if cv.at(x, cy+dy).r == 0 {
-					cv.put(x, cy+dy, '·', f.tint(c, a), a*0.8)
+				if cv.At(x, cy+dy).R == 0 {
+					cv.Put(x, cy+dy, '·', f.tint(c, a), a*0.8)
 				}
 			}
 		}
