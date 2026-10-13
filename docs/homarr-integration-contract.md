@@ -3,7 +3,7 @@
 ## Supported upstream
 
 The compiled definition uses `ghcr.io/homarr-labs/homarr:latest`.
-The compatibility gate accepts exactly API versions `2.4.1` and `2.5.1`, read
+The compatibility gate accepts exactly API versions `2.4.1`, `2.5.1` and `2.5.2`, read
 through authenticated `info.getInfo`; `2.5.0`, other `2.5.x` versions and unknown
 versions remain unsupported. Later images require compatibility verification.
 Setup and every Link reject unsupported versions with a backup/version/retry
@@ -11,18 +11,28 @@ hint. `integration.getKinds` must expose the descriptor's kind and the exact
 supplied credential alternative. Missing credentials name the peer's Setup
 command; they are not submitted as empty keys.
 
-As of 2026-10-13, stable [v2.5.1](https://github.com/homarr-labs/homarr/releases/tag/v2.5.1)
-is published at release source `c2e95f8d05b87dae42e9cd638dd7d4822b7cd608`,
+Earlier on 2026-10-13, stable [v2.5.1](https://github.com/homarr-labs/homarr/releases/tag/v2.5.1)
+was published at release source `c2e95f8d05b87dae42e9cd638dd7d4822b7cd608`,
 including [hotfix #7170](https://github.com/homarr-labs/homarr/pull/7170)
-merged as `62c8513a27e9fd40ad935fac152ba1a6a84f0867`. The observed published
-`:latest` index is
+merged as `62c8513a27e9fd40ad935fac152ba1a6a84f0867`. Its observed published
+`:latest` index was
 `sha256:92520b5b5188b1ea54cfa19dc2e6d54c7f09d21aca6b2868355f0b4985d70d71`.
 The scoped source audit from the historical resolved `2.4.1` source through
 `2.5.0` and that hotfix found the relevant API, credential, native-widget, Stats
 and Downloads contracts unchanged except the specific hotfix corrections;
-no client protocol adaptation is needed. This is a source compatibility
-candidate, not native-image or rendered acceptance. Fresh published-image
-API/native proof remains pending, and peer-specific privacy holds remain in place.
+no client protocol adaptation is needed. The fresh `2.5.1` image check observed
+authenticated API `2.5.1` at that index and OCI revision
+`62c8513a27e9fd40ad935fac152ba1a6a84f0867`.
+
+Later on 2026-10-13, stable [v2.5.2](https://github.com/homarr-labs/homarr/releases/tag/v2.5.2)
+was published at source `7eb9a417a60d759adce5f7ac15ceb594aefad471`.
+Its source comparison against the validated `2.5.1` OCI revision changes only
+the changelog, root version and Beszel chart CSS. API, authentication, Stats,
+Downloads and all 39 native peer implementations are unchanged; the ten privacy
+owner source hashes match. Exact `2.5.2` support is therefore source-prepared,
+with fresh `2.5.2` image/API proof still pending. These source comparisons and
+narrow API observations do not establish native/privacy, browser or lifecycle
+acceptance; peer-specific privacy holds remain in place.
 
 ### Historical 2.4.1 image proof
 
