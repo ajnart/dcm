@@ -1,0 +1,14 @@
+{
+  "id": "prowlarr",
+  "name": "Prowlarr",
+  "description": "Manage the search sites that Sonarr and Radarr use to find your downloads",
+  "category": "Requests",
+  "image": "lscr.io/linuxserver/prowlarr:latest",
+  "docs": "https://wiki.servarr.com/prowlarr",
+  "port": 9696,
+  "inputs": [],
+  "links": [
+    "sonarr",
+    "radarr"
+  ]
+}

@@ -16,3 +16,6 @@ dist/
 .slim/worktrees/
 .slim/worktrees.json
 # END oh-my-opencode-slim worktrees
+
+# self-host skill eval runs
+evals/self-host/runs/

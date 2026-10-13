@@ -2,6 +2,7 @@ package bazarr_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,10 +30,11 @@ const (
 )
 
 type fakeBazarr struct {
-	mu      sync.Mutex
-	user    string
-	pass    string
-	failSet bool
+	mu            sync.Mutex
+	user          string
+	pass          string
+	failSet       bool
+	settingsPosts int
 }
 
 func (f *fakeBazarr) handler() http.Handler {
@@ -60,8 +62,27 @@ func (f *fakeBazarr) handler() http.Handler {
 		}
 		r.ParseForm()
 		f.user, f.pass = r.PostForm.Get("settings-auth-username"), r.PostForm.Get("settings-auth-password")
+		f.settingsPosts++
 		w.WriteHeader(http.StatusNoContent)
 	})
+	for _, path := range []string{"/api/system/status", "/api/badges"} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			if r.Header.Get("X-API-KEY") != apiKey {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if path == "/api/system/status" {
+				w.Write([]byte(`{"data":{"bazarr_version":"1.6.0"}}`))
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{
+				"episodes": 0, "movies": 0, "providers": 0, "status": 0,
+				"sonarr_signalr": "DOWN", "radarr_signalr": "DOWN", "announcements": 0,
+			})
+		})
+	}
 	return mux
 }
 
@@ -100,6 +121,9 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	if err := (bazarr.App{}).Check(ctx, h); err != nil {
 		t.Fatalf("Check: %v", err)
 	}
+	if h.Secret(h.Key("api_key")) != apiKey {
+		t.Fatal("Setup did not save the verified API credential")
+	}
 
 	records = nil
 	if err := (bazarr.App{}).Setup(ctx, h); err != nil {
@@ -109,6 +133,9 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 		if r.Status != stepstatus.StepSkip {
 			t.Errorf("rerun step %s = %s, want skip", r.ID, r.Status)
 		}
+	}
+	if fake.settingsPosts != 1 {
+		t.Fatal("rerun changed existing authentication settings")
 	}
 }
 

@@ -1,0 +1,10 @@
+{
+  "id": "immich",
+  "name": "Immich",
+  "description": "Back up your phone's photos and find any of them by searching",
+  "category": "Photos",
+  "image": "ghcr.io/immich-app/immich-server:v3.2.2",
+  "docs": "https://docs.immich.app/install/docker-compose/",
+  "port": 2283,
+  "inputs": []
+}

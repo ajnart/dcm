@@ -1,0 +1,6 @@
+PRETTY_NAME="Linux Mint 22.1"
+NAME="Linux Mint"
+VERSION_ID="22.1"
+ID=linuxmint
+ID_LIKE="ubuntu debian"
+UBUNTU_CODENAME=noble
