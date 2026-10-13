@@ -1,0 +1,10 @@
+{
+  "id": "vaultwarden",
+  "name": "Vaultwarden",
+  "description": "Keep all your passwords in one safe place, on every device",
+  "category": "Passwords",
+  "image": "vaultwarden/server:latest",
+  "docs": "https://github.com/dani-garcia/vaultwarden/wiki",
+  "port": 8222,
+  "inputs": []
+}

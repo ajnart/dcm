@@ -1,0 +1,10 @@
+{
+  "id": "traefik",
+  "name": "Traefik",
+  "description": "Send web visitors to the right app automatically, with a read-only status page",
+  "category": "Ingress",
+  "image": "traefik:v3.6.22",
+  "docs": "https://doc.traefik.io/traefik/",
+  "port": 8080,
+  "inputs": []
+}

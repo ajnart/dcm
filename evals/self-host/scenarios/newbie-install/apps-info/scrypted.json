@@ -1,0 +1,10 @@
+{
+  "id": "scrypted",
+  "name": "Scrypted",
+  "description": "Bring your security cameras into Apple Home and other smart home apps",
+  "category": "Cameras",
+  "image": "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
+  "docs": "https://docs.scrypted.app/",
+  "port": 11080,
+  "inputs": []
+}

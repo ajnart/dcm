@@ -1,0 +1,10 @@
+{
+  "id": "authentik",
+  "name": "Authentik",
+  "description": "Sign in once to reach all your apps, with one login for the whole household",
+  "category": "Identity",
+  "image": "ghcr.io/goauthentik/server:2026.8.3",
+  "docs": "https://docs.goauthentik.io/install-config/install/docker-compose/",
+  "port": 9000,
+  "inputs": []
+}

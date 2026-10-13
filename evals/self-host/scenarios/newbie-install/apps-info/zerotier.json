@@ -1,0 +1,10 @@
+{
+  "id": "zerotier",
+  "name": "ZeroTier",
+  "description": "Connect your devices into one private network, as if on the same Wi-Fi",
+  "category": "Remote access",
+  "image": "zerotier/zerotier:1.14.2",
+  "docs": "https://docs.zerotier.com/",
+  "port": 0,
+  "inputs": []
+}

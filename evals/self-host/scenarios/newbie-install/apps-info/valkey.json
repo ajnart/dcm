@@ -1,0 +1,10 @@
+{
+  "id": "valkey",
+  "name": "Valkey",
+  "description": "A fast short-term memory that your other apps use to run quicker",
+  "category": "Databases",
+  "image": "valkey/valkey:9.1.2",
+  "docs": "https://valkey.io/topics/installation/",
+  "port": 6379,
+  "inputs": []
+}
