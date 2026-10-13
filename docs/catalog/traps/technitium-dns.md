@@ -1,5 +1,11 @@
 # Technitium DNS Server traps
 
+Source status, 13 October 2026 (before this docs update):
+`e41c11799e133521bb9860efff9f32fa67f94a1d`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 ## Pitfalls
 
 - A broad DNS feature set increases configuration and recovery scope.
@@ -54,8 +60,8 @@
   accepted; absent fields, malformed bodies and body-level authentication
   errors are not empty datasets. Verification checks the native metric catalog
   and a forced refresh with a new timestamp, no error and no stale snapshot.
-- Registry assembly belongs to the reference owner. This peer's source work
-  does not register the descriptor or prove external contracts, rendered values,
+- The reference owner registered the descriptor. Source work
+  does not prove external contracts, rendered values,
   installation orders, credential changes, removal/reinstallation or lifecycle.
   No Docker, browser, resolver changes, DNS queries or zones were used for this
   source-only work. The parent runtime lane must supply real scoped evidence.
