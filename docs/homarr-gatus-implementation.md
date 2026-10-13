@@ -57,18 +57,23 @@ Checks probe afresh. The starter config
 and image `ghcr.io/twin/gatus:v5.37.0` are unchanged: one local health check,
 one-minute interval, SQLite history, no external monitor traffic.
 
-The Link verifies Gatus directly and reuses the frozen `freshStatsSnapshot`
-helper with its owned integration ID, rather than copying refresh/timestamp logic.
-That helper reads `widget.stats.snapshot`, then forces `widget.stats.refresh`. It requires
+The Link verifies Gatus directly. After the native check succeeds, the shared
+Stats SDK reads the authenticated catalog and obtains one sample with its owned
+integration ID. It reads `widget.stats.snapshot`, then forces `widget.stats.refresh`, requiring
 a successful, non-stale snapshot with a timestamp strictly advanced from the
 before-snapshot (or a positive timestamp when the before-snapshot was unfilled).
 A forced refresh that returns without updating because of a distributed lock
 or unavailable queue slot is an actionable wait, not acceptance of Homarr's
-one-hour cache. It also requires all four explicit nonnegative integer counts and
+one-hour cache. The pure Gatus Stats callback requires all four catalog units to
+be `count`, all four explicit nonnegative integer counts and
 `up + down + unknown == total`. Zero down/unknown counts are valid. A valid
 empty dataset is distinct from an API error, but cannot establish this Setup's
 required local monitored result; it remains actionable, not tile-only success.
 Snapshots are observations, not proof that unrelated monitored Apps work.
+Each verification invocation uses one refresh; the Step's separate apply and
+Check invocations can collect multiple samples. Native record clock limits stay
+in the Gatus owner; Stats timestamps retain the SDK's finite, positive, advancing
+requirements without an additional clock policy.
 
 Existing Projects lacking or changing the local check receive a retry hint to
 preserve their monitors and review the starter loopback check; Setup does not
@@ -101,10 +106,13 @@ and object response shape. It does not touch Homarr's descriptor or the
 before/after forced-refresh advancement check. Fresh source review at the new
 head remains required; no remote traffic or live proof was used.
 
-The descriptor is now source-activated in this branch through the custodian's
-single registry call. Frozen `verifyData` retains its common selected-metric
-freshness guard after the leaf's semantic verification; nil preflight does not
-alter cleanup or scheduling. No frozen helper signature or body changes.
+The descriptor is source-activated through the custodian's single registry call.
+The forward merge of SDK `ecc21d9f95664ef6245863ddfb05930bf4cde3a3`
+preserves that registration. Gatus's `verify` retains native local-store and
+configured-monitor provenance; its `stats` callback validates the same central
+sample without another Stats request. Nil preflight leaves cleanup and scheduling
+unchanged. The public Link fixture covers two verification invocations on first
+apply, one on each rerun and none on removal; each has one catalog/snapshot/refresh.
 Fresh parent-owned Standards/Spec reviews of the normalized final head and approved
 disposable runtime acceptance remain open. Registration is not live native,
 rendered, authentication, both-installation-order, ownership lifecycle or genuinely
