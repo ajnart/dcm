@@ -25,6 +25,7 @@ func sabnzbdTarget() target {
 			return sabnzbd.VerifyHomarr(ctx, to)
 		},
 		verify: verifySABnzbd,
+		stats:  verifySABnzbdStats,
 	}
 }
 
@@ -32,66 +33,21 @@ func verifySABnzbd(ctx context.Context, from, to *helpers.H, integrationID strin
 	if err := sabnzbd.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-		"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-		"includeArchivedHistory": false, "historyWindowDays": 7,
-	})
+	queue, err := readDownloadsQueue(ctx, from, integrationID, "sabNzbd")
 	if err != nil {
 		return err
 	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New("Homarr did not return SABnzbd download data")
-	}
-	result, ok := results[0].(map[string]any)
-	if !ok || stringField(result, "integrationId") != integrationID || result["error"] != nil {
-		return errors.New("Homarr could not read SABnzbd downloads; repair its full API key and private connection, then retry self-host setup homarr")
-	}
-	data, _ := result["data"].(map[string]any)
-	status, _ := data["status"].(map[string]any)
+	status, items := queue.status, queue.items
 	rates, _ := status["rates"].(map[string]any)
 	rate, numeric := rates["down"].(float64)
 	_, paused := status["paused"].(bool)
-	items, hasItems := data["items"].([]any)
-	if !numeric || math.IsNaN(rate) || math.IsInf(rate, 0) || rate < 0 || !paused || !hasItems {
+	if !numeric || math.IsNaN(rate) || math.IsInf(rate, 0) || rate < 0 || !paused {
 		return errors.New("Homarr returned incomplete SABnzbd downloads; an empty queue must explicitly contain items and a nonnegative download rate")
 	}
 	for _, item := range items {
 		if !validSABnzbdItem(item) {
 			return errors.New("Homarr returned incomplete SABnzbd download items; check the queue/history data and retry self-host setup homarr")
 		}
-	}
-	catalog, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	record, _ := catalog.(map[string]any)
-	metrics, _ := record["metrics"].([]any)
-	for _, expected := range []string{"download", "paused"} {
-		found := false
-		for _, raw := range metrics {
-			metric, _ := raw.(map[string]any)
-			if stringField(metric, "key") == expected {
-				found = true
-			}
-		}
-		if !found {
-			return errors.New("Homarr does not expose the supported SABnzbd Stats fields; use Homarr 2.4.1 and retry Setup")
-		}
-	}
-	snapshot, err := apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": false})
-	if err != nil {
-		return err
-	}
-	record, _ = snapshot.(map[string]any)
-	values, _ := record["values"].(map[string]any)
-	failed, hasError := record["error"].(bool)
-	stale, hasStale := record["stale"].(bool)
-	updatedAt, hasTimestamp := record["updatedAt"].(float64)
-	rate, numeric = values["download"].(float64)
-	_, paused = values["paused"].(bool)
-	if !hasError || failed || !hasStale || stale || !hasTimestamp || updatedAt <= 0 || !numeric || math.IsNaN(rate) || math.IsInf(rate, 0) || rate < 0 || !paused {
-		return errors.New("Homarr SABnzbd Stats are unavailable or incomplete; retry self-host setup homarr after checking its private connection and full API key")
 	}
 	return nil
 }
@@ -145,4 +101,15 @@ func validSABnzbdItem(raw any) bool {
 		}
 	}
 	return true
+}
+
+func verifySABnzbdStats(sample statsSample) error {
+	rate, ok := sample.values["download"].(float64)
+	if sample.units["download"] != "bytesPerSecond" || !ok || rate < 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
+		return errors.New("Homarr returned unsupported refreshed SABnzbd byte-per-second Stats; retry self-host setup homarr")
+	}
+	if _, ok := sample.values["paused"].(bool); !ok || sample.units["paused"] != "text" {
+		return errors.New("Homarr did not return supported refreshed SABnzbd paused Stats; retry self-host setup homarr")
+	}
+	return nil
 }

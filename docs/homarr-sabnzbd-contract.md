@@ -93,11 +93,11 @@ the existing JSON-only decoder as valid numbers. Homarr's pinned lock uses
 SuperJSON `2.2.6`: undefined becomes annotated null and nonfinite numbers
 become annotated strings, not numeric zero. SABnzbd's omitted optional keys
 do not need those annotations. The verifier then validates
-the exact Stats keys via `widget.stats.catalog` and checks
-`widget.stats.refresh` with `force=false`. The latter writes only Homarr's
-bounded read-only statistics cache; a fresh cached snapshot is valid for its
-one-hour upstream window. Error, missing values, stale data or a missing
-timestamp fail. Zero rate and an empty items array remain legitimate.
+the exact Stats keys and units through the shared catalog/refresh owner.
+`verifySABnzbdStats` validates the same forced advancing sample obtained by
+`verifyData`: finite nonnegative `download` in `bytesPerSecond` and boolean
+`paused` in `text`. A cached no-op fails. Zero rate and an explicit empty items
+array remain legitimate; native queue and Stats are independently sampled.
 
 ## Implementation and acceptance limits
 
@@ -114,10 +114,11 @@ version as a fake response control: standalone Setup/Check pass with valid
 capabilities, Homarr verification rejects it, a fresh `5.1.3` passes, and a
 blank observed version still fails standalone Setup/Check. This is not live
 `5.1.2` acceptance. Both original regressions failed before the corrections
-and passed after them. Existing Homarr tests exercise the reference seam,
-not this unregistered descriptor or its item validator; native item checks
-have source/schema/compile coverage only. No new test functions, test files
-or dependencies were added.
+and passed after them. Those earlier checks covered the reference seam.
+The 13 October migration
+adds focused HTTP fixtures for this unregistered descriptor, including its
+item validator. They are source validation, not native runtime acceptance.
+No dependencies were added.
 
 The local gate passed with `GOFLAGS=-buildvcs=false`: clean `gofmt -l .`,
 `go build ./...`, both repository/e2e-tag `go vet` commands, `go test ./...`,
@@ -150,3 +151,30 @@ acceptance or lifecycle proof is claimed by these source checks and fakes.
 - [Pinned SABnzbd API](https://github.com/sabnzbd/sabnzbd/blob/a647f73426cb70ad60ae7964b96c2d5e939b4727/sabnzbd/api.py)
 - [Pinned SABnzbd config representation](https://github.com/sabnzbd/sabnzbd/blob/a647f73426cb70ad60ae7964b96c2d5e939b4727/sabnzbd/config.py)
 - [SABnzbd 5.1.2 version control](https://github.com/sabnzbd/sabnzbd/commit/10609644c8b5eef462845ec6443f24dd8fcba96a)
+
+## 13 October shared Stats and Downloads migration
+
+The original branch forward-merges the shared Stats/Downloads SDK and its
+retry metadata without rewriting history. `sabnzbdTarget()` keeps native
+readiness, identity and queue semantics and uses `readDownloadsQueue` for
+one owned Downloads result with an explicit items array and a requested
+limit of 50. The shared owner acquires the catalog and exactly one forced,
+positive advancing sample per `verifyData` invocation; `verifySABnzbdStats`
+validates that same sample's units and types. Rates remain finite nonnegative
+bytes/second and paused remains boolean with catalog unit `text`.
+Only download and paused remain selected; unsupported nullable upload is
+not coerced to zero. Finite negative completion times remain accepted.
+
+Focused descriptor HTTP fixtures use the existing `statsFixture`, reject the
+first invalid refreshed value without resampling, no-op refresh, wrong units,
+wrong value types and foreign Downloads identity, and stop before the Stats
+catalog on native failure. Explicit zero Stats remain valid even when the
+independently sampled native rate or paused state differs. Local fixture
+responses are synthetic and establish no real App/native/rendered acceptance.
+The affected descriptor tests, shared Stats/Downloads tests, App tests,
+package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
+provider request, download or protected Project state was used.
+
+Registry assembly remains custodian-owned. Useful real native/rendered data,
+both installation orders and credential/ownership/removal lifecycle checks
+remain prerequisites to full acceptance; source fixtures do not satisfy them.
