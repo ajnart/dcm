@@ -41,7 +41,15 @@ func handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		w.Write([]byte(`{"version":"v6.0.0"}`))
+		w.Write([]byte(`{"version":"6.0.0"}`))
+	})
+	mux.HandleFunc("GET /api/v1/devices", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != "admin" || pass != password {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`[{"peanut.device_id":"fixture-ups","peanut.server":"fixture-nut:3493","ups.status":"OL","battery.charge":100}]`))
 	})
 	return mux
 }
