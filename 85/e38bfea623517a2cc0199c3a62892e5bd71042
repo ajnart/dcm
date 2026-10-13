@@ -1,0 +1,23 @@
+internal/tui/model.go
+  s_2ee16f89e90212::t_b8bf5600b61851 92-93
+internal/tui/nocolor_test.go
+  s_2ee16f89e90212::t_e561b838cb5a99 1-35
+internal/tui/view.go
+  s_2ee16f89e90212::t_9fa59c158f520c 15,569-585
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85e38bfea623517a2cc0199c3a62892e5bd71042",
+  "prompts": {},
+  "sessions": {
+    "s_2ee16f89e90212": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "43462e39-ff1e-462e-a209-a2b4f1fd2107",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
