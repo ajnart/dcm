@@ -100,19 +100,23 @@ on the strength of the site's HTTP status.
 
 ## Installer site
 
-GitHub Pages serves the site at `https://self-host.fyi`. The `pages` workflow
-(`.github/workflows/pages.yml`) runs on pushes to `main` that touch `site/`,
-`install.sh`, the builder or the showreel, and on manual dispatch. It builds the
-allowlisted tree, checks the installer checksum and the absence of source
-files, then publishes it with `actions/deploy-pages`. Publishing changes no
-Project and publishes no release archives.
+Cloudflare Pages serves the site at `https://self-host.fyi` from the Pages
+project `selfhost` (also `selfhost-d8k.pages.dev`), uploaded with Wrangler
+Direct Upload: no Git integration, no build step, no GitHub Actions. The apex
+and `www` are proxied CNAMEs to `selfhost-d8k.pages.dev` in the `self-host.fyi`
+zone. Deploying changes no Project and publishes no release archives. Use
+managed Wrangler authentication (`wrangler whoami`), never extract tokens.
 
-One-time setup, done by the maintainer: in the repository's Pages settings
-choose **GitHub Actions** as the source and `self-host.fyi` as the custom
-domain, add the registrar's DNS records for the apex (GitHub's `A`/`AAAA`
-addresses) and `www` (`CNAME` to `ajnart.github.io`), verify the domain, then
-enable **Enforce HTTPS**. Pages on a private repository needs a paid plan, and
-the workflow needs Actions minutes.
+```bash
+stage="$(mktemp -d)"
+bash scripts/build-installer-site.sh "$stage/deploy"
+(cd "$stage/deploy" && wrangler pages deploy --branch main)
+```
+
+`site/wrangler.toml` names the project and points it at `public/`. `_headers`
+sets the Content Security Policy, `nosniff`, `no-referrer`, plain-text types
+for the installer and CORS for `catalog.json`; `404.html` makes unknown paths
+such as `/go.mod` return 404 instead of the landing page.
 
 The old `selfhost.ajnart.dev` host must keep working for installs already in the
 wild. Once `self-host.fyi` serves the installer, replace the
@@ -123,18 +127,13 @@ string. Check it with `curl -I https://selfhost.ajnart.dev/install.sh`.
 
 The builder copies only `index.html`, `site.css`, `js/*.js`, `catalog.js`,
 `catalog.json`, `logo.svg`, `og.png`, `intro.json`, `reel.jpg`, the icons,
-`site.webmanifest`, the showreel from `video/reel/out/selfhost-reel.mp4` as
-`reel.mp4`, `install.sh` and `install.sh.sha256` into `public/`, and writes the
-`CNAME` file. `catalog.js` feeds the landing page's browser playground;
-regenerate it with `go run ./tools/sitecatalog` after catalog changes, and
+`site.webmanifest`, `llms.txt`, `404.html`, `_headers`, the showreel from `video/reel/out/selfhost-reel.mp4` as
+`reel.mp4`, `install.sh` and `install.sh.sha256` into `public/`, plus `wrangler.toml` beside it. `catalog.js` feeds the landing page's browser playground;
+regenerate it with `go run ./tools/sitecatalog` after catalog changes (it also writes `llms.txt`), and
 `intro.json`, the onboarding Intro recorded from `internal/intro`, with
 `go run ./tools/introframes`. The builder refuses a destination inside the
 checkout or one that exists, and never copies the repository, hidden files,
-service configurations or binaries. Pages cannot set response headers, so the
-Content Security Policy lives in a `<meta>` tag in `index.html`; the former
-`frame-ancestors` and `nosniff` headers have no Pages equivalent, an accepted
-loss for a static page with no signed-in actions. To preview the
-exact published tree locally:
+service configurations or binaries. To preview the exact published tree locally:
 
 ```bash
 stage="$(mktemp -d)"
@@ -144,9 +143,8 @@ python3 -m http.server 8000 --directory "$stage/deploy/public"
 
 After a confirmed rename, `SITE_RELEASE_REPO=ajnart/selfhost` explicitly selects
 the new repository; that option requires `gh` to confirm the name exists.
-Deploying the prepared installer does not make private GitHub releases public.
-The landing page deliberately says public downloads are unavailable; keep it
-that way until anonymous install and self-update pass.
+The installer is served twice, as `/install` (the address the product prints)
+and `/install.sh`, byte-identical, both covered by `install.sh.sha256`.
 
 Download `/install.sh` and `/install.sh.sha256` anonymously into a throwaway
 directory and run `shasum -a 256 -c install.sh.sha256`. This validates the
@@ -169,8 +167,9 @@ installation, self-update and any required live rename redirect remain external
 verification gates. The evidence below describes the earlier deployed version;
 this source update does not redeploy it or publish a new CLI release.
 
-References: [custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-and [custom domains](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site).
+References: [Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/),
+[headers](https://developers.cloudflare.com/pages/configuration/headers/) and
+[custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/).
 
 ### Deployment evidence, October 11, 2026 (former Cloudflare Worker)
 

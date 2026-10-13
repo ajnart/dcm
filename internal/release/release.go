@@ -41,7 +41,7 @@ const (
 )
 
 // InstallCommand is the one-line installer, for messages that point at it.
-const InstallCommand = "curl -fsSL https://self-host.fyi/install.sh | bash"
+const InstallCommand = "curl -fsSL https://self-host.fyi/install | bash"
 
 const (
 	binaryName    = "self-host"

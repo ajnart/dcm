@@ -204,7 +204,7 @@ func TestSelfUpdateTellsADevBuildToInstallARelease(t *testing.T) {
 
 	r := clitest.Run(t, deps, catalog.Default(), "self-update")
 
-	if r.Code != 1 || !strings.Contains(r.Out, "install.sh") {
+	if r.Code != 1 || !strings.Contains(r.Out, "self-host.fyi/install") {
 		t.Fatalf("exit %d:\n%s", r.Code, r.Out)
 	}
 	if got := clitest.Read(t, exe); got != "old-binary" {

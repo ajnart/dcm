@@ -2,8 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; connect-src 'self'; media-src 'self'; manifest-src 'self'; style-src 'self'; img-src 'self' https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
-    <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="self-host: one Go binary that installs, wires and repairs self-hosted Apps with Docker Compose. Try it in your browser.">
     <meta name="theme-color" content="#1e1d2a">
@@ -190,10 +188,10 @@ $ self-host debug sonarr</pre>
           <p>Linux, macOS, WSL. Needs Docker with Compose v2.</p>
         </div>
         <div class="install">
-          <code id="oneliner">curl -fsSL https://self-host.fyi/install.sh | bash</code>
+          <code id="oneliner">curl -fsSL https://self-host.fyi/install | bash</code>
           <button class="btn" id="copy" type="button">copy</button>
         </div>
-        <p class="notice"><b>! preview</b> Public downloads aren't live yet: the CLI still comes from a private repository. <a href="./install.sh">installer</a> · <a href="./install.sh.sha256">sha256</a></p>
+        <p class="aside">Read it first: <a href="./install">installer</a> · <a href="./install.sh.sha256">sha256</a> · <a href="https://github.com/ajnart/selfhost-skills/releases">releases</a></p>
         <p class="aside">Want the YAML instead? <a href="https://compose.ajnart.dev/?ref=selfhost">DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
       </section>
 
@@ -224,7 +222,7 @@ $ self-host debug sonarr</pre>
 
     <footer class="bar foot">
       <span>self-host · Apache-2.0</span>
-      <span><a href="https://github.com/ajnart/selfhost-skills">github</a> · <a href="https://github.com/sponsors/ajnart">sponsor</a> · <a href="https://ko-fi.com/ajnart">ko-fi</a> · <a href="https://compose.ajnart.dev/?ref=selfhost">dcm</a></span>
+      <span><a href="https://github.com/ajnart/selfhost-skills">github</a> · <a href="https://github.com/sponsors/ajnart">sponsor</a> · <a href="https://ko-fi.com/ajnart">ko-fi</a> · <a href="https://compose.ajnart.dev/?ref=selfhost">dcm</a> · <a href="./llms.txt">llms.txt</a></span>
     </footer>
   </body>
 </html>

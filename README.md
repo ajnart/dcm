@@ -12,15 +12,13 @@
 https://github.com/user-attachments/assets/b964b8b3-7dca-4020-8699-ed1697be38b2
 
 
-> **Release gate:** the installer is public, but anonymous CLI downloads are not available yet. Releases, the skill and self-update still use the private `ajnart/selfhost-skills` repository; public artifact distribution is a separate gate. See [Install details](#install-details).
-
 ## Quick start
 
 Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
 
 ```bash
 # 1. install (puts self-host in ~/.local/bin, verifies the checksum, deploys nothing)
-curl -fsSL https://self-host.fyi/install.sh | bash
+curl -fsSL https://self-host.fyi/install | bash
 export PATH="$HOME/.local/bin:$PATH"
 
 # 2. check the machine, then preview and install a Recipe
@@ -111,7 +109,7 @@ Use named volumes or bind mounts for persistent data: anonymous volumes are not 
 
 - The installer picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
 - `SELF_HOST_INSTALL_DIR` changes the destination; `SELF_HOST_VERSION` accepts `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z`; `SELF_HOST_RELEASE_REPO=owner/name` points the installer and `self-update` at a fork.
-- While the repository is private the installer accepts `SELF_HOST_GITHUB_TOKEN`, or falls back to `gh auth token`. Never print or paste a token.
+- Hitting GitHub's anonymous API rate limit? The installer accepts `SELF_HOST_GITHUB_TOKEN`, or falls back to `gh auth token`. Never print or paste a token.
 - Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill`, and an upgrade through `self-update`). `VERIFY_INSTALL_URL` overrides the URL. See [site deployment and release gates](docs/releasing.md#installer-site); maintainers: [how to cut a release](docs/releasing.md).
 - From source (Go 1.26.0+): `go build -buildvcs=false -o /tmp/self-host ./cmd/self-host`. Development builds cannot `self-update`.
 - Release proof: [self-host 0.1.2](https://github.com/ajnart/selfhost-skills/releases/tag/new-cli-v0.1.2), Linux amd64 install, self-update and clean Alpine bootstrap passed ([scope](docs/release-proof.md)).
@@ -125,7 +123,7 @@ Use named volumes or bind mounts for persistent data: anonymous volumes are not 
 | `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                                                                                                                                  |
 | Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                                                                                                                       |
 | Docker missing or stopped                     | Install or start it, then `self-host doctor`.                                                                                                                                  |
-| 404 or authentication error on install        | `gh auth login`, then `gh api -H 'Accept: application/vnd.github.raw+json' repos/ajnart/selfhost-skills/contents/install.sh \| SELF_HOST_GITHUB_TOKEN="$(gh auth token)" bash` |
+| 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour.                                                                                                   |
 | `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.                                                                                                             |
 | Native Windows                                | Unsupported. Use WSL.                                                                                                                                                          |
 

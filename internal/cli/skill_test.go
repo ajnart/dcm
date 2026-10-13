@@ -309,7 +309,7 @@ func TestSkillFileLoadsOnItsOwnAndStaysWithinTheIdleBudget(t *testing.T) {
 			t.Errorf("SKILL.md is explicit-only: it mentions %q", explicitOnly)
 		}
 	}
-	for _, want := range []string{"`self-host skill`", "install.sh"} {
+	for _, want := range []string{"`self-host skill`", "self-host.fyi/install"} {
 		if !strings.Contains(skillFile, want) {
 			t.Errorf("SKILL.md never mentions %q", want)
 		}

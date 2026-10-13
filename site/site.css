@@ -1292,3 +1292,8 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.notfound {
+  padding: 20vh 1.5rem;
+  text-align: center;
+}

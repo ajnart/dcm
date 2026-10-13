@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/catalog"
 )
@@ -93,8 +94,55 @@ func run() error {
 	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 		return err
 	}
+	if err := os.WriteFile(filepath.Join("site", "llms.txt"), []byte(llms(apps, recipes)), 0o644); err != nil {
+		return err
+	}
 	fmt.Println(path)
 	return nil
+}
+
+const llmsHead = `# self-host
+
+> One Go binary that installs, signs in, wires together and repairs self-hosted Apps with Docker Compose, for people through a terminal Dashboard and for agents through plain commands with --json.
+
+Install on Linux, macOS or WSL with Docker and the Compose v2 plugin:
+
+    curl -fsSL https://self-host.fyi/install | bash
+
+Agents: run ` + "`self-host skill`" + ` and follow the guide it prints. Every change follows inspect, plan, approval, apply, verify; loading the skill is intent, never approval. Ask the person before any install, remove or restore, then pass --yes.
+
+## Docs
+
+- [README](https://github.com/ajnart/selfhost-skills/blob/main/README.md): install, quick start, Links, commands, Access, Backup
+- [Agent skill](https://github.com/ajnart/selfhost-skills/blob/main/skills/self-host/SKILL.md): the discoverable skill, a router to ` + "`self-host skill`" + `
+- [Catalog JSON](https://self-host.fyi/catalog.json): every App and Recipe, with ports, images and Links
+- [Releases](https://github.com/ajnart/selfhost-skills/releases): CLI archives and checksums.txt
+
+## Commands
+
+- ` + "`self-host doctor --json`" + `: check Docker, ports and the machine
+- ` + "`self-host apps list --json`" + `, ` + "`self-host apps info <app> --json`" + `: browse the Catalog
+- ` + "`self-host install <app|recipe> --yes --json`" + `: install after approval
+- ` + "`self-host status --json`" + `: Apps, Addresses and Setup state
+- ` + "`self-host debug <app>`" + `: failed steps, hints and masked logs
+`
+
+func llms(apps []appJSON, recipes []recipeJSON) string {
+	var b strings.Builder
+	b.WriteString(llmsHead)
+	b.WriteString("\n## Recipes\n\n")
+	for _, r := range recipes {
+		fmt.Fprintf(&b, "- `%s` (%s): %s. Apps: %s\n", r.ID, r.Name, r.Description, strings.Join(r.Apps, ", "))
+	}
+	b.WriteString("\n## Apps\n\n")
+	for _, a := range apps {
+		fmt.Fprintf(&b, "- `%s` (%s, %s): %s", a.ID, a.Name, a.Category, a.Description)
+		if len(a.Links) > 0 {
+			fmt.Fprintf(&b, ". Links to %s", strings.Join(a.Links, ", "))
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
 }
 
 func main() {
