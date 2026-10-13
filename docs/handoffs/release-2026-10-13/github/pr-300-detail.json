@@ -1,0 +1,64 @@
+{
+  "number": 300,
+  "headRefOid": "1a82599509947e0c6a6c300654a9bed1d6f7ab88",
+  "comments": [
+    {
+      "body": "<!-- This is an auto-generated comment: summarize by coderabbit.ai -->\n<!-- This is an auto-generated comment: skip review by coderabbit.ai -->\n\n> [!IMPORTANT]\n> ## Draft PR not reviewed\n> \n> Draft PRs are not automatically reviewed by default.\n> \n> - [ ] <!-- {\"checkboxId\":\"e9bb8d72-00e8-4f67-9cb2-caf3b22574fe\"} --> Trigger a manual review\n> \n> To automatically review draft PRs, update your CodeRabbit configuration:\n> \n> ```yaml\n> reviews:\n>   auto_review:\n>     drafts: true\n> ```\n\n<!-- end of auto-generated comment: skip review by coderabbit.ai -->\n\n<!-- autopilot:start -->\n- [ ] <!-- {\"checkboxId\":\"2708ad07-9f24-4260-9c11-7dc76a49f2e3\"} --> <strong title=\"Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts\">Autofix</strong> \u00b7 Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts\n<!-- autopilot:end -->\n<!-- tips_start -->\n\n---\n\n> [!NOTE]\n> <details>\n> <summary><strong>\ud83c\udf81 Summarized by CodeRabbit Free</strong></summary>\n> <dl>\n> <dd>\n> \n> Your organization is on the Free plan. CodeRabbit will generate a high-level summary and a walkthrough for each pull request. For a comprehensive line-by-line review, please upgrade your subscription to CodeRabbit Essentials by visiting <https://app.coderabbit.ai/settings/billing>.\n> \n> \n> <hr>\n> \n> </dd>\n> </dl>\n> </details>\n\n\n<sub>Comment `@coderabbitai help` to get the list of available commands.</sub>\n\n<!-- tips_end -->",
+      "url": "https://github.com/ajnart/selfhost-skills/pull/300#issuecomment-6113208673",
+      "createdAt": "2026-10-11T20:08:49Z"
+    }
+  ],
+  "reviews": [],
+  "commits": [
+    {
+      "oid": "1a82599509947e0c6a6c300654a9bed1d6f7ab88",
+      "messageHeadline": "feat(video): use canonical release domain in showreel",
+      "messageBody": "",
+      "committedDate": "2026-10-11T20:07:37Z"
+    }
+  ],
+  "files": [
+    {
+      "path": "video/reel/HANDOFF.md",
+      "additions": 23,
+      "deletions": 5,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/STORYBOARD.md",
+      "additions": 39,
+      "deletions": 6,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/audio/cues.json",
+      "additions": 192,
+      "deletions": 22,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/end.js",
+      "additions": 6,
+      "deletions": 3,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/out/contact.png",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/out/selfhost-reel.mp4",
+      "additions": 0,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "video/reel/styles.css",
+      "additions": 12,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    }
+  ]
+}

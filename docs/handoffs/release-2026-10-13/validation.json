@@ -1,0 +1,28 @@
+{
+  "scope": "Documentation/static-source transport validation only; no runtime/model/installer/release acceptance",
+  "main_documents": [
+    "LATEST-UPDATE.md",
+    "START-HERE.md",
+    "HANDOFF.md",
+    "CONTINUE-PROMPT.md",
+    "PR-STACKS.md",
+    "APP-QUEUE.md",
+    "CHECKPOINTS.md",
+    "TRACKER-INVENTORY.md",
+    "PR-HISTORY.md"
+  ],
+  "relative_links_and_anchors_checked": 176,
+  "json_files_parsed": 81,
+  "pre_existing_pr_history": 125,
+  "open_pr_dossiers": 46,
+  "total_pr_history_across_snapshots": 128,
+  "new_real_stack": "#259 -> #357; separate main-based #356/#358",
+  "open_issues": 57,
+  "app_records": 39,
+  "full_evaluation_file_list": 205,
+  "heuristic_secret_home_email_scan": "passed; not a security guarantee",
+  "tested_patch_byte_identical_sha256": "4e601a045734777c40c059b86b55837f5eea7a3fa50754cf26d0b69f183e2af9",
+  "tested_patch_applies_to_frozen_contract": true,
+  "checkpoint_matches_tested_patch_except_two_local_source_helpers": true,
+  "export_provenance_hashes": "verified"
+}

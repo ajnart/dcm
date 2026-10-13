@@ -1,0 +1,11 @@
+{
+  "captured_at_utc": "2026-10-13T05:21:46.339067+00:00",
+  "source_root_branch": "test/skill-eval-harness",
+  "source_root_head": "e49d93a6cafcf014defb5424d864de646bab948c",
+  "source_root_status": " M .gitignore\n M .ignore\n?? docs/homarr-integration-coverage-research.md\n?? docs/homarr-ticket-index.md\n",
+  "live_main": "ab4c92c428a2c2c9ab284a83f79f726418c1498b",
+  "all_open_prs": 43,
+  "all_open_issues": 57,
+  "app_rows": 39,
+  "note": "Root HEAD advanced concurrently c697acd2 -> e49d93a6 during read-only collection; same four user-owned dirty/untracked paths preserved."
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "body": "Source correction pushed: 56dc88ec7bcfb1a2397b8365d894b26ebd7e974e (delta from 1ac8afbf4b3cf8fda15616ba1f08aa01a197e821: four existing files, +49/-19).\n\n- P1: removed the install/reinstall credential-recovery command. No non-rerendering Prometheus ingestion command exists; missing/rejected credentials remain Manual, protected arguments/mounts/scrapes stay unchanged, and any potential replacement requires configuration review plus separate approval. The old recovery-hint source check failed; the corrected check passes.\n- P2: valid empty discovery now retries within the existing minute. Only pending discovery at timeout converts to Manual; populated custom prerequisites/authentication remain distinct. The existing storage-user install fixture returns five seconds of empty discovery, then real-shaped starter data: failed before the fix, passes now. Fresh query/sample/staleness/malformed checks are unchanged.\n\nFocused tests, full build/vet/Go-test gate, TUI/Activity/Prometheus/Homarr/Catalog race checks, shell syntax and diff checks pass. No new cases/files/dependencies, shared changes, runtime actions or children. Persistent-absence timeout classification is source-reviewed, not a new regression case. Both fresh independent source axes and native/render/shared-binding/normalized-registration/full-lifecycle proof remain held for the parent.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/336#issuecomment-6115190065",
+    "created_at": "2026-10-11T23:38:34Z",
+    "updated_at": "2026-10-11T23:38:34Z"
+  },
+  {
+    "body": "Both independent fresh SOURCE-stage reviews pass with zero findings at 56dc88ec7bcfb1a2397b8365d894b26ebd7e974e (fixed base 795c6d082c8affd213447e0629328fb7ba9d2fe4). Both axes confirm P1 protected-configuration recovery and P2 premature Manual on normal discovery startup are resolved: no reinstall instruction, explicit preservation/review/approval, transient absence polls within the existing minute and becomes Manual only if persistent. Native count/query/seconds-versus-milliseconds semantics remain correct. Read-only re-reviews, not live proof. Keep draft pending final shared-contract normalization/registration, actual native/rendered/Basic-mode and shared-binding/full lifecycle acceptance; #299 is not complete.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/336#issuecomment-6115264987",
+    "created_at": "2026-10-11T23:47:54Z",
+    "updated_at": "2026-10-11T23:47:54Z"
+  },
+  {
+    "body": "Both independent FINAL-NORMALIZED SOURCE reviews pass with zero findings at 2231ee7542a1fe6082ec8f0a568ebb2ffa2dd17b against frozen 6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c. Registration/frozen freshness-helper reuse, exact total/up/down native counts, seconds/milliseconds semantics and both protected-recovery/startup-discovery fixes are independently verified. Reported full gate is source-only. Keep draft for actual native/rendered and Basic-mode behavior, both installation orders, recovery/restart, shared cross-kind preservation/useful survivor and complete lifecycle proof; #299 remains open.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/336#issuecomment-6115733177",
+    "created_at": "2026-10-12T00:42:51Z",
+    "updated_at": "2026-10-12T00:42:51Z"
+  }
+]

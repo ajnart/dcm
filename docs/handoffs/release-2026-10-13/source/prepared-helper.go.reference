@@ -1,0 +1,114 @@
+package main
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/project"
+	"github.com/ajnart/self-host/internal/system"
+	"go.yaml.in/yaml/v3"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		panic("one mode required")
+	}
+	if os.Args[1] == "inventory" {
+		data, err := os.ReadFile(os.Getenv("AGGREGATE_SOURCE_MANIFEST"))
+		must(err)
+		var manifest struct {
+			Peers []struct {
+				Name       string
+				Descriptor struct{ ID string }
+			}
+		}
+		must(json.Unmarshal(data, &manifest))
+		cat := catalog.Default()
+		held := map[string]bool{"warrior": true, "gluetun": true, "plex": true, "slskd": true, "wud": true}
+		ids := []string{}
+		for _, peer := range manifest.Peers {
+			if !held[peer.Name] {
+				ids = append(ids, peer.Descriptor.ID)
+			}
+		}
+		ids = append(ids, "homarr")
+		rows := []map[string]any{}
+		for index, id := range ids {
+			a, ok := cat.App(id)
+			if !ok {
+				panic("missing App " + id)
+			}
+			inputs := map[string]string{}
+			for _, input := range a.Inputs() {
+				if input.Private && input.Required && input.Default == "" {
+					panic("required private prerequisite: " + id + "." + input.Key)
+				}
+				inputs[input.Key] = input.Default
+			}
+			if _, ok := inputs["dns-port"]; ok {
+				inputs["dns-port"] = fmt.Sprint(25000 + index)
+			}
+			port := 23000 + index
+			rc := app.RenderContext{Port: port, Inputs: inputs, Settings: map[string]string{"EXPOSURE": "local", "BIND_IP": "127.0.0.1", "LAN_IP": "127.0.0.1", "TZ": "UTC", "PUID": "0", "PGID": "0", "UMASK": "022"}}
+			var fragment struct {
+				Services map[string]map[string]any `yaml:"services"`
+			}
+			must(yaml.Unmarshal([]byte(a.Compose(rc)), &fragment))
+			rows = append(rows, map[string]any{"id": id, "port": port, "inputs": inputs, "info": a.Info(), "services": fragment.Services})
+		}
+		homarr, _ := cat.App("homarr")
+		if len(homarr.Links()) != 48 {
+			panic("registry must resolve exactly 48 Links")
+		}
+		must(json.NewEncoder(os.Stdout).Encode(rows))
+		return
+	}
+	root := os.Getenv("SELF_HOST_HOME")
+	if !filepath.IsAbs(root) || !strings.HasPrefix(root, "/private/var/folders/kx/hccbvbyd6sb61s6lrr2jyt2m0000gn/T/opencode/homarr-aggregate-") {
+		panic("owned Project root required")
+	}
+	p := project.Open(system.User{Home: root, UID: os.Getuid(), GID: os.Getgid()})
+	p.Root = root
+	secrets, err := p.LoadSecrets()
+	must(err)
+	data, err := io.ReadAll(io.LimitReader(os.Stdin, 32<<20))
+	must(err)
+	if os.Args[1] == "check-args" {
+		for key, value := range secrets {
+			if value == "self-host-homarr" && (key == "GOTIFY_HOMARR_USERNAME" || key == "NZBGET_HOMARR_USERNAME" || key == "UMAMI_HOMARR_USERNAME") {
+				continue
+			}
+			if key != "ADMIN_USER" && len(value) >= 4 && strings.Contains(string(data), value) {
+				os.Exit(3)
+			}
+		}
+		return
+	}
+	if os.Args[1] != "redact" {
+		panic("unknown mode")
+	}
+	log := events.New()
+	for key, value := range secrets {
+		if key == "ADMIN_USER" || value == "" {
+			continue
+		}
+		log.Secret(value, url.QueryEscape(value), url.PathEscape(value), base64.StdEncoding.EncodeToString([]byte(value)))
+	}
+	_, err = io.WriteString(os.Stdout, log.Redact(string(data)))
+	must(err)
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

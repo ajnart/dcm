@@ -1,0 +1,238 @@
+--- prior-immutable/supervise.py
++++ new-owned/supervise.py
+@@ -26,6 +26,7 @@
+ ACTIVE = None
+ BROWSER_ENV = None
+ BROWSER_STARTED = False
++WRAPPER_DISPOSITION = None
+ 
+ 
+ def require(condition, reason):
+@@ -352,6 +353,10 @@
+                     "state": item["State"]["Status"],
+                     "exit_code": item["State"]["ExitCode"],
+                     "oom_killed": item["State"]["OOMKilled"],
++                    "started_at": item["State"].get("StartedAt"),
++                    "finished_at": item["State"].get("FinishedAt"),
++                    "restarting": item["State"].get("Restarting"),
++                    "restart_count": item.get("RestartCount"),
+                     "memory": cap["Memory"],
+                     "memory_swap": cap["MemorySwap"],
+                     "nano_cpus": cap["NanoCpus"],
+@@ -379,6 +384,14 @@
+ 
+ 
+ def wrapper():
++    global WRAPPER_DISPOSITION
++    WRAPPER_DISPOSITION = {
++        "stage": "runner-preflight",
++        "category": "runner-guard",
++        "docker_started": False,
++        "pid": os.getpid(),
++        "at": time.time(),
++    }
+     args = sys.argv[2:]
+     check_socket()
+     require(
+@@ -432,12 +445,39 @@
+         ),
+         "unapproved Compose operation",
+     )
+-    check = subprocess.run(
+-        [str(A / "helper"), "check-args"],
+-        input=json.dumps(args).encode(),
+-        capture_output=True,
+-        timeout=15,
+-    )
++    owned_services = []
++    if tail[0] == "exec":
++        index = 1
++        while index < len(tail) and tail[index] in ["-T", "-e"]:
++            if tail[index] == "-e":
++                index += 2
++            else:
++                index += 1
++        if index < len(tail) and tail[index] in SERVICES:
++            owned_services = [tail[index]]
++    WRAPPER_DISPOSITION.update(
++        operation=tail[0], services=owned_services, stage="argv-check"
++    )
++    try:
++        check = subprocess.run(
++            [str(A / "helper"), "check-args"],
++            input=json.dumps(args).encode(),
++            capture_output=True,
++            timeout=15,
++        )
++    except (OSError, subprocess.SubprocessError):
++        WRAPPER_DISPOSITION.update(category="runner-helper-error", exit_code=2)
++        record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
++        raise RuntimeError("private argument helper failed; details withheld") from None
++    WRAPPER_DISPOSITION.update(helper_exit=check.returncode)
++    if check.returncode:
++        WRAPPER_DISPOSITION.update(
++            category="runner-private-argv-guard"
++            if check.returncode == 3
++            else "runner-helper-error",
++            exit_code=2,
++        )
++        record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
+     require(
+         check.returncode == 0, "CLI put a private fixture value in process arguments"
+     )
+@@ -470,7 +510,32 @@
+             file=sys.stderr,
+             flush=True,
+         )
+-    result = subprocess.run(BASE + args)
++    WRAPPER_DISPOSITION.update(
++        stage="docker-operation",
++        category="docker-operation-started",
++        docker_started=True,
++    )
++    record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
++    try:
++        result = subprocess.run(BASE + args)
++    except OSError:
++        WRAPPER_DISPOSITION.update(category="docker-client-start-error", exit_code=2)
++        record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
++        raise RuntimeError(
++            "explicit-endpoint Docker subprocess could not start"
++        ) from None
++    category = "docker-operation-ok"
++    if result.returncode:
++        category = "docker-compose-nonzero"
++        if tail[0] == "exec":
++            category = "docker-exec-or-container-command-nonzero"
++    WRAPPER_DISPOSITION.update(
++        stage="exit",
++        category=category,
++        exit_code=result.returncode,
++        finished_at=time.time(),
++    )
++    record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
+     if tail[0] == "up":
+         observed = capture()
+         print(
+@@ -501,15 +566,29 @@
+ 
+ def child(command, name, limit=60, input_data=None, env=None, progress=False):
+     global ACTIVE
+-    ACTIVE = subprocess.Popen(
+-        command,
+-        cwd=HOME,
+-        env=env or ENV,
+-        stdin=subprocess.PIPE if input_data is not None else subprocess.DEVNULL,
+-        stdout=subprocess.PIPE,
+-        stderr=subprocess.STDOUT,
+-        start_new_session=True,
+-    )
++    disposition = {
++        "stage": "start",
++        "category": "running",
++        "exit_code": None,
++        "started_at": time.time(),
++    }
++    record("command-" + name, disposition)
++    try:
++        ACTIVE = subprocess.Popen(
++            command,
++            cwd=HOME,
++            env=env or ENV,
++            stdin=subprocess.PIPE if input_data is not None else subprocess.DEVNULL,
++            stdout=subprocess.PIPE,
++            stderr=subprocess.STDOUT,
++            start_new_session=True,
++        )
++    except OSError:
++        disposition.update(
++            stage="start", category="runner-subprocess-error", finished_at=time.time()
++        )
++        record("command-" + name, disposition)
++        raise
+     if input_data is not None:
+         ACTIVE.stdin.write(input_data)
+         ACTIVE.stdin.close()
+@@ -561,8 +640,21 @@
+                 )
+                 last = time.monotonic()
+         code = ACTIVE.wait(timeout=10)
++        disposition.update(
++            stage="exit",
++            exit_code=code,
++            category="command-ok" if code == 0 else "command-nonzero",
++        )
++    except (TimeoutError, subprocess.TimeoutExpired):
++        disposition.update(stage="deadline", category="runner-deadline")
++        raise
++    except OSError:
++        disposition.update(stage="subprocess", category="runner-subprocess-error")
++        raise
+     finally:
+         stop_active()
++        disposition.update(finished_at=time.time())
++        record("command-" + name, disposition)
+         safe = redacted(bytes(output))
+         (ROOT / (name + ".redacted.log")).write_bytes(safe)
+         (ROOT / (name + ".redacted.log")).chmod(0o600)
+@@ -1092,21 +1184,45 @@
+             *sets,
+             *[row["id"] for row in PLAN["apps"]],
+         ]
+-        code, _ = child(args, "install", limit=remaining(300), progress=True)
++        code, _ = child(args, "install", limit=remaining(900), progress=True)
+         result["install_exit"] = code
+         result["resources"] = capture()
+-        for command in [["status"], ["debug", "homarr"]]:
++        for command in [
++            ["debug", "home-assistant"],
++            ["debug", "immich"],
++            ["debug", "nzbget"],
++            ["debug", "patchmon"],
++            ["debug", "tracearr"],
++            ["status"],
++            ["debug", "homarr"],
++        ]:
+             name = "-".join(command)
+-            code, safe = child(
+-                [str(A / "self-host"), "--json", *command], name, limit=45
+-            )
++            if remaining(180) <= 30:
++                record(
++                    "command-" + name,
++                    {
++                        "stage": "not-started",
++                        "category": "cleanup-reserve",
++                        "exit_code": None,
++                    },
++                )
++                continue
++            try:
++                code, safe = child(
++                    [str(A / "self-host"), "--json", *command], name, limit=30
++                )
++            except (TimeoutError, subprocess.TimeoutExpired, OSError):
++                result[name + "_disposition"] = (
++                    "bounded diagnostic did not finish; see safe command receipt"
++                )
++                continue
+             result[name + "_exit"] = code
+             if name == "status" and code == 0:
+                 try:
+                     record("status", json.loads(safe))
+                 except ValueError:
+                     result["status_json"] = "NDJSON retained in redacted log"
+-        if any(
++        if remaining(180) > 45 and any(
+             row["service"] == "homarr" and row["state"] == "running"
+             for row in result["resources"]["containers"]
+         ):
+@@ -1155,5 +1271,8 @@
+             )
+             main()
+     except RuntimeError as error:
++        if WRAPPER_DISPOSITION is not None:
++            WRAPPER_DISPOSITION.setdefault("exit_code", 2)
++            record("subprocess-" + str(os.getpid()), WRAPPER_DISPOSITION)
+         print("aggregate guard:", str(error), file=sys.stderr, flush=True)
+         raise SystemExit(2)

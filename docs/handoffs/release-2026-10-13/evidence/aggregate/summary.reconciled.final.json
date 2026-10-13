@@ -1,0 +1,115 @@
+{
+  "outcome": "ACTUAL AGGREGATE ATTEMPT COMPLETED WITH SETUP FAILURES/MANUAL HOLDS; RENDERING BLOCKED; OWNED CLEANUP VERIFIED",
+  "project": "aggregate-5iy1oywq",
+  "endpoint": "unix://<OLD_USER_HOME>/.orbstack/run/docker.sock",
+  "install_exit": 2,
+  "elapsed_admission_through_supervised_container_cleanup_seconds": 663.646,
+  "absolute_deadline_seconds": 5400,
+  "actual_caps": {
+    "containers": 51,
+    "memory_gib": 27,
+    "cpu": 15.75,
+    "pids_per_container": 512,
+    "bounded_memory_swap_equal_memory": true,
+    "validated_effective_compose_before_pull_and_up": true
+  },
+  "counts": {
+    "source_peers": 39,
+    "source_links_registered": 48,
+    "selected_peers": 34,
+    "selected_apps_with_homarr": 35,
+    "startup_held_peers": 5,
+    "installed_apps_with_homarr": 35,
+    "containers_created_and_captured": 51,
+    "containers_running_at_final_capture": 51,
+    "captured_oom_flags": 1,
+    "peer_own_setup": {
+      "ok": 24,
+      "manual": 5,
+      "incomplete": 5
+    },
+    "homarr_link_steps": {
+      "skip": 10,
+      "ok": 23,
+      "manual": 1
+    },
+    "link_step_ok_with_leaf_verifier": 19,
+    "link_step_ok_with_nil_verifier": 4,
+    "independently_captured_authenticated_native_values": 0,
+    "rendered_values_captured": 0
+  },
+  "oom_flag_services": [
+    "immich-database"
+  ],
+  "peer_own_setup_failures": [
+    "home-assistant",
+    "immich",
+    "nzbget",
+    "patchmon",
+    "tracearr"
+  ],
+  "peer_manual_setup": [
+    "emby",
+    "peanut",
+    "sabnzbd",
+    "speedtest-tracker",
+    "uptime-kuma"
+  ],
+  "source_delta_sha256": "4e601a045734777c40c059b86b55837f5eea7a3fa50754cf26d0b69f183e2af9",
+  "binary_sha256": "6a58ca3529850227e32338291c87fc05bff20ddef9beafde257baeb56c1ee2ba",
+  "runner_sha256": "260383a0210be27ad3635efb2075db92317ff2c3e2a81c2ce09e1b200312305d",
+  "source_manifest": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-launcher-fixed-guard-980r9gb7/manifest.final.json",
+  "image_provenance": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-run-5iy1oywq/image-provenance.final.json",
+  "per_app_results": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-run-5iy1oywq/per-app-results.reconciled.final.json",
+  "browser": {
+    "command": "isolated owned session info; no open/navigation/relaunch",
+    "active": false,
+    "pid": null,
+    "runtime": null,
+    "observed_at": 1791831227.586612,
+    "startup_refused": "UNIX socket path exceeds supported length",
+    "computed_socket_path_bytes": 181,
+    "screenshot": null,
+    "native_rendered_observations": "not reached"
+  },
+  "cleanup": {
+    "containers_and_network": "verified empty by supervised cleanup readback",
+    "removed_containers": 51,
+    "removed_networks": 1,
+    "browser": "verified inactive, no PID; startup never reached navigation",
+    "original_close_command_failed": "Socket path too long; original cleanup error receipt preserved",
+    "data_volumes_images_preserved": true,
+    "original_cleanup": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-run-5iy1oywq/cleanup.json",
+    "browser_readback": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-run-5iy1oywq/browser-cleanup-readback.final.json",
+    "no_retry_or_relaunch": true
+  },
+  "saved_links_caveat": "23 successful recorded production Link steps; no independent integration-record enumeration or rendered proof captured. Four are nil-verifier stage1.",
+  "status_schema_recovery": {
+    "source": "pre-cleanup production status --json output, already masked by both production and private helper",
+    "schema_recovery": "Redacted numeric JSON tokens replaced with null; no secret or masked value reconstructed. Setup/step enum values preserved; numeric resource provenance comes from the separately captured public container metadata.",
+    "original_redacted_status_preserved": true,
+    "public_identifiers": "Masked aria2 and link-aria2 IDs matched uniquely against frozen public plan identifiers. No masked credential or numeric value was reconstructed."
+  },
+  "snapshot_capacity": {
+    "engine": {
+      "memory": 33670590464,
+      "cpus": 16,
+      "version": "29.8.2",
+      "running": 16
+    },
+    "existing_memory_excluding_inactive_file_cache": 2343305224,
+    "existing_cpu_percent_snapshot": 1.61,
+    "running_counters": 16,
+    "aggregate_memory_caps": 28991029248,
+    "aggregate_cpu_caps": 15.75,
+    "engine_overhead_reserve": 1073741824,
+    "headroom_after_caps_and_snapshot": 2336255992,
+    "snapshot_not_capacity_guarantee": true
+  },
+  "source_guard_caveat": "NZBGet/PatchMon native Manual guards remain in unchanged source; own Setup failures occurred before their native Link guards were reached. Frigate native Link is Manual.",
+  "screenshots": [],
+  "native_lifecycle_acceptance_changed": false,
+  "no_peer_branch_root_ledger_edits": true,
+  "no_followup_runtime_authorized_or_performed": true,
+  "source_manifest_sha256": "8487dd3a9310335329fe2b8f3e8e017a51c37df9982c2c7fba18e43865cffa19"
+}

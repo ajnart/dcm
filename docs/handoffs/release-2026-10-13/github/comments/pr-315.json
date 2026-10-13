@@ -1,0 +1,14 @@
+[
+  {
+    "body": "Independent SOURCE-stage Standards and Spec both pass with zero findings at 2cf41e1301fc3fb55eb1e5c00f5edaf8f52332bc, fixed checkpoint 573a206e2b4a76574fd7e8cbd1f21c5a4c2fd37d. Actual Homarr image source and tagged baseline agree for the Caddy provider, credentials and Stats contract; private read-only bridge, saved configuration and counter semantics are preserved. These were read-only source reviews, not real runtime proof. #265 has already merged; remaining holds are final reference freeze/normalization/registration, real native/rendered values, genuinely multi-binding preservation and complete lifecycle acceptance. Keep draft; #273 is not complete.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/315#issuecomment-6115264995",
+    "created_at": "2026-10-11T23:47:54Z",
+    "updated_at": "2026-10-11T23:47:54Z"
+  },
+  {
+    "body": "Both independent FINAL-NORMALIZED SOURCE reviews pass with zero findings at 259033989ef44589658a3adbc3c4505175d41ae0 against frozen 6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c. One registry call is reachable; exact private read-only Caddy API, active/remembered counter meanings, explicit empty credentials, saved configuration and frozen fresh Stats helper reuse are preserved. Reported full gate is source validation, not native acceptance. Keep draft for actual native/rendered, both-order, recovery/restart, cross-kind useful-survivor and complete lifecycle proof. A real Caddy companion fixture in another peer proof would not by itself complete Caddy production-Link acceptance.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/315#issuecomment-6115733170",
+    "created_at": "2026-10-12T00:42:51Z",
+    "updated_at": "2026-10-12T00:42:51Z"
+  }
+]

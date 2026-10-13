@@ -1,0 +1,772 @@
+[
+  {
+    "branch": "checkpoint/release-notes-20261013",
+    "commit": "fb5c2b92b930b6db4cf054ea4ff819c5b633feb8",
+    "parent": "3558e581856ae12bf803c6052384ee23ac2f93a2",
+    "tree": "f0c74e992c88f4925121c93f9f54c523171ee80d",
+    "purpose": "Historical notes and ignore changes; do not merge over current canonical docs",
+    "snapshot_files": [
+      {
+        "path": ".gitignore",
+        "sha256": "fd946d4d4a8c35d878d5a0c8b155c45d97404e6486c3fc96143b629b9f098e5f",
+        "bytes": 319
+      },
+      {
+        "path": ".ignore",
+        "sha256": "4c297f18d62ef108862302ad1c06f32c6cb96060202efb7d1fbd1e690b45d9fc",
+        "bytes": 178
+      },
+      {
+        "path": "docs/homarr-integration-coverage-research.md",
+        "sha256": "316198b62f1ff9f3eb24d507093805f08ea8996b914282666a57ed7f50cda89a",
+        "bytes": 42319
+      },
+      {
+        "path": "docs/homarr-ticket-index.md",
+        "sha256": "4467eca3905a8476fcffb03ae3b43fe8c364a499abdc80eb1584b706c94f3996",
+        "bytes": 11615
+      },
+      {
+        "path": ".slim/deepwork/aria2-final-source-review.md",
+        "sha256": "e2cc03e1b064d99cf2cbfc110be67af124ff3f516752ce5c39ec5150a992be3d",
+        "bytes": 1667
+      },
+      {
+        "path": ".slim/deepwork/audiobookshelf-final-source-review.md",
+        "sha256": "87483f3478385c90b1f4b6a8749d0ac3199f60eadab621e5acd9bab8e91716c6",
+        "bytes": 1406
+      },
+      {
+        "path": ".slim/deepwork/bazarr-final-source-review.md",
+        "sha256": "38de7d2434cc1cd67e31e7ba2b7011d8bd1eb7c5d75e2d15706af5c75697f6d5",
+        "bytes": 1340
+      },
+      {
+        "path": ".slim/deepwork/frigate-hint-final-source-review.md",
+        "sha256": "c4464b75b69b11fee1ebb624200c5c3d02a41b0c818a2f805eecd568c0893245",
+        "bytes": 1335
+      },
+      {
+        "path": ".slim/deepwork/gluetun-native-blocker.md",
+        "sha256": "8b0ea72d4ed812585f397ad2ab024fd4de575e7b7a2b4af077b96fa7122705a8",
+        "bytes": 3354
+      },
+      {
+        "path": ".slim/deepwork/homarr-aggregate-inspection.md",
+        "sha256": "d838fbf478b011ea72b16dbd06911e0536522ab05ef5817c9210620abec2a3b6",
+        "bytes": 36199
+      },
+      {
+        "path": ".slim/deepwork/homarr-aggregate-plan.md",
+        "sha256": "9732e1d22be1727028f5be2c3792f1041244af974fb4fc4df025ee42c1a915c3",
+        "bytes": 19102
+      },
+      {
+        "path": ".slim/deepwork/nzbget-diagnostic-source-review.md",
+        "sha256": "96494607a83bf644742a8cb77c596390de66b0032accbde32ae90ed892919183",
+        "bytes": 1328
+      },
+      {
+        "path": ".slim/deepwork/nzbget-native-logging-blocker.md",
+        "sha256": "bbf6ad8360de0e8ca44285669c162212061dbdcd63d8c3a9c931470d096496af",
+        "bytes": 4034
+      },
+      {
+        "path": ".slim/deepwork/release-homarr.md",
+        "sha256": "4ff8912f70f10a480a726ea7c52ef79570798ea14bd3f419419d542b4dacdb3d",
+        "bytes": 183406
+      }
+    ],
+    "changed_paths": [
+      ".gitignore",
+      ".ignore",
+      ".slim/deepwork/aria2-final-source-review.md",
+      ".slim/deepwork/audiobookshelf-final-source-review.md",
+      ".slim/deepwork/bazarr-final-source-review.md",
+      ".slim/deepwork/frigate-hint-final-source-review.md",
+      ".slim/deepwork/gluetun-native-blocker.md",
+      ".slim/deepwork/homarr-aggregate-inspection.md",
+      ".slim/deepwork/homarr-aggregate-plan.md",
+      ".slim/deepwork/nzbget-diagnostic-source-review.md",
+      ".slim/deepwork/nzbget-native-logging-blocker.md",
+      ".slim/deepwork/release-homarr.md",
+      "docs/homarr-integration-coverage-research.md",
+      "docs/homarr-ticket-index.md"
+    ],
+    "original_head_index_worktree_preserved": true,
+    "push": "verified remote equals exact checkpoint commit",
+    "remote_url": "https://github.com/ajnart/selfhost-skills/tree/checkpoint/release-notes-20261013"
+  },
+  {
+    "branch": "checkpoint/homarr-aggregate-20261013",
+    "commit": "f0b06ef7fa7b49263e5217d0d7853015886d9e86",
+    "parent": "6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c",
+    "tree": "c5772ff552b9997ef820c225005f779281668bb3",
+    "purpose": "Evaluation-only union; not a production integration PR or fresh runtime approval",
+    "snapshot_files": [
+      {
+        "path": "internal/apps/adguard/adguard.go",
+        "sha256": "1dea80f07f49ab1c0bd0cf2ee640855c9c6b9c6f8854a2f4b21296cbd545c665",
+        "bytes": 9895
+      },
+      {
+        "path": "internal/apps/archiveteamwarrior/archiveteamwarrior.go",
+        "sha256": "078e55d871b02848d76000770180edff9d1837991421677b107208d577beb5ca",
+        "bytes": 4090
+      },
+      {
+        "path": "internal/apps/archiveteamwarrior/status.go",
+        "sha256": "3e340aea96247f928d4e9c5974fc8022edf81b012c7a0858751d12e715393ef3",
+        "bytes": 4084
+      },
+      {
+        "path": "internal/apps/aria2/aria2.go",
+        "sha256": "a5a68489eb6e04162dd2fea5495e08e7598233807d22d68bc6e1ddf409bc0e32",
+        "bytes": 7974
+      },
+      {
+        "path": "internal/apps/audiobookshelf/audiobookshelf.go",
+        "sha256": "8d51ef1157960d9870a66afc513203af149e6e3cfb230fb76d60e6f7cb706fa6",
+        "bytes": 3515
+      },
+      {
+        "path": "internal/apps/audiobookshelf/homarr_credentials.go",
+        "sha256": "24411d361f5a16026789609899f4ce9874f9ba1897d49bc59ed00bca3fcfcd1c",
+        "bytes": 11725
+      },
+      {
+        "path": "internal/apps/bazarr/api.go",
+        "sha256": "3bf97368d75a19eec6cbced9ad23a529bd3a11f3e44665d7195713f68ac942db",
+        "bytes": 3358
+      },
+      {
+        "path": "internal/apps/bazarr/bazarr.go",
+        "sha256": "2f38c62c4bb49586f58921254dcdec718585df1353f4ee2a1338dce8636f0ef5",
+        "bytes": 3982
+      },
+      {
+        "path": "internal/apps/caddy/caddy.go",
+        "sha256": "03b85857234157a0ff46be9d1fe422ceba88a8e0dac194651f87a2d6e9365015",
+        "bytes": 3507
+      },
+      {
+        "path": "internal/apps/dashdot/dashdot.go",
+        "sha256": "35f065240220bc6fac96b5bb0ad37f322981cf8849506a0ab12bdf02864150a9",
+        "bytes": 2040
+      },
+      {
+        "path": "internal/apps/dashdot/metrics.go",
+        "sha256": "96e62ec61b6bcb1ac6202208275f35ad7ca9a43886e2366249da585154487c92",
+        "bytes": 3279
+      },
+      {
+        "path": "internal/apps/deluge/deluge.go",
+        "sha256": "b29be0a22336943a73482594eb7f80fc1293e3b5f2cedc44dc6bf67c8fccb118",
+        "bytes": 11783
+      },
+      {
+        "path": "internal/apps/emby/emby.go",
+        "sha256": "b3b2e4f9304f6c91e7f853c01dbb98f520c81d1b7ed8c60e21297e4c889bf5bd",
+        "bytes": 5240
+      },
+      {
+        "path": "internal/apps/emby/homarr.go",
+        "sha256": "cd3fde8196616088633900c0febf0addbaf2221e2503fa17e23b80e40d64eca7",
+        "bytes": 6233
+      },
+      {
+        "path": "internal/apps/frigate/frigate.go",
+        "sha256": "a361454adcdfdb0597b0aff534da9041a65bbf105f6e4a474b2880d16d6c1bec",
+        "bytes": 13902
+      },
+      {
+        "path": "internal/apps/gatus/gatus.go",
+        "sha256": "943c96207aa0de5c99c533228a34442c7c3a654960857e1ab2a1e06e918f8afc",
+        "bytes": 6697
+      },
+      {
+        "path": "internal/apps/glances/glances.go",
+        "sha256": "6c38e64b9db6f46205e8e0b4ac5dbae0107a31f63f184c40e15ec1fb3ce93364",
+        "bytes": 1871
+      },
+      {
+        "path": "internal/apps/glances/homarr.go",
+        "sha256": "f593aed78735ed8920d0a08b99908ac6bac7ff0c6b621da24c58c2c6c1c7a194",
+        "bytes": 3260
+      },
+      {
+        "path": "internal/apps/gluetun/gluetun.go",
+        "sha256": "341578d31289ae513d9661523c87139246eed02cfe61fe6db648e9c80e6555e1",
+        "bytes": 8382
+      },
+      {
+        "path": "internal/apps/gotify/gotify.go",
+        "sha256": "07ce6d09632faa755f6ec5013d7dad3ce145f1d15288cc32f4b345a653457b3d",
+        "bytes": 4441
+      },
+      {
+        "path": "internal/apps/gotify/homarr.go",
+        "sha256": "d0eb4fda06ec7b9c025b7a1435085c7cb2a85ecf293d9a98b2b729aae74dcb4c",
+        "bytes": 4828
+      },
+      {
+        "path": "internal/apps/homarr/integration_adguard.go",
+        "sha256": "ac144e82ec8047dd9b12f51d0a7ce765f3f42325ca88c754a9dfdab08ec7b5d9",
+        "bytes": 609
+      },
+      {
+        "path": "internal/apps/homarr/integration_aria2.go",
+        "sha256": "81fe23a2a35b4f8164caeee7ee775640cf61ce70b978f54c52f21ee4ab2a2fd6",
+        "bytes": 414
+      },
+      {
+        "path": "internal/apps/homarr/integration_audiobookshelf.go",
+        "sha256": "d675edef69d464fd88da1dd07b043e0feaf3020b11c58c65bdaae7a8c3b4cf26",
+        "bytes": 526
+      },
+      {
+        "path": "internal/apps/homarr/integration_paperless.go",
+        "sha256": "5f30f441a7438a755c244a6e3f72fc74d55cc832888e0b7c4071b97a4d83eb3d",
+        "bytes": 468
+      },
+      {
+        "path": "internal/apps/homarr/links.go",
+        "sha256": "95bd6ed408c56b8064e7498695eb1145320210004d20b4f78b8625f50166ff38",
+        "bytes": 36566
+      },
+      {
+        "path": "internal/apps/homarr/target_archive_team_warrior.go",
+        "sha256": "73c9051e6203def654dcf7614ade3b53856eb4fcb9f605435ca60946a5c4beeb",
+        "bytes": 2853
+      },
+      {
+        "path": "internal/apps/homarr/target_bazarr.go",
+        "sha256": "7558f46525ffbc12bea76f40b36d96eeab23d550da13cf33328f09739182abe9",
+        "bytes": 1729
+      },
+      {
+        "path": "internal/apps/homarr/target_caddy.go",
+        "sha256": "4783b27d1fa8d62fe1aff68ca0da2a0b5df4b0589c1ee5bb4e03690d8724324f",
+        "bytes": 1049
+      },
+      {
+        "path": "internal/apps/homarr/target_dashdot.go",
+        "sha256": "fdaee9ffa82b6e795419e0b26897a68cd6af9ef634ebc49ab3265f4d95606ce2",
+        "bytes": 2007
+      },
+      {
+        "path": "internal/apps/homarr/target_deluge.go",
+        "sha256": "d4e0de0e893f2995183ddb55c7d4b359369c808750bc1d55828eeee90ab90187",
+        "bytes": 4141
+      },
+      {
+        "path": "internal/apps/homarr/target_emby.go",
+        "sha256": "f33c105707f5ca3aae02773f9526b9035a3829317bdcafa6465bc6843b22d23d",
+        "bytes": 3377
+      },
+      {
+        "path": "internal/apps/homarr/target_frigate.go",
+        "sha256": "e826b088a756d6298659ea115abe7795897009f51bbaddf7f10681e44945b51f",
+        "bytes": 2510
+      },
+      {
+        "path": "internal/apps/homarr/target_gatus.go",
+        "sha256": "e3ffcbd522dbbcfa33ce9f721d32698eab971eaa2fdd7fe175946ca50ca5643e",
+        "bytes": 1440
+      },
+      {
+        "path": "internal/apps/homarr/target_glances.go",
+        "sha256": "43a2722a4b5d01e4f59b38493895cb495891a35f884ea146c048b3c6aa0c90ff",
+        "bytes": 3492
+      },
+      {
+        "path": "internal/apps/homarr/target_gluetun.go",
+        "sha256": "4f3e2592ac393d9f00d2dba9396393117150d5ffbae5b98684ce2e7b3cb1780a",
+        "bytes": 983
+      },
+      {
+        "path": "internal/apps/homarr/target_gotify.go",
+        "sha256": "a47d4b15c45715607e582e58dd621ea29d7598e1f0c0aa08c3f17b3f4f5ebae5",
+        "bytes": 6435
+      },
+      {
+        "path": "internal/apps/homarr/target_home_assistant.go",
+        "sha256": "2ceff993b76b99e3fdd6986f44662a5fd0d038229ac9a19696a4d95372417f45",
+        "bytes": 4041
+      },
+      {
+        "path": "internal/apps/homarr/target_lidarr.go",
+        "sha256": "46147eb8452a8b2e3a3ad1ae1f3e074d53385747f971e06d0dda6a9f1fb4d97a",
+        "bytes": 3804
+      },
+      {
+        "path": "internal/apps/homarr/target_linkwarden.go",
+        "sha256": "0389fab5ab40ccc2fe7c1b2d620a8bd6addf04f825fe30bc03ea5586fba0da65",
+        "bytes": 2413
+      },
+      {
+        "path": "internal/apps/homarr/target_navidrome.go",
+        "sha256": "c35229889bbddaa51333df2c81bb2bec864da4c28e57f448ae9ad4aae8017b34",
+        "bytes": 5240
+      },
+      {
+        "path": "internal/apps/homarr/target_netdata.go",
+        "sha256": "e17864b16bfb0e0dd7d161aa357e020889cfd44963e1a70ff151101bf7d39f51",
+        "bytes": 2136
+      },
+      {
+        "path": "internal/apps/homarr/target_nextcloud.go",
+        "sha256": "be4c49798073751a85d3a13255e71fc2aec3591d38747fd7a05676be80927a3e",
+        "bytes": 5690
+      },
+      {
+        "path": "internal/apps/homarr/target_nzbget.go",
+        "sha256": "0db23b55c77fc0b065be6a6521e5ac4174b9a25c19c9ea1044d16eac3586b477",
+        "bytes": 6511
+      },
+      {
+        "path": "internal/apps/homarr/target_patchmon.go",
+        "sha256": "6816e6b2d61fd766c716c78bf519ae8d9bc079943d89cc1e622473ccf31872f5",
+        "bytes": 2386
+      },
+      {
+        "path": "internal/apps/homarr/target_peanut.go",
+        "sha256": "c30b459bd4f5b528b29428422caa79ad2e63f4810a93a0c87f1fb836ff90a7e8",
+        "bytes": 4642
+      },
+      {
+        "path": "internal/apps/homarr/target_pihole.go",
+        "sha256": "04367bd9b8fefdb2274f0898350ecf76c02789cfe8ce9799fd4a0efca933b7d9",
+        "bytes": 4089
+      },
+      {
+        "path": "internal/apps/homarr/target_plex.go",
+        "sha256": "f311a72fcbed6f7e5dd9685c1aa7f76885db9f713fa4694f075af49f92e244bb",
+        "bytes": 4312
+      },
+      {
+        "path": "internal/apps/homarr/target_prometheus.go",
+        "sha256": "3aba7554492e41f2ad7a3084c8fe123a26c503d22b552b47e402c53b36f3c4f3",
+        "bytes": 2397
+      },
+      {
+        "path": "internal/apps/homarr/target_sabnzbd.go",
+        "sha256": "dbb411e0dce420794df8b85ccd043ae4761b3953525ff709eeb9d03ada46d902",
+        "bytes": 5021
+      },
+      {
+        "path": "internal/apps/homarr/target_slskd.go",
+        "sha256": "77d06ef61a87dce642731cbe1f65b3230068b76066403e4a4275b638265ab8e1",
+        "bytes": 5237
+      },
+      {
+        "path": "internal/apps/homarr/target_speedtest_tracker.go",
+        "sha256": "55c3abd043a74cd5f93965daeaba6fbb2d3b8ca150a4f45e7c4f3f8e5e3a688a",
+        "bytes": 4214
+      },
+      {
+        "path": "internal/apps/homarr/target_tdarr.go",
+        "sha256": "754430e3a3b5936e85d43d96b86dfa95c030e1bde4208e33c3072e1376f38f21",
+        "bytes": 6641
+      },
+      {
+        "path": "internal/apps/homarr/target_technitium_dns.go",
+        "sha256": "8030c193e8265aa984542f347644f47cff9d26bcfee691a9259abf8a1cfbea25",
+        "bytes": 3089
+      },
+      {
+        "path": "internal/apps/homarr/target_tracearr.go",
+        "sha256": "567b5be74636ec0a06caddd2f3b42918f08ad29dd20341765dff52f848983c44",
+        "bytes": 6098
+      },
+      {
+        "path": "internal/apps/homarr/target_traefik.go",
+        "sha256": "65c26e1fb73c22c8e5a9a6b39ecb0b1792851ed437146494e97bdfd2c15f65d8",
+        "bytes": 10844
+      },
+      {
+        "path": "internal/apps/homarr/target_transmission.go",
+        "sha256": "45a1adf5bac116f03dc7378a026042d29b376b1764f96a2aff47dc4c06f9e148",
+        "bytes": 4253
+      },
+      {
+        "path": "internal/apps/homarr/target_umami.go",
+        "sha256": "efe08421884d631a5dee27ff33a4988c1f3ce6d856b20ebe5ae92708729bb1de",
+        "bytes": 4178
+      },
+      {
+        "path": "internal/apps/homarr/target_uptime_kuma.go",
+        "sha256": "5fd212d7676daa2d8b152f306ad0a91c517c291de12320267ce7184c6cdcd3aa",
+        "bytes": 4985
+      },
+      {
+        "path": "internal/apps/homarr/target_wud.go",
+        "sha256": "1f935ebc54d11f44294d74ef7d193947b30a232cd4b45de9d15ed6a909df2083",
+        "bytes": 4845
+      },
+      {
+        "path": "internal/apps/homarr/targets.go",
+        "sha256": "6c9df81a2d9c3c23f023cc499a34148800cb00b117182cfa7d62f6733f270eea",
+        "bytes": 853
+      },
+      {
+        "path": "internal/apps/homeassistant/homarr.go",
+        "sha256": "9707a703ea8fb62484617445f6e710a99ffe648d32f8343f424684502041fb49",
+        "bytes": 11333
+      },
+      {
+        "path": "internal/apps/homeassistant/homarr_auth.go",
+        "sha256": "8700afbda3fda97d1e9ecb24b3dd2e8b920f572267337864f7836d1c621001b7",
+        "bytes": 7018
+      },
+      {
+        "path": "internal/apps/homeassistant/homeassistant.go",
+        "sha256": "9e38a86bf814c3c68f032935034e7a02041fae514da61d5f66294eb628444e01",
+        "bytes": 6133
+      },
+      {
+        "path": "internal/apps/lidarr/lidarr.go",
+        "sha256": "cd9742a126adaadb2e64ce1cd6ae4fdfe836381c6f0ad836274f026412d63a38",
+        "bytes": 9694
+      },
+      {
+        "path": "internal/apps/linkwarden/homarr.go",
+        "sha256": "1bc956fbf1d7ec9eb38eb81dfdb73ebb0e59028364563b4931aa342173b330c1",
+        "bytes": 11663
+      },
+      {
+        "path": "internal/apps/linkwarden/linkwarden.go",
+        "sha256": "19009bc14cf451c787e7ae71e1cc4c36f4cf0e8d54fb179a06d66d962ae9f73f",
+        "bytes": 5923
+      },
+      {
+        "path": "internal/apps/navidrome/homarr.go",
+        "sha256": "269144c409fedcf9b8ec95730ef45fdb39f880e29f5c68874ce3dc50c6b7095e",
+        "bytes": 9488
+      },
+      {
+        "path": "internal/apps/navidrome/navidrome.go",
+        "sha256": "fa7e9f0908ab65991a03a8d20671c9093358acc19dbe49d56839f631d019d11f",
+        "bytes": 4241
+      },
+      {
+        "path": "internal/apps/netdata/metrics.go",
+        "sha256": "851e6b0bfe8f0c4eca7be017815657fb5ddca4fca7e4547c405d55b62e68f624",
+        "bytes": 3922
+      },
+      {
+        "path": "internal/apps/netdata/netdata.go",
+        "sha256": "c05158a65af979f45339c4d8fc83d0f0e9ada73a545dd2dc0bbe761f70002538",
+        "bytes": 1970
+      },
+      {
+        "path": "internal/apps/nextcloud/nextcloud.go",
+        "sha256": "a5c63e58264d693232beb8d467e6cf83611f0aa32acb3c41dec4ef10217792bb",
+        "bytes": 21560
+      },
+      {
+        "path": "internal/apps/nzbget/homarr.go",
+        "sha256": "5fbcf9780f7b27f6bcb31d58651c18967b151735145de53d4e1a2f15eb525916",
+        "bytes": 9058
+      },
+      {
+        "path": "internal/apps/nzbget/nzbget.go",
+        "sha256": "e44e4b176d0d953fc88c15d8f0e395de0a0c4befdc04019adade80d9f424ddb3",
+        "bytes": 7521
+      },
+      {
+        "path": "internal/apps/paperlessngx/paperlessngx.go",
+        "sha256": "7c070ebd973c561493301cc974cdf10ccf4abaf7e69728079dbaa7e4fec5c0b4",
+        "bytes": 6444
+      },
+      {
+        "path": "internal/apps/paperlessngx/token.go",
+        "sha256": "72d3090de818b28bdacbe8980cf9ebbeeba74a937a042536217c4a9b18bad680",
+        "bytes": 11600
+      },
+      {
+        "path": "internal/apps/patchmon/homarr.go",
+        "sha256": "ef97c5eb20e521525ec6978e38b2a19ea72f15b1bf6398506779bab73eaefaac",
+        "bytes": 3871
+      },
+      {
+        "path": "internal/apps/patchmon/patchmon.go",
+        "sha256": "2762fc5cddddb70b93517c36c36583b9ee226a2cce4e5d8d04e73eb444a8371e",
+        "bytes": 7531
+      },
+      {
+        "path": "internal/apps/peanut/peanut.go",
+        "sha256": "d351483ebadeced32ec0606042098dde2f482339c4621553fa3290475d5a7402",
+        "bytes": 7443
+      },
+      {
+        "path": "internal/apps/pihole/homarr.go",
+        "sha256": "c24d950c6dec617a0aa2e0c8ff1e064a5f6a9b0dbadb4e95eedac3358799a219",
+        "bytes": 10576
+      },
+      {
+        "path": "internal/apps/pihole/pihole.go",
+        "sha256": "bb67a55aebed4b89e63a318a1f71a57178ca2e0f3528a7e21aeba73ce7707545",
+        "bytes": 8173
+      },
+      {
+        "path": "internal/apps/plex/plex.go",
+        "sha256": "45ac04ef78b9da990a24ece978c9d30fbf00f3638784b37a43e68fa57591c097",
+        "bytes": 12373
+      },
+      {
+        "path": "internal/apps/prometheus/prometheus.go",
+        "sha256": "23c13bba7641b3e14f4fd15b2422dbb011311e16cdcc5f514254fcf34892fde5",
+        "bytes": 2480
+      },
+      {
+        "path": "internal/apps/prometheus/readiness.go",
+        "sha256": "491f3fae6d461325d9172bcbd34e32803ed6123cd9b86c9cba7a02c4a8237e3f",
+        "bytes": 6512
+      },
+      {
+        "path": "internal/apps/sabnzbd/api.go",
+        "sha256": "cd04dc7e5cae694adf7da3ac3867ac5989879bec1707b6b2cec56fdee0189fc9",
+        "bytes": 3487
+      },
+      {
+        "path": "internal/apps/sabnzbd/sabnzbd.go",
+        "sha256": "068201bc1739f24feb59222bf8a2897b821973a7e94e4293d64e5459f3abc782",
+        "bytes": 7642
+      },
+      {
+        "path": "internal/apps/slskd/homarr.go",
+        "sha256": "cb336a4501cfb588d440fef22e700dac6904574ad4747ac130bbf6cacccda778",
+        "bytes": 5031
+      },
+      {
+        "path": "internal/apps/slskd/slskd.go",
+        "sha256": "0111c181e15edd77424860073eec22268d48adec0041ae05c5013066ea905c3c",
+        "bytes": 5493
+      },
+      {
+        "path": "internal/apps/speedtesttracker/homarr.go",
+        "sha256": "04df560ad8f30036a97d815ed932eaf4a01b195d942ad7318439fdf77d6b0d9b",
+        "bytes": 16672
+      },
+      {
+        "path": "internal/apps/speedtesttracker/speedtesttracker.go",
+        "sha256": "6d9491cf173c4c4d3b0e2aa67314613addb7936e68dd50be47b3cfb1205ab35a",
+        "bytes": 15537
+      },
+      {
+        "path": "internal/apps/tdarr/homarr.go",
+        "sha256": "707ad637b1575fe3a661438edf5456dc1cecfccc4d64d15fbbe44e3f2ea43de8",
+        "bytes": 7945
+      },
+      {
+        "path": "internal/apps/tdarr/tdarr.go",
+        "sha256": "3ebbfc6b742e5ec058f7f3f948962a473c902f4eabcd3043668a14e0de7481d1",
+        "bytes": 7328
+      },
+      {
+        "path": "internal/apps/technitiumdns/technitiumdns.go",
+        "sha256": "779098099d070e2c093b692fc95ab77f37aa98a0c94aa2d482aa667071a16878",
+        "bytes": 16072
+      },
+      {
+        "path": "internal/apps/tracearr/homarr.go",
+        "sha256": "10ab3ad841c307d35364f1187a1f863a0c05640419634f22bddc1c1f6754bb17",
+        "bytes": 8466
+      },
+      {
+        "path": "internal/apps/tracearr/tracearr.go",
+        "sha256": "eb1729531c627ddfd784bd8fee5af10b7df62eabcd6c17e2983ae02ef4185b37",
+        "bytes": 11632
+      },
+      {
+        "path": "internal/apps/transmission/transmission.go",
+        "sha256": "6c2878c2d5ce6ba09588f707d154d4fe555988ac8a97bd80fd0c855eb30d4e07",
+        "bytes": 7838
+      },
+      {
+        "path": "internal/apps/umami/homarr.go",
+        "sha256": "a735ff2ad12c84ee0faf2bc7a5e1e222abbc90e8bba9b51286b3477e2116ebc5",
+        "bytes": 11081
+      },
+      {
+        "path": "internal/apps/umami/umami.go",
+        "sha256": "f22b5e8a6505c65cd7091516731bfe527c0da78327d34cec91680230596bda06",
+        "bytes": 5908
+      },
+      {
+        "path": "internal/apps/uptimekuma/uptimekuma.go",
+        "sha256": "744e3daae9db1a748dfe421fa95f2611587dbc4ddcfe8c369ecc1601aefbe235",
+        "bytes": 8014
+      },
+      {
+        "path": "internal/apps/wud/wud.go",
+        "sha256": "bd97ce309bc996d0ee95cc37a003df83a4714212a5391ff3d0777be06476543f",
+        "bytes": 20982
+      },
+      {
+        "path": "internal/tui/copy.go",
+        "sha256": "0fe3ad87734cf7c05be3819c513a3ea2e209887995807059f7056468300828c3",
+        "bytes": 5052
+      },
+      {
+        "path": ".slim/aggregate-run/main.go",
+        "sha256": "0ad9dcb2dfbb3586bedc94c7b4158c4ffbbf5eca134ff87cf1a0c028571e346a",
+        "bytes": 3224
+      },
+      {
+        "path": ".slim/aggregate-launcher-offline/main.go",
+        "sha256": "37a09c8d2ae9f4d363c9e7dc28ad2c994f26c3cd33c685ae48d43a99bb955874",
+        "bytes": 3031
+      }
+    ],
+    "changed_paths": [
+      ".slim/aggregate-launcher-offline/main.go",
+      ".slim/aggregate-run/main.go",
+      "internal/apps/adguard/adguard.go",
+      "internal/apps/archiveteamwarrior/archiveteamwarrior.go",
+      "internal/apps/archiveteamwarrior/status.go",
+      "internal/apps/aria2/aria2.go",
+      "internal/apps/audiobookshelf/audiobookshelf.go",
+      "internal/apps/audiobookshelf/homarr_credentials.go",
+      "internal/apps/bazarr/api.go",
+      "internal/apps/bazarr/bazarr.go",
+      "internal/apps/caddy/caddy.go",
+      "internal/apps/dashdot/dashdot.go",
+      "internal/apps/dashdot/metrics.go",
+      "internal/apps/deluge/deluge.go",
+      "internal/apps/emby/emby.go",
+      "internal/apps/emby/homarr.go",
+      "internal/apps/frigate/frigate.go",
+      "internal/apps/gatus/gatus.go",
+      "internal/apps/glances/glances.go",
+      "internal/apps/glances/homarr.go",
+      "internal/apps/gluetun/gluetun.go",
+      "internal/apps/gotify/gotify.go",
+      "internal/apps/gotify/homarr.go",
+      "internal/apps/homarr/integration_adguard.go",
+      "internal/apps/homarr/integration_aria2.go",
+      "internal/apps/homarr/integration_audiobookshelf.go",
+      "internal/apps/homarr/integration_paperless.go",
+      "internal/apps/homarr/links.go",
+      "internal/apps/homarr/target_archive_team_warrior.go",
+      "internal/apps/homarr/target_bazarr.go",
+      "internal/apps/homarr/target_caddy.go",
+      "internal/apps/homarr/target_dashdot.go",
+      "internal/apps/homarr/target_deluge.go",
+      "internal/apps/homarr/target_emby.go",
+      "internal/apps/homarr/target_frigate.go",
+      "internal/apps/homarr/target_gatus.go",
+      "internal/apps/homarr/target_glances.go",
+      "internal/apps/homarr/target_gluetun.go",
+      "internal/apps/homarr/target_gotify.go",
+      "internal/apps/homarr/target_home_assistant.go",
+      "internal/apps/homarr/target_lidarr.go",
+      "internal/apps/homarr/target_linkwarden.go",
+      "internal/apps/homarr/target_navidrome.go",
+      "internal/apps/homarr/target_netdata.go",
+      "internal/apps/homarr/target_nextcloud.go",
+      "internal/apps/homarr/target_nzbget.go",
+      "internal/apps/homarr/target_patchmon.go",
+      "internal/apps/homarr/target_peanut.go",
+      "internal/apps/homarr/target_pihole.go",
+      "internal/apps/homarr/target_plex.go",
+      "internal/apps/homarr/target_prometheus.go",
+      "internal/apps/homarr/target_sabnzbd.go",
+      "internal/apps/homarr/target_slskd.go",
+      "internal/apps/homarr/target_speedtest_tracker.go",
+      "internal/apps/homarr/target_tdarr.go",
+      "internal/apps/homarr/target_technitium_dns.go",
+      "internal/apps/homarr/target_tracearr.go",
+      "internal/apps/homarr/target_traefik.go",
+      "internal/apps/homarr/target_transmission.go",
+      "internal/apps/homarr/target_umami.go",
+      "internal/apps/homarr/target_uptime_kuma.go",
+      "internal/apps/homarr/target_wud.go",
+      "internal/apps/homarr/targets.go",
+      "internal/apps/homeassistant/homarr.go",
+      "internal/apps/homeassistant/homarr_auth.go",
+      "internal/apps/homeassistant/homeassistant.go",
+      "internal/apps/lidarr/lidarr.go",
+      "internal/apps/linkwarden/homarr.go",
+      "internal/apps/linkwarden/linkwarden.go",
+      "internal/apps/navidrome/homarr.go",
+      "internal/apps/navidrome/navidrome.go",
+      "internal/apps/netdata/metrics.go",
+      "internal/apps/netdata/netdata.go",
+      "internal/apps/nextcloud/nextcloud.go",
+      "internal/apps/nzbget/homarr.go",
+      "internal/apps/nzbget/nzbget.go",
+      "internal/apps/paperlessngx/paperlessngx.go",
+      "internal/apps/paperlessngx/token.go",
+      "internal/apps/patchmon/homarr.go",
+      "internal/apps/patchmon/patchmon.go",
+      "internal/apps/peanut/peanut.go",
+      "internal/apps/pihole/homarr.go",
+      "internal/apps/pihole/pihole.go",
+      "internal/apps/plex/plex.go",
+      "internal/apps/prometheus/prometheus.go",
+      "internal/apps/prometheus/readiness.go",
+      "internal/apps/sabnzbd/api.go",
+      "internal/apps/sabnzbd/sabnzbd.go",
+      "internal/apps/slskd/homarr.go",
+      "internal/apps/slskd/slskd.go",
+      "internal/apps/speedtesttracker/homarr.go",
+      "internal/apps/speedtesttracker/speedtesttracker.go",
+      "internal/apps/tdarr/homarr.go",
+      "internal/apps/tdarr/tdarr.go",
+      "internal/apps/technitiumdns/technitiumdns.go",
+      "internal/apps/tracearr/homarr.go",
+      "internal/apps/tracearr/tracearr.go",
+      "internal/apps/transmission/transmission.go",
+      "internal/apps/umami/homarr.go",
+      "internal/apps/umami/umami.go",
+      "internal/apps/uptimekuma/uptimekuma.go",
+      "internal/apps/wud/wud.go",
+      "internal/tui/copy.go"
+    ],
+    "original_head_index_worktree_preserved": true,
+    "push": "verified remote equals exact checkpoint commit",
+    "remote_url": "https://github.com/ajnart/selfhost-skills/tree/checkpoint/homarr-aggregate-20261013"
+  },
+  {
+    "branch": "checkpoint/gatus-proof-20261013",
+    "commit": "2c981d6d2b0aae1a14a9f45f371fb151637247d1",
+    "parent": "b8ab54070762845e7720e7c16322a6611dc82eaa",
+    "tree": "bfb100c0344f02d446efa18d27b3746666803da8",
+    "purpose": "Machine-specific standalone proof input, not production peer acceptance",
+    "snapshot_files": [
+      {
+        "path": "tools/gatus-proof/main.go",
+        "sha256": "de915f7240b6f1e2f5a4210c1ef18c0f23940951327a9384a81e990f4b866544",
+        "bytes": 96807
+      }
+    ],
+    "changed_paths": [
+      "tools/gatus-proof/main.go"
+    ],
+    "original_head_index_worktree_preserved": true,
+    "push": "verified remote equals exact checkpoint commit",
+    "remote_url": "https://github.com/ajnart/selfhost-skills/tree/checkpoint/gatus-proof-20261013"
+  },
+  {
+    "branch": "checkpoint/external-plan-20261013",
+    "commit": "c05dab48351db3f14de48ad665ba36fd9e5b16c8",
+    "parent": "5aafb4c1833fd4cd9caf0f7beaac31e625aafe22",
+    "tree": "b9ec5988298705ade19f2198dfea277158d6130b",
+    "purpose": "Superseded draft; canonical reviewed plan was merged via #314",
+    "snapshot_files": [
+      {
+        "path": "docs/homarr-external-coverage-plan.md",
+        "sha256": "d05bce4d519f23d80b1bd08bc88159ca8f2d3b03a6aa79f1b68f7f2160a25974",
+        "bytes": 34898
+      }
+    ],
+    "changed_paths": [
+      "docs/homarr-external-coverage-plan.md"
+    ],
+    "original_head_index_worktree_preserved": true,
+    "push": "verified remote equals exact checkpoint commit",
+    "remote_url": "https://github.com/ajnart/selfhost-skills/tree/checkpoint/external-plan-20261013"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "command": "isolated owned session info; no open/navigation/relaunch",
+  "active": false,
+  "pid": null,
+  "runtime": null,
+  "observed_at": 1791831227.586612,
+  "startup_refused": "UNIX socket path exceeds supported length",
+  "computed_socket_path_bytes": 181,
+  "screenshot": null,
+  "native_rendered_observations": "not reached"
+}

@@ -1,0 +1,20 @@
+{
+  "prepared_at_utc": "2026-10-13T05:44:51.098707+00:00",
+  "handoff_branch": "docs/release-handoff",
+  "repository_path": "docs/handoffs/release-2026-10-13",
+  "evaluation_head": "3558e581856ae12bf803c6052384ee23ac2f93a2",
+  "evaluation_status": "54/54 valid conversation executions; complete judging failed subscription quota; no grades/viewer; stopped, judgment-only recovery needs fresh bounded authorization",
+  "user_approved_scope": "Current release only; legacy new-cli checkout excluded; original worktrees preserved",
+  "checkpoints_pushed": 4,
+  "pre_handoff_open_pr_count": 43,
+  "all_pr_history_count": 125,
+  "final_publication_pr": 358,
+  "latest_open_pr_count": 46,
+  "latest_all_state_pr_count": 128,
+  "concurrent_new_prs": [
+    356,
+    357
+  ],
+  "latest_read_first": "LATEST-UPDATE.md",
+  "precedence": "Original source/evidence snapshot retained; later candidate/reporting requires owner reconciliation, not duplicated operations"
+}

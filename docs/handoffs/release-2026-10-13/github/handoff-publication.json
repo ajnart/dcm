@@ -1,0 +1,15 @@
+{
+  "url": "https://github.com/ajnart/selfhost-skills/pull/358",
+  "number": 358,
+  "state": "OPEN",
+  "draft": true,
+  "branch": "docs/release-handoff",
+  "base": "main",
+  "base_head": "ab4c92c428a2c2c9ab284a83f79f726418c1498b",
+  "initial_pushed_commit": "cc6accce8c58dbdfb878aed6f278825777d6667a",
+  "later_commits": "Forward documentation/evidence receipt update; final head is read from GitHub/Git, not embedded in its own content",
+  "original_feature_prs_merged_or_rewritten": false,
+  "checkpoints_pushed": 4,
+  "legacy_checkout": "Explicitly excluded and preserved",
+  "current_source_scope": "Static private handoff only"
+}
