@@ -56,10 +56,10 @@ func Extra(ctx context.Context, deps *system.Deps, options ExtraOptions) []Extra
 	}
 	checks := commonPortChecks(deps)
 	checks = append(checks, composeVersionCheck(ctx, deps))
-	dockerRoot := dockerRoot(ctx, deps)
+	dockerRoot, dockerDiskReason := localDockerRoot(ctx, deps)
 	checks = append(checks, diskCheck(deps, "disk-project", "Project disk space", options.ProjectPath, options.AppCount))
 	if dockerRoot == "" {
-		checks = append(checks, skipped("disk-docker", "Docker disk space", "Docker data path is unavailable"))
+		checks = append(checks, skipped("disk-docker", "Docker disk space", dockerDiskReason))
 	} else {
 		checks = append(checks, diskCheck(deps, "disk-docker", "Docker disk space", dockerRoot, options.AppCount))
 	}
@@ -119,25 +119,40 @@ func diskCheck(deps *system.Deps, id, title, path string, apps int) ExtraCheck {
 func resourceChecks(deps *system.Deps, apps int) []ExtraCheck {
 	var checks []ExtraCheck
 	if deps.MachineResources == nil {
-		checks = append(checks, skipped("memory", "Memory", "resource inventory is unavailable"), skipped("cpu", "Processors", "resource inventory is unavailable"))
-	} else if resources, err := deps.MachineResources(); err != nil {
-		checks = append(checks, skipped("memory", "Memory", err.Error()), skipped("cpu", "Processors", err.Error()))
-	} else {
-		required := Requirements.BaseMemoryBytes + uint64(max(apps, 0))*Requirements.MemoryBytesPerApp
-		memoryLevel, cpuLevel := OK, OK
-		if resources.MemoryBytes < required {
-			memoryLevel = Warn
-		}
-		if resources.CPUs < Requirements.MinimumCPUs {
-			cpuLevel = Warn
-		}
-		source := resources.MemorySource
-		if source == "" {
-			source = "effective memory"
-		}
 		checks = append(checks,
-			ExtraCheck{ID: "memory", Title: "Memory", Status: memoryLevel, Reason: fmt.Sprintf("%d MiB from %s; %d MiB recommended", resources.MemoryBytes>>20, source, required>>20)},
-			ExtraCheck{ID: "cpu", Title: "Processors", Status: cpuLevel, Reason: fmt.Sprintf("%d available; %d recommended", resources.CPUs, Requirements.MinimumCPUs)})
+			skipped("memory", "Memory", "resource inventory is unavailable"),
+			skipped("cpu", "Processors", "resource inventory is unavailable"))
+	} else {
+		resources, resourceErr := deps.MachineResources()
+		required := Requirements.BaseMemoryBytes + uint64(max(apps, 0))*Requirements.MemoryBytesPerApp
+		if resourceErr != nil || resources.MemoryBytes == 0 {
+			reason := "memory inventory is unavailable"
+			if resourceErr != nil {
+				reason = resourceErr.Error()
+			}
+			checks = append(checks, skipped("memory", "Memory", reason))
+		} else {
+			memoryLevel := OK
+			if resources.MemoryBytes < required {
+				memoryLevel = Warn
+			}
+			source := resources.MemorySource
+			if source == "" {
+				source = "effective memory"
+			}
+			checks = append(checks, ExtraCheck{ID: "memory", Title: "Memory", Status: memoryLevel,
+				Reason: fmt.Sprintf("%d MiB from %s; %d MiB recommended", resources.MemoryBytes>>20, source, required>>20)})
+		}
+		if resources.CPUs < 1 {
+			checks = append(checks, skipped("cpu", "Processors", "processor inventory is unavailable"))
+		} else {
+			cpuLevel := OK
+			if resources.CPUs < Requirements.MinimumCPUs {
+				cpuLevel = Warn
+			}
+			checks = append(checks, ExtraCheck{ID: "cpu", Title: "Processors", Status: cpuLevel,
+				Reason: fmt.Sprintf("%d available; %d recommended", resources.CPUs, Requirements.MinimumCPUs)})
+		}
 	}
 	if deps.FileLimits == nil {
 		return append(checks, skipped("file-limits", "File limits", "kernel limit probe is unavailable"))
@@ -220,12 +235,23 @@ func clockCheck(ctx context.Context, deps *system.Deps, address string) ExtraChe
 	return ExtraCheck{ID: "clock", Title: "Clock", Status: level, Reason: "differs from release host by " + delta.Round(time.Second).String()}
 }
 
-func dockerRoot(ctx context.Context, deps *system.Deps) string {
+func localDockerRoot(ctx context.Context, deps *system.Deps) (string, string) {
+	endpoint, err := ActiveDockerEndpoint(ctx, deps)
+	if err != nil {
+		return "", "Docker endpoint could not be verified as local"
+	}
+	if deps.GOOS != "linux" || endpoint.Kind != "unix" {
+		return "", "Docker data belongs to a remote host or virtual machine"
+	}
 	result, err := deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"info", "--format", "{{.DockerRootDir}}"}})
 	if err != nil || result.ExitCode != 0 {
-		return ""
+		return "", "Docker data path is unavailable"
 	}
-	return strings.TrimSpace(string(result.Stdout))
+	root := strings.TrimSpace(string(result.Stdout))
+	if root == "" || deps.PathExists == nil || !deps.PathExists(root) {
+		return "", "Docker data path is not mapped on this machine"
+	}
+	return root, ""
 }
 
 func dockerResourceChecks(ctx context.Context, deps *system.Deps) []ExtraCheck {

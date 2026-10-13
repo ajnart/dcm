@@ -59,3 +59,52 @@ func TestMachineResourcesUsesEffectiveCgroupMemoryLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestMachineResourcesUsesNestedProcessCgroupAndAncestorLimits(t *testing.T) {
+	files := map[string]string{
+		"/proc/meminfo":                                        "MemTotal:       67108864 kB\n",
+		"/proc/self/cgroup":                                    "0::/user.slice/user-1000.slice/session-4.scope\n",
+		"/proc/self/mountinfo":                                 "29 23 0:26 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw\n",
+		"/sys/fs/cgroup/memory.max":                            "max\n",
+		"/sys/fs/cgroup/user.slice/memory.max":                 "1073741824\n",
+		"/sys/fs/cgroup/user.slice/user-1000.slice/memory.max": "805306368\n",
+		"/sys/fs/cgroup/user.slice/user-1000.slice/session-4.scope/memory.max": "536870912\n",
+	}
+	read := func(path string) ([]byte, error) {
+		value, found := files[path]
+		if !found {
+			return nil, fmt.Errorf("missing fixture %s", path)
+		}
+		return []byte(value), nil
+	}
+	resources, err := machineResourcesFrom(read, 8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resources.MemoryBytes != 512<<20 || resources.MemorySource != "cgroup v2 limit" {
+		t.Fatalf("resources = %+v", resources)
+	}
+}
+
+func TestMachineResourcesUsesV1ProcessCgroupAncestorLimit(t *testing.T) {
+	files := map[string]string{
+		"/proc/meminfo":                               "MemTotal:       67108864 kB\n",
+		"/proc/self/cgroup":                           "7:cpu,cpuacct:/work\n6:memory:/docker/child\n",
+		"/proc/self/mountinfo":                        "31 23 0:28 /docker /sys/fs/cgroup/memory rw,relatime - cgroup cgroup rw,memory\n",
+		"/sys/fs/cgroup/memory/memory.limit_in_bytes": "536870912\n",
+	}
+	read := func(path string) ([]byte, error) {
+		value, found := files[path]
+		if !found {
+			return nil, fmt.Errorf("missing fixture %s", path)
+		}
+		return []byte(value), nil
+	}
+	resources, err := machineResourcesFrom(read, 8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resources.MemoryBytes != 512<<20 || resources.MemorySource != "cgroup v1 limit" {
+		t.Fatalf("resources = %+v", resources)
+	}
+}

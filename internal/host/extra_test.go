@@ -17,7 +17,9 @@ import (
 func TestExtraChecksAreIndependentAndCleanUpOwnedDockerResources(t *testing.T) {
 	deps := systemtest.NewDeps(t)
 	runner := deps.Runner.(*systemtest.Runner)
+	runner.On("docker context inspect", system.Result{Stdout: []byte("unix:///var/run/docker.sock\n")})
 	runner.On("docker info --format {{.DockerRootDir}}", system.Result{Stdout: []byte("/var/lib/docker\n")})
+	deps.PathExists = func(path string) bool { return path == "/var/lib/docker" }
 	runner.On("docker network create", system.Result{ExitCode: 1, Stderr: []byte("network denied")})
 	runner.On("docker volume create", system.Result{Stdout: []byte("created\n")})
 	deps.DiskUsage = func(path string) (system.DiskUsage, error) {
@@ -92,6 +94,43 @@ func TestExtraReportsCleanupFailure(t *testing.T) {
 	checks := host.Extra(context.Background(), deps, host.ExtraOptions{})
 	if check(checks, "docker-volume").Status != host.Fail {
 		t.Fatal("a temporary resource left behind must fail its check")
+	}
+}
+
+func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
+	for _, tc := range []struct {
+		name, goos, endpoint string
+	}{
+		{"remote SSH", "linux", "ssh://builder.example"},
+		{"Docker Desktop VM", "darwin", "unix:///Users/test/.docker/run/docker.sock"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			deps := systemtest.NewDeps(t, systemtest.WithEnv(map[string]string{"DOCKER_HOST": tc.endpoint}))
+			deps.GOOS = tc.goos
+			runner := deps.Runner.(*systemtest.Runner)
+			runner.On("docker info --format {{.DockerRootDir}}", system.Result{Stdout: []byte("/var/lib/docker\n")})
+			var diskPaths []string
+			deps.DiskUsage = func(path string) (system.DiskUsage, error) {
+				diskPaths = append(diskPaths, path)
+				return system.DiskUsage{AvailableBytes: 30 << 30}, nil
+			}
+			checks := host.Extra(context.Background(), deps, host.ExtraOptions{ProjectPath: "/project"})
+			dockerDisk := check(checks, "disk-docker")
+			if dockerDisk.Status != host.Skipped || strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
+				t.Fatalf("Docker disk = %+v, paths = %v", dockerDisk, diskPaths)
+			}
+		})
+	}
+}
+
+func TestExtraKeepsCPUFindingWhenMemoryInventoryIsUnsupported(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	deps.MachineResources = func() (system.MachineResources, error) {
+		return system.MachineResources{CPUs: 8}, errors.New("memory inventory unsupported on darwin")
+	}
+	checks := host.Extra(context.Background(), deps, host.ExtraOptions{})
+	if check(checks, "memory").Status != host.Skipped || check(checks, "cpu").Status != host.OK {
+		t.Fatalf("memory = %+v, CPU = %+v", check(checks, "memory"), check(checks, "cpu"))
 	}
 }
 

@@ -114,6 +114,7 @@ type Deps struct {
 	// returned operating-system error without keeping the port reserved.
 	BindTCP          func(network, address string) error
 	DiskUsage        func(path string) (DiskUsage, error)
+	PathExists       func(path string) bool
 	MachineResources func() (MachineResources, error)
 	FileLimits       func() (FileLimits, error)
 	FileSystem       func(path string) (FileSystem, error)

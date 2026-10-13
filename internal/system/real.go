@@ -99,6 +99,7 @@ func Real(version string) *Deps {
 		PortFree:         portFree,
 		BindTCP:          bindTCP,
 		DiskUsage:        diskUsage,
+		PathExists:       pathExists,
 		MachineResources: machineResources,
 		FileLimits:       fileLimits,
 		FileSystem:       fileSystem,
