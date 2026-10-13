@@ -18,7 +18,10 @@ and removal. The retained common registry custodian normally merged frozen main
 `6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`, preserving reviewed leaf
 `56dc88ec7bcfb1a2397b8365d894b26ebd7e974e` and its recovery/startup corrections.
 Only this branch's `prometheusTarget()` registry call is added. Source activation
-is not live acceptance; no frozen common contract/helper body/signature changes.
+is not live acceptance. This branch subsequently forward-merged Stats SDK commit
+`ecc21d9f95664ef6245863ddfb05930bf4cde3a3`, preserving its original history.
+The Prometheus migration changes its own descriptor and fixtures; the existing
+Prometheus registration and other peers remain unchanged by the migration.
 
 ## Actual native capabilities
 
@@ -35,15 +38,19 @@ integration and metric and retains other Apps' entries. Aggregate widget limits
 must still be checked during batch registration. Browser Addresses remain
 separate from the integration's `http://prometheus:9090` internal Address.
 
-Native verification calls `widget.stats.catalog` with `{integrationId}` and
-requires all three keys with unit `count`. It reuses frozen `freshStatsSnapshot`
-rather than copying refresh/timestamp logic: before-snapshot, forced refresh,
-`error: false`, `stale: false` and positive advancing Unix **millisecond**
-`updatedAt`. This is a read-only source refresh, not a configuration mutation.
-All three numeric counts must equal a fresh direct read. Null, absent, failed,
-unrefreshed and changed counts are rejected; explicit zero up/down counts are valid.
-Frozen `verifyData` retains the common post-leaf selected-metric freshness guard.
-The App's independent source-sample clock/freshness checks below remain unchanged.
+Native `verify` retains the direct scrape-target and self-query checks below.
+The descriptor's `stats func(statsSample) error` validates one sample acquired by
+the common Stats SDK: catalog, before-snapshot, forced refresh, `error: false`,
+`stale: false`, and finite positive advancing Unix **millisecond** `updatedAt`.
+All three selected keys require unit `count` and finite nonnegative integer
+values. `up + down` must not exceed `total`; unknown active health states explain
+a smaller sum. Explicit zero counts are valid. Null, absent, failed and
+unrefreshed data fail verification. Native discovery and Homarr's provider
+collect independently, so changing target counts need not match between them.
+The leaf does not issue Stats requests or perform a second refresh. Step's
+apply and post-apply Check remain separate verification invocations. This is a
+read-only source refresh, not a configuration mutation. The App's independent
+source-sample clock/freshness checks below remain unchanged.
 
 ## App Setup and credentials
 
@@ -103,7 +110,7 @@ tested claims about every secured configuration.
 
 ## Evidence and remaining acceptance
 
-The existing Prometheus storage-user install fixture now returns valid empty
+The earlier Prometheus storage-user install correction returns valid empty
 target discovery for its first five fake-clock seconds, then the exact starter
 target/query data. It fails with premature Manual completion before this
 correction and passes afterward, without adding test cases. A source check also
@@ -114,8 +121,24 @@ Prometheus acceptance. No new files, test cases, dependencies, Docker runs,
 browser runs, installer runs or person's Project access were added by the
 correction.
 
-Local gate passed with `GOFLAGS=-buildvcs=false`: focused Prometheus/Homarr/
-Catalog tests, `gofmt -l .` (empty), `go build ./...`, `go vet ./...`,
+The new public Prometheus Link fixture verifies independently changing native
+and Stats counts, legitimate zeros, exactly one catalog/snapshot/forced refresh
+per verification, stable no-auth ownership on rerun, and rejection of invalid
+counts, units, null/missing values, inconsistent relationships, no-op refreshes
+and failed/stale envelopes. Rejected native credentials, stale/future source
+samples and conflicting self-scrape health stop before any Homarr mutation or
+Stats read. The fixture uses only synthetic HTTP data; it does not establish
+rendered, runtime, Basic-mode or credential-recovery acceptance.
+
+The SDK migration gate passed with `GOFLAGS=-buildvcs=false`: Homarr/Prometheus
+package tests, build and vet, plus the focused Prometheus Link race check;
+changed Go files are formatted and
+`git diff --check` is clean. The installed-App credential-only update remains Manual;
+no public boundary was added for recovery and no reinstall/rotation is proposed.
+
+The earlier normalized source gate passed with `GOFLAGS=-buildvcs=false`:
+focused Prometheus/Homarr/Catalog tests, `gofmt -l .` (empty),
+`go build ./...`, `go vet ./...`,
 `go vet -tags e2e ./e2e/`, `go test ./...`,
 `go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/prometheus/ ./internal/apps/homarr/ ./internal/catalog/`,
 `bash -n install.sh`, and `git diff --check`.
