@@ -1,0 +1,254 @@
+docs/handoffs/release-2026-10-13/.gitattributes
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/APP-QUEUE.md
+  h_d6e478ca18e517 1-503
+docs/handoffs/release-2026-10-13/CHECKPOINTS.md
+  h_d6e478ca18e517 1-54
+docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md
+  h_d6e478ca18e517 1-95
+docs/handoffs/release-2026-10-13/HANDOFF.md
+  h_d6e478ca18e517 1-282
+docs/handoffs/release-2026-10-13/PR-HISTORY.md
+  h_d6e478ca18e517 1-133
+docs/handoffs/release-2026-10-13/PR-STACKS.md
+  h_d6e478ca18e517 1-1693
+docs/handoffs/release-2026-10-13/SHA256SUMS
+  h_d6e478ca18e517 1-120
+docs/handoffs/release-2026-10-13/START-HERE.md
+  h_d6e478ca18e517 1-46
+docs/handoffs/release-2026-10-13/TRACKER-INVENTORY.md
+  h_d6e478ca18e517 1-140
+docs/handoffs/release-2026-10-13/evidence/aggregate/artifact-hashes.reconciled.final.json
+  h_d6e478ca18e517 1-25
+docs/handoffs/release-2026-10-13/evidence/aggregate/browser-cleanup-readback.final.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/evidence/aggregate/captured-resources.json
+  h_d6e478ca18e517 1-991
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.final.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.json
+  h_d6e478ca18e517 1-64
+docs/handoffs/release-2026-10-13/evidence/aggregate/debug-homarr.redacted.log
+  h_d6e478ca18e517 1-127
+docs/handoffs/release-2026-10-13/evidence/aggregate/image-provenance.final.json
+  h_d6e478ca18e517 1-56
+docs/handoffs/release-2026-10-13/evidence/aggregate/install.redacted.log
+  h_d6e478ca18e517 1-2484
+docs/handoffs/release-2026-10-13/evidence/aggregate/per-app-results.reconciled.final.json
+  h_d6e478ca18e517 1-2562
+docs/handoffs/release-2026-10-13/evidence/aggregate/status.redacted.log
+  h_d6e478ca18e517 1-2046
+docs/handoffs/release-2026-10-13/evidence/aggregate/summary.reconciled.final.json
+  h_d6e478ca18e517 1-115
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/hashes.json
+  h_d6e478ca18e517 1-22
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/result.json
+  h_d6e478ca18e517 1-243
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.after.json
+  h_d6e478ca18e517 1-70
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.before.json
+  h_d6e478ca18e517 1-56
+docs/handoffs/release-2026-10-13/evidence/tested-source/checks.json
+  h_d6e478ca18e517 1-12
+docs/handoffs/release-2026-10-13/evidence/tested-source/gate.json
+  h_d6e478ca18e517 1-44
+docs/handoffs/release-2026-10-13/evidence/tested-source/inventory.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/evidence/tested-source/manifest.final.json
+  h_d6e478ca18e517 1-10509
+docs/handoffs/release-2026-10-13/evidence/tested-source/plugin-probe.json
+  h_d6e478ca18e517 1-53
+docs/handoffs/release-2026-10-13/export-provenance.json
+  h_d6e478ca18e517 1-373
+docs/handoffs/release-2026-10-13/github/app-queue.json
+  h_d6e478ca18e517 1-1284
+docs/handoffs/release-2026-10-13/github/checkpoint-commits.json
+  h_d6e478ca18e517 1-772
+docs/handoffs/release-2026-10-13/github/comments/pr-259.json
+  h_d6e478ca18e517 1-132
+docs/handoffs/release-2026-10-13/github/comments/pr-300.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-310.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-311.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-312.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-313.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-315.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-317.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-318.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-319.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-320.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-321.json
+  h_d6e478ca18e517 1-32
+docs/handoffs/release-2026-10-13/github/comments/pr-322.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-323.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-324.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-325.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-326.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-327.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-328.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-329.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-330.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-331.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-333.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-334.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-335.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-336.json
+  h_d6e478ca18e517 1-20
+docs/handoffs/release-2026-10-13/github/comments/pr-337.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-338.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-339.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-340.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-341.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-342.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-343.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-344.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-345.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/comments/pr-346.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-347.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-348.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-349.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-351.json
+  h_d6e478ca18e517 1-14
+docs/handoffs/release-2026-10-13/github/comments/pr-352.json
+  h_d6e478ca18e517 1
+docs/handoffs/release-2026-10-13/github/comments/pr-355.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/github/dependencies.json
+  h_d6e478ca18e517 1-668
+docs/handoffs/release-2026-10-13/github/evaluation-current.json
+  h_d6e478ca18e517 1-139
+docs/handoffs/release-2026-10-13/github/issues.json
+  h_d6e478ca18e517 1-3986
+docs/handoffs/release-2026-10-13/github/pr-259-detail.json
+  h_d6e478ca18e517 1-680
+docs/handoffs/release-2026-10-13/github/pr-259-files.complete.json
+  h_d6e478ca18e517 1-1437
+docs/handoffs/release-2026-10-13/github/pr-300-detail.json
+  h_d6e478ca18e517 1-64
+docs/handoffs/release-2026-10-13/github/pr-313-detail.json
+  h_d6e478ca18e517 1-218
+docs/handoffs/release-2026-10-13/github/pr-355-detail.json
+  h_d6e478ca18e517 1-33
+docs/handoffs/release-2026-10-13/github/pr-stack-audit.json
+  h_d6e478ca18e517 1-1588
+docs/handoffs/release-2026-10-13/github/pull-requests.json
+  h_d6e478ca18e517 1-9764
+docs/handoffs/release-2026-10-13/github/repository.json
+  h_d6e478ca18e517 1-8
+docs/handoffs/release-2026-10-13/machine-observation.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/references/aria2-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/audiobookshelf-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/bazarr-final-source-review.md
+  h_d6e478ca18e517 1-7
+docs/handoffs/release-2026-10-13/references/evaluation-progress.live-head.md
+  h_d6e478ca18e517 1-718
+docs/handoffs/release-2026-10-13/references/evaluation-readme.live-head.md
+  h_d6e478ca18e517 1-311
+docs/handoffs/release-2026-10-13/references/frigate-hint-final-source-review.md
+  h_d6e478ca18e517 1-13
+docs/handoffs/release-2026-10-13/references/gluetun-native-blocker.md
+  h_d6e478ca18e517 1-29
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-inspection.md
+  h_d6e478ca18e517 1-186
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-plan.md
+  h_d6e478ca18e517 1-81
+docs/handoffs/release-2026-10-13/references/nzbget-diagnostic-source-review.md
+  h_d6e478ca18e517 1-7
+docs/handoffs/release-2026-10-13/references/nzbget-native-logging-blocker.md
+  h_d6e478ca18e517 1-26
+docs/handoffs/release-2026-10-13/references/release-homarr.md
+  h_d6e478ca18e517 1-532
+docs/handoffs/release-2026-10-13/references/repository/AGENTS.md
+  h_d6e478ca18e517 1-58
+docs/handoffs/release-2026-10-13/references/repository/CONTEXT.md
+  h_d6e478ca18e517 1-265
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/domain.md
+  h_d6e478ca18e517 1-27
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/homarr-integrations.md
+  h_d6e478ca18e517 1-128
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/implementing.md
+  h_d6e478ca18e517 1-71
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/issue-tracker.md
+  h_d6e478ca18e517 1-45
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-external-coverage-plan.md
+  h_d6e478ca18e517 1-213
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-immich-proof.md
+  h_d6e478ca18e517 1-340
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-contract.md
+  h_d6e478ca18e517 1-166
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-coverage-research.md
+  h_d6e478ca18e517 1-214
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-ticket-index.md
+  h_d6e478ca18e517 1-89
+docs/handoffs/release-2026-10-13/references/repository/docs/releasing.md
+  h_d6e478ca18e517 1-89
+docs/handoffs/release-2026-10-13/references/video-handoff.pinned.md
+  h_d6e478ca18e517 1-98
+docs/handoffs/release-2026-10-13/references/video-storyboard.pinned.md
+  h_d6e478ca18e517 1-131
+docs/handoffs/release-2026-10-13/snapshot.json
+  h_d6e478ca18e517 1-11
+docs/handoffs/release-2026-10-13/source/helper-public-username.prepared.patch
+  h_d6e478ca18e517 1-12
+docs/handoffs/release-2026-10-13/source/prepared-helper.go.reference
+  h_d6e478ca18e517 1-114
+docs/handoffs/release-2026-10-13/source/prepared-supervise.py.reference
+  h_d6e478ca18e517 1-1278
+docs/handoffs/release-2026-10-13/source/runner-diagnostics.prepared.patch
+  h_d6e478ca18e517 1-238
+docs/handoffs/release-2026-10-13/source/synthetic-argv-probe.go.reference
+  h_d6e478ca18e517 1-27
+docs/handoffs/release-2026-10-13/source/tested-candidate.patch
+  h_d6e478ca18e517 1-13849
+docs/handoffs/release-2026-10-13/validation.json
+  h_d6e478ca18e517 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cc6accce8c58dbdfb878aed6f278825777d6667a",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
