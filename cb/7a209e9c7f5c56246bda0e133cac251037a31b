@@ -1,0 +1,27 @@
+docs/releasing.md
+  s_378d5db6c5f6de::t_5f820178197c3e 113
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_bd83f4a2830b92 27
+site/_headers
+  s_378d5db6c5f6de::t_25e8cd896e26d3 13-16
+site/catalog.json
+  s_378d5db6c5f6de::t_899950584e8f9b 1-1180
+tools/sitecatalog/main.go
+  s_378d5db6c5f6de::t_d85d18bd9be415 79-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cb7a209e9c7f5c56246bda0e133cac251037a31b",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
