@@ -3,8 +3,9 @@
 ## Source contract, not runtime proof
 
 This slice implements #284 on the committed #262 reference contract.
-The reference owner must register `navidromeTarget()` in `targets.go`;
-this peer does not change the shared registry or reconciliation.
+As of 13 October 2026, source `4bb1f98dd85f1d99513624b3a3c0795836134966`
+registers `navidromeTarget()` in `targets.go`. Shared registry and reconciliation
+remain custodian-owned; the credential-safety hold below still blocks activation.
 Prepared compatibility targets are `ghcr.io/homarr-labs/homarr:v2.4.1` and
 `deluan/navidrome:0.64.0`. Source was checked against Homarr commit
 `ebbd4876d25a51151444a009ab596e1154d62880` and Navidrome tag commit
