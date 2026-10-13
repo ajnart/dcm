@@ -263,14 +263,14 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 		t.Fatal(err)
 	}
 	source := string(native)
-	for _, guard := range []string{"#354", "return helpers.ErrManual", "verifyNZBGetIdentity(ctx, from, integrationID)", "\"integration.byId\"", "len(credentials) == 2", "stringField(integration, \"id\") == integrationID", "stringField(integration, \"kind\") == \"nzbGet\"", "seen[kind] || !present", "value != \"self-host-homarr\"", "kind == \"password\" && value != nil"} {
+	for _, guard := range []string{"#354", "requireCredentialSafeHomarr(ctx, from", "return nzbget.VerifyHomarr(ctx, to)", "verifyNZBGetIdentity(ctx, from, integrationID)", "\"integration.byId\"", "len(credentials) == 2", "stringField(integration, \"id\") == integrationID", "stringField(integration, \"kind\") == \"nzbGet\"", "seen[kind] || !present", "value != \"self-host-homarr\"", "kind == \"password\" && value != nil"} {
 		if !strings.Contains(source, guard) {
 			t.Fatalf("NZBGet leaf lacks source safety guard %q", guard)
 		}
 	}
 	preflight := source[strings.Index(source, "preflight:"):strings.Index(source, "verify: verifyNZBGet")]
-	if strings.Contains(preflight, "apiKey") || strings.Contains(preflight, "VerifyHomarr") || strings.Index(source, "verifyNZBGetIdentity(ctx") > strings.Index(source, "readDownloadsQueue(ctx, from, integrationID") {
-		t.Fatal("native hold and saved-identity checks must precede activation and queries")
+	if strings.Contains(preflight, "apiKey") || strings.Index(preflight, "requireCredentialSafeHomarr(ctx, from") > strings.Index(preflight, "nzbget.VerifyHomarr(ctx, to)") || strings.Index(source, "verifyNZBGetIdentity(ctx") > strings.Index(source, "readDownloadsQueue(ctx, from, integrationID") {
+		t.Fatal("version gate, restricted readiness and saved-identity checks must precede activation and queries")
 	}
 }
 

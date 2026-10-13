@@ -22,11 +22,19 @@ type nzbgetFixture struct {
 	downloads         int
 	statsBeforeNative bool
 	requests          int
+	infoReads         int
+	infoFails         bool
+	version           any
+	nativeAttempts    int
+	rejectNative      bool
+	otherHomarr       int
+	mutations         int
 }
 
 func newNZBGetFixture() *nzbgetFixture {
 	return &nzbgetFixture{
 		stats:            newStatsFixture(),
+		version:          "2.5.2",
 		identity:         map[string]any{"id": "owned", "kind": "nzbGet", "url": "http://nzbget:6789", "secrets": []any{map[string]any{"kind": "username", "value": "self-host-homarr"}, map[string]any{"kind": "password", "value": nil}}},
 		downloadIdentity: map[string]any{"id": "owned", "kind": "nzbGet"},
 		status:           map[string]any{"rates": map[string]any{"down": float64(1024)}, "paused": true, "types": []any{"usenet"}},
@@ -36,6 +44,21 @@ func newNZBGetFixture() *nzbgetFixture {
 
 func (f *nzbgetFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.requests++
+	if r.Method != http.MethodGet && r.URL.Path != "/jsonrpc" && r.URL.Path != "/api" {
+		f.mutations++
+	}
+	if r.URL.Path == "/api/trpc/info.getInfo" {
+		f.infoReads++
+		if f.infoFails || r.Header.Get("ApiKey") != "fixture-key" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": map[string]any{"version": f.version}}}})
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api" {
+		f.otherHomarr++
+	}
 	if strings.HasPrefix(r.URL.Path, "/api/trpc/widget.stats.") {
 		if f.nativeReads == 0 || f.downloads != 1 {
 			f.statsBeforeNative = true
@@ -75,6 +98,11 @@ func (f *nzbgetFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path != "/jsonrpc" {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	f.nativeAttempts++
+	if f.rejectNative {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	user, pass, ok := r.BasicAuth()
@@ -164,17 +192,70 @@ func TestNZBGetVerificationUsesOneSemanticStatsSample(t *testing.T) {
 	}
 }
 
-func TestNZBGetPrivacyHoldPrecedesAllHomarrRequests(t *testing.T) {
-	descriptor := nzbgetTarget()
-	f := newNZBGetFixture()
-	from, to := f.helpers(t, descriptor)
-	if err := descriptor.add(t.Context(), from, to); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("add bypassed privacy hold: %v", err)
+func TestNZBGetPrivacyVersionHoldPrecedesProviderAndMutation(t *testing.T) {
+	for _, scenario := range []struct {
+		name       string
+		version    any
+		unreadable bool
+	}{
+		{"old", "2.4.1", false}, {"before fix", "2.5.0", false}, {"unreviewed", "2.5.3", false},
+		{"unknown", "future", false}, {"missing", nil, false}, {"malformed", float64(2.5), false}, {"unreadable", "2.5.2", true},
+	} {
+		for _, path := range []string{"apply", "Check"} {
+			t.Run(scenario.name+"/"+path, func(t *testing.T) {
+				descriptor := nzbgetTarget()
+				f := newNZBGetFixture()
+				from, to := f.helpers(t, descriptor)
+				f.version, f.infoFails = scenario.version, scenario.unreadable
+				var err error
+				if path == "apply" {
+					err = descriptor.add(t.Context(), from, to)
+				} else {
+					_, err = descriptor.linked(t.Context(), from, to)
+				}
+				if !errors.Is(err, helpers.ErrManual) || f.infoReads != 1 || f.requests != 1 || f.nativeAttempts != 0 || f.otherHomarr != 0 || f.mutations != 0 {
+					t.Fatalf("unsafe version must stop after info.getInfo: err=%v info=%d requests=%d native=%d otherHomarr=%d mutations=%d", err, f.infoReads, f.requests, f.nativeAttempts, f.otherHomarr, f.mutations)
+				}
+			})
+		}
 	}
-	if _, err := descriptor.linked(t.Context(), from, to); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("Check bypassed privacy hold: %v", err)
+}
+
+func TestNZBGetFixedVersionsReachNativeReadiness(t *testing.T) {
+	for _, version := range []string{"2.5.1", "2.5.2"} {
+		t.Run(version, func(t *testing.T) {
+			descriptor := nzbgetTarget()
+			f := newNZBGetFixture()
+			from, to := f.helpers(t, descriptor)
+			f.version = version
+			if err := descriptor.preflight(t.Context(), from, to); err != nil {
+				t.Fatalf("fixed version failed native readiness: %v", err)
+			}
+			if f.infoReads != 1 || f.nativeReads == 0 || f.otherHomarr != 0 || f.downloads != 0 || f.stats.catalogs != 0 || f.stats.refreshes != 0 || f.mutations != 0 {
+				t.Fatalf("preflight must verify native credentials before Homarr acquisition/mutation: info=%d native=%d otherHomarr=%d mutations=%d", f.infoReads, f.nativeReads, f.otherHomarr, f.mutations)
+			}
+		})
 	}
-	if f.requests != 0 || f.nativeReads != 0 || f.downloads != 0 || f.stats.refreshes != 0 || f.stats.catalogs != 0 {
-		t.Fatal("privacy hold allowed native acquisition")
+}
+
+func TestNZBGetRejectedNativeCredentialsPrecedeHomarrMutation(t *testing.T) {
+	for _, version := range []string{"2.5.1", "2.5.2"} {
+		for _, path := range []string{"apply", "Check"} {
+			t.Run(version+"/"+path, func(t *testing.T) {
+				descriptor := nzbgetTarget()
+				f := newNZBGetFixture()
+				from, to := f.helpers(t, descriptor)
+				f.version, f.rejectNative = version, true
+				var err error
+				if path == "apply" {
+					err = descriptor.add(t.Context(), from, to)
+				} else {
+					_, err = descriptor.linked(t.Context(), from, to)
+				}
+				if err == nil || errors.Is(err, helpers.ErrManual) || f.infoReads != 1 || f.nativeAttempts == 0 || f.otherHomarr != 0 || f.mutations != 0 {
+					t.Fatalf("rejected native credentials must fail before Homarr mutation: err=%v info=%d native=%d otherHomarr=%d mutations=%d", err, f.infoReads, f.nativeAttempts, f.otherHomarr, f.mutations)
+				}
+			})
+		}
 	}
 }

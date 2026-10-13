@@ -1,45 +1,30 @@
 # NZBGet Homarr slice: source and local proof
 
-## Native activation: BLOCKED
+## Native activation: fixed-version gate
 
-Private tracker [#354](https://github.com/ajnart/selfhost-skills/issues/354)
-blocks native activation and acceptance. The NZBGet leaf preflight returns
-retryable Manual before any Homarr compatibility request, credential
-creation/update, tile/widget mutation or native query. A currently valid login
-cannot prevent a later rejected-credential request. Standalone NZBGet Setup and
-owned Link removal stay separate. Registry and common reconciliation behavior
-are unchanged; the authorized common hint handoff is recorded below.
+Current-release delivery covers source-reviewed integration support;
+provider/account and hardware runtime verification is deferred. The #354 privacy
+hold now probes authenticated `info.getInfo` first. Only exact Homarr API
+`2.5.1` or `2.5.2` proceeds to the existing NZBGet restricted-login verifier.
+Older, unreadable, malformed, unknown and unreviewed versions remain retryable
+Manual before any peer request, integration/native query or Homarr mutation.
+Do not bypass that hold or create a manual integration. Owned Link removal and
+standalone NZBGet Setup stay separate.
 
-At both Homarr source revisions below, the adapter embeds the username/password
-in the RPC path. On a rejected response, the original `ResponseError` retains
-that Address. Integration settling logs the rejected cause; recursive error and
-metadata formatting retain its string properties. The decorator sanitizes its
-own log copy but rethrows the original cause. Console logging is source-confirmed;
-Redis history and the browser terminal are conditional on Redis logging and
-log-view permission. Ordinary connection-test 401/403 payloads omit the Address
-and are not the established surface. No live leak, negative-auth runtime probe
-or log read was observed or performed.
+[Hotfix #7170](https://github.com/homarr-labs/homarr/pull/7170), shipped in
+2.5.1, moves NZBGet authentication from the RPC path to HTTP Basic headers and
+fixes downstream integration failure logging. The exact 2.5.2 source
+`7eb9a417a60d759adce5f7ac15ceb594aefad471` retains the audited APIs and privacy
+owners unchanged from the fixed 2.5.1 image source. The
+[shared contract](homarr-integration-contract.md) records the authenticated API
+and image/source evidence separately. Those observations do not establish real
+NZBGet native/rendered, provider or lifecycle acceptance.
 
-Resolution needs supported upstream credential transport and a complete privacy
-source review of every error/log destination, including credential-path
-redaction, reconciliation of the exact accepted Homarr version/source contract,
-then separate activation approval before Setup retry. A transport change alone
-does not establish safety; there is no manual integration or credential bypass.
-No proxy, no-auth switch, direct-App-data substitute, upstream disclosure,
-dependency update or activation test was introduced.
-
-The retained common custodian prepared only a three-line NZBGet-specific
-`target.hint` addition in `internal/apps/homarr/links.go`; the parent explicitly
-authorized this lane to stage that exact prepared change without editing it.
-It persists the #354 hold, forbids manual activation/bypass and requires
-transport, complete privacy review, exact source/version verification and
-separate approval before retry. Before staging, its SHA-256 values must remain:
-
-- Full common diff: `9492c61dee2ca526819d8fe085d6d95b75074de41e8cdd2f3ce1f07c5dcb0e6b`.
-- Common file: `c5c27db9e5baa6be266529b6535e9e329386e558b4bc788512602cc289819b7e`.
-
-This handoff changes no common signatures, registration, cleanup or credential
-transport. The hint has source coverage only while this descriptor is unregistered.
+Historically, #354 blocked all Link HTTP because Homarr 2.4.1 embedded
+credentials in the RPC path and preserved the rejected Address through
+ResponseError and downstream logging. No live leak or private log read was
+performed. The common persisted hint remains custodian-owned; this leaf does
+not edit reconciliation, registry or removal behavior.
 
 ## Contract
 
@@ -47,7 +32,7 @@ The descriptor is `nzbgetTarget()` in `internal/apps/homarr/target_nzbget.go`.
 Registry assembly stays with the #262 reference owner: this peer branch does
 not register the descriptor or modify common reconciliation.
 
-Homarr is exactly v2.4.1, tag commit
+The historical Homarr baseline was v2.4.1, tag commit
 `ebbd4876d25a51151444a009ab596e1154d62880`. NZBGet's existing Catalog image
 is `ghcr.io/nzbgetcom/nzbget:v26.3`, tag commit
 `674787848dddabf9047b8fc1a75cf92fe6e41c55`. The parent recorded Homarr
@@ -58,12 +43,12 @@ digest, and these source pins are not runtime compatibility proof.
 
 The native integration kind is case-sensitive `nzbGet`, with `username` and
 `password` secrets. Its internal Address is `http://nzbget:6789`; the
-reference contract resolves the browser Address separately. Homarr's adapter
-POSTs to `/<encoded username>:<encoded password>/jsonrpc`, not HTTP Basic
-headers. NZBGet supports both forms. Our peer readiness uses Basic headers on
+reference contract resolves the browser Address separately. Homarr's
+historical adapter POSTs to `/<encoded username>:<encoded password>/jsonrpc`.
+NZBGet supports both forms. Our peer readiness uses Basic headers on
 `/jsonrpc`, never embeds secrets in a request path or diagnostic. The native
-path remains blocked, not merely pending a runtime redaction check. Do not retain
-raw request/debug logs or provider configuration.
+2.5.1/2.5.2 adapter instead uses HTTP Basic on `/jsonrpc`; older versions
+remain blocked. Do not retain raw request/debug logs or provider configuration.
 
 ## Credentials and recovery
 
@@ -98,7 +83,8 @@ and the same retry. Neither path rotates credentials. This does not use
 `saveconfig`: the tagged implementation omits every unsubmitted non-comment
 setting when rewriting the complete file.
 
-Every App Check probes afresh; the held Link preflight performs no request.
+Every App Check probes afresh. The Link preflight checks the fixed Homarr version
+before invoking the same restricted-login readiness owner.
 RPC readiness requires anonymous RPC
 rejection, the saved Admin login and exact version 26.3, matching restricted
 account settings, authenticated restricted version, explicit numeric
@@ -146,9 +132,9 @@ password value. Missing/extra/duplicate kinds, missing values, an Admin/foreign
 username or an exposed password remain Manual for explicit owned-record repair;
 no record is adopted or credential changed. Null is the upstream redaction
 contract, not proof that the stored password matches. Subsequent peer/native
-authentication would establish that only after #354 is resolved and activation
-is authorized. Queue status, bounded items and supported Stats keys are still
-validated. Downloads uses Homarr's ten-second
+authentication still needs actual native runtime evidence; the fixed-version
+gate alone does not establish it. Queue status, bounded items and supported
+Stats keys are still validated. Downloads uses Homarr's ten-second
 cache; Stats has a separate hourly snapshot/refresh path. Direct peer probes
 are fresh, but catalog/readback alone does not prove a rendered Stats result.
 
@@ -168,13 +154,12 @@ These prove source/local settings decisions, not provider connectivity or
 NZBGet runtime loading. Root-exec-to-daemon
 ownership is supported by the script controls and pinned image source, not
 tested against a real container or different local owner. Leaf source assertions
-cover the unconditional #354 preflight hold and saved-identity/explicit-null
-guards before native queries; they are not executable Homarr metadata acceptance
-or activation tests. No new test functions, cases, files or dependencies were
-added. Existing Homarr tests still exercise the reference descriptors, not this
-unregistered one.
+now check the fixed-version gate before restricted readiness and the saved-identity/
+explicit-null guards before native queries. Focused HTTP fixtures additionally
+exercise the version and credential boundaries; these remain synthetic source
+validation, not real native acceptance. No dependencies were added.
 
-Passed from this clean-base worktree with `GOFLAGS=-buildvcs=false`:
+Historical validation before this fixed-version update, with `GOFLAGS=-buildvcs=false`:
 
 - `go test ./internal/apps/nzbget ./internal/apps/homarr`
 - `gofmt -l .` (empty) and `git diff --check`
@@ -188,8 +173,7 @@ provider connection, Usenet account creation or person's Project access was
 performed. Full functional acceptance remains open:
 
 - Reference-owner registry assembly and a real Homarr-created integration ID.
-- #354 resolution, reviewed exact version/source compatibility and authorization
-  before any native credential write or activation.
+- Real rejected-credential privacy and native activation evidence in the fixed image.
 - Exact running versions and resolved image digests; real root-exec/daemon-owned
   config edit, failure/retry/restart and authentication-path behavior against
   the actual images.
@@ -254,12 +238,20 @@ The affected descriptor tests, shared Stats/Downloads tests, App tests,
 package build/vet, gofmt and diff checks passed. No Docker/browser runtime,
 provider request, download or protected Project state was used.
 
-#354 remains an unconditional pre-mutation Manual hold in both Check and
-apply. An HTTP fixture verifies that neither path makes any request. The
-`verifyData` fixtures exercise the dormant validator directly; they do not
-activate a native integration, clear the hold or attest image privacy.
-A supported fixed Homarr image, complete downstream privacy review, exact
-version/source compatibility review and separate activation authorization
-remain required. Source agreement or a local upstream patch cannot satisfy
-that image prerequisite. The common hint hashes above describe the historical
-prepared handoff, before the custodian resolved the shared SDK forward merge.
+## 13 October fixed-version privacy gate
+
+This leaf forward-merges shared SDK commit
+`a62010719833f6db05810231fd1f1764d387c593` without rewriting history and uses
+`requireCredentialSafeHomarr` before `nzbget.VerifyHomarr`. It preserves the
+managed restricted identity, active/saved account agreement, anonymous RPC
+rejection, native Downloads validators and one shared Stats sample.
+
+Focused fake HTTP fixtures failed against the former unconditional hold and
+passed after this change. Both Check/apply stop after exactly one `info.getInfo`
+request for unsafe/unreadable versions, with no peer or other Homarr request.
+Both fixed versions reach genuine restricted readiness. Rejected native
+credentials fail in both paths before any further Homarr request or mutation.
+The descriptor's native/Stats fixtures and affected App tests pass; formatting,
+package build/vet and diff checks also pass. No Docker, browser, private Project,
+real Usenet request, provider login or download was used. Real rendered and
+lifecycle acceptance remains deferred.

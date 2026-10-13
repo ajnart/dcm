@@ -23,9 +23,11 @@ func nzbgetTarget() target {
 			"columns":             []string{"name", "progress", "downSpeed", "time", "state"},
 			"showCompletedUsenet": true, "limitPerIntegration": 50,
 		}}, statWidget("download", "paused")},
-		preflight: func(_ context.Context, from, _ *helpers.H) error {
-			from.Info("NZBGet native activation is blocked by #354: Homarr 2.4.1 can log a credential-bearing RPC Address after a rejected request. Keep this Link inactive until supported HTTP Basic transport or complete downstream redaction is resolved, the exact Homarr version/source contract is reviewed, and activation is authorized; then retry self-host setup homarr. Standalone NZBGet Setup and owned Link removal remain separate.")
-			return helpers.ErrManual
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			if err := requireCredentialSafeHomarr(ctx, from, "NZBGet credential-safety hold #354: use exactly Homarr 2.5.1 or 2.5.2 with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."); err != nil {
+				return err
+			}
+			return nzbget.VerifyHomarr(ctx, to)
 		},
 		verify: verifyNZBGet,
 		stats:  verifyNZBGetStats,
