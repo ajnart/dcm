@@ -66,7 +66,7 @@ reads the integration account's own listening history, not everyone's total.
 The widget supports exactly one integration. Browser Addresses remain the
 existing Link resolver's responsibility.
 
-The reference owner must register the descriptor. Its preflight and native
+The reference owner has registered the descriptor. Its preflight and native
 verification freshly call `audiobookshelf.VerifyHomarrCredential` before
 connection acceptance.
 No changes here touch `links.go`, shared widgets or the common registry.
