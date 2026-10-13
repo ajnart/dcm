@@ -247,69 +247,8 @@ h1 {
   outline-offset: 6px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .herologo .crate {
-    animation: crate-drop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
-  }
-  .herologo .c4 {
-    animation-delay: 0.15s;
-  }
-  .herologo .c3 {
-    animation-delay: 0.35s;
-  }
-  .herologo .c2 {
-    animation-delay: 0.55s;
-  }
-  .herologo .c1 {
-    animation-delay: 0.75s;
-  }
-  .herologo .light {
-    animation: light-on 0.5s steps(1, end) both;
-  }
-  .herologo .c1 .light {
-    animation-delay: 1.35s;
-  }
-  .herologo .c2 .light {
-    animation-delay: 1.55s;
-  }
-  .herologo .c3 .light {
-    animation-delay: 1.75s;
-  }
-  .herologo .c4 .light {
-    animation-delay: 1.95s;
-  }
-  .herologo.reset .crate,
-  .herologo.reset .light {
-    animation: none;
-  }
-}
-
-@keyframes crate-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-140px);
-  }
-  60% {
-    opacity: 1;
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes light-on {
-  0% {
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  45% {
-    opacity: 0.25;
-  }
-  60% {
-    opacity: 1;
-  }
+.herologo .crate {
+  color: var(--muted);
 }
 
 .cta {

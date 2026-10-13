@@ -1,24 +1,37 @@
 ---
 import svg from "../../public/logo.svg?raw";
 
-const shapes = svg.split("\n").filter((line) => /<(rect|circle)\b/.test(line.trim()));
-const crates: { body: string; light: string }[] = [];
+const shapes = svg.split("\n").map((line) => line.trim()).filter((line) => /^<(rect|circle)\b/.test(line));
+const crates: string[] = [];
 let body: string[] = [];
 for (const shape of shapes) {
-  if (shape.includes("<circle")) {
-    crates.push({ body: body.join(""), light: shape.trim() });
+  if (shape.startsWith("<circle")) {
+    crates.push(body.join(""));
     body = [];
-  } else body.push(shape.trim());
+  } else body.push(shape);
 }
+const bare = (rects: string) => rects.replace(/ fill="[^"]*"/g, "");
+const bottomUp = crates.map((rects, row) => ({ rects, i: crates.length - 1 - row })).reverse();
 ---
 
 <button class="herologo" type="button" aria-label="Replay the logo animation">
   <svg viewBox="0 0 228 216" width="228" height="216" role="img" aria-label="self-host Logo: four stacked containers, gold, cyan, pink and purple, each with a lit status light">
+    <rect class="dock" x="12" y="210" width="180" height="3" fill="#8a8a8a" opacity="0" />
     {
-      crates.map((crate, i) => (
-        <g class={`crate c${i + 1}`}>
-          <g set:html={crate.body} />
-          <g class="light" set:html={crate.light} />
+      bottomUp.map(({ rects, i }) => (
+        <g class="crate" data-i={i}>
+          <g class="trail" fill="currentColor" />
+          <g class="shape">
+            <g set:html={rects} />
+            <g class="tint" fill="#8a8a8a" opacity="0" set:html={bare(rects)} />
+            <g class="glow" fill="#ffffff" opacity="0" set:html={bare(rects)} />
+          </g>
+          <g class="dust" fill="#d0d0d0" />
+          <g class="led">
+            <rect class="streak" x="216" width="12" height="2" fill="#00d787" opacity="0" />
+            <polygon class="spark" points="0,-9 2,-2 9,0 2,2 0,9 -2,2 -9,0 -2,-2" fill="#ffffff" opacity="0" />
+            <circle class="lamp" r="4" fill="#00d787" />
+          </g>
         </g>
       ))
     }
@@ -26,11 +39,7 @@ for (const shape of shapes) {
 </button>
 
 <script>
-  for (const logo of document.querySelectorAll<HTMLButtonElement>(".herologo")) {
-    logo.addEventListener("click", () => {
-      logo.classList.add("reset");
-      void logo.getBoundingClientRect();
-      logo.classList.remove("reset");
-    });
-  }
+  import { mountLogo } from "../scripts/logo.js";
+
+  for (const logo of document.querySelectorAll<HTMLButtonElement>(".herologo")) mountLogo(logo);
 </script>
