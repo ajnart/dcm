@@ -1,0 +1,10 @@
+{
+  "id": "linkwarden",
+  "name": "Linkwarden",
+  "description": "Save web pages you care about and search them later",
+  "category": "Productivity",
+  "image": "ghcr.io/linkwarden/linkwarden:v2.16.3",
+  "docs": "https://docs.linkwarden.app/self-hosting/setup",
+  "port": 3000,
+  "inputs": []
+}

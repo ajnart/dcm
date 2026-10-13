@@ -1,0 +1,10 @@
+{
+  "id": "mayan-edms",
+  "name": "Mayan EDMS",
+  "description": "Store scanned paper documents, make them searchable and route them for review",
+  "category": "Documents",
+  "image": "mayanedms/mayanedms:v4.12.2",
+  "docs": "https://docs.mayan-edms.com/",
+  "port": 8080,
+  "inputs": []
+}

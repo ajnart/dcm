@@ -1,0 +1,23 @@
+{
+  "id": "headscale",
+  "name": "Headscale",
+  "description": "Connect your devices into one private network, without a Tailscale account",
+  "category": "Remote access",
+  "image": "docker.io/headscale/headscale:0.29.4",
+  "docs": "https://headscale.net/stable/setup/install/container/",
+  "port": 18082,
+  "inputs": [
+    {
+      "key": "canonical-origin",
+      "prompt": "Canonical HTTPS origin",
+      "help": "The exact HTTPS origin clients use, e.g. https://headscale.example.com (DNS, TLS and the control-protocol proxy are a separate ingress decision)",
+      "required": true
+    },
+    {
+      "key": "magic-dns-domain",
+      "prompt": "MagicDNS base domain",
+      "help": "A distinct domain for mesh device names, e.g. mesh.example.com; it must differ from the origin host",
+      "required": true
+    }
+  ]
+}

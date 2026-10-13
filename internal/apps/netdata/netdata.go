@@ -4,9 +4,9 @@ package netdata
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/ajnart/self-host/internal/app"
-	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -16,7 +16,7 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "netdata", Name: "Netdata", Category: "Monitoring",
-		Description:   "Watch your computer's performance live, second by second",
+		Description:   "Watch local monitoring data and active alerts",
 		Image:         "netdata/netdata:v2.11.0",
 		Docs:          "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
 		Port:          19999,
@@ -48,11 +48,21 @@ func (App) Compose(rc app.RenderContext) string {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info"}}.Setup(ctx, h)
+	attempt := func(ctx context.Context) (bool, error) {
+		err := VerifyHomarr(ctx, h)
+		return err == nil, err
+	}
+	return h.Step(ctx, "ready", "verify local Netdata alerts and fresh agent metrics", helpers.StepSpec{
+		Check: attempt,
+		Do: func(ctx context.Context) error {
+			return h.Poll(ctx, 2*time.Minute, attempt)
+		},
+		Hint: "Read self-host logs netdata and check its local API and pulse collector, then retry self-host setup netdata. Do not disable authentication or add host access for Homarr.",
+	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	return firstadmin.NoAccount{Probe: firstadmin.Probe{Path: "/api/v1/info"}}.Check(ctx, h)
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }
