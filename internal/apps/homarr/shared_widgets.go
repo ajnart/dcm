@@ -88,11 +88,24 @@ func sharedWidgetCurrent(h *helpers.H, current map[string]any, w widget, integra
 	owned := allOwnedWidgets(h)
 	count := 0
 	found := false
+	entries := []any{}
 	for _, item := range itemsOf(current) {
 		if stringField(item, "kind") != w.kind || !owned[stringField(item, "id")] {
 			continue
 		}
 		count++
+		if w.kind == "stats" {
+			options, _ := item["options"].(map[string]any)
+			partition, _ := options["entries"].([]any)
+			if len(partition) > 100 || smallSharedWidget(current, item) {
+				return false
+			}
+			if wiredTo(item, w.kind, integrationID) {
+				entries = append(entries, partition...)
+				found = true
+			}
+			continue
+		}
 		if wiredTo(item, w.kind, integrationID) {
 			found = widgetCurrent(item, w, integrationID) && !smallSharedWidget(current, item)
 		}
@@ -100,6 +113,9 @@ func sharedWidgetCurrent(h *helpers.H, current map[string]any, w widget, integra
 	// An explicitly unowned widget is left alone.
 	if count == 0 {
 		return hasWidget(itemsOf(current), w.kind, integrationID)
+	}
+	if w.kind == "stats" {
+		return found && widgetCurrent(map[string]any{"options": map[string]any{"entries": entries}}, w, integrationID)
 	}
 	return count == 1 && found
 }
@@ -144,6 +160,7 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 		}
 	}
 	var shared map[string]any
+	partitions := []map[string]any{}
 	removed := map[string]bool{}
 	kept := make([]map[string]any, 0, len(items))
 	ids := []any{}
@@ -191,6 +208,9 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 			continue
 		}
 		collect(item, false)
+		if w.kind == "stats" {
+			partitions = append(partitions, item)
+		}
 		if shared == nil {
 			shared = item
 			kept = append(kept, item)
@@ -202,11 +222,11 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 		return nil
 	}
 	collect(map[string]any{"integrationIds": []any{integrationID}, "options": widgetOptions(w, integrationID)}, true)
+	if w.kind == "stats" {
+		return ensureStatsPartitions(ctx, h, current, partitions, ids, entries, integrationID, owned)
+	}
 	if shared == nil {
 		options := w.options
-		if w.kind == "stats" {
-			options = map[string]any{"entries": entries}
-		}
 		id, err := addItemID(ctx, h, map[string]any{
 			"boardId": stringField(current, "id"), "kind": w.kind, "options": options,
 			"size": widgetInitialSize(w.kind), "integrationIds": ids,
@@ -217,14 +237,6 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 		shared = map[string]any{"id": id}
 	} else {
 		shared["integrationIds"] = ids
-		if w.kind == "stats" {
-			options, _ := shared["options"].(map[string]any)
-			if options == nil {
-				options = map[string]any{}
-			}
-			options["entries"] = entries
-			shared["options"] = options
-		}
 		if smallSharedWidget(current, shared) {
 			resizeItem(current, shared, kept, 4, 3, true)
 		}
@@ -248,6 +260,132 @@ func ensureSharedWidget(ctx context.Context, h *helpers.H, w widget, integration
 				delete(owned, removedID)
 			}
 			owned[stringField(shared, "id")] = true
+		}
+	}
+	return nil
+}
+
+// Homarr 2.4.1 accepts at most 100 entries per Stats item. Keep entry IDs and
+// display options while spreading only recorded owned items across that limit.
+func ensureStatsPartitions(ctx context.Context, h *helpers.H, current map[string]any, previous []map[string]any, ids, entries []any, integrationID string, owned map[string]bool) error {
+	count := max(1, (len(entries)+99)/100)
+	partitions := make([]map[string]any, 0, count)
+	bindings := map[string]bool{}
+	for index := 0; index < count; index++ {
+		partitionEntries := entries[min(index*100, len(entries)):min((index+1)*100, len(entries))]
+		partitionIDs := []any{}
+		seen := map[string]bool{}
+		for _, raw := range partitionEntries {
+			entry, _ := raw.(map[string]any)
+			id := stringField(entry, "integrationId")
+			if id != "" && !seen[id] {
+				partitionIDs = append(partitionIDs, id)
+				seen[id], bindings[id] = true, true
+			}
+		}
+		options := map[string]any{}
+		var item map[string]any
+		if index < len(previous) {
+			item = previous[index]
+		} else if len(previous) > 0 {
+			item = map[string]any{"options": previous[0]["options"]}
+		} else {
+			item = map[string]any{}
+		}
+		existing, _ := item["options"].(map[string]any)
+		for key, value := range existing {
+			options[key] = value
+		}
+		options["entries"] = partitionEntries
+		if index >= len(previous) {
+			id, err := addItemID(ctx, h, map[string]any{
+				"boardId": stringField(current, "id"), "kind": "stats", "options": options,
+				"size": widgetInitialSize("stats"), "integrationIds": partitionIDs,
+			})
+			if err != nil {
+				return err
+			}
+			item = map[string]any{"id": id, "kind": "stats"}
+			// Record creation before the board save so a rejected save can retry
+			// against this owned partition rather than leaving an unclaimed item.
+			for _, raw := range partitionIDs {
+				boundID, _ := raw.(string)
+				ownership := ownedWidgets(h, boundID)
+				ownership[id] = true
+				data, _ := json.Marshal(ownership)
+				if err := h.SetSecret(h.Key("widgets_"+boundID), string(data)); err != nil {
+					return err
+				}
+				if boundID == integrationID {
+					owned[id] = true
+				}
+			}
+		}
+		item["options"], item["integrationIds"] = options, partitionIDs
+		partitions = append(partitions, item)
+	}
+	// Preserve selected bindings even when the person left them without entries.
+	for _, raw := range ids {
+		id, _ := raw.(string)
+		if !bindings[id] {
+			partitions[0]["integrationIds"] = append(partitions[0]["integrationIds"].([]any), raw)
+		}
+	}
+	latest, err := board(ctx, h)
+	if err != nil {
+		return err
+	}
+	byID := map[string]map[string]any{}
+	retired := map[string]bool{}
+	for _, item := range previous {
+		retired[stringField(item, "id")] = true
+	}
+	for _, item := range partitions {
+		id := stringField(item, "id")
+		byID[id] = item
+		delete(retired, id)
+	}
+	kept := []map[string]any{}
+	for _, item := range itemsOf(latest) {
+		id := stringField(item, "id")
+		if retired[id] {
+			continue
+		}
+		if update, ok := byID[id]; ok {
+			item["options"], item["integrationIds"] = update["options"], update["integrationIds"]
+		}
+		kept = append(kept, item)
+	}
+	for _, item := range kept {
+		if byID[stringField(item, "id")] != nil && smallSharedWidget(latest, item) {
+			resizeItem(latest, item, kept, 4, 3, true)
+		}
+	}
+	if err := saveItems(ctx, h, latest, kept); err != nil {
+		return err
+	}
+	for _, raw := range ids {
+		id, _ := raw.(string)
+		ownership := ownedWidgets(h, id)
+		for _, item := range previous {
+			delete(ownership, stringField(item, "id"))
+		}
+		for _, item := range partitions {
+			if wiredTo(item, "stats", id) {
+				ownership[stringField(item, "id")] = true
+			}
+		}
+		data, _ := json.Marshal(ownership)
+		if err := h.SetSecret(h.Key("widgets_"+id), string(data)); err != nil {
+			return err
+		}
+		if id == integrationID {
+			for _, item := range previous {
+				delete(owned, stringField(item, "id"))
+			}
+			for itemID, yes := range ownership {
+				owned[itemID] = yes
+			}
 		}
 	}
 	return nil
