@@ -1,0 +1,35 @@
+internal/cli/profile.go
+  s_2ee16f89e90212::t_51a332ecf8bf6d 41
+internal/cli/telemetry.go
+  s_2ee16f89e90212::t_8c1177a22118ee 51
+internal/cli/telemetry_test.go
+  s_2ee16f89e90212::t_d0de6546a65e84 530-550
+internal/telemetry/telemetry.go
+  s_2ee16f89e90212::t_66486a99ea8d89 109-122,273-297,490-492,522-526
+internal/telemetry/telemetry_test.go
+  s_2ee16f89e90212::t_d55b3a250496ac 789-868
+internal/tui/backend.go
+  s_2ee16f89e90212::t_82eb036ab31182 122-124,148-151
+internal/tui/harness_test.go
+  s_2ee16f89e90212::t_24ae10e2f80295 29,99-100,136-147
+internal/tui/onboarding.go
+  s_2ee16f89e90212::t_a295204c6fceb2 10,23,94-97,113,779,845-869
+internal/tui/onboarding_telemetry_test.go
+  s_2ee16f89e90212::t_86852c9cf21fdd 12,14,19,271-356
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a59ab5cd3dfbca75e6d3ffc252265f5efe22324",
+  "prompts": {},
+  "sessions": {
+    "s_2ee16f89e90212": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "43462e39-ff1e-462e-a209-a2b4f1fd2107",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
