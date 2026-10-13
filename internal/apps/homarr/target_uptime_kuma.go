@@ -29,6 +29,7 @@ func uptimeKumaTarget() target {
 			return err
 		},
 		verify: verifyUptimeKuma,
+		stats:  verifyUptimeKumaStats,
 	}
 }
 
@@ -96,22 +97,26 @@ func verifyUptimeKuma(ctx context.Context, from, to *helpers.H, integrationID st
 	if *dashboard.Up != counts["up"] || *dashboard.Down != counts["down"] || *dashboard.Paused != counts["paused"] || math.Abs(*dashboard.Average-uptimeSum/math.Max(uptimeCount, 1)) > 0.000001 {
 		return errors.New("Homarr returned inconsistent Uptime Kuma status counts or uptime")
 	}
-	value, err = apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	catalog, _ := value.(map[string]any)
-	metrics, _ := catalog["metrics"].([]any)
-	for _, key := range []string{"totalMonitors", "upCount", "downCount", "averageUptimePercent"} {
-		if !slices.ContainsFunc(metrics, func(raw any) bool {
-			metric, _ := raw.(map[string]any)
-			return stringField(metric, "key") == key
-		}) {
-			return errors.New("Homarr is missing a supported Uptime Kuma Stats field; retry Setup with Homarr 2.4.1")
-		}
-	}
 	if len(monitors) == 0 {
 		from.Info("The selected Uptime Kuma status page is valid but empty; no monitor health or rendered widget result has been verified.")
+	}
+	return nil
+}
+
+func verifyUptimeKumaStats(sample statsSample) error {
+	for _, key := range []string{"totalMonitors", "upCount", "downCount"} {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || math.Trunc(count) != count {
+			return errors.New("Homarr returned invalid Uptime Kuma Stats counts or units; retry Setup")
+		}
+	}
+	average, ok := sample.values["averageUptimePercent"].(float64)
+	if sample.units["averageUptimePercent"] != "percent" || !ok || math.IsNaN(average) || math.IsInf(average, 0) || average < 0 || average > 100 {
+		return errors.New("Homarr returned an invalid Uptime Kuma Stats uptime percentage or unit; retry Setup")
+	}
+	total := sample.values["totalMonitors"].(float64)
+	if sample.values["upCount"].(float64)+sample.values["downCount"].(float64) > total || total == 0 && average != 0 {
+		return errors.New("Homarr returned inconsistent Uptime Kuma Stats counts or uptime; retry Setup")
 	}
 	return nil
 }
