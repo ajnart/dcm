@@ -1,0 +1,77 @@
+{
+  "project": "/home/you/.self-host",
+  "home": "/home/you/.self-host",
+  "dashboard": "http://192.168.1.50:3000",
+  "exposure": "lan",
+  "access": ["home"],
+  "lan_ip": "192.168.1.50",
+  "profile": {"experience": "new"},
+  "apps": [
+    {
+      "id": "jellyfin",
+      "description": "Stream your movies and shows to every screen in the house",
+      "url": "http://192.168.1.50:8096",
+      "addresses": ["http://192.168.1.50:8096"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "seerr",
+      "description": "Ask for a film or show and have it arrive for you to watch",
+      "url": "http://192.168.1.50:5055",
+      "addresses": ["http://192.168.1.50:5055"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "sonarr",
+      "description": "Watch for new episodes of the shows you follow and fetch them",
+      "url": "http://192.168.1.50:8989",
+      "addresses": ["http://192.168.1.50:8989"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "radarr",
+      "description": "Watch for new films and fetch them for you",
+      "url": "http://192.168.1.50:7878",
+      "addresses": ["http://192.168.1.50:7878"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "prowlarr",
+      "description": "Keep the places you find shows and films from in one list",
+      "url": "http://192.168.1.50:9696",
+      "addresses": ["http://192.168.1.50:9696"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    },
+    {
+      "id": "qbittorrent",
+      "description": "Download the shows and films you ask for",
+      "url": "http://192.168.1.50:8080",
+      "addresses": ["http://192.168.1.50:8080"],
+      "state": "running",
+      "health": "ok",
+      "recipe": "media",
+      "setup": "ok",
+      "failed_steps": []
+    }
+  ]
+}

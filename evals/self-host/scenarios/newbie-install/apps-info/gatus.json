@@ -1,0 +1,10 @@
+{
+  "id": "gatus",
+  "name": "Gatus",
+  "description": "Check that your apps are working and see them on a status page",
+  "category": "Monitoring",
+  "image": "ghcr.io/twin/gatus:v5.37.0",
+  "docs": "https://github.com/TwiN/gatus/blob/v5.37.0/README.md",
+  "port": 8080,
+  "inputs": []
+}

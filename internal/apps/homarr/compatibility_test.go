@@ -83,7 +83,7 @@ func TestSupportedVersionKeepsNormalQueryFailure(t *testing.T) {
 	t.Cleanup(server.Close)
 	h := helpers.New(helpers.Config{App: "homarr", BaseURL: server.URL, HTTP: server.Client(), Log: events.Discard(), Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key"}})
 	err := supportedVersion(t.Context(), h)
-	if err == nil || errors.Is(err, helpers.ErrManual) || !strings.HasPrefix(err.Error(), "cannot verify Homarr compatibility; use Homarr 2.4.1, 2.5.1 or 2.5.2") {
+	if err == nil || errors.Is(err, helpers.ErrManual) || !strings.HasPrefix(err.Error(), "cannot verify Homarr compatibility; use Homarr "+supportedHomarrVersions) {
 		t.Fatalf("normal compatibility query failure changed: %v", err)
 	}
 }

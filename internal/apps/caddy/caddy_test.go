@@ -35,6 +35,12 @@ func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *he
 
 func healthServer(status int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/reverse_proxy/upstreams" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(`[{"address":"127.0.0.1:2019","num_requests":0,"fails":0}]`))
+			return
+		}
 		if r.URL.Path != "/health" {
 			http.NotFound(w, r)
 			return
@@ -79,7 +85,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if err := (caddy.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("second Setup: %v", err)
 	}
-	if statuses := statusOf(results); len(statuses) != 1 || statuses[0] != stepstatus.StepSkip {
+	if statuses := statusOf(results); len(statuses) != 2 || statuses[0] != stepstatus.StepSkip || statuses[1] != stepstatus.StepSkip {
 		t.Fatalf("rerun statuses = %v, want every step skipped", statuses)
 	}
 }
