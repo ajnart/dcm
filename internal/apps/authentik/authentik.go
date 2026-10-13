@@ -17,6 +17,13 @@ import (
 // App is Authentik. Traps: docs/catalog/traps/authentik.md.
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + "@selfhost.local"
+}
+
 const (
 	service = "authentik"
 	admin   = "akadmin"
